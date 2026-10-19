@@ -445,7 +445,9 @@
       "game": "Spiel {{letter}}:",
       "work": "Arbeit {{letter}}:",
       "both": "Laufwerk {{letter}}:",
-      "drive": "Laufwerk"
+      "drive": "Laufwerk",
+      "of": "von",
+      "aria": "Uploader {{run}} von {{total}}"
     },
     "threads": "{{n}} Threads",
     "unitIops": "Zugriffe/s",
@@ -456,7 +458,7 @@
     },
     "num": {
       "pc": "Ganzer PC",
-      "run": "Uploader",
+      "run": "Uploader-Lauf",
       "limit": "Grenze",
       "used": "Belegt",
       "app": "Uploader-App",
@@ -466,7 +468,11 @@
       "write": "Schreiben",
       "iops": "Zugriffe",
       "share": "Anteil Uploader",
-      "perOp": "Ø pro Zugriff"
+      "perOp": "Ø pro Zugriff",
+      "uploader": "Uploader (Lauf + App)",
+      "vramUsed": "VRAM belegt",
+      "vramRun": "VRAM Uploader",
+      "vramTotal": "VRAM gesamt"
     },
     "tip": {
       "cpu": "Auslastung aller {{threads}} Threads, gemessen wie die Spalte „CPU“ im Task-Manager (inkl. Turbo-Takt). Der Wert wird jede Sekunde neu gemessen und springt bei einem Lauf stark, deshalb zeigt ein Vergleich mit dem Task-Manager selten dieselbe Zahl. 10 % bleiben immer für Windows.",
@@ -487,7 +493,11 @@
       "atLimit": "Am Tempomat",
       "atLimitText": "Der Uploader nimmt gerade so viel, wie der Tempomat erlaubt. Mehr Spielraum = schneller, aber andere Programme merken es.",
       "heldTitle": "Gebremst · {{drive}}",
-      "held": "Der Uploader wartet gerade zu {{pct}} % auf dieses Laufwerk: Seine {{which}} ({{limit}}) ist erreicht oder das Laufwerk ist voll beschäftigt. Höhere Grenze = schneller, aber andere Programme merken es."
+      "held": "Der Uploader wartet gerade zu {{pct}} % auf dieses Laufwerk: Seine {{which}} ({{limit}}) ist erreicht oder das Laufwerk ist voll beschäftigt. Höhere Grenze = schneller, aber andere Programme merken es.",
+      "runOnly": "Blau = Uploader: der Lauf und die App selbst. Der Tempomat begrenzt nur den Lauf — der blaue Anteil kann die Grenze um den Teil der App überschreiten.",
+      "gpu": "Auslastung der Grafikkarte wie im Task-Manager: je Engine-Typ die Summe aller Programme, angezeigt wird der stärkste Typ. Der Uploader nutzt die GPU für Silhouetten und 3D-Modelle.",
+      "scale": "Die Skala wächst mit dem höchsten Wert, der auf diesem PC gemessen wurde.",
+      "tempoGpu": "Tempomat · GPU {{value}} — Ziehen oder ←/→: so viel der Grafikkarte darf der Uploader für Silhouetten und 3D-Modelle nutzen. Ganz links = GPU aus, dann rechnet alles auf der CPU. Windows kann die GPU nicht hart begrenzen — der Wert kann kurz darüber liegen."
     },
     "limitName": {
       "readMBs": "Lesegrenze",
@@ -516,13 +526,10 @@
       "ram": "Wofür braucht der Uploader Arbeitsspeicher? Codex: die DataCore liegt komplett im Speicher (viel). Silhouetten und 3D: ein Puffer pro Worker (mittel) — die Grenze legt fest, wie viele Worker starten. ●●● = mehr Arbeitsspeicher macht diesen Schritt spürbar schneller.",
       "game": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k: Codex liest am meisten (viel), Silhouetten und 3D lesen Modelle nach (mittel). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
       "work": "Wofür braucht der Uploader dieses Laufwerk? Er schreibt Ergebnisse und Zwischenspeicher: Codex wenig, Silhouetten mittel, 3D am meisten (Modelle und Pakete). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
-      "both": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k (Codex am meisten) und schreibt Ergebnisse und Zwischenspeicher (3D am meisten). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller."
+      "both": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k (Codex am meisten) und schreibt Ergebnisse und Zwischenspeicher (3D am meisten). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
+      "gpu": "Wofür braucht der Uploader die Grafikkarte? Codex: gar nicht. Silhouetten: Umrisse rastern (viel). 3D: Modelle umrechnen (viel). ●●● = mehr GPU macht diesen Schritt spürbar schneller."
     },
     "gpu": "GPU",
-    "gpuNone": "nicht erkannt",
-    "gpuSwitch": "Für Silhouetten / 3D nutzen",
-    "gpuTip": "Rastert die Silhouetten-Umrisse auf der Grafikkarte statt auf dem Prozessor. Startet die Grafikkarte nicht, rechnet der Uploader automatisch auf dem Prozessor weiter. Gilt ab dem nächsten Schritt.",
-    "gpuUnavailable": "Auf diesem PC kann der GPU-Pfad nicht laufen (keine passende Grafikkarte oder kein Treiber) — Silhouetten und 3D rechnen auf dem Prozessor.",
     "presetsAria": "Voreinstellungen",
     "preset": {
       "gaming": "Beim Spielen",
@@ -542,7 +549,29 @@
       "tipLast": "Geschätzte Restdauer nach dem letzten Lauf auf diesem PC — sobald genug Fortschritt da ist, wird live gemessen.",
       "tipStep": "Nur der laufende Schritt: die übrigen liefen auf diesem PC noch nie ganz durch.",
       "tipScale": "Andere Stufen sind über die Zahl paralleler Worker hochgerechnet; Upload und Netz werden dadurch nicht schneller."
-    }
+    },
+    "trio": {
+      "run": "Uploader",
+      "others": "andere",
+      "free": "frei"
+    },
+    "dial": {
+      "pc": "ganzer PC",
+      "scale": "0–{{top}} {{unit}}"
+    },
+    "seg": {
+      "aria": "Angezeigter Wert",
+      "load": "Auslastung",
+      "vram": "VRAM"
+    },
+    "aside": {
+      "active": "aktiv {{pct}}"
+    },
+    "gpuLoad": "GPU-Last",
+    "gpuOffShort": "aus",
+    "gpuOffHint": "GPU aus — nach rechts ziehen, um Silhouetten und 3D-Modelle auf der Grafikkarte zu berechnen (deutlich schneller als die CPU)",
+    "gpuNoneTitle": "Keine GPU erkannt",
+    "gpuNoneHint": "Silhouetten und 3D-Modelle werden auf der CPU berechnet."
   },
   "pipeline": {
     "stepOf": "Schritt {{n}} von {{total}}",

@@ -2,28 +2,43 @@
  * Performance dock — the always-present panel at the bottom of the window where
  * the operator decides how much of the PC a run may take.
  *
+ * One colour language everywhere (cells AND dials): the uploader's share is
+ * accent blue — the run (sidecar tree) PLUS the app's own processes; other
+ * programs are white; free is the dark well. The Tempomat (cruise control)
+ * limits only the run, so the blue share may sit above a limit by the app's
+ * part — the tooltips say so and keep run / app / limit as separate numbers.
+ *
  * Folded it is one strip in one rounded frame: the PERFORMANCE tab (preset
- * name, ▴) and one cell per resource — CPU, RAM, then one per drive the run
- * touches (game drive, work drive, or one cell when both are the same disk).
- * A cell's bar is split: the run solid from 0, other programs hatched up to the
- * whole PC's load, the white tick is the limit.
+ * name, ▴) and one cell per resource — CPU, RAM, one per drive the run touches
+ * (game drive, work drive, or one cell when both are the same disk) and the
+ * GPU while the uploader may use it (gpuPct > 0, GPU available). A cell is
+ * icon · label · a 12-LED bar · "41 % von 100 %" (uploader first, then the
+ * whole PC), always in percent: RAM of the total RAM, a drive's active time,
+ * the GPU's load. The LED bars stay when the dock unfolds; the icons go.
  *
- * Unfolded, one box grows out of the strip per resource (plus the GPU), the
- * rest of the app dims, and the preset pills sit in the tab. Each dial:
+ * Unfolded, one card per resource grows out of the strip, the rest of the app
+ * dims, and the preset pills sit in the tab. Every card is the same grid —
+ * header · gauge (identical size in every card) · control row (fixed height,
+ * empty for CPU/RAM) · phase pips — so gauges and pips line up across cards.
  *
- *   - the needle is the whole PC's load, the number Task Manager shows;
- *   - the solid arc from 0 is the run's share of it, the dashed arc from there
- *     to the needle is other programs;
- *   - the Tempomat (cruise control) is the limit: a tick across the ring with
- *     a round knob outside it — the only part that can be dragged (or focus the
- *     dial and use the arrow keys);
- *   - calm = accent, at its limit = bright glow, held back by a disk budget =
- *     amber glow on the arc, the box and the folded cell, explained in their
- *     tooltip.
+ * The gauge is a segment ring: ~30 segments lit blue up to the uploader, white
+ * up to the whole PC, dark beyond; a small pointer tip marks the total, the big
+ * centre number is the total, a trio below names Uploader · andere · frei with
+ * units. The Tempomat is a blue knob outside the ring — the only part that
+ * drags (or focus the dial and use the arrow keys); calm = accent, at its limit
+ * = bright glow, held back by a disk budget = amber, explained in the tooltip.
  *
- * Drive boxes show active time (Task Manager's "Disk") and response time. The
- * disk limits (read / write / operations) are ONE budget for the run, scaled
- * to the game drive, so their knobs live only in the game drive's box.
+ * Drive cards: a segmented toggle Lesen / Schreiben / Zugriffe picks the metric
+ * the gauge shows (whole-PC value of the disk + the run's share). The disk
+ * limits are ONE budget for the run, scaled to the game drive, so only the
+ * game / both drive's gauge carries a knob. The default metric is the budget
+ * holding the run back (`defaultDiskMetric`), else read — picked once per
+ * unfold, never switched while open. Every disk scale adapts to the highest
+ * load measured on this PC (persisted peaks, grow-only — `diskScaleTop`).
+ *
+ * GPU card: Auslastung | VRAM; the load gauge's knob is `gpuPct` (0 = GPU off,
+ * the gauge dims and says how to turn it on). Without a usable GPU there is no
+ * knob, only a note that silhouettes and 3D run on the CPU.
  *
  * Every metric has a tooltip with live numbers; Ø / max of the last 60 s live
  * only there (a ring buffer per metric, `lib/dock-metrics.ts`).
@@ -42,16 +57,17 @@
 import { getLocale, t } from '../lib/i18n.js';
 import {
   PRESET_IDS,
+  diskScaleTop,
   dumpWorkers,
-  measuredScaleTop,
   presetLimits,
   ramOthersMb,
+  type LimitKey,
   type PresetId,
   type Range,
-  type ResourceKey,
   type MachineInfo,
   type ResourceLimits,
   type ResourceSample,
+  type SampleGpu,
 } from '../lib/resource-limits.js';
 import { estimateFor, formatApprox, type RunEstimate } from '../lib/run-estimate.js';
 import type { DriveLoad, DriveSlot, GpuInfo } from '../lib/drive-load.js';
@@ -60,10 +76,11 @@ import {
   PHASES,
   bindingDiskLimit,
   boostLevels,
+  defaultDiskMetric,
   dots,
   driveRunPct,
+  ledSplit,
   padCell,
-  splitBar,
   type BoostSubject,
   type DiskLimitKey,
 } from '../lib/dock-metrics.js';
@@ -73,7 +90,7 @@ import { refreshTooltip } from './tooltip.js';
 export interface ResourceViewLike {
   machine: { cores: number; totalRamMb: number; disk: { kind: string; readMBs: number; writeMBs: number; iops: number } };
   limits: ResourceLimits;
-  ranges: Record<ResourceKey, Range>;
+  ranges: Record<LimitKey, Range>;
   preset: PresetId | null;
   supported: boolean;
   liveJobs: number;
@@ -83,12 +100,18 @@ export interface ResourceViewLike {
   gpu: GpuInfo;
 }
 
+type GpuMetric = 'load' | 'vram';
+
 const EXPANDED_KEY = 'sc.resourceDock.expanded';
 const PEAK_KEY = 'sc.resourceDock.diskPeak';
 /** Session flag: the knobs pulse once, on the first unfold of a session. */
 const PULSED_KEY = 'sc.resourceDock.pulsed';
 
 const DISK_KEYS: readonly DiskLimitKey[] = ['readMBs', 'writeMBs', 'iops'];
+const GPU_METRICS: readonly GpuMetric[] = ['load', 'vram'];
+/** Cells of the strip's LED bar and segments of a dial's ring. */
+const LEDS = 12;
+const SEGMENTS = 30;
 
 let view: ResourceViewLike | null = null;
 let sample: ResourceSample | null = null;
@@ -98,23 +121,30 @@ let expanded = false;
  * back — and its scale top, frozen for the drag: a measured scale follows the
  * limit, and a scale moving under the pointer would chase the knob away.
  */
-let dragging: { key: ResourceKey; value: number; max: number } | null = null;
-/** Highest whole-PC disk load seen on this PC — the scale of a drive of unknown type. */
+let dragging: { key: LimitKey; value: number; max: number } | null = null;
+/** Highest whole-PC disk load seen on this PC — the scale of every drive gauge. */
 let diskPeak: Record<DiskLimitKey, number> = { readMBs: 0, writeMBs: 0, iops: 0 };
+/** Scale tops already drawn, per drive and metric — a scale only grows. */
+const scaleTops = new Map<string, number>();
 let commitTimer: number | null = null;
 let pending: Partial<ResourceLimits> = {};
-/** Drive layout the markup was built for — a new layout needs a new render. */
+/** Layout the markup was built for (drives, GPU cell) — a new layout needs a new render. */
 let layoutSig = '';
 const history = new History();
 /** The run's duration estimate under the limits in force, or null (nothing honest to say). */
 let estimate: RunEstimate | null = null;
+/** Metric each drive card shows — picked at unfold, kept until the dock folds. */
+const diskSel = new Map<string, DiskLimitKey>();
+let gpuSel: GpuMetric = 'load';
 
-// Dial geometry (viewBox 0 0 160 100).
+// Dial geometry (viewBox 0 0 160 108).
 const START = -120;
 const SWEEP = 240;
 const CX = 80;
-const CY = 58;
-const R = 44;
+const CY = 60;
+const R = 42;
+/** Gap between two ring segments, degrees. */
+const SEG_GAP = 1.8;
 
 function dock(): HTMLElement | null {
   return document.getElementById('resource-dock');
@@ -147,9 +177,10 @@ function dec(v: number, digits: number): string {
   return getLocale() === 'de' ? s.replace('.', ',') : s;
 }
 
-function unit(key: ResourceKey): string {
+function unit(key: LimitKey): string {
   switch (key) {
     case 'cpuPct':
+    case 'gpuPct':
       return '%';
     case 'ramMb':
       return 'GB';
@@ -163,9 +194,10 @@ function unit(key: ResourceKey): string {
 }
 
 /** The number alone, in the resource's display unit. */
-function num(key: ResourceKey, v: number): string {
+function num(key: LimitKey, v: number): string {
   switch (key) {
     case 'cpuPct':
+    case 'gpuPct':
       return String(Math.round(v));
     case 'ramMb':
       return dec(v / 1024, v >= 10240 * 10 ? 0 : 1);
@@ -179,13 +211,13 @@ function num(key: ResourceKey, v: number): string {
   }
 }
 
-function fmt(key: ResourceKey, v: number): string {
+function fmt(key: LimitKey, v: number): string {
   // A run that holds a few dozen MB is not "0,0 GB".
   if (key === 'ramMb' && v > 0 && v < 1024) return `${Math.round(v)} MB`;
   return `${num(key, v)} ${unit(key)}`;
 }
 
-function fmtOr(key: ResourceKey, v: number | null | undefined): string {
+function fmtOr(key: LimitKey, v: number | null | undefined): string {
   return typeof v === 'number' && Number.isFinite(v) ? fmt(key, v) : '—';
 }
 
@@ -197,6 +229,12 @@ function msText(v: number | null | undefined): string {
   return typeof v === 'number' && Number.isFinite(v) ? `${dec(v, v >= 10 ? 0 : 1)} ms` : '—';
 }
 
+/** A disk value: the label already names what is counted, so operations read "640/s". */
+function rowValue(key: DiskLimitKey, v: number | null | undefined): string {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+  return key === 'iops' ? `${num('iops', v)}/s` : fmt(key, v);
+}
+
 const LIMIT_LABEL: Record<DiskLimitKey, string> = {
   readMBs: 'res.num.read',
   writeMBs: 'res.num.write',
@@ -205,22 +243,56 @@ const LIMIT_LABEL: Record<DiskLimitKey, string> = {
 
 // ── data access ─────────────────────────────────────────────────────────────
 
-/** A drive of unknown type: its nominal caps are a guess, so its scales are measured. */
-function measuredScale(v: ResourceViewLike): boolean {
-  return v.machine.disk.kind === 'unknown';
-}
-
-function isDiskKey(key: ResourceKey): key is DiskLimitKey {
+function isDiskKey(key: LimitKey): key is DiskLimitKey {
   return (DISK_KEYS as readonly string[]).includes(key);
 }
 
+/** The drive layout; before an install is selected one unnamed drive stands for the run's disk. */
+function slots(): DriveSlot[] {
+  if (view?.drives.length) return view.drives;
+  return [{ letter: '', letters: [], role: 'both', kind: (view?.machine.disk.kind ?? 'unknown') as DriveSlot['kind'] }];
+}
+
+function slotId(slot: DriveSlot): string {
+  return `drive-${slot.role}-${slot.letter || 'x'}`;
+}
+
+/** The drive the disk budget belongs to (and whose gauge carries its knob). */
+function hasLimits(slot: DriveSlot): boolean {
+  return slot.role !== 'work';
+}
+
+function limitSlot(): DriveSlot | undefined {
+  return slots().find(hasLimits);
+}
+
+function loadOf(slot: DriveSlot): DriveLoad | null {
+  return sample?.drives.find((d) => d.letter === slot.letter && d.role === slot.role) ?? null;
+}
+
+function cellLabel(slot: DriveSlot): string {
+  return slot.letter ? t(`res.cell.${slot.role}`, { letter: slot.letter }) : t('res.cell.drive');
+}
+
+function driveName(slot: DriveSlot): string {
+  return slot.letter ? t(`res.driveName.${slot.role}`, { letter: slot.letter }) : t('res.cell.drive');
+}
+
+/** Scale top of a drive gauge: the highest load measured so far, grow-only. */
+function diskTop(key: DiskLimitKey, v: ResourceViewLike, slot: DriveSlot | undefined): number {
+  const id = `${slot ? slotId(slot) : 'x'}:${key}`;
+  const lim = slot && hasLimits(slot) ? limitOf(key) : 0;
+  const top = diskScaleTop(diskPeak[key], lim, v.ranges[key].min, v.ranges[key].max, scaleTops.get(id) ?? 0);
+  scaleTops.set(id, top);
+  return top;
+}
+
 /** Top of the drawn scale (the limit range may stop short of it). */
-function scaleMax(key: ResourceKey, v: ResourceViewLike): number {
+function scaleMax(key: LimitKey, v: ResourceViewLike, slot: DriveSlot | undefined = limitSlot()): number {
   if (dragging?.key === key) return dragging.max;
-  if (key === 'cpuPct') return 100;
   if (key === 'ramMb') return v.machine.totalRamMb;
-  if (isDiskKey(key) && measuredScale(v)) return measuredScaleTop(diskPeak[key], limitOf(key), v.ranges[key].min);
-  return v.ranges[key].max;
+  if (isDiskKey(key)) return diskTop(key, v, slot);
+  return 100;
 }
 
 function loadDiskPeak(): void {
@@ -239,7 +311,7 @@ function loadDiskPeak(): void {
 function notePeak(s: ResourceSample): void {
   let grew = false;
   for (const key of DISK_KEYS) {
-    const v = diskTotal(key, s);
+    const v = Math.max(diskTotal(key, s), ...s.drives.map((d) => d[key] ?? 0));
     if (v > diskPeak[key]) {
       diskPeak = { ...diskPeak, [key]: v };
       grew = true;
@@ -265,9 +337,14 @@ function diskTotal(key: DiskLimitKey, s: ResourceSample | null): number {
   return sys ?? s[key];
 }
 
-function limitOf(key: ResourceKey): number {
+function limitOf(key: LimitKey): number {
   if (dragging?.key === key) return dragging.value;
   return pending[key] ?? view?.limits[key] ?? 0;
+}
+
+/** The uploader's CPU share: the run plus the app itself. */
+function cpuUploader(s: ResourceSample | null): number {
+  return s ? s.cpuRunPct + (s.cpuAppPct ?? 0) : 0;
 }
 
 /** RAM others hold right now cannot be handed to the run. */
@@ -275,31 +352,36 @@ function ramTaken(v: ResourceViewLike, s: ResourceSample | null): number {
   return s ? ramOthersMb(s) + s.ramAppMb : v.machine.totalRamMb - v.ranges.ramMb.max;
 }
 
-/** The drive layout; before an install is selected one unnamed drive stands for the run's disk. */
-function slots(): DriveSlot[] {
-  if (view?.drives.length) return view.drives;
-  return [{ letter: '', letters: [], role: 'both', kind: (view?.machine.disk.kind ?? 'unknown') as DriveSlot['kind'] }];
+function gpuSample(): SampleGpu | null {
+  return sample?.gpu ?? null;
 }
 
-function slotId(slot: DriveSlot): string {
-  return `drive-${slot.role}-${slot.letter || 'x'}`;
+function gpuAvailable(): boolean {
+  return Boolean(view?.gpu.available);
 }
 
-/** The drive the disk budget belongs to (and whose box carries its knobs). */
-function hasLimits(slot: DriveSlot): boolean {
-  return slot.role !== 'work';
+function vramTotal(): number | null {
+  return gpuSample()?.vramTotalMb ?? view?.gpu.vramTotalMb ?? null;
 }
 
-function loadOf(slot: DriveSlot): DriveLoad | null {
-  return sample?.drives.find((d) => d.letter === slot.letter && d.role === slot.role) ?? null;
+/** The folded GPU cell exists only while the uploader may use the GPU. */
+function gpuCellShown(): boolean {
+  return gpuAvailable() && (view?.limits.gpuPct ?? 0) > 0;
 }
 
-function cellLabel(slot: DriveSlot): string {
-  return slot.letter ? t(`res.cell.${slot.role}`, { letter: slot.letter }) : t('res.cell.drive');
+function layoutKey(): string {
+  return `${slots().map(slotId).join('|')}|gpu:${gpuAvailable() ? 1 : 0}${gpuCellShown() ? 1 : 0}`;
 }
 
-function driveName(slot: DriveSlot): string {
-  return slot.letter ? t(`res.driveName.${slot.role}`, { letter: slot.letter }) : t('res.cell.drive');
+/** The metric a drive card shows; picked the first time it is drawn after an unfold. */
+function selOf(slot: DriveSlot): DiskLimitKey {
+  const id = slotId(slot);
+  let sel = diskSel.get(id);
+  if (!sel) {
+    sel = hasLimits(slot) ? defaultDiskMetric(sample, view?.limits ?? null) : 'readMBs';
+    diskSel.set(id, sel);
+  }
+  return sel;
 }
 
 // ── state (calm / at limit / held back) ─────────────────────────────────────
@@ -318,31 +400,31 @@ function stateOf(id: string): State {
   if (!running() || !sample || !view) return '';
   if (id === 'cpu') return limitOf('cpuPct') > 0 && sample.cpuRunPct >= limitOf('cpuPct') * 0.92 ? 'at' : '';
   if (id === 'ram') return limitOf('ramMb') > 0 && sample.ramRunMb >= limitOf('ramMb') * 0.92 ? 'at' : '';
+  if (id === 'gpu') {
+    const g = gpuSample();
+    const lim = limitOf('gpuPct');
+    return g && lim > 0 && g.runLoadPct >= lim * 0.92 ? 'at' : '';
+  }
   const slot = slots().find((s) => slotId(s) === id);
   if (slot && hasLimits(slot) && sample.heldBack > 0.05) return 'held';
   return '';
 }
 
-function rowState(key: DiskLimitKey): State {
-  if (!running() || !sample || !view) return '';
-  if (sample.heldBack > 0.05 && bindingDiskLimit(sample, view.limits) === key) return 'held';
-  return limitOf(key) > 0 && diskRun(key, sample) >= limitOf(key) * 0.92 ? 'at' : '';
-}
-
 // ── motion ──────────────────────────────────────────────────────────────────
 //
-// A sample lands about once a second. Drawn as it arrives, every needle, arc
+// A sample lands about once a second. Drawn as it arrives, every segment, arc
 // and number jumps — the dock ticks like a clock. Instead each part shows a
 // value that glides toward the latest one (exponential ease, settles in about
 // half a second), so a jump reads as motion. The dragged knob never lags the
 // pointer, and reduced motion draws the target straight away.
 
-/** The four moving parts of a gauge. */
+/** The four moving parts of a gauge (+ the limit it draws, for the drag). */
 interface Shown {
   pc: number;
   use: number;
   max: number;
   limit: number;
+  key?: LimitKey;
 }
 const SHOWN_FIELDS = ['pc', 'use', 'max', 'limit'] as const;
 /** Time constant of the glide, ms. */
@@ -352,22 +434,34 @@ const shown = new Map<string, Shown>();
 let frame: number | null = null;
 let lastFrame = 0;
 
-/** Every gauge's latest values: 'cpu', 'ram', one per drive slot, one per disk limit row. */
+function driveGaugeId(slot: DriveSlot): string {
+  return `${slotId(slot)}:${selOf(slot)}`;
+}
+
+/** Every gauge's latest values: 'cpu', 'ram', 'gpu:load', 'gpu:vram', per drive its cell and its card's metric. */
 function targets(v: ResourceViewLike): Map<string, Shown> {
   const s = sample;
   const out = new Map<string, Shown>();
-  out.set('cpu', { pc: s?.cpuTotalPct ?? 0, use: s?.cpuRunPct ?? 0, max: 100, limit: limitOf('cpuPct') });
-  out.set('ram', { pc: s?.ramUsedMb ?? 0, use: s?.ramRunMb ?? 0, max: scaleMax('ramMb', v), limit: limitOf('ramMb') });
+  out.set('cpu', { pc: s?.cpuTotalPct ?? 0, use: cpuUploader(s), max: 100, limit: limitOf('cpuPct'), key: 'cpuPct' });
+  out.set('ram', { pc: s?.ramUsedMb ?? 0, use: s ? s.ramRunMb + s.ramAppMb : 0, max: scaleMax('ramMb', v), limit: limitOf('ramMb'), key: 'ramMb' });
   for (const slot of slots()) {
     const d = loadOf(slot);
-    const active = d?.activePct ?? 0;
-    out.set(slotId(slot), { pc: active, use: driveRunPct(d?.activePct ?? null, d?.runSharePct ?? null), max: 100, limit: 0 });
+    out.set(slotId(slot), { pc: d?.activePct ?? 0, use: driveRunPct(d?.activePct ?? null, d?.runSharePct ?? null), max: 100, limit: 0 });
+    if (!expanded) continue;
+    const key = selOf(slot);
+    const lim = hasLimits(slot);
+    out.set(driveGaugeId(slot), {
+      pc: d?.[key] ?? (lim ? diskTotal(key, s) : 0),
+      use: lim ? diskRun(key, s) : (d?.run[key] ?? 0),
+      max: scaleMax(key, v, slot),
+      limit: lim ? limitOf(key) : 0,
+      key: lim ? key : undefined,
+    });
   }
-  const limitSlot = slots().find(hasLimits);
-  const ld = limitSlot ? loadOf(limitSlot) : null;
-  for (const key of DISK_KEYS) {
-    out.set(key, { pc: ld?.[key] ?? diskTotal(key, s), use: diskRun(key, s), max: scaleMax(key, v), limit: limitOf(key) });
-  }
+  const g = gpuSample();
+  out.set('gpu:load', { pc: g?.loadPct ?? 0, use: g?.runLoadPct ?? 0, max: 100, limit: limitOf('gpuPct'), key: 'gpuPct' });
+  const vt = vramTotal();
+  out.set('gpu:vram', { pc: g?.vramUsedMb ?? 0, use: g?.vramRunMb ?? 0, max: vt && vt > 0 ? vt : Math.max(1, g?.vramUsedMb ?? 1), limit: 0 });
   return out;
 }
 
@@ -387,7 +481,7 @@ function shownOf(id: string, all: Map<string, Shown>): Shown {
     shown.set(id, { ...target });
     return target;
   }
-  if (dragging && (id === dragging.key || (id === 'cpu' && dragging.key === 'cpuPct') || (id === 'ram' && dragging.key === 'ramMb'))) {
+  if (dragging && target.key === dragging.key) {
     cur.limit = target.limit;
     cur.max = target.max;
   }
@@ -461,7 +555,7 @@ function dialValueAt(svg: SVGSVGElement, clientX: number, clientY: number, max: 
   } else {
     const box = svg.getBoundingClientRect();
     x = ((clientX - box.left) / box.width) * 160;
-    y = ((clientY - box.top) / box.height) * 100;
+    y = ((clientY - box.top) / box.height) * 108;
   }
   let a = (Math.atan2(x - CX, -(y - CY)) * 180) / Math.PI;
   if (a > 120) a = 120;
@@ -477,84 +571,99 @@ function snapTo(value: number, r: Range, ceiling: number): number {
 
 // ── markup ──────────────────────────────────────────────────────────────────
 
-function dialMarkup(id: string, key: ResourceKey | null, label: string): string {
-  const ticks = Array.from({ length: 11 }, (_, i) => {
-    const a = START + (SWEEP * i) / 10;
-    const [x1, y1] = pt(a, R + 6);
-    const [x2, y2] = pt(a, R + (i % 5 === 0 ? 10 : 8));
-    return `<line class="dial-tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+function dialMarkup(id: string, key: LimitKey | null, label: string): string {
+  const step = SWEEP / SEGMENTS;
+  const segs = Array.from({ length: SEGMENTS }, (_, i) => {
+    const a1 = START + step * i + SEG_GAP / 2;
+    return `<path class="dial-sg" d="${arc(a1, a1 + step - SEG_GAP)}"/>`;
   }).join('');
+  const trio = ([
+    [40, 'run', 'res.trio.run'],
+    [80, 'oth', 'res.trio.others'],
+    [120, 'free', 'res.trio.free'],
+  ] as const)
+    .map(
+      ([x, cls, lbl]) =>
+        `<text class="dial-trio dial-trio--${cls}" x="${x}" y="96" text-anchor="middle"></text><text class="dial-trio-lbl" x="${x}" y="105" text-anchor="middle">${esc(t(lbl))}</text>`,
+    )
+    .join('');
   const parts = `
-    <g class="dial-scale">${ticks}</g>
-    <path class="dial-track" d="${arc(START, START + SWEEP)}"/>
-    <path class="dial-oth" d=""/>
-    <path class="dial-run" d=""/>
-    <line class="dial-needle" x1="${CX}" y1="${CY}" x2="${CX}" y2="${CY}"/>
-    <circle class="dial-hub" cx="${CX}" cy="${CY}" r="3.5"/>
-    <text class="dial-value" x="${CX}" y="${CY + 25}" text-anchor="middle"></text>
-    <text class="dial-sub" x="${CX}" y="${CY + 37}" text-anchor="middle"></text>`;
+    <g class="dial-ring">${segs}</g>
+    <path class="dial-pointer" d=""/>
+    <text class="dial-value" x="${CX}" y="${CY + 4}" text-anchor="middle"></text>
+    <text class="dial-sub" x="${CX}" y="${CY + 15}" text-anchor="middle"></text>
+    <g class="dial-trios">${trio}</g>`;
   if (!key) {
-    return `<svg class="res-dial" id="res-dial-${id}" viewBox="0 0 160 100" role="img" aria-label="${esc(label)}">${parts}</svg>`;
+    return `<svg class="res-dial" id="res-dial-${id}" viewBox="0 0 160 108" role="img" aria-label="${esc(label)}">${parts}</svg>`;
   }
-  return `<svg class="res-dial res-dial--tempo" id="res-dial-${id}" viewBox="0 0 160 100" role="slider" tabindex="0" aria-label="${esc(label)}" data-key="${key}">${parts}
+  return `<svg class="res-dial res-dial--tempo" id="res-dial-${id}" viewBox="0 0 160 108" role="slider" tabindex="0" aria-label="${esc(label)}" data-key="${key}">${parts}
     <g class="dial-tempo">
-      <circle class="dial-tempo-halo" r="10"/>
       <line class="dial-tempo-tick"/>
+      <circle class="dial-tempo-halo" r="9"/>
       <circle class="dial-tempo-knob" r="5"/>
     </g></svg>`;
 }
 
-function boostHtml(subject: BoostSubject): string {
+function boostHtml(subject: BoostSubject, off = false): string {
   const lv = boostLevels(subject);
-  const items = PHASES.map(
-    (p, i) => {
-      const n = lv[i] ?? 0;
-      // Drawn as shapes, not glyphs: a ● at this size merges into a bar in some fonts.
-      const pips = [1, 2, 3].map((k) => `<span class="res-pip${k <= n ? ' on' : ''}"></span>`).join('');
-      return `<span class="res-boost-item">${t(`res.phase.${p}`)} <span class="res-pips" role="img" aria-label="${dots(n)}">${pips}</span></span>`;
-    },
-  ).join('');
+  const items = PHASES.map((p, i) => {
+    const n = off ? 0 : (lv[i] ?? 0);
+    // Drawn as shapes, not glyphs: a ● at this size merges into a bar in some fonts.
+    const pips = [1, 2, 3].map((k) => `<span class="res-pip${k <= n ? ' on' : ''}"></span>`).join('');
+    return `<span class="res-boost-item">${t(`res.phase.${p}`)} <span class="res-pips" role="img" aria-label="${dots(n)}">${pips}</span></span>`;
+  }).join('');
   return `<p class="res-boost" tabindex="0" data-tip="${esc(t(`res.boost.${subject}`))}" aria-label="${esc(t('res.boostAria'))}">${icon('bolt', 'res-ico res-ico--bolt')}${items}</p>`;
 }
 
-function cellHtml(id: string, ico: keyof typeof ICON, label: string): string {
+function cellHtml(id: string, ico: keyof typeof ICON, label: string, withLimit: boolean): string {
+  const leds = Array.from({ length: LEDS }, () => '<i class="res-led"></i>').join('');
   return `<div class="res-cell" id="res-cell-${id}" data-res-tip="${id}" tabindex="0" role="meter" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(label)}">
       ${icon(ico)}
       <span class="res-cell-label">${esc(label)}</span>
-      <span class="res-bar" aria-hidden="true"><span class="run"></span><span class="oth"></span><span class="lim"></span></span>
-      <span class="res-cell-num">—</span>
+      <span class="res-leds" aria-hidden="true">${leds}${withLimit ? '<span class="lim"></span>' : ''}</span>
+      <span class="res-cell-num"><b class="res-n-run">—</b><span class="res-n-of">${esc(t('res.cell.of'))}</span><b class="res-n-pc">—</b></span>
     </div>`;
 }
 
-function limRowHtml(key: DiskLimitKey, withKnob: boolean): string {
-  const label = t(LIMIT_LABEL[key]);
-  const track = withKnob
-    ? `<span class="res-lim-track" role="slider" tabindex="0" aria-label="${esc(label)}" data-key="${key}"><span class="res-lim-run"></span><span class="res-lim-knob"></span></span>`
-    : '';
-  return `<div class="res-lim${withKnob ? '' : ' res-lim--plain'}" id="res-lim-${key}${withKnob ? '' : '-plain'}" data-res-tip="lim-${key}${withKnob ? '' : '-plain'}">
-      <span class="res-lim-head"><span>${esc(label)}</span><b class="res-lim-val">—</b></span>${track}
-    </div>`;
+/** A segmented toggle: exactly one option selected, arrows move it (roving focus). */
+function segHtml(group: string, aria: string, options: ReadonlyArray<readonly [string, string]>, selected: string): string {
+  const btns = options
+    .map(([val, label]) => {
+      const on = val === selected;
+      return `<button type="button" class="res-seg-btn" role="radio" aria-checked="${on}" tabindex="${on ? 0 : -1}" data-seg="${esc(group)}" data-val="${esc(val)}">${esc(label)}</button>`;
+    })
+    .join('');
+  return `<div class="res-seg" role="radiogroup" aria-label="${esc(aria)}" style="--n:${options.length}">${btns}</div>`;
 }
 
-function boxHtml(i: number, id: string, ico: keyof typeof ICON, name: string, inner: string, boost: string, extra = ''): string {
+function boxHtml(i: number, id: string, ico: keyof typeof ICON, name: string, gauge: string, ctrl: string, boost: string, extra = ''): string {
   return `<figure class="res-box${extra}" id="res-box-${id}" style="--i:${i}">
       <figcaption data-res-tip="${id}">${icon(ico)}<span class="res-box-name">${esc(name)}</span><span class="res-box-aside" id="res-aside-${id}"></span></figcaption>
-      ${inner}
+      <div class="res-garea" data-res-tip="g-${id}">${gauge}</div>
+      <div class="res-ctrl">${ctrl}</div>
       ${boost}
     </figure>`;
 }
 
+function driveBoxHtml(i: number, slot: DriveSlot): string {
+  const id = slotId(slot);
+  const sel = selOf(slot);
+  const gauge = dialMarkup(id, hasLimits(slot) ? sel : null, `${driveName(slot)} · ${t(LIMIT_LABEL[sel])}`);
+  const seg = segHtml(id, t('res.seg.aria'), DISK_KEYS.map((k) => [k, t(LIMIT_LABEL[k])] as const), sel);
+  return boxHtml(i, id, 'disk', cellLabel(slot), gauge, seg, boostHtml(slot.role), ' res-box--drive');
+}
+
 function gpuBoxHtml(i: number): string {
-  return `<figure class="res-box res-box--gpu" id="res-box-gpu" style="--i:${i}">
-      <figcaption>${icon('gpu')}<span class="res-box-name">${t('res.gpu')}</span></figcaption>
-      <p class="res-gpu-name" id="res-gpu-name"></p>
-      <span class="res-switch-wrap" id="res-gpu-wrap">
-        <button type="button" class="res-switch" id="res-gpu-switch" role="switch" aria-checked="false">
-          <span class="res-switch-track" aria-hidden="true"></span>
-          <span class="res-switch-label">${t('res.gpuSwitch')}</span>
-        </button>
-      </span>
-    </figure>`;
+  if (!gpuAvailable()) {
+    const msg = `<div class="res-gpu-msg"><p>${esc(t('res.gpuNoneTitle'))}</p><p class="res-gpu-msg-hint">${esc(t('res.gpuNoneHint'))}</p></div>`;
+    return boxHtml(i, 'gpu', 'gpu', t('res.gpu'), msg, '', boostHtml('gpu', true), ' res-box--gpu is-none');
+  }
+  const load = gpuSel === 'load';
+  const gauge =
+    dialMarkup('gpu', load ? 'gpuPct' : null, load ? t('res.gpuLoad') : t('res.seg.vram')) +
+    (load ? `<p class="res-gpu-off" aria-hidden="true">${esc(t('res.gpuOffHint'))}</p>` : '');
+  const seg = segHtml('gpu', t('res.seg.aria'), GPU_METRICS.map((m) => [m, t(`res.seg.${m}`)] as const), gpuSel);
+  return boxHtml(i, 'gpu', 'gpu', t('res.gpu'), gauge, seg, boostHtml('gpu'), ' res-box--gpu');
 }
 
 function presetsHtml(): string {
@@ -660,11 +769,12 @@ function render(): void {
   el.setAttribute('aria-label', t('res.title'));
   el.classList.toggle('is-expanded', expanded);
   const drives = slots();
-  layoutSig = drives.map(slotId).join('|');
+  layoutSig = layoutKey();
   const cells = [
-    cellHtml('cpu', 'cpu', t('res.cell.cpu')),
-    cellHtml('ram', 'ram', t('res.cell.ram')),
-    ...drives.map((d) => cellHtml(slotId(d), 'disk', cellLabel(d))),
+    cellHtml('cpu', 'cpu', t('res.cell.cpu'), true),
+    cellHtml('ram', 'ram', t('res.cell.ram'), true),
+    ...drives.map((d) => cellHtml(slotId(d), 'disk', cellLabel(d), false)),
+    ...(gpuCellShown() ? [cellHtml('gpu', 'gpu', t('res.gpu'), true)] : []),
   ].join('');
   const strip = `
     <div class="res-strip">
@@ -684,20 +794,13 @@ function render(): void {
   if (expanded) {
     let i = 0;
     const boxes: string[] = [
-      boxHtml(i++, 'cpu', 'cpu', t('res.cell.cpu'), dialMarkup('cpu', 'cpuPct', t('res.cell.cpu')), boostHtml('cpu')),
-      boxHtml(i++, 'ram', 'ram', t('res.cell.ram'), dialMarkup('ram', 'ramMb', t('res.cell.ram')), boostHtml('ram')),
+      boxHtml(i++, 'cpu', 'cpu', t('res.cell.cpu'), dialMarkup('cpu', 'cpuPct', t('res.cell.cpu')), '', boostHtml('cpu')),
+      boxHtml(i++, 'ram', 'ram', t('res.cell.ram'), dialMarkup('ram', 'ramMb', t('res.cell.ram')), '', boostHtml('ram')),
+      ...drives.map((d) => driveBoxHtml(i++, d)),
     ];
-    const cols = ['minmax(0, 1fr)', 'minmax(0, 1fr)'];
-    for (const d of drives) {
-      const id = slotId(d);
-      const knobs = hasLimits(d);
-      const inner = `<div class="res-drive-row">${dialMarkup(id, null, driveName(d))}<div class="res-lims">${DISK_KEYS.map((k) => limRowHtml(k, knobs)).join('')}</div></div>`;
-      boxes.push(boxHtml(i++, id, 'disk', cellLabel(d), inner, boostHtml(d.role), ' res-box--drive'));
-      cols.push(knobs ? 'minmax(0, 1.45fr)' : 'minmax(0, 1.2fr)');
-    }
     boxes.push(gpuBoxHtml(i));
-    cols.push('minmax(0, 0.95fr)');
-    body = `<div class="res-body" id="res-body"><div class="res-boxes" style="grid-template-columns:${cols.join(' ')}">${boxes.join('')}</div></div>`;
+    // Equal columns: every gauge the same size.
+    body = `<div class="res-body" id="res-body"><div class="res-boxes" style="grid-template-columns:repeat(${boxes.length}, minmax(0, 1fr))">${boxes.join('')}</div></div>`;
   }
   el.innerHTML = strip + body;
   syncDim();
@@ -708,31 +811,50 @@ function render(): void {
 
 // ── painting ────────────────────────────────────────────────────────────────
 
-function setArc(svg: Element, cls: string, d: string): void {
-  const p = svg.querySelector(`.${cls}`);
-  if (p && p.getAttribute('d') !== d) p.setAttribute('d', d);
+function setText(root: ParentNode, sel: string, text: string): void {
+  const el = root.querySelector(sel);
+  if (el && el.textContent !== text) el.textContent = text;
 }
 
-function paintDial(id: string, key: ResourceKey | null, s: Shown, value: string, sub: string): void {
+function setCls(el: Element, cls: string): void {
+  if (el.getAttribute('class') !== cls) el.setAttribute('class', cls);
+}
+
+/** Percent of a gauge's scale, 0..100. */
+function pctOf(v: number, max: number): number {
+  return max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0;
+}
+
+function paintDial(id: string, key: LimitKey | null, s: Shown, value: string, sub: string, trio: readonly [string, string, string]): void {
   const svg = document.getElementById(`res-dial-${id}`);
   if (!svg) return;
-  const aUse = angleFor(s.use, s.max);
-  const aPc = angleFor(Math.max(s.pc, s.use), s.max);
-  setArc(svg, 'dial-run', s.use > 0 ? arc(START, aUse) : '');
-  setArc(svg, 'dial-oth', aPc > aUse ? arc(aUse, aPc) : '');
-  const [nx, ny] = pt(aPc, R - 11);
-  const needle = svg.querySelector('.dial-needle');
-  needle?.setAttribute('x2', nx.toFixed(2));
-  needle?.setAttribute('y2', ny.toFixed(2));
-  const v = svg.querySelector('.dial-value');
-  if (v && v.textContent !== value) v.textContent = value;
-  const st = svg.querySelector('.dial-sub');
-  if (st && st.textContent !== sub) st.textContent = sub;
+  const total = Math.max(s.pc, s.use);
+  const lit = ledSplit(pctOf(total, s.max), pctOf(s.use, s.max), SEGMENTS);
+  svg.querySelectorAll('.dial-sg').forEach((seg, i) => {
+    setCls(seg, i < lit.run ? 'dial-sg run' : i < lit.run + lit.others ? 'dial-sg oth' : 'dial-sg');
+  });
+  const pointer = svg.querySelector('.dial-pointer');
+  if (pointer) {
+    let d = '';
+    if (total > 0) {
+      const a = angleFor(total, s.max);
+      const [tx, ty] = pt(a, R - 6);
+      const [b1x, b1y] = pt(a - 6, R - 13);
+      const [b2x, b2y] = pt(a + 6, R - 13);
+      d = `M${tx.toFixed(2)} ${ty.toFixed(2)} L${b1x.toFixed(2)} ${b1y.toFixed(2)} L${b2x.toFixed(2)} ${b2y.toFixed(2)} Z`;
+    }
+    if (pointer.getAttribute('d') !== d) pointer.setAttribute('d', d);
+  }
+  setText(svg, '.dial-value', value);
+  setText(svg, '.dial-sub', sub);
+  setText(svg, '.dial-trio--run', trio[0]);
+  setText(svg, '.dial-trio--oth', trio[1]);
+  setText(svg, '.dial-trio--free', trio[2]);
   if (!key || !view) return;
   const aLim = angleFor(s.limit, s.max);
-  const [t1x, t1y] = pt(aLim, R - 6);
-  const [t2x, t2y] = pt(aLim, R + 6);
-  const [kx, ky] = pt(aLim, R + 12);
+  const [t1x, t1y] = pt(aLim, R - 7);
+  const [t2x, t2y] = pt(aLim, R + 7);
+  const [kx, ky] = pt(aLim, R + 14);
   const tick = svg.querySelector('.dial-tempo-tick');
   tick?.setAttribute('x1', t1x.toFixed(2));
   tick?.setAttribute('y1', t1y.toFixed(2));
@@ -745,96 +867,85 @@ function paintDial(id: string, key: ResourceKey | null, s: Shown, value: string,
   const r = view.ranges[key];
   const lim = limitOf(key);
   svg.setAttribute('aria-valuenow', String(lim));
-  svg.setAttribute('aria-valuetext', fmt(key, lim));
+  svg.setAttribute('aria-valuetext', key === 'gpuPct' && lim <= 0 ? t('res.gpuOffShort') : fmt(key, lim));
   svg.setAttribute('aria-valuemin', String(r.min));
   svg.setAttribute('aria-valuemax', String(r.max));
 }
 
-function paintCell(id: string, run: number, others: number, limitPct: number | null, value: string, meter: number): void {
+/** A strip cell: LEDs (uploader blue, others white), "41 % von 100 %", the limit tick. */
+function paintCell(id: string, runPct: number, totalPct: number, limitPct: number | null, measured = true): void {
   const el = document.getElementById(`res-cell-${id}`);
   if (!el) return;
-  const bar = splitBar(run + others, run);
-  const r = el.querySelector<HTMLElement>('.res-bar .run');
-  const o = el.querySelector<HTMLElement>('.res-bar .oth');
-  const l = el.querySelector<HTMLElement>('.res-bar .lim');
-  if (r) r.style.width = `${bar.run.toFixed(1)}%`;
-  if (o) {
-    o.style.left = `${bar.run.toFixed(1)}%`;
-    o.style.width = `${bar.others.toFixed(1)}%`;
-  }
+  const total = Math.max(totalPct, runPct);
+  const lit = ledSplit(total, runPct, LEDS);
+  el.querySelectorAll('.res-led').forEach((led, i) => {
+    setCls(led, i < lit.run ? 'res-led run' : i < lit.run + lit.others ? 'res-led oth' : 'res-led');
+  });
+  const l = el.querySelector<HTMLElement>('.res-leds .lim');
   if (l) {
     l.hidden = limitPct === null;
-    if (limitPct !== null) l.style.left = `calc(${Math.min(100, limitPct).toFixed(1)}% - 1px)`;
+    if (limitPct !== null) l.style.left = `calc(${Math.max(0, Math.min(100, limitPct)).toFixed(1)}% - 1px)`;
   }
-  const n = el.querySelector('.res-cell-num');
-  if (n && n.textContent !== value) n.textContent = value;
-  el.setAttribute('aria-valuenow', String(Math.round(meter)));
-  el.setAttribute('aria-valuetext', value);
+  const run = measured ? `${Math.round(Math.min(runPct, total))} %` : '—';
+  const all = measured ? `${Math.round(total)} %` : '—';
+  setText(el, '.res-n-run', run);
+  setText(el, '.res-n-pc', all);
+  el.setAttribute('aria-valuenow', String(Math.round(total)));
+  el.setAttribute('aria-valuetext', t('res.cell.aria', { run, total: all }));
 }
 
-/** A limit row's value: the label already names what is counted, so operations read "640/s". */
-function rowValue(key: DiskLimitKey, v: number | null | undefined): string {
-  if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
-  return key === 'iops' ? `${num('iops', v)}/s` : fmt(key, v);
+/** Uploader · others · free of a gauge, formatted. */
+function trioOf(s: Shown, f: (v: number) => string): [string, string, string] {
+  const total = Math.max(s.pc, s.use);
+  return [f(s.use), f(Math.max(0, total - s.use)), f(Math.max(0, s.max - total))];
 }
 
-/** The work drive's rows: its own numbers, no Tempomat (the budget lives on the game drive). */
-function paintPlainRows(): void {
-  const work = slots().find((s) => !hasLimits(s));
-  const d = work ? loadOf(work) : null;
-  for (const key of DISK_KEYS) {
-    const val = document.querySelector(`#res-lim-${key}-plain .res-lim-val`);
-    const text = rowValue(key, d?.[key]);
-    if (val && val.textContent !== text) val.textContent = text;
-  }
-}
-
-function paintLimRow(key: DiskLimitKey, s: Shown): void {
-  const row = document.getElementById(`res-lim-${key}`);
-  if (!row || !view) return;
-  const val = row.querySelector('.res-lim-val');
-  const text = rowValue(key, s.pc);
-  if (val && val.textContent !== text) val.textContent = text;
-  const run = row.querySelector<HTMLElement>('.res-lim-run');
-  const knob = row.querySelector<HTMLElement>('.res-lim-knob');
-  const f = (x: number): string => `${(s.max > 0 ? Math.max(0, Math.min(1, x / s.max)) * 100 : 0).toFixed(1)}%`;
-  if (run) run.style.width = f(s.use);
-  if (knob) knob.style.left = f(s.limit);
-  const track = row.querySelector('.res-lim-track');
-  if (track) {
-    const r = view.ranges[key];
-    const lim = limitOf(key);
-    track.setAttribute('aria-valuenow', String(lim));
-    track.setAttribute('aria-valuetext', fmt(key, lim));
-    track.setAttribute('aria-valuemin', String(r.min));
-    track.setAttribute('aria-valuemax', String(r.max));
-  }
-}
-
-/** One glide frame: every needle, arc, bar and number. */
+/** One glide frame: every segment, LED, pointer and number. */
 function paintFrame(): void {
   if (!view) return;
   const all = targets(view);
+  const p = (v: number): string => `${Math.round(v)} %`;
   const cpu = shownOf('cpu', all);
-  paintCell('cpu', cpu.use, cpu.pc - cpu.use, cpu.limit, `${Math.round(cpu.pc)} %`, cpu.pc);
+  paintCell('cpu', cpu.use, cpu.pc, cpu.limit, Boolean(sample));
   const ram = shownOf('ram', all);
-  const total = view.machine.totalRamMb || 1;
-  const ramPct = (ram.pc / total) * 100;
-  paintCell('ram', (ram.use / total) * 100, ((ram.pc - ram.use) / total) * 100, (ram.limit / total) * 100, `${Math.round(ramPct)} %`, ramPct);
+  const totalRam = view.machine.totalRamMb || 1;
+  paintCell('ram', (ram.use / totalRam) * 100, (ram.pc / totalRam) * 100, (ram.limit / totalRam) * 100, Boolean(sample));
   for (const slot of slots()) {
-    const id = slotId(slot);
-    const d = shownOf(id, all);
-    const measured = loadOf(slot)?.activePct;
-    const text = typeof measured === 'number' ? `${Math.round(d.pc)} %` : '—';
-    paintCell(id, d.use, d.pc - d.use, null, text, d.pc);
-    if (expanded) paintDial(id, null, d, text, '');
+    const d = shownOf(slotId(slot), all);
+    paintCell(slotId(slot), d.use, d.pc, null, typeof loadOf(slot)?.activePct === 'number');
   }
-  const disk = new Map(DISK_KEYS.map((k) => [k, shownOf(k, all)] as const));
+  const load = shownOf('gpu:load', all);
+  paintCell('gpu', load.use, load.pc, load.limit, Boolean(gpuSample()));
   if (!expanded) return;
-  paintDial('cpu', 'cpuPct', cpu, `${Math.round(cpu.pc)} %`, `≤ ${fmt('cpuPct', cpu.limit)}`);
-  paintDial('ram', 'ramMb', ram, `${Math.round(ramPct)} %`, `≤ ${fmt('ramMb', ram.limit)}`);
-  for (const key of DISK_KEYS) paintLimRow(key, disk.get(key) as Shown);
-  paintPlainRows();
+  const pcSub = t('res.dial.pc');
+  paintDial('cpu', 'cpuPct', cpu, p(Math.max(cpu.pc, cpu.use)), pcSub, trioOf(cpu, p));
+  paintDial('ram', 'ramMb', ram, p((Math.max(ram.pc, ram.use) / totalRam) * 100), pcSub, trioOf(ram, (v) => fmt('ramMb', v)));
+  for (const slot of slots()) {
+    const key = selOf(slot);
+    const g = shownOf(driveGaugeId(slot), all);
+    const measured = typeof loadOf(slot)?.[key] === 'number' || (hasLimits(slot) && Boolean(sample));
+    paintDial(
+      slotId(slot),
+      hasLimits(slot) ? key : null,
+      g,
+      measured ? num(key, Math.max(g.pc, g.use)) : '—',
+      t('res.dial.scale', { unit: key === 'iops' ? t('res.unitIops') : unit(key), top: num(key, g.max) }),
+      trioOf(g, (v) => rowValue(key, v)),
+    );
+  }
+  const box = document.getElementById('res-box-gpu');
+  box?.classList.toggle('is-off', gpuAvailable() && gpuSel === 'load' && limitOf('gpuPct') <= 0);
+  if (!gpuAvailable()) return;
+  const gs = gpuSample();
+  if (gpuSel === 'load') {
+    paintDial('gpu', 'gpuPct', load, gs ? p(Math.max(load.pc, load.use)) : '—', pcSub, trioOf(load, p));
+  } else {
+    const vram = shownOf('gpu:vram', all);
+    const vt = vramTotal();
+    const big = !gs ? '—' : vt ? p((Math.max(vram.pc, vram.use) / vt) * 100) : fmt('ramMb', vram.pc);
+    const sub = vt ? `${pcSub} · ${fmt('ramMb', vt)}` : pcSub;
+    paintDial('gpu', null, vram, big, sub, trioOf(vram, (v) => fmt('ramMb', v)));
+  }
 }
 
 // ── tooltips ────────────────────────────────────────────────────────────────
@@ -871,6 +982,7 @@ function cpuTip(): Tip {
   const text = [
     state === 'at' ? t('res.tip.atLimitText') : '',
     t('res.tip.cpu', { threads: view?.machine.cores ?? 0 }),
+    t('res.tip.runOnly'),
     s?.running && !s.hardCap ? t('res.tip.cpuNoHardCap') : '',
   ].filter(Boolean);
   return {
@@ -879,6 +991,7 @@ function cpuTip(): Tip {
     nums: numsGrid([
       [t('res.num.pc'), s ? p(s.cpuTotalPct) : '—', ...stat('cpu.pc', p)],
       [t('res.num.run'), s ? p(s.cpuRunPct) : '—', ...stat('cpu.run', p)],
+      [t('res.num.app'), s ? p(s.cpuAppPct ?? 0) : '—', ...stat('cpu.app', p)],
       [t('res.num.limit'), p(limitOf('cpuPct'))],
     ]),
   };
@@ -891,7 +1004,7 @@ function ramTip(): Tip {
   const state = stateOf('ram');
   return {
     title: state === 'at' ? t('res.tip.atLimit') : undefined,
-    text: [state === 'at' ? t('res.tip.atLimitText') : '', t('res.tip.ram')].filter(Boolean).join('\n\n'),
+    text: [state === 'at' ? t('res.tip.atLimitText') : '', t('res.tip.ram'), t('res.tip.runOnly')].filter(Boolean).join('\n\n'),
     nums: numsGrid([
       [t('res.num.used'), s ? `${g(s.ramUsedMb)} · ${Math.round((s.ramUsedMb / (total || 1)) * 100)} %` : '—', ...stat('ram.used', g)],
       [t('res.num.run'), s ? g(s.ramRunMb) : '—', ...stat('ram.run', g)],
@@ -931,9 +1044,12 @@ function driveTip(slot: DriveSlot): Tip {
   return { text: parts.join('\n\n'), nums };
 }
 
-function limTip(key: DiskLimitKey, plain: boolean, slot: DriveSlot | undefined): Tip {
-  const d = slot ? loadOf(slot) : null;
-  const L = slot?.letter || 'x';
+/** The drive card's gauge: the selected metric, whole PC / run / limit. */
+function metricTip(slot: DriveSlot): Tip {
+  const key = selOf(slot);
+  const plain = !hasLimits(slot);
+  const d = loadOf(slot);
+  const L = slot.letter || 'x';
   const f = (v: number): string => rowValue(key, v);
   const histKey = key === 'readMBs' ? 'read' : key === 'writeMBs' ? 'write' : 'iops';
   const rows: Array<[string, string, string?, string?]> = [
@@ -948,11 +1064,11 @@ function limTip(key: DiskLimitKey, plain: boolean, slot: DriveSlot | undefined):
   if (key === 'iops' && d && d.iops && d.readMBs !== null && d.writeMBs !== null) {
     rows.push([t('res.num.perOp'), `${Math.round(((d.readMBs + d.writeMBs) * 1024) / d.iops)} KB`]);
   }
-  const text = [t(`res.tip.${histKey}`)];
+  const text = [t(`res.tip.${histKey}`), t('res.tip.scale')];
   if (plain) text.push(t('res.tip.driveWork'));
-  else if (rowState(key) === 'held' && sample) {
+  else if (sample && running() && sample.heldBack > 0.05 && view && bindingDiskLimit(sample, view.limits) === key) {
     return {
-      title: t('res.tip.heldTitle', { drive: slot ? driveName(slot) : t('res.cell.drive') }),
+      title: t('res.tip.heldTitle', { drive: driveName(slot) }),
       text: t('res.tip.held', { pct: heldPct(), which: t(`res.limitName.${key}`), limit: f(limitOf(key)) }),
       nums: numsGrid(rows),
     };
@@ -960,12 +1076,44 @@ function limTip(key: DiskLimitKey, plain: boolean, slot: DriveSlot | undefined):
   return { text: text.join('\n\n'), nums: numsGrid(rows) };
 }
 
-function tempoTip(key: ResourceKey): string {
+function gpuTip(): Tip {
+  if (!gpuAvailable()) return { text: `${t('res.gpuNoneTitle')} · ${t('res.gpuNoneHint')}` };
+  const g = gpuSample();
+  const p = (v: number): string => `${Math.round(v)} %`;
+  const mb = (v: number): string => fmt('ramMb', v);
+  const lim = limitOf('gpuPct');
+  const state = stateOf('gpu');
+  const text = [
+    state === 'at' ? t('res.tip.atLimitText') : '',
+    lim <= 0 ? t('res.gpuOffHint') : '',
+    t('res.tip.gpu'),
+    t('res.tip.runOnly'),
+  ].filter(Boolean);
+  const vt = vramTotal();
+  return {
+    title: state === 'at' ? t('res.tip.atLimit') : undefined,
+    text: text.join('\n\n'),
+    nums: numsGrid([
+      [t('res.num.pc'), g ? p(g.loadPct) : '—', ...stat('gpu.pc', p)],
+      [t('res.num.uploader'), g ? p(g.runLoadPct) : '—', ...stat('gpu.run', p)],
+      [t('res.num.limit'), lim <= 0 ? t('res.gpuOffShort') : p(lim)],
+      [t('res.num.vramUsed'), g ? mb(g.vramUsedMb) : '—', ...stat('gpu.vram', mb)],
+      [t('res.num.vramRun'), g ? mb(g.vramRunMb) : '—'],
+      [t('res.num.vramTotal'), vt ? mb(vt) : '—'],
+    ]),
+  };
+}
+
+function tempoTip(key: LimitKey): string {
+  if (key === 'gpuPct') {
+    const lim = limitOf('gpuPct');
+    return t('res.tip.tempoGpu', { value: lim <= 0 ? t('res.gpuOffShort') : fmt('gpuPct', lim) });
+  }
   const what = key === 'cpuPct' ? t('res.cell.cpu') : key === 'ramMb' ? t('res.cell.ram') : t(LIMIT_LABEL[key as DiskLimitKey]);
   return t(key === 'ramMb' ? 'res.tip.tempoRam' : 'res.tip.tempo', { what, value: fmt(key, limitOf(key)) });
 }
 
-function setTip(el: HTMLElement, tip: Tip): void {
+function setTip(el: HTMLElement | SVGElement, tip: Tip): void {
   if (el.dataset.tip !== tip.text) el.dataset.tip = tip.text;
   if (tip.title) el.dataset.tipTitle = tip.title;
   else delete el.dataset.tipTitle;
@@ -977,41 +1125,37 @@ function setTip(el: HTMLElement, tip: Tip): void {
 function paintTips(): void {
   const root = dock();
   if (!root || !view) return;
+  const drives = slots();
+  const gpu = gpuTip();
   const tips = new Map<string, Tip>([
     ['cpu', cpuTip()],
     ['ram', ramTip()],
+    ['gpu', gpu],
+    ['g-cpu', cpuTip()],
+    ['g-ram', ramTip()],
+    ['g-gpu', gpu],
   ]);
-  const drives = slots();
-  for (const slot of drives) tips.set(slotId(slot), driveTip(slot));
-  const limitSlot = drives.find(hasLimits);
-  const workSlot = drives.find((s) => !hasLimits(s));
-  for (const key of DISK_KEYS) {
-    tips.set(`lim-${key}`, limTip(key, false, limitSlot));
-    tips.set(`lim-${key}-plain`, limTip(key, true, workSlot));
+  for (const slot of drives) {
+    tips.set(slotId(slot), driveTip(slot));
+    if (expanded) tips.set(`g-${slotId(slot)}`, metricTip(slot));
   }
   root.querySelectorAll<HTMLElement>('[data-res-tip]').forEach((el) => {
     const tip = tips.get(el.dataset.resTip ?? '');
     if (tip) setTip(el, tip);
   });
-  // States: glow on the cell, the box and (for a disk budget) the limit row.
-  for (const id of ['cpu', 'ram', ...drives.map(slotId)]) {
+  // States: glow on the cell and the card.
+  for (const id of ['cpu', 'ram', ...drives.map(slotId), 'gpu']) {
     const st = stateOf(id);
     for (const el of [document.getElementById(`res-cell-${id}`), document.getElementById(`res-box-${id}`)]) {
       el?.classList.toggle('is-at', st === 'at');
       el?.classList.toggle('is-held', st === 'held');
     }
   }
-  for (const key of DISK_KEYS) {
-    const row = document.getElementById(`res-lim-${key}`);
-    const st = rowState(key);
-    row?.classList.toggle('is-at', st === 'at');
-    row?.classList.toggle('is-held', st === 'held');
-  }
-  // Tempomat tooltips name the current limit.
-  root.querySelectorAll<HTMLElement | SVGElement>('[data-key]').forEach((el) => {
-    const key = el.dataset.key as ResourceKey;
-    const tip = tempoTip(key);
-    if (el.dataset.tip !== tip) el.dataset.tip = tip;
+  // A Tempomat names its current limit; its card's live numbers ride along.
+  root.querySelectorAll<SVGElement>('svg[data-key]').forEach((el) => {
+    const key = el.dataset.key as LimitKey;
+    const gid = el.closest<HTMLElement>('.res-garea')?.dataset.resTip ?? '';
+    setTip(el, { text: tempoTip(key), nums: tips.get(gid)?.nums });
   });
   // Captions.
   const aside = (id: string, text: string): void => {
@@ -1022,28 +1166,13 @@ function paintTips(): void {
   aside('ram', sample ? `${dec(sample.ramUsedMb / 1024, 1)} / ${dec(view.machine.totalRamMb / 1024, 1)} GB` : `${dec(view.machine.totalRamMb / 1024, 1)} GB`);
   for (const slot of drives) {
     const d = loadOf(slot);
-    const kind = t(`res.kind.${slot.kind}`);
-    aside(slotId(slot), d?.responseMs !== null && d?.responseMs !== undefined ? `${kind} · ${msText(d.responseMs)}` : kind);
+    const parts = [t(`res.kind.${slot.kind}`)];
+    if (typeof d?.responseMs === 'number') parts.push(msText(d.responseMs));
+    if (typeof d?.activePct === 'number') parts.push(t('res.aside.active', { pct: pctText(d.activePct) }));
+    aside(slotId(slot), parts.join(' · '));
   }
-  paintGpu();
+  aside('gpu', view.gpu.shortName ?? view.gpu.name ?? '—');
   refreshTooltip();
-}
-
-function paintGpu(): void {
-  if (!view) return;
-  const name = document.getElementById('res-gpu-name');
-  const text = view.gpu.name ?? t('res.gpuNone');
-  if (name && name.textContent !== text) name.textContent = text;
-  const sw = document.getElementById('res-gpu-switch');
-  const wrap = document.getElementById('res-gpu-wrap');
-  if (!sw || !wrap) return;
-  const on = view.gpu.enabled && view.gpu.available;
-  sw.setAttribute('aria-checked', String(on));
-  sw.setAttribute('aria-disabled', String(!view.gpu.available));
-  wrap.dataset.tip = view.gpu.available ? t('res.gpuTip') : t('res.gpuUnavailable');
-  // A disabled control's tip says why — it opens at the label tier.
-  if (view.gpu.available) delete wrap.dataset.tipTier;
-  else wrap.dataset.tipTier = 'label';
 }
 
 function paintLive(): void {
@@ -1076,7 +1205,7 @@ function syncDim(): void {
 
 // ── writing ─────────────────────────────────────────────────────────────────
 
-function queue(key: ResourceKey, value: number): void {
+function queue(key: LimitKey, value: number): void {
   pending = { ...pending, [key]: value };
   if (commitTimer !== null) window.clearTimeout(commitTimer);
   commitTimer = window.setTimeout(() => void commit(), 250);
@@ -1093,7 +1222,7 @@ async function commit(): Promise<void> {
   }
 }
 
-function ceilingFor(key: ResourceKey): number {
+function ceilingFor(key: LimitKey): number {
   if (!view) return Infinity;
   if (key === 'ramMb') return view.machine.totalRamMb - ramTaken(view, sample);
   return Infinity;
@@ -1111,7 +1240,7 @@ function wirePresets(): void {
 }
 
 /** Arrow keys / PageUp / PageDown / Home / End on a focused Tempomat. */
-function onTempoKey(key: ResourceKey, e: KeyboardEvent): void {
+function onTempoKey(key: LimitKey, e: KeyboardEvent): void {
   if (!view) return;
   const r = view.ranges[key];
   const cur = limitOf(key);
@@ -1131,7 +1260,7 @@ function onTempoKey(key: ResourceKey, e: KeyboardEvent): void {
   glide();
 }
 
-function wireDrag(el: Element, key: ResourceKey, grab: string, valueAt: (e: PointerEvent, max: number) => number): void {
+function wireDrag(el: Element, key: LimitKey, grab: string, valueAt: (e: PointerEvent, max: number) => number): void {
   const target = el as HTMLElement;
   const move = (e: PointerEvent): void => {
     if (!view) return;
@@ -1167,24 +1296,48 @@ function wireDrag(el: Element, key: ResourceKey, grab: string, valueAt: (e: Poin
   target.addEventListener('keydown', (e) => onTempoKey(key, e as KeyboardEvent));
 }
 
+/** Pick a segmented option: the card redraws its gauge, focus stays on the option. */
+function selectSeg(group: string, val: string): void {
+  if (group === 'gpu') {
+    if (!(GPU_METRICS as readonly string[]).includes(val) || gpuSel === val) return;
+    gpuSel = val as GpuMetric;
+  } else {
+    if (!isDiskKey(val as LimitKey) || diskSel.get(group) === val) return;
+    diskSel.set(group, val as DiskLimitKey);
+  }
+  render();
+  dock()?.querySelector<HTMLElement>(`.res-seg-btn[data-seg="${group}"][data-val="${val}"]`)?.focus();
+}
+
+function onSegKey(btn: HTMLElement, e: KeyboardEvent): void {
+  const all = Array.from(btn.parentElement?.querySelectorAll<HTMLElement>('.res-seg-btn') ?? []);
+  const i = all.indexOf(btn);
+  let j: number | null = null;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') j = (i + 1) % all.length;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') j = (i - 1 + all.length) % all.length;
+  else if (e.key === 'Home') j = 0;
+  else if (e.key === 'End') j = all.length - 1;
+  if (j === null) return;
+  // The toggle owns the arrows while focused — not the step chevrons.
+  e.preventDefault();
+  e.stopPropagation();
+  const next = all[j];
+  if (next?.dataset.seg && next.dataset.val) selectSeg(next.dataset.seg, next.dataset.val);
+}
+
 function wire(): void {
   document.getElementById('res-toggle')?.addEventListener('click', () => toggleResourceDock());
   wirePresets();
   const root = dock();
   root?.querySelectorAll<SVGSVGElement>('svg.res-dial--tempo[data-key]').forEach((svg) => {
-    const key = svg.dataset.key as ResourceKey;
+    const key = svg.dataset.key as LimitKey;
     wireDrag(svg, key, '.dial-tempo', (e, max) => dialValueAt(svg, e.clientX, e.clientY, max));
   });
-  root?.querySelectorAll<HTMLElement>('.res-lim-track[data-key]').forEach((track) => {
-    const key = track.dataset.key as ResourceKey;
-    wireDrag(track, key, '.res-lim-knob', (e, max) => {
-      const box = track.getBoundingClientRect();
-      return box.width > 0 ? ((e.clientX - box.left) / box.width) * max : 0;
+  root?.querySelectorAll<HTMLElement>('.res-seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.seg && btn.dataset.val) selectSeg(btn.dataset.seg, btn.dataset.val);
     });
-  });
-  document.getElementById('res-gpu-switch')?.addEventListener('click', () => {
-    if (!view?.gpu.available) return;
-    void window.sc.resources.setUseGpu(!view.gpu.enabled).then(adopt);
+    btn.addEventListener('keydown', (e) => onSegKey(btn, e));
   });
 }
 
@@ -1193,11 +1346,17 @@ function wire(): void {
 function noteHistory(s: ResourceSample): void {
   history.push('cpu.pc', s.cpuTotalPct);
   history.push('cpu.run', s.cpuRunPct);
+  history.push('cpu.app', s.cpuAppPct ?? 0);
   history.push('ram.used', s.ramUsedMb);
   history.push('ram.run', s.ramRunMb);
   history.push('run.read', s.readMBs);
   history.push('run.write', s.writeMBs);
   history.push('run.iops', s.iops);
+  if (s.gpu) {
+    history.push('gpu.pc', s.gpu.loadPct);
+    history.push('gpu.run', s.gpu.runLoadPct);
+    history.push('gpu.vram', s.gpu.vramUsedMb);
+  }
   for (const d of s.drives) {
     const L = d.letter || 'x';
     history.push(`${L}.active`, d.activePct);
@@ -1214,9 +1373,9 @@ function adopt(v: ResourceViewLike): void {
     sample = v.sample;
     notePeak(v.sample);
   }
-  // Already on screen with the same drives: repaint in place. A full render
+  // Already on screen with the same layout: repaint in place. A full render
   // would replace the Tempomat that has keyboard focus every time a change is saved.
-  if (document.getElementById('res-toggle') && slots().map(slotId).join('|') === layoutSig) refresh();
+  if (document.getElementById('res-toggle') && layoutKey() === layoutSig) refresh();
   else render();
 }
 
@@ -1260,6 +1419,9 @@ export function toggleResourceDock(): void {
   } catch {
     /* per-viewer convenience only */
   }
+  // The cards' metric picks live for one unfold; the next one starts fresh.
+  diskSel.clear();
+  gpuSel = 'load';
   render();
   const el = dock();
   if (expanded && el) {

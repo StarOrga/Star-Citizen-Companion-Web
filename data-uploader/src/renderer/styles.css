@@ -503,7 +503,7 @@ kbd.sc-kbd {
    flexible region, so the dock never covers content.
    Width budget at the 880 px minimum (860 px inside the padding): numbers and
    labels never shrink (flex: none), bars shrink first; unfolded the cells drop
-   bar and icon (the boxes below carry both) to make room for the pills. */
+   their icon (the LED bars stay) to make room for the pills. */
 .resource-dock {
   flex: none;
   /* Above the fixed step chevrons and the scrim. */
@@ -556,28 +556,33 @@ kbd.sc-kbd {
 .res-cell:last-child { border-right: 0; }
 .res-cell:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
 .res-cell-label { flex: none; white-space: nowrap; font-size: var(--fs-xs); color: var(--sc-fg-1); }
+/* "41 % von 100 %": the uploader (blue) first, then the whole PC (white). */
 .res-cell-num {
-  flex: none; min-width: 4.6ch; text-align: right; white-space: nowrap;
-  font-family: var(--sc-font-mono); font-size: var(--fs-md); color: var(--sc-fg-0);
+  flex: none; display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap;
+  font-family: var(--sc-font-mono); font-size: var(--fs-md);
 }
-.res-bar {
-  position: relative; flex: 1 1 auto; min-width: 10px; height: 6px;
-  border-radius: var(--sc-radius-pill); background: var(--sc-well); overflow: hidden;
+.res-n-run, .res-n-pc { font-weight: 400; }
+.res-n-run { color: var(--sc-accent); }
+.res-n-pc { color: var(--sc-fg-0); }
+.res-n-of { font-family: var(--sc-font-body); font-size: 10px; color: var(--sc-fg-2); }
+/* The LED row: uploader blue, other programs white, free = the dark well. */
+.res-leds { position: relative; flex: 1 1 auto; min-width: 24px; display: flex; gap: 2px; height: 8px; }
+.res-led { flex: 1 1 0; border-radius: 1.5px; background: var(--sc-well); transition: background 0.2s ease; }
+.res-led.oth { background: rgba(232, 235, 237, 0.85); }
+.res-led.run { background: var(--sc-accent); box-shadow: 0 0 4px rgba(var(--accent-primary-rgb), 0.55); }
+.res-leds .lim {
+  position: absolute; top: -2px; bottom: -2px; width: 2px; border-radius: 1px;
+  background: var(--sc-accent); box-shadow: 0 0 3px var(--sc-accent);
 }
-.res-bar .run { position: absolute; left: 0; top: 0; bottom: 0; background: var(--sc-accent); }
-.res-bar .oth {
-  position: absolute; top: 0; bottom: 0;
-  background: repeating-linear-gradient(45deg, rgba(159, 179, 200, 0.55) 0 3px, rgba(159, 179, 200, 0.18) 3px 6px);
-}
-.res-bar .lim { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--sc-fg-0); }
-.resource-dock.is-expanded .res-cell .res-bar,
+/* Unfolded the LED bars stay; only the icons make room for the preset pills. */
 .resource-dock.is-expanded .res-cell .res-ico { display: none; }
-.resource-dock.is-expanded .res-cell { justify-content: space-between; }
-.res-cell.is-at .res-bar .run { box-shadow: 0 0 6px var(--sc-accent); }
-.res-cell.is-at .res-cell-num { color: var(--sc-accent); }
+.resource-dock.is-expanded .res-cell { gap: 5px; padding: 0 6px; }
+.resource-dock.is-expanded .res-cell-num { font-size: var(--fs-sm); gap: 3px; }
+.res-cell.is-at .res-led.run { box-shadow: 0 0 6px var(--sc-accent); }
 .res-cell.is-held { background: rgba(var(--accent-warning-rgb), 0.12); box-shadow: inset 0 0 12px rgba(var(--accent-warning-rgb), 0.35); }
-.res-cell.is-held .res-ico, .res-cell.is-held .res-cell-num { color: var(--sc-warning); }
-.res-cell.is-held .res-bar .run { background: var(--sc-warning); }
+.res-cell.is-held .res-ico, .res-cell.is-held .res-n-run { color: var(--sc-warning); }
+.res-cell.is-held .res-led.run { background: var(--sc-warning); box-shadow: 0 0 4px rgba(var(--accent-warning-rgb), 0.6); }
+
 
 .res-presets { display: inline-flex; align-items: center; gap: 4px; }
 .res-preset {
@@ -602,8 +607,9 @@ kbd.sc-kbd {
   border: 1px solid var(--sc-border-ui); border-top: 0; border-radius: 0 0 7px 7px; background: var(--sc-bg-0);
 }
 .res-boxes { display: grid; gap: 5px; height: 100%; }
+/* Every card is the same grid: header · gauge · control row · phase pips — rows line up across cards. */
 .res-box {
-  margin: 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 2px;
+  margin: 0; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) 22px auto; gap: 3px;
   padding: 3px 6px 4px; border: 1px solid var(--sc-border); border-radius: var(--sc-radius-sm);
   background: var(--sc-bg-1); transform-origin: bottom center;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -611,14 +617,14 @@ kbd.sc-kbd {
 .resource-dock.is-morph .res-box { animation: res-grow 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i) * 60ms); }
 @keyframes res-grow { from { transform: scaleY(0.18) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 .res-box figcaption {
-  /* A narrow box moves the aside to a second line instead of clipping it. */
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0 5px; min-width: 0; flex: none;
+  display: flex; align-items: center; gap: 5px; min-width: 0;
   font-family: var(--sc-font-display); font-weight: 600; font-size: 9px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--sc-fg-1); white-space: nowrap;
 }
 .res-box figcaption .res-ico { width: 12px; height: 12px; }
 .res-box-aside {
-  margin-left: auto; font-family: var(--sc-font-body); font-weight: 500; font-size: 9.5px;
+  margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--sc-font-body); font-weight: 500; font-size: 9.5px;
   letter-spacing: 0; text-transform: none; color: var(--sc-fg-2);
 }
 .res-box.is-at { border-color: rgba(var(--accent-primary-rgb), 0.7); box-shadow: 0 0 12px rgba(var(--accent-primary-rgb), 0.3); }
@@ -626,59 +632,57 @@ kbd.sc-kbd {
   border-color: rgba(var(--accent-warning-rgb), 0.7);
   box-shadow: 0 0 14px rgba(var(--accent-warning-rgb), 0.35), inset 0 0 10px rgba(var(--accent-warning-rgb), 0.15);
 }
-.res-dial { display: block; flex: 1 1 0; min-height: 0; width: 100%; overflow: visible; touch-action: none; }
+.res-garea { position: relative; min-height: 0; display: flex; }
+.res-ctrl { min-width: 0; display: flex; align-items: center; }
+.res-dial { display: block; flex: 1 1 0; min-height: 0; width: 100%; height: 100%; overflow: visible; touch-action: none; }
 .res-dial--tempo:focus { outline: none; }
 .res-dial--tempo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; border-radius: var(--sc-radius-sm); }
-.dial-track { fill: none; stroke: var(--sc-well); stroke-width: 7; }
-.dial-run { fill: none; stroke: var(--sc-accent); stroke-width: 7; transition: stroke 0.3s ease, filter 0.3s ease; }
-.dial-oth { fill: none; stroke: rgba(159, 179, 200, 0.5); stroke-width: 7; stroke-dasharray: 2.5 2; }
-.dial-tick { stroke: var(--sc-fg-2); stroke-width: 1; opacity: 0.55; transition: stroke 0.2s ease, opacity 0.2s ease; }
-.dial-needle { stroke: var(--sc-fg-0); stroke-width: 2; stroke-linecap: round; }
-.dial-hub { fill: var(--sc-fg-0); }
-.dial-value { fill: var(--sc-fg-0); font-family: var(--sc-font-mono); font-size: 16px; }
-.dial-sub { fill: var(--sc-fg-2); font-family: var(--sc-font-body); font-size: 9px; }
+/* Segment ring: blue = uploader, white = other programs, dark = free. */
+.dial-sg { fill: none; stroke: var(--sc-well); stroke-width: 9; transition: stroke 0.2s ease, filter 0.3s ease; }
+.dial-sg.oth { stroke: rgba(232, 235, 237, 0.85); }
+.dial-sg.run { stroke: var(--sc-accent); }
+.dial-pointer { fill: var(--sc-fg-0); }
+.dial-value { fill: var(--sc-fg-0); font-family: var(--sc-font-mono); font-size: 17px; }
+.dial-sub { fill: var(--sc-fg-2); font-family: var(--sc-font-body); font-size: 7px; letter-spacing: 0.04em; text-transform: uppercase; }
+.dial-trio { font-family: var(--sc-font-mono); font-size: 8.5px; }
+.dial-trio--run { fill: var(--sc-accent); }
+.dial-trio--oth { fill: var(--sc-fg-0); }
+.dial-trio--free { fill: var(--sc-fg-1); opacity: 0.8; }
+.dial-trio-lbl { fill: var(--sc-fg-2); font-family: var(--sc-font-body); font-size: 6.5px; }
+/* The Tempomat: a blue knob outside the ring, no rim. */
 .dial-tempo { cursor: grab; }
 .res-dial--tempo.is-dragging, .res-dial--tempo.is-dragging .dial-tempo { cursor: grabbing; }
-.dial-tempo-tick { stroke: var(--sc-fg-0); stroke-width: 2.5; stroke-linecap: round; }
-.dial-tempo-knob { fill: var(--sc-fg-0); stroke: var(--sc-bg-0); stroke-width: 1.5; }
-.dial-tempo-halo { fill: rgba(var(--accent-primary-rgb), 0.18); stroke: var(--sc-accent); stroke-width: 1; opacity: 0; transition: opacity 0.2s ease; }
+.dial-tempo-tick { stroke: var(--sc-accent); stroke-width: 2.5; stroke-linecap: round; }
+.dial-tempo-knob { fill: var(--sc-accent); stroke: none; }
+.dial-tempo-halo { fill: rgba(var(--accent-primary-rgb), 0.16); stroke: var(--sc-accent); stroke-width: 0.8; opacity: 0; transition: opacity 0.2s ease; }
 .res-dial--tempo:hover .dial-tempo-halo,
 .res-dial--tempo:focus-visible .dial-tempo-halo,
-.res-dial--tempo.is-dragging .dial-tempo-halo { opacity: 1; }
-.res-dial--tempo:hover .dial-tick,
-.res-dial--tempo:focus-visible .dial-tick,
-.res-dial--tempo.is-dragging .dial-tick { stroke: var(--sc-accent); opacity: 1; }
-.res-box.is-at .dial-run { stroke: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-fg-0)); filter: drop-shadow(0 0 4px rgba(var(--accent-primary-rgb), 0.9)); }
-.res-box.is-held .dial-run { stroke: var(--sc-warning); filter: drop-shadow(0 0 4px rgba(var(--accent-warning-rgb), 0.9)); }
+.res-dial--tempo.is-dragging .dial-tempo-halo { opacity: 0.6; }
+.res-box.is-at .dial-sg.run { stroke: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-fg-0)); filter: drop-shadow(0 0 3px rgba(var(--accent-primary-rgb), 0.9)); }
+.res-box.is-held .dial-sg.run { stroke: var(--sc-warning); filter: drop-shadow(0 0 3px rgba(var(--accent-warning-rgb), 0.9)); }
 
-.res-drive-row { flex: 1 1 0; min-height: 0; display: flex; align-items: stretch; gap: 6px; }
-.res-drive-row .res-dial { flex: 0 0 46%; width: 46%; height: 100%; }
-.res-lims { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: space-evenly; gap: 2px; }
-.res-lim { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 9.5px; color: var(--sc-fg-1); }
-.res-lim-head { display: flex; justify-content: space-between; gap: 4px; white-space: nowrap; }
-.res-lim-val { font-family: var(--sc-font-mono); font-weight: 500; font-size: 10px; color: var(--sc-fg-0); }
-.res-lim-track {
-  position: relative; height: 3px; margin: 2px 4px 3px; border-radius: var(--sc-radius-pill);
-  background: var(--sc-well); touch-action: none;
+/* Segmented toggle: options spread evenly over the full width, exactly one selected. */
+.res-seg {
+  flex: 1 1 auto; display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); padding: 2px;
+  border: 1px solid var(--sc-border-ui); border-radius: var(--sc-radius-pill); background: var(--sc-well);
 }
-.res-lim-track:focus { outline: none; }
-.res-lim-track:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
-.res-lim-run { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: var(--sc-accent); }
-.res-lim-knob {
-  position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%);
-  background: var(--sc-fg-0); box-shadow: 0 0 0 1.5px var(--sc-bg-0); cursor: grab;
-  transition: box-shadow 0.2s ease;
+.res-seg-btn {
+  min-width: 0; padding: 1px 4px; border: 0; border-radius: var(--sc-radius-pill); background: transparent;
+  color: var(--sc-fg-1); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--sc-font-body); font-size: var(--fs-xs); line-height: 1.4; text-align: center;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.res-lim-track:hover .res-lim-knob, .res-lim-track:focus-visible .res-lim-knob, .res-lim-track.is-dragging .res-lim-knob {
-  box-shadow: 0 0 0 1.5px var(--sc-bg-0), 0 0 0 5px rgba(var(--accent-primary-rgb), 0.3);
+.res-seg-btn:hover { color: var(--sc-fg-0); }
+.res-seg-btn[aria-checked='true'] {
+  background: color-mix(in srgb, var(--sc-bg-3) 70%, var(--sc-accent) 30%); color: var(--sc-fg-0);
+  box-shadow: inset 0 0 0 1px var(--sc-accent);
 }
-.res-lim-track.is-dragging, .res-lim-track.is-dragging .res-lim-knob { cursor: grabbing; }
-.res-lim.is-held .res-lim-run { background: var(--sc-warning); box-shadow: 0 0 6px rgba(var(--accent-warning-rgb), 0.9); }
-.res-lim.is-at .res-lim-run { box-shadow: 0 0 6px rgba(var(--accent-primary-rgb), 0.9); }
+.res-seg-btn:focus { outline: none; }
+.res-seg-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 
 /* "What it speeds up": phases wrap as whole units — never clipped. */
 .res-boost {
-  flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; margin: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; margin: 0;
   font-size: 9.5px; line-height: 1.3; color: var(--sc-fg-2);
 }
 .res-boost:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; border-radius: var(--sc-radius-sm); }
@@ -688,36 +692,25 @@ kbd.sc-kbd {
 .res-pip { width: 5px; height: 5px; border-radius: 50%; box-sizing: border-box; border: 1px solid var(--sc-accent); }
 .res-pip.on { background: var(--sc-accent); }
 
-.res-box--gpu { justify-content: center; gap: 6px; }
-.res-box--gpu figcaption { margin-bottom: auto; }
-.res-gpu-name { margin: 0; font-size: var(--fs-xs); color: var(--sc-fg-0); overflow-wrap: anywhere; line-height: 1.3; }
-.res-switch-wrap { display: flex; margin-bottom: auto; }
-.res-switch {
-  display: inline-flex; align-items: center; gap: 6px; padding: 2px 0; border: 0; background: transparent;
-  color: var(--sc-fg-1); font-family: var(--sc-font-body); font-size: var(--fs-xs); text-align: left; cursor: pointer;
+/* GPU off: the ring dims, the knob stays bright and draggable, a hint says how to turn it on. */
+.res-gpu-off { display: none; }
+.res-box--gpu.is-off .dial-ring, .res-box--gpu.is-off .dial-pointer { opacity: 0.3; }
+.res-box--gpu.is-off .dial-value, .res-box--gpu.is-off .dial-sub, .res-box--gpu.is-off .dial-trios { display: none; }
+.res-box--gpu.is-off .res-gpu-off {
+  display: block; position: absolute; left: 14%; right: 14%; top: 28%; margin: 0; pointer-events: none;
+  text-align: center; font-size: 9.5px; line-height: 1.35; color: var(--sc-fg-1);
 }
-.res-switch:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: var(--sc-radius-sm); }
-.res-switch[aria-disabled='true'] { cursor: not-allowed; color: var(--sc-fg-2); }
-.res-switch-track {
-  position: relative; flex: none; width: 28px; height: 15px; border-radius: var(--sc-radius-pill);
-  background: var(--sc-well); border: 1px solid var(--sc-border-ui); transition: background 0.2s ease, border-color 0.2s ease;
+/* No usable GPU: no gauge, no knob — a note in the gauge area. */
+.res-gpu-msg {
+  flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 0 10px; text-align: center; font-size: var(--fs-xs); color: var(--sc-fg-1);
 }
-.res-switch-track::after {
-  content: ''; position: absolute; left: 2px; top: 2px; width: 9px; height: 9px; border-radius: 50%;
-  background: var(--sc-fg-2); transition: transform 0.2s ease, background 0.2s ease;
-}
-.res-switch[aria-checked='true'] .res-switch-track { background: rgba(var(--accent-primary-rgb), 0.35); border-color: var(--sc-accent); }
-.res-switch[aria-checked='true'] .res-switch-track::after { transform: translateX(13px); background: var(--sc-accent); }
-.res-switch[aria-disabled='true'] .res-switch-track { opacity: 0.5; }
+.res-gpu-msg p { margin: 2px 0; }
+.res-gpu-msg-hint { color: var(--sc-fg-2); font-size: 9.5px; }
 
 /* First unfold of a session: every knob pulses so the reader sees what moves. */
 .resource-dock.is-pulse .dial-tempo-halo { animation: res-pulse-halo 0.9s ease-out 0.5s 2 both; }
-.resource-dock.is-pulse .res-lim-knob { animation: res-pulse-knob 0.9s ease-out 0.5s 2 both; }
 @keyframes res-pulse-halo { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes res-pulse-knob {
-  0% { box-shadow: 0 0 0 1.5px var(--sc-bg-0), 0 0 0 0 rgba(var(--accent-primary-rgb), 0.7); }
-  100% { box-shadow: 0 0 0 1.5px var(--sc-bg-0), 0 0 0 9px rgba(var(--accent-primary-rgb), 0); }
-}
 
 /* The rest of the app while the dock is open: dimmed, a click folds it back. */
 #top-strip, #update-banner, #patch-banner, #stage, #bottom-strip, .chevron { transition: filter 0.35s ease; }
@@ -737,9 +730,9 @@ body.res-open #bottom-strip, body.res-open .chevron { filter: brightness(0.42) b
 }
 @media (prefers-reduced-motion: reduce) {
   .resource-dock.is-morph .res-box, .res-scrim.is-shimmer,
-  .resource-dock.is-pulse .dial-tempo-halo, .resource-dock.is-pulse .res-lim-knob { animation: none; }
+  .resource-dock.is-pulse .dial-tempo-halo { animation: none; }
   .res-scrim.is-shimmer { background: transparent; }
-  #top-strip, #update-banner, #patch-banner, #stage, #bottom-strip, .chevron, .res-cell, .res-box, .dial-run { transition: none; }
+  #top-strip, #update-banner, #patch-banner, #stage, #bottom-strip, .chevron, .res-cell, .res-box, .res-led, .res-seg-btn, .dial-sg { transition: none; }
 }
 .snackbar { padding: 2px 8px; border-radius: var(--sc-radius-sm); }
 .snackbar--warn { color: var(--sc-warning); background: rgba(var(--accent-warning-rgb), 0.12); }
