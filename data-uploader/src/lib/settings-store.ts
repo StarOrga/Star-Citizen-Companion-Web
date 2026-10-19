@@ -65,9 +65,12 @@ export interface Settings {
    */
   resourceLimits?: StoredResourceLimits;
   /**
-   * Operator switch "use the GPU" for the stages that have a GPU path
-   * (silhouettes / 3D). Default false. Sidecars see it as env `SC_USE_GPU`
-   * (`main/sidecar-env.ts`), only while a GPU is available.
+   * LEGACY: the former operator switch "use the GPU". Superseded by the GPU
+   * limit `resourceLimits.gpuPct` (sidecar env `SC_USE_GPU` / `SC_GPU_SHARE`
+   * follow the limit now). No longer written; only read once by
+   * `main/resources.ts` (`migrateLegacyGpu`) to give a custom mix stored
+   * without `gpuPct` the old switch's meaning (false → 0, true → 80). Presets
+   * carry their own GPU share. Default false.
    */
   useGpu: boolean;
   /**
@@ -91,6 +94,8 @@ export interface StoredResourceLimits {
   readMBs?: number;
   writeMBs?: number;
   iops?: number;
+  /** GPU limit 0..100 (0 = GPU off). Absent in files written before it existed → `migrateLegacyGpu`. */
+  gpuPct?: number;
 }
 
 function readResourceLimits(raw: unknown): StoredResourceLimits | undefined {
@@ -99,7 +104,7 @@ function readResourceLimits(raw: unknown): StoredResourceLimits | undefined {
   const out: StoredResourceLimits = {};
   if (r.preset === 'gaming' || r.preset === 'balanced' || r.preset === 'full') out.preset = r.preset;
   else if (r.preset === null) out.preset = null;
-  for (const key of ['cpuPct', 'ramMb', 'readMBs', 'writeMBs', 'iops'] as const) {
+  for (const key of ['cpuPct', 'ramMb', 'readMBs', 'writeMBs', 'iops', 'gpuPct'] as const) {
     const v = r[key];
     if (typeof v === 'number' && Number.isFinite(v)) out[key] = v;
   }
