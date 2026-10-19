@@ -161,6 +161,16 @@ describe('discovery — remembered install', { timeout: 30_000 }, () => {
     expect(result[0]?.source).toBe('saved');
   });
 
+  it('never preselects a sibling in place of a remembered channel that is gone', async () => {
+    const lib = await mkdtemp(join(tmpdir(), 'sc-sib-'));
+    const live = join(lib, 'StarCitizen', 'LIVE');
+    const ptu = await makeChannel(join(lib, 'StarCitizen', 'PTU'));
+    const result = await discoverAll({ rememberedPath: live });
+    const sibling = result.find((c) => c.installPath === ptu);
+    expect(sibling?.source).toBe('manual');
+    expect(result.some((c) => c.source === 'saved')).toBe(false);
+  });
+
   it('falls back to the automatic search when the remembered Data.p4k is gone', async () => {
     const lib = await mkdtemp(join(tmpdir(), 'sc-gone-'));
     const live = await makeChannel(join(lib, 'StarCitizen', 'LIVE'));

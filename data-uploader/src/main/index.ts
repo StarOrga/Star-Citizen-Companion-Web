@@ -500,9 +500,12 @@ ipcMain.handle('sc:discoverManual', async (_e, folderPath: string) => {
 });
 
 /** The operator chose one of several installs — keep that choice for the next launch. */
-ipcMain.handle('sc:rememberInstall', (_e, installPath: unknown) => {
+ipcMain.handle('sc:rememberInstall', async (_e, installPath: unknown) => {
   if (typeof installPath !== 'string' || installPath.length === 0 || installPath.length > 1024) return false;
-  rememberInstall(installPath);
+  // Only a folder that really is a channel with a Data.p4k gets persisted.
+  const found = await discoverManual(installPath);
+  if (!found || found.installPath.toLowerCase() !== installPath.toLowerCase()) return false;
+  rememberInstall(found.installPath);
   return true;
 });
 

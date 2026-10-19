@@ -174,6 +174,9 @@ async function probeAnyLevel(dir: string, source: Source): Promise<DiscoveredCha
 export async function expandHint(hint: string, source: Source): Promise<DiscoveredChannel[]> {
   let dir = hint.trim().replace(/[\\/]+$/, '');
   if (!dir) return [];
+  // A picked drive root (`D:\`) must stay a root — bare `D:` means "the
+  // current directory on D" to Windows.
+  if (/^[A-Za-z]:$/.test(dir)) dir += '\\';
   if (/\.(p4k|exe|log|id|txt)$/i.test(dir) || !(await isDir(dir))) dir = dirname(dir);
   const root = parse(dir).root;
   for (let i = 0; i < 8 && dir; i++) {
@@ -197,9 +200,32 @@ async function expandHints(hints: readonly string[], source: Source): Promise<Di
     if (seen.has(key)) continue;
     seen.add(key);
     if (seen.size > MAX_HINTS) break;
-    found.push(...(await expandHint(hint, source)));
+    found.push(...(await withTimeout(expandHint(hint, source), HINT_TIMEOUT_MS, [])));
   }
   return dedupe(found);
+}
+
+/**
+ * A disconnected network drive or a sleeping USB disk can block `stat` for
+ * many seconds; an unattended launch must not hang on a stale hint. The fs
+ * call keeps running in the background — only the wait is cut short.
+ */
+const HINT_TIMEOUT_MS = 3000;
+
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -278,7 +304,8 @@ async function readLauncherTexts(dir: string): Promise<string[]> {
       /* unreadable — skip */
     }
   };
-  for (const name of await listFiles(join(dir, 'logs'))) {
+  // Current log first: rotated logs may name a folder the game has left since.
+  for (const name of await newestFilesFirst(join(dir, 'logs'))) {
     if (/\.log(\.\d+)?$/i.test(name)) await read(join(dir, 'logs', name), 4 * 1024 * 1024);
   }
   for (const name of await listFiles(dir)) {
@@ -288,6 +315,14 @@ async function readLauncherTexts(dir: string): Promise<string[]> {
     if (/\.(log|ldb)$/i.test(name)) await read(join(dir, 'Local Storage', 'leveldb', name), 1024 * 1024);
   }
   return texts;
+}
+
+async function newestFilesFirst(p: string): Promise<string[]> {
+  const names = await listFiles(p);
+  const withTime = await Promise.all(
+    names.map(async (n) => ({ n, t: await fs.stat(join(p, n)).then((st) => st.mtimeMs, () => 0) })),
+  );
+  return withTime.sort((a, b) => b.t - a.t).map((x) => x.n);
 }
 
 async function listFiles(p: string): Promise<string[]> {
@@ -364,7 +399,8 @@ export async function discoverViaFsScan(roots: readonly string[]): Promise<Disco
 async function existingDrives(): Promise<string[]> {
   const letters = 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const checks = await Promise.all(
-    letters.map(async (l) => ((await isDir(`${l}:\\`)) ? `${l}:\\` : null)),
+    // A mapped network drive that is offline can block for many seconds.
+    letters.map(async (l) => ((await withTimeout(isDir(`${l}:\\`), 1500, false)) ? `${l}:\\` : null)),
   );
   return checks.filter((d): d is string => d !== null);
 }
@@ -380,15 +416,15 @@ export async function discoverViaDriveScan(drives?: readonly string[]): Promise<
   const perDrive = await Promise.all(
     list.map(async (drive) => {
       const roots = COMMON_RELATIVE_ROOTS.map((rel) => join(drive, rel));
-      for (const top of await listDirs(drive)) {
+      for (const top of await withTimeout(listDirs(drive), HINT_TIMEOUT_MS, [] as string[])) {
         if (SKIP_TOP_LEVEL.has(top.toLowerCase()) || top.startsWith('$')) continue;
         roots.push(join(drive, top, 'StarCitizen'));
         roots.push(join(drive, top, 'Roberts Space Industries', 'StarCitizen'));
       }
-      return discoverViaFsScan(roots);
+      return withTimeout(discoverViaFsScan(roots), 15_000, [] as DiscoveredChannel[]);
     }),
   );
-  return dedupe(perDrive.flat()).map((c) => ({ ...c, source: 'fs-scan' as const }));
+  return dedupe(perDrive.flat());
 }
 
 // ---------------------------------------------------------------------------
@@ -439,9 +475,14 @@ export async function discoverAll(opts: DiscoverOptions = {}): Promise<Discovere
     }
   };
   const rememberedPath = opts.rememberedPath !== undefined ? opts.rememberedPath : rememberedInstall;
-  const remembered = rememberedPath ? await safe(expandHint(rememberedPath, 'saved')) : [];
-  // A remembered channel folder lists only itself; its siblings (PTU next to
-  // LIVE) still come from the other stages.
+  // Only the exact remembered channel is 'saved' (and gets preselected). When
+  // it is gone, expandHint climbs to its siblings — they are listed, but as
+  // plain finds the operator has to pick, never silently in its place.
+  const remembered = rememberedPath
+    ? (await withTimeout(expandHint(rememberedPath, 'saved'), HINT_TIMEOUT_MS, [] as DiscoveredChannel[])).map(
+        (c) => (isRememberedChannel(c, rememberedPath) ? c : { ...c, source: 'manual' as const }),
+      )
+    : [];
   const [launcher, windows] = await Promise.all([safe(discoverViaLauncher()), safe(discoverViaWindows())]);
   let found = [...sortRemembered(remembered, rememberedPath), ...launcher, ...windows];
   if (found.length === 0) found = await safe(discoverViaDriveScan());
@@ -449,12 +490,15 @@ export async function discoverAll(opts: DiscoverOptions = {}): Promise<Discovere
   return dedupe(found);
 }
 
+function isRememberedChannel(c: DiscoveredChannel, remembered: string): boolean {
+  const key = pathKey(remembered);
+  return pathKey(c.installPath) === key || pathKey(c.dataP4kPath) === key;
+}
+
 /** The exact remembered channel first, its siblings after. */
 function sortRemembered(found: DiscoveredChannel[], remembered?: string | null): DiscoveredChannel[] {
   if (!remembered) return found;
-  const key = pathKey(remembered);
-  const exact = (c: DiscoveredChannel): boolean =>
-    pathKey(c.installPath) === key || pathKey(c.dataP4kPath) === key;
+  const exact = (c: DiscoveredChannel): boolean => isRememberedChannel(c, remembered);
   return [...found.filter(exact), ...found.filter((c) => !exact(c))];
 }
 
