@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.157.1",
+  "current": "0.157.2",
   "releases": [
+    {
+      "version": "0.157.2",
+      "date": "2026-10-19",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "News: Teilen meldet, ob der Link kopiert wurde.",
+              "text": "Ohne native Teilen-Funktion kopiert der Button den Link und zeigt kurz „Link kopiert“ bzw. „Link konnte nicht kopiert werden“, auch für Screenreader."
+            },
+            {
+              "title": "Einheitlich „Set“ für Rollen-Sets",
+              "text": "in Hangar, Teilen-Panel und Doku; die Codex-Doku nennt die Blaupausen im Index-Tab."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Übersetzungen aufgeräumt:",
+              "text": "238 nicht mehr genutzte Schlüssel entfernt; ein Test hält Deutsch und Englisch auf denselben Schlüsseln."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.157.1",
       "date": "2026-10-19",
