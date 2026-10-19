@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.157.0] - 2026-10-19
+
+### Added
+
+- **Star-Citizen-Eventkalender kommt aus SC Companion.** Die Tabelle
+  `sc_events` mit der RPC `sc_events_feed()` liefert der Desktop-App die
+  Event-Zeitleiste (Festivals, Expos, Free Flys). Die Edge Function
+  `sc-events-sync` gleicht sie alle 6 Stunden mit den offiziellen
+  Comm-Links ab (über die Star Citizen Wiki API), bestätigt geschätzte
+  Termine und schreibt nächstjährige Ereignisse als Schätzung fort; gesperrte
+  oder ausgeblendete Einträge bleiben unangetastet. Läufe stehen in
+  `sc_events_scrape_runs`, `sc_events_health()` zeigt den Zustand.
+
 ## [0.156.0] - 2026-10-19
 
 ### Added
