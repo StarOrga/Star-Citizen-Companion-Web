@@ -1,15 +1,36 @@
 /**
- * Game-Discovery — 3-stage cascade per concept § D.
+ * Game-Discovery — finds every Star Citizen install (and its `Data.p4k`).
  *
- * Stage 1: RSI-Launcher-Config (`%APPDATA%/rsilauncher/*.json`)
- * Stage 2: Filesystem-Scan of common install roots
- * Stage 3: Manual folder pick (input from UI)
+ * The RSI Launcher and the game do not have to live in the same place: the
+ * launcher installs into `<library>\StarCitizen\<CHANNEL>\`, and the library
+ * folder is free to pick (`D:\Games`, `E:\Spiele\RSI`, …). The launcher keeps
+ * that choice in an ENCRYPTED `launcher store.json`, so reading the launcher's
+ * JSON finds nothing — the sources below are the ones that carry the path in
+ * clear text:
  *
- * Returns `DiscoveredChannel[]` — UI defaults all to ticked, user can deselect.
+ * Stage 0: the folder the operator picked or chose before (`settings.json`,
+ *          survives uploader updates); falls through when it no longer holds
+ *          a `Data.p4k`.
+ * Stage 1: RSI Launcher log (`%APPDATA%\rsilauncher\logs\*.log`) — every
+ *          install/update/verify logs `…\StarCitizen\LIVE`. Plain `*.json` in
+ *          the launcher dir are still read for older launcher builds.
+ * Stage 2: Windows' own traces of `StarCitizen.exe` (GameConfigStore /
+ *          Game Bar, Compatibility Assistant, MuiCache) — covers a game that
+ *          was moved or launched without this launcher's log.
+ * Stage 3: only when 0–2 found nothing: every fixed drive, common install
+ *          paths plus one level of top-level folders.
+ * Stage 4: manual folder pick — any level is accepted (library folder,
+ *          `StarCitizen`, `LIVE`, `Bin64`, or the `Data.p4k` itself).
+ *
+ * Every hint is expanded the same way (`expandHint`): the path and its
+ * ancestors are probed as a channel folder, a `StarCitizen` folder and a
+ * library folder, so a log line, an exe path or a picked folder all land on
+ * the channel folders that really hold a `Data.p4k`.
  */
 
 import { promises as fs } from 'node:fs';
-import { join, sep } from 'node:path';
+import { execFile } from 'node:child_process';
+import { basename, dirname, join, parse } from 'node:path';
 import { homedir, platform } from 'node:os';
 
 export type ChannelTag = 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW';
@@ -27,125 +48,76 @@ export interface DiscoveredChannel {
    */
   buildNumber?: string | null;
   sizeBytes: number;
-  source: 'rsi-launcher' | 'fs-scan' | 'manual';
+  source: 'saved' | 'rsi-launcher' | 'windows' | 'fs-scan' | 'manual';
 }
 
-const COMMON_INSTALL_ROOTS = [
-  'C:\\Program Files\\Roberts Space Industries\\StarCitizen',
-  'C:\\StarCitizen',
-  'D:\\Program Files\\Roberts Space Industries\\StarCitizen',
-  'D:\\StarCitizen',
-  'D:\\Games\\Roberts Space Industries\\StarCitizen',
-  'E:\\Program Files\\Roberts Space Industries\\StarCitizen',
-  'E:\\StarCitizen',
+type Source = DiscoveredChannel['source'];
+
+/** Install paths below a drive root the launcher (or a hand install) commonly uses. */
+const COMMON_RELATIVE_ROOTS = [
+  'Program Files\\Roberts Space Industries\\StarCitizen',
+  'Program Files (x86)\\Roberts Space Industries\\StarCitizen',
+  'Roberts Space Industries\\StarCitizen',
+  'StarCitizen',
+  'Star Citizen',
+  'Games\\Roberts Space Industries\\StarCitizen',
+  'Games\\StarCitizen',
+  'Spiele\\Roberts Space Industries\\StarCitizen',
+  'Spiele\\StarCitizen',
 ];
 
-/** Stage 1 — read RSI Launcher's JSON manifests. */
-export async function discoverViaLauncher(): Promise<DiscoveredChannel[]> {
-  if (platform() !== 'win32') return [];
-  const launcherDir = process.env['APPDATA']
-    ? join(process.env['APPDATA'], 'rsilauncher')
-    : join(homedir(), 'AppData', 'Roaming', 'rsilauncher');
+/** Top-level folders never worth a look during the drive scan. */
+const SKIP_TOP_LEVEL = new Set([
+  'windows',
+  '$recycle.bin',
+  'system volume information',
+  'recovery',
+  'perflogs',
+  'programdata',
+  'users',
+  '$windows.~ws',
+  '$windows.~bt',
+  'msocache',
+  'config.msi',
+]);
 
-  let entries: string[];
+/** Hints mentioning neither are noise (other apps' paths in the same logs). */
+const SC_HINT = /starcitizen|star citizen|roberts space industries/i;
+
+/** How many hints per source get expanded — the launcher log repeats itself thousands of times. */
+const MAX_HINTS = 40;
+
+// ---------------------------------------------------------------------------
+// Probing
+
+function pathKey(p: string): string {
+  // Windows paths are case-insensitive; the trailing separator is cosmetic.
+  return p.replace(/[\\/]+$/, '').toLowerCase();
+}
+
+async function isDir(p: string): Promise<boolean> {
   try {
-    entries = await fs.readdir(launcherDir);
+    return (await fs.stat(p)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function listDirs(p: string): Promise<string[]> {
+  try {
+    const entries = await fs.readdir(p, { withFileTypes: true });
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
   } catch {
     return [];
   }
-
-  const found: DiscoveredChannel[] = [];
-  for (const file of entries.filter((n) => n.endsWith('.json'))) {
-    try {
-      const raw = await fs.readFile(join(launcherDir, file), 'utf-8');
-      const data: unknown = JSON.parse(raw);
-      for (const inst of extractLauncherInstalls(data)) {
-        const ch = await probeChannel(inst.installPath, 'rsi-launcher');
-        if (ch) found.push(ch);
-      }
-    } catch {
-      /* skip malformed */
-    }
-  }
-  return dedupe(found);
 }
 
-interface LauncherInstall {
-  installPath: string;
-  channel?: string;
+function channelOfName(name: string): ChannelTag | null {
+  const tag = name.toUpperCase().replace(/[_ ]/g, '-') as ChannelTag;
+  return CHANNELS.includes(tag) ? tag : null;
 }
 
-function extractLauncherInstalls(data: unknown): LauncherInstall[] {
-  const out: LauncherInstall[] = [];
-  const visit = (node: unknown): void => {
-    if (!node || typeof node !== 'object') return;
-    const obj = node as Record<string, unknown>;
-    const ip = obj['installPath'] ?? obj['install_path'] ?? obj['gameInstallPath'];
-    if (typeof ip === 'string' && ip.length > 0) {
-      out.push({
-        installPath: ip,
-        channel: typeof obj['channel'] === 'string' ? obj['channel'] : undefined,
-      });
-    }
-    for (const v of Object.values(obj)) {
-      if (typeof v === 'object') visit(v);
-    }
-  };
-  visit(data);
-  return out;
-}
-
-/** Stage 2 — scan common install roots for Channel-subdirs containing Data.p4k. */
-export async function discoverViaFsScan(
-  roots: readonly string[] = COMMON_INSTALL_ROOTS,
-): Promise<DiscoveredChannel[]> {
-  const found: DiscoveredChannel[] = [];
-  for (const root of roots) {
-    let entries: { name: string; isDirectory(): boolean }[];
-    try {
-      entries = (await fs.readdir(root, { withFileTypes: true })) as unknown as {
-        name: string;
-        isDirectory(): boolean;
-      }[];
-    } catch {
-      continue;
-    }
-    for (const ent of entries) {
-      if (!ent.isDirectory()) continue;
-      const candidate = ent.name.toUpperCase().replace('_', '-') as ChannelTag;
-      if (!CHANNELS.includes(candidate)) continue;
-      const channelDir = join(root, ent.name);
-      const ch = await probeChannel(channelDir, 'fs-scan');
-      if (ch) found.push(ch);
-    }
-  }
-  return dedupe(found);
-}
-
-/** Stage 3 — UI hands us a user-picked folder, we probe it as-is. */
-export async function discoverManual(folderPath: string): Promise<DiscoveredChannel | null> {
-  return probeChannel(folderPath, 'manual');
-}
-
-/** Run all 3 stages — cascade: launcher → fs-scan if empty → optional manual. */
-export async function discoverAll(opts: { manualPath?: string } = {}): Promise<DiscoveredChannel[]> {
-  let found = await discoverViaLauncher();
-  if (found.length === 0) {
-    found = await discoverViaFsScan();
-  }
-  if (opts.manualPath) {
-    const m = await discoverManual(opts.manualPath);
-    if (m && !found.some((c) => c.dataP4kPath === m.dataP4kPath)) {
-      found.push(m);
-    }
-  }
-  return found;
-}
-
-async function probeChannel(
-  channelDir: string,
-  source: DiscoveredChannel['source'],
-): Promise<DiscoveredChannel | null> {
+async function probeChannel(channelDir: string, source: Source): Promise<DiscoveredChannel | null> {
   const dataP4k = join(channelDir, 'Data.p4k');
   let stat;
   try {
@@ -166,9 +138,377 @@ async function probeChannel(
   };
 }
 
+/** Channel folders (`LIVE`, `PTU`, …) directly below `root` that hold a Data.p4k. */
+async function probeChannelsBelow(root: string, source: Source): Promise<DiscoveredChannel[]> {
+  const found: DiscoveredChannel[] = [];
+  for (const name of await listDirs(root)) {
+    if (!channelOfName(name)) continue;
+    const ch = await probeChannel(join(root, name), source);
+    if (ch) found.push(ch);
+  }
+  return found;
+}
+
+/**
+ * Probe one folder at every level it could be: a channel folder, a
+ * `StarCitizen` folder, or a launcher library folder (`<lib>\StarCitizen\*`).
+ */
+async function probeAnyLevel(dir: string, source: Source): Promise<DiscoveredChannel[]> {
+  const self = await probeChannel(dir, source);
+  if (self) return [self];
+  const below = await probeChannelsBelow(dir, source);
+  if (below.length > 0) return below;
+  for (const name of ['StarCitizen', 'Star Citizen']) {
+    const lib = await probeChannelsBelow(join(dir, name), source);
+    if (lib.length > 0) return lib;
+  }
+  return [];
+}
+
+/**
+ * The folder a hint points into, then its ancestors up to the drive root —
+ * each probed at every level. Stops at the first folder that yields installs,
+ * so an exe path (`…\LIVE\Bin64\StarCitizen.exe`) resolves to its own channel
+ * and never climbs on to the whole drive.
+ */
+export async function expandHint(hint: string, source: Source): Promise<DiscoveredChannel[]> {
+  let dir = hint.trim().replace(/[\\/]+$/, '');
+  if (!dir) return [];
+  // A picked drive root (`D:\`) must stay a root — bare `D:` means "the
+  // current directory on D" to Windows.
+  if (/^[A-Za-z]:$/.test(dir)) dir += '\\';
+  if (/\.(p4k|exe|log|id|txt)$/i.test(dir) || !(await isDir(dir))) dir = dirname(dir);
+  const root = parse(dir).root;
+  for (let i = 0; i < 8 && dir; i++) {
+    if (await isDir(dir)) {
+      const found = await probeAnyLevel(dir, source);
+      if (found.length > 0) return found;
+    }
+    if (pathKey(dir) === pathKey(root)) break;
+    const up = dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  return [];
+}
+
+async function expandHints(hints: readonly string[], source: Source): Promise<DiscoveredChannel[]> {
+  const seen = new Set<string>();
+  const found: DiscoveredChannel[] = [];
+  for (const hint of hints) {
+    const key = pathKey(hint);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (seen.size > MAX_HINTS) break;
+    found.push(...(await withTimeout(expandHint(hint, source), HINT_TIMEOUT_MS, [])));
+  }
+  return dedupe(found);
+}
+
+/**
+ * A disconnected network drive or a sleeping USB disk can block `stat` for
+ * many seconds; an unattended launch must not hang on a stale hint. The fs
+ * call keeps running in the background — only the wait is cut short.
+ */
+const HINT_TIMEOUT_MS = 3000;
+
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Hint extraction
+
+/**
+ * Windows paths in free text (logs, JSON, `reg query` output). JSON-escaped
+ * backslashes are unescaped first; a path ends at a quote, comma, line break
+ * or one of the launcher's trailing notes (` (type: …)`, ` — required: …`).
+ * Only paths that look like Star Citizen are kept.
+ */
+export function extractWindowsPaths(text: string): string[] {
+  const plain = text.replace(/\\\\/g, '\\');
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const m of plain.matchAll(/[A-Za-z]:\\[^"'<>|*?\r\n,]*/g)) {
+    let p = m[0]
+      .replace(/\s{2,}.*$/, '') // `reg query`: value name, then 4 spaces + type + data
+      .replace(/\s+(\((?:type|statistics|force)\b|—).*$/i, '')
+      // A file name ends the path: `…\StarCitizen_Launcher.exe -envtag PUB …`, `…\loginData.json for LIVE`.
+      .replace(/(\.[A-Za-z0-9]{2,4})\s.*$/, '$1')
+      .replace(/\s+$/, '')
+      .replace(/[\\.]+$/, '');
+    // `… from (C:\…\LIVE)` — drop a closing parenthesis the path never opened.
+    if (!p.includes('(')) p = p.replace(/\)+$/, '');
+    if (!SC_HINT.test(p)) continue;
+    // Keep the path up to the last segment that names the game, so a
+    // launcher-internal path (`…\RSI Launcher\resources\app.asar\…`) still
+    // yields its library folder.
+    const segs = p.split('\\');
+    const lastSc = segs.reduce((acc, s, i) => (SC_HINT.test(s) ? i : acc), -1);
+    const keepUntil = /^(starcitizen|star citizen)$/i.test(segs[lastSc] ?? '')
+      ? Math.min(segs.length, lastSc + 3) // keep `\LIVE\Bin64` below the game folder
+      : lastSc + 1;
+    p = segs.slice(0, Math.max(keepUntil, 1)).join('\\');
+    const key = pathKey(p);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out;
+}
+
+function launcherDir(): string {
+  return process.env['APPDATA']
+    ? join(process.env['APPDATA'], 'rsilauncher')
+    : join(homedir(), 'AppData', 'Roaming', 'rsilauncher');
+}
+
+/**
+ * Newest first: the most recent install/update line names where the game is
+ * NOW — an old log line may point at a folder the game was moved away from.
+ */
+function newestFirst(paths: string[]): string[] {
+  return [...paths].reverse();
+}
+
+/** Text files of the launcher that carry install paths in clear text. */
+async function readLauncherTexts(dir: string): Promise<string[]> {
+  const texts: string[] = [];
+  const read = async (p: string, maxBytes: number): Promise<void> => {
+    try {
+      const stat = await fs.stat(p);
+      if (!stat.isFile()) return;
+      const fh = await fs.open(p, 'r');
+      try {
+        // The log grows to megabytes; its tail holds the latest installs.
+        const len = Math.min(stat.size, maxBytes);
+        const buf = Buffer.alloc(len);
+        await fh.read(buf, 0, len, stat.size - len);
+        texts.push(buf.toString('utf-8'));
+      } finally {
+        await fh.close();
+      }
+    } catch {
+      /* unreadable — skip */
+    }
+  };
+  // Current log first: rotated logs may name a folder the game has left since.
+  for (const name of await newestFilesFirst(join(dir, 'logs'))) {
+    if (/\.log(\.\d+)?$/i.test(name)) await read(join(dir, 'logs', name), 4 * 1024 * 1024);
+  }
+  for (const name of await listFiles(dir)) {
+    if (name.toLowerCase().endsWith('.json')) await read(join(dir, name), 1024 * 1024);
+  }
+  for (const name of await listFiles(join(dir, 'Local Storage', 'leveldb'))) {
+    if (/\.(log|ldb)$/i.test(name)) await read(join(dir, 'Local Storage', 'leveldb', name), 1024 * 1024);
+  }
+  return texts;
+}
+
+async function newestFilesFirst(p: string): Promise<string[]> {
+  const names = await listFiles(p);
+  const withTime = await Promise.all(
+    names.map(async (n) => ({ n, t: await fs.stat(join(p, n)).then((st) => st.mtimeMs, () => 0) })),
+  );
+  return withTime.sort((a, b) => b.t - a.t).map((x) => x.n);
+}
+
+async function listFiles(p: string): Promise<string[]> {
+  try {
+    const entries = await fs.readdir(p, { withFileTypes: true });
+    return entries.filter((e) => e.isFile()).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
+/** Install paths named in the launcher's clear-text files (log first, newest first). */
+export async function launcherHints(dir: string = launcherDir()): Promise<string[]> {
+  const hints: string[] = [];
+  for (const text of await readLauncherTexts(dir)) {
+    hints.push(...newestFirst(extractWindowsPaths(text)));
+    // Older launcher builds kept `installPath` / `libraryFolder` in plain JSON.
+    for (const m of text.matchAll(/"(?:installPath|install_path|gameInstallPath|libraryFolder|library_folder)"\s*:\s*"([^"]+)"/g)) {
+      hints.push(m[1]!.replace(/\\\\/g, '\\'));
+    }
+  }
+  return hints;
+}
+
+/** Stage 1 — the RSI Launcher's own records. */
+export async function discoverViaLauncher(dir?: string): Promise<DiscoveredChannel[]> {
+  if (platform() !== 'win32' && dir === undefined) return [];
+  return expandHints(await launcherHints(dir), 'rsi-launcher');
+}
+
+/**
+ * Registry keys where Windows records the full path of executables that ran.
+ * The two value-name stores are filtered by `reg` itself (`/f … /v`): dumped
+ * whole, the Compatibility Assistant's binary data alone takes ~5 s.
+ */
+const REGISTRY_TRACES: readonly string[][] = [
+  ['HKCU\\System\\GameConfigStore\\Children', '/s', '/v', 'MatchedExeFullPath'],
+  ['HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Compatibility Assistant\\Store', '/f', 'StarCitizen', '/v'],
+  ['HKCU\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache', '/f', 'StarCitizen', '/v'],
+  ['HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', '/s', '/f', 'Roberts Space Industries', '/d'],
+];
+
+function regQuery(args: readonly string[]): Promise<string> {
+  return new Promise((resolve) => {
+    execFile(
+      'reg.exe',
+      ['query', ...args],
+      { windowsHide: true, timeout: 5000, maxBuffer: 8 * 1024 * 1024 },
+      (_err, stdout) => resolve(typeof stdout === 'string' ? stdout : ''),
+    );
+  });
+}
+
+/** Stage 2 — Windows' traces of a Star Citizen exe that ran on this machine. */
+export async function discoverViaWindows(
+  query: (args: readonly string[]) => Promise<string> = regQuery,
+): Promise<DiscoveredChannel[]> {
+  if (platform() !== 'win32' && query === regQuery) return [];
+  const outputs = await Promise.all(REGISTRY_TRACES.map((args) => query(args).catch(() => '')));
+  const hints = outputs.flatMap((o) => extractWindowsPaths(o));
+  return expandHints(hints, 'windows');
+}
+
+// ---------------------------------------------------------------------------
+// Drive scan
+
+/** Stage 3a — scan `StarCitizen` folders (channel dirs below each root). */
+export async function discoverViaFsScan(roots: readonly string[]): Promise<DiscoveredChannel[]> {
+  const found: DiscoveredChannel[] = [];
+  for (const root of roots) found.push(...(await probeChannelsBelow(root, 'fs-scan')));
+  return dedupe(found);
+}
+
+async function existingDrives(): Promise<string[]> {
+  const letters = 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const checks = await Promise.all(
+    // A mapped network drive that is offline can block for many seconds.
+    letters.map(async (l) => ((await withTimeout(isDir(`${l}:\\`), 1500, false)) ? `${l}:\\` : null)),
+  );
+  return checks.filter((d): d is string => d !== null);
+}
+
+/**
+ * Stage 3b — every drive: the common install paths, then each top-level folder
+ * as a library folder (`X:\<any>\StarCitizen\LIVE`) and as a parent of one
+ * (`X:\<any>\Roberts Space Industries\StarCitizen\LIVE`).
+ */
+export async function discoverViaDriveScan(drives?: readonly string[]): Promise<DiscoveredChannel[]> {
+  if (platform() !== 'win32' && drives === undefined) return [];
+  const list = drives ?? (await existingDrives());
+  const perDrive = await Promise.all(
+    list.map(async (drive) => {
+      const roots = COMMON_RELATIVE_ROOTS.map((rel) => join(drive, rel));
+      for (const top of await withTimeout(listDirs(drive), HINT_TIMEOUT_MS, [] as string[])) {
+        if (SKIP_TOP_LEVEL.has(top.toLowerCase()) || top.startsWith('$')) continue;
+        roots.push(join(drive, top, 'StarCitizen'));
+        roots.push(join(drive, top, 'Roberts Space Industries', 'StarCitizen'));
+      }
+      return withTimeout(discoverViaFsScan(roots), 15_000, [] as DiscoveredChannel[]);
+    }),
+  );
+  return dedupe(perDrive.flat());
+}
+
+// ---------------------------------------------------------------------------
+// Entry points
+
+/**
+ * Stage 4 — a folder (or file) the operator picked. Any level works; with
+ * several channels below it LIVE wins, then the order of `CHANNELS`.
+ */
+export async function discoverManual(folderPath: string): Promise<DiscoveredChannel | null> {
+  return pickPreferred(await expandHint(folderPath, 'manual'));
+}
+
+/** Every channel the picked folder leads to — for remembering and listing. */
+export async function discoverManualAll(folderPath: string): Promise<DiscoveredChannel[]> {
+  return expandHint(folderPath, 'manual');
+}
+
+/**
+ * The install the operator picked/chose before — main seeds it from
+ * `settings.json` at launch and on every change, so every `discoverAll()`
+ * caller (auto-run, cleanup, the Install step) probes it first.
+ */
+let rememberedInstall: string | null = null;
+
+export function setRememberedInstall(path: string | null | undefined): void {
+  rememberedInstall = path && path.trim() ? path : null;
+}
+
+export interface DiscoverOptions {
+  /** Overrides the remembered install (`setRememberedInstall`) — probed first. */
+  rememberedPath?: string | null;
+  /** A folder picked this time. */
+  manualPath?: string;
+}
+
+/**
+ * All stages: remembered → launcher → Windows traces, the drive scan only when
+ * those found nothing. The remembered install comes first in the result, so
+ * callers that preselect `[0]` keep the operator's choice.
+ */
+export async function discoverAll(opts: DiscoverOptions = {}): Promise<DiscoveredChannel[]> {
+  const safe = async (p: Promise<DiscoveredChannel[]>): Promise<DiscoveredChannel[]> => {
+    try {
+      return await p;
+    } catch {
+      return [];
+    }
+  };
+  const rememberedPath = opts.rememberedPath !== undefined ? opts.rememberedPath : rememberedInstall;
+  // Only the exact remembered channel is 'saved' (and gets preselected). When
+  // it is gone, expandHint climbs to its siblings — they are listed, but as
+  // plain finds the operator has to pick, never silently in its place.
+  const remembered = rememberedPath
+    ? (await withTimeout(expandHint(rememberedPath, 'saved'), HINT_TIMEOUT_MS, [] as DiscoveredChannel[])).map(
+        (c) => (isRememberedChannel(c, rememberedPath) ? c : { ...c, source: 'manual' as const }),
+      )
+    : [];
+  const [launcher, windows] = await Promise.all([safe(discoverViaLauncher()), safe(discoverViaWindows())]);
+  let found = [...sortRemembered(remembered, rememberedPath), ...launcher, ...windows];
+  if (found.length === 0) found = await safe(discoverViaDriveScan());
+  if (opts.manualPath) found.push(...(await safe(discoverManualAll(opts.manualPath))));
+  return dedupe(found);
+}
+
+function isRememberedChannel(c: DiscoveredChannel, remembered: string): boolean {
+  const key = pathKey(remembered);
+  return pathKey(c.installPath) === key || pathKey(c.dataP4kPath) === key;
+}
+
+/** The exact remembered channel first, its siblings after. */
+function sortRemembered(found: DiscoveredChannel[], remembered?: string | null): DiscoveredChannel[] {
+  if (!remembered) return found;
+  const exact = (c: DiscoveredChannel): boolean => isRememberedChannel(c, remembered);
+  return [...found.filter(exact), ...found.filter((c) => !exact(c))];
+}
+
+function pickPreferred(found: DiscoveredChannel[]): DiscoveredChannel | null {
+  if (found.length === 0) return null;
+  return [...found].sort((a, b) => CHANNELS.indexOf(a.channel) - CHANNELS.indexOf(b.channel))[0]!;
+}
+
 function inferChannelFromPath(p: string): ChannelTag {
-  const lastPart = (p.split(sep).pop() ?? '').toUpperCase().replace('_', '-') as ChannelTag;
-  return CHANNELS.includes(lastPart) ? lastPart : 'LIVE';
+  return channelOfName(basename(p.replace(/[\\/]+$/, ''))) ?? 'LIVE';
 }
 
 async function readVersionFile(
@@ -195,11 +535,13 @@ export function parseBuildNumber(raw: string): string | null {
   return m?.[1] ?? null;
 }
 
+/** First occurrence wins (stage order = priority); paths compared case-insensitively. */
 function dedupe(channels: DiscoveredChannel[]): DiscoveredChannel[] {
   const seen = new Set<string>();
   return channels.filter((c) => {
-    if (seen.has(c.dataP4kPath)) return false;
-    seen.add(c.dataP4kPath);
+    const key = pathKey(c.dataP4kPath);
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }

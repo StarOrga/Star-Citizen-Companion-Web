@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.158.0] - 2026-10-19
+
+### Fixed
+
+- **Data Uploader 0.58.0 findet Star Citizen auch abseits der Standardpfade.**
+  Der RSI Launcher speichert seinen Bibliotheksordner verschlüsselt, deshalb
+  fand der Uploader bisher nur Installationen unter festen Standardpfaden.
+  Jetzt liest er das Launcher-Protokoll, Windows' eigene Spuren von
+  `StarCitizen.exe` und durchsucht bei Bedarf alle Laufwerke – auch wenn
+  Spiel und Launcher an verschiedenen Orten liegen. Beim manuellen Wählen
+  reicht jeder Ordner auf dem Weg: Bibliothek, `StarCitizen`, `LIVE`, `Bin64`
+  oder die `Data.p4k` selbst; findet sich dort nichts, sagt der Uploader das.
+
+### Added
+
+- **Der Uploader merkt sich den Spielordner.** Ein manuell gewählter Ordner
+  oder die bei mehreren Installationen gewählte Version wird gespeichert,
+  bleibt über Updates erhalten und ist beim nächsten Start vorausgewählt.
+  Fehlt dort die `Data.p4k`, sucht er wieder automatisch.
+
 ## [0.157.2] - 2026-10-19
 
 ### Fixed

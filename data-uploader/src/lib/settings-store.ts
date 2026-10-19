@@ -84,6 +84,13 @@ export interface Settings {
    * `patch()`. Undefined means "use the renderer's own detection/fallback".
    */
   language?: string;
+  /**
+   * The Star Citizen channel folder (e.g. `D:\Games\StarCitizen\LIVE`) the
+   * operator picked by hand or chose among several installs. Lives in
+   * `userData`, so it survives uploader updates; discovery probes it first and
+   * falls back to the automatic search when it no longer holds a Data.p4k.
+   */
+  gamePath?: string;
 }
 
 /** Persisted resource limits — see `lib/resource-limits.ts`. */
@@ -196,6 +203,9 @@ export class SettingsStore {
           : 'stable',
       ...(typeof parsed?.language === 'string' && parsed.language.length > 0
         ? { language: parsed.language }
+        : {}),
+      ...(typeof parsed?.gamePath === 'string' && parsed.gamePath.length > 0
+        ? { gamePath: parsed.gamePath }
         : {}),
     };
     this.cache = settings;

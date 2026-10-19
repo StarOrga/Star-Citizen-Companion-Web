@@ -55,11 +55,12 @@
   "discover": {
     "pickOne": "Bitte zuerst eine Installation auswählen.",
     "title": "Star Citizen gefunden",
-    "subtitle": "Automatisch gesucht: RSI-Launcher → Laufwerke. Eine Spielversion pro Lauf.",
+    "subtitle": "Automatisch gesucht: gemerkter Ordner → RSI-Launcher → Windows → Laufwerke. Eine Spielversion pro Lauf.",
     "scan": "Scan starten",
     "scanning": "Suche nach Installationen…",
     "manual": "Ordner manuell wählen",
     "addManual": "Ordner manuell hinzufügen",
+    "manualNotFound": "Dort wurde keine Data.p4k gefunden. Wähle den Ordner der Spielversion (z. B. …\\StarCitizen\\LIVE) oder einen Ordner darüber.",
     "none": "Keine Installation automatisch gefunden — füge unten einen Ordner manuell hinzu.",
     "found": "Gefundene Channels",
     "next": "Extraktion starten"

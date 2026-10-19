@@ -233,6 +233,9 @@ export const api = {
   discover: (): Promise<DiscoveredChannel[]> => ipcRenderer.invoke('sc:discover'),
   discoverManual: (path: string): Promise<DiscoveredChannel | null> =>
     ipcRenderer.invoke('sc:discoverManual', path),
+  /** Remember the install the operator chose — probed first on every later launch. */
+  rememberInstall: (installPath: string): Promise<boolean> =>
+    ipcRenderer.invoke('sc:rememberInstall', installPath),
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke('sc:pickFolder'),
   profiles: (): Promise<{ profiles: Record<string, PerformanceProfile>; default: ProfileId }> =>
     ipcRenderer.invoke('sc:profiles'),
