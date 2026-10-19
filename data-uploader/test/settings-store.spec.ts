@@ -185,6 +185,16 @@ describe('SettingsStore', () => {
     expect(new SettingsStore(io, seqIds()).load().useGpu).toBe(false);
   });
 
+  it('persists the GPU limit gpuPct with the resource limits and drops a non-number', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    store.load();
+    store.patch({ resourceLimits: { preset: null, cpuPct: 40, gpuPct: 0 } });
+    expect(new SettingsStore(io, seqIds()).load().resourceLimits?.gpuPct).toBe(0);
+    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', resourceLimits: { cpuPct: 40, gpuPct: 'max' } } });
+    expect(new SettingsStore(io, seqIds()).load().resourceLimits?.gpuPct).toBeUndefined();
+  });
+
   it('leaves language unset by default and round-trips a patch', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());

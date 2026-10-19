@@ -25,6 +25,15 @@
  *               catch up (a duty cycle at quarter-second resolution), and every
  *               process in it runs at very-low I/O priority, so a game's own
  *               reads always go first.
+ *  - `gpuPct`   share of the GPU the run may load, 0..100. 0 = "do not use the
+ *               GPU" (sidecars get `SC_USE_GPU=0`); above 0 — and only while a
+ *               GPU path is available — `SC_USE_GPU=1` plus `SC_GPU_SHARE=<gpuPct>`
+ *               (`main/sidecar-env.ts`). Windows cannot hard-cap a GPU, so this
+ *               is a SOFT lever: the GPU stages (silhouettes / 3D) read the share
+ *               and pace themselves; the measured load may briefly exceed it. Not
+ *               part of {@link GovernorLimits} — the governor has nothing to
+ *               enforce it with. Replaces the old operator switch "use GPU"
+ *               (settings `useGpu`, migrated by {@link migrateLegacyGpu}).
  *
  * Pure data + pure functions — no Node, no Electron — so main, renderer and the
  * tests share one definition.
@@ -73,10 +82,21 @@ export interface ResourceLimits {
   writeMBs: number;
   /** Disk operations per second (read + write). */
   iops: number;
+  /** Share of the GPU the run may load, 0..100; 0 = GPU off (soft lever, see the header). */
+  gpuPct: number;
 }
 
-export type ResourceKey = keyof ResourceLimits;
-export const RESOURCE_KEYS: readonly ResourceKey[] = ['cpuPct', 'ramMb', 'readMBs', 'writeMBs', 'iops'];
+/** Every limit, including the GPU share. Ranges, clamping and preset matching are keyed by it. */
+export type LimitKey = keyof ResourceLimits;
+/**
+ * The limits the dock's dial machinery handles today (no `gpuPct` yet — its
+ * exhaustive `unit()` / `num()` switches would not compile with it). A GPU
+ * tempomat dial: widen the renderer's keys to {@link LimitKey} (or this alias
+ * to `LimitKey`) and add the `gpuPct` cases ('%', integer) — `ranges.gpuPct`
+ * is already in every view.
+ */
+export type ResourceKey = Exclude<LimitKey, 'gpuPct'>;
+export const RESOURCE_KEYS: readonly LimitKey[] = ['cpuPct', 'ramMb', 'readMBs', 'writeMBs', 'iops', 'gpuPct'];
 
 export type PresetId = 'gaming' | 'balanced' | 'full';
 export const PRESET_IDS: readonly PresetId[] = ['gaming', 'balanced', 'full'];
@@ -92,14 +112,23 @@ export const RAM_OS_RESERVE_MB = 2048;
 export const READ_MIN_MBS = 5;
 export const WRITE_MIN_MBS = 5;
 export const IOPS_MIN = 20;
+/** 0 is a valid limit: the GPU is not used at all. */
+export const GPU_MIN_PCT = 0;
+export const GPU_MAX_PCT = 100;
 
 /** Per-preset share of each scale (CPU in percent points, the rest as a fraction of the top). */
-const PRESET_SHARE: Record<PresetId, { cpuPct: number; ram: number; disk: number }> = {
-  // Playing alongside: a sliver of everything, so the game never notices.
-  gaming: { cpuPct: 15, ram: 0.15, disk: 0.15 },
-  balanced: { cpuPct: 45, ram: 0.3, disk: 0.4 },
-  full: { cpuPct: 85, ram: 0.6, disk: 0.85 },
+const PRESET_SHARE: Record<PresetId, { cpuPct: number; ram: number; disk: number; gpuPct: number }> = {
+  // Playing alongside: a sliver of everything, so the game never notices — and
+  // the GPU stays the game's alone.
+  gaming: { cpuPct: 15, ram: 0.15, disk: 0.15, gpuPct: 0 },
+  balanced: { cpuPct: 45, ram: 0.3, disk: 0.4, gpuPct: 80 },
+  full: { cpuPct: 85, ram: 0.6, disk: 0.85, gpuPct: 100 },
 };
+
+/** The GPU share a preset carries (gaming 0 = off, balanced 80, full 100). */
+export function presetGpuPct(id: PresetId): number {
+  return PRESET_SHARE[id].gpuPct;
+}
 
 export interface Range {
   min: number;
@@ -113,7 +142,7 @@ export function ramScaleMb(machine: MachineInfo): number {
 }
 
 /** The slider range of every resource on this machine. */
-export function rangesFor(machine: MachineInfo): Record<ResourceKey, Range> {
+export function rangesFor(machine: MachineInfo): Record<LimitKey, Range> {
   const d = machine.disk;
   return {
     cpuPct: { min: CPU_MIN_PCT, max: CPU_MAX_PCT, step: 1 },
@@ -121,6 +150,7 @@ export function rangesFor(machine: MachineInfo): Record<ResourceKey, Range> {
     readMBs: { min: READ_MIN_MBS, max: Math.max(READ_MIN_MBS, d.readMBs), step: 5 },
     writeMBs: { min: WRITE_MIN_MBS, max: Math.max(WRITE_MIN_MBS, d.writeMBs), step: 5 },
     iops: { min: IOPS_MIN, max: Math.max(IOPS_MIN, d.iops), step: d.iops > 1000 ? 100 : 5 },
+    gpuPct: { min: GPU_MIN_PCT, max: GPU_MAX_PCT, step: 1 },
   };
 }
 
@@ -142,11 +172,12 @@ export function presetLimits(id: PresetId, machine: MachineInfo): ResourceLimits
     readMBs: snap(r.readMBs.max * share.disk, r.readMBs),
     writeMBs: snap(r.writeMBs.max * share.disk, r.writeMBs),
     iops: snap(r.iops.max * share.disk, r.iops),
+    gpuPct: snap(share.gpuPct, r.gpuPct),
   };
 }
 
 /** Bring every value into this machine's range (a settings file from another PC, a bad IPC payload). */
-export function clampLimits(input: Partial<Record<ResourceKey, unknown>> | null | undefined, machine: MachineInfo, fallback?: ResourceLimits): ResourceLimits {
+export function clampLimits(input: Partial<Record<LimitKey, unknown>> | null | undefined, machine: MachineInfo, fallback?: ResourceLimits): ResourceLimits {
   const base = fallback ?? presetLimits(DEFAULT_PRESET, machine);
   const r = rangesFor(machine);
   const out = { ...base };
@@ -165,6 +196,28 @@ export function matchPreset(limits: ResourceLimits, machine: MachineInfo): Prese
     if (RESOURCE_KEYS.every((k) => p[k] === limits[k])) return id;
   }
   return null;
+}
+
+/**
+ * Settings written before `gpuPct` existed carry the operator switch `useGpu`
+ * instead. Least surprising mapping:
+ *  - a PRESET pick (or no stored limits at all) carries its own value — the
+ *    preset is what the operator chose, and it now includes the GPU share
+ *    (gaming 0, balanced 80, full 100); the old switch does not override it;
+ *  - a CUSTOM mix keeps the old switch's meaning: `useGpu` false → 0 (GPU off),
+ *    true → the balanced share (80).
+ * Stored limits that already have a numeric `gpuPct` pass through unchanged,
+ * so the migration runs at most once in effect. `migrated` says whether the
+ * caller should persist the result.
+ */
+export function migrateLegacyGpu<T extends { gpuPct?: unknown; preset?: PresetId | null }>(
+  stored: T | null | undefined,
+  useGpu: boolean,
+): { stored: T | null | undefined; migrated: boolean } {
+  if (!stored || typeof stored !== 'object') return { stored, migrated: false };
+  if (typeof stored.gpuPct === 'number' && Number.isFinite(stored.gpuPct)) return { stored, migrated: false };
+  if (stored.preset && PRESET_IDS.includes(stored.preset)) return { stored, migrated: false };
+  return { stored: { ...stored, gpuPct: useGpu ? presetGpuPct('balanced') : 0 }, migrated: true };
 }
 
 /** The old speed profile a settings file may still carry → the preset that means the same. */
@@ -222,6 +275,7 @@ export interface GovernorLimits {
   priority: PriorityClass;
 }
 
+/** `gpuPct` is deliberately absent: the governor cannot cap a GPU (see the header). */
 export function governorLimits(limits: ResourceLimits): GovernorLimits {
   return {
     cpuPct: limits.cpuPct,
@@ -260,8 +314,21 @@ export interface ResourceSample {
   t: number;
   /** Whole-machine CPU use, percent. */
   cpuTotalPct: number;
-  /** The run (sidecar tree) — percent of the whole machine. */
+  /**
+   * The run (sidecar tree) — percent of the whole machine. The CPU limit applies
+   * to this alone.
+   */
   cpuRunPct: number;
+  /**
+   * The uploader app itself (Electron processes: `app.getAppMetrics()`
+   * `cpu.percentCPUUsage`, normalised by {@link appCpuPct}) — percent of the
+   * whole machine (all logical cores = 100). The dock's "Uploader" share is
+   * `cpuRunPct + cpuAppPct` (and RAM `ramRunMb + ramAppMb`); the tooltip
+   * explains that the limits cover the run only, so the blue share may exceed
+   * a limit by the app's part. Optional only so older payloads still
+   * type-check; main always sets it.
+   */
+  cpuAppPct?: number;
   /** RAM in use by everything, MB. */
   ramUsedMb: number;
   /** The uploader app itself (Electron processes), MB. */
@@ -282,10 +349,73 @@ export interface ResourceSample {
   drives: DriveLoad[];
   /** Share of the last second the governor held the run back for a disk budget, 0..1. */
   heldBack: number;
+  /**
+   * GPU load, null until the whole-PC monitor measured one (no GPU, no PDH GPU
+   * counters, non-Windows, first second) — see {@link SampleGpu}. Optional only
+   * so older payloads still type-check; main always sets it (null or a value).
+   */
+  gpu?: SampleGpu | null;
   /** True while a sidecar is running under the governor. */
   running: boolean;
   /** False when the CPU hard cap could not be applied (no Job Object). */
   hardCap: boolean;
+}
+
+/**
+ * GPU numbers of one sample (`python/sc_extract/sysmon.py`, PDH counters,
+ * Task Manager semantics). "Uploader" = the pid set main hands to sysmon: the
+ * governed sidecars AND the Electron app's own processes.
+ */
+export interface SampleGpu {
+  /** Whole-GPU load, 0..100: per engine type the sum over all processes, overall = the busiest engine type. */
+  loadPct: number;
+  /** The uploader's share of that load (same engine-type rule over its pids only), 0..100. */
+  runLoadPct: number;
+  /** Dedicated VRAM in use on the adapter, everything included, MB. */
+  vramUsedMb: number;
+  /** Dedicated VRAM held by the uploader's processes, MB. */
+  vramRunMb: number;
+  /**
+   * Size of the adapter's dedicated VRAM, MB — from the registry
+   * (`HardwareInformation.qwMemorySize`, read with the GPU detection), NOT
+   * Win32_VideoController.AdapterRAM (capped at 4 GB). null when unknown.
+   */
+  vramTotalMb: number | null;
+}
+
+/**
+ * The sysmon sample's optional `gpu` object (bytes) → {@link SampleGpu} (MB).
+ * Absent / malformed (no numeric `loadPct`) → null = unmeasured. Shares are
+ * clamped to 0..100 and never above the whole-GPU value.
+ */
+export function parseSampleGpu(raw: unknown, vramTotalMb: number | null): SampleGpu | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const g = raw as Record<string, unknown>;
+  const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  if (typeof g.loadPct !== 'number' || !Number.isFinite(g.loadPct)) return null;
+  const MB = 1024 * 1024;
+  const r1 = (v: number): number => Math.round(v * 10) / 10;
+  const loadPct = r1(Math.min(100, num(g.loadPct)));
+  const vramUsedMb = Math.round(num(g.vramUsedBytes) / MB);
+  return {
+    loadPct,
+    runLoadPct: r1(Math.min(loadPct, num(g.runLoadPct))),
+    vramUsedMb,
+    vramRunMb: Math.min(vramUsedMb, Math.round(num(g.vramRunBytes) / MB)),
+    vramTotalMb: typeof vramTotalMb === 'number' && vramTotalMb > 0 ? Math.round(vramTotalMb) : null,
+  };
+}
+
+/**
+ * The Electron app's CPU as a share of the WHOLE machine. `percentCPUUsage` of
+ * `app.getAppMetrics()` is per process and relative to one core (a busy
+ * renderer may read 150), so the sum is divided by the logical core count.
+ */
+export function appCpuPct(perProcess: readonly (number | null | undefined)[], cores: number): number {
+  let sum = 0;
+  for (const p of perProcess) if (typeof p === 'number' && Number.isFinite(p) && p > 0) sum += p;
+  const pct = sum / Math.max(1, Math.floor(cores) || 1);
+  return Math.round(Math.min(100, pct) * 10) / 10;
 }
 
 /** Room above the limit on a measured scale, so the handle never sits pinned at its end. */
@@ -309,6 +439,22 @@ export function niceCeil(v: number): number {
  */
 export function measuredScaleTop(peak: number, limit: number, floor: number): number {
   return niceCeil(Math.max(peak, limit * MEASURED_SCALE_HEADROOM, floor));
+}
+
+/**
+ * Top of a disk scale for EVERY drive kind (decision: the scale follows the
+ * highest value measured so far, not the nominal class): the measured `peak`
+ * (the renderer's persisted, grow-only `diskPeak`), the limit with headroom —
+ * that headroom never past `nominalMax` (the limit range's top: no room is
+ * drawn that the knob cannot reach) — and `rangeMin` as the floor. A measured
+ * peak above the nominal class still grows the scale. `prevTop` makes it
+ * grow-only: lowering the limit never shrinks a scale already drawn (no decay).
+ */
+export function diskScaleTop(peak: number, limit: number, rangeMin: number, nominalMax: number, prevTop = 0): number {
+  const fin = (v: number): number => (Number.isFinite(v) && v > 0 ? v : 0);
+  const headroom = Math.min(fin(limit) * MEASURED_SCALE_HEADROOM, Math.max(fin(nominalMax), fin(limit)));
+  const top = niceCeil(Math.max(fin(peak), headroom, fin(limit), fin(rangeMin)));
+  return Math.max(top, fin(prevTop));
 }
 
 /** RAM in use by other programs = everything − this app − the run. */
