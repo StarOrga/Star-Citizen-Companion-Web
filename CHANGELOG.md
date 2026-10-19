@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.157.1] - 2026-10-19
+
+### Fixed
+
+- **Handy und Tablet: kein Zoom beim Tippen, nichts unter der Home-Leiste.**
+  Textfelder haben auf Touch-Geräten mindestens 16 px Schrift, damit iOS
+  beim Antippen nicht mehr die ganze Seite vergrößert (das Mobile-Gate prüft
+  das jetzt mit). Bildschirmhohe Flächen rechnen mit `100dvh`, damit die
+  Adressleiste nichts abschneidet, und Leisten am unteren Rand halten
+  Abstand zur Home-Leiste. Native Auswahllisten, Autofill und Scrollbalken
+  erscheinen im dunklen Look (`color-scheme: dark`). Die Seite „Passwort
+  setzen“ sitzt im normalen Seitenrahmen. Seitlich scrollende Leisten zeigen
+  mit einer weichen Kante an, dass es weitergeht.
+
 ## [0.157.0] - 2026-10-19
 
 ### Added

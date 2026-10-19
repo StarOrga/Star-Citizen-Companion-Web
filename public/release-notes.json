@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.157.0",
+  "current": "0.157.1",
   "releases": [
+    {
+      "version": "0.157.1",
+      "date": "2026-10-19",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Handy und Tablet: kein Zoom beim Tippen, nichts unter der Home-Leiste.",
+              "text": "Textfelder haben auf Touch-Geräten mindestens 16 px Schrift, damit iOS beim Antippen nicht mehr die ganze Seite vergrößert (das Mobile-Gate prüft das jetzt mit). Bildschirmhohe Flächen rechnen mit 100dvh, damit die Adressleiste nichts abschneidet, und Leisten am unteren Rand halten Abstand zur Home-Leiste. Native Auswahllisten, Autofill und Scrollbalken erscheinen im dunklen Look (color-scheme: dark). Die Seite „Passwort setzen“ sitzt im normalen Seitenrahmen. Seitlich scrollende Leisten zeigen mit einer weichen Kante an, dass es weitergeht."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.157.0",
       "date": "2026-10-19",
