@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.158.1] - 2026-10-20
+
+### Fixed
+
+- **Data Uploader 0.58.1 zählt die eigenen Plattenzugriffe der App mit.**
+  Der Uploader-Anteil an einem Laufwerk enthielt bisher nur den Lauf selbst,
+  nicht die Zugriffe der App (etwa beim Hochladen extrahierter Dateien) –
+  anders als bei CPU, RAM und GPU. Jetzt misst er auch den Hauptprozess der
+  App; bei zwei Laufwerken zählt dessen Anteil zum Arbeitslaufwerk.
+  Renderer- und GPU-Prozess bleiben außen vor: ihre interne Verbindung
+  erscheint in Windows als rund 2,5 MB/s „I/O“, ohne die Platte zu berühren.
+
+### Added
+
+- **Hinweis „Laufwerk überlastet“.** Ist ein Laufwerk zu mindestens 90 %
+  beschäftigt und braucht es 20 ms oder mehr pro Zugriff, nennt der Tooltip
+  im Ressourcen-Dock das ausdrücklich – mit Antwortzeit und Uploader-Anteil –
+  und erklärt, warum 100 % Auslastung bei fast 0 % Uploader-Anteil stimmen
+  kann: verzögertes Schreiben aus dem Dateicache und SSD-interne Arbeit
+  ordnet Windows keinem Programm zu. Gemessen wurde das an einer DRAM-losen
+  NVMe, die auch bei geschlossenem Uploader bei 100 % und 35–65 ms lag.
+
 ## [0.158.0] - 2026-10-19
 
 ### Fixed

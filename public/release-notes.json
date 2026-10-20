@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.158.0",
+  "current": "0.158.1",
   "releases": [
+    {
+      "version": "0.158.1",
+      "date": "2026-10-20",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.58.1 zählt die eigenen Plattenzugriffe der App mit.",
+              "text": "Der Uploader-Anteil an einem Laufwerk enthielt bisher nur den Lauf selbst, nicht die Zugriffe der App (etwa beim Hochladen extrahierter Dateien) – anders als bei CPU, RAM und GPU. Jetzt misst er auch den Hauptprozess der App; bei zwei Laufwerken zählt dessen Anteil zum Arbeitslaufwerk. Renderer- und GPU-Prozess bleiben außen vor: ihre interne Verbindung erscheint in Windows als rund 2,5 MB/s „I/O“, ohne die Platte zu berühren."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Hinweis „Laufwerk überlastet“.",
+              "text": "Ist ein Laufwerk zu mindestens 90 % beschäftigt und braucht es 20 ms oder mehr pro Zugriff, nennt der Tooltip im Ressourcen-Dock das ausdrücklich – mit Antwortzeit und Uploader-Anteil – und erklärt, warum 100 % Auslastung bei fast 0 % Uploader-Anteil stimmen kann: verzögertes Schreiben aus dem Dateicache und SSD-interne Arbeit ordnet Windows keinem Programm zu. Gemessen wurde das an einer DRAM-losen NVMe, die auch bei geschlossenem Uploader bei 100 % und 35–65 ms lag."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.158.0",
       "date": "2026-10-19",
