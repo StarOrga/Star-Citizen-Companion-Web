@@ -24,6 +24,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: data-uploader-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # A change to a subtheme's sources must bump its revision (or carry a
   # "Subtheme-Unchanged:" trailer) — otherwise the uploader keeps skipping it
@@ -196,6 +200,7 @@ jobs:
             data-uploader/release-builds/*.exe
             data-uploader/release-builds/*.blockmap
             data-uploader/release-builds/latest*.yml
+          retention-days: 7
       - name: Publish to PRIVATE source-repo release (for maintainers + token artefact handoff)
         uses: softprops/action-gh-release@v3
         with:
