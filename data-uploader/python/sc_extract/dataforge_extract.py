@@ -1402,7 +1402,7 @@ class CodexExtractor:
             name_key = self._loc_key_from(attach, rv, fields=self._NAME_KEY_FIELDS)
         if not desc_key:
             desc_key = self._loc_key_from(attach, rv, fields=self._DESC_KEY_FIELDS)
-        return {
+        base = {
             "className": _strip_type_prefix(r.name),
             "guid": r.guid,
             "type": r.type,
@@ -1415,6 +1415,13 @@ class CodexExtractor:
             "previewImage": self._preview_image(resolved),  # WebP filename or null
             "source": self.source,
         }
+        # Turret / gimbal mounts land in weapons/, components/ or items/
+        # depending on their AttachDef.Type — the traverse rides on the shared
+        # base so every projection carries it. Absent for non-turrets.
+        movement = _turret_movement(comps)
+        if movement:
+            base["turretMovement"] = movement
+        return base
 
     # Struct names whitelisted for the ship-level `stats` block. Deliberately an
     # allowlist, NOT the item/component blacklist (_SKIP_COMPONENT_STATS) — a
@@ -2691,6 +2698,86 @@ def _tractor_beam_params(wcp: Dict[str, Any]) -> Dict[str, float]:
             v = _to_float(movement.get(src))
             if v is not None:
                 out[_TRACTOR_PARAMS_PREFIX + dst] = v
+    return out
+
+
+# ── turret traverse limits (#793) ───────────────────────────────────────────
+# VERIFIED against LIVE 4.10 (probe 2026-10-20, 462 records carrying
+# SCItemTurretParams — gimbals, PDCs, manned and remote turrets). The mount's
+# traverse lives in `SCItemTurretParams.movementList[]` — a LIST, which the
+# generic `_flatten_depth2` drops, so until now the codex only knew the
+# gunner's head-look (`SCItemSeatParams`), not how far the mount turns. Each
+# entry is one joint (`jointName`) with exactly one of `yawAxis` /
+# `pitchAxis` / `rollAxis` set; the axis' `angleLimits` is one of two shapes:
+#   SCItemTurretStandardAngleLimitParams  LowestAngle / HighestAngle (degrees)
+#   SCItemTurretCustomAngleLimitParams    AngleLimits[] of {TurretRotation,
+#       LowestAngle, HighestAngle}: a pitch band that changes with the
+#       rotation of `RelativeJointName` (Idris AI turrets, Hammerhead top
+#       turret, Polaris side turrets — the hull blocks part of the arc)
+# `limitOverwrites[]` are tag-gated limiter states (e.g. a stowed gimbal
+# locked to ±1°), not the normal traverse — they are not emitted.
+_TURRET_AXES = (("yawAxis", "yaw"), ("pitchAxis", "pitch"), ("rollAxis", "roll"))
+
+
+def _angle(v: Any) -> Optional[float]:
+    f = _to_float(v)
+    return round(f, 4) if f is not None else None
+
+
+def _turret_movement(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Per-axis traverse of a turret/gimbal mount, or [] for every other item.
+
+    One entry per movement axis, in the record's own order:
+      joint        jointName of the moving joint
+      axis         "yaw" | "pitch" | "roll"
+      minAngle     lowest reachable angle in degrees — for a rotation-dependent
+      maxAngle     limit the envelope over all of its bands
+      speed        deg/s (omitted when the record has none)
+      slavedOnly   True only when the joint just follows another (omitted else)
+      relativeJoint, limitsByRotation   only for a rotation-dependent limit:
+                   [{rotation, minAngle, maxAngle}] keyed by the rotation of
+                   `relativeJoint`, in degrees
+    """
+    tp = _find_component(comps, "SCItemTurretParams")
+    if not tp:
+        return []
+    out: List[Dict[str, Any]] = []
+    for move in tp.get("movementList") or []:
+        if not isinstance(move, dict):
+            continue
+        for src, axis_name in _TURRET_AXES:
+            axis = move.get(src)
+            if not isinstance(axis, dict):
+                continue
+            limits = axis.get("angleLimits")
+            if not isinstance(limits, dict):
+                continue
+            entry: Dict[str, Any] = {"joint": move.get("jointName"), "axis": axis_name}
+            bands = []
+            for band in limits.get("AngleLimits") or []:
+                if not isinstance(band, dict):
+                    continue
+                lo, hi = _angle(band.get("LowestAngle")), _angle(band.get("HighestAngle"))
+                if lo is None or hi is None:
+                    continue
+                bands.append({"rotation": _angle(band.get("TurretRotation")),
+                              "minAngle": lo, "maxAngle": hi})
+            if bands:
+                entry["minAngle"] = min(b["minAngle"] for b in bands)
+                entry["maxAngle"] = max(b["maxAngle"] for b in bands)
+                entry["relativeJoint"] = limits.get("RelativeJointName")
+                entry["limitsByRotation"] = bands
+            else:
+                lo, hi = _angle(limits.get("LowestAngle")), _angle(limits.get("HighestAngle"))
+                if lo is None or hi is None:
+                    continue
+                entry["minAngle"], entry["maxAngle"] = lo, hi
+            speed = _to_float(axis.get("speed"))
+            if speed is not None:
+                entry["speed"] = round(speed, 4)
+            if move.get("slavedOnly") is True:
+                entry["slavedOnly"] = True
+            out.append(entry)
     return out
 
 

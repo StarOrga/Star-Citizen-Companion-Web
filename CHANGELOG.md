@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.159.0] - 2026-10-20
+
+### Added
+
+- **Data Uploader 0.59.0 exportiert die Schwenkbereiche von Türmen und
+  Gimbals (#793).** Bisher kannte der Codex nur den Blickwinkel des
+  Schützen, nicht, wie weit sich ein Turm tatsächlich drehen lässt. Jetzt
+  trägt jeder Turm und jedes Gimbal pro Bewegungsachse (Gieren, Nicken,
+  Rollen) den kleinsten und größten Winkel und die Drehgeschwindigkeit.
+  Hängt der Nickbereich von der Drehung ab – etwa bei den KI-Türmen der
+  Idris, dem oberen Turm der Hammerhead oder den Seitentürmen der Polaris –,
+  kommt die vollständige Tabelle mit. Die Daten erscheinen mit dem nächsten
+  Uploader-Lauf; eine Anzeige im Web folgt in einem eigenen Schritt (#788).
+
 ## [0.158.1] - 2026-10-20
 
 ### Fixed
