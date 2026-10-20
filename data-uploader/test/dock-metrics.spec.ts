@@ -8,6 +8,7 @@ import {
   ledSplit,
   boostLevels,
   dots,
+  driveCongested,
   driveRunPct,
   padCell,
   splitBar,
@@ -131,5 +132,22 @@ describe('ledSplit', () => {
     expect(ledSplit(3, 2, 30).run).toBe(1);
     expect(ledSplit(250, 300, 12)).toEqual({ run: 12, others: 0 });
     expect(ledSplit(0.4, 0.2, 12)).toEqual({ run: 0, others: 0 });
+  });
+});
+
+describe('driveCongested', () => {
+  it('needs constant activity AND a slow answer', () => {
+    expect(driveCongested(100, 40)).toBe(true);
+    expect(driveCongested(90, 20)).toBe(true);
+    // 100 % active alone is no verdict: a fast SSD still has headroom
+    expect(driveCongested(100, 0.8)).toBe(false);
+    // slow but mostly idle (one long request) is not congestion either
+    expect(driveCongested(40, 60)).toBe(false);
+  });
+
+  it('is never congested while unmeasured', () => {
+    expect(driveCongested(null, 50)).toBe(false);
+    expect(driveCongested(100, null)).toBe(false);
+    expect(driveCongested(undefined, undefined)).toBe(false);
   });
 });

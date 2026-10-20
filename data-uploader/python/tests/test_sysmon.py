@@ -75,3 +75,54 @@ def test_non_windows_reports_unsupported(monkeypatch, capsys):
     monkeypatch.setattr(sysmon.os, "name", "posix")
     assert sysmon.main() == 0
     assert '"unsupported"' in capsys.readouterr().out
+
+
+# -- appIo: the Electron main process's own file I/O --------------------------
+
+def test_io_pids_come_from_the_pids_line():
+    assert sysmon.parse_io_pids('{"type":"pids","pids":[1,2],"ioPids":[2,0,-3,"x",true]}') == frozenset({2})
+
+
+def test_io_pids_absent_or_garbage_keep_the_current_set():
+    assert sysmon.parse_io_pids('{"type":"pids","pids":[1]}') is None
+    assert sysmon.parse_io_pids('{"type":"pids","pids":[1],"ioPids":7}') is None
+    assert sysmon.parse_io_pids('{"type":"other","ioPids":[1]}') is None
+    assert sysmon.parse_io_pids("not json") is None
+
+
+class FakeIo:
+    def __init__(self):
+        self.totals = {}
+
+    def read(self, pid):
+        return self.totals.get(pid)
+
+
+def test_io_meter_rates_from_deltas():
+    io = FakeIo()
+    meter = sysmon.IoMeter(io.read)
+    io.totals = {7: (1000.0, 500.0, 10.0)}
+    assert meter.sample(frozenset({7}), 10.0) is None  # first reading: no rate yet
+    io.totals = {7: (1000.0 + 4 * 2**20, 500.0 + 2**20, 30.0)}
+    assert meter.sample(frozenset({7}), 12.0) == {"readBps": 2.0 * 2**20, "writeBps": 0.5 * 2**20, "iops": 10.0}
+
+
+def test_io_meter_never_books_a_new_pids_lifetime():
+    io = FakeIo()
+    meter = sysmon.IoMeter(io.read)
+    io.totals = {7: (0.0, 0.0, 0.0)}
+    meter.sample(frozenset({7}), 1.0)
+    # pid 8 joins with gigabytes already behind it: counted from its next reading on.
+    io.totals = {7: (100.0, 0.0, 1.0), 8: (9e9, 9e9, 9e6)}
+    assert meter.sample(frozenset({7, 8}), 2.0) == {"readBps": 100.0, "writeBps": 0.0, "iops": 1.0}
+
+
+def test_io_meter_reused_pid_counts_nothing_and_unreadable_pids_send_nothing():
+    io = FakeIo()
+    meter = sysmon.IoMeter(io.read)
+    io.totals = {7: (5000.0, 5000.0, 50.0)}
+    meter.sample(frozenset({7}), 1.0)
+    io.totals = {7: (10.0, 10.0, 1.0)}  # counter went backwards: a new process got pid 7
+    assert meter.sample(frozenset({7}), 2.0) == {"readBps": 0.0, "writeBps": 0.0, "iops": 0.0}
+    io.totals = {}
+    assert meter.sample(frozenset({7}), 3.0) is None

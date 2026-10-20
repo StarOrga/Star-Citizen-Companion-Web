@@ -78,6 +78,7 @@ import {
   boostLevels,
   defaultDiskMetric,
   dots,
+  driveCongested,
   driveRunPct,
   ledSplit,
   padCell,
@@ -1062,6 +1063,11 @@ function driveTip(slot: DriveSlot): Tip {
   const parts = [t(role), t('res.tip.drive'), t('res.tip.shareNow')];
   if (d?.runAttribution === 'assumed') parts.push(t('res.tip.driveAssumed'));
   parts.push(t('res.tip.taskMgrZero'));
+  if (d && driveCongested(d.activePct, d.responseMs)) {
+    // Busy and slow to answer: say so, and whose share it is, before the explanations.
+    parts.unshift(t('res.tip.congested', { ms: msText(d.responseMs), share: pctText(d.runSharePct) }));
+    return { title: t('res.tip.congestedTitle', { drive: driveName(slot) }), text: parts.join('\n\n'), nums };
+  }
   return { text: parts.join('\n\n'), nums };
 }
 

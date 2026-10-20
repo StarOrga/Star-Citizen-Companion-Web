@@ -79,6 +79,21 @@ export function driveRunPct(activePct: number | null, runSharePct: number | null
   return (activePct * Math.max(0, Math.min(100, runSharePct))) / 100;
 }
 
+/** Active time from which a drive counts as constantly busy. */
+export const CONGESTED_ACTIVE_PCT = 90;
+/** Average response time from which a busy drive counts as overloaded (an SSD answers in well under 1 ms). */
+export const CONGESTED_RESPONSE_MS = 20;
+
+/**
+ * Whether a drive is overloaded: constantly busy AND slow to answer. 100 %
+ * active time alone is no verdict (an SSD at 100 % often has headroom); the
+ * response time is. Null figures (unmeasured) are never congested.
+ */
+export function driveCongested(activePct: number | null | undefined, responseMs: number | null | undefined): boolean {
+  if (typeof activePct !== 'number' || typeof responseMs !== 'number') return false;
+  return activePct >= CONGESTED_ACTIVE_PCT && responseMs >= CONGESTED_RESPONSE_MS;
+}
+
 export type DiskLimitKey = 'readMBs' | 'writeMBs' | 'iops';
 
 /**

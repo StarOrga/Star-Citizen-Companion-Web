@@ -61,12 +61,14 @@ import {
   driveLoads,
   driveSlots,
   descendantPids,
+  parseAppIo,
   parseGpuDetect,
   parseProcessTable,
   parseSysDrives,
   shortGpuName,
   type DriveSlot,
   type GpuInfo,
+  type RunIo,
   type SysDrive,
 } from '../lib/drive-load.js';
 import { setSidecarGpu } from './sidecar-env.js';
@@ -591,6 +593,8 @@ let systemLoad: SystemLoad | null = null;
 let sysGpuRaw: unknown = null;
 /** sysmon's `ready.gpuCounters` — which PDH GPU sets exist; [] = the GPU cannot be measured. */
 let sysGpuCounters: string[] | null = null;
+/** sysmon's `appIo` — this main process's own file I/O; null = not measured. */
+let sysAppIo: RunIo | null = null;
 
 // ── Uploader pid set → sysmon ───────────────────────────────────────────────
 
@@ -630,8 +634,11 @@ function scanTrees(): void {
 /**
  * Hand sysmon the uploader pid set (it splits GPU load / VRAM by it): the full
  * process tree of every governed sidecar plus the Electron app's own
- * processes. The stdin line `{"type":"pids","pids":[…]}` REPLACES the set, so
- * it is re-sent whenever the set changes (and once per sysmon start).
+ * processes. The stdin line `{"type":"pids","pids":[…],"ioPids":[…]}` REPLACES
+ * the set, so it is re-sent whenever the set changes (and once per sysmon
+ * start). `ioPids` is only this main process: its file I/O becomes `appIo`.
+ * Renderer and GPU processes stay out — their IPC pipes count as I/O
+ * (MB/s at idle) without touching a disk.
  */
 function syncSysmonPids(appPids: readonly number[]): void {
   if (!sysmon) return;
@@ -643,10 +650,11 @@ function syncSysmonPids(appPids: readonly number[]): void {
   }
   for (const p of treePids) set.add(p);
   const pids = [...set].filter((n) => Number.isInteger(n) && n > 0).sort((a, b) => a - b);
-  const key = pids.join(',');
+  const ioPids = [process.pid];
+  const key = `${pids.join(',')}|${ioPids.join(',')}`;
   if (key === sentPidsKey) return;
   try {
-    sysmon.stdin.write(`${JSON.stringify({ type: 'pids', pids })}\n`);
+    sysmon.stdin.write(`${JSON.stringify({ type: 'pids', pids, ioPids })}\n`);
     sentPidsKey = key;
   } catch {
     /* sysmon gone — the next start re-sends */
@@ -690,6 +698,7 @@ function startSysmon(): void {
         iops: Number(ev.iops) || 0,
       };
       sysGpuRaw = ev.gpu ?? null;
+      sysAppIo = parseAppIo(ev.appIo);
     } else if (ev.type === 'ready') {
       sysGpuCounters = Array.isArray(ev.gpuCounters) ? ev.gpuCounters.map(String) : null;
       log.info(`[resources] sysmon ready, gpu counters: ${JSON.stringify(sysGpuCounters)}`);
@@ -702,6 +711,7 @@ function startSysmon(): void {
       sysmon = null;
       systemLoad = null;
       sysGpuRaw = null;
+      sysAppIo = null;
     }
   });
 }
@@ -711,6 +721,7 @@ function stopSysmon(): void {
   sysmon = null;
   systemLoad = null;
   sysGpuRaw = null;
+  sysAppIo = null;
   if (!child) return;
   try {
     child.stdin.end();
@@ -782,7 +793,7 @@ function takeSample(): ResourceSample {
     sysReadMBs: sys ? Math.round((sys.readBps / mb) * 10) / 10 : null,
     sysWriteMBs: sys ? Math.round((sys.writeBps / mb) * 10) / 10 : null,
     sysIops: sys ? Math.round(sys.iops) : null,
-    drives: driveLoads(driveSlots(gameLetter, workLetter, kindOf, sysDrives), sys ? sysDrives : null, run),
+    drives: driveLoads(driveSlots(gameLetter, workLetter, kindOf, sysDrives), sys ? sysDrives : null, run, sys ? sysAppIo ?? undefined : undefined),
     // sysmon reported no GPU counter set at all → stays null (unmeasurable).
     gpu: sys && (sysGpuCounters === null || sysGpuCounters.length > 0) ? parseSampleGpu(sysGpuRaw, vramTotalMb) : null,
     heldBack: run.heldBack,
