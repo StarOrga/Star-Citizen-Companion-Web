@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.159.0",
+  "current": "0.160.0",
   "releases": [
+    {
+      "version": "0.160.0",
+      "date": "2026-10-20",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Decks eines Schiffs im Codex (#796).",
+              "text": "Die Schiffsseite nennt in der Rumpf-Gruppe der Analyse jetzt die Decks des Schiffs, von unten nach oben – etwa „Lower Deck · Main Deck · Upper Deck“. Der Data Uploader 0.60.0 liest dafür die Innenraum-Karten des Spiels aus und ordnet sie über den Ordnernamen allen Varianten einer Schiffsfamilie zu (284 Schiffe). Wo CIG ein Deck falsch beschriftet (etwa das obere Deck der Redeemer als „Lower Deck“), nimmt der Uploader den passenden Standardnamen des Spiels. Schiffe ohne hinterlegte Decks zeigen keine Zeile. Die Daten erscheinen mit dem nächsten Uploader-Lauf. Der 2D-Deckplan folgt in #797."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.159.0",
       "date": "2026-10-20",
