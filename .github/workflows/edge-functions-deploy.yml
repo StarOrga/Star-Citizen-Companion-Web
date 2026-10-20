@@ -48,6 +48,10 @@ permissions:
 env:
   PROJECT_REF: hcnqhvzlavdycidqyaai
 
+concurrency:
+  group: edge-functions-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # Runs on pull requests too, where it deploys nothing: it just states which
   # functions the merge will push, so the deploy surface is visible at review

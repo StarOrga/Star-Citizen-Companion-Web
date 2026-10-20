@@ -42,6 +42,10 @@ env:
   MIRROR_BRANCH: main
   SYNC_SOURCE: docs/readme-io/pages
 
+concurrency:
+  group: readme-docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     name: validate Git-Sync tree
