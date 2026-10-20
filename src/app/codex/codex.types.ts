@@ -155,6 +155,20 @@ export interface Dimensions {
   max: number[];
 }
 
+/**
+ * One deck of a ship (`InteriorMapSectionDefinition` under `ship_setup/`,
+ * mapping + naming rules in `data-uploader/python/sc_extract/ship_decks.py`).
+ * `order` is 0-based: Lower < Main < Upper for positional decks (bottom first),
+ * else CIG's deck number (not verified as bottom-first). `name` is null when
+ * neither the record nor its name yields a game string — show a fallback.
+ * `de` is often null (the game ships English only); fall back to `en`.
+ */
+export interface ShipDeck {
+  key: string;
+  name: { en: string | null; de: string | null } | null;
+  order: number;
+}
+
 export interface ShipPayload extends BaseEntityPayload {
   entityKind: 'ship';
   role: string | null; // localization key
@@ -178,6 +192,12 @@ export interface ShipPayload extends BaseEntityPayload {
   // as "position unknown", never as an error.
   hardpointTransforms?: Record<string, HardpointTransformEntry> | null;
   hardpointFrame?: HardpointFrameData | null;
+  /**
+   * Authored decks of the ship's hull family, in display order (#796). Absent
+   * (never `[]`) when the hull has no authored decks and on every build
+   * extracted before the uploader emitted it.
+   */
+  decks?: ShipDeck[];
   // Whitelist-only ship stats (PR A task 1) — currently just the signature
   // system (SSCSignatureSystemParams: IR/EM/cross-section). Same struct-keyed
   // shape as ComponentPayload.stats, but on an allowlist (not the item/
