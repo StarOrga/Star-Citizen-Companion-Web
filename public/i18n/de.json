@@ -1744,6 +1744,7 @@
       "title": "Rumpf & Flug",
       "hullHp": "Hüllen-HP",
       "dimensions": "Abmessungen (L×B×H)",
+      "decks": "Decks",
       "crew": "Besatzung",
       "equippedMass": "Masse der Ausrüstung",
       "scmSpeed": "SCM-Geschwindigkeit",

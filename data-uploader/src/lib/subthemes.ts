@@ -73,11 +73,14 @@ export const SUBTHEMES: readonly Subtheme[] = [
     key: 'ships',
     // 2: #643 — LIVE 4.x hull node names readable again, so
     // payload.hardpointTransforms / hardpointFrame are no longer empty.
-    revision: 2,
+    // 3: #796 — payload.decks (ordered deck list from the ship_setup
+    // interior-map sections).
+    revision: 3,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
       'data-uploader/python/sc_extract/geometry.py',
+      'data-uploader/python/sc_extract/ship_decks.py',
       'data-uploader/python/sc_extract/ship_discovery.py',
       'data-uploader/python/sc_extract/thresholds.py',
     ],

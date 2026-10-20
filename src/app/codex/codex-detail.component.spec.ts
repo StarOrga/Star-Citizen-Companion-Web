@@ -244,6 +244,40 @@ function configureSetup(
   });
 }
 
+describe('CodexDetailComponent — ship deck list (#796)', () => {
+  // The classic view's Analyse card (the Holotable gets the same groups).
+  const classic = async (fixture: ComponentFixture<CodexDetailComponent>) => {
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+  const deckRow = (el: HTMLElement): string | null => {
+    const dt = Array.from(el.querySelectorAll('dl.fact-grid dt')).find((n) => n.textContent?.trim() === 'codex.hull.decks');
+    return dt ? (dt.nextElementSibling?.textContent ?? '').trim() : null;
+  };
+
+  it('renders the decks bottom-up in the hull facts, from the payload the page already loaded', async () => {
+    const payload = {
+      ...NOMAD_PAYLOAD,
+      decks: [
+        { key: 'Nomad_Upper_Deck', name: { en: 'Upper Deck', de: null }, order: 1 },
+        { key: 'Nomad_Lower_Deck', name: null, order: 0 },
+      ],
+    } as ShipPayload;
+    const fixture = await setup('ship', [], payload);
+    expect(deckRow(await classic(fixture))).toBe('Lower Deck · Upper Deck');
+  });
+
+  it('renders no Decks row for a ship without decks', async () => {
+    const fixture = await setup('ship');
+    const el = await classic(fixture);
+    expect(el.querySelector('dl.fact-grid')).not.toBeNull();
+    expect(deckRow(el)).toBeNull();
+  });
+});
+
 describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
   let fixture: ComponentFixture<CodexDetailComponent>;
 

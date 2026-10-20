@@ -31,6 +31,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .dataforge import DataForge, Record
 from .localization import Localizer
+from .ship_decks import SHIP_SETUP, build_deck_index, project_decks, sections_for_class
 
 # ── Blueprint candidate-field lists (R1/R2: UNCONFIRMED — see extract_blueprints) ──────────
 # RISK HIGH: these leaf-field names are hypotheses derived from SC crafting data
@@ -1532,7 +1533,36 @@ class CodexExtractor:
         ship_stats = self._ship_stats(comps)
         if ship_stats:
             base["stats"] = ship_stats
+        # Ordered deck list from the ship_setup interior-map sections (#796);
+        # absent (never []) when the hull family has no authored decks.
+        decks = self._ship_decks(base["className"])
+        if decks:
+            base["decks"] = decks
         return base
+
+    def _ship_decks(self, class_name: str) -> Optional[List[Dict[str, Any]]]:
+        """``[{key, name, order}]`` for a ship — see ship_decks.py for the rules."""
+        if not hasattr(self, "_deck_index"):
+            entries = []
+            for rec in self.df.records_by_type_name("InteriorMapSectionDefinition"):
+                if SHIP_SETUP not in (rec.filename or "").replace("\\", "/").lower():
+                    continue
+                try:
+                    val = self.df.record_to_dict(rec, max_depth=2).get("_RecordValue_", {})
+                except Exception as exc:  # noqa: BLE001 — one bad section never aborts a ship
+                    self.on_log("warn", f"deck section resolve failed for {rec.name}: {exc}")
+                    val = {}
+                entries.append((rec.name, rec.filename, val.get("name")))
+            self._deck_index = build_deck_index(entries)
+        return project_decks(sections_for_class(self._deck_index, class_name),
+                             self._deck_name)
+
+    def _deck_name(self, key: str) -> Optional[Dict[str, Optional[str]]]:
+        """``{en, de}`` for a deck loc key; None when neither language resolves."""
+        loc = self._localized(key) or {}
+        en = loc.get("en") if loc.get("en") not in ("", key) else None
+        de = loc.get("de") if loc.get("de") not in ("", key) else None
+        return {"en": en, "de": de} if (en or de) else None
 
     def _entity_class(self, class_name: str) -> Optional[Record]:
         """Record for a bare entity class name (no ``EntityClassDefinition.``

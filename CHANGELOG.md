@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.160.0] - 2026-10-20
+
+### Added
+
+- **Decks eines Schiffs im Codex (#796).** Die Schiffsseite nennt in der
+  Rumpf-Gruppe der Analyse jetzt die Decks des Schiffs, von unten nach oben
+  – etwa „Lower Deck · Main Deck · Upper Deck“. Der Data Uploader 0.60.0
+  liest dafür die Innenraum-Karten des Spiels aus und ordnet sie über den
+  Ordnernamen allen Varianten einer Schiffsfamilie zu (284 Schiffe). Wo CIG
+  ein Deck falsch beschriftet (etwa das obere Deck der Redeemer als
+  „Lower Deck“), nimmt der Uploader den passenden Standardnamen des Spiels.
+  Schiffe ohne hinterlegte Decks zeigen keine Zeile. Die Daten erscheinen
+  mit dem nächsten Uploader-Lauf. Der 2D-Deckplan folgt in #797.
+
 ## [0.159.0] - 2026-10-20
 
 ### Added

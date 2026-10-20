@@ -1,4 +1,4 @@
-import type { Dimensions } from '../codex.types';
+import type { Dimensions, ShipDeck } from '../codex.types';
 import type { CodexDetail } from '../codex.service';
 import { computeKpiSheet } from '../codex-loadout-stats';
 import type { LayoutSection, LayoutSlot } from '../codex-hardpoint-layout.component';
@@ -11,7 +11,9 @@ import {
   buildShipFactGroups,
   buildStageCounts,
   fmtGm,
+  humanizeDeckKey,
   isTractorBeamSlot,
+  shipDeckNames,
 } from './codex-detail-facts';
 
 /** A translate stand-in that shows what was asked for: `key|{params}`. */
@@ -26,6 +28,57 @@ function slots(n: number, children?: LayoutSlot['children']): LayoutSlot[] {
 }
 
 describe('codex-detail facts', () => {
+  describe('shipDeckNames (#796)', () => {
+    const deck = (key: string, order: number, en: string | null, de: string | null = null): ShipDeck => ({
+      key,
+      order,
+      name: en === null && de === null ? null : { en, de },
+    });
+
+    it('orders the decks bottom-up by `order`, not by array position', () => {
+      const decks = [deck('Polaris_Upper_Deck', 2, 'Upper Deck'), deck('Polaris_Lower_Deck', 0, 'Lower Deck'), deck('Polaris_Main_Deck', 1, 'Main Deck')];
+      expect(shipDeckNames({ decks }, 'en')).toEqual(['Lower Deck', 'Main Deck', 'Upper Deck']);
+    });
+
+    it('uses the German name when there is one and falls back to English (de is mostly null)', () => {
+      const decks = [
+        deck('X_Lower_Deck', 0, 'Lower Deck', 'Unteres Deck'),
+        deck('X_Upper_Deck', 1, 'Upper Deck', null),
+        deck('X_Main', 2, 'Main Deck', '@vehicle_deck_main'),
+      ];
+      expect(shipDeckNames({ decks }, 'de')).toEqual(['Unteres Deck', 'Upper Deck', 'Main Deck']);
+    });
+
+    it('humanises the section key when no name resolved', () => {
+      const decks = [deck('Carrack_Deck_1', 0, null), deck('Redeemer_Upper_Deck', 1, '@LOC_EMPTY'), deck('Solo', 2, null)];
+      expect(shipDeckNames({ decks }, 'en')).toEqual(['Deck 1', 'Upper Deck', 'Solo']);
+      expect(humanizeDeckKey('RSI_Zeus_Deck')).toBe('Zeus Deck');
+    });
+
+    const hullRows = (decks?: string[]) =>
+      buildShipFactGroups(
+        { detail: detail('ship', {}, { crew: { size: 2 } }), dimensions: null, techStats: null, kpiSheet: computeKpiSheet([], null), occupants: [], decks },
+        t,
+      ).find((g) => g.titleKey === 'codex.analysis.ship.hull')!.rows;
+
+    it('is empty when the ship has no decks, and the hull group then has no Decks row (no gap dash either)', () => {
+      expect(shipDeckNames({}, 'en')).toEqual([]);
+      expect(shipDeckNames({ decks: [] }, 'de')).toEqual([]);
+      expect(shipDeckNames(null, 'en')).toEqual([]);
+      expect(hullRows([]).map((r) => r.labelKey)).not.toContain('codex.hull.decks');
+      expect(hullRows(undefined).map((r) => r.labelKey)).not.toContain('codex.hull.decks');
+    });
+
+    it('puts the decks into the hull group after the crew, joined with a middle dot', () => {
+      expect(hullRows(['Lower Deck', 'Main Deck', 'Upper Deck']).map((r) => [r.labelKey, r.value])).toEqual([
+        ['codex.hull.dimensions', null],
+        ['codex.hull.crew', '2'],
+        ['codex.hull.decks', 'Lower Deck · Main Deck · Upper Deck'],
+        ['codex.hull.hullHp', null],
+      ]);
+    });
+  });
+
   describe('buildHeroFacts', () => {
     it('leaves 0, empty and missing values out', () => {
       const facts = buildHeroFacts(
