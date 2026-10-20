@@ -67,6 +67,7 @@ import {
   buildShipFactGroups,
   buildStageCounts,
   fmtGm,
+  shipDeckNames,
 } from './detail/codex-detail-facts';
 import { ShipLinkFormStore } from './detail/ship-link-form.store';
 import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
@@ -3302,6 +3303,7 @@ export class CodexDetailComponent implements OnInit {
         techStats: this.techStats(),
         kpiSheet: this.currentKpiSheet(),
         occupants: this.draftSummaryOccupants(),
+        decks: shipDeckNames(d.payload as ShipPayload | undefined, this.lang()),
       },
       this.translate,
     );

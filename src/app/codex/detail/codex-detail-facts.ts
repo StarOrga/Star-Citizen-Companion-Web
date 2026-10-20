@@ -5,7 +5,7 @@
  * the signals and hand the values in, so the page's reactivity stays exactly
  * where it was. `t` is the translate function (TranslateService.instant).
  */
-import type { AmmunitionPayload, Dimensions, ShipPayload } from '../codex.types';
+import type { AmmunitionPayload, Dimensions, Lang, ShipDeck, ShipPayload } from '../codex.types';
 import type { CodexDetail } from '../codex.service';
 import { cleanLocaleValue, formatNumber } from '../codex-format';
 import { fpsArmorWeightKey, fpsWeaponTypeKey } from '../fps-labels';
@@ -43,6 +43,41 @@ export function ammoRangeOf(detail: CodexDetail | null): number | null {
   const speed = p.speed ?? (p.raw?.['speed'] as number | undefined) ?? null;
   const life = p.lifetime ?? (p.raw?.['lifetime'] as number | undefined) ?? null;
   return speed && life ? speed * life : null;
+}
+
+/** A deck name value worth showing: not empty, not an unresolved '@'-key. */
+function cleanDeckName(v: string | null | undefined): string {
+  const s = (v ?? '').trim();
+  return s && !s.startsWith('@') && !/translation not found/i.test(s) ? s : '';
+}
+
+/**
+ * Fallback label from the section key when the extract resolved no name:
+ * the key is the record name (`<Family>_<rest>`, e.g. `Carrack_Deck_1`,
+ * `Redeemer_Upper_Deck`), so the leading family token is dropped and the
+ * rest spaced out ("Deck 1", "Upper Deck"). A single-token key stays as is.
+ */
+export function humanizeDeckKey(key: string): string {
+  const toks = key.split('_').filter(Boolean);
+  return (toks.length > 1 ? toks.slice(1) : toks).join(' ');
+}
+
+/**
+ * The ship's deck names (#796), bottom-up in the extract's `order`. Per deck:
+ * the reader's language, else English (the `de` side is mostly null), else the
+ * humanised key. Empty when the payload has no decks — the caller then shows
+ * no row at all.
+ */
+export function shipDeckNames(payload: Pick<ShipPayload, 'decks'> | null | undefined, lang: Lang): string[] {
+  const decks: ShipDeck[] = Array.isArray(payload?.decks) ? payload.decks : [];
+  return [...decks]
+    .sort((a, b) => a.order - b.order)
+    .map((d) => {
+      const n = d.name;
+      const primary = lang === 'de' ? cleanDeckName(n?.de) : cleanDeckName(n?.en);
+      return primary || cleanDeckName(n?.en) || cleanDeckName(n?.de) || humanizeDeckKey(d.key ?? '');
+    })
+    .filter(Boolean);
 }
 
 /** Compact hero facts — kind-aware, only meaningful values (0, '' and null are left out). */
@@ -185,6 +220,8 @@ export function buildShipFactGroups(
     techStats: ShipTechStats | null;
     kpiSheet: KpiSheet;
     occupants: readonly SummaryOccupant[];
+    /** Deck names, bottom-up (shipDeckNames); empty or absent = no Decks row. */
+    decks?: readonly string[];
   },
   t: Translate,
 ): ShipFactGroup[] {
@@ -260,6 +297,8 @@ export function buildShipFactGroups(
       rows: [
         { labelKey: 'codex.hull.dimensions', value: dim ? `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m` : null },
         { labelKey: 'codex.hull.crew', value: p.crew?.size ? String(p.crew.size) : null },
+        // Decks (#796): no gap row — a hull without authored decks simply has none.
+        ...(input.decks?.length ? [{ labelKey: 'codex.hull.decks', value: input.decks.join(' · ') }] : []),
         { labelKey: 'codex.hull.hullHp', value: null, gapKey: 'codex.summary.gap.noHullMass' },
       ],
     },
