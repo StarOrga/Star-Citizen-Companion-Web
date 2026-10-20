@@ -119,6 +119,31 @@ export interface BaseEntityPayload {
   previewImage: string | null; // WebP filename in the codex-previews bucket
   source: ExtractSource;
   entityKind: EntityKind;
+  /** Traverse of a turret / gimbal mount (#793); absent on every other entity and on older extracts. */
+  turretMovement?: TurretMovementAxis[];
+}
+
+/**
+ * One movement axis of a turret or gimbal mount, from
+ * `SCItemTurretParams.movementList` (`_turret_movement` in
+ * `data-uploader/python/sc_extract/dataforge_extract.py`). Angles in degrees.
+ * Tag-gated limiter states (a stowed gimbal locked to ±1°) are not included.
+ */
+export interface TurretMovementAxis {
+  /** jointName of the moving joint. */
+  joint: string | null;
+  axis: 'yaw' | 'pitch' | 'roll';
+  /** Lowest / highest reachable angle — for a rotation-dependent limit the envelope over all bands. */
+  minAngle: number;
+  maxAngle: number;
+  /** deg/s; absent when the record has none. */
+  speed?: number;
+  /** Present (true) only when the joint just follows another one. */
+  slavedOnly?: true;
+  /** Rotation-dependent limits only: the joint whose rotation selects the band. */
+  relativeJoint?: string | null;
+  /** Rotation-dependent limits only: the band per rotation of `relativeJoint` (degrees). */
+  limitsByRotation?: { rotation: number | null; minAngle: number; maxAngle: number }[];
 }
 
 // Real-world bounding-box dimensions (metres) parsed from the .cga mesh.
