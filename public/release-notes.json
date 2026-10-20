@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.158.1",
+  "current": "0.159.0",
   "releases": [
+    {
+      "version": "0.159.0",
+      "date": "2026-10-20",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.59.0 exportiert die Schwenkbereiche von Türmen und Gimbals (#793).",
+              "text": "Bisher kannte der Codex nur den Blickwinkel des Schützen, nicht, wie weit sich ein Turm tatsächlich drehen lässt. Jetzt trägt jeder Turm und jedes Gimbal pro Bewegungsachse (Gieren, Nicken, Rollen) den kleinsten und größten Winkel und die Drehgeschwindigkeit. Hängt der Nickbereich von der Drehung ab – etwa bei den KI-Türmen der Idris, dem oberen Turm der Hammerhead oder den Seitentürmen der Polaris –, kommt die vollständige Tabelle mit. Die Daten erscheinen mit dem nächsten Uploader-Lauf; eine Anzeige im Web folgt in einem eigenen Schritt (#788)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.158.1",
       "date": "2026-10-20",
