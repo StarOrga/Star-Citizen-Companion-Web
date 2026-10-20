@@ -82,9 +82,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/python/sc_extract/thresholds.py',
     ],
   },
-  { key: 'components', revision: 1, phases: ['codex_components'], sources: CATALOG_SHARED },
-  { key: 'weapons', revision: 1, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
-  { key: 'items', revision: 1, phases: ['codex_items'], sources: CATALOG_SHARED },
+  { key: 'components', revision: 2, phases: ['codex_components'], sources: CATALOG_SHARED },
+  { key: 'weapons', revision: 2, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
+  { key: 'items', revision: 2, phases: ['codex_items'], sources: CATALOG_SHARED },
   {
     key: 'codex_extra',
     // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on
