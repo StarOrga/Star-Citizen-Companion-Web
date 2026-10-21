@@ -41,7 +41,7 @@ numpy==1.26.4          # PATCHED (scdatatools wants ~=1.21.5) — last 1.x, cp31
 rsa==4.9.1
 cryptography==50.0.1   # AES-backed P4K decryption — pinned; supply-chain sensitive (cp39-abi3 wheel → embedded py3.10 OK)
 lz4==4.4.5
-Pillow==12.3.0         # DDS → PNG icon conversion (icons currently deferred); cp310 win wheel → embedded py3.10 OK
+Pillow==13.0.0         # DDS → PNG icon conversion (icons currently deferred); cp310 win wheel → embedded py3.10 OK
 # Optional GPU path (SC_USE_GPU=1): headless OpenGL 3.3 for the silhouette mask
 # raster and the 3D hole gate's depth maps (sc_extract/silhouette_gpu.py,
 # probe: python -m sc_extract.gpu_probe). Both have cp310 win_amd64 wheels; the
