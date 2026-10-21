@@ -6,7 +6,7 @@ import { AnalyticsService } from '../../core/analytics.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService } from '../../news/news.service';
 import { VerseApiService } from '../data/verse-api.service';
-import { VerseBetaService } from '../data/verse-beta.service';
+import { BetaService } from '../../core/beta.service';
 import { VerseDigestItem, VerseDoor } from '../data/verse.models';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 
@@ -202,7 +202,7 @@ export class VerseBriefingComponent {
   protected readonly api = inject(VerseApiService);
   private readonly news = inject(NewsService);
   private readonly analytics = inject(AnalyticsService);
-  readonly enabled = inject(VerseBetaService).isEnabled('briefing');
+  readonly enabled = inject(BetaService).isEnabled('verse');
 
   readonly top = this.api.topItems;
 

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { NewsListComponent } from '../../news/news-list.component';
-import { VerseBetaService } from '../data/verse-beta.service';
+import { BetaService } from '../../core/beta.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 
 /**
@@ -23,5 +23,5 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
   styles: [`:host { display: block; }`],
 })
 export class VerseNewsComponent {
-  readonly enabled = inject(VerseBetaService).isEnabled('news');
+  readonly enabled = inject(BetaService).isEnabled('verse');
 }

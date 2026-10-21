@@ -29,7 +29,7 @@ describe('Verse analytics consent gate', () => {
   it('sends no Verse event before any consent decision', () => {
     svc.captureVerse('verse_top_open', { key: 'news:a', kind: 'news', rank: 1, pinned: false });
     svc.captureVerse('verse_door_open', { door: 'gallery' });
-    svc.captureVerse('verse_beta_toggle', { area: 'news', enabled: true });
+    svc.captureVerse('beta_toggle', { area: 'verse', enabled: true });
     svc.captureVerse('starscape_share', { image_id: 'x', channel: 'copy' });
     svc.captureVerse('verse_star_earned', { patch_line: '4.3', star_key: 'notes' });
     expect(capture).not.toHaveBeenCalled();

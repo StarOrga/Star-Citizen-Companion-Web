@@ -4,7 +4,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { AppDownloadMenuComponent } from '../../desktop/app-download-menu.component';
 import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
 import { StarscapeComponent } from '../../starscape/starscape.component';
-import { VerseBetaService } from '../data/verse-beta.service';
+import { BetaService } from '../../core/beta.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 
 /** Fallback when the release lookup of the download menu fails. */
@@ -75,7 +75,7 @@ const STARSCAPE_FALLBACK_URL =
 })
 export class VerseGalleryComponent {
   private readonly connections = inject(DesktopConnectionService);
-  readonly enabled = inject(VerseBetaService).isEnabled('gallery');
+  readonly enabled = inject(BetaService).isEnabled('verse');
   protected readonly fallbackUrl = STARSCAPE_FALLBACK_URL;
 
   readonly connected = computed(() => {

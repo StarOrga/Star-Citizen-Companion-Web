@@ -47,6 +47,7 @@ import { HangarShipConfig, PeekedSharedLoadout } from '../hangar/hangar.types';
 import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { HQ_MINE_PARAM, HQ_ROOT, HQ_VARIANT_PARAM, hqHangar, personalShipLink } from '../hq/hq-routes';
 import { CodexModeSwitchComponent, CodexPersonalUsesComponent } from './detail/codex-personal-mode.component';
+import { BetaService } from '../core/beta.service';
 import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
 import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
@@ -1386,6 +1387,7 @@ export class CodexDetailComponent implements OnInit {
   });
   readonly kind = computed(() => this.detail()?.kind ?? null);
   private readonly ownershipSvc = inject(HqOwnershipService);
+  private readonly codexBeta = inject(BetaService).isEnabled('codex');
   /** Everything the reader has of this entity (HQ ownership index), or null. */
   readonly myOwnership = computed(() => this.ownershipSvc.lookup(this.detail()?.classNameSlug));
   /** Ship pages only: whether this ship is already in the user's hangar. */
@@ -1410,10 +1412,13 @@ export class CodexDetailComponent implements OnInit {
   readonly personalMode = computed(() =>
     this.kind() === 'ship' ? this.activeVariantId() !== null : this.mineFlag() && this.personalCount() > 0,
   );
-  /** The [Codex | Meine] switch shows only when the reader owns something of it. */
+  /**
+   * The [Serie | Meine Variante] switch shows only when the reader owns
+   * something of it, and only while the Codex β (codex/HQ split) is on.
+   */
   readonly showModeSwitch = computed(() => {
     const k = this.kind();
-    if (!k || !this.detail()) return false;
+    if (!k || !this.detail() || !this.codexBeta()) return false;
     return k === 'ship' ? this.myVariants().length > 0 : this.personalCount() > 0;
   });
   /**

@@ -2007,10 +2007,12 @@
       "FPS_Consumable": "Consumable"
     },
     "personal": {
-      "switchGroup": "View: codex or your copy",
+      "switchGroup": "View: stock or your variant",
       "codex": "Codex",
+      "stock": "Stock",
       "mine": "Mine",
-      "yourVariant": "Your variant: {{name}}",
+      "mineVariant": "My variant",
+      "yourVariant": "My variant: {{name}}",
       "variantsMenu": "Your variants of this ship",
       "hqCrumb": "HQ",
       "foreignVariant": "This variant belongs to someone else — variants are shared through a share link.",
@@ -3159,7 +3161,7 @@
           "lang": "sc.lang — your language choice.",
           "consent": "sc.consent — your decision about the storage categories, so we do not ask again on every visit.",
           "composer": "sc.composer.sendOnEnter — whether the Enter key sends in the feedback box or adds a new line.",
-          "verseBeta": "sc.verse.beta — which Verse menu items you switched to the new β interface. A pure display preference, not used for tracking.",
+          "verseBeta": "sc.beta — which menu items (Verse, Codex & HQ) you switched the new β interface on or off for. A pure display preference, not used for tracking.",
           "preferences": "\"Preferences\" category — convenience state such as news filters, saved articles and favorited ships. Only written if you allow it; withdrawing your consent deletes those entries immediately.",
           "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
         },
@@ -4458,11 +4460,6 @@
       "gallery": "Gallery",
       "link": "Link"
     },
-    "beta": {
-      "aria": "New Verse view (β)",
-      "switchFor": "New view for {{area}}",
-      "all": "β switches for every area"
-    },
     "status": {
       "aria": "Patch status: {{line}}",
       "live": "Live",
@@ -4735,6 +4732,14 @@
         "pinTitle": "Pin title",
         "promoted": "Pinned."
       }
+    }
+  },
+  "beta": {
+    "aria": "New view (β)",
+    "switchFor": "New view for {{area}}",
+    "area": {
+      "verse": "Verse",
+      "codex": "Codex & HQ"
     }
   }
 }

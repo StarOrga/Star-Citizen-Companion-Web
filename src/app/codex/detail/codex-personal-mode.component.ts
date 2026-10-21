@@ -13,9 +13,11 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
 };
 
 /**
- * The header switch of a codex detail page: [Codex | Meine ▾]. Codex is the
- * game's knowledge, the same for everyone; "Meine" is the reader's own copy —
- * on a ship one of their variants (`?v=`), elsewhere the `?mine` flag. Both
+ * The header switch of a codex detail page. Ships: [Serie | Meine Variante ▾]
+ * — the stock fit everyone sees vs. one of the reader's variants (`?v=`);
+ * the labels name WHAT is shown, not where the page was opened from. Other
+ * kinds: [Codex | Meine] — the game's knowledge vs. where the reader fitted
+ * or packed it (the `?mine` flag). Both
  * segments are real anchors: switching only changes the query param, and a
  * middle click opens the other mode in a new tab. The ship menu lists every
  * variant of this hull as its own anchor.
@@ -32,7 +34,7 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
   template: `
     <div class="mode" role="group" [attr.aria-label]="'codex.personal.switchGroup' | translate">
       <a class="seg" [class.active]="!personal()" [attr.aria-current]="!personal() ? 'true' : null"
-         [routerLink]="[]" [queryParams]="codexParams" queryParamsHandling="merge">{{ 'codex.personal.codex' | translate }}</a>
+         [routerLink]="[]" [queryParams]="codexParams" queryParamsHandling="merge">{{ (kind() === 'ship' ? 'codex.personal.stock' : 'codex.personal.codex') | translate }}</a>
       @if (kind() === 'ship') {
         <span class="mine-wrap">
           <button type="button" class="seg mine" [class.active]="personal()"
@@ -40,7 +42,7 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
             @if (personal() && activeVariantName(); as name) {
               {{ 'codex.personal.yourVariant' | translate: { name: name } }}
             } @else {
-              {{ 'codex.personal.mine' | translate }}
+              {{ 'codex.personal.mineVariant' | translate }}
             }
             <span aria-hidden="true" class="caret">▾</span>
           </button>

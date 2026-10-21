@@ -1,18 +1,17 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, input, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRouteSnapshot, RouterLink, provideRouter } from '@angular/router';
+import { RouterLink, provideRouter } from '@angular/router';
 import { TranslatePipe, provideTranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../core/analytics.service';
 import { NewsService } from '../news/news.service';
 import { VerseApiService } from './data/verse-api.service';
-import { VerseBetaService } from './data/verse-beta.service';
+import { BetaService } from '../core/beta.service';
 import { VerseDigest, VerseDigestItem } from './data/verse.models';
 import { VerseBriefingComponent, verseItemLink } from './pages/verse-briefing.component';
 import { verseKpiTiles } from './pages/verse-patch-kpis';
 import { dossierLineOf } from './pages/verse-patches.component';
 import { verseStatusView } from './shared/verse-status.component';
-import { VerseLayoutComponent, verseAreaOf } from './verse-layout.component';
 import { VERSE_ROUTES } from './verse.routes';
 
 /**
@@ -29,17 +28,7 @@ function middleClick(el: Element): void {
   }
 }
 
-function snap(data: Record<string, unknown>, child: ActivatedRouteSnapshot | null = null): ActivatedRouteSnapshot {
-  return { data, firstChild: child } as unknown as ActivatedRouteSnapshot;
-}
-
 describe('Verse hub — pure helpers', () => {
-  it('verseAreaOf takes the deepest verseArea and ignores junk', () => {
-    expect(verseAreaOf(snap({}, snap({ verseArea: 'patches' }, snap({}))))).toBe('patches');
-    expect(verseAreaOf(snap({ verseArea: 'nope' }))).toBeNull();
-    expect(verseAreaOf(null)).toBeNull();
-  });
-
   it('verseItemLink splits in-app paths and keeps only https externals', () => {
     expect(verseItemLink('/verse/gallery?image=a1')).toEqual({ internal: true, path: '/verse/gallery', query: { image: 'a1' } });
     expect(verseItemLink('/verse/patches/4.3')).toEqual({ internal: true, path: '/verse/patches/4.3', query: null });
@@ -87,10 +76,9 @@ class HeaderStub {
 class NewsListStub {}
 
 describe('Verse hub — components', () => {
-  const beta = signal<Record<string, boolean>>({ briefing: true, news: false, patches: false, gallery: false, starmap: false });
+  const beta = signal<Record<string, boolean>>({ verse: true, codex: true });
   const captureVerse = jasmine.createSpy('captureVerse');
   const markSeen = jasmine.createSpy('markSeen').and.resolveTo({ ok: true, data: undefined });
-  const toggle = jasmine.createSpy('toggle');
   const item = (key: string, rank: number, url: string): VerseDigestItem => ({
     key, kind: 'patch', title: `Title ${key}`, url, summary: null, image: null, at: null, pinned: false, score: 1, rank,
   });
@@ -107,9 +95,9 @@ describe('Verse hub — components', () => {
         provideTranslateService({}),
         { provide: AnalyticsService, useValue: { captureVerse, flags: () => ({}) } },
         {
-          provide: VerseBetaService,
+          provide: BetaService,
           useValue: {
-            state: beta, locked: signal({}), toggle,
+            state: beta,
             isEnabled: (a: string) => () => beta()[a],
           },
         },
@@ -156,23 +144,11 @@ describe('Verse hub — components', () => {
   });
 
   it('briefing with β off renders the legacy news list', () => {
-    beta.set({ ...beta(), briefing: false });
+    beta.set({ ...beta(), verse: false });
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('sc-news-list')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.hero')).toBeNull();
-    beta.set({ ...beta(), briefing: true });
-  });
-
-  it('layout β pill toggles the current area', () => {
-    const fixture = TestBed.createComponent(VerseLayoutComponent);
-    fixture.detectChanges();
-    const btn = fixture.nativeElement.querySelector('.more') as HTMLButtonElement;
-    expect(btn.getAttribute('aria-expanded')).toBe('false');
-    btn.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('.beta-list [role="switch"]').length).toBe(5);
-    (fixture.nativeElement.querySelector('.beta-list [role="switch"]') as HTMLButtonElement).click();
-    expect(toggle).toHaveBeenCalledWith('briefing');
+    beta.set({ ...beta(), verse: true });
   });
 });
