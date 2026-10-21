@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { PageCrumb } from '../../shared/page-header/nav-origin.service';
 import { ExplorerGlyphComponent } from '../starmap/explorer-glyph.component';
-import { VerseBetaService } from '../data/verse-beta.service';
+import { BetaService } from '../../core/beta.service';
 import { VerseStatusComponent } from './verse-status.component';
 
 /** First crumb of every Verse sub-page. */
@@ -34,7 +34,7 @@ export const VERSE_ROOT_CRUMB: PageCrumb = { labelKey: 'verse.crumb', link: '/ve
   `],
 })
 export class VerseHeaderComponent {
-  private readonly beta = inject(VerseBetaService);
+  private readonly beta = inject(BetaService);
 
   /** Crumbs AFTER the Verse root; the root crumb is added unless `root` is set. */
   readonly trail = input<readonly PageCrumb[]>([]);
@@ -46,6 +46,6 @@ export class VerseHeaderComponent {
   readonly rememberAs = input<string | null>(null);
 
   readonly crumbs = computed<readonly PageCrumb[]>(() => (this.root() ? [] : [VERSE_ROOT_CRUMB, ...this.trail()]));
-  /** The glyph is the star map's entry — shown while its β area is on. */
-  readonly starmap = this.beta.isEnabled('starmap');
+  /** The glyph is the star map's entry — shown while the Verse β is on. */
+  readonly starmap = this.beta.isEnabled('verse');
 }

@@ -8,7 +8,7 @@ import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
-import { VerseBetaService } from '../verse/data/verse-beta.service';
+import { BetaService } from '../core/beta.service';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { FooterComponent } from './footer.component';
@@ -50,7 +50,7 @@ function click(el: HTMLElement, init: MouseEventInit = {}): void {
  */
 describe('ShellComponent navigation', () => {
   let request: jasmine.Spy;
-  const briefingBeta = signal(false);
+  const betaState = signal({ verse: false, codex: true });
 
   function setup() {
     request = jasmine.createSpy('request').and.returnValue(true);
@@ -64,7 +64,13 @@ describe('ShellComponent navigation', () => {
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(null), signOut: () => Promise.resolve() } },
         { provide: RoleService, useValue: { isAdmin: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
-        { provide: VerseBetaService, useValue: { isEnabled: (a: string) => () => a === 'briefing' && briefingBeta() } },
+        {
+          provide: BetaService,
+          useValue: {
+            state: betaState, locked: signal({ verse: false, codex: false }), toggle: () => undefined,
+            isEnabled: (a: 'verse' | 'codex') => () => betaState()[a],
+          },
+        },
       ],
     });
     TestBed.overrideComponent(ShellComponent, {
@@ -131,16 +137,25 @@ describe('ShellComponent navigation', () => {
    * the Codex; the hangar is one of its tabs, not a nav slot of its own. Pin
    * the count so a future add has to be deliberate.
    */
-  it('renders exactly three top-level nav entries with the briefing β on: Verse, Codex, HQ', () => {
-    briefingBeta.set(true);
+  it('renders exactly three top-level nav entries with the Verse β on: Verse, Codex, HQ', () => {
+    betaState.set({ verse: true, codex: true });
     const fixture = setup();
-    briefingBeta.set(false);
+    betaState.set({ verse: false, codex: true });
     const links = Array.from(
       fixture.nativeElement.querySelectorAll('nav.nav > a'),
     ) as HTMLAnchorElement[];
 
     expect(links.length).toBe(3);
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/verse', '/codex', '/hq']);
+  });
+
+  it('hides only the HQ entry with the Codex β off', () => {
+    betaState.set({ verse: true, codex: false });
+    const fixture = setup();
+    betaState.set({ verse: false, codex: true });
+    const hrefs = (Array.from(fixture.nativeElement.querySelectorAll('nav.nav > a')) as HTMLAnchorElement[])
+      .map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/verse', '/codex']);
   });
 
   /**

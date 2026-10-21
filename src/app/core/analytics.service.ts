@@ -6,8 +6,8 @@ import type { PostHog } from 'posthog-js';
 import { environment } from '../../environments/environment';
 import { ConsentService } from './consent.service';
 
-/** Opt-in areas of the Verse hub β switch (one per menu item). */
-export type VerseBetaArea = 'briefing' | 'news' | 'patches' | 'gallery' | 'starmap';
+/** Top-level nav items with a β switch (`BetaService`). */
+export type BetaArea = 'verse' | 'codex';
 
 /**
  * Typed Verse hub product events and their properties. Properties carry no
@@ -18,8 +18,8 @@ export interface VerseEventProps {
   verse_top_open: { key: string; kind: string; rank: number; pinned: boolean };
   /** One of the three jump gates was opened. */
   verse_door_open: { door: 'news' | 'patches' | 'gallery' };
-  /** The per-menu-item β switch was flipped. */
-  verse_beta_toggle: { area: VerseBetaArea; enabled: boolean };
+  /** A nav item's β switch was flipped. */
+  beta_toggle: { area: BetaArea; enabled: boolean };
   /** A Starscape image was shared. */
   starscape_share: { image_id: string; channel: 'native' | 'copy' };
   /** An Explorer star was earned (sun = comet hit). */

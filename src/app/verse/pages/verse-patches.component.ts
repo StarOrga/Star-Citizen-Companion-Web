@@ -8,7 +8,7 @@ import { PatchBoardComponent } from '../../news/patch-board.component';
 import { PatchStabilityService } from '../../news/patch-stability.service';
 import { nextLineInTesting } from '../../news/patch-stats';
 import { VerseApiService } from '../data/verse-api.service';
-import { VerseBetaService } from '../data/verse-beta.service';
+import { BetaService } from '../../core/beta.service';
 import { PredictionMedian } from '../data/verse.models';
 import { StarTriggerService } from '../starmap/star-trigger.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
@@ -168,7 +168,7 @@ export class VersePatchesComponent {
   private readonly api = inject(VerseApiService);
   private readonly stars = inject(StarTriggerService);
   private readonly router = inject(Router);
-  readonly enabled = inject(VerseBetaService).isEnabled('patches');
+  readonly enabled = inject(BetaService).isEnabled('verse');
 
   protected readonly steps = READINESS_STEPS;
   protected readonly today = todayIso();

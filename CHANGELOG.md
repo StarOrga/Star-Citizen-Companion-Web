@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.161.0] - 2026-10-21
+
+### Changed
+
+- **Ein β-Schalter pro Menüpunkt.** Der β-Schalter unten links schaltet
+  jetzt immer nur den Menüpunkt um, in dem du gerade bist – im Verse das
+  Verse, im Codex den Codex. Er erscheint nur dort, wo An und Aus sich
+  tatsächlich unterscheiden; auf allen anderen Seiten (etwa im HQ) gibt es
+  keinen. Bisher hatte das Verse fünf Teil-Schalter, und einer davon
+  blendete nebenbei den Starscape-Eintrag im Hauptmenü aus. Der
+  Starscape-Eintrag hängt jetzt am Verse-β. Eine bisherige Verse-Auswahl
+  wird einmalig übernommen (war irgendein Teilbereich an, ist das Verse-β
+  an).
+- **Die Aufteilung in Codex und HQ ist jetzt das β des Codex.** Es ist für
+  alle eingeschaltet, so wie die Aufteilung schon live war. Wer es
+  ausschaltet, sieht keinen HQ-Eintrag im Menü und keinen Umschalter
+  „Codex | Meine“ auf den Detailseiten; die HQ-Seiten bleiben über ihre
+  Links erreichbar.
+- **Schiffsseite: „Serie | Meine Variante“.** Auf einer Schiffsseite heißt
+  der Umschalter jetzt „Serie | Meine Variante ▾“ (EN „Stock | My
+  variant“) – er nennt, was du siehst: die Serienausstattung oder eine
+  deiner Varianten. Komponenten und andere Einträge behalten „Codex |
+  Meine“.
+
 ## [0.160.0] - 2026-10-20
 
 ### Added

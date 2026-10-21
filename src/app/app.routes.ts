@@ -152,11 +152,10 @@ export const routes: Routes = [
     children: [
       {
         // The Verse hub (concept 2026-10-08-verse-hub): Verse News, the patch
-        // centre and the Starscape gallery merged into ONE tab. Every child
-        // area sits behind its own β switch (VerseBetaService) — switched off,
-        // the area renders the legacy component it replaced; one backend.
+        // centre and the Starscape gallery merged into ONE tab. The whole tab
+        // sits behind the Verse β switch (BetaService) — switched off, every
+        // area renders the legacy component it replaced; one backend.
         path: 'verse',
-        loadComponent: () => import('./verse/verse-layout.component').then((m) => m.VerseLayoutComponent),
         loadChildren: () => import('./verse/verse.routes').then((m) => m.VERSE_ROUTES),
       },
       // Retired entry points of the merged pages. Relative string redirects

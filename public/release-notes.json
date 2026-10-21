@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.160.0",
+  "current": "0.161.0",
   "releases": [
+    {
+      "version": "0.161.0",
+      "date": "2026-10-21",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ein β-Schalter pro Menüpunkt.",
+              "text": "Der β-Schalter unten links schaltet jetzt immer nur den Menüpunkt um, in dem du gerade bist – im Verse das Verse, im Codex den Codex. Er erscheint nur dort, wo An und Aus sich tatsächlich unterscheiden; auf allen anderen Seiten (etwa im HQ) gibt es keinen. Bisher hatte das Verse fünf Teil-Schalter, und einer davon blendete nebenbei den Starscape-Eintrag im Hauptmenü aus. Der Starscape-Eintrag hängt jetzt am Verse-β. Eine bisherige Verse-Auswahl wird einmalig übernommen (war irgendein Teilbereich an, ist das Verse-β an)."
+            },
+            {
+              "title": "Die Aufteilung in Codex und HQ ist jetzt das β des Codex.",
+              "text": "Es ist für alle eingeschaltet, so wie die Aufteilung schon live war. Wer es ausschaltet, sieht keinen HQ-Eintrag im Menü und keinen Umschalter „Codex | Meine“ auf den Detailseiten; die HQ-Seiten bleiben über ihre Links erreichbar."
+            },
+            {
+              "title": "Schiffsseite: „Serie | Meine Variante“.",
+              "text": "Auf einer Schiffsseite heißt der Umschalter jetzt „Serie | Meine Variante ▾“ (EN „Stock | My variant“) – er nennt, was du siehst: die Serienausstattung oder eine deiner Varianten. Komponenten und andere Einträge behalten „Codex | Meine“."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.160.0",
       "date": "2026-10-20",

@@ -2007,10 +2007,12 @@
       "FPS_Consumable": "Verbrauchsgut"
     },
     "personal": {
-      "switchGroup": "Ansicht: Codex oder deine Version",
+      "switchGroup": "Ansicht: Serie oder deine Variante",
       "codex": "Codex",
+      "stock": "Serie",
       "mine": "Meine",
-      "yourVariant": "Deine Variante: {{name}}",
+      "mineVariant": "Meine Variante",
+      "yourVariant": "Meine Variante: {{name}}",
       "variantsMenu": "Deine Varianten dieses Schiffs",
       "hqCrumb": "HQ",
       "foreignVariant": "Diese Variante gehört jemand anderem — geteilt wird über einen Share-Link.",
@@ -3159,7 +3161,7 @@
           "lang": "sc.lang — deine Sprachwahl.",
           "consent": "sc.consent — deine Entscheidung zu den Speicher-Kategorien, damit wir nicht bei jedem Besuch neu fragen.",
           "composer": "sc.composer.sendOnEnter — ob die Enter-Taste im Feedback-Feld absendet oder eine neue Zeile macht.",
-          "verseBeta": "sc.verse.beta — welche Verse-Menüpunkte du auf die neue β-Oberfläche umgestellt hast. Eine reine Anzeige-Einstellung, nicht fürs Tracking genutzt.",
+          "verseBeta": "sc.beta — für welche Menüpunkte (Verse, Codex & HQ) du die neue β-Oberfläche an- oder ausgeschaltet hast. Eine reine Anzeige-Einstellung, nicht fürs Tracking genutzt.",
           "preferences": "Kategorie „Präferenzen\" — Komfort-Zustand wie News-Filter, gemerkte Artikel und favorisierte Schiffe. Wird nur geschrieben, wenn du sie erlaubst; ein Widerruf löscht die Einträge sofort.",
           "statistics": "Kategorie „Statistik\" — der Zustand der anonymen Produkt-Analytik (PostHog). Entsteht nur, wenn du sie erlaubst; ein Widerruf löscht ihn sofort."
         },
@@ -4458,11 +4460,6 @@
       "gallery": "Galerie",
       "link": "Link"
     },
-    "beta": {
-      "aria": "Neue Verse-Ansicht (β)",
-      "switchFor": "Neue Ansicht für {{area}}",
-      "all": "β-Schalter für alle Bereiche"
-    },
     "status": {
       "aria": "Patch-Stand: {{line}}",
       "live": "Live",
@@ -4735,6 +4732,14 @@
         "pinTitle": "Titel des Pins",
         "promoted": "Angepinnt."
       }
+    }
+  },
+  "beta": {
+    "aria": "Neue Ansicht (β)",
+    "switchFor": "Neue Ansicht für {{area}}",
+    "area": {
+      "verse": "Verse",
+      "codex": "Codex & HQ"
     }
   }
 }

@@ -42,12 +42,13 @@ import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 import { AccountNoticeComponent } from '../social/account-notice.component';
 import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.component';
 import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
-import { VerseBetaService } from '../verse/data/verse-beta.service';
+import { BetaService, betaAreaOf } from '../core/beta.service';
+import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -97,9 +98,13 @@ import { VerseBetaService } from '../verse/data/verse-beta.service';
         </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         <!-- HQ — the personal area (concept 2026-10-08) next to the Codex
-             (game knowledge). Normal accent: every signed-in user has one. -->
-        <a routerLink="/hq" routerLinkActive="active">{{ 'nav.hq' | translate }}</a>
-        <!-- Starscape keeps its own entry while the briefing β is off: only the
+             (game knowledge). Normal accent: every signed-in user has one.
+             Part of the Codex β (the codex/HQ split): with it off the entry
+             is hidden, the HQ pages stay reachable through their links. -->
+        @if (codexBeta()) {
+          <a routerLink="/hq" routerLinkActive="active">{{ 'nav.hq' | translate }}</a>
+        }
+        <!-- Starscape keeps its own entry while the Verse β is off: only the
              β briefing's gates lead into the gallery, the legacy Verse News
              page does not. With the β on the gates replace this entry. -->
         @if (starscapeEntry()) {
@@ -373,6 +378,11 @@ import { VerseBetaService } from '../verse/data/verse-beta.service';
     <!-- Two mutually exclusive launchers: the admin board for admins, the slim
          "send feedback" panel for every other signed-in user (feedback
          5920cf8c). Each gates itself on the role, so only ever one renders. -->
+    <!-- The β switch of the nav item the reader is in — only there. -->
+    @if (betaArea(); as area) {
+      <sc-beta-dock [area]="area" />
+    }
+
     <sc-feedback-fab />
     <sc-user-feedback-fab />
     <!-- Reference spots on the page's sections while either panel is open (#243). -->
@@ -892,9 +902,13 @@ export class ShellComponent implements AfterViewInit {
   readonly adminMenuOpen = signal(false);
   /** On /admin or /admin/telemetry - the folded menu's button carries the active mark. */
   readonly adminRoute = signal(isAdminNavRoute(this.router.url));
-  /** The top-level Starscape entry — only while the briefing β is off. */
-  readonly starscapeEntry = computed(() => !this.verseBriefingBeta());
-  private readonly verseBriefingBeta = inject(VerseBetaService).isEnabled('briefing');
+  private readonly beta = inject(BetaService);
+  /** The top-level Starscape entry — only while the Verse β is off. */
+  readonly starscapeEntry = computed(() => !this.beta.state().verse);
+  /** The HQ entry — part of the Codex β (codex/HQ split). */
+  readonly codexBeta = this.beta.isEnabled('codex');
+  /** The nav item with a β switch the current page belongs to. */
+  readonly betaArea = signal(betaAreaOf(this.router.url));
   /** On the Starscape gallery (`/verse/gallery…`). */
   readonly onVerseGallery = signal(isVerseGallery(this.router.url));
 
@@ -922,6 +936,7 @@ export class ShellComponent implements AfterViewInit {
         this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
         this.adminRoute.set(isAdminNavRoute(e.urlAfterRedirects));
         this.onVerseGallery.set(isVerseGallery(e.urlAfterRedirects));
+        this.betaArea.set(betaAreaOf(e.urlAfterRedirects));
       }
       if (e instanceof NavigationStart) {
         this.startNavIndicator();
