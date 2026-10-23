@@ -4850,19 +4850,19 @@
         "open": "open",
         "correct": "recognised",
         "wrong": "revealed",
-        "unavailable": ""
+        "unavailable": "unavailable"
       },
       "head": {
         "open": "Tap the ship you recognise in the constellation",
         "correct": "Recognised: {{name}}",
         "wrong": "The constellation shows the {{name}}",
-        "unavailable": ""
+        "unavailable": "The guess is not available yet"
       },
       "foot": {
         "open": "Guess right and the name appears in the constellation and the circle gets a check mark.",
         "correct": "The star is lit, the name now stands in the constellation.",
         "wrong": "No star this time – the answer stays in the constellation.",
-        "unavailable": ""
+        "unavailable": "Once the game data has loaded you can guess here."
       }
     },
     "series": {

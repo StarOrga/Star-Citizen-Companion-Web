@@ -4850,19 +4850,19 @@
         "open": "offen",
         "correct": "erkannt",
         "wrong": "aufgelöst",
-        "unavailable": ""
+        "unavailable": "nicht verfügbar"
       },
       "head": {
         "open": "Tippe auf das Schiff, das du im Sternbild erkennst",
         "correct": "Richtig erkannt: {{name}}",
         "wrong": "Das Sternbild zeigt die {{name}}",
-        "unavailable": ""
+        "unavailable": "Das Rätsel ist noch nicht verfügbar"
       },
       "foot": {
         "open": "Richtig erkannt, erscheint der Name im Sternbild und der Kreis bekommt ein Häkchen.",
         "correct": "Der Stern leuchtet, der Name steht jetzt im Sternbild.",
         "wrong": "Diesmal kein Stern – die Auflösung bleibt im Sternbild stehen.",
-        "unavailable": ""
+        "unavailable": "Sobald die Spielwerte geladen sind, kannst du hier tippen."
       }
     },
     "series": {
