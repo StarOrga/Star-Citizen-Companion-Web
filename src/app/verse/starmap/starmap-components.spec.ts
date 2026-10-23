@@ -31,13 +31,17 @@ const patch = (line: string, starCount: number, extra: Partial<VerseExplorerPatc
   starCount,
   sun: false,
   offered: ['notes', 'cx-keybinds', 'cx-fps', 'comet'],
-  constellation: { className: 'RSI_Zeus', kind: 'ship', points: FALLBACK_POINTS },
+  starDates: {},
+  constellation: { className: 'RSI_Zeus', name: 'RSI Zeus Mk II', kind: 'ship', points: FALLBACK_POINTS },
+  comet: { state: 'none', tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+  guess: { state: 'correct', guessedClass: 'RSI_Zeus', answerClass: 'RSI_Zeus', answerName: 'RSI Zeus Mk II' },
   unlocks: { logEntry: starCount >= 1, community: starCount >= 3, wallpaper: starCount >= 7 },
   ...extra,
 });
 
 const STATE: VerseExplorerState = {
   patches: [patch('4.4', 2, { sun: true }), patch('4.3', 7), patch('4.2', 0)],
+  upcoming: null,
   totalStars: 9,
   suns: ['4.4'],
   streak: { current: 2, best: 3, reserveAvailable: false, reservesUsed: 0 },

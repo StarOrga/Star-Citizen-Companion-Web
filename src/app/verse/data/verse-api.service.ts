@@ -1,11 +1,20 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
+import { logWarn } from '../../core/log';
+import { starEarnedEvent } from '../starmap/starmap.model';
+import { SHOWN_FOCUS_MS, trackShown as trackShownFocus } from './shown-tracker';
 import {
   PatchPrediction,
   PatchReadiness,
   PredictionMedian,
+  StarEarnedEvent,
+  VerseGuessOptions,
+  VerseGuessResult,
+  mapGuessOptions,
+  mapGuessResult,
   VerseCommunityStars,
   VerseConstellation,
   VerseSuggestion,
@@ -25,6 +34,38 @@ import {
 } from './verse.models';
 
 const SCOPE = 'verse';
+
+/** A gap of this length without Verse activity ends a session (all tabs of an account share it). */
+export const SESSION_GAP_MS = 30 * 60_000;
+const SHOWN_KEY_CAP = 200;
+const SHOWN_STORAGE_PREFIX = 'sc.verse.shown.';
+
+/** Server refusals (RPC `raise exception '<token>'`) that have their own translated text. */
+const RPC_REFUSALS: readonly (readonly [string, string])[] = [
+  ['comet_locked', 'errors.cometLocked'],
+  ['comet_already_tipped', 'errors.cometTipped'],
+  ['comet_date_past', 'errors.cometDatePast'],
+  ['guess_already_made', 'errors.guessMade'],
+  ['guess_invalid_option', 'errors.guessInvalid'],
+  ['guess_unavailable', 'errors.guessUnavailable'],
+];
+
+/** `errors.*` key of a failed call: a known server refusal, else the generic translation. */
+export function verseErrorKey(op: string, err: unknown): string {
+  const text = typeof (err as { message?: unknown } | null)?.message === 'string' ? (err as { message: string }).message : '';
+  const hit = RPC_REFUSALS.find(([token]) => text.includes(token));
+  if (hit) {
+    logWarn(SCOPE, `${op} refused`, { error: err });
+    return hit[1];
+  }
+  return toErrorKey(SCOPE, op, err);
+}
+
+interface ShownRecord {
+  /** Last activity (ms epoch). */
+  at: number;
+  keys: string[];
+}
 
 /**
  * Data layer of the Verse hub (migration 20261009100000_verse_hub.sql).
@@ -58,6 +99,13 @@ export class VerseApiService {
   readonly explorerState = this._explorerState.asReadonly();
   readonly explorerError = this._explorerError.asReadonly();
 
+  private readonly starEvents = new Subject<StarEarnedEvent>();
+  /** Fires once per NEWLY earned star (trigger, comet tip, right guess) — the unlock toast subscribes. */
+  readonly starEarned$ = this.starEvents.asObservable();
+  private readonly _lastStar = signal<StarEarnedEvent | null>(null);
+  /** The most recent star event (signal twin of {@link starEarned$}). */
+  readonly lastStarEarned = this._lastStar.asReadonly();
+
   /** Loads the briefing payload (GET, so the service worker / CDN can cache it 60 s). */
   async loadDigest(): Promise<void> {
     this._digestState.set('loading');
@@ -85,9 +133,92 @@ export class VerseApiService {
       const { data, error } = await this.sb.client.from('verse_seen').select('item_key').limit(500);
       if (error) throw error;
       this._seen.set(new Set((data ?? []).map((r: { item_key: string }) => r.item_key)));
+      // Session rollover: what the PREVIOUS session showed counts as seen from now on.
+      const stale = this.takeStaleShown();
+      if (stale.length) await this.markSeen(stale);
     } catch (err) {
       // Seen-state only reorders the list; the briefing works without it.
       toErrorKey(SCOPE, 'loadSeen', err);
+    }
+  }
+
+  /**
+   * Records briefing items that were shown (with >= 5 s of page focus, see
+   * {@link trackShown}) in the CURRENT session. They count as seen only from the
+   * next session on ({@link loadSeen} flushes them), even if never opened.
+   * The record lives in localStorage per account, so several tabs share one
+   * session; a gap of {@link SESSION_GAP_MS} without activity ends it.
+   */
+  noteShown(keys: readonly string[]): void {
+    const storageKey = this.shownStorageKey();
+    if (!storageKey) return;
+    const fresh = keys.filter((k) => k && !this._seen().has(k));
+    if (!fresh.length) return;
+    const now = Date.now();
+    let rec = this.readShown(storageKey);
+    if (rec && now - rec.at > SESSION_GAP_MS) {
+      // The previous session ended before any loadSeen() ran: flush it first.
+      void this.markSeen(rec.keys);
+      rec = null;
+    }
+    const merged = [...new Set([...(rec?.keys ?? []), ...fresh])].slice(-SHOWN_KEY_CAP);
+    this.writeShown(storageKey, { at: now, keys: merged });
+  }
+
+  /**
+   * Starts the 5 s focus clock for a rendered briefing list: once the page was
+   * visible AND focused for {@link SHOWN_FOCUS_MS} (accumulated, paused while
+   * hidden / blurred) the keys go through {@link noteShown}. Returns a cancel
+   * function for the component's teardown.
+   */
+  trackShown(keys: readonly string[]): () => void {
+    return trackShownFocus(keys, (shown) => this.noteShown(shown));
+  }
+
+  /** The stale previous session's keys (removed from storage); a fresh record is only touched. */
+  private takeStaleShown(): string[] {
+    const storageKey = this.shownStorageKey();
+    if (!storageKey) return [];
+    const rec = this.readShown(storageKey);
+    if (!rec) return [];
+    if (Date.now() - rec.at > SESSION_GAP_MS) {
+      this.clearShown(storageKey);
+      return rec.keys;
+    }
+    this.writeShown(storageKey, { at: Date.now(), keys: rec.keys });
+    return [];
+  }
+
+  private shownStorageKey(): string | null {
+    const id = this.auth.user()?.id;
+    return id ? `${SHOWN_STORAGE_PREFIX}${id}` : null;
+  }
+
+  private readShown(storageKey: string): ShownRecord | null {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return null;
+      const o = JSON.parse(raw) as Partial<ShownRecord>;
+      if (typeof o.at !== 'number' || !Array.isArray(o.keys)) return null;
+      return { at: o.at, keys: o.keys.filter((k): k is string => typeof k === 'string') };
+    } catch {
+      return null;
+    }
+  }
+
+  private writeShown(storageKey: string, rec: ShownRecord): void {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(rec));
+    } catch {
+      /* storage blocked / full: the rule just degrades to "opened = seen" */
+    }
+  }
+
+  private clearShown(storageKey: string): void {
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* see writeShown */
     }
   }
 
@@ -145,17 +276,21 @@ export class VerseApiService {
 
   /**
    * Submits the comet vote (`YYYY-MM-DD`, today or later). Insert-only: the
-   * server refuses a second vote and any vote once the patch is LIVE. Earns
-   * the 'comet' star server-side.
+   * server refuses a second vote, and any vote once the patch is LIVE or an
+   * official LIVE date was announced (`errors.cometLocked`). Earns the 'comet'
+   * star server-side and emits {@link starEarned$}.
    */
   async submitPrediction(patchLine: string, predictedLiveDate: string): Promise<VerseResult<void>> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(predictedLiveDate)) {
       return { ok: false, errorKey: toErrorKey(SCOPE, 'submitPrediction', new Error('invalid date')) };
     }
-    const { error } = await this.sb.client
-      .from('patch_prediction')
-      .insert({ patch_line: patchLine, predicted_live_date: predictedLiveDate });
-    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'submitPrediction', error) };
+    const before = await this.explorerSnapshot();
+    const { error } = await this.sb.client.rpc('verse_submit_prediction', {
+      p_patch_line: patchLine,
+      p_date: predictedLiveDate,
+    });
+    if (error) return { ok: false, errorKey: verseErrorKey('submitPrediction', error) };
+    await this.announceStar('comet', patchLine, before);
     return { ok: true, data: undefined };
   }
 
@@ -183,13 +318,82 @@ export class VerseApiService {
    * `data` is true when it was newly earned. Refreshes the explorer state.
    */
   async earnStar(patchLine: string, starKey: Exclude<VerseStarKey, 'comet'>): Promise<VerseResult<boolean>> {
+    const before = await this.explorerSnapshot();
     const { data, error } = await this.sb.client.rpc('verse_earn_star', {
       p_patch_line: patchLine,
       p_star_key: starKey,
     });
     if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'earnStar', error) };
-    if (data === true) void this.loadExplorer();
+    if (data === true) await this.announceStar(starKey, patchLine, before);
     return { ok: true, data: data === true };
+  }
+
+  /**
+   * 'cx-newship': the server compares the opened vehicle with the patch's
+   * constellation hull (no client-side answer). `earned` / `already` / `no`
+   * (not the newest ship) / `guess_first` (the guess is still open — try again
+   * after it was made).
+   */
+  async claimNewShip(
+    patchLine: string,
+    className: string,
+  ): Promise<VerseResult<'earned' | 'already' | 'no' | 'guess_first'>> {
+    const before = await this.explorerSnapshot();
+    const { data, error } = await this.sb.client.rpc('verse_claim_newship', {
+      p_patch_line: patchLine,
+      p_class_name: className,
+    });
+    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'claimNewShip', error) };
+    const res = data === 'earned' || data === 'already' || data === 'guess_first' ? data : 'no';
+    if (res === 'earned') await this.announceStar('cx-newship', patchLine, before);
+    return { ok: true, data: res };
+  }
+
+  /** "Sternbild erkennen": the 7 options + guess state (answer null while open). */
+  async guessOptions(patchLine: string): Promise<VerseResult<VerseGuessOptions>> {
+    const { data, error } = await this.sb.client.rpc('verse_guess_options', { p_patch_line: patchLine });
+    if (error) return { ok: false, errorKey: verseErrorKey('guessOptions', error) };
+    const mapped = mapGuessOptions(data);
+    if (!mapped) return { ok: false, errorKey: toErrorKey(SCOPE, 'guessOptions', new Error('malformed payload')) };
+    return { ok: true, data: mapped };
+  }
+
+  /**
+   * The single guess of a patch (`className` from {@link guessOptions}). A wrong
+   * guess reveals the answer without a star; a right one lights 'cx-guess' and
+   * emits {@link starEarned$}. A second try fails with `errors.guessMade`.
+   */
+  async submitGuess(patchLine: string, className: string): Promise<VerseResult<VerseGuessResult>> {
+    const before = await this.explorerSnapshot();
+    const { data, error } = await this.sb.client.rpc('verse_guess_constellation', {
+      p_patch_line: patchLine,
+      p_class_name: className,
+    });
+    if (error) return { ok: false, errorKey: verseErrorKey('submitGuess', error) };
+    const res = mapGuessResult(data);
+    if (!res) return { ok: false, errorKey: toErrorKey(SCOPE, 'submitGuess', new Error('malformed payload')) };
+    if (res.starEarned) await this.announceStar('cx-guess', patchLine, before);
+    else void this.loadExplorer();
+    return { ok: true, data: res };
+  }
+
+  /** The explorer state before a claim (loaded on demand so reward diffs are exact); null when unavailable. */
+  private async explorerSnapshot(): Promise<VerseExplorerState | null> {
+    if (!this.auth.isAuthenticated()) return null;
+    if (!this._explorer() && this._explorerState() !== 'loading') await this.loadExplorer();
+    return this._explorer();
+  }
+
+  /** Reloads the explorer and emits the star event with the milestones this star crossed. */
+  private async announceStar(key: VerseStarKey, patchLine: string, before: VerseExplorerState | null): Promise<void> {
+    await this.loadExplorer();
+    const after = this._explorer();
+    if (!after) return;
+    // Without a prior state a reward diff would claim everything: report no unlocks then.
+    const ev = starEarnedEvent(key, patchLine, before ?? after, after);
+    if (!ev) return;
+    this._lastStar.set(ev);
+    this.starEvents.next(ev);
   }
 
   /** Loads stars, suns, streak and unlocks; clears when signed out. */
@@ -212,10 +416,11 @@ export class VerseApiService {
     }
   }
 
+  /** Public shape of a patch; `className` is null — the hull is the guess challenge's answer. */
   async constellation(patchLine: string): Promise<VerseResult<VerseConstellation | null>> {
     const { data, error } = await this.sb.client
       .from('verse_constellations')
-      .select('patch_line, class_name, kind, points')
+      .select('patch_line, kind, points')
       .eq('patch_line', patchLine)
       .maybeSingle();
     if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'constellation', error) };
@@ -226,7 +431,7 @@ export class VerseApiService {
   async constellations(limit = 50): Promise<VerseResult<VerseConstellation[]>> {
     const { data, error } = await this.sb.client
       .from('verse_constellations')
-      .select('patch_line, class_name, kind, points')
+      .select('patch_line, kind, points')
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'constellations', error) };

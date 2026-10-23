@@ -1,4 +1,12 @@
-import type { VersePoint, VerseStarKey } from '../data/verse.models';
+import type {
+  StarEarnedEvent,
+  StarUnlockKey,
+  VerseComet,
+  VerseExplorerPatch,
+  VerseExplorerState,
+  VersePoint,
+  VerseStarKey,
+} from '../data/verse.models';
 
 /** Stars per patch constellation (server: `verse_explorer_state`). */
 export const STARS_PER_PATCH = 7;
@@ -119,6 +127,8 @@ const TASKS: Record<VerseStarKey, StarTask> = {
   'cx-blueprint': { key: 'cx-blueprint', i18nKey: 'cxBlueprint', target: { kind: 'route', link: '/codex/blueprint' } },
   'cx-fps': { key: 'cx-fps', i18nKey: 'cxFps', target: { kind: 'route', link: '/codex/fps' } },
   'cx-loadout': { key: 'cx-loadout', i18nKey: 'cxLoadout', target: { kind: 'newship', fallback: '/codex' } },
+  // Done on the star map itself (the guess track) — the link leads back to it.
+  'cx-guess': { key: 'cx-guess', i18nKey: 'cxGuess', target: { kind: 'route', link: '/verse/explorer' } },
 };
 
 export function starTask(key: VerseStarKey): StarTask {
@@ -216,4 +226,141 @@ export function communityLevels(
     if (!key || explorers <= 0) return 0;
     return Math.max(0, Math.min(1, (stars[key] ?? 0) / explorers));
   });
+}
+
+// ------------------------------------------------------------ explorer view
+
+/**
+ * Static effort rank per task (1 = quickest). Drives the "next suggested task"
+ * on the star map and the front-page chip: the quickest OPEN task wins.
+ */
+export const TASK_EFFORT: Readonly<Record<VerseStarKey, number>> = {
+  notes: 1,
+  'cx-guess': 2,
+  comet: 2,
+  archive: 3,
+  'cx-keybinds': 4,
+  'cx-fps': 4,
+  'cx-newship': 5,
+  'cx-changed': 6,
+  'cx-blueprint': 6,
+  loadout: 7,
+  'cx-loadout': 8,
+};
+
+/** Stars needed per patch milestone (mirrors `unlocks` in `verse_explorer_state`). */
+export const PATCH_UNLOCK_AT = { logEntry: 1, community: 3, wallpaper: 7 } as const;
+
+/** One task of a patch as the map draws it. */
+export interface StarTaskView {
+  readonly key: VerseStarKey;
+  readonly i18nKey: string;
+  readonly done: boolean;
+  /** ISO timestamp the star was earned; null while open. */
+  readonly doneAt: string | null;
+  /** routerLink target. */
+  readonly link: string;
+  readonly effort: number;
+  /** An open task that cannot be done right now (comet tip after the lock). */
+  readonly locked: boolean;
+}
+
+/**
+ * The tasks of a patch in the server's offered order. `newShipClass` is the
+ * revealed hull (null until the guess was made, so no link ever gives it away).
+ */
+export function buildTaskViews(patch: VerseExplorerPatch): StarTaskView[] {
+  const newShip = patch.guess.answerClass ?? patch.constellation?.className ?? null;
+  return patch.offered.map((key) => {
+    const task = starTask(key);
+    const done = patch.stars.includes(key);
+    return {
+      key,
+      i18nKey: task.i18nKey,
+      done,
+      doneAt: patch.starDates[key] ?? null,
+      link: taskLink(task, patch.patchLine, newShip),
+      effort: TASK_EFFORT[key],
+      locked: !done && ((key === 'comet' && patch.comet.locked) || (key === 'cx-guess' && patch.guess.state !== 'open')),
+    };
+  });
+}
+
+/** The quickest open, doable task — the one the map and the front-page chip suggest. */
+export function nextTask(tasks: readonly StarTaskView[]): StarTaskView | null {
+  let best: StarTaskView | null = null;
+  for (const t of tasks) {
+    if (t.done || t.locked) continue;
+    if (!best || t.effort < best.effort) best = t;
+  }
+  return best;
+}
+
+/** Everything the redesigned map needs for one patch, derived from the server payload. */
+export interface PatchMapView {
+  readonly patchLine: string;
+  readonly lit: number;
+  readonly total: number;
+  readonly tasks: readonly StarTaskView[];
+  readonly next: StarTaskView | null;
+  readonly comet: VerseComet;
+  readonly guess: VerseExplorerPatch['guess'];
+}
+
+export function patchMapView(patch: VerseExplorerPatch): PatchMapView {
+  const tasks = buildTaskViews(patch);
+  return {
+    patchLine: patch.patchLine,
+    lit: patch.starCount,
+    total: STARS_PER_PATCH,
+    tasks,
+    next: nextTask(tasks),
+    comet: patch.comet,
+    guess: patch.guess,
+  };
+}
+
+/**
+ * Rewards / milestones that flipped from locked to unlocked between two
+ * explorer states: the patch milestones of `patchLine` (first star, community
+ * at 3, wallpaper at 7), the first Kartograph rank, the streak rewards and the
+ * sun collection. `before` null (state not loaded yet) counts everything the
+ * patch had as locked, so a first-ever star still reports its log entry.
+ */
+export function crossedUnlocks(
+  before: VerseExplorerState | null,
+  after: VerseExplorerState,
+  patchLine: string,
+): StarUnlockKey[] {
+  const out: StarUnlockKey[] = [];
+  const pb = before?.patches.find((p) => p.patchLine === patchLine);
+  const pa = after.patches.find((p) => p.patchLine === patchLine);
+  if (pa) {
+    if (pa.unlocks.logEntry && !pb?.unlocks.logEntry) out.push('logEntry');
+    if (pa.unlocks.community && !pb?.unlocks.community) out.push('community');
+    if (pa.unlocks.wallpaper && !pb?.unlocks.wallpaper) out.push('wallpaper');
+  }
+  if (after.kartograph.unlocked && !before?.kartograph.unlocked) out.push('kartograph');
+  for (const k of ['road', 'nebula', 'live', 'reserve', 'meteor', 'supernova', 'sunCollection'] as const) {
+    if (after.rewards[k] && !before?.rewards[k]) out.push(k);
+  }
+  return out;
+}
+
+/** The event for a freshly earned star; null when the patch is not in the new state. */
+export function starEarnedEvent(
+  key: VerseStarKey,
+  patchLine: string,
+  before: VerseExplorerState | null,
+  after: VerseExplorerState,
+): StarEarnedEvent | null {
+  const pa = after.patches.find((p) => p.patchLine === patchLine);
+  if (!pa) return null;
+  return {
+    key,
+    patchLine,
+    lit: pa.starCount,
+    total: STARS_PER_PATCH,
+    unlocked: crossedUnlocks(before, after, patchLine),
+  };
 }

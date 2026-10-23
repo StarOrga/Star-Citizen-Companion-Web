@@ -137,6 +137,35 @@ revoke select on public.verse_constellations from anon, authenticated;
 grant select (patch_line, kind, points, source_build_id, created_at)
   on public.verse_constellations to anon, authenticated;
 
+-- (defined before the pool, which calls it)
+-- The answer of a patch's guess, taken from the SAME population as the distractors
+-- (current build, not a variant / edition / template, a real localized name, the
+-- constellation's entity kind). Returns no row when the hull has no such codex row:
+-- the guess is then 'unavailable' - the answer must never carry a name built
+-- differently from the distractors' (e.g. from the class name), which would single
+-- it out. Never executable by clients.
+create or replace function public.verse_guess_answer(p_patch_line text)
+returns table (class_name text, name text, entity_kind text, role text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select s.class_name, s.name_localized, s.entity_kind, s.role
+    from public.verse_constellations c
+    join public.codex_ships s on lower(s.class_name) = lower(c.class_name)
+    join public.codex_builds b on b.id = s.build_id and b.is_current
+   where c.patch_line = p_patch_line
+     and not s.is_variant
+     and s.name_localized is not null
+     and s.name_localized !~ '^[@!]'
+     and s.name_localized !~* '(edition|special|template)$'
+   order by s.created_at desc
+   limit 1;
+$$;
+
+revoke execute on function public.verse_guess_answer(text) from public, anon, authenticated;
+
 -- ============================================================
 -- 3 — star key 'cx-guess' + pool
 -- ============================================================
@@ -153,14 +182,14 @@ create or replace function public.verse_star_pool(p_patch_line text)
 returns text[]
 language sql
 stable
-security invoker
+security definer
 set search_path = ''
 as $$
   with pool(star_key, prio, applies) as (
     values
       ('notes',        1, exists (select 1 from public.patch_stability_patches p where p.patch_line = p_patch_line)),
       ('comet',        2, true),
-      ('cx-guess',     3, exists (select 1 from public.verse_constellations c where c.patch_line = p_patch_line)),
+      ('cx-guess',     3, exists (select 1 from public.verse_guess_answer(p_patch_line))),
       ('cx-newship',   4, exists (select 1 from public.verse_constellations c
                                    where c.patch_line = p_patch_line and c.kind = 'ship')),
       ('archive',      5, true),
@@ -178,7 +207,8 @@ $$;
 revoke execute on function public.verse_star_pool(text) from public;
 grant execute on function public.verse_star_pool(text) to anon, authenticated;
 
--- 'cx-guess' is earned by guessing right, never claimed directly.
+-- 'cx-guess' is earned by guessing right and 'cx-newship' through
+-- verse_claim_newship, never claimed directly.
 create or replace function public.verse_earn_star(p_patch_line text, p_star_key text)
 returns boolean
 language plpgsql
@@ -198,6 +228,9 @@ begin
   end if;
   if p_star_key = 'cx-guess' then
     raise exception 'cx-guess is earned by the guess' using errcode = '22023';
+  end if;
+  if p_star_key = 'cx-newship' then
+    raise exception 'cx-newship is earned through verse_claim_newship' using errcode = '22023';
   end if;
   if not (p_star_key = any (public.verse_star_pool(p_patch_line))) then
     raise exception 'star % not offered for patch %', p_star_key, p_patch_line using errcode = '22023';
@@ -236,10 +269,10 @@ drop policy if exists verse_constellation_guesses_own_select on public.verse_con
 create policy verse_constellation_guesses_own_select on public.verse_constellation_guesses
   for select to authenticated using (user_id = (select auth.uid()));
 
--- The 7 shuffled options, deterministic per patch line: the answer (the hull the
--- constellation was drawn from) + 6 distractors from the current codex builds
--- (same entity kind, no variants / editions, role-mates first, then a stable hash).
--- Carries is_answer -> never executable by clients.
+-- The 7 shuffled options, deterministic per patch line: the answer + 6 distractors
+-- from the current codex builds (same entity kind, same filters as the answer,
+-- role-mates first, then a stable hash). Carries is_answer -> never executable by
+-- clients. Null when the patch has no usable answer.
 create or replace function public.verse_guess_candidates(p_patch_line text)
 returns jsonb
 language plpgsql
@@ -254,21 +287,11 @@ declare
   v_role text;
   v_opts jsonb;
 begin
-  select c.class_name into v_class
-    from public.verse_constellations c where c.patch_line = p_patch_line;
+  select a.class_name, a.name, a.entity_kind, a.role
+    into v_class, v_name, v_kind, v_role
+    from public.verse_guess_answer(p_patch_line) a;
   if v_class is null then
     return null;
-  end if;
-
-  select s.name_localized, s.entity_kind, s.role
-    into v_name, v_kind, v_role
-    from public.codex_ships s
-    join public.codex_builds b on b.id = s.build_id and b.is_current
-   where lower(s.class_name) = lower(v_class)
-   order by s.created_at desc
-   limit 1;
-  if v_name is null or v_name = '' or v_name ~ '^[@!]' then
-    v_name := replace(v_class, '_', ' ');
   end if;
 
   with d as (
@@ -282,7 +305,7 @@ begin
        and s.name_localized !~* '(edition|special|template)$'
        and lower(s.class_name) <> lower(v_class)
        and lower(s.name_localized) <> lower(v_name)
-       and (v_kind is null or s.entity_kind = v_kind)
+       and s.entity_kind is not distinct from v_kind
      order by s.name_localized, s.class_name
   ),
   pick as (
@@ -327,7 +350,7 @@ begin
       'answer_class', g.answer_class,
       'answer_name', g.answer_name);
   end if;
-  if exists (select 1 from public.verse_constellations c where c.patch_line = p_patch_line) then
+  if exists (select 1 from public.verse_guess_answer(p_patch_line)) then
     return jsonb_build_object('state', 'open', 'guessed_class', null, 'answer_class', null, 'answer_name', null);
   end if;
   return jsonb_build_object('state', 'unavailable', 'guessed_class', null, 'answer_class', null, 'answer_name', null);
@@ -425,8 +448,9 @@ grant execute on function public.verse_guess_constellation(text, text) to authen
 
 -- 'cx-newship' without a client-side answer: the server compares the opened vehicle
 -- with the constellation's hull. Returns 'earned' | 'already' | 'no' (not the newest
--- ship, or not offered) | 'guess_first' (the guess is still open — opening the ship
--- would reveal the answer, so the star waits until the user has guessed).
+-- ship, or not offered). 'guess_first' (the guess is still open) is answered BEFORE
+-- the comparison: opening the ship would reveal the answer, so the star waits until
+-- the user has guessed, and no response depends on the class sent before that.
 create or replace function public.verse_claim_newship(p_patch_line text, p_class_name text)
 returns text
 language plpgsql
@@ -445,14 +469,17 @@ begin
   if not ('cx-newship' = any (public.verse_star_pool(p_patch_line))) then
     return 'no';
   end if;
-  select c.class_name into v_class from public.verse_constellations c where c.patch_line = p_patch_line;
-  if v_class is null or lower(v_class) <> lower(coalesce(p_class_name, '')) then
-    return 'no';
-  end if;
+  -- The guess gate comes BEFORE any comparison with the hull: until a guess exists
+  -- every caller gets the same 'guess_first' whatever class it sends, so the
+  -- response cannot be used to probe class names.
   if 'cx-guess' = any (public.verse_star_pool(p_patch_line))
      and not exists (select 1 from public.verse_constellation_guesses g
                       where g.user_id = v_uid and g.patch_line = p_patch_line) then
     return 'guess_first';
+  end if;
+  select c.class_name into v_class from public.verse_constellations c where c.patch_line = p_patch_line;
+  if v_class is null or lower(v_class) <> lower(coalesce(p_class_name, '')) then
+    return 'no';
   end if;
   insert into public.verse_star_progress (user_id, patch_line, star_key)
   values (v_uid, p_patch_line, 'cx-newship')
