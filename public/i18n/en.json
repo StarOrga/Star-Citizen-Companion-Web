@@ -4453,6 +4453,26 @@
   },
   "verse": {
     "crumb": "Verse",
+    "toast": {
+      "lit": "Star lit: {{task}}",
+      "count": "{{lit}} of {{total}}",
+      "remaining": "{{n}} more to the 4K wallpaper",
+      "close": "Close",
+      "genericTask": "New star",
+      "unlock": {
+        "logEntry": "Log entry unlocked",
+        "community": "Community constellation unlocked",
+        "wallpaper": "4K wallpaper unlocked",
+        "kartograph": "Cartographer unlocked",
+        "road": "Star road unlocked",
+        "nebula": "Nebula unlocked",
+        "live": "Live wallpaper unlocked",
+        "reserve": "Fuel reserve unlocked",
+        "meteor": "Meteor shower unlocked",
+        "supernova": "Supernova unlocked",
+        "sunCollection": "Sun collection unlocked"
+      }
+    },
     "area": {
       "briefing": "Briefing",
       "news": "Verse News",

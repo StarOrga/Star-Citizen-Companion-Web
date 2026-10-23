@@ -5,9 +5,6 @@ import { ExplorerGlyphComponent } from '../starmap/explorer-glyph.component';
 import { BetaService } from '../../core/beta.service';
 import { VerseStatusComponent } from './verse-status.component';
 
-/** First crumb of every Verse sub-page. */
-export const VERSE_ROOT_CRUMB: PageCrumb = { labelKey: 'verse.crumb', link: '/verse' };
-
 /**
  * The uniform Verse subheader: `<sc-page-header>` with the slim status
  * instrument in the aside and the star-map glyph as the first action. No
@@ -36,7 +33,7 @@ export const VERSE_ROOT_CRUMB: PageCrumb = { labelKey: 'verse.crumb', link: '/ve
 export class VerseHeaderComponent {
   private readonly beta = inject(BetaService);
 
-  /** Crumbs AFTER the Verse root; the root crumb is added unless `root` is set. */
+  /** Real multi-level trail only. The top menu is the way back, so no "‹ Verse" root crumb. */
   readonly trail = input<readonly PageCrumb[]>([]);
   /** The briefing IS the root — it carries no crumb row. */
   readonly root = input(false);
@@ -45,7 +42,7 @@ export class VerseHeaderComponent {
   readonly subtitle = input<string | null>(null);
   readonly rememberAs = input<string | null>(null);
 
-  readonly crumbs = computed<readonly PageCrumb[]>(() => (this.root() ? [] : [VERSE_ROOT_CRUMB, ...this.trail()]));
+  readonly crumbs = computed<readonly PageCrumb[]>(() => (this.root() ? [] : this.trail()));
   /** The glyph is the star map's entry — shown while the Verse β is on. */
   readonly starmap = this.beta.isEnabled('verse');
 }

@@ -38,6 +38,7 @@ import { QuickSearchComponent } from './quick-search.component';
 import { skipToMain } from './skip-link';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
+import { StarToastComponent } from '../shared/star-toast/star-toast.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 import { AccountNoticeComponent } from '../social/account-notice.component';
 import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.component';
@@ -48,7 +49,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -385,6 +386,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 
     <sc-feedback-fab />
     <sc-user-feedback-fab />
+    <sc-star-toast />
     <!-- Reference spots on the page's sections while either panel is open (#243). -->
     <sc-feedback-spots />
   `,
