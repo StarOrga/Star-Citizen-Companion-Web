@@ -48,8 +48,22 @@ copies the existing objects (dry run unless `--apply`); a change to
 - **Deleting rows does not shrink `pg_database_size`.** Autovacuum makes the
   pages reusable for the next ingest, so steady state is about three builds'
   worth of disk (~480–510 MB). Only `VACUUM FULL` gives space back, and it takes
-  an ACCESS EXCLUSIVE lock, so it is a manual, off-hours step. It works through
-  the Supabase MCP `execute_sql` one table per call.
+  an ACCESS EXCLUSIVE lock.
+- **Nightly reclaim (migration `20261023120000`).** Measured 2026-10-23: 434 MB
+  (limit 500) → **241 MB** with builds 4.10.0 and 4.10.2 intact, by a manual
+  `VACUUM FULL` of `codex_locale_strings` (empty staging table, 46 MB bloated
+  pkey) and every other `codex_*` table. To stop the regrowth, 14 pg_cron jobs
+  `codex-storage-reclaim-<table>` run `vacuum full public.<table>` at
+  04:45–04:58 UTC, one table per minute (after the 03:30 prune, clear of the
+  04:15 / 04:25 / 04:40 log jobs). One job per table because pg_cron wraps a
+  multi-statement string in one transaction and VACUUM refuses that. Trade-offs:
+  ACCESS EXCLUSIVE per table while it runs (`codex_items` ~29 s,
+  `codex_entity_strings` ~13 s, the others 1–4 s), needs temporary disk for one
+  table copy, and it runs every night even when the prune deleted nothing
+  (VACUUM cannot be called conditionally from SQL). A new codex table with a
+  `build_id` needs its own line in a new migration. Check the first night with
+  `cron.job_run_details` (query in the migration header); it is not verified
+  live yet.
 - `codex_locale_strings` moved to R2 (2026-10-03, § Localization strings).
   The table is now only an ingest's staging area.
 
@@ -107,10 +121,24 @@ deleted), `functions deploy ingest-catalog`, the web app, then the script.
 Deleting rows does not shrink the database file: `vacuum full
 public.codex_locale_strings;` off-hours afterwards.
 
-**Not collected yet:** a build pruned by `prune_codex_builds` leaves its
-`codex-locale/<build>/` prefix in R2 (~10 MB as JSON per build). Counts
-against the 8 GB write gate; a GC would delete prefixes of build ids no
-longer in `codex_builds`.
+**Garbage collection (`locale_gc` op, since 2026-10-23).** A build pruned by
+`prune_codex_builds` leaves its `codex-locale/<build>/` prefix in R2 (~10 MB as
+JSON per build, counts against the 8 GB write gate). `ingest-catalog` op
+`locale_gc` (service-role key only, not the uploader gates) lists
+`codex-locale/`, reads every id in `codex_builds` first, and deletes the
+prefixes whose id is gone. Selection is pure (`_locale-gc.ts`, tests in
+`_locale-gc.test.mjs`): a live id is never selected, an empty or failed id read
+selects nothing, keys not shaped `codex-locale/<uuid>/<object>` are ignored.
+**Dry run is the default**; send `dry_run: false` to delete:
+
+```
+curl -s -X POST "$SUPABASE_URL/functions/v1/ingest-catalog"   -H "authorization: Bearer $SERVICE_ROLE_KEY" -H "content-type: application/json"   -d '{"op":"locale_gc"}'                      # report
+  -d '{"op":"locale_gc","dry_run":false}'      # delete
+```
+
+It is a manual/operator step (not scheduled: pg_cron would need an HTTP
+extension and the service key in the DB). Run it after a prune has removed a
+build, e.g. together with a check of the nightly reclaim.
 
 Only `de` and `en` reach the staging table: the `locale_strings` op drops every
 other language (the app reads no other), which halves an ingest's temporary
@@ -223,3 +251,13 @@ The SQL ring clamp (`desktop_release_for_channel`) only hides the metadata. If
 alpha must stay internal: publish only stable to the mirror, and put
 alpha/beta in R2 under a prefix the Worker does **not** serve, handed out as a
 5-minute presigned GET by an edge function after the role check.
+
+## Deployment order for the codex storage reclaim (2026-10-23)
+
+1. `npm run db:push` — creates the 14 `codex-storage-reclaim-*` cron jobs
+   (idempotent). Nothing runs until 04:45 UTC.
+2. `supabase functions deploy ingest-catalog` — adds the `locale_gc` op.
+3. `locale_gc` with the default dry run, read the list of orphan builds, then
+   repeat with `dry_run: false`.
+4. Next morning: `cron.job_run_details` for the reclaim jobs, and
+   `select pg_size_pretty(pg_database_size(current_database()))`.
