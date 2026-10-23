@@ -48,7 +48,7 @@ export function shortShipName(name: string): string {
         <button type="button" class="retry" (click)="load()">{{ 'errors.retry' | translate }}</button>
       </p>
     } @else {
-      <div class="rail" [style.--k.px]="rimK" [style.--rim.px]="curve.height" [attr.aria-busy]="options().length === 0">
+      <div class="rail" [style.--k]="rimK + 'px'" [style.--rim]="curve.height + 'px'" [attr.aria-busy]="options().length === 0">
         @for (o of options(); track o.className; let i = $index) {
           <button type="button" class="tok ship" [style.--i]="options().length - 1 - i"
                   [class.answer]="g.state !== 'open' && o.className === g.answerClass"
@@ -64,7 +64,7 @@ export function shortShipName(name: string): string {
         } @empty {
           @for (i of placeholders; track i) { <span class="tok ship ghost" [style.--i]="6 - i" aria-hidden="true"></span> }
         }
-        <svg class="curve" viewBox="0 0 100 {{ curve.height }}" preserveAspectRatio="none" [style.height.px]="curve.height" aria-hidden="true" focusable="false">
+        <svg class="curve" [attr.viewBox]="'0 0 100 ' + curve.height" preserveAspectRatio="none" [style.height.px]="curve.height" aria-hidden="true" focusable="false">
           <path [attr.d]="curve.d" vector-effect="non-scaling-stroke" />
         </svg>
       </div>

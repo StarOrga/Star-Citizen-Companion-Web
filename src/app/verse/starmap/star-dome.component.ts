@@ -54,18 +54,18 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
           @for (e of edges(); track $index) {
             @if (e.lit) {
               <path class="ln on" pathLength="1" [attr.d]="'M' + e.from.x + ' ' + e.from.y + 'L' + e.to.x + ' ' + e.to.y"
-                    [style.--d.s]="lineDelay(e.drawOrder)" />
+                    [style.--d]="(lineDelay(e.drawOrder)) + 's'" />
             } @else {
-              <path class="ln off" [attr.d]="'M' + e.from.x + ' ' + e.from.y + 'L' + e.to.x + ' ' + e.to.y" [style.--d.s]="tLate()" />
+              <path class="ln off" [attr.d]="'M' + e.from.x + ' ' + e.from.y + 'L' + e.to.x + ' ' + e.to.y" [style.--d]="(tLate()) + 's'" />
             }
           }
           @if (lead(); as l) {
-            <path class="ln nx" [attr.d]="'M' + l.from.x + ' ' + l.from.y + 'L' + l.to.x + ' ' + l.to.y" [style.--d.s]="tNext()" />
+            <path class="ln nx" [attr.d]="'M' + l.from.x + ' ' + l.from.y + 'L' + l.to.x + ' ' + l.to.y" [style.--d]="(tNext()) + 's'" />
           }
         </svg>
         @for (s of slots(); track s.index) {
           <button type="button" class="star" [class]="'star ' + s.state" [style.left.%]="s.x" [style.top.%]="s.y"
-                  [style.--d.s]="starDelay(s)" [attr.aria-pressed]="selected() === s.index"
+                  [style.--d]="(starDelay(s)) + 's'" [attr.aria-pressed]="selected() === s.index"
                   [attr.aria-label]="starAria(s) | translate: { task: (taskTitle(s) | translate), n: s.rank + 1 }"
                   (click)="toggle(s)">
             <span class="ent">

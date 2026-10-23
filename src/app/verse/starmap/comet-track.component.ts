@@ -36,7 +36,7 @@ const RIM_K = 0.32;
         {{ 'starmap.comet.state.' + stateKey() | translate }}
       </span>
     </div>
-    <div class="rail" [style.--k.px]="rimK" [style.--rim.px]="curve.height">
+    <div class="rail" [style.--k]="rimK + 'px'" [style.--rim]="curve().height + 'px'">
       @if (interactive()) {
         <button type="button" class="tok nav" [disabled]="!canBack()" (click)="shift(-7)"
                 [attr.aria-label]="'starmap.comet.earlier' | translate" [scTooltip]="'starmap.comet.earlier' | translate" scTooltipTier="label"
@@ -55,8 +55,8 @@ const RIM_K = 0.32;
         <button type="button" class="tok nav" (click)="shift(7)" [style.--i]="days().length + 1"
                 [attr.aria-label]="'starmap.comet.later' | translate" [scTooltip]="'starmap.comet.later' | translate" scTooltipTier="label">›</button>
       }
-      <svg class="curve" viewBox="0 0 100 {{ curve.height }}" preserveAspectRatio="none" [style.height.px]="curve.height" aria-hidden="true" focusable="false">
-        <path [attr.d]="curve.d" vector-effect="non-scaling-stroke" />
+      <svg class="curve" [attr.viewBox]="'0 0 100 ' + curve().height" preserveAspectRatio="none" [style.height.px]="curve().height" aria-hidden="true" focusable="false">
+        <path [attr.d]="curve().d" vector-effect="non-scaling-stroke" />
       </svg>
     </div>
     <div class="foot">
@@ -103,7 +103,7 @@ export class CometTrackComponent {
   readonly interactive = computed(() => this.comet().state === 'none' && !this.comet().locked);
   readonly days = computed(() => cometDays(this.start(), COMET_DAYS, this.comet().tippedDate));
   readonly canBack = computed(() => this.start() > addDays(this.today, 1));
-  readonly curve = railCurve(COMET_DAYS + 2, RIM_K, false);
+  readonly curve = computed(() => railCurve(this.interactive() ? COMET_DAYS + 2 : COMET_DAYS, RIM_K, false));
 
   readonly stateKey = computed(() => {
     const c = this.comet();
