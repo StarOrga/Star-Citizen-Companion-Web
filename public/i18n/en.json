@@ -4475,31 +4475,58 @@
       "overdue": "next overdue by {{n}} d"
     },
     "briefing": {
-      "forYou": "For you",
+      "stageAria": "Verse briefing",
       "cta": "Take a look",
       "headlineQuiet": "Quiet in the Verse — nothing new since your last visit",
-      "unseen": "{{n}} new since your last visit",
-      "allSeen": "You are up to date",
-      "patchLine": "Patch {{line}} is live",
-      "topAria": "What matters right now",
-      "empty": "Nothing new right now.",
-      "pinned": "pinned"
+      "headlineError": "The briefing is unavailable right now",
+      "loading": "Loading the briefing …",
+      "allSeen": "You're up to date",
+      "newSince": "new since your last visit",
+      "topAria": "The newest stories",
+      "storyAria": "Story {{n}}: {{title}}",
+      "status": {
+        "live": "{{line}} live for {{n}} days",
+        "liveOne": "{{line}} live for 1 day",
+        "liveToday": "{{line}} live since today",
+        "liveNow": "{{line}} live",
+        "dueToday": "{{line}} due today",
+        "due": {
+          "days": "{{line}} due in {{n}} days",
+          "daysOne": "{{line}} due tomorrow",
+          "weeks": "{{line}} due in ~{{n}} weeks",
+          "weeksOne": "{{line}} due in ~1 week"
+        },
+        "overdue": {
+          "days": "{{line}} due for {{n}} days",
+          "daysOne": "{{line}} due for 1 day",
+          "weeks": "{{line}} due for ~{{n}} weeks",
+          "weeksOne": "{{line}} due for ~1 week"
+        }
+      }
     },
     "gates": {
       "aria": "Areas of the Verse",
+      "neu": "New",
       "total": "{{n}} in total",
       "news": {
         "title": "Verse News",
+        "topic": "News",
+        "hook": "What CIG revealed this week",
         "stat": "{{n}} this week",
         "teaser": "Dev replies, videos and Comm-Links in one place"
       },
       "patches": {
         "title": "Patch News",
+        "topic": "Patches",
+        "hook": "When {{next}} lands and what it changes",
+        "hookNoLine": "When the next patch lands and what it changes",
         "stat": "{{n}} new notes",
         "teaser": "When the next patch lands and what it changes"
       },
       "gallery": {
         "title": "Gallery",
+        "topic": "Gallery",
+        "hook": "Which one becomes your new desktop?",
         "stat": "{{n}} new wallpapers",
         "teaser": "Browse, share and vote on Starscape wallpapers"
       }
