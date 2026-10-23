@@ -169,19 +169,18 @@ export class VerseBriefingComponent {
   private stopTracking: (() => void) | null = null;
 
   constructor() {
-    if (!this.enabled()) return;
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
     void this.api.loadSeen();
     if (!this.news.feed() && !this.news.loading()) void this.news.refresh(true);
 
     effect(() => {
-      if (this.auth.isAuthenticated() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
+      if (this.enabled() && this.auth.isAuthenticated() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
     });
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
     // focused time; the clock restarts with every switch.
     effect(() => {
-      const key = this.current()?.item.key ?? null;
+      const key = this.enabled() ? (this.current()?.item.key ?? null) : null;
       untracked(() => {
         this.stopTracking?.();
         this.stopTracking = key ? this.api.trackShown([key]) : null;
