@@ -17,7 +17,7 @@ import { seriesStops } from './starmap.model';
     @let st = state();
     <b class="label">
       {{ 'starmap.series.kind' | translate }}
-      <em>{{ 'starmap.series.count' | translate: { n: st.streak.current } }}</em>
+      <em>{{ (st.streak.current === 1 ? 'starmap.series.countOne' : 'starmap.series.count') | translate: { n: st.streak.current } }}</em>
       <button type="button" class="info" [attr.aria-label]="'starmap.series.helpAria' | translate"
               [scTooltip]="helpText() | translate: { best: st.streak.best }">?</button>
     </b>

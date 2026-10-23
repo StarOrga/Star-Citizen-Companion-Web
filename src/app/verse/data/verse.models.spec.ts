@@ -41,6 +41,12 @@ describe('verse.models', () => {
     expect(d.counts.news).toEqual({ recent: 3 });
   });
 
+  it('drops the trailing "| Star Citizen" channel tag from titles', () => {
+    const d = mapDigest({ items: [{ key: 'v', kind: 'gallery', title: 'Day of the Vara 2956 | Star Citizen' }], counts: {} });
+    expect(d?.items[0].title).toBe('Day of the Vara 2956');
+    expect(mapDigest({ items: [{ key: 'w', kind: 'news', title: 'Star Citizen Live' }], counts: {} })?.items[0].title).toBe('Star Citizen Live');
+  });
+
   it('rejects a malformed digest and clamps suggested to 3..7', () => {
     expect(mapDigest(null)).toBeNull();
     expect(mapDigest({ items: [], suggested: 12, counts: {} })?.suggested).toBe(7);

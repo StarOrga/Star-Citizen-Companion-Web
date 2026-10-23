@@ -4868,6 +4868,7 @@
     "series": {
       "kind": "Serie",
       "count": "{{n}} Sternbilder in Folge entzündet",
+      "countOne": "1 Sternbild in Folge entzündet",
       "helpAria": "Wie funktioniert die Serie?",
       "help": "Die Serie zählt die Patches in Folge, in denen du dein Sternbild entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Das neueste Sternbild läuft noch und unterbricht die Serie nie; bleibt ein älteres dunkel, beginnt sie von vorn. Jede Stufe der Straße schaltet ab dieser Zahl eine Belohnung frei, und freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
       "helpReserve": "Die Serie zählt die Patches in Folge, in denen du dein Sternbild entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Das neueste Sternbild läuft noch und unterbricht die Serie nie. Deine Treibstoffreserve ist bereit: Ein dunkles Sternbild reißt die Serie diesmal nicht. Freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",

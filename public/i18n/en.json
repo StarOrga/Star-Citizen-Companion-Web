@@ -4868,6 +4868,7 @@
     "series": {
       "kind": "Series",
       "count": "{{n}} constellations lit in a row",
+      "countOne": "1 constellation lit in a row",
       "helpAria": "How does the series work?",
       "help": "The series counts the patches in a row in which you lit your constellation – at least one star, or your sun rose. The newest constellation is still running and never breaks the series; if an older one stays dark, it starts over. Each stop on the road unlocks a reward from that number on, and unlocked stays unlocked (your best series: {{best}}).",
       "helpReserve": "The series counts the patches in a row in which you lit your constellation – at least one star, or your sun rose. The newest constellation is still running and never breaks the series. Your fuel reserve is ready: one dark constellation will not break the series this time. Unlocked stays unlocked (your best series: {{best}}).",

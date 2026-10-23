@@ -286,7 +286,8 @@ export function mapDigest(raw: unknown): VerseDigest | null {
       return {
         key: s(i['key']),
         kind: s(i['kind']) as VerseItemKind,
-        title: s(i['title']),
+        // Video titles arrive with the channel's "| Star Citizen" tag — noise on a Star Citizen page.
+        title: s(i['title']).replace(/\s*[|–-]\s*Star Citizen\s*$/i, ''),
         url: sn(i['url']),
         summary: sn(i['summary']),
         image: sn(i['image']),
