@@ -9,15 +9,21 @@
 # already validated by GitHub CI, and they reach production only through a
 # merge to main, which Vercel builds normally.
 #
-# Every other ref (main / production, feature branches) builds.
+# Feature branches are skipped too (2026-10-23). Every pushed branch, including
+# each agent worktree branch, left a full preview deployment behind, and the
+# Hobby team hit 100% of its 10 GB Deployment Storage. Only main builds.
 ref="${VERCEL_GIT_COMMIT_REF:-}"
 
 case "$ref" in
+  main)
+    echo "Building ref '$ref'."
+    exit 1
+    ;;
   dependabot/*)
     echo "Skipping Vercel build for Dependabot branch '$ref' (validated by GitHub CI)."
     exit 0
     ;;
 esac
 
-echo "Building ref '${ref:-<unknown>}'."
-exit 1
+echo "Skipping Vercel preview build for '${ref:-<unknown>}' (only main deploys)."
+exit 0
