@@ -35,7 +35,6 @@ const THUMB = { width: 480, height: 270 } as const;
   imports: [RouterLink, TranslatePipe, ScTooltipDirective, VerseHeaderComponent],
   template: `
     <sc-verse-header
-      [trail]="[{ labelKey: 'starmap.gallery.crumb', link: '/verse/gallery' }]"
       [title]="'starmap.gallery.title' | translate"
       [subtitle]="'starmap.gallery.subtitle' | translate" />
 

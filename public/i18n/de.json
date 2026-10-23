@@ -4712,7 +4712,6 @@
       "aria": "Sternkarte: {{lit}} von {{total}} Sternen"
     },
     "gallery": {
-      "crumb": "Galerie",
       "title": "Meine Sternbilder",
       "subtitle": "Jedes vollendete Sternbild landet automatisch hier.",
       "empty": "Noch kein Sternbild vollendet.",

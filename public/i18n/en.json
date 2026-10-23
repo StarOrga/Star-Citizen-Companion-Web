@@ -4712,7 +4712,6 @@
       "aria": "Star map: {{lit}} of {{total}} stars"
     },
     "gallery": {
-      "crumb": "Gallery",
       "title": "My constellations",
       "subtitle": "Every completed constellation lands here automatically.",
       "empty": "No constellation completed yet.",
