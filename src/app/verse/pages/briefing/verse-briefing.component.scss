@@ -168,12 +168,18 @@
   min-height: inherit;
 }
 
-// Sun + constellation: there from frame 0, riding the same dolly.
+// The constellation: there from frame 0, riding the same dolly as the sky.
+// Clipped to the frame so its glow never widens the page on a phone.
 .cstl {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
+}
+.cstl-in {
+  position: absolute;
+  inset: 0;
   animation:
     dolly calc(1.6s * var(--k)) cubic-bezier(0.25, 0.75, 0.3, 1) both,
     cst-focus calc(1.2s * var(--k)) ease-out both;
@@ -181,8 +187,8 @@
 .cst { position: absolute; top: 70px; right: 5%; width: min(24%, 300px); }
 .sun {
   position: absolute;
-  top: 210px;
-  right: 3%;
+  top: 236px;
+  right: 7%;
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -458,8 +464,8 @@
   .top { grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding-top: 4px; }
   .status { grid-column: 1; justify-content: flex-start; gap: 6px 18px; }
   .mapbtn { grid-column: 2; }
-  .cst { top: 64px; right: -4%; width: 42%; opacity: 0.7; }
-  .sun { top: 150px; right: 6%; }
+  .cst { top: 64px; right: 0; width: 40%; opacity: 0.7; }
+  .sun { top: 170px; right: 8%; }
   .hero { padding-top: 40px; }
   .title { margin: 14px auto 20px; }
   .story { margin-top: 14px; }

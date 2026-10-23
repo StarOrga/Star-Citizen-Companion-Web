@@ -6,6 +6,8 @@
     <div class="bleed" aria-hidden="true">
       <div class="sky">
         <div class="neb"></div>
+        <!-- The light source: one sun direction for planet, moons and sky. -->
+        <div class="sun"></div>
       </div>
       <div class="far"><div class="stars"></div><div class="stars near"></div></div>
       <div class="horizon">
@@ -17,8 +19,7 @@
 
     <div class="frame">
       <div class="cstl" aria-hidden="true">
-        <div class="sun"></div>
-        <div class="cst"><sc-briefing-sky [points]="points()" [lit]="lit()" /></div>
+        <div class="cstl-in"><div class="cst"><sc-briefing-sky [points]="points()" [lit]="lit()" /></div></div>
       </div>
 
       <div class="top">

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ScTooltipDirective } from '../../../shared/tooltip/sc-tooltip.directive';
 import type { VerseDoor } from '../../data/verse.models';
 import { splitChars } from './briefing.model';
 
@@ -12,10 +13,10 @@ import { splitChars } from './briefing.model';
  */
 @Component({
   selector: 'sc-briefing-moon',
-  imports: [RouterLink],
+  imports: [RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a class="moon" [attr.data-door]="door()" [routerLink]="link()" [attr.aria-label]="label()"
+    <a class="moon" [attr.data-door]="door()" [routerLink]="link()" [attr.aria-label]="label()" [scTooltip]="label()"
        (click)="opened.emit()" (auxclick)="opened.emit()">
       <span [class]="'art ' + art()" aria-hidden="true">
         @if (door() === 'news') { <span class="satorb"></span> }
