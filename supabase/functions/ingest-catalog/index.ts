@@ -34,6 +34,10 @@
 //         and deletes the rows once the public Worker serves them — see below)
 //   POST { op: "locale_publish",   build_id, lang?, delete_source? }   -> { ok, results }
 //        (service role or the gates below; one language per call keeps it short)
+//   POST { op: "locale_gc",        dry_run? (default true) }           -> { ok, ...GcResult }
+//        (SERVICE ROLE ONLY. Deletes codex-locale/<build>/ prefixes in R2 whose
+//         build id is no longer in codex_builds, i.e. pruned builds. Send
+//         dry_run:false to delete. See _locale-gc.ts for the safety rules.)
 //
 // LOCALIZATION STRINGS live in R2 since 2026-10-03 (storage plan): the
 // `locale_strings` rows are only the staging area of a running ingest. See
@@ -62,6 +66,7 @@ import { bucketBytes, deleteObject, listObjects, putObject, r2FromEnv, readUsage
 import { usageGate } from '../ingest-skins/_r2-usage.ts';
 import { BUILD_ID_RE, LANG_RE } from './_locale-shards.ts';
 import { publishLocale } from './_locale-publish.ts';
+import { gcLocalePrefixes } from './_locale-gc.ts';
 import {
   type ConstellationRow,
   type ConstellationStore,
@@ -641,6 +646,26 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (blocked) return json({ error: blocked.code, message: blocked.message }, blocked.status);
       const results = await publishBuildLocales(admin, r2, buildId, lang ? [lang] : null, body.delete_source === true, true);
       return json({ ok: true, results });
+    }
+
+    if (op === 'locale_gc') {
+      // Destructive and operator-only: the uploader gates must not reach it.
+      if (!(authHeader && authHeader === `Bearer ${serviceKey}`)) return json({ error: 'forbidden', message: 'service role only' }, 403);
+      const r2 = r2FromEnv((k) => Deno.env.get(k));
+      if (!r2) return json({ error: 'r2_not_configured' }, 503);
+      const result = await gcLocalePrefixes({
+        async liveBuildIds() {
+          const { data, error } = await admin.from('codex_builds').select('id').limit(10_000);
+          if (error) throw error;
+          const ids = ((data ?? []) as { id: string }[]).map((r) => r.id);
+          if (ids.length >= 10_000) throw new Error('locale_gc: codex_builds read looks truncated');
+          return ids;
+        },
+        listKeys: async (prefix) => (await listObjects(r2, prefix)).map((o) => o.key),
+        deleteKey: (key) => deleteObject(r2, key),
+      }, { dryRun: body.dry_run !== false });
+      console.log(`ingest-catalog: locale_gc ${JSON.stringify(result)}`);
+      return json({ ok: true, ...result });
     }
 
     return json({ error: 'invalid_body', message: `unknown op '${op}'` }, 400);

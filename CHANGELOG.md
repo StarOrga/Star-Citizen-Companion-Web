@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.161.1] - 2026-10-23
+
+### Fixed
+
+- **Datenbank bleibt unter dem 500-MB-Limit.** Das nächtliche Aufräumen alter
+  Codex-Builds löschte zwar die Zeilen, gab den Platz aber nie frei; die
+  Datenbank wuchs so wieder Richtung 500 MB (gemessen 434 MB). Jetzt läuft
+  nachts (04:45–04:58 UTC) pro Codex-Tabelle ein `VACUUM FULL`, das den Platz
+  der gelöschten Builds zurückgibt (von Hand ausgeführt: 434 → 241 MB, beide
+  Builds 4.10.0 und 4.10.2 vollständig). Eine Tabelle ist dabei jeweils
+  wenige Sekunden gesperrt (größte ~29 s).
+
+### Added
+
+- **R2-Aufräumen für Sprachdaten.** Die Edge Function `ingest-catalog` kennt
+  die neue Operation `locale_gc` (nur Service Role): sie löscht die
+  `codex-locale/<build>/`-Ordner von Builds, die es nicht mehr gibt.
+  Standardmäßig nur ein Probelauf; gelöscht wird erst mit `dry_run: false`.
+
+### Changed
+
+- **Vercel baut nur noch `main`.** Feature-Branches erzeugen keine
+  Preview-Deployments mehr; sie hatten den 10-GB-Deployment-Speicher des
+  Vercel-Teams vollständig gefüllt.
+
 ## [0.161.0] - 2026-10-21
 
 ### Changed
