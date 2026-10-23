@@ -4495,31 +4495,58 @@
       "overdue": "nächster seit {{n}} T fällig"
     },
     "briefing": {
-      "forYou": "Für dich",
+      "stageAria": "Verse-Briefing",
       "cta": "Jetzt ansehen",
       "headlineQuiet": "Ruhig im Verse — nichts Neues seit deinem letzten Besuch",
-      "unseen": "{{n}} neu seit deinem letzten Besuch",
+      "headlineError": "Das Briefing ist gerade nicht erreichbar",
+      "loading": "Briefing wird geladen …",
       "allSeen": "Du bist auf dem Stand",
-      "patchLine": "Patch {{line}} ist live",
-      "topAria": "Das Wichtigste gerade",
-      "empty": "Gerade gibt es nichts Neues.",
-      "pinned": "angeheftet"
+      "newSince": "neu seit deinem letzten Besuch",
+      "topAria": "Die neuesten Geschichten",
+      "storyAria": "Geschichte {{n}}: {{title}}",
+      "status": {
+        "live": "{{line}} live seit {{n}} Tagen",
+        "liveOne": "{{line}} live seit 1 Tag",
+        "liveToday": "{{line}} live seit heute",
+        "liveNow": "{{line}} live",
+        "dueToday": "{{line}} heute fällig",
+        "due": {
+          "days": "{{line}} in {{n}} Tagen fällig",
+          "daysOne": "{{line}} morgen fällig",
+          "weeks": "{{line}} in ~{{n}} Wochen fällig",
+          "weeksOne": "{{line}} in ~1 Woche fällig"
+        },
+        "overdue": {
+          "days": "{{line}} seit {{n}} Tagen fällig",
+          "daysOne": "{{line}} seit 1 Tag fällig",
+          "weeks": "{{line}} seit ~{{n}} Wochen fällig",
+          "weeksOne": "{{line}} seit ~1 Woche fällig"
+        }
+      }
     },
     "gates": {
       "aria": "Bereiche des Verse",
+      "neu": "Neu",
       "total": "{{n}} insgesamt",
       "news": {
         "title": "Verse News",
+        "topic": "News",
+        "hook": "Was CIG diese Woche verraten hat",
         "stat": "{{n}} diese Woche",
         "teaser": "Dev-Antworten, Videos und Comm-Links an einem Ort"
       },
       "patches": {
         "title": "Patch News",
+        "topic": "Patches",
+        "hook": "Wann {{next}} kommt und was es ändert",
+        "hookNoLine": "Wann der nächste Patch kommt und was er ändert",
         "stat": "{{n}} neue Notes",
         "teaser": "Wann der nächste Patch kommt und was er ändert"
       },
       "gallery": {
         "title": "Galerie",
+        "topic": "Galerie",
+        "hook": "Welches wird dein neuer Desktop?",
         "stat": "{{n}} neue Wallpaper",
         "teaser": "Starscape-Wallpaper ansehen, teilen und abstimmen"
       }
