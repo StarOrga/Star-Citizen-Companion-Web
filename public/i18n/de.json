@@ -4557,31 +4557,33 @@
   },
   "starmap": {
     "title": "Sternkarte",
-    "eyebrow": "Explorer",
-    "subtitle": "Pro Patch ein Sternbild aus dem neuesten Schiff. Jede Aufgabe entzündet einen Stern.",
     "signedOut": "Melde dich an, um deine Sternkarte zu sehen.",
     "signIn": "Anmelden",
     "loading": "Sternkarte wird geladen …",
     "empty": "Für diesen Patch gibt es noch kein Sternbild.",
     "stageAria": "Sternbild von Patch {{patch}}",
     "progress": "{{lit}} von {{total}} Sternen",
-    "shapeFrom": "Form: {{name}}",
     "sun": {
-      "hit": "Dein Komet hat getroffen: Neben dem Sternbild ist die Sonne aufgegangen.",
-      "how": "Trifft dein Komet das LIVE-Datum auf ±2 Tage, geht neben dem Sternbild die Sonne auf."
+      "faded": {
+        "aria": "Sonne: verblasst",
+        "tip": "Die Sonne ist verblasst. Setz unten deinen Kometen auf den Tag, an dem {{patch}} LIVE geht – trifft er auf ±2 Tage, leuchtet die Sonne auf."
+      },
+      "tipped": {
+        "aria": "Sonne: Komet gesetzt, wartet auf den LIVE-Tag",
+        "tip": "Dein Komet ist gesetzt: Die Sonne glimmt, bis {{patch}} LIVE geht. Trifft er auf ±2 Tage, leuchtet sie auf."
+      },
+      "hit": {
+        "aria": "Sonne: leuchtet",
+        "tip": "Treffer: Dein Komet lag höchstens 2 Tage neben dem LIVE-Tag, die Sonne leuchtet."
+      }
     },
     "export": {
       "wallpaper": "Wallpaper herunterladen (4K)",
       "busy": "Wird gerendert …",
       "gallery": "Meine Sternbilder",
-      "locked": "Bei {{total}} Sternen wird das Sternbild dein Wallpaper.",
       "failed": "Das Wallpaper ließ sich nicht erstellen. Versuch es noch einmal."
     },
-    "tasksTitle": "Was einen Stern bringt",
-    "noTasks": "Für diesen Patch sind keine Aufgaben verfügbar.",
     "task": {
-      "done": "erledigt",
-      "open": "offen",
       "notes": {
         "title": "Notes-Highlights gelesen",
         "how": "Lies die Highlights der Patch Notes in den Patch News.",
@@ -4631,21 +4633,16 @@
         "title": "Codex-Loadout gesichert",
         "how": "Speichere ein angepasstes Loadout auf einer Schiffsseite im Codex.",
         "link": "Loadout bauen"
+      },
+      "cxGuess": {
+        "title": "Sternbild erkannt",
+        "how": "Erkenne auf der Sternkarte, welches neue Schiff die Form des Sternbilds zeigt – ein Versuch.",
+        "link": "Zum Sternbild"
       }
-    },
-    "log": {
-      "title": "Entdecker-Logbuch",
-      "summary": "{{patches}} Patches · {{stars}} Sterne · {{suns}} Sonnen"
-    },
-    "streak": {
-      "title": "Serie",
-      "status": "Aktuell {{current}} Patches in Folge · längste Serie {{best}}",
-      "reserveReady": "Treibstoffreserve bereit: Ein verpasster Patch reißt die Serie nicht.",
-      "reserveUsed": "Treibstoffreserve verbraucht."
     },
     "reward": {
       "unlocked": "freigeschaltet",
-      "locked": "ab {{at}} Patches",
+      "locked": "ab {{at}} entzündeten Sternbildern",
       "road": {
         "title": "Sternenstraße",
         "desc": "Verbindet deine Sternbilder über die Patches."
@@ -4738,6 +4735,101 @@
         "pinTitle": "Titel des Pins",
         "promoted": "Angepinnt."
       }
+    },
+    "map": {
+      "title": "Sternbild {{patch}}",
+      "subtitle": "{{total}} Sterne · die Form verrät ein neues Schiff",
+      "shape": "Die Form: {{name}}",
+      "patchesAria": "Sternbild eines Patches wählen",
+      "chipTip": "Sternbild {{patch}} · {{lit}} von {{total}} Sternen",
+      "mine": "Meine Sternbilder"
+    },
+    "more": {
+      "open": "Logbuch",
+      "title": "Logbuch",
+      "rewards": "Belohnungen der Serie"
+    },
+    "card": {
+      "close": "Schließen",
+      "eyebrowDone": "Stern {{n}} · leuchtet",
+      "eyebrowNext": "Stern {{n}} · nächster Vorschlag",
+      "eyebrowOpen": "Stern {{n}} · offen",
+      "eyebrowLocked": "Stern {{n}} · geschlossen",
+      "doneOn": "Erledigt am {{date}}.",
+      "here": "Das machst du direkt hier unten auf der Sternkarte.",
+      "empty": "Für diesen Stern gibt es in diesem Patch keine Aufgabe.",
+      "emptyTitle": "Ruhender Stern",
+      "lockedComet": "Für diesen Patch kann kein Komet mehr gesetzt werden.",
+      "lockedGuess": "Dein Tipp für dieses Sternbild ist abgegeben."
+    },
+    "star": {
+      "done": "Stern {{n}}: {{task}} · leuchtet",
+      "next": "Stern {{n}}: {{task}} · nächster Vorschlag",
+      "open": "Stern {{n}}: {{task}} · offen"
+    },
+    "comet": {
+      "kind": "Komet",
+      "ruleAria": "Regeln zum Kometen",
+      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Kometen, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
+      "state": {
+        "none": "offen",
+        "tipped": "gesetzt · wartet auf LIVE",
+        "hit": "Treffer",
+        "miss": "daneben",
+        "locked": "geschlossen"
+      },
+      "head": {
+        "ask": "Wann geht {{patch}} LIVE?",
+        "closed": "Tipps für {{patch}} sind geschlossen",
+        "tipped": "Einschlag erwartet am {{date}}",
+        "hit": "Eingeschlagen am {{date}}",
+        "miss": "Dein Komet: {{date}}"
+      },
+      "earlier": "Frühere Tage",
+      "later": "Spätere Tage",
+      "dayAria": "Komet auf {{date}} setzen",
+      "reward": "Trifft dein Komet, leuchtet die Sonne auf",
+      "window": "{{patch}} LIVE zwischen {{from}} und {{to}}",
+      "locked": {
+        "live": "Der Patch ist LIVE – Tipps sind geschlossen.",
+        "announced": "Der LIVE-Termin ({{date}}) ist offiziell angekündigt – Tipps sind geschlossen."
+      }
+    },
+    "guess": {
+      "kind": "Sternbild",
+      "ruleAria": "Regeln zum Sternbild-Erkennen",
+      "rule": "Die Form des Sternbilds kommt vom neuesten Schiff des Patches. Eines der 7 Schiffe ist richtig. Du hast einen Versuch: Ein Klick auf ein Schiff gibt deinen Tipp sofort ab. Richtig erkannt, leuchtet ein Stern und der Name erscheint im Sternbild.",
+      "optionAria": "Tipp abgeben: {{name}}",
+      "state": {
+        "open": "offen",
+        "correct": "erkannt",
+        "wrong": "aufgelöst",
+        "unavailable": ""
+      },
+      "head": {
+        "open": "Tippe auf das Schiff, das du im Sternbild erkennst",
+        "correct": "Richtig erkannt: {{name}}",
+        "wrong": "Das Sternbild zeigt die {{name}}",
+        "unavailable": ""
+      },
+      "foot": {
+        "open": "Richtig erkannt, erscheint der Name im Sternbild und der Kreis bekommt ein Häkchen.",
+        "correct": "Der Stern leuchtet, der Name steht jetzt im Sternbild.",
+        "wrong": "Diesmal kein Stern – die Auflösung bleibt im Sternbild stehen.",
+        "unavailable": ""
+      }
+    },
+    "series": {
+      "kind": "Serie",
+      "count": "{{n}} Sternbilder in Folge entzündet",
+      "helpAria": "Wie funktioniert die Serie?",
+      "help": "Die Serie zählt die Patches in Folge, in denen du dein Sternbild entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Das neueste Sternbild läuft noch und unterbricht die Serie nie; bleibt ein älteres dunkel, beginnt sie von vorn. Jede Stufe der Straße schaltet ab dieser Zahl eine Belohnung frei, und freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
+      "helpReserve": "Die Serie zählt die Patches in Folge, in denen du dein Sternbild entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Das neueste Sternbild läuft noch und unterbricht die Serie nie. Deine Treibstoffreserve ist bereit: Ein dunkles Sternbild reißt die Serie diesmal nicht. Freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
+      "roadAria": "Belohnungen der Serie",
+      "stopOn": "{{title}} – {{desc}} ✓ freigeschaltet · ab {{at}} entzündeten Sternbildern",
+      "stopNext": "{{title}} – {{desc}} Als Nächstes · ab {{at}} entzündeten Sternbildern in Folge",
+      "stopLocked": "{{title}} – {{desc}} Ab {{at}} entzündeten Sternbildern in Folge",
+      "from": "ab {{at}}"
     }
   },
   "beta": {
