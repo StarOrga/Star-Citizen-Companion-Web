@@ -4453,6 +4453,26 @@
   },
   "verse": {
     "crumb": "Verse",
+    "toast": {
+      "lit": "Stern entzündet: {{task}}",
+      "count": "{{lit}} von {{total}}",
+      "remaining": "noch {{n}} bis zum 4K-Wallpaper",
+      "close": "Schließen",
+      "genericTask": "Neuer Stern",
+      "unlock": {
+        "logEntry": "Logbuch-Eintrag freigeschaltet",
+        "community": "Gemeinschafts-Sternbild freigeschaltet",
+        "wallpaper": "4K-Wallpaper freigeschaltet",
+        "kartograph": "Kartograph freigeschaltet",
+        "road": "Sternenstraße freigeschaltet",
+        "nebula": "Nebel freigeschaltet",
+        "live": "Live-Wallpaper freigeschaltet",
+        "reserve": "Treibstoffreserve freigeschaltet",
+        "meteor": "Meteorschauer freigeschaltet",
+        "supernova": "Supernova freigeschaltet",
+        "sunCollection": "Sonnen-Sammlung freigeschaltet"
+      }
+    },
     "area": {
       "briefing": "Briefing",
       "news": "Verse News",
