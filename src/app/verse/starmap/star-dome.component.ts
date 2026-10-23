@@ -50,7 +50,7 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
   template: `
     <div class="fig">
       <div class="plane">
-        <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <svg class="lines" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
           @for (e of edges(); track $index) {
             @if (e.lit) {
               <path class="ln on" pathLength="1" [attr.d]="'M' + e.from.x + ' ' + e.from.y + 'L' + e.to.x + ' ' + e.to.y"
@@ -88,7 +88,7 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
         @if (card(); as c) {
           <div class="card" role="dialog" scDialog [scDialogModal]="false" (scDialogEscape)="close()"
                [attr.aria-label]="taskTitle(c) | translate"
-               [class.flip]="c.x > 55" [style.left.%]="c.x > 55 ? null : c.x" [style.right.%]="c.x > 55 ? 100 - c.x : null"
+               [class.flip]="c.x < 50" [style.left.%]="c.x < 50 ? null : c.x" [style.right.%]="c.x < 50 ? 100 - c.x : null"
                [style.top.%]="c.y">
             <button type="button" class="x" [attr.aria-label]="'starmap.card.close' | translate"
                     [scTooltip]="'starmap.card.close' | translate" scTooltipTier="label" (click)="close()">×</button>
@@ -125,11 +125,11 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       .fig { position: relative; height: 100%; aspect-ratio: 1; max-width: 100%; margin: 0 auto; }
       .plane { position: absolute; inset: 6%; }
       .lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-      .ln { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
-      .ln.on { stroke: color-mix(in srgb, var(--sc-accent) 70%, #fff); stroke-width: 1.2; opacity: 0.75;
+      .ln { fill: none; stroke-linecap: round; }
+      .ln.on { stroke: color-mix(in srgb, var(--sc-accent) 70%, #fff); stroke-width: 0.32; opacity: 0.75;
         stroke-dasharray: 1; stroke-dashoffset: 1; animation: sd-draw 0.4s ease-in-out var(--d) both; }
-      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke-width: 1; animation: sd-in 0.6s ease-out var(--d) both; }
-      .ln.nx { stroke: color-mix(in srgb, var(--sc-accent) 75%, transparent); stroke-width: 1.2; stroke-dasharray: 4 5;
+      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke-width: 0.26; animation: sd-in 0.6s ease-out var(--d) both; }
+      .ln.nx { stroke: color-mix(in srgb, var(--sc-accent) 75%, transparent); stroke-width: 0.32; stroke-dasharray: 1 1.3;
         animation: sd-in 0.6s ease-out var(--d) both; }
       .star { position: absolute; width: 9%; aspect-ratio: 1; translate: -50% -50%; border: 0; padding: 0; margin: 0;
         background: none; border-radius: 50%; cursor: pointer; z-index: 2; }
@@ -218,6 +218,7 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       @media (pointer: coarse) { .star { min-width: 44px; min-height: 44px; } }
       @media (max-width: 640px) {
         .card { position: absolute; left: 4% !important; right: 4% !important; width: auto; margin: 0; translate: 0 18px; }
+        .sun-sky { left: 90%; top: 3%; }
       }
       @media (prefers-reduced-motion: reduce) {
         .ln, .ent, .sun-sky, .card, .st .h, .st .bl, .st .spk, .sun > i, .comet::before { animation: none !important; }
