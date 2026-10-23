@@ -5,7 +5,7 @@ import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { starEarnedEvent } from '../starmap/starmap.model';
-import { SHOWN_FOCUS_MS, trackShown as trackShownFocus } from './shown-tracker';
+import { trackShown as trackShownFocus } from './shown-tracker';
 import {
   PatchPrediction,
   PatchReadiness,
@@ -167,7 +167,7 @@ export class VerseApiService {
 
   /**
    * Starts the 5 s focus clock for a rendered briefing list: once the page was
-   * visible AND focused for {@link SHOWN_FOCUS_MS} (accumulated, paused while
+   * visible AND focused for 5 s (accumulated, paused while
    * hidden / blurred) the keys go through {@link noteShown}. Returns a cancel
    * function for the component's teardown.
    */
