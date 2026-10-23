@@ -19,7 +19,7 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseExplorerPatch } from '../data/verse.models';
 import { downloadBlob, renderConstellationPng, renderConstellationWallpaper } from './constellation-render';
-import { wallpaperConstellations } from './explorer-page.component';
+import { wallpaperConstellations } from './wallpaper';
 import { shareImage } from './share-image';
 
 const THUMB = { width: 480, height: 270 } as const;

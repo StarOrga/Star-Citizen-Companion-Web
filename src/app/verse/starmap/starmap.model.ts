@@ -364,3 +364,169 @@ export function starEarnedEvent(
     unlocked: crossedUnlocks(before, after, patchLine),
   };
 }
+
+// ------------------------------------------------------------ dome (redesigned map)
+
+/** How a star of the dome reads: dormant core, the suggested next one, or lit. */
+export type StarSlotState = 'open' | 'next' | 'done';
+
+/** One star of the dome: a point of the constellation bound to one task. */
+export interface StarSlot {
+  /** Point index in the constellation. */
+  readonly index: number;
+  /** Position in 0..100 of the figure box. */
+  readonly x: number;
+  readonly y: number;
+  /** Rank in the symmetric lighting order (0 = first lit). */
+  readonly rank: number;
+  readonly state: StarSlotState;
+  /** The task this star stands for; null on a point without an offered task. */
+  readonly task: StarTaskView | null;
+}
+
+/**
+ * Binds tasks to stars without breaking the symmetric lighting order: the done
+ * tasks (oldest first) take the first ranks, then the suggested next task, then
+ * the remaining open ones — so the lit stars are always the first `lit` ranks.
+ */
+export function starSlots(
+  points: readonly VersePoint[] | null | undefined,
+  tasks: readonly StarTaskView[],
+  next: StarTaskView | null,
+): StarSlot[] {
+  const pts = points && points.length === STARS_PER_PATCH ? points : FALLBACK_POINTS;
+  const done = tasks.filter((t) => t.done).sort((a, b) => (a.doneAt ?? '').localeCompare(b.doneAt ?? ''));
+  const open = tasks.filter((t) => !t.done && t !== next);
+  const ordered: StarTaskView[] = [...done, ...(next ? [next] : []), ...open];
+  const rank = lightRank(pts);
+  return pts.map((p, i) => {
+    const task = ordered[rank[i]] ?? null;
+    const state: StarSlotState = !task ? 'open' : task.done ? 'done' : task === next ? 'next' : 'open';
+    return { index: i, x: p[0] * 100, y: p[1] * 100, rank: rank[i], state, task };
+  });
+}
+
+/** One outline edge of the constellation (closed polygon in point order). */
+export interface StarEdge {
+  readonly from: StarSlot;
+  readonly to: StarSlot;
+  /** Both ends lit. */
+  readonly lit: boolean;
+  /** Order among the lit edges (drives the draw stagger); -1 when not lit. */
+  readonly drawOrder: number;
+}
+
+export function constellationEdges(slots: readonly StarSlot[]): StarEdge[] {
+  let order = 0;
+  return slots.map((from, i) => {
+    const to = slots[(i + 1) % slots.length];
+    const lit = from.state === 'done' && to.state === 'done';
+    return { from, to, lit, drawOrder: lit ? order++ : -1 };
+  });
+}
+
+/** The dashed lead to the suggested star: from the nearest lit star; null without one. */
+export function nextLead(slots: readonly StarSlot[]): { from: StarSlot; to: StarSlot } | null {
+  const to = slots.find((s) => s.state === 'next');
+  if (!to) return null;
+  let best: StarSlot | null = null;
+  let bestD = Infinity;
+  for (const s of slots) {
+    if (s.state !== 'done') continue;
+    const d = (s.x - to.x) ** 2 + (s.y - to.y) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = s;
+    }
+  }
+  return best ? { from: best, to } : null;
+}
+
+/** faded = no tip / missed · tipped = waiting for LIVE · hit = the sun rose. */
+export type SunState = 'faded' | 'tipped' | 'hit';
+
+/** The sun next to a constellation: its own sun first, else the comet that is still in the air. */
+export function sunState(sun: boolean, comet: VerseComet | null): SunState {
+  if (sun || comet?.state === 'hit') return 'hit';
+  return comet?.state === 'tipped' ? 'tipped' : 'faded';
+}
+
+/**
+ * The patch the map opens on: the newest patch that is not the one still in
+ * testing (a tipped PTU line joins the payload without a constellation).
+ */
+export function defaultPatch(state: VerseExplorerState): VerseExplorerPatch | null {
+  const up = state.upcoming?.patchLine;
+  return state.patches.find((p) => p.patchLine !== up || p.liveAt) ?? state.patches[0] ?? null;
+}
+
+/** `YYYY-MM-DD` plus `days` (UTC calendar arithmetic, no time zone drift). */
+export function addDays(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Today in the reader's calendar as `YYYY-MM-DD`. */
+export function todayYmd(now: Date = new Date()): string {
+  return localYmd(now);
+}
+
+/** One day token of the comet rail; `win` = within ±2 days of the tip. */
+export interface CometDay {
+  readonly ymd: string;
+  readonly win: boolean;
+  readonly on: boolean;
+}
+
+export function cometDays(start: string, count: number, tipped: string | null): CometDay[] {
+  const tipDay = tipped ? Date.parse(`${tipped}T00:00:00Z`) : NaN;
+  return Array.from({ length: count }, (_, i) => {
+    const ymd = addDays(start, i);
+    const diff = Math.abs(Date.parse(`${ymd}T00:00:00Z`) - tipDay) / 86_400_000;
+    return { ymd, win: !Number.isNaN(diff) && diff <= 2, on: ymd === tipped };
+  });
+}
+
+/**
+ * Where a comet window opens: a tip sits in the middle, an open rail starts
+ * tomorrow (the server refuses a date in the past, today may be past LIVE time).
+ */
+export function cometWindowStart(tipped: string | null, today: string, count = 12): string {
+  if (tipped) return addDays(tipped, -Math.floor(count / 2) + 1);
+  return addDays(today, 1);
+}
+
+/**
+ * The dome rim under a token rail: token `i` of `n` sinks by `i² · k` px
+ * (`reverse` = the rim rises to the right). Path in a 100 × height box.
+ */
+export function railCurve(n: number, k: number, reverse: boolean): { d: string; height: number } {
+  const steps = 24;
+  const sink = (i: number) => (reverse ? n - 1 - i : i) ** 2 * k;
+  const pts: string[] = [];
+  for (let s = 0; s <= steps; s++) {
+    const i = (s / steps) * (n - 1);
+    pts.push(`${s === 0 ? 'M' : 'L'}${((s / steps) * 100).toFixed(2)} ${(sink(i) + 1).toFixed(2)}`);
+  }
+  return { d: pts.join(''), height: Math.ceil((n - 1) ** 2 * k + 2) };
+}
+
+/** One stop of the series road. */
+export interface SeriesStop {
+  readonly key: StreakRewardKey;
+  readonly at: number;
+  readonly on: boolean;
+  /** The first locked stop — the next reward. */
+  readonly next: boolean;
+}
+
+/** Stops of the series road; unlocked state from the server, never from the numbers. */
+export function seriesStops(rewards: VerseExplorerState['rewards']): SeriesStop[] {
+  let marked = false;
+  return STREAK_REWARDS.map((r) => {
+    const on = rewards[r.key];
+    const next = !on && !marked;
+    if (next) marked = true;
+    return { key: r.key, at: r.at, on, next };
+  });
+}

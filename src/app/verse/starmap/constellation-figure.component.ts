@@ -17,6 +17,7 @@ import { FALLBACK_POINTS, lightRank, litIndices } from './starmap.model';
       @for (s of stars(); track s.i) {
         <g class="star" [class.lit]="s.lit" [style.--rank]="s.rank" [style.opacity]="s.level" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'">
           <circle class="halo" r="7" />
+          @if (s.lit) { <path class="spk" d="M0-8L0.5 0 0 8-0.5 0zM-8 0L0 0.5 8 0 0-0.5z" /> }
           <circle class="core" r="2.2" />
         </g>
       }
@@ -37,7 +38,10 @@ import { FALLBACK_POINTS, lightRank, litIndices } from './starmap.model';
       svg { display: block; width: 100%; height: auto; overflow: visible; }
       .outline { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke-width: 0.6; }
       .outline.on { stroke: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+      /* Ring-free star style of the dome: dormant core · lit = soft core, glow, fine spikes. */
       .star .core { fill: color-mix(in srgb, var(--sc-fg-1) 35%, transparent); transition: fill 400ms ease calc(var(--rank) * 140ms); }
+      .star .spk { fill: #fff; opacity: 0.65; }
+      .small .star .spk { opacity: 0.9; transform: scale(1.4); transform-box: fill-box; transform-origin: center; }
       .star .halo { fill: var(--sc-accent); opacity: 0; transform: scale(0.4); transform-box: fill-box; transform-origin: center;
         transition: opacity 500ms ease calc(var(--rank) * 140ms), transform 500ms ease calc(var(--rank) * 140ms); filter: blur(2px); }
       .star.lit .core { fill: #fff; }

@@ -1,6 +1,22 @@
 import { mapExplorer } from '../data/verse.models';
 import type { VerseExplorerPatch, VerseExplorerState } from '../data/verse.models';
-import { buildTaskViews, crossedUnlocks, nextTask, patchMapView, starEarnedEvent } from './starmap.model';
+import {
+  addDays,
+  buildTaskViews,
+  cometDays,
+  cometWindowStart,
+  constellationEdges,
+  crossedUnlocks,
+  defaultPatch,
+  nextLead,
+  nextTask,
+  patchMapView,
+  railCurve,
+  seriesStops,
+  starEarnedEvent,
+  starSlots,
+  sunState,
+} from './starmap.model';
 
 const comet = { state: 'none', tippedDate: null, locked: false, lockedReason: null, announcedDate: null } as const;
 
@@ -103,5 +119,54 @@ describe('explorer view model', () => {
     expect(e?.upcoming?.patchLine).toBe('4.5');
     expect(e?.upcoming?.comet.state).toBe('tipped');
     expect(mapExplorer({ patches: [] })?.upcoming).toBeNull();
+  });
+});
+
+describe('dome view helpers', () => {
+  it('binds done tasks to the first lit ranks, then next, then open', () => {
+    const p = patch({
+      stars: ['archive', 'notes'],
+      starCount: 2,
+      starDates: { notes: '2026-10-01T00:00:00Z', archive: '2026-10-02T00:00:00Z' },
+    });
+    const v = patchMapView(p);
+    const slots = starSlots(p.constellation?.points, v.tasks, v.next);
+    const byRank = [...slots].sort((a, b) => a.rank - b.rank);
+    expect(byRank.map((s) => s.state)).toEqual(['done', 'done', 'next', 'open', 'open', 'open', 'open']);
+    expect(byRank[0].task?.key).toBe('notes');
+    expect(byRank[2].task?.key).toBe(v.next!.key);
+    expect(constellationEdges(slots).length).toBe(7);
+    expect(nextLead(slots)?.to.state).toBe('next');
+  });
+
+  it('sun state: own sun wins, then the comet in the air', () => {
+    expect(sunState(true, comet)).toBe('hit');
+    expect(sunState(false, { ...comet, state: 'tipped' })).toBe('tipped');
+    expect(sunState(false, { ...comet, state: 'miss' })).toBe('faded');
+    expect(sunState(false, null)).toBe('faded');
+  });
+
+  it('comet days mark the tip and its ±2 window', () => {
+    const days = cometDays('2026-11-01', 6, '2026-11-03');
+    expect(days.map((d) => d.ymd)).toEqual(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06']);
+    expect(days.filter((d) => d.win).length).toBe(5);
+    expect(days.find((d) => d.on)?.ymd).toBe('2026-11-03');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(cometWindowStart(null, '2026-10-23')).toBe('2026-10-24');
+  });
+
+  it('series stops: server unlocks, first locked is next', () => {
+    const st = state([patch()]);
+    const stops = seriesStops({ ...st.rewards, road: true, nebula: true });
+    expect(stops.filter((s) => s.on).length).toBe(2);
+    expect(stops.find((s) => s.next)?.key).toBe('live');
+  });
+
+  it('opens on the newest LIVE patch, not the tipped test patch', () => {
+    const live = patch({ patchLine: '4.4', liveAt: '2026-10-01T00:00:00Z' });
+    const ptu = patch({ patchLine: '4.5', liveAt: null });
+    const up = { patchLine: '4.5', comet: { ...comet, state: 'tipped' as const, tippedDate: '2026-11-03' } };
+    expect(defaultPatch(state([ptu, live], { upcoming: up }))?.patchLine).toBe('4.4');
+    expect(railCurve(7, 1, true).height).toBe(38);
   });
 });

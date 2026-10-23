@@ -4557,31 +4557,33 @@
   },
   "starmap": {
     "title": "Star map",
-    "eyebrow": "Explorer",
-    "subtitle": "One constellation per patch, drawn from the newest ship. Every task lights a star.",
     "signedOut": "Sign in to see your star map.",
     "signIn": "Sign in",
     "loading": "Loading star map …",
     "empty": "There is no constellation for this patch yet.",
     "stageAria": "Constellation of patch {{patch}}",
     "progress": "{{lit}} of {{total}} stars",
-    "shapeFrom": "Shape: {{name}}",
     "sun": {
-      "hit": "Your comet hit: the sun has risen next to the constellation.",
-      "how": "If your comet lands within ±2 days of the LIVE date, the sun rises next to the constellation."
+      "faded": {
+        "aria": "Sun: faded",
+        "tip": "The sun is faded. Set your comet below on the day {{patch}} goes LIVE – land within ±2 days and the sun lights up."
+      },
+      "tipped": {
+        "aria": "Sun: comet set, waiting for the LIVE day",
+        "tip": "Your comet is set: the sun glows until {{patch}} goes LIVE. Land within ±2 days and it lights up."
+      },
+      "hit": {
+        "aria": "Sun: lit",
+        "tip": "Hit: your comet landed at most 2 days from the LIVE day, the sun is lit."
+      }
     },
     "export": {
       "wallpaper": "Download wallpaper (4K)",
       "busy": "Rendering …",
       "gallery": "My constellations",
-      "locked": "At {{total}} stars the constellation becomes your wallpaper.",
       "failed": "The wallpaper could not be created. Please try again."
     },
-    "tasksTitle": "What earns a star",
-    "noTasks": "No tasks are available for this patch.",
     "task": {
-      "done": "done",
-      "open": "open",
       "notes": {
         "title": "Read the notes highlights",
         "how": "Read the patch notes highlights in Patch News.",
@@ -4631,21 +4633,16 @@
         "title": "Codex loadout saved",
         "how": "Save a customised loadout on a ship page in the Codex.",
         "link": "Build a loadout"
+      },
+      "cxGuess": {
+        "title": "Constellation recognised",
+        "how": "Recognise on the star map which new ship the constellation's shape shows – one try.",
+        "link": "To the constellation"
       }
-    },
-    "log": {
-      "title": "Explorer log",
-      "summary": "{{patches}} patches · {{stars}} stars · {{suns}} suns"
-    },
-    "streak": {
-      "title": "Streak",
-      "status": "Currently {{current}} patches in a row · longest streak {{best}}",
-      "reserveReady": "Fuel reserve ready: one missed patch will not break the streak.",
-      "reserveUsed": "Fuel reserve used."
     },
     "reward": {
       "unlocked": "unlocked",
-      "locked": "from {{at}} patches",
+      "locked": "from {{at}} lit constellations",
       "road": {
         "title": "Star road",
         "desc": "Connects your constellations across patches."
@@ -4738,6 +4735,101 @@
         "pinTitle": "Pin title",
         "promoted": "Pinned."
       }
+    },
+    "map": {
+      "title": "Constellation {{patch}}",
+      "subtitle": "{{total}} stars · the shape gives away a new ship",
+      "shape": "The shape: {{name}}",
+      "patchesAria": "Choose a patch constellation",
+      "chipTip": "Constellation {{patch}} · {{lit}} of {{total}} stars",
+      "mine": "My constellations"
+    },
+    "more": {
+      "open": "Logbook",
+      "title": "Logbook",
+      "rewards": "Series rewards"
+    },
+    "card": {
+      "close": "Close",
+      "eyebrowDone": "Star {{n}} · lit",
+      "eyebrowNext": "Star {{n}} · suggested next",
+      "eyebrowOpen": "Star {{n}} · open",
+      "eyebrowLocked": "Star {{n}} · closed",
+      "doneOn": "Done on {{date}}.",
+      "here": "You do this right here, below on the star map.",
+      "empty": "This star has no task in this patch.",
+      "emptyTitle": "Dormant star",
+      "lockedComet": "No comet can be set for this patch any more.",
+      "lockedGuess": "Your guess for this constellation is in."
+    },
+    "star": {
+      "done": "Star {{n}}: {{task}} · lit",
+      "next": "Star {{n}}: {{task}} · suggested next",
+      "open": "Star {{n}}: {{task}} · open"
+    },
+    "comet": {
+      "kind": "Comet",
+      "ruleAria": "Comet rules",
+      "rule": "Tip the day {{patch}} goes LIVE – one click on a day sets your comet, one tip per patch. Land within ±2 days and the sun lights up top right in the sky. Tips close once {{patch}} is LIVE or the LIVE date was officially announced.",
+      "state": {
+        "none": "open",
+        "tipped": "set · waiting for LIVE",
+        "hit": "hit",
+        "miss": "missed",
+        "locked": "closed"
+      },
+      "head": {
+        "ask": "When does {{patch}} go LIVE?",
+        "closed": "Tips for {{patch}} are closed",
+        "tipped": "Impact expected on {{date}}",
+        "hit": "Impact on {{date}}",
+        "miss": "Your comet: {{date}}"
+      },
+      "earlier": "Earlier days",
+      "later": "Later days",
+      "dayAria": "Set comet on {{date}}",
+      "reward": "Land your comet and the sun lights up",
+      "window": "{{patch}} LIVE between {{from}} and {{to}}",
+      "locked": {
+        "live": "The patch is LIVE – tips are closed.",
+        "announced": "The LIVE date ({{date}}) was officially announced – tips are closed."
+      }
+    },
+    "guess": {
+      "kind": "Constellation",
+      "ruleAria": "Constellation guess rules",
+      "rule": "The constellation's shape comes from the patch's newest ship. One of the 7 ships is right. You get one try: a click on a ship submits your guess right away. Guess right and a star lights up and the name appears in the constellation.",
+      "optionAria": "Guess: {{name}}",
+      "state": {
+        "open": "open",
+        "correct": "recognised",
+        "wrong": "revealed",
+        "unavailable": ""
+      },
+      "head": {
+        "open": "Tap the ship you recognise in the constellation",
+        "correct": "Recognised: {{name}}",
+        "wrong": "The constellation shows the {{name}}",
+        "unavailable": ""
+      },
+      "foot": {
+        "open": "Guess right and the name appears in the constellation and the circle gets a check mark.",
+        "correct": "The star is lit, the name now stands in the constellation.",
+        "wrong": "No star this time – the answer stays in the constellation.",
+        "unavailable": ""
+      }
+    },
+    "series": {
+      "kind": "Series",
+      "count": "{{n}} constellations lit in a row",
+      "helpAria": "How does the series work?",
+      "help": "The series counts the patches in a row in which you lit your constellation – at least one star, or your sun rose. The newest constellation is still running and never breaks the series; if an older one stays dark, it starts over. Each stop on the road unlocks a reward from that number on, and unlocked stays unlocked (your best series: {{best}}).",
+      "helpReserve": "The series counts the patches in a row in which you lit your constellation – at least one star, or your sun rose. The newest constellation is still running and never breaks the series. Your fuel reserve is ready: one dark constellation will not break the series this time. Unlocked stays unlocked (your best series: {{best}}).",
+      "roadAria": "Series rewards",
+      "stopOn": "{{title}} – {{desc}} ✓ unlocked · from {{at}} lit constellations",
+      "stopNext": "{{title}} – {{desc}} Up next · from {{at}} lit constellations in a row",
+      "stopLocked": "{{title}} – {{desc}} From {{at}} lit constellations in a row",
+      "from": "from {{at}}"
     }
   },
   "beta": {
