@@ -54,7 +54,7 @@ class TestOffsetAndOriginGuard:
         return resolve_hardpoint_transforms(self.HELPERS, item_ports=ports,
                                             loadout_port_names=loadout,
                                             include_mesh_hardpoints=False,
-                                            unresolved=unresolved)
+                                            unresolved=unresolved, reject_origin=True)
 
     def test_root_helper_plus_offset_gives_the_real_position(self):
         out = self._resolve([{"portName": "hardpoint_pdc_01", "helperName": "AEGS_Idris",
@@ -95,3 +95,10 @@ class TestOffsetAndOriginGuard:
 
     def test_unresolved_is_optional(self):
         assert self._resolve([{"portName": "p", "helperName": "AEGS_Idris"}]) == {}
+
+    def test_sub_entities_keep_origin_placements_by_default(self):
+        # A gun on its turret's pivot sits at the parent's local origin.
+        out = resolve_hardpoint_transforms(
+            {"pivot": ROOT}, item_ports=[{"portName": "gun", "helperName": "pivot"}],
+            include_mesh_hardpoints=False)
+        assert out["gun"]["position"] == [0.0, 0.0, 0.0]

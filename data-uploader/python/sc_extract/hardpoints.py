@@ -164,6 +164,7 @@ def resolve_hardpoint_transforms(
     include_mesh_hardpoints: bool = True,
     max_entries: int = MAX_TRANSFORMS,
     unresolved: Optional[List[str]] = None,
+    reject_origin: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
     """``portName -> {position, rotation, helper, source}`` for one entity.
 
@@ -185,8 +186,10 @@ def resolve_hardpoint_transforms(
     to the hull ROOT node ``AEGS_Idris`` (the origin) and carry their real
     position only in that offset (``hardpoint_pdc_01``: 0 / 39 / 10.51).
 
-    A match that still lands on the origin is rejected rather than emitted: on
-    a hull the origin is the root node, never a mount. Port names that matched
+    With ``reject_origin`` (ship hulls only) a match that still lands on the
+    origin is rejected rather than emitted: on a hull the origin is the root
+    node, never a mount. Sub-entity placement keeps it off — there a gun on its
+    turret's pivot legitimately sits at the parent's local origin. Port names that matched
     nothing but such an origin node are appended to ``unresolved`` (when a list
     is passed), so the extract run can name them instead of plotting every
     controller and PDC on the same spot.
@@ -212,7 +215,7 @@ def resolve_hardpoint_transforms(
         if offset:
             moved = _rotate(entry.get("rotation"), offset)
             position = [round(a + b, 4) for a, b in zip(position, moved)]
-        if all(abs(c) < _ORIGIN_EPS_M for c in position):
+        if reject_origin and all(abs(c) < _ORIGIN_EPS_M for c in position):
             if port_name not in at_origin:
                 at_origin.append(port_name)
             return False

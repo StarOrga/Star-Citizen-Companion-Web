@@ -1287,6 +1287,7 @@ class CodexExtractor:
                         for p in item_ports],
             loadout_port_names=[e.get("itemPortName") for e in loadout],
             unresolved=unresolved,
+            reject_origin=True,
         )
         if not transforms:
             return {"transforms": {}, "frame": None, "unresolved": unresolved}
