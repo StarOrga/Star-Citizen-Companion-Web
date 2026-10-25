@@ -79,7 +79,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // XML; turrets without a ship-side fit (PDCs) carry their own stock gun.
     // 5: #794 — hardpointTransforms apply the port's helper offset; a port
     // that only matches the hull origin gets no position.
-    revision: 5,
+    // 6: #795 — a turret the ship loadout fits only in part keeps the stock
+    // items of its other ports.
+    revision: 6,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,

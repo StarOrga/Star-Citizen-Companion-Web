@@ -2364,8 +2364,8 @@ class CodexExtractor:
     })
 
     def _ship_default_loadout(self, comps) -> List[Dict[str, Any]]:
-        """The ship's stock fit, with every turret that brings no sub-items of
-        its own in the ship loadout filled from the turret item's stock fit."""
+        """The ship's stock fit, with every turret port the ship loadout leaves
+        unnamed filled from the turret item's own stock fit."""
         loadout = self._default_loadout(comps)
         self._fill_turret_stock(loadout, 0)
         return loadout
@@ -2374,15 +2374,19 @@ class CodexExtractor:
         if depth > _LOADOUT_MAX_DEPTH:
             return
         for e in entries:
-            if e.get("entries"):
-                self._fill_turret_stock(e["entries"], depth + 1)
-                continue
             cls = e.get("entityClassName")
-            if not cls:
-                continue
-            stock = self._turret_stock(cls)
+            stock = self._turret_stock(cls) if cls else []
             if stock:
-                e["entries"] = copy.deepcopy(stock)
+                # The ship loadout wins port by port: a manned turret that
+                # overrides only its left gun keeps the stock right gun. An
+                # override with an empty class stays empty on purpose.
+                own = e.get("entries") or []
+                taken = {str(s.get("itemPortName") or "").lower() for s in own}
+                extra = [copy.deepcopy(s) for s in stock
+                         if str(s.get("itemPortName") or "").lower() not in taken]
+                if extra:
+                    e["entries"] = own + extra
+            if e.get("entries"):
                 # A turret base whose stock fit carries a turret head without
                 # sub-items: fill that one from its own stock too (bounded by
                 # _LOADOUT_MAX_DEPTH, so a self-referencing fit cannot loop).

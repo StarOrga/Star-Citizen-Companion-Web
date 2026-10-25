@@ -165,7 +165,9 @@ class TestTurretStock:
                                               "BEHR_LaserRepeater_PDC_S1")),
         "AEGS_Turret_Manned": _item("TurretBase", ("hardpoint_weapon_left",
                                                    "Stock_Gun_From_Item")),
-        "AEGS_Seat_Pilot": _item("Seat", ("hardpoint_screen", "Vehicle_Screen_MFD")),
+        "AEGS_Turret_Twin": _item("TurretBase", ("hardpoint_weapon_left", "Stock_Gun_Left"),
+                                  ("hardpoint_weapon_right", "Stock_Gun_Right")),
+        "AEGS_Seat_Pilot":_item("Seat", ("hardpoint_screen", "Vehicle_Screen_MFD")),
         "Turret_Base_With_Head": _item("TurretBase", ("hardpoint_turret_head",
                                                       "Turret_PDC_BEHR_A")),
         "Turret_Loops_Itself": _item("Turret", ("hardpoint_self", "Turret_Loops_Itself")),
@@ -183,6 +185,19 @@ class TestTurretStock:
         lo = self._loadout(_entry("Turret_Top", "AEGS_Turret_Manned", children=[
             _entry("hardpoint_weapon_left", "KLWE_LaserRepeater_S4")]))
         assert [e["entityClassName"] for e in lo[0]["entries"]] == ["KLWE_LaserRepeater_S4"]
+
+    def test_a_partial_override_keeps_the_other_stock_guns(self):
+        lo = self._loadout(_entry("Turret_Top", "AEGS_Turret_Twin", children=[
+            _entry("HARDPOINT_WEAPON_LEFT", "KLWE_LaserRepeater_S4")]))
+        assert [(e["itemPortName"], e["entityClassName"]) for e in lo[0]["entries"]] == [
+            ("HARDPOINT_WEAPON_LEFT", "KLWE_LaserRepeater_S4"),
+            ("hardpoint_weapon_right", "Stock_Gun_Right")]
+
+    def test_an_override_with_an_empty_class_stays_empty(self):
+        lo = self._loadout(_entry("Turret_Top", "AEGS_Turret_Twin", children=[
+            _entry("hardpoint_weapon_left", None),
+            _entry("hardpoint_weapon_right", None)]))
+        assert [e["entityClassName"] for e in lo[0]["entries"]] == [None, None]
 
     def test_non_turret_items_keep_what_the_ship_says(self):
         lo = self._loadout(_entry("hardpoint_seat_pilot", "AEGS_Seat_Pilot"),
