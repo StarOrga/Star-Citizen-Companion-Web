@@ -302,3 +302,19 @@ class TestShipRoomsAcrossContainers:
             {"fileName": "a.socpak", "Offset": {"Position": {"x": "abc"}, "Rotation": "nope"}},
             {"fileName": None}, "junk"]})
         assert rooms[0]["pos"] == [1.0, 0.0, 0.0]
+
+
+class TestNestedContainers:
+    def test_rooms_in_a_nested_soc_are_skipped_with_a_warning(self):
+        from sc_extract.dataforge_extract import CodexExtractor
+        socpak = _backslash_zip({"middle.soc": b"no rooms here",
+                                 "middle/sub/a.soc": b"CryXmlB <Entities>Room_RN</Entities>"})
+        outer = io.BytesIO()
+        with zipfile.ZipFile(outer, "w", zipfile.ZIP_STORED) as z:
+            z.writestr("Data/ObjectContainers/ships/x/middle.socpak", socpak)
+        ex = CodexExtractor.__new__(CodexExtractor)
+        ex.p4k = zipfile.ZipFile(io.BytesIO(outer.getvalue()))
+        ex.logs = []
+        ex.on_log = lambda lvl, m: ex.logs.append((lvl, m))
+        assert ex._container_rooms("ObjectContainers/ships/x/middle.socpak") == []
+        assert any(lvl == "warn" and "nested container" in m for lvl, m in ex.logs)

@@ -4,6 +4,9 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import type { Lang, ShipDeck } from './codex.types';
 import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
 
+/** Counter behind each plan's DOM id prefix. */
+let nextDeckPlanId = 0;
+
 /**
  * 2D deck schematic of a ship (#797): one top view per deck, nose up, the
  * rooms drawn from their real floor footprints (`deck-plan.ts`). The deck
@@ -34,8 +37,8 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
                 type="button"
                 role="tab"
                 class="tab"
-                [attr.id]="'dp-tab-' + $index"
-                [attr.aria-controls]="'dp-panel'"
+                [attr.id]="uid + '-tab-' + $index"
+                [attr.aria-controls]="uid + '-panel'"
                 [class.on]="d.key === deck()?.key"
                 [attr.aria-selected]="d.key === deck()?.key"
                 [attr.tabindex]="d.key === deck()?.key ? 0 : -1"
@@ -50,8 +53,8 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
         }
 
         @if (deck(); as d) {
-          <div class="stage" id="dp-panel" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
-               [attr.aria-labelledby]="set.decks.length > 1 ? 'dp-tab-' + deckIndex() : null">
+          <div class="stage" [attr.id]="uid + '-panel'" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
+               [attr.aria-labelledby]="set.decks.length > 1 ? uid + '-tab-' + deckIndex() : null">
             <svg
               [attr.viewBox]="set.viewBox"
               role="group"
@@ -161,6 +164,9 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
   `],
 })
 export class ShipDeckPlanComponent {
+  /** Per-instance id prefix: the classic and holo layouts may both mount a plan. */
+  readonly uid = `dp-${++nextDeckPlanId}`;
+
   readonly decks = input<readonly ShipDeck[] | null | undefined>(null);
   readonly lang = input<Lang>('en');
 

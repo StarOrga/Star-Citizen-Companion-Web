@@ -115,7 +115,10 @@ describe('ShipDeckPlanComponent', () => {
     tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
     fixture.detectChanges();
     expect(tabs[2].getAttribute('aria-selected')).toBe('true');
-    expect(el.querySelector('[role="tabpanel"]')!.getAttribute('aria-labelledby')).toBe('dp-tab-2');
+    const panel = el.querySelector('[role="tabpanel"]')!;
+    expect(panel.getAttribute('aria-labelledby')).toBe(tabs[2].id);
+    expect(tabs[2].getAttribute('aria-controls')).toBe(panel.id);
+    expect(tabs[2].id).toMatch(/^dp-\d+-tab-2$/);
     tabs[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
     fixture.detectChanges();
     expect(tabs[0].getAttribute('aria-selected')).toBe('true');

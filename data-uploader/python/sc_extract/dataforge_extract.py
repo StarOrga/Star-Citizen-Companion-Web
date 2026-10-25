@@ -1676,6 +1676,14 @@ class CodexExtractor:
                             soc = read_zip_entry(blob, info)
                             if b"Room_RN" not in soc:
                                 continue
+                            if "/" in info.filename.replace("\\", "/"):
+                                # A nested .soc is a child container placed by its
+                                # parent; that placement is not read yet, so its
+                                # rooms would land in the wrong frame. None of the
+                                # 281 LIVE socpaks with nested .socs holds rooms in
+                                # them (probed 2026-10-25) — skip loudly, not wrongly.
+                                self.on_log("warn", f"rooms in nested container {info.filename} of {file_name} skipped (placement unknown)")
+                                continue
                             ents = soc_entities(soc, decode_cryxml)
                             if ents is not None:
                                 rooms += rooms_in_container(ents, (0.0, 0.0, 0.0))
