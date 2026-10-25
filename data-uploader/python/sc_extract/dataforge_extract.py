@@ -1477,8 +1477,9 @@ class CodexExtractor:
         skins = self._skin_catalog(base["className"], comps)
         self._skins_total += len(skins)
         dims = self._dimensions(comps)
-        item_ports = self._item_ports(comps)
-        loadout = self._default_loadout(comps)
+        loadout = self._ship_default_loadout(comps)
+        item_ports = self._item_ports(comps) + self._vehicle_xml_weapon_ports(
+            vcp, comps, loadout)
         # WHERE each port sits on the hull, from the mesh's helper nodes. Filled
         # in on the ports themselves (so the codex_item_ports rows carry it) and
         # as one ship-level map, because a ship's weapon/shield mounts usually
@@ -2310,6 +2311,95 @@ class CodexExtractor:
 
     def _default_loadout(self, comps) -> List[Dict[str, Any]]:
         return _default_loadout_of(comps)
+
+    # ── turret ports + turret-internal stock guns (#795) ──────────────────────
+    # VERIFIED against LIVE 4.x (probe 2026-10-25, AEGS_Hammerhead /
+    # AEGS_Idris_P): a ship's SItemPortContainerComponentParams lists only a
+    # handful of system ports (fuel, relays, life support). Its turret mounts
+    # are `<Part><ItemPort>` entries of the vehicle implementation XML instead
+    # (Hammerhead: 117 XML ports, 7 container ports, no overlap), so the codex
+    # never listed a single Hammerhead turret port. And a PDC entry in the ship
+    # loadout (`hardpoint_pdc_01 => Turret_PDC_BEHR_A`) carries no sub-entries:
+    # the gun is the turret ITEM's own stock fit (`hardpoint_turret_weapon =>
+    # BEHR_LaserRepeater_PDC_S1`), which a manned turret overrides in the ship's
+    # loadout and an automated PDC does not.
+    _TURRET_ITEM_TYPES = frozenset({"turret", "turretbase"})
+    _XML_WEAPON_PORT_TYPES = frozenset({
+        "turret", "turretbase", "weapongun", "weaponmining", "weapondefensive",
+        "missilelauncher", "toolarm", "utilityturret",
+    })
+
+    def _ship_default_loadout(self, comps) -> List[Dict[str, Any]]:
+        """The ship's stock fit, with every turret that brings no sub-items of
+        its own in the ship loadout filled from the turret item's stock fit."""
+        loadout = self._default_loadout(comps)
+        self._fill_turret_stock(loadout, 0)
+        return loadout
+
+    def _fill_turret_stock(self, entries: List[Dict[str, Any]], depth: int) -> None:
+        if depth > _LOADOUT_MAX_DEPTH:
+            return
+        for e in entries:
+            if e.get("entries"):
+                self._fill_turret_stock(e["entries"], depth + 1)
+                continue
+            cls = e.get("entityClassName")
+            if not cls:
+                continue
+            stock = self._turret_stock(cls)
+            if stock:
+                e["entries"] = [dict(s) for s in stock]
+
+    def _turret_stock(self, class_name: str) -> List[Dict[str, Any]]:
+        """Stock fit of a turret item, ``[]`` for any item that is not a turret
+        (a seat or a screen keeps exactly what the ship loadout says)."""
+        if not hasattr(self, "_turret_stock_cache"):
+            self._turret_stock_cache: Dict[str, List[Dict[str, Any]]] = {}
+        cache = self._turret_stock_cache
+        key = class_name.lower()
+        if key not in cache:
+            stock: List[Dict[str, Any]] = []
+            comps = self._entity_class_comps(class_name)
+            att = _find_component(comps, "SAttachableComponentParams") or {}
+            kind = str((att.get("AttachDef") or {}).get("Type") or "").lower()
+            if kind in self._TURRET_ITEM_TYPES:
+                stock = _default_loadout_of(comps)
+            cache[key] = stock
+        return cache[key]
+
+    def _vehicle_xml_weapon_ports(self, vcp: Dict[str, Any], comps,
+                                  loadout: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Turret and weapon ports declared only in the vehicle implementation
+        XML, shaped like `_item_ports` rows. Names already in the container are
+        skipped (case-insensitive); the casing follows the default loadout,
+        which is what the hardpoint helpers and the swap UI key on."""
+        root = self._vehicle_xml_root(vcp.get("vehicleDefinition"))
+        if root is None:
+            return []
+        ipc = _find_component(comps, "SItemPortContainerComponentParams") or {}
+        seen = {str(p.get("Name") or p.get("name") or "").lower()
+                for p in ipc.get("Ports") or [] if isinstance(p, dict)}
+        loadout_names = {str(e.get("itemPortName") or "").lower(): e.get("itemPortName")
+                         for e in loadout if e.get("itemPortName")}
+        out: List[Dict[str, Any]] = []
+        for part in root.iter("Part"):
+            port = part.find("ItemPort")
+            name = part.get("name")
+            if port is None or not name or name.lower() in seen:
+                continue
+            types = [t.get("type") for t in port.iter("Type") if t.get("type")]
+            if not any(t.lower() in self._XML_WEAPON_PORT_TYPES for t in types):
+                continue
+            seen.add(name.lower())
+            out.append({
+                "portName": loadout_names.get(name.lower()) or name,
+                "minSize": _to_int(port.get("minSize")),
+                "maxSize": _to_int(port.get("maxSize")),
+                "types": types,
+                "flags": _as_list(port.get("flags")),
+                "helperName": None,
+            })
+        return out
 
     # ── exhaustive generic dump ─────────────────────────────────────────────────
     def dump_all_records(self) -> None:

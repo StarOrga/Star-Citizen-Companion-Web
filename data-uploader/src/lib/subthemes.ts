@@ -75,7 +75,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // payload.hardpointTransforms / hardpointFrame are no longer empty.
     // 3: #796 — payload.decks (ordered deck list from the ship_setup
     // interior-map sections).
-    revision: 3,
+    // 4: #795 — payload.itemPorts gains the turret/weapon ports of the vehicle
+    // XML; turrets without a ship-side fit (PDCs) carry their own stock gun.
+    revision: 4,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
@@ -92,7 +94,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     key: 'codex_extra',
     // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on
     // LIVE 4.x again (hull node names from the node chunk's string table).
-    revision: 2,
+    // 3: #795 — codex_item_ports gains the turret/weapon ports declared only in
+    // the vehicle implementation XML.
+    revision: 3,
     phases: [
       'codex_manufacturers',
       'codex_blueprints',
