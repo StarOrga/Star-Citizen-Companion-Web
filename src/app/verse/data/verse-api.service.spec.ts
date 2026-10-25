@@ -36,7 +36,7 @@ describe('VerseApiService', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: SupabaseClientProvider, useValue: { client } },
-        { provide: AuthService, useValue: { isAuthenticated: authed } },
+        { provide: AuthService, useValue: { isAuthenticated: authed, user: () => ({ id: 'u1' }) } },
       ],
     });
     authed.set(true);
@@ -132,6 +132,146 @@ describe('VerseApiService', () => {
     const r = await TestBed.inject(VerseApiService).communityStars('4.4');
     expect(rpc).toHaveBeenCalledWith('verse_community_stars', { p_patch_line: '4.4' });
     expect(r).toEqual({ ok: true, data: { patchLine: '4.4', explorers: 3, stars: { notes: 2 } } });
+  });
+
+  describe('seen rule (shown with focus counts from the next session)', () => {
+    const key = 'sc.verse.shown.u1';
+    beforeEach(() => localStorage.removeItem(key));
+    afterEach(() => localStorage.removeItem(key));
+
+    it('records shown keys without marking them seen in the current session', () => {
+      const svc = TestBed.inject(VerseApiService);
+      svc.noteShown(['news:a', 'news:b']);
+      svc.noteShown(['news:b', 'news:c']);
+      expect(JSON.parse(localStorage.getItem(key) ?? '{}').keys).toEqual(['news:a', 'news:b', 'news:c']);
+      expect(svc.seen().size).toBe(0);
+      expect(calls.some((c) => c.method === 'upsert')).toBeFalse();
+    });
+
+    it('flushes a finished session through markSeen at the next loadSeen', async () => {
+      localStorage.setItem(key, JSON.stringify({ at: Date.now() - 31 * 60_000, keys: ['news:a'] }));
+      fromRes = { data: [], error: null };
+      const svc = TestBed.inject(VerseApiService);
+      await svc.loadSeen();
+      expect(calls.find((c) => c.method === 'upsert')?.args[0]).toEqual([{ item_key: 'news:a' }]);
+      expect(svc.seen().has('news:a')).toBeTrue();
+      expect(localStorage.getItem(key)).toBeNull();
+    });
+
+    it('keeps a running session (second tab) untouched and only refreshes its clock', async () => {
+      localStorage.setItem(key, JSON.stringify({ at: Date.now() - 60_000, keys: ['news:a'] }));
+      const svc = TestBed.inject(VerseApiService);
+      await svc.loadSeen();
+      expect(calls.some((c) => c.method === 'upsert')).toBeFalse();
+      expect(JSON.parse(localStorage.getItem(key) ?? '{}').keys).toEqual(['news:a']);
+    });
+
+    it('does not record anything signed out', () => {
+      const svc = TestBed.inject(VerseApiService);
+      TestBed.inject(AuthService); // user() still returns u1 in the mock; the guard is the empty-key filter
+      svc.noteShown([]);
+      expect(localStorage.getItem(key)).toBeNull();
+    });
+  });
+
+  describe('star events', () => {
+    const state = (stars: string[], extra: Record<string, unknown> = {}) => ({
+      patches: [
+        {
+          patch_line: '4.4',
+          stars,
+          star_count: stars.length,
+          unlocks: { log_entry: stars.length > 0, community: stars.length >= 3, wallpaper: stars.length >= 7 },
+        },
+      ],
+      total_stars: stars.length,
+      streak: {},
+      kartograph: {},
+      rewards: {},
+      ...extra,
+    });
+
+    it('emits lit/total and the crossed milestone after a new star', async () => {
+      rpc.and.callFake(async (fn: string) => {
+        if (fn === 'verse_explorer_state') return { data: rpc.calls.all().some((c) => c.args[0] === 'verse_earn_star') ? state(['notes', 'cx-fps', 'archive']) : state(['notes', 'cx-fps']), error: null };
+        return { data: true, error: null };
+      });
+      const svc = TestBed.inject(VerseApiService);
+      const events: unknown[] = [];
+      svc.starEarned$.subscribe((e) => events.push(e));
+      const r = await svc.earnStar('4.4', 'archive');
+      expect(r).toEqual({ ok: true, data: true });
+      expect(events).toEqual([{ key: 'archive', patchLine: '4.4', lit: 3, total: 7, unlocked: ['community'] }]);
+      expect(svc.lastStarEarned()?.key).toBe('archive');
+    });
+
+    it('emits nothing for an already earned star', async () => {
+      rpc.and.callFake(async (fn: string) => ({ data: fn === 'verse_explorer_state' ? state(['notes']) : false, error: null }));
+      const svc = TestBed.inject(VerseApiService);
+      const events: unknown[] = [];
+      svc.starEarned$.subscribe((e) => events.push(e));
+      await svc.earnStar('4.4', 'notes');
+      expect(events).toEqual([]);
+    });
+
+    it('a right guess lights cx-guess and emits; a wrong one reveals without a star', async () => {
+      let guessed = false;
+      rpc.and.callFake(async (fn: string) => {
+        if (fn === 'verse_explorer_state') return { data: state(guessed ? ['cx-guess'] : []), error: null };
+        guessed = true;
+        return { data: { patch_line: '4.4', correct: true, answer_class: 'RSI_Zeus', answer_name: 'Zeus', star_earned: true }, error: null };
+      });
+      const svc = TestBed.inject(VerseApiService);
+      const events: { key: string }[] = [];
+      svc.starEarned$.subscribe((e) => events.push(e));
+      const ok = await svc.submitGuess('4.4', 'RSI_Zeus');
+      expect(rpc).toHaveBeenCalledWith('verse_guess_constellation', { p_patch_line: '4.4', p_class_name: 'RSI_Zeus' });
+      expect(ok.ok && ok.data.correct).toBeTrue();
+      expect(events.map((e) => e.key)).toEqual(['cx-guess']);
+
+      rpc.and.callFake(async (fn: string) =>
+        fn === 'verse_explorer_state'
+          ? { data: state([]), error: null }
+          : { data: { patch_line: '4.5', correct: false, answer_class: 'X', answer_name: 'X', star_earned: false }, error: null },
+      );
+      await svc.submitGuess('4.5', 'Y');
+      expect(events.length).toBe(1);
+    });
+
+    it('maps the tip lock and guess refusals to their own translated keys', async () => {
+      rpc.and.callFake(async (fn: string) =>
+        fn === 'verse_explorer_state'
+          ? { data: state([]), error: null }
+          : { data: null, error: { message: 'comet_locked', code: 'P0001' } },
+      );
+      const svc = TestBed.inject(VerseApiService);
+      expect(await svc.submitPrediction('4.5', '2030-01-01')).toEqual({ ok: false, errorKey: 'errors.cometLocked' });
+      expect(rpc).toHaveBeenCalledWith('verse_submit_prediction', { p_patch_line: '4.5', p_date: '2030-01-01' });
+      rpc.and.callFake(async (fn: string) =>
+        fn === 'verse_explorer_state'
+          ? { data: state([]), error: null }
+          : { data: null, error: { message: 'guess_already_made', code: 'P0001' } },
+      );
+      expect(await svc.submitGuess('4.5', 'A')).toEqual({ ok: false, errorKey: 'errors.guessMade' });
+    });
+
+    it('returns the options without any answer field', async () => {
+      rpc.and.resolveTo({
+        data: { patch_line: '4.4', state: 'open', options: [{ class_name: 'A', name: 'Alpha' }], guessed_class: null, answer_class: null, answer_name: null },
+        error: null,
+      });
+      const r = await TestBed.inject(VerseApiService).guessOptions('4.4');
+      expect(r.ok && r.data.state).toBe('open');
+      expect(r.ok && r.data.answerClass).toBeNull();
+      expect(r.ok && r.data.options).toEqual([{ className: 'A', name: 'Alpha' }]);
+    });
+
+    it('relays the cx-newship verdict from the server', async () => {
+      rpc.and.resolveTo({ data: 'guess_first', error: null });
+      const r = await TestBed.inject(VerseApiService).claimNewShip('4.4', 'X');
+      expect(rpc).toHaveBeenCalledWith('verse_claim_newship', { p_patch_line: '4.4', p_class_name: 'X' });
+      expect(r).toEqual({ ok: true, data: 'guess_first' });
+    });
   });
 
   it('inserts a suggestion and translates a refusal', async () => {

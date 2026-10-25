@@ -14,7 +14,7 @@ describe('StarTriggerService', () => {
     authed.set(true);
     const digest = signal<unknown>({ patch: { line: '4.4' } });
     api = Object.assign(
-      jasmine.createSpyObj<VerseApiService>('VerseApiService', ['starPool', 'earnStar', 'loadDigest', 'constellation']),
+      jasmine.createSpyObj<VerseApiService>('VerseApiService', ['starPool', 'earnStar', 'loadDigest', 'constellation', 'claimNewShip']),
       { digest, digestState: signal('ready') },
     ) as never;
     api.starPool.and.resolveTo({ ok: true, data: ['cx-keybinds', 'cx-fps', 'cx-newship'] });
@@ -70,11 +70,23 @@ describe('StarTriggerService', () => {
     await expectAsync(TestBed.inject(StarTriggerService).earn('cx-keybinds')).toBeResolved();
   });
 
-  it('earns cx-newship only on the vehicle the constellation was drawn from', async () => {
+  it('hands the opened vehicle to the server for cx-newship (no client-side answer)', async () => {
+    api.claimNewShip.and.resolveTo({ ok: true, data: 'earned' });
     const svc = TestBed.inject(StarTriggerService);
-    await svc.codexDetail('ship', 'ANVL_Carrack');
-    expect(api.earnStar).not.toHaveBeenCalled();
     await svc.codexDetail('ship', 'rsi_zeus');
-    expect(api.earnStar).toHaveBeenCalledOnceWith('4.4', 'cx-newship');
+    expect(api.claimNewShip).toHaveBeenCalledOnceWith('4.4', 'rsi_zeus');
+    expect(api.earnStar).not.toHaveBeenCalled();
+    expect(api.constellation).not.toHaveBeenCalled();
+    expect(analytics.captureVerse).toHaveBeenCalledOnceWith('verse_star_earned', { patch_line: '4.4', star_key: 'cx-newship' });
+  });
+
+  it('keeps cx-newship retryable while the guess is still open, and ignores non-vehicles', async () => {
+    api.claimNewShip.and.resolveTo({ ok: true, data: 'guess_first' });
+    const svc = TestBed.inject(StarTriggerService);
+    await svc.codexDetail('ship', 'rsi_zeus');
+    await svc.codexDetail('ship', 'rsi_zeus');
+    expect(api.claimNewShip).toHaveBeenCalledTimes(2);
+    await svc.codexDetail('weapon', 'x');
+    expect(api.claimNewShip).toHaveBeenCalledTimes(2);
   });
 });

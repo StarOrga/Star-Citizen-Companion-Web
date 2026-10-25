@@ -4,7 +4,8 @@ import { AnalyticsService } from '../../core/analytics.service';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseStarKey } from '../data/verse.models';
 
-export type EarnableStarKey = Exclude<VerseStarKey, 'comet'>;
+/** Keys a source page may claim: comet comes with the tip, cx-guess with the guess, cx-newship via {@link StarTriggerService.codexDetail}. */
+export type EarnableStarKey = Exclude<VerseStarKey, 'comet' | 'cx-guess' | 'cx-newship'>;
 
 /**
  * Fire-and-forget star triggers for the source pages (Codex, Hangar, …).
@@ -12,6 +13,8 @@ export type EarnableStarKey = Exclude<VerseStarKey, 'comet'>;
  * `earn()` resolves the current patch line from the Verse digest, claims the
  * star only when the key is in that patch's offered pool, and reports
  * `verse_star_earned` (consent-gated inside AnalyticsService) when it was new.
+ * The unlock-toast event (`VerseApiService.starEarned$`) is emitted by the API
+ * service itself, so every claim path (this one, the comet tip, the guess) feeds it.
  * It never throws and is a silent no-op when signed out — a source page must
  * not care whether the star map exists. All dependencies are resolved lazily
  * so injecting this service costs a source page nothing.
@@ -33,7 +36,6 @@ export class StarTriggerService {
   }
 
   private readonly pools = new Map<string, Promise<readonly VerseStarKey[]>>();
-  private readonly newShips = new Map<string, Promise<string | null>>();
   /** `line|key` already claimed (or tried) this session — no repeated RPCs. */
   private readonly done = new Set<string>();
 
@@ -50,16 +52,26 @@ export class StarTriggerService {
     return this.zone.runOutsideAngular(() => this.claimNewShip(kind, className));
   }
 
-  private async claim(key: EarnableStarKey): Promise<void> {
+  private async claim(key: EarnableStarKey | 'cx-newship', className?: string): Promise<void> {
     try {
       if (!this.auth.isAuthenticated()) return;
       const line = await this.currentLine();
       if (!line) return;
-      const id = `${line}|${key}`;
+      const id = key === 'cx-newship' ? `${line}|${key}|${(className ?? '').toLowerCase()}` : `${line}|${key}`;
       if (this.done.has(id)) return;
       const pool = await this.pool(line);
       if (!pool.includes(key)) return;
       this.done.add(id);
+      if (key === 'cx-newship') {
+        // The server compares the hull itself - the answer never reaches the client.
+        const res = await this.api.claimNewShip(line, className ?? '');
+        // Not the newest ship (or the guess is still open): stay retryable.
+        if (!res.ok || res.data === 'guess_first') this.done.delete(id);
+        if (res.ok && res.data === 'earned') {
+          this.analytics.captureVerse('verse_star_earned', { patch_line: line, star_key: key });
+        }
+        return;
+      }
       const res = await this.api.earnStar(line, key);
       if (!res.ok) {
         this.done.delete(id);
@@ -76,8 +88,7 @@ export class StarTriggerService {
       if (!this.auth.isAuthenticated() || (kind !== 'ship' && kind !== 'vehicle')) return;
       const line = await this.currentLine();
       if (!line) return;
-      const newest = await this.newShip(line);
-      if (newest && newest.toLowerCase() === className.toLowerCase()) await this.claim('cx-newship');
+      await this.claim('cx-newship', className);
     } catch {
       /* see earn() */
     }
@@ -94,15 +105,6 @@ export class StarTriggerService {
       p = this.api.starPool(line).then((r) => (r.ok ? r.data : []));
       p.then((keys) => keys.length === 0 && this.pools.delete(line));
       this.pools.set(line, p);
-    }
-    return p;
-  }
-
-  private newShip(line: string): Promise<string | null> {
-    let p = this.newShips.get(line);
-    if (!p) {
-      p = this.api.constellation(line).then((r) => (r.ok && r.data ? r.data.className : null));
-      this.newShips.set(line, p);
     }
     return p;
   }

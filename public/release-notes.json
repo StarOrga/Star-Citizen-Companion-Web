@@ -1,7 +1,71 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.161.0",
+  "current": "0.162.0",
   "releases": [
+    {
+      "version": "0.162.0",
+      "date": "2026-10-23",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse β: cinematischer „Anflug“ als Startseite.",
+              "text": "/verse öffnet mit einer Kamerafahrt durch den Nebel: Sonne und Sternbild stehen ab dem ersten Bild, die Überschrift löst sich auf, der Planet zoomt beim Überfahren, Monde laufen auf Bahnen mit Thema, NEU-Marke und Item, die Statuszeilen zeichnen sich und blenden den Text ein, die Sternkarte kommt zuletzt. Das volle Intro läuft einmal pro Sitzung, danach die Kurzfassung; bei reduzierter Bewegung steht sofort der Endzustand. „Gesehen“ zählt beim Öffnen sofort; was in einer Verse-Sitzung mindestens 5 s sichtbar war, gilt ab der nächsten."
+            },
+            {
+              "title": "Verse β: neue Sternkarte.",
+              "text": "/verse/explorer zeigt Sterne ohne Ringe (ruhender Kern / pulsierend / entzündet), mit Hover-Zoom und Glühen, die Sonne oben rechts in drei Zuständen, eine Kometen-Tippspur (der Tipp rastet ein, sobald das offizielle LIVE-Datum angekündigt ist, sonst zu Gunsten des Spielers), eine Sternbild-Rätselspur mit Teleskop (ein Tipp pro Patch: richtig → Stern, falsch → Auflösung ohne Stern), die Serie in einer Zeile („N Sternbilder in Folge entzündet“) und ein Logbuch-Seitenpanel. Keine Verse-Unterseite hat mehr einen Zurück-Button."
+            },
+            {
+              "title": "Freischalt-Hinweis app-weit.",
+              "text": "Ein verdienter Stern oder eine Freischaltung meldet sich unten rechts als Toast, der sich selbst schließt, die Spur des Feedback-Knopfs freihält und ignoriert werden kann."
+            },
+            {
+              "title": "Backend.",
+              "text": "Migration 20261023100000_verse_briefing_cinematic.sql: RPCs verse_guess_options, verse_guess_constellation, verse_claim_newship, verse_submit_prediction, verse_explorer_state v2 und die von Admins gepflegte Tabelle verse_patch_announcements (angekündigte LIVE-Daten). Die Rätsel-Antwort stammt aus derselben Population wie die Ablenker, guess_first wird vor dem Klassenvergleich geprüft, und verse_earn_star lehnt cx-newship ab. Die Serie bricht nur an LIVE-Patches vor dem neuesten LIVE-Patch – ein Kometentipp auf den PTU-Patch macht den aktuellen LIVE-Patch nicht mehr zum verpassten."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.161.1",
+      "date": "2026-10-23",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Datenbank bleibt unter dem 500-MB-Limit.",
+              "text": "Das nächtliche Aufräumen alter Codex-Builds löschte zwar die Zeilen, gab den Platz aber nie frei; die Datenbank wuchs so wieder Richtung 500 MB (gemessen 434 MB). Jetzt läuft nachts (04:45–04:58 UTC) pro Codex-Tabelle ein VACUUM FULL, das den Platz der gelöschten Builds zurückgibt (von Hand ausgeführt: 434 → 241 MB, beide Builds 4.10.0 und 4.10.2 vollständig). Eine Tabelle ist dabei jeweils wenige Sekunden gesperrt (größte ~29 s)."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "R2-Aufräumen für Sprachdaten.",
+              "text": "Die Edge Function ingest-catalog kennt die neue Operation locale_gc (nur Service Role): sie löscht die codex-locale/<build>/-Ordner von Builds, die es nicht mehr gibt. Standardmäßig nur ein Probelauf; gelöscht wird erst mit dry_run: false."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Vercel baut nur noch main.",
+              "text": "Feature-Branches erzeugen keine Preview-Deployments mehr; sie hatten den 10-GB-Deployment-Speicher des Vercel-Teams vollständig gefüllt."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.161.0",
       "date": "2026-10-21",
