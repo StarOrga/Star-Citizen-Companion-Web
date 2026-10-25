@@ -1604,6 +1604,12 @@ class CodexExtractor:
                        or self.df.record_by_id(room["section"]))
             key = sec.name.split(".", 1)[-1].lower() if sec is not None else None
             deck = by_key.get(key) if key else None
+            if deck is None and not room["section"] and len(decks) == 1:
+                # Many hulls leave interiorMapSection empty. With one deck the
+                # room can only be on it; with several there is no reliable
+                # fallback — floor height matched the real deck for only ~60 %
+                # of sectioned rooms on LIVE (probed 2026-10-25), so those stay out.
+                deck = decks[0]
             if deck is None:
                 continue
             row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
