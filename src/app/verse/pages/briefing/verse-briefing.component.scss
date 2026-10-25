@@ -2,8 +2,8 @@
 // one-viewport stage (batch 2026-10-25).
 //
 // Desktop: the stage is exactly one viewport tall — a three-row grid of the
-// instrument strip (patch status left, constellation + star-map button in the
-// far top-right corner), the hero (left column, headline clamped to two lines)
+// instrument strip (patch status centred, the current constellation as the
+// star-map link in the far top-right corner), the hero (centred, headline clamped to two lines)
 // and the gate band (the three moons) directly above the footer strip, whose
 // height the shell publishes as --sc-verse-footer-h. Phones and short
 // viewports fall back to normal scrolling. Only the backdrop (.bleed) breaks
@@ -214,79 +214,58 @@
   z-index: 3;
   display: flex;
   align-items: center;
+  justify-content: center;
   min-width: 0;
-  // Room for the corner instrument so the status never runs under it.
-  padding-right: 250px;
+  // Room for the corner constellation on both sides keeps the status centred.
+  padding-inline: 190px;
 }
 
-// Constellation + star-map button: one anchor, flush in the far top-right
-// corner of the full-width stage (the frame is narrower than the viewport on
-// wide screens, so the corner is measured from the viewport edge).
+// The current patch's constellation is the star-map link itself, flush in the
+// far top-right corner of the full-width stage (the frame is narrower than the
+// viewport on wide screens, so the corner is measured from the viewport edge).
+// Hover lifts it slightly: brighter and a soft accent glow.
 .map {
   position: absolute;
   top: -14px;
   right: calc((100% - 100vw) / 2 + clamp(14px, 1.6vw, 28px));
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  display: block;
   padding: 4px;
   border-radius: 18px;
   color: var(--sc-accent);
   text-decoration: none;
   outline: none;
-  animation: btn-in calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(3s * var(--k)) both;
+  cursor: pointer;
+  transition: background 0.2s;
 }
+.map:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
 .map:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
 .fig {
   display: block;
   width: 150px;
   height: 110px;
   margin-top: 6px;
+  opacity: 0.85;
+  transition: opacity 0.2s, filter 0.2s, transform 0.2s;
   animation: cst-focus calc(1.2s * var(--k)) ease-out both;
 }
-.mapbtn {
-  position: relative;
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+.map:hover .fig, .map:focus-visible .fig {
+  opacity: 1;
+  filter: brightness(1.35) drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 70%, transparent));
+  transform: scale(1.04);
 }
-.mapbtn .ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(var(--sc-accent) calc(var(--p, 0) * 1turn), color-mix(in srgb, var(--sc-accent) 16%, transparent) 0);
-  mask-image: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent 100%);
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 60%, transparent));
-}
-.mapbtn .disc {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--sc-bg-0) 92%, transparent);
-  transition: background 0.16s;
-}
-.map:hover .disc { background: color-mix(in srgb, var(--sc-accent) 18%, var(--sc-bg-0)); }
-.mapbtn svg { width: 22px; height: 22px; }
-.mapbtn line { stroke: currentColor; stroke-width: 1.2; opacity: 0.6; }
-.mapbtn circle { fill: currentColor; }
 
-// ── Hero: left column, never wider than ~half the stage ─────────────────
+// ── Hero: centred column, never wider than ~half the stage ──────────────
 .hero {
   position: relative;
   z-index: 2;
   align-self: center;
+  justify-self: center;
   display: grid;
-  justify-items: start;
-  width: min(52%, 780px);
+  justify-items: center;
+  width: min(60%, 820px);
   min-width: 0;
   padding: 8px 0 16px;
-  text-align: left;
+  text-align: center;
 }
 .since { color: var(--sc-fg-1); }
 .title {
@@ -316,7 +295,7 @@
 .roll-in { animation: roll-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .roll-out { animation: roll-out 0.4s ease-in both; }
 
-.go { display: grid; justify-items: start; gap: 8px; }
+.go { display: grid; justify-items: center; gap: 8px; }
 .cta {
   display: inline-flex;
   align-items: center;
@@ -341,7 +320,6 @@
 // Where the CTA leads, small and muted right under it.
 .where {
   margin: 0;
-  padding-left: 4px;
   font: 400 max(0.8125rem, var(--sc-fs-floor)) / 1.4 var(--sc-font-body);
   color: var(--sc-fg-1);
   animation: soft-up calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.3s * var(--k)) both;
@@ -421,19 +399,6 @@
   gap: 12px;
   padding: 22px 0 calc(var(--sc-verse-footer-h, 0px) + 14px);
 }
-// A faint horizon above the band separates it from the news.
-.moons::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sc-accent) 30%, transparent) 30%,
-    color-mix(in srgb, var(--sc-accent) 30%, transparent) 70%, transparent);
-  pointer-events: none;
-  animation: fade-in calc(0.6s * var(--k)) ease-out calc(2s * var(--k)) both;
-}
 .moon-slot { animation: moon-in calc(0.8s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.8s * var(--k)) both; }
 .moon-slot[data-door='news'] { --mx: 160px; }
 .moon-slot[data-door='patches'] { --mx: 0px; animation-delay: calc(1.9s * var(--k)); }
@@ -444,7 +409,7 @@
 .status {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: flex-end;
   gap: 8px 30px;
   margin: 0;
@@ -505,7 +470,6 @@
 }
 @keyframes draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes text-in { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }
-@keyframes btn-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
 @keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes roll-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes roll-out { from { opacity: 1; transform: none; filter: none; } to { opacity: 0; transform: translateY(-14px); filter: blur(6px); } }
@@ -522,8 +486,8 @@
 
 // ── Tablet ──────────────────────────────────────────────────────────────
 @media (max-width: 1024px) {
-  .hero { width: min(62%, 640px); }
-  .top { padding-right: 210px; }
+  .hero { width: min(72%, 680px); }
+  .top { padding-inline: 150px; }
   .fig { width: 120px; height: 90px; }
 }
 
@@ -537,11 +501,9 @@
 @media (max-width: 640px) {
   .bleed { top: -20px; }
   .top { align-items: flex-start; gap: 12px; padding: 4px 0 0; }
-  .status { flex: 1; min-width: 0; gap: 6px 18px; }
+  .status { flex: 1; min-width: 0; gap: 6px 18px; justify-content: flex-start; }
   .map { position: static; flex: none; margin: -6px -4px 0 auto; }
   .fig { width: 84px; height: 64px; margin-top: 0; }
-  .mapbtn { width: 46px; height: 46px; }
-  .mapbtn .disc { width: 34px; height: 34px; }
   .sun { top: 170px; right: 8%; }
   .hero { width: 100%; padding: 36px 0 24px; }
   .title { max-width: none; margin-bottom: 18px; }

@@ -18,8 +18,9 @@
     </div>
 
     <div class="frame">
-      <!-- Row 1 · instrument strip: patch status left, the constellation and
-           the star-map button in the far top-right corner of the stage. -->
+      <!-- Row 1 · instrument strip: patch status centred, the current patch's
+           constellation in the far top-right corner — itself the way into the
+           star map. -->
       <div class="top">
         @if (status(); as s) {
           <p class="status">
@@ -29,23 +30,14 @@
             }
           </p>
         }
-        <a class="map" routerLink="/verse/explorer" [style.--p]="lit() / total"
+        <a class="map" routerLink="/verse/explorer"
            [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
            [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
           <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
-          <span class="mapbtn" aria-hidden="true">
-            <span class="ring"></span>
-            <span class="disc">
-              <svg viewBox="0 0 24 24" focusable="false">
-                <line x1="4" y1="18" x2="9" y2="9" /><line x1="9" y1="9" x2="15" y2="12" /><line x1="15" y1="12" x2="20" y2="5" />
-                <circle cx="4" cy="18" r="1.6" /><circle cx="9" cy="9" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="20" cy="5" r="1.9" />
-              </svg>
-            </span>
-          </span>
         </a>
       </div>
 
-      <!-- Row 2 · hero: left column, headline clamped to two lines. -->
+      <!-- Row 2 · hero: centred column, headline clamped to two lines. -->
       <div class="hero">
         @if (api.digestState() === 'error' && !api.digest()) {
           <h1 class="title">{{ 'verse.briefing.headlineError' | translate }}</h1>

@@ -28,7 +28,7 @@ import {
 } from './constellation-render';
 import { badgeCaption } from './kartograph-badge.component';
 import { shareImage } from './share-image';
-import { STARS_PER_PATCH, badgeQuery, communityLevels, isLiveDay, supernovaPoints } from './starmap.model';
+import { STARS_PER_PATCH, badgeQuery, communityLevels, defaultPatch, isLiveDay, supernovaPoints } from './starmap.model';
 import { wallpaperConstellations } from './wallpaper';
 
 /**
@@ -191,7 +191,7 @@ export class StarmapMoreComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly isAdmin = this.roles.isAdmin;
-  private readonly current = computed(() => this.state().patches[0] ?? null);
+  private readonly current = computed(() => defaultPatch(this.state()));
   /** sr-meteor only on the newest patch's LIVE day (the Starscape app's rule). */
   readonly meteorToday = computed(() => isLiveDay(this.current()?.liveAt));
   readonly community = signal<VerseCommunityStars | null>(null);

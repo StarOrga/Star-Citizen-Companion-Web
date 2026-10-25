@@ -21,7 +21,7 @@ import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import { VerseDigestItem, VerseDoor } from '../data/verse.models';
-import { STARS_PER_PATCH } from '../starmap/starmap.model';
+import { STARS_PER_PATCH, defaultPatch } from '../starmap/starmap.model';
 import { BriefingMoonComponent, MoonTiming, moonSchedule } from './briefing/briefing-moon.component';
 import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import {
@@ -99,8 +99,8 @@ interface HeroStory {
  * `/verse` — the briefing, "Anflug": a cinematic stage (nebula, sun and the
  * current patch's constellation from frame 0, a static planet horizon) that
  * flies in once per session. One viewport on desktop: the instrument strip
- * (patch status left, constellation + star-map button in the far top-right
- * corner), the hero (the newest stories rotate; pills only switch, the CTA is
+ * (patch status centred, the current constellation as the star-map link in the
+ * far top-right corner), the centred hero (the newest stories rotate; pills only switch, the CTA is
  * the one way in) and the gate band of three moons above the footer strip.
  * One pause control holds all auto motion. β off: the legacy landing (the
  * Verse News list) renders instead.
@@ -191,7 +191,11 @@ export class VerseBriefingComponent {
     briefingStatus(this.news.patchLines(), this.api.digest()?.patch ?? null, Date.now()),
   );
 
-  private readonly patch = computed(() => this.api.explorer()?.patches[0] ?? null);
+  /** The current patch (the map's default), never a tipped line still in testing. */
+  private readonly patch = computed(() => {
+    const st = this.api.explorer();
+    return st ? defaultPatch(st) : null;
+  });
   readonly points = computed(() => this.patch()?.constellation?.points ?? null);
   readonly lit = computed(() => Math.min(STARS_PER_PATCH, this.patch()?.starCount ?? 0));
   /** The star map's placement of the lit stars, so both pages light the same ones. */
