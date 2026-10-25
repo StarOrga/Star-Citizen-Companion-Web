@@ -77,7 +77,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // interior-map sections).
     // 4: #795 — payload.itemPorts gains the turret/weapon ports of the vehicle
     // XML; turrets without a ship-side fit (PDCs) carry their own stock gun.
-    revision: 4,
+    // 5: #794 — hardpointTransforms apply the port's helper offset; a port
+    // that only matches the hull origin gets no position.
+    revision: 5,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
@@ -96,7 +98,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // LIVE 4.x again (hull node names from the node chunk's string table).
     // 3: #795 — codex_item_ports gains the turret/weapon ports declared only in
     // the vehicle implementation XML.
-    revision: 3,
+    // 4: #794 — codex_item_ports.position applies the helper offset; ports on
+    // the hull origin carry no position.
+    revision: 4,
     phases: [
       'codex_manufacturers',
       'codex_blueprints',
@@ -120,7 +124,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 3: ship silhouettes carry the Verse-hub constellation (7 stars) + ground flag.
     // 4: …now from the uploader's own build too (silhouette_build_app never
     //    wrote them — only the CLI driver did; both share build_rows now).
-    revision: 4,
+    // 5: #795/#794 — anchors come from the corrected hardpointTransforms (turret
+    //    ports from the vehicle XML, helper offsets, no origin anchors).
+    revision: 5,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',

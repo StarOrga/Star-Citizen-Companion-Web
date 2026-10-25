@@ -190,6 +190,14 @@ DataCore stores just the helper node's NAME
 (`SItemPortDef.AttachmentImplementation.Helper.Helper.Name`) plus a relative
 offset. `sc_extract/hardpoints.py` joins the two by **exact** node-name match
 (helper name, else the port name itself); a near-miss yields no position.
+Since #794 (uploader 0.61.0) the helper match also applies that offset
+(`AttachmentImplementation.Helper.Helper.Offset.Position`, rotated into the
+helper node's frame): many container ports attach to the hull ROOT node (at
+the origin) and carry their real position only there — before, 95 Idris-P
+transforms sat at 0/0/0. On ship hulls a match that still lands on the origin
+is rejected (`reject_origin`) and named in the run's `hardpoints:` warn line;
+sub-entity placement (`assets3d/entity.py`) keeps origin matches, since a gun
+on its turret's pivot is legitimately at the local origin.
 Coordinates are metres in the hull mesh's model space, CryEngine axes
 (`+X` starboard, `+Y` nose, `+Z` up), never rescaled.
 

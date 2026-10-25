@@ -28,6 +28,7 @@ absolute units.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -40,6 +41,10 @@ _HARDPOINT_NAME_RE = re.compile(r"^(?:hardpoint|hp)[_.]", re.IGNORECASE)
 # bloat the ship payload. Port-referenced entries are kept first (they are what
 # the UI looks up); mesh-only extras fill the remainder in name order.
 MAX_TRANSFORMS = 512
+
+# A resolved position closer than this to the model origin is the hull's root
+# node, not a mount (#794).
+_ORIGIN_EPS_M = 1e-3
 
 # How far outside the ship's bounding box a hardpoint may sit before we stop
 # trusting that box as a shared frame (fraction of the box's own extent).
@@ -110,6 +115,44 @@ def _first_name(node: Any, depth: int, _max_depth: int = 4) -> Optional[str]:
     return None
 
 
+def port_helper_offset(port: Any) -> Optional[List[float]]:
+    """``[x, y, z]`` the port sits away from its helper node, or ``None``.
+
+    Read from ``AttachmentImplementation.Helper.Helper.Offset.Position`` (a
+    QuatT). ``None`` when absent or zero, so ports without an offset keep the
+    node's own position unchanged. Only the translation is applied; the
+    offset's Ang3 rotation stays out of the emitted rotation.
+    """
+    pos = _dig(port, "AttachmentImplementation", "Helper", "Helper", "Offset", "Position")
+    if not isinstance(pos, dict):
+        return None
+    try:
+        vec = [float(pos.get(k) or 0.0) for k in ("x", "y", "z")]
+    except (TypeError, ValueError):
+        return None
+    if not all(math.isfinite(v) for v in vec) or all(abs(v) < 1e-6 for v in vec):
+        return None
+    return vec
+
+
+def _rotate(quat: Any, vec: List[float]) -> List[float]:
+    """``vec`` rotated by an ``[x, y, z, w]`` quaternion (identity when absent)."""
+    if not (isinstance(quat, (list, tuple)) and len(quat) == 4):
+        return list(vec)
+    try:
+        qx, qy, qz, qw = (float(c) for c in quat)
+    except (TypeError, ValueError):
+        return list(vec)
+    vx, vy, vz = vec
+    # t = 2 * cross(q.xyz, v); v' = v + w * t + cross(q.xyz, t)
+    tx = 2.0 * (qy * vz - qz * vy)
+    ty = 2.0 * (qz * vx - qx * vz)
+    tz = 2.0 * (qx * vy - qy * vx)
+    return [vx + qw * tx + (qy * tz - qz * ty),
+            vy + qw * ty + (qz * tx - qx * tz),
+            vz + qw * tz + (qx * ty - qy * tx)]
+
+
 def _dig(node: Any, *keys: str) -> Any:
     for key in keys:
         if not isinstance(node, dict):
@@ -124,6 +167,8 @@ def resolve_hardpoint_transforms(
     loadout_port_names: Iterable[Optional[str]] = (),
     include_mesh_hardpoints: bool = True,
     max_entries: int = MAX_TRANSFORMS,
+    unresolved: Optional[List[str]] = None,
+    reject_origin: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
     """``portName -> {position, rotation, helper, source}`` for one entity.
 
@@ -138,13 +183,30 @@ def resolve_hardpoint_transforms(
     contract: ``helper`` (DataCore named the node), ``portName`` (the port name
     is itself a node name) or ``mesh`` (a ``hardpoint_*`` node no port
     references — real geometry, no port attached).
+
+    A port may carry ``helperOffset`` (:func:`port_helper_offset`): the port
+    then sits that far from its helper node, in the node's own frame. VERIFIED
+    against LIVE 4.x (#794, probe 2026-10-25): AEGS_Idris_P's PDC ports attach
+    to the hull ROOT node ``AEGS_Idris`` (the origin) and carry their real
+    position only in that offset (``hardpoint_pdc_01``: 0 / 39 / 10.51).
+
+    With ``reject_origin`` (ship hulls only) a match that still lands on the
+    origin is rejected rather than emitted: on a hull the origin is the root
+    node, never a mount. Sub-entity placement keeps it off — there a gun on its
+    turret's pivot legitimately sits at the parent's local origin. Port names that matched
+    nothing but such an origin node are appended to ``unresolved`` (when a list
+    is passed), so the extract run can name them instead of plotting every
+    controller and PDC on the same spot.
     """
     if not helpers:
         return {}
     index = {name.lower(): name for name in helpers}
     out: Dict[str, Dict[str, Any]] = {}
 
-    def take(port_name: Optional[str], helper_name: Optional[str], source: str) -> bool:
+    at_origin: List[str] = []
+
+    def take(port_name: Optional[str], helper_name: Optional[str], source: str,
+             offset: Optional[List[float]] = None) -> bool:
         if not port_name or port_name in out:
             return False
         node = index.get((helper_name or "").lower())
@@ -153,8 +215,16 @@ def resolve_hardpoint_transforms(
         entry = helpers.get(node)
         if not isinstance(entry, dict) or not entry.get("position"):
             return False
+        position = list(entry["position"])
+        if offset:
+            moved = _rotate(entry.get("rotation"), offset)
+            position = [round(a + b, 4) for a, b in zip(position, moved)]
+        if reject_origin and all(abs(c) < _ORIGIN_EPS_M for c in position):
+            if port_name not in at_origin:
+                at_origin.append(port_name)
+            return False
         out[port_name] = {
-            "position": entry["position"],
+            "position": position,
             "rotation": entry.get("rotation"),
             "helper": node,
             "source": source,
@@ -164,11 +234,16 @@ def resolve_hardpoint_transforms(
     ports = [p for p in item_ports if isinstance(p, dict)]
     for port in ports:
         name = _clean(port.get("portName"))
-        if not take(name, _clean(port.get("helperName")), "helper"):
+        offset = port.get("helperOffset")
+        if not take(name, _clean(port.get("helperName")), "helper", offset):
+            # No offset here on purpose: it is relative to the helper node, and
+            # the port-name node is a different one.
             take(name, name, "portName")
     for raw in loadout_port_names:
         name = _clean(raw)
         take(name, name, "portName")
+    if unresolved is not None:
+        unresolved.extend(n for n in at_origin if n not in out)
 
     if include_mesh_hardpoints:
         extras = sorted(n for n in helpers if _HARDPOINT_NAME_RE.match(n) and n not in out)

@@ -42,6 +42,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fällt ohne PTU auf LIVE + 1 Minor zurück; Versionsprüfung verankert.
 - `20261025121000_verse_digest_gallery_per_series` – ein Galerie-Bild pro Titel.
 
+## [0.162.2] - 2026-10-25
+
+### Fixed
+
+- **Codex: Hardpoints sitzen auf dem Rumpf statt im Schiffsursprung.** Viele
+  Container-Ports hängen am Wurzelknoten des Rumpfs (im Ursprung) und tragen
+  ihre echte Position nur im Helper-Offset der DataCore – der wurde bisher
+  ignoriert, beim Idris-P lagen so 95 Hardpoints auf 0/0/0. Der Extraktor
+  wendet den Offset jetzt an (gedreht in den Rahmen des Helper-Knotens); was
+  auf einem Rumpf trotzdem im Ursprung landet, bekommt keine Position mehr und
+  wird im Extrakt-Log pro Schiff genannt. Gegen das LIVE-`Data.p4k` geprüft:
+  Idris-P, Hammerhead, Gladius und Polaris haben keinen Hardpoint mehr im
+  Ursprung (#794).
+- **Codex: Geschütztürme und PDC-Geschütze im Schiffs-Loadout.** Turm-,
+  Waffen- und Raketen-Ports stehen nur in der Fahrzeug-XML, nicht in den
+  Container-Ports – sie erreichten den Codex nie. Der Extraktor übernimmt sie
+  jetzt (ohne Türen, Sitze, Lichter), und Punktverteidigungs-Geschütze (PDC)
+  bekommen die Standardwaffe ihres Turms. LIVE: die Hammerhead zeigt alle 6
+  Türme samt Raketenwerfern, die Idris-P 11 PDC-Geschütze (#795).
+- **Die Codex-Daten ändern sich mit dem nächsten Uploader-Lauf** auf Data
+  Uploader **0.61.0**; bis dahin zeigt die Seite die bisherigen Positionen.
+
 ## [0.162.1] - 2026-10-25
 
 ### Fixed
