@@ -16,7 +16,7 @@ import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
-import { NewsService } from '../../news/news.service';
+import { NewsService, VerseNewsItem } from '../../news/news.service';
 import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
@@ -69,6 +69,21 @@ interface Gate {
   total: number | null;
 }
 
+/** Stable reorder: the first item of each kind leads (one story per theme), the rest keeps its order. */
+export function themesFirst<T extends { kind: string }>(items: readonly T[]): T[] {
+  const kinds = new Set<string>();
+  const lead: T[] = [];
+  const tail: T[] = [];
+  for (const it of items) {
+    if (kinds.has(it.kind)) tail.push(it);
+    else {
+      kinds.add(it.kind);
+      lead.push(it);
+    }
+  }
+  return [...lead, ...tail];
+}
+
 /** Identity of a resolved link for the hero dedupe. */
 export function linkKey(link: VerseItemLink): string {
   return `${link.internal ? 'in' : 'ex'}:${link.path}?${link.query ? JSON.stringify(link.query) : ''}`;
@@ -112,12 +127,37 @@ export class VerseBriefingComponent {
   readonly intro: IntroMode = this.enabled() ? claimIntro() : 'short';
   readonly introSeconds = INTRO_SECONDS[this.intro];
 
-  /** The rotating stories: up to {@link HERO_STORIES} distinct top items with a usable link (see `uniqueStories`). */
+  /**
+   * The newest editorial news from the live feed as a digest item — the digest
+   * reads news_cache, which stays empty while the feed comes from the
+   * fetch-verse-news edge function, so the hero would otherwise never show news.
+   */
+  private readonly feedNews = computed<VerseDigestItem[]>(() => {
+    const newest = (this.news.feed()?.news ?? [])
+      .filter((n) => n.source !== 'patch-notes' && n.source !== 'status')
+      .reduce<VerseNewsItem | null>((a, n) => (!a || n.publishedAt > a.publishedAt ? n : a), null);
+    if (!newest) return [];
+    return [{
+      key: `news:${newest.source}:${newest.id}`,
+      kind: 'news',
+      title: newest.title,
+      url: newest.url,
+      summary: newest.summary ?? null,
+      image: newest.thumbnail ?? null,
+      at: newest.publishedAt,
+      pinned: false,
+      score: 0,
+      rank: Number.MAX_SAFE_INTEGER,
+    }];
+  });
+
+  /** The rotating stories: up to {@link HERO_STORIES} distinct top items with a usable link (see `uniqueStories`), one per theme first. */
   readonly stories = computed<HeroStory[]>(() => {
     const seen = this.api.seen();
     // The top list first; the rest of the digest (rank order) fills what the dedupe removed.
     const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
-    return uniqueStories([...this.top(), ...rest], (i) => verseItemLink(i.url), linkKey, HERO_STORIES).map(({ item, link }) => ({
+    const candidates = themesFirst([...this.top(), ...rest, ...this.feedNews()]);
+    return uniqueStories(candidates, (i) => verseItemLink(i.url), linkKey, HERO_STORIES).map(({ item, link }) => ({
       item,
       link,
       unseen: !seen.has(item.key),
