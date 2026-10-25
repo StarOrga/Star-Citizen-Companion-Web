@@ -155,7 +155,12 @@ begin
    where v.channel in ('ptu', 'eptu')
      and v.version ~ '^[0-9]{1,2}\.[0-9]{1,2}(\.|$)'
      and (v_live_line is null
-          or (split_part(v.version, '.', 1)::int, split_part(v.version, '.', 2)::int)
+          -- CASE pins the evaluation order: AND quals may run in any order,
+          -- so the casts only see rows the regex above already accepted.
+          or (case when v.version ~ '^[0-9]{1,2}\.[0-9]{1,2}(\.|$)'
+                   then split_part(v.version, '.', 1)::int end,
+              case when v.version ~ '^[0-9]{1,2}\.[0-9]{1,2}(\.|$)'
+                   then split_part(v.version, '.', 2)::int end)
              > (v_live_major, v_live_minor))
    order by (v.channel = 'ptu') desc
    limit 1;
