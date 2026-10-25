@@ -1,6 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ReleaseNotesService, ReleaseNotes } from './release-notes.service';
 import { ReleaseNotesComponent } from './release-notes.component';
@@ -65,7 +66,7 @@ describe('ReleaseNotesComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [ReleaseNotesComponent],
-      providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), provideTranslateService()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), provideTranslateService(), provideRouter([])],
     });
     fixture = TestBed.createComponent(ReleaseNotesComponent);
     http = TestBed.inject(HttpTestingController);
