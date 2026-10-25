@@ -1,4 +1,4 @@
-import { Injectable, Signal, computed, inject, signal } from '@angular/core';
+import { Injectable, Signal, computed, inject, signal, untracked } from '@angular/core';
 import { FeedbackComposerSeedService } from './feedback-composer-seed.service';
 
 /**
@@ -82,9 +82,13 @@ export class FeedbackSpotService {
 
   /** A launcher's panel opened (`el` = its root) or closed (`null`). */
   setPanel(owner: FeedbackPanelOwner, el: HTMLElement | null, fallbackScope: string): void {
-    const current = this._panels().get(owner);
+    // The launchers call this from an effect: a tracked read here would make
+    // that effect depend on the signal it writes, and its cleanup + re-run
+    // would flip the panel off and on forever (the frozen phone sheet).
+    const panels = untracked(this._panels);
+    const current = panels.get(owner);
     if (el ? current?.el === el : !current) return;
-    const next = new Map(this._panels());
+    const next = new Map(panels);
     if (el) next.set(owner, { el, fallbackScope });
     else next.delete(owner);
     this._panels.set(next);

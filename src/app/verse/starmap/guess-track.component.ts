@@ -87,7 +87,7 @@ export function shortShipName(name: string): string {
       .tok.ship svg { width: 24px; height: 24px; fill: currentColor; opacity: 0.75;
         filter: drop-shadow(0 0 3px color-mix(in srgb, var(--sc-accent) 55%, transparent));
         transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.3s ease; }
-      .tok.ship small { font-size: 0.58rem; letter-spacing: 0.02em; text-transform: none; color: var(--sc-fg-2);
+      .tok.ship small { font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.02em; text-transform: none; color: var(--sc-fg-2);
         max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
       .tok.ship:not(:disabled):hover, .tok.ship:focus-visible { color: #d9f4ff; background: linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 26%, transparent), transparent 80%),
           repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 9%, transparent) 0 1px, transparent 1px 3px); }

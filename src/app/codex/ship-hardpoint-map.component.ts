@@ -67,6 +67,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
                   (focus)="hovered.emit([m.port])"
                   (blur)="hovered.emit(null)"
                 >
+                  <circle class="hit" r="5" />
                   <circle class="halo" r="5" />
                   <circle class="dot" r="2.2" />
                 </g>
@@ -103,6 +104,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
                   (focus)="hovered.emit([m.port])"
                   (blur)="hovered.emit(null)"
                 >
+                  <circle class="hit" r="5" />
                   <circle class="halo" r="5" />
                   <circle class="dot" r="2.2" />
                 </g>
@@ -144,6 +146,11 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
     .mk { cursor: default; }
     .mk .dot { fill: var(--sc-fg-2); stroke: var(--sc-bg-0); stroke-width: 0.5; }
     .mk .halo { fill: transparent; }
+    /* Invisible hit area. One SVG unit is ~3px on a phone, so the r=5 halo
+       left a ~31px target; on touch the hit circle grows to ~50px without
+       changing what the marker looks like. */
+    .mk .hit { fill: transparent; }
+    @media (pointer: coarse) { .mk .hit { r: 8.5px; } }
     .mk:hover .dot, .mk.on .dot { fill: var(--sc-accent); }
     .mk.on .halo { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent);
       stroke: var(--sc-accent); stroke-width: 0.5; }
