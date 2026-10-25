@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.165.0",
+  "current": "0.165.1",
   "releases": [
+    {
+      "version": "0.165.1",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.62.1: Die Prospector bekommt ihren Deckplan.",
+              "text": "Bei 890 Jump, Starfarer, Retaliator, Redeemer, Starlifter, Vulture und Prospector sind die Räume im Spiel keinem Deck zugeordnet. Ein Schiff mit nur einem Deck übernimmt sie jetzt trotzdem. Bei den anderen fehlt der Deckplan weiterhin: Wir haben drei Wege getestet, das Deck aus den Daten abzuleiten (Bodenhöhe, Nachbarräume, ein Schwesterschiff mit Zuordnung). Keiner traf das Deck zuverlässig genug, um es anzuzeigen."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.165.0",
       "date": "2026-10-25",

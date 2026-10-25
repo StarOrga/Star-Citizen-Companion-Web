@@ -257,6 +257,14 @@ class TestAttachDeckRooms:
         assert set(rooms[1]) == {"key", "name", "pos", "floorZ", "height", "shapes", "tris"}
         assert decks[1]["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
 
+    def test_a_single_deck_takes_the_rooms_without_a_section(self):
+        decks = [{"key": "Prospector_Deck_1", "name": None, "order": 0}]
+        self._extractor([self._room("Room_Main", None),
+                         self._room("Foreign_Room_RN", "00000000-0000-0000-0000-000000000000")]
+                        )._attach_deck_rooms(decks, {})
+        assert [r["key"] for r in decks[0]["rooms"]] == ["Room_Main"]
+        assert decks[0]["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
+
     def test_a_failure_leaves_the_decks_without_rooms(self):
         decks = [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
         ex = self._extractor([{"key": "Broken"}])

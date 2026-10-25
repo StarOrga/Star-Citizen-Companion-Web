@@ -244,9 +244,15 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
 - Room volumes: `GenericShape` (`VA_*`) entities whose `AreaComponent` links the
   room GUID; segments `Shape` (polygon + Height), `Box`, `Trimesh`. Entity
   `Rotate` is **w,x,y,z**. `AreaShape` entities belong to audio, not rooms.
-- Coverage on LIVE: ~40 deck ships carry rooms; 890 Jump, Starfarer (base),
-  Retaliator, Redeemer, Starlifter, Vulture, Prospector map none yet (their
-  rooms live in nested containers or reference other sections — not probed).
+- Coverage on LIVE: ~40 deck ships carry rooms. 890 Jump, Starfarer (base),
+  Retaliator, Redeemer, Starlifter and Vulture have rooms in their top-level
+  `.soc`s, but **none** sets `interiorMapSection` (probed 2026-10-25), so they
+  map to no deck. A single-deck ship (Prospector) takes them anyway. Rejected
+  fallbacks, measured against the ~900 sectioned rooms: floor-height breaks
+  hit the real deck ~60 % (sections are zones, not levels — Hammerhead 3/47),
+  neighbours within ±0.5 m only ~95 % even when unanimous, and position
+  matching against a sectioned sibling hull (Starfarer ↔ Gemini) finds 4/48
+  rooms within 0.5 m.
 
 ## References
 

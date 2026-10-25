@@ -83,7 +83,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // items of its other ports.
     // 7: #797 — payload.decks[].rooms + .bounds (room floor footprints from
     // the ship object containers) for the 2D deck plan.
-    revision: 7,
+    // 8: #797 — a single-deck ship takes its rooms without an
+    // interiorMapSection (Prospector).
+    revision: 8,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
