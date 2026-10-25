@@ -21,6 +21,7 @@ nothing is silently dropped.
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import re
@@ -2348,7 +2349,7 @@ class CodexExtractor:
                 continue
             stock = self._turret_stock(cls)
             if stock:
-                e["entries"] = [dict(s) for s in stock]
+                e["entries"] = copy.deepcopy(stock)
 
     def _turret_stock(self, class_name: str) -> List[Dict[str, Any]]:
         """Stock fit of a turret item, ``[]`` for any item that is not a turret
