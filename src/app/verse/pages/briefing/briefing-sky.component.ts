@@ -3,10 +3,12 @@ import type { VersePoint } from '../../data/verse.models';
 import { skyFigure } from './briefing.model';
 
 /**
- * The current patch's constellation in the briefing sky, in the star map's
- * glyph language without rings: lit stars (core, spikes, a slowly breathing
- * halo), the next star's core pushing outward, dormant cores. Decorative —
- * the star-map button carries the count in words.
+ * The current patch's constellation next to the star-map button, in the star
+ * map's glyph language without rings: lit stars (core, spikes, a slowly
+ * breathing halo) and open stars as small hollow rings. Edges are solid
+ * between two lit stars and dashed wherever the figure is still incomplete.
+ * No "next" star here — that guidance lives on the star map. Decorative: the
+ * surrounding anchor carries the count in words.
  */
 @Component({
   selector: 'sc-briefing-sky',
@@ -18,21 +20,12 @@ import { skyFigure } from './briefing.model';
       }
       @for (s of figure().stars; track s.i) {
         <g [class]="'st ' + s.state" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'" [style.--ph]="s.phase + 's'">
-          @switch (s.state) {
-            @case ('lit') {
-              <circle class="h" r="8" />
-              <path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" />
-              <circle class="c" r="1.6" />
-            }
-            @case ('next') {
-              <circle class="bl" r="3.4" />
-              <path class="spk" d="M0-9L0.4 0 0 9-0.4 0zM-9 0L0 0.4 9 0 0-0.4z" />
-              <circle class="c" r="1.5" />
-            }
-            @default {
-              <circle class="ig" r="2.2" />
-              <circle class="c" r="1.1" />
-            }
+          @if (s.state === 'lit') {
+            <circle class="h" r="8" />
+            <path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" />
+            <circle class="c" r="1.8" />
+          } @else {
+            <circle class="c" r="2.2" />
           }
         </g>
       }
@@ -41,27 +34,20 @@ import { skyFigure } from './briefing.model';
   styles: [
     `
       :host { display: block; }
-      svg { display: block; width: 100%; height: auto; overflow: visible; }
+      svg { display: block; width: 100%; height: 100%; overflow: visible; }
       .ln { fill: none; stroke-linecap: round; }
-      .ln.lit { stroke: color-mix(in srgb, var(--sc-accent) 55%, #fff); stroke-opacity: 0.7; stroke-width: 0.8;
+      .ln.lit { stroke: color-mix(in srgb, var(--sc-accent) 55%, #fff); stroke-opacity: 0.75; stroke-width: 1.1;
         filter: drop-shadow(0 0 2px var(--sc-accent)); }
-      .ln.next { stroke: color-mix(in srgb, var(--sc-accent) 55%, #fff); stroke-opacity: 0.5; stroke-width: 0.6; stroke-dasharray: 2 2; }
-      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 40%, #fff); stroke-opacity: 0.28; stroke-width: 0.5; stroke-dasharray: 0.6 2.6; }
+      .ln.open { stroke: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); stroke-opacity: 0.45; stroke-width: 0.8; stroke-dasharray: 2.4 3; }
       .h { fill: color-mix(in srgb, var(--sc-accent) 45%, #fff); opacity: 0.34; filter: blur(2.4px); }
-      .lit .h { animation: glow 5s ease-in-out calc(var(--ph) * -1) infinite; }
+      .lit .h { animation: glow 5s ease-in-out calc(var(--ph) * -1) infinite; animation-play-state: var(--sc-brief-play, running); }
       .spk { fill: #fff; opacity: 0.92; }
-      .c { fill: #fff; }
-      .lit .c { filter: drop-shadow(0 0 1.4px #fff); }
-      .next .bl { fill: color-mix(in srgb, var(--sc-accent) 35%, #fff); opacity: 0.6; filter: blur(1.3px);
-        transform-box: fill-box; transform-origin: center; animation: push 2.4s ease-in-out infinite; }
-      .next .spk { transform-box: fill-box; transform-origin: center; animation: peek 2.4s ease-in-out infinite; }
-      .off .ig { fill: color-mix(in srgb, var(--sc-accent) 30%, #fff); opacity: 0.22; filter: blur(1px); }
-      .off .c { opacity: 0.6; }
+      .lit .c { fill: #fff; filter: drop-shadow(0 0 1.4px #fff); }
+      /* open: the star map's open glyph — a small hollow ring, dim, no glow */
+      .off .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); stroke-width: 0.9; }
       @keyframes glow { 0%, 100% { opacity: 0.24; } 50% { opacity: 0.4; } }
-      @keyframes push { 0%, 100% { transform: scale(0.72); opacity: 0.45; } 55% { transform: scale(1.28); opacity: 0.9; } }
-      @keyframes peek { 0%, 100% { transform: scale(0.3); opacity: 0.45; } 55% { transform: scale(0.5); opacity: 0.95; } }
       @media (prefers-reduced-motion: reduce) {
-        .lit .h, .next .bl, .next .spk { animation: none; }
+        .lit .h { animation: none; }
       }
     `,
   ],
@@ -69,5 +55,7 @@ import { skyFigure } from './briefing.model';
 export class BriefingSkyComponent {
   readonly points = input<readonly VersePoint[] | null | undefined>(null);
   readonly lit = input(0);
-  readonly figure = computed(() => skyFigure(this.points(), this.lit()));
+  /** The star map's placement (see `explorerLit`); null → symmetric order by `lit`. */
+  readonly litSet = input<ReadonlySet<number> | null>(null);
+  readonly figure = computed(() => skyFigure(this.points(), this.lit(), this.litSet()));
 }

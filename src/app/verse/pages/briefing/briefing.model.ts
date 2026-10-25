@@ -7,8 +7,15 @@ import {
   nextLineInTesting,
   nextPatchDistance,
 } from '../../../news/patch-stats';
-import type { VerseDigestItem, VerseDoor, VerseItemKind, VersePatchStatus, VersePoint } from '../../data/verse.models';
-import { FALLBACK_POINTS, STARS_PER_PATCH, lightRank, litIndices } from '../../starmap/starmap.model';
+import type {
+  VerseDigestItem,
+  VerseDoor,
+  VerseExplorerPatch,
+  VerseItemKind,
+  VersePatchStatus,
+  VersePoint,
+} from '../../data/verse.models';
+import { FALLBACK_POINTS, STARS_PER_PATCH, buildTaskViews, litIndices, nextTask, starSlots } from '../../starmap/starmap.model';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -80,7 +87,8 @@ export function splitChars(text: string): { readonly c: string; readonly i: numb
   return Array.from(text).map((c, i) => ({ c: c === ' ' ? ' ' : c, i }));
 }
 
-export type StarState = 'lit' | 'next' | 'off';
+/** Lit or not — the briefing shows no "next" star (that guidance lives on the star map). */
+export type StarState = 'lit' | 'off';
 
 export interface SkyStar {
   readonly i: number;
@@ -91,12 +99,13 @@ export interface SkyStar {
   readonly phase: number;
 }
 
+/** `open`: at least one end is not lit yet — the figure is incomplete there (dashed). */
 export interface SkyLine {
   readonly x1: number;
   readonly y1: number;
   readonly x2: number;
   readonly y2: number;
-  readonly state: StarState;
+  readonly state: 'lit' | 'open';
 }
 
 export interface SkyFigure {
@@ -105,30 +114,78 @@ export interface SkyFigure {
 }
 
 /**
- * The current patch's constellation for the background layer: lit stars in
- * the SYMMETRIC order the star map uses, the next one by lighting rank,
- * outline edges lit between two lit stars, dashed towards the next one.
- * Coordinates in a 0..100 box.
+ * Which outline points the star map lights for this patch: the done tasks
+ * replayed along the outline (`starSlots`), so the briefing and
+ * `/verse/explorer` light the same stars. Null without explorer state.
  */
-export function skyFigure(points: readonly VersePoint[] | null | undefined, starCount: number): SkyFigure {
+export function explorerLit(patch: VerseExplorerPatch | null | undefined): ReadonlySet<number> | null {
+  if (!patch) return null;
+  const tasks = buildTaskViews(patch);
+  const slots = starSlots(patch.constellation?.points, tasks, nextTask(tasks));
+  return new Set(slots.filter((s) => s.state === 'done').map((s) => s.index));
+}
+
+/**
+ * The current patch's constellation for the star-map button: lit stars where
+ * the star map lights them (`lit`, see {@link explorerLit}); without explorer
+ * state the symmetric order by `starCount`. Edges solid between two lit
+ * stars, dashed wherever an end is still open. Coordinates in a 0..100 box.
+ */
+export function skyFigure(
+  points: readonly VersePoint[] | null | undefined,
+  starCount: number,
+  lit: ReadonlySet<number> | null = null,
+): SkyFigure {
   const pts = points && points.length === STARS_PER_PATCH ? points : FALLBACK_POINTS;
   const n = Math.max(0, Math.min(STARS_PER_PATCH, starCount));
-  const lit = litIndices(pts, n);
-  const rank = lightRank(pts);
+  const on = lit ?? litIndices(pts, n);
   const stars = pts.map((p, i): SkyStar => ({
     i,
     x: p[0] * 100,
     y: p[1] * 100,
-    state: lit.has(i) ? 'lit' : rank[i] === n ? 'next' : 'off',
+    state: on.has(i) ? 'lit' : 'off',
     phase: (i * 1.7) % 5,
   }));
   const lines = stars.map((a, k): SkyLine => {
     const b = stars[(k + 1) % stars.length];
-    const state: StarState =
-      a.state === 'lit' && b.state === 'lit' ? 'lit' : (a.state === 'lit' && b.state === 'next') || (a.state === 'next' && b.state === 'lit') ? 'next' : 'off';
-    return { x1: a.x, y1: a.y, x2: b.x, y2: b.y, state };
+    return { x1: a.x, y1: a.y, x2: b.x, y2: b.y, state: a.state === 'lit' && b.state === 'lit' ? 'lit' : 'open' };
   });
   return { stars, lines };
+}
+
+/** Normalised title for the hero dedupe. */
+function titleKey(item: VerseDigestItem): string {
+  return `${item.kind}|${item.title.trim().toLowerCase().replace(/\s+/g, ' ')}`;
+}
+
+/**
+ * The hero's stories: the top items in rank order with a usable link, each
+ * story at most once — an item counts as already shown when its key, its
+ * kind + title, or its resolved link repeats. Further items fill the gaps.
+ */
+export function uniqueStories<T>(
+  items: readonly VerseDigestItem[],
+  linkOf: (item: VerseDigestItem) => T | null,
+  linkKey: (link: T) => string,
+  max: number,
+): { item: VerseDigestItem; link: T }[] {
+  const keys = new Set<string>();
+  const titles = new Set<string>();
+  const links = new Set<string>();
+  const out: { item: VerseDigestItem; link: T }[] = [];
+  for (const item of items) {
+    if (out.length >= max) break;
+    const link = linkOf(item);
+    if (!link) continue;
+    const t = titleKey(item);
+    const l = linkKey(link);
+    if (keys.has(item.key) || titles.has(t) || links.has(l)) continue;
+    keys.add(item.key);
+    titles.add(t);
+    links.add(l);
+    out.push({ item, link });
+  }
+  return out;
 }
 
 /** Session flag: the full entrance plays once per browser session, a short one afterwards. */

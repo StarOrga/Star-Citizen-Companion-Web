@@ -1,10 +1,17 @@
-// /verse briefing — "Anflug · final" (concept 2026-10-23, round 5, f-s1).
+// /verse briefing — "Anflug · final" (concept 2026-10-23, round 5, f-s1),
+// one-viewport stage (batch 2026-10-25).
 //
-// The stage sits in the page frame; only its backdrop (.bleed) breaks out to
-// the full viewport width (approved for this page). Every entrance animation
-// runs on transform / opacity / filter and is timed in seconds of the full
-// 3.4 s entrance, scaled by --k: 1 on the first Verse visit of a browser
-// session, 0.6 / 3.4 for the short re-entry. Reduced motion: final state.
+// Desktop: the stage is exactly one viewport tall — a three-row grid of the
+// instrument strip (patch status left, constellation + star-map button in the
+// far top-right corner), the hero (left column, headline clamped to two lines)
+// and the gate band (the three moons) directly above the footer strip, whose
+// height the shell publishes as --sc-verse-footer-h. Phones and short
+// viewports fall back to normal scrolling. Only the backdrop (.bleed) breaks
+// out to the full viewport width. Entrance animations run on transform /
+// opacity / filter, timed in seconds of the full 3.4 s entrance, scaled by
+// --k (1 on the first Verse visit of a session, 0.6 / 3.4 afterwards).
+// Reduced motion: final state. The pause control sets .paused: every auto
+// motion holds (moons via the inherited --sc-brief-play).
 
 :host { display: block; }
 
@@ -12,11 +19,22 @@
   --k: 1;
   position: relative;
   isolation: isolate;
-  min-height: 720px;
-  min-height: max(720px, min(840px, calc(100dvh - 110px)));
+  // --brief-chrome: everything above the stage, measured by the component.
+  height: calc(100vh - var(--brief-chrome, 94px));
+  height: calc(100dvh - var(--brief-chrome, 94px));
+  min-height: 560px;
+  // The page owns the viewport: .content's bottom padding is eaten here, the
+  // footer strip floats over the gate band's own bottom padding.
+  margin-bottom: -32px;
+  overflow-y: clip;
   color: var(--sc-fg-0);
 }
 .stage.short { --k: 0.1765; }
+.stage.paused { --sc-brief-play: paused; }
+.stage.paused .sbar.on > i,
+.stage.paused .stars.near,
+.stage.paused .sun,
+.stage.paused .si > i { animation-play-state: paused; }
 
 // ── Backdrop (full bleed) ───────────────────────────────────────────────
 .bleed {
@@ -98,7 +116,7 @@
 .pl {
   position: absolute;
   left: 50%;
-  bottom: -2052px;
+  bottom: -2092px;
   width: 2400px;
   height: 2400px;
   margin-left: -1200px;
@@ -144,7 +162,7 @@
 .atmo {
   position: absolute;
   left: 50%;
-  bottom: -2122px;
+  bottom: -2162px;
   width: 2540px;
   height: 2540px;
   margin-left: -1270px;
@@ -159,32 +177,7 @@
     linear-gradient(180deg, rgba(2, 8, 14, 0.55) 0, transparent 14%, transparent 84%, var(--sc-bg-0) 100%);
 }
 
-// ── Content (in the page frame) ─────────────────────────────────────────
-.frame {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  min-height: inherit;
-}
-
-// The constellation: there from frame 0, riding the same dolly as the sky.
-// Clipped to the frame so its glow never widens the page on a phone.
-.cstl {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.cstl-in {
-  position: absolute;
-  inset: 0;
-  animation:
-    dolly calc(1.6s * var(--k)) cubic-bezier(0.25, 0.75, 0.3, 1) both,
-    cst-focus calc(1.2s * var(--k)) ease-out both;
-}
-.cst { position: absolute; top: 70px; right: 5%; width: min(24%, 300px); }
+// The light source in the sky layer.
 .sun {
   position: absolute;
   top: 236px;
@@ -207,23 +200,251 @@
   background: linear-gradient(90deg, transparent, rgba(150, 220, 255, 0.3) 38%, rgba(255, 255, 255, 0.85) 50%, rgba(150, 220, 255, 0.3) 62%, transparent);
 }
 
+// ── Content (in the page frame): strip · hero · gate band ───────────────
+.frame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr) auto;
+  height: 100%;
+}
+
 .top {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  // Room for the corner instrument so the status never runs under it.
+  padding-right: 250px;
+}
+
+// Constellation + star-map button: one anchor, flush in the far top-right
+// corner of the full-width stage (the frame is narrower than the viewport on
+// wide screens, so the corner is measured from the viewport edge).
+.map {
+  position: absolute;
+  top: -14px;
+  right: calc((100% - 100vw) / 2 + clamp(14px, 1.6vw, 28px));
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 18px;
+  color: var(--sc-accent);
+  text-decoration: none;
+  outline: none;
+  animation: btn-in calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(3s * var(--k)) both;
+}
+.map:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
+.fig {
+  display: block;
+  width: 150px;
+  height: 110px;
+  margin-top: 6px;
+  animation: cst-focus calc(1.2s * var(--k)) ease-out both;
+}
+.mapbtn {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+.mapbtn .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--sc-accent) calc(var(--p, 0) * 1turn), color-mix(in srgb, var(--sc-accent) 16%, transparent) 0);
+  mask-image: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent 100%);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 60%, transparent));
+}
+.mapbtn .disc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sc-bg-0) 92%, transparent);
+  transition: background 0.16s;
+}
+.map:hover .disc { background: color-mix(in srgb, var(--sc-accent) 18%, var(--sc-bg-0)); }
+.mapbtn svg { width: 22px; height: 22px; }
+.mapbtn line { stroke: currentColor; stroke-width: 1.2; opacity: 0.6; }
+.mapbtn circle { fill: currentColor; }
+
+// ── Hero: left column, never wider than ~half the stage ─────────────────
+.hero {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  display: grid;
+  justify-items: start;
+  width: min(52%, 780px);
+  min-width: 0;
+  padding: 8px 0 16px;
+  text-align: left;
+}
+.since { color: var(--sc-fg-1); }
+.title {
+  max-width: 20ch;
+  margin: 0 0 24px;
+  font: 400 clamp(2rem, 3.2vw, 3.4rem) / 1.08 var(--sc-font-display);
+  text-shadow: 0 0 40px color-mix(in srgb, var(--sc-accent) 28%, transparent), 0 2px 24px rgba(0, 0, 0, 0.7);
+  overflow-wrap: anywhere;
+  animation: resolve calc(0.8s * var(--k)) ease-out calc(0.5s * var(--k)) both;
+}
+// Hard two-line clamp: the headline can never grow into the gate band.
+.title .roll { min-height: 2.16em; align-items: end; }
+.title .slide {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+.roll { display: grid; }
+.slide { grid-area: 1 / 1; }
+.sk { display: block; width: min(560px, 44vw); height: 1.6em; border-radius: 10px; }
+.err { margin: -8px 0 18px; color: var(--sc-fg-1); }
+
+// Headline and where-line roll in step with the story pills.
+.roll-in { animation: roll-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.roll-out { animation: roll-out 0.4s ease-in both; }
+
+.go { display: grid; justify-items: start; gap: 8px; }
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: max(44px, var(--sc-tap-min));
+  padding: 0 26px;
+  border: 1px solid color-mix(in srgb, var(--sc-fg-0) 60%, transparent);
+  border-radius: 30px;
+  background: color-mix(in srgb, var(--sc-bg-0) 35%, transparent);
+  backdrop-filter: blur(4px);
+  color: var(--sc-fg-0);
+  font: 400 max(0.75rem, var(--sc-fs-floor)) var(--sc-font-display);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s;
+  animation: soft-up calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.2s * var(--k)) both;
+}
+.cta:hover { background: var(--sc-fg-0); color: var(--sc-bg-0); text-decoration: none; }
+.cta:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; }
+// Where the CTA leads, small and muted right under it.
+.where {
+  margin: 0;
+  padding-left: 4px;
+  font: 400 max(0.8125rem, var(--sc-fs-floor)) / 1.4 var(--sc-font-body);
+  color: var(--sc-fg-1);
+  animation: soft-up calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.3s * var(--k)) both;
+}
+
+// Story pills + the one pause control.
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+  animation: fade-in calc(0.3s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(2.6s * var(--k)) both;
+}
+.story { display: flex; gap: 8px; }
+.sbar {
+  position: relative;
+  display: block;
+  width: 56px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+.sbar::before, .sbar > i {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 13px;
+  height: 2px;
+  border-radius: 2px;
+}
+.sbar::before { background: color-mix(in srgb, var(--sc-fg-0) 22%, transparent); transition: background 0.16s; }
+.sbar:hover::before { background: color-mix(in srgb, var(--sc-fg-0) 45%, transparent); }
+.sbar:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
+.sbar > i {
+  background: var(--sc-fg-0);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sc-fg-0) 55%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+.sbar.done > i { transform: scaleX(1); }
+.sbar.on > i { animation: fill 5.6s linear both; }
+.sbar.on.first > i { animation-delay: calc(3.4s * var(--k)); }
+// Reading or hovering the hero holds the story.
+.hero:hover .sbar.on > i, .hero:focus-within .sbar.on > i { animation-play-state: paused; }
+
+.pause {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--sc-fg-0) 28%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sc-bg-0) 40%, transparent);
+  color: var(--sc-fg-1);
+  cursor: pointer;
+  transition: color 0.16s, border-color 0.16s;
+}
+.pause:hover { color: var(--sc-fg-0); border-color: color-mix(in srgb, var(--sc-fg-0) 55%, transparent); }
+.pause:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+.pause svg { width: 14px; height: 14px; fill: currentColor; }
+.stage.paused .pause { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent); }
+
+// ── Gate band: its own destination row above the footer strip ──────────
+.moons {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  min-height: 66px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+  padding: 22px 0 calc(var(--sc-verse-footer-h, 0px) + 14px);
 }
+// A faint horizon above the band separates it from the news.
+.moons::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sc-accent) 30%, transparent) 30%,
+    color-mix(in srgb, var(--sc-accent) 30%, transparent) 70%, transparent);
+  pointer-events: none;
+  animation: fade-in calc(0.6s * var(--k)) ease-out calc(2s * var(--k)) both;
+}
+.moon-slot { animation: moon-in calc(0.8s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.8s * var(--k)) both; }
+.moon-slot[data-door='news'] { --mx: 160px; }
+.moon-slot[data-door='patches'] { --mx: 0px; animation-delay: calc(1.9s * var(--k)); }
+.moon-slot[data-door='gallery'] { --mx: -160px; }
 
 // Status sentence: two identical circles; each underline grows out of its
 // circle in its colour, then the text fades in over the second half.
 .status {
-  grid-column: 2;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-end;
   gap: 8px 30px;
   margin: 0;
@@ -270,158 +491,6 @@
 .si.live::after { animation-delay: calc(2.36s * var(--k)); }
 .si.live .tx { animation-delay: calc(2.66s * var(--k)); }
 
-// Star-map button: a plain circle with the icon, only the progress ring around it.
-.mapbtn {
-  grid-column: 3;
-  justify-self: end;
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  color: var(--sc-accent);
-  text-decoration: none;
-  outline: none;
-  animation: btn-in calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(3s * var(--k)) both;
-}
-.mapbtn .ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(var(--sc-accent) calc(var(--p, 0) * 1turn), color-mix(in srgb, var(--sc-accent) 16%, transparent) 0);
-  mask-image: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent 100%);
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 60%, transparent));
-}
-.mapbtn .disc {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--sc-bg-0) 92%, transparent);
-  transition: background 0.16s;
-}
-.mapbtn:hover .disc { background: color-mix(in srgb, var(--sc-accent) 18%, var(--sc-bg-0)); }
-.mapbtn:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
-.mapbtn svg { width: 22px; height: 22px; }
-.mapbtn line { stroke: currentColor; stroke-width: 1.2; opacity: 0.6; }
-.mapbtn circle { fill: currentColor; }
-
-// ── Hero ────────────────────────────────────────────────────────────────
-.hero {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  text-align: center;
-  padding: 56px 0 0;
-}
-.kick {
-  margin: 0;
-  font: 400 max(0.75rem, var(--sc-fs-floor)) var(--sc-font-display);
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: var(--sc-accent);
-  animation: soft-up calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.1s * var(--k)) both;
-}
-.since { color: var(--sc-fg-1); }
-.title {
-  max-width: 900px;
-  margin: 20px auto 26px;
-  font: 400 clamp(2rem, 4.2vw, 3.75rem) / 1.04 var(--sc-font-display);
-  text-shadow: 0 0 40px color-mix(in srgb, var(--sc-accent) 28%, transparent), 0 2px 24px rgba(0, 0, 0, 0.7);
-  overflow-wrap: anywhere;
-  animation: resolve calc(0.8s * var(--k)) ease-out calc(0.5s * var(--k)) both;
-}
-.title .roll { min-height: 2.08em; align-items: center; }
-.roll { display: grid; }
-.slide { grid-area: 1 / 1; }
-.sk { display: block; width: min(640px, 80vw); height: 1.6em; border-radius: 10px; margin: 0 auto; }
-.err { margin: -8px 0 18px; color: var(--sc-fg-1); }
-
-// Kicker + headline roll in step with the story bars.
-.roll-in { animation: roll-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-.roll-out { animation: roll-out 0.4s ease-in both; }
-
-.cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: max(44px, var(--sc-tap-min));
-  padding: 0 26px;
-  border: 1px solid color-mix(in srgb, var(--sc-fg-0) 60%, transparent);
-  border-radius: 30px;
-  background: color-mix(in srgb, var(--sc-bg-0) 35%, transparent);
-  backdrop-filter: blur(4px);
-  color: var(--sc-fg-0);
-  font: 400 max(0.75rem, var(--sc-fs-floor)) var(--sc-font-display);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.16s, color 0.16s;
-  animation: soft-up calc(0.4s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.2s * var(--k)) both;
-}
-.cta:hover { background: var(--sc-fg-0); color: var(--sc-bg-0); text-decoration: none; }
-.cta:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; }
-
-// Story bars: one slim bar per story; the active one fills, then the next story.
-.story {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 18px;
-  animation: fade-in calc(0.3s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(2.6s * var(--k)) both;
-}
-.sbar {
-  position: relative;
-  display: block;
-  width: 64px;
-  height: 24px;
-  outline: none;
-}
-.sbar::before, .sbar > i {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 11px;
-  height: 2px;
-  border-radius: 2px;
-}
-.sbar::before { background: color-mix(in srgb, var(--sc-fg-0) 22%, transparent); transition: background 0.16s; }
-.sbar:hover::before { background: color-mix(in srgb, var(--sc-fg-0) 45%, transparent); }
-.sbar:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); border-radius: 6px; }
-.sbar > i {
-  background: var(--sc-fg-0);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--sc-fg-0) 55%, transparent);
-  transform-origin: left center;
-  transform: scaleX(0);
-}
-.sbar.done > i { transform: scaleX(1); }
-.sbar.on > i { animation: fill 5.6s linear both; }
-.sbar.on.first > i { animation-delay: calc(3.4s * var(--k)); }
-// Reading or hovering the hero holds the story.
-.hero:hover .sbar.on > i, .hero:focus-within .sbar.on > i { animation-play-state: paused; }
-
-// ── Moons ───────────────────────────────────────────────────────────────
-.moons {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: start;
-  gap: 12px;
-  padding: 30px 0 34px;
-}
-.moon-slot { animation: moon-in calc(0.8s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1.8s * var(--k)) both; }
-.moon-slot[data-door='news'] { --mx: 160px; }
-.moon-slot[data-door='patches'] { --mx: 0px; animation-delay: calc(1.9s * var(--k)); }
-.moon-slot[data-door='gallery'] { --mx: -160px; }
-
 // ── Keyframes ───────────────────────────────────────────────────────────
 @keyframes dolly { from { transform: scale(1.15); } to { transform: none; } }
 @keyframes sky-focus { from { filter: blur(10px); opacity: 0.6; } to { filter: none; opacity: 1; } }
@@ -453,35 +522,45 @@
 
 // ── Tablet ──────────────────────────────────────────────────────────────
 @media (max-width: 1024px) {
-  .cst { width: min(26%, 220px); top: 84px; right: 2%; }
-  .hero { padding-top: 44px; }
+  .hero { width: min(62%, 640px); }
+  .top { padding-right: 210px; }
+  .fig { width: 120px; height: 90px; }
 }
 
-// ── Phones: stacked; moons become tappable rows ─────────────────────────
-@media (max-width: 720px) {
+// ── Short viewports and phones: normal scrolling, stacked rows ──────────
+@media (max-width: 640px), (max-height: 680px) {
+  .stage { height: auto; min-height: 0; margin-bottom: 0; overflow-y: visible; }
+  .frame { height: auto; grid-template-rows: auto auto auto; }
+  .hero { padding: 48px 0 32px; }
+}
+
+@media (max-width: 640px) {
   .bleed { top: -20px; }
-  .stage { min-height: 0; }
-  .top { grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding-top: 4px; }
-  .status { grid-column: 1; justify-content: flex-start; gap: 6px 18px; }
-  .mapbtn { grid-column: 2; }
-  .cst { top: 64px; right: 0; width: 40%; opacity: 0.7; }
+  .top { align-items: flex-start; gap: 12px; padding: 4px 0 0; }
+  .status { flex: 1; min-width: 0; gap: 6px 18px; }
+  .map { position: static; flex: none; margin: -6px -4px 0 auto; }
+  .fig { width: 84px; height: 64px; margin-top: 0; }
+  .mapbtn { width: 46px; height: 46px; }
+  .mapbtn .disc { width: 34px; height: 34px; }
   .sun { top: 170px; right: 8%; }
-  .hero { padding-top: 40px; }
-  .title { margin: 14px auto 20px; }
-  .story { margin-top: 14px; }
+  .hero { width: 100%; padding: 36px 0 24px; }
+  .title { max-width: none; margin-bottom: 18px; }
   .moons {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
-    padding: 28px 0 var(--sc-fab-clear-block, 24px);
+    padding: 20px 0 var(--sc-fab-clear-block, 24px);
   }
   .moon-slot[data-door] { --mx: 0px; }
 }
 @media (pointer: coarse) {
-  .sbar { height: 44px; }
-  .sbar::before, .sbar > i { top: 21px; }
+  .sbar { height: 48px; }
+  .sbar::before, .sbar > i { top: 23px; }
+  .pause { width: 48px; height: 48px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stage *, .stage *::before, .stage *::after { animation: none !important; transition: none !important; }
   .sbar.on > i { transform: scaleX(1); }
+  // Nothing moves, so there is nothing to pause.
+  .pause { display: none; }
 }

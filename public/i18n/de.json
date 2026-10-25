@@ -4527,7 +4527,15 @@
           "weeks": "{{line}} seit ~{{n}} Wochen fällig",
           "weeksOne": "{{line}} seit ~1 Woche fällig"
         }
-      }
+      },
+      "ctaWhere": {
+        "news": "in den News",
+        "patch": "in den Patches",
+        "gallery": "in der Galerie",
+        "link": "auf der Originalseite"
+      },
+      "pause": "Bewegung anhalten",
+      "resume": "Bewegung fortsetzen"
     },
     "gates": {
       "aria": "Bereiche des Verse",

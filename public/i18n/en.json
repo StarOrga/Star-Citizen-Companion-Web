@@ -4527,7 +4527,15 @@
           "weeks": "{{line}} due for ~{{n}} weeks",
           "weeksOne": "{{line}} due for ~1 week"
         }
-      }
+      },
+      "ctaWhere": {
+        "news": "in the news",
+        "patch": "in the patches",
+        "gallery": "in the gallery",
+        "link": "on the original site"
+      },
+      "pause": "Pause motion",
+      "resume": "Resume motion"
     },
     "gates": {
       "aria": "Areas of the Verse",

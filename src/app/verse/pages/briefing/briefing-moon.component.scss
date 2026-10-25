@@ -314,3 +314,7 @@
   .item { max-width: none; margin-left: 10px; }
   .art, .orb, .lim, .atm { transition: none; }
 }
+
+// Stage pause: the briefing's pause control sets --sc-brief-play: paused on
+// the stage; the caption relay holds where it is.
+.topic, .hook, .new, .item, .chr { animation-play-state: var(--sc-brief-play, running); }

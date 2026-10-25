@@ -7,20 +7,23 @@ import { BetaService } from '../../../core/beta.service';
 import { AuthService } from '../../../auth/auth.service';
 import { NewsService } from '../../../news/news.service';
 import { VerseApiService } from '../../data/verse-api.service';
-import { VerseDigest, VerseDigestItem } from '../../data/verse.models';
-import { FALLBACK_POINTS } from '../../starmap/starmap.model';
+import { VerseDigest, VerseDigestItem, VerseExplorerPatch } from '../../data/verse.models';
+import { FALLBACK_POINTS, buildTaskViews, nextTask, starSlots } from '../../starmap/starmap.model';
+import { MOON_SLOT_S } from './briefing-moon.component';
 import { NewsListComponent } from '../../../news/news-list.component';
-import { VerseBriefingComponent } from '../verse-briefing.component';
+import { VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import {
   INTRO_FLAG,
   briefingStatus,
   claimIntro,
+  explorerLit,
   followingLine,
   liveStatusKey,
   newestFor,
   nextStatusKey,
   skyFigure,
   splitChars,
+  uniqueStories,
 } from './briefing.model';
 
 /**
@@ -66,15 +69,62 @@ describe('Verse briefing — model', () => {
     expect(briefingStatus([], null, now)).toBeNull();
   });
 
-  it('skyFigure lights the first stars, marks the next one and the edges between them', () => {
+  it('skyFigure knows only lit and open: no next star, dashed edges wherever an end is open', () => {
+    const f = skyFigure(null, 3);
+    expect(f.stars.filter((s) => s.state === 'lit').length).toBe(3);
+    expect(f.stars.every((s) => s.state === 'lit' || s.state === 'off')).toBeTrue();
+    for (const l of f.lines) {
+      const a = f.stars.find((s) => s.x === l.x1 && s.y === l.y1)!;
+      const b = f.stars.find((s) => s.x === l.x2 && s.y === l.y2)!;
+      expect(l.state).toBe(a.state === 'lit' && b.state === 'lit' ? 'lit' : 'open');
+    }
+    expect(skyFigure(FALLBACK_POINTS, 7).lines.every((l) => l.state === 'lit')).toBeTrue();
+    expect(skyFigure(FALLBACK_POINTS, 0).lines.every((l) => l.state === 'open')).toBeTrue();
+    // An explicit placement wins over the count.
+    const placed = skyFigure(FALLBACK_POINTS, 3, new Set([6]));
+    expect(placed.stars.filter((s) => s.state === 'lit').map((s) => s.i)).toEqual([6]);
+  });
+
+  it('explorerLit lights the same outline points the star map lights', () => {
+    const patch = {
+      patchLine: '4.4', liveAt: null, stars: ['notes', 'archive'], starDates: { notes: '2026-10-01', archive: '2026-10-02' },
+      starCount: 2, sun: false,
+      offered: ['notes', 'comet', 'cx-guess', 'cx-newship', 'archive', 'loadout', 'cx-changed'],
+      constellation: { className: null, name: null, kind: 'ship', points: [] },
+      comet: { state: 'none', tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+      guess: { state: 'open', guessedClass: null, answerClass: null, answerName: null },
+      unlocks: { logEntry: false, community: false, wallpaper: false },
+    } as unknown as VerseExplorerPatch;
+    const tasks = buildTaskViews(patch);
+    const done = starSlots(patch.constellation?.points, tasks, nextTask(tasks)).filter((s) => s.state === 'done').map((s) => s.index);
+    expect([...(explorerLit(patch) ?? [])].sort()).toEqual(done.sort());
+    expect(done.length).toBe(2);
+    expect(explorerLit(null)).toBeNull();
+  });
+
+  it('uniqueStories drops repeats by key, kind + title and link, and fills from further items', () => {
+    const vara = (key: string, url: string): VerseDigestItem => ({ ...item(key, 1, url, 'gallery'), title: 'Day of the Vara 2956' });
+    const list = [
+      vara('g1', '/verse/gallery?image=1'),
+      vara('g2', '/verse/gallery?image=2'),
+      item('g1', 2, '/verse/gallery?image=9', 'gallery'),
+      item('n1', 3, '/verse/gallery?image=1', 'news'),
+      item('p1', 4, '/verse/patches/4.3'),
+      item('x', 5, 'ftp://nope'),
+      item('n2', 6, 'https://example.com/n2', 'news'),
+    ];
+    const out = uniqueStories(list, (i) => verseItemLink(i.url), linkKey, 3);
+    expect(out.map((s) => s.item.key)).toEqual(['g1', 'p1', 'n2']);
+  });
+});
+
+describe('Verse briefing — model (more)', () => {
+  it('skyFigure falls back to the symmetric order by count', () => {
     const f = skyFigure(null, 3);
     expect(f.stars.length).toBe(7);
     expect(f.stars.filter((s) => s.state === 'lit').length).toBe(3);
-    expect(f.stars.filter((s) => s.state === 'next').length).toBe(1);
     expect(f.lines.length).toBe(7);
-    expect(f.lines.every((l) => ['lit', 'next', 'off'].includes(l.state))).toBeTrue();
     expect(skyFigure(FALLBACK_POINTS, 7).stars.every((s) => s.state === 'lit')).toBeTrue();
-    expect(skyFigure(FALLBACK_POINTS, 0).stars.filter((s) => s.state === 'next').length).toBe(1);
   });
 
   it('claimIntro plays the full entrance once per session and survives blocked storage', () => {
@@ -163,20 +213,31 @@ describe('Verse briefing — component', () => {
     sessionStorage.removeItem(INTRO_FLAG);
   });
 
-  it('renders the hero, story bars, moons and star-map button as real anchors', () => {
+  it('renders the hero CTA, moons and star-map button as anchors and the story pills as buttons', () => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(loadSeen).toHaveBeenCalled();
     expect(el.querySelector('h1')?.textContent).toContain('Title a');
     expect(el.querySelector('.cta')?.getAttribute('href')).toBe('/verse/patches/4.3');
-    const bars = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.story a.sbar'));
-    expect(bars.map((a) => a.getAttribute('href'))).toEqual(['/verse/patches/4.3', '/verse/gallery?image=x', 'https://example.com/c']);
-    expect(bars[2].getAttribute('target')).toBe('_blank');
-    expect(bars[0].getAttribute('aria-current')).toBe('true');
+    expect(el.querySelector('.where')?.textContent).toContain('verse.briefing.ctaWhere.patch');
+    expect(el.querySelector('.kick')).toBeNull();
+    const bars = Array.from(el.querySelectorAll<HTMLButtonElement>('.story button.sbar'));
+    expect(bars.length).toBe(3);
+    expect(bars.every((b) => b.type === 'button' && !b.hasAttribute('href'))).toBeTrue();
+    expect(bars.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
     const moons = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.moons a.moon'));
     expect(moons.map((a) => a.getAttribute('href'))).toEqual(['/verse/news', '/verse/patches', '/verse/gallery']);
-    expect(el.querySelector('a.mapbtn')?.getAttribute('href')).toBe('/verse/explorer');
+    const map = el.querySelector('a.map');
+    expect(map?.getAttribute('href')).toBe('/verse/explorer');
+    expect(map?.querySelector('sc-briefing-sky')).not.toBeNull();
+    // Moon relay: News → Patches → Gallery, one shared loop.
+    const slots = Array.from(el.querySelectorAll<HTMLElement>('sc-briefing-moon'));
+    const intro = fixture.componentInstance.introSeconds;
+    expect(slots.map((m) => m.style.getPropertyValue('--start'))).toEqual(
+      [0, 1, 2].map((i) => `${(intro + i * MOON_SLOT_S).toFixed(2)}s`),
+    );
+    expect(new Set(slots.map((m) => m.style.getPropertyValue('--cycle')))).toEqual(new Set(['27.00s']));
     expect(el.querySelector('.status .si.live')).not.toBeNull();
     expect(el.querySelector('sc-news-list')).toBeNull();
     // The first visit of the session plays the full entrance.
@@ -187,9 +248,9 @@ describe('Verse briefing — component', () => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    middleClick(el.querySelectorAll('nav.story a.sbar')[1]);
-    expect(markSeen).toHaveBeenCalledWith(['b']);
-    expect(captureVerse).toHaveBeenCalledWith('verse_top_open', { key: 'b', kind: 'gallery', rank: 2, pinned: false });
+    middleClick(el.querySelector('a.cta')!);
+    expect(markSeen).toHaveBeenCalledWith(['a']);
+    expect(captureVerse).toHaveBeenCalledWith('verse_top_open', { key: 'a', kind: 'patch', rank: 1, pinned: false });
     middleClick(el.querySelectorAll('nav.moons a.moon')[2]);
     expect(captureVerse).toHaveBeenCalledWith('verse_door_open', { door: 'gallery' });
   });
@@ -209,6 +270,57 @@ describe('Verse briefing — component', () => {
     expect(fixture.componentInstance.index()).toBe(0);
     fixture.destroy();
     expect(cancels[cancels.length - 1]).toHaveBeenCalled();
+  });
+
+  it('fills the hero from the rest of the digest when the top list repeats one story', () => {
+    const api = TestBed.inject(VerseApiService) as unknown as {
+      topItems: ReturnType<typeof signal<VerseDigestItem[]>>;
+      digest: ReturnType<typeof signal<VerseDigest>>;
+    };
+    const vara = (key: string): VerseDigestItem => ({ ...item(key, 1, `/verse/gallery?image=${key}`, 'gallery'), title: 'Day of the Vara 2956' });
+    const all = [vara('g1'), { ...vara('g2'), rank: 2 }, { ...vara('g3'), rank: 3 }, item('p', 4, '/verse/patches/4.10')];
+    api.digest.set({ ...digest, items: all });
+    api.topItems.set(all.slice(0, 3));
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.stories().map((s) => s.item.key)).toEqual(['g1', 'p']);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.story button.sbar').length).toBe(2);
+  });
+
+  it('a story pill only switches the hero — no navigation, no open event', () => {
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    markSeen.calls.reset();
+    el.querySelectorAll<HTMLButtonElement>('.story button.sbar')[2].click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.current()?.item.key).toBe('c');
+    expect(el.querySelector('a.cta')?.getAttribute('href')).toBe('https://example.com/c');
+    expect(markSeen).not.toHaveBeenCalled();
+    expect(captureVerse).not.toHaveBeenCalledWith('verse_top_open', jasmine.anything());
+    expect(el.querySelectorAll('.story button.sbar')[2].getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('the pause control holds all stage motion and stays with a single story', () => {
+    const one = TestBed.inject(VerseApiService) as unknown as { topItems: ReturnType<typeof signal<VerseDigestItem[]>> };
+    const api = one as unknown as { digest: ReturnType<typeof signal<VerseDigest>> };
+    api.digest.set({ ...digest, items: [items[0], { ...items[0], key: 'dup' }] });
+    one.topItems.set([items[0], { ...items[0], key: 'dup' }]);
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance.stories().length).toBe(1);
+    expect(el.querySelector('.story')).toBeNull();
+    const pause = el.querySelector<HTMLButtonElement>('button.pause')!;
+    expect(pause).not.toBeNull();
+    pause.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.stage')?.classList).toContain('paused');
+    expect(pause.getAttribute('aria-label')).toBe('verse.briefing.resume');
+    pause.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.stage')?.classList).not.toContain('paused');
+    one.topItems.set(items);
   });
 
   it('plays the short entrance on a later visit in the same session', () => {
