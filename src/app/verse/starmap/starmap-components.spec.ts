@@ -195,7 +195,7 @@ describe('star map components', () => {
     f.detectChanges();
     expect(submitPrediction).not.toHaveBeenCalled();
     expect(tok.classList).toContain('on');
-    expect(f.nativeElement.querySelector('sc-undo-toast .msg')?.textContent).toContain('starmap.comet.undoToast');
+    expect(TestBed.inject(UndoToastService).current()?.messageKey).toBe('starmap.comet.undoToast');
     TestBed.inject(UndoToastService).flush();
     await f.whenStable();
     expect(submitPrediction).toHaveBeenCalledWith('4.5', jasmine.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
@@ -253,11 +253,10 @@ describe('star map components', () => {
     f.detectChanges();
     expect(toks().every((t) => t.disabled)).toBeTrue();
     expect(toks()[1].classList).toContain('mine');
-    const undo = f.nativeElement.querySelector('sc-undo-toast button.undo') as HTMLButtonElement;
-    expect(undo.textContent).toContain('common.undo');
-    undo.click();
+    const undo = TestBed.inject(UndoToastService);
+    expect(undo.current()?.messageParams).toEqual({ name: 'Aegis Gladius' });
+    undo.undo();
     f.detectChanges();
-    expect(f.nativeElement.querySelector('sc-undo-toast .toast')).toBeNull();
     expect(toks().some((t) => t.disabled)).toBeFalse();
     expect(toks()[1].classList).not.toContain('mine');
     TestBed.inject(UndoToastService).flush();
@@ -270,20 +269,6 @@ describe('star map components', () => {
     TestBed.inject(UndoToastService).flush();
     await f.whenStable();
     expect(submitGuess).toHaveBeenCalledOnceWith('4.4', 'RSI_Zeus');
-  });
-
-  it('leaving the star map sends a pending guess', async () => {
-    const open = { state: 'open', guessedClass: null, answerClass: null, answerName: null } as const;
-    explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: open }), ...STATE.patches.slice(1)] });
-    const f = TestBed.createComponent(ExplorerPageComponent);
-    f.detectChanges();
-    await f.whenStable();
-    f.detectChanges();
-    (f.nativeElement.querySelectorAll('sc-guess-track .tok.ship')[1] as HTMLButtonElement).click();
-    f.detectChanges();
-    expect(submitGuess).not.toHaveBeenCalled();
-    f.destroy();
-    expect(submitGuess).toHaveBeenCalledOnceWith('4.4', 'AEGS_Gladius');
   });
 
   it('series strip: one line, unlocked vs locked from the server, next marked', () => {

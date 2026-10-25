@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { UndoToastService } from './undo-toast.service';
 
@@ -6,8 +6,8 @@ import { UndoToastService } from './undo-toast.service';
  * The undo toast for {@link UndoToastService}: one card bottom-right, above the
  * feedback launcher (same lane as the star toast), with the action in words, an
  * "Undo" button and a draining bar for the window. Hover or focus holds the
- * window. Hosted by the page that offers undoable actions; leaving the page
- * commits whatever is still pending.
+ * window. Hosted once by the shell, outside the routed page's stacking context;
+ * the window keeps running across navigation and commits when it closes.
  */
 @Component({
   selector: 'sc-undo-toast',
@@ -41,7 +41,7 @@ import { UndoToastService } from './undo-toast.service';
     }
     .msg { flex: 1; min-width: 0; font-size: 0.9rem; color: var(--sc-fg-0); }
     .undo {
-      flex: none; min-height: var(--sc-tap-min, 44px); padding: 0 16px; border-radius: 999px; cursor: pointer;
+      flex: none; height: 36px; padding: 0 16px; border-radius: 999px; cursor: pointer;
       font: 600 max(0.8rem, var(--sc-fs-floor)) var(--sc-font-display); letter-spacing: 0.12em; text-transform: uppercase;
       background: none; color: var(--sc-accent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, transparent);
@@ -49,6 +49,7 @@ import { UndoToastService } from './undo-toast.service';
     }
     .undo:hover { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); }
     .undo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    @media (pointer: coarse) { .undo { height: 48px; } }
     .drain {
       position: absolute; inset: auto 0 0 0; height: 2px; background: var(--sc-accent); transform-origin: left center;
       animation: toast-drain linear forwards;
@@ -70,8 +71,4 @@ export class UndoToastComponent {
     const c = this.svc.current();
     return c ? [c] : [];
   });
-
-  constructor() {
-    inject(DestroyRef).onDestroy(() => this.svc.flush());
-  }
 }
