@@ -33,7 +33,7 @@ import { BetaArea, BetaService } from '../../core/beta.service';
     .beta-dock {
       position: fixed; z-index: 40;
       left: max(12px, env(safe-area-inset-left));
-      bottom: var(--sc-float-bottom, 16px);
+      bottom: var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px));
       max-width: calc(100vw - var(--sc-fab-clear-inline, 88px) - 24px);
     }
     .beta-pill {

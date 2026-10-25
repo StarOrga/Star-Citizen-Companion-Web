@@ -3088,7 +3088,8 @@
     "links": {
       "about": "About",
       "privacy": "Privacy",
-      "imprint": "Site notice"
+      "imprint": "Site notice",
+      "aboutNew": "new"
     }
   },
   "legal": {
@@ -3119,6 +3120,11 @@
         "p1": "The fastest way to reach the maintainers:",
         "issuesLink": "GitHub issues (bugs, questions, feedback)",
         "securityLink": "Security contact (security.txt, RFC 9116)"
+      },
+      "new": {
+        "eyebrow": "New in the Verse",
+        "cta": "All changes",
+        "earlier": "Earlier releases"
       }
     },
     "privacy": {
@@ -3903,10 +3909,7 @@
     "current": "Current",
     "loading": "Loading release notes …",
     "empty": "No release notes yet.",
-    "whatsNew": "What's New",
-    "recentHint": "Showing the last 3 months.",
-    "loadMore": "Show {{count}} older releases",
-    "showLess": "Show fewer",
+    "loadMore": "Load more ({{count}})",
     "cat": {
       "added": "Added",
       "changed": "Changed",
@@ -3914,7 +3917,9 @@
       "removed": "Removed",
       "deprecated": "Deprecated",
       "security": "Security"
-    }
+    },
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "extension": {
     "promo": {

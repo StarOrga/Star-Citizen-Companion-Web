@@ -3088,7 +3088,8 @@
     "links": {
       "about": "Über",
       "privacy": "Datenschutz",
-      "imprint": "Impressum"
+      "imprint": "Impressum",
+      "aboutNew": "neu"
     }
   },
   "legal": {
@@ -3119,6 +3120,11 @@
         "p1": "Der schnellste Weg zu den Maintainern:",
         "issuesLink": "GitHub Issues (Bugs, Fragen, Feedback)",
         "securityLink": "Security-Kontakt (security.txt, RFC 9116)"
+      },
+      "new": {
+        "eyebrow": "Neu im Verse",
+        "cta": "Alle Änderungen",
+        "earlier": "Frühere Releases"
       }
     },
     "privacy": {
@@ -3903,10 +3909,7 @@
     "current": "Aktuell",
     "loading": "Release Notes werden geladen …",
     "empty": "Noch keine Release Notes.",
-    "whatsNew": "Was ist neu",
-    "recentHint": "Zeigt die letzten 3 Monate.",
-    "loadMore": "{{count}} ältere Einträge anzeigen",
-    "showLess": "Weniger anzeigen",
+    "loadMore": "Weitere laden ({{count}})",
     "cat": {
       "added": "Neu",
       "changed": "Geändert",
@@ -3914,7 +3917,9 @@
       "removed": "Entfernt",
       "deprecated": "Veraltet",
       "security": "Sicherheit"
-    }
+    },
+    "expand": "Aufklappen",
+    "collapse": "Zuklappen"
   },
   "extension": {
     "promo": {

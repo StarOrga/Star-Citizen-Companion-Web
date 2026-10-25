@@ -51,6 +51,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
   standalone: true,
   imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.verse-overlay]': 'verseOverlay()' },
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
   // outside .content, so they stay put.
@@ -374,7 +375,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
       <router-outlet (activate)="onRouteActivate()" />
     </main>
 
-    <sc-footer />
+    <sc-footer [overlay]="verseOverlay()" />
 
     <!-- Two mutually exclusive launchers: the admin board for admins, the slim
          "send feedback" panel for every other signed-in user (feedback
@@ -391,7 +392,18 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
     <sc-feedback-spots />
   `,
   styles: [`
-    :host { display: flex; flex-direction: column; min-height: 100dvh; }
+    :host { display: flex; flex-direction: column; min-height: 100dvh; --sc-verse-footer-h: 0px; }
+    /* Verse front page: the footer is a slim frosted strip fixed to the bottom
+       (footer.component.ts) and the beta pill sits inside it. The strip height
+       is published as --sc-verse-footer-h for the page's own bottom padding.
+       Short or phone-sized viewports keep the normal in-flow footer, so the
+       var stays 0px there. */
+    @media (min-width: 641px) and (min-height: 681px) {
+      :host(.verse-overlay) {
+        --sc-verse-footer-h: 48px;
+        --sc-beta-dock-bottom: var(--sc-safe-bottom, 0px);
+      }
+    }
     .topbar {
       display: flex;
       align-items: center;
@@ -913,6 +925,10 @@ export class ShellComponent implements AfterViewInit {
   readonly betaArea = signal(betaAreaOf(this.router.url));
   /** On the Starscape gallery (`/verse/gallery…`). */
   readonly onVerseGallery = signal(isVerseGallery(this.router.url));
+  /** On the Verse front page (exactly `/verse`) with the Verse β on: footer becomes an overlay strip. */
+  private readonly onVerseHome = signal(isVerseHome(this.router.url));
+  private readonly verseBeta = this.beta.isEnabled('verse');
+  readonly verseOverlay = computed(() => this.onVerseHome() && this.verseBeta());
 
   // Bumped each time a routed view mounts so the [@routeReveal] animation replays.
   readonly reveal = signal(0);
@@ -938,6 +954,7 @@ export class ShellComponent implements AfterViewInit {
         this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
         this.adminRoute.set(isAdminNavRoute(e.urlAfterRedirects));
         this.onVerseGallery.set(isVerseGallery(e.urlAfterRedirects));
+        this.onVerseHome.set(isVerseHome(e.urlAfterRedirects));
         this.betaArea.set(betaAreaOf(e.urlAfterRedirects));
       }
       if (e instanceof NavigationStart) {
@@ -1238,6 +1255,11 @@ export function isAdminNavRoute(url: string): boolean {
 }
 
 /** `/codex/…` but not the landing `/codex` itself (it carries the bar in its terminal row). */
+/** True on exactly `/verse` (query and fragment ignored) — not on its sub-pages. */
+export function isVerseHome(url: string): boolean {
+  return url.split(/[?#]/, 1)[0].replace(/\/+$/, '') === '/verse';
+}
+
 /** True on the Starscape gallery and its sub-pages under the Verse tab. */
 export function isVerseGallery(url: string): boolean {
   const path = url.split(/[?#]/)[0];

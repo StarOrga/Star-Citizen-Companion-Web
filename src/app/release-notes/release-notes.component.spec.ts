@@ -81,14 +81,10 @@ describe('ReleaseNotesComponent', () => {
     expect(c.kind('Deploy')).toBeNull();
   });
 
-  it('renders one timeline entry per release after load (full history)', async () => {
+  it('renders one timeline entry per release after load', async () => {
     fixture.detectChanges(); // triggers ngOnInit → load()
     http.expectOne('release-notes.json').flush(SAMPLE);
     await fixture.whenStable();
-    // Expand to the full history so the assertion is independent of the wall
-    // clock (the 3-month default would otherwise hide the fixed sample dates
-    // once they age past the window).
-    fixture.componentInstance.showAll.set(true);
     fixture.detectChanges();
 
     const releases = fixture.nativeElement.querySelectorAll('.release');
@@ -97,34 +93,45 @@ describe('ReleaseNotesComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Segmented control.');
   });
 
-  it('shows only the last 3 months by default and reveals the rest on load-more', async () => {
-    const iso = (d: Date) => d.toISOString().slice(0, 10);
-    const recent = new Date();
-    const old = new Date();
-    old.setMonth(old.getMonth() - 6);
-    const notes: ReleaseNotes = {
+  it('renders 5 releases first, loads 5 more per batch, folds all but the newest 3', async () => {
+    const many: ReleaseNotes = {
       generatedFrom: 'CHANGELOG.md',
-      current: '1.0.0',
-      releases: [
-        { version: '1.0.0', date: iso(recent), sections: [{ category: 'Added', label: '', items: [{ title: '', text: 'Fresh.' }] }] },
-        { version: '0.1.0', date: iso(old), sections: [{ category: 'Added', label: '', items: [{ title: '', text: 'Ancient.' }] }] },
-      ],
+      current: '1.12.0',
+      releases: Array.from({ length: 12 }, (_, i) => ({
+        version: `1.${12 - i}.0`,
+        date: '2026-01-01',
+        sections: [{ category: 'Added', label: `Head ${12 - i}`, items: [{ title: '', text: `Body ${12 - i}.` }] }],
+      })),
     };
     fixture.detectChanges();
-    http.expectOne('release-notes.json').flush(notes);
+    http.expectOne('release-notes.json').flush(many);
     await fixture.whenStable();
     fixture.detectChanges();
 
-    // Default: only the recent release is in the timeline; the old one is hidden.
-    expect(fixture.nativeElement.querySelectorAll('.release').length).toBe(1);
-    expect(fixture.componentInstance.hiddenCount()).toBe(1);
-    const loadMore = fixture.nativeElement.querySelector('.load-more');
-    expect(loadMore).toBeTruthy();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.release').length).toBe(5);
+    expect(fixture.componentInstance.hiddenCount()).toBe(7);
+    // Newest 3 open (full text), the other 2 folded (headline only).
+    expect(el.querySelectorAll('.rel-body').length).toBe(3);
+    expect(el.querySelectorAll('.rel-folded').length).toBe(2);
+    expect(el.textContent).toContain('Body 12.');
+    expect(el.textContent).not.toContain('Body 9.');
+    expect(el.textContent).toContain('Head 9');
 
-    // Load-more reveals the full history.
-    loadMore.click();
+    // Expanding a folded release reveals its text (aria-expanded flips).
+    const buttons = el.querySelectorAll<HTMLButtonElement>('.expander');
+    expect(buttons[3].getAttribute('aria-expanded')).toBe('false');
+    buttons[3].click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('.release').length).toBe(2);
-    expect(fixture.componentInstance.hiddenCount()).toBe(0);
+    expect(el.textContent).toContain('Body 9.');
+
+    // The fallback button loads the next batch, then the rest.
+    el.querySelector<HTMLButtonElement>('.load-more')!.click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.release').length).toBe(10);
+    el.querySelector<HTMLButtonElement>('.load-more')!.click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.release').length).toBe(12);
+    expect(el.querySelector('.load-more')).toBeNull();
   });
 });
