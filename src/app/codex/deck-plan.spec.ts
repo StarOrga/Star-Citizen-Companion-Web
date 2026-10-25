@@ -30,7 +30,8 @@ const DECKS: ShipDeck[] = [
         pos: [-18, -25, 0],
         floorZ: null,
         height: 3,
-        shapes: [[[-20, -26], [-16, -26], [-16, -24]], [[-20, -26], [-16, -24], [-20, -24]]],
+        shapes: [],
+        tris: [[[-20, -26], [-16, -26], [-16, -24]], [[-20, -26], [-16, -24], [-20, -24]]],
       },
     ],
   },
@@ -61,6 +62,14 @@ describe('buildDeckPlans', () => {
     expect(turret.paths).toEqual([]);
     expect(turret.mesh.match(/M/g)?.length).toBe(2);
     expect(turret.area).toBe(8);
+    // Label sits on the whole floor, not on one triangle.
+    expect(turret.anchor).toEqual({ x: 3.5, y: 40.5 });
+    expect(turret.box).toEqual({ w: 4, h: 2 });
+  });
+
+  it('draws larger rooms first so small ones stay on top', () => {
+    const rooms = buildDeckPlans(DECKS, 'en')!.decks[1].rooms;
+    expect(rooms.map((r) => r.key)).toEqual(['MedicalBay_Room_RN', 'Lift_Front_Room_RN']);
   });
 
   it('a room without footprint becomes a pin at its pivot', () => {
@@ -98,6 +107,7 @@ describe('humanizeRoomKey', () => {
     expect(humanizeRoomKey('CargoPods_FrontContainter_Room_RN')).toBe('Cargo Pods Front Containter');
     expect(humanizeRoomKey('Corridors_Middle_Left_Room1_Room_RN')).toBe('Corridors Middle Left 1');
     expect(humanizeRoomKey('Captains_Quarters_Room_Room_RN')).toBe('Captains Quarters');
+    expect(humanizeRoomKey('Corridor_Room_RN~2')).toBe('Corridor');
     expect(humanizeRoomKey('Room_RN')).toBe('Room_RN');
   });
 });

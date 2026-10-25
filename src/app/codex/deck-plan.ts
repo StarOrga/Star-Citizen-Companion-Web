@@ -73,14 +73,16 @@ interface ParsedRoom {
   name: ShipDeckRoom['name'];
   pos: [number, number];
   shapes: [number, number][][];
+  tris: [number, number][][];
 }
 
 function readRoom(raw: unknown): ParsedRoom | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Partial<ShipDeckRoom>;
   if (typeof r.key !== 'string' || !r.key || !Array.isArray(r.pos) || !num(r.pos[0]) || !num(r.pos[1])) return null;
-  const shapes = Array.isArray(r.shapes) ? r.shapes.map(readPolygon).filter((s): s is [number, number][] => !!s) : [];
-  return { key: r.key, name: r.name ?? null, pos: [r.pos[0], r.pos[1]], shapes };
+  const polys = (v: unknown) =>
+    Array.isArray(v) ? v.map(readPolygon).filter((s): s is [number, number][] => !!s) : [];
+  return { key: r.key, name: r.name ?? null, pos: [r.pos[0], r.pos[1]], shapes: polys(r.shapes), tris: polys(r.tris) };
 }
 
 /** Signed-area-free polygon area + centroid (shoelace). */
@@ -110,6 +112,7 @@ function areaCentroid(poly: [number, number][]): { area: number; cx: number; cy:
  */
 export function humanizeRoomKey(key: string): string {
   return key
+    .replace(/~\d+$/, '')
     .replace(/[-_]\d+$/, '')
     .replace(/_?Room_RN$/i, '')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -147,7 +150,8 @@ export function buildDeckPlans(decks: readonly ShipDeck[] | null | undefined, la
   let maxY = -Infinity;
   for (const { rooms } of parsed) {
     for (const room of rooms) {
-      const pts = room.shapes.length ? room.shapes.flat() : [room.pos];
+      const all = [...room.shapes, ...room.tris];
+      const pts = all.length ? all.flat() : [room.pos];
       for (const [x, y] of pts) {
         minX = Math.min(minX, x);
         maxX = Math.max(maxX, x);
@@ -166,27 +170,47 @@ export function buildDeckPlans(decks: readonly ShipDeck[] | null | undefined, la
     key: deck.key,
     label: deckLabel(deck, lang),
     order: deck.order ?? 0,
-    rooms: rooms.map((room) => {
-      const d = (s: [number, number][]) => 'M' + s.map(([x, y]) => `${sx(x)} ${sy(y)}`).join('L') + 'Z';
-      const paths = room.shapes.filter((s) => s.length > 3).map(d);
-      const mesh = room.shapes.filter((s) => s.length === 3).map(d).join('');
-      let area = 0;
-      let anchor = { x: sx(room.pos[0]), y: sy(room.pos[1]) };
-      let best = -1;
-      let box = { w: 0, h: 0 };
-      for (const s of room.shapes) {
-        const c = areaCentroid(s);
-        area += c.area;
-        if (c.area > best) {
-          best = c.area;
-          anchor = { x: sx(c.cx), y: sy(c.cy) };
-          const xs = s.map((p) => p[0]);
-          const ys = s.map((p) => p[1]);
-          box = { w: r2(Math.max(...xs) - Math.min(...xs)), h: r2(Math.max(...ys) - Math.min(...ys)) };
+    rooms: rooms
+      .map((room) => {
+        const d = (s: [number, number][]) => 'M' + s.map(([x, y]) => `${sx(x)} ${sy(y)}`).join('L') + 'Z';
+        // Pieces a label can sit on: each outlined footprint, and the trimesh
+        // floor as ONE piece (its triangles only make sense together).
+        const pieces = [...room.shapes.map((s) => [s]), ...(room.tris.length ? [room.tris] : [])];
+        let area = 0;
+        let anchor = { x: sx(room.pos[0]), y: sy(room.pos[1]) };
+        let box = { w: 0, h: 0 };
+        let best = -1;
+        for (const piece of pieces) {
+          let a = 0;
+          let cx = 0;
+          let cy = 0;
+          for (const s of piece) {
+            const c = areaCentroid(s);
+            a += c.area;
+            cx += c.cx * c.area;
+            cy += c.cy * c.area;
+          }
+          area += a;
+          if (a > best && a > 0) {
+            best = a;
+            anchor = { x: sx(cx / a), y: sy(cy / a) };
+            const xs = piece.flat().map((p) => p[0]);
+            const ys = piece.flat().map((p) => p[1]);
+            box = { w: r2(Math.max(...xs) - Math.min(...xs)), h: r2(Math.max(...ys) - Math.min(...ys)) };
+          }
         }
-      }
-      return { key: room.key, label: roomLabel(room.name, room.key, lang), paths, mesh, anchor, area: r2(area), box };
-    }),
+        return {
+          key: room.key,
+          label: roomLabel(room.name, room.key, lang),
+          paths: room.shapes.map(d),
+          mesh: room.tris.map(d).join(''),
+          anchor,
+          area: r2(area),
+          box,
+        };
+      })
+      // Largest first, so a small room drawn later stays on top and hoverable.
+      .sort((a, b) => b.area - a.area),
   }));
   return { decks: out, viewBox: `0 0 ${r2(width)} ${r2(height)}`, width: r2(width), height: r2(height) };
 }

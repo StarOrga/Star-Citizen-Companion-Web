@@ -1584,6 +1584,15 @@ class CodexExtractor:
         A deck gains ``rooms`` + ``bounds`` only when at least one room maps
         to it; rooms whose section is no deck of this ship are dropped (a
         shared interior can reference another hull's sections)."""
+        try:
+            self._attach_deck_rooms_unsafe(decks, vcp)
+        except Exception as exc:  # noqa: BLE001 — rooms are optional, never abort a ship
+            self.on_log("warn", f"deck rooms failed: {exc}")
+            for deck in decks:
+                deck.pop("rooms", None)
+                deck.pop("bounds", None)
+
+    def _attach_deck_rooms_unsafe(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any]) -> None:
         rooms = self._ship_rooms(vcp)
         if not rooms:
             return
@@ -1597,7 +1606,7 @@ class CodexExtractor:
             deck = by_key.get(key) if key else None
             if deck is None:
                 continue
-            row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes")}
+            row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
             row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
             deck.setdefault("rooms", []).append(row)
         for deck in decks:
@@ -1608,20 +1617,33 @@ class CodexExtractor:
     def _ship_rooms(self, vcp: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Rooms of every interior object container, in the ship frame."""
         out: List[Dict[str, Any]] = []
+        seen: Counter = Counter()
         for oc in vcp.get("objectContainers") or []:
             if not isinstance(oc, dict) or not oc.get("fileName"):
                 continue
-            offset = (oc.get("Offset") or {})
-            p = offset.get("Position") or {}
-            pos = (float(p.get("x") or 0), float(p.get("y") or 0), float(p.get("z") or 0))
-            rot = ang3_quat(offset.get("Rotation") or {})
+            offset = oc.get("Offset") if isinstance(oc.get("Offset"), dict) else {}
+            p = offset.get("Position") if isinstance(offset.get("Position"), dict) else {}
+            try:
+                pos = tuple(float(p.get(k) or 0) for k in ("x", "y", "z"))
+            except (TypeError, ValueError):
+                pos = (0.0, 0.0, 0.0)
+            if not all(math.isfinite(c) for c in pos):
+                pos = (0.0, 0.0, 0.0)
+            rot = ang3_quat(offset.get("Rotation") if isinstance(offset.get("Rotation"), dict) else {})
             for room in self._container_rooms(oc["fileName"]):
                 moved = dict(room)
+                # Entity names are unique per container only; front/middle/rear
+                # may reuse one, and the UI keys rooms by it.
+                seen[room["key"]] += 1
+                if seen[room["key"]] > 1:
+                    moved["key"] = f"{room['key']}~{seen[room['key']]}"
                 moved["pos"] = move(room["pos"], rot, pos)
-                moved["shapes"] = [[move(pt + [0.0], rot, pos)[:2] for pt in s]
-                                   for s in room["shapes"]]
+                z = room["floorZ"] or 0.0
+                for bucket in ("shapes", "tris"):
+                    moved[bucket] = [[move(pt + [z], rot, pos)[:2] for pt in poly]
+                                     for poly in room.get(bucket, [])]
                 if room["floorZ"] is not None:
-                    moved["floorZ"] = round(room["floorZ"] + pos[2], 2)
+                    moved["floorZ"] = move([room["pos"][0], room["pos"][1], room["floorZ"]], rot, pos)[2]
                 out.append(moved)
         return out
 
@@ -1650,12 +1672,15 @@ class CodexExtractor:
                         blob = f.read()
                     zf = zipfile.ZipFile(_io.BytesIO(blob))
                     for info in soc_entries(zf):
-                        soc = read_zip_entry(blob, info)
-                        if b"Room_RN" not in soc:
-                            continue
-                        ents = soc_entities(soc, decode_cryxml)
-                        if ents is not None:
-                            rooms += rooms_in_container(ents, (0.0, 0.0, 0.0))
+                        try:
+                            soc = read_zip_entry(blob, info)
+                            if b"Room_RN" not in soc:
+                                continue
+                            ents = soc_entities(soc, decode_cryxml)
+                            if ents is not None:
+                                rooms += rooms_in_container(ents, (0.0, 0.0, 0.0))
+                        except Exception as exc:  # noqa: BLE001 — one bad .soc never drops the others
+                            self.on_log("warn", f"object container entry {info.filename} in {file_name}: {exc}")
             except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
                 self.on_log("warn", f"object container read failed for {file_name}: {exc}")
                 rooms = []
@@ -2468,7 +2493,7 @@ class CodexExtractor:
                 # overrides only its left gun keeps the stock right gun. An
                 # override with an empty class stays empty on purpose.
                 own = e.get("entries") or []
-                taken = {str(s.get("itemPortName") or "").lower() for s in own}
+                taken = {str(s.get("itemPortName") or "").lower() for s in own} - {""}
                 extra = [copy.deepcopy(s) for s in stock
                          if str(s.get("itemPortName") or "").lower() not in taken]
                 if extra:

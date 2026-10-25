@@ -1414,7 +1414,7 @@
       "title": "Deckplan",
       "hint": "Von oben gesehen, Bug oben. Zeig auf einen Raum für seinen Namen.",
       "switchAria": "Deck wählen",
-      "aria": "{{deck}}: Deckplan mit {{count}} Räumen",
+      "aria": "{{deck}}: Deckplan, Räume: {{count}}",
       "nose": "Bug",
       "readoutIdle": "Kein Raum ausgewählt",
       "roomsAria": "Räume auf {{deck}}"

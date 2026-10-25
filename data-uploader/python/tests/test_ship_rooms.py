@@ -111,17 +111,32 @@ class TestRooms:
 
     def test_trimesh_keeps_only_its_floor_triangles(self):
         turret = _rooms()["Turret_Room_RN"]
-        assert turret["shapes"] == [[[-20.0, -26.0], [-16.0, -26.0], [-16.0, -24.0]],
-                                    [[-20.0, -26.0], [-16.0, -24.0], [-20.0, -24.0]]]
+        assert turret["shapes"] == []
+        assert turret["tris"] == [[[-20.0, -26.0], [-16.0, -26.0], [-16.0, -24.0]],
+                                  [[-20.0, -26.0], [-16.0, -24.0], [-20.0, -24.0]]]
         assert turret["height"] == 3.0
 
     def test_a_room_without_volume_is_a_pin(self):
         lift = _rooms()["Lift_Room_RN"]
-        assert lift["shapes"] == [] and lift["pos"] == [3.0, 14.0, -9.5]
+        assert lift["shapes"] == [] and lift["tris"] == [] and lift["pos"] == [3.0, 14.0, -9.5]
 
     def test_container_offset_moves_everything(self):
         lift = _rooms((0.0, -5.0, -3.0))["Lift_Room_RN"]
         assert lift["pos"] == [3.0, 9.0, -12.5]
+
+    def test_segment_rotation_is_applied(self):
+        # transform_ls Q (w,x,y,z) = 90 deg about Z: the box's long side turns from X to Y.
+        h = math.sqrt(0.5)
+        ents = ET.fromstring(f"""<Entities>
+         <Entity Name="R_Room_RN" Pos="0,0,0" EntityClass="Room_RN" EntityCryGUID="{LIFT}"/>
+         <Entity Name="VA" Pos="0,0,0" EntityClass="GenericShape"><AreaComponent>
+          <Segment transform_ls="Q : {h},0,0,{h} | T : 0,0,0" Type="Box" BoxMin="-2,-1,0" BoxMax="2,1,3"/>
+          <Entities><Entity EntityCryGUID="{LIFT}"/></Entities></AreaComponent></Entity>
+        </Entities>""")
+        (rect,) = rooms_in_container(ents, (0, 0, 0))[0]["shapes"]
+        xs = [p[0] for p in rect]
+        ys = [p[1] for p in rect]
+        assert (max(xs) - min(xs), max(ys) - min(ys)) == pytest.approx((2.0, 4.0))
 
     def test_no_rooms_means_empty(self):
         assert rooms_in_container(ET.fromstring("<Entities/>"), (0, 0, 0)) == []
@@ -218,11 +233,14 @@ class TestAttachDeckRooms:
         ex.df = type("DF", (), {"record_by_id": staticmethod(lambda g: sections.get(g))})()
         ex._deck_name = lambda key: {"en": key.lstrip("@").title(), "de": None}
         ex._ship_rooms = lambda vcp: rooms
+        ex.logs = []
+        ex.on_log = lambda lvl, m: ex.logs.append((lvl, m))
         return ex
 
     def _room(self, key, section, loc="@vehicle_room_medical"):
         return {"key": key, "locKey": loc, "section": section, "pos": [0.0, 1.0, 2.0],
-                "floorZ": 1.0, "height": 3.0, "shapes": [[[0.0, 0.0], [2.0, 0.0], [2.0, 2.0]]]}
+                "floorZ": 1.0, "height": 3.0, "shapes": [[[0.0, 0.0], [2.0, 0.0], [2.0, 2.0]]],
+                "tris": []}
 
     def test_rooms_land_on_their_deck_with_bounds(self):
         decks = [{"key": "Carrack_Deck_1", "name": None, "order": 0},
@@ -236,10 +254,51 @@ class TestAttachDeckRooms:
         assert [r["key"] for r in rooms] == ["Alpha_Room_RN", "Zeta_Room_RN"]
         assert rooms[0]["name"] is None
         assert rooms[1]["name"] == {"en": "Vehicle_Room_Medical", "de": None}
-        assert set(rooms[1]) == {"key", "name", "pos", "floorZ", "height", "shapes"}
+        assert set(rooms[1]) == {"key", "name", "pos", "floorZ", "height", "shapes", "tris"}
         assert decks[1]["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
+
+    def test_a_failure_leaves_the_decks_without_rooms(self):
+        decks = [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
+        ex = self._extractor([{"key": "Broken"}])
+        ex._attach_deck_rooms(decks, {})
+        assert decks == [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
+        assert ex.logs and ex.logs[0][0] == "warn"
 
     def test_no_rooms_leaves_the_decks_alone(self):
         decks = [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
         self._extractor([])._attach_deck_rooms(decks, {})
         assert decks == [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
+
+
+class TestShipRoomsAcrossContainers:
+    def _extractor(self, per_file):
+        from sc_extract.dataforge_extract import CodexExtractor
+        ex = CodexExtractor.__new__(CodexExtractor)
+        ex._container_rooms = lambda name: per_file.get(name, [])
+        return ex
+
+    def _room(self, key):
+        return {"key": key, "locKey": None, "section": None, "pos": [1.0, 0.0, 0.0],
+                "floorZ": 0.0, "height": 2.0, "shapes": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]],
+                "tris": []}
+
+    def test_keys_stay_unique_and_offsets_apply(self):
+        ex = self._extractor({"a.socpak": [self._room("Corridor_Room_RN")],
+                              "b.socpak": [self._room("Corridor_Room_RN")]})
+        vcp = {"objectContainers": [
+            {"fileName": "a.socpak", "Offset": {"Position": {"x": 0, "y": 10, "z": -3}}},
+            {"fileName": "b.socpak", "Offset": {"Position": {"x": 0, "y": -10, "z": 0},
+                                                "Rotation": {"x": 0, "y": 0, "z": 180}}},
+        ]}
+        a, b = ex._ship_rooms(vcp)
+        assert (a["key"], b["key"]) == ("Corridor_Room_RN", "Corridor_Room_RN~2")
+        assert a["pos"] == [1.0, 10.0, -3.0] and a["floorZ"] == -3.0
+        assert b["pos"] == [-1.0, -10.0, 0.0]
+        assert b["shapes"] == [[[0.0, -10.0], [-1.0, -10.0], [-1.0, -11.0]]]
+
+    def test_garbage_offsets_fall_back_to_the_origin(self):
+        ex = self._extractor({"a.socpak": [self._room("R")]})
+        rooms = ex._ship_rooms({"objectContainers": [
+            {"fileName": "a.socpak", "Offset": {"Position": {"x": "abc"}, "Rotation": "nope"}},
+            {"fileName": None}, "junk"]})
+        assert rooms[0]["pos"] == [1.0, 0.0, 0.0]

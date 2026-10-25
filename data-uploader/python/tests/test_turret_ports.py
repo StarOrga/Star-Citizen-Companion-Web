@@ -199,6 +199,12 @@ class TestTurretStock:
             _entry("hardpoint_weapon_right", None)]))
         assert [e["entityClassName"] for e in lo[0]["entries"]] == [None, None]
 
+    def test_an_unnamed_ship_entry_does_not_block_the_stock(self):
+        lo = self._loadout(_entry("Turret_Top", "AEGS_Turret_Twin", children=[
+            {"itemPortName": None, "entityClassName": "Odd", "loadout": None}]))
+        assert [e["entityClassName"] for e in lo[0]["entries"]] == [
+            "Odd", "Stock_Gun_Left", "Stock_Gun_Right"]
+
     def test_non_turret_items_keep_what_the_ship_says(self):
         lo = self._loadout(_entry("hardpoint_seat_pilot", "AEGS_Seat_Pilot"),
                            _entry("hardpoint_paint", None))

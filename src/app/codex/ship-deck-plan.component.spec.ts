@@ -95,9 +95,36 @@ describe('ShipDeckPlanComponent', () => {
     expect(chips[1].getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('a click holds the room after the pointer leaves, a second click releases it', () => {
+    const el = render(DECKS);
+    const g = el.querySelectorAll<SVGGElement>('g.room')[1];
+    g.dispatchEvent(new Event('mouseenter'));
+    g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    g.dispatchEvent(new Event('mouseleave'));
+    fixture.detectChanges();
+    expect(el.querySelector('.readout')!.textContent!.trim()).toBe('Galley');
+    g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+    expect(el.querySelector('.readout')!.classList).toContain('empty');
+  });
+
+  it('rooms stay out of the tab order and Home/End jump between decks', () => {
+    const el = render([...DECKS, { ...DECKS[0], key: 'Ship_Upper_Deck', name: { en: 'Upper Deck', de: null }, order: 2 }]);
+    expect(el.querySelector('g.room[tabindex]')).toBeNull();
+    const tabs = el.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    fixture.detectChanges();
+    expect(tabs[2].getAttribute('aria-selected')).toBe('true');
+    expect(el.querySelector('[role="tabpanel"]')!.getAttribute('aria-labelledby')).toBe('dp-tab-2');
+    tabs[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    fixture.detectChanges();
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+  });
+
   it('a single deck shows no switcher', () => {
     const el = render([DECKS[1]]);
     expect(el.querySelector('[role="tablist"]')).toBeNull();
+    expect(el.querySelector('[role="tabpanel"]')).toBeNull();
     expect(el.querySelectorAll('g.room').length).toBe(2);
   });
 });

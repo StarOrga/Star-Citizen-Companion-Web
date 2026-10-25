@@ -34,6 +34,8 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
                 type="button"
                 role="tab"
                 class="tab"
+                [attr.id]="'dp-tab-' + $index"
+                [attr.aria-controls]="'dp-panel'"
                 [class.on]="d.key === deck()?.key"
                 [attr.aria-selected]="d.key === deck()?.key"
                 [attr.tabindex]="d.key === deck()?.key ? 0 : -1"
@@ -48,7 +50,8 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
         }
 
         @if (deck(); as d) {
-          <div class="stage" role="tabpanel" [attr.aria-label]="d.label">
+          <div class="stage" id="dp-panel" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
+               [attr.aria-labelledby]="set.decks.length > 1 ? 'dp-tab-' + deckIndex() : null">
             <svg
               [attr.viewBox]="set.viewBox"
               role="group"
@@ -63,16 +66,13 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
                   class="room"
                   [class.on]="r.label === activeLabel()"
                   [class.pin]="!r.paths.length && !r.mesh"
-                  tabindex="0"
                   role="img"
                   [attr.aria-label]="r.label"
                   [scTooltip]="r.label"
                   scTooltipTier="label"
-                  (mouseenter)="active.set(r.key)"
-                  (mouseleave)="active.set(null)"
-                  (focus)="active.set(r.key)"
-                  (blur)="active.set(null)"
-                  (click)="active.set(r.key)"
+                  (mouseenter)="hovered.set(r.key)"
+                  (mouseleave)="hovered.set(null)"
+                  (click)="pin(r)"
                 >
                   @if (r.mesh) {
                     <path class="mesh" [attr.d]="r.mesh" />
@@ -101,11 +101,13 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
           <ul class="legend" [attr.aria-label]="'codex.deckPlan.roomsAria' | translate: { deck: d.label }">
             @for (r of legend(); track r.key) {
               <li>
+                <!-- The chips are the keyboard path through the rooms; the plan's
+                     own shapes stay out of the tab order. -->
                 <button type="button" class="chip" [class.on]="r.label === activeLabel()"
-                        [attr.aria-pressed]="r.label === activeLabel()"
-                        (mouseenter)="active.set(r.key)" (mouseleave)="active.set(null)"
-                        (focus)="active.set(r.key)" (blur)="active.set(null)"
-                        (click)="active.set(r.key)">{{ r.label }}</button>
+                        [attr.aria-pressed]="r.label === pinnedLabel()"
+                        (mouseenter)="hovered.set(r.key)" (mouseleave)="hovered.set(null)"
+                        (focus)="hovered.set(r.key)" (blur)="hovered.set(null)"
+                        (click)="pin(r)">{{ r.label }}</button>
               </li>
             }
           </ul>
@@ -138,7 +140,7 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
 
     .nose { fill: var(--sc-fg-2); letter-spacing: 0.05em; }
     .room path { fill: color-mix(in srgb, var(--sc-accent) 10%, transparent);
-      stroke: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); stroke-width: 0.12;
+      stroke: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); stroke-width: 1px;
       vector-effect: non-scaling-stroke; }
     .room path.mesh { stroke: none; }
     .room circle { fill: var(--sc-fg-2); }
@@ -146,8 +148,6 @@ import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
     .room:hover path, .room.on path { fill: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke: var(--sc-accent); }
     .room:hover path.mesh, .room.on path.mesh { stroke: none; }
     .room:hover circle, .room.on circle { fill: var(--sc-accent); }
-    .room:focus-visible { outline: none; }
-    .room:focus-visible path { stroke: var(--sc-accent); stroke-width: 2; }
 
     .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
     .chip { min-height: 32px; padding: 2px 10px; border-radius: 6px; border: 1px solid var(--sc-border);
@@ -167,7 +167,12 @@ export class ShipDeckPlanComponent {
   readonly plans = computed(() => buildDeckPlans(this.decks(), this.lang()));
 
   private readonly picked = signal<string | null>(null);
-  readonly active = signal<string | null>(null);
+  /** Room under the pointer or a focused chip — transient. */
+  readonly hovered = signal<string | null>(null);
+  /** Room a click/tap selected — holds until another click or a deck switch. */
+  readonly pinned = signal<string | null>(null);
+  /** What the plan highlights and the readout names: hover wins over the pin. */
+  readonly active = computed(() => this.hovered() ?? this.pinned());
 
   /** The picked deck, else the one with the most rooms (the ship's main deck in practice). */
   readonly deck = computed<DeckPlan | null>(() => {
@@ -178,10 +183,19 @@ export class ShipDeckPlanComponent {
       ?? set.decks.reduce((best, d) => (d.rooms.length > best.rooms.length ? d : best), set.decks[0]);
   });
 
-  /** Label size in metres: readable on a 30 m ship and on a 150 m one. */
+  readonly deckIndex = computed(() => {
+    const set = this.plans();
+    return set ? Math.max(0, set.decks.findIndex((d) => d.key === this.deck()?.key)) : 0;
+  });
+
+  /**
+   * Label size in metres. A long nose-up plan is capped by height, not width,
+   * so the font follows the plan's longer side to stay readable on an Idris.
+   */
   readonly fontSize = computed(() => {
-    const w = this.plans()?.width ?? 40;
-    return Math.min(Math.max(w / 40, 0.6), 2.4);
+    const set = this.plans();
+    const span = set ? Math.max(set.width, set.height * 0.6) : 40;
+    return Math.max(span / 40, 0.6);
   });
 
   /** Inline room labels run smaller than the nose mark. */
@@ -196,14 +210,21 @@ export class ShipDeckPlanComponent {
       .filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true)));
   });
 
-  readonly activeLabel = computed(() => {
-    const key = this.active();
+  private labelOf(key: string | null): string {
     return key ? this.deck()?.rooms.find((r) => r.key === key)?.label ?? '' : '';
-  });
+  }
+
+  readonly activeLabel = computed(() => this.labelOf(this.active()));
+  readonly pinnedLabel = computed(() => this.labelOf(this.pinned()));
+
+  pin(r: DeckPlanRoom): void {
+    this.pinned.update((k) => (k === r.key ? null : r.key));
+  }
 
   select(d: DeckPlan): void {
     this.picked.set(d.key);
-    this.active.set(null);
+    this.hovered.set(null);
+    this.pinned.set(null);
   }
 
   /**
@@ -217,9 +238,10 @@ export class ShipDeckPlanComponent {
   }
 
   onTabKey(event: KeyboardEvent, decks: readonly DeckPlan[]): void {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     const i = decks.findIndex((d) => d.key === this.deck()?.key);
-    const next = decks[(i + (event.key === 'ArrowRight' ? 1 : decks.length - 1)) % decks.length];
+    const step: Record<string, number> = { ArrowRight: i + 1, ArrowLeft: i - 1 + decks.length, Home: 0, End: decks.length - 1 };
+    if (!(event.key in step)) return;
+    const next = decks[step[event.key] % decks.length];
     event.preventDefault();
     this.select(next);
     const tabs = (event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>('[role="tab"]');

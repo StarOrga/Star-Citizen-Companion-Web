@@ -185,8 +185,10 @@ export interface ShipDeckRoom {
   pos: number[];
   floorZ: number | null;
   height: number | null;
-  /** Floor footprints as 2D polygons `[[x, y], …]`; empty = pin only. */
+  /** Outlined floor footprints as 2D polygons `[[x, y], …]`. */
   shapes: number[][][];
+  /** Floor triangles of trimesh volumes (filled, not outlined); empty with `shapes` = pin only. */
+  tris?: number[][][];
 }
 
 export interface ShipPayload extends BaseEntityPayload {

@@ -1414,7 +1414,7 @@
       "title": "Deck plan",
       "hint": "Seen from above, nose up. Point at a room for its name.",
       "switchAria": "Choose a deck",
-      "aria": "{{deck}}: deck plan with {{count}} rooms",
+      "aria": "{{deck}}: deck plan, rooms: {{count}}",
       "nose": "Nose",
       "readoutIdle": "No room selected",
       "roomsAria": "Rooms on {{deck}}"

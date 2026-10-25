@@ -171,34 +171,39 @@ def decode_cryxml(blob: bytes):
     return etree_from_cryxml_file(io.BytesIO(blob)).getroot()
 
 
-def _transform_ls_t(text: Optional[str]) -> Vec3:
-    """Translation of a ``transform_ls`` string (``Q : w,x,y,z | T : x,y,z``)."""
-    m = re.search(r"T\s*:\s*([-0-9.e+,\s]+)", text or "")
-    return _vec(m.group(1).replace(" ", "")) if m else (0.0, 0.0, 0.0)
+def _transform_ls(text: Optional[str]) -> Tuple[Quat, Vec3]:
+    """Rotation + translation of a ``transform_ls`` string
+    (``Q : w,x,y,z | T : x,y,z``); identity for anything unreadable."""
+    q = re.search(r"Q\s*:\s*([-0-9.e+,\s]+)", text or "")
+    t = re.search(r"T\s*:\s*([-0-9.e+,\s]+)", text or "")
+    return (_quat_wxyz(q.group(1).replace(" ", "")) if q else (0.0, 0.0, 0.0, 1.0),
+            _vec(t.group(1).replace(" ", "")) if t else (0.0, 0.0, 0.0))
 
 
-def _segment_footprints(seg) -> Tuple[List[List[Vec3]], float]:
-    """Local floor polygons of one ``Segment`` and its height (m)."""
+def _segment_footprints(seg) -> Tuple[List[List[Vec3]], List[List[Vec3]], float]:
+    """Local floor outlines, floor triangles (trimesh) and height (m) of one
+    ``Segment``. Points pass through the segment's own ``transform_ls``."""
     kind = (seg.get("Type") or "").lower()
-    t = _transform_ls_t(seg.get("transform_ls"))
+    q, t = _transform_ls(seg.get("transform_ls"))
 
     def off(p: Vec3) -> Vec3:
-        return (p[0] + t[0], p[1] + t[1], p[2] + t[2])
+        r = rotate(q, p)
+        return (r[0] + t[0], r[1] + t[1], r[2] + t[2])
 
     if kind == "shape":
         pts = [off(_vec(p.get("Pos"))) for p in seg.iter("Point")]
         h = (_floats(seg.get("Height")) or [0.0])[0]
-        return ([pts] if len(pts) >= 3 else []), h
+        return ([pts] if len(pts) >= 3 else []), [], h
     if kind == "box":
         lo, hi = _vec(seg.get("BoxMin")), _vec(seg.get("BoxMax"))
         z = lo[2]
         rect = [off((lo[0], lo[1], z)), off((hi[0], lo[1], z)),
                 off((hi[0], hi[1], z)), off((lo[0], hi[1], z))]
-        return [rect], hi[2] - lo[2]
+        return [rect], [], hi[2] - lo[2]
     if kind == "trimesh":
         pts = [off(_vec(p.get("pos") or p.get("Pos"))) for p in seg.iter("Point")]
         if len(pts) < 3:
-            return [], 0.0
+            return [], [], 0.0
         zmin = min(p[2] for p in pts)
         zmax = max(p[2] for p in pts)
         floor = []
@@ -207,8 +212,8 @@ def _segment_footprints(seg) -> Tuple[List[List[Vec3]], float]:
             zs = [p[2] for p in tri]
             if max(zs) - min(zs) <= _FLAT_EPS_M and min(zs) - zmin <= _FLOOR_BAND_M:
                 floor.append(tri)
-        return floor, zmax - zmin
-    return [], 0.0
+        return [], floor, zmax - zmin
+    return [], [], 0.0
 
 
 def _area2(poly: Sequence[Sequence[float]]) -> float:
@@ -228,9 +233,10 @@ def rooms_in_container(entities, offset: Vec3, offset_rot: Quat = (0.0, 0.0, 0.0
                        ) -> List[Dict[str, Any]]:
     """Rooms of one ``<Entities>`` root, transformed into the ship frame.
 
-    Each row: ``{key, locKey, section, pos, floorZ, height, shapes}`` where
-    ``shapes`` are 2D polygons ``[[x, y], …]``. Rooms without a volume keep
-    ``shapes: []`` (a pin, not an outline).
+    Each row: ``{key, locKey, section, pos, floorZ, height, shapes, tris}``:
+    ``shapes`` are outlined 2D polygons ``[[x, y], …]``, ``tris`` the floor
+    triangles of trimesh volumes (filled, never outlined). A room with
+    neither is a pin.
     """
     def to_ship(p: Vec3) -> Vec3:
         r = rotate(offset_rot, p)
@@ -253,6 +259,7 @@ def rooms_in_container(entities, offset: Vec3, offset_rot: Quat = (0.0, 0.0, 0.0
             "floorZ": None,
             "height": None,
             "shapes": [],
+            "tris": [],
         }
     if not rooms:
         return []
@@ -270,14 +277,14 @@ def rooms_in_container(entities, offset: Vec3, offset_rot: Quat = (0.0, 0.0, 0.0
         epos = _vec(ent.get("Pos"))
         erot = _quat_wxyz(ent.get("Rotate"))
         for seg in area.findall("Segment"):
-            polys, height = _segment_footprints(seg)
-            for poly in polys:
+            polys, tris, height = _segment_footprints(seg)
+            for poly, bucket in [(q, "shapes") for q in polys] + [(q, "tris") for q in tris]:
                 world = [to_ship(tuple(a + b for a, b in zip(rotate(erot, p), epos)))
                          for p in poly]
                 flat = [[round(p[0], _ROUND), round(p[1], _ROUND)] for p in world]
                 if _area2(flat) < 1e-3:
                     continue
-                room["shapes"].append(flat)
+                room[bucket].append(flat)
                 z = min(p[2] for p in world)
                 room["floorZ"] = round(z if room["floorZ"] is None else min(room["floorZ"], z), _ROUND)
                 if height > 0:
@@ -312,7 +319,7 @@ def bounds_of(rooms: Iterable[Dict[str, Any]]) -> Optional[Dict[str, List[float]
     xs: List[float] = []
     ys: List[float] = []
     for r in rooms:
-        pts = [p for s in r["shapes"] for p in s] or [r["pos"][:2]]
+        pts = [p for s in r["shapes"] + r.get("tris", []) for p in s] or [r["pos"][:2]]
         xs += [p[0] for p in pts]
         ys += [p[1] for p in pts]
     if not xs:
