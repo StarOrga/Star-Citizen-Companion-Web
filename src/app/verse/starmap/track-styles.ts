@@ -8,13 +8,13 @@ export const TRACK_STYLES = `
   .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
   :host(.right) .head { justify-content: flex-end; }
   .head b { font-size: 0.875rem; font-weight: 600; color: var(--sc-fg-0); }
-  .kind { display: inline-flex; align-items: center; gap: 6px; font: 0.66rem var(--sc-font-display); letter-spacing: 0.22em;
+  .kind { display: inline-flex; align-items: center; gap: 6px; font: 0.8rem var(--sc-font-display); letter-spacing: 0.22em;
     text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
   .info { width: 24px; height: 24px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent);
     display: inline-grid; place-items: center; flex: none; padding: 0; background: none; font: italic 600 0.7rem/1 Georgia, serif;
     color: var(--sc-fg-1); cursor: help; }
   .info:hover, .info:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); outline: none; }
-  .state { display: inline-flex; align-items: center; gap: 7px; font-size: 0.75rem; color: var(--sc-fg-1); white-space: nowrap; }
+  .state { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--sc-fg-1); white-space: nowrap; }
   :host(.left) .state { margin-left: auto; }
   .ring { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sc-accent) 80%, #fff); }
   .ring.half { background: linear-gradient(90deg, var(--sc-warning) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--sc-warning); }
@@ -28,14 +28,14 @@ export const TRACK_STYLES = `
     background: color-mix(in srgb, var(--sc-bg-1) 60%, transparent); color: var(--sc-fg-1);
     font: 500 0.875rem/1 inherit; font-variant-numeric: tabular-nums; cursor: pointer;
     translate: 0 calc(var(--i) * var(--i) * var(--k, 0px)); transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease; }
-  .tok small { font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
+  .tok small { font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
   .tok:not(:disabled):hover, .tok:focus-visible { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); color: var(--sc-fg-0); }
   .tok:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .tok:disabled { cursor: default; }
   .tok.dim { opacity: 0.45; }
   .curve { position: absolute; left: 0; right: 0; top: calc(100% - var(--rim, 0px) + 8px); width: 100%; overflow: visible; pointer-events: none; }
   .curve path { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 40%, transparent); stroke-width: 1; }
-  .foot { display: grid; gap: 6px; margin-top: 18px; font-size: 0.75rem; color: var(--sc-fg-1); line-height: 1.35; }
+  .foot { display: grid; gap: 6px; margin-top: 18px; font-size: 0.8rem; color: var(--sc-fg-1); line-height: 1.35; }
   :host(.right) .foot { justify-items: end; text-align: right; }
   .foot > span { display: flex; align-items: center; gap: 8px; }
   .foot b { color: var(--sc-fg-0); font-weight: 600; }

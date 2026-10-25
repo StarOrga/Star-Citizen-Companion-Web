@@ -170,7 +170,7 @@ const MAX_PATCH_CHIPS = 6;
       .ttl span { font-size: 0.8rem; color: var(--sc-fg-2); }
       .chips { display: flex; gap: 4px; flex-wrap: wrap; }
       .chip { min-height: 32px; padding: 0 10px; border-radius: 16px; border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2);
-        font: 0.78rem var(--sc-font-display); cursor: pointer; }
+        font: 0.8rem var(--sc-font-display); cursor: pointer; }
       .chip:hover, .chip:focus-visible { color: var(--sc-fg-0); border-color: var(--sc-accent); outline: none; }
       .chip[aria-pressed='true'] { color: var(--sc-fg-0); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
       .count { margin-left: auto; font-size: 0.95rem; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; white-space: nowrap; }

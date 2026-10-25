@@ -80,6 +80,7 @@ const RIM_K = 0.32;
         background: linear-gradient(180deg, color-mix(in srgb, var(--sc-warning) 24%, transparent), color-mix(in srgb, var(--sc-bg-1) 60%, transparent)); }
       .tok:disabled:not(.on) { color: var(--sc-fg-2); }
       .tok.nav { flex: 0 0 28px; font-size: 1rem; }
+      @media (pointer: coarse) { .tok.nav { flex-basis: 48px; } }
     `,
   ],
 })

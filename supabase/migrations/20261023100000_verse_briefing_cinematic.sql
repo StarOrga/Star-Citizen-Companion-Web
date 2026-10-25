@@ -581,6 +581,9 @@ begin
     )
     select row_number() over (order by l.live_at asc nulls last, l.patch_line)::int as ord,
            count(*) over ()::int as n,
+           -- Lines with a reached LIVE date sort first (asc, nulls last), so the
+           -- newest LIVE line has ord = n_live; everything after it is not LIVE yet.
+           (count(*) filter (where l.live_at <= now()) over ())::int as n_live,
            l.patch_line,
            l.live_at,
            coalesce((select array_agg(sp.star_key order by sp.earned_at)
@@ -602,8 +605,11 @@ begin
         v_reserve := true;
         v_next_reserve := v_streak + 5;
       end if;
-    elsif r.ord = r.n then
-      null; -- the newest patch is still open, it never breaks the streak
+    elsif r.live_at is null or r.live_at > now() or r.ord >= r.n_live then
+      -- Still open: the newest LIVE patch and every line that is not LIVE yet
+      -- (a comet tip on the PTU line must not turn the current LIVE patch into
+      -- a missed one) never break the streak.
+      null;
     elsif v_reserve then
       v_reserve := false;
       v_reserves_used := v_reserves_used + 1;

@@ -4,6 +4,39 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.162.0] - 2026-10-23
+
+### Added
+
+- **Verse β: cinematischer „Anflug“ als Startseite.** `/verse` öffnet mit
+  einer Kamerafahrt durch den Nebel: Sonne und Sternbild stehen ab dem ersten
+  Bild, die Überschrift löst sich auf, der Planet zoomt beim Überfahren, Monde
+  laufen auf Bahnen mit Thema, NEU-Marke und Item, die Statuszeilen zeichnen
+  sich und blenden den Text ein, die Sternkarte kommt zuletzt. Das volle Intro
+  läuft einmal pro Sitzung, danach die Kurzfassung; bei reduzierter Bewegung
+  steht sofort der Endzustand. „Gesehen“ zählt beim Öffnen sofort; was in
+  einer Verse-Sitzung mindestens 5 s sichtbar war, gilt ab der nächsten.
+- **Verse β: neue Sternkarte.** `/verse/explorer` zeigt Sterne ohne Ringe
+  (ruhender Kern / pulsierend / entzündet), mit Hover-Zoom und Glühen, die
+  Sonne oben rechts in drei Zuständen, eine Kometen-Tippspur (der Tipp rastet
+  ein, sobald das offizielle LIVE-Datum angekündigt ist, sonst zu Gunsten des
+  Spielers), eine Sternbild-Rätselspur mit Teleskop (ein Tipp pro Patch:
+  richtig → Stern, falsch → Auflösung ohne Stern), die Serie in einer Zeile
+  („N Sternbilder in Folge entzündet“) und ein Logbuch-Seitenpanel. Keine
+  Verse-Unterseite hat mehr einen Zurück-Button.
+- **Freischalt-Hinweis app-weit.** Ein verdienter Stern oder eine
+  Freischaltung meldet sich unten rechts als Toast, der sich selbst schließt,
+  die Spur des Feedback-Knopfs freihält und ignoriert werden kann.
+- **Backend.** Migration `20261023100000_verse_briefing_cinematic.sql`: RPCs
+  `verse_guess_options`, `verse_guess_constellation`, `verse_claim_newship`,
+  `verse_submit_prediction`, `verse_explorer_state` v2 und die von Admins
+  gepflegte Tabelle `verse_patch_announcements` (angekündigte LIVE-Daten).
+  Die Rätsel-Antwort stammt aus derselben Population wie die Ablenker,
+  `guess_first` wird vor dem Klassenvergleich geprüft, und `verse_earn_star`
+  lehnt `cx-newship` ab. Die Serie bricht nur an LIVE-Patches vor dem neuesten
+  LIVE-Patch – ein Kometentipp auf den PTU-Patch macht den aktuellen LIVE-Patch
+  nicht mehr zum verpassten.
+
 ## [0.161.1] - 2026-10-23
 
 ### Fixed

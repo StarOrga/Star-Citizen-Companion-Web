@@ -37,10 +37,10 @@ import { seriesStops } from './starmap.model';
     `
       :host { display: flex; align-items: center; gap: 22px; min-width: 0; padding: 8px 16px; border-radius: 10px; box-sizing: border-box;
         background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); border: 1px solid var(--sc-border); backdrop-filter: blur(6px);
-        font-size: 0.75rem; color: var(--sc-fg-1); }
-      .label { flex: none; display: inline-flex; align-items: center; gap: 10px; font: 400 0.66rem var(--sc-font-display); letter-spacing: 0.22em;
+        font-size: 0.8rem; color: var(--sc-fg-1); }
+      .label { flex: none; display: inline-flex; align-items: center; gap: 10px; font: 400 0.8rem var(--sc-font-display); letter-spacing: 0.22em;
         text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
-      .label em { font: 600 0.82rem inherit; font-style: normal; letter-spacing: 0; text-transform: none; color: var(--sc-accent); }
+      .label em { font-weight: 600; font-size: 0.82rem; font-style: normal; letter-spacing: 0; text-transform: none; color: var(--sc-accent); }
       .info { width: 24px; height: 24px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); padding: 0;
         background: none; display: inline-grid; place-items: center; font: 700 0.7rem/1 inherit; color: var(--sc-fg-1); cursor: help; }
       .info:hover, .info:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); outline: none; }
@@ -54,10 +54,11 @@ import { seriesStops } from './starmap.model';
       .rs > i { width: 11px; height: 11px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 40%, transparent); }
       .rs.on > i { background: radial-gradient(circle, #fff 0 25%, var(--sc-accent) 60%); box-shadow: 0 0 8px var(--sc-accent); }
       .rs.next > i { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 85%, transparent), 0 0 6px color-mix(in srgb, var(--sc-accent) 35%, transparent); }
-      .rs > em { font-style: normal; font-size: 0.72rem; color: var(--sc-fg-2); }
+      .rs > em { font-style: normal; font-size: 0.8rem; color: var(--sc-fg-2); }
       .rs.on > em, .rs.next > em { color: var(--sc-fg-1); }
-      .rs > small { font-size: 0.66rem; color: var(--sc-accent); }
+      .rs > small { font-size: 0.8rem; color: var(--sc-accent); }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      @media (pointer: coarse) { .rs { min-height: 48px; } }
       @media (max-width: 760px) { :host { flex-direction: column; align-items: stretch; gap: 8px; } .road { justify-content: flex-start; } }
     `,
   ],

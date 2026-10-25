@@ -65,6 +65,17 @@ test('answer-bearing helpers are not executable by clients', () => {
   assert.doesNotMatch(sql, /grant select \([^)]*class_name/);
 });
 
+test('streak: only LIVE lines before the newest LIVE patch can break the series', () => {
+  const body = fn('verse_explorer_state');
+  assert.match(body, /count\(\*\) filter \(where l\.live_at <= now\(\)\) over \(\)\)::int as n_live/);
+  assert.match(body, /order by l\.live_at asc nulls last/, 'LIVE lines must sort before lines without a LIVE date');
+  assert.ok(
+    body.includes('elsif r.live_at is null or r.live_at > now() or r.ord >= r.n_live then'),
+    'not-yet-LIVE lines and the newest LIVE line are exempt from the break branch',
+  );
+  assert.doesNotMatch(body, /elsif r\.ord = r\.n then/, 'the exemption must not hang on the last row overall');
+});
+
 test('every new table has RLS enabled', () => {
   for (const t of ['verse_patch_announcements', 'verse_constellation_guesses']) {
     assert.ok(sql.includes(`alter table public.${t} enable row level security;`), t);
