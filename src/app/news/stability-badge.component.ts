@@ -62,6 +62,13 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--tone);
       font-variant-numeric: tabular-nums;
     }
+    /* The badge takes focus for its tooltip, so on touch it is a tap target:
+       the box grows to 48px while the drawn ring keeps its size, centred. */
+    @media (pointer: coarse) {
+      .badge { min-width: 48px; min-height: 48px; }
+      .ring { inset: auto; width: var(--dia); height: var(--dia); }
+      .badge.early::after { inset: calc((100% - var(--dia)) / 2 - 3px); }
+    }
     .badge[data-size='sm'] .val { font-size: max(0.68rem, var(--sc-fs-floor)); }
     .badge[data-size='lg'] .val { font-size: max(1rem, var(--sc-fs-floor)); }
     .val i { font-style: normal; font-size: 0.62em; opacity: 0.7; margin-left: 1px; }

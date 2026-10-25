@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.162.0",
+  "current": "0.162.1",
   "releases": [
+    {
+      "version": "0.162.1",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback-Panel friert die Seite nicht mehr ein.",
+              "text": "Das Öffnen des Panels (z. B. auf /verse/news am Handy) löste eine Endlosschleife aus: der Effekt des Feedback-Knopfs las das Signal mit, das er selbst schreibt, und schaltete das Panel unaufhörlich aus und wieder an. setPanel liest jetzt ungetrackt; ein Regressionstest sichert das ab."
+            },
+            {
+              "title": "3D-Schiffsansicht ohne GPU.",
+              "text": "Läuft WebGL in Software (SwiftShader, llvmpipe, abgeschaltete Hardwarebeschleunigung), rendert die Ansicht nur noch bei Bedarf statt in einer Dauerschleife – ein Frame dauerte dort Sekunden und legte die Seite lahm."
+            },
+            {
+              "title": "Tippflächen am Handy.",
+              "text": "Spalten der Stabilitäts-Historie, das Stabilitäts-Abzeichen und die Hardpoint-Marker haben auf Touch-Geräten mindestens 48 px Tippfläche (Aussehen unverändert); die Schiffsnamen der Kometen-Tippspur sind mindestens 12 px groß. Der Mobile-Gate ist damit auf main wieder grün (#806)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.162.0",
       "date": "2026-10-23",

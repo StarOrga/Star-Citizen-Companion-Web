@@ -65,6 +65,18 @@ void main() {
 }
 `;
 
+/** WebGL runs on the CPU (SwiftShader, llvmpipe, Microsoft Basic Render Driver). */
+export function isSoftwareRenderer(renderer: THREE.WebGLRenderer): boolean {
+  try {
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(String(name ?? ''));
+  } catch {
+    return false;
+  }
+}
+
 /** Soft radial falloff (white, alpha only) for the glow halo; tinted by the sprite colour. */
 function haloTexture(size = 64): THREE.DataTexture {
   const data = new Uint8Array(size * size * 4);
@@ -128,8 +140,12 @@ export class PackageScene {
     reducedMotion: boolean,
     private readonly onFrame: () => void,
   ) {
-    this.reducedMotion = reducedMotion;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    // Without a GPU (software WebGL, hardware acceleration switched off) one
+    // frame of the hull takes seconds; the animated loop would freeze the page.
+    // Such a device gets the reduced-motion scene: rendered on demand only.
+    reducedMotion ||= isSoftwareRenderer(this.renderer);
+    this.reducedMotion = reducedMotion;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
