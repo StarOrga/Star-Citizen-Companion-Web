@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.165.1",
+  "current": "0.166.0",
   "releases": [
+    {
+      "version": "0.166.0",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Deckplan für fast alle Schiffe (Data Uploader 0.63.0).",
+              "text": "Räume, die der Uploader keinem Deck zuordnen kann, verwirft er nicht mehr. Er legt sie auf ein eigenes Deck „Alle Räume“ bzw. „Weitere Räume“, wenn ein Teil der Räume zugeordnet ist. Die Website zeigt dieses Deck wie jedes andere. So bekommen 307 von 360 Schiffen einen Deckplan statt bisher rund 40, darunter 890 Jump, Starfarer, Retaliator, Redeemer, Starlifter und Vulture. In der Deckliste der Schiffsdaten taucht das Ersatzdeck nicht auf."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.165.1",
       "date": "2026-10-25",
