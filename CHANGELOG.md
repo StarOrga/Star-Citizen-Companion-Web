@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.165.0] - 2026-10-25
+
+### Added
+
+- **Codex: Deckplan pro Schiff.** Die Schiffsseite zeigt (klassisch und im
+  Holo-Layout) einen 2D-Grundriss jedes Decks von oben, Bug nach oben: die
+  Räume als echte Bodenflächen, beschriftet, wo der Name hineinpasst. Über
+  Reiter mit den Decknamen wechselt man das Deck; alle Decks teilen einen
+  Rahmen, ein Raum bleibt also an seinem Platz. Eine Raumliste darunter führt
+  per Tastatur und auf dem Handy durch alle Räume, ein Tipp hält einen Raum
+  fest. Der Plan erscheint, sobald der Data Uploader 0.62.0 die Räume
+  exportiert hat (zum Start rund 40 Schiffe, z. B. Carrack, Hammerhead,
+  Polaris, Ironclad).
+- **Data Uploader 0.62.0 exportiert die Räume der Schiffsdecks.** Er liest
+  die Innenraum-Container eines Schiffs, findet die Räume samt Deck und
+  Bodenfläche und legt sie ins Ship-Payload (`decks[].rooms` + `bounds`).
+  Räume in verschachtelten Containern werden vorerst übersprungen (deren Lage
+  wird noch nicht gelesen) – 890 Jump, Starfarer, Retaliator, Redeemer,
+  Starlifter, Vulture und Prospector haben deshalb noch keinen Deckplan.
+
+### Fixed
+
+- **Data Uploader: bemannte Türme mit teilweise geändertem Loadout behalten
+  ihre übrigen Standardteile.** Ein Turm, dessen Schiffs-Loadout nur einzelne
+  Ports belegt, bekommt die restlichen Ports jetzt aus seiner Standard-
+  bestückung, statt sie leer zu lassen; ein bewusst leer gesetzter Port bleibt
+  leer. Betrifft u. a. Railen, Tyilui, Retaliator und Cyclone.
+
 ## [0.164.0] - 2026-10-25
 
 ### Added
