@@ -57,6 +57,9 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 3px;
       padding: 0; background: transparent; border: 0; cursor: pointer; color: var(--sc-fg-2); font-family: inherit; text-decoration: none;
     }
+    /* Each column is a link: on touch it needs a full tap lane (the gate
+       measures 44px as 43 — 48 keeps the margin). The chart scrolls sideways. */
+    @media (pointer: coarse) { .col { min-width: 48px; } }
     .col:hover .col-bar { filter: brightness(1.15); }
     .col:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     .col-bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--level); transition: height 0.3s ease; }

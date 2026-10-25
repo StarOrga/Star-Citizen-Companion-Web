@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, effect, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FeedbackComposerComponent } from '../admin/feedback/feedback-composer.component';
@@ -136,6 +136,31 @@ describe('FeedbackSpotService', () => {
     svc.setPanel('admin', null, 'admin:new');
     svc.setPanel('user', null, 'user:new');
     expect(svc.open()).toBeFalse();
+  });
+
+  it('settles when a launcher reports its panel from an effect (no open/close loop)', () => {
+    // The launchers call setPanel inside an effect with an onCleanup. A tracked
+    // read of the panel map inside setPanel made that effect re-run on its own
+    // write, forever — the admin sheet froze the page on phones.
+    let runs = 0;
+    @Component({ selector: 'sc-spot-launcher-probe', template: '' })
+    class LauncherProbe {
+      readonly open = signal(false);
+      constructor() {
+        effect((onCleanup) => {
+          runs++;
+          const el = this.open() ? document.body : null;
+          svc.setPanel('admin', el, 'admin:new');
+          onCleanup(() => svc.setPanel('admin', null, 'admin:new'));
+        });
+      }
+    }
+    const fixture = TestBed.createComponent(LauncherProbe);
+    fixture.detectChanges();
+    fixture.componentInstance.open.set(true);
+    fixture.detectChanges();
+    expect(svc.open()).toBeTrue();
+    expect(runs).toBe(2);
   });
 
   it('sends the line to the composer last focused, else the last mounted', () => {
