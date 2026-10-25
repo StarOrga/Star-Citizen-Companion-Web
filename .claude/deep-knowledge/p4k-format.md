@@ -224,6 +224,30 @@ Cache key = sha of `.cga` + `.cgam` + the tuning constants. Output contract:
 §C1; landing table `codex_silhouettes` (see `supabase.md`). **Not yet run
 against a LIVE archive** as of the ship — the first real run is a hand-off.
 
+## Ship interiors — rooms per deck from the object containers (#797, verified 2026-10-25 on LIVE 4.x)
+
+- `VehicleComponentParams.objectContainers[]` lists the interior socpaks
+  (`objectcontainers/ships/anvl/carrack/{front,middle,rear}.socpak`) with an
+  `Offset` QuatT in the ship frame (Ang3 rotation in degrees — the Hammerhead
+  `tail.socpak` sits at z −180°). Entry names are hull sections, not decks.
+- A socpak is a ZIP whose **local headers use `\`** while the central directory
+  uses `/`: `zipfile.read` raises "File name in directory … and header …
+  differ" — read entries from the local header (`ship_rooms.read_zip_entry`).
+- `<name>_editor.xml` has names + GUIDs only (no positions); the `.lyr` layer
+  files are not in the P4K. The data is in `<name>.soc` (CrCh chunk file): one
+  chunk is a CryXmlB `<Entities>` document with full entity XML.
+- Rooms: `Room_RN` entities, `EntityComponentRoom@roomName` (loc key, often
+  `@procedural_text_null`) and `@interiorMapSection` = the deck record of #796.
+  **GUID byte order differs** from DataForge record ids
+  (`649bcee0-2974-4755-b033-a7d5249eb419` soc = record
+  `29744755-cee0-649b-19b4-9e24d5a733b0`) — `ship_rooms.cry_guid_to_record_id`.
+- Room volumes: `GenericShape` (`VA_*`) entities whose `AreaComponent` links the
+  room GUID; segments `Shape` (polygon + Height), `Box`, `Trimesh`. Entity
+  `Rotate` is **w,x,y,z**. `AreaShape` entities belong to audio, not rooms.
+- Coverage on LIVE: ~40 deck ships carry rooms; 890 Jump, Starfarer (base),
+  Retaliator, Redeemer, Starlifter, Vulture, Prospector map none yet (their
+  rooms live in nested containers or reference other sections — not probed).
+
 ## References
 
 - CryEngine PAK overview: <https://wiki.starcitizenbase.com/wiki/Data.p4k>

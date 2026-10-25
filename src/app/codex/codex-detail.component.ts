@@ -26,6 +26,7 @@ import {
   ItemPort,
   Lang,
   LoadoutEntry,
+  ShipDeck,
   ShipPayload,
   WeaponPayload,
   isReExtractPending,
@@ -203,6 +204,7 @@ import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-pic
 import { CodexWeaponDetailComponent, ShipSignature, WeaponDetailEntry } from './codex-weapon-detail.component';
 import { borrowedCountermeasureNameKey } from './codex-countermeasure';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
+import { ShipDeckPlanComponent } from './ship-deck-plan.component';
 import {
   HardpointFrame,
   HardpointMarker,
@@ -253,7 +255,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent],
+  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -632,6 +634,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           }
         }
 
+        <!-- 2D deck plan (#797): renders nothing until the uploader emitted rooms. -->
+        @if (shipDecks(); as decks) {
+          @defer (on viewport) {
+            <sc-ship-deck-plan [decks]="decks" [lang]="deckPlanLang()" />
+          } @placeholder {
+            <div aria-hidden="true"></div>
+          }
+        }
         <ng-container [ngTemplateOutlet]="tailLoadout" />
 
         <!-- ── Description ───────────────────────────────────────── -->
@@ -915,6 +925,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             </div>
             @if (shipLinkForm.open()) {
               <sc-codex-ship-link-form />
+            }
+            <!-- 2D deck plan (#797): renders nothing until the uploader emitted rooms. -->
+            @if (shipDecks(); as decks) {
+              @defer (on viewport) {
+                <sc-ship-deck-plan [decks]="decks" [lang]="deckPlanLang()" />
+              } @placeholder {
+                <div aria-hidden="true"></div>
+              }
             }
             <ng-container [ngTemplateOutlet]="tailLoadout" />
             <ng-container [ngTemplateOutlet]="descriptionCard" />
@@ -3296,6 +3314,15 @@ export class CodexDetailComponent implements OnInit {
   readonly offensiveStartsCollapsed = computed(() => this.foldedModuleSections().has('weapons'));
   /** The "Alles" lens is about everything, so it opens everything (#240). */
   readonly expandAllModules = computed(() => this.activeMissionId() === 'all');
+
+  /** Decks with their rooms for the 2D deck plan (#797); null off ship pages. */
+  readonly shipDecks = computed<ShipDeck[] | null>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return null;
+    const decks = (d.payload as ShipPayload | undefined)?.decks;
+    return Array.isArray(decks) ? decks : null;
+  });
+  readonly deckPlanLang = computed(() => this.lang());
 
   /** Schiff panel — flight/mass/systems/signature/hull, grouped, gaps honoured (buildShipFactGroups). */
   readonly shipFactGroups = computed<ShipFactGroup[]>(() => {

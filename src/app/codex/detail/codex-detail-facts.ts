@@ -46,7 +46,7 @@ export function ammoRangeOf(detail: CodexDetail | null): number | null {
 }
 
 /** A deck name value worth showing: not empty, not an unresolved '@'-key. */
-function cleanDeckName(v: string | null | undefined): string {
+export function cleanDeckName(v: string | null | undefined): string {
   const s = (v ?? '').trim();
   return s && !s.startsWith('@') && !/translation not found/i.test(s) ? s : '';
 }
@@ -72,12 +72,15 @@ export function shipDeckNames(payload: Pick<ShipPayload, 'decks'> | null | undef
   const decks: ShipDeck[] = Array.isArray(payload?.decks) ? payload.decks : [];
   return [...decks]
     .sort((a, b) => a.order - b.order)
-    .map((d) => {
-      const n = d.name;
-      const primary = lang === 'de' ? cleanDeckName(n?.de) : cleanDeckName(n?.en);
-      return primary || cleanDeckName(n?.en) || cleanDeckName(n?.de) || humanizeDeckKey(d.key ?? '');
-    })
+    .map((d) => deckLabel(d, lang))
     .filter(Boolean);
+}
+
+/** One deck's display name — the reader's language, English, then the humanised key. */
+export function deckLabel(d: Pick<ShipDeck, 'key' | 'name'>, lang: Lang): string {
+  const n = d.name;
+  const primary = lang === 'de' ? cleanDeckName(n?.de) : cleanDeckName(n?.en);
+  return primary || cleanDeckName(n?.en) || cleanDeckName(n?.de) || humanizeDeckKey(d.key ?? '');
 }
 
 /** Compact hero facts — kind-aware, only meaningful values (0, '' and null are left out). */

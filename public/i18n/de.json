@@ -1410,6 +1410,15 @@
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
     },
+    "deckPlan": {
+      "title": "Deckplan",
+      "hint": "Von oben gesehen, Bug oben. Zeig auf einen Raum für seinen Namen.",
+      "switchAria": "Deck wählen",
+      "aria": "{{deck}}: Deckplan mit {{count}} Räumen",
+      "nose": "Bug",
+      "readoutIdle": "Kein Raum ausgewählt",
+      "roomsAria": "Räume auf {{deck}}"
+    },
     "shipBlueprint": {
       "schema": {
         "title": "Hardpoint-Schema",

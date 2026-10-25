@@ -33,6 +33,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from .dataforge import DataForge, Record
 from .localization import Localizer
 from .ship_decks import SHIP_SETUP, build_deck_index, project_decks, sections_for_class
+from .ship_rooms import (ang3_quat, bounds_of, cry_guid_to_record_id, decode_cryxml, is_unnamed,
+                         move, read_zip_entry, rooms_in_container, soc_entities, soc_entries)
 
 # ── Blueprint candidate-field lists (R1/R2: UNCONFIRMED — see extract_blueprints) ──────────
 # RISK HIGH: these leaf-field names are hypotheses derived from SC crafting data
@@ -1572,8 +1574,93 @@ class CodexExtractor:
         # absent (never []) when the hull family has no authored decks.
         decks = self._ship_decks(base["className"])
         if decks:
+            self._attach_deck_rooms(decks, vcp)
             base["decks"] = decks
         return base
+
+    def _attach_deck_rooms(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any]) -> None:
+        """Room footprints per deck from the ship's object containers (#797).
+
+        A deck gains ``rooms`` + ``bounds`` only when at least one room maps
+        to it; rooms whose section is no deck of this ship are dropped (a
+        shared interior can reference another hull's sections)."""
+        rooms = self._ship_rooms(vcp)
+        if not rooms:
+            return
+        by_key = {d["key"].lower(): d for d in decks}
+        for room in rooms:
+            sec = None
+            if room["section"]:
+                sec = (self.df.record_by_id(cry_guid_to_record_id(room["section"]) or "")
+                       or self.df.record_by_id(room["section"]))
+            key = sec.name.split(".", 1)[-1].lower() if sec is not None else None
+            deck = by_key.get(key) if key else None
+            if deck is None:
+                continue
+            row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes")}
+            row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
+            deck.setdefault("rooms", []).append(row)
+        for deck in decks:
+            if deck.get("rooms"):
+                deck["rooms"].sort(key=lambda r: r["key"].lower())
+                deck["bounds"] = bounds_of(deck["rooms"])
+
+    def _ship_rooms(self, vcp: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Rooms of every interior object container, in the ship frame."""
+        out: List[Dict[str, Any]] = []
+        for oc in vcp.get("objectContainers") or []:
+            if not isinstance(oc, dict) or not oc.get("fileName"):
+                continue
+            offset = (oc.get("Offset") or {})
+            p = offset.get("Position") or {}
+            pos = (float(p.get("x") or 0), float(p.get("y") or 0), float(p.get("z") or 0))
+            rot = ang3_quat(offset.get("Rotation") or {})
+            for room in self._container_rooms(oc["fileName"]):
+                moved = dict(room)
+                moved["pos"] = move(room["pos"], rot, pos)
+                moved["shapes"] = [[move(pt + [0.0], rot, pos)[:2] for pt in s]
+                                   for s in room["shapes"]]
+                if room["floorZ"] is not None:
+                    moved["floorZ"] = round(room["floorZ"] + pos[2], 2)
+                out.append(moved)
+        return out
+
+    def _container_rooms(self, file_name: str) -> List[Dict[str, Any]]:
+        """Rooms of one socpak in its own frame, cached per file (variants
+        share the hull containers). ``[]`` when the file is missing or holds
+        no room."""
+        if not hasattr(self, "_container_rooms_cache"):
+            self._container_rooms_cache: Dict[str, List[Dict[str, Any]]] = {}
+        key = file_name.replace("\\", "/").lower()
+        cache = self._container_rooms_cache
+        if key in cache:
+            return cache[key]
+        rooms: List[Dict[str, Any]] = []
+        if self.p4k is not None:
+            try:
+                import io as _io
+                import zipfile
+
+                if not hasattr(self, "_p4k_by_lower"):
+                    self._p4k_by_lower = {n.lower().replace("\\", "/"): n
+                                          for n in self.p4k.namelist()}
+                real = self._p4k_by_lower.get(key) or self._p4k_by_lower.get("data/" + key)
+                if real:
+                    with self.p4k.open(self.p4k.getinfo(real)) as f:
+                        blob = f.read()
+                    zf = zipfile.ZipFile(_io.BytesIO(blob))
+                    for info in soc_entries(zf):
+                        soc = read_zip_entry(blob, info)
+                        if b"Room_RN" not in soc:
+                            continue
+                        ents = soc_entities(soc, decode_cryxml)
+                        if ents is not None:
+                            rooms += rooms_in_container(ents, (0.0, 0.0, 0.0))
+            except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+                self.on_log("warn", f"object container read failed for {file_name}: {exc}")
+                rooms = []
+        cache[key] = rooms
+        return rooms
 
     def _ship_decks(self, class_name: str) -> Optional[List[Dict[str, Any]]]:
         """``[{key, name, order}]`` for a ship — see ship_decks.py for the rules."""

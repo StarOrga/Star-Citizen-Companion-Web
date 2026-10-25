@@ -81,13 +81,16 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // that only matches the hull origin gets no position.
     // 6: #795 — a turret the ship loadout fits only in part keeps the stock
     // items of its other ports.
-    revision: 6,
+    // 7: #797 — payload.decks[].rooms + .bounds (room floor footprints from
+    // the ship object containers) for the 2D deck plan.
+    revision: 7,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
       'data-uploader/python/sc_extract/geometry.py',
       'data-uploader/python/sc_extract/ship_decks.py',
       'data-uploader/python/sc_extract/ship_discovery.py',
+      'data-uploader/python/sc_extract/ship_rooms.py',
       'data-uploader/python/sc_extract/thresholds.py',
     ],
   },
