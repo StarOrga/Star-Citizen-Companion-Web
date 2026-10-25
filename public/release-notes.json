@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.163.1",
+  "current": "0.163.2",
   "releases": [
+    {
+      "version": "0.163.2",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse β: Startseite wieder zentriert, Sternbild immer vom aktuellen Patch.",
+              "text": "Der dünne Horizontstrich über den Planeten ist weg; Überschrift, Knopf und Story-Leisten sowie die Patch-Statuszeile stehen wieder mittig. Das Sternbild oben rechts (und im Header) zeigt immer den aktuellen Patch statt einer angekündigten Testlinie. Der eigene Sternkarten-Knopf entfällt: Das Sternbild selbst ist der Link zur Sternkarte und leuchtet beim Überfahren sanft auf."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.163.1",
       "date": "2026-10-25",

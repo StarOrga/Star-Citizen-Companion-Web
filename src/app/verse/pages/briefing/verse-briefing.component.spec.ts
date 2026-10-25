@@ -213,7 +213,7 @@ describe('Verse briefing — component', () => {
     sessionStorage.removeItem(INTRO_FLAG);
   });
 
-  it('renders the hero CTA, moons and star-map button as anchors and the story pills as buttons', () => {
+  it('renders the hero CTA, moons and the constellation star-map link as anchors and the story pills as buttons', () => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;

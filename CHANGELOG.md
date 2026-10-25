@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.163.2] - 2026-10-25
+
+### Fixed
+
+- **Verse β: Startseite wieder zentriert, Sternbild immer vom aktuellen Patch.**
+  Der dünne Horizontstrich über den Planeten ist weg; Überschrift, Knopf und
+  Story-Leisten sowie die Patch-Statuszeile stehen wieder mittig. Das
+  Sternbild oben rechts (und im Header) zeigt immer den aktuellen Patch statt
+  einer angekündigten Testlinie. Der eigene Sternkarten-Knopf entfällt: Das
+  Sternbild selbst ist der Link zur Sternkarte und leuchtet beim Überfahren
+  sanft auf.
+
 ## [0.163.1] - 2026-10-25
 
 ### Fixed

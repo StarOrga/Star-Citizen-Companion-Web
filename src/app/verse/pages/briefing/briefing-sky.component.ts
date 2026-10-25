@@ -3,7 +3,7 @@ import type { VersePoint } from '../../data/verse.models';
 import { skyFigure } from './briefing.model';
 
 /**
- * The current patch's constellation next to the star-map button, in the star
+ * The current patch's constellation (itself the star-map link), in the star
  * map's glyph language without rings: lit stars (core, spikes, a slowly
  * breathing halo) and open stars as small hollow rings. Edges are solid
  * between two lit stars and dashed wherever the figure is still incomplete.

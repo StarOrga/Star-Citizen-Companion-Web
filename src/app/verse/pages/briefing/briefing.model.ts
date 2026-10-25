@@ -126,7 +126,7 @@ export function explorerLit(patch: VerseExplorerPatch | null | undefined): Reado
 }
 
 /**
- * The current patch's constellation for the star-map button: lit stars where
+ * The current patch's constellation for the star-map link: lit stars where
  * the star map lights them (`lit`, see {@link explorerLit}); without explorer
  * state the symmetric order by `starCount`. Edges solid between two lit
  * stars, dashed wherever an end is still open. Coordinates in a 0..100 box.
