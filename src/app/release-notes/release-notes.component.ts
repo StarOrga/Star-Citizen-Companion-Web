@@ -47,7 +47,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
                 @if (r.date) { <time class="date">{{ toDate(r.date) | scDate }}</time> }
                 <button type="button" class="expander"
                         [attr.aria-expanded]="isOpen(r.version, i)"
-                        [attr.aria-controls]="'rel-' + r.version"
+                        [attr.aria-controls]="isOpen(r.version, i) ? 'rel-' + r.version : null"
                         (click)="toggle(r.version, i)">
                   {{ (isOpen(r.version, i) ? 'releaseNotes.collapse' : 'releaseNotes.expand') | translate }}
                 </button>
@@ -129,6 +129,9 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     }
     .load-more:hover { background: rgba(0, 212, 255, 0.14); }
     .load-more:focus-visible, .expander:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    @media (pointer: coarse) {
+      .load-more, .expander { min-height: 48px; min-width: 48px; }
+    }
 
     .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
     .timeline::before {
