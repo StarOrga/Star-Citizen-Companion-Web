@@ -28,6 +28,7 @@ absolute units.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -129,7 +130,7 @@ def port_helper_offset(port: Any) -> Optional[List[float]]:
         vec = [float(pos.get(k) or 0.0) for k in ("x", "y", "z")]
     except (TypeError, ValueError):
         return None
-    if any(v != v for v in vec) or all(abs(v) < 1e-6 for v in vec):
+    if not all(math.isfinite(v) for v in vec) or all(abs(v) < 1e-6 for v in vec):
         return None
     return vec
 
@@ -138,7 +139,10 @@ def _rotate(quat: Any, vec: List[float]) -> List[float]:
     """``vec`` rotated by an ``[x, y, z, w]`` quaternion (identity when absent)."""
     if not (isinstance(quat, (list, tuple)) and len(quat) == 4):
         return list(vec)
-    qx, qy, qz, qw = (float(c) for c in quat)
+    try:
+        qx, qy, qz, qw = (float(c) for c in quat)
+    except (TypeError, ValueError):
+        return list(vec)
     vx, vy, vz = vec
     # t = 2 * cross(q.xyz, v); v' = v + w * t + cross(q.xyz, t)
     tx = 2.0 * (qy * vz - qz * vy)
@@ -232,6 +236,8 @@ def resolve_hardpoint_transforms(
         name = _clean(port.get("portName"))
         offset = port.get("helperOffset")
         if not take(name, _clean(port.get("helperName")), "helper", offset):
+            # No offset here on purpose: it is relative to the helper node, and
+            # the port-name node is a different one.
             take(name, name, "portName")
     for raw in loadout_port_names:
         name = _clean(raw)

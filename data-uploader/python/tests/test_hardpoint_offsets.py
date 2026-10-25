@@ -102,3 +102,17 @@ class TestOffsetAndOriginGuard:
             {"pivot": ROOT}, item_ports=[{"portName": "gun", "helperName": "pivot"}],
             include_mesh_hardpoints=False)
         assert out["gun"]["position"] == [0.0, 0.0, 0.0]
+
+
+class TestMalformedInput:
+    def test_infinite_offset_is_ignored(self):
+        assert port_helper_offset(raw_port("hp_a", "NOSE", [math.inf, 1.0, 0.0])) is None
+
+    def test_non_numeric_rotation_keeps_the_unrotated_offset(self):
+        bad = {"position": [0.0, 30.0, 2.0], "rotation": [None, 0, 0, 1], "index": 1}
+        out = resolve_hardpoint_transforms(
+            {"NOSE": bad},
+            item_ports=[{"portName": "hp_a", "helperName": "NOSE", "helperOffset": [1.0, 0.0, 0.0]}],
+            include_mesh_hardpoints=False,
+        )
+        assert out["hp_a"]["position"] == [1.0, 30.0, 2.0]

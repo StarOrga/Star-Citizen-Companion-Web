@@ -1023,6 +1023,7 @@ class CodexExtractor:
         # logged so a directory rename shows up as a number instead of silently
         # shrinking the ship catalog again.
         n_offroot = 0
+        self._hp_unresolved = {}
         ents = self.df.records_by_type_name("EntityClassDefinition")
         total = len(ents)
         for key, n in self.plan_entity_totals(ents).items():
@@ -1278,12 +1279,15 @@ class CodexExtractor:
         # The helper offset lives on the raw SItemPortDef only; it is joined in
         # here rather than carried on the projected itemPorts rows (#794).
         ipc = _find_component(comps, "SItemPortContainerComponentParams") or {}
-        offsets = {p.get("Name"): port_helper_offset(p)
+        # Keyed like the resolver matches port names (stripped, case-folded),
+        # so a projection that normalises the name still finds its offset.
+        offsets = {(p.get("Name") or "").strip().lower(): port_helper_offset(p)
                    for p in ipc.get("Ports") or [] if isinstance(p, dict)}
         unresolved: List[str] = []
         transforms = resolve_hardpoint_transforms(
             helpers,
-            item_ports=[dict(p, helperOffset=offsets.get(p.get("portName")))
+            item_ports=[dict(p, helperOffset=offsets.get(
+                            (p.get("portName") or "").strip().lower()))
                         for p in item_ports],
             loadout_port_names=[e.get("itemPortName") for e in loadout],
             unresolved=unresolved,
@@ -1300,7 +1304,7 @@ class CodexExtractor:
         Those ports get no position at all (rather than a marker on the ship's
         origin); this line is where a run shows which hulls still need a better
         source for them (#794)."""
-        found = getattr(self, "_hp_unresolved", None)
+        found = self._hp_unresolved
         if not found:
             return
         worst = sorted(found.items(), key=lambda kv: (-len(kv[1]), kv[0]))
@@ -1515,8 +1519,6 @@ class CodexExtractor:
         hp = self._hardpoint_positions(comps, item_ports, loadout, dims)
         transforms = hp["transforms"]
         if hp["unresolved"]:
-            if not hasattr(self, "_hp_unresolved"):
-                self._hp_unresolved = {}
             self._hp_unresolved[base["className"]] = hp["unresolved"]
         for port in item_ports:
             t = transforms.get(port.get("portName"))
