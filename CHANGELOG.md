@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.165.1] - 2026-10-25
+
+### Fixed
+
+- **Data Uploader 0.62.1: Die Prospector bekommt ihren Deckplan.** Bei
+  890 Jump, Starfarer, Retaliator, Redeemer, Starlifter, Vulture und
+  Prospector sind die Räume im Spiel keinem Deck zugeordnet. Ein Schiff mit
+  nur einem Deck übernimmt sie jetzt trotzdem. Bei den anderen fehlt der
+  Deckplan weiterhin: Wir haben drei Wege getestet, das Deck aus den Daten
+  abzuleiten (Bodenhöhe, Nachbarräume, ein Schwesterschiff mit Zuordnung).
+  Keiner traf das Deck zuverlässig genug, um es anzuzeigen.
+
 ## [0.165.0] - 2026-10-25
 
 ### Added
