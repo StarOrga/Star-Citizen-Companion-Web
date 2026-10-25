@@ -4,6 +4,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { RoleService } from '../../auth/role.service';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { KartographBadgeComponent } from './kartograph-badge.component';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
@@ -185,12 +186,17 @@ describe('star map components', () => {
     expect(sky.hasAttribute('title')).toBeFalse();
   });
 
-  it('the comet rail tips the upcoming patch with one click', async () => {
+  it('the comet rail tips the upcoming patch with one click, sent once the undo window closes', async () => {
     explorer.set({ ...STATE, upcoming: { patchLine: '4.5', comet: { ...STATE.patches[0].comet } } });
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
     const tok = f.nativeElement.querySelector('sc-comet-track .tok:not(.nav):not(:disabled)') as HTMLButtonElement;
     tok.click();
+    f.detectChanges();
+    expect(submitPrediction).not.toHaveBeenCalled();
+    expect(tok.classList).toContain('on');
+    expect(f.nativeElement.querySelector('sc-undo-toast .msg')?.textContent).toContain('starmap.comet.undoToast');
+    TestBed.inject(UndoToastService).flush();
     await f.whenStable();
     expect(submitPrediction).toHaveBeenCalledWith('4.5', jasmine.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
   });
@@ -201,6 +207,7 @@ describe('star map components', () => {
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
     (f.nativeElement.querySelector('sc-comet-track .tok:not(.nav):not(:disabled)') as HTMLButtonElement).click();
+    TestBed.inject(UndoToastService).flush();
     await f.whenStable();
     f.detectChanges();
     expect(f.nativeElement.querySelector('sc-comet-track [role=alert]')?.textContent).toContain('errors.cometLocked');
@@ -225,12 +232,58 @@ describe('star map components', () => {
     const toks = f.nativeElement.querySelectorAll('sc-guess-track .tok.ship') as NodeListOf<HTMLButtonElement>;
     expect(toks.length).toBe(2);
     toks[1].click();
+    TestBed.inject(UndoToastService).flush();
     await f.whenStable();
     expect(submitGuess).toHaveBeenCalledWith('4.4', 'AEGS_Gladius');
 
     explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: { ...open, state: 'unavailable' } }), ...STATE.patches.slice(1)] });
     f.detectChanges();
     expect(f.nativeElement.querySelector('sc-guess-track')).toBeNull();
+  });
+
+  it('undo after a guess reverts the pick and never sends it', async () => {
+    const open = { state: 'open', guessedClass: null, answerClass: null, answerName: null } as const;
+    explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: open }), ...STATE.patches.slice(1)] });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const toks = () => [...f.nativeElement.querySelectorAll('sc-guess-track .tok.ship')] as HTMLButtonElement[];
+    toks()[1].click();
+    f.detectChanges();
+    expect(toks().every((t) => t.disabled)).toBeTrue();
+    expect(toks()[1].classList).toContain('mine');
+    const undo = f.nativeElement.querySelector('sc-undo-toast button.undo') as HTMLButtonElement;
+    expect(undo.textContent).toContain('common.undo');
+    undo.click();
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('sc-undo-toast .toast')).toBeNull();
+    expect(toks().some((t) => t.disabled)).toBeFalse();
+    expect(toks()[1].classList).not.toContain('mine');
+    TestBed.inject(UndoToastService).flush();
+    await f.whenStable();
+    expect(submitGuess).not.toHaveBeenCalled();
+
+    // A second pick after the undo is the one that counts.
+    toks()[0].click();
+    f.detectChanges();
+    TestBed.inject(UndoToastService).flush();
+    await f.whenStable();
+    expect(submitGuess).toHaveBeenCalledOnceWith('4.4', 'RSI_Zeus');
+  });
+
+  it('leaving the star map sends a pending guess', async () => {
+    const open = { state: 'open', guessedClass: null, answerClass: null, answerName: null } as const;
+    explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: open }), ...STATE.patches.slice(1)] });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    (f.nativeElement.querySelectorAll('sc-guess-track .tok.ship')[1] as HTMLButtonElement).click();
+    f.detectChanges();
+    expect(submitGuess).not.toHaveBeenCalled();
+    f.destroy();
+    expect(submitGuess).toHaveBeenCalledOnceWith('4.4', 'AEGS_Gladius');
   });
 
   it('series strip: one line, unlocked vs locked from the server, next marked', () => {

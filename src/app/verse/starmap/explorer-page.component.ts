@@ -5,6 +5,7 @@ import { AuthService } from '../../auth/auth.service';
 import { logWarn } from '../../core/log';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { UndoToastComponent } from '../../shared/undo-toast/undo-toast.component';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
 import { CometTrackComponent } from './comet-track.component';
@@ -40,6 +41,7 @@ const MAX_PATCH_CHIPS = 6;
     GuessTrackComponent,
     SeriesStripComponent,
     StarmapMoreComponent,
+    UndoToastComponent,
   ],
   template: `
     @if (!signedIn()) {
@@ -112,6 +114,8 @@ const MAX_PATCH_CHIPS = 6;
             <sc-guess-track class="track" [patchLine]="p.patchLine" [guess]="p.guess" />
           }
         </div>
+        <!-- Undo window for a comet tip or a guess; leaving the map sends it. -->
+        <sc-undo-toast />
 
         <sc-series-strip class="series" [state]="st" />
 

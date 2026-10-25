@@ -6,7 +6,8 @@
     "dialog": {
       "confirm": "Confirm",
       "cancel": "Cancel"
-    }
+    },
+    "undo": "Undo"
   },
   "date": {
     "relative": {
@@ -4847,12 +4848,13 @@
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set comet on {{date}}",
-      "locked": {}
+      "locked": {},
+      "undoToast": "Comet for {{patch}} set: {{date}}"
     },
     "guess": {
       "kind": "Constellation",
       "ruleAria": "Constellation guess rules",
-      "rule": "The constellation's shape comes from the patch's newest ship. One of the 7 ships is right. You get one try: a click on a ship submits your guess right away. Guess right and a star lights up and the name appears in the constellation.",
+      "rule": "The constellation's shape comes from the patch's newest ship. One of the 7 ships is right. You get one try: a click on a ship places your guess, and for a few seconds you can still undo it. Guess right and a star lights up and the name appears in the constellation.",
       "optionAria": "Guess: {{name}}",
       "state": {
         "open": "open",
@@ -4870,7 +4872,8 @@
         "open": "Guess right and the name appears in the constellation and the circle gets a check mark.",
         "wrong": "No star this time – the answer stays in the constellation.",
         "unavailable": "Once the game data has loaded you can guess here."
-      }
+      },
+      "undoToast": "Guess placed: {{name}}"
     },
     "series": {
       "kind": "Series",

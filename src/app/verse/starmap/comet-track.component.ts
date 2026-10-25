@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet } from '../data/verse.models';
 import { formatDay } from './star-dome.component';
@@ -17,7 +18,8 @@ const RIM_K = 0.32;
 /**
  * Komet: tip the day a patch goes LIVE with one click on a day token. The
  * server takes one tip per patch and closes tips once LIVE or an official date
- * exists — after that the rail is read-only and says why.
+ * exists — after that the rail is read-only and says why. The tip waits in an
+ * undo window (UndoToastService) and is only sent when it closes.
  */
 @Component({
   selector: 'sc-comet-track',
@@ -43,7 +45,7 @@ const RIM_K = 0.32;
       }
       @for (d of days(); track d.ymd; let i = $index) {
         <button type="button" class="tok" [class.win]="d.win" [class.on]="d.on" [style.--i]="interactive() ? i + 1 : i"
-                [disabled]="!interactive() || busy() || d.ymd <= today" [attr.aria-pressed]="d.on"
+                [disabled]="!interactive() || busy() || pending() !== null || d.ymd <= today" [attr.aria-pressed]="d.on"
                 [attr.aria-label]="'starmap.comet.dayAria' | translate: { date: day(d.ymd, true) }"
                 (click)="tip(d.ymd)">
           @if (d.on) { <span class="comet fall" [class]="'comet fall s-' + c.state" aria-hidden="true"></span> }
@@ -81,6 +83,7 @@ export class CometTrackComponent {
   readonly comet = input.required<VerseComet>();
 
   private readonly api = inject(VerseApiService);
+  private readonly undo = inject(UndoToastService);
   private readonly t = inject(TranslateService);
   private readonly lang = toSignal(this.t.onLangChange.pipe(map((e) => e.lang)), {
     initialValue: this.t.getCurrentLang() || 'de',
@@ -90,9 +93,11 @@ export class CometTrackComponent {
   readonly rimK = RIM_K;
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
+  /** The tipped day while its undo window is open — nothing sent yet. */
+  readonly pending = signal<string | null>(null);
   private readonly start = signal(addDays(this.today, 1));
   readonly interactive = computed(() => this.comet().state === 'none' && !this.comet().locked);
-  readonly days = computed(() => cometDays(this.start(), COMET_DAYS, this.comet().tippedDate));
+  readonly days = computed(() => cometDays(this.start(), COMET_DAYS, this.comet().tippedDate ?? this.pending()));
   readonly canBack = computed(() => this.start() > addDays(this.today, 1));
   readonly curve = computed(() => railCurve(this.interactive() ? COMET_DAYS + 2 : COMET_DAYS, RIM_K, false));
 
@@ -112,6 +117,7 @@ export class CometTrackComponent {
       this.patchLine();
       this.start.set(cometWindowStart(c.tippedDate ?? c.announcedDate, this.today, COMET_DAYS));
       this.error.set(null);
+      this.pending.set(null);
     });
   }
 
@@ -121,13 +127,26 @@ export class CometTrackComponent {
     this.start.set(next < min ? min : next);
   }
 
-  async tip(ymd: string): Promise<void> {
-    if (!this.interactive() || this.busy()) return;
-    this.busy.set(true);
+  /** Holds the tip in the undo window; it is sent when the window closes. */
+  tip(ymd: string): void {
+    if (!this.interactive() || this.busy() || this.pending() !== null) return;
+    const line = this.patchLine();
     this.error.set(null);
-    const r = await this.api.submitPrediction(this.patchLine(), ymd);
+    this.pending.set(ymd);
+    this.undo.offer({
+      messageKey: 'starmap.comet.undoToast',
+      messageParams: { patch: line, date: this.day(ymd, true) },
+      commit: () => this.send(line, ymd),
+      onUndo: () => this.pending.set(null),
+    });
+  }
+
+  private async send(line: string, ymd: string): Promise<void> {
+    this.busy.set(true);
+    const r = await this.api.submitPrediction(line, ymd);
     this.busy.set(false);
-    if (!r.ok) this.error.set(r.errorKey);
+    this.pending.set(null);
+    if (!r.ok && line === this.patchLine()) this.error.set(r.errorKey);
   }
 
   day(ymd: string | null, weekday = false): string {

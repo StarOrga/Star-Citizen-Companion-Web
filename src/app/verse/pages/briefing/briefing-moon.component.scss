@@ -8,7 +8,7 @@
   min-width: 0;
   --moon: 140px;
   // The relay loop; the stage overrides it per moon from moonSchedule().
-  --cycle: 27s;
+  --cycle: 41.25s;
 }
 
 .moon {
@@ -186,10 +186,11 @@
 
 // ── Caption relay ───────────────────────────────────────────────────────
 // At rest a moon shows only its topic word. In its slot of the shared loop
-// (--start / --cycle from moonSchedule(), keyframes written for the 27 s
-// three-moon loop, slot = 7 s = 25.93 %): 0–0.5 s topic brightens, 0.5–1.9 s
-// hook flashes, 1.9–2.4 s NEU appears centred, 2.4–2.9 s NEU slides left,
-// then the item types in to its right (40 ms/char), hold, back to rest by 7 s.
+// (--start / --cycle from moonSchedule(), keyframes written for the 41.25 s
+// three-moon loop, slot = 11 s = 26.67 %): 0–0.5 s topic brightens, 0.5–4.4 s
+// the hook line holds (long enough to read), 4.4–4.9 s NEU appears centred,
+// 4.9–5.4 s NEU slides left, then the item types in to its right (40 ms/char)
+// and holds until 10.2 s, back to rest by 11 s.
 // A quiet moon (nothing new) shows its hook for the whole slot instead.
 .cap { display: grid; justify-items: center; gap: 7px; width: 100%; min-width: 0; }
 .topic {
@@ -247,38 +248,38 @@
 }
 
 @keyframes topic {
-  0%, 25.93%, 100% { color: var(--sc-fg-0); letter-spacing: 0.14em; text-shadow: none; }
-  1.85%, 22.96% {
+  0%, 26.667%, 100% { color: var(--sc-fg-0); letter-spacing: 0.14em; text-shadow: none; }
+  1.212%, 24.727% {
     color: color-mix(in srgb, var(--sc-accent) 30%, #fff);
     letter-spacing: 0.08em;
     text-shadow: 0 0 16px var(--sc-accent);
   }
 }
 @keyframes hook {
-  0%, 1.85% { opacity: 0; transform: translateY(60%); }
-  3.33%, 5.93% { opacity: 1; transform: none; }
-  7.04%, 100% { opacity: 0; transform: translateY(-60%); }
+  0%, 1.212% { opacity: 0; transform: translateY(60%); }
+  2.182%, 9.697% { opacity: 1; transform: none; }
+  10.667%, 100% { opacity: 0; transform: translateY(-60%); }
 }
 @keyframes hook-quiet {
-  0%, 1.85% { opacity: 0; transform: translateY(60%); }
-  3.33%, 22.96% { opacity: 1; transform: none; }
-  25.93%, 100% { opacity: 0; transform: translateY(-60%); }
+  0%, 1.212% { opacity: 0; transform: translateY(60%); }
+  2.182%, 24.727% { opacity: 1; transform: none; }
+  26.667%, 100% { opacity: 0; transform: translateY(-60%); }
 }
 @keyframes new {
-  0%, 7.04% { opacity: 0; transform: scale(0.9); }
-  8.89%, 22.96% { opacity: 1; transform: none; }
-  25.93%, 100% { opacity: 0; transform: translateY(-60%); }
+  0%, 10.667% { opacity: 0; transform: scale(0.9); }
+  11.879%, 24.727% { opacity: 1; transform: none; }
+  26.667%, 100% { opacity: 0; transform: translateY(-60%); }
 }
 @keyframes item {
-  0%, 8.89% { max-width: 0; margin-left: 0; color: transparent; }
-  10.74%, 15.5% { max-width: 18em; margin-left: 10px; color: transparent; }
-  16.3%, 25.93% { max-width: 18em; margin-left: 10px; color: var(--sc-fg-1); }
-  26.5%, 100% { max-width: 0; margin-left: 0; color: transparent; }
+  0%, 11.879% { max-width: 0; margin-left: 0; color: transparent; }
+  13.091%, 16.194% { max-width: 18em; margin-left: 10px; color: transparent; }
+  16.727%, 26.667% { max-width: 18em; margin-left: 10px; color: var(--sc-fg-1); }
+  27.042%, 100% { max-width: 0; margin-left: 0; color: transparent; }
 }
 @keyframes chr {
-  0%, 10.74% { opacity: 0; filter: blur(4px); transform: translateY(3px); }
-  11.6%, 25.93% { opacity: 1; filter: none; transform: none; }
-  26.5%, 100% { opacity: 0; }
+  0%, 13.091% { opacity: 0; filter: blur(4px); transform: translateY(3px); }
+  13.648%, 26.667% { opacity: 1; filter: none; transform: none; }
+  27.042%, 100% { opacity: 0; }
 }
 
 // Tablet: smaller spheres.
