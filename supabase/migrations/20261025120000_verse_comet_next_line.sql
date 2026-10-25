@@ -139,11 +139,11 @@ begin
     from (
       select split_part(v.version, '.', 1)::int as major, split_part(v.version, '.', 2)::int as minor
         from public.patch_versions v
-       where v.channel = 'live' and v.version ~ '^[0-9]{1,2}.[0-9]{1,2}'
+       where v.channel = 'live' and v.version ~ '^[0-9]{1,2}\.[0-9]{1,2}(\.|$)'
       union all
       select split_part(p.patch_line, '.', 1)::int, split_part(p.patch_line, '.', 2)::int
         from public.patch_stability_patches p
-       where p.live_at <= now() and p.patch_line ~ '^[0-9]{1,2}.[0-9]{1,2}$'
+       where p.live_at <= now() and p.patch_line ~ '^[0-9]{1,2}\.[0-9]{1,2}$'
     ) l
    order by l.major desc, l.minor desc
    limit 1;
@@ -153,7 +153,7 @@ begin
     into v_up_line
     from public.patch_versions v
    where v.channel in ('ptu', 'eptu')
-     and v.version ~ '^[0-9]{1,2}.[0-9]{1,2}'
+     and v.version ~ '^[0-9]{1,2}\.[0-9]{1,2}(\.|$)'
      and (v_live_line is null
           or (split_part(v.version, '.', 1)::int, split_part(v.version, '.', 2)::int)
              > (v_live_major, v_live_minor))

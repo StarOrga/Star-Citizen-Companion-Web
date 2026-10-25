@@ -1254,12 +1254,12 @@ export function isAdminNavRoute(url: string): boolean {
   return path === '/admin' || path === '/admin/telemetry' || path.startsWith('/admin/telemetry/');
 }
 
-/** `/codex/…` but not the landing `/codex` itself (it carries the bar in its terminal row). */
 /** True on exactly `/verse` (query and fragment ignored) — not on its sub-pages. */
 export function isVerseHome(url: string): boolean {
   return url.split(/[?#]/, 1)[0].replace(/\/+$/, '') === '/verse';
 }
 
+/** `/codex/…` but not the landing `/codex` itself (it carries the bar in its terminal row). */
 /** True on the Starscape gallery and its sub-pages under the Verse tab. */
 export function isVerseGallery(url: string): boolean {
   const path = url.split(/[?#]/)[0];
