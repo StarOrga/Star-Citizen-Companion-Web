@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
 import { READ_TIMEOUT_MS } from '../core/deadline';
+import { toErrorKey } from '../core/describe-error';
 
 /** One changelog bullet: an optional bold headline plus its description. */
 export interface ReleaseNoteItem {
@@ -40,20 +41,30 @@ export class ReleaseNotesService {
   private readonly http = inject(HttpClient);
 
   readonly notes = signal<ReleaseNotes | null>(null);
+  /** True while a fetch is in flight. */
+  readonly loading = signal(false);
+  /** `errors.*` key of the last failed fetch; null after a success or a new attempt. */
+  readonly error = signal<string | null>(null);
   private inflight: Promise<ReleaseNotes | null> | null = null;
 
-  /** Fetch once; subsequent calls resolve from cache. Never throws. */
+  /** Fetch once; subsequent calls resolve from cache. A failed fetch is retried on the next call. Never throws. */
   async load(): Promise<ReleaseNotes | null> {
     if (this.notes()) return this.notes();
     if (this.inflight) return this.inflight;
+    this.loading.set(true);
+    this.error.set(null);
     this.inflight = firstValueFrom(this.http.get<ReleaseNotes>('release-notes.json').pipe(timeout(READ_TIMEOUT_MS)))
       .then((data) => {
         this.notes.set(data);
         return data;
       })
-      .catch(() => null)
+      .catch((err: unknown) => {
+        this.error.set(toErrorKey('release-notes', 'load', err));
+        return null;
+      })
       .finally(() => {
         this.inflight = null;
+        this.loading.set(false);
       });
     return this.inflight;
   }
