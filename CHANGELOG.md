@@ -4,6 +4,44 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.163.0] - 2026-10-25
+
+### Changed
+
+- **Verse β: Startseite passt in einen Bildschirm.** `/verse` scrollt am
+  Desktop nicht mehr: Statusleiste, Hero und Planetenband stehen über einem
+  Footer-Overlay (inkl. β-Schalter). Sternbild und Sternkarten-Knopf sitzen
+  oben rechts und überlappen die Überschrift nicht mehr. Der Hero zeigt pro
+  Thema eine Story, die Pillen schalten nur um, der Knopf heißt „Jetzt
+  ansehen“ mit „in der Galerie/News/Patches“. Ein Pause-Knopf hält alle
+  Bewegung an.
+- **Verse β: Planeten als Star-Citizen-Welten.** Crusader (Patches),
+  microTech (News) und Hurston (Galerie) statt generischer Planeten; immer nur
+  ein Planet animiert (gemeinsame 27-s-Staffel, ~22 % Ruhe), kein Tooltip,
+  Beschriftungen laufen beim Überfahren weiter.
+- **Sternkarte.** Der vorgeschlagene Stern ist ein pulsierender Punkt ohne
+  Strahlen, offene Sterne sind Ringe; gestrichelt ist nur, wo das Sternbild
+  unvollständig ist, und der Vorschlag verlängert die längste fertige Kette.
+  Der Komet sagt „Tipps für 4.11 offen“ – getippt wird immer auf den nächsten
+  Patch (PTU/EPTU, sonst LIVE + 1). Fußnoten der Seitenleisten entfernt,
+  beide Leisten teilen ein Raster.
+- **What's new wandert nach „Über“.** Footer ohne What's new und Version;
+  „Über“ öffnet mit einer „Neu im Verse“-Karte und zwei früheren Releases, ein
+  blauer Punkt markiert ein ungesehenes Release (gespeichert im Profil bzw.
+  lokal). `/release-notes` lädt 5 Releases auf einmal nach, die neuesten 3
+  sind aufgeklappt.
+
+### Fixed
+
+- **Galerie-Story nicht mehr dreifach.** Der Verse-Digest liefert pro Titel
+  nur noch ein Bild (Migration `20261025121000`).
+
+### Database
+
+- `20261025120000_verse_comet_next_line` – `verse_explorer_state().upcoming`
+  fällt ohne PTU auf LIVE + 1 Minor zurück; Versionsprüfung verankert.
+- `20261025121000_verse_digest_gallery_per_series` – ein Galerie-Bild pro Titel.
+
 ## [0.162.1] - 2026-10-25
 
 ### Fixed
