@@ -5,7 +5,7 @@ import { AuthService } from '../../auth/auth.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import { ConstellationFigureComponent } from './constellation-figure.component';
-import { STARS_PER_PATCH } from './starmap.model';
+import { STARS_PER_PATCH, defaultPatch } from './starmap.model';
 
 /** Header entry to the star map: the current patch's mini constellation + lit count. */
 @Component({
@@ -40,7 +40,10 @@ export class ExplorerGlyphComponent {
   private readonly auth = inject(AuthService);
   readonly total = STARS_PER_PATCH;
 
-  private readonly current = computed(() => this.api.explorer()?.patches[0] ?? null);
+  private readonly current = computed(() => {
+    const st = this.api.explorer();
+    return st ? defaultPatch(st) : null;
+  });
   readonly points = computed(() => this.current()?.constellation?.points ?? null);
   readonly lit = computed(() => Math.min(STARS_PER_PATCH, this.current()?.starCount ?? 0));
   readonly sun = computed(() => this.current()?.sun ?? false);
