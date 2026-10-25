@@ -6,7 +6,8 @@
     "dialog": {
       "confirm": "Bestätigen",
       "cancel": "Abbrechen"
-    }
+    },
+    "undo": "Rückgängig"
   },
   "date": {
     "relative": {
@@ -4856,12 +4857,13 @@
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Komet auf {{date}} setzen",
-      "locked": {}
+      "locked": {},
+      "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
       "kind": "Sternbild",
       "ruleAria": "Regeln zum Sternbild-Erkennen",
-      "rule": "Die Form des Sternbilds kommt vom neuesten Schiff des Patches. Eines der 7 Schiffe ist richtig. Du hast einen Versuch: Ein Klick auf ein Schiff gibt deinen Tipp sofort ab. Richtig erkannt, leuchtet ein Stern und der Name erscheint im Sternbild.",
+      "rule": "Die Form des Sternbilds kommt vom neuesten Schiff des Patches. Eines der 7 Schiffe ist richtig. Du hast einen Versuch: Ein Klick auf ein Schiff gibt deinen Tipp ab – ein paar Sekunden lang kannst du ihn noch rückgängig machen. Richtig erkannt, leuchtet ein Stern und der Name erscheint im Sternbild.",
       "optionAria": "Tipp abgeben: {{name}}",
       "state": {
         "open": "offen",
@@ -4879,7 +4881,8 @@
         "open": "Richtig erkannt, erscheint der Name im Sternbild und der Kreis bekommt ein Häkchen.",
         "wrong": "Diesmal kein Stern – die Auflösung bleibt im Sternbild stehen.",
         "unavailable": "Sobald die Spielwerte geladen sind, kannst du hier tippen."
-      }
+      },
+      "undoToast": "Tipp abgegeben: {{name}}"
     },
     "series": {
       "kind": "Serie",

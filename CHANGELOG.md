@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.164.0] - 2026-10-25
+
+### Added
+
+- **Verse β: Tipp auf der Sternkarte rückgängig machen.** Nach einem Klick auf
+  ein Schiff (Sternbild erkennen) oder einen Tag (Komet) erscheint unten rechts
+  ein Hinweis mit „Rückgängig“. Ein paar Sekunden lang lässt sich ein
+  Verklicker zurücknehmen; erst danach wird der Tipp wirklich abgegeben, die
+  Auflösung bleibt bis dahin verborgen. Überfahren oder Fokus hält die Zeit an.
+
+### Changed
+
+- **Verse β: Planeten-Texte bleiben länger stehen.** Die Zeile unter jedem
+  Planeten ist jetzt gut drei Sekunden lesbar statt gut einer, und „Neu …“
+  bleibt ebenfalls länger stehen.
+
+### Fixed
+
+- **Verse β: Sternbild-Link oben rechts mit sauberem Hover.** Statt eines
+  blassen Kastens leuchtet beim Überfahren ein runder Schein hinter dem
+  Sternbild auf; die Tastatur-Fokusmarkierung umrahmt jetzt genau das
+  Sternbild und wird nicht mehr abgeschnitten.
+
 ## [0.163.2] - 2026-10-25
 
 ### Fixed

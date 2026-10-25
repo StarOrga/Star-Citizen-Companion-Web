@@ -4,7 +4,7 @@ import type { VerseDoor } from '../../data/verse.models';
 import { splitChars } from './briefing.model';
 
 /** Length of one moon's caption slot in the relay, in seconds. */
-export const MOON_SLOT_S = 7;
+export const MOON_SLOT_S = 11;
 /** Minimum shared rest after the last slot, in seconds. */
 export const MOON_CALM_S = 6;
 /** The calm never drops below this share of the loop. */
@@ -27,17 +27,17 @@ export interface MoonTiming {
  *
  * Every moon gets the same `cycle`, so their slots stay phase-locked for good.
  * The moon order is the caller's index order (the stage renders News →
- * Patches → Gallery). For three moons: loop 27 s, calm 6 s (22 %).
+ * Patches → Gallery). For three moons: loop 41.25 s, calm 8.25 s (20 %).
  *
  * The caption keyframes in `briefing-moon.component.scss` are written for that
- * three-moon loop (slot = 7/27 of `--cycle`); another count scales the slot
+ * three-moon loop (slot = 11/41.25 of `--cycle`); another count scales the slot
  * proportionally. A moon with nothing new keeps its slot and plays topic +
  * hook in it — skipping a slot would need a second set of keyframes.
  *
  * The parent binds both per moon:
  * `[style.--start]="t.start" [style.--cycle]="t.cycle"`.
  *
- * @example moonSchedule(1, 3, 4.2) → { start: '11.20s', cycle: '27.00s' }
+ * @example moonSchedule(1, 3, 4.2) → { start: '15.20s', cycle: '41.25s' }
  */
 export function moonSchedule(index: number, count: number, introSeconds = 0): MoonTiming {
   const n = Math.max(1, Math.floor(count));

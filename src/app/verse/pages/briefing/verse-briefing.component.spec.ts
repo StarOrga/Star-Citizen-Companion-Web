@@ -237,7 +237,7 @@ describe('Verse briefing — component', () => {
     expect(slots.map((m) => m.style.getPropertyValue('--start'))).toEqual(
       [0, 1, 2].map((i) => `${(intro + i * MOON_SLOT_S).toFixed(2)}s`),
     );
-    expect(new Set(slots.map((m) => m.style.getPropertyValue('--cycle')))).toEqual(new Set(['27.00s']));
+    expect(new Set(slots.map((m) => m.style.getPropertyValue('--cycle')))).toEqual(new Set(['41.25s']));
     expect(el.querySelector('.status .si.live')).not.toBeNull();
     expect(el.querySelector('sc-news-list')).toBeNull();
     // The first visit of the session plays the full entrance.

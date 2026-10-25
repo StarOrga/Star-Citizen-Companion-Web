@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseGuess, VerseGuessOption } from '../data/verse.models';
 import { railCurve } from './starmap.model';
@@ -17,7 +18,9 @@ export function shortShipName(name: string): string {
 /**
  * Sternbild erkennen: the 7 hull options as calm holographic tokens on the
  * scanner rail. One click is the one try (the ⓘ says so) — no popup, no second
- * click. A wrong guess calmly reveals the answer.
+ * click. The pick is held in an undo window first (see UndoToastService): only
+ * when it closes is the guess sent, so undo reverts it without a backend write
+ * and without revealing the answer. A wrong guess calmly reveals the answer.
  */
 @Component({
   selector: 'sc-guess-track',
@@ -51,9 +54,9 @@ export function shortShipName(name: string): string {
         @for (o of options(); track o.className; let i = $index) {
           <button type="button" class="tok ship" [style.--i]="options().length - 1 - i"
                   [class.answer]="g.state !== 'open' && o.className === g.answerClass"
-                  [class.mine]="o.className === g.guessedClass"
+                  [class.mine]="o.className === (g.guessedClass ?? pending())"
                   [class.dim]="g.state !== 'open' && o.className !== g.answerClass"
-                  [disabled]="g.state !== 'open' || busy() || answered()"
+                  [disabled]="g.state !== 'open' || busy() || answered() || pending() !== null"
                   [attr.aria-label]="'starmap.guess.optionAria' | translate: { name: o.name }"
                   [scTooltip]="o.name" scTooltipTier="label"
                   (click)="pick(o)">
@@ -108,6 +111,7 @@ export class GuessTrackComponent {
   readonly guess = input.required<VerseGuess>();
 
   private readonly api = inject(VerseApiService);
+  private readonly undo = inject(UndoToastService);
   readonly rimK = RIM_K;
   readonly curve = railCurve(7, RIM_K, true);
   readonly placeholders = [0, 1, 2, 3, 4, 5, 6];
@@ -115,6 +119,8 @@ export class GuessTrackComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly loadError = signal<string | null>(null);
+  /** The picked class while its undo window is open — nothing sent yet. */
+  readonly pending = signal<string | null>(null);
   /** The answer right after a guess, before the reloaded explorer state arrives. */
   private readonly answer = signal<string | null>(null);
   readonly short = shortShipName;
@@ -133,6 +139,12 @@ export class GuessTrackComponent {
       this.error.set(null);
       if (state !== 'unavailable') void this.load();
     });
+    // A pick stays marked through state refreshes of the same patch (its offer
+    // is still queued); only another patch line clears the marker.
+    effect(() => {
+      this.patchLine();
+      this.pending.set(null);
+    });
   }
 
   async load(): Promise<void> {
@@ -144,12 +156,26 @@ export class GuessTrackComponent {
     else this.loadError.set(r.errorKey);
   }
 
-  async pick(o: VerseGuessOption): Promise<void> {
-    if (this.guess().state !== 'open' || this.busy()) return;
-    this.busy.set(true);
+  /** Holds the pick in the undo window; the guess is sent when it closes. */
+  pick(o: VerseGuessOption): void {
+    if (this.guess().state !== 'open' || this.busy() || this.pending() !== null) return;
+    const line = this.patchLine();
     this.error.set(null);
-    const r = await this.api.submitGuess(this.patchLine(), o.className);
+    this.pending.set(o.className);
+    this.undo.offer({
+      messageKey: 'starmap.guess.undoToast',
+      messageParams: { name: o.name },
+      commit: () => this.send(line, o.className),
+      onUndo: () => this.pending.set(null),
+    });
+  }
+
+  private async send(line: string, className: string): Promise<void> {
+    this.busy.set(true);
+    const r = await this.api.submitGuess(line, className);
     this.busy.set(false);
+    this.pending.set(null);
+    if (line !== this.patchLine()) return;
     if (r.ok) this.answer.set(r.data.answerName);
     else this.error.set(r.errorKey);
   }

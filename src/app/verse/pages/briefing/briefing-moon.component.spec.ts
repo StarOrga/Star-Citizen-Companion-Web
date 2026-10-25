@@ -5,10 +5,10 @@ import { BriefingMoonComponent, MOON_SLOT_S, moonSchedule } from './briefing-moo
 const secs = (t: string) => parseFloat(t);
 
 describe('moonSchedule', () => {
-  it('gives three moons consecutive 7 s slots in a 27 s loop', () => {
+  it('gives three moons consecutive 11 s slots in a 41.25 s loop', () => {
     const t = [0, 1, 2].map((i) => moonSchedule(i, 3, 4.2));
-    expect(t.map((x) => x.start)).toEqual(['4.20s', '11.20s', '18.20s']);
-    expect(t.every((x) => x.cycle === '27.00s')).toBeTrue();
+    expect(t.map((x) => x.start)).toEqual(['4.20s', '15.20s', '26.20s']);
+    expect(t.every((x) => x.cycle === '41.25s')).toBeTrue();
   });
 
   it('never lets two slots overlap and keeps the calm at 20 % or more', () => {
@@ -23,7 +23,7 @@ describe('moonSchedule', () => {
 
   it('clamps a bad index and intro', () => {
     expect(moonSchedule(-3, 3, -1).start).toBe('0.00s');
-    expect(moonSchedule(9, 3).start).toBe('14.00s');
+    expect(moonSchedule(9, 3).start).toBe('22.00s');
   });
 });
 
