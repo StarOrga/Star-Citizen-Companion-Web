@@ -433,6 +433,8 @@ class CodexExtractor:
         # vehicle implementation XML path -> parsed root element (or None).
         # Ship variants share one file, so this is parsed once per hull.
         self._vehicle_xml_cache: Dict[str, Any] = {}
+        # className -> port names whose only mesh match was the hull origin (#794).
+        self._hp_unresolved: Dict[str, List[str]] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
         # Ship-skin (livery) catalog discovery — built lazily on the first ship,
@@ -1105,6 +1107,7 @@ class CodexExtractor:
                                  pct=_mapped_pct(i, total, *self._pct_entities))
 
         self.on_progress("entities", current=total, total=total, pct=self._pct_entities[1])
+        self._log_unresolved_hardpoints()
         self.on_log("info", f"catalog: {n_ship} ships · {n_wpn} weapons · "
                             f"{n_comp} components · {n_item} items · "
                             f"{self._skins_total} skins "
@@ -1268,19 +1271,42 @@ class CodexExtractor:
         readable node table — the consumer then shows no positions at all rather
         than approximations.
         """
-        from .hardpoints import hardpoint_frame, resolve_hardpoint_transforms
+        from .hardpoints import hardpoint_frame, port_helper_offset, resolve_hardpoint_transforms
         helpers = self._helper_nodes(comps)
         if not helpers:
-            return {"transforms": {}, "frame": None}
+            return {"transforms": {}, "frame": None, "unresolved": []}
+        # The helper offset lives on the raw SItemPortDef only; it is joined in
+        # here rather than carried on the projected itemPorts rows (#794).
+        ipc = _find_component(comps, "SItemPortContainerComponentParams") or {}
+        offsets = {p.get("Name"): port_helper_offset(p)
+                   for p in ipc.get("Ports") or [] if isinstance(p, dict)}
+        unresolved: List[str] = []
         transforms = resolve_hardpoint_transforms(
             helpers,
-            item_ports=item_ports,
+            item_ports=[dict(p, helperOffset=offsets.get(p.get("portName")))
+                        for p in item_ports],
             loadout_port_names=[e.get("itemPortName") for e in loadout],
+            unresolved=unresolved,
         )
         if not transforms:
-            return {"transforms": {}, "frame": None}
+            return {"transforms": {}, "frame": None, "unresolved": unresolved}
         frame = hardpoint_frame([t["position"] for t in transforms.values()], dims)
-        return {"transforms": transforms, "frame": frame}
+        return {"transforms": transforms, "frame": frame, "unresolved": unresolved}
+
+    def _log_unresolved_hardpoints(self) -> None:
+        """One line naming the ships whose ports matched only the hull origin.
+
+        Those ports get no position at all (rather than a marker on the ship's
+        origin); this line is where a run shows which hulls still need a better
+        source for them (#794)."""
+        found = getattr(self, "_hp_unresolved", None)
+        if not found:
+            return
+        worst = sorted(found.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        listed = ", ".join(f"{cls} ({len(ports)})" for cls, ports in worst[:20])
+        more = f" … +{len(worst) - 20} more" if len(worst) > 20 else ""
+        self.on_log("warn", f"hardpoints: {len(worst)} ship(s) with ports resolved only "
+                            f"to the hull origin (no position emitted): {listed}{more}")
 
     def _skin_catalog(self, class_name: str, comps) -> List[Dict[str, Any]]:
         """Liveries (paint skins) for a ship, as a sub-property of its record.
@@ -1487,6 +1513,10 @@ class CodexExtractor:
         # appear only as default-loadout port names, not as item ports.
         hp = self._hardpoint_positions(comps, item_ports, loadout, dims)
         transforms = hp["transforms"]
+        if hp["unresolved"]:
+            if not hasattr(self, "_hp_unresolved"):
+                self._hp_unresolved = {}
+            self._hp_unresolved[base["className"]] = hp["unresolved"]
         for port in item_ports:
             t = transforms.get(port.get("portName"))
             if t:
