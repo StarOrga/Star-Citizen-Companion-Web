@@ -166,6 +166,9 @@ class TestTurretStock:
         "AEGS_Turret_Manned": _item("TurretBase", ("hardpoint_weapon_left",
                                                    "Stock_Gun_From_Item")),
         "AEGS_Seat_Pilot": _item("Seat", ("hardpoint_screen", "Vehicle_Screen_MFD")),
+        "Turret_Base_With_Head": _item("TurretBase", ("hardpoint_turret_head",
+                                                      "Turret_PDC_BEHR_A")),
+        "Turret_Loops_Itself": _item("Turret", ("hardpoint_self", "Turret_Loops_Itself")),
     }
 
     def _loadout(self, *entries):
@@ -192,3 +195,13 @@ class TestTurretStock:
                            _entry("hardpoint_pdc_02", "Turret_PDC_BEHR_A"))
         lo[0]["entries"][0]["entityClassName"] = "changed"
         assert lo[1]["entries"][0]["entityClassName"] == "BEHR_LaserRepeater_PDC_S1"
+
+    def test_a_turret_head_inside_a_turret_stock_gets_its_gun_too(self):
+        lo = self._loadout(_entry("hardpoint_turret_01", "Turret_Base_With_Head"))
+        head = lo[0]["entries"][0]
+        assert head["entityClassName"] == "Turret_PDC_BEHR_A"
+        assert head["entries"][0]["entityClassName"] == "BEHR_LaserRepeater_PDC_S1"
+
+    def test_a_self_referencing_turret_fit_stops_at_the_depth_limit(self):
+        lo = self._loadout(_entry("hardpoint_turret_01", "Turret_Loops_Itself"))
+        assert lo[0]["entries"][0]["entityClassName"] == "Turret_Loops_Itself"

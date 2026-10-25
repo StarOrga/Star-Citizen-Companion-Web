@@ -2350,6 +2350,10 @@ class CodexExtractor:
             stock = self._turret_stock(cls)
             if stock:
                 e["entries"] = copy.deepcopy(stock)
+                # A turret base whose stock fit carries a turret head without
+                # sub-items: fill that one from its own stock too (bounded by
+                # _LOADOUT_MAX_DEPTH, so a self-referencing fit cannot loop).
+                self._fill_turret_stock(e["entries"], depth + 1)
 
     def _turret_stock(self, class_name: str) -> List[Dict[str, Any]]:
         """Stock fit of a turret item, ``[]`` for any item that is not a turret
