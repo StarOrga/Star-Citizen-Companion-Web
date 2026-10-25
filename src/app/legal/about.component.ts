@@ -59,6 +59,20 @@ const HIGHLIGHTS = 4;
             </div>
           </div>
         }
+      } @else if (notesError(); as err) {
+        <div class="sc-card wide feature state" role="alert">
+          <span class="eyebrow">{{ 'legal.about.new.eyebrow' | translate }}</span>
+          <p class="state-text">{{ err | translate }}</p>
+          <button type="button" class="cta" (click)="retry()">{{ 'errors.retry' | translate }}</button>
+        </div>
+      } @else if (notesLoading()) {
+        <div class="sc-card wide feature state" aria-busy="true">
+          <span class="eyebrow">{{ 'legal.about.new.eyebrow' | translate }}</span>
+          <span class="sc-skel-line skel-badge" aria-hidden="true"></span>
+          <span class="sc-skel-line" aria-hidden="true"></span>
+          <span class="sc-skel-line skel-short" aria-hidden="true"></span>
+          <span class="sc-sr-only">{{ 'releaseNotes.loading' | translate }}</span>
+        </div>
       }
 
       <div class="sc-card wide">
@@ -173,6 +187,11 @@ const HIGHLIGHTS = 4;
     .mini:hover { border-color: var(--sc-accent); }
     .mini-top { display: flex; align-items: baseline; gap: 10px; color: var(--sc-fg-1); }
     .mini-text { color: var(--sc-fg-2); font-size: 0.85rem; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .state { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-height: 180px; }
+    .state .sc-skel-line { display: block; width: min(100%, 520px); height: 14px; }
+    .state .skel-badge { width: 140px; height: 32px; }
+    .state .skel-short { width: min(70%, 360px); }
+    .state-text { color: var(--sc-fg-1); margin: 0; }
     .affiliation { border-color: var(--sc-accent); }
     .affiliation .disclaimer {
       color: var(--sc-fg-2);
@@ -189,6 +208,8 @@ export class AboutComponent {
   private readonly feature = viewChild<ElementRef<HTMLElement>>('feature');
 
   readonly latest = computed<Release | null>(() => this.notes.notes()?.releases[0] ?? null);
+  readonly notesLoading = this.notes.loading;
+  readonly notesError = this.notes.error;
   /** The two releases before the newest, as compact cards. */
   readonly earlier = computed<Release[]>(() => this.notes.notes()?.releases.slice(1, 3) ?? []);
 
@@ -239,6 +260,10 @@ export class AboutComponent {
         io.disconnect();
       });
     });
+  }
+
+  retry(): void {
+    void this.notes.load();
   }
 
   /** The first item titles of a release, joined into one teaser line. */

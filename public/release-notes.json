@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.163.0",
+  "current": "0.163.1",
   "releases": [
+    {
+      "version": "0.163.1",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Über: „Neu im Verse“ bleibt nicht mehr leer.",
+              "text": "Solange die Release-Notes laden, zeigt die Karte einen Platzhalter; schlägt das Laden fehl, erscheint ein übersetzter Fehler mit „Erneut versuchen“ statt einer leeren Karte."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.163.0",
       "date": "2026-10-25",
