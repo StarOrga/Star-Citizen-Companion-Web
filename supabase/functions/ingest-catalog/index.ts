@@ -51,11 +51,13 @@
 //   (a) Production: Authorization: Bearer <jwt> of a collaborator/admin user
 //       + X-SC-Release-Token: <uuid> of a current desktop_releases row.
 //       (Mirrors ingest-bundle.)
-//   (c) Operator: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY> (the
-//       sb_secret_ key) — scripts/codex-locale-to-r2.mjs.
 //   (b) Seed:       X-SC-Seed-Token: <token> matching a row in
 //       public.codex_seed_tokens (used by supabase/scripts/seed-codex via the
 //       edge function so the local machine never needs the service-role key).
+//   (c) Operator: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY> AND
+//       apikey: <the same key> (the sb_secret_ key; without apikey the gateway
+//       answers "Invalid API key", the legacy service_role JWT gets 401) —
+//       scripts/codex-locale-to-r2.mjs, locale_gc (deep-knowledge/storage.md).
 //
 // Response codes: 200 ok; 400 invalid_body; 401 unauthorized; 403 forbidden;
 //   500 ingest_failed; 503 ingest_timeout (Postgres cancelled the statement —
