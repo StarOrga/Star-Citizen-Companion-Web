@@ -1,4 +1,4 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy, input } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
@@ -26,7 +26,7 @@ class FeedbackFabStub {}
 @Component({ selector: 'sc-user-feedback-fab', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class UserFeedbackFabStub {}
 @Component({ selector: 'sc-footer', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
-class FooterStub {}
+class FooterStub { readonly overlay = input(false); }
 @Component({ selector: 'sc-account-notice', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AccountNoticeStub {}
 

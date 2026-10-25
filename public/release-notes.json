@@ -1,7 +1,59 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.162.2",
+  "current": "0.163.0",
   "releases": [
+    {
+      "version": "0.163.0",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse β: Startseite passt in einen Bildschirm.",
+              "text": "/verse scrollt am Desktop nicht mehr: Statusleiste, Hero und Planetenband stehen über einem Footer-Overlay (inkl. β-Schalter). Sternbild und Sternkarten-Knopf sitzen oben rechts und überlappen die Überschrift nicht mehr. Der Hero zeigt pro Thema eine Story, die Pillen schalten nur um, der Knopf heißt „Jetzt ansehen“ mit „in der Galerie/News/Patches“. Ein Pause-Knopf hält alle Bewegung an."
+            },
+            {
+              "title": "Verse β: Planeten als Star-Citizen-Welten.",
+              "text": "Crusader (Patches), microTech (News) und Hurston (Galerie) statt generischer Planeten; immer nur ein Planet animiert (gemeinsame 27-s-Staffel, ~22 % Ruhe), kein Tooltip, Beschriftungen laufen beim Überfahren weiter."
+            },
+            {
+              "title": "Sternkarte.",
+              "text": "Der vorgeschlagene Stern ist ein pulsierender Punkt ohne Strahlen, offene Sterne sind Ringe; gestrichelt ist nur, wo das Sternbild unvollständig ist, und der Vorschlag verlängert die längste fertige Kette. Der Komet sagt „Tipps für 4.11 offen“ – getippt wird immer auf den nächsten Patch (PTU/EPTU, sonst LIVE + 1). Fußnoten der Seitenleisten entfernt, beide Leisten teilen ein Raster."
+            },
+            {
+              "title": "What's new wandert nach „Über“.",
+              "text": "Footer ohne What's new und Version; „Über“ öffnet mit einer „Neu im Verse“-Karte und zwei früheren Releases, ein blauer Punkt markiert ein ungesehenes Release (gespeichert im Profil bzw. lokal). /release-notes lädt 5 Releases auf einmal nach, die neuesten 3 sind aufgeklappt."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Galerie-Story nicht mehr dreifach.",
+              "text": "Der Verse-Digest liefert pro Titel nur noch ein Bild (Migration 20261025121000)."
+            }
+          ]
+        },
+        {
+          "category": "Database",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "20261025120000_verse_comet_next_line – verse_explorer_state().upcoming fällt ohne PTU auf LIVE + 1 Minor zurück; Versionsprüfung verankert."
+            },
+            {
+              "title": "",
+              "text": "20261025121000_verse_digest_gallery_per_series – ein Galerie-Bild pro Titel."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.162.2",
       "date": "2026-10-25",

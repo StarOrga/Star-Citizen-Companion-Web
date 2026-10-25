@@ -1,7 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ReleaseNotesService } from './release-notes.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+
+/** Releases rendered per batch; the next batch loads when the end scrolls near. */
+const BATCH = 5;
+/** The newest releases open by default; older ones start folded to their headlines. */
+const OPEN_BY_DEFAULT = 3;
 
 /** Keep-a-Changelog standard categories that get a localized, colored tag. */
 const KNOWN_CATEGORIES = ['added', 'changed', 'fixed', 'removed', 'deprecated', 'security'] as const;
@@ -10,6 +16,10 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
 /**
  * "What's New" — the in-app release notes, rendered from the build-time
  * `/release-notes.json` (generated from CHANGELOG.md). Viewer-accessible.
+ *
+ * Long history, short attention span: five releases render first, an end
+ * sentinel loads the next five as the reader nears the bottom, the newest
+ * three are open and older ones fold to their section headlines.
  */
 @Component({
   selector: 'sc-release-notes',
@@ -29,48 +39,63 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
       @if (loading()) {
         <div class="sc-card empty">{{ 'releaseNotes.loading' | translate }}</div>
       } @else if (releases().length) {
-        @if (!showAll() && hiddenCount() > 0) {
-          <p class="recent-hint">{{ 'releaseNotes.recentHint' | translate }}</p>
-        }
         <ol class="timeline">
-          @for (r of visibleReleases(); track r.version) {
-            <li class="release">
+          @for (r of visibleReleases(); track r.version; let i = $index) {
+            <li class="release" [id]="'v' + r.version">
               <div class="rel-head">
                 <span class="ver mono">v{{ r.version }}</span>
                 @if (r.date) { <time class="date">{{ toDate(r.date) | scDate }}</time> }
+                <button type="button" class="expander"
+                        [attr.aria-expanded]="isOpen(r.version, i)"
+                        [attr.aria-controls]="isOpen(r.version, i) ? 'rel-' + r.version : null"
+                        (click)="toggle(r.version, i)">
+                  {{ (isOpen(r.version, i) ? 'releaseNotes.collapse' : 'releaseNotes.expand') | translate }}
+                </button>
               </div>
-              <div class="rel-body">
-                @for (s of r.sections; track $index) {
-                  <div class="section">
-                    <div class="sec-head">
+              @if (isOpen(r.version, i)) {
+                <div class="rel-body" [id]="'rel-' + r.version">
+                  @for (s of r.sections; track $index) {
+                    <div class="section">
+                      <div class="sec-head">
+                        @if (kind(s.category); as k) {
+                          <span class="tag tag-{{ k }}">{{ 'releaseNotes.cat.' + k | translate }}</span>
+                        } @else {
+                          <span class="tag tag-other">{{ s.category }}</span>
+                        }
+                        @if (s.label) { <span class="sec-label">{{ s.label }}</span> }
+                      </div>
+                      <ul class="items">
+                        @for (it of s.items; track $index) {
+                          <li>
+                            @if (it.title) { <strong>{{ it.title }}</strong> }
+                            {{ it.text }}
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="rel-folded" [id]="'rel-' + r.version">
+                  @for (s of r.sections; track $index) {
+                    <span class="sec-head">
                       @if (kind(s.category); as k) {
                         <span class="tag tag-{{ k }}">{{ 'releaseNotes.cat.' + k | translate }}</span>
                       } @else {
                         <span class="tag tag-other">{{ s.category }}</span>
                       }
                       @if (s.label) { <span class="sec-label">{{ s.label }}</span> }
-                    </div>
-                    <ul class="items">
-                      @for (it of s.items; track $index) {
-                        <li>
-                          @if (it.title) { <strong>{{ it.title }}</strong> }
-                          {{ it.text }}
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
-              </div>
+                    </span>
+                  }
+                </div>
+              }
             </li>
           }
         </ol>
         @if (hiddenCount() > 0) {
-          <button type="button" class="load-more" (click)="showAll.set(true)">
+          <div #sentinel class="sentinel" aria-hidden="true"></div>
+          <button type="button" class="load-more" (click)="loadMore()">
             {{ 'releaseNotes.loadMore' | translate: { count: hiddenCount() } }}
-          </button>
-        } @else if (showAll() && releases().length > visibleRecentCount()) {
-          <button type="button" class="load-more ghost" (click)="showAll.set(false)">
-            {{ 'releaseNotes.showLess' | translate }}
           </button>
         }
       } @else {
@@ -94,7 +119,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
       background: rgba(0, 212, 255, 0.08); font-family: var(--sc-font-display);
     }
     .empty { text-align: center; color: var(--sc-fg-2); padding: 1.5rem; }
-    .recent-hint { color: var(--sc-fg-2); font-size: 0.8rem; margin: 0 0 1rem; }
+    .sentinel { height: 1px; }
     .load-more {
       display: block; margin: 0.5rem auto 0; padding: 8px 18px;
       border-radius: 999px; cursor: pointer;
@@ -103,8 +128,10 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
       background: rgba(0, 212, 255, 0.06);
     }
     .load-more:hover { background: rgba(0, 212, 255, 0.14); }
-    .load-more.ghost { border-color: var(--sc-border); color: var(--sc-fg-2); background: transparent; }
-    .load-more.ghost:hover { border-color: var(--sc-fg-2); }
+    .load-more:focus-visible, .expander:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    @media (pointer: coarse) {
+      .load-more, .expander { min-height: 48px; min-width: 48px; }
+    }
 
     .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
     .timeline::before {
@@ -112,7 +139,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
       width: 2px; background: linear-gradient(var(--sc-accent), transparent);
       opacity: 0.4;
     }
-    .release { position: relative; padding: 0 0 1.6rem 30px; }
+    .release { position: relative; padding: 0 0 1.6rem 30px; scroll-margin-top: calc(var(--sc-topbar-h, 72px) + 12px); }
     .release::before {
       content: ''; position: absolute; left: 0; top: 6px;
       width: 16px; height: 16px; border-radius: 50%;
@@ -122,6 +149,14 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     .rel-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 0.7rem; flex-wrap: wrap; }
     .ver { font-family: var(--sc-font-display); font-size: 1.05rem; color: var(--sc-fg-1); letter-spacing: 0.04em; }
     .date { color: var(--sc-fg-2); font-size: 0.8rem; }
+    .expander {
+      margin-left: auto; background: none; border: 0; padding: 4px 8px; cursor: pointer;
+      color: var(--sc-accent); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); border-radius: 4px;
+      min-height: var(--sc-tap-min, 0);
+    }
+    .expander:hover { color: var(--sc-fg-1); }
+    .rel-folded { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+    .rel-folded .sec-head { margin: 0; }
 
     /* The entries are paragraphs (often 300-800 characters), not one-liners, so
        across the full frame a release flows through newspaper columns instead
@@ -164,43 +199,74 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
 })
 export class ReleaseNotesComponent implements OnInit {
   private readonly svc = inject(ReleaseNotesService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly sentinel = viewChild<ElementRef<HTMLElement>>('sentinel');
 
   readonly loading = signal(true);
   readonly releases = signal(this.svc.notes()?.releases ?? []);
   readonly current = signal<string | null>(this.svc.notes()?.current ?? null);
 
-  /** Collapse older releases by default; "load more" reveals the full history. */
-  readonly showAll = signal(false);
+  /** How many releases are rendered; grows by BATCH. */
+  readonly shown = signal(BATCH);
+  /** Manual open/fold choices per version; absent = the default for its rank. */
+  private readonly toggled = signal<Readonly<Record<string, boolean>>>({});
 
-  // Releases within the last 3 months. Undated entries count as recent (they're
-  // typically the newest/unreleased). If nothing falls inside the window (e.g.
-  // no release in 3 months), keep the single most-recent one so the page is
-  // never empty.
-  private readonly recentReleases = computed(() => {
-    const all = this.releases();
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - 3);
-    const cutoffMs = cutoff.getTime();
-    const recent = all.filter((r) => {
-      const t = new Date(r.date).getTime();
-      return Number.isNaN(t) || t >= cutoffMs;
+  readonly visibleReleases = computed(() => this.releases().slice(0, this.shown()));
+  readonly hiddenCount = computed(() => Math.max(0, this.releases().length - this.shown()));
+
+  constructor() {
+    // Infinite scroll: while the end sentinel is (or comes) near the viewport,
+    // the next batch loads. Re-armed after every batch so a tall screen keeps
+    // filling; the "load more" button stays as the keyboard / no-IO fallback.
+    effect((onCleanup) => {
+      this.shown();
+      const el = this.sentinel()?.nativeElement;
+      if (!el || typeof IntersectionObserver === 'undefined') return;
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) this.loadMore();
+        },
+        { rootMargin: '0px 0px 400px 0px' },
+      );
+      io.observe(el);
+      onCleanup(() => io.disconnect());
     });
-    return recent.length > 0 ? recent : all.slice(0, 1);
-  });
-
-  readonly visibleReleases = computed(() =>
-    this.showAll() ? this.releases() : this.recentReleases(),
-  );
-  readonly visibleRecentCount = computed(() => this.recentReleases().length);
-  readonly hiddenCount = computed(() => this.releases().length - this.visibleReleases().length);
+  }
 
   async ngOnInit(): Promise<void> {
     const notes = await this.svc.load();
     if (notes) {
       this.releases.set(notes.releases);
       this.current.set(notes.current);
+      this.revealFragment();
     }
     this.loading.set(false);
+  }
+
+  loadMore(): void {
+    this.shown.update((n) => Math.min(n + BATCH, this.releases().length));
+  }
+
+  isOpen(version: string, index: number): boolean {
+    return this.toggled()[version] ?? index < OPEN_BY_DEFAULT;
+  }
+
+  toggle(version: string, index: number): void {
+    const open = this.isOpen(version, index);
+    this.toggled.update((t) => ({ ...t, [version]: !open }));
+  }
+
+  /** `#v<version>`: load enough batches to reach it, open it and scroll to it. */
+  private revealFragment(): void {
+    const frag = this.route.snapshot.fragment;
+    if (!frag || !frag.startsWith('v')) return;
+    const version = frag.slice(1);
+    const idx = this.releases().findIndex((r) => r.version === version);
+    if (idx < 0) return;
+    this.shown.set(Math.max(BATCH, Math.ceil((idx + 1) / BATCH) * BATCH));
+    this.toggled.update((t) => ({ ...t, [version]: true }));
+    if (typeof document === 'undefined') return;
+    setTimeout(() => document.getElementById(frag)?.scrollIntoView({ block: 'start' }), 50);
   }
 
   /** Returns the standard-category kind (for tag color + i18n key), or null. */

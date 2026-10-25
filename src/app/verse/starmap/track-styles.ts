@@ -6,7 +6,6 @@
 export const TRACK_STYLES = `
   :host { display: block; min-width: 0; }
   .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-  :host(.right) .head { justify-content: flex-end; }
   .head b { font-size: 0.875rem; font-weight: 600; color: var(--sc-fg-0); }
   .kind { display: inline-flex; align-items: center; gap: 6px; font: 0.8rem var(--sc-font-display); letter-spacing: 0.22em;
     text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
@@ -15,14 +14,14 @@ export const TRACK_STYLES = `
     color: var(--sc-fg-1); cursor: help; }
   .info:hover, .info:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); outline: none; }
   .state { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--sc-fg-1); white-space: nowrap; }
-  :host(.left) .state { margin-left: auto; }
+  .state { margin-left: auto; }
   .ring { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sc-accent) 80%, #fff); }
   .ring.half { background: linear-gradient(90deg, var(--sc-warning) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--sc-warning); }
   .ring.done { background: var(--sc-success); box-shadow: none; display: grid; place-items: center; }
   .ring.done::after { content: '✓'; font: 700 10px/1 var(--sc-font-body, inherit); color: var(--sc-bg-0); }
   .ring.closed { background: color-mix(in srgb, var(--sc-fg-2) 55%, transparent); box-shadow: none; }
   .state.tip { color: color-mix(in srgb, var(--sc-warning) 60%, #fff); }
-  .rail { position: relative; display: flex; gap: 6px; align-items: flex-end; padding-bottom: var(--rim, 0px); }
+  .rail { align-self: start; position: relative; display: flex; gap: 6px; align-items: flex-end; padding-bottom: var(--rim, 0px); }
   .tok { position: relative; flex: 1 1 0; min-width: 0; height: 44px; display: grid; align-content: center; justify-items: center; gap: 2px;
     padding: 0; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent);
     background: color-mix(in srgb, var(--sc-bg-1) 60%, transparent); color: var(--sc-fg-1);
@@ -36,7 +35,6 @@ export const TRACK_STYLES = `
   .curve { position: absolute; left: 0; right: 0; top: calc(100% - var(--rim, 0px) + 8px); width: 100%; overflow: visible; pointer-events: none; }
   .curve path { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 40%, transparent); stroke-width: 1; }
   .foot { display: grid; gap: 6px; margin-top: 18px; font-size: 0.8rem; color: var(--sc-fg-1); line-height: 1.35; }
-  :host(.right) .foot { justify-items: end; text-align: right; }
   .foot > span { display: flex; align-items: center; gap: 8px; }
   .foot b { color: var(--sc-fg-0); font-weight: 600; }
   .muted { color: var(--sc-fg-2); }
@@ -49,7 +47,6 @@ export const TRACK_STYLES = `
     .curve { display: none; }
     .rail { padding-bottom: 0; overflow-x: auto; }
     .tok { flex: 0 0 44px; }
-    :host(.right) .head, :host(.right) .foot { justify-content: flex-start; justify-items: start; text-align: left; }
   }
   @media (prefers-reduced-motion: reduce) { .tok { transition: none; } }
 `;

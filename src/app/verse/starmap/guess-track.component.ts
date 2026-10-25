@@ -23,7 +23,6 @@ export function shortShipName(name: string): string {
   selector: 'sc-guess-track',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, ScTooltipDirective],
-  host: { class: 'right' },
   template: `
     @let g = guess();
     <div class="head">
@@ -69,10 +68,12 @@ export function shortShipName(name: string): string {
         </svg>
       </div>
     }
-    <div class="foot">
-      <span>{{ footKey() | translate: { name: answerName() } }}</span>
-      @if (error()) { <span class="err" role="alert">{{ error()! | translate }}</span> }
-    </div>
+    @if (footKey() || error()) {
+      <div class="foot">
+        @if (footKey(); as fk) { <span>{{ fk | translate: { name: answerName() } }}</span> }
+        @if (error()) { <span class="err" role="alert">{{ error()! | translate }}</span> }
+      </div>
+    }
   `,
   styles: [
     TRACK_STYLES,
@@ -121,7 +122,8 @@ export class GuessTrackComponent {
   readonly answered = computed(() => this.answer() !== null);
   readonly answerName = computed(() => this.guess().answerName ?? this.answer() ?? '');
   readonly headKey = computed(() => `starmap.guess.head.${this.guess().state}`);
-  readonly footKey = computed(() => `starmap.guess.foot.${this.guess().state}`);
+  /** No foot line once the guess was right: the header and the lit star say it. */
+  readonly footKey = computed(() => (this.guess().state === 'correct' ? null : `starmap.guess.foot.${this.guess().state}`));
 
   constructor() {
     effect(() => {

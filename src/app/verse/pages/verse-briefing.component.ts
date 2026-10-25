@@ -1,31 +1,44 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
-import { NewsService } from '../../news/news.service';
+import { NewsService, VerseNewsItem } from '../../news/news.service';
 import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import { VerseDigestItem, VerseDoor } from '../data/verse.models';
 import { STARS_PER_PATCH } from '../starmap/starmap.model';
-import { BriefingMoonComponent } from './briefing/briefing-moon.component';
+import { BriefingMoonComponent, MoonTiming, moonSchedule } from './briefing/briefing-moon.component';
 import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import {
   BriefingStatus,
   IntroMode,
   briefingStatus,
   claimIntro,
+  explorerLit,
   liveStatusKey,
   newestFor,
   nextStatusKey,
+  uniqueStories,
 } from './briefing/briefing.model';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** How many stories the hero rotates through (one story bar each). */
+/** How many stories the hero rotates through (one story pill each). */
 export const HERO_STORIES = 3;
 
 /** Entrance length in seconds: the full "Anflug" once per session, a short one afterwards. */
@@ -56,6 +69,26 @@ interface Gate {
   total: number | null;
 }
 
+/** Stable reorder: the first item of each kind leads (one story per theme), the rest keeps its order. */
+export function themesFirst<T extends { kind: string }>(items: readonly T[]): T[] {
+  const kinds = new Set<string>();
+  const lead: T[] = [];
+  const tail: T[] = [];
+  for (const it of items) {
+    if (kinds.has(it.kind)) tail.push(it);
+    else {
+      kinds.add(it.kind);
+      lead.push(it);
+    }
+  }
+  return [...lead, ...tail];
+}
+
+/** Identity of a resolved link for the hero dedupe. */
+export function linkKey(link: VerseItemLink): string {
+  return `${link.internal ? 'in' : 'ex'}:${link.path}?${link.query ? JSON.stringify(link.query) : ''}`;
+}
+
 interface HeroStory {
   item: VerseDigestItem;
   link: VerseItemLink;
@@ -65,10 +98,12 @@ interface HeroStory {
 /**
  * `/verse` — the briefing, "Anflug": a cinematic stage (nebula, sun and the
  * current patch's constellation from frame 0, a static planet horizon) that
- * flies in once per session. The newest stories rotate in the hero with slim
- * story bars, the status sentence draws its lines, the three moons are the
- * jump gates, the star-map button arrives last. β off: the legacy landing
- * (the Verse News list) renders instead.
+ * flies in once per session. One viewport on desktop: the instrument strip
+ * (patch status left, constellation + star-map button in the far top-right
+ * corner), the hero (the newest stories rotate; pills only switch, the CTA is
+ * the one way in) and the gate band of three moons above the footer strip.
+ * One pause control holds all auto motion. β off: the legacy landing (the
+ * Verse News list) renders instead.
  */
 @Component({
   selector: 'sc-verse-briefing',
@@ -92,17 +127,45 @@ export class VerseBriefingComponent {
   readonly intro: IntroMode = this.enabled() ? claimIntro() : 'short';
   readonly introSeconds = INTRO_SECONDS[this.intro];
 
-  /** The rotating stories: the first {@link HERO_STORIES} top items with a usable link. */
+  /**
+   * The newest editorial news from the live feed as a digest item — the digest
+   * reads news_cache, which stays empty while the feed comes from the
+   * fetch-verse-news edge function, so the hero would otherwise never show news.
+   */
+  private readonly feedNews = computed<VerseDigestItem[]>(() => {
+    const newest = (this.news.feed()?.news ?? [])
+      .filter((n) => n.source !== 'patch-notes' && n.source !== 'status')
+      .reduce<VerseNewsItem | null>((a, n) => (!a || n.publishedAt > a.publishedAt ? n : a), null);
+    if (!newest) return [];
+    return [{
+      key: `news:${newest.source}:${newest.id}`,
+      kind: 'news',
+      title: newest.title,
+      url: newest.url,
+      summary: newest.summary ?? null,
+      image: newest.thumbnail ?? null,
+      at: newest.publishedAt,
+      pinned: false,
+      score: 0,
+      rank: Number.MAX_SAFE_INTEGER,
+    }];
+  });
+
+  /** The rotating stories: up to {@link HERO_STORIES} distinct top items with a usable link (see `uniqueStories`), one per theme first. */
   readonly stories = computed<HeroStory[]>(() => {
     const seen = this.api.seen();
-    const out: HeroStory[] = [];
-    for (const item of this.top()) {
-      const link = verseItemLink(item.url);
-      if (link) out.push({ item, link, unseen: !seen.has(item.key) });
-      if (out.length === HERO_STORIES) break;
-    }
-    return out;
+    // The top list first; the rest of the digest (rank order) fills what the dedupe removed.
+    const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
+    const candidates = themesFirst([...this.top(), ...rest, ...this.feedNews()]);
+    return uniqueStories(candidates, (i) => verseItemLink(i.url), linkKey, HERO_STORIES).map(({ item, link }) => ({
+      item,
+      link,
+      unseen: !seen.has(item.key),
+    }));
   });
+
+  /** All auto motion on the stage (hero rotation, moon relay, glows) holds while true. */
+  readonly paused = signal(false);
 
   private readonly _index = signal(0);
   /** True until the first story bar ran out: its fill waits for the entrance. */
@@ -131,6 +194,8 @@ export class VerseBriefingComponent {
   private readonly patch = computed(() => this.api.explorer()?.patches[0] ?? null);
   readonly points = computed(() => this.patch()?.constellation?.points ?? null);
   readonly lit = computed(() => Math.min(STARS_PER_PATCH, this.patch()?.starCount ?? 0));
+  /** The star map's placement of the lit stars, so both pages light the same ones. */
+  readonly litSet = computed(() => explorerLit(this.patch()));
   /** The next line for the Patches hook ("Wann 4.11 kommt …"). */
   readonly nextLine = computed(() => this.status()?.next?.line ?? null);
 
@@ -155,6 +220,12 @@ export class VerseBriefingComponent {
     ];
   });
 
+  /** The moons' relay clock, one entry per gate in render order. */
+  readonly timings = computed<MoonTiming[]>(() => {
+    const n = this.gates().length;
+    return this.gates().map((_, i) => moonSchedule(i, n, this.introSeconds));
+  });
+
   /** Per moon: the newest unseen top item of its kind, else null (the count line takes over). */
   readonly moonItems = computed<Record<VerseDoor, VerseDigestItem | null>>(() => {
     const items = this.top();
@@ -167,6 +238,7 @@ export class VerseBriefingComponent {
   });
 
   private stopTracking: (() => void) | null = null;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
@@ -188,6 +260,28 @@ export class VerseBriefingComponent {
     });
     inject(DestroyRef).onDestroy(() => this.stopTracking?.());
 
+    // One viewport: the stage is 100dvh minus whatever chrome sits above it
+    // (topbar height differs per width, banners come and go), measured here
+    // and published as --brief-chrome on the host.
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const measure = (): void => {
+      // Layout offsets, not getBoundingClientRect: the route reveal moves the
+      // page with a transform while it enters.
+      let top = 0;
+      for (let el: HTMLElement | null = host; el; el = el.offsetParent as HTMLElement | null) top += el.offsetTop;
+      host.style.setProperty('--brief-chrome', `${Math.ceil(top)}px`);
+    };
+    afterNextRender(() => {
+      measure();
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+      ro?.observe(document.body);
+      window.addEventListener('resize', measure);
+      this.destroyRef.onDestroy(() => {
+        ro?.disconnect();
+        window.removeEventListener('resize', measure);
+      });
+    });
+
     // The briefing carries no page header, so it names itself for the
     // detail pages' origin crumb here.
     const origin = inject(NavOriginService, { optional: true });
@@ -198,7 +292,7 @@ export class VerseBriefingComponent {
     }
   }
 
-  /** The active story bar ran out: next story. */
+  /** The active story pill ran out: next story. */
   advance(): void {
     const n = this.stories().length;
     if (n < 2) return;
@@ -206,7 +300,18 @@ export class VerseBriefingComponent {
     this._index.update((i) => (i + 1) % n);
   }
 
-  /** Bar fill finished — only the active bar's fill counts. */
+  /** A pill was pressed: show that story (no navigation) and restart its clock. */
+  select(i: number): void {
+    if (i < 0 || i >= this.stories().length || i === this.index()) return;
+    this.firstRun.set(false);
+    this._index.set(i);
+  }
+
+  togglePause(): void {
+    this.paused.update((p) => !p);
+  }
+
+  /** Pill fill finished — only the active pill's fill counts. */
   barEnded(i: number, ev: AnimationEvent): void {
     if (ev.target !== ev.currentTarget || i !== this.index()) return;
     this.advance();
@@ -218,10 +323,6 @@ export class VerseBriefingComponent {
 
   nextKey(next: NonNullable<BriefingStatus['next']>): string {
     return nextStatusKey(next);
-  }
-
-  moonStart(i: number): string {
-    return `${(this.introSeconds + 0.4 + i * 1.6).toFixed(2)}s`;
   }
 
   reload(): void {

@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
-import { ReleaseNotesService } from '../release-notes/release-notes.service';
+import { ReleaseSeenService } from '../release-notes/release-seen.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
@@ -16,7 +16,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
   imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <footer class="site-footer">
+    <footer class="site-footer" [class.overlay]="overlay()">
       <div class="inner">
         <div class="badge">
           <img src="icons/made-by-community.png"
@@ -38,7 +38,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                       scTooltipTier="label">▲</button>
             </p>
           } @else {
-            <p class="disclaimer">{{ disclaimerShort() }}<button
+            <p class="disclaimer" [scTooltip]="overlay() ? ('footer.disclaimer' | translate) : ''">{{ disclaimerShort() }}<button
                       type="button" class="disclaimer-toggle"
                       (click)="expanded.set(true)"
                       [attr.aria-label]="'footer.disclaimerExpand' | translate"
@@ -48,12 +48,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
 
         <div class="whatsnew">
-          <a routerLink="/release-notes">{{ 'releaseNotes.whatsNew' | translate }}</a>
-          @if (version(); as v) {
-            <span class="ver">v{{ v }}</span>
-          }
           <nav class="legal-links" [attr.aria-label]="'footer.legalNav' | translate">
-            <a routerLink="/about">{{ 'footer.links.about' | translate }}</a>
+            <a routerLink="/about" class="about-link">{{ 'footer.links.about' | translate }}@if (seen.unseen()) {<span class="new-dot" aria-hidden="true"></span><span class="sc-sr-only"> ({{ 'footer.links.aboutNew' | translate }})</span>}</a>
             <span aria-hidden="true">·</span>
             <a routerLink="/legal/privacy">{{ 'footer.links.privacy' | translate }}</a>
             <span aria-hidden="true">·</span>
@@ -155,21 +151,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       gap: 2px;
       flex-shrink: 0;
     }
-    .whatsnew a {
-      font-family: var(--sc-font-display);
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-accent);
-      text-decoration: none;
-      transition: color 0.16s ease;
-    }
-    .whatsnew a:hover { color: var(--sc-fg-1); }
-    .whatsnew .ver {
-      color: var(--sc-fg-2);
-      font-size: max(0.68rem, var(--sc-fs-floor));
-      font-family: ui-monospace, monospace;
-    }
     .legal-links {
       display: flex;
       gap: 6px;
@@ -182,6 +163,40 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       transition: color 0.16s ease;
     }
     .legal-links a:hover { color: var(--sc-accent); }
+    .about-link { display: inline-flex; align-items: center; gap: 5px; }
+    /* "There is something new on the About page" — accent, never the red of
+       elevated access. */
+    .new-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--sc-accent);
+      box-shadow: 0 0 6px var(--sc-accent);
+    }
+
+    /* Verse front page overlay (shell sets [overlay]): a slim frosted strip
+       fixed to the bottom, the beta pill sits in its left part, the feedback
+       launcher lane stays free on the right. Short or phone-sized viewports
+       keep the normal in-flow footer. Height contract: --sc-verse-footer-h on
+       the shell host (48px while active). */
+    @media (min-width: 641px) and (min-height: 681px) {
+      .site-footer.overlay {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+        margin: 0; box-sizing: border-box;
+        padding: 0 var(--sc-fab-clear-inline) var(--sc-safe-bottom, 0px) 190px;
+        height: calc(48px + var(--sc-safe-bottom, 0px));
+        background: color-mix(in srgb, var(--sc-bg-1) 55%, transparent);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--sc-border);
+      }
+      .overlay .inner { height: 48px; gap: 18px; max-width: none; margin: 0; }
+      .overlay .badge img { width: 24px; height: 24px; }
+      .overlay .badge-label, .overlay .copyright, .overlay .disclaimer-toggle { display: none; }
+      .overlay .meta { display: flex; align-items: center; gap: 12px; }
+      .overlay .meta .brand { margin: 0; white-space: nowrap; }
+      .overlay .meta .disclaimer {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+      }
+      .overlay .legal-links { white-space: nowrap; }
+    }
     /* Tablet portrait / narrow window: three blocks in one nowrap row squeeze
        the disclaimer into a sliver. The links block wraps under the other two
        instead, and the gap tightens with it. */
@@ -197,11 +212,12 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     }
   `],
 })
-export class FooterComponent implements OnInit {
-  private readonly releaseNotes = inject(ReleaseNotesService);
+export class FooterComponent {
+  /** Verse front page: render as a fixed overlay strip (set by the shell). */
+  readonly overlay = input(false);
+  protected readonly seen = inject(ReleaseSeenService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
-  readonly version = signal<string | null>(this.releaseNotes.notes()?.current ?? null);
 
   /** Whether the full legal disclaimer + trademark line is shown. */
   readonly expanded = signal(false);
@@ -227,10 +243,5 @@ export class FooterComponent implements OnInit {
       .get('footer.disclaimer')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((text: string) => this.disclaimerFull.set(text));
-  }
-
-  async ngOnInit(): Promise<void> {
-    const notes = await this.releaseNotes.load();
-    if (notes) this.version.set(notes.current);
   }
 }

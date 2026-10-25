@@ -102,10 +102,12 @@ const MAX_PATCH_CHIPS = 6;
         </header>
 
         <sc-star-dome class="stage" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
-                      [sun]="sun()" [sunLine]="cometTarget().patchLine" [patchLine]="p.patchLine" />
+                      [sun]="sun()" [sunLine]="cometTarget()?.patchLine ?? p.patchLine" [patchLine]="p.patchLine" />
 
         <div class="tracks">
-          <sc-comet-track class="track" [patchLine]="cometTarget().patchLine" [comet]="cometTarget().comet" />
+          @if (cometTarget(); as ct) {
+            <sc-comet-track class="track" [patchLine]="ct.patchLine" [comet]="ct.comet" />
+          }
           @if (p.guess.state !== 'unavailable') {
             <sc-guess-track class="track" [patchLine]="p.patchLine" [guess]="p.guess" />
           }
@@ -185,7 +187,9 @@ const MAX_PATCH_CHIPS = 6;
       .err { color: var(--sc-danger); font-size: 0.8rem; }
 
       .stage { min-height: 0; height: 100%; }
-      .tracks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8%; align-items: end; }
+      /* One grid for both challenges: heads share a row (one baseline), rails start at the same y, an optional error foot gets the third row. */
+      .tracks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 8%; row-gap: 0; align-items: start; }
+      .tracks .track { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
       .tracks .track:only-child { grid-column: 1; }
 
       .more { position: absolute; z-index: 10; top: 10px; right: 10px; bottom: 10px; width: min(380px, calc(100% - 20px)); overflow-y: auto;
@@ -203,7 +207,8 @@ const MAX_PATCH_CHIPS = 6;
       @media (max-width: 900px), (max-height: 700px) {
         .map { height: auto; min-height: 0; max-height: none; padding: 12px; }
         .stage { height: auto; aspect-ratio: 1; max-height: 70dvh; }
-        .tracks { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+        .tracks { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 22px; }
+        .tracks .track { display: block; grid-row: auto; }
         .more { position: fixed; inset: auto 8px var(--sc-float-bottom, 8px) 8px; top: 15dvh; width: auto; }
       }
       @media (prefers-reduced-motion: reduce) { .sky, .dome, .field.near, .more { animation: none; } }
@@ -238,19 +243,26 @@ export class ExplorerPageComponent {
   });
   /**
    * Where the comet flies: on the newest map the patch still in testing (the
-   * tip is for its LIVE day); on an older map that patch's own, closed comet.
+   * tip is for its LIVE day; the server always names one, the PTU line or live
+   * + 1); on an older map that patch's own, closed comet. Without an upcoming
+   * patch the newest map must not headline its LIVE patch's closed comet, so
+   * the rail is hidden (a tipped / hit / missed record still shows).
    */
-  readonly cometTarget = computed<{ patchLine: string; comet: VerseComet }>(() => {
-    const p = this.selected()!;
+  readonly cometTarget = computed<{ patchLine: string; comet: VerseComet } | null>(() => {
+    const p = this.selected();
+    if (!p) return null;
     const up = this.state()?.upcoming;
-    if (up && p === this.fallback()) return up;
+    if (p === this.fallback()) {
+      if (up) return up;
+      if (p.comet.state === 'none' && p.comet.locked) return null;
+    }
     return { patchLine: p.patchLine, comet: p.comet };
   });
   readonly sun = computed(() => {
     const p = this.selected();
     if (!p) return 'faded' as const;
     const target = this.cometTarget();
-    return sunState(p.sun, target.patchLine === p.patchLine ? p.comet : target.comet);
+    return sunState(p.sun, !target || target.patchLine === p.patchLine ? p.comet : target.comet);
   });
   /** The hull's name once the guess was made or the constellation is complete. */
   readonly shapeName = computed(() => {

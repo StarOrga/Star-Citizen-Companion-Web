@@ -52,10 +52,75 @@ supabase/.env
 .vercel/
 
 # Claude / AI artifacts kept in repo, but exclude session/cache:
-.claude/sessions/
-.claude/cache/
-.claude/scheduled_tasks.lock
-.claude/worktrees/
+
+# >>> claude (managed) >>>
+# Managed by the devops plugin — rewrite with `node <devops-plugin>/scripts/claude-ignore.js migrate`, do not edit.
+# Versioned on purpose: CLAUDE.md, .claude/settings.json, .claude/{skills,commands,hooks,agents,deep-knowledge}/,
+# .claude/project-map.md, .claude/launch.example.json, docs/concepts/.
+# Claude Code session state
+**/.claude/worktrees/
+**/.claude/todos/
+**/.claude/plans/
+**/.claude/projects/
+**/.claude/session-env/
+**/.claude/sessions/
+**/.claude/shell-snapshots/
+**/.claude/backups/
+**/.claude/telemetry/
+**/.claude/token-cache/
+**/.claude/cache/
+**/.claude/.cache/
+**/.claude/*.log
+**/.claude/token-config.json
+**/.claude/concept-active.json
+**/.claude/concept-waker-*.json
+**/.claude/concepts/
+**/.claude/session-opened-files.json
+**/.claude/scheduled_tasks.lock
+**/.claude/scheduled_tasks.json
+**/.claude/routines/.state/
+**/.claude/checkpoints/
+**/.claude/mailbox/
+**/.claude/agent-registry.json
+**/.claude/agent-memory-local
+**/.claude/first-run
+**/.claude/assistant-daemon-state.json
+# Per-clone settings
+**/.claude/settings.local.json
+**/.claude/launch.json
+**/.claude/devops-config.json
+# devops plugin runtime state
+**/.claude/batch-activity
+**/.claude/batch-assets/
+**/.claude/batch-mode.json
+**/.claude/batch-watchdog.lock
+**/.claude/batch.md
+**/.claude/batch-*.md
+**/.claude/auto-guide-active.json
+**/.claude/strict-mode.json
+**/.claude/run-contract.json
+**/.claude/run-contract.json.*
+**/.claude/run-contract.events.jsonl
+**/.claude/run-contract.prev.json
+**/.claude/run-contract.pending
+**/.claude/run-task.md
+**/.claude/runs/
+**/.claude/batch-handoff.json
+**/.claude/.ship-in-progress
+**/.claude/.ship-checkpoint.json
+**/.claude/.ship-cli-last.json
+**/.claude/.ship-carddata-*.json
+**/.claude/.ship-lockout
+**/.claude/.ship-queue
+**/.claude/.ship-watcher/
+**/.claude/handoffs/
+**/.claude/devops-livebrief/
+**/.claude/audit/
+**/.claude/rethink/
+**/.claude/local-llm/
+**/.claude/*.tmp
+# <<< claude (managed) <<<
+
 .claude/tmp/
 AUTONOMOUS-RESUME.json
 AUTONOMOUS-REPORT.html
@@ -63,22 +128,6 @@ AUTONOMOUS-REPORT.html
 # Logs
 *.log
 logs/
-
-# Ship pipeline runtime state (per-process, never commit)
-.claude/.ship-in-progress
-.claude/.ship-watcher/
-
-# /run-burn + /concept + /claude-batch local-only state
-.claude/token-config.json
-.claude/concept-active.json
-# Concept-bridge durable store (journal, snapshots, pasted attachments) —
-# per-session runtime state, never a repo artefact.
-.claude/concepts/
-.claude/batch-activity
-
-# /claude-batch collect-mode marker — per-session, recreated on demand
-.claude/batch-activity
-.claude/batch.md
 
 # Python sidecar (data-uploader) — caches + embedded interpreter + real-P4K subsets
 data-uploader/python/__pycache__/
@@ -100,10 +149,6 @@ data-uploader/python/demo_visual_extract.py
 
 # graphify knowledge-graph output (generated locally, never committed)
 graphify-out/
-
-# the marker can appear in any nested project dir, not just the repo root
-**/.claude/batch-activity
-**/.claude/batch.md
 
 # routine gate: which session holds the run lock (written by start-run, removed by end-run)
 .claude/routine-run.json

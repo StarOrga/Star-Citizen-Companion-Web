@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -9,7 +9,7 @@ import { PublicLayoutComponent } from './public-layout.component';
 // The footer pulls in the release-notes service; the escape hatch under test
 // has nothing to do with it.
 @Component({ selector: 'sc-footer', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
-class FooterStub {}
+class FooterStub { readonly overlay = input(false); }
 
 /**
  * Feedback fbfd1ed5: the footer-linked pages (/about, /legal/privacy,

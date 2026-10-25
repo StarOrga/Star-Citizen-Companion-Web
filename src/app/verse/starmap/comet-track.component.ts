@@ -23,7 +23,6 @@ const RIM_K = 0.32;
   selector: 'sc-comet-track',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, ScTooltipDirective],
-  host: { class: 'left' },
   template: `
     @let c = comet();
     <div class="head">
@@ -59,17 +58,9 @@ const RIM_K = 0.32;
         <path [attr.d]="curve().d" vector-effect="non-scaling-stroke" />
       </svg>
     </div>
-    <div class="foot">
-      <span><span class="sun" aria-hidden="true"><i></i></span><span><b>{{ 'starmap.comet.reward' | translate }}</b>
-        @if (c.tippedDate && c.state === 'tipped') { · {{ 'starmap.comet.window' | translate: { patch: patchLine(), from: day(addDays(c.tippedDate, -2)), to: day(addDays(c.tippedDate, 2)) } }} }
-      </span></span>
-      @if (c.locked && c.state === 'none') {
-        <span class="muted">{{ 'starmap.comet.locked.' + (c.lockedReason ?? 'live') | translate: { date: day(c.announcedDate, true) } }}</span>
-      }
-      @if (error()) {
-        <span class="err" role="alert">{{ error()! | translate }}</span>
-      }
-    </div>
+    @if (error()) {
+      <div class="foot"><span class="err" role="alert">{{ error()! | translate }}</span></div>
+    }
   `,
   styles: [
     TRACK_STYLES,
@@ -97,7 +88,6 @@ export class CometTrackComponent {
 
   readonly today = todayYmd();
   readonly rimK = RIM_K;
-  readonly addDays = addDays;
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   private readonly start = signal(addDays(this.today, 1));
@@ -112,7 +102,7 @@ export class CometTrackComponent {
   });
   readonly headKey = computed(() => {
     const c = this.comet();
-    if (c.state === 'none') return c.locked ? 'starmap.comet.head.closed' : 'starmap.comet.head.ask';
+    if (c.state === 'none') return c.locked ? 'starmap.comet.head.closed' : 'starmap.comet.head.open';
     return `starmap.comet.head.${c.state}`;
   });
 

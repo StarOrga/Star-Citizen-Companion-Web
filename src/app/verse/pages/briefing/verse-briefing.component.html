@@ -1,8 +1,8 @@
 @if (enabled()) {
-  <section class="stage" [class.short]="intro === 'short'" [attr.data-intro]="intro"
+  <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [attr.data-intro]="intro"
            [attr.aria-label]="'verse.briefing.stageAria' | translate">
-    <!-- Full-bleed backdrop: nebula, sun and the constellation stand from
-         frame 0 and ride the dolly; the far star field arrives later. -->
+    <!-- Full-bleed backdrop: nebula and sun stand from frame 0 and ride the
+         dolly; the far star field arrives later. -->
     <div class="bleed" aria-hidden="true">
       <div class="sky">
         <div class="neb"></div>
@@ -18,10 +18,8 @@
     </div>
 
     <div class="frame">
-      <div class="cstl" aria-hidden="true">
-        <div class="cstl-in"><div class="cst"><sc-briefing-sky [points]="points()" [lit]="lit()" /></div></div>
-      </div>
-
+      <!-- Row 1 · instrument strip: patch status left, the constellation and
+           the star-map button in the far top-right corner of the stage. -->
       <div class="top">
         @if (status(); as s) {
           <p class="status">
@@ -31,85 +29,94 @@
             }
           </p>
         }
-        <a class="mapbtn" routerLink="/verse/explorer" [style.--p]="lit() / total"
+        <a class="map" routerLink="/verse/explorer" [style.--p]="lit() / total"
            [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
            [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
-          <span class="ring" aria-hidden="true"></span>
-          <span class="disc" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <line x1="4" y1="18" x2="9" y2="9" /><line x1="9" y1="9" x2="15" y2="12" /><line x1="15" y1="12" x2="20" y2="5" />
-              <circle cx="4" cy="18" r="1.6" /><circle cx="9" cy="9" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="20" cy="5" r="1.9" />
-            </svg>
+          <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
+          <span class="mapbtn" aria-hidden="true">
+            <span class="ring"></span>
+            <span class="disc">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <line x1="4" y1="18" x2="9" y2="9" /><line x1="9" y1="9" x2="15" y2="12" /><line x1="15" y1="12" x2="20" y2="5" />
+                <circle cx="4" cy="18" r="1.6" /><circle cx="9" cy="9" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="20" cy="5" r="1.9" />
+              </svg>
+            </span>
           </span>
         </a>
       </div>
 
+      <!-- Row 2 · hero: left column, headline clamped to two lines. -->
       <div class="hero">
         @if (api.digestState() === 'error' && !api.digest()) {
           <h1 class="title">{{ 'verse.briefing.headlineError' | translate }}</h1>
           <p class="err" role="alert">{{ (api.digestError() ?? 'errors.generic') | translate }}</p>
           <button type="button" class="cta" (click)="reload()">{{ 'errors.retry' | translate }}</button>
         } @else if (api.digestState() === 'loading' && !api.digest()) {
-          <p class="kick">&nbsp;</p>
           <h1 class="title"><span class="sk sc-skel-field" aria-hidden="true"></span><span class="sc-sr-only">{{ 'verse.briefing.loading' | translate }}</span></h1>
         } @else {
-          <p class="kick">
-            <span class="roll">
-              @for (st of currentList(); track st.item.key) {
-                <span class="slide" animate.enter="roll-in" animate.leave="roll-out">{{ ('verse.kind.' + st.item.kind) | translate }}@if (st.unseen) {<span class="since"> · {{ 'verse.briefing.newSince' | translate }}</span>}</span>
-              } @empty {
-                <span class="slide">{{ 'verse.briefing.allSeen' | translate }}</span>
-              }
-            </span>
-          </p>
           <h1 class="title">
             <span class="roll">
               @for (st of currentList(); track st.item.key) {
-                <span class="slide" animate.enter="roll-in" animate.leave="roll-out">{{ st.item.title }}</span>
+                <span class="slide" animate.enter="roll-in" animate.leave="roll-out" [scTooltip]="st.item.title">{{ st.item.title }}</span>
               } @empty {
                 <span class="slide">{{ 'verse.briefing.headlineQuiet' | translate }}</span>
               }
             </span>
           </h1>
           @if (cta(); as c) {
-            @if (c.link.internal) {
-              <a class="cta" [routerLink]="c.link.path" [queryParams]="c.link.query"
-                 (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
-            } @else {
-              <a class="cta" [href]="c.link.path" target="_blank" rel="noopener noreferrer"
-                 (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
-            }
-          }
-          @if (stories().length > 1) {
-            <nav class="story" [attr.aria-label]="'verse.briefing.topAria' | translate">
-              @for (st of stories(); track st.item.key; let i = $index) {
-                @if (st.link.internal) {
-                  <a class="sbar" [class.on]="i === index()" [class.done]="i < index()" [class.first]="firstRun()"
-                     [routerLink]="st.link.path" [queryParams]="st.link.query"
-                     [attr.aria-current]="i === index() ? 'true' : null"
-                     [attr.aria-label]="'verse.briefing.storyAria' | translate: { n: i + 1, title: st.item.title }"
-                     [scTooltip]="st.item.title" scTooltipTier="label"
-                     (click)="openItem(st.item)" (auxclick)="openItem(st.item)"><i (animationend)="barEnded(i, $event)"></i></a>
-                } @else {
-                  <a class="sbar" [class.on]="i === index()" [class.done]="i < index()" [class.first]="firstRun()"
-                     [href]="st.link.path" target="_blank" rel="noopener noreferrer"
-                     [attr.aria-current]="i === index() ? 'true' : null"
-                     [attr.aria-label]="'verse.briefing.storyAria' | translate: { n: i + 1, title: st.item.title }"
-                     [scTooltip]="st.item.title" scTooltipTier="label"
-                     (click)="openItem(st.item)" (auxclick)="openItem(st.item)"><i (animationend)="barEnded(i, $event)"></i></a>
-                }
+            <div class="go">
+              @if (c.link.internal) {
+                <a class="cta" [routerLink]="c.link.path" [queryParams]="c.link.query"
+                   (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
+              } @else {
+                <a class="cta" [href]="c.link.path" target="_blank" rel="noopener noreferrer"
+                   (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
               }
-            </nav>
+              <p class="where">
+                <span class="roll">
+                  @for (st of currentList(); track st.item.key) {
+                    <span class="slide" animate.enter="roll-in" animate.leave="roll-out">{{ ('verse.briefing.ctaWhere.' + st.item.kind) | translate }}@if (st.unseen) {<span class="since"> · {{ 'verse.briefing.newSince' | translate }}</span>}</span>
+                  }
+                </span>
+              </p>
+            </div>
+          } @else {
+            <p class="where">{{ 'verse.briefing.allSeen' | translate }}</p>
           }
+          <div class="ctl">
+            @if (stories().length > 1) {
+              <div class="story" role="group" [attr.aria-label]="'verse.briefing.topAria' | translate">
+                @for (st of stories(); track st.item.key; let i = $index) {
+                  <button type="button" class="sbar" [class.on]="i === index()" [class.done]="i < index()" [class.first]="firstRun()"
+                          [attr.aria-pressed]="i === index()"
+                          [attr.aria-label]="'verse.briefing.storyAria' | translate: { n: i + 1, title: st.item.title }"
+                          [scTooltip]="st.item.title" scTooltipTier="label"
+                          (click)="select(i)"><i (animationend)="barEnded(i, $event)"></i></button>
+                }
+              </div>
+            }
+            <button type="button" class="pause" (click)="togglePause()"
+                    [attr.aria-label]="(paused() ? 'verse.briefing.resume' : 'verse.briefing.pause') | translate"
+                    [scTooltip]="(paused() ? 'verse.briefing.resume' : 'verse.briefing.pause') | translate" scTooltipTier="label">
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                @if (paused()) {
+                  <path d="M5 3.5v9l7-4.5z" />
+                } @else {
+                  <rect x="4" y="3.5" width="2.6" height="9" rx="0.8" /><rect x="9.4" y="3.5" width="2.6" height="9" rx="0.8" />
+                }
+              </svg>
+            </button>
+          </div>
         }
       </div>
 
-      <!-- The gates stay usable when the digest failed: their numbers fall
-           back to the live feeds. -->
+      <!-- Row 3 · gate band above the footer strip. The gates stay usable
+           when the digest failed: their numbers fall back to the live feeds. -->
       <nav class="moons" [attr.aria-label]="'verse.gates.aria' | translate">
         @for (g of gates(); track g.door; let i = $index) {
           @let item = moonItems()[g.door];
-          <sc-briefing-moon class="moon-slot" [attr.data-door]="g.door" [style.--start]="moonStart(i)"
+          @let t = timings()[i];
+          <sc-briefing-moon class="moon-slot" [attr.data-door]="g.door" [style.--start]="t.start" [style.--cycle]="t.cycle"
             [door]="g.door" [link]="g.link"
             [topic]="('verse.gates.' + g.door + '.topic') | translate"
             [hook]="g.door === 'patches'

@@ -3088,7 +3088,8 @@
     "links": {
       "about": "Über",
       "privacy": "Datenschutz",
-      "imprint": "Impressum"
+      "imprint": "Impressum",
+      "aboutNew": "neu"
     }
   },
   "legal": {
@@ -3119,6 +3120,11 @@
         "p1": "Der schnellste Weg zu den Maintainern:",
         "issuesLink": "GitHub Issues (Bugs, Fragen, Feedback)",
         "securityLink": "Security-Kontakt (security.txt, RFC 9116)"
+      },
+      "new": {
+        "eyebrow": "Neu im Verse",
+        "cta": "Alle Änderungen",
+        "earlier": "Frühere Releases"
       }
     },
     "privacy": {
@@ -3903,10 +3909,7 @@
     "current": "Aktuell",
     "loading": "Release Notes werden geladen …",
     "empty": "Noch keine Release Notes.",
-    "whatsNew": "Was ist neu",
-    "recentHint": "Zeigt die letzten 3 Monate.",
-    "loadMore": "{{count}} ältere Einträge anzeigen",
-    "showLess": "Weniger anzeigen",
+    "loadMore": "Weitere laden ({{count}})",
     "cat": {
       "added": "Neu",
       "changed": "Geändert",
@@ -3914,7 +3917,9 @@
       "removed": "Entfernt",
       "deprecated": "Veraltet",
       "security": "Sicherheit"
-    }
+    },
+    "expand": "Aufklappen",
+    "collapse": "Zuklappen"
   },
   "extension": {
     "promo": {
@@ -4522,7 +4527,15 @@
           "weeks": "{{line}} seit ~{{n}} Wochen fällig",
           "weeksOne": "{{line}} seit ~1 Woche fällig"
         }
-      }
+      },
+      "ctaWhere": {
+        "news": "in den News",
+        "patch": "in den Patches",
+        "gallery": "in der Galerie",
+        "link": "auf der Originalseite"
+      },
+      "pause": "Bewegung anhalten",
+      "resume": "Bewegung fortsetzen"
     },
     "gates": {
       "aria": "Bereiche des Verse",
@@ -4825,21 +4838,16 @@
         "locked": "geschlossen"
       },
       "head": {
-        "ask": "Wann geht {{patch}} LIVE?",
         "closed": "Tipps für {{patch}} sind geschlossen",
-        "tipped": "Einschlag erwartet am {{date}}",
+        "tipped": "Dein Tipp für {{patch}}: {{date}}",
         "hit": "Eingeschlagen am {{date}}",
-        "miss": "Dein Komet: {{date}}"
+        "miss": "Dein Komet: {{date}}",
+        "open": "Tipps für {{patch}} offen"
       },
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Komet auf {{date}} setzen",
-      "reward": "Trifft dein Komet, leuchtet die Sonne auf",
-      "window": "{{patch}} LIVE zwischen {{from}} und {{to}}",
-      "locked": {
-        "live": "Der Patch ist LIVE – Tipps sind geschlossen.",
-        "announced": "Der LIVE-Termin ({{date}}) ist offiziell angekündigt – Tipps sind geschlossen."
-      }
+      "locked": {}
     },
     "guess": {
       "kind": "Sternbild",
@@ -4860,7 +4868,6 @@
       },
       "foot": {
         "open": "Richtig erkannt, erscheint der Name im Sternbild und der Kreis bekommt ein Häkchen.",
-        "correct": "Der Stern leuchtet, der Name steht jetzt im Sternbild.",
         "wrong": "Diesmal kein Stern – die Auflösung bleibt im Sternbild stehen.",
         "unavailable": "Sobald die Spielwerte geladen sind, kannst du hier tippen."
       }

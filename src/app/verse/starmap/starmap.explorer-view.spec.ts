@@ -8,7 +8,7 @@ import {
   constellationEdges,
   crossedUnlocks,
   defaultPatch,
-  nextLead,
+  guidedStarIndex,
   nextTask,
   patchMapView,
   railCurve,
@@ -123,7 +123,7 @@ describe('explorer view model', () => {
 });
 
 describe('dome view helpers', () => {
-  it('binds done tasks to the first lit ranks, then next, then open', () => {
+  it('binds done tasks first (oldest first), then next, then open', () => {
     const p = patch({
       stars: ['archive', 'notes'],
       starCount: 2,
@@ -136,7 +136,33 @@ describe('dome view helpers', () => {
     expect(byRank[0].task?.key).toBe('notes');
     expect(byRank[2].task?.key).toBe(v.next!.key);
     expect(constellationEdges(slots).length).toBe(7);
-    expect(nextLead(slots)?.to.state).toBe('next');
+    // the suggested star sits next to the done chain along the outline
+    const doneIdx = slots.filter((s) => s.state === 'done').map((s) => s.index);
+    const nextIdx = slots.find((s) => s.state === 'next')!.index;
+    expect(doneIdx.some((i) => (i + 1) % 7 === nextIdx || (nextIdx + 1) % 7 === i)).toBeTrue();
+    // dashed (not lit) edges touch every open or suggested star, solid ones only join done stars
+    for (const e of constellationEdges(slots)) expect(e.lit).toBe(e.from.state === 'done' && e.to.state === 'done');
+  });
+
+  it('keeps done stars where they lit when a new one is done, and guides the next one along the chain', () => {
+    const base = patch({
+      stars: ['notes', 'archive'],
+      starCount: 2,
+      starDates: { notes: '2026-10-01T00:00:00Z', archive: '2026-10-02T00:00:00Z' },
+    });
+    const more = patch({
+      stars: ['notes', 'archive', 'loadout'],
+      starCount: 3,
+      starDates: { notes: '2026-10-01T00:00:00Z', archive: '2026-10-02T00:00:00Z', loadout: '2026-10-03T00:00:00Z' },
+    });
+    const a = patchMapView(base);
+    const b = patchMapView(more);
+    const sa = starSlots(base.constellation?.points, a.tasks, a.next);
+    const sb = starSlots(more.constellation?.points, b.tasks, b.next);
+    const litA = sa.filter((s) => s.state === 'done').map((s) => [s.task!.key, s.index]);
+    const litB = sb.filter((s) => s.state === 'done');
+    for (const [key, idx] of litA) expect(litB.find((s) => s.task!.key === key)?.index).toBe(idx as number);
+    expect(guidedStarIndex(sb.map((s) => s.state === 'done'))).toBe(sb.find((s) => s.state === 'next')?.index ?? -1);
   });
 
   it('sun state: own sun wins, then the comet in the air', () => {
