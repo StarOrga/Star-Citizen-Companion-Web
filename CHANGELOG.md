@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.166.0] - 2026-10-25
+
+### Added
+
+- **Deckplan für fast alle Schiffe (Data Uploader 0.63.0).** Räume, die der
+  Uploader keinem Deck zuordnen kann, verwirft er nicht mehr. Er legt sie auf
+  ein eigenes Deck „Alle Räume“ bzw. „Weitere Räume“, wenn ein Teil der Räume
+  zugeordnet ist. Die Website zeigt dieses Deck wie jedes andere. So bekommen
+  307 von 360 Schiffen einen Deckplan statt bisher rund 40, darunter
+  890 Jump, Starfarer, Retaliator, Redeemer, Starlifter und Vulture. In der
+  Deckliste der Schiffsdaten taucht das Ersatzdeck nicht auf.
+
 ## [0.165.1] - 2026-10-25
 
 ### Fixed

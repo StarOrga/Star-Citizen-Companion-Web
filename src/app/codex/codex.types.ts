@@ -168,6 +168,12 @@ export interface ShipDeck {
   name: { en: string | null; de: string | null } | null;
   order: number;
   /**
+   * The uploader's catch-all deck for rooms no authored deck takes (#797) —
+   * it carries its own name and draws like any deck, but is no real deck, so
+   * deck lists leave it out.
+   */
+  fallback?: boolean;
+  /**
    * Rooms on this deck (#797, `sc_extract/ship_rooms.py`), in the hull's model
    * frame (metres, +X starboard, +Y nose). Absent on decks no room maps to and
    * on every build extracted before the uploader read the object containers.

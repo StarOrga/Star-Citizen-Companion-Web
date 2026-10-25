@@ -253,6 +253,14 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
   neighbours within ±0.5 m only ~95 % even when unanimous, and position
   matching against a sectioned sibling hull (Starfarer ↔ Gemini) finds 4/48
   rooms within 0.5 m.
+- **Fallback deck (uploader, ships revision 9).** Every room no deck takes is
+  kept on one extra deck `{key: "unassigned", fallback: true}`, named by the
+  uploader ("All rooms" when no room mapped, else "Other rooms"); a ship
+  without deck records gets only that deck. The web app has no per-ship rule:
+  it draws the fallback like any deck and leaves it out of deck-name lists.
+  LIVE 2026-10-25: 307 of 360 ships get a plan (236 of them without authored
+  decks, 21 with an "Other rooms" deck — Carrack 20, Gemini 15); reading the
+  containers of every ship adds ~4 min to a full extract.
 
 ## References
 
