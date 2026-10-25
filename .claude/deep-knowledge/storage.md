@@ -132,9 +132,35 @@ selects nothing, keys not shaped `codex-locale/<uuid>/<object>` are ignored.
 **Dry run is the default**; send `dry_run: false` to delete:
 
 ```
-curl -s -X POST "$SUPABASE_URL/functions/v1/ingest-catalog"   -H "authorization: Bearer $SERVICE_ROLE_KEY" -H "content-type: application/json"   -d '{"op":"locale_gc"}'                      # report
-  -d '{"op":"locale_gc","dry_run":false}'      # delete
+# report (dry run)
+curl -s -X POST "$SUPABASE_URL/functions/v1/ingest-catalog" \
+  -H "authorization: Bearer $SB_SECRET" -H "apikey: $SB_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"op":"locale_gc"}'
+
+# delete
+curl -s -X POST "$SUPABASE_URL/functions/v1/ingest-catalog" \
+  -H "authorization: Bearer $SB_SECRET" -H "apikey: $SB_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"op":"locale_gc","dry_run":false}'
 ```
+
+**Both headers, and the new secret key.** `$SB_SECRET` is the project's
+`sb_secret_…` key — the same value the edge runtime sees as
+`SUPABASE_SERVICE_ROLE_KEY`. The gateway checks `apikey`; with only
+`authorization` it answers `Invalid API key` before the function runs. The
+legacy `service_role` JWT passes the gateway but gets a 401 from the function.
+Fetch the key from the Management API with the CLI token, straight into a
+variable, never printed:
+
+```
+SB_SECRET=$(curl -s "https://api.supabase.com/v1/projects/hcnqhvzlavdycidqyaai/api-keys?reveal=true" \
+  -H "authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>process.stdout.write(JSON.parse(d).find(k=>k.type==="secret").api_key))')
+```
+
+`scripts/codex-locale-to-r2.mjs` does the same (`serviceKey()`, both headers
+on `locale_publish`).
 
 It is a manual/operator step (not scheduled: pg_cron would need an HTTP
 extension and the service key in the DB). Run it after a prune has removed a
