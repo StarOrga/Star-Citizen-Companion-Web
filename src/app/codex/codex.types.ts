@@ -167,6 +167,28 @@ export interface ShipDeck {
   key: string;
   name: { en: string | null; de: string | null } | null;
   order: number;
+  /**
+   * Rooms on this deck (#797, `sc_extract/ship_rooms.py`), in the hull's model
+   * frame (metres, +X starboard, +Y nose). Absent on decks no room maps to and
+   * on every build extracted before the uploader read the object containers.
+   */
+  rooms?: ShipDeckRoom[];
+  /** 2D box over every room of the deck; present together with `rooms`. */
+  bounds?: { min: number[]; max: number[] } | null;
+}
+
+export interface ShipDeckRoom {
+  /** Entity name in the container (`MedicalBay_Room_RN`) — stable id + fallback label. */
+  key: string;
+  name: { en: string | null; de: string | null } | null;
+  /** Room pivot [x, y, z]. */
+  pos: number[];
+  floorZ: number | null;
+  height: number | null;
+  /** Outlined floor footprints as 2D polygons `[[x, y], …]`. */
+  shapes: number[][][];
+  /** Floor triangles of trimesh volumes (filled, not outlined); empty with `shapes` = pin only. */
+  tris?: number[][][];
 }
 
 export interface ShipPayload extends BaseEntityPayload {

@@ -33,6 +33,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from .dataforge import DataForge, Record
 from .localization import Localizer
 from .ship_decks import SHIP_SETUP, build_deck_index, project_decks, sections_for_class
+from .ship_rooms import (ang3_quat, bounds_of, cry_guid_to_record_id, decode_cryxml, is_unnamed,
+                         move, read_zip_entry, rooms_in_container, soc_entities, soc_entries)
 
 # ── Blueprint candidate-field lists (R1/R2: UNCONFIRMED — see extract_blueprints) ──────────
 # RISK HIGH: these leaf-field names are hypotheses derived from SC crafting data
@@ -1572,8 +1574,126 @@ class CodexExtractor:
         # absent (never []) when the hull family has no authored decks.
         decks = self._ship_decks(base["className"])
         if decks:
+            self._attach_deck_rooms(decks, vcp)
             base["decks"] = decks
         return base
+
+    def _attach_deck_rooms(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any]) -> None:
+        """Room footprints per deck from the ship's object containers (#797).
+
+        A deck gains ``rooms`` + ``bounds`` only when at least one room maps
+        to it; rooms whose section is no deck of this ship are dropped (a
+        shared interior can reference another hull's sections)."""
+        try:
+            self._attach_deck_rooms_unsafe(decks, vcp)
+        except Exception as exc:  # noqa: BLE001 — rooms are optional, never abort a ship
+            self.on_log("warn", f"deck rooms failed: {exc}")
+            for deck in decks:
+                deck.pop("rooms", None)
+                deck.pop("bounds", None)
+
+    def _attach_deck_rooms_unsafe(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any]) -> None:
+        rooms = self._ship_rooms(vcp)
+        if not rooms:
+            return
+        by_key = {d["key"].lower(): d for d in decks}
+        for room in rooms:
+            sec = None
+            if room["section"]:
+                sec = (self.df.record_by_id(cry_guid_to_record_id(room["section"]) or "")
+                       or self.df.record_by_id(room["section"]))
+            key = sec.name.split(".", 1)[-1].lower() if sec is not None else None
+            deck = by_key.get(key) if key else None
+            if deck is None:
+                continue
+            row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
+            row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
+            deck.setdefault("rooms", []).append(row)
+        for deck in decks:
+            if deck.get("rooms"):
+                deck["rooms"].sort(key=lambda r: r["key"].lower())
+                deck["bounds"] = bounds_of(deck["rooms"])
+
+    def _ship_rooms(self, vcp: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Rooms of every interior object container, in the ship frame."""
+        out: List[Dict[str, Any]] = []
+        seen: Counter = Counter()
+        for oc in vcp.get("objectContainers") or []:
+            if not isinstance(oc, dict) or not oc.get("fileName"):
+                continue
+            offset = oc.get("Offset") if isinstance(oc.get("Offset"), dict) else {}
+            p = offset.get("Position") if isinstance(offset.get("Position"), dict) else {}
+            try:
+                pos = tuple(float(p.get(k) or 0) for k in ("x", "y", "z"))
+            except (TypeError, ValueError):
+                pos = (0.0, 0.0, 0.0)
+            if not all(math.isfinite(c) for c in pos):
+                pos = (0.0, 0.0, 0.0)
+            rot = ang3_quat(offset.get("Rotation") if isinstance(offset.get("Rotation"), dict) else {})
+            for room in self._container_rooms(oc["fileName"]):
+                moved = dict(room)
+                # Entity names are unique per container only; front/middle/rear
+                # may reuse one, and the UI keys rooms by it.
+                seen[room["key"]] += 1
+                if seen[room["key"]] > 1:
+                    moved["key"] = f"{room['key']}~{seen[room['key']]}"
+                moved["pos"] = move(room["pos"], rot, pos)
+                z = room["floorZ"] or 0.0
+                for bucket in ("shapes", "tris"):
+                    moved[bucket] = [[move(pt + [z], rot, pos)[:2] for pt in poly]
+                                     for poly in room.get(bucket, [])]
+                if room["floorZ"] is not None:
+                    moved["floorZ"] = move([room["pos"][0], room["pos"][1], room["floorZ"]], rot, pos)[2]
+                out.append(moved)
+        return out
+
+    def _container_rooms(self, file_name: str) -> List[Dict[str, Any]]:
+        """Rooms of one socpak in its own frame, cached per file (variants
+        share the hull containers). ``[]`` when the file is missing or holds
+        no room."""
+        if not hasattr(self, "_container_rooms_cache"):
+            self._container_rooms_cache: Dict[str, List[Dict[str, Any]]] = {}
+        key = file_name.replace("\\", "/").lower()
+        cache = self._container_rooms_cache
+        if key in cache:
+            return cache[key]
+        rooms: List[Dict[str, Any]] = []
+        if self.p4k is not None:
+            try:
+                import io as _io
+                import zipfile
+
+                if not hasattr(self, "_p4k_by_lower"):
+                    self._p4k_by_lower = {n.lower().replace("\\", "/"): n
+                                          for n in self.p4k.namelist()}
+                real = self._p4k_by_lower.get(key) or self._p4k_by_lower.get("data/" + key)
+                if real:
+                    with self.p4k.open(self.p4k.getinfo(real)) as f:
+                        blob = f.read()
+                    zf = zipfile.ZipFile(_io.BytesIO(blob))
+                    for info in soc_entries(zf):
+                        try:
+                            soc = read_zip_entry(blob, info)
+                            if b"Room_RN" not in soc:
+                                continue
+                            if "/" in info.filename.replace("\\", "/"):
+                                # A nested .soc is a child container placed by its
+                                # parent; that placement is not read yet, so its
+                                # rooms would land in the wrong frame. None of the
+                                # 281 LIVE socpaks with nested .socs holds rooms in
+                                # them (probed 2026-10-25) — skip loudly, not wrongly.
+                                self.on_log("warn", f"rooms in nested container {info.filename} of {file_name} skipped (placement unknown)")
+                                continue
+                            ents = soc_entities(soc, decode_cryxml)
+                            if ents is not None:
+                                rooms += rooms_in_container(ents, (0.0, 0.0, 0.0))
+                        except Exception as exc:  # noqa: BLE001 — one bad .soc never drops the others
+                            self.on_log("warn", f"object container entry {info.filename} in {file_name}: {exc}")
+            except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+                self.on_log("warn", f"object container read failed for {file_name}: {exc}")
+                rooms = []
+        cache[key] = rooms
+        return rooms
 
     def _ship_decks(self, class_name: str) -> Optional[List[Dict[str, Any]]]:
         """``[{key, name, order}]`` for a ship — see ship_decks.py for the rules."""
@@ -2364,8 +2484,8 @@ class CodexExtractor:
     })
 
     def _ship_default_loadout(self, comps) -> List[Dict[str, Any]]:
-        """The ship's stock fit, with every turret that brings no sub-items of
-        its own in the ship loadout filled from the turret item's stock fit."""
+        """The ship's stock fit, with every turret port the ship loadout leaves
+        unnamed filled from the turret item's own stock fit."""
         loadout = self._default_loadout(comps)
         self._fill_turret_stock(loadout, 0)
         return loadout
@@ -2374,15 +2494,19 @@ class CodexExtractor:
         if depth > _LOADOUT_MAX_DEPTH:
             return
         for e in entries:
-            if e.get("entries"):
-                self._fill_turret_stock(e["entries"], depth + 1)
-                continue
             cls = e.get("entityClassName")
-            if not cls:
-                continue
-            stock = self._turret_stock(cls)
+            stock = self._turret_stock(cls) if cls else []
             if stock:
-                e["entries"] = copy.deepcopy(stock)
+                # The ship loadout wins port by port: a manned turret that
+                # overrides only its left gun keeps the stock right gun. An
+                # override with an empty class stays empty on purpose.
+                own = e.get("entries") or []
+                taken = {str(s.get("itemPortName") or "").lower() for s in own} - {""}
+                extra = [copy.deepcopy(s) for s in stock
+                         if str(s.get("itemPortName") or "").lower() not in taken]
+                if extra:
+                    e["entries"] = own + extra
+            if e.get("entries"):
                 # A turret base whose stock fit carries a turret head without
                 # sub-items: fill that one from its own stock too (bounded by
                 # _LOADOUT_MAX_DEPTH, so a self-referencing fit cannot loop).
