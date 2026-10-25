@@ -1,7 +1,43 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.163.2",
+  "current": "0.164.0",
   "releases": [
+    {
+      "version": "0.164.0",
+      "date": "2026-10-25",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse β: Tipp auf der Sternkarte rückgängig machen.",
+              "text": "Nach einem Klick auf ein Schiff (Sternbild erkennen) oder einen Tag (Komet) erscheint unten rechts ein Hinweis mit „Rückgängig“. Ein paar Sekunden lang lässt sich ein Verklicker zurücknehmen; erst danach wird der Tipp wirklich abgegeben, die Auflösung bleibt bis dahin verborgen. Überfahren oder Fokus hält die Zeit an."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse β: Planeten-Texte bleiben länger stehen.",
+              "text": "Die Zeile unter jedem Planeten ist jetzt gut drei Sekunden lesbar statt gut einer, und „Neu …“ bleibt ebenfalls länger stehen."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse β: Sternbild-Link oben rechts mit sauberem Hover.",
+              "text": "Statt eines blassen Kastens leuchtet beim Überfahren ein runder Schein hinter dem Sternbild auf; die Tastatur-Fokusmarkierung umrahmt jetzt genau das Sternbild und wird nicht mehr abgeschnitten."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.163.2",
       "date": "2026-10-25",
