@@ -70,7 +70,8 @@ export function humanizeDeckKey(key: string): string {
  */
 export function shipDeckNames(payload: Pick<ShipPayload, 'decks'> | null | undefined, lang: Lang): string[] {
   const decks: ShipDeck[] = Array.isArray(payload?.decks) ? payload.decks : [];
-  return [...decks]
+  return decks
+    .filter((d) => !d.fallback)
     .sort((a, b) => a.order - b.order)
     .map((d) => deckLabel(d, lang))
     .filter(Boolean);

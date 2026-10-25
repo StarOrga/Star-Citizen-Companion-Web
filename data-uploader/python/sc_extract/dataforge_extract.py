@@ -382,6 +382,15 @@ def _default_loadout_of(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return _loadout_entries(dl.get("loadout")) if dl else []
 
 
+# Extra deck for rooms no authored deck takes (#797). Its name is written here,
+# not in the web app, so the frontend renders it like any deck.
+FALLBACK_DECK_KEY = "unassigned"
+FALLBACK_DECK_NAMES = {
+    "all": {"en": "All rooms", "de": "Alle Räume"},
+    "other": {"en": "Other rooms", "de": "Weitere Räume"},
+}
+
+
 class CodexExtractor:
     """Drives the generic dump + typed projections over a DataForge instance."""
 
@@ -1572,9 +1581,9 @@ class CodexExtractor:
             base["stats"] = ship_stats
         # Ordered deck list from the ship_setup interior-map sections (#796);
         # absent (never []) when the hull family has no authored decks.
-        decks = self._ship_decks(base["className"])
+        decks = self._ship_decks(base["className"]) or []
+        self._attach_deck_rooms(decks, vcp)
         if decks:
-            self._attach_deck_rooms(decks, vcp)
             base["decks"] = decks
         return base
 
@@ -1582,12 +1591,16 @@ class CodexExtractor:
         """Room footprints per deck from the ship's object containers (#797).
 
         A deck gains ``rooms`` + ``bounds`` only when at least one room maps
-        to it; rooms whose section is no deck of this ship are dropped (a
-        shared interior can reference another hull's sections)."""
+        to it. Rooms that map to no deck (no interiorMapSection, or a section
+        of another hull) are never dropped: they land on one extra
+        ``fallback`` deck, so every ship with an interior gets a plan and the
+        web app renders it like any other deck. A ship without decks gets
+        just that one."""
         try:
             self._attach_deck_rooms_unsafe(decks, vcp)
         except Exception as exc:  # noqa: BLE001 — rooms are optional, never abort a ship
             self.on_log("warn", f"deck rooms failed: {exc}")
+            decks[:] = [d for d in decks if not d.get("fallback")]
             for deck in decks:
                 deck.pop("rooms", None)
                 deck.pop("bounds", None)
@@ -1597,6 +1610,7 @@ class CodexExtractor:
         if not rooms:
             return
         by_key = {d["key"].lower(): d for d in decks}
+        unassigned: List[Dict[str, Any]] = []
         for room in rooms:
             sec = None
             if room["section"]:
@@ -1606,15 +1620,26 @@ class CodexExtractor:
             deck = by_key.get(key) if key else None
             if deck is None and not room["section"] and len(decks) == 1:
                 # Many hulls leave interiorMapSection empty. With one deck the
-                # room can only be on it; with several there is no reliable
-                # fallback — floor height matched the real deck for only ~60 %
-                # of sectioned rooms on LIVE (probed 2026-10-25), so those stay out.
+                # room can only be on it; with several there is no reliable way
+                # to pick one — floor height matched the real deck for only ~60 %
+                # of sectioned rooms on LIVE (probed 2026-10-25) — so those go
+                # to the fallback deck below.
                 deck = decks[0]
-            if deck is None:
-                continue
             row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
             row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
+            if deck is None:
+                unassigned.append(row)
+                continue
             deck.setdefault("rooms", []).append(row)
+        if unassigned:
+            placed = any(d.get("rooms") for d in decks)
+            decks.append({
+                "key": FALLBACK_DECK_KEY,
+                "name": FALLBACK_DECK_NAMES["other" if placed else "all"],
+                "order": max((d.get("order", 0) for d in decks), default=-1) + 1,
+                "fallback": True,
+                "rooms": unassigned,
+            })
         for deck in decks:
             if deck.get("rooms"):
                 deck["rooms"].sort(key=lambda r: r["key"].lower())

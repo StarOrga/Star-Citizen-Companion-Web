@@ -256,6 +256,10 @@ class TestAttachDeckRooms:
         assert rooms[1]["name"] == {"en": "Vehicle_Room_Medical", "de": None}
         assert set(rooms[1]) == {"key", "name", "pos", "floorZ", "height", "shapes", "tris"}
         assert decks[1]["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
+        rest = decks[2]
+        assert (rest["key"], rest["order"], rest["fallback"]) == ("unassigned", 2, True)
+        assert rest["name"] == {"en": "Other rooms", "de": "Weitere Räume"}
+        assert [r["key"] for r in rest["rooms"]] == ["Foreign_Room_RN", "Loose_Room_RN"]
 
     def test_a_single_deck_takes_the_rooms_without_a_section(self):
         decks = [{"key": "Prospector_Deck_1", "name": None, "order": 0}]
@@ -264,6 +268,30 @@ class TestAttachDeckRooms:
                         )._attach_deck_rooms(decks, {})
         assert [r["key"] for r in decks[0]["rooms"]] == ["Room_Main"]
         assert decks[0]["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
+        assert [r["key"] for r in decks[1]["rooms"]] == ["Foreign_Room_RN"]
+
+    def test_unmapped_rooms_of_a_multi_deck_ship_get_one_fallback_deck(self):
+        decks = [{"key": "Vulture_Deck_1", "name": None, "order": 0},
+                 {"key": "Vulture_Deck_2", "name": None, "order": 1}]
+        self._extractor([self._room("Room_Hab", None), self._room("Room_Cargo", None)]
+                        )._attach_deck_rooms(decks, {})
+        assert "rooms" not in decks[0] and "rooms" not in decks[1]
+        rest = decks[2]
+        assert rest["name"] == {"en": "All rooms", "de": "Alle Räume"}
+        assert [r["key"] for r in rest["rooms"]] == ["Room_Cargo", "Room_Hab"]
+        assert rest["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
+
+    def test_a_ship_without_decks_gets_the_fallback_deck_only(self):
+        decks = []
+        self._extractor([self._room("Room_Main", None)])._attach_deck_rooms(decks, {})
+        assert [(d["key"], d["order"]) for d in decks] == [("unassigned", 0)]
+
+    def test_a_failure_also_drops_the_fallback_deck(self):
+        decks = [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
+        ex = self._extractor([self._room("Loose", None), self._room("Bad", "x")])
+        ex.df = None  # section lookup blows up after the fallback room was seen
+        ex._attach_deck_rooms(decks, {})
+        assert decks == [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
 
     def test_a_failure_leaves_the_decks_without_rooms(self):
         decks = [{"key": "Carrack_Deck_2", "name": None, "order": 0}]

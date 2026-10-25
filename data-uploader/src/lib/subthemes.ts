@@ -85,7 +85,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // the ship object containers) for the 2D deck plan.
     // 8: #797 — a single-deck ship takes its rooms without an
     // interiorMapSection (Prospector).
-    revision: 8,
+    // 9: #797 — rooms no deck takes land on one extra `fallback` deck
+    // ("All rooms" / "Other rooms"); ships without decks get just that one.
+    revision: 9,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,

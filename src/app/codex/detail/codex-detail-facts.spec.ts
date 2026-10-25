@@ -40,6 +40,11 @@ describe('codex-detail facts', () => {
       expect(shipDeckNames({ decks }, 'en')).toEqual(['Lower Deck', 'Main Deck', 'Upper Deck']);
     });
 
+    it("leaves out the uploader's fallback deck (#797)", () => {
+      const decks = [deck('Vulture_Deck_1', 0, 'Lower Deck'), { ...deck('unassigned', 1, 'All rooms'), fallback: true }];
+      expect(shipDeckNames({ decks }, 'en')).toEqual(['Lower Deck']);
+    });
+
     it('uses the German name when there is one and falls back to English (de is mostly null)', () => {
       const decks = [
         deck('X_Lower_Deck', 0, 'Lower Deck', 'Unteres Deck'),

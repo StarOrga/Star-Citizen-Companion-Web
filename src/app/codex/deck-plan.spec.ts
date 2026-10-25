@@ -86,6 +86,16 @@ describe('buildDeckPlans', () => {
     expect(set.decks[0].rooms[0].label).toBe('Turret');
   });
 
+  it("draws the uploader's fallback deck like any deck, under its own name", () => {
+    const decks: ShipDeck[] = [
+      { key: 'Vulture_Deck_1', name: null, order: 0 },
+      { key: 'unassigned', name: { en: 'All rooms', de: 'Alle Räume' }, order: 1, fallback: true,
+        rooms: [{ key: 'Room_Hab', name: null, pos: [0, 0, 0], floorZ: 0, height: 3, shapes: [[[0, 0], [4, 0], [4, 4]]] }] },
+    ];
+    const set = buildDeckPlans(decks, 'de')!;
+    expect(set.decks.map((d) => [d.key, d.label])).toEqual([['unassigned', 'Alle Räume']]);
+  });
+
   it('drops malformed rooms and returns null without any room', () => {
     const bad = [{ key: 'X_Deck', name: null, order: 0, rooms: [
       { key: '', pos: [0, 0], shapes: [] },
