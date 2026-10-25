@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.162.1] - 2026-10-25
+
+### Fixed
+
+- **Feedback-Panel friert die Seite nicht mehr ein.** Das Öffnen des Panels
+  (z. B. auf `/verse/news` am Handy) löste eine Endlosschleife aus: der
+  Effekt des Feedback-Knopfs las das Signal mit, das er selbst schreibt, und
+  schaltete das Panel unaufhörlich aus und wieder an. `setPanel` liest jetzt
+  ungetrackt; ein Regressionstest sichert das ab.
+- **3D-Schiffsansicht ohne GPU.** Läuft WebGL in Software (SwiftShader,
+  llvmpipe, abgeschaltete Hardwarebeschleunigung), rendert die Ansicht nur
+  noch bei Bedarf statt in einer Dauerschleife – ein Frame dauerte dort
+  Sekunden und legte die Seite lahm.
+- **Tippflächen am Handy.** Spalten der Stabilitäts-Historie, das
+  Stabilitäts-Abzeichen und die Hardpoint-Marker haben auf Touch-Geräten
+  mindestens 48 px Tippfläche (Aussehen unverändert); die Schiffsnamen der
+  Kometen-Tippspur sind mindestens 12 px groß. Der Mobile-Gate ist damit auf
+  `main` wieder grün (#806).
+
 ## [0.162.0] - 2026-10-23
 
 ### Added
