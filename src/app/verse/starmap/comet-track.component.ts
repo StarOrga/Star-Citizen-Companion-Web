@@ -117,6 +117,11 @@ export class CometTrackComponent {
       this.patchLine();
       this.start.set(cometWindowStart(c.tippedDate ?? c.announcedDate, this.today, COMET_DAYS));
       this.error.set(null);
+    });
+    // A tip stays marked through state refreshes of the same patch (its offer
+    // is still queued); only another patch line clears the marker.
+    effect(() => {
+      this.patchLine();
       this.pending.set(null);
     });
   }

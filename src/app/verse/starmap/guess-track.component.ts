@@ -137,8 +137,13 @@ export class GuessTrackComponent {
       const state = this.guess().state;
       this.answer.set(null);
       this.error.set(null);
-      this.pending.set(null);
       if (state !== 'unavailable') void this.load();
+    });
+    // A pick stays marked through state refreshes of the same patch (its offer
+    // is still queued); only another patch line clears the marker.
+    effect(() => {
+      this.patchLine();
+      this.pending.set(null);
     });
   }
 

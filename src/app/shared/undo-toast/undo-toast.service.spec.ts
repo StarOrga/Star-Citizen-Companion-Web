@@ -46,15 +46,36 @@ describe('UndoToastService', () => {
   it('holding pauses the window and resumes with the time left', fakeAsync(() => {
     offer();
     tick(2000);
-    svc.hold(true);
+    svc.hold('hover', true);
     tick(UNDO_TOAST_MS * 2);
     expect(commit).not.toHaveBeenCalled();
-    svc.hold(false);
+    svc.hold('hover', false);
     tick(UNDO_TOAST_MS - 2001);
     expect(commit).not.toHaveBeenCalled();
     tick(1);
     expect(commit).toHaveBeenCalledTimes(1);
   }));
+
+  it('hover and focus hold independently', fakeAsync(() => {
+    offer();
+    svc.hold('focus', true);
+    svc.hold('hover', true);
+    svc.hold('hover', false);
+    expect(svc.held()).toBeTrue();
+    tick(UNDO_TOAST_MS * 2);
+    expect(commit).not.toHaveBeenCalled();
+    svc.hold('focus', false);
+    expect(svc.held()).toBeFalse();
+    tick(UNDO_TOAST_MS);
+    expect(commit).toHaveBeenCalledTimes(1);
+  }));
+
+  it('leaving the page commits a pending offer', () => {
+    offer();
+    window.dispatchEvent(new Event('pagehide'));
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(svc.current()).toBeNull();
+  });
 
   it('flush and undo are no-ops without a pending offer', () => {
     svc.flush();

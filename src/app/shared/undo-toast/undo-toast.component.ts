@@ -17,7 +17,8 @@ import { UndoToastService } from './undo-toast.service';
   template: `
     @for (p of shown(); track p.id) {
       <div class="toast" role="status" aria-live="polite" [class.paused]="svc.held()"
-           (mouseenter)="svc.hold(true)" (mouseleave)="svc.hold(false)" (focusin)="svc.hold(true)" (focusout)="svc.hold(false)">
+           (mouseenter)="svc.hold('hover', true)" (mouseleave)="svc.hold('hover', false)"
+           (focusin)="svc.hold('focus', true)" (focusout)="svc.hold('focus', false)">
         <span class="msg">{{ p.messageKey | translate: p.messageParams }}</span>
         <button type="button" class="undo" (click)="svc.undo()">{{ 'common.undo' | translate }}</button>
         <i class="drain" aria-hidden="true" [style.animation-duration.ms]="svc.duration"></i>

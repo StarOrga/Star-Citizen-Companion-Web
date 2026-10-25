@@ -253,6 +253,12 @@ describe('star map components', () => {
     f.detectChanges();
     expect(toks().every((t) => t.disabled)).toBeTrue();
     expect(toks()[1].classList).toContain('mine');
+    // A state refresh of the same patch keeps the pick locked (no second guess).
+    explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: { ...open } }), ...STATE.patches.slice(1)] });
+    f.detectChanges();
+    await Promise.resolve();
+    f.detectChanges();
+    expect(toks().every((t) => t.disabled)).toBeTrue();
     const undo = TestBed.inject(UndoToastService);
     expect(undo.current()?.messageParams).toEqual({ name: 'Aegis Gladius' });
     undo.undo();
