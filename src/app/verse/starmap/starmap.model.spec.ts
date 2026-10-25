@@ -3,6 +3,7 @@ import {
   FALLBACK_POINTS,
   badgeQuery,
   communityLevels,
+  guidedStarIndex,
   isLiveDay,
   parseBadge,
   hashSeed,
@@ -116,5 +117,35 @@ describe('starmap model — rewards helpers', () => {
     const levels = communityLevels(['notes', 'cx-fps'], { notes: 5, 'cx-fps': 1 }, 10);
     expect(levels).toEqual([0.5, 0.1, 0, 0, 0, 0, 0]);
     expect(communityLevels(['notes'], { notes: 3 }, 0)).toEqual([0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  describe('guidedStarIndex (suggested star)', () => {
+    const m = (...idx: number[]) => Array.from({ length: 7 }, (_, i) => idx.includes(i));
+
+    it('starts at the anchor when nothing is done and points nowhere when all are', () => {
+      expect(guidedStarIndex(m())).toBe(0);
+      expect(guidedStarIndex(m(), 4)).toBe(4);
+      expect(guidedStarIndex(m(0, 1, 2, 3, 4, 5, 6))).toBe(-1);
+    });
+
+    it('extends the longest chain, not the newest or a short one', () => {
+      // chains: [1,2,3] (3 long) and [5] (1 long) → neighbours of the long one: 0 and 4
+      expect(guidedStarIndex(m(1, 2, 3, 5))).toBe(0);
+    });
+
+    it('reads the outline as a closed polygon (the chain wraps from 6 to 0)', () => {
+      // chain 5,6,0 → neighbours 4 and 1 → lower index wins
+      expect(guidedStarIndex(m(5, 6, 0))).toBe(1);
+      expect(guidedStarIndex(m(6))).toBe(0);
+    });
+
+    it('breaks ties between equal chains by the lower point index', () => {
+      // chains [1] and [4] → candidates 0,2 and 3,5 → 0
+      expect(guidedStarIndex(m(1, 4))).toBe(0);
+    });
+
+    it('fills the last gap of a single hole', () => {
+      expect(guidedStarIndex(m(0, 1, 2, 4, 5, 6))).toBe(3);
+    });
   });
 });

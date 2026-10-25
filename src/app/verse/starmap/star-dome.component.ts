@@ -11,7 +11,6 @@ import {
   StarTaskView,
   SunState,
   constellationEdges,
-  nextLead,
   starSlots,
 } from './starmap.model';
 
@@ -37,9 +36,10 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
 }
 
 /**
- * The dome sky of one patch: 7 stars without any ring (dormant core · next
- * pushing outward · lit with glow and spikes), the outline lines, the dashed
- * lead to the suggested star and the sun top right. Every star is a button; a
+ * The dome sky of one patch: 7 stars (open = hollow ring · suggested = one
+ * breathing dot without spikes · done = four-spike star), the outline (solid
+ * between two done stars, dashed wherever the figure is not complete yet) and
+ * the sun top right. Every star is a button; a
  * click opens its card next to it. Plays the entry sequence on every open;
  * reduced motion shows the final state.
  */
@@ -59,9 +59,6 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
               <path class="ln off" [attr.d]="'M' + e.from.x + ' ' + e.from.y + 'L' + e.to.x + ' ' + e.to.y" [style.--d]="(tLate()) + 's'" />
             }
           }
-          @if (lead(); as l) {
-            <path class="ln nx" [attr.d]="'M' + l.from.x + ' ' + l.from.y + 'L' + l.to.x + ' ' + l.to.y" [style.--d]="(tNext()) + 's'" />
-          }
         </svg>
         @for (s of slots(); track s.index) {
           <button type="button" class="star" [class]="'star ' + s.state" [style.left.%]="s.x" [style.top.%]="s.y"
@@ -75,10 +72,10 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
                     <g class="st done"><circle class="h" r="8" /><path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" /><circle class="c" r="1.6" /></g>
                   }
                   @case ('next') {
-                    <g class="st next"><circle class="bl" r="3.4" /><path class="spk" d="M0-9L0.4 0 0 9-0.4 0zM-9 0L0 0.4 9 0 0-0.4z" /><circle class="c" r="1.5" /></g>
+                    <g class="st next"><circle class="bl" r="3.4" /><circle class="c" r="1.7" /></g>
                   }
                   @default {
-                    <g class="st open"><circle class="ig" r="2.2" /><circle class="c" r="1.1" /></g>
+                    <g class="st open"><circle class="c" r="1.7" /></g>
                   }
                 }
               </svg>
@@ -128,8 +125,8 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       .ln { fill: none; stroke-linecap: round; }
       .ln.on { stroke: color-mix(in srgb, var(--sc-accent) 70%, #fff); stroke-width: 0.32; opacity: 0.75;
         stroke-dasharray: 1; stroke-dashoffset: 1; animation: sd-draw 0.4s ease-in-out var(--d) both; }
-      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke-width: 0.26; animation: sd-in 0.6s ease-out var(--d) both; }
-      .ln.nx { stroke: color-mix(in srgb, var(--sc-accent) 75%, transparent); stroke-width: 0.32; stroke-dasharray: 1 1.3;
+      /* an unfinished side of the figure: dashed and dim, never a pointer to the next task */
+      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke-width: 0.26; stroke-dasharray: 0.9 1.1;
         animation: sd-in 0.6s ease-out var(--d) both; }
       .star { position: absolute; width: 9%; aspect-ratio: 1; translate: -50% -50%; border: 0; padding: 0; margin: 0;
         background: none; border-radius: 50%; cursor: pointer; z-index: 2; }
@@ -152,23 +149,19 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
         transform-box: fill-box; transform-origin: center; animation: sd-breathe 5s ease-in-out infinite; }
       .st.done .spk { fill: #fff; opacity: 0.7; }
       .st.done .c { fill: #fff; filter: drop-shadow(0 0 1.5px #fff); }
-      /* next: the core pushes outward but is not out yet */
-      .st.next .bl { fill: color-mix(in srgb, var(--sc-accent) 60%, #fff); opacity: 0.3; filter: blur(1.4px);
-        transform-box: fill-box; transform-origin: center; animation: sd-bloom 2.4s ease-in-out var(--d) infinite; }
-      .st.next .spk { fill: color-mix(in srgb, var(--sc-accent) 50%, #fff); opacity: 0.25; transform-box: fill-box; transform-origin: center;
-        animation: sd-spk 2.4s ease-in-out var(--d) infinite; }
-      .st.next .c { fill: color-mix(in srgb, var(--sc-accent) 35%, #fff); }
-      /* open: a dormant inner core */
-      .st.open .ig { fill: color-mix(in srgb, var(--sc-accent) 40%, transparent); opacity: 0.35; filter: blur(1px); }
-      .st.open .c { fill: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); }
+      /* next: one filled dot, no spikes, a slow breathing glow (2.4 s) */
+      .st.next .bl { fill: color-mix(in srgb, var(--sc-accent) 60%, #fff); opacity: 0.5; transform-box: fill-box; transform-origin: center;
+        animation: sd-pulse 2.4s ease-out var(--d) infinite; }
+      .st.next .c { fill: color-mix(in srgb, var(--sc-accent) 35%, #fff); filter: drop-shadow(0 0 2px color-mix(in srgb, var(--sc-accent) 70%, #fff)); }
+      /* open: a small hollow ring, dim, no glow, no motion */
+      .st.open .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-1) 60%, transparent); stroke-width: 0.7; }
       @keyframes sd-in { from { opacity: 0; } to { opacity: 1; } }
       @keyframes sd-draw { to { stroke-dashoffset: 0; } }
       @keyframes sd-ignite { 0% { opacity: 0; transform: scale(0.4); filter: brightness(2.4); }
         40% { opacity: 1; transform: scale(1.3); filter: brightness(2.4) drop-shadow(0 0 6px #fff); }
         100% { opacity: 1; transform: none; filter: none; } }
       @keyframes sd-breathe { 0%, 100% { opacity: 0.28; transform: scale(0.94); } 50% { opacity: 0.42; transform: scale(1.04); } }
-      @keyframes sd-bloom { 0%, 100% { opacity: 0.18; transform: scale(0.8); } 60% { opacity: 0.5; transform: scale(1.5); } }
-      @keyframes sd-spk { 0%, 100% { opacity: 0.12; transform: scale(0.75); } 60% { opacity: 0.45; transform: scale(1); } }
+      @keyframes sd-pulse { 0% { opacity: 0.5; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
       .card { position: absolute; z-index: 4; width: min(280px, 70vw); margin: 0 0 0 4.5%; padding: var(--sc-pad-2) var(--sc-pad-2) var(--sc-pad-2);
         translate: 0 -50%; border-radius: 12px; box-sizing: border-box; outline: none;
         background: color-mix(in srgb, var(--sc-bg-0) 90%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, transparent);
@@ -221,8 +214,9 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
         .sun-sky { left: 90%; top: 3%; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .ln, .ent, .sun-sky, .card, .st .h, .st .bl, .st .spk, .sun > i, .comet::before { animation: none !important; }
+        .ln, .ent, .sun-sky, .card, .st .h, .st .bl, .sun > i, .comet::before { animation: none !important; }
         .ln.on { stroke-dashoffset: 0; }
+        .st.next .bl { opacity: 0.35; transform: scale(1.35); }
         .sv { transition: none; }
       }
     `,
@@ -246,7 +240,6 @@ export class StarDomeComponent {
 
   readonly slots = computed(() => starSlots(this.points(), this.tasks(), this.next()));
   readonly edges = computed(() => constellationEdges(this.slots()));
-  readonly lead = computed(() => nextLead(this.slots()));
   readonly selected = signal<number | null>(null);
   readonly card = computed(() => this.slots().find((s) => s.index === this.selected()) ?? null);
 

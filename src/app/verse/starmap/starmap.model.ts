@@ -377,7 +377,7 @@ export interface StarSlot {
   /** Position in 0..100 of the figure box. */
   readonly x: number;
   readonly y: number;
-  /** Rank in the symmetric lighting order (0 = first lit). */
+  /** Order in this dome: done (oldest first), the suggested one, then open (0 = first). */
   readonly rank: number;
   readonly state: StarSlotState;
   /** The task this star stands for; null on a point without an offered task. */
@@ -385,9 +385,42 @@ export interface StarSlot {
 }
 
 /**
- * Binds tasks to stars without breaking the symmetric lighting order: the done
- * tasks (oldest first) take the first ranks, then the suggested next task, then
- * the remaining open ones — so the lit stars are always the first `lit` ranks.
+ * Where the next star should light: the not-done star next to an end of the
+ * LONGEST contiguous chain of done stars along the closed outline (point order
+ * i → i+1, last → first), so the figure grows as one line instead of in
+ * scattered bits. Equal chains and both ends of a chain tie-break by the lower
+ * point index. Nothing done → the first point of the symmetric lighting order
+ * (the nose, the same anchor every other surface lights first). All done → -1.
+ */
+export function guidedStarIndex(done: readonly boolean[], anchor = 0): number {
+  const n = done.length;
+  const count = done.filter(Boolean).length;
+  if (count === 0) return n ? anchor : -1;
+  if (count === n) return -1;
+  let bestLen = 0;
+  let best = -1;
+  for (let i = 0; i < n; i++) {
+    // A run starts at a done star whose predecessor is not done.
+    if (!done[i] || done[(i - 1 + n) % n]) continue;
+    let len = 0;
+    while (done[(i + len) % n]) len++;
+    const ends = [(i - 1 + n) % n, (i + len) % n];
+    const cand = Math.min(...ends);
+    if (len > bestLen || (len === bestLen && cand < best)) {
+      bestLen = len;
+      best = cand;
+    }
+  }
+  return best;
+}
+
+/**
+ * Binds tasks to stars. Done tasks (oldest first) are replayed through
+ * {@link guidedStarIndex}, so each lands where the guide pointed at that moment
+ * and an already-lit star never moves when a new one is added. The suggested
+ * next task takes the guided position of the current state; the remaining open
+ * tasks fill the other points in symmetric lighting order. `rank` is the order
+ * in this dome (done, then next, then open) and drives the entry stagger.
  */
 export function starSlots(
   points: readonly VersePoint[] | null | undefined,
@@ -395,14 +428,36 @@ export function starSlots(
   next: StarTaskView | null,
 ): StarSlot[] {
   const pts = points && points.length === STARS_PER_PATCH ? points : FALLBACK_POINTS;
+  const n = pts.length;
+  const sym = symmetricLightOrder(pts);
   const done = tasks.filter((t) => t.done).sort((a, b) => (a.doneAt ?? '').localeCompare(b.doneAt ?? ''));
   const open = tasks.filter((t) => !t.done && t !== next);
-  const ordered: StarTaskView[] = [...done, ...(next ? [next] : []), ...open];
-  const rank = lightRank(pts);
+  const mask: boolean[] = new Array<boolean>(n).fill(false);
+  const taskAt: (StarTaskView | null)[] = new Array<StarTaskView | null>(n).fill(null);
+  const rankAt: number[] = new Array<number>(n).fill(-1);
+  let r = 0;
+  const place = (task: StarTaskView): void => {
+    const at = guidedStarIndex(mask, sym[0]);
+    if (at < 0) return;
+    taskAt[at] = task;
+    rankAt[at] = r++;
+    if (task.done) mask[at] = true;
+  };
+  for (const t of done) place(t);
+  if (next && !next.done) place(next);
+  const free = sym.filter((i) => rankAt[i] < 0);
+  let k = 0;
+  for (const t of open) {
+    const i = free[k++];
+    if (i === undefined) break;
+    taskAt[i] = t;
+    rankAt[i] = r++;
+  }
+  for (const i of free) if (rankAt[i] < 0) rankAt[i] = r++;
   return pts.map((p, i) => {
-    const task = ordered[rank[i]] ?? null;
+    const task = taskAt[i];
     const state: StarSlotState = !task ? 'open' : task.done ? 'done' : task === next ? 'next' : 'open';
-    return { index: i, x: p[0] * 100, y: p[1] * 100, rank: rank[i], state, task };
+    return { index: i, x: p[0] * 100, y: p[1] * 100, rank: rankAt[i], state, task };
   });
 }
 
@@ -410,7 +465,7 @@ export function starSlots(
 export interface StarEdge {
   readonly from: StarSlot;
   readonly to: StarSlot;
-  /** Both ends lit. */
+  /** Both ends done: a solid line; otherwise it is drawn dashed (the figure is not complete there). */
   readonly lit: boolean;
   /** Order among the lit edges (drives the draw stagger); -1 when not lit. */
   readonly drawOrder: number;
@@ -423,23 +478,6 @@ export function constellationEdges(slots: readonly StarSlot[]): StarEdge[] {
     const lit = from.state === 'done' && to.state === 'done';
     return { from, to, lit, drawOrder: lit ? order++ : -1 };
   });
-}
-
-/** The dashed lead to the suggested star: from the nearest lit star; null without one. */
-export function nextLead(slots: readonly StarSlot[]): { from: StarSlot; to: StarSlot } | null {
-  const to = slots.find((s) => s.state === 'next');
-  if (!to) return null;
-  let best: StarSlot | null = null;
-  let bestD = Infinity;
-  for (const s of slots) {
-    if (s.state !== 'done') continue;
-    const d = (s.x - to.x) ** 2 + (s.y - to.y) ** 2;
-    if (d < bestD) {
-      bestD = d;
-      best = s;
-    }
-  }
-  return best ? { from: best, to } : null;
 }
 
 /** faded = no tip / missed · tipped = waiting for LIVE · hit = the sun rose. */

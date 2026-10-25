@@ -4825,21 +4825,16 @@
         "locked": "closed"
       },
       "head": {
-        "ask": "When does {{patch}} go LIVE?",
         "closed": "Tips for {{patch}} are closed",
-        "tipped": "Impact expected on {{date}}",
+        "tipped": "Your tip for {{patch}}: {{date}}",
         "hit": "Impact on {{date}}",
-        "miss": "Your comet: {{date}}"
+        "miss": "Your comet: {{date}}",
+        "open": "Tips for {{patch}} open"
       },
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set comet on {{date}}",
-      "reward": "Land your comet and the sun lights up",
-      "window": "{{patch}} LIVE between {{from}} and {{to}}",
-      "locked": {
-        "live": "The patch is LIVE – tips are closed.",
-        "announced": "The LIVE date ({{date}}) was officially announced – tips are closed."
-      }
+      "locked": {}
     },
     "guess": {
       "kind": "Constellation",
@@ -4860,7 +4855,6 @@
       },
       "foot": {
         "open": "Guess right and the name appears in the constellation and the circle gets a check mark.",
-        "correct": "The star is lit, the name now stands in the constellation.",
         "wrong": "No star this time – the answer stays in the constellation.",
         "unavailable": "Once the game data has loaded you can guess here."
       }
