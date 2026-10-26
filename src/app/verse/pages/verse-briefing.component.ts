@@ -124,7 +124,7 @@ interface HeroStory {
   imports: [RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing/verse-briefing.component.html',
-  styleUrl: './briefing/verse-briefing.component.scss',
+  styleUrls: ['./briefing/verse-briefing.component.scss', './briefing/verse-briefing-planet.scss'],
 })
 export class VerseBriefingComponent {
   protected readonly api = inject(VerseApiService);
