@@ -121,9 +121,13 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .sf-stage > * { pointer-events: auto; }
     .sf-stage .sf-badge { position: absolute; left: var(--sc-page-gutter); bottom: var(--sc-space-2); }
     .sf-badge { position: relative; }
+    /* The badge sits over the scene (the HQ floor, the hub planet): its own soft
+       backdrop keeps emblem + wordmark legible on any camera pose. */
     .sf-badge-btn {
       display: inline-flex; align-items: center; gap: var(--sc-space-2); cursor: pointer;
-      min-height: var(--sc-tap-min); padding: 0; border: 0; background: none; font: inherit; color: var(--sc-fg-2);
+      min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3) 0 var(--sc-space-2); border: 0; font: inherit;
+      color: var(--sc-fg-1); border-radius: 999px;
+      background: color-mix(in srgb, var(--sc-bg-0) 62%, transparent); backdrop-filter: blur(6px);
     }
     .sf-badge-btn img { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.35)); }
     .sf-word {
@@ -155,10 +159,15 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .sf-links a { color: var(--sc-fg-2); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
     .sf-links a:hover { color: var(--sc-accent); }
     .sf-links a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
-    /* Phone: compact, badge row over the links, clear of the feedback launcher. */
-    @media (max-width: 600px) {
+    /* Phone (the bar's breakpoint, <= 720): compact, badge row over the links,
+       clear of the bottom bar and the feedback launcher. The wordmark folds away
+       (the hub's planet-free strip is ~74px at 375px): the emblem stays, and
+       its dialog still carries the disclaimer. */
+    @media (max-width: 720px) {
       .sf { flex-direction: column; align-items: flex-start; gap: var(--sc-space-1);
-        padding-bottom: var(--sc-fab-clear-block); }
+        padding-bottom: max(var(--sc-fab-clear-block), calc(var(--sc-bar-stack-h, 0px) + var(--sc-float-bottom) + var(--sc-space-3))); }
+      .sf-word { display: none; }
+      .sf-badge-btn { padding: 0 var(--sc-space-2); }
       .sf-stage { align-items: center; }
       .sf-stage .sf-badge { position: relative; left: auto; bottom: auto; align-self: flex-start; }
     }

@@ -40,6 +40,16 @@ import { BetaArea, BetaService } from '../../core/beta.service';
       bottom: calc(var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px)) + var(--lane, 0) * (var(--sc-tap-min) + 16px));
       max-width: calc(100vw - var(--sc-fab-clear-inline, 88px) - 24px);
     }
+    /* Shell beta: on a phone the bar sits at the bottom, so the pill rides above it.
+       Where the bar stack is not published (beta off) the fallback keeps today's spot. */
+    @media (max-width: 720px) {
+      .beta-dock {
+        bottom: calc(
+          max(var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px)), var(--sc-bar-stack-h, 0px) + var(--sc-float-bottom, 16px) + var(--sc-space-3))
+          + var(--lane, 0) * (var(--sc-tap-min) + 16px)
+        );
+      }
+    }
     .beta-pill {
       display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px;
       background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent);

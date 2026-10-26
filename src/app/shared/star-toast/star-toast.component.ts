@@ -48,7 +48,7 @@ const UNLOCK_PRIORITY = [
     .toast {
       position: fixed; z-index: 1450;
       inset-inline-end: var(--sc-fab-gutter, 16px);
-      bottom: var(--sc-fab-clear-block, 80px);
+      bottom: var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px));
       width: min(372px, calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start;
       padding: 14px 14px 16px; border-radius: 14px; overflow: hidden;

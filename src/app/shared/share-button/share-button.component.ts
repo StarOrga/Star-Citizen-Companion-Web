@@ -30,8 +30,9 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
  * Sticky share button for long pages (shell beta): shares URL + the current
  * section anchor with no dialog - the Web Share API where it exists, else the
  * link goes to the clipboard and a small status toast says so.
- * Sits on the inline-start edge, so the feedback launcher (inline end) never
- * overlaps it; on phones it keeps `--sc-float-bottom` clear.
+ * Sits bottom-right beside the feedback launcher (`--sc-fab-clear-inline`), so it
+ * never overlaps it nor the bottom-left hand-off button; on phones it rides above
+ * the bottom bar (`--sc-bar-stack-h`).
  */
 @Component({
   selector: 'sc-share-button',
@@ -57,9 +58,18 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
   `,
   styles: [`
     :host { display: contents; }
+    /* Bottom-right is the share button's corner, bottom-left the hand-off's: one
+       owner per corner. Beside the feedback launcher (in its lane), on a phone
+       above the bottom bar where the launcher's disc sits in the bar row. */
     .dock {
-      position: fixed; z-index: 160; inset-inline-start: var(--sc-page-gutter, 16px);
+      position: fixed; z-index: 160; inset-inline-end: var(--sc-fab-clear-inline, 88px);
       bottom: var(--sc-float-bottom, 16px); display: flex; align-items: center; gap: 10px;
+    }
+    @media (max-width: 720px) {
+      .dock {
+        inset-inline-end: var(--sc-fab-inset, 16px);
+        bottom: calc(var(--sc-bar-stack-h, 0px) + var(--sc-float-bottom, 16px) + var(--sc-space-3));
+      }
     }
     .fab {
       display: inline-grid; place-items: center; width: max(44px, var(--sc-tap-min)); height: max(44px, var(--sc-tap-min));

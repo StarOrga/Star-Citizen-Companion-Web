@@ -379,6 +379,9 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   --sc-float-bottom: calc(var(--sc-fab-inset) + var(--sc-safe-bottom));
   --sc-fab-clear-inline: calc(var(--sc-fab-lane) + var(--sc-fab-gutter));
   --sc-fab-clear-block: calc(var(--sc-float-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
+  /* Where a bottom-right toast sits (star / undo toast). The same as
+     --sc-fab-clear-block, except on a phone with the shell bar at the bottom. */
+  --sc-toast-bottom: var(--sc-fab-clear-block);
 }
 @media (max-width: 720px) {
   :root {
@@ -386,6 +389,12 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
        so neighbours keep clearing them without their own breakpoint. */
     --sc-fab-inset: 16px;
     --sc-fab-gutter: 10px;
+    /* Shell beta: the bar stack is published (--sc-bar-stack-h), toasts ride above it and
+       above the share button's lane. Without the bar the -999px fallback loses the max(). */
+    --sc-toast-bottom: max(
+      var(--sc-fab-clear-block),
+      calc(var(--sc-bar-stack-h, -999px) + var(--sc-float-bottom) + var(--sc-space-3) + max(var(--sc-tap-min, 0px), 44px) + var(--sc-space-2))
+    );
   }
 }
 

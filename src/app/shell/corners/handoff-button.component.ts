@@ -131,7 +131,8 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .sub { margin: 0 0 var(--sc-space-1); color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .phone { display: flex; align-items: center; justify-content: space-between; gap: var(--sc-space-3);
       font-size: max(0.78rem, var(--sc-fs-floor)); }
-    @media (max-width: 600px) { .wrap { display: none; } }
+    /* Phones (the bar's breakpoint): the bar sits at the bottom, the QR hand-off is for the desk. */
+    @media (max-width: 720px) { .wrap { display: none; } }
     @media (prefers-reduced-motion: reduce) { .popup { animation: none; } }
   `],
 })
