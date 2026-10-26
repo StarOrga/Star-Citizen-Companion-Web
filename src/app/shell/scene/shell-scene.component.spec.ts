@@ -62,7 +62,7 @@ describe('Shell scene — component', () => {
     fixture = TestBed.createComponent(ShellSceneComponent);
     fixture.detectChanges();
     // Flush the first pose so later changes start from it.
-    getComputedStyle(planet()).transform;
+    void getComputedStyle(planet()).transform;
   });
 
   afterEach(() => {

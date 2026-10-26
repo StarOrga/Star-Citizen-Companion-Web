@@ -59,7 +59,8 @@ describe('Verse hub — for-you line', () => {
     // A full cycle of 30-min absences visits every unread item once.
     const visited: string[] = [];
     let st = { key: 'a' as string | null, at: q[0].at, awayAt: null as number | null };
-    for (let n = 0; n < q.length; n++) {
+    for (const _ of q) {
+      void _;
       const i = pickForYou(q, { ...st, awayAt: now - FOR_YOU_AWAY_MS }, now)!;
       visited.push(q[i].key);
       st = { key: q[i].key, at: q[i].at, awayAt: null };

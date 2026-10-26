@@ -187,6 +187,13 @@
 }
 .door.l { left: 0; }
 .door.r { right: 0; }
+.ground {
+  position: absolute;
+  inset: 55% 0 0 0;
+  opacity: 0;
+  background: linear-gradient(180deg, transparent, #02070d 70%);
+  transition: opacity var(--scene-move) var(--scene-ease);
+}
 .hg-pad {
   left: -10%;
   right: -10%;
@@ -209,6 +216,9 @@
 [data-scene='hq'] .sky { transform: translateY(-10dvh) scale(1.08); opacity: 0.55; }
 [data-scene='hq'] .planet { transform: translateY(calc(var(--sc-pl-cap) - 58dvh)) scale(2.8); }
 [data-scene='hq'] .hangar { opacity: 1; transform: translate(-50%, -100%); }
+// The ground falls off into darkness towards the bottom edge, so the footer's
+// corner never sits on lit planet surface.
+[data-scene='hq'] .ground { opacity: 1; }
 [data-scene='hq'] .door { transition: transform 700ms cubic-bezier(0.3, 0, 0.2, 1) 650ms; }
 [data-scene='hq'] .door.l { transform: translateX(-100%); }
 [data-scene='hq'] .door.r { transform: translateX(100%); }
@@ -216,7 +226,11 @@
 // Codex: turned right — sky slides left, the planet keeps a strip at the
 // left edge, the data plane swings in.
 [data-scene='codex'] .sky { transform: translateX(-16vw); }
-[data-scene='codex'] .planet { transform: translateX(calc(9vw - var(--sc-pl-xv) - var(--sc-pl-d) / 2)) translateY(-4dvh); }
+// The planet's centre goes to (9vw - r, 45dvh): a strip at the left edge,
+// high enough that the bottom-left corner (the community badge) stays free.
+[data-scene='codex'] .planet {
+  transform: translateX(calc(9vw - var(--sc-pl-xv) - var(--sc-pl-d) / 2)) translateY(calc(var(--sc-pl-cap) - var(--sc-pl-d) / 2 - 55dvh));
+}
 [data-scene='codex'] .plane { opacity: 1; transform: none; }
 
 // Leaving the hangar: the doors close first, then the camera rises.
