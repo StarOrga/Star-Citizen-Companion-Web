@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.166.0",
+  "current": "0.166.1",
   "releases": [
+    {
+      "version": "0.166.1",
+      "date": "2026-10-26",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Abhängigkeiten aktualisiert (Data Uploader 0.63.1).",
+              "text": "Angular 22.2.3, Supabase-Client 2.118, PostHog, model-viewer 4.4 und die Lint-Werkzeuge sind auf dem neuesten Stand, dazu Sicherheits-Patches für DOMPurify, fast-uri, follow-redirects und hono. Der Data Uploader läuft jetzt auf Electron 45 mit electron-vite 6 und bekommt neue Versionen von cryptography, moderngl, sharp, undici und meshoptimizer. Pillow 13 bleibt außen vor: Es braucht Python 3.11, der Uploader bringt 3.10 mit."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.166.0",
       "date": "2026-10-25",
