@@ -12,7 +12,7 @@ const TOAST_MS = 2400;
  * Anchor of the section the reader is currently in: the last heading with an
  * `id` (h2/h3) whose top has passed the reading line. `null` above the first.
  */
-export function currentAnchor(doc: Document, line = READING_LINE_PX): string | null {
+export function currentAnchor(doc: ParentNode, line = READING_LINE_PX): string | null {
   let hit: string | null = null;
   for (const h of Array.from(doc.querySelectorAll<HTMLElement>('section[id], h2[id], h3[id]'))) {
     if (h.getBoundingClientRect().top <= line) hit = h.id;
