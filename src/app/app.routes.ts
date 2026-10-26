@@ -68,6 +68,11 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'handoff',
+    data: { layout: 'plain' },
+    loadComponent: () => import('./core/handoff/handoff.component').then((m) => m.HandoffComponent),
+  },
+  {
     // Public surface — bare chrome (PublicLayoutComponent), reachable
     // signed-out. Legal requirement (imprint/privacy) plus /about (login-card
     // trust link, anti-AV-phishing heuristic). Deliberately NOT nested under

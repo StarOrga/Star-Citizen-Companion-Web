@@ -1,4 +1,32 @@
 {
+  "handoff": {
+    "title": "Continue on your phone",
+    "working": "Signing you in on this device…",
+    "toLogin": "Sign in manually",
+    "confirm": {
+      "lead": "Your computer wants to hand this device an account. Nothing happens until you confirm.",
+      "signInAs": "Sign in as {{account}}"
+    },
+    "switch": {
+      "title": "Switch account?",
+      "message": "This device is signed in as {{current}}. Continuing signs it in as {{target}} instead.",
+      "confirm": "Switch account"
+    },
+    "revoke": {
+      "note": "Signs the phone out. It loses access at the latest within one hour.",
+      "done": "Phone signed out. It loses access at the latest within one hour."
+    },
+    "errors": {
+      "invalidCode": "This link has expired or was already used. Create a new one on your computer.",
+      "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
+      "authRateLimit": "The sign-in service is busy right now. Please try again in a few minutes.",
+      "mintFailed": "Signing in on this device did not work. Create a new link on your computer and try again.",
+      "revoked": "This hand-off was cancelled on your computer.",
+      "revokeUnavailable": "The phone could not be signed out from here. Changing your password signs out every device.",
+      "invalidPath": "This page cannot be opened on your phone.",
+      "notFound": "This hand-off no longer exists."
+    }
+  },
   "common": {
     "select": {
       "none": "No selection"
