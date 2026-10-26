@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.166.1] - 2026-10-26
+
+### Changed
+
+- **Abhängigkeiten aktualisiert (Data Uploader 0.63.1).** Angular 22.2.3,
+  Supabase-Client 2.118, PostHog, model-viewer 4.4 und die Lint-Werkzeuge sind
+  auf dem neuesten Stand, dazu Sicherheits-Patches für DOMPurify, fast-uri,
+  follow-redirects und hono. Der Data Uploader läuft jetzt auf Electron 45 mit
+  electron-vite 6 und bekommt neue Versionen von cryptography, moderngl,
+  sharp, undici und meshoptimizer. Pillow 13 bleibt außen vor: Es braucht
+  Python 3.11, der Uploader bringt 3.10 mit.
+
 ## [0.166.0] - 2026-10-25
 
 ### Added
