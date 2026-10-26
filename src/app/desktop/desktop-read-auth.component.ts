@@ -1,3 +1,4 @@
+import { AuthStageComponent } from '../auth/auth-stage.component';
 import { toErrorKey } from '../core/describe-error';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -33,9 +34,10 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
 @Component({
   selector: 'sc-desktop-read-auth',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [AuthStageComponent, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <sc-auth-stage>
     <section class="page">
       <div class="sc-card">
         <h1>{{ 'desktopConnect.title' | translate }}</h1>
@@ -64,6 +66,7 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
         }
       </div>
     </section>
+    </sc-auth-stage>
   `,
   styles: [`
     .page { display: grid; place-items: center; min-height: 60vh; }

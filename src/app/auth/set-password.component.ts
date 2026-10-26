@@ -1,3 +1,4 @@
+import { AuthStageComponent } from './auth-stage.component';
 import { authErrorKey } from './auth-error-key';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -26,9 +27,10 @@ import { PasswordFormComponent } from './password-form.component';
 @Component({
   selector: 'sc-set-password',
   standalone: true,
-  imports: [PasswordFormComponent, RouterLink, TranslatePipe],
+  imports: [AuthStageComponent, PasswordFormComponent, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <sc-auth-stage>
     <section class="wrap">
       <div class="sc-card card">
         <h1>{{ (fromInvite() ? 'auth.setPassword.inviteTitle' : 'auth.setPassword.title') | translate }}</h1>
@@ -87,6 +89,7 @@ import { PasswordFormComponent } from './password-form.component';
         }
       </div>
     </section>
+    </sc-auth-stage>
   `,
   styles: [`
     .wrap { display: flex; justify-content: center; }
