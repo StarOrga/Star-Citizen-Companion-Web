@@ -307,13 +307,13 @@
   .planetary .hero { padding: 20px 0 8px; }
   .find { margin-top: var(--sc-space-4, 16px); }
   .find kbd { display: none; }
-  .labels { width: calc(var(--sc-pl-d) * 0.86); transform: translateX(-50%) perspective(420px) rotateX(22deg); }
+  .labels { width: calc(var(--sc-pl-d) * 0.46); transform: translateX(-50%) perspective(420px) rotateX(22deg); }
   .holo { padding: 4px 8px 5px; }
   .holo .hook { display: none; }
   .topic { font-size: 11px; }
   .nw { font-size: 12px; }
   .fy {
-    top: calc(var(--label-top) + 52px);
+    top: calc(var(--label-top) + 60px);
     max-width: calc(var(--sc-pl-d) * 0.9);
     gap: 6px;
     padding: 4px 8px;
@@ -326,7 +326,7 @@
   .hub { padding-bottom: var(--sc-fab-clear-block, 64px); }
 }
 @media (pointer: coarse) {
-  .mk { width: 28px; height: 28px; margin-left: -14px; }
+  .mk { width: 24px; height: 24px; margin-left: -12px; }
 }
 @keyframes ping {
   0% { transform: scale(0.8); opacity: 1; }

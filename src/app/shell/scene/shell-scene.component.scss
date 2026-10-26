@@ -8,10 +8,10 @@
 //
 // Not encapsulated: the scene must clear the body's own background (html
 // keeps --sc-bg-0, the canvas), or the opaque body would paint over this
-// z-index -1 layer. Everything else is scoped under the element name.
-body:has(sc-shell-scene > .scene) { background: transparent; }
+// z-index -1 layer. Everything else is scoped under the host class .sc-shell-scene.
+body:has(.sc-shell-scene > .scene) { background: transparent; }
 
-sc-shell-scene {
+.sc-shell-scene {
   & {
     @include geo.planet-geometry;
     --scene-move: 1100ms;

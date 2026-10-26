@@ -32,9 +32,9 @@ function supportsScrollTimeline(): boolean {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell-scene.component.html',
   styleUrl: './shell-scene.component.scss',
-  // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the element name.
+  // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the host class.
   encapsulation: ViewEncapsulation.None,
-  host: { 'aria-hidden': 'true' },
+  host: { class: 'sc-shell-scene', 'aria-hidden': 'true' },
 })
 export class ShellSceneComponent {
   private readonly router = inject(Router);
