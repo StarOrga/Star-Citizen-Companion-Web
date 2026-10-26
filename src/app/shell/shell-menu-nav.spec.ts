@@ -81,7 +81,7 @@ describe('ShellComponent menu navigation', () => {
             signOut: () => Promise.resolve(),
           },
         },
-        { provide: RoleService, useValue: { isAdmin } },
+        { provide: RoleService, useValue: { isAdmin, isCollaborator: signal(false) } },
         { provide: ProfileService, useValue: { username: signal('Jerry') } },
         {
           provide: ImpersonationService,

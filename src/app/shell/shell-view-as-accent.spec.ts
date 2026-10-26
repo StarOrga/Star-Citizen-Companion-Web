@@ -60,7 +60,7 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
             signOut: () => Promise.resolve(),
           },
         },
-        { provide: RoleService, useValue: { isAdmin: signal(opts.admin) } },
+        { provide: RoleService, useValue: { isAdmin: signal(opts.admin), isCollaborator: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
         {
           provide: ImpersonationService,

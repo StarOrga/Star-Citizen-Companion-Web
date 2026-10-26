@@ -61,7 +61,7 @@ describe('ShellComponent condensed header', () => {
           provide: AuthService,
           useValue: { ready: () => false, realUser: () => null, user: signal(null), signOut: () => Promise.resolve() },
         },
-        { provide: RoleService, useValue: { isAdmin: signal(admin) } },
+        { provide: RoleService, useValue: { isAdmin: signal(admin), isCollaborator: signal(false) } },
         { provide: ProfileService, useValue: { username: signal('Jerry') } },
         {
           provide: ImpersonationService,

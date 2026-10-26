@@ -175,8 +175,8 @@ describe('HQ routes + old hangar urls', () => {
 
   it('hands the dashboard its section through route data', () => {
     const data = (p: string) => hq?.children?.find((c) => c.path === p)?.data;
-    expect(data('hangar')).toEqual({ section: 'hangar' });
-    expect(data('spind')).toEqual({ section: 'locker' });
+    expect(data('hangar')).toEqual({ layout: 'tool', section: 'hangar' });
+    expect(data('spind')).toEqual({ layout: 'tool', section: 'locker' });
   });
 
   it('keeps the public shared-loadout pages off the gated shell', () => {

@@ -53,7 +53,7 @@ describe('ShellComponent — no standalone header exit-preview control (Defect A
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(opts.user), signOut: () => Promise.resolve() } },
-        { provide: RoleService, useValue: { isAdmin: signal(false) } },
+        { provide: RoleService, useValue: { isAdmin: signal(false), isCollaborator: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
         {
           provide: ImpersonationService,

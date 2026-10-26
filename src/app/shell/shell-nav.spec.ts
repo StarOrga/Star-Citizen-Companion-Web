@@ -62,7 +62,7 @@ describe('ShellComponent navigation', () => {
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request } },
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(null), isAuthenticated: signal(false), signOut: () => Promise.resolve() } },
-        { provide: RoleService, useValue: { isAdmin: signal(false) } },
+        { provide: RoleService, useValue: { isAdmin: signal(false), isCollaborator: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
         {
           provide: BetaService,
