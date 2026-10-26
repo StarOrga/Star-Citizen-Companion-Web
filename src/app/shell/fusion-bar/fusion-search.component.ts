@@ -180,7 +180,7 @@ export const COMPANION_ROUTE = '/companion';
             <div class="group" role="group" [style.--i]="si" [attr.aria-labelledby]="listboxId + '-h-' + s.id">
               <div class="group-head" role="presentation">
                 <span [id]="listboxId + '-h-' + s.id">{{ s.labelKey | translate }}</span>
-                @if (s.count != null) { <span class="count">{{ s.count }}{{ s.countIsFloor ? '+' : '' }}</span> }
+                @if (s.count !== null) { <span class="count">{{ s.count }}{{ s.countIsFloor ? '+' : '' }}</span> }
               </div>
               <div class="rows" [class.chips]="s.id === 'recent' || s.id === 'areas'">
                 @for (o of s.options; track o.id) {
@@ -195,7 +195,7 @@ export const COMPANION_ROUTE = '/companion';
                             <span class="name">{{ title(o.hit) }}</span>
                             <span class="meta">
                               @if (mfr(o.hit); as m) { <span>{{ m }}</span> }
-                              @if (o.hit.size != null) { <span class="badge">{{ 'codex.card.size' | translate: { size: o.hit.size } }}</span> }
+                              @if (o.hit.size !== null && o.hit.size !== undefined) { <span class="badge">{{ 'codex.card.size' | translate: { size: o.hit.size } }}</span> }
                               @if (o.hit.grade) { <span class="badge">{{ 'codex.search.bar.grade' | translate: { grade: o.hit.grade } }}</span> }
                               @if (upcoming(o.hit)) { <span class="badge soon">{{ 'codex.search.bar.upcomingBadge' | translate }}</span> }
                               @if (o.hit.kind === 'ship' && owns(o.hit.classNameSlug)) { <span class="badge own">{{ 'fusionBar.search.owned' | translate }}</span> }
