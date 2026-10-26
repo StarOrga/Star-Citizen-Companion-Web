@@ -3,6 +3,7 @@
 import type { PageLayout } from '../../core/layout/page-layout';
 import type { CodexKind } from '../../codex/codex.service';
 import type { StageSearchState } from './shell-chrome.service';
+import { HQ_ROOT, hqHangar, hqLocker, hqOps } from '../../hq/hq-routes';
 
 /** What the capsule shows — see FusionBarComponent. */
 export type BarMode = 'stage' | 'hub' | 'docked' | 'content' | 'tool';
@@ -94,7 +95,47 @@ export function activeAreaOf(url: string, starscapeEntry: boolean): AreaId | nul
   return null;
 }
 
-export type SegmentId = 'ship' | 'weapon' | 'component' | 'fps' | 'blueprint' | 'upcoming' | 'keybinds';
+/** One sub-page of a main area, shown as a tab in the capsule (mock d4-s2: „Verse ▾ · News · Patches · Galerie“). */
+export interface AreaSection {
+  id: string;
+  labelKey: string;
+  link: string;
+  /** Active only on the exact path (an area's overview), not on its children. */
+  exact: boolean;
+}
+
+/**
+ * The sub-pages each area carries in the capsule. They replace the area's own
+ * subheader row (HQ tabs) and the full main nav on the hub's sub-pages — the
+ * main areas stay one click away in the area menu. Codex has none here: its
+ * tool pages carry the kinds ({@link CODEX_SEGMENTS}) instead.
+ */
+export const AREA_SECTIONS: Readonly<Partial<Record<AreaId, readonly AreaSection[]>>> = {
+  verse: [
+    { id: 'news', labelKey: 'fusionBar.place.news', link: '/verse/news', exact: false },
+    { id: 'patches', labelKey: 'fusionBar.place.patches', link: '/verse/patches', exact: false },
+    { id: 'gallery', labelKey: 'fusionBar.place.gallery', link: '/verse/gallery', exact: false },
+    { id: 'explorer', labelKey: 'verse.area.starmap', link: '/verse/explorer', exact: false },
+  ],
+  hq: [
+    // Same order and targets as the HQ frame's own tabs (HQ_TABS, β off).
+    { id: 'overview', labelKey: 'hq.tabs.overview', link: HQ_ROOT, exact: true },
+    { id: 'locker', labelKey: 'hq.tabs.locker', link: hqLocker, exact: false },
+    { id: 'hangar', labelKey: 'hq.tabs.hangar', link: hqHangar, exact: false },
+    { id: 'ops', labelKey: 'hq.tabs.ops', link: hqOps, exact: false },
+  ],
+};
+
+/** The section of `sections` the URL is on, or null. */
+export function activeSectionOf(url: string, sections: readonly AreaSection[]): string | null {
+  const path = url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  for (const s of sections) {
+    if (s.exact ? path === s.link : path === s.link || path.startsWith(`${s.link}/`)) return s.id;
+  }
+  return null;
+}
+
+export type SegmentId ='ship' | 'weapon' | 'component' | 'fps' | 'blueprint' | 'upcoming' | 'keybinds';
 
 export interface CodexSegment {
   id: SegmentId;

@@ -33,19 +33,22 @@ export const HQ_TABS: readonly HqTab[] = [
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, HqSuppliesPanelComponent, HqSuppliesPopupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="hq-bar">
-      <nav class="hq-tabs" [attr.aria-label]="'hq.tabsAria' | translate">
-        @for (t of tabs; track t.link) {
-          <a
-            class="hq-tab"
-            [routerLink]="t.link"
-            routerLinkActive="active"
-            ariaCurrentWhenActive="page"
-            [routerLinkActiveOptions]="{ exact: t.exact }">
-            {{ t.labelKey | translate }}
-          </a>
-        }
-      </nav>
+    <!-- Beta "shell": the tabs live in the Fusion bar (header and subheader are one capsule). -->
+    <div class="hq-bar" [class.fused]="shell()">
+      @if (!shell()) {
+        <nav class="hq-tabs" [attr.aria-label]="'hq.tabsAria' | translate">
+          @for (t of tabs; track t.link) {
+            <a
+              class="hq-tab"
+              [routerLink]="t.link"
+              routerLinkActive="active"
+              ariaCurrentWhenActive="page"
+              [routerLinkActiveOptions]="{ exact: t.exact }">
+              {{ t.labelKey | translate }}
+            </a>
+          }
+        </nav>
+      }
       <button
         #suppliesBtn
         type="button"
@@ -80,6 +83,7 @@ export const HQ_TABS: readonly HqTab[] = [
         margin-bottom: var(--sc-space-4, 16px);
         border-bottom: 1px solid var(--sc-border);
       }
+      .hq-bar.fused { justify-content: flex-end; border-bottom: 0; }
       .hq-tabs { display: flex; gap: var(--sc-space-1, 4px); overflow-x: auto; min-width: 0; }
       .hq-tab {
         display: inline-flex;

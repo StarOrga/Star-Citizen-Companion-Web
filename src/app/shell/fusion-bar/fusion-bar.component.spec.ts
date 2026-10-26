@@ -121,6 +121,33 @@ describe('FusionBarComponent', () => {
     expect(fixture.nativeElement.querySelector('sc-fusion-search')).not.toBeNull();
     expect((fixture.nativeElement as HTMLElement).classList.contains('morph')).toBeTrue();
     expect(fixture.nativeElement.getAttribute('data-mode')).toBe('docked');
+    // Docked, the capsule carries the hub's sub-pages next to the search (mock d4-s2).
+    expect(fixture.nativeElement.querySelectorAll('.sections a.kind').length).toBe(4);
     chrome.setStageSearch('none');
+  });
+
+  it('fuses header and subheader on a cinematic sub-page: area segment, sub-page tabs, search — no brand row', async () => {
+    layout.set('cinematic');
+    const fixture = await setup('/verse/news');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.getAttribute('data-mode')).toBe('hub');
+    expect(el.querySelector('.brand')).toBeNull();
+    expect(el.querySelector('.nav')).toBeNull();
+    expect(el.querySelector('.seg')).not.toBeNull();
+    expect(el.querySelector('sc-fusion-search')).not.toBeNull();
+    const tabs = Array.from(el.querySelectorAll('.sections a.kind')) as HTMLAnchorElement[];
+    expect(tabs.map((a) => a.getAttribute('href'))).toEqual(['/verse/news', '/verse/patches', '/verse/gallery', '/verse/explorer']);
+    const active = tabs.filter((a) => a.getAttribute('aria-current') === 'page');
+    expect(active.map((a) => a.getAttribute('href'))).toEqual(['/verse/news']);
+  });
+
+  it('carries the HQ tabs in the capsule, the overview active only on /hq itself', async () => {
+    layout.set('tool');
+    const fixture = await setup('/hq/hangar');
+    fixture.detectChanges();
+    const tabs = Array.from(fixture.nativeElement.querySelectorAll('.sections a.kind')) as HTMLAnchorElement[];
+    expect(tabs.length).toBe(4);
+    expect(tabs.filter((a) => a.classList.contains('active')).map((a) => a.getAttribute('href'))).toEqual(['/hq/hangar']);
   });
 });
