@@ -230,12 +230,13 @@ export class FusionBarComponent {
   private readonly url = signal(this.router.url);
   readonly menuOpen = signal(false);
   readonly searchOpen = signal(false);
-  readonly drawerOpen = signal(true);
+  /** The tool drawer starts open where there is room for it (desktop), folded elsewhere. */
+  readonly drawerOpen = signal(matches('(min-width: 1280px) and (min-height: 820px)'));
   readonly hidden = signal(false);
   readonly morphing = signal(false);
   readonly collapsing = signal(false);
   readonly phone = signal(matches('(max-width: 720px)'));
-  readonly iconOnlyKinds = signal(matches('(max-width: 1279px)'));
+  readonly iconOnlyKinds = signal(matches('(max-width: 1599px)'));
   private readonly autoSection = signal<string | null>(null);
 
   readonly mode = computed<BarMode>(() => barModeOf(this.layout.layout(), this.chrome.stageSearch()));
@@ -271,7 +272,8 @@ export class FusionBarComponent {
   private collapseTimer: ReturnType<typeof setTimeout> | null = null;
   private lastMode: BarMode | null = null;
   private hadCrumbs = false;
-  private rafPending = false;
+  private sectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private barH = readBarHeight();
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
@@ -300,6 +302,7 @@ export class FusionBarComponent {
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
       if (this.collapseTimer) clearTimeout(this.collapseTimer);
+      if (this.sectionTimer) clearTimeout(this.sectionTimer);
       this.chrome.setBarHidden(false);
       if (typeof document !== 'undefined') {
         document.documentElement.style.removeProperty('--sc-topbar-h');
@@ -310,23 +313,26 @@ export class FusionBarComponent {
 
   private listen(): void {
     if (typeof window === 'undefined') return;
+    // Direction is tracked on every scroll event (cheap, never misses a 5-10 px
+    // turn); the section label reads layout, so it is throttled.
     const onScroll = () => {
-      if (this.rafPending) return;
-      this.rafPending = true;
-      requestAnimationFrame(() => {
-        this.rafPending = false;
-        this.onScrollFrame();
-      });
+      this.onScrollDirection();
+      if (this.sectionTimer) return;
+      this.sectionTimer = setTimeout(() => {
+        this.sectionTimer = null;
+        this.onScrollSection();
+      }, 120);
     };
     const onResize = () => {
       const phone = matches('(max-width: 720px)');
-      const iconOnly = matches('(max-width: 1279px)');
+      const iconOnly = matches('(max-width: 1599px)');
       if (phone !== this.phone() || iconOnly !== this.iconOnlyKinds()) {
         this.zone.run(() => {
           this.phone.set(phone);
           this.iconOnlyKinds.set(iconOnly);
         });
       }
+      this.barH = readBarHeight();
       this.publishHeight();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -342,24 +348,20 @@ export class FusionBarComponent {
     });
   }
 
-  private onScrollFrame(): void {
+  private onScrollDirection(): void {
     const y = window.scrollY;
-    const barH = this.barHeight();
     if (hidesOnScroll(this.mode()) && !this.searchOpen() && !this.menuOpen()) {
-      const next = this.tracker.update(y, barH);
+      const next = this.tracker.update(y, this.barH);
       if (next !== this.hidden()) this.zone.run(() => this.setHidden(next));
     } else {
       this.tracker.reset(y);
     }
-    if (this.mode() === 'content' && !this.chrome.section()) {
-      const label = sectionInView(barH);
-      if (label !== this.autoSection()) this.zone.run(() => this.autoSection.set(label));
-    }
   }
 
-  private barHeight(): number {
-    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-bar-h'));
-    return Number.isFinite(v) && v > 0 ? v : 64;
+  private onScrollSection(): void {
+    if (this.mode() !== 'content' || this.chrome.section()) return;
+    const label = sectionInView(this.barH);
+    if (label !== this.autoSection()) this.zone.run(() => this.autoSection.set(label));
   }
 
   private setHidden(hidden: boolean): void {
@@ -483,6 +485,13 @@ export class FusionBarComponent {
   onEscape(): void {
     if (this.menuOpen()) this.closeMenu();
   }
+}
+
+/** --sc-bar-h in px (64 desktop, 56 phone). */
+function readBarHeight(): number {
+  if (typeof document === 'undefined') return 64;
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-bar-h'));
+  return Number.isFinite(v) && v > 0 ? v : 64;
 }
 
 function matches(query: string): boolean {

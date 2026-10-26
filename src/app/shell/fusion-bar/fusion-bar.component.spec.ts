@@ -77,9 +77,14 @@ describe('FusionBarComponent', () => {
     host.detectChanges();
     const off = TestBed.inject(ShellChromeService).registerToolbar(host.componentInstance.tb());
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.drawer .tool-row')?.textContent).toContain('FILTERS');
     const toggle = fixture.nativeElement.querySelector('.drawer-toggle') as HTMLButtonElement;
+    // Starts open on a roomy desktop window, folded elsewhere (Karma runs narrow).
+    if (toggle.getAttribute('aria-expanded') !== 'true') {
+      toggle.click();
+      fixture.detectChanges();
+    }
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('.drawer .tool-row')?.textContent).toContain('FILTERS');
     toggle.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();

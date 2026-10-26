@@ -346,14 +346,14 @@ export const COMPANION_ROUTE = '/companion';
     .input::placeholder { color: var(--sc-fg-2); opacity: 1; }
     .input::-webkit-search-cancel-button { display: none; }
     .ctx-chip {
-      flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 2px;
+      flex: none; display: inline-flex; align-items: center; gap: 2px;
       height: 28px; padding: 0 2px 0 var(--sc-space-3); border-radius: 999px;
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
       box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 40%, transparent);
       color: var(--sc-fg-0); font-size: max(0.78rem, var(--sc-fs-floor)); white-space: nowrap;
       animation: fs-chip-in 0.22s ease both;
     }
-    .ctx-label { overflow: hidden; text-overflow: ellipsis; max-width: 22ch; }
+    .ctx-label { overflow: hidden; text-overflow: ellipsis; max-width: 18ch; }
     .ctx-x {
       display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
       border: 0; border-radius: 50%; background: transparent; color: var(--sc-fg-2); cursor: pointer; padding: 0;
@@ -508,6 +508,8 @@ export const COMPANION_ROUTE = '/companion';
       animation-name: fs-sheet-in;
     }
     :host(.bottom) .keys, :host(.bottom) .hint { display: none; }
+    /* Under the thumb the field needs its width: the context chip shows once the search is open. */
+    :host(.bottom:not(.open)) .ctx-chip { display: none; }
     @media (pointer: coarse) {
       .hint, .keys { display: none; }
       .qi { width: 44px; height: 44px; opacity: 1; }
@@ -515,9 +517,19 @@ export const COMPANION_ROUTE = '/companion';
       .close { width: 44px; height: 44px; }
       .ctx-x { width: 36px; height: 36px; }
     }
+    /* A narrow capsule: the field keeps its text, the key hint gives way (aria-keyshortcuts stays). */
+    @media (max-width: 1023px) {
+      .hint { display: none; }
+      :host(:not(.open)) .ctx-chip { display: none; }
+      .ctx-label { max-width: 12ch; }
+    }
     @media (max-width: 480px) {
-      /* The name needs the width — the copy icon goes; open + compare stay. */
+      /* The name needs the width: the actions move under it, the copy icon goes. */
+      .row { flex-wrap: wrap; }
+      .hit { flex-basis: 100%; }
+      .qa { margin: -4px 0 var(--sc-space-1) auto; }
       .qa .qi:nth-last-child(2) { display: none; }
+      .ctx-label { max-width: 10ch; }
     }
 
     @keyframes fs-panel-in { from { opacity: 0; transform: translateY(-6px) scale(0.985); } }
@@ -648,6 +660,8 @@ export class FusionSearchComponent {
       if (e instanceof NavigationEnd) {
         this.url.set(e.urlAfterRedirects);
         this.contextDropped.set(false);
+        // A search that led somewhere is done; a still-open one (new tab) keeps its term.
+        if (!this.open()) this.engine.clear();
       }
     });
     // On a Codex page the bar IS the page's Codex search: the page header's

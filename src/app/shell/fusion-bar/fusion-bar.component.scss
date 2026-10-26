@@ -351,7 +351,8 @@
 
 // ---- search + account ----
 .search {
-  flex: 0 1 380px;
+  flex: 0 1 480px;
+  min-width: 300px;
   margin-left: auto;
   transition: flex-basis 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), flex-grow 0.28s ease;
 }
@@ -429,6 +430,12 @@
 @keyframes fb-drawer { from { opacity: 0; transform: translateY(-8px); } }
 @keyframes fb-fade { from { opacity: 0; } }
 
+// Desktop below QHD: inactive kinds are icons (named by tooltip), so the search keeps its room.
+@media (max-width: 1599px) {
+  .kind:not(.active) .k-label { display: none; }
+  .kind:not(.active) { padding: 0 var(--sc-space-2); }
+}
+
 // ---- desktop large: QHD and up get a roomier capsule ----
 @media (min-width: 2200px) {
   .search { flex-basis: 480px; }
@@ -448,10 +455,14 @@
   // The trail shrinks to its last two steps.
   .crumbs li:not(.last):not(.here) { display: none; }
   .section { display: none; }
-  .search { flex-basis: 260px; }
+  .kinds { flex: 0 1 auto; }
+  .search { flex: 1 1 260px; min-width: 220px; }
   :host(.searching) .where,
   :host(.searching) .kinds { display: none; }
   .dt-label { display: none; }
+  // Hub on a tablet: the nav keeps every entry (scrolls if it must), the search stays compact.
+  .nav { overflow-x: auto; scrollbar-width: none; }
+  :host([data-mode='hub']) .search { flex: 0 1 220px; min-width: 160px; }
 }
 
 // ---- phone (<= 720): the capsule at the bottom, under the thumb ----
@@ -469,7 +480,8 @@
     gap: var(--sc-space-2);
   }
   :host(.hidden) { transform: translateY(calc(100% + var(--sc-float-bottom))); }
-  .cap {
+  .cap,
+  :host([data-mode]) .cap {
     width: auto;
     height: var(--sc-bar-h);
     margin: 0;
@@ -490,8 +502,10 @@
   .nav a { padding: 0 var(--sc-space-3); min-height: 44px; }
   .nav a.elevated { display: none; }
   .seg { width: 44px; height: 44px; padding: 0; justify-content: center; }
-  .search { flex: 1 1 auto; margin-left: 0; }
-  :host(.searching) .seg-wrap { display: none; }
+  .search { flex: 1 1 auto; min-width: 0; margin-left: 0; }
+  :host(.searching) .seg-wrap,
+  :host(.searching) .account,
+  :host(.searching) .drawer-toggle { display: none; }
   // Menus open upward from a bottom bar.
   .menu { top: auto; bottom: calc(100% + var(--sc-space-2)); transform-origin: bottom left; }
   .drawer {
@@ -517,7 +531,7 @@
     padding: 0 var(--sc-space-3);
     border-radius: 999px;
     border: 1px solid var(--sc-border);
-    background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent);
+    background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     color: var(--sc-fg-1);
