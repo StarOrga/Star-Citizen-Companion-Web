@@ -4906,5 +4906,83 @@
       "codex": "Codex & HQ",
       "shell": "Page shell"
     }
+  },
+  "fusionBar": {
+    "navAria": "Main areas",
+    "areaMenu": "Switch area — now: {{area}}",
+    "home": "Home",
+    "filters": "Filters",
+    "kinds": {
+      "fps": "FPS",
+      "keybinds": "Keybinds"
+    },
+    "ctx": {
+      "all": "Everywhere",
+      "verse": "Verse",
+      "gallery": "Gallery",
+      "codex": "Codex",
+      "codexIndex": "Codex · {{kind}}",
+      "ship": "{{name}}",
+      "shipFallback": "This ship",
+      "codexDetail": "{{kind}}",
+      "fps": "FPS",
+      "hq": "My HQ"
+    },
+    "placeholder": {
+      "all": "Search everywhere …",
+      "verse": "Search ships, patches, news …",
+      "gallery": "Search the gallery or the Codex …",
+      "codex": "Ships, weapons, components …",
+      "codexIndex": "Search the Codex …",
+      "ship": "Components, weapons, ships …",
+      "codexDetail": "Search the Codex …",
+      "fps": "Weapons, armour, gear …",
+      "hq": "Hangar, locker, ships …"
+    },
+    "search": {
+      "label": "Search",
+      "dropContext": "Remove context — search everywhere",
+      "ask": "Ask the Companion",
+      "askKey": "Shift ↵",
+      "places": "Pages",
+      "here": "Here",
+      "page": "Page",
+      "owned": "In your hangar",
+      "newTab": "Open {{name}} in a new tab",
+      "newTabShort": "In new tab",
+      "copyLink": "Copy link to {{name}}",
+      "copyLinkShort": "Copy link",
+      "copied": "Link copied",
+      "keys": {
+        "dropContext": "at field start: drop context"
+      },
+      "action": {
+        "add": "Hangar +",
+        "hangar": "In hangar",
+        "index": "In index",
+        "open": "Open"
+      }
+    },
+    "place": {
+      "news": "News",
+      "patches": "Patches",
+      "gallery": "Gallery",
+      "hangar": "Hangar",
+      "spind": "Locker",
+      "hq": "HQ overview",
+      "keybinds": "Keybinds",
+      "upcoming": "Announced ships",
+      "settings": "Settings",
+      "friends": "Friends",
+      "releaseNotes": "What's new",
+      "badge": "Cartographer badge",
+      "download": "Downloads"
+    },
+    "companion": {
+      "title": "Ask the Companion",
+      "subtitle": "Answers with reasoning — coming soon.",
+      "body": "The Companion cannot answer questions like this yet. Until then the search is the fastest way to the answer.",
+      "searchInstead": "Search the Codex instead"
+    }
   }
 }

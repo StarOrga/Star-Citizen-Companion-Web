@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { NavOriginService, PageCrumb } from './nav-origin.service';
 import { FeedbackSpotDirective } from '../../feedback/feedback-spot.directive';
+import { BetaService } from '../../core/beta.service';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 
 /**
  * The one page header of the Codex and Hangar pages (2026-10-07: every page
@@ -91,6 +93,10 @@ import { FeedbackSpotDirective } from '../../feedback/feedback-spot.directive';
       .ph-main { flex-direction: column; align-items: stretch; }
       .crumb { max-width: 22ch; }
     }
+    /* Beta "shell": the trail lives in the Fusion bar from tablet up (phones keep it here). */
+    @media (min-width: 721px) {
+      :host-context([data-layout]) .crumbs { display: none; }
+    }
   `],
 })
 export class PageHeaderComponent {
@@ -113,5 +119,16 @@ export class PageHeaderComponent {
       const name = this.rememberAs() ?? this.title();
       if (name) this.origin.rememberTitle(this.router.url, name);
     });
+    // Beta "shell": hand the trail + title to the Fusion bar (it shows them in the capsule).
+    const chrome = inject(ShellChromeService);
+    const shellOn = inject(BetaService).isEnabled('shell');
+    let unpublish: (() => void) | null = null;
+    effect(() => {
+      unpublish?.();
+      unpublish = shellOn()
+        ? chrome.publishCrumbs(this, { crumbs: this.crumbs(), title: this.title() ?? this.rememberAs() ?? null })
+        : null;
+    });
+    inject(DestroyRef).onDestroy(() => unpublish?.());
   }
 }
