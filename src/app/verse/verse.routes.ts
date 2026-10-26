@@ -1,5 +1,17 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router, Routes } from '@angular/router';
+import { BetaService } from '../core/beta.service';
 import { OVERLAY_ROUTE_DATA } from '../core/overlay-route-scroll';
+
+/**
+ * Shell beta (implement.md §12): "Meine Sternbilder" is a state of the star-map
+ * panel, not a page - the old URL lands there with the toggle on. Beta off keeps
+ * today's page.
+ */
+export const constellationsToStarmap: CanActivateFn = () =>
+  inject(BetaService).isEnabled('shell')()
+    ? inject(Router).createUrlTree(['/verse/explorer'], { queryParams: { view: 'constellations' } })
+    : true;
 
 /**
  * Children of `/verse` (concept 2026-10-08-verse-hub). Every path an
@@ -46,6 +58,7 @@ export const VERSE_ROUTES: Routes = [
   {
     path: 'gallery/constellations',
     data: { layout: 'cinematic' },
+    canActivate: [constellationsToStarmap],
     loadComponent: () =>
       import('./starmap/my-constellations.component').then((m) => m.MyConstellationsComponent),
   },

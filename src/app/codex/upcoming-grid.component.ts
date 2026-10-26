@@ -6,6 +6,9 @@ import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates, upcomingRoleLabel } from './upcoming-ships.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { BetaService } from '../core/beta.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
+import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
@@ -114,7 +117,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
          RSI pledge page is a secondary link over there. -->
     <ng-template #shipCard let-ship>
       <div class="card-wrap">
-        <a class="card" [routerLink]="['/codex/upcoming', ship.id]">
+        <a class="card" [routerLink]="['/codex/upcoming', ship.id]" (click)="openFromList($event)">
           <div class="thumb" [class.icon-only]="thumbs(ship).length === 0">
             <sc-fallback-image [candidates]="thumbs(ship)" [alt]="ship.name">
               <sc-codex-icon kind="ship" />
@@ -223,6 +226,13 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 export class UpcomingGridComponent implements OnInit, OnDestroy {
   private readonly svc = inject(UpcomingShipsService);
   private readonly translate = inject(TranslateService);
+  private readonly overlayOrigin = inject(OverlayOriginService);
+  private readonly shell = inject(BetaService).isEnabled('shell');
+
+  /** Shell beta: a plain left click opens the ship as an overlay over this list; modified clicks stay the browser's. */
+  openFromList(ev: MouseEvent): void {
+    if (this.shell() && isPlainLeftClick(ev)) this.overlayOrigin.fromList();
+  }
 
   /** RSI role/type in the reader's language (see upcomingRoleLabel). */
   roleLabel(value: string | null): string {

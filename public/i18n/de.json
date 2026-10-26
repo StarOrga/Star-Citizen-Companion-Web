@@ -211,6 +211,17 @@
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
+      "teaser": {
+        "eyebrow": "Auf dem Reißbrett",
+        "title": "Schiffe im Anflug",
+        "open": "Schiff ansehen",
+        "all": "Alle angekündigten Schiffe ({{count}})",
+        "dots": "Angekündigtes Schiff wählen"
+      },
+      "tiles": {
+        "label": "Werkzeuge",
+        "keybinds": { "title": "Tastenbelegungen", "text": "Alle Standardbelegungen des Live-Builds, durchsuchbar." }
+      },
       "terminal": {
         "keybinds": "Tastenbelegungen"
       },
@@ -4888,6 +4899,26 @@
       "patchesAria": "Sternbild eines Patches wählen",
       "chipTip": "Sternbild {{patch}} · {{lit}} von {{total}} Sternen",
       "mine": "Meine Sternbilder"
+    },
+    "tour": {
+      "open": "So funktioniert die Sternkarte",
+      "title": "Die Sternkarte und das Logbuch",
+      "p1": "Jeder Patch hat ein Sternbild aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
+      "p2": "Am Rand liegen zwei Herausforderungen: der Kometentipp und das Sternbild-Raten.",
+      "p3": "Im Logbuch findest du den Community-Himmel, deinen Kartograph-Rang und die Serien-Belohnungen.",
+      "start": "Zeig es mir",
+      "close": "Schließen",
+      "back": "Zurück",
+      "next": "Weiter",
+      "done": "Fertig",
+      "progress": "Schritt {{n}} von {{total}}",
+      "step": {
+        "stage": { "title": "Die Kuppel", "text": "Das Sternbild des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes." },
+        "count": { "title": "Fortschritt", "text": "Wie viele der 7 Sterne auf dieser Karte leuchten." },
+        "tracks": { "title": "Die zwei Herausforderungen", "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff das Sternbild zeigt." },
+        "series": { "title": "Die Serie", "text": "Deine Serie über mehrere Patches - Belohnungen schalten sich entlang davon frei." },
+        "more": { "title": "Das Logbuch", "text": "Öffnet das Seitenblatt: Community-Sternbild, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen." }
+      }
     },
     "more": {
       "open": "Logbuch",

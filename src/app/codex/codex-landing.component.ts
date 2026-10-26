@@ -37,6 +37,8 @@ import {
 } from './codex-landing-kpi';
 
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
+import { CodexToolTilesComponent } from './codex-tool-tiles.component';
+import { UpcomingTeaserComponent } from './upcoming-teaser.component';
 import { StageArt, UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
@@ -78,6 +80,8 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
     RouterLink,
     TranslatePipe,
     CodexCompareTrayComponent,
+    CodexToolTilesComponent,
+    UpcomingTeaserComponent,
     AppDownloadMenuComponent,
     CodexPatchHeadlineComponent,
     CodexStageComponent,
@@ -224,6 +228,9 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
           </nav>
         </sc-codex-stage>
       </div>
+
+      <sc-upcoming-teaser />
+      <sc-codex-tool-tiles />
 
       <sc-codex-compare-tray />
     </section>

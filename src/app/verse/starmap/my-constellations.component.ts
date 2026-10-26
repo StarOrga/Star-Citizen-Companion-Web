@@ -6,6 +6,7 @@ import {
   computed,
   effect,
   inject,
+  input,
   signal,
   viewChildren,
 } from '@angular/core';
@@ -34,9 +35,11 @@ const THUMB = { width: 480, height: 270 } as const;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, TranslatePipe, ScTooltipDirective, VerseHeaderComponent],
   template: `
-    <sc-verse-header
-      [title]="'starmap.gallery.title' | translate"
-      [subtitle]="'starmap.gallery.subtitle' | translate" />
+    @if (!embedded()) {
+      <sc-verse-header
+        [title]="'starmap.gallery.title' | translate"
+        [subtitle]="'starmap.gallery.subtitle' | translate" />
+    }
 
     @if (!signedIn()) {
       <p class="note">{{ 'starmap.signedOut' | translate }}
@@ -103,6 +106,8 @@ export class MyConstellationsComponent implements AfterViewInit {
   private readonly auth = inject(AuthService);
   private readonly analytics = inject(AnalyticsService);
 
+  /** Inside the star-map panel (shell beta): the panel owns the heading. */
+  readonly embedded = input(false);
   readonly thumb = THUMB;
   readonly signedIn = this.auth.isAuthenticated;
   /** Patches whose wallpaper is earned (7 stars), newest first. */

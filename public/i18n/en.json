@@ -211,6 +211,17 @@
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
+      "teaser": {
+        "eyebrow": "On the drawing board",
+        "title": "Ships on the way",
+        "open": "See the ship",
+        "all": "All announced ships ({{count}})",
+        "dots": "Choose an announced ship"
+      },
+      "tiles": {
+        "label": "Tools",
+        "keybinds": { "title": "Keybindings", "text": "Every default binding of the live build, searchable." }
+      },
       "terminal": {
         "keybinds": "Keybindings"
       },
@@ -4888,6 +4899,26 @@
       "patchesAria": "Choose a patch constellation",
       "chipTip": "Constellation {{patch}} · {{lit}} of {{total}} stars",
       "mine": "My constellations"
+    },
+    "tour": {
+      "open": "How the star map works",
+      "title": "The star map and the Logbook",
+      "p1": "Every patch has one constellation of 7 stars. Each task you finish lights one.",
+      "p2": "Two challenges sit on the rim: the comet tip and the constellation guess.",
+      "p3": "The Logbook holds the community sky, your Kartograph rank and the series rewards.",
+      "start": "Show me",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "done": "Done",
+      "progress": "Step {{n}} of {{total}}",
+      "step": {
+        "stage": { "title": "The dome", "text": "The constellation of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next." },
+        "count": { "title": "Progress", "text": "How many of the 7 stars are lit on this map." },
+        "tracks": { "title": "The two challenges", "text": "Tip the comet for the next LIVE day and guess which ship the constellation shows." },
+        "series": { "title": "The series", "text": "Your streak across patches - rewards unlock along it." },
+        "more": { "title": "The Logbook", "text": "Opens the side sheet: community constellation, suns, Kartograph rank, suggestions and rewards." }
+      }
     },
     "more": {
       "open": "Logbook",
