@@ -18,9 +18,9 @@
     </div>
 
     <div class="frame">
-      <!-- Row 1 · instrument strip: patch status centred, the current patch's
-           constellation in the far top-right corner — itself the way into the
-           star map. -->
+      <!-- Row 1 · instrument strip: patch status centred; the current patch's
+           constellation hangs below it at the right edge, beside the hero —
+           itself the way into the star map, shown once its data has loaded. -->
       <div class="top">
         @if (status(); as s) {
           <p class="status">
@@ -30,11 +30,13 @@
             }
           </p>
         }
-        <a class="map" routerLink="/verse/explorer"
-           [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
-           [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
-          <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
-        </a>
+        @if (skyReady()) {
+          <a class="map" routerLink="/verse/explorer"
+             [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
+             [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
+            <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
+          </a>
+        }
       </div>
 
       <!-- Row 2 · hero: centred column, headline clamped to two lines. -->

@@ -2,8 +2,8 @@
 // one-viewport stage (batch 2026-10-25).
 //
 // Desktop: the stage is exactly one viewport tall — a three-row grid of the
-// instrument strip (patch status centred, the current constellation as the
-// star-map link in the far top-right corner), the hero (centred, headline clamped to two lines)
+// instrument strip (patch status centred; the current constellation as the
+// star-map link hangs below it at the right edge), the hero (centred, headline clamped to two lines)
 // and the gate band (the three moons) directly above the footer strip, whose
 // height the shell publishes as --sc-verse-footer-h. Phones and short
 // viewports fall back to normal scrolling. Only the backdrop (.bleed) breaks
@@ -216,20 +216,22 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  // Room for the corner constellation on both sides keeps the status centred.
-  padding-inline: 190px;
 }
 
-// The current patch's constellation is the star-map link itself, flush in the
-// far top-right corner of the full-width stage (the frame is narrower than the
-// viewport on wide screens, so the corner is measured from the viewport edge).
-// Hover/focus lifts it: full brightness, a little larger, and a round accent
-// halo fading out behind the stars — no box, the figure stays free in the sky.
-// Keyboard focus adds a ring, drawn inside the box so the stage's clip at the
-// top edge never cuts it.
+// The current patch's constellation is the star-map link itself. It hangs
+// at the right edge of the full-width stage, below the sun and beside the hero
+// (the frame is narrower than the viewport on wide
+// screens, so the edge is measured from the viewport). It only exists once its
+// data has loaded and builds itself up (briefing-sky). Hover/focus lifts it:
+// full brightness, a little larger, and a round accent halo fading out behind
+// the stars — no box, the figure stays free in the sky. Keyboard focus adds a
+// ring, drawn inside the box.
 .map {
   position: absolute;
-  top: 0;
+  // Below the sun and its flare line (.sun sits 236px down a backdrop that
+  // starts 26px above the stage): the figure hangs under the light source,
+  // level with the hero, never crossed by the flare.
+  top: calc(236px - 26px + 34px);
   right: calc((100% - 100vw) / 2 + clamp(14px, 1.6vw, 28px));
   display: block;
   padding: 4px;
@@ -262,8 +264,6 @@
   height: 150px;
   opacity: 0.85;
   transition: opacity 0.25s ease, transform 0.25s ease;
-  // backwards, not both: a held end frame would override the hover opacity.
-  animation: cst-focus calc(1.2s * var(--k)) ease-out backwards;
 }
 .fig > * { height: 100%; }
 .map:hover .fig, .map:focus-visible .fig {
@@ -476,7 +476,6 @@
 // ── Keyframes ───────────────────────────────────────────────────────────
 @keyframes dolly { from { transform: scale(1.15); } to { transform: none; } }
 @keyframes sky-focus { from { filter: blur(10px); opacity: 0.6; } to { filter: none; opacity: 1; } }
-@keyframes cst-focus { from { filter: blur(3px); opacity: 0.8; } to { filter: none; opacity: 0.85; } }
 @keyframes resolve { from { opacity: 0; filter: blur(18px); transform: scale(1.08); } to { opacity: 1; filter: none; transform: none; } }
 @keyframes soft-up { from { opacity: 0; filter: blur(6px); transform: translateY(6px); } to { opacity: 1; filter: none; transform: none; } }
 @keyframes rise { from { transform: translateY(340px); } to { transform: none; } }
@@ -504,7 +503,6 @@
 // ── Tablet ──────────────────────────────────────────────────────────────
 @media (max-width: 1024px) {
   .hero { width: min(72%, 680px); }
-  .top { padding-inline: 150px; }
   .fig { width: 120px; height: 120px; }
 }
 

@@ -10,6 +10,7 @@ import { VerseApiService } from '../../data/verse-api.service';
 import { VerseDigest, VerseDigestItem, VerseExplorerPatch } from '../../data/verse.models';
 import { FALLBACK_POINTS, buildTaskViews, nextTask, starSlots } from '../../starmap/starmap.model';
 import { MOON_SLOT_S } from './briefing-moon.component';
+import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import {
@@ -228,9 +229,30 @@ describe('Verse briefing — component', () => {
     expect(bars.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
     const moons = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.moons a.moon'));
     expect(moons.map((a) => a.getAttribute('href'))).toEqual(['/verse/news', '/verse/patches', '/verse/gallery']);
+    // No constellation until the explorer state is there — never a stand-in figure.
+    expect(el.querySelector('a.map')).toBeNull();
+    expect(el.querySelector('sc-briefing-sky')).toBeNull();
+    const api = TestBed.inject(VerseApiService) as unknown as { explorer: ReturnType<typeof signal<unknown>> };
+    const points = [[0.5, 0.1], [0.3, 0.3], [0.7, 0.3], [0.2, 0.6], [0.8, 0.6], [0.35, 0.9], [0.65, 0.9]];
+    api.explorer.set({
+      patches: [{
+        patchLine: '4.10', liveAt: '2026-10-01', stars: ['notes'], starDates: { notes: '2026-10-02' }, starCount: 1, sun: false,
+        offered: ['notes', 'comet', 'cx-guess', 'cx-newship', 'archive', 'loadout', 'cx-changed'],
+        constellation: { className: null, name: null, kind: 'ship', points },
+        comet: { state: 'none', tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+        guess: { state: 'open', guessedClass: null, answerClass: null, answerName: null },
+        unlocks: { logEntry: false, community: false, wallpaper: false },
+      }],
+      upcoming: null,
+    });
+    fixture.detectChanges();
     const map = el.querySelector('a.map');
     expect(map?.getAttribute('href')).toBe('/verse/explorer');
-    expect(map?.querySelector('sc-briefing-sky')).not.toBeNull();
+    // The real figure, built up: each star carries its own staggered delay.
+    const stars = Array.from(map?.querySelectorAll<SVGGElement>('sc-briefing-sky g.in') ?? []);
+    expect(stars.length).toBe(7);
+    expect(stars.map((g) => g.style.getPropertyValue('--d'))).toEqual([0, 1, 2, 3, 4, 5, 6].map((i) => `${(i * SKY_STEP_S).toFixed(2)}s`));
+    expect(map?.querySelector('sc-briefing-sky g.st')?.getAttribute('transform')).toBe('translate(50 10)');
     // Moon relay: News → Patches → Gallery, one shared loop.
     const slots = Array.from(el.querySelectorAll<HTMLElement>('sc-briefing-moon'));
     const intro = fixture.componentInstance.introSeconds;
