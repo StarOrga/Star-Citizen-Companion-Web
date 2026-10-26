@@ -69,6 +69,8 @@ export class HandoffComponent implements OnInit {
   readonly account = signal<string | null>(null);
   readonly busy = signal(false);
   private code = '';
+  private ownerId = '';
+  private targetPath = '/';
 
   async ngOnInit(): Promise<void> {
     this.code = this.readCode();
@@ -79,29 +81,41 @@ export class HandoffComponent implements OnInit {
       return;
     }
     try {
-      this.account.set(await this.handoff.peek(this.code));
+      const peek = await this.handoff.peek(this.code);
+      this.ownerId = peek.userId;
+      this.targetPath = peek.targetPath;
+      this.account.set(peek.account);
     } catch (err) {
       this.errorKey.set(await this.handoff.errorKey('peek', err));
     }
   }
 
   async signIn(): Promise<void> {
+    // Claimed before the first await: a double tap must not send two redeems.
     if (this.busy()) return;
-    const target = this.account();
-    await this.auth.ready();
-    const current = this.auth.realUser()?.email;
-    if (current && target && maskEmail(current) !== target) {
-      const ok = await this.confirmDialog.confirm({
-        titleKey: 'handoff.switch.title',
-        messageKey: 'handoff.switch.message',
-        params: { current: maskEmail(current), target },
-        confirmKey: 'handoff.switch.confirm',
-        tone: 'danger',
-      });
-      if (!ok) return;
-    }
     this.busy.set(true);
     try {
+      await this.auth.ready();
+      const me = this.auth.realUser();
+      // Account identity is the user id; the mask is display only (it collides).
+      if (me && me.id === this.ownerId) {
+        // Already signed in as the owner: nothing to redeem, the code just expires.
+        await this.router.navigateByUrl(this.targetPath, { replaceUrl: true });
+        return;
+      }
+      if (me) {
+        const ok = await this.confirmDialog.confirm({
+          titleKey: 'handoff.switch.title',
+          messageKey: 'handoff.switch.message',
+          params: { current: maskEmail(me.email ?? ''), target: this.account() },
+          confirmKey: 'handoff.switch.confirm',
+          tone: 'danger',
+        });
+        if (!ok) {
+          this.busy.set(false);
+          return;
+        }
+      }
       const path = await this.handoff.redeem(this.code);
       await this.router.navigateByUrl(path, { replaceUrl: true });
     } catch (err) {

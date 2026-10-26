@@ -64,6 +64,20 @@ GoTrue has no "create session for user" call. `auth.admin.generateLink({type:'ma
 
 Revocation caveat: deleting the session kills the refresh chain immediately; an access JWT already issued stays valid at the stateless PostgREST layer until its own expiry (<= 1 h). Copy therefore says "at the latest within one hour".
 
+## Round-2 changes
+
+- **Account identity is the user id, not the mask.** `peek` returns `{ email_masked, user_id, target_path }` (the code holder would get a session for that user anyway, so nothing new leaks). The page compares `user_id` with `auth.realUser()?.id`: same id -> no redeem, navigate to `target_path`; different id and someone signed in -> `ScConfirmService` warning; the masked address is display only (`jane@gmail.com` and `jx@gmx.com` mask identically).
+- **"Connected" = session attached.** Column `session_attached` (generated from `session_id is not null`, granted to the owner) drives `status` and `listConnected()`. Every failure after the consume (user lookup, generateLink, verifyOtp, GoTrue 429, attach) calls `handoff_fail()` which sets `revoked_at`; the cron also deletes rows whose `session_id` is no longer in `auth.sessions` and consumed rows never attached after 10 minutes.
+- Without a `session_id` claim the fail-closed path only logs (no GoTrue `/logout`, which could fall back to a global sign-out); tokens never leave the function.
+- Throttle: expired entries pruned on each call; key = `cf-connecting-ip`, else the LAST `x-forwarded-for` hop (the first is client-forgeable). Not verified against Supabase docs.
+- The double-tap on the sign-in button sends one redeem (busy claimed before the first await).
+
+## Migration history
+
+`20261026120000_handoff_codes.sql` was never `db:push`ed anywhere, which is why it was rewritten in place across the review rounds instead of adding follow-up migrations.
+
 ## Open items
+
+- **Close-out smoke test for `verify_jwt` (R3).** `handoff-create` and `handoff-revoke` keep the default `verify_jwt = true`, copied from `desktop-session`. Run a real create -> revoke round trip with a live web session before shipping. If the gateway answers 401, add `[functions.handoff-create]` / `[functions.handoff-revoke]` with `verify_jwt = false` (both call `getUser()` themselves). `supabase/config.toml` carries conflicting comments on this: around lines 105-115 (`ingest-bundle`) say the gateway cannot validate live session tokens signed with the asymmetric keys, while `desktop-session` (JWT on) demonstrably works with a session token.
 
 - **Email magic-link fallback (R1) dropped.** An implicit-flow link lands `#access_token=...` on the PKCE `realClient` (auth-js throws "Not a valid PKCE flow url" and leaves the tokens in the address bar), and the Supabase redirect allow-list only has `/news` and `/uploader/auth`. If a camera-less fallback is wanted later: a dedicated landing route that handles the implicit hash itself plus an allow-list entry, designed deliberately.

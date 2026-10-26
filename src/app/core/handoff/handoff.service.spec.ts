@@ -43,7 +43,7 @@ describe('HandoffService', () => {
         if (c.op === 'invoke' && c.target === 'handoff-redeem') {
           const body = (c.args as { body: { peek?: boolean } }).body;
           return body.peek
-            ? { data: { email_masked: 'j***@g***.com' } }
+            ? { data: { email_masked: 'j***@g***.com', user_id: 'u-1', target_path: '/codex' } }
             : { data: { access_token: 'a', refresh_token: 'r', target_path: '//evil.example' } };
         }
         if (c.op === 'from' && c.chain.some(([m]) => m === 'limit')) {
@@ -92,7 +92,11 @@ describe('HandoffService', () => {
     const svc = setup();
     void svc.create('/');
     tick(0);
-    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: null };
+    // consumed but no session attached (yet / failed mint): NOT connected
+    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: null, session_attached: false };
+    tick(HANDOFF_POLL_MS);
+    expect(svc.status()).toBe('pending');
+    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: null, session_attached: true };
     tick(HANDOFF_POLL_MS);
     expect(svc.status()).toBe('connected');
     expect(svc.device()).toBe('Android - Chrome');
@@ -128,7 +132,7 @@ describe('HandoffService', () => {
     const svc = setup();
     void svc.create('/');
     tick(0);
-    rowState = { consumed_at: 'now', consumed_device: 'X', revoked_at: null };
+    rowState = { consumed_at: 'now', consumed_device: 'X', revoked_at: null, session_attached: true };
     tick(HANDOFF_POLL_MS);
     const before = fake.calls.length;
     tick(HANDOFF_CONNECTED_WATCH_MS + HANDOFF_POLL_MS);
@@ -153,15 +157,16 @@ describe('HandoffService', () => {
     await expectAsync(svc.revoke('row-7')).toBeRejected();
   });
 
-  it('listConnected() returns own redeemed, unrevoked rows', async () => {
+  it('listConnected() returns own attached, unrevoked rows', async () => {
     const svc = setup();
     const list = await svc.listConnected();
+    expect(fake.calls[0].chain.some(([m, a]) => m === 'eq' && a[0] === 'session_attached' && a[1] === true)).toBeTrue();
     expect(list).toEqual([{ id: 'row-9', device: 'iOS - Safari', connectedAt: Date.parse('2026-10-26T10:00:00Z') }]);
   });
 
   it('peek() returns the masked account and never sends a redeem', async () => {
     const svc = setup();
-    expect(await svc.peek('CODE')).toBe('j***@g***.com');
+    expect(await svc.peek('CODE')).toEqual({ account: 'j***@g***.com', userId: 'u-1', targetPath: '/codex' });
     expect(fake.calls[0].args).toEqual({ body: { code: 'CODE', peek: true } });
   });
 

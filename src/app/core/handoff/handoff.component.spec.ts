@@ -12,10 +12,11 @@ describe('HandoffComponent', () => {
   let handoff: jasmine.SpyObj<HandoffService>;
   let confirm: jasmine.Spy;
   let email: string | undefined;
+  let userId = 'other-user';
 
   function create(fragment: string | null) {
     handoff = jasmine.createSpyObj<HandoffService>('HandoffService', ['peek', 'redeem', 'errorKey']);
-    handoff.peek.and.resolveTo('j***@g***.com');
+    handoff.peek.and.resolveTo({ account: 'j***@g***.com', userId: 'owner-1', targetPath: '/codex/ship/x' });
     handoff.redeem.and.resolveTo('/codex');
     handoff.errorKey.and.resolveTo('handoff.errors.invalidCode');
     confirm = jasmine.createSpy('confirm').and.resolveTo(true);
@@ -27,7 +28,13 @@ describe('HandoffComponent', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { fragment } } },
         { provide: HandoffService, useValue: handoff },
         { provide: ScConfirmService, useValue: { confirm } },
-        { provide: AuthService, useValue: { ready: () => Promise.resolve(), realUser: () => (email ? { email } : null) } },
+        {
+          provide: AuthService,
+          useValue: {
+            ready: () => Promise.resolve(),
+realUser: () => (email ? { email, id: userId } : null),
+          },
+        },
       ],
     });
     spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
@@ -38,6 +45,43 @@ describe('HandoffComponent', () => {
 
   beforeEach(() => {
     email = undefined;
+    userId = 'other-user';
+  });
+
+  it('warns although two different accounts mask identically (jane@gmail.com vs jx@gmx.com)', async () => {
+    email = 'jx@gmx.com'; // masks to j***@g***.com, same as the code owner's display
+    const f = create(`c=${CODE}`);
+    await f.componentInstance.ngOnInit();
+    await f.componentInstance.signIn();
+    expect(confirm).toHaveBeenCalled();
+    expect(handoff.redeem).toHaveBeenCalled(); // confirmed -> proceeds
+  });
+
+  it('same account already signed in: no redeem, just navigates to the target', async () => {
+    email = 'jane@gmail.com';
+    userId = 'owner-1';
+    const f = create(`c=${CODE}`);
+    await f.componentInstance.ngOnInit();
+    await f.componentInstance.signIn();
+    expect(handoff.redeem).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/codex/ship/x', { replaceUrl: true });
+  });
+
+  it('a double tap sends only one redeem', async () => {
+    const f = create(`c=${CODE}`);
+    await f.componentInstance.ngOnInit();
+    await Promise.all([f.componentInstance.signIn(), f.componentInstance.signIn()]);
+    expect(handoff.redeem).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancelling the dialog frees the button again', async () => {
+    email = 'jx@gmx.com';
+    const f = create(`c=${CODE}`);
+    await f.componentInstance.ngOnInit();
+    confirm.and.resolveTo(false);
+    await f.componentInstance.signIn();
+    expect(f.componentInstance.busy()).toBeFalse();
   });
 
   it('never redeems on load: only peeks, and strips the fragment first', async () => {
