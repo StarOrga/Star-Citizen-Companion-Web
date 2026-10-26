@@ -97,10 +97,11 @@ interface HeroStory {
 
 /**
  * `/verse` — the briefing, "Anflug": a cinematic stage (nebula, sun and the
- * current patch's constellation from frame 0, a static planet horizon) that
- * flies in once per session. One viewport on desktop: the instrument strip
- * (patch status centred, the current constellation as the star-map link in the
- * far top-right corner), the centred hero (the newest stories rotate; pills only switch, the CTA is
+ * a static planet horizon) that flies in once per session. One viewport on
+ * desktop: the instrument strip (patch status centred), the current patch's
+ * constellation as the star-map link at the right edge beside the hero — only
+ * once the explorer state has loaded, built up star by star, never a stand-in
+ * figure first — the centred hero (the newest stories rotate; pills only switch, the CTA is
  * the one way in) and the gate band of three moons above the footer strip.
  * One pause control holds all auto motion. β off: the legacy landing (the
  * Verse News list) renders instead.
@@ -196,6 +197,12 @@ export class VerseBriefingComponent {
     const st = this.api.explorer();
     return st ? defaultPatch(st) : null;
   });
+  /**
+   * The constellation renders only for a loaded patch: before that (and signed
+   * out, where nothing loads) there is no figure at all, so the reader never
+   * sees a stand-in that then jumps to the real one.
+   */
+  readonly skyReady = computed(() => this.patch() !== null);
   readonly points = computed(() => this.patch()?.constellation?.points ?? null);
   readonly lit = computed(() => Math.min(STARS_PER_PATCH, this.patch()?.starCount ?? 0));
   /** The star map's placement of the lit stars, so both pages light the same ones. */

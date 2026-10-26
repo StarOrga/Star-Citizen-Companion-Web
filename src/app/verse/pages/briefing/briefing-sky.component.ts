@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import type { VersePoint } from '../../data/verse.models';
 import { skyFigure } from './briefing.model';
 
+/** Seconds between two stars of the build-up (7 stars → ~1.4 s in all). */
+export const SKY_STEP_S = 0.16;
+
 /**
  * The current patch's constellation (itself the star-map link), in the star
  * map's glyph language without rings: lit stars (core, spikes, a slowly
@@ -9,6 +12,11 @@ import { skyFigure } from './briefing.model';
  * between two lit stars and dashed wherever the figure is still incomplete.
  * No "next" star here — that guidance lives on the star map. Decorative: the
  * surrounding anchor carries the count in words.
+ *
+ * Rendered only once the real figure is known, it builds itself up: the stars
+ * appear one after another, each edge draws in (lit) or fades in (dashed)
+ * right after the star it leads to. Held by the stage's pause
+ * (--sc-brief-play); reduced motion shows the final figure.
  */
 @Component({
   selector: 'sc-briefing-sky',
@@ -16,17 +24,20 @@ import { skyFigure } from './briefing.model';
   template: `
     <svg viewBox="-12 -12 124 124" aria-hidden="true" focusable="false">
       @for (l of figure().lines; track $index) {
-        <line [class]="'ln ' + l.state" [attr.x1]="l.x1" [attr.y1]="l.y1" [attr.x2]="l.x2" [attr.y2]="l.y2" />
+        <line [class]="'ln ' + l.state" [attr.pathLength]="l.state === 'lit' ? 1 : null" [style.--d]="lineDelay($index)"
+              [attr.x1]="l.x1" [attr.y1]="l.y1" [attr.x2]="l.x2" [attr.y2]="l.y2" />
       }
       @for (s of figure().stars; track s.i) {
         <g [class]="'st ' + s.state" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'" [style.--ph]="s.phase + 's'">
-          @if (s.state === 'lit') {
-            <circle class="h" r="8" />
-            <path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" />
-            <circle class="c" r="1.8" />
-          } @else {
-            <circle class="c" r="2.2" />
-          }
+          <g class="in" [style.--d]="starDelay(s.i)">
+            @if (s.state === 'lit') {
+              <circle class="h" r="8" />
+              <path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" />
+              <circle class="c" r="1.8" />
+            } @else {
+              <circle class="c" r="2.2" />
+            }
+          </g>
         </g>
       }
     </svg>
@@ -45,9 +56,17 @@ import { skyFigure } from './briefing.model';
       .lit .c { fill: #fff; filter: drop-shadow(0 0 1.4px #fff); }
       /* open: the star map's open glyph — a small hollow ring, dim, no glow */
       .off .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); stroke-width: 0.9; }
+      /* build-up: stars pop in one by one, edges follow the star they lead to */
+      .in { transform-origin: 0 0; animation: star-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d) both;
+        animation-play-state: var(--sc-brief-play, running); }
+      .ln { animation: line-in 0.5s ease-out var(--d) both; animation-play-state: var(--sc-brief-play, running); }
+      .ln.lit { stroke-dasharray: 1; animation-name: line-draw; }
+      @keyframes star-in { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: none; } }
+      @keyframes line-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+      @keyframes line-in { from { opacity: 0; } }
       @keyframes glow { 0%, 100% { opacity: 0.24; } 50% { opacity: 0.4; } }
       @media (prefers-reduced-motion: reduce) {
-        .lit .h { animation: none; }
+        .lit .h, .in, .ln { animation: none; }
       }
     `,
   ],
@@ -58,4 +77,15 @@ export class BriefingSkyComponent {
   /** The star map's placement (see `explorerLit`); null → symmetric order by `lit`. */
   readonly litSet = input<ReadonlySet<number> | null>(null);
   readonly figure = computed(() => skyFigure(this.points(), this.lit(), this.litSet()));
+
+  /** Star `i` appears at this offset into the build-up. */
+  starDelay(i: number): string {
+    return `${(i * SKY_STEP_S).toFixed(2)}s`;
+  }
+
+  /** Edge `k` runs from star k to star k+1 (the last closes back to star 0): it follows its end star. */
+  lineDelay(k: number): string {
+    const end = Math.min(k + 1, this.figure().stars.length - 1);
+    return `${(end * SKY_STEP_S + 0.15).toFixed(2)}s`;
+  }
 }
