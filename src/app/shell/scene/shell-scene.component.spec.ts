@@ -93,7 +93,7 @@ describe('Shell scene — component', () => {
       expect(scene().dataset['mode']).withContext(`${from}→${to}`).toBe('move');
       expect(scene().dataset['from']).withContext(`${from}→${to}`).toBe(from);
       expect(moving(planet())).withContext(`${from}→${to} transition`).toBeTrue();
-      for (const a of document.getAnimations()) a.finish();
+      for (const a of document.getAnimations()) if (a instanceof CSSTransition) a.finish();
       from = to;
     }
   });
