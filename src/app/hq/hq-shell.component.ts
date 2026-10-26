@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BetaService } from '../core/beta.service';
 import { HqSuppliesPanelComponent } from './hq-supplies-panel.component';
+import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
+import { HqSuppliesService } from './hq-supplies.service';
 import { HQ_ROOT, hqHangar, hqLocker, hqOps } from './hq-routes';
 
 /** One category tab of the HQ frame. */
@@ -27,7 +30,7 @@ export const HQ_TABS: readonly HqTab[] = [
 @Component({
   selector: 'sc-hq-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, HqSuppliesPanelComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, HqSuppliesPanelComponent, HqSuppliesPopupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="hq-bar">
@@ -59,7 +62,11 @@ export const HQ_TABS: readonly HqTab[] = [
     <router-outlet />
 
     @if (suppliesOpen()) {
-      <sc-hq-supplies-panel [returnFocus]="suppliesBtn" (closed)="suppliesOpen.set(false)" />
+      @if (shell()) {
+        <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
+      } @else {
+        <sc-hq-supplies-panel [returnFocus]="suppliesBtn" (closed)="suppliesOpen.set(false)" />
+      }
     }
   `,
   styles: [
@@ -105,6 +112,8 @@ export const HQ_TABS: readonly HqTab[] = [
 export class HqShellComponent {
   readonly tabs = HQ_TABS;
   readonly suppliesOpen = signal(false);
-  /** Shell stage: the supplies list has no data source yet, so the counter is 0. */
-  readonly suppliesCount = computed(() => 0);
+  readonly shell = inject(BetaService).isEnabled('shell');
+  private readonly supplies = inject(HqSuppliesService);
+  /** Beta off: the supplies list has no data source, so the counter is 0. Beta on: the open lines of the popup list. */
+  readonly suppliesCount = computed(() => (this.shell() ? this.supplies.open().length : 0));
 }
