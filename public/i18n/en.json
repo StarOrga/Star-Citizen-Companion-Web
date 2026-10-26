@@ -12,10 +12,7 @@
       "message": "This device is signed in as {{current}}. Continuing signs it in as {{target}} instead.",
       "confirm": "Switch account"
     },
-    "revoke": {
-      "note": "Signs the phone out. It loses access at the latest within one hour.",
-      "done": "Phone signed out. It loses access at the latest within one hour."
-    },
+    "revoke": "Sign out",
     "errors": {
       "invalidCode": "This link has expired or was already used. Create a new one on your computer.",
       "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
@@ -25,7 +22,21 @@
       "revokeUnavailable": "The phone could not be signed out from here. Changing your password signs out every device.",
       "invalidPath": "This page cannot be opened on your phone.",
       "notFound": "This hand-off no longer exists."
-    }
+    },
+    "button": "Continue on your phone",
+    "step1": "Scan the code",
+    "step2": "Confirm on the phone",
+    "step3": "Phone opens this page",
+    "qrAlt": "QR code to open this page on your phone",
+    "loading": "Creating code …",
+    "expires": "The code is valid for one minute and works once.",
+    "retry": "Create a new code",
+    "connected": "Phone connected",
+    "connectedDevice": "Connected: {{device}}",
+    "devices": "Connected phones",
+    "noDevice": "Unknown device",
+    "expired": "The code has expired.",
+    "revoked": "The hand-off was ended."
   },
   "common": {
     "select": {
@@ -4887,7 +4898,7 @@
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set comet on {{date}}",
-      "locked": {},
+      "locked": [],
       "undoToast": "Comet for {{patch}} set: {{date}}"
     },
     "guess": {
@@ -4942,13 +4953,5 @@
       "title": "Beta areas",
       "note": "Visible to admins and collaborators only."
     }
-  },
-  "handoff": {
-    "button": "Continue on your phone",
-    "title": "Continue on your phone",
-    "step1": "Scan the code",
-    "step2": "Confirm on the phone",
-    "step3": "Phone opens this page",
-    "placeholder": "The QR code appears here once the connection is ready."
   }
 }

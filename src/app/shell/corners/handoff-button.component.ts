@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import qrcode from 'qrcode-generator';
+import { HandoffConnection, HandoffService, handoffTargetPath } from '../../core/handoff/handoff.service';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -23,7 +26,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       <button type="button" class="round" [attr.aria-expanded]="open()" aria-haspopup="dialog"
               [attr.aria-label]="'handoff.button' | translate"
               [scTooltip]="'handoff.button' | translate" scTooltipTier="label"
-              (click)="open.set(!open())">
+              (click)="toggle()">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor"
              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="7" y="2.5" width="10" height="19" rx="2.2" /><path d="M11 18.5h2" />
@@ -31,7 +34,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       </button>
       @if (open()) {
         <div class="popup" scDialog role="dialog" [attr.aria-label]="'handoff.title' | translate"
-             (keydown.escape)="open.set(false)">
+             (keydown.escape)="close()">
           <p class="title">{{ 'handoff.title' | translate }}</p>
           <ol class="steps">
             @for (n of steps; track n) {
@@ -41,12 +44,36 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
               </li>
             }
           </ol>
-          <div class="status" data-slot="handoff-status">
-            <!-- STUB: the QR code / "Handy verbunden" / revoke area. Wired to HandoffService later. -->
-            <ng-content select="[handoffStatus]">
-              <span class="placeholder">{{ 'handoff.placeholder' | translate }}</span>
-            </ng-content>
+          <div class="status" aria-live="polite">
+            @if (errorKey(); as key) {
+              <p class="err" role="alert">{{ key | translate }}</p>
+              <button type="button" class="btn" (click)="start()">{{ 'handoff.retry' | translate }}</button>
+            } @else if (svc.status() === 'connected') {
+              <p class="ok">{{ 'handoff.connected' | translate }}@if (svc.device(); as d) { <span class="dev">· {{ d }}</span>}</p>
+              <p class="hint">{{ 'handoff.revoke.note' | translate }}</p>
+              <button type="button" class="btn" (click)="revoke(null)">{{ 'handoff.revoke' | translate }}</button>
+            } @else if (svc.status() === 'pending' && qr(); as src) {
+              <img class="qr" [src]="src" [alt]="'handoff.qrAlt' | translate" width="160" height="160" />
+              <p class="hint">{{ 'handoff.expires' | translate }}</p>
+            } @else if (svc.status() === 'expired' || svc.status() === 'revoked') {
+              <p class="hint">{{ (svc.status() === 'expired' ? 'handoff.expired' : 'handoff.revoked') | translate }}</p>
+              <button type="button" class="btn" (click)="start()">{{ 'handoff.retry' | translate }}</button>
+            } @else {
+              <p class="hint">{{ 'handoff.loading' | translate }}</p>
+            }
+            @if (doneNote()) { <p class="hint">{{ 'handoff.revoke.done' | translate }}</p> }
           </div>
+          @if (phones().length) {
+            <div class="phones">
+              <p class="sub">{{ 'handoff.devices' | translate }}</p>
+              @for (ph of phones(); track ph.id) {
+                <div class="phone">
+                  <span>{{ ph.device ?? ('handoff.noDevice' | translate) }}</span>
+                  <button type="button" class="btn small" (click)="revoke(ph.id)">{{ 'handoff.revoke' | translate }}</button>
+                </div>
+              }
+            </div>
+          }
         </div>
       }
     </div>
@@ -90,21 +117,97 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .status { min-height: 120px; display: grid; place-items: center; text-align: center;
       border: 1px dashed var(--sc-border); border-radius: 10px; padding: var(--sc-space-3);
       color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .qr { width: 160px; height: 160px; background: #fff; border-radius: 8px; }
+    .status { gap: var(--sc-space-2); align-content: center; justify-items: center; }
+    .status p { margin: 0; }
+    .ok { color: var(--sc-accent); font-weight: 600; }
+    .err { color: var(--sc-danger); }
+    .hint, .dev { color: var(--sc-fg-2); }
+    .btn { min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3); cursor: pointer; font: inherit;
+      color: var(--sc-fg-1); background: none; border: 1px solid var(--sc-border); border-radius: 999px; }
+    .btn:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .phones { margin-top: var(--sc-space-3); }
+    .sub { margin: 0 0 var(--sc-space-1); color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .phone { display: flex; align-items: center; justify-content: space-between; gap: var(--sc-space-3);
+      font-size: max(0.78rem, var(--sc-fs-floor)); }
     @media (max-width: 600px) { .wrap { display: none; } }
     @media (prefers-reduced-motion: reduce) { .popup { animation: none; } }
   `],
 })
-export class HandoffButtonComponent {
-  /** Current step of the flow (1 scan, 2 confirm, 3 phone opens this page). */
-  readonly step = input<1 | 2 | 3>(1);
+export class HandoffButtonComponent implements OnDestroy {
+  protected readonly svc = inject(HandoffService);
+  private readonly router = inject(Router);
+  private readonly host = inject(ElementRef<HTMLElement>);
+
   protected readonly steps = [1, 2, 3] as const;
   protected readonly open = signal(false);
-  private readonly host = inject(ElementRef<HTMLElement>);
+  protected readonly errorKey = signal<string | null>(null);
+  protected readonly phones = signal<HandoffConnection[]>([]);
+  protected readonly doneNote = signal(false);
+  /** 1 scan, 2 confirm (happens on the phone, not observable), 3 connected. */
+  protected readonly step = computed(() => (this.svc.status() === 'connected' ? 3 : 1));
+  /** The QR is the current code's URL as an SVG data URL (the code lives in the fragment). */
+  protected readonly qr = computed(() => {
+    const cur = this.svc.current();
+    if (!cur) return null;
+    const q = qrcode(0, 'M');
+    q.addData(cur.url);
+    q.make();
+    return `data:image/svg+xml;utf8,${encodeURIComponent(q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }))}`;
+  });
+
+  protected toggle(): void {
+    if (this.open()) this.close();
+    else {
+      this.open.set(true);
+      void this.start();
+    }
+  }
+
+  protected close(): void {
+    this.open.set(false);
+    this.svc.stopWatching();
+  }
+
+  protected async start(): Promise<void> {
+    this.errorKey.set(null);
+    this.doneNote.set(false);
+    void this.refreshPhones();
+    try {
+      await this.svc.create(handoffTargetPath(this.router.url));
+    } catch (err) {
+      this.errorKey.set(await this.svc.errorKey('create', err));
+    }
+  }
+
+  protected async revoke(id: string | null): Promise<void> {
+    try {
+      await this.svc.revoke(id ?? undefined);
+      this.doneNote.set(true);
+      this.errorKey.set(null);
+      await this.refreshPhones();
+    } catch (err) {
+      this.errorKey.set(await this.svc.errorKey('revoke', err));
+    }
+  }
+
+  private async refreshPhones(): Promise<void> {
+    try {
+      this.phones.set(await this.svc.listConnected());
+    } catch {
+      this.phones.set([]);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.svc.stopWatching();
+  }
 
   @HostListener('document:pointerdown', ['$event'])
   onOutside(ev: Event): void {
     if (!this.open()) return;
     const wrap = (this.host.nativeElement as HTMLElement).querySelector('.wrap');
-    if (wrap && !wrap.contains(ev.target as Node)) this.open.set(false);
+    if (wrap && !wrap.contains(ev.target as Node)) this.close();
   }
 }
