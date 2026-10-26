@@ -167,6 +167,7 @@
     "skipToContent": "Skip to content",
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "phaseBadge": "Alpha",
+    "badge": "Cartographer badge",
     "accountMenu": "Account menu",
     "adminOnly": "Admin only",
     "adminMenu": "Admin",
@@ -3109,6 +3110,11 @@
   },
   "download": {
     "title": "Download",
+    "extension": {
+      "title": "Browser extension",
+      "text": "Imports your RSI hangar into the HQ - for Chrome and Edge.",
+      "open": "Install the extension"
+    },
     "subtitle": "Get the Data Uploader for your local Star Citizen install."
   },
   "desktopConnect": {
@@ -5099,6 +5105,8 @@
       "friends": "Friends",
       "releaseNotes": "What's new",
       "badge": "Cartographer badge",
+      "ops": "Ops",
+      "extension": "Browser extension",
       "download": "Downloads"
     },
     "companion": {

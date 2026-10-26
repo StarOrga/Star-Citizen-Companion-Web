@@ -182,6 +182,8 @@ export const SEARCH_PLACES: readonly SearchPlace[] = [
   { id: 'hq', labelKey: 'fusionBar.place.hq', link: ['/hq'], queryParams: null, keywords: ['hq', 'zuhause', 'home', 'übersicht'], boost: ['hq'] },
   { id: 'keybinds', labelKey: 'fusionBar.place.keybinds', link: ['/codex', 'keybinds'], queryParams: null, keywords: ['keybind', 'tasten', 'steuerung', 'controls', 'shortcut'], boost: ['codex'] },
   { id: 'upcoming', labelKey: 'fusionBar.place.upcoming', link: ['/codex', 'upcoming'], queryParams: null, keywords: ['upcoming', 'angekündigt', 'concept', 'reissbrett'], boost: ['codex', 'codexIndex'] },
+  { id: 'ops', labelKey: 'fusionBar.place.ops', link: ['/hq', 'einsaetze'], queryParams: null, keywords: ['einsätze', 'einsatz', 'ops', 'mission', 'missionen', 'planung'], boost: ['hq'] },
+  { id: 'extension', labelKey: 'fusionBar.place.extension', link: ['/tools', 'extension'], queryParams: null, keywords: ['erweiterung', 'extension', 'browser', 'chrome', 'edge', 'import'], boost: [] },
   { id: 'settings', labelKey: 'fusionBar.place.settings', link: ['/settings'], queryParams: null, keywords: ['einstellungen', 'settings', 'konto', 'account', 'sprache', 'language'], boost: [] },
   { id: 'friends', labelKey: 'fusionBar.place.friends', link: ['/friends'], queryParams: null, keywords: ['freunde', 'friends', 'org'], boost: [] },
   { id: 'releaseNotes', labelKey: 'fusionBar.place.releaseNotes', link: ['/release-notes'], queryParams: null, keywords: ['release', 'changelog', 'neu', 'version'], boost: [] },
