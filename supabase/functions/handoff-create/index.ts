@@ -69,14 +69,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  // On-read cleanup of this user's stale rows (the pg_cron job does the rest).
-  await admin
-    .from('handoff_codes')
-    .delete()
-    .eq('user_id', user.id)
-    .is('consumed_at', null)
-    .lt('expires_at', new Date().toISOString());
-
+  // Rate limit FIRST and over every row of the window (consumed and expired
+  // too) - cleaning up before counting would hand out fresh quota.
   const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
   const { count, error: countErr } = await admin
     .from('handoff_codes')
@@ -88,6 +82,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: 'server_error' }, 500);
   }
   if ((count ?? 0) >= RATE_LIMIT_COUNT) return json({ error: 'rate_limited' }, 429);
+
+  // On-read cleanup of this user's long-dead unredeemed rows (older than the
+  // rate window, so it cannot refill quota). Consumed rows stay: their session
+  // may live. The pg_cron job does the rest.
+  await admin
+    .from('handoff_codes')
+    .delete()
+    .eq('user_id', user.id)
+    .is('consumed_at', null)
+    .lt('expires_at', since);
 
   const code = generateCode();
   const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();

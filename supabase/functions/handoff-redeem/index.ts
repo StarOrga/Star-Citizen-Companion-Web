@@ -1,8 +1,15 @@
 // supabase/functions/handoff-redeem
 // ---------------------------------------------------------------
-// The phone presents a hand-off code (from the QR / link) and receives a NEW
-// session of its own. UNAUTHENTICATED by design (verify_jwt = false in
+// The phone presents a hand-off code (from the QR / link fragment) and receives
+// a NEW session of its own. UNAUTHENTICATED by design (verify_jwt = false in
 // config.toml): the phone has no session yet, the code IS the credential.
+//
+// Two calls, both POST:
+//   { code, peek: true }  read-only: who would this sign in as? -> { email_masked }
+//                         Consumes nothing. The page shows it and waits for an
+//                         explicit tap (login-CSRF guard: a link someone else
+//                         made must never sign the browser in on its own).
+//   { code }              redeem -> { access_token, refresh_token, expires_at, target_path }
 //
 // How the session is minted (and why this way)
 // --------------------------------------------
@@ -11,23 +18,36 @@
 // returns a hashed OTP WITHOUT sending mail, and a throwaway anon client
 // redeems it with `verifyOtp` -> a real, independent auth.sessions row with its
 // own refresh-token chain. The desktop's tokens are never read, copied or
-// returned; revoking the phone (handoff-revoke) deletes only that session.
+// returned. Side effect: generateLink replaces a pending magic-link/recovery OTP
+// of that user (see contract note, rollout).
 //
 //   * Atomic single use: handoff_redeem() is one UPDATE ... WHERE
-//     consumed_at IS NULL AND expires_at > now(). Replays, expired codes and
-//     unknown codes are indistinguishable to the caller (404 invalid_code).
-//   * If minting fails AFTER consumption the code stays burned (fail closed);
-//     the user simply requests a new one (502 mint_failed).
-//   * Brute force: 256-bit codes; additionally a shape check before any DB work
-//     and a small per-isolate failure throttle per IP (best effort).
+//     consumed_at IS NULL AND revoked_at IS NULL AND expires_at > now().
+//     Replays, expired, revoked and unknown codes are indistinguishable (404).
+//   * Fail closed. After minting, handoff_attach_session() stores the session id
+//     unless the owner revoked meanwhile. If that returns false / errors, or the
+//     session id cannot be read, the just-minted session is killed and NO tokens
+//     are returned (409 revoked / 502 mint_failed). The code stays burned.
+//   * Throttle: every call (peek or redeem) counts per IP; failures count extra.
+//     Best effort per isolate - the 256-bit entropy is the real defence.
 //   * No tokens or codes are logged.
 //
-// Input:  POST { code: string }
-// Output: 200 { access_token, refresh_token, expires_at, target_path }
-//         400 bad_request | 404 invalid_code | 429 rate_limited | 502 mint_failed | 500 server_error
+// Output errors: 400 bad_request | 404 invalid_code | 409 revoked | 429 rate_limited
+//   (our throttle) | 429 auth_rate_limited (GoTrue quota) | 502 mint_failed
+//   | 500 server_error
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-import { deviceLabel, hashCode, looksLikeCode, sessionIdOf } from './_hash.ts';
+import {
+  type Throttle,
+  deviceLabel,
+  hashCode,
+  isRateLimited,
+  isThrottled,
+  looksLikeCode,
+  maskEmail,
+  sessionIdOf,
+  touch,
+} from './_hash.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -42,10 +62,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Best-effort failure throttle (isolates are short-lived; the entropy is the real defence).
-const failures = new Map<string, { n: number; reset: number }>();
-const MAX_FAILURES = 10;
-const FAILURE_WINDOW_MS = 10 * 60 * 1000;
+const throttles = new Map<string, Throttle>();
 
 function ipOf(req: Request): string {
   return (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
@@ -60,18 +77,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   if (!url || !anonKey || !serviceKey) return json({ error: 'server_error' }, 500);
 
-  const ip = ipOf(req);
-  const now = Date.now();
-  const f = failures.get(ip);
-  if (f && f.reset > now && f.n >= MAX_FAILURES) return json({ error: 'rate_limited' }, 429);
+  const throttle = touch(throttles, ipOf(req), Date.now());
+  if (isThrottled(throttle)) return json({ error: 'rate_limited' }, 429);
   const fail = (): Response => {
-    const cur = failures.get(ip);
-    if (cur && cur.reset > now) cur.n += 1;
-    else failures.set(ip, { n: 1, reset: now + FAILURE_WINDOW_MS });
+    throttle.failures += 1;
     return json({ error: 'invalid_code' }, 404);
   };
 
-  let body: { code?: unknown } = {};
+  let body: { code?: unknown; peek?: unknown } = {};
   try {
     body = await req.json();
   } catch {
@@ -80,9 +93,40 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!looksLikeCode(body.code)) return fail();
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const hash = await hashCode(body.code);
 
+  // Best-effort kill of a session we minted but must not hand out.
+  const kill = async (accessToken: string, sessionId: string | null, userId: string): Promise<void> => {
+    try {
+      if (sessionId) {
+        const { error } = await admin.rpc('handoff_kill_session', { p_session: sessionId, p_user: userId });
+        if (!error) return;
+        console.error(`[handoff-redeem] kill rpc failed: ${error.message}`);
+      }
+      const { error: soErr } = await admin.auth.admin.signOut(accessToken, 'local');
+      if (soErr) console.error(`[handoff-redeem] signOut fallback failed: ${soErr.message}`);
+    } catch (e) {
+      console.error(`[handoff-redeem] kill threw: ${e instanceof Error ? e.message : 'unknown'}`);
+    }
+  };
+
+  // ---- peek: read-only, consumes nothing -------------------------------------
+  if (body.peek === true) {
+    const { data: peeked, error: peekErr } = await admin.rpc('handoff_peek', { p_hash: hash });
+    if (peekErr) {
+      console.error(`[handoff-redeem] peek rpc failed: ${peekErr.message}`);
+      return json({ error: 'server_error' }, 500);
+    }
+    const who = Array.isArray(peeked) ? peeked[0] : null;
+    if (!who) return fail();
+    const { data: pu } = await admin.auth.admin.getUserById(who.user_id);
+    const mail = pu?.user?.email ?? '';
+    return json({ email_masked: mail ? maskEmail(mail) : '***' });
+  }
+
+  // ---- redeem ------------------------------------------------------------------
   const { data: rows, error: redeemErr } = await admin.rpc('handoff_redeem', {
-    p_hash: await hashCode(body.code),
+    p_hash: hash,
     p_device: deviceLabel(req.headers.get('user-agent')),
   });
   if (redeemErr) {
@@ -103,7 +147,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const tokenHash = link?.properties?.hashed_token ?? '';
   if (linkErr || !tokenHash) {
     console.error(`[handoff-redeem] generateLink failed: ${linkErr?.message ?? 'no hashed_token'}`);
-    return json({ error: 'mint_failed' }, 502);
+    return isRateLimited(linkErr) ? json({ error: 'auth_rate_limited' }, 429) : json({ error: 'mint_failed' }, 502);
   }
 
   const fresh = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -114,14 +158,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const session = verified?.session;
   if (verifyErr || !session?.refresh_token) {
     console.error(`[handoff-redeem] verifyOtp failed: ${verifyErr?.message ?? 'no session'}`);
-    return json({ error: 'mint_failed' }, 502);
+    return isRateLimited(verifyErr) ? json({ error: 'auth_rate_limited' }, 429) : json({ error: 'mint_failed' }, 502);
   }
 
-  // Remember the phone's session so the owner can revoke exactly it.
+  // Attach the phone's session to the row unless the owner revoked meanwhile.
+  // Anything but a clear "true" fails closed: the session dies, no tokens leave.
   const sessionId = sessionIdOf(session.access_token);
-  if (sessionId) {
-    const { error: upErr } = await admin.from('handoff_codes').update({ session_id: sessionId }).eq('id', hit.id);
-    if (upErr) console.error(`[handoff-redeem] session_id store failed: ${upErr.message}`);
+  if (!sessionId) {
+    console.error('[handoff-redeem] no session_id claim - failing closed');
+    await kill(session.access_token, null, hit.user_id);
+    return json({ error: 'mint_failed' }, 502);
+  }
+  const { data: attached, error: attachErr } = await admin.rpc('handoff_attach_session', {
+    p_id: hit.id,
+    p_session: sessionId,
+  });
+  if (attachErr || attached !== true) {
+    if (attachErr) console.error(`[handoff-redeem] attach failed: ${attachErr.message}`);
+    await kill(session.access_token, sessionId, hit.user_id);
+    return attachErr ? json({ error: 'mint_failed' }, 502) : json({ error: 'revoked' }, 409);
   }
 
   return json({

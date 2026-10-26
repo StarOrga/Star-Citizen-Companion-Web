@@ -6,11 +6,18 @@
 // until its own expiry (<= 1 h) unless GoTrue checks session existence, which
 // current versions do on /user.
 //
+// All logic is one SQL call, handoff_revoke(): it marks revoked_at atomically,
+// so a redeem still in flight (consumed, session id not attached yet) fails
+// closed instead of slipping a live session past us. `revoked: true` is only
+// returned when a row actually changed.
+//
 // Input:  POST { id: uuid } (the handoff row id returned by handoff-create)
 //         Authorization: Bearer <user JWT>
-// Output: 200 { revoked: boolean } | 400 bad_request | 401 unauthorized | 404 not_found | 500 server_error
+// Output: 200 { revoked: boolean, outcome } | 400 bad_request | 401 unauthorized
+//         | 404 not_found | 501 revoke_unavailable (no DELETE on auth.sessions) | 500 server_error
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { isRevokeUnavailable, revokeResponse } from './_revoke.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -55,35 +62,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (typeof id !== 'string' || !UUID.test(id)) return json({ error: 'bad_request' }, 400);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: row, error: rowErr } = await admin
-    .from('handoff_codes')
-    .select('session_id')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (rowErr) {
-    console.error(`[handoff-revoke] lookup failed: ${rowErr.message}`);
-    return json({ error: 'server_error' }, 500);
-  }
-  if (!row) return json({ error: 'not_found' }, 404);
-
-  if (!row.session_id) {
-    // Never redeemed: just burn the code so it can no longer be used.
-    await admin
-      .from('handoff_codes')
-      .update({ consumed_at: new Date().toISOString(), revoked_at: new Date().toISOString() })
-      .eq('id', id)
-      .is('consumed_at', null);
-    return json({ revoked: true });
-  }
-
-  const { data: revoked, error: revErr } = await admin.rpc('handoff_revoke_session', {
-    p_session: row.session_id,
-    p_user: user.id,
-  });
+  const { data: outcome, error: revErr } = await admin.rpc('handoff_revoke', { p_id: id, p_user: user.id });
   if (revErr) {
+    if (isRevokeUnavailable(revErr)) {
+      console.error('[handoff-revoke] auth.sessions DELETE not granted - cannot revoke');
+      return json({ error: 'revoke_unavailable' }, 501);
+    }
     console.error(`[handoff-revoke] rpc failed: ${revErr.message}`);
     return json({ error: 'server_error' }, 500);
   }
-  return json({ revoked: revoked === true });
+  const res = revokeResponse(outcome);
+  return json(res.body, res.status);
 });
