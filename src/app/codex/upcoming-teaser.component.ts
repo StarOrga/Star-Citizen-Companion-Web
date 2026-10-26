@@ -114,6 +114,7 @@ export class UpcomingTeaserComponent {
 
   /** Concept ships that have a render: the ones new since the last visit first. */
   protected readonly slides = computed(() => {
+    if (!this.shell()) return [];
     const fresh = this.svc.newIds();
     const withArt = this.svc
       .concept()
