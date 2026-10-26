@@ -110,7 +110,7 @@ export const COMPANION_ROUTE = '/companion';
       </svg>
       @if (context().key !== 'all') {
         <span class="ctx-chip">
-          <span class="ctx-label">{{ contextLabelKey() | translate: contextParams() }}</span>
+          <span class="ctx-label">{{ contextLabelKey() | translate: { kind: (kindKey() | translate), name: chipName() ?? ('fusionBar.ctx.shipFallback' | translate) } }}</span>
           <button type="button" class="ctx-x" (click)="dropContext()"
                   [attr.aria-label]="'fusionBar.search.dropContext' | translate"
                   [scTooltip]="'fusionBar.search.dropContext' | translate" scTooltipTier="label">
@@ -567,15 +567,13 @@ export class FusionSearchComponent {
     this.contextDropped() ? neutralContext() : searchContextOf(this.url()),
   );
   readonly contextLabelKey = computed(() => this.context().labelKey);
-  /** Chip params: the Codex kind (translated by the pipe) or the page title. */
-  readonly contextParams = computed<Record<string, string>>(() => {
-    const c = this.context();
-    const kind = c.labelParams?.['kind'];
-    return {
-      kind: kind ? this.t.instant(`codex.kinds.${kind}`) : '',
-      name: this.chrome.crumbs()?.title ?? this.t.instant('fusionBar.ctx.shipFallback'),
-    };
+  /** i18n key of the Codex kind the chip names (index / detail contexts). */
+  readonly kindKey = computed(() => {
+    const kind = this.context().labelParams?.['kind'];
+    return kind ? `codex.kinds.${kind}` : 'fusionBar.ctx.codex';
   });
+  /** The page title the chip names on a ship page (published by the page header). */
+  readonly chipName = computed(() => this.chrome.crumbs()?.title ?? null);
 
   readonly busy = computed(() => this.engine.loading() || this.engine.input().trim() !== this.engine.term().trim());
   readonly codexGroups = computed<WeightedGroup[]>(() =>
@@ -966,7 +964,7 @@ export class FusionSearchComponent {
       if (this.copiedTimer) clearTimeout(this.copiedTimer);
       this.copiedTimer = setTimeout(() => this.copied.set(null), 1800);
     } catch (err) {
-      logWarn('fusion-search: clipboard write failed', err);
+      logWarn('fusion-search', 'clipboard write failed', err);
     }
   }
 

@@ -17,12 +17,6 @@
   transition: transform var(--sc-bar-hide-ms) cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity var(--sc-bar-hide-ms) ease;
 }
-// Cinematic: the stage runs edge to edge UNDER the capsule.
-:host([data-mode='stage']),
-:host([data-mode='hub']),
-:host([data-mode='docked']) {
-  margin-bottom: calc(-1 * var(--sc-bar-h));
-}
 :host(.hidden) {
   transform: translateY(calc(-100% - var(--sc-space-2)));
   opacity: 0;
@@ -468,7 +462,7 @@
     left: 0;
     right: 0;
     bottom: var(--sc-float-bottom);
-    margin: 0 !important;
+    margin: 0;
     min-height: 0;
     padding: 0 var(--sc-page-gutter);
     flex-direction: column-reverse;
