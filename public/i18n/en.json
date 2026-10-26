@@ -3099,8 +3099,10 @@
       "about": "About",
       "privacy": "Privacy",
       "imprint": "Site notice",
-      "aboutNew": "new"
-    }
+      "aboutNew": "new",
+      "news": "What's new"
+    },
+    "disclaimerTitle": "Fan-site notice"
   },
   "legal": {
     "about": {
@@ -4905,6 +4907,20 @@
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Page shell"
+    },
+    "chip": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "title": "Beta areas",
+      "note": "Visible to admins and collaborators only."
     }
+  },
+  "handoff": {
+    "button": "Continue on your phone",
+    "title": "Continue on your phone",
+    "step1": "Scan the code",
+    "step2": "Confirm on the phone",
+    "step3": "Phone opens this page",
+    "placeholder": "The QR code appears here once the connection is ready."
   }
 }

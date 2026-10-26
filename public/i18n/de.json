@@ -3099,8 +3099,10 @@
       "about": "Über",
       "privacy": "Datenschutz",
       "imprint": "Impressum",
-      "aboutNew": "neu"
-    }
+      "aboutNew": "neu",
+      "news": "Neuigkeiten"
+    },
+    "disclaimerTitle": "Hinweis zur Fan-Site"
   },
   "legal": {
     "about": {
@@ -4905,6 +4907,20 @@
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Seiten-Rahmen"
+    },
+    "chip": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "title": "Beta-Bereiche",
+      "note": "Nur für Admins und Collaborators sichtbar."
     }
+  },
+  "handoff": {
+    "button": "Auf dem Handy weitermachen",
+    "title": "Auf dem Handy weitermachen",
+    "step1": "Code scannen",
+    "step2": "Am Handy bestätigen",
+    "step3": "Handy öffnet diese Seite",
+    "placeholder": "Der QR-Code erscheint hier, sobald die Verbindung bereit ist."
   }
 }

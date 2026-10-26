@@ -1,6 +1,13 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
+import { BetaService } from '../core/beta.service';
+import { LayoutService } from '../core/layout/layout.service';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
+import { BetaChipComponent } from './corners/beta-chip.component';
+import { HandoffButtonComponent } from './corners/handoff-button.component';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ReleaseSeenService } from '../release-notes/release-seen.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -13,9 +20,49 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 @Component({
   selector: 'sc-footer',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective, ScDialogDirective, NgTemplateOutlet, BetaChipComponent, HandoffButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (shellOn()) {
+      <footer class="sf" [class.sf-stage]="stage()" [attr.data-footer]="stage() ? 'stage' : 'end'">
+        <div class="sf-badge" (mouseenter)="peek()" (mouseleave)="unpeek()" (focusout)="onFocusOut($event)"
+             (keydown.escape)="bubble.set('closed')">
+          <button type="button" class="sf-badge-btn" aria-haspopup="dialog"
+                  [attr.aria-expanded]="bubble() === 'pinned'"
+                  [attr.aria-describedby]="bubble() === 'peek' ? 'sf-bubble' : null"
+                  (click)="togglePinned()" (focus)="peek()">
+            <img src="icons/made-by-community.png" [alt]="'footer.badgeAlt' | translate" width="32" height="32" />
+            <span class="sf-word">{{ 'footer.madeByCommunity' | translate }}</span>
+          </button>
+          @if (bubble() === 'pinned') {
+            <div class="sf-bubble" id="sf-bubble" scDialog role="dialog" [attr.aria-label]="'footer.disclaimerTitle' | translate">
+              <ng-container *ngTemplateOutlet="disclaimerBody" />
+            </div>
+          } @else if (bubble() === 'peek') {
+            <div class="sf-bubble" id="sf-bubble" role="tooltip">
+              <ng-container *ngTemplateOutlet="disclaimerBody" />
+            </div>
+          }
+        </div>
+        <nav class="sf-links" [attr.aria-label]="'footer.legalNav' | translate">
+          <a routerLink="/release-notes" class="sf-news">{{ 'footer.links.news' | translate }}@if (seen.unseen()) {<span class="new-dot" aria-hidden="true"></span><span class="sc-sr-only"> ({{ 'footer.links.aboutNew' | translate }})</span>}</a>
+          <span aria-hidden="true">·</span>
+          <a routerLink="/about">{{ 'footer.links.about' | translate }}</a>
+          <span aria-hidden="true">·</span>
+          <a routerLink="/legal/privacy">{{ 'footer.links.privacy' | translate }}</a>
+          <span aria-hidden="true">·</span>
+          <a routerLink="/legal/imprint">{{ 'footer.links.imprint' | translate }}</a>
+        </nav>
+      </footer>
+      <ng-template #disclaimerBody>
+        <p>{{ 'footer.disclaimer' | translate }}</p>
+        <p class="sf-tm">{{ 'footer.trademarks' | translate }}</p>
+      </ng-template>
+      <sc-beta-chip />
+      @if (auth.user()) {
+        <sc-handoff-button />
+      }
+    } @else {
     <footer class="site-footer" [class.overlay]="overlay()">
       <div class="inner">
         <div class="badge">
@@ -58,8 +105,66 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
       </div>
     </footer>
+    }
   `,
   styles: [`
+    :host { display: contents; }
+    /* ---- Shell beta footer: no background, no line ---- */
+    .sf {
+      position: relative; margin-top: auto; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: space-between; gap: var(--sc-space-4);
+      padding: var(--sc-space-2) var(--sc-page-gutter) calc(var(--sc-space-2) + var(--sc-safe-bottom, 0px));
+      min-height: var(--sc-footer-h);
+    }
+    /* Hub stage: the footer sits on the stage's bottom edge and scrolls along
+       (in flow, pulled up over the stage by its own height), infos centred. */
+    .sf-stage { margin-top: calc(-1 * var(--sc-footer-h)); justify-content: center; pointer-events: none; z-index: 2; }
+    .sf-stage > * { pointer-events: auto; }
+    .sf-stage .sf-badge { position: absolute; left: var(--sc-page-gutter); bottom: var(--sc-space-2); }
+    .sf-badge { position: relative; }
+    .sf-badge-btn {
+      display: inline-flex; align-items: center; gap: var(--sc-space-2); cursor: pointer;
+      min-height: var(--sc-tap-min); padding: 0; border: 0; background: none; font: inherit; color: var(--sc-fg-2);
+    }
+    .sf-badge-btn img { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.35)); }
+    .sf-word {
+      font-family: var(--sc-font-display); font-size: max(0.58rem, var(--sc-fs-floor));
+      letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.2; max-width: 11ch;
+    }
+    .sf-badge-btn:hover, .sf-badge-btn:focus-visible { color: var(--sc-fg-1); }
+    .sf-badge-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 6px; }
+    /* Speech bubble: grows up out of the badge, tail points at it. */
+    .sf-bubble {
+      position: absolute; left: 0; bottom: calc(100% + var(--sc-space-2)); z-index: 5;
+      width: min(380px, calc(100vw - 2 * var(--sc-space-4)));
+      padding: var(--sc-space-3) var(--sc-space-4);
+      background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
+      border: 1px solid var(--sc-border); border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px);
+      color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); line-height: 1.45;
+    }
+    .sf-bubble::after {
+      content: ''; position: absolute; left: 22px; bottom: -6px; width: 10px; height: 10px; rotate: 45deg;
+      background: inherit; border: 1px solid var(--sc-border); border-top: 0; border-left: 0;
+    }
+    .sf-bubble p { margin: 0; }
+    .sf-bubble .sf-tm { margin-top: var(--sc-space-2); opacity: 0.8; font-size: max(0.7rem, var(--sc-fs-floor)); }
+    .sf-links {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sc-space-2);
+      font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+    }
+    .sf-links a { color: var(--sc-fg-2); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+    .sf-links a:hover { color: var(--sc-accent); }
+    .sf-links a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
+    /* Phone: compact, badge row over the links, clear of the feedback launcher. */
+    @media (max-width: 600px) {
+      .sf { flex-direction: column; align-items: flex-start; gap: var(--sc-space-1);
+        padding-bottom: var(--sc-fab-clear-block); }
+      .sf-stage { align-items: center; }
+      .sf-stage .sf-badge { position: relative; left: auto; bottom: auto; align-self: flex-start; }
+    }
+
+    
     .site-footer {
       border-top: 1px solid var(--sc-border);
       background: linear-gradient(0deg, var(--sc-bg-2), transparent);
@@ -216,6 +321,21 @@ export class FooterComponent {
   /** Verse front page: render as a fixed overlay strip (set by the shell). */
   readonly overlay = input(false);
   protected readonly seen = inject(ReleaseSeenService);
+  protected readonly auth = inject(AuthService);
+  private readonly layoutSvc = inject(LayoutService);
+  protected readonly shellOn = inject(BetaService).isEnabled('shell');
+  /** Hub (cinematic) pages: the footer sits on the stage's bottom edge. */
+  protected readonly stage = computed(() => this.layoutSvc.layout() === 'cinematic');
+
+  /** Disclaimer bubble: hover / focus peeks, a click pins it (then it is a real dialog). */
+  protected readonly bubble = signal<'closed' | 'peek' | 'pinned'>('closed');
+  protected peek(): void { if (this.bubble() === 'closed') this.bubble.set('peek'); }
+  protected unpeek(): void { if (this.bubble() === 'peek') this.bubble.set('closed'); }
+  protected togglePinned(): void { this.bubble.set(this.bubble() === 'pinned' ? 'closed' : 'pinned'); }
+  protected onFocusOut(ev: FocusEvent): void {
+    const next = ev.relatedTarget as Node | null;
+    if (this.bubble() === 'peek' && !(ev.currentTarget as HTMLElement).contains(next)) this.bubble.set('closed');
+  }
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
 
