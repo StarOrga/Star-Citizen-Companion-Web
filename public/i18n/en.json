@@ -1,4 +1,43 @@
 {
+  "handoff": {
+    "title": "Continue on your phone",
+    "working": "Signing you in on this device…",
+    "toLogin": "Sign in manually",
+    "confirm": {
+      "lead": "Your computer wants to hand this device an account. Nothing happens until you confirm.",
+      "signInAs": "Sign in as {{account}}"
+    },
+    "switch": {
+      "title": "Switch account?",
+      "message": "This device is signed in as {{current}}. Continuing signs it in as {{target}} instead.",
+      "confirm": "Switch account"
+    },
+    "revoke": "Sign out",
+    "errors": {
+      "invalidCode": "This link has expired or was already used. Create a new one on your computer.",
+      "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
+      "authRateLimit": "The sign-in service is busy right now. Please try again in a few minutes.",
+      "mintFailed": "Signing in on this device did not work. Create a new link on your computer and try again.",
+      "revoked": "This hand-off was cancelled on your computer.",
+      "revokeUnavailable": "The phone could not be signed out from here. Changing your password signs out every device.",
+      "invalidPath": "This page cannot be opened on your phone.",
+      "notFound": "This hand-off no longer exists."
+    },
+    "button": "Continue on your phone",
+    "step1": "Scan the code",
+    "step2": "Confirm on the phone",
+    "step3": "Phone opens this page",
+    "qrAlt": "QR code to open this page on your phone",
+    "loading": "Creating code …",
+    "expires": "The code is valid for one minute and works once.",
+    "retry": "Create a new code",
+    "connected": "Phone connected",
+    "connectedDevice": "Connected: {{device}}",
+    "devices": "Connected phones",
+    "noDevice": "Unknown device",
+    "expired": "The code has expired.",
+    "revoked": "The hand-off was ended."
+  },
   "common": {
     "select": {
       "none": "No selection"
@@ -3099,8 +3138,10 @@
       "about": "About",
       "privacy": "Privacy",
       "imprint": "Site notice",
-      "aboutNew": "new"
-    }
+      "aboutNew": "new",
+      "news": "What's new"
+    },
+    "disclaimerTitle": "Fan-site notice"
   },
   "legal": {
     "about": {
@@ -4883,7 +4924,7 @@
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set comet on {{date}}",
-      "locked": {},
+      "locked": [],
       "undoToast": "Comet for {{patch}} set: {{date}}"
     },
     "guess": {
@@ -4931,6 +4972,90 @@
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Page shell"
+    },
+    "chip": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "title": "Beta areas",
+      "note": "Visible to admins and collaborators only."
+    }
+  },
+  "fusionBar": {
+    "navAria": "Main areas",
+    "areaMenu": "Switch area — now: {{area}}",
+    "home": "Home",
+    "filters": "Filters",
+    "kinds": {
+      "fps": "FPS",
+      "keybinds": "Keybinds"
+    },
+    "ctx": {
+      "all": "Everywhere",
+      "verse": "Verse",
+      "gallery": "Gallery",
+      "codex": "Codex",
+      "codexIndex": "Codex · {{kind}}",
+      "ship": "{{name}}",
+      "shipFallback": "This ship",
+      "codexDetail": "{{kind}}",
+      "fps": "FPS",
+      "hq": "My HQ"
+    },
+    "placeholder": {
+      "all": "Search everywhere …",
+      "verse": "Search ships, patches, news …",
+      "gallery": "Search the gallery or the Codex …",
+      "codex": "Ships, weapons, components …",
+      "codexIndex": "Search the Codex …",
+      "ship": "Components, weapons, ships …",
+      "codexDetail": "Search the Codex …",
+      "fps": "Weapons, armour, gear …",
+      "hq": "Hangar, locker, ships …"
+    },
+    "search": {
+      "label": "Search",
+      "dropContext": "Remove context — search everywhere",
+      "ask": "Ask the Companion",
+      "askKey": "Shift ↵",
+      "places": "Pages",
+      "here": "Here",
+      "page": "Page",
+      "owned": "In your hangar",
+      "newTab": "Open {{name}} in a new tab",
+      "newTabShort": "In new tab",
+      "copyLink": "Copy link to {{name}}",
+      "copyLinkShort": "Copy link",
+      "copied": "Link copied",
+      "keys": {
+        "dropContext": "at field start: drop context"
+      },
+      "action": {
+        "add": "Hangar +",
+        "hangar": "In hangar",
+        "index": "In index",
+        "open": "Open"
+      }
+    },
+    "place": {
+      "news": "News",
+      "patches": "Patches",
+      "gallery": "Gallery",
+      "hangar": "Hangar",
+      "spind": "Locker",
+      "hq": "HQ overview",
+      "keybinds": "Keybinds",
+      "upcoming": "Announced ships",
+      "settings": "Settings",
+      "friends": "Friends",
+      "releaseNotes": "What's new",
+      "badge": "Cartographer badge",
+      "download": "Downloads"
+    },
+    "companion": {
+      "title": "Ask the Companion",
+      "subtitle": "Answers with reasoning — coming soon.",
+      "body": "The Companion cannot answer questions like this yet. Until then the search is the fastest way to the answer.",
+      "searchInstead": "Search the Codex instead"
     }
   }
 }

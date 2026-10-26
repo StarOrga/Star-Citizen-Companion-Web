@@ -71,6 +71,8 @@ import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { CodexSearchTriggerComponent } from './search/codex-search-trigger.component';
 import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
+import { BarToolbarDirective } from '../shell/fusion-bar/bar-toolbar.directive';
+import { BetaService } from '../core/beta.service';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -139,7 +141,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent, BarToolbarDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -157,6 +159,8 @@ export function blueprintCategoriesForGroup(
            Real links since the category lives in the URL (?kind=): middle
            click and "open in new tab" work, a plain left click switches in
            place. A category that is not in the build yet is no link at all. -->
+      <!-- Beta "shell": the kinds are segments in the Fusion bar instead. -->
+      @if (!shellOn()) {
       <nav class="kind-bar" [attr.aria-label]="'codex.categoriesAria' | translate">
         @for (k of categories; track k) {
           @if (isComingSoon(k)) {
@@ -175,6 +179,7 @@ export function blueprintCategoriesForGroup(
           }
         }
       </nav>
+      }
 
       <!-- Weapons hold BOTH the on-foot catalog and every ship hardpoint mount
            in one table (admin feedback 7897bcb0), so the flat A-Z grid was
@@ -223,7 +228,8 @@ export function blueprintCategoriesForGroup(
       } @else {
 
       <!-- Search + facets -->
-      <div class="controls sc-card">
+      <!-- Beta "shell": *scBarToolbar hands this toolbar to the Fusion bar (its filter drawer). -->
+      <div class="controls sc-card" *scBarToolbar>
         <div class="search-row">
           <input class="search" type="search" [ngModel]="searchInput()"
                  (ngModelChange)="onSearchInput($event)"
@@ -724,6 +730,8 @@ export function blueprintCategoriesForGroup(
 })
 export class CodexListComponent implements OnInit {
   protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
+  /** Beta "shell": kinds + filters move into the Fusion bar. */
+  protected readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);

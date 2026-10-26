@@ -47,12 +47,14 @@ import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
 import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 import { LayoutService } from '../core/layout/layout.service';
+import { NgTemplateOutlet } from '@angular/common';
+import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, ShellSceneComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -74,6 +76,7 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
   template: `
     <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
     <sc-shell-scene />
+    @if (!shellOn()) {
     <header class="topbar">
       <!-- Wordmark: the "alpha" badge is CENTERED UNDER the title, not beside it
            (feedback #79). It is absolutely positioned on purpose — the title's
@@ -197,6 +200,18 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
           preview is ImpersonationBannerComponent, mounted app-level in
           app.component.ts and reachable from every route including /login.
         -->
+        <ng-container [ngTemplateOutlet]="accountMenu" />
+      </div>
+    </header>
+    } @else {
+      <!-- Beta "shell": header + subheader as ONE capsule (fusion-bar/). The account
+           menu is this component's own, projected, so it keeps its styles and handlers. -->
+      <sc-fusion-bar>
+        <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+      </sc-fusion-bar>
+    }
+
+    <ng-template #accountMenu>
         <div class="profile-menu">
           <button
             type="button"
@@ -323,8 +338,7 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
             </div>
           }
         </div>
-      </div>
-    </header>
+    </ng-template>
 
     @if (imp.enterFailed()) {
       <!-- Defect A: enter() used to reload unconditionally even when the
@@ -802,6 +816,16 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
        Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
        reclaimed space is reused below the heading by the pages themselves. */
+    /* Beta "shell": the account menu rides in the Fusion bar. On a phone the
+       bar sits at the bottom, so the menu opens upward and the page keeps
+       the bar's stack (capsule + kind chips / drawer) free at its end. */
+    .bar-account .avatar-btn { width: 40px; height: 40px; }
+    @media (max-width: 720px) {
+      .bar-account .dropdown { top: auto; bottom: calc(100% + 10px); }
+      :host([data-layout]) {
+        padding-bottom: calc(var(--sc-bar-stack-h, var(--sc-bar-h)) + var(--sc-float-bottom) + var(--sc-space-3));
+      }
+    }
     .codex-bar { margin-bottom: 18px; }
     /* A page with its own list filter carries the compact trigger in its
        header instead — no slim row, so no gap for one (the bar sets .tucked). */

@@ -5,6 +5,9 @@
 //   --sc-pl-d    diameter
 //   --sc-pl-cap  visible cap: from the planet's top point to the bottom edge
 //   --sc-pl-x    centre, as a percentage of the box width
+//   --sc-pl-lift how far the cap sits above the bottom edge: phones (<= 720px)
+//                carry the Fusion bar at the bottom (--sc-bar-stack-h), so the
+//                planet zone rises above it
 // Cap ratio k = cap / d decides the chord at the bottom edge,
 // 2·d·sqrt(k(1-k)); the values are picked so the bottom-left corner stays
 // clear for the "Made by the Community" badge on every viewport (phone: room
@@ -19,12 +22,16 @@
   --sc-pl-cap: calc(var(--sc-pl-d) * 0.2);
   --sc-pl-x: 50%;
   --sc-pl-xv: 50vw;
+  --sc-pl-lift: 0px;
 
   @media (max-width: 1080px) {
     --sc-pl-d: 80vw;
     --sc-pl-cap: calc(var(--sc-pl-d) * 0.2);
     --sc-pl-x: 58%;
     --sc-pl-xv: 58vw;
+  }
+  @media (max-width: 720px) {
+    --sc-pl-lift: calc(var(--sc-bar-stack-h, var(--sc-bar-h, 56px)) + var(--sc-float-bottom, 0px));
   }
   @media (max-width: 640px) {
     --sc-pl-d: 84vw;

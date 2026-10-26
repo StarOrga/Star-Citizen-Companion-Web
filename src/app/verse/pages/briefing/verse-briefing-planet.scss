@@ -21,7 +21,7 @@
 .planetary .frame {
   height: 100%;
   grid-template-rows: auto minmax(0, 1fr);
-  padding-bottom: calc(var(--sc-pl-cap) + var(--sc-space-2, 8px));
+  padding-bottom: calc(var(--sc-pl-cap) + var(--sc-pl-lift) + var(--sc-space-2, 8px));
 }
 .planetary .top { min-height: 64px; }
 
@@ -65,7 +65,7 @@
   z-index: 2;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--sc-pl-lift);
   height: var(--sc-pl-cap);
   pointer-events: none;
 }

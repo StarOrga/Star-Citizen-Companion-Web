@@ -5,6 +5,7 @@ import { BetaService } from '../core/beta.service';
 import { LayoutService } from '../core/layout/layout.service';
 import { FooterComponent } from './footer.component';
 import { skipToMain } from './skip-link';
+import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 
 /**
  * Bare chrome for the app's small public surface (`/about`, `/legal/privacy`,
@@ -32,13 +33,17 @@ import { skipToMain } from './skip-link';
 @Component({
   selector: 'sc-public-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, TranslatePipe, FooterComponent],
+  imports: [RouterOutlet, RouterLink, TranslatePipe, FooterComponent, FusionBarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Same layout contract as the shell (beta "shell"): one shared frame, styles.scss.
   host: { '[attr.data-layout]': 'shellOn() ? layout.layout() : null' },
   template: `
     <div class="public-shell">
       <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
+      @if (shellOn()) {
+        <!-- Beta "shell": the same capsule as the app, public variant (brand + way home). -->
+        <sc-fusion-bar variant="public" />
+      } @else {
       <header class="public-topbar">
         <a class="home" routerLink="/">
           <span class="arrow" aria-hidden="true">←</span>
@@ -46,6 +51,7 @@ import { skipToMain } from './skip-link';
           <span class="label">{{ 'nav.backToHome' | translate }}</span>
         </a>
       </header>
+      }
       <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()">
         <router-outlet />
       </main>
@@ -105,6 +111,10 @@ import { skipToMain } from './skip-link';
       padding: 26px var(--sc-page-gutter) 32px;
       max-width: var(--sc-page-max);
       margin: 0 auto;
+    }
+    /* Beta "shell" on a phone: the capsule sits at the bottom — keep it free. */
+    @media (max-width: 720px) {
+      :host([data-layout]) .public-shell { padding-bottom: calc(var(--sc-bar-stack-h, var(--sc-bar-h)) + var(--sc-float-bottom) + var(--sc-space-3)); }
     }
     @media (max-width: 720px) {
       .public-topbar { padding: 4px 12px; }

@@ -116,7 +116,7 @@
         }
         @if (shell()) {
           <!-- The hub's own search line; the bar morphs it into the capsule once it scrolls away. -->
-          <button type="button" class="find" (click)="openSearch()" aria-keyshortcuts="Control+K /">
+          <button type="button" class="find" scStageSearch (click)="openSearch()" aria-keyshortcuts="Control+K /">
             <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
             <span class="find-tx">{{ 'verse.hub.search' | translate }}</span>
             <kbd>{{ 'verse.hub.searchKey' | translate }}</kbd>

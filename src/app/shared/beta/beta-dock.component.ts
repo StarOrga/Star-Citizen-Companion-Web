@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { RoleService } from '../../auth/role.service';
 import { BetaArea, BetaService } from '../../core/beta.service';
 
 /**
@@ -14,6 +15,7 @@ import { BetaArea, BetaService } from '../../core/beta.service';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (!replacedByChip()) {
     <aside class="beta-dock" [style.--lane]="lane()" [attr.aria-label]="'beta.aria' | translate">
       <div class="beta-pill">
         <span class="beta-mark" aria-hidden="true">β</span>
@@ -27,6 +29,7 @@ import { BetaArea, BetaService } from '../../core/beta.service';
         </button>
       </div>
     </aside>
+    }
   `,
   styles: [`
     :host { display: contents; }
@@ -72,6 +75,10 @@ import { BetaArea, BetaService } from '../../core/beta.service';
 })
 export class BetaDockComponent {
   protected readonly beta = inject(BetaService);
+  private readonly roles = inject(RoleService);
+  private readonly shellOn = this.beta.isEnabled('shell');
+  /** With the shell beta on, admins / collaborators switch areas in the top-right chip instead. */
+  protected readonly replacedByChip = () => this.shellOn() && this.roles.isCollaborator();
 
   readonly area = input.required<BetaArea>();
   /** 0 = the corner; 1 = one pill higher, for a second dock on the same page. */

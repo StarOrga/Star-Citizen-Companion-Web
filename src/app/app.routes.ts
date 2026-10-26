@@ -68,6 +68,11 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'handoff',
+    data: { layout: 'plain' },
+    loadComponent: () => import('./core/handoff/handoff.component').then((m) => m.HandoffComponent),
+  },
+  {
     // Public surface — bare chrome (PublicLayoutComponent), reachable
     // signed-out. Legal requirement (imprint/privacy) plus /about (login-card
     // trust link, anti-AV-phishing heuristic). Deliberately NOT nested under
@@ -480,6 +485,14 @@ export const routes: Routes = [
         data: { layout: 'content' },
         loadComponent: () =>
           import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
+      },
+      {
+        // "Companion fragen" (beta shell, Fusion search): a placeholder until
+        // the target is decided (concept 2026-10-25, spec §5).
+        path: 'companion',
+        data: { layout: 'content' },
+        loadComponent: () =>
+          import('./shell/fusion-bar/companion-stub.component').then((m) => m.CompanionStubComponent),
       },
     ],
   },

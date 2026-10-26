@@ -65,7 +65,7 @@ sc-shell-scene {
   .planet {
     position: absolute;
     left: calc(var(--sc-pl-x) - var(--sc-pl-d) / 2);
-    top: calc(100% - var(--sc-pl-cap));
+    top: calc(100% - var(--sc-pl-cap) - var(--sc-pl-lift));
     width: var(--sc-pl-d);
     height: var(--sc-pl-d);
     border-radius: 50%;

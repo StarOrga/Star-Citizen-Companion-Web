@@ -1,4 +1,43 @@
 {
+  "handoff": {
+    "title": "Auf dem Handy weitermachen",
+    "working": "Du wirst auf diesem Gerät angemeldet …",
+    "toLogin": "Manuell anmelden",
+    "confirm": {
+      "lead": "Dein Computer möchte diesem Gerät ein Konto übergeben. Es passiert nichts, bevor du bestätigst.",
+      "signInAs": "Als {{account}} anmelden"
+    },
+    "switch": {
+      "title": "Konto wechseln?",
+      "message": "Dieses Gerät ist als {{current}} angemeldet. Wenn du fortfährst, wird es stattdessen als {{target}} angemeldet.",
+      "confirm": "Konto wechseln"
+    },
+    "revoke": "Abmelden",
+    "errors": {
+      "invalidCode": "Dieser Link ist abgelaufen oder wurde schon benutzt. Erzeuge am Computer einen neuen.",
+      "rateLimit": "Zu viele Versuche. Bitte warte ein paar Minuten und versuche es erneut.",
+      "authRateLimit": "Der Anmeldedienst ist gerade ausgelastet. Bitte versuche es in ein paar Minuten erneut.",
+      "mintFailed": "Die Anmeldung auf diesem Gerät hat nicht geklappt. Erzeuge am Computer einen neuen Link und versuche es erneut.",
+      "revoked": "Diese Übergabe wurde am Computer abgebrochen.",
+      "revokeUnavailable": "Das Handy konnte von hier nicht abgemeldet werden. Eine Passwortänderung meldet alle Geräte ab.",
+      "invalidPath": "Diese Seite kann nicht auf dem Handy geöffnet werden.",
+      "notFound": "Diese Übergabe existiert nicht mehr."
+    },
+    "button": "Auf dem Handy weitermachen",
+    "step1": "Code scannen",
+    "step2": "Am Handy bestätigen",
+    "step3": "Handy öffnet diese Seite",
+    "qrAlt": "QR-Code zum Öffnen dieser Seite auf dem Handy",
+    "loading": "Code wird erzeugt …",
+    "expires": "Der Code gilt eine Minute und nur einmal.",
+    "retry": "Neuen Code erzeugen",
+    "connected": "Handy verbunden",
+    "connectedDevice": "Verbunden: {{device}}",
+    "devices": "Verbundene Handys",
+    "noDevice": "Unbekanntes Gerät",
+    "expired": "Der Code ist abgelaufen.",
+    "revoked": "Die Übergabe wurde beendet."
+  },
   "common": {
     "select": {
       "none": "Keine Auswahl"
@@ -3099,8 +3138,10 @@
       "about": "Über",
       "privacy": "Datenschutz",
       "imprint": "Impressum",
-      "aboutNew": "neu"
-    }
+      "aboutNew": "neu",
+      "news": "Neuigkeiten"
+    },
+    "disclaimerTitle": "Hinweis zur Fan-Site"
   },
   "legal": {
     "about": {
@@ -4883,7 +4924,7 @@
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Komet auf {{date}} setzen",
-      "locked": {},
+      "locked": [],
       "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
@@ -4931,6 +4972,90 @@
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Seiten-Rahmen"
+    },
+    "chip": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "title": "Beta-Bereiche",
+      "note": "Nur für Admins und Collaborators sichtbar."
+    }
+  },
+  "fusionBar": {
+    "navAria": "Hauptbereiche",
+    "areaMenu": "Bereich wechseln — jetzt: {{area}}",
+    "home": "Startseite",
+    "filters": "Filter",
+    "kinds": {
+      "fps": "FPS",
+      "keybinds": "Keybinds"
+    },
+    "ctx": {
+      "all": "Überall",
+      "verse": "Verse",
+      "gallery": "Galerie",
+      "codex": "Codex",
+      "codexIndex": "Codex · {{kind}}",
+      "ship": "{{name}}",
+      "shipFallback": "Dieses Schiff",
+      "codexDetail": "{{kind}}",
+      "fps": "FPS",
+      "hq": "Mein HQ"
+    },
+    "placeholder": {
+      "all": "Überall suchen …",
+      "verse": "Suche in Schiffen, Patches, News …",
+      "gallery": "Galerie oder Codex durchsuchen …",
+      "codex": "Schiffe, Waffen, Komponenten …",
+      "codexIndex": "Im Codex suchen …",
+      "ship": "Komponenten, Waffen, Schiffe …",
+      "codexDetail": "Im Codex suchen …",
+      "fps": "Waffen, Rüstungen, Ausrüstung …",
+      "hq": "Hangar, Spind, Schiffe …"
+    },
+    "search": {
+      "label": "Suche",
+      "dropContext": "Kontext entfernen — überall suchen",
+      "ask": "Companion fragen",
+      "askKey": "Shift ↵",
+      "places": "Seiten",
+      "here": "Hier",
+      "page": "Seite",
+      "owned": "In deinem Hangar",
+      "newTab": "{{name}} in neuem Tab öffnen",
+      "newTabShort": "In neuem Tab",
+      "copyLink": "Link zu {{name}} kopieren",
+      "copyLinkShort": "Link kopieren",
+      "copied": "Link kopiert",
+      "keys": {
+        "dropContext": "am Feldanfang: Kontext weg"
+      },
+      "action": {
+        "add": "Hangar +",
+        "hangar": "Im Hangar",
+        "index": "Im Index",
+        "open": "Öffnen"
+      }
+    },
+    "place": {
+      "news": "News",
+      "patches": "Patches",
+      "gallery": "Galerie",
+      "hangar": "Hangar",
+      "spind": "Spind",
+      "hq": "HQ-Übersicht",
+      "keybinds": "Keybinds",
+      "upcoming": "Angekündigte Schiffe",
+      "settings": "Einstellungen",
+      "friends": "Freunde",
+      "releaseNotes": "Neuigkeiten",
+      "badge": "Kartograph-Abzeichen",
+      "download": "Downloads"
+    },
+    "companion": {
+      "title": "Companion fragen",
+      "subtitle": "Antworten mit Begründung — bald.",
+      "body": "Der Companion beantwortet solche Fragen noch nicht. Bis dahin findest du die Antwort am schnellsten über die Suche.",
+      "searchInstead": "Stattdessen im Codex suchen"
     }
   }
 }

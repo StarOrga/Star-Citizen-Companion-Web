@@ -18,7 +18,7 @@ import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../news/news.service';
 import { PatchStabilityService } from '../../news/patch-stability.service';
-import { StageChromeService } from '../../shell/scene/stage-chrome.service';
+import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
 import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
@@ -121,7 +121,7 @@ interface HeroStory {
 @Component({
   selector: 'sc-verse-briefing',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent, StageSearchDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing/verse-briefing.component.html',
   styleUrls: ['./briefing/verse-briefing.component.scss', './briefing/verse-briefing-planet.scss'],
@@ -133,7 +133,6 @@ export class VerseBriefingComponent {
   private readonly auth = inject(AuthService);
   private readonly beta = inject(BetaService);
   private readonly stability = inject(PatchStabilityService);
-  private readonly stageChrome = inject(StageChromeService);
   readonly enabled = this.beta.isEnabled('verse');
   /**
    * β "shell": the planet zone (holo gate labels on the scene's planet, the
@@ -366,7 +365,7 @@ export class VerseBriefingComponent {
     }
   }
 
-  /** β shell: stability load, gate relay, the personal line's away clock, the stage search line. */
+  /** β shell: stability load, gate relay, the personal line's away clock. */
   private wirePlanetZone(): void {
     const on = (): boolean => this.enabled() && this.shell();
     effect(() => {
@@ -394,21 +393,12 @@ export class VerseBriefingComponent {
     };
     const back = (): void => this.resolveForYou(this.forYouQueue(), this.forYouStore());
     const onVisibility = (): void => (document.visibilityState === 'hidden' ? away() : back());
-    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     afterNextRender(() => {
       document.addEventListener('visibilitychange', onVisibility);
       window.addEventListener('blur', away);
       window.addEventListener('focus', back);
       window.addEventListener('pagehide', away);
-      const line = host.querySelector('.find');
-      const io = line && typeof IntersectionObserver !== 'undefined'
-        ? new IntersectionObserver(([e]) => this.stageChrome.setStageSearchVisible(e.isIntersecting))
-        : null;
-      if (line && io) io.observe(line);
-      else this.stageChrome.setStageSearchVisible(!!line);
       this.destroyRef.onDestroy(() => {
-        io?.disconnect();
-        this.stageChrome.setStageSearchVisible(false);
         document.removeEventListener('visibilitychange', onVisibility);
         window.removeEventListener('blur', away);
         window.removeEventListener('focus', back);
