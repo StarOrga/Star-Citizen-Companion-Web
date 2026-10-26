@@ -54,7 +54,7 @@ describe('HangarDashboardComponent role loadouts', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         fake.provider,
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } as unknown as AuthService },
-        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy('capture') } },
+        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy('capture'), flags: () => ({}) } },
         {
           provide: CodexService,
           useValue: {

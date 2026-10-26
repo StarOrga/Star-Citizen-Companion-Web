@@ -4980,7 +4980,7 @@
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set comet on {{date}}",
-      "locked": [],
+      "locked": {},
       "undoToast": "Comet for {{patch}} set: {{date}}"
     },
     "guess": {

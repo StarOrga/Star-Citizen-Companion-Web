@@ -4980,7 +4980,7 @@
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Komet auf {{date}} setzen",
-      "locked": [],
+      "locked": {},
       "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
