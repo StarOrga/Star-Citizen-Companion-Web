@@ -17,6 +17,15 @@ export const VERSE_ROUTES: Routes = [
     path: 'news',
     data: { layout: 'cinematic' },
     loadComponent: () => import('./pages/verse-news.component').then((m) => m.VerseNewsComponent),
+    children: [
+      {
+        // Overlay over the stream when opened from it, full page on a direct
+        // load - one route, one component (implement.md §9).
+        path: ':id',
+        data: { layout: 'content', [OVERLAY_ROUTE_DATA]: true },
+        loadComponent: () => import('./pages/verse-news-item.component').then((m) => m.VerseNewsItemComponent),
+      },
+    ],
   },
   {
     // The board renders the dossier through its own outlet — one patch opens
@@ -35,16 +44,22 @@ export const VERSE_ROUTES: Routes = [
     ],
   },
   {
-    path: 'gallery',
-    data: { layout: 'cinematic' },
-    pathMatch: 'full',
-    loadComponent: () => import('./pages/verse-gallery.component').then((m) => m.VerseGalleryComponent),
-  },
-  {
     path: 'gallery/constellations',
     data: { layout: 'cinematic' },
     loadComponent: () =>
       import('./starmap/my-constellations.component').then((m) => m.MyConstellationsComponent),
+  },
+  {
+    path: 'gallery',
+    data: { layout: 'cinematic' },
+    loadComponent: () => import('./pages/verse-gallery.component').then((m) => m.VerseGalleryComponent),
+    children: [
+      {
+        path: ':imageId',
+        data: { layout: 'content', [OVERLAY_ROUTE_DATA]: true },
+        loadComponent: () => import('./pages/verse-gallery-item.component').then((m) => m.VerseGalleryItemComponent),
+      },
+    ],
   },
   {
     path: 'explorer',

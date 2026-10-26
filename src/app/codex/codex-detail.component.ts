@@ -52,6 +52,7 @@ import { BetaService } from '../core/beta.service';
 import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
 import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
+import { ShareButtonComponent } from '../shared/share-button/share-button.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
 import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
@@ -255,7 +256,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent],
+  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -1038,6 +1039,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         }
       </ng-template>
     </section>
+    <sc-share-button />
   `,
   styles: [`
     .foreign-note { margin: 0 0 12px; padding: 10px 14px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); border-left: 3px solid var(--sc-warning); }

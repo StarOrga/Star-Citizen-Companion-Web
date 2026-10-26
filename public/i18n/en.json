@@ -1339,6 +1339,7 @@
       "dashNote": "Ammo and spread read “—” because energy weapons have no magazine and the P4K only carries spread as a modifier. Not an extractor gap.",
       "footerMissing": "Not in the game files: {{fields}}",
       "pickRow": "Fit {{name}}",
+      "openDetail": "Open details for {{name}}",
       "scope": {
         "sameClass": "{{class}} only",
         "sameFamily": "All {{family}}",
@@ -4313,6 +4314,14 @@
       "title": "Warning from the administrators",
       "acknowledge": "Understood"
     }
+  },
+  "overlay": {
+    "prev": "Previous entry",
+    "next": "Next entry",
+    "close": "Close",
+    "news": { "source": "Source", "missing": "This entry is no longer in the feed." },
+    "gallery": { "image": "Image", "missing": "This image was not found.", "download": "Download original", "article": "Article on RSI" },
+    "share": { "label": "Share a link to this section", "copied": "Link copied", "failed": "Sharing failed" }
   },
   "share": {
     "title": "Share set",
