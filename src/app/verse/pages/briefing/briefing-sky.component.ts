@@ -56,10 +56,11 @@ export const SKY_STEP_S = 0.16;
       .lit .c { fill: #fff; filter: drop-shadow(0 0 1.4px #fff); }
       /* open: the star map's open glyph — a small hollow ring, dim, no glow */
       .off .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); stroke-width: 0.9; }
-      /* build-up: stars pop in one by one, edges follow the star they lead to */
-      .in { transform-origin: 0 0; animation: star-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d) both;
+      /* build-up: stars pop in one by one, edges follow the star they lead to;
+         scaled by the stage's --k, so a repeat visit in the session builds up fast */
+      .in { transform-origin: 0 0; animation: star-in calc(0.45s * var(--k, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--d) * var(--k, 1)) both;
         animation-play-state: var(--sc-brief-play, running); }
-      .ln { animation: line-in 0.5s ease-out var(--d) both; animation-play-state: var(--sc-brief-play, running); }
+      .ln { animation: line-in calc(0.5s * var(--k, 1)) ease-out calc(var(--d) * var(--k, 1)) both; animation-play-state: var(--sc-brief-play, running); }
       .ln.lit { stroke-dasharray: 1; animation-name: line-draw; }
       @keyframes star-in { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: none; } }
       @keyframes line-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }

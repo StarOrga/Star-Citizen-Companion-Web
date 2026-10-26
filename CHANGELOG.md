@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.166.2] - 2026-10-26
+
+### Fixed
+
+- **Sternbild im Verse-Briefing.** Das Sternbild des aktuellen Patches (der
+  Weg zur Sternenkarte) klebt nicht mehr in der oberen rechten Ecke, sondern
+  hängt am rechten Rand unter der Sonne, auf Höhe der Schlagzeile – außerhalb
+  ihres Lichtstreifens. Am Handy bleibt es in der oberen Zeile. Solange die
+  Sternenkarten-Daten noch laden, erscheint kein Platzhalter-Sternbild mehr,
+  das danach in das richtige springt: Das Sternbild kommt erst, wenn es
+  feststeht, und baut sich dann Stern für Stern auf, die Verbindungen folgen.
+  Beim erneuten Besuch in derselben Sitzung geht der Aufbau so schnell wie der
+  übrige Einstieg; bei reduzierter Bewegung steht es sofort fertig da.
+
 ## [0.166.1] - 2026-10-26
 
 ### Changed
