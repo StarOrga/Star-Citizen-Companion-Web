@@ -1,4 +1,10 @@
 {
+  "handoff": {
+    "title": "Continue on your phone",
+    "working": "Signing you in on this device…",
+    "invalid": "This link has expired or was already used. Open the menu on your computer and create a new one.",
+    "toLogin": "Sign in manually"
+  },
   "common": {
     "select": {
       "none": "No selection"

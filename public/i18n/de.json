@@ -1,4 +1,10 @@
 {
+  "handoff": {
+    "title": "Auf dem Handy weitermachen",
+    "working": "Du wirst auf diesem Gerät angemeldet …",
+    "invalid": "Dieser Link ist abgelaufen oder wurde schon benutzt. Öffne auf dem Computer das Menü und erzeuge einen neuen.",
+    "toLogin": "Manuell anmelden"
+  },
   "common": {
     "select": {
       "none": "Keine Auswahl"
