@@ -4903,7 +4903,8 @@
     "switchFor": "New view for {{area}}",
     "area": {
       "verse": "Verse",
-      "codex": "Codex & HQ"
+      "codex": "Codex & HQ",
+      "shell": "Page shell"
     }
   }
 }

@@ -46,13 +46,19 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
 import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
 import { BetaDockComponent } from '../shared/beta/beta-dock.component';
+import { LayoutService } from '../core/layout/layout.service';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
   imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.verse-overlay]': 'verseOverlay()' },
+  host: {
+    '[class.verse-overlay]': 'verseOverlay()',
+    // Layout contract (beta "shell"): the page type of the active route, read by
+    // the bar / footer / width tracks (styles.scss, "SHELL TOKENS"). Absent with the β off.
+    '[attr.data-layout]': 'shellOn() ? layout.layout() : null',
+  },
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
   // outside .content, so they stay put.
@@ -366,7 +372,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
          be standing. Renders nothing when there is nothing to say. -->
     <sc-account-notice />
 
-    <main id="sc-main" tabindex="-1" class="content" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
+    <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
       <!-- The Codex search on every Codex page below the landing (whose own
            terminal row is the same bar). Ctrl+K, "/", the header button and
            typing on the page bring it forward instead of the overlay. -->
@@ -384,6 +390,10 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
     <!-- The β switch of the nav item the reader is in — only there. -->
     @if (betaArea(); as area) {
       <sc-beta-dock [area]="area" />
+    }
+    <!-- The app-wide shell β (layout contract) — for the people who test it. -->
+    @if (roles.isCollaborator()) {
+      <sc-beta-dock area="shell" [lane]="betaArea() ? 1 : 0" />
     }
 
     <sc-feedback-fab />
@@ -910,7 +920,12 @@ export class ShellComponent implements AfterViewInit {
   private readonly injector = inject(Injector);
 
   /** A Codex page below the landing — the shell mounts the Codex search bar above it. */
-  readonly codexBar = signal(isCodexSubpage(this.router.url));
+  private readonly onCodexSubpage = signal(isCodexSubpage(this.router.url));
+  /**
+   * With the shell β on the search lives in the bar (Ctrl+K / "/"), so the
+   * extra Codex bar row is gone — and with it the URL check.
+   */
+  readonly codexBar = computed(() => !this.shellOn() && this.onCodexSubpage());
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
@@ -919,6 +934,9 @@ export class ShellComponent implements AfterViewInit {
   /** On /admin or /admin/telemetry - the folded menu's button carries the active mark. */
   readonly adminRoute = signal(isAdminNavRoute(this.router.url));
   private readonly beta = inject(BetaService);
+  protected readonly layout = inject(LayoutService);
+  /** Beta "shell": the layout contract drives the frame (width tracks, gaps) instead of URL checks. */
+  readonly shellOn = this.beta.isEnabled('shell');
   /** The top-level Starscape entry — only while the Verse β is off. */
   readonly starscapeEntry = computed(() => !this.beta.state().verse);
   /** The HQ entry — part of the Codex β (codex/HQ split). */
@@ -930,7 +948,8 @@ export class ShellComponent implements AfterViewInit {
   /** On the Verse front page (exactly `/verse`) with the Verse β on: footer becomes an overlay strip. */
   private readonly onVerseHome = signal(isVerseHome(this.router.url));
   private readonly verseBeta = this.beta.isEnabled('verse');
-  readonly verseOverlay = computed(() => this.onVerseHome() && this.verseBeta());
+  /** The footer overlay strip of the Verse front page; the shell β replaces it (footer mode follows the layout). */
+  readonly verseOverlay = computed(() => !this.shellOn() && this.onVerseHome() && this.verseBeta());
 
   // Bumped each time a routed view mounts so the [@routeReveal] animation replays.
   readonly reveal = signal(0);
@@ -953,7 +972,7 @@ export class ShellComponent implements AfterViewInit {
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
-        this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
+        this.onCodexSubpage.set(isCodexSubpage(e.urlAfterRedirects));
         this.adminRoute.set(isAdminNavRoute(e.urlAfterRedirects));
         this.onVerseGallery.set(isVerseGallery(e.urlAfterRedirects));
         this.onVerseHome.set(isVerseHome(e.urlAfterRedirects));

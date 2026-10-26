@@ -63,6 +63,7 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    data: { layout: 'cinematic' },
     canActivate: [publicOnlyGuard],
     loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent),
   },
@@ -77,14 +78,17 @@ export const routes: Routes = [
     children: [
       {
         path: 'about',
+        data: { layout: 'content' },
         loadComponent: () => import('./legal/about.component').then((m) => m.AboutComponent),
       },
       {
         path: 'legal/privacy',
+        data: { layout: 'plain' },
         loadComponent: () => import('./legal/privacy.component').then((m) => m.PrivacyComponent),
       },
       {
         path: 'legal/imprint',
+        data: { layout: 'plain' },
         loadComponent: () => import('./legal/imprint.component').then((m) => m.ImprintComponent),
       },
       {
@@ -93,6 +97,7 @@ export const routes: Routes = [
         // approved yet, and the page must also render with NO session at all
         // (used-up or expired link) to offer a fresh mail.
         path: 'set-password',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./auth/set-password.component').then((m) => m.SetPasswordComponent),
       },
@@ -104,6 +109,7 @@ export const routes: Routes = [
         // the only thing `anon` can reach in the hangar schema, it projects
         // four fields, and it returns nothing for a revoked link.
         path: 'shared/loadout/:token',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./social/shared-loadout.component').then((m) => m.SharedLoadoutComponent),
       },
@@ -117,6 +123,7 @@ export const routes: Routes = [
         // routes sit behind the gated shell's `canActivateChild`, which would
         // bounce a signed-out recipient before this page ever renders.
         path: 'hangar/shared/:token',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./hangar/hangar-shared-loadout.component').then((m) => m.HangarSharedLoadoutComponent),
       },
@@ -126,6 +133,7 @@ export const routes: Routes = [
         // user id, no account lookup — and the constellation shape comes from
         // the public verse_constellations table.
         path: 'badge/kartograph',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./verse/starmap/kartograph-badge.component').then((m) => m.KartographBadgeComponent),
       },
@@ -137,6 +145,7 @@ export const routes: Routes = [
         // `publicOnlyGuard` sends an authenticated visitor straight back
         // into the gated routes, i.e. a redirect loop.
         path: 'unavailable',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./auth/access-unavailable.component').then((m) => m.AccessUnavailableComponent),
       },
@@ -170,6 +179,7 @@ export const routes: Routes = [
         // Codex front door = "the composed depth-field landing": Archive
         // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.
         path: 'codex',
+        data: { layout: 'cinematic' },
         pathMatch: 'full',
         loadComponent: () =>
           import('./codex/codex-landing.component').then((m) => m.CodexLandingComponent),
@@ -180,6 +190,7 @@ export const routes: Routes = [
         // reachable one click from the Bridge. Static segment placed BEFORE
         // codex/:kind/:className so it is never consumed by the :kind wildcard.
         path: 'codex/index',
+        data: { layout: 'tool' },
         loadComponent: () =>
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
@@ -197,6 +208,7 @@ export const routes: Routes = [
       },
       {
         path: 'codex/blueprint/:className',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./codex/blueprint-detail.component').then((m) => m.BlueprintDetailComponent),
       },
@@ -206,6 +218,7 @@ export const routes: Routes = [
         // Static segment placed BEFORE codex/:kind/:className so it is never
         // consumed by the :kind wildcard.
         path: 'codex/fps',
+        data: { layout: 'tool' },
         loadComponent: () =>
           import('./codex/fps-list.component').then((m) => m.FpsListComponent),
       },
@@ -214,6 +227,7 @@ export const routes: Routes = [
         // current build. Static segment placed BEFORE codex/:kind so it is not
         // consumed by the :kind wildcard.
         path: 'codex/keybinds',
+        data: { layout: 'tool' },
         loadComponent: () =>
           import('./codex/keybinds.component').then((m) => m.KeybindsComponent),
       },
@@ -226,7 +240,7 @@ export const routes: Routes = [
         // url. Static segment placed BEFORE codex/:kind/:className so it is not
         // consumed by the :kind wildcard.
         path: 'codex/upcoming',
-        data: { category: 'upcoming' },
+        data: { layout: 'tool', category: 'upcoming' },
         loadComponent: () =>
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
@@ -239,6 +253,7 @@ export const routes: Routes = [
         // consumes the whole url, so the two never shadow each other) and
         // before `codex/:kind/:className`.
         path: 'codex/upcoming/:id',
+        data: { layout: 'overlay' },
         loadComponent: () =>
           import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
       },
@@ -253,6 +268,7 @@ export const routes: Routes = [
       },
       {
         path: 'codex/:kind/:className',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
       },
@@ -267,13 +283,14 @@ export const routes: Routes = [
         children: [
           {
             path: '',
+            data: { layout: 'cinematic' },
             pathMatch: 'full',
             loadComponent: () =>
               import('./hq/hq-overview.component').then((m) => m.HqOverviewComponent),
           },
           {
             path: 'hangar',
-            data: { section: 'hangar' },
+            data: { layout: 'tool', section: 'hangar' },
             loadComponent: () =>
               import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
           },
@@ -283,17 +300,19 @@ export const routes: Routes = [
             // "import" is never read as a ship id; the payload arrives via
             // postMessage from the extension's content script.
             path: 'hangar/import',
+            data: { layout: 'tool' },
             loadComponent: () =>
               import('./hangar/hangar-import-page.component').then((m) => m.HangarImportPageComponent),
           },
           {
             path: 'hangar/:id',
+            data: { layout: 'content' },
             loadComponent: () =>
               import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
           },
           {
             path: 'spind',
-            data: { section: 'locker' },
+            data: { layout: 'tool', section: 'locker' },
             loadComponent: () =>
               import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
           },
@@ -301,11 +320,13 @@ export const routes: Routes = [
             // The on-foot set editor (T1). The component still lives under
             // codex/set/ — it renders codex data — but the set is personal.
             path: 'spind/:id',
+            data: { layout: 'content' },
             loadComponent: () =>
               import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
           },
           {
             path: 'einsaetze',
+            data: { layout: 'tool' },
             loadComponent: () => import('./hq/hq-ops.component').then((m) => m.HqOpsComponent),
           },
         ],
@@ -330,6 +351,7 @@ export const routes: Routes = [
       { path: 'p4k', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'uploader',
+        data: { layout: 'tool' },
         canActivate: [roleGuard('admin', 'collaborator')],
         loadComponent: () =>
           import('./desktop/desktop-download.component').then((m) => m.DesktopDownloadComponent),
@@ -338,6 +360,7 @@ export const routes: Routes = [
         // Minimal download surface for ANY invited user (viewer+). No bundle
         // history; the channel picker self-hides for viewers → stable-only.
         path: 'download',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./desktop/download.component').then((m) => m.DownloadComponent),
       },
@@ -347,6 +370,7 @@ export const routes: Routes = [
         // redirect back here, instead of bouncing silently to /news) — the
         // blanket gate above already covers the auth+approval part.
         path: 'uploader/auth',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
       },
@@ -365,6 +389,7 @@ export const routes: Routes = [
         // they still fail at the token handoff even WITH this route — those
         // genuinely need a reinstall of the current build.
         path: 'desktop/auth',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
       },
@@ -373,6 +398,7 @@ export const routes: Routes = [
       { path: 'desktop', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'admin',
+        data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
         loadComponent: () => import('./admin/admin.component').then((m) => m.AdminComponent),
       },
@@ -382,6 +408,7 @@ export const routes: Routes = [
         // existing links/bookmarks keep resolving; /admin/integrations is the
         // name-matching alias.
         path: 'admin/api-tokens',
+        data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./admin/api-tokens/api-tokens.component').then((m) => m.ApiTokensComponent),
@@ -389,12 +416,14 @@ export const routes: Routes = [
       { path: 'admin/integrations', pathMatch: 'full', redirectTo: 'admin/api-tokens' },
       {
         path: 'admin/telemetry',
+        data: { layout: 'content' },
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./admin/telemetry-stats.component').then((m) => m.TelemetryStatsComponent),
       },
       {
         path: 'admin/feedback',
+        data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
@@ -408,18 +437,21 @@ export const routes: Routes = [
         // on top of the blanket gate — and the function refuses to mint a
         // ticket for anyone else, so the guard is not the only lock.
         path: 'konzept/:id',
+        data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./admin/concepts/concept-page.component').then((m) => m.ConceptPageComponent),
       },
       {
         path: 'concept/:id',
+        data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./admin/concepts/concept-page.component').then((m) => m.ConceptPageComponent),
       },
       {
         path: 'settings',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
@@ -428,6 +460,7 @@ export const routes: Routes = [
         // /settings because that is where the account-scoped surfaces live and
         // where both entry points (account menu, settings card) point.
         path: 'friends',
+        data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./social/friends.component').then((m) => m.FriendsComponent),
       },
@@ -437,12 +470,14 @@ export const routes: Routes = [
         // install instructions reference an authenticated feature, so this no
         // longer needs to be readable signed-out.
         path: 'tools/extension',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./tools/extension-install.component').then((m) => m.ExtensionInstallComponent),
       },
       {
         // "What's New" — release notes from CHANGELOG.md.
         path: 'release-notes',
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
       },
@@ -456,6 +491,7 @@ export const routes: Routes = [
     // authGuard — a self-registered-but-unapproved account must not reach a
     // desktop-app auth handoff any more than it can reach the rest of the app.
     path: 'desktop/connect',
+    data: { layout: 'cinematic' },
     canActivate: [...PRIVATE],
     loadComponent: () =>
       import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),

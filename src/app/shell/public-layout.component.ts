@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BetaService } from '../core/beta.service';
+import { LayoutService } from '../core/layout/layout.service';
 import { FooterComponent } from './footer.component';
 import { skipToMain } from './skip-link';
 
@@ -32,6 +34,8 @@ import { skipToMain } from './skip-link';
   standalone: true,
   imports: [RouterOutlet, RouterLink, TranslatePipe, FooterComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Same layout contract as the shell (beta "shell"): one shared frame, styles.scss.
+  host: { '[attr.data-layout]': 'shellOn() ? layout.layout() : null' },
   template: `
     <div class="public-shell">
       <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
@@ -42,7 +46,7 @@ import { skipToMain } from './skip-link';
           <span class="label">{{ 'nav.backToHome' | translate }}</span>
         </a>
       </header>
-      <main id="sc-main" tabindex="-1" class="content">
+      <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()">
         <router-outlet />
       </main>
       <sc-footer />
@@ -109,5 +113,7 @@ import { skipToMain } from './skip-link';
   `],
 })
 export class PublicLayoutComponent {
+  protected readonly layout = inject(LayoutService);
+  readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly skipToMain = skipToMain;
 }

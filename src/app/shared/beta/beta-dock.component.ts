@@ -14,7 +14,7 @@ import { BetaArea, BetaService } from '../../core/beta.service';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <aside class="beta-dock" [attr.aria-label]="'beta.aria' | translate">
+    <aside class="beta-dock" [style.--lane]="lane()" [attr.aria-label]="'beta.aria' | translate">
       <div class="beta-pill">
         <span class="beta-mark" aria-hidden="true">β</span>
         <button type="button" role="switch" class="sw"
@@ -33,7 +33,8 @@ import { BetaArea, BetaService } from '../../core/beta.service';
     .beta-dock {
       position: fixed; z-index: 40;
       left: max(12px, env(safe-area-inset-left));
-      bottom: var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px));
+      /* --lane stacks a second pill above the first (the app-wide shell switch). */
+      bottom: calc(var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px)) + var(--lane, 0) * (var(--sc-tap-min) + 16px));
       max-width: calc(100vw - var(--sc-fab-clear-inline, 88px) - 24px);
     }
     .beta-pill {
@@ -73,4 +74,6 @@ export class BetaDockComponent {
   protected readonly beta = inject(BetaService);
 
   readonly area = input.required<BetaArea>();
+  /** 0 = the corner; 1 = one pill higher, for a second dock on the same page. */
+  readonly lane = input(0);
 }

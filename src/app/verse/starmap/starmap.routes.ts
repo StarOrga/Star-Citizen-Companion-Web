@@ -4,6 +4,7 @@ import { Routes } from '@angular/router';
 export const STARMAP_ROUTES: Routes = [
   {
     path: '',
+    data: { layout: 'cinematic' },
     loadComponent: () => import('./explorer-page.component').then((m) => m.ExplorerPageComponent),
   },
 ];

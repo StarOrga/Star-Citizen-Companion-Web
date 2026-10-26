@@ -4903,7 +4903,8 @@
     "switchFor": "Neue Ansicht für {{area}}",
     "area": {
       "verse": "Verse",
-      "codex": "Codex & HQ"
+      "codex": "Codex & HQ",
+      "shell": "Seiten-Rahmen"
     }
   }
 }
