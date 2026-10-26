@@ -1,0 +1,32 @@
+// Planet geometry shared by the background scene (which draws the planet) and
+// the Verse hub's planet zone (which projects its labels onto it). Both read
+// the same three custom properties, so the labels sit on the rim the scene
+// draws:
+//   --sc-pl-d    diameter
+//   --sc-pl-cap  visible cap: from the planet's top point to the bottom edge
+//   --sc-pl-x    centre, as a percentage of the box width
+// Cap ratio k = cap / d decides the chord at the bottom edge,
+// 2·d·sqrt(k(1-k)); the values are picked so the bottom-left corner stays
+// clear for the "Made by the Community" badge on every viewport:
+//   desktop  d = min(78vw, 1240px), k = .2   → free corner ≥ 18vw (1280: 240px)
+//   tablet   d = 86vw,              k = .22  → free corner ≈ 14vw (768: 110px)
+//   phone    d = 84vw, centre 60%,  k = .36  → free corner ≈ 74px at 375px
+// The sun stands top right, so the night side (city lights, labels) faces
+// the reader on the left and middle of the cap.
+@mixin planet-geometry {
+  --sc-pl-d: min(78vw, 1240px);
+  --sc-pl-cap: calc(var(--sc-pl-d) * 0.2);
+  --sc-pl-x: 50%;
+  --sc-pl-xv: 50vw;
+
+  @media (max-width: 1080px) {
+    --sc-pl-d: 86vw;
+    --sc-pl-cap: calc(var(--sc-pl-d) * 0.22);
+  }
+  @media (max-width: 640px) {
+    --sc-pl-d: 84vw;
+    --sc-pl-cap: calc(var(--sc-pl-d) * 0.36);
+    --sc-pl-x: 60%;
+    --sc-pl-xv: 60vw;
+  }
+}

@@ -1,20 +1,26 @@
 @if (enabled()) {
-  <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [attr.data-intro]="intro"
+  <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [class.planetary]="shell()" [attr.data-intro]="intro"
            [attr.aria-label]="'verse.briefing.stageAria' | translate">
     <!-- Full-bleed backdrop: nebula and sun stand from frame 0 and ride the
          dolly; the far star field arrives later. -->
+    <!-- β shell: the shell scene draws sky and planet behind the page; the
+         stage keeps only its sun (the constellation hangs below it). -->
     <div class="bleed" aria-hidden="true">
       <div class="sky">
-        <div class="neb"></div>
+        @if (!shell()) {
+          <div class="neb"></div>
+        }
         <!-- The light source: one sun direction for planet, moons and sky. -->
         <div class="sun"></div>
       </div>
-      <div class="far"><div class="stars"></div><div class="stars near"></div></div>
-      <div class="horizon">
-        <div class="atmo"></div>
-        <div class="pl"><span class="pl-surface"></span><span class="pl-clouds"></span><span class="pl-shade"></span><span class="pl-city"></span></div>
-      </div>
-      <div class="vignette"></div>
+      @if (!shell()) {
+        <div class="far"><div class="stars"></div><div class="stars near"></div></div>
+        <div class="horizon">
+          <div class="atmo"></div>
+          <div class="pl"><span class="pl-surface"></span><span class="pl-clouds"></span><span class="pl-shade"></span><span class="pl-city"></span></div>
+        </div>
+        <div class="vignette"></div>
+      }
     </div>
 
     <div class="frame">
@@ -22,7 +28,13 @@
            constellation hangs below it at the right edge, beside the hero —
            itself the way into the star map, shown once its data has loaded. -->
       <div class="top">
-        @if (status(); as s) {
+        @if (shell()) {
+          @if (kicker(); as k) {
+            <p class="status">
+              <span class="si live"><i aria-hidden="true"></i><span class="tx">{{ (k.stability !== null ? 'verse.hub.kicker' : 'verse.hub.kickerNoScore') | translate: { v: k.version, n: k.stability } }}</span></span>
+            </p>
+          }
+        } @else if (status(); as s) {
           <p class="status">
             <span class="si live"><i aria-hidden="true"></i><span class="tx">{{ liveKey(s.live.days) | translate: { line: s.live.line, n: s.live.days } }}</span></span>
             @if (s.next; as nx) {
@@ -102,10 +114,19 @@
             </button>
           </div>
         }
+        @if (shell()) {
+          <!-- The hub's own search line; the bar morphs it into the capsule once it scrolls away. -->
+          <button type="button" class="find" (click)="openSearch()" aria-keyshortcuts="Control+K /">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
+            <span class="find-tx">{{ 'verse.hub.search' | translate }}</span>
+            <kbd>{{ 'verse.hub.searchKey' | translate }}</kbd>
+          </button>
+        }
       </div>
 
       <!-- Row 3 · gate band above the footer strip. The gates stay usable
            when the digest failed: their numbers fall back to the live feeds. -->
+      @if (!shell()) {
       <nav class="moons" [attr.aria-label]="'verse.gates.aria' | translate">
         @for (g of gates(); track g.door; let i = $index) {
           @let item = moonItems()[g.door];
@@ -121,8 +142,161 @@
             (opened)="openDoor(g.door)" />
         }
       </nav>
+      }
     </div>
+
+    @if (shell()) {
+      <!-- Planet zone: three moon markers above the rim, ONE holo label on the
+           night side at a time (the relay), the personal line under it. -->
+      <div class="pz">
+        <nav class="gates" [attr.aria-label]="'verse.gates.aria' | translate"
+             (mouseenter)="holdGates(true)" (mouseleave)="holdGates(false)"
+             (focusin)="holdGates(true)" (focusout)="gatesFocusOut($event)">
+          @for (g of gates(); track g.door; let i = $index) {
+            <a class="mk" [attr.data-door]="g.door" [class.on]="i === gateIndex()" [routerLink]="g.link"
+               tabindex="-1" aria-hidden="true" (pointerenter)="showGate(i)" (click)="openDoor(g.door)"><i></i></a>
+          }
+          <div class="labels">
+            @for (g of gates(); track g.door; let i = $index) {
+              @let item = moonItems()[g.door];
+              @let fresh = item ? item.title : g.count > 0 ? (('verse.gates.' + g.door + '.stat') | translate: { n: g.count }) : null;
+              <a class="holo" [attr.data-door]="g.door" [class.on]="i === gateIndex()" [routerLink]="g.link"
+                 (focus)="showGate(i)" (click)="openDoor(g.door)">
+                <b class="topic">{{ ('verse.gates.' + g.door + '.topic') | translate }}</b>
+                <span class="hook">{{ g.door === 'patches'
+                  ? (nextLine() ? ('verse.gates.patches.hook' | translate: { next: nextLine() }) : ('verse.gates.patches.hookNoLine' | translate))
+                  : (('verse.gates.' + g.door + '.hook') | translate) }}</span>
+                @if (fresh) {
+                  <span class="nw"><i class="neu">{{ 'verse.gates.neu' | translate }}</i><span class="item">{{ fresh }}</span></span>
+                }
+              </a>
+            }
+          </div>
+        </nav>
+        @if (forYou(); as fy) {
+          @if (fy.link.internal) {
+            <a class="fy" [routerLink]="fy.link.path" [queryParams]="fy.link.query"
+               (click)="openItem(fy.item)" (auxclick)="openItem(fy.item)">
+              <small>{{ 'verse.hub.forYou' | translate }}</small><b [scTooltip]="fy.item.title">{{ fy.item.title }}</b>
+              <em>{{ 'verse.hub.forYouCount' | translate: { n: fy.n, total: fy.total } }}</em>
+            </a>
+          } @else {
+            <a class="fy" [href]="fy.link.path" target="_blank" rel="noopener noreferrer"
+               (click)="openItem(fy.item)" (auxclick)="openItem(fy.item)">
+              <small>{{ 'verse.hub.forYou' | translate }}</small><b [scTooltip]="fy.item.title">{{ fy.item.title }}</b>
+              <em>{{ 'verse.hub.forYouCount' | translate: { n: fy.n, total: fy.total } }}</em>
+            </a>
+          }
+        }
+      </div>
+    }
   </section>
+
+  @if (shell()) {
+    <!-- Hub sections: News, a qualitative Patches preview, the gallery last. -->
+    <div class="hub">
+      <section class="hs" aria-labelledby="hub-news-h">
+        <header class="hs-head">
+          <h2 id="hub-news-h">{{ 'verse.gates.news.title' | translate }}</h2>
+          <a class="more" routerLink="/verse/news">{{ 'verse.hub.overview' | translate }}</a>
+        </header>
+        @if (hubNews().length) {
+          <ul class="rows">
+            @for (n of hubNews(); track n.id) {
+              <li>
+                <a class="row" routerLink="/verse/news" [queryParams]="{ item: n.id }">
+                  @if (n.thumbnail) {
+                    <img class="thumb" [src]="n.thumbnail" alt="" loading="lazy" decoding="async" />
+                  } @else {
+                    <span class="thumb blank" aria-hidden="true"></span>
+                  }
+                  <span class="row-tx">{{ n.title }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else if (news.error() && !news.loading()) {
+          <div class="hs-state" role="alert">
+            <p>{{ news.error() ?? 'errors.generic' | translate }}</p>
+            <button type="button" class="sc-btn" (click)="retryNews()">{{ 'errors.retry' | translate }}</button>
+          </div>
+        } @else if (news.loading()) {
+          <ul class="rows" aria-hidden="true">
+            @for (k of [0, 1, 2]; track k) {
+              <li><span class="row sk sc-skel-field"></span></li>
+            }
+          </ul>
+        } @else {
+          <p class="hs-empty">{{ 'verse.hub.newsEmpty' | translate }}</p>
+        }
+      </section>
+
+      <section class="hs" aria-labelledby="hub-patches-h">
+        <header class="hs-head">
+          <h2 id="hub-patches-h">{{ 'verse.gates.patches.title' | translate }}</h2>
+          <a class="more" routerLink="/verse/patches">{{ 'verse.hub.overview' | translate }}</a>
+        </header>
+        @if (hubPatches().length) {
+          <ul class="patches">
+            @for (p of hubPatches(); track p.line) {
+              <li>
+                <a class="pcard" [routerLink]="['/verse/patches', p.line]" [attr.data-state]="p.state">
+                  <span class="pc-top">
+                    <b class="pc-line">{{ p.line }}</b>
+                    <span class="pc-state">{{ ('verse.hub.state.' + p.state) | translate }}</span>
+                  </span>
+                  <span class="pc-words">
+                    @if (p.issuesKey) {
+                      {{ p.issuesKey | translate }}
+                    } @else {
+                      {{ 'verse.hub.notes' | translate: { n: p.notes } }}
+                    }
+                  </span>
+                  @if (p.stability !== null) {
+                    <small class="pc-num">{{ 'verse.hub.stability' | translate: { n: p.stability } }}</small>
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        } @else if (news.error() && !news.loading()) {
+          <div class="hs-state" role="alert">
+            <p>{{ news.error() ?? 'errors.generic' | translate }}</p>
+            <button type="button" class="sc-btn" (click)="retryNews()">{{ 'errors.retry' | translate }}</button>
+          </div>
+        } @else {
+          <p class="hs-empty">{{ (news.loading() ? 'verse.briefing.loading' : 'verse.hub.patchesEmpty') | translate }}</p>
+        }
+      </section>
+
+      <section class="hs" aria-labelledby="hub-gallery-h">
+        <header class="hs-head">
+          <h2 id="hub-gallery-h">{{ 'verse.gates.gallery.title' | translate }}</h2>
+          <a class="more" routerLink="/verse/gallery">{{ 'verse.hub.overview' | translate }}</a>
+        </header>
+        @if (hubGallery().length) {
+          <ul class="shots">
+            @for (g of hubGallery(); track g.key) {
+              @let gl = itemLink(g);
+              <li>
+                @if (gl && gl.internal) {
+                  <a class="shot" [routerLink]="gl.path" [queryParams]="gl.query" [attr.aria-label]="g.title" (click)="openItem(g)" (auxclick)="openItem(g)">
+                    <img [src]="g.image" alt="" loading="lazy" decoding="async" />
+                  </a>
+                } @else if (gl) {
+                  <a class="shot" [href]="gl.path" target="_blank" rel="noopener noreferrer" [attr.aria-label]="g.title" (click)="openItem(g)" (auxclick)="openItem(g)">
+                    <img [src]="g.image" alt="" loading="lazy" decoding="async" />
+                  </a>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="hs-empty">{{ 'verse.gates.gallery.teaser' | translate }}</p>
+        }
+      </section>
+    </div>
+  }
 } @else {
   <sc-news-list />
 }

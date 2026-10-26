@@ -47,11 +47,12 @@ import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
 import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 import { LayoutService } from '../core/layout/layout.service';
+import { ShellSceneComponent } from './scene/shell-scene.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, ShellSceneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -72,6 +73,7 @@ import { LayoutService } from '../core/layout/layout.service';
   ],
   template: `
     <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
+    <sc-shell-scene />
     <header class="topbar">
       <!-- Wordmark: the "alpha" badge is CENTERED UNDER the title, not beside it
            (feedback #79). It is absolutely positioned on purpose — the title's

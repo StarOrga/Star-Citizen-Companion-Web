@@ -17,6 +17,8 @@ import { BetaService } from '../../core/beta.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../news/news.service';
+import { PatchStabilityService } from '../../news/patch-stability.service';
+import { StageChromeService } from '../../shell/scene/stage-chrome.service';
 import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
@@ -35,6 +37,16 @@ import {
   nextStatusKey,
   uniqueStories,
 } from './briefing/briefing.model';
+import {
+  EMPTY_FOR_YOU,
+  ForYouState,
+  forYouQueue,
+  forYouStorageKey,
+  pickForYou,
+  readForYou,
+  writeForYou,
+} from './briefing/briefing-for-you';
+import { GATE_LABEL_MS, HUB_NEWS, hubGallery, hubPatches, kickerVersion } from './briefing/briefing-hub';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -116,10 +128,20 @@ interface HeroStory {
 })
 export class VerseBriefingComponent {
   protected readonly api = inject(VerseApiService);
-  private readonly news = inject(NewsService);
+  protected readonly news = inject(NewsService);
   private readonly analytics = inject(AnalyticsService);
   private readonly auth = inject(AuthService);
-  readonly enabled = inject(BetaService).isEnabled('verse');
+  private readonly beta = inject(BetaService);
+  private readonly stability = inject(PatchStabilityService);
+  private readonly stageChrome = inject(StageChromeService);
+  readonly enabled = this.beta.isEnabled('verse');
+  /**
+   * β "shell": the planet zone (holo gate labels on the scene's planet, the
+   * personal line) and the hub sections below the stage; the shell scene
+   * draws sky and planet, so the stage keeps only its sun.
+   */
+  readonly shell = this.beta.isEnabled('shell');
+  private readonly reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   readonly total = STARS_PER_PATCH;
 
   readonly top = this.api.topItems;
@@ -248,6 +270,45 @@ export class VerseBriefingComponent {
     };
   });
 
+  /** Verse kicker under β shell: "Live 4.3.1 · stabil 82 %" (no countdown). */
+  readonly kicker = computed(() => {
+    const patch = this.api.digest()?.patch ?? null;
+    const line = this.status()?.live.line ?? patch?.line ?? null;
+    const version = kickerVersion(patch?.channels, line);
+    if (!version) return null;
+    const v = line ? this.stability.verdictFor(line) : null;
+    return { version, stability: v && !v.insufficient ? v.stability : null };
+  });
+
+  /** The one gate whose holo label stands on the planet; the others wait their turn. */
+  readonly gateIndex = signal(0);
+  /** Pointer or focus on the gates: the relay holds on what the reader looks at. */
+  private readonly gateHold = signal(false);
+
+  private readonly forYouStore = computed(() => forYouStorageKey(this.auth.user()?.id));
+  private readonly forYouState = signal<ForYouState>(EMPTY_FOR_YOU);
+  private forYouLoadedFor: string | null = null;
+  /** Unread items for the personal line, oldest first; the hero's own stories only when nothing else is left. */
+  private readonly forYouQueue = computed(() => {
+    const hero = new Set(this.stories().map((s) => s.item.key));
+    return forYouQueue([...this.top(), ...(this.api.digest()?.items ?? []), ...this.feedNews()], this.api.seen(), hero);
+  });
+  readonly forYou = computed(() => {
+    const q = this.forYouQueue();
+    const key = this.forYouState().key;
+    const i = key ? q.findIndex((x) => x.key === key) : -1;
+    if (i < 0) return null;
+    const link = verseItemLink(q[i].url);
+    return link ? { item: q[i], link, n: i + 1, total: q.length } : null;
+  });
+
+  readonly hubNews = computed<VerseNewsItem[]>(() => {
+    const st = this.news.stage();
+    return [...(st ? [st] : []), ...this.news.stream()].slice(0, HUB_NEWS);
+  });
+  readonly hubPatches = computed(() => hubPatches(this.news.patchLines(), (line) => this.stability.verdictFor(line)));
+  readonly hubGallery = computed(() => hubGallery(this.api.digest()?.items ?? []));
+
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
 
@@ -259,6 +320,8 @@ export class VerseBriefingComponent {
     effect(() => {
       if (this.enabled() && this.auth.isAuthenticated() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
     });
+
+    if (this.shell()) this.wirePlanetZone();
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
     // focused time; the clock restarts with every switch.
@@ -303,6 +366,91 @@ export class VerseBriefingComponent {
     }
   }
 
+  /** β shell: stability load, gate relay, the personal line's away clock, the stage search line. */
+  private wirePlanetZone(): void {
+    const on = (): boolean => this.enabled() && this.shell();
+    effect(() => {
+      if (on()) void this.stability.load();
+    });
+    effect((onCleanup) => {
+      const n = this.gates().length;
+      if (!on() || this.paused() || this.gateHold() || this.reducedMotion || n < 2) return;
+      const id = setInterval(() => this.gateIndex.update((i) => (i + 1) % n), GATE_LABEL_MS);
+      onCleanup(() => clearInterval(id));
+    });
+    effect(() => {
+      if (!on()) return;
+      const q = this.forYouQueue();
+      const store = this.forYouStore();
+      untracked(() => this.resolveForYou(q, store));
+    });
+
+    const away = (): void => {
+      const st = this.forYouState();
+      if (st.awayAt !== null || !st.key) return;
+      const next = { ...st, awayAt: Date.now() };
+      this.forYouState.set(next);
+      writeForYou(this.forYouStore(), next);
+    };
+    const back = (): void => this.resolveForYou(this.forYouQueue(), this.forYouStore());
+    const onVisibility = (): void => (document.visibilityState === 'hidden' ? away() : back());
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    afterNextRender(() => {
+      document.addEventListener('visibilitychange', onVisibility);
+      window.addEventListener('blur', away);
+      window.addEventListener('focus', back);
+      window.addEventListener('pagehide', away);
+      const line = host.querySelector('.find');
+      const io = line && typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(([e]) => this.stageChrome.setStageSearchVisible(e.isIntersecting))
+        : null;
+      if (line && io) io.observe(line);
+      else this.stageChrome.setStageSearchVisible(!!line);
+      this.destroyRef.onDestroy(() => {
+        io?.disconnect();
+        this.stageChrome.setStageSearchVisible(false);
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('blur', away);
+        window.removeEventListener('focus', back);
+        window.removeEventListener('pagehide', away);
+        // Leaving the hub counts as away: the line moves on after 30 min.
+        away();
+      });
+    });
+  }
+
+  /** Place the personal line: same item while unread, the next one after 30+ min away. */
+  private resolveForYou(queue: ReturnType<typeof forYouQueue>, store: string): void {
+    if (!queue.length) return;
+    const state = this.forYouLoadedFor === store ? this.forYouState() : readForYou(store);
+    this.forYouLoadedFor = store;
+    const i = pickForYou(queue, state, Date.now());
+    if (i === null) return;
+    const next: ForYouState = { key: queue[i].key, at: queue[i].at, awayAt: null };
+    if (next.key === state.key && next.at === state.at && state.awayAt === null && this.forYouState() === state) return;
+    this.forYouState.set(next);
+    writeForYou(store, next);
+  }
+
+  /** Pointer on a moon marker or focus on a label: show that gate. */
+  showGate(i: number): void {
+    if (i >= 0 && i < this.gates().length) this.gateIndex.set(i);
+  }
+
+  holdGates(hold: boolean): void {
+    this.gateHold.set(hold);
+  }
+
+  gatesFocusOut(ev: FocusEvent): void {
+    const next = ev.relatedTarget as Node | null;
+    if (!next || !(ev.currentTarget as HTMLElement).contains(next)) this.gateHold.set(false);
+  }
+
+  /** The stage search line opens the app search (same path as Ctrl+K). */
+  openSearch(): void {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
+  }
+
   /** The active story pill ran out: next story. */
   advance(): void {
     const n = this.stories().length;
@@ -334,6 +482,14 @@ export class VerseBriefingComponent {
 
   nextKey(next: NonNullable<BriefingStatus['next']>): string {
     return nextStatusKey(next);
+  }
+
+  retryNews(): void {
+    void this.news.refresh(true);
+  }
+
+  itemLink(item: VerseDigestItem): VerseItemLink | null {
+    return verseItemLink(item.url);
   }
 
   reload(): void {

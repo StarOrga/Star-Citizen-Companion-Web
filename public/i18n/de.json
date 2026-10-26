@@ -4623,6 +4623,32 @@
       "share": "Galerie teilen",
       "heroTitle": "Starscape holt die Galerie auf deinen Desktop",
       "heroBody": "Die Desktop-App wechselt deine Wallpaper automatisch durch die Galerie und zeigt deine verdienten Sternbilder."
+    },
+    "hub": {
+      "kicker": "Live {{v}} · stabil {{n}} %",
+      "kickerNoScore": "Live {{v}}",
+      "search": "Suche in News, Patches, Galerie …",
+      "searchKey": "Strg K",
+      "forYou": "Für dich",
+      "forYouCount": "{{n}} / {{total}}",
+      "overview": "→ Übersicht",
+      "newsEmpty": "Gerade keine News.",
+      "patchesEmpty": "Noch keine Patch Notes.",
+      "notes": "{{n}} Notes",
+      "stability": "Stabilität {{n}} %",
+      "state": {
+        "live": "Live",
+        "ptu": "Im Test",
+        "past": "Vorher"
+      },
+      "issues": {
+        "1": "kaum bekannte Probleme",
+        "2": "wenige bekannte Probleme",
+        "3": "einige bekannte Probleme",
+        "4": "viele bekannte Probleme",
+        "5": "schwere Probleme",
+        "early": "noch zu früh für ein Urteil"
+      }
     }
   },
   "starmap": {

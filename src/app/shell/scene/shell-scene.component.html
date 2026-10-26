@@ -1,0 +1,21 @@
+@if (on()) {
+  <div class="scene" [attr.data-scene]="scene()" [attr.data-mode]="mode()" [attr.data-from]="from()"
+       [attr.data-home]="home() ? '' : null" [attr.data-fade]="fadeTick() % 2">
+    <div class="sky"><div class="neb"></div><div class="stars"></div><div class="stars near"></div></div>
+    <!-- Codex: the data plane the camera turns towards. -->
+    <div class="plane"><i></i></div>
+    <div class="follow">
+      <div class="planet">
+        <span class="pl-body"></span>
+        <span class="pl-night"><i class="lt a"></i><i class="lt b"></i><i class="lt c"></i></span>
+        <span class="pl-rim"></span>
+      </div>
+    </div>
+    <!-- HQ: the hangar on the planet; its doors open once the camera is down. -->
+    <div class="hangar">
+      <span class="hg-roof"></span>
+      <span class="hg-bay"><span class="hg-glow"></span><span class="door l"></span><span class="door r"></span></span>
+      <span class="hg-pad"></span>
+    </div>
+  </div>
+}

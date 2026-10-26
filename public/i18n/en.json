@@ -4623,6 +4623,32 @@
       "share": "Share gallery",
       "heroTitle": "Starscape brings the gallery to your desktop",
       "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the constellations you earned."
+    },
+    "hub": {
+      "kicker": "Live {{v}} · {{n}} % stable",
+      "kickerNoScore": "Live {{v}}",
+      "search": "Search news, patches, gallery …",
+      "searchKey": "Ctrl K",
+      "forYou": "For you",
+      "forYouCount": "{{n}} / {{total}}",
+      "overview": "→ Overview",
+      "newsEmpty": "No news right now.",
+      "patchesEmpty": "No patch notes yet.",
+      "notes": "{{n}} notes",
+      "stability": "Stability {{n}} %",
+      "state": {
+        "live": "Live",
+        "ptu": "In testing",
+        "past": "Earlier"
+      },
+      "issues": {
+        "1": "hardly any known issues",
+        "2": "few known issues",
+        "3": "some known issues",
+        "4": "many known issues",
+        "5": "severe issues",
+        "early": "too early to tell"
+      }
     }
   },
   "starmap": {
