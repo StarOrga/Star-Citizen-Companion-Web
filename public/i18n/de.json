@@ -4953,5 +4953,83 @@
       "title": "Beta-Bereiche",
       "note": "Nur für Admins und Collaborators sichtbar."
     }
+  },
+  "fusionBar": {
+    "navAria": "Hauptbereiche",
+    "areaMenu": "Bereich wechseln — jetzt: {{area}}",
+    "home": "Startseite",
+    "filters": "Filter",
+    "kinds": {
+      "fps": "FPS",
+      "keybinds": "Keybinds"
+    },
+    "ctx": {
+      "all": "Überall",
+      "verse": "Verse",
+      "gallery": "Galerie",
+      "codex": "Codex",
+      "codexIndex": "Codex · {{kind}}",
+      "ship": "{{name}}",
+      "shipFallback": "Dieses Schiff",
+      "codexDetail": "{{kind}}",
+      "fps": "FPS",
+      "hq": "Mein HQ"
+    },
+    "placeholder": {
+      "all": "Überall suchen …",
+      "verse": "Suche in Schiffen, Patches, News …",
+      "gallery": "Galerie oder Codex durchsuchen …",
+      "codex": "Schiffe, Waffen, Komponenten …",
+      "codexIndex": "Im Codex suchen …",
+      "ship": "Komponenten, Waffen, Schiffe …",
+      "codexDetail": "Im Codex suchen …",
+      "fps": "Waffen, Rüstungen, Ausrüstung …",
+      "hq": "Hangar, Spind, Schiffe …"
+    },
+    "search": {
+      "label": "Suche",
+      "dropContext": "Kontext entfernen — überall suchen",
+      "ask": "Companion fragen",
+      "askKey": "Shift ↵",
+      "places": "Seiten",
+      "here": "Hier",
+      "page": "Seite",
+      "owned": "In deinem Hangar",
+      "newTab": "{{name}} in neuem Tab öffnen",
+      "newTabShort": "In neuem Tab",
+      "copyLink": "Link zu {{name}} kopieren",
+      "copyLinkShort": "Link kopieren",
+      "copied": "Link kopiert",
+      "keys": {
+        "dropContext": "am Feldanfang: Kontext weg"
+      },
+      "action": {
+        "add": "Hangar +",
+        "hangar": "Im Hangar",
+        "index": "Im Index",
+        "open": "Öffnen"
+      }
+    },
+    "place": {
+      "news": "News",
+      "patches": "Patches",
+      "gallery": "Galerie",
+      "hangar": "Hangar",
+      "spind": "Spind",
+      "hq": "HQ-Übersicht",
+      "keybinds": "Keybinds",
+      "upcoming": "Angekündigte Schiffe",
+      "settings": "Einstellungen",
+      "friends": "Freunde",
+      "releaseNotes": "Neuigkeiten",
+      "badge": "Kartograph-Abzeichen",
+      "download": "Downloads"
+    },
+    "companion": {
+      "title": "Companion fragen",
+      "subtitle": "Antworten mit Begründung — bald.",
+      "body": "Der Companion beantwortet solche Fragen noch nicht. Bis dahin findest du die Antwort am schnellsten über die Suche.",
+      "searchInstead": "Stattdessen im Codex suchen"
+    }
   }
 }
