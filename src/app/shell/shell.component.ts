@@ -29,6 +29,7 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { ViewAs } from '../auth/impersonation-policy';
 import { ProfileService } from '../auth/profile.service';
+import { OwnBadgeService } from '../verse/starmap/own-badge.service';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
@@ -250,6 +251,16 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
                 (click)="onMenuNavigate($event)">
                 {{ 'nav.friends' | translate }}
               </a>
+              @if (shellOn()) {
+                <a
+                  class="dropdown-item"
+                  role="menuitem"
+                  [routerLink]="badge.link().commands"
+                  [queryParams]="badge.link().queryParams"
+                  (click)="onMenuNavigate($event)">
+                  {{ 'nav.badge' | translate }}
+                </a>
+              }
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
                      everyone would only ever hand out a redirect. Painted in the
@@ -937,6 +948,8 @@ export class ShellComponent implements AfterViewInit {
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);
   readonly profile = inject(ProfileService);
+  /** Shell beta: the account menu's Kartograph badge entry (own badge page, else the star map). */
+  readonly badge = inject(OwnBadgeService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);

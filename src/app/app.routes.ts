@@ -4,6 +4,8 @@ import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
 import { roleGuard } from './auth/role.guard';
+import { OVERLAY_ROUTE_DATA } from './core/overlay-route-scroll';
+import { shellBetaOn } from './core/layout/shell-beta.guard';
 import { hqSet } from './hq/hq-routes';
 
 // Guard policy (access-control design, 2026-08-05, supersedes #131): the app
@@ -235,6 +237,24 @@ export const routes: Routes = [
         data: { layout: 'tool' },
         loadComponent: () =>
           import('./codex/keybinds.component').then((m) => m.KeybindsComponent),
+      },
+      {
+        // Shell beta: the list is the parent and `:id` a routed overlay child
+        // (overlay from a card click, page on a direct load). Beta off falls
+        // through to the two flat routes below.
+        path: 'codex/upcoming',
+        canMatch: [shellBetaOn],
+        data: { layout: 'tool', category: 'upcoming' },
+        loadComponent: () =>
+          import('./codex/upcoming-route.component').then((m) => m.UpcomingRouteComponent),
+        children: [
+          {
+            path: ':id',
+            data: { layout: 'overlay', [OVERLAY_ROUTE_DATA]: true },
+            loadComponent: () =>
+              import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
+          },
+        ],
       },
       {
         // Upcoming Ships — the diff between the public RSI ship-matrix and our

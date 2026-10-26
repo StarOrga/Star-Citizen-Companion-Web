@@ -102,9 +102,11 @@ export class OverlayFrameComponent {
   readonly prev = input<OverlayNeighbour | null>(null);
   readonly next = input<OverlayNeighbour | null>(null);
   readonly closed = output<void>();
+  /** A popup opened from a button (not a routed overlay): always the takeover sheet, never the page mode. */
+  readonly popup = input(false);
 
   /** Overlay over the list when opened from it, else a full page. */
   protected overlay(): boolean {
-    return this.origin.overlaid();
+    return this.popup() || this.origin.overlaid();
   }
 }

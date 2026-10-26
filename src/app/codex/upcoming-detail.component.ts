@@ -1,17 +1,22 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { BetaService } from '../core/beta.service';
 import { HangarService } from '../hangar/hangar.service';
+import { OverlayFrameComponent } from '../shared/overlay-frame/overlay-frame.component';
+import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import {
   UpcomingShip,
   UpcomingShipsService,
@@ -43,6 +48,8 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
   selector: 'sc-upcoming-detail',
   standalone: true,
   imports: [PageHeaderComponent, 
+    NgTemplateOutlet,
+    OverlayFrameComponent,
     NeuroFieldDirective,
     RouterLink,
     TranslatePipe,
@@ -51,9 +58,18 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="detail-page">
-      <sc-page-header [crumbs]="crumbs()" [rememberAs]="ship()?.name ?? null" />
-
+    @if (shellOn()) {
+      <!-- Shell beta: overlay over the list when opened from a card, page on a direct load. -->
+      <sc-overlay-frame [heading]="'codex.kinds.upcoming' | translate" (closed)="close()">
+        <div class="detail-page"><ng-container *ngTemplateOutlet="body" /></div>
+      </sc-overlay-frame>
+    } @else {
+      <section class="detail-page">
+        <sc-page-header [crumbs]="crumbs()" [rememberAs]="ship()?.name ?? null" />
+        <ng-container *ngTemplateOutlet="body" />
+      </section>
+    }
+    <ng-template #body>
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (ship(); as s) {
@@ -155,7 +171,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
           </a>
         </div>
       }
-    </section>
+    </ng-template>
   `,
   styles: [`
     :host { display: block; }
@@ -222,6 +238,9 @@ export class UpcomingDetailComponent implements OnInit {
     });
   });
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly origin = inject(OverlayOriginService);
+  protected readonly shellOn = inject(BetaService).isEnabled('shell');
   private readonly rsi = inject(UpcomingShipsService);
   private readonly translate = inject(TranslateService);
 
@@ -280,6 +299,16 @@ export class UpcomingDetailComponent implements OnInit {
     }
     return out;
   });
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.origin.reset());
+  }
+
+  /** Overlay closed (✕, Escape, scrim): back to the list it lay over. */
+  protected close(): void {
+    this.origin.reset();
+    void this.router.navigate(['/codex/upcoming']);
+  }
 
   /** Retry of the feed error card. */
   async retry(): Promise<void> {

@@ -167,6 +167,7 @@
     "skipToContent": "Skip to content",
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "phaseBadge": "Alpha",
+    "badge": "Cartographer badge",
     "accountMenu": "Account menu",
     "adminOnly": "Admin only",
     "adminMenu": "Admin",
@@ -211,6 +212,17 @@
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
+      "teaser": {
+        "eyebrow": "On the drawing board",
+        "title": "Ships on the way",
+        "open": "See the ship",
+        "all": "All announced ships ({{count}})",
+        "dots": "Choose an announced ship"
+      },
+      "tiles": {
+        "label": "Tools",
+        "keybinds": { "title": "Keybindings", "text": "Every default binding of the live build, searchable." }
+      },
       "terminal": {
         "keybinds": "Keybindings"
       },
@@ -3098,6 +3110,11 @@
   },
   "download": {
     "title": "Download",
+    "extension": {
+      "title": "Browser extension",
+      "text": "Imports your RSI hangar into the HQ - for Chrome and Edge.",
+      "open": "Install the extension"
+    },
     "subtitle": "Get the Data Uploader for your local Star Citizen install."
   },
   "desktopConnect": {
@@ -4479,6 +4496,14 @@
     },
     "supplies": {
       "button": "Supplies",
+      "add": { "name": "What do you still need?", "submit": "Add" },
+      "qty": "Quantity",
+      "qtyOf": "Quantity of {{name}}",
+      "less": "One less",
+      "more": "One more",
+      "remove": "Remove {{name}}",
+      "sum": "{{open}} open ({{units}} pcs) · {{done}} got",
+      "clearDone": "Remove ticked",
       "buttonAria": "Open supplies ({{count}} entries)",
       "title": "Supplies",
       "close": "Close supplies",
@@ -4498,6 +4523,8 @@
       "activeSet": "Active set",
       "nextOps": "Next ops",
       "suppliesPreview": "Supplies",
+      "opsOpen": "Open ops",
+      "suppliesOpen": "Open supplies",
       "opsEmpty": "No ops planned yet.",
       "suppliesEmpty": "Nothing to fetch.",
       "noShip": "No ship in your hangar yet.",
@@ -4889,6 +4916,26 @@
       "chipTip": "Constellation {{patch}} · {{lit}} of {{total}} stars",
       "mine": "My constellations"
     },
+    "tour": {
+      "open": "How the star map works",
+      "title": "The star map and the Logbook",
+      "p1": "Every patch has one constellation of 7 stars. Each task you finish lights one.",
+      "p2": "Two challenges sit on the rim: the comet tip and the constellation guess.",
+      "p3": "The Logbook holds the community sky, your Kartograph rank and the series rewards.",
+      "start": "Show me",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "done": "Done",
+      "progress": "Step {{n}} of {{total}}",
+      "step": {
+        "stage": { "title": "The dome", "text": "The constellation of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next." },
+        "count": { "title": "Progress", "text": "How many of the 7 stars are lit on this map." },
+        "tracks": { "title": "The two challenges", "text": "Tip the comet for the next LIVE day and guess which ship the constellation shows." },
+        "series": { "title": "The series", "text": "Your streak across patches - rewards unlock along it." },
+        "more": { "title": "The Logbook", "text": "Opens the side sheet: community constellation, suns, Kartograph rank, suggestions and rewards." }
+      }
+    },
     "more": {
       "open": "Logbook",
       "title": "Logbook",
@@ -5058,6 +5105,8 @@
       "friends": "Friends",
       "releaseNotes": "What's new",
       "badge": "Cartographer badge",
+      "ops": "Ops",
+      "extension": "Browser extension",
       "download": "Downloads"
     },
     "companion": {

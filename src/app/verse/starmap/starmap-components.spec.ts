@@ -83,7 +83,7 @@ describe('star map components', () => {
         provideRouter([]),
         provideTranslateService({}),
         { provide: AuthService, useValue: { isAuthenticated: authed } },
-        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['captureVerse']) },
+        { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy('captureVerse'), flags: () => ({}) } },
         {
           provide: VerseApiService,
           useValue: {
