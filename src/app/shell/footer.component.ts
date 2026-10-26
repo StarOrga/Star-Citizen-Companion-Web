@@ -25,12 +25,11 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
   template: `
     @if (shellOn()) {
       <footer class="sf" [class.sf-stage]="stage()" [attr.data-footer]="stage() ? 'stage' : 'end'">
-        <div class="sf-badge" (mouseenter)="peek()" (mouseleave)="unpeek()" (focusout)="onFocusOut($event)"
-             (keydown.escape)="bubble.set('closed')">
+        <div class="sf-badge" (mouseenter)="peek()" (mouseleave)="unpeek()" (focusout)="onFocusOut($event)">
           <button type="button" class="sf-badge-btn" aria-haspopup="dialog"
                   [attr.aria-expanded]="bubble() === 'pinned'"
                   [attr.aria-describedby]="bubble() === 'peek' ? 'sf-bubble' : null"
-                  (click)="togglePinned()" (focus)="peek()">
+                  (click)="togglePinned()" (focus)="peek()" (keydown.escape)="bubble.set('closed')">
             <img src="icons/made-by-community.png" [alt]="'footer.badgeAlt' | translate" width="32" height="32" />
             <span class="sf-word">{{ 'footer.madeByCommunity' | translate }}</span>
           </button>
