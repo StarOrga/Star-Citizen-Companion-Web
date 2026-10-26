@@ -219,8 +219,8 @@
 }
 
 // The current patch's constellation is the star-map link itself. It hangs
-// below the instrument strip at the right edge of the full-width stage, beside
-// the hero's upper half (the frame is narrower than the viewport on wide
+// at the right edge of the full-width stage, below the sun and beside the hero
+// (the frame is narrower than the viewport on wide
 // screens, so the edge is measured from the viewport). It only exists once its
 // data has loaded and builds itself up (briefing-sky). Hover/focus lifts it:
 // full brightness, a little larger, and a round accent halo fading out behind
@@ -228,7 +228,10 @@
 // ring, drawn inside the box.
 .map {
   position: absolute;
-  top: calc(100% + clamp(24px, 6vh, 72px));
+  // Below the sun and its flare line (.sun sits 236px down a backdrop that
+  // starts 26px above the stage): the figure hangs under the light source,
+  // level with the hero, never crossed by the flare.
+  top: calc(236px - 26px + 34px);
   right: calc((100% - 100vw) / 2 + clamp(14px, 1.6vw, 28px));
   display: block;
   padding: 4px;
