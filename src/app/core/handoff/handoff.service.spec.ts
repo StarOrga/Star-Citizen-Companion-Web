@@ -23,7 +23,7 @@ describe('handoffTargetPath', () => {
 
 describe('maskEmail', () => {
   it('matches the edge function', () => {
-    expect(maskEmail('jane.doe@gmail.com')).toBe('j***@g***.com');
+    expect(maskEmail('jane.doe@gamma.test')).toBe('j***@g***.test');
     expect(maskEmail('nonsense')).toBe('***');
   });
 });
@@ -43,7 +43,7 @@ describe('HandoffService', () => {
         if (c.op === 'invoke' && c.target === 'handoff-redeem') {
           const body = (c.args as { body: { peek?: boolean } }).body;
           return body.peek
-            ? { data: { email_masked: 'j***@g***.com', user_id: 'u-1', target_path: '/codex' } }
+            ? { data: { email_masked: 'j***@g***.test', user_id: 'u-1', target_path: '/codex' } }
             : { data: { access_token: 'a', refresh_token: 'r', target_path: '//evil.example' } };
         }
         if (c.op === 'from' && c.chain.some(([m]) => m === 'limit')) {
@@ -166,7 +166,7 @@ describe('HandoffService', () => {
 
   it('peek() returns the masked account and never sends a redeem', async () => {
     const svc = setup();
-    expect(await svc.peek('CODE')).toEqual({ account: 'j***@g***.com', userId: 'u-1', targetPath: '/codex' });
+    expect(await svc.peek('CODE')).toEqual({ account: 'j***@g***.test', userId: 'u-1', targetPath: '/codex' });
     expect(fake.calls[0].args).toEqual({ body: { code: 'CODE', peek: true } });
   });
 

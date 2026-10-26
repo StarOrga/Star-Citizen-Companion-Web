@@ -148,7 +148,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const mail = pu?.user?.email ?? '';
     // user_id: whoever holds the code gets a session for this user anyway, so
     // returning it leaks nothing new; the page compares it with the signed-in
-    // account (the mask alone collides: jane@gmail.com vs jx@gmx.com).
+    // account (the mask alone collides: jane@gamma.test vs jx@gmx.test).
     return json({ email_masked: mail ? maskEmail(mail) : '***', user_id: who.user_id, target_path: who.target_path });
   }
 

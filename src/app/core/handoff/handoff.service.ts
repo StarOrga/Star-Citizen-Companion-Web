@@ -62,7 +62,7 @@ export function handoffTargetPath(raw: string | null | undefined): string {
   return p;
 }
 
-/** "jane.doe@gmail.com" -> "j***@g***.com". Same algorithm as the edge function. */
+/** "jane.doe@gamma.test" -> "j***@g***.test". Same algorithm as the edge function. */
 export function maskEmail(email: string): string {
   const at = email.lastIndexOf('@');
   if (at < 1) return '***';

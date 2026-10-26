@@ -6,7 +6,7 @@ Wave 1 delivers the backend and the Angular API; Wave 2 builds the desktop popup
 
 1. Desktop (signed in) calls `HandoffService.create()` -> edge function `handoff-create` -> one-time code (256 bit, shown once, 60 s TTL).
 2. Desktop renders `created.url` (`https://<origin>/handoff#c=<code>`, code in the FRAGMENT) as QR + copyable link.
-3. Phone opens it -> `/handoff` route (`HandoffComponent`, layout `plain`, ungated). The page strips the fragment from the address bar, makes a read-only `peek` and shows "Als j***@g***.com anmelden". **Nothing is signed in until the user taps** (login-CSRF guard). If another account is already signed in on the phone, the tap first needs a `ScConfirmService` confirmation.
+3. Phone opens it -> `/handoff` route (`HandoffComponent`, layout `plain`, ungated). The page strips the fragment from the address bar, makes a read-only `peek` and shows "Als j***@g***.test anmelden". **Nothing is signed in until the user taps** (login-CSRF guard). If another account is already signed in on the phone, the tap first needs a `ScConfirmService` confirmation.
 4. Tap -> `redeem` -> `handoff-redeem` mints a NEW session -> `auth.setSession` -> `navigateByUrl(target_path, { replaceUrl: true })`.
 5. Desktop sees `status() === 'connected'` and `device()`; `revoke()` signs that phone out. `listConnected()` + `revoke(id)` survive a page reload.
 
@@ -66,7 +66,7 @@ Revocation caveat: deleting the session kills the refresh chain immediately; an 
 
 ## Round-2 changes
 
-- **Account identity is the user id, not the mask.** `peek` returns `{ email_masked, user_id, target_path }` (the code holder would get a session for that user anyway, so nothing new leaks). The page compares `user_id` with `auth.realUser()?.id`: same id -> no redeem, navigate to `target_path`; different id and someone signed in -> `ScConfirmService` warning; the masked address is display only (`jane@gmail.com` and `jx@gmx.com` mask identically).
+- **Account identity is the user id, not the mask.** `peek` returns `{ email_masked, user_id, target_path }` (the code holder would get a session for that user anyway, so nothing new leaks). The page compares `user_id` with `auth.realUser()?.id`: same id -> no redeem, navigate to `target_path`; different id and someone signed in -> `ScConfirmService` warning; the masked address is display only (`jane@gamma.test` and `jx@gmx.test` mask identically).
 - **"Connected" = session attached.** Column `session_attached` (generated from `session_id is not null`, granted to the owner) drives `status` and `listConnected()`. Every failure after the consume (user lookup, generateLink, verifyOtp, GoTrue 429, attach) calls `handoff_fail()` which sets `revoked_at`; the cron also deletes rows whose `session_id` is no longer in `auth.sessions` and consumed rows never attached after 10 minutes.
 - Without a `session_id` claim the fail-closed path only logs (no GoTrue `/logout`, which could fall back to a global sign-out); tokens never leave the function.
 - Throttle: expired entries pruned on each call; key = `cf-connecting-ip`, else the LAST `x-forwarded-for` hop (the first is client-forgeable). Not verified against Supabase docs.

@@ -42,7 +42,7 @@ export function sessionIdOf(accessToken: string): string | null {
 }
 
 /**
- * "jane.doe@gmail.com" -> "j***@g***.com". All the phone page may learn before
+ * "jane.doe@gamma.test" -> "j***@g***.test". All the phone page may learn before
  * the user taps. Same algorithm as maskEmail in src/app/core/handoff/handoff.service.ts.
  */
 export function maskEmail(email: string): string {

@@ -16,8 +16,8 @@ import {
 import { isRevokeUnavailable, revokeResponse } from '../handoff-revoke/_revoke.ts';
 
 test('maskEmail reveals only first letters and the tld', () => {
-  assert.equal(maskEmail('jane.doe@gmail.com'), 'j***@g***.com');
-  assert.equal(maskEmail('a@b.de'), 'a***@b***.de');
+  assert.equal(maskEmail('jane.doe@gamma.test'), 'j***@g***.test');
+  assert.equal(maskEmail('a@b.example'), 'a***@b***.example');
   assert.equal(maskEmail('nonsense'), '***');
 });
 

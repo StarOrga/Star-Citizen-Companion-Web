@@ -16,7 +16,7 @@ describe('HandoffComponent', () => {
 
   function create(fragment: string | null) {
     handoff = jasmine.createSpyObj<HandoffService>('HandoffService', ['peek', 'redeem', 'errorKey']);
-    handoff.peek.and.resolveTo({ account: 'j***@g***.com', userId: 'owner-1', targetPath: '/codex/ship/x' });
+    handoff.peek.and.resolveTo({ account: 'j***@g***.test', userId: 'owner-1', targetPath: '/codex/ship/x' });
     handoff.redeem.and.resolveTo('/codex');
     handoff.errorKey.and.resolveTo('handoff.errors.invalidCode');
     confirm = jasmine.createSpy('confirm').and.resolveTo(true);
@@ -48,8 +48,8 @@ realUser: () => (email ? { email, id: userId } : null),
     userId = 'other-user';
   });
 
-  it('warns although two different accounts mask identically (jane@gmail.com vs jx@gmx.com)', async () => {
-    email = 'jx@gmx.com'; // masks to j***@g***.com, same as the code owner's display
+  it('warns although two different accounts mask identically (jane@gamma.test vs jx@gmx.test)', async () => {
+    email = 'jx@gmx.test'; // masks to j***@g***.test, same as the code owner's display
     const f = create(`c=${CODE}`);
     await f.componentInstance.ngOnInit();
     await f.componentInstance.signIn();
@@ -58,7 +58,7 @@ realUser: () => (email ? { email, id: userId } : null),
   });
 
   it('same account already signed in: no redeem, just navigates to the target', async () => {
-    email = 'jane@gmail.com';
+    email = 'jane@gamma.test';
     userId = 'owner-1';
     const f = create(`c=${CODE}`);
     await f.componentInstance.ngOnInit();
@@ -76,7 +76,7 @@ realUser: () => (email ? { email, id: userId } : null),
   });
 
   it('cancelling the dialog frees the button again', async () => {
-    email = 'jx@gmx.com';
+    email = 'jx@gmx.test';
     const f = create(`c=${CODE}`);
     await f.componentInstance.ngOnInit();
     confirm.and.resolveTo(false);
@@ -90,7 +90,7 @@ realUser: () => (email ? { email, id: userId } : null),
     expect(history.replaceState).toHaveBeenCalled();
     expect(handoff.peek).toHaveBeenCalledWith(CODE);
     expect(handoff.redeem).not.toHaveBeenCalled();
-    expect(f.componentInstance.account()).toBe('j***@g***.com');
+    expect(f.componentInstance.account()).toBe('j***@g***.test');
   });
 
   it('rejects a malformed code without any request', async () => {
