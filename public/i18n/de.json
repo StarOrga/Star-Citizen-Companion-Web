@@ -1,4 +1,32 @@
 {
+  "handoff": {
+    "title": "Auf dem Handy weitermachen",
+    "working": "Du wirst auf diesem Gerät angemeldet …",
+    "toLogin": "Manuell anmelden",
+    "confirm": {
+      "lead": "Dein Computer möchte diesem Gerät ein Konto übergeben. Es passiert nichts, bevor du bestätigst.",
+      "signInAs": "Als {{account}} anmelden"
+    },
+    "switch": {
+      "title": "Konto wechseln?",
+      "message": "Dieses Gerät ist als {{current}} angemeldet. Wenn du fortfährst, wird es stattdessen als {{target}} angemeldet.",
+      "confirm": "Konto wechseln"
+    },
+    "revoke": {
+      "note": "Meldet das Handy ab. Spätestens nach einer Stunde hat es keinen Zugriff mehr.",
+      "done": "Handy abgemeldet. Spätestens nach einer Stunde hat es keinen Zugriff mehr."
+    },
+    "errors": {
+      "invalidCode": "Dieser Link ist abgelaufen oder wurde schon benutzt. Erzeuge am Computer einen neuen.",
+      "rateLimit": "Zu viele Versuche. Bitte warte ein paar Minuten und versuche es erneut.",
+      "authRateLimit": "Der Anmeldedienst ist gerade ausgelastet. Bitte versuche es in ein paar Minuten erneut.",
+      "mintFailed": "Die Anmeldung auf diesem Gerät hat nicht geklappt. Erzeuge am Computer einen neuen Link und versuche es erneut.",
+      "revoked": "Diese Übergabe wurde am Computer abgebrochen.",
+      "revokeUnavailable": "Das Handy konnte von hier nicht abgemeldet werden. Eine Passwortänderung meldet alle Geräte ab.",
+      "invalidPath": "Diese Seite kann nicht auf dem Handy geöffnet werden.",
+      "notFound": "Diese Übergabe existiert nicht mehr."
+    }
+  },
   "common": {
     "select": {
       "none": "Keine Auswahl"
