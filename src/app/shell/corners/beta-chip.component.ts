@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { BETA_AREAS, BetaService } from '../../core/beta.service';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
+import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
 
 /**
  * The beta chip, top-right (shell beta, spec §0): a compact chip that opens
@@ -18,8 +20,8 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <aside class="chip-wrap" [attr.aria-label]="'beta.aria' | translate">
-        <button type="button" class="chip" [attr.aria-expanded]="open()" aria-haspopup="dialog"
+      <aside class="chip-wrap" [class.bar-hidden]="chrome.barHidden() && !open()" [attr.aria-label]="'beta.aria' | translate">
+        <button #chipBtn type="button" class="chip" [attr.aria-expanded]="open()" aria-haspopup="dialog"
                 [attr.aria-label]="(roles.isAdmin() ? 'beta.chip.admin' : 'beta.chip.collaborator') | translate"
                 (click)="open.set(!open())">
           <span class="mark" aria-hidden="true">β</span>
@@ -46,15 +48,22 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
   `,
   styles: [`
     :host { display: contents; }
+    /* Top-right, vertically centred on the bar's capsule: the bar reserves the
+       chip's lane (--sc-chip-lane, published below) at its inline end, so the two
+       share the row instead of stacking. The chip slides away with the bar. */
     .chip-wrap {
+      --_h: max(var(--sc-tap-min), 32px);
       position: fixed; z-index: 45;
-      top: calc(var(--sc-safe-top, 0px) + var(--sc-space-2));
+      top: calc(var(--sc-imp-banner-h, 0px) + 6px + (var(--sc-bar-h) - var(--sc-space-2) - var(--_h)) / 2);
       right: max(var(--sc-space-3), env(safe-area-inset-right));
       display: flex; flex-direction: column; align-items: flex-end; gap: var(--sc-space-2);
+      transition: transform var(--sc-bar-hide-ms) cubic-bezier(0.2, 0.8, 0.2, 1), opacity var(--sc-bar-hide-ms) ease;
     }
+    .chip-wrap.bar-hidden { transform: translateY(calc(-100% - var(--sc-space-4))); opacity: 0; pointer-events: none; }
+    .chip-wrap.bar-hidden:focus-within { transform: none; opacity: 1; pointer-events: auto; }
     .chip {
       display: inline-flex; align-items: center; gap: var(--sc-space-2);
-      min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3);
+      height: var(--_h); padding: 0 var(--sc-space-3);
       font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer;
       color: var(--sc-accent-hot);
       background: color-mix(in srgb, var(--sc-bg-1) 88%, transparent);
@@ -90,8 +99,10 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
     .sw[aria-checked='true'] .knob-track { background: color-mix(in srgb, var(--sc-accent) 35%, transparent); border-color: var(--sc-accent); }
     .sw[aria-checked='true'] .knob { transform: translateX(16px); background: var(--sc-accent); }
     /* Phone: the chip sits in the top strip as the bare β (role is the aria-label). */
-    @media (max-width: 600px) {
-      .chip-wrap { top: calc(var(--sc-safe-top, 0px) + var(--sc-space-1)); }
+    @media (max-width: 720px) {
+      /* The bar is at the bottom: the top-right corner is free. The bare β; the role is its aria-label. */
+      .chip-wrap { top: calc(var(--sc-safe-top, 0px) + var(--sc-space-2)); }
+      .chip-wrap.bar-hidden { transform: none; opacity: 1; pointer-events: auto; }
       .role { display: none; }
     }
     @media (prefers-reduced-motion: reduce) { .knob, .knob-track { transition: none; } }
@@ -102,10 +113,30 @@ export class BetaChipComponent {
   protected readonly roles = inject(RoleService);
   private readonly host = inject(ElementRef<HTMLElement>);
 
+  protected readonly chrome = inject(ShellChromeService);
+  private readonly doc = inject(DOCUMENT);
+  private readonly chipBtn = viewChild<ElementRef<HTMLElement>>('chipBtn');
   protected readonly areas = BETA_AREAS;
   protected readonly open = signal(false);
   /** Only with the shell beta on, and only for admins / collaborators. */
   protected readonly visible = computed(() => this.beta.state().shell && this.roles.isCollaborator());
+
+  constructor() {
+    // Publish the chip's width as the lane the bar leaves free at its inline end.
+    effect((onCleanup) => {
+      const el = this.chipBtn()?.nativeElement;
+      if (!el) return;
+      const root = this.doc.documentElement;
+      const publish = () => root.style.setProperty('--sc-chip-lane', `${Math.ceil(el.getBoundingClientRect().width) + 24}px`);
+      publish();
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(publish);
+      ro?.observe(el);
+      onCleanup(() => {
+        ro?.disconnect();
+        root.style.removeProperty('--sc-chip-lane');
+      });
+    });
+  }
 
   @HostListener('document:pointerdown', ['$event'])
   onOutside(ev: Event): void {

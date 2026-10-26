@@ -85,7 +85,7 @@ export interface OverlayNeighbour {
     .page .bar { border-bottom: 0; padding-inline: 0; }
     .page .content { overflow: visible; padding-inline: 0; }
     @media (max-width: 1080px) { .scrim { padding: 16px; } .scrim .sheet { width: min(100%, 760px); } }
-    @media (max-width: 600px) {
+    @media (max-width: 720px) {
       .scrim { padding: 0; place-items: stretch; }
       .scrim .sheet { width: 100%; max-height: none; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
     }

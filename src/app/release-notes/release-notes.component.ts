@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ReleaseNotesService } from './release-notes.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { BetaService } from '../core/beta.service';
 
 /** Releases rendered per batch; the next batch loads when the end scrolls near. */
 const BATCH = 5;
@@ -201,6 +202,8 @@ export class ReleaseNotesComponent implements OnInit {
   private readonly svc = inject(ReleaseNotesService);
   private readonly route = inject(ActivatedRoute);
   private readonly sentinel = viewChild<ElementRef<HTMLElement>>('sentinel');
+  /** Shell beta: the footer ends the page, so the list grows by the button only (no chasing footer). */
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
 
   readonly loading = signal(true);
   readonly releases = signal(this.svc.notes()?.releases ?? []);
@@ -221,7 +224,7 @@ export class ReleaseNotesComponent implements OnInit {
     effect((onCleanup) => {
       this.shown();
       const el = this.sentinel()?.nativeElement;
-      if (!el || typeof IntersectionObserver === 'undefined') return;
+      if (this.shellBeta() || !el || typeof IntersectionObserver === 'undefined') return;
       const io = new IntersectionObserver(
         (entries) => {
           if (entries.some((e) => e.isIntersecting)) this.loadMore();

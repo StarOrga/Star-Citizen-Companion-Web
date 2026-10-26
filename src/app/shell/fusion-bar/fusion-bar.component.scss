@@ -17,6 +17,13 @@
   transition: transform var(--sc-bar-hide-ms) cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity var(--sc-bar-hide-ms) ease;
 }
+// The β chip (admins / collaborators) docks into the capsule row's inline end;
+// it publishes its width as --sc-chip-lane, the capsule leaves that lane free.
+@media (min-width: 721px) {
+  :host {
+    padding-inline-end: max(var(--sc-wide-gutter), var(--sc-chip-lane, 0px));
+  }
+}
 :host(.hidden) {
   transform: translateY(calc(-100% - var(--sc-space-2)));
   opacity: 0;

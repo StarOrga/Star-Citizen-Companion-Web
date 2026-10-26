@@ -117,6 +117,11 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     }
     /* Hub stage: the footer sits on the stage's bottom edge and scrolls along
        (in flow, pulled up over the stage by its own height), infos centred. */
+    /* The bottom-right corner is the feedback launcher's, and beside it the share
+       button's lane: the footer's last link ends before both. */
+    @media (min-width: 721px) {
+      .sf { padding-inline-end: max(var(--sc-page-gutter), calc(var(--sc-fab-clear-inline) + var(--sc-space-2) + 44px)); }
+    }
     .sf-stage { margin-top: calc(-1 * var(--sc-footer-h)); justify-content: center; pointer-events: none; z-index: 2; }
     .sf-stage > * { pointer-events: auto; }
     .sf-stage .sf-badge { position: absolute; left: var(--sc-page-gutter); bottom: var(--sc-space-2); }
