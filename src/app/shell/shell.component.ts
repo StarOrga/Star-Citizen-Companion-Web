@@ -49,11 +49,12 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 import { LayoutService } from '../core/layout/layout.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
+import { ShellSceneComponent } from './scene/shell-scene.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -74,6 +75,7 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
   ],
   template: `
     <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
+    <sc-shell-scene />
     @if (!shellOn()) {
     <header class="topbar">
       <!-- Wordmark: the "alpha" badge is CENTERED UNDER the title, not beside it
