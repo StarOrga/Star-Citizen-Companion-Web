@@ -4,6 +4,35 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.167.0] - 2026-10-26
+
+### Added
+
+- **Neue App-Hülle als Beta („shell“).** Wer den Beta-Bereich „shell“
+  einschaltet, bekommt Kopf, Fuß und Navigation neu: Eine schwebende Leiste
+  vereint Brotkrumen, Bereich und Suche für alle Seitentypen. Auf
+  Übersichtsseiten wächst sie aus der Suchzeile der Bühne, auf Inhaltsseiten
+  verschwindet sie beim Scrollen und kommt beim Hochscrollen zurück, auf
+  Werkzeugseiten bleibt sie stehen und öffnet die Filter als Schublade. Am
+  Handy sitzt sie unten. Die Suche (Strg+K oder „/“) gewichtet Treffer nach
+  dem aktuellen Bereich und bietet pro Treffer Schnellaktionen.
+- **Fuß ohne Balken, Szenenwechsel, Overlays.** Abzeichen und Wortmarke
+  stehen unten links, der Markenhinweis öffnet sich als Sprechblase,
+  „Neuigkeiten“ ersetzt die Versionsnummer. Zwischen Verse, HQ und Codex
+  wechselt eine Kamerafahrt die Szene (bei reduzierter Bewegung nur
+  Überblenden). News, Galeriebilder und kommende Schiffe öffnen aus der Liste
+  als Overlay und direkt aufgerufen als volle Seite; ein Teilen-Knopf kopiert
+  den Link samt Abschnitt.
+- **Auf dem Handy weitermachen.** Ein QR-Code mit einem 60-Sekunden-
+  Einmalcode meldet das Handy im eigenen Konto an – erst nach einem Tipp, mit
+  Warnung, wenn dort ein anderes Konto angemeldet ist. Am Desktop lassen sich
+  verbundene Handys sehen und wieder abmelden.
+- **Verse-Hub und kleinere Seiten.** Ein kleinerer Planet mit
+  News/Patches/Galerie als Holo-Beschriftungen und eine „Für dich“-Zeile;
+  Sternbilder als Umschalter der Sternenkarte, eine Logbuch-Tour, ein
+  Upcoming-Teaser im Codex, Nachschub als Popup und neue Anmeldekarten.
+  Ohne Beta bleibt die App wie bisher.
+
 ## [0.166.2] - 2026-10-26
 
 ### Fixed
