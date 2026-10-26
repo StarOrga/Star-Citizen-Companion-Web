@@ -52,7 +52,7 @@ describe('Verse News — share without a share sheet', () => {
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed()) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         {
           provide: UpcomingShipsService,
           useValue: {

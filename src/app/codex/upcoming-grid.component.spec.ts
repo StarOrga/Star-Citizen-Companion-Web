@@ -153,7 +153,7 @@ describe('UpcomingGridComponent search (real input, real service)', () => {
         provideTranslateService({}),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
       ],
     });
     const svc = TestBed.inject(UpcomingShipsService);

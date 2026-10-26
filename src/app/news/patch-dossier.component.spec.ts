@@ -138,7 +138,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(FEED) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         { provide: RoadmapService, useValue: stub },
       ],
     });

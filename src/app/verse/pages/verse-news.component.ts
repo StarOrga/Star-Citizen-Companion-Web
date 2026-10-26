@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { OverlayOriginService } from '../../shared/overlay-frame/overlay-origin.service';
+import { ChildRouteService } from '../../shared/overlay-frame/child-route.service';
 import { TranslatePipe } from '@ngx-translate/core';
 import { NewsListComponent } from '../../news/news-list.component';
 import { BetaService } from '../../core/beta.service';
@@ -12,16 +15,24 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
 @Component({
   selector: 'sc-verse-news',
   standalone: true,
-  imports: [TranslatePipe, VerseHeaderComponent, NewsListComponent],
+  imports: [TranslatePipe, RouterOutlet, VerseHeaderComponent, NewsListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
       <sc-verse-header [eyebrow]="'verse.area.news' | translate" [rememberAs]="'verse.area.news' | translate" />
     }
-    <sc-news-list />
+    <!-- Shell beta: a direct load of /verse/news/:id is a full page, so the stream
+         only stays underneath while the item is an overlay. -->
+    @if (!enabledShell() || !child.active() || origin.overlaid()) {
+      <sc-news-list />
+    }
+    <router-outlet />
   `,
   styles: [`:host { display: block; }`],
 })
 export class VerseNewsComponent {
   readonly enabled = inject(BetaService).isEnabled('verse');
+  readonly enabledShell = inject(BetaService).isEnabled('shell');
+  readonly origin = inject(OverlayOriginService);
+  readonly child = inject(ChildRouteService).track();
 }

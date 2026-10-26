@@ -1378,6 +1378,7 @@
       "dashNote": "Ammo und Spread stehen als „—“, weil Energiewaffen kein Magazin haben und Streuung im P4K nur als Modifikator vorliegt. Keine Extractor-Lücke.",
       "footerMissing": "Nicht in den Spieldateien: {{fields}}",
       "pickRow": "{{name}} einbauen",
+      "openDetail": "Details zu {{name}} öffnen",
       "scope": {
         "sameClass": "Nur {{class}}",
         "sameFamily": "Alle {{family}}",
@@ -4354,6 +4355,14 @@
       "title": "Verwarnung durch die Administration",
       "acknowledge": "Verstanden"
     }
+  },
+  "overlay": {
+    "prev": "Vorheriger Eintrag",
+    "next": "Nächster Eintrag",
+    "close": "Schließen",
+    "news": { "source": "Quelle", "missing": "Dieser Eintrag ist nicht (mehr) im Feed." },
+    "gallery": { "image": "Bild", "missing": "Dieses Bild wurde nicht gefunden.", "download": "Original herunterladen", "article": "Artikel bei RSI" },
+    "share": { "label": "Link zu diesem Abschnitt teilen", "copied": "Link kopiert", "failed": "Teilen nicht möglich" }
   },
   "share": {
     "title": "Set teilen",

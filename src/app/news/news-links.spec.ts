@@ -61,7 +61,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed()) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         {
           provide: UpcomingShipsService,
           useValue: {

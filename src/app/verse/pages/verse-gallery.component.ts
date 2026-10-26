@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
+import { OverlayOriginService } from '../../shared/overlay-frame/overlay-origin.service';
+import { ChildRouteService } from '../../shared/overlay-frame/child-route.service';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AppDownloadMenuComponent } from '../../desktop/app-download-menu.component';
 import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
@@ -20,9 +22,10 @@ const STARSCAPE_FALLBACK_URL =
 @Component({
   selector: 'sc-verse-gallery',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, VerseHeaderComponent, StarscapeComponent, AppDownloadMenuComponent],
+  imports: [RouterLink, RouterOutlet, TranslatePipe, VerseHeaderComponent, StarscapeComponent, AppDownloadMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <div [hidden]="hideList()">
     @if (enabled()) {
       <sc-verse-header [title]="'verse.area.gallery' | translate" [subtitle]="'starscape.subtitle' | translate">
         <a vhActions class="sub-link" routerLink="/verse/gallery/constellations">{{ 'verse.gallery.mine' | translate }}</a>
@@ -49,6 +52,8 @@ const STARSCAPE_FALLBACK_URL =
     } @else {
       <sc-starscape />
     }
+    </div>
+    <router-outlet />
   `,
   styles: [`
     :host { display: block; }
@@ -76,6 +81,11 @@ const STARSCAPE_FALLBACK_URL =
 export class VerseGalleryComponent {
   private readonly connections = inject(DesktopConnectionService);
   readonly enabled = inject(BetaService).isEnabled('verse');
+  private readonly shell = inject(BetaService).isEnabled('shell');
+  private readonly origin = inject(OverlayOriginService);
+  private readonly child = inject(ChildRouteService).track();
+  /** Shell beta: a direct load of /verse/gallery/:imageId is a full page - the grid stays only under an overlay. */
+  readonly hideList = computed(() => this.shell() && this.child.active() && !this.origin.overlaid());
   protected readonly fallbackUrl = STARSCAPE_FALLBACK_URL;
 
   readonly connected = computed(() => {

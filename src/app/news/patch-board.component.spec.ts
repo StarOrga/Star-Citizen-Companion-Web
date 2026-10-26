@@ -154,7 +154,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         { provide: RoadmapService, useValue: roadmapStub(roadmap) },
         { provide: PatchStabilityService, useValue: stabilityStub() },
       ],

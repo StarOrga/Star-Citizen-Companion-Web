@@ -32,6 +32,7 @@ import { groupCardsByCategory, roadmapCardUrl, type RoadmapCard } from './roadma
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ShareButtonComponent } from '../shared/share-button/share-button.component';
 
 type SectionId = 'prep' | 'contents' | 'fixed' | 'next';
 
@@ -112,7 +113,7 @@ function scrollBehavior(): ScrollBehavior {
   imports: [
     TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
     PatchNoteDetailComponent, StabilityBadgeComponent, ScDialogDirective,
-    ScTooltipDirective,
+    ScTooltipDirective, ShareButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -390,6 +391,7 @@ function scrollBehavior(): ScrollBehavior {
         }
       </div>
     </div>
+    <sc-share-button [shareTitle]="title()" />
   `,
   styles: [`
     :host { display: block; }

@@ -14,6 +14,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { BetaService } from '../core/beta.service';
 import { fromEvent } from 'rxjs';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
@@ -173,7 +175,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [TranslatePipe, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
+  imports: [TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
@@ -347,7 +349,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                   </thead>
                   <tbody>
                     @for (c of rows(); track c.className) {
-                      <tr class="pick-row" tabindex="0" [class.cur]="c.className === baselineClass()"
+                      <tr class="pick-row" tabindex="0" [class.cur]="c.className === baselineClass()" [class.pinned]="shell() && c.className === baselineClass()"
                           [attr.aria-label]="'codex.picker.pickRow' | translate: { name: c.name }"
                           (click)="pick(c)" (keydown.enter)="pick(c)" (keydown.space)="pick(c); $event.preventDefault()">
                         <td class="c-name">
@@ -361,6 +363,14 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                             </span>
                             <span class="pick-meta">{{ metaLine(c) }}</span>
                           </span>
+                          @if (shell()) {
+                            <!-- Real anchor to the item's own page; the row click equips. -->
+                            <a class="pick-detail" [routerLink]="['/codex', c.kind, c.className]"
+                               [attr.aria-label]="'codex.picker.openDetail' | translate: { name: c.name }"
+                               [scTooltip]="'codex.picker.openDetail' | translate: { name: c.name }" scTooltipTier="label"
+                               (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()"
+                               (keydown.space)="$event.stopPropagation()">↗</a>
+                          }
                         </td>
                         @for (col of displayColumns(); track col.key) {
                           <td class="c-num" [class.gapc]="cellState(c, col.key) === 'notApplicable'"
@@ -573,6 +583,14 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-row.cur td.c-name { background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
 
     td.c-name { padding: 4px 5px; }
+    .pick-detail { position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center;
+      min-width: 28px; min-height: max(28px, var(--sc-tap-min)); border-radius: 6px; color: var(--sc-fg-2);
+      border: 1px solid var(--sc-border); text-decoration: none; }
+    .pick-detail:hover, .pick-detail:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); text-decoration: none; }
+    td.c-name:has(.pick-detail) { padding-inline-end: 40px; }
+    /* The baseline stays visible under the sticky head while the rest scrolls. */
+    .pick-row.pinned td { position: sticky; top: 34px; z-index: 1; background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-1)); }
+    .pick-row.pinned td.c-name { z-index: 3; }
     .pick-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; margin-left: 4px; }
     .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: anywhere; display: inline-flex; align-items: center; gap: 6px; }
     .pick-meta { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
@@ -618,9 +636,11 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-foot { padding-top: 6px; }
     .pick-missing { margin: 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
 
+    /* Tablet: a wide sheet with a little air; phone: full-screen takeover. */
+    @media (max-width: 1080px) { .pick-veil { padding: 24px 16px; } }
     @media (max-width: 640px) {
       .pick-veil { padding: 0; }
-      .pick-win { max-width: none; border-radius: 0; }
+      .pick-win { max-width: none; border-radius: 0; height: 100vh; height: 100dvh; max-height: 100dvh; }
       .pick-scope { flex-direction: column; align-items: stretch; }
       .pick-count, .pick-cols { align-self: flex-start; }
       .pick-count { margin-left: 0; }
@@ -631,6 +651,8 @@ export class CodexSwapPickerComponent {
   private readonly svc = inject(CodexService);
   private readonly source = inject(CodexSwapCandidatesService);
   private readonly i18n = inject(TranslateService);
+  /** Shell beta: detail-page icon link per row, baseline pinned under the header. */
+  protected readonly shell = inject(BetaService).isEnabled('shell');
 
   /**
    * Signal-tracked UI language, so the strings this component resolves outside

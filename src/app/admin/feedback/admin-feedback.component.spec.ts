@@ -165,7 +165,7 @@ async function mount(tables: Record<string, unknown[]>, opts: FakeOpts = {}) {
       { provide: SupabaseClientProvider, useValue: sb.provider },
       provideFakeAttachmentSigner(),
       { provide: AuthService, useValue: { user: signal({ id: SELF }), session: signal(null), ready: () => Promise.resolve(), realUser: () => null } },
-      { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+      { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
       { provide: LocaleService, useValue: { language: () => 'de', region: () => 'DE' } },
       { provide: CelebrationService, useValue: { burst: () => undefined, burstFrom: () => undefined, reducedMotion: () => true } },
       { provide: FeedbackMotionService, useValue: motion.service },

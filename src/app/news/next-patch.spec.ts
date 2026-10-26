@@ -136,7 +136,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed(news)) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         {
           provide: UpcomingShipsService,
           useValue: {

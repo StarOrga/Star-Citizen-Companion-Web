@@ -103,7 +103,7 @@ describe('Verse News — the build-status card', () => {
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         {
           provide: UpcomingShipsService,
           useValue: {
