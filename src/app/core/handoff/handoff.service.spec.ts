@@ -1,55 +1,76 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { AuthService } from '../../auth/auth.service';
 import { FakeCall, fakeSupabase } from '../../testing/fake-supabase';
-import { HANDOFF_POLL_MS, HandoffService, handoffTargetPath } from './handoff.service';
+import {
+  HANDOFF_CONNECTED_WATCH_MS,
+  HANDOFF_POLL_MS,
+  HandoffService,
+  handoffTargetPath,
+  maskEmail,
+} from './handoff.service';
 
 describe('handoffTargetPath', () => {
   it('keeps same-origin paths and refuses the rest', () => {
     expect(handoffTargetPath('/codex/ship/x?a=1')).toBe('/codex/ship/x?a=1');
     expect(handoffTargetPath('//evil.example')).toBe('/');
     expect(handoffTargetPath('https://evil.example')).toBe('/');
-    expect(handoffTargetPath('/handoff?c=abc')).toBe('/');
+    expect(handoffTargetPath('/handoff#c=abc')).toBe('/');
     expect(handoffTargetPath('/login')).toBe('/');
+    expect(handoffTargetPath('/a b')).toBe('/');
+    expect(handoffTargetPath('/' + 'a'.repeat(600))).toBe('/');
     expect(handoffTargetPath(null)).toBe('/');
+  });
+});
+
+describe('maskEmail', () => {
+  it('matches the edge function', () => {
+    expect(maskEmail('jane.doe@gmail.com')).toBe('j***@g***.com');
+    expect(maskEmail('nonsense')).toBe('***');
   });
 });
 
 describe('HandoffService', () => {
   let rowState: Record<string, unknown> | null;
+  let pollError: unknown;
   let createAnswer: () => { data?: unknown; error?: unknown };
+  let revokeAnswer: { data?: unknown; error?: unknown };
   let fake: ReturnType<typeof fakeSupabase>;
 
-  function setup(email: string | undefined = 'me@example.com'): HandoffService {
+  function setup(): HandoffService {
     fake = fakeSupabase({
       answer: (c: FakeCall) => {
         if (c.op === 'invoke' && c.target === 'handoff-create') return createAnswer();
+        if (c.op === 'invoke' && c.target === 'handoff-revoke') return revokeAnswer;
         if (c.op === 'invoke' && c.target === 'handoff-redeem') {
-          return { data: { access_token: 'a', refresh_token: 'r', target_path: '//evil.example' } };
+          const body = (c.args as { body: { peek?: boolean } }).body;
+          return body.peek
+            ? { data: { email_masked: 'j***@g***.com' } }
+            : { data: { access_token: 'a', refresh_token: 'r', target_path: '//evil.example' } };
         }
-        if (c.op === 'invoke') return { data: { revoked: true } };
-        return { data: rowState };
+        if (c.op === 'from' && c.chain.some(([m]) => m === 'limit')) {
+          return { data: [{ id: 'row-9', consumed_device: 'iOS - Safari', consumed_at: '2026-10-26T10:00:00Z' }] };
+        }
+        return { data: rowState, error: pollError };
       },
     });
-    TestBed.configureTestingModule({
-      providers: [fake.provider, { provide: AuthService, useValue: { realUser: () => (email ? { email } : null) } }],
-    });
+    TestBed.configureTestingModule({ providers: [fake.provider] });
     return TestBed.inject(HandoffService);
   }
 
   beforeEach(() => {
-    rowState = { consumed_at: null, consumed_device: null, revoked_at: null, expires_at: '' };
+    rowState = { consumed_at: null, consumed_device: null, revoked_at: null };
+    pollError = null;
+    revokeAnswer = { data: { revoked: true, outcome: 'revoked' } };
     createAnswer = () => ({
       data: { id: 'row-1', code: 'CODE', expires_at: new Date(Date.now() + 60_000).toISOString() },
     });
   });
 
-  it('create() returns code, absolute url and starts pending', async () => {
+  it('create() puts the code in the fragment and starts pending', async () => {
     const svc = setup();
     const made = await svc.create('/codex');
-    expect(made.url).toBe(`${location.origin}/handoff?c=CODE`);
+    expect(made.url).toBe(`${location.origin}/handoff#c=CODE`);
     expect(svc.status()).toBe('pending');
-    const call = fake.calls.find((c) => c.target === 'handoff-create');
-    expect(call?.args).toEqual({ body: { target_path: '/codex' } });
+    expect(fake.calls.find((c) => c.target === 'handoff-create')?.args).toEqual({ body: { target_path: '/codex' } });
     svc.stopWatching();
   });
 
@@ -71,11 +92,11 @@ describe('HandoffService', () => {
     const svc = setup();
     void svc.create('/');
     tick(0);
-    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: null, expires_at: '' };
+    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: null };
     tick(HANDOFF_POLL_MS);
     expect(svc.status()).toBe('connected');
     expect(svc.device()).toBe('Android - Chrome');
-    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: 'now', expires_at: '' };
+    rowState = { consumed_at: 'now', consumed_device: 'Android - Chrome', revoked_at: 'now' };
     tick(HANDOFF_POLL_MS);
     expect(svc.status()).toBe('revoked');
     tick(HANDOFF_POLL_MS * 3);
@@ -90,6 +111,34 @@ describe('HandoffService', () => {
     expect(svc.status()).toBe('expired');
   }));
 
+  it('a vanished row is an error after 3 polls, never a false expired', fakeAsync(() => {
+    createAnswer = () => ({ data: { id: 'row-1', code: 'C', expires_at: new Date(Date.now() + 1).toISOString() } });
+    const svc = setup();
+    void svc.create('/');
+    tick(0);
+    rowState = null;
+    tick(HANDOFF_POLL_MS);
+    tick(HANDOFF_POLL_MS);
+    expect(svc.status()).toBe('pending');
+    tick(HANDOFF_POLL_MS);
+    expect(svc.status()).toBe('error');
+  }));
+
+  it('stops watching a connected phone after the cap but stays connected', fakeAsync(() => {
+    const svc = setup();
+    void svc.create('/');
+    tick(0);
+    rowState = { consumed_at: 'now', consumed_device: 'X', revoked_at: null };
+    tick(HANDOFF_POLL_MS);
+    const before = fake.calls.length;
+    tick(HANDOFF_CONNECTED_WATCH_MS + HANDOFF_POLL_MS);
+    const during = fake.calls.length;
+    expect(during).toBeGreaterThan(before);
+    tick(HANDOFF_POLL_MS * 5);
+    expect(fake.calls.length).toBe(during);
+    expect(svc.status()).toBe('connected');
+  }));
+
   it('revoke() calls handoff-revoke with the row id', async () => {
     const svc = setup();
     await svc.create('/');
@@ -98,22 +147,22 @@ describe('HandoffService', () => {
     expect(svc.status()).toBe('revoked');
   });
 
-  it('sendMagicLink() mails the own address with a validated same-origin redirect', async () => {
+  it('revoke() throws when the server changed nothing', async () => {
+    revokeAnswer = { data: { revoked: false, outcome: 'none' } };
     const svc = setup();
-    const signInWithOtp = jasmine.createSpy('signInWithOtp').and.resolveTo({ error: null });
-    spyOn(svc as unknown as { createOtpClient: () => unknown }, 'createOtpClient').and.returnValue({
-      auth: { signInWithOtp },
-    });
-    await svc.sendMagicLink('https://evil.example/x');
-    expect(signInWithOtp).toHaveBeenCalledWith({
-      email: 'me@example.com',
-      options: { emailRedirectTo: `${location.origin}/`, shouldCreateUser: false },
-    });
+    await expectAsync(svc.revoke('row-7')).toBeRejected();
   });
 
-  it('sendMagicLink() without an email throws', async () => {
-    const svc = setup(undefined);
-    await expectAsync(svc.sendMagicLink('/')).toBeRejected();
+  it('listConnected() returns own redeemed, unrevoked rows', async () => {
+    const svc = setup();
+    const list = await svc.listConnected();
+    expect(list).toEqual([{ id: 'row-9', device: 'iOS - Safari', connectedAt: Date.parse('2026-10-26T10:00:00Z') }]);
+  });
+
+  it('peek() returns the masked account and never sends a redeem', async () => {
+    const svc = setup();
+    expect(await svc.peek('CODE')).toBe('j***@g***.com');
+    expect(fake.calls[0].args).toEqual({ body: { code: 'CODE', peek: true } });
   });
 
   it('redeem() sets the session and returns a sanitised target', async () => {
@@ -123,5 +172,17 @@ describe('HandoffService', () => {
     const target = await svc.redeem('CODE');
     expect(setSession).toHaveBeenCalledWith({ access_token: 'a', refresh_token: 'r' });
     expect(target).toBe('/');
+  });
+
+  it('errorKey() maps hand-off codes and falls back to errors.*', async () => {
+    const svc = setup();
+    const withBody = (error: string) => ({
+      context: new Response(JSON.stringify({ error }), { status: 404 }),
+    });
+    expect(await svc.errorKey('redeem', withBody('invalid_code'))).toBe('handoff.errors.invalidCode');
+    expect(await svc.errorKey('redeem', withBody('mint_failed'))).toBe('handoff.errors.mintFailed');
+    expect(await svc.errorKey('redeem', withBody('auth_rate_limited'))).toBe('handoff.errors.authRateLimit');
+    expect(await svc.errorKey('revoke', withBody('revoke_unavailable'))).toBe('handoff.errors.revokeUnavailable');
+    expect(await svc.errorKey('redeem', new TypeError('Failed to fetch'))).toMatch(/^errors\./);
   });
 });

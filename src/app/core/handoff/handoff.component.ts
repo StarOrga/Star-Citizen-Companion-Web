@@ -1,14 +1,23 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { toErrorKey } from '../describe-error';
-import { HandoffService } from './handoff.service';
+import { AuthService } from '../../auth/auth.service';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
+import { HandoffService, maskEmail } from './handoff.service';
+
+/** Same shape check as the edge function: 43 base64url chars. */
+const CODE_SHAPE = /^[A-Za-z0-9_-]{43}$/;
 
 /**
- * Phone landing page of "Continue on your phone": trades the one-time code in
- * `?c=` for a session and navigates on. Plain layout (route data), no shell.
- * The code leaves the address bar immediately (replaceUrl on success; on
- * failure the page keeps only an error, the code is dead either way).
+ * Phone landing page of "Continue on your phone". Plain layout (route data).
+ *
+ * Login-CSRF guard: opening the link NEVER signs the browser in. The page
+ * shows which account the code belongs to (read-only peek, masked) and waits
+ * for an explicit tap; if another account is already signed in here, that tap
+ * additionally needs a confirmation.
+ *
+ * The code travels in the URL fragment (`#c=`), never reaches a server log or a
+ * Referer, and is stripped from the address bar before any network call.
  */
 @Component({
   selector: 'sc-handoff',
@@ -20,9 +29,13 @@ import { HandoffService } from './handoff.service';
       <div class="sc-card card">
         <h1>{{ 'handoff.title' | translate }}</h1>
         @if (errorKey(); as key) {
-          <p class="lead" role="alert">{{ 'handoff.invalid' | translate }}</p>
-          <p class="detail">{{ key | translate }}</p>
+          <p class="lead" role="alert">{{ key | translate }}</p>
           <a routerLink="/login" class="sc-btn sc-btn-primary">{{ 'handoff.toLogin' | translate }}</a>
+        } @else if (account(); as who) {
+          <p class="lead">{{ 'handoff.confirm.lead' | translate }}</p>
+          <button type="button" class="sc-btn sc-btn-primary" [disabled]="busy()" (click)="signIn()">
+            {{ 'handoff.confirm.signInAs' | translate: { account: who } }}
+          </button>
         } @else {
           <p class="lead" role="status">{{ 'handoff.working' | translate }}</p>
         }
@@ -41,10 +54,6 @@ import { HandoffService } from './handoff.service';
         display: grid;
         gap: 0.75rem;
       }
-      .detail {
-        color: var(--sc-text-muted);
-        font-size: 0.875rem;
-      }
     `,
   ],
 })
@@ -52,16 +61,57 @@ export class HandoffComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly handoff = inject(HandoffService);
+  private readonly auth = inject(AuthService);
+  private readonly confirmDialog = inject(ScConfirmService);
 
   readonly errorKey = signal<string | null>(null);
+  /** Masked account the code would sign in; set once the peek succeeded. */
+  readonly account = signal<string | null>(null);
+  readonly busy = signal(false);
+  private code = '';
 
   async ngOnInit(): Promise<void> {
-    const code = this.route.snapshot.queryParamMap.get('c') ?? '';
-    try {
-      const target = await this.handoff.redeem(code);
-      await this.router.navigateByUrl(target, { replaceUrl: true });
-    } catch (err) {
-      this.errorKey.set(toErrorKey('handoff', 'redeem', err));
+    this.code = this.readCode();
+    // Strip the secret from the address bar / history BEFORE any request.
+    if (typeof history !== 'undefined') history.replaceState(history.state, '', location.pathname);
+    if (!CODE_SHAPE.test(this.code)) {
+      this.errorKey.set('handoff.errors.invalidCode');
+      return;
     }
+    try {
+      this.account.set(await this.handoff.peek(this.code));
+    } catch (err) {
+      this.errorKey.set(await this.handoff.errorKey('peek', err));
+    }
+  }
+
+  async signIn(): Promise<void> {
+    if (this.busy()) return;
+    const target = this.account();
+    await this.auth.ready();
+    const current = this.auth.realUser()?.email;
+    if (current && target && maskEmail(current) !== target) {
+      const ok = await this.confirmDialog.confirm({
+        titleKey: 'handoff.switch.title',
+        messageKey: 'handoff.switch.message',
+        params: { current: maskEmail(current), target },
+        confirmKey: 'handoff.switch.confirm',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
+    this.busy.set(true);
+    try {
+      const path = await this.handoff.redeem(this.code);
+      await this.router.navigateByUrl(path, { replaceUrl: true });
+    } catch (err) {
+      this.errorKey.set(await this.handoff.errorKey('redeem', err));
+      this.busy.set(false);
+    }
+  }
+
+  private readCode(): string {
+    const frag = this.route.snapshot.fragment ?? location.hash.replace(/^#/, '');
+    return new URLSearchParams(frag).get('c') ?? '';
   }
 }

@@ -1,7 +1,6 @@
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
-import { environment } from '../../../environments/environment';
-import { AuthService } from '../../auth/auth.service';
+import { readErrorBody } from '../edge-error';
+import { toErrorKey } from '../describe-error';
 import { logWarn } from '../log';
 import { safeRedirectTarget } from '../safe-redirect.util';
 import { SupabaseClientProvider } from '../supabase.client';
@@ -11,44 +10,83 @@ import { SupabaseClientProvider } from '../supabase.client';
  * docs/concepts/2026-10-25-header-footer-subheader-analyse/briefs/contract-handoff.md
  *
  * Desktop: `create()` -> show `url` as QR/link; `status` follows the code
- * (pending -> connected | expired | revoked); `revoke()` signs that phone out.
- * Phone: the `/handoff` route calls `redeem(code)`.
- * Fallback: `sendMagicLink()` mails a sign-in link to the user's own address.
+ * (pending -> connected | expired | revoked); `listConnected()` / `revoke(id)`
+ * manage phones that are already signed in (also after a reload).
+ * Phone: the `/handoff` route calls `peek(code)` (read-only), shows the account,
+ * and only after an explicit tap `redeem(code)`.
+ *
+ * Revoking signs the phone out at the latest within an hour: its refresh chain
+ * dies at once, an access token already issued runs out on its own.
  */
 export type HandoffStatus = 'idle' | 'pending' | 'connected' | 'expired' | 'revoked' | 'error';
 
 export interface HandoffCreated {
   readonly id: string;
   readonly code: string;
-  /** Absolute `/handoff?c=<code>` URL on this origin. */
+  /** Absolute `/handoff#c=<code>` URL on this origin (fragment: never sent to a server). */
   readonly url: string;
   /** Epoch ms. */
   readonly expiresAt: number;
 }
 
+export interface HandoffConnection {
+  readonly id: string;
+  readonly device: string | null;
+  /** Epoch ms. */
+  readonly connectedAt: number;
+}
+
 export const HANDOFF_PATH = '/handoff';
 export const HANDOFF_POLL_MS = 2000;
+/** Keep watching a connected phone this long (revoke from another tab), then stop. */
+export const HANDOFF_CONNECTED_WATCH_MS = 2 * 60 * 1000;
+export const HANDOFF_MAX_POLL_ERRORS = 3;
 
-/** Paths a hand-off / magic link must never land on (loops). */
+/** Same rules as `validateTargetPath` in supabase/functions/handoff-create/_handoff.ts. */
 const NO_TARGET = /^\/(handoff|login)(?:[/?#]|$)/;
+// eslint-disable-next-line no-control-regex
+const UNSAFE_CHARS = /[\u0000- \u007f]/;
 
 /** Same-origin absolute path to continue on, falling back to `/`. */
 export function handoffTargetPath(raw: string | null | undefined): string {
   const p = safeRedirectTarget(raw, '/');
-  return NO_TARGET.test(p) ? '/' : p;
+  if (p.length > 512 || UNSAFE_CHARS.test(p) || NO_TARGET.test(p)) return '/';
+  return p;
 }
+
+/** "jane.doe@gmail.com" -> "j***@g***.com". Same algorithm as the edge function. */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf('@');
+  if (at < 1) return '***';
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  const dot = domain.lastIndexOf('.');
+  const host = dot > 0 ? domain.slice(0, dot) : domain;
+  const tld = dot > 0 ? domain.slice(dot) : '';
+  return `${local[0]}***@${host[0] ?? ''}***${tld}`;
+}
+
+/** Hand-off body codes -> i18n keys. Anything else falls through to `errors.*`. */
+const CODE_KEYS: Record<string, string> = {
+  invalid_code: 'handoff.errors.invalidCode',
+  rate_limited: 'handoff.errors.rateLimit',
+  auth_rate_limited: 'handoff.errors.authRateLimit',
+  mint_failed: 'handoff.errors.mintFailed',
+  revoked: 'handoff.errors.revoked',
+  revoke_unavailable: 'handoff.errors.revokeUnavailable',
+  invalid_path: 'handoff.errors.invalidPath',
+  not_found: 'handoff.errors.notFound',
+};
 
 interface RowState {
   consumed_at: string | null;
   consumed_device: string | null;
   revoked_at: string | null;
-  expires_at: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class HandoffService implements OnDestroy {
   private readonly sb = inject(SupabaseClientProvider);
-  private readonly auth = inject(AuthService);
 
   private readonly _status = signal<HandoffStatus>('idle');
   private readonly _device = signal<string | null>(null);
@@ -61,7 +99,7 @@ export class HandoffService implements OnDestroy {
   readonly current = this._current.asReadonly();
   readonly connected = computed(() => this._status() === 'connected');
 
-  /** Ask for a one-time code; starts watching its row. Throws a raw error (use `toErrorKey`). */
+  /** Ask for a one-time code; starts watching its row. Rejects with the raw error: use `errorKey`. */
   async create(targetPath?: string): Promise<HandoffCreated> {
     const path = handoffTargetPath(targetPath ?? currentPath());
     this.stopWatching();
@@ -75,7 +113,7 @@ export class HandoffService implements OnDestroy {
     const created: HandoffCreated = {
       id: String(data.id),
       code: String(data.code),
-      url: `${location.origin}${HANDOFF_PATH}?c=${encodeURIComponent(String(data.code))}`,
+      url: `${location.origin}${HANDOFF_PATH}#c=${encodeURIComponent(String(data.code))}`,
       expiresAt: Date.parse(String(data.expires_at)),
     };
     this._current.set(created);
@@ -85,31 +123,49 @@ export class HandoffService implements OnDestroy {
     return created;
   }
 
-  /** Sign the connected phone out (or burn an unredeemed code). */
-  async revoke(): Promise<void> {
-    const cur = this._current();
-    if (!cur) return;
-    const { error } = await this.sb.realClient.functions.invoke('handoff-revoke', { body: { id: cur.id } });
+  /** Phones that are signed in through a hand-off and not revoked (survives a reload). */
+  async listConnected(): Promise<HandoffConnection[]> {
+    const { data, error } = await this.sb.realClient
+      .from('handoff_codes')
+      .select('id, consumed_device, consumed_at')
+      .not('consumed_device', 'is', null)
+      .is('revoked_at', null)
+      .order('consumed_at', { ascending: false })
+      .limit(20);
     if (error) throw error;
-    this.stopWatching();
-    this._status.set('revoked');
+    return ((data ?? []) as { id: string; consumed_device: string | null; consumed_at: string }[]).map((r) => ({
+      id: r.id,
+      device: r.consumed_device,
+      connectedAt: Date.parse(r.consumed_at),
+    }));
   }
 
-  /** Fallback: mail a sign-in link to the signed-in user's OWN address. */
-  async sendMagicLink(targetPath?: string): Promise<void> {
-    const email = this.auth.realUser()?.email;
-    if (!email) throw new Error('handoff: no email on the session');
-    const redirect = `${location.origin}${handoffTargetPath(targetPath ?? currentPath())}`;
-    // Implicit flow on a throwaway client: the PKCE verifier would live on THIS
-    // device, so a link opened on the phone could never complete.
-    const { error } = await this.createOtpClient().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirect, shouldCreateUser: false },
+  /**
+   * Sign a phone out (or burn an unredeemed code). Without an id: the one from
+   * the last `create()`. Throws when nothing was revoked (see `errorKey`).
+   */
+  async revoke(id?: string): Promise<void> {
+    const target = id ?? this._current()?.id;
+    if (!target) return;
+    const { data, error } = await this.sb.realClient.functions.invoke('handoff-revoke', { body: { id: target } });
+    if (error) throw error;
+    if (data?.revoked !== true && data?.outcome !== 'already') throw new Error('handoff-revoke: nothing revoked');
+    if (this._current()?.id === target) {
+      this.stopWatching();
+      this._status.set('revoked');
+    }
+  }
+
+  /** Phone side, read-only: the masked account this code would sign in. Consumes nothing. */
+  async peek(code: string): Promise<string> {
+    const { data, error } = await this.sb.realClient.functions.invoke('handoff-redeem', {
+      body: { code, peek: true },
     });
-    if (error) throw error;
+    if (error || typeof data?.email_masked !== 'string') throw error ?? new Error('handoff peek: empty answer');
+    return data.email_masked;
   }
 
-  /** Phone side: trade the code for a session of its own; returns the path to open. */
+  /** Phone side: trade the code for a session of its own; returns the path to open. Call only after an explicit tap. */
   async redeem(code: string): Promise<string> {
     const { data, error } = await this.sb.realClient.functions.invoke('handoff-redeem', { body: { code } });
     if (error || !data?.access_token || !data?.refresh_token) {
@@ -123,6 +179,21 @@ export class HandoffService implements OnDestroy {
     return handoffTargetPath(typeof data.target_path === 'string' ? data.target_path : null);
   }
 
+  /**
+   * i18n key for a failed hand-off call: a specific `handoff.errors.*` when the
+   * edge function named the reason (expired/used vs rate limit vs mint failure),
+   * else the generic `errors.*` (offline, timeout, ...). Logs once.
+   */
+  async errorKey(op: string, err: unknown): Promise<string> {
+    const body = await readErrorBody(err);
+    const mapped = body.error ? CODE_KEYS[body.error] : undefined;
+    if (mapped) {
+      logWarn('handoff', `${op} failed`, { code: body.error });
+      return mapped;
+    }
+    return toErrorKey('handoff', op, err);
+  }
+
   stopWatching(): void {
     if (this.timer !== null) clearInterval(this.timer);
     this.timer = null;
@@ -132,31 +203,32 @@ export class HandoffService implements OnDestroy {
     this.stopWatching();
   }
 
-  /** Overridable in specs. */
-  protected createOtpClient(): SupabaseClient {
-    return createClient(environment.supabase.url, environment.supabase.publishableKey, {
-      auth: { persistSession: false, detectSessionInUrl: false, autoRefreshToken: false, flowType: 'implicit' },
-    });
-  }
-
   private startWatching(created: HandoffCreated): void {
+    let errors = 0;
+    let connectedSince = 0;
     const tick = async (): Promise<void> => {
       const { data, error } = await this.sb.realClient
         .from('handoff_codes')
-        .select('consumed_at, consumed_device, revoked_at, expires_at')
+        .select('consumed_at, consumed_device, revoked_at')
         .eq('id', created.id)
         .maybeSingle();
-      if (error) {
-        logWarn('handoff', 'status poll failed', { error });
-        return;
-      }
       if (this._current()?.id !== created.id) return;
       const row = data as RowState | null;
-      if (row?.revoked_at) return this.finish('revoked');
-      if (row?.consumed_at) {
+      // A failed poll or a vanished row is neither "expired" nor "connected":
+      // count it, and give up honestly after a few in a row.
+      if (error || !row) {
+        errors += 1;
+        logWarn('handoff', 'status poll failed', { error, missing: !row });
+        if (errors >= HANDOFF_MAX_POLL_ERRORS) this.finish('error');
+        return;
+      }
+      errors = 0;
+      if (row.revoked_at) return this.finish('revoked');
+      if (row.consumed_at) {
         this._device.set(row.consumed_device);
-        // Keep polling: a later revoke from another desktop tab must show up.
         this._status.set('connected');
+        connectedSince ||= Date.now();
+        if (Date.now() - connectedSince >= HANDOFF_CONNECTED_WATCH_MS) this.stopWatching();
         return;
       }
       if (Date.now() >= created.expiresAt) this.finish('expired');
