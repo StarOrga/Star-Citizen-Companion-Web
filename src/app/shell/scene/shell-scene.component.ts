@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewEncapsulation, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
 import { SceneKind, SceneMode, isVerseHome, sceneOf, sceneStep } from './scene.model';
@@ -32,6 +32,8 @@ function supportsScrollTimeline(): boolean {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell-scene.component.html',
   styleUrl: './shell-scene.component.scss',
+  // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the element name.
+  encapsulation: ViewEncapsulation.None,
   host: { 'aria-hidden': 'true' },
 })
 export class ShellSceneComponent {

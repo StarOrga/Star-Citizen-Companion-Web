@@ -612,7 +612,7 @@
   --drop: 0px;
   position: absolute;
   left: calc(var(--sc-pl-x) + var(--dx));
-  top: calc(var(--drop) - 34px);
+  top: calc(var(--drop) - 28px);
   width: 20px;
   height: 20px;
   margin-left: -10px;
@@ -738,7 +738,8 @@
   display: grid;
   gap: var(--sc-space-7, 48px);
   padding: var(--sc-space-7, 48px) 0 var(--sc-space-8, 64px);
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sc-bg-0) 88%, transparent) 160px);
+  // Opaque soon after the stage: the planet scrolls up behind the sections.
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sc-bg-0) 97%, transparent) 140px);
 }
 .hs {
   width: min(100% - 2 * var(--sc-page-gutter, 24px), var(--sc-page-max, 1280px));
