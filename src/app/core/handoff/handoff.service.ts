@@ -36,6 +36,14 @@ export interface HandoffConnection {
   readonly connectedAt: number;
 }
 
+/** Read-only look at a code: masked email for display, user id for the account comparison. */
+export interface HandoffPeek {
+  readonly account: string;
+  readonly userId: string;
+  /** Sanitised path the hand-off was created for. */
+  readonly targetPath: string;
+}
+
 export const HANDOFF_PATH = '/handoff';
 export const HANDOFF_POLL_MS = 2000;
 /** Keep watching a connected phone this long (revoke from another tab), then stop. */
@@ -81,6 +89,7 @@ const CODE_KEYS: Record<string, string> = {
 interface RowState {
   consumed_at: string | null;
   consumed_device: string | null;
+  session_attached: boolean;
   revoked_at: string | null;
 }
 
@@ -128,7 +137,7 @@ export class HandoffService implements OnDestroy {
     const { data, error } = await this.sb.realClient
       .from('handoff_codes')
       .select('id, consumed_device, consumed_at')
-      .not('consumed_device', 'is', null)
+      .eq('session_attached', true)
       .is('revoked_at', null)
       .order('consumed_at', { ascending: false })
       .limit(20);
@@ -157,12 +166,18 @@ export class HandoffService implements OnDestroy {
   }
 
   /** Phone side, read-only: the masked account this code would sign in. Consumes nothing. */
-  async peek(code: string): Promise<string> {
+  async peek(code: string): Promise<HandoffPeek> {
     const { data, error } = await this.sb.realClient.functions.invoke('handoff-redeem', {
       body: { code, peek: true },
     });
-    if (error || typeof data?.email_masked !== 'string') throw error ?? new Error('handoff peek: empty answer');
-    return data.email_masked;
+    if (error || typeof data?.email_masked !== 'string' || typeof data?.user_id !== 'string') {
+      throw error ?? new Error('handoff peek: empty answer');
+    }
+    return {
+      account: data.email_masked,
+      userId: data.user_id,
+      targetPath: handoffTargetPath(typeof data.target_path === 'string' ? data.target_path : null),
+    };
   }
 
   /** Phone side: trade the code for a session of its own; returns the path to open. Call only after an explicit tap. */
@@ -209,7 +224,7 @@ export class HandoffService implements OnDestroy {
     const tick = async (): Promise<void> => {
       const { data, error } = await this.sb.realClient
         .from('handoff_codes')
-        .select('consumed_at, consumed_device, revoked_at')
+        .select('consumed_at, consumed_device, revoked_at, session_attached')
         .eq('id', created.id)
         .maybeSingle();
       if (this._current()?.id !== created.id) return;
@@ -224,7 +239,8 @@ export class HandoffService implements OnDestroy {
       }
       errors = 0;
       if (row.revoked_at) return this.finish('revoked');
-      if (row.consumed_at) {
+      // "Connected" = the session is attached, not merely the code consumed.
+      if (row.consumed_at && row.session_attached) {
         this._device.set(row.consumed_device);
         this._status.set('connected');
         connectedSince ||= Date.now();

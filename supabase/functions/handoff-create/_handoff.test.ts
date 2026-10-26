@@ -42,6 +42,14 @@ test('throttle counts every call, peek or redeem, and failures extra', () => {
   assert.equal(isThrottled(touch(m, 'ip', 11 * 60 * 1000)), false); // window over
 });
 
+test('touch prunes expired entries', () => {
+  const m = new Map<string, Throttle>();
+  touch(m, 'a', 0);
+  touch(m, 'b', 0);
+  touch(m, 'c', 11 * 60 * 1000);
+  assert.deepEqual([...m.keys()], ['c']);
+});
+
 test('revokeResponse says revoked:true only when something changed', () => {
   for (const o of ['revoked', 'pending', 'burned']) assert.equal(revokeResponse(o).body.revoked, true);
   assert.equal(revokeResponse('already').body.revoked, false);

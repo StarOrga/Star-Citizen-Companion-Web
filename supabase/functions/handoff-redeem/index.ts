@@ -64,8 +64,16 @@ function json(body: unknown, status = 200): Response {
 
 const throttles = new Map<string, Throttle>();
 
+// Throttle key. Supabase's edge sits behind Cloudflare, which sets
+// `cf-connecting-ip` to the real client address; prefer it. Fallback: the LAST
+// `x-forwarded-for` hop (appended by the trusted proxy), not the first, which the
+// client can forge. Not verified against Supabase docs (no network check made
+// here); if neither header exists all callers share the 'unknown' bucket.
 function ipOf(req: Request): string {
-  return (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
+  const cf = req.headers.get('cf-connecting-ip')?.trim();
+  if (cf) return cf;
+  const hops = (req.headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  return hops[hops.length - 1] ?? 'unknown';
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -95,19 +103,36 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const hash = await hashCode(body.code);
 
-  // Best-effort kill of a session we minted but must not hand out.
+  // Best-effort kill of a session we minted but must not hand out. Only with a
+  // known session id: a /logout with a JWT lacking `session_id` may fall back to
+  // a GLOBAL sign-out (desktop included). Without an id we just log - the tokens
+  // never leave this function anyway.
   const kill = async (accessToken: string, sessionId: string | null, userId: string): Promise<void> => {
     try {
-      if (sessionId) {
-        const { error } = await admin.rpc('handoff_kill_session', { p_session: sessionId, p_user: userId });
-        if (!error) return;
-        console.error(`[handoff-redeem] kill rpc failed: ${error.message}`);
+      if (!sessionId) {
+        console.error('[handoff-redeem] cannot kill minted session: no session_id claim');
+        return;
       }
+      const { error } = await admin.rpc('handoff_kill_session', { p_session: sessionId, p_user: userId });
+      if (!error) return;
+      console.error(`[handoff-redeem] kill rpc failed: ${error.message}`);
       const { error: soErr } = await admin.auth.admin.signOut(accessToken, 'local');
       if (soErr) console.error(`[handoff-redeem] signOut fallback failed: ${soErr.message}`);
     } catch (e) {
       console.error(`[handoff-redeem] kill threw: ${e instanceof Error ? e.message : 'unknown'}`);
     }
+  };
+
+  // Every failure after the consume marks the row, so "connected" can never
+  // describe a phone that did not get a session.
+  const abort = async (rowId: string, status: number, error: string): Promise<Response> => {
+    try {
+      const { error: failErr } = await admin.rpc('handoff_fail', { p_id: rowId });
+      if (failErr) console.error(`[handoff-redeem] handoff_fail failed: ${failErr.message}`);
+    } catch (e) {
+      console.error(`[handoff-redeem] handoff_fail threw: ${e instanceof Error ? e.message : 'unknown'}`);
+    }
+    return json({ error }, status);
   };
 
   // ---- peek: read-only, consumes nothing -------------------------------------
@@ -121,7 +146,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!who) return fail();
     const { data: pu } = await admin.auth.admin.getUserById(who.user_id);
     const mail = pu?.user?.email ?? '';
-    return json({ email_masked: mail ? maskEmail(mail) : '***' });
+    // user_id: whoever holds the code gets a session for this user anyway, so
+    // returning it leaks nothing new; the page compares it with the signed-in
+    // account (the mask alone collides: jane@gmail.com vs jx@gmx.com).
+    return json({ email_masked: mail ? maskEmail(mail) : '***', user_id: who.user_id, target_path: who.target_path });
   }
 
   // ---- redeem ------------------------------------------------------------------
@@ -140,14 +168,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const email = u?.user?.email ?? '';
   if (userErr || !email) {
     console.error(`[handoff-redeem] user lookup failed: ${userErr?.message ?? 'no email'}`);
-    return json({ error: 'mint_failed' }, 502);
+    return abort(hit.id, 502, 'mint_failed');
   }
 
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   const tokenHash = link?.properties?.hashed_token ?? '';
   if (linkErr || !tokenHash) {
     console.error(`[handoff-redeem] generateLink failed: ${linkErr?.message ?? 'no hashed_token'}`);
-    return isRateLimited(linkErr) ? json({ error: 'auth_rate_limited' }, 429) : json({ error: 'mint_failed' }, 502);
+    return isRateLimited(linkErr) ? abort(hit.id, 429, 'auth_rate_limited') : abort(hit.id, 502, 'mint_failed');
   }
 
   const fresh = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -158,7 +186,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const session = verified?.session;
   if (verifyErr || !session?.refresh_token) {
     console.error(`[handoff-redeem] verifyOtp failed: ${verifyErr?.message ?? 'no session'}`);
-    return isRateLimited(verifyErr) ? json({ error: 'auth_rate_limited' }, 429) : json({ error: 'mint_failed' }, 502);
+    return isRateLimited(verifyErr) ? abort(hit.id, 429, 'auth_rate_limited') : abort(hit.id, 502, 'mint_failed');
   }
 
   // Attach the phone's session to the row unless the owner revoked meanwhile.
@@ -167,7 +195,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!sessionId) {
     console.error('[handoff-redeem] no session_id claim - failing closed');
     await kill(session.access_token, null, hit.user_id);
-    return json({ error: 'mint_failed' }, 502);
+    return abort(hit.id, 502, 'mint_failed');
   }
   const { data: attached, error: attachErr } = await admin.rpc('handoff_attach_session', {
     p_id: hit.id,
@@ -176,7 +204,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (attachErr || attached !== true) {
     if (attachErr) console.error(`[handoff-redeem] attach failed: ${attachErr.message}`);
     await kill(session.access_token, sessionId, hit.user_id);
-    return attachErr ? json({ error: 'mint_failed' }, 502) : json({ error: 'revoked' }, 409);
+    return attachErr ? abort(hit.id, 502, 'mint_failed') : abort(hit.id, 409, 'revoked');
   }
 
   return json({

@@ -72,6 +72,8 @@ export const MAX_FAILURES = 10;
 export const THROTTLE_WINDOW_MS = 10 * 60 * 1000;
 
 export function touch(map: Map<string, Throttle>, key: string, now: number): Throttle {
+  // Prune expired entries so a long-lived isolate does not grow without bound.
+  for (const [k, v] of map) if (v.reset <= now) map.delete(k);
   let t = map.get(key);
   if (!t || t.reset <= now) {
     t = { hits: 0, failures: 0, reset: now + THROTTLE_WINDOW_MS };

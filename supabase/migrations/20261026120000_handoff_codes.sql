@@ -12,7 +12,7 @@
 -- ROLLBACK: select cron.unschedule('handoff-codes-cleanup');
 --           drop function public.handoff_peek(text), public.handoff_redeem(text, text),
 --             public.handoff_attach_session(uuid, uuid), public.handoff_kill_session(uuid, uuid),
---             public.handoff_revoke(uuid, uuid);
+--             public.handoff_revoke(uuid, uuid), public.handoff_fail(uuid);
 --           drop table public.handoff_codes;
 
 create table public.handoff_codes (
@@ -31,7 +31,10 @@ create table public.handoff_codes (
   session_id      uuid,
   -- Set by revoke. A consumed row revoked BEFORE its session_id was attached
   -- makes handoff_attach_session() refuse, and redeem then kills the session.
-  revoked_at      timestamptz
+  revoked_at      timestamptz,
+  -- "Connected" means the session is attached, not merely that the code was
+  -- consumed: consumed_at is set first, session_id only after a successful mint.
+  session_attached boolean generated always as (session_id is not null) stored
 );
 
 create index handoff_codes_user_created_idx on public.handoff_codes (user_id, created_at desc);
@@ -47,19 +50,19 @@ create policy handoff_codes_select_own on public.handoff_codes
 
 -- Column-level grant: the code hash and session id stay unreadable even for the owner.
 revoke all on public.handoff_codes from anon, authenticated;
-grant select (id, user_id, target_path, created_at, expires_at, consumed_at, consumed_device, revoked_at)
+grant select (id, user_id, target_path, created_at, expires_at, consumed_at, consumed_device, revoked_at, session_attached)
   on public.handoff_codes to authenticated;
 
 -- Read-only look at a live code: who would the phone be signed in as? Does NOT
 -- consume. Revoked / used / expired codes answer nothing.
 create function public.handoff_peek(p_hash text)
-returns table (user_id uuid)
+returns table (user_id uuid, target_path text)
 language sql
 stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select c.user_id from public.handoff_codes c
+  select c.user_id, c.target_path from public.handoff_codes c
    where c.code_hash = p_hash
      and c.consumed_at is null
      and c.revoked_at is null
@@ -101,6 +104,20 @@ begin
   get diagnostics n = row_count;
   return n > 0;
 end;
+$$;
+
+-- A redeem that failed after the consume (user lookup, generateLink, verifyOtp,
+-- GoTrue 429, attach): mark the row revoked so it can never show up as a
+-- connected phone. Only touches rows that never got a session.
+create function public.handoff_fail(p_id uuid)
+returns void
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  update public.handoff_codes
+     set revoked_at = coalesce(revoked_at, now())
+   where id = p_id and session_id is null;
 $$;
 
 -- Delete one auth session (refresh tokens cascade). Scoped by owner. The `auth`
@@ -164,6 +181,8 @@ $$;
 revoke all on function public.handoff_peek(text) from public, anon, authenticated;
 revoke all on function public.handoff_redeem(text, text) from public, anon, authenticated;
 revoke all on function public.handoff_attach_session(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.handoff_fail(uuid) from public, anon, authenticated;
+grant execute on function public.handoff_fail(uuid) to service_role;
 revoke all on function public.handoff_kill_session(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.handoff_revoke(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.handoff_peek(text) to service_role;
@@ -189,6 +208,11 @@ select cron.schedule(
   $job$
   delete from public.handoff_codes
    where (consumed_at is null and revoked_at is null and expires_at < now() - interval '5 minutes')
-      or (revoked_at is not null and revoked_at < now() - interval '1 day');
+      or (revoked_at is not null and revoked_at < now() - interval '1 day')
+      -- phone signed itself out / session deleted elsewhere (password change,
+      -- global sign-out): the row no longer describes a live session
+      or (session_id is not null and not exists (select 1 from auth.sessions s where s.id = session_id))
+      -- consumed but never attached (crash between consume and attach)
+      or (consumed_at is not null and session_id is null and consumed_at < now() - interval '10 minutes');
   $job$
 );
