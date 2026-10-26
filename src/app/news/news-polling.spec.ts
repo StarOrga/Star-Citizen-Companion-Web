@@ -16,7 +16,7 @@ describe('NewsService polling', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: HttpClient, useValue: { get: () => throwError(() => new TypeError('Failed to fetch')) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
       ],
     });
     service = TestBed.inject(NewsService);
@@ -80,7 +80,7 @@ describe('NewsService feed error', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: HttpClient, useValue: { get: () => throwError(() => new TypeError('Failed to fetch')) } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
       ],
     });
     const service = TestBed.inject(NewsService);

@@ -129,6 +129,114 @@
 }
 
 /* ============================================================
+   SHELL TOKENS + PAGE FRAME TRACKS (beta area "shell")
+   (concept 2026-10-25-header-footer-subheader-analyse,
+   contract note briefs/contract-w1.md)
+
+   Everything below is inert while the shell β is off: the
+   spacing/bar tokens only add names (hq-shell already read
+   --sc-space-* with these exact fallbacks), and the frame, the
+   layout gaps and the scroll padding only match an element that
+   carries data-layout / .sc-frame — which the shell and the
+   public layout set only with the β on.
+
+   Spacing scale: an 8px grid with a 4px half step.
+   Bars: --sc-bar-h (the capsule), --sc-footer-h (compact footer).
+   --sc-gap-head: bar -> first content line, ONE value per page
+   type (set on the layout host: [data-layout]).
+   Motion: --sc-bar-hide-ms, 0 with reduced motion.
+   ============================================================ */
+:root {
+  --sc-space-1: 4px;
+  --sc-space-2: 8px;
+  --sc-space-3: 12px;
+  --sc-space-4: 16px;
+  --sc-space-5: 24px;
+  --sc-space-6: 32px;
+  --sc-space-7: 48px;
+  --sc-space-8: 64px;
+
+  --sc-bar-h: 64px;
+  --sc-footer-h: 56px;
+  --sc-bar-hide-ms: 250ms;
+
+  /* Side gutter of the wide track (tools). */
+  --sc-wide-gutter: clamp(16px, 2.5vw, 64px);
+}
+@media (max-width: 720px) {
+  :root {
+    --sc-bar-h: 56px;
+    --sc-footer-h: 48px;
+    --sc-wide-gutter: var(--sc-page-gutter);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --sc-bar-hide-ms: 0ms; }
+}
+
+[data-layout='cinematic'] { --sc-gap-head: 0px; }
+[data-layout='content'],
+[data-layout='plain'] { --sc-gap-head: var(--sc-space-6); }
+[data-layout='tool'],
+[data-layout='overlay'] { --sc-gap-head: var(--sc-space-5); }
+@media (max-width: 720px) {
+  [data-layout='content'],
+  [data-layout='plain'] { --sc-gap-head: var(--sc-space-5); }
+  [data-layout='tool'],
+  [data-layout='overlay'] { --sc-gap-head: var(--sc-space-4); }
+}
+
+/* Anchors / focus never hide under the bar (WCAG 2.4.11): the bar is on top
+   on desktop and at the bottom on phones. */
+html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
+@media (max-width: 720px) {
+  html:has([data-layout]) { scroll-padding-top: 0; scroll-padding-bottom: var(--sc-bar-h); }
+}
+
+/* The frame: one CSS grid with named lines, shared by the shell's <main> and
+   the public layout's. Lines, outside in:
+     full-start | wide-start | narrow-start | measure-start | measure-end
+                | narrow-end | wide-end | full-end
+   full    edge to edge (stages)
+   wide    fluid, side gutter --sc-wide-gutter (tools)
+   narrow  clamp(720px, 60%, 1040px), never wider (content)
+   measure <= 70ch prose, centred in narrow
+   Phone: every track but full keeps the page gutter, full width otherwise. */
+.sc-frame {
+  --_n: min(clamp(720px, 60%, 1040px), 100% - 2 * var(--sc-wide-gutter));
+  --_m: min(var(--sc-measure), var(--_n));
+  --_s: max(0px, calc((var(--_n) - var(--_m)) / 2));
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    [full-start] var(--sc-wide-gutter)
+    [wide-start] minmax(0, 1fr)
+    [narrow-start] minmax(0, var(--_s))
+    [measure-start] minmax(0, var(--_m))
+    [measure-end] minmax(0, var(--_s))
+    [narrow-end] minmax(0, 1fr)
+    [wide-end] var(--sc-wide-gutter)
+    [full-end];
+  /* the two 1fr tracks only centre the narrow block */
+  align-content: start;
+  padding-block: var(--sc-gap-head, 0px) var(--sc-space-6);
+}
+@media (max-width: 720px) {
+  .sc-frame { --_n: calc(100% - 2 * var(--sc-wide-gutter)); }
+}
+.sc-frame > * { min-width: 0; }
+.sc-frame > :where(*) { grid-column: narrow-start / narrow-end; }
+[data-layout='cinematic'] .sc-frame > :where(*) { grid-column: full-start / full-end; }
+[data-layout='tool'] .sc-frame > :where(*) { grid-column: wide-start / wide-end; }
+/* Utilities win over the layout default (same element, explicit choice). */
+.sc-frame > .sc-track-full { grid-column: full-start / full-end; }
+.sc-frame > .sc-track-wide { grid-column: wide-start / wide-end; }
+.sc-frame > .sc-track-narrow { grid-column: narrow-start / narrow-end; }
+.sc-frame > .sc-track-measure { grid-column: measure-start / measure-end; }
+
+/* ============================================================
    HOLODECK MOTION — one system for every holo surface
    (codex/holo/*, the 3D viewer's holo treatment).
      fast  hover, colour, focus, press, every leave
@@ -271,6 +379,9 @@
   --sc-float-bottom: calc(var(--sc-fab-inset) + var(--sc-safe-bottom));
   --sc-fab-clear-inline: calc(var(--sc-fab-lane) + var(--sc-fab-gutter));
   --sc-fab-clear-block: calc(var(--sc-float-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
+  /* Where a bottom-right toast sits (star / undo toast). The same as
+     --sc-fab-clear-block, except on a phone with the shell bar at the bottom. */
+  --sc-toast-bottom: var(--sc-fab-clear-block);
 }
 @media (max-width: 720px) {
   :root {
@@ -278,6 +389,12 @@
        so neighbours keep clearing them without their own breakpoint. */
     --sc-fab-inset: 16px;
     --sc-fab-gutter: 10px;
+    /* Shell beta: the bar stack is published (--sc-bar-stack-h), toasts ride above it and
+       above the share button's lane. Without the bar the -999px fallback loses the max(). */
+    --sc-toast-bottom: max(
+      var(--sc-fab-clear-block),
+      calc(var(--sc-bar-stack-h, -999px) + var(--sc-float-bottom) + var(--sc-space-3) + max(var(--sc-tap-min, 0px), 44px) + var(--sc-space-2))
+    );
   }
 }
 

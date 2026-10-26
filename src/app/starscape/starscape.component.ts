@@ -9,7 +9,9 @@ import {
   signal,
   input,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BetaService } from '../core/beta.service';
+import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { AnalyticsService } from '../core/analytics.service';
@@ -234,7 +236,7 @@ const RENDER_CHUNK = 24;
                Ctrl/⌘+click and "open image in new tab" go straight to the CDN
                original; a plain left click keeps the in-page lightbox. -->
           <a class="tile" [class.loaded]="justLocked(w.imageId)"
-             [href]="w.sourceUrl" target="_blank" rel="noopener noreferrer"
+             [attr.href]="tileHref(w)" [attr.target]="inShell() ? null : '_blank'" [attr.rel]="inShell() ? null : 'noopener noreferrer'"
              [attr.aria-label]="w.title"
              (click)="onTileClick($event, w)"
              (keydown.space)="onTileSpace($event, w)">
@@ -738,6 +740,9 @@ export class StarscapeComponent implements OnInit {
   private tileHintTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly analytics = inject(AnalyticsService);
   readonly svc = inject(StarscapeService);
+  private readonly shell = inject(BetaService).isEnabled('shell');
+  private readonly router = inject(Router);
+  private readonly overlayOrigin = inject(OverlayOriginService);
   readonly votes = inject(StarscapeVotesService);
   /** Decode state that has to survive leaving the page — see the service's doc. */
   private readonly tileState = inject(StarscapeTilesService);
@@ -1114,6 +1119,11 @@ export class StarscapeComponent implements OnInit {
   }
 
   open(w: Wallpaper): void {
+    if (this.inShell()) {
+      this.overlayOrigin.fromList();
+      void this.router.navigate(['/verse/gallery', w.imageId]);
+      return;
+    }
     this.active.set(w);
   }
 
@@ -1126,6 +1136,15 @@ export class StarscapeComponent implements OnInit {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
     this.open(w);
+  }
+
+  /** Shell beta (on the gallery page): the tile is a real anchor to the image's own route; else the CDN original. */
+  tileHref(w: Wallpaper): string {
+    return this.inShell() ? `/verse/gallery/${encodeURIComponent(w.imageId)}` : w.sourceUrl;
+  }
+
+  inShell(): boolean {
+    return this.shell() && this.embedded();
   }
 
   /** Anchors don't activate on Space the way the old <button> tile did. */

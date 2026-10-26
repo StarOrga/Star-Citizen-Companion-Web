@@ -74,7 +74,7 @@ async function mount(rows: AuthorFeedbackRow[], messages: AuthorFeedbackMessage[
         provide: AuthService,
         useValue: { user: signal(null), session: signal(null), ready: () => Promise.resolve(), realUser: () => null },
       },
-      { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+      { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
       { provide: LocaleService, useValue: { language: () => 'de', region: () => 'DE' } },
     ],
   }).compileComponents();

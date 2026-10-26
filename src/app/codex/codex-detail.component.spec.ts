@@ -776,10 +776,10 @@ function shipDetailWithGunPort(): CodexService['getDetail'] {
 }
 
 describe('CodexDetailComponent — characterisation (D16 step 6, safety net for D17)', () => {
-  afterEach(() => {
-    // A draft on the ship mirrors itself into localStorage; never leak it into the next case.
-    localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY);
-  });
+  // A draft on the ship mirrors itself into localStorage; never leak it into the next case.
+  // Cleared before as well: a spec elsewhere (random order) may leave one behind.
+  beforeEach(() => localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY));
+  afterEach(() => localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY));
 
   describe('invalid route', () => {
     it('names an unknown category on the error card and offers no retry', async () => {

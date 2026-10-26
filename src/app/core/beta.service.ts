@@ -4,15 +4,19 @@ import { logWarn } from './log';
 
 export type { BetaArea } from './analytics.service';
 
-/** Every top-level nav item with a β switch, in menu order. */
-export const BETA_AREAS: readonly BetaArea[] = ['verse', 'codex'];
+/** Every β switch, in menu order: the top-level nav items, then the app-wide `shell`. */
+export const BETA_AREAS: readonly BetaArea[] = ['verse', 'codex', 'shell'];
+
+/** The β switches that belong to a nav item (and so to a URL prefix); `shell` is app-wide. */
+const NAV_BETA_AREAS: readonly BetaArea[] = ['verse', 'codex'];
 
 /**
  * State without an explicit choice or flag. Verse's new view is still opt-in;
  * the Codex/HQ split was live for everyone before it got its switch, so it
- * stays on until the reader turns it off.
+ * stays on until the reader turns it off. `shell` (header/footer/page-type
+ * redesign, layout contract) is opt-in and app-wide.
  */
-const BETA_DEFAULTS: Readonly<Record<BetaArea, boolean>> = { verse: false, codex: true };
+const BETA_DEFAULTS: Readonly<Record<BetaArea, boolean>> = { verse: false, codex: true, shell: false };
 
 /** localStorage key of the per-nav-item β opt-ins. */
 export const BETA_STORAGE_KEY = 'sc.beta';
@@ -32,7 +36,7 @@ export function betaFlagKey(area: BetaArea): string {
  */
 export function betaAreaOf(url: string): BetaArea | null {
   const path = url.split(/[?#]/, 1)[0];
-  for (const area of BETA_AREAS) {
+  for (const area of NAV_BETA_AREAS) {
     if (path === `/${area}` || path.startsWith(`/${area}/`)) return area;
   }
   return null;

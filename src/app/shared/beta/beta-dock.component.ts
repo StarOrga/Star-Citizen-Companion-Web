@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { RoleService } from '../../auth/role.service';
 import { BetaArea, BetaService } from '../../core/beta.service';
 
 /**
@@ -14,7 +15,8 @@ import { BetaArea, BetaService } from '../../core/beta.service';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <aside class="beta-dock" [attr.aria-label]="'beta.aria' | translate">
+    @if (!replacedByChip()) {
+    <aside class="beta-dock" [style.--lane]="lane()" [attr.aria-label]="'beta.aria' | translate">
       <div class="beta-pill">
         <span class="beta-mark" aria-hidden="true">β</span>
         <button type="button" role="switch" class="sw"
@@ -27,14 +29,26 @@ import { BetaArea, BetaService } from '../../core/beta.service';
         </button>
       </div>
     </aside>
+    }
   `,
   styles: [`
     :host { display: contents; }
     .beta-dock {
       position: fixed; z-index: 40;
       left: max(12px, env(safe-area-inset-left));
-      bottom: var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px));
+      /* --lane stacks a second pill above the first (the app-wide shell switch). */
+      bottom: calc(var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px)) + var(--lane, 0) * (var(--sc-tap-min) + 16px));
       max-width: calc(100vw - var(--sc-fab-clear-inline, 88px) - 24px);
+    }
+    /* Shell beta: on a phone the bar sits at the bottom, so the pill rides above it.
+       Where the bar stack is not published (beta off) the fallback keeps today's spot. */
+    @media (max-width: 720px) {
+      .beta-dock {
+        bottom: calc(
+          max(var(--sc-beta-dock-bottom, var(--sc-float-bottom, 16px)), var(--sc-bar-stack-h, 0px) + var(--sc-float-bottom, 16px) + var(--sc-space-3))
+          + var(--lane, 0) * (var(--sc-tap-min) + 16px)
+        );
+      }
     }
     .beta-pill {
       display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px;
@@ -71,6 +85,12 @@ import { BetaArea, BetaService } from '../../core/beta.service';
 })
 export class BetaDockComponent {
   protected readonly beta = inject(BetaService);
+  private readonly roles = inject(RoleService);
+  private readonly shellOn = this.beta.isEnabled('shell');
+  /** With the shell beta on, admins / collaborators switch areas in the top-right chip instead. */
+  protected readonly replacedByChip = () => this.shellOn() && this.roles.isCollaborator();
 
   readonly area = input.required<BetaArea>();
+  /** 0 = the corner; 1 = one pill higher, for a second dock on the same page. */
+  readonly lane = input(0);
 }

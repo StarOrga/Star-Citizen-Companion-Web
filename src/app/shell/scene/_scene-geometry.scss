@@ -1,0 +1,42 @@
+// Planet geometry shared by the background scene (which draws the planet) and
+// the Verse hub's planet zone (which projects its labels onto it). Both read
+// the same three custom properties, so the labels sit on the rim the scene
+// draws:
+//   --sc-pl-d    diameter
+//   --sc-pl-cap  visible cap: from the planet's top point to the bottom edge
+//   --sc-pl-x    centre, as a percentage of the box width
+//   --sc-pl-lift how far the cap sits above the bottom edge: phones (<= 720px)
+//                carry the Fusion bar at the bottom (--sc-bar-stack-h), so the
+//                planet zone rises above it
+// Cap ratio k = cap / d decides the chord at the bottom edge,
+// 2·d·sqrt(k(1-k)); the values are picked so the bottom-left corner stays
+// clear for the "Made by the Community" badge on every viewport (phone: room
+// for the emblem alone, ~70px — the wordmark has to fold away there):
+//   desktop  d = min(78vw, 1240px), k = .2   → free corner ≥ 18vw (1280: 240px)
+//   tablet   d = 80vw, centre 58%,  k = .2   → free corner ≈ 26vw (768: 199px)
+//   phone    d = 84vw, centre 60%,  k = .36  → free corner ≈ 74px at 375px
+// The sun stands top right, so the night side (city lights, labels) faces
+// the reader on the left and middle of the cap.
+@mixin planet-geometry {
+  --sc-pl-d: min(78vw, 1240px);
+  --sc-pl-cap: calc(var(--sc-pl-d) * 0.2);
+  --sc-pl-x: 50%;
+  --sc-pl-xv: 50vw;
+  --sc-pl-lift: 0px;
+
+  @media (max-width: 1080px) {
+    --sc-pl-d: 80vw;
+    --sc-pl-cap: calc(var(--sc-pl-d) * 0.2);
+    --sc-pl-x: 58%;
+    --sc-pl-xv: 58vw;
+  }
+  @media (max-width: 720px) {
+    --sc-pl-lift: calc(var(--sc-bar-stack-h, var(--sc-bar-h, 56px)) + var(--sc-float-bottom, 0px));
+  }
+  @media (max-width: 640px) {
+    --sc-pl-d: 84vw;
+    --sc-pl-cap: calc(var(--sc-pl-d) * 0.36);
+    --sc-pl-x: 60%;
+    --sc-pl-xv: 60vw;
+  }
+}

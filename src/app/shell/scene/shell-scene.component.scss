@@ -1,0 +1,277 @@
+@use './scene-geometry' as geo;
+
+// The background scene: one fixed layer behind the page. Poses per main area
+// are plain CSS state on .scene[data-scene]; the camera moves through CSS
+// transitions, so any pose reaches any other (all six directed routes) from
+// wherever the camera currently stands. data-mode="still" cuts (sub-page
+// target, first paint), "fade" dissolves (reduced motion).
+//
+// Not encapsulated: the scene must clear the body's own background (html
+// keeps --sc-bg-0, the canvas), or the opaque body would paint over this
+// z-index -1 layer. Everything else is scoped under the host class .sc-shell-scene.
+body:has(.sc-shell-scene > .scene) { background: transparent; }
+
+.sc-shell-scene {
+  & {
+    @include geo.planet-geometry;
+    --scene-move: 1100ms;
+    --scene-ease: cubic-bezier(0.65, 0, 0.25, 1);
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+  }
+  &:empty { display: none; }
+
+  .scene { position: absolute; inset: 0; background: #02070d; }
+  .sky, .plane, .follow { position: absolute; inset: 0; }
+
+  // ── Sky ────────────────────────────────────────────────────────────────
+  .sky { inset: -8%; }
+  .neb {
+    position: absolute;
+    inset: 0;
+    filter: blur(6px) saturate(1.15);
+    background:
+      radial-gradient(ellipse 34% 26% at 22% 30%, rgba(46, 120, 190, 0.36), transparent 70%),
+      radial-gradient(ellipse 30% 22% at 72% 20%, rgba(124, 74, 170, 0.3), transparent 72%),
+      radial-gradient(ellipse 22% 15% at 86% 34%, rgba(255, 150, 90, 0.16), transparent 70%),
+      radial-gradient(ellipse 48% 28% at 52% 62%, rgba(20, 70, 110, 0.32), transparent 75%),
+      radial-gradient(ellipse 40% 30% at 92% 70%, rgba(40, 110, 150, 0.22), transparent 75%),
+      linear-gradient(180deg, #02070d 0%, #041320 60%, #061827 100%);
+  }
+  .stars {
+    position: absolute;
+    inset: 0;
+    opacity: 0.55;
+    background-image:
+      radial-gradient(1px 1px at 12px 18px, #fff, transparent), radial-gradient(1px 1px at 84px 62px, #cfe8ff, transparent),
+      radial-gradient(1px 1px at 150px 120px, #fff, transparent), radial-gradient(1px 1px at 40px 150px, #9cc, transparent),
+      radial-gradient(1px 1px at 190px 30px, #fff, transparent), radial-gradient(1.4px 1.4px at 120px 80px, #fff, transparent);
+    background-size: 210px 170px;
+  }
+  .stars.near {
+    opacity: 0.85;
+    animation: sc-scene-twinkle 6s ease-in-out infinite;
+    background-image:
+      radial-gradient(1.6px 1.6px at 40px 60px, #fff, transparent), radial-gradient(1.3px 1.3px at 210px 140px, #ffe7c4, transparent),
+      radial-gradient(1.8px 1.8px at 300px 40px, #d9f2ff, transparent), radial-gradient(1.2px 1.2px at 120px 230px, #fff, transparent);
+    background-size: 340px 280px;
+  }
+
+  // ── Planet: dark, lit thinly from the top right; uneven city lights ────
+  .planet {
+    position: absolute;
+    left: calc(var(--sc-pl-x) - var(--sc-pl-d) / 2);
+    top: calc(100% - var(--sc-pl-cap) - var(--sc-pl-lift));
+    width: var(--sc-pl-d);
+    height: var(--sc-pl-d);
+    border-radius: 50%;
+    transform-origin: 50% 0;
+    box-shadow: 0 0 70px 8px rgba(76, 201, 240, 0.1), 0 -2px 24px rgba(120, 210, 255, 0.12);
+  }
+  .planet > span { position: absolute; inset: 0; border-radius: 50%; }
+  .pl-body {
+    background:
+      radial-gradient(circle at 74% 6%, rgba(120, 190, 220, 0.34) 0, rgba(40, 90, 120, 0.18) 9%, transparent 22%),
+      radial-gradient(ellipse 30% 9% at 34% 9%, rgba(20, 40, 52, 0.7), transparent 70%),
+      radial-gradient(ellipse 22% 6% at 58% 15%, rgba(16, 34, 46, 0.6), transparent 70%),
+      radial-gradient(circle at 60% 0%, #0d1d2a 0%, #07121b 16%, #040a11 32%, #020509 60%);
+  }
+  // Night side = everything left of the terminator; the lights live only there.
+  .pl-night {
+    overflow: hidden;
+    mask-image: linear-gradient(104deg, #000 0 52%, transparent 64%);
+  }
+  // Three light layers on unrelated tile sizes, each clipped to its own
+  // clusters, so the pattern never reads as a grid: a few bright cities,
+  // scattered towns, a faint web along the coasts.
+  .lt { position: absolute; inset: 0; }
+  .lt.a {
+    background-image:
+      radial-gradient(circle at 9px 11px, #fff0c8 0 1px, transparent 1.8px),
+      radial-gradient(circle at 15px 14px, #ffc878 0 0.8px, transparent 1.4px),
+      radial-gradient(circle at 31px 6px, #ffd890 0 0.9px, transparent 1.5px),
+      radial-gradient(circle at 24px 22px, #ffb35a 0 0.7px, transparent 1.3px),
+      radial-gradient(14px 6px at 13px 12px, rgba(255, 170, 80, 0.35), transparent);
+    background-size: 37px 27px;
+    mask-image:
+      radial-gradient(ellipse 9% 2.6% at 29% 6%, #000 20%, transparent 70%),
+      radial-gradient(ellipse 6% 2% at 43% 11.5%, #000 20%, transparent 70%),
+      radial-gradient(ellipse 5% 3% at 19% 14%, #000 20%, transparent 70%),
+      radial-gradient(ellipse 3% 1.4% at 52% 4.5%, #000 20%, transparent 70%);
+  }
+  .lt.b {
+    opacity: 0.85;
+    background-image:
+      radial-gradient(circle at 5px 4px, #ffcf8a 0 0.6px, transparent 1.2px),
+      radial-gradient(circle at 29px 19px, #ffb35a 0 0.6px, transparent 1.2px),
+      radial-gradient(circle at 42px 7px, #ffd890 0 0.7px, transparent 1.3px),
+      radial-gradient(circle at 17px 31px, #ffc878 0 0.6px, transparent 1.2px);
+    background-size: 53px 41px;
+    mask-image:
+      radial-gradient(ellipse 18% 5% at 34% 8%, #000 10%, transparent 72%),
+      radial-gradient(ellipse 10% 6% at 13% 19%, #000 10%, transparent 72%),
+      radial-gradient(ellipse 8% 3% at 50% 15%, #000 10%, transparent 72%),
+      radial-gradient(ellipse 6% 2% at 24% 3%, #000 10%, transparent 72%);
+  }
+  // A faint web of roads and coasts between the clusters, breathing slowly.
+  .lt.c {
+    opacity: 0.5;
+    background-image: radial-gradient(circle at 3px 4px, #ffd9a0 0 0.5px, transparent 1px), radial-gradient(circle at 14px 11px, #ffd9a0 0 0.5px, transparent 1px);
+    background-size: 19px 15px;
+    mask-image: radial-gradient(ellipse 30% 9% at 30% 9%, rgba(0, 0, 0, 0.8), transparent 75%);
+    animation: sc-scene-city 9s ease-in-out infinite;
+  }
+  // Atmosphere: a hairline rim, brightest towards the sun.
+  .pl-rim {
+    background: radial-gradient(closest-side, transparent 97.4%, rgba(150, 225, 255, 0.55) 99.2%, rgba(76, 201, 240, 0.12) 100%);
+    mask-image: linear-gradient(100deg, rgba(0, 0, 0, 0.25) 30%, #000 70%);
+  }
+
+  // ── Codex data plane (off to the right until the camera turns) ─────────
+  .plane {
+    left: 38%;
+    opacity: 0;
+    transform: translateX(24vw);
+    perspective: 900px;
+  }
+  .plane > i {
+    position: absolute;
+    inset: 8% 0 8% 0;
+    transform: rotateY(-28deg);
+    transform-origin: 100% 50%;
+    background:
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 20%, transparent) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 14%, transparent) 0 1px, transparent 1px 64px);
+    mask-image: radial-gradient(ellipse 70% 60% at 60% 50%, #000, transparent 75%);
+  }
+
+  // ── Hangar (HQ) ─────────────────────────────────────────────────────────
+  .hangar {
+    position: absolute;
+    left: 50%;
+    top: 42dvh;
+    width: min(620px, 78vw);
+    height: min(170px, 20dvh);
+    opacity: 0;
+    transform: translate(-50%, 40dvh) scale(0.45);
+    transform-origin: 50% 100%;
+  }
+  .hangar > span, .hg-bay > span { position: absolute; }
+  .hg-roof {
+    inset: 0;
+    clip-path: polygon(0 100%, 6% 22%, 22% 0, 78% 0, 94% 22%, 100% 100%);
+    background: linear-gradient(180deg, #13212d, #070e15 70%);
+    box-shadow: inset 0 1px 0 rgba(150, 225, 255, 0.3);
+  }
+  .hg-roof::before {
+    content: '';
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    top: 0;
+    height: 1px;
+    background: color-mix(in srgb, var(--sc-accent) 70%, transparent);
+    box-shadow: 0 0 10px var(--sc-accent);
+  }
+  .hg-bay {
+    left: 22%;
+    right: 22%;
+    bottom: 0;
+    height: 66%;
+    overflow: hidden;
+    background: #03070b;
+  }
+  .hg-glow {
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 70% at 50% 100%, rgba(255, 196, 130, 0.5), transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 18%, transparent), transparent 60%);
+  }
+  .door {
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    background: repeating-linear-gradient(180deg, #16242f 0 10px, #101b24 10px 12px);
+    box-shadow: inset 0 0 0 1px rgba(150, 225, 255, 0.08);
+  }
+  .door.l { left: 0; }
+  .door.r { right: 0; }
+  .ground {
+    position: absolute;
+    inset: 55% 0 0 0;
+    opacity: 0;
+    background: linear-gradient(180deg, transparent, #02070d 70%);
+    transition: opacity var(--scene-move) var(--scene-ease);
+  }
+  .hg-pad {
+    left: -10%;
+    right: -10%;
+    bottom: -10px;
+    height: 4px;
+    background:
+      radial-gradient(circle, var(--sc-accent) 0 1.5px, transparent 2px) 0 50% / 28px 4px repeat-x;
+    opacity: 0.7;
+  }
+
+  // ── Motion: every pose change is a transition ───────────────────────────
+  .sky, .planet, .plane, .hangar {
+    transition: transform var(--scene-move) var(--scene-ease), opacity var(--scene-move) var(--scene-ease);
+  }
+  .door { transition: transform 300ms ease-in; }
+
+  // ── Poses ───────────────────────────────────────────────────────────────
+  // HQ: down to the planet — sky rises and dims, the planet fills the lower
+  // view, the hangar comes up with it, then the doors part.
+  [data-scene='hq'] .sky { transform: translateY(-10dvh) scale(1.08); opacity: 0.55; }
+  [data-scene='hq'] .planet { transform: translateY(calc(var(--sc-pl-cap) - 58dvh)) scale(2.8); }
+  [data-scene='hq'] .hangar { opacity: 1; transform: translate(-50%, -100%); }
+  // The ground falls off into darkness towards the bottom edge, so the footer's
+  // corner never sits on lit planet surface.
+  [data-scene='hq'] .ground { opacity: 1; }
+  [data-scene='hq'] .door { transition: transform 700ms cubic-bezier(0.3, 0, 0.2, 1) 650ms; }
+  [data-scene='hq'] .door.l { transform: translateX(-100%); }
+  [data-scene='hq'] .door.r { transform: translateX(100%); }
+
+  // Codex: turned right — sky slides left, the planet keeps a strip at the
+  // left edge, the data plane swings in.
+  [data-scene='codex'] .sky { transform: translateX(-16vw); }
+  // The planet's centre goes to (9vw - r, 45dvh): a strip at the left edge,
+  // high enough that the bottom-left corner (the community badge) stays free.
+  [data-scene='codex'] .planet {
+    transform: translateX(calc(9vw - var(--sc-pl-xv) - var(--sc-pl-d) / 2)) translateY(calc(var(--sc-pl-cap) - var(--sc-pl-d) / 2 - 55dvh));
+  }
+  [data-scene='codex'] .plane { opacity: 1; transform: none; }
+
+  // Leaving the hangar: the doors close first, then the camera rises.
+  [data-from='hq'] .sky, [data-from='hq'] .planet { transition-delay: 220ms; }
+
+  // The hub: the planet scrolls with the page (compositor scroll timeline).
+  .scene[data-home] .follow {
+    animation: sc-scene-follow linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0px 4000px;
+  }
+  @supports not (animation-timeline: scroll()) {
+    .scene[data-home] .follow { animation: none; transform: translateY(calc(var(--scene-scroll, 0px) * -1)); }
+  }
+
+  // Cut: a sub-page target or the first paint takes the pose without motion.
+  [data-mode='still'] *, [data-mode='fade'] * { transition: none !important; }
+  // Dissolve (reduced motion): the new pose fades in; two names so it restarts.
+  .scene[data-mode='fade'][data-fade='0'] { animation: sc-scene-fade-a 420ms ease-out both; }
+  .scene[data-mode='fade'][data-fade='1'] { animation: sc-scene-fade-b 420ms ease-out both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scene *:not(.follow) { transition: none !important; animation: none !important; }
+  }
+}
+
+@keyframes sc-scene-follow { to { transform: translateY(-4000px); } }
+@keyframes sc-scene-twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
+@keyframes sc-scene-city { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.65; } }
+@keyframes sc-scene-fade-a { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sc-scene-fade-b { from { opacity: 0; } to { opacity: 1; } }

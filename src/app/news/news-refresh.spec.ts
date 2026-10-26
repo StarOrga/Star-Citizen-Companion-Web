@@ -30,7 +30,7 @@ describe('NewsService.refresh coalescing', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: HttpClient, useValue: { get } },
-        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
       ],
     });
     service = TestBed.inject(NewsService);

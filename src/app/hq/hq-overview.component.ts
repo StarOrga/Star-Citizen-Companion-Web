@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@a
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
+import { BetaService } from '../core/beta.service';
 import { humanizeClassName } from '../codex/codex-format';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { HqOwnershipService } from './hq-ownership.service';
-import { HqLink, hqHangar, hqLocker, hqSet, hqShip, personalShipLink } from './hq-routes';
+import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } from './hq-routes';
 
 /**
  * HQ landing ("Übersicht"): the active ship with its active variant, the
@@ -89,6 +90,9 @@ import { HqLink, hqHangar, hqLocker, hqSet, hqShip, personalShipLink } from './h
       <section class="sc-card tile" aria-labelledby="hq-ov-ops">
         <h2 id="hq-ov-ops" class="tile-eyebrow">{{ 'hq.overview.nextOps' | translate }}</h2>
         <p class="hint">{{ 'hq.overview.opsEmpty' | translate }}</p>
+        @if (shell()) {
+          <a class="tile-link" [routerLink]="opsLink">{{ 'hq.overview.opsOpen' | translate }} <span aria-hidden="true">→</span></a>
+        }
       </section>
 
       <section class="sc-card tile" aria-labelledby="hq-ov-supplies">
@@ -146,6 +150,9 @@ export class HqOverviewComponent implements OnInit {
 
   readonly hangarLink = hqHangar;
   readonly lockerLink = hqLocker;
+  readonly opsLink = hqOps;
+  /** Shell beta: Einsätze gets its own entry on the landing (it used to be reachable by the tab only). */
+  readonly shell = inject(BetaService).isEnabled('shell');
 
   readonly loading = computed(() => this.hangar.loading());
   readonly loadError = computed(() => this.hangar.error() ?? this.ownership.error());

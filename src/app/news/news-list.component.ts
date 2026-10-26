@@ -16,7 +16,9 @@ import {
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { BetaService } from '../core/beta.service';
+import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
@@ -123,7 +125,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                  click and Ctrl/⌘+click reach the article natively. A plain left
                  click stays in the app and opens the detail overlay. -->
             <h1>
-              <a class="stage-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
+              <a class="stage-link" [attr.href]="itemHref(item)" [attr.target]="shell() ? null : '_blank'" [attr.rel]="shell() ? null : 'noopener noreferrer'"
                  (click)="onItemClick($event, item)"
                  (keydown.space)="onItemSpace($event, item)">{{ item.title }}<span
                    class="stage-link-touch-target" aria-hidden="true"></span></a>
@@ -264,7 +266,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                 </div>
                 <div class="body">
                   <h3>
-                    <a class="card-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
+                    <a class="card-link" [attr.href]="itemHref(item)" [attr.target]="shell() ? null : '_blank'" [attr.rel]="shell() ? null : 'noopener noreferrer'"
                        (click)="onItemClick($event, item)"
                        (keydown.space)="onItemSpace($event, item)">{{ item.title }}<span
                          class="card-link-touch-target" aria-hidden="true"></span></a>
@@ -897,6 +899,9 @@ export class NewsListComponent implements OnInit, OnDestroy {
   private overlayRef: OverlayRef | null = null;
 
   readonly selected = signal<VerseNewsItem | null>(null);
+  private readonly shell = inject(BetaService).isEnabled('shell');
+  private readonly router = inject(Router);
+  private readonly overlayOrigin = inject(OverlayOriginService);
   /** How many stream tiles are on screen; grows in `STREAM_PAGE` steps. */
   private readonly shown = signal(STREAM_PAGE);
 
@@ -1196,7 +1201,17 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.openDetail(item);
   }
 
+  /** Shell beta: the card is a real anchor to the item's own route; else the external article. */
+  itemHref(item: VerseNewsItem): string {
+    return this.shell() ? `/verse/news/${encodeURIComponent(item.id)}` : item.url;
+  }
+
   openDetail(item: VerseNewsItem): void {
+    if (this.shell()) {
+      this.overlayOrigin.fromList();
+      void this.router.navigate(['/verse/news', item.id]);
+      return;
+    }
     this.selected.set(item);
     if (this.overlayRef) return;
     this.overlayRef = this.overlay.create({

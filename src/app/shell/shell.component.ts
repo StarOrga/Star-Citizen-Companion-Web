@@ -29,6 +29,7 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { ViewAs } from '../auth/impersonation-policy';
 import { ProfileService } from '../auth/profile.service';
+import { OwnBadgeService } from '../verse/starmap/own-badge.service';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
@@ -46,13 +47,22 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
 import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
 import { BetaDockComponent } from '../shared/beta/beta-dock.component';
+import { LayoutService } from '../core/layout/layout.service';
+import { NgTemplateOutlet } from '@angular/common';
+import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
+import { ShellSceneComponent } from './scene/shell-scene.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.verse-overlay]': 'verseOverlay()' },
+  host: {
+    '[class.verse-overlay]': 'verseOverlay()',
+    // Layout contract (beta "shell"): the page type of the active route, read by
+    // the bar / footer / width tracks (styles.scss, "SHELL TOKENS"). Absent with the β off.
+    '[attr.data-layout]': 'shellOn() ? layout.layout() : null',
+  },
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
   // outside .content, so they stay put.
@@ -66,6 +76,8 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
   ],
   template: `
     <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
+    <sc-shell-scene />
+    @if (!shellOn()) {
     <header class="topbar">
       <!-- Wordmark: the "alpha" badge is CENTERED UNDER the title, not beside it
            (feedback #79). It is absolutely positioned on purpose — the title's
@@ -189,6 +201,18 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
           preview is ImpersonationBannerComponent, mounted app-level in
           app.component.ts and reachable from every route including /login.
         -->
+        <ng-container [ngTemplateOutlet]="accountMenu" />
+      </div>
+    </header>
+    } @else {
+      <!-- Beta "shell": header + subheader as ONE capsule (fusion-bar/). The account
+           menu is this component's own, projected, so it keeps its styles and handlers. -->
+      <sc-fusion-bar>
+        <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+      </sc-fusion-bar>
+    }
+
+    <ng-template #accountMenu>
         <div class="profile-menu">
           <button
             type="button"
@@ -227,6 +251,16 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
                 (click)="onMenuNavigate($event)">
                 {{ 'nav.friends' | translate }}
               </a>
+              @if (shellOn()) {
+                <a
+                  class="dropdown-item"
+                  role="menuitem"
+                  [routerLink]="badge.link().commands"
+                  [queryParams]="badge.link().queryParams"
+                  (click)="onMenuNavigate($event)">
+                  {{ 'nav.badge' | translate }}
+                </a>
+              }
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
                      everyone would only ever hand out a redirect. Painted in the
@@ -315,8 +349,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
             </div>
           }
         </div>
-      </div>
-    </header>
+    </ng-template>
 
     @if (imp.enterFailed()) {
       <!-- Defect A: enter() used to reload unconditionally even when the
@@ -366,7 +399,7 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
          be standing. Renders nothing when there is nothing to say. -->
     <sc-account-notice />
 
-    <main id="sc-main" tabindex="-1" class="content" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
+    <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
       <!-- The Codex search on every Codex page below the landing (whose own
            terminal row is the same bar). Ctrl+K, "/", the header button and
            typing on the page bring it forward instead of the overlay. -->
@@ -384,6 +417,10 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
     <!-- The β switch of the nav item the reader is in — only there. -->
     @if (betaArea(); as area) {
       <sc-beta-dock [area]="area" />
+    }
+    <!-- The app-wide shell β (layout contract) — for the people who test it. -->
+    @if (roles.isCollaborator()) {
+      <sc-beta-dock area="shell" [lane]="betaArea() ? 1 : 0" />
     }
 
     <sc-feedback-fab />
@@ -790,6 +827,16 @@ import { BetaDockComponent } from '../shared/beta/beta-dock.component';
        Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
        reclaimed space is reused below the heading by the pages themselves. */
+    /* Beta "shell": the account menu rides in the Fusion bar. On a phone the
+       bar sits at the bottom, so the menu opens upward and the page keeps
+       the bar's stack (capsule + kind chips / drawer) free at its end. */
+    .bar-account .avatar-btn { width: 40px; height: 40px; }
+    @media (max-width: 720px) {
+      .bar-account .dropdown { top: auto; bottom: calc(100% + 10px); }
+      :host([data-layout]) {
+        padding-bottom: calc(var(--sc-bar-stack-h, var(--sc-bar-h)) + var(--sc-float-bottom) + var(--sc-space-3));
+      }
+    }
     .codex-bar { margin-bottom: 18px; }
     /* A page with its own list filter carries the compact trigger in its
        header instead — no slim row, so no gap for one (the bar sets .tucked). */
@@ -901,6 +948,8 @@ export class ShellComponent implements AfterViewInit {
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);
   readonly profile = inject(ProfileService);
+  /** Shell beta: the account menu's Kartograph badge entry (own badge page, else the star map). */
+  readonly badge = inject(OwnBadgeService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -910,7 +959,12 @@ export class ShellComponent implements AfterViewInit {
   private readonly injector = inject(Injector);
 
   /** A Codex page below the landing — the shell mounts the Codex search bar above it. */
-  readonly codexBar = signal(isCodexSubpage(this.router.url));
+  private readonly onCodexSubpage = signal(isCodexSubpage(this.router.url));
+  /**
+   * With the shell β on the search lives in the bar (Ctrl+K / "/"), so the
+   * extra Codex bar row is gone — and with it the URL check.
+   */
+  readonly codexBar = computed(() => !this.shellOn() && this.onCodexSubpage());
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
@@ -919,6 +973,9 @@ export class ShellComponent implements AfterViewInit {
   /** On /admin or /admin/telemetry - the folded menu's button carries the active mark. */
   readonly adminRoute = signal(isAdminNavRoute(this.router.url));
   private readonly beta = inject(BetaService);
+  protected readonly layout = inject(LayoutService);
+  /** Beta "shell": the layout contract drives the frame (width tracks, gaps) instead of URL checks. */
+  readonly shellOn = this.beta.isEnabled('shell');
   /** The top-level Starscape entry — only while the Verse β is off. */
   readonly starscapeEntry = computed(() => !this.beta.state().verse);
   /** The HQ entry — part of the Codex β (codex/HQ split). */
@@ -930,7 +987,8 @@ export class ShellComponent implements AfterViewInit {
   /** On the Verse front page (exactly `/verse`) with the Verse β on: footer becomes an overlay strip. */
   private readonly onVerseHome = signal(isVerseHome(this.router.url));
   private readonly verseBeta = this.beta.isEnabled('verse');
-  readonly verseOverlay = computed(() => this.onVerseHome() && this.verseBeta());
+  /** The footer overlay strip of the Verse front page; the shell β replaces it (footer mode follows the layout). */
+  readonly verseOverlay = computed(() => !this.shellOn() && this.onVerseHome() && this.verseBeta());
 
   // Bumped each time a routed view mounts so the [@routeReveal] animation replays.
   readonly reveal = signal(0);
@@ -953,7 +1011,7 @@ export class ShellComponent implements AfterViewInit {
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
-        this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
+        this.onCodexSubpage.set(isCodexSubpage(e.urlAfterRedirects));
         this.adminRoute.set(isAdminNavRoute(e.urlAfterRedirects));
         this.onVerseGallery.set(isVerseGallery(e.urlAfterRedirects));
         this.onVerseHome.set(isVerseHome(e.urlAfterRedirects));

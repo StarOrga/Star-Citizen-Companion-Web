@@ -1,3 +1,4 @@
+import { AuthStageComponent } from './auth-stage.component';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -33,9 +34,10 @@ import { RoleService } from './role.service';
 @Component({
   selector: 'sc-access-unavailable',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [AuthStageComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <sc-auth-stage>
     <section class="page">
       <div class="sc-card">
         @if (checking()) {
@@ -54,6 +56,7 @@ import { RoleService } from './role.service';
         }
       </div>
     </section>
+    </sc-auth-stage>
   `,
   styles: [`
     .page { display: grid; place-items: center; min-height: 60vh; }

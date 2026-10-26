@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BetaService } from '../core/beta.service';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
@@ -19,7 +21,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 @Component({
   selector: 'sc-download',
   standalone: true,
-  imports: [ScDatePipe, TranslatePipe, AppDownloadPanelComponent, ChannelPickerComponent],
+  imports: [RouterLink, ScDatePipe, TranslatePipe, AppDownloadPanelComponent, ChannelPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dl">
@@ -44,6 +46,17 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
         <sc-channel-picker panelActions [(channel)]="channel" />
       </sc-app-download-panel>
 
+      @if (shell()) {
+        <!-- Shell beta: the browser extension lives in the download area, not only behind a Codex promo. -->
+        <a class="sc-card ext" routerLink="/tools/extension">
+          <span class="ext-txt">
+            <strong>{{ 'download.extension.title' | translate }}</strong>
+            <span>{{ 'download.extension.text' | translate }}</span>
+          </span>
+          <span class="ext-go">{{ 'download.extension.open' | translate }} <span aria-hidden="true">→</span></span>
+        </a>
+      }
+
       @if (release(); as r) {
         <span class="rel-when">
           {{ 'desktop.released' | translate }} · {{ r.created_at | scDate }}
@@ -63,6 +76,14 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
       color: var(--sc-danger);
       border-radius: 4px;
     }
+    .ext { display: flex; align-items: center; justify-content: space-between; gap: var(--sc-space-3, 12px); flex-wrap: wrap;
+      padding: var(--sc-space-4, 16px); color: var(--sc-fg-1); text-decoration: none; }
+    .ext:hover, .ext:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); outline: none; text-decoration: none; }
+    .ext:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
+    .ext-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ext-txt strong { color: var(--sc-fg-0); }
+    .ext-txt span { font-size: 0.85rem; color: var(--sc-fg-2); }
+    .ext-go { color: var(--sc-accent); white-space: nowrap; }
     .rel-when {
       color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase;
@@ -71,6 +92,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 })
 export class DownloadComponent {
   private readonly releases = inject(DesktopReleaseService);
+  readonly shell = inject(BetaService).isEnabled('shell');
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);

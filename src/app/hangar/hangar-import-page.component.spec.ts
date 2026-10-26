@@ -31,7 +31,7 @@ describe('HangarImportPageComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: ExtensionBridgeService, useValue: bridge },
-        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy() } },
+        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy(), flags: () => ({}) } },
         { provide: LocaleService, useValue: { language: () => 'en', region: () => 'DE' } },
         {
           provide: CodexService,

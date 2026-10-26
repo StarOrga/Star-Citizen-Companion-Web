@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
+import { BetaService } from '../../core/beta.service';
 import { logWarn } from '../../core/log';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -9,9 +11,11 @@ import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
 import { CometTrackComponent } from './comet-track.component';
 import { downloadBlob, renderConstellationPng } from './constellation-render';
+import { MyConstellationsComponent } from './my-constellations.component';
 import { GuessTrackComponent } from './guess-track.component';
 import { SeriesStripComponent } from './series-strip.component';
 import { StarDomeComponent } from './star-dome.component';
+import { StarmapTourComponent } from './starmap-tour.component';
 import { StarmapMoreComponent } from './starmap-more.component';
 import { STARS_PER_PATCH, defaultPatch, patchMapView, sunState } from './starmap.model';
 import { wallpaperConstellations } from './wallpaper';
@@ -40,6 +44,8 @@ const MAX_PATCH_CHIPS = 6;
     GuessTrackComponent,
     SeriesStripComponent,
     StarmapMoreComponent,
+    StarmapTourComponent,
+    MyConstellationsComponent,
   ],
   template: `
     @if (!signedIn()) {
@@ -64,14 +70,19 @@ const MAX_PATCH_CHIPS = 6;
       @let st = state()!;
       @let p = selected()!;
       @let v = view()!;
-      <section class="map" [class.nebula]="st.rewards.nebula" [attr.aria-label]="'starmap.stageAria' | translate: { patch: p.patchLine }">
+      <section #mapEl class="map" [class.nebula]="st.rewards.nebula" [attr.aria-label]="'starmap.stageAria' | translate: { patch: p.patchLine }">
         <div class="sky" aria-hidden="true"><i class="neb"></i><i class="field"></i><i class="field near"></i></div>
         <div class="dome" aria-hidden="true"></div>
 
         <header class="bar">
           <div class="ttl">
-            <h1>{{ 'starmap.map.title' | translate: { patch: p.patchLine } }}</h1>
-            <span>
+            @if (mine()) {
+              <h1>{{ 'starmap.gallery.title' | translate }}</h1>
+              <span>{{ 'starmap.gallery.subtitle' | translate }}</span>
+            } @else {
+              <h1>{{ 'starmap.map.title' | translate: { patch: p.patchLine } }}</h1>
+            }
+            <span [hidden]="mine()">
               @if (shapeName(); as name) {
                 {{ 'starmap.map.shape' | translate: { name: name } }}
               } @else {
@@ -79,7 +90,7 @@ const MAX_PATCH_CHIPS = 6;
               }
             </span>
           </div>
-          @if (chips().length > 1) {
+          @if (chips().length > 1 && !mine()) {
             <div class="chips" role="group" [attr.aria-label]="'starmap.map.patchesAria' | translate">
               @for (lp of chips(); track lp.patchLine) {
                 <button type="button" class="chip" [attr.aria-pressed]="lp === p" (click)="select(lp)"
@@ -87,24 +98,36 @@ const MAX_PATCH_CHIPS = 6;
               }
             </div>
           }
-          <span class="count" [attr.aria-label]="'starmap.progress' | translate: { lit: v.lit, total: total }"><b>{{ v.lit }}</b>/ {{ total }}</span>
+          <span class="count" data-tour="count" [attr.aria-label]="'starmap.progress' | translate: { lit: v.lit, total: total }"><b>{{ v.lit }}</b>/ {{ total }}</span>
           <div class="acts">
-            @if (p.unlocks.wallpaper) {
+            @if (p.unlocks.wallpaper && !mine()) {
               <button type="button" class="act" [disabled]="exporting()" (click)="exportWallpaper(p)">
                 {{ (exporting() ? 'starmap.export.busy' : 'starmap.export.wallpaper') | translate }}
               </button>
             }
-            <a class="act ghost" routerLink="/verse/gallery/constellations">{{ 'starmap.map.mine' | translate }}</a>
-            <button type="button" class="act ghost" [attr.aria-expanded]="moreOpen()" aria-controls="starmap-more"
+            @if (shellOn()) {
+              <button type="button" class="act ghost" [attr.aria-pressed]="mine()" (click)="toggleMine()">{{ 'starmap.map.mine' | translate }}</button>
+            } @else {
+              <a class="act ghost" routerLink="/verse/gallery/constellations">{{ 'starmap.map.mine' | translate }}</a>
+            }
+            <button type="button" class="act ghost" data-tour="more" [attr.aria-expanded]="moreOpen()" aria-controls="starmap-more"
                     (click)="moreOpen.set(!moreOpen())">{{ 'starmap.more.open' | translate }}</button>
+            @if (shellOn()) {
+              <button #helpBtn type="button" class="act ghost help" [attr.aria-expanded]="tourOpen()" aria-controls="starmap-tour"
+                      [attr.aria-label]="'starmap.tour.open' | translate" [scTooltip]="'starmap.tour.open' | translate" scTooltipTier="label"
+                      (click)="tourOpen.set(!tourOpen())">?</button>
+            }
           </div>
           @if (exportError()) { <span class="err" role="alert">{{ exportError()! | translate }}</span> }
         </header>
 
-        <sc-star-dome class="stage" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
+        @if (mine()) {
+          <div class="mine" animate.enter="ex-build"><sc-my-constellations [embedded]="true" /></div>
+        } @else {
+        <sc-star-dome class="stage" data-tour="stage" animate.enter="ex-build" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
                       [sun]="sun()" [sunLine]="cometTarget()?.patchLine ?? p.patchLine" [patchLine]="p.patchLine" />
 
-        <div class="tracks">
+        <div class="tracks" data-tour="tracks" animate.enter="ex-build">
           @if (cometTarget(); as ct) {
             <sc-comet-track class="track" [patchLine]="ct.patchLine" [comet]="ct.comet" />
           }
@@ -113,7 +136,8 @@ const MAX_PATCH_CHIPS = 6;
           }
         </div>
 
-        <sc-series-strip class="series" [state]="st" />
+        <sc-series-strip class="series" data-tour="series" animate.enter="ex-build" [state]="st" />
+        }
 
         @if (moreOpen()) {
           <aside id="starmap-more" class="more" role="dialog" scDialog [scDialogModal]="false" (scDialogEscape)="moreOpen.set(false)"
@@ -125,6 +149,9 @@ const MAX_PATCH_CHIPS = 6;
             </div>
             <sc-starmap-more [state]="st" [patch]="p" />
           </aside>
+        }
+        @if (tourOpen() && shellOn()) {
+          <sc-starmap-tour id="starmap-tour" [root]="mapEl" [returnTo]="helpBtn()?.nativeElement ?? null" (closed)="tourOpen.set(false)" />
         }
       </section>
     }
@@ -201,6 +228,11 @@ const MAX_PATCH_CHIPS = 6;
       .x { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2);
         font: 1rem/1 inherit; cursor: pointer; padding: 0; }
       .x:hover, .x:focus-visible { color: var(--sc-fg-0); border-color: var(--sc-accent); outline: none; }
+      .act.help { min-width: 36px; justify-content: center; padding: 0; font-weight: 600; }
+      /* Constellations toggle (shell beta): the dome dissolves, the list builds up in its place. */
+      .mine { grid-row: 2 / -1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+      .ex-build { animation: ex-build 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; transform-origin: 50% 0; }
+      @keyframes ex-build { from { opacity: 0; transform: perspective(900px) rotateX(14deg) scale(0.96); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
       @media (pointer: coarse) { .chip, .act, .x { min-height: 44px; min-width: 44px; } }
 
       /* Phones / narrow: the page may scroll, the dome keeps a square stage. */
@@ -211,7 +243,10 @@ const MAX_PATCH_CHIPS = 6;
         .tracks .track { display: block; grid-row: auto; }
         .more { position: fixed; inset: auto 8px var(--sc-float-bottom, 8px) 8px; top: 15dvh; width: auto; }
       }
-      @media (prefers-reduced-motion: reduce) { .sky, .dome, .field.near, .more { animation: none; } }
+      @media (prefers-reduced-motion: reduce) {
+        .sky, .dome, .field.near, .more { animation: none; }
+        .ex-build { animation: ex-in 0.2s ease-out both; }
+      }
     `,
   ],
 })
@@ -270,12 +305,28 @@ export class ExplorerPageComponent {
     return p?.guess.answerName ?? p?.constellation?.name ?? null;
   });
   readonly moreOpen = signal(false);
+  readonly tourOpen = signal(false);
+  readonly helpBtn = viewChild<ElementRef<HTMLElement>>('helpBtn');
+  readonly shellOn = inject(BetaService).isEnabled('shell');
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly query = toSignal(this.route.queryParamMap, { requireSync: true });
+  /** "Meine Sternbilder" as a state of this panel (shell beta); the old page route redirects here. */
+  readonly mine = computed(() => this.shellOn() && this.query().get('view') === 'constellations');
   readonly exporting = signal(false);
   readonly exportError = signal<string | null>(null);
 
   constructor() {
     effect(() => {
       if (this.signedIn() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
+    });
+  }
+
+  toggleMine(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view: this.mine() ? null : 'constellations' },
+      queryParamsHandling: 'merge',
     });
   }
 

@@ -30,7 +30,7 @@ import { UndoToastService } from './undo-toast.service';
     .toast {
       position: fixed; z-index: 1450;
       inset-inline-end: var(--sc-fab-gutter, 16px);
-      bottom: var(--sc-fab-clear-block, 80px);
+      bottom: var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px));
       width: min(372px, calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: flex; align-items: center; gap: 12px;
       padding: 10px 10px 12px 16px; border-radius: 14px; overflow: hidden;

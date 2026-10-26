@@ -7,7 +7,7 @@ import { environment } from '../../environments/environment';
 import { ConsentService } from './consent.service';
 
 /** Top-level nav items with a β switch (`BetaService`). */
-export type BetaArea = 'verse' | 'codex';
+export type BetaArea = 'verse' | 'codex' | 'shell';
 
 /**
  * Typed Verse hub product events and their properties. Properties carry no

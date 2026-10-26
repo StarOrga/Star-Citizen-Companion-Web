@@ -27,22 +27,32 @@ describe('BetaService', () => {
     localStorage.removeItem('sc.verse.beta');
   });
 
+  it('keeps the app-wide shell switch off by default and lets it be toggled and persisted', () => {
+    const svc = create();
+    expect(svc.state().shell).toBeFalse();
+    svc.toggle('shell');
+    expect(svc.state().shell).toBeTrue();
+    TestBed.resetTestingModule();
+    expect(create().state().shell).toBeTrue();
+    expect(betaAreaOf('/verse')).toBe('verse');
+  });
+
   it('defaults Verse to off and the already-live Codex/HQ split to on', () => {
     const svc = create();
-    expect(svc.state()).toEqual({ verse: false, codex: true });
+    expect(svc.state()).toEqual({ verse: false, codex: true, shell: false });
   });
 
   it('persists a per-area choice that touches no other area and emits beta_toggle', () => {
     const svc = create();
     svc.set('verse', true);
-    expect(svc.state()).toEqual({ verse: true, codex: true });
+    expect(svc.state()).toEqual({ verse: true, codex: true, shell: false });
     svc.set('codex', false);
-    expect(svc.state()).toEqual({ verse: true, codex: false });
+    expect(svc.state()).toEqual({ verse: true, codex: false, shell: false });
     expect(svc.isEnabled('codex')()).toBeFalse();
     expect(JSON.parse(localStorage.getItem(BETA_STORAGE_KEY) ?? '{}')).toEqual({ verse: true, codex: false });
     expect(captureVerse).toHaveBeenCalledWith('beta_toggle', { area: 'codex', enabled: false });
     TestBed.resetTestingModule();
-    expect(create().state()).toEqual({ verse: true, codex: false });
+    expect(create().state()).toEqual({ verse: true, codex: false, shell: false });
   });
 
   it('treats a boolean flag as default and a flag false as a kill switch', () => {
