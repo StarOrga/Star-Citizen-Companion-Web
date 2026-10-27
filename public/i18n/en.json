@@ -5041,6 +5041,7 @@
     "areaMenu": "Switch area — now: {{area}}",
     "home": "Home",
     "filters": "Filters",
+    "sectionsAria": "Pages of this area",
     "kinds": {
       "fps": "FPS",
       "keybinds": "Keybinds"

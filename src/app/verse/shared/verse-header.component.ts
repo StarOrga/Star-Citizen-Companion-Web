@@ -18,7 +18,8 @@ import { VerseStatusComponent } from './verse-status.component';
   template: `
     <sc-page-header [crumbs]="crumbs()" [eyebrow]="eyebrow()" [title]="title()"
                     [subtitle]="subtitle()" [rememberAs]="rememberAs()">
-      <sc-verse-status phAside />
+      <!-- Beta "shell": the status sits on the Verse hub only (its kicker), not on every sub-page. -->
+      @if (!shell()) { <sc-verse-status phAside /> }
       <div phActions class="vh-actions">
         <ng-content select="[vhActions]" />
         @if (starmap()) { <sc-explorer-glyph /> }
@@ -45,4 +46,5 @@ export class VerseHeaderComponent {
   readonly crumbs = computed<readonly PageCrumb[]>(() => (this.root() ? [] : this.trail()));
   /** The glyph is the star map's entry — shown while the Verse β is on. */
   readonly starmap = this.beta.isEnabled('verse');
+  readonly shell = this.beta.isEnabled('shell');
 }

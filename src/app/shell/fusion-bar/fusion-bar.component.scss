@@ -88,15 +88,22 @@
   transform-origin: left center;
 }
 // On the stage the capsule is quieter: the stage is the show.
-:host([data-mode='stage']) .cap::before,
-:host([data-mode='hub']) .cap::before {
+:host([data-mode='stage']) .cap::before {
   background: color-mix(in srgb, var(--sc-bg-0) 38%, transparent);
   border-color: color-mix(in srgb, var(--sc-fg-0) 14%, transparent);
 }
-:host([data-mode='stage']) .cap::after,
-:host([data-mode='hub']) .cap::after {
+:host([data-mode='stage']) .cap::after {
   opacity: 0;
 }
+// Hub top (mock d4-s1): a compact capsule centred over the stage — brand, the
+// main nav and the account; the stage's own search line is the big one.
+:host([data-mode='stage']) .cap {
+  width: fit-content;
+  max-width: 100%;
+  gap: var(--sc-space-3);
+  padding-inline: var(--sc-space-2);
+}
+:host([data-mode='stage']) .nav { margin-left: var(--sc-space-3); }
 
 // ---- brand + nav (stage layer) ----
 .brand {
@@ -355,18 +362,23 @@
 .k-icon svg,
 .k-icon sc-codex-icon { width: 18px; height: 18px; }
 .kinds.arrive .kind.active { animation: fb-collapse 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+// Area sub-pages: text tabs, no icons (the mock's „News · Patches · Galerie“).
+.sections { background: transparent; padding: 0; flex: 0 1 auto; }
+.sections .kind { padding: 0 var(--sc-space-3); }
+.sections.arrive .kind { animation: fb-fade 0.5s ease both; }
 
 // ---- search + account ----
+// The search is the fused subheader: it takes the rest of the capsule.
 .search {
-  flex: 0 1 480px;
+  flex: 1 1 420px;
   min-width: 300px;
+  max-width: 760px;
   margin-left: auto;
   transition: flex-basis 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), flex-grow 0.28s ease;
 }
-:host(.searching) .search { flex: 1 1 560px; }
+:host(.searching) .search { flex: 1 1 560px; max-width: none; }
 :host(.searching) .where,
 :host(.searching) .kinds { opacity: 0.35; }
-:host([data-mode='hub']) .search { flex-basis: 300px; }
 .spacer { flex: 1 1 auto; }
 .account { flex: none; display: flex; align-items: center; }
 .drawer-toggle {
@@ -438,14 +450,15 @@
 @keyframes fb-fade { from { opacity: 0; } }
 
 // Desktop below QHD: inactive kinds are icons (named by tooltip), so the search keeps its room.
+// Area sub-pages have no icon, they keep their names.
 @media (max-width: 1599px) {
-  .kind:not(.active) .k-label { display: none; }
-  .kind:not(.active) { padding: 0 var(--sc-space-2); }
+  .kinds:not(.sections) .kind:not(.active) .k-label { display: none; }
+  .kinds:not(.sections) .kind:not(.active) { padding: 0 var(--sc-space-2); }
 }
 
 // ---- desktop large: QHD and up get a roomier capsule ----
 @media (min-width: 2200px) {
-  .search { flex-basis: 480px; }
+  .search { max-width: 960px; }
   .title { font-size: 0.92rem; }
 }
 
@@ -457,8 +470,9 @@
   .seg-label { display: none; }
   .seg { padding: 0 var(--sc-space-2); }
   // Only the active kind keeps its name; the others are icons with a tooltip.
-  .kind:not(.active) .k-label { display: none; }
-  .kind:not(.active) { padding: 0 var(--sc-space-2); }
+  .kinds:not(.sections) .kind:not(.active) .k-label { display: none; }
+  .kinds:not(.sections) .kind:not(.active) { padding: 0 var(--sc-space-2); }
+  .sections .kind { padding: 0 var(--sc-space-2); }
   // The trail shrinks to its last two steps.
   .crumbs li:not(.last):not(.here) { display: none; }
   .section { display: none; }
@@ -467,9 +481,8 @@
   :host(.searching) .where,
   :host(.searching) .kinds { display: none; }
   .dt-label { display: none; }
-  // Hub on a tablet: the nav keeps every entry (scrolls if it must), the search stays compact.
+  // Hub top on a tablet: the nav keeps every entry (scrolls if it must).
   .nav { overflow-x: auto; scrollbar-width: none; }
-  :host([data-mode='hub']) .search { flex: 0 1 220px; min-width: 160px; }
 }
 
 // ---- phone (<= 720): the capsule at the bottom, under the thumb ----

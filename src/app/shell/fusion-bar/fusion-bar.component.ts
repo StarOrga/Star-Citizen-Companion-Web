@@ -29,7 +29,10 @@ import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
 import {
   AREA_ENTRIES,
+  AREA_SECTIONS,
+  AreaSection,
   BarMode,
+  activeSectionOf,
   CODEX_SEGMENTS,
   CodexSegment,
   HideTracker,
@@ -148,6 +151,17 @@ import {
               </a>
             }
           </nav>
+        } @else if (sections(); as secs) {
+          <nav class="kinds sections" [class.arrive]="morphing()" [attr.aria-label]="'fusionBar.sectionsAria' | translate">
+            @for (s of secs; track s.id) {
+              <a class="kind" [routerLink]="s.link"
+                 [class.active]="activeSection() === s.id"
+                 [attr.aria-current]="activeSection() === s.id ? 'page' : null"
+                 (click)="onNav($event, s.link)">
+                <span class="k-label">{{ s.labelKey | translate }}</span>
+              </a>
+            }
+          </nav>
         } @else if (showCrumbs()) {
           <div class="where">
             @if (sectionLabel(); as sec) {
@@ -209,6 +223,13 @@ import {
              [attr.aria-current]="activeSegment() === s.id ? 'page' : null">{{ s.labelKey | translate }}</a>
         }
       </nav>
+    } @else if (phone() && sections(); as secs) {
+      <nav class="kinds-phone" [attr.aria-label]="'fusionBar.sectionsAria' | translate">
+        @for (s of secs; track s.id) {
+          <a class="kchip" [routerLink]="s.link" [class.active]="activeSection() === s.id"
+             [attr.aria-current]="activeSection() === s.id ? 'page' : null">{{ s.labelKey | translate }}</a>
+        }
+      </nav>
     }
   `,
   styleUrl: './fusion-bar.component.scss',
@@ -243,10 +264,12 @@ export class FusionBarComponent {
   readonly crumbs = this.chrome.crumbs;
   readonly toolbar = this.chrome.toolbar;
   readonly drawerShown = computed(() => !!this.toolbar() && this.drawerOpen() && !this.searchOpen());
-  readonly showStageLayer = computed(() => {
-    const m = this.mode();
-    return this.variant() === 'public' || m === 'stage' || m === 'hub';
-  });
+  /**
+   * Brand + main nav only while a hub's stage search is on screen (mock d4-s1:
+   * a compact capsule, the stage is the show). Every other mode fuses header
+   * and subheader: area segment, its sub-pages or the trail, and the search.
+   */
+  readonly showStageLayer = computed(() => this.variant() === 'public' || this.mode() === 'stage');
   readonly showSearch = computed(() => this.mode() !== 'stage');
   readonly showCrumbs = computed(() => this.mode() !== 'docked' || !!this.chrome.section());
   readonly sectionLabel = computed(() => this.chrome.section() ?? this.autoSection());
@@ -262,6 +285,22 @@ export class FusionBarComponent {
   readonly activeArea = computed(() => activeAreaOf(this.url(), !this.beta.state().verse));
   readonly areaLabelKey = computed(() => AREA_ENTRIES.find((a) => a.id === this.activeArea())?.labelKey ?? 'fusionBar.home');
   readonly activeSegment = computed(() => activeSegmentOf(this.url()));
+  /**
+   * The area's sub-pages as tabs in the capsule (Verse: News · Patches · Galerie ·
+   * Sternkarte; HQ: Übersicht · Spind · Hangar · Einsätze) — on hubs, their
+   * sub-pages and tools. A content page shows its trail instead.
+   */
+  readonly sections = computed<readonly AreaSection[] | null>(() => {
+    if (this.variant() !== 'app') return null;
+    const area = this.activeArea();
+    const list = area ? AREA_SECTIONS[area] : undefined;
+    if (!list) return null;
+    return this.mode() === 'content' && this.crumbs()?.crumbs.length ? null : list;
+  });
+  readonly activeSection = computed(() => {
+    const secs = this.sections();
+    return secs ? activeSectionOf(this.url(), secs) : null;
+  });
   /** Codex kinds as segments: on the Codex tool pages (index, FPS, upcoming, keybinds). */
   readonly segments = computed<readonly CodexSegment[] | null>(() =>
     this.variant() === 'app' && isCodexToolPage(this.url()) ? CODEX_SEGMENTS : null,

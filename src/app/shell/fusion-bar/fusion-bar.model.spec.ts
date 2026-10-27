@@ -1,8 +1,20 @@
 import { TemplateRef } from '@angular/core';
-import { HideTracker, REVEAL_UP_PX, activeAreaOf, activeSegmentOf, barModeOf, isCodexToolPage } from './fusion-bar.model';
+import { AREA_SECTIONS, HideTracker, REVEAL_UP_PX, activeAreaOf, activeSectionOf, activeSegmentOf, barModeOf, isCodexToolPage } from './fusion-bar.model';
 import { ShellChromeService } from './shell-chrome.service';
 
 describe('fusion-bar model', () => {
+  it('finds the area sub-page of a URL, exact for an overview, by prefix otherwise', () => {
+    const verse = AREA_SECTIONS.verse!;
+    const hq = AREA_SECTIONS.hq!;
+    expect(activeSectionOf('/verse/news/abc?x=1', verse)).toBe('news');
+    expect(activeSectionOf('/verse/gallery#top', verse)).toBe('gallery');
+    expect(activeSectionOf('/verse', verse)).toBeNull();
+    expect(activeSectionOf('/verse/newsletter', verse)).toBeNull();
+    expect(activeSectionOf('/hq', hq)).toBe('overview');
+    expect(activeSectionOf('/hq/', hq)).toBe('overview');
+    expect(activeSectionOf('/hq/hangar/42', hq)).toBe('hangar');
+  });
+
   it('derives the bar mode from layout + stage search', () => {
     expect(barModeOf('cinematic', 'stage')).toBe('stage');
     expect(barModeOf('cinematic', 'docked')).toBe('docked');

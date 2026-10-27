@@ -5041,6 +5041,7 @@
     "areaMenu": "Bereich wechseln — jetzt: {{area}}",
     "home": "Startseite",
     "filters": "Filter",
+    "sectionsAria": "Unterseiten des Bereichs",
     "kinds": {
       "fps": "FPS",
       "keybinds": "Keybinds"

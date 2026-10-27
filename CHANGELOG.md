@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.167.1] - 2026-10-28
+
+### Fixed
+
+- **Neue App-Hülle (Beta „shell“): Kopf und Unterkopf verschmolzen.** Unterseiten, Werkzeuge und der angedockte Hub zeigen jetzt Bereich, Unterseiten als Tabs (Verse: News/Patches/Galerie/Sternkarte, HQ: Übersicht/Spind/Hangar/Einsätze) und eine breite Suche statt der alten Marken- und Navigationszeile, wie im Konzept-Mock. Der Hub behält eine kompakte, zentrierte Kapsel und eine große Suchzeile auf der Bühne.
+
 ## [0.167.0] - 2026-10-26
 
 ### Added
