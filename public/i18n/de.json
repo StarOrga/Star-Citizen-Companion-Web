@@ -212,6 +212,10 @@
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
+      "hero": {
+        "eyebrow": "Codex",
+        "title": "Alles über jedes Schiff."
+      },
       "teaser": {
         "eyebrow": "Auf dem Reißbrett",
         "title": "Schiffe im Anflug",
@@ -5098,7 +5102,8 @@
     "removeFilter": "Filter entfernen: {{name}}",
     "moreFilters": "{{count}} weitere Filter anzeigen",
     "hits": "{{count}} Treffer",
-    "filter": {"weaponGroup": "Waffengruppe"},
+    "demo": {"ship": "Gladius", "patch": "Patch 4.10.2", "item": "Laser-Repeater"},
+    "filter": {"variants": "Varianten", "options": "Optionen", "weaponGroup": "Waffengruppe"},
     "navAria": "Hauptbereiche",
     "areaMenu": "Bereich wechseln — jetzt: {{area}}",
     "home": "Startseite",

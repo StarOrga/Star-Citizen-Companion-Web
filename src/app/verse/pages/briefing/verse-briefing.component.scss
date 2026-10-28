@@ -286,15 +286,13 @@
 }
 .since { color: var(--sc-fg-1); }
 .title {
-  max-width: 20ch;
   margin: 0 0 24px;
   font: 400 clamp(2rem, 3.2vw, 3.4rem) / 1.08 var(--sc-font-display);
   text-shadow: 0 0 40px color-mix(in srgb, var(--sc-accent) 28%, transparent), 0 2px 24px rgba(0, 0, 0, 0.7);
   overflow-wrap: anywhere;
   animation: resolve calc(0.8s * var(--k)) ease-out calc(0.5s * var(--k)) both;
 }
-// Hard two-line clamp: the headline can never grow into the gate band.
-.title .roll { min-height: 2.16em; align-items: end; }
+.title .roll { align-items: end; }
 .title .slide {
   display: -webkit-box;
   -webkit-box-orient: vertical;

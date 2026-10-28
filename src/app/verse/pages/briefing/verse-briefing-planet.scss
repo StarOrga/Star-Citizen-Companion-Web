@@ -105,8 +105,10 @@
   justify-content: center;
   pointer-events: none;
 }
+// The hero spans the page frame: the title takes one line and wraps only when
+// it genuinely does not fit (phone), never a forced two-line balance.
 .hx {
-  width: min(calc(100% - 32px), max(62cqw, 300px));
+  width: min(calc(100% - 32px), var(--sc-page-max, 1280px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -133,12 +135,11 @@
 .title2 {
   --fit: 1;
   min-width: 0;
-  max-width: calc(100% - 2 * max(28px, 1.4cqw) - 2 * max(8px, 1.2cqw));
+  max-width: 100%;
   margin: 0;
   font: 500 calc(clamp(26px, 3.2cqw, 64px) * var(--fit)) / 1.1 var(--sc-font-display);
   letter-spacing: 0.02em;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .tl { color: inherit; text-decoration: none; transition: color 0.2s, text-shadow 0.2s; }
 a.tl:hover, a.tl:focus-visible { color: #fff; text-shadow: 0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent); }
