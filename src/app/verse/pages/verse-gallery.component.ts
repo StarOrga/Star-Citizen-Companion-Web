@@ -17,6 +17,8 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
  */
 @Component({
   selector: 'sc-verse-gallery',
+  // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
+  host: { class: 'sc-track-page' },
   standalone: true,
   imports: [RouterLink, RouterOutlet, TranslatePipe, VerseHeaderComponent, StarscapeComponent, AppNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
