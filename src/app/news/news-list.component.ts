@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnDestroy,
   OnInit,
@@ -15,7 +16,7 @@ import {
 } from '@angular/core';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BetaService } from '../core/beta.service';
 import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
@@ -23,6 +24,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { NewsService, VerseNewsItem } from './news.service';
+import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+import { STREAM_CHANNELS } from './news-stage';
 import { channelIconSvg } from './channel-icons';
 import { nextPatchDistance } from './patch-stats';
 import { relativeTime } from './relative-time';
@@ -32,6 +35,9 @@ import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+
+type FeedFilter = 'all' | 'comm-link' | 'youtube' | 'spectrum' | 'patch' | 'saved';
+const FEED_CHANNELS: readonly VerseNewsItem['channel'][] = [...STREAM_CHANNELS, 'patch'];
 
 /** How many stream tiles the first serving holds, and how many each "more" adds. */
 const STREAM_PAGE = 12;
@@ -87,7 +93,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="news-page">
+    <section class="news-page sc-enter-stagger">
       <p class="sc-sr-only" role="status" aria-live="polite">{{ (shareHint()?.key ?? '') | translate }}</p>
       <!-- ══ 1 · THE STAGE ══════════════════════════════════════════════════
            Full-bleed artwork, an overline, a headline and one action. No page
@@ -103,8 +109,8 @@ const SAFE_SVG = new Map<string, SafeHtml>();
             <span class="skel-line sc-skel-line" style="--sc-skel-i: 2"></span>
           </span>
         </div>
-      } @else if (stage(); as item) {
-        <article class="stage" [attr.data-channel]="item.channel">
+      } @else if (hero(); as item) {
+        <article class="stage sc-enter" style="--sc-enter-i: 1" [attr.data-channel]="item.channel">
           <sc-news-thumb
             class="stage-art"
             [images]="imagesOf(item)"
@@ -124,12 +130,12 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                  source and its overlay span covers the whole stage, so middle
                  click and Ctrl/⌘+click reach the article natively. A plain left
                  click stays in the app and opens the detail overlay. -->
-            <h1>
+            <h2>
               <a class="stage-link" [attr.href]="itemHref(item)" [attr.target]="shell() ? null : '_blank'" [attr.rel]="shell() ? null : 'noopener noreferrer'"
                  (click)="onItemClick($event, item)"
                  (keydown.space)="onItemSpace($event, item)">{{ item.title }}<span
                    class="stage-link-touch-target" aria-hidden="true"></span></a>
-            </h1>
+            </h2>
             @if (item.summary) { <p class="stage-deck">{{ item.summary }}</p> }
             <!-- The CTA is a real anchor, not a decorated span. As a span with
                  pointer-events:none it looked like the primary control and
@@ -195,27 +201,20 @@ const SAFE_SVG = new Map<string, SafeHtml>();
            bands: those are what bound the hero to a bucket that is empty on
            most days, and a relative timestamp on the tile carries the same
            information without a section that can render empty. -->
-      <section class="stream" [attr.aria-label]="'news.stream.title' | translate">
+      <section class="stream sc-enter" style="--sc-enter-i: 2" [attr.aria-label]="'news.stream.title' | translate">
         <header class="stream-head">
-          <h2>{{ 'news.stream.title' | translate }}</h2>
-          <!-- One segmented control instead of a count pill next to a starred
-               text button: both halves name the same kind of thing (a slice of
-               the stream and how many items it holds), so they get the same
-               shape. Counts ride in their own badge — no parentheses. -->
-          <div class="seg" role="group" [attr.aria-label]="'news.stream.filterAria' | translate">
-            <button type="button" class="seg-btn" [class.on]="!svc.favoritesOnly()"
-                    [attr.aria-pressed]="!svc.favoritesOnly()"
-                    (click)="selectStream(false)">
-              <span class="seg-lbl">{{ 'news.stream.all' | translate }}</span>
-              <span class="seg-num">{{ svc.streamCount() }}</span>
-            </button>
-            <button type="button" class="seg-btn saved" [class.on]="svc.favoritesOnly()"
-                    [attr.aria-pressed]="svc.favoritesOnly()"
-                    (click)="selectStream(true)">
-              <span class="ic" [innerHTML]="favIcon(true)"></span>
-              <span class="seg-lbl">{{ 'news.favorite.saved' | translate }}</span>
-              <span class="seg-num">{{ svc.favoriteCount() }}</span>
-            </button>
+          <!-- Source filter chips (toggle buttons). They and the search apply
+               to the feed only - the hero above always shows the newest item. -->
+          <div class="chips" role="group" [attr.aria-label]="'news.stream.filterAria' | translate">
+            @for (f of filters; track f) {
+              <button type="button" class="chip" [class.on]="activeFilter() === f" [class.saved]="f === 'saved'"
+                      [attr.aria-pressed]="activeFilter() === f"
+                      (click)="selectFilter(f)">
+                @if (f === 'saved') { <span class="ic" [innerHTML]="favIcon(true)"></span> }
+                <span class="chip-lbl">{{ filterLabel(f) | translate }}</span>
+                <span class="chip-num">{{ filterCount(f) }}</span>
+              </button>
+            }
           </div>
           @if (svc.loading() && svc.feed()) {
             <span class="freshness refreshing" role="status" aria-live="polite">
@@ -244,7 +243,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
           </div>
         } @else if (visibleStream().length === 0) {
           <p class="sc-card empty">
-            {{ (svc.favoritesOnly() ? 'news.emptyFavorites' : 'news.empty') | translate }}
+            {{ emptyKey() | translate }}
           </p>
         } @else {
           <div class="cards">
@@ -406,9 +405,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .stage {
       position: relative; overflow: hidden;
       border: 1px solid var(--sc-border); border-radius: 12px;
-      background: var(--sc-bg-1);
+      background: color-mix(in srgb, var(--sc-bg-1) 40%, transparent);
       display: flex; align-items: flex-end;
-      min-height: clamp(380px, 34vw, 480px);
+      /* ~1/3 of the viewport; the headline always fits. */
+      min-height: clamp(260px, 34vh, 400px);
     }
     .stage-art { position: absolute; inset: 0; display: flex; }
     .stage-art ::ng-deep img { width: 100%; height: 100%; object-fit: cover; }
@@ -427,7 +427,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .overline .ch-icon { display: inline-flex; width: 14px; height: 14px; }
     .overline .ch-icon svg { width: 100%; height: 100%; display: block; }
     .overline time, .overline .dot-sep { color: var(--sc-fg-2); letter-spacing: 0.04em; }
-    .stage-body h1 {
+    .stage-body h2 {
       margin: 0 0 10px; font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.08;
       font-family: var(--sc-font-display); letter-spacing: 0.01em;
     }
@@ -560,43 +560,31 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     /* ---------- 3 · Stream ---------- */
     .stream {
       display: flex; flex-direction: column; gap: 12px;
-      border: 1px solid var(--sc-border); border-radius: 10px;
-      background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
-      padding: 14px 16px 18px;
+      /* No opaque page box: the scene shows through between the cards. */
+      padding: 0;
     }
     .stream-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
-    .stream-head h2 {
-      margin: 0; font-size: 0.82rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--sc-accent);
-    }
-
-    /* One segmented control for the two slices of the stream. Both halves carry
-       a label and a count badge in the same shape — the count pill and the
-       starred text link they replace shared a job but nothing else. */
-    .seg {
-      display: inline-flex; align-items: stretch; overflow: hidden;
-      border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1);
-    }
-    .seg-btn {
+    /* Source chips: separate toggle pills, no shared box. */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 6px 12px; min-height: var(--sc-tap-min);
-      background: transparent; border: 0; border-right: 1px solid var(--sc-border);
-      color: var(--sc-fg-2); font-family: inherit; cursor: pointer;
+      background: transparent; border: 1px solid var(--sc-border); border-radius: 999px;
+      color: var(--sc-fg-1); font-family: inherit; cursor: pointer;
       font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1; letter-spacing: 0.04em;
     }
-    .seg-btn:last-child { border-right: 0; }
-    .seg-btn .ic { display: inline-flex; width: 13px; height: 13px; flex: 0 0 auto; }
-    .seg-btn .ic svg { width: 100%; height: 100%; display: block; }
-    .seg-num {
+    .chip .ic { display: inline-flex; width: 13px; height: 13px; flex: 0 0 auto; }
+    .chip .ic svg { width: 100%; height: 100%; display: block; }
+    .chip-num {
       font-variant-numeric: tabular-nums; padding: 2px 7px; border-radius: 999px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent);
       font-size: max(0.68rem, var(--sc-fs-floor));
     }
-    .seg-btn:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-fg-2) 9%, transparent); }
-    .seg-btn.on { color: var(--sc-bg-0); background: var(--sc-accent); }
-    .seg-btn.saved.on { background: var(--sc-warning); }
-    .seg-btn.on .seg-num { background: color-mix(in srgb, var(--sc-bg-0) 24%, transparent); }
-    .seg-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+    .chip:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-fg-2) 9%, transparent); }
+    .chip.on { color: var(--sc-bg-0); background: var(--sc-accent); }
+    .chip.saved.on { background: var(--sc-warning); }
+    .chip.on .chip-num { background: color-mix(in srgb, var(--sc-bg-0) 24%, transparent); }
+    .chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
 
     .cards {
       display: grid; gap: var(--news-gap);
@@ -746,7 +734,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     }
 
     /* ---------- Skeletons ---------- */
-    .stage.skel { display: block; min-height: clamp(380px, 34vw, 480px); }
+    .stage.skel { display: block; min-height: clamp(260px, 34vh, 400px); }
     .stage.skel .skel-art { position: absolute; inset: 0; display: block; }
     .stage.skel .stage-body { position: relative; padding-top: 180px; }
     .card.skel { cursor: default; }
@@ -758,7 +746,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .skel-line.sm { width: 42%; }
 
 
-    .empty { text-align: center; color: var(--sc-fg-2); padding: 36px; margin: 0; }
+    .empty { text-align: center; color: var(--sc-fg-2); padding: 36px; margin: 0; background: transparent; border-style: dashed; }
     .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
     .err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
@@ -913,8 +901,71 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly shareHint = signal<{ id: string; key: string } | null>(null);
   private shareHintTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly stage = this.svc.stage;
-  readonly stream = this.svc.stream;
+  /** Chips of the feed, in display order. `saved` rides on the service's favourites flag. */
+  readonly filters: readonly FeedFilter[] = ['all', 'comm-link', 'youtube', 'spectrum', 'patch', 'saved'];
+  private readonly channel = signal<Exclude<FeedFilter, 'saved'>>('all');
+  readonly activeFilter = computed<FeedFilter>(() => (this.svc.favoritesOnly() ? 'saved' : this.channel()));
+
+  /**
+   * Search term for the feed. The subheader search is the Codex search and does
+   * not publish its term (the bar keeps it private), so the feed reads `?q=`
+   * from the URL - a link or a future bar hook can drive it without a shell edit.
+   */
+  private readonly queryParams = toSignal(inject(ActivatedRoute).queryParamMap);
+  readonly term = computed(() => (this.queryParams()?.get('q') ?? '').trim().toLowerCase());
+
+  /** Everything the feed can show, newest first (patch notes included - they have a chip). */
+  private readonly pool = computed(() =>
+    (this.svc.feed()?.news ?? [])
+      .filter((n) => FEED_CHANNELS.includes(n.channel))
+      .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)),
+  );
+
+  /** The hero: the newest editorial item - never touched by chips or search. */
+  readonly hero = computed<VerseNewsItem | null>(
+    () => this.pool().find((n) => STREAM_CHANNELS.includes(n.channel)) ?? null,
+  );
+  private readonly heroId = computed(() => this.hero()?.id ?? null);
+
+  private matches(n: VerseNewsItem, filter: FeedFilter): boolean {
+    switch (filter) {
+      case 'all': return n.channel !== 'patch' && n.id !== this.heroId();
+      case 'saved': return this.svc.isFavorite(n.id);
+      case 'patch': return n.channel === 'patch';
+      default: return n.channel === filter && n.id !== this.heroId();
+    }
+  }
+
+  private readonly counts = computed(() => {
+    const out = {} as Record<FeedFilter, number>;
+    for (const f of this.filters) out[f] = this.pool().filter((n) => this.matches(n, f)).length;
+    return out;
+  });
+  filterCount(f: FeedFilter): number {
+    return this.counts()[f];
+  }
+  filterLabel(f: FeedFilter): string {
+    if (f === 'all') return 'news.channels.all';
+    if (f === 'saved') return 'news.favorite.saved';
+    return `news.channels.${f}`;
+  }
+  selectFilter(f: FeedFilter): void {
+    if (f === 'saved') { this.svc.setFavoritesOnly(true); return; }
+    this.svc.setFavoritesOnly(false);
+    this.channel.set(f);
+  }
+
+  readonly stream = computed<VerseNewsItem[]>(() => {
+    const f = this.activeFilter();
+    const q = this.term();
+    return this.pool().filter(
+      (n) => this.matches(n, f) && (!q || `${n.title} ${n.summary ?? ''}`.toLowerCase().includes(q)),
+    );
+  });
+  readonly emptyKey = computed(() =>
+    this.term() ? 'news.stream.noMatch'
+      : this.activeFilter() === 'saved' ? 'news.emptyFavorites' : 'news.empty',
+  );
   readonly streamTotal = computed(() => this.stream().length);
   readonly visibleStream = computed(() => this.stream().slice(0, this.shown()));
   readonly hasMore = computed(() => this.streamTotal() > this.shown());
@@ -1051,6 +1102,22 @@ export class NewsListComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
+    // The bar shows an active source chip as a removable token in its search field.
+    const chrome = inject(ShellChromeService);
+    inject(DestroyRef).onDestroy(
+      chrome.registerFilters(this, () => {
+        const f = this.activeFilter();
+        return {
+          count: this.stream().length,
+          kindTotal: null,
+          tokens: f === 'all' ? [] : [{
+            id: 'news-source', labelKey: 'news.stream.sourceFacet', value: this.t.instant(this.filterLabel(f)),
+            remove: () => this.selectFilter('all'),
+          }],
+          reset: () => this.selectFilter('all'),
+        };
+      }),
+    );
     // A nav re-click on the active tab reloads the feed without a skeleton
     // flash; the freshness line carries the echo instead (feedback 7532e639).
     this.sameRoute.onRefresh('/verse')
@@ -1071,7 +1138,8 @@ export class NewsListComponent implements OnInit, OnDestroy {
     // A fresh serving whenever the filter flips, so "Gemerkt" never opens
     // pre-scrolled into a list the user has not seen.
     effect(() => {
-      this.svc.favoritesOnly();
+      this.activeFilter();
+      this.term();
       untracked(() => this.shown.set(STREAM_PAGE));
     });
   }
@@ -1099,12 +1167,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
    * saved article out of the user's own list (eda0e19b).
    */
   onStage(item: VerseNewsItem): boolean {
-    return this.stage()?.id === item.id;
-  }
-
-  /** One half of the stream toggle. Re-pressing the active half is a no-op. */
-  selectStream(savedOnly: boolean): void {
-    this.svc.setFavoritesOnly(savedOnly);
+    return this.heroId() === item.id;
   }
 
   isFav(item: VerseNewsItem): boolean {
