@@ -5098,7 +5098,9 @@
     "removeFilter": "Filter entfernen: {{name}}",
     "moreFilters": "{{count}} weitere Filter anzeigen",
     "hits": "{{count}} Treffer",
-    "filter": {"weaponGroup": "Waffengruppe"},
+    "filter": {
+      "weaponGroup": "Waffengruppe"
+    },
     "navAria": "Hauptbereiche",
     "areaMenu": "Bereich wechseln — jetzt: {{area}}",
     "home": "Startseite",
@@ -5204,6 +5206,24 @@
         "title": "Data Uploader",
         "text": "Spieldaten aus Data.p4k einspielen."
       }
+    }
+  },
+  "appsMenu": {
+    "trigger": "Apps",
+    "aria": "Apps herunterladen",
+    "platform": "Windows · immer die neueste Version",
+    "scc": {
+      "name": "SCC App",
+      "desc": "Die Companion-App für deinen Desktop."
+    },
+    "starscape": {
+      "name": "Starscape",
+      "desc": "Wechselt dein Wallpaper durch die Starscape-Galerie."
+    },
+    "uploader": {
+      "name": "Data Uploader",
+      "tag": "Nur für Collaborators",
+      "desc": "Liest deinen Star-Citizen-Install aus und lädt die Codex-Daten hoch."
     }
   }
 }

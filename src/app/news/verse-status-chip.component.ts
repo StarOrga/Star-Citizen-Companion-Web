@@ -29,7 +29,7 @@ const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
  * app repo republishes it, so this fixed URL always hands out the newest build
  * and the website never has to know a version number.
  */
-const SCC_INSTALLER_URL =
+export const SCC_INSTALLER_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/scc-app-latest/SCC-Standalone-Setup.exe';
 
 /**

@@ -5098,7 +5098,9 @@
     "removeFilter": "Remove filter: {{name}}",
     "moreFilters": "Show {{count}} more filters",
     "hits": "{{count}} hits",
-    "filter": {"weaponGroup": "Weapon group"},
+    "filter": {
+      "weaponGroup": "Weapon group"
+    },
     "navAria": "Main areas",
     "areaMenu": "Switch area — now: {{area}}",
     "home": "Home",
@@ -5204,6 +5206,24 @@
         "title": "Data Uploader",
         "text": "Ingest game data from Data.p4k."
       }
+    }
+  },
+  "appsMenu": {
+    "trigger": "Apps",
+    "aria": "Download apps",
+    "platform": "Windows · always the latest version",
+    "scc": {
+      "name": "SCC App",
+      "desc": "The Companion app for your desktop."
+    },
+    "starscape": {
+      "name": "Starscape",
+      "desc": "Rotates your wallpaper through the Starscape gallery."
+    },
+    "uploader": {
+      "name": "Data Uploader",
+      "tag": "For collaborators only",
+      "desc": "Reads your Star Citizen install and uploads the Codex data."
     }
   }
 }

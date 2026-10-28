@@ -29,7 +29,10 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { ViewAs } from '../auth/impersonation-policy';
 import { ProfileService } from '../auth/profile.service';
-import { OwnBadgeService } from '../verse/starmap/own-badge.service';
+import { VerseApiService } from '../verse/data/verse-api.service';
+import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { AppsMenuComponent } from './apps-menu.component';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
@@ -59,7 +62,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, StageSearchDirective],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, StageSearchDirective, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -231,6 +234,8 @@ import { avatarUrlOf } from './avatar-url';
       <sc-fusion-bar [class.under-cine]="cineHeader()">
         @if (!cineHeader()) {
           <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+        } @else {
+          <div barAccount class="bar-account"><sc-apps-menu /></div>
         }
       </sc-fusion-bar>
       @if (cineHeader()) {
@@ -239,6 +244,7 @@ import { avatarUrlOf } from './avatar-url';
     }
 
     <ng-template #accountMenu>
+        <sc-apps-menu />
         <div class="profile-menu">
           <button
             type="button"
@@ -254,6 +260,14 @@ import { avatarUrlOf } from './avatar-url';
               {{ avatarInitial() }}
             }
           </button>
+
+          @if (kartographRank(); as kr) {
+            <span class="avatar-crest" role="img"
+                  [attr.aria-label]="'starmap.badge.caption' | translate: { rank: kr }"
+                  [scTooltip]="'starmap.badge.caption' | translate: { rank: kr }" scTooltipTier="label">
+              <sc-kartograph-crest [rank]="kr" [size]="18" state="current" />
+            </span>
+          }
 
           @if (menuOpen()) {
             <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
@@ -282,16 +296,6 @@ import { avatarUrlOf } from './avatar-url';
                 (click)="onMenuNavigate($event)">
                 {{ 'nav.friends' | translate }}
               </a>
-              @if (shellOn()) {
-                <a
-                  class="dropdown-item"
-                  role="menuitem"
-                  [routerLink]="badge.link().commands"
-                  [queryParams]="badge.link().queryParams"
-                  (click)="onMenuNavigate($event)">
-                  {{ 'nav.badge' | translate }}
-                </a>
-              }
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
                      everyone would only ever hand out a redirect. Painted in the
@@ -633,6 +637,7 @@ import { avatarUrlOf } from './avatar-url';
       justify-content: flex-end;
     }
     .profile-menu { position: relative; }
+    .avatar-crest { position: absolute; right: -6px; bottom: -6px; z-index: 1; display: inline-flex; line-height: 0; }
     .avatar-btn {
       display: inline-flex;
       align-items: center;
@@ -865,6 +870,7 @@ import { avatarUrlOf } from './avatar-url';
     /* The real profile picture fills the round button; the initial stays the fallback. */
     .avatar-btn.has-img { padding: 0; overflow: hidden; }
     .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+    .mh-account, .bar-account { display: flex; align-items: center; gap: 8px; }
     .mh-account .avatar-btn {
       width: 40px;
       height: 40px;
@@ -1004,8 +1010,12 @@ export class ShellComponent implements AfterViewInit {
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);
   readonly profile = inject(ProfileService);
-  /** Shell beta: the account menu's Kartograph badge entry (own badge page, else the star map). */
-  readonly badge = inject(OwnBadgeService);
+  private readonly verseApi = inject(VerseApiService);
+  /** Kartograph rank for the avatar's corner crest; null until a rank exists (or the star-map state is not loaded). */
+  readonly kartographRank = computed<number | null>(() => {
+    const k = this.verseApi.explorer()?.kartograph;
+    return k?.unlocked && k.rank >= 1 ? k.rank : null;
+  });
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
