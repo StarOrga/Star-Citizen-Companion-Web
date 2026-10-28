@@ -343,6 +343,7 @@ export class FusionBarComponent {
         // The router's scroll reset has been applied: the route change is settled.
         this.runPendingFlip();
         this.settleNav();
+        this.trackPlacement();
         return;
       }
       if (!(e instanceof NavigationEnd)) return;
@@ -361,6 +362,7 @@ export class FusionBarComponent {
       // A main page starts staged: the router resets the scroll to its top right after this event.
       if (morph === 'snap') this.snap();
       this.docked.set(false);
+      if (this.mainPage() && morph !== 'undock') this.placed.set(false);
       if (this.mainPage()) this.pulse('enter');
       if ((morph === 'dock' || morph === 'undock') && first && first.width > 0) {
         // Main → subpage after docking: the header is already compressed, only the bar moves.
@@ -407,6 +409,7 @@ export class FusionBarComponent {
       if (this.enterTimer) clearTimeout(this.enterTimer);
       if (typeof cancelAnimationFrame === 'function') {
         if (this.snapFrame) cancelAnimationFrame(this.snapFrame);
+        if (this.trackFrame) cancelAnimationFrame(this.trackFrame);
         if (this.placeFrame) cancelAnimationFrame(this.placeFrame);
         if (this.measureFrame) cancelAnimationFrame(this.measureFrame);
       }
@@ -484,7 +487,7 @@ export class FusionBarComponent {
     });
     this.flush();
     if ((morph !== 'dock' && morph !== 'undock') || !first) return;
-    if (morph === 'undock') this.placeStage();
+    if (morph === 'undock') this.placeStage(true);
     this.playMorph(morph, first, logoFirst, true);
   }
 
@@ -496,7 +499,7 @@ export class FusionBarComponent {
       if (next) this.panelOpen.set(false);
     });
     this.flush();
-    if (!next) this.placeStage();
+    if (!next) this.placeStage(true);
   }
 
   /** Transitions off for the next two frames (bar + header), so a state change jumps. */
@@ -519,6 +522,7 @@ export class FusionBarComponent {
     this.quietTimer = setTimeout(() => {
       this.runPendingFlip();
       this.settleNav();
+      this.trackPlacement();
     }, NAV_SETTLE_MS);
   }
 
@@ -550,15 +554,13 @@ export class FusionBarComponent {
    */
   private queueRouteMorph(kind: 'dock' | 'undock', first: DOMRect, logoFirst: DOMRect | null, withLogo: boolean): void {
     this.flush();
-    if (kind === 'undock') this.placeStage();
+    if (kind === 'undock') this.placeStage(true);
     const cap = this.capEl();
     if (!cap || reducedMotion() || typeof cap.animate !== 'function') return;
-    const last = cap.getBoundingClientRect();
-    const at = { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px)`, width: `${first.width}px` };
-    const hold = cap.animate([at, at], { duration: NAV_SETTLE_MS * 4, fill: 'both' });
+    const hold = flipCap(cap, first, cap.getBoundingClientRect(), NAV_SETTLE_MS * 4, true);
     this.pendingFlip = () => {
       hold.cancel();
-      if (kind === 'undock') this.placeStage();
+      if (kind === 'undock') this.placeStage(true);
       this.playMorph(kind, first, logoFirst, withLogo);
     };
   }
@@ -582,13 +584,7 @@ export class FusionBarComponent {
     const head = withLogo ? document.querySelector<HTMLElement>('sc-main-header .brand > img.logo') : null;
     const slot = kind === 'dock' ? (cap.querySelector<HTMLElement>('.blogo img')?.getBoundingClientRect() ?? null) : logoFirst;
     const h = head?.getBoundingClientRect() ?? null;
-    cap.animate(
-      [
-        { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px)`, width: `${first.width}px` },
-        { transform: 'none', width: `${last.width}px` },
-      ],
-      { duration: kind === 'dock' ? DOCK_MORPH_MS : UNDOCK_MORPH_MS, easing: DOCK_EASE },
-    );
+    flipCap(cap, first, last, kind === 'dock' ? DOCK_MORPH_MS : UNDOCK_MORPH_MS, false);
     if (!head || !slot || !h || !h.width || typeof head.animate !== 'function') return;
     const dx = slot.left + slot.width / 2 - (h.left + h.width / 2);
     const dy = slot.top + slot.height / 2 - (h.top + h.height / 2);
@@ -641,17 +637,44 @@ export class FusionBarComponent {
     });
   }
 
-  /** Stand the staged field on the slot: its position relative to the bar's host, published as CSS vars. */
-  private placeStage(): void {
+  /**
+   * Stand the staged field on the slot: its position relative to the bar's host,
+   * published as CSS vars. While a route change settles (before the router's
+   * scroll reset) only a forced call places it — the slot is still at the old
+   * scroll offset then.
+   */
+  private placeStage(force = false): void {
     const anchor = this.chrome.stageAnchor();
     const el = this.host.nativeElement as HTMLElement;
     if (this.mode() !== 'stage' || !anchor || !anchor.isConnected) return;
+    if (this.navQuiet && !force) return;
     const a = anchor.getBoundingClientRect();
     const h = el.getBoundingClientRect();
-    el.style.setProperty('--_st-top', `${Math.round(a.top - h.top)}px`);
-    el.style.setProperty('--_st-left', `${Math.round(a.left - h.left)}px`);
-    el.style.setProperty('--_st-w', `${Math.round(a.width)}px`);
+    setVar(el, '--_st-top', `${Math.round(a.top - h.top)}px`);
+    setVar(el, '--_st-left', `${Math.round(a.left - h.left)}px`);
+    setVar(el, '--_st-w', `${Math.round(a.width)}px`);
     if (!this.placed()) this.zone.run(() => this.placed.set(true));
+  }
+
+  private trackUntil = 0;
+  private trackFrame = 0;
+
+  /**
+   * Follow the slot for a while after a route change: the page's entrance
+   * (routeReveal rise, late data in the hero) moves it without resizing it, which
+   * no ResizeObserver reports. Cheap: two rect reads per frame, writes only on change.
+   */
+  private trackPlacement(ms = 1500): void {
+    if (!this.mainPage() || typeof requestAnimationFrame !== 'function') return;
+    this.placeStage(true);
+    this.trackUntil = performance.now() + ms;
+    if (this.trackFrame) return;
+    const step = () => {
+      this.trackFrame = 0;
+      this.placeStage(true);
+      if (performance.now() < this.trackUntil) this.trackFrame = requestAnimationFrame(step);
+    };
+    this.trackFrame = requestAnimationFrame(step);
   }
 
   private capEl(): HTMLElement | null {
@@ -716,6 +739,38 @@ export class FusionBarComponent {
     this.panelOpen.set(false);
     (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.fbtn, .kindsw')?.focus();
   }
+}
+
+/**
+ * FLIP of the cap from `first` into its laid-out rect `last` (or a hold at
+ * `first`). A cap the bar centres re-centres while its width animates, so the
+ * start is checked against what the first frame really shows and corrected —
+ * the field starts exactly where it stood, on every layout (centred, stretched,
+ * placed on the stage slot).
+ */
+function flipCap(cap: HTMLElement, first: DOMRect, last: DOMRect, duration: number, hold: boolean): Animation {
+  const frames = (x: number, y: number): Keyframe[] => {
+    const from = { transform: `translate(${x}px, ${y}px)`, width: `${first.width}px` };
+    return hold ? [from, from] : [from, { transform: 'none', width: `${last.width}px` }];
+  };
+  const opts: KeyframeAnimationOptions = hold ? { duration, fill: 'both' } : { duration, easing: DOCK_EASE };
+  let x = first.left - last.left;
+  let y = first.top - last.top;
+  let anim = cap.animate(frames(x, y), opts);
+  const at = cap.getBoundingClientRect();
+  const ex = first.left - at.left;
+  const ey = first.top - at.top;
+  if (Math.abs(ex) > 0.5 || Math.abs(ey) > 0.5) {
+    anim.cancel();
+    x += ex;
+    y += ey;
+    anim = cap.animate(frames(x, y), opts);
+  }
+  return anim;
+}
+
+function setVar(el: HTMLElement, name: string, value: string): void {
+  if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value);
 }
 
 /** --sc-bar-h in px (64 desktop, 56 phone). */

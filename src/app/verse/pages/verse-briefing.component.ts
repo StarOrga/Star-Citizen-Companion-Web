@@ -113,6 +113,9 @@ export function fitTitle(h: HTMLElement): void {
     scale = Math.max(TITLE_MIN_SCALE, scale - 0.06);
     h.style.setProperty('--fit', scale.toFixed(2));
   }
+  // One line (the normal case): the heading already hugs its text — a fixed
+  // width would only freeze a measurement taken before the display font loaded.
+  if (lines() <= 1) return;
   const w = Array.from(a.getClientRects()).reduce((m, r) => Math.max(m, r.width), 0);
   if (w > 0) h.style.width = `${Math.ceil(w) + 1}px`;
 }
@@ -452,6 +455,8 @@ export class VerseBriefingComponent {
         if (el) fitTitle(el);
       };
       window.addEventListener('resize', refit);
+      // The display font arrives after the first fit: measure again with it.
+      document.fonts?.ready.then(refit).catch(() => undefined);
       this.destroyRef.onDestroy(() => window.removeEventListener('resize', refit));
     });
   }
