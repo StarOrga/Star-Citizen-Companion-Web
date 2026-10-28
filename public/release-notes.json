@@ -1,7 +1,49 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.168.2",
+  "current": "0.169.0",
   "releases": [
+    {
+      "version": "0.169.0",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta shell: cinematic main header without a frame on Verse, Codex, HQ and Admin, with fixed nav slots and a menu switch where the content leaves while the scene camera moves."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: one \"Admin\" entry (Benutzer + Telemetrie) leading to a new Admin hub page with tiles."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: the avatar shows your linked profile picture (Discord first, then other providers) instead of the initial."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: the staged search on every main page turns into the subheader on scroll — logo in front, \"◂ back\" to where you came from (filters kept), full path on hover; on phones the bar sits at the bottom."
+            },
+            {
+              "title": "",
+              "text": "Codex index: kind switch, active filters, hit count and the filter panel now live in the bar."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ content sits inside the page frame instead of running to the left edge."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.168.2",
       "date": "2026-10-28",

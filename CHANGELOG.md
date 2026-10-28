@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.169.1] - 2026-10-28
+
+### Fixed
+- Beta shell: the search sits below each main page's title, at the same spot on Verse, Codex, HQ and Admin, and the title may stay on one line; Codex has its own hero.
+- Beta shell: the header stays put and folds into the search bar while you scroll; it no longer jumps on back, forward, menu switches or when opening a subpage, and reload keeps your scroll position.
+- Beta shell: the search arrives from depth, shows example searches, and the docked bar carries its glow band and the light sweep on menu switches.
+- Beta shell: the focused search has a single edge with the results attached to the bar; the Codex filter panel opens over the page, filter chips are short, and on phones the bar no longer collides with the avatar or the feedback button.
+- Tooltips no longer throw when their overlay was already closed.
+
 ## [0.169.0] - 2026-10-28
 
 ### Added
