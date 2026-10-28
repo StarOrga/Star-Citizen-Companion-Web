@@ -270,6 +270,10 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   }
 }
 
+// The Verse hub ("Funkfeuer 2") draws its own, larger planet in the page;
+// the scene's planet steps aside while it is there and comes back with the camera.
+body:has(.brief-world) .sc-shell-scene .planet { opacity: 0; }
+
 @keyframes sc-scene-follow { to { transform: translateY(-4000px); } }
 @keyframes sc-scene-twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
 @keyframes sc-scene-city { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.65; } }

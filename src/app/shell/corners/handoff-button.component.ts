@@ -27,7 +27,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
               [attr.aria-label]="'handoff.button' | translate"
               [scTooltip]="'handoff.button' | translate" scTooltipTier="label"
               (click)="toggle()">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor"
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor"
              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="7" y="2.5" width="10" height="19" rx="2.2" /><path d="M11 18.5h2" />
         </svg>
@@ -80,14 +80,16 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
   `,
   styles: [`
     :host { display: contents; }
-    /* Stacked above the footer's badge (footer height + a step), never on it. */
+    /* The feedback launcher's twin on the left: same size, same height above the
+       bottom edge (--sc-fab-size / --sc-fab-inset); the footer's badge starts
+       after this lane, so it stays free. */
     .wrap {
       position: fixed; z-index: 44;
-      left: max(var(--sc-space-3), env(safe-area-inset-left));
-      bottom: calc(var(--sc-footer-h) + var(--sc-space-3) + var(--sc-safe-bottom, 0px));
+      left: max(var(--sc-fab-inset), env(safe-area-inset-left));
+      bottom: var(--sc-fab-inset);
     }
     .round {
-      width: 48px; height: 48px; display: grid; place-items: center; cursor: pointer;
+      width: var(--sc-fab-size); height: var(--sc-fab-size); display: grid; place-items: center; cursor: pointer;
       color: var(--sc-accent); border-radius: 50%; padding: 0;
       background: color-mix(in srgb, var(--sc-bg-1) 90%, transparent);
       border: 1px solid var(--sc-border); backdrop-filter: blur(8px);
