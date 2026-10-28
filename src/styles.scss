@@ -1383,3 +1383,18 @@ button {
   ::view-transition-new(*) { animation: none !important; }
 }
 /* === END SET <-> ARSENAL VIEW TRANSITION =================================== */
+
+/* STAGE SLOT (beta shell, concept 2026-10-28 header/subheader r1/r8): the place
+   under a main page's hero title where the bar's own search field stands until
+   it docks. Same size and centring on Verse, Codex, HQ and the admin hub. The
+   attribute is only present while the shell β is on (StageSearchDirective). */
+[data-stage-slot] {
+  display: block;
+  flex: none;
+  align-self: center;
+  box-sizing: border-box;
+  width: min(640px, calc(100% - 2 * var(--sc-page-gutter)));
+  max-width: 100%;
+  height: var(--sc-sub-h);
+  margin: var(--sc-space-5) auto var(--sc-space-3);
+}

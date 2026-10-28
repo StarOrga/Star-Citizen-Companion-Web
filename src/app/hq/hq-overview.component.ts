@@ -7,6 +7,7 @@ import { humanizeClassName } from '../codex/codex-format';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 import { HqOwnershipService } from './hq-ownership.service';
 import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } from './hq-routes';
 
@@ -23,13 +24,15 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
 @Component({
   selector: 'sc-hq-overview',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, PageHeaderComponent],
+  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-page-header
       [eyebrow]="'hq.eyebrow' | translate"
       [title]="'hq.title' | translate"
       [subtitle]="'hq.subtitle' | translate" />
+    <!-- Stage slot under the hero: the bar's own search field stands here (beta shell). -->
+    <div scStageSearch></div>
 
     @if (loadError(); as err) {
       <div class="sc-card err" role="alert">

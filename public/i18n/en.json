@@ -212,6 +212,10 @@
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
+      "hero": {
+        "eyebrow": "Codex",
+        "title": "Everything about every ship."
+      },
       "teaser": {
         "eyebrow": "On the drawing board",
         "title": "Ships on the way",

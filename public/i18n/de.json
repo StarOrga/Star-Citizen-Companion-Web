@@ -212,6 +212,10 @@
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
+      "hero": {
+        "eyebrow": "Codex",
+        "title": "Alles über jedes Schiff."
+      },
       "teaser": {
         "eyebrow": "Auf dem Reißbrett",
         "title": "Schiffe im Anflug",

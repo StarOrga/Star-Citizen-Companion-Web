@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -21,11 +21,18 @@ export const MAIN_NAV_SLOT_PX = 112;
  * Shown by the shell on the main pages only (`isMainHeaderPage`: Verse, Codex,
  * HQ, the admin hub) and identical on all of them: the row is the page frame
  * (`--sc-page-max`) and every nav slot is {@link MAIN_NAV_SLOT_PX} wide, so a
- * menu switch only moves the active indicator. It scrolls away with the page;
- * once the page passes the dock threshold the staged search docks as the
- * subheader and this header compresses into it (`compressed`): the logo glides
- * onto the bar's logo slot (FusionBarComponent plays that), wordmark and nav
- * condense away, the avatar fades — all reversed on the way back up.
+ * menu switch only moves the active indicator. It is pinned (`position: fixed`)
+ * and the page scrolls under it; once the page passes the dock threshold the
+ * staged search docks as the subheader and this header compresses into it
+ * WHILE VISIBLE (`compressed`, timings from the concept's r8 morph keyframes):
+ * the logo glides onto the bar's logo slot (FusionBarComponent plays that), the
+ * wordmark condenses, the nav scales on X and blurs away, the avatar slides and
+ * fades — all reversed on the way back up.
+ *
+ * The shell keeps it mounted for the whole beta shell: on every non-main page
+ * it stays compressed (inert, invisible), so main ↔ subpage plays the same
+ * compress / expand instead of an unmount. A route change or a programmatic
+ * scroll reset jumps without transitions (`snap`, set by the bar).
  *
  * The account menu is the shell's own, projected as `[mhAccount]`.
  */
@@ -34,7 +41,12 @@ export const MAIN_NAV_SLOT_PX = 112;
   standalone: true,
   imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { role: 'banner', '[class.compressed]': 'compressed()' },
+  host: {
+    role: 'banner',
+    '[class.compressed]': 'compressed()',
+    '[class.snap]': 'snap()',
+    '[attr.inert]': "compressed() ? '' : null",
+  },
   template: `
     <div class="row">
       <a class="brand" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
@@ -69,7 +81,12 @@ export const MAIN_NAV_SLOT_PX = 112;
       :host {
         --mh-slot: ${MAIN_NAV_SLOT_PX}px;
         --mh-shadow: 0 1px 14px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8);
-        position: relative;
+        --mh-ease: cubic-bezier(0.55, 0, 0.2, 1);
+        /* Pinned: the page scrolls under the header (concept r6–r8). */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
         z-index: 25;
         display: block;
         padding-top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-space-4));
@@ -94,15 +111,37 @@ export const MAIN_NAV_SLOT_PX = 112;
         min-height: 56px;
         margin: 0 auto;
       }
-      /* Compressed into the docked subheader: everything but the gliding logo fades/condenses. */
-      .wordmark,
+      /* Compressed into the docked subheader: everything but the gliding logo
+         fades/condenses. Timings are the concept's r8 morph keyframes (10 s loop):
+         expanding back (82 → 96 %) on the base state, compressing (22 → 36 %) on
+         .compressed — each property's own window as delay + duration. */
+      :host::before {
+        transition: opacity 1s ease-in-out 0.2s;
+      }
+      .wordmark {
+        transition: opacity 1s ease-in-out 0.4s, transform 1s ease-in-out 0.4s;
+      }
       .nav,
       .account {
-        transition: opacity 0.32s ease, transform 0.42s cubic-bezier(0.55, 0, 0.2, 1), filter 0.32s ease;
+        transition: opacity 1.2s var(--mh-ease) 0.2s, transform 1.2s var(--mh-ease) 0.2s, filter 1.2s var(--mh-ease) 0.2s;
       }
       :host(.compressed)::before {
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: opacity 1.2s ease-in-out;
+      }
+      :host(.compressed) .wordmark {
+        transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+      }
+      :host(.compressed) .nav {
+        transition: opacity 1.2s var(--mh-ease), transform 1.2s var(--mh-ease), filter 1.2s var(--mh-ease);
+      }
+      :host(.compressed) .account {
+        transition: opacity 1.4s var(--mh-ease), transform 1.4s var(--mh-ease);
+      }
+      /* A silent jump (route change, scroll reset): no transition at all. */
+      :host(.snap)::before,
+      :host(.snap) * {
+        transition: none !important;
       }
       :host(.compressed) .wordmark {
         opacity: 0;
@@ -132,9 +171,14 @@ export const MAIN_NAV_SLOT_PX = 112;
         }
       }
       @media (prefers-reduced-motion: reduce) {
+        :host::before,
+        :host(.compressed)::before,
         .wordmark,
         .nav,
-        .account {
+        .account,
+        :host(.compressed) .wordmark,
+        :host(.compressed) .nav,
+        :host(.compressed) .account {
           transition: none;
         }
       }
@@ -281,8 +325,10 @@ export const MAIN_NAV_SLOT_PX = 112;
 })
 export class MainHeaderComponent {
   private readonly chrome = inject(ShellChromeService);
-  /** The staged search docked as the subheader: this header compresses into it. */
-  readonly compressed = computed(() => this.chrome.stageSearch() === 'docked');
+  /** Compressed into the bar: the staged search docked, or not a main page at all. */
+  readonly compressed = computed(() => this.chrome.stageSearch() !== 'stage');
+  /** A silent state jump (route change / scroll reset): transitions off for it. */
+  readonly snap = this.chrome.snap;
   private readonly router = inject(Router);
   private readonly roles = inject(RoleService);
   private readonly beta = inject(BetaService);
@@ -306,6 +352,21 @@ export class MainHeaderComponent {
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) this.url.set(e.urlAfterRedirects);
+    });
+    // The pinned header is out of flow: publish its height for the shell's spacer.
+    const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (typeof document === 'undefined') return;
+      const publish = () =>
+        document.documentElement.style.setProperty('--sc-mainhead-h', `${Math.round(host.offsetHeight)}px`);
+      publish();
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(publish);
+      ro?.observe(host);
+      destroyRef.onDestroy(() => {
+        ro?.disconnect();
+        document.documentElement.style.removeProperty('--sc-mainhead-h');
+      });
     });
   }
 

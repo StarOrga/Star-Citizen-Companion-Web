@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 
 /** One admin page reachable from the hub. */
 export interface AdminHubTile {
@@ -63,13 +64,15 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
   // A cinematic route spans the full track; the hub's content keeps the page frame.
   host: { class: 'sc-track-wide' },
   standalone: true,
-  imports: [RouterLink, TranslatePipe, PageHeaderComponent],
+  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-page-header
       [eyebrow]="'adminHub.eyebrow' | translate"
       [title]="'adminHub.title' | translate"
       [subtitle]="'adminHub.subtitle' | translate" />
+    <!-- Stage slot under the hero: the bar's own search field stands here (beta shell). -->
+    <div scStageSearch></div>
     <ul class="tiles" role="list">
       @for (t of tiles; track t.id) {
         <li>

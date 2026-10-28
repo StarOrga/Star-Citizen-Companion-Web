@@ -1,4 +1,5 @@
 import {
+  ApplicationRef,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -15,7 +16,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, Scroll } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutService } from '../../core/layout/layout.service';
@@ -38,12 +39,22 @@ import {
   isMainHeaderPage,
   nextStageDocked,
   plateBackOf,
-  stageMorphOf,
+  routeMorphOf,
+  scrollMorphOf,
 } from './fusion-bar.model';
 
-/** Morph duration (ms) of "Gleiche Leiste": the staged field flies up and widens into the subheader. */
-export const DOCK_MORPH_MS = 620;
+/**
+ * Morph durations (ms) of "Gleiche Leiste", from the concept's r8 keyframes
+ * (10 s loop): docking 22 → 38 % = 1.6 s, undocking 82 → 96 % = 1.4 s.
+ */
+export const DOCK_MORPH_MS = 1600;
+export const UNDOCK_MORPH_MS = 1400;
+/** The header logo glides 22 → 36 % (1.4 s) and fades at 36 → 40 % (0.4 s). */
+const LOGO_GLIDE_MS = 1400;
+const LOGO_FADE_MS = 400;
 const DOCK_EASE = 'cubic-bezier(0.55, 0, 0.2, 1)';
+/** Longest wait for the router's scroll reset after a route change before the state settles anyway. */
+const NAV_SETTLE_MS = 400;
 /** Tokens shown inside the search field before the rest folds into "+n". */
 const MAX_TOKENS = 3;
 
@@ -93,6 +104,7 @@ interface PathCrumb {
     '[class.placed]': 'placed()',
     '[class.public]': "variant() === 'public'",
     '[class.phone]': 'phone()',
+    '[class.snap]': 'chrome.snap()',
     '(focusin)': 'reveal()',
   },
   template: `
@@ -109,12 +121,15 @@ interface PathCrumb {
         <span class="spacer"></span>
         <a class="home-link" routerLink="/">{{ 'nav.backToHome' | translate }}</a>
       } @else {
-        @if (mode() !== 'stage') {
+        <!-- Logo slot, plate and divider stay mounted while staged (collapsed to zero
+             width, inert), so docking can grow them — plate 0 → 170 px, logo slot
+             0 → 44 px — instead of popping them in. -->
           <a class="blogo" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
+             [attr.inert]="mode() === 'stage' ? '' : null"
              [scTooltip]="'nav.brandAria' | translate" scTooltipTier="label" (click)="onNav($event, '/verse')">
             <img src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
           </a>
-          <div class="plate">
+          <div class="plate" [attr.inert]="mode() === 'stage' ? '' : null">
             <span class="cat">{{ areaLabelKey() | translate }}</span>
             @if (back(); as b) {
               <a class="back" [routerLink]="$any(b.link)" [queryParams]="b.queryParams"
@@ -141,7 +156,7 @@ interface PathCrumb {
           </div>
           <span class="div" aria-hidden="true"></span>
 
-          @if (segment(); as seg) {
+          @if (mode() !== 'stage' && segment(); as seg) {
             <button type="button" class="kindsw" [attr.aria-expanded]="panelOpen()" aria-controls="sc-bar-panel"
                     [attr.aria-label]="'fusionBar.kindSwitch' | translate: { kind: (seg.labelKey | translate) }"
                     (click)="togglePanel()">
@@ -151,7 +166,6 @@ interface PathCrumb {
                    stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
             </button>
           }
-        }
 
         <sc-fusion-search class="search" [placement]="phone() && mode() !== 'stage' ? 'bottom' : 'top'"
                           [compact]="mode() === 'tool'" [hideContext]="mode() === 'stage' || !!segment()"
@@ -243,7 +257,8 @@ interface PathCrumb {
 export class FusionBarComponent {
   private readonly router = inject(Router);
   private readonly layout = inject(LayoutService);
-  private readonly chrome = inject(ShellChromeService);
+  readonly chrome = inject(ShellChromeService);
+  private readonly appRef = inject(ApplicationRef);
   private readonly sameRoute = inject(SameRouteRefreshService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly zone = inject(NgZone);
@@ -313,19 +328,42 @@ export class FusionBarComponent {
   private placeFrame = 0;
   private anchorRo: ResizeObserver | null = null;
   private barH = readBarHeight();
+  /** A route change is settling (until the router's scroll reset): scroll crossings only snap. */
+  private navQuiet = false;
+  private quietTimer: ReturnType<typeof setTimeout> | null = null;
+  private snapFrame = 0;
+  /** The main ↔ subpage morph, waiting for the router's scroll reset. */
+  private pendingFlip: (() => void) | null = null;
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
+      if (e instanceof Scroll) {
+        // The router's scroll reset has been applied: the route change is settled.
+        this.runPendingFlip();
+        this.settleNav();
+        return;
+      }
       if (!(e instanceof NavigationEnd)) return;
       const wasMain = this.mainPage();
+      const wasDocked = this.docked();
+      const cap = this.capEl();
+      const first = cap && (!wasMain || wasDocked || this.placed()) ? cap.getBoundingClientRect() : null;
+      const logoFirst = cap?.querySelector<HTMLElement>('.blogo img')?.getBoundingClientRect() ?? null;
       this.url.set(e.urlAfterRedirects);
       this.setHidden(false);
       const y = typeof window === 'undefined' ? 0 : window.scrollY;
       this.tracker.reset(y);
       if (!this.segments()) this.panelOpen.set(false);
-      // A main page starts staged (the router scrolls to the top) and plays the entrance.
-      this.docked.set(this.mainPage() ? nextStageDocked(false, y) : false);
-      if (this.mainPage() && (!wasMain || !this.docked())) this.pulse('enter');
+      this.beginNavQuiet();
+      const morph = this.variant() === 'app' ? routeMorphOf(wasMain, this.mainPage(), wasDocked) : null;
+      // A main page starts staged: the router resets the scroll to its top right after this event.
+      if (morph === 'snap') this.snap();
+      this.docked.set(false);
+      if (this.mainPage()) this.pulse('enter');
+      if ((morph === 'dock' || morph === 'undock') && first && first.width > 0) {
+        // Main → subpage after docking: the header is already compressed, only the bar moves.
+        this.queueRouteMorph(morph, first, logoFirst, !(morph === 'dock' && wasDocked));
+      }
     });
 
     effect(() => {
@@ -361,8 +399,12 @@ export class FusionBarComponent {
     afterNextRender(() => this.zone.runOutsideAngular(() => this.listen()), { injector: this.injector });
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
+      if (this.quietTimer) clearTimeout(this.quietTimer);
+      this.pendingFlip = null;
+      this.chrome.setSnap(false);
       if (this.enterTimer) clearTimeout(this.enterTimer);
       if (typeof cancelAnimationFrame === 'function') {
+        if (this.snapFrame) cancelAnimationFrame(this.snapFrame);
         if (this.placeFrame) cancelAnimationFrame(this.placeFrame);
         if (this.measureFrame) cancelAnimationFrame(this.measureFrame);
       }
@@ -408,7 +450,10 @@ export class FusionBarComponent {
   onScroll(y: number): void {
     if (this.mainPage()) {
       const next = nextStageDocked(this.docked(), y);
-      if (next !== this.docked() && !this.searchOpen()) this.setDocked(next);
+      if (next !== this.docked() && !this.searchOpen()) {
+        if (scrollMorphOf(this.docked(), next, this.navQuiet) === 'snap') this.snapDocked(next);
+        else this.setDocked(next);
+      }
       this.tracker.reset(y);
       return;
     }
@@ -420,58 +465,153 @@ export class FusionBarComponent {
     }
   }
 
-  /** One crossing of the threshold: switch state, then play the FLIP morph once. */
+  /**
+   * One crossing of the threshold by the user's own scroll: measure, switch the
+   * state, render it synchronously and start the FLIP in the same task — the
+   * browser never paints the new state without its animation (no flash).
+   */
   private setDocked(next: boolean): void {
     const cap = this.capEl();
     const first = cap?.getBoundingClientRect() ?? null;
     const logoFirst = cap?.querySelector<HTMLElement>('.blogo img')?.getBoundingClientRect() ?? null;
-    const morph = stageMorphOf(this.docked(), next);
+    const morph = scrollMorphOf(this.docked(), next, false);
     this.zone.run(() => {
       this.docked.set(next);
       if (next) this.panelOpen.set(false);
       if (morph === 'dock') this.pulse('morph');
     });
-    if (!morph || !first) return;
-    afterNextRender(
-      () => {
-        if (morph === 'undock') this.placeStage();
-        this.playMorph(morph, first, logoFirst);
-      },
-      { injector: this.injector },
-    );
+    this.flush();
+    if ((morph !== 'dock' && morph !== 'undock') || !first) return;
+    if (morph === 'undock') this.placeStage();
+    this.playMorph(morph, first, logoFirst, true);
   }
 
-  private playMorph(kind: 'dock' | 'undock', first: DOMRect, logoFirst: DOMRect | null): void {
+  /** A crossing caused by a route change or a scroll reset: jump, no morph, no transitions. */
+  private snapDocked(next: boolean): void {
+    this.zone.run(() => {
+      this.snap();
+      this.docked.set(next);
+      if (next) this.panelOpen.set(false);
+    });
+    this.flush();
+    if (!next) this.placeStage();
+  }
+
+  /** Transitions off for the next two frames (bar + header), so a state change jumps. */
+  private snap(): void {
+    this.chrome.setSnap(true);
+    if (typeof requestAnimationFrame !== 'function') return;
+    if (this.snapFrame) cancelAnimationFrame(this.snapFrame);
+    this.snapFrame = requestAnimationFrame(() => {
+      this.snapFrame = requestAnimationFrame(() => {
+        this.snapFrame = 0;
+        this.zone.run(() => this.chrome.setSnap(false));
+      });
+    });
+  }
+
+  /** From NavigationEnd until the router's scroll reset (or {@link NAV_SETTLE_MS}): crossings only snap. */
+  private beginNavQuiet(): void {
+    this.navQuiet = true;
+    if (this.quietTimer) clearTimeout(this.quietTimer);
+    this.quietTimer = setTimeout(() => {
+      this.runPendingFlip();
+      this.settleNav();
+    }, NAV_SETTLE_MS);
+  }
+
+  private settleNav(): void {
+    if (!this.navQuiet) return;
+    if (this.quietTimer) clearTimeout(this.quietTimer);
+    this.quietTimer = null;
+    // The scroll event of the reset itself still arrives before the next frame: stay quiet through it.
+    const done = () => (this.navQuiet = false);
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done));
+    else done();
+  }
+
+  /** Render pending state now (no-op when the DOM already shows it). */
+  private flush(): void {
+    const el = this.host.nativeElement as HTMLElement;
+    if (el.getAttribute('data-mode') === this.mode()) return;
+    try {
+      this.appRef.tick();
+    } catch {
+      // Already inside a change-detection pass: that pass renders the state itself.
+    }
+  }
+
+  /**
+   * Main ↔ subpage: the cap keeps its old rect (held, so nothing snaps in the
+   * frames until the router's scroll reset), then travels into the new one —
+   * the same FLIP as docking, while the header compresses / expands.
+   */
+  private queueRouteMorph(kind: 'dock' | 'undock', first: DOMRect, logoFirst: DOMRect | null, withLogo: boolean): void {
+    this.flush();
+    if (kind === 'undock') this.placeStage();
     const cap = this.capEl();
     if (!cap || reducedMotion() || typeof cap.animate !== 'function') return;
     const last = cap.getBoundingClientRect();
+    const at = { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px)`, width: `${first.width}px` };
+    const hold = cap.animate([at, at], { duration: NAV_SETTLE_MS * 4, fill: 'both' });
+    this.pendingFlip = () => {
+      hold.cancel();
+      if (kind === 'undock') this.placeStage();
+      this.playMorph(kind, first, logoFirst, withLogo);
+    };
+  }
+
+  private runPendingFlip(): void {
+    const run = this.pendingFlip;
+    this.pendingFlip = null;
+    run?.();
+  }
+
+  /**
+   * The FLIP: the cap travels from `first` into its new rect and widens
+   * (`dockmove`); the header's logo glides onto the bar's logo slot and fades
+   * there as the slot's own logo appears (`logo` / `blogo`), or comes back out
+   * of it. Every rect is measured before any animation starts.
+   */
+  private playMorph(kind: 'dock' | 'undock', first: DOMRect, logoFirst: DOMRect | null, withLogo: boolean): void {
+    const cap = this.capEl();
+    if (!cap || reducedMotion() || typeof cap.animate !== 'function') return;
+    const last = cap.getBoundingClientRect();
+    const head = withLogo ? document.querySelector<HTMLElement>('sc-main-header .brand > img.logo') : null;
+    const slot = kind === 'dock' ? (cap.querySelector<HTMLElement>('.blogo img')?.getBoundingClientRect() ?? null) : logoFirst;
+    const h = head?.getBoundingClientRect() ?? null;
     cap.animate(
       [
         { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px)`, width: `${first.width}px` },
         { transform: 'none', width: `${last.width}px` },
       ],
-      { duration: DOCK_MORPH_MS, easing: DOCK_EASE },
+      { duration: kind === 'dock' ? DOCK_MORPH_MS : UNDOCK_MORPH_MS, easing: DOCK_EASE },
     );
-    // The header's logo glides onto the bar's logo slot (and back) — never overlapped.
-    const head = document.querySelector<HTMLElement>('sc-main-header .brand > img.logo');
-    const barLogo = cap.querySelector<HTMLElement>('.blogo img');
-    const slot = kind === 'dock' ? (barLogo?.getBoundingClientRect() ?? null) : logoFirst;
-    if (!head || !slot || typeof head.animate !== 'function') return;
-    const h = head.getBoundingClientRect();
+    if (!head || !slot || !h || !h.width || typeof head.animate !== 'function') return;
     const dx = slot.left + slot.width / 2 - (h.left + h.width / 2);
     const dy = slot.top + slot.height / 2 - (h.top + h.height / 2);
-    const to = `translate(${dx}px, ${dy}px) scale(${slot.width / (h.width || 1)})`;
+    const to = `translate(${dx}px, ${dy}px) scale(${slot.width / h.width})`;
     if (kind === 'dock') {
+      const total = LOGO_GLIDE_MS + LOGO_FADE_MS;
       head.animate(
-        [{ transform: 'none', opacity: 1 }, { transform: to, opacity: 1, offset: 0.92 }, { transform: to, opacity: 0 }],
-        { duration: DOCK_MORPH_MS, easing: DOCK_EASE },
+        [
+          { transform: 'none', opacity: 1, easing: DOCK_EASE },
+          { transform: to, opacity: 1, offset: LOGO_GLIDE_MS / total },
+          { transform: to, opacity: 0 },
+        ],
+        { duration: total },
       );
-      barLogo?.animate([{ opacity: 0 }, { opacity: 0, offset: 0.9 }, { opacity: 1 }], { duration: DOCK_MORPH_MS });
     } else {
-      head.animate([{ transform: to, opacity: 1 }, { transform: 'none', opacity: 1 }], {
-        duration: DOCK_MORPH_MS,
-        easing: DOCK_EASE,
-      });
+      // Undock (82 → 96 %): it fades in on the slot at 84–86 %, then glides home at 86–96 %.
+      head.animate(
+        [
+          { transform: to, opacity: 0 },
+          { transform: to, opacity: 0, offset: 0.2 / 1.4 },
+          { transform: to, opacity: 1, offset: 0.4 / 1.4, easing: DOCK_EASE },
+          { transform: 'none', opacity: 1 },
+        ],
+        { duration: UNDOCK_MORPH_MS },
+      );
     }
   }
 

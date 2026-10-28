@@ -53,13 +53,12 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 import { MainHeaderComponent } from './main-header/main-header.component';
 import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
-import { StageSearchDirective } from './fusion-bar/stage-search.directive';
 import { avatarUrlOf } from './avatar-url';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, StageSearchDirective],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -217,25 +216,28 @@ import { avatarUrlOf } from './avatar-url';
     } @else {
       <!-- Beta "shell": header + subheader as ONE capsule (fusion-bar/). The account
            menu is this component's own, projected, so it keeps its styles and handlers. -->
-      <!-- On the main pages the cinematic header stands over the scene and owns
-           the account menu; the bar below it is the subheader. -->
-      @if (cineHeader()) {
-        <sc-main-header>
+      <!-- The cinematic header stays mounted for the whole beta shell: pinned over the
+           scene on the main pages (content scrolls under it), compressed into the bar
+           on scroll and on every other page — so main ↔ subpage is a morph, never an
+           unmount. On the main pages it owns the account menu. -->
+      <sc-main-header>
+        @if (cineHeader()) {
           <div mhAccount class="mh-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
-        </sc-main-header>
+        }
+      </sc-main-header>
+      @if (cineHeader()) {
+        <!-- The pinned header is out of flow; this keeps its room above the page. -->
+        <div class="cine-spacer" aria-hidden="true"></div>
       }
-      <!-- The bar is the subheader. On a main page its search field stands on a stage
-           slot first (pages with their own stage mark it, the others get this one) and
-           docks as the subheader once scrolled. Where no main header exists the bar
-           keeps the account menu at its far end, so it stays reachable. -->
+      <!-- The bar is the subheader. On a main page its search field stands on the
+           page's own stage slot under the hero ([scStageSearch]) and docks as the
+           subheader once scrolled. Where no main header exists the bar keeps the
+           account menu at its far end, so it stays reachable. -->
       <sc-fusion-bar [class.under-cine]="cineHeader()">
         @if (!cineHeader()) {
           <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
         }
       </sc-fusion-bar>
-      @if (cineHeader()) {
-        <div class="stage-slot" scStageSearch></div>
-      }
     }
 
     <ng-template #accountMenu>
@@ -870,13 +872,11 @@ import { avatarUrlOf } from './avatar-url';
       height: 40px;
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
     }
-    /* The stage slot of every main page: the bar's search field stands here —
-       centred, at the same height on Verse, Codex, HQ and the admin hub — until it docks. */
-    .stage-slot {
+    /* Room of the pinned main header (it is position: fixed; MainHeaderComponent
+       publishes its row height as --sc-mainhead-h). */
+    .cine-spacer {
       flex: none;
-      width: min(640px, calc(100% - 2 * var(--sc-page-gutter)));
-      height: var(--sc-sub-h);
-      margin: var(--sc-space-5) auto var(--sc-space-3);
+      height: var(--sc-mainhead-h, 72px);
     }
     /* Menu switch, part one: the old main page sinks away while the camera moves. */
     main.switch-out > :not(router-outlet) {

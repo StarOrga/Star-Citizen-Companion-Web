@@ -48,6 +48,7 @@ import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexSearchBarComponent } from './search/codex-search-bar.component';
+import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 
 /**
  * The Codex landing — the "Spot" stage (concept 2026-09-20, rounds 14-17,
@@ -72,10 +73,12 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
  * the six armour slots around the one figure (AUD-065 retired the old
  * `sc-codex-board-panel`).
  */
+
 @Component({
   selector: 'sc-codex-landing',
   standalone: true,
   imports: [
+    StageSearchDirective,
     RouterLink,
     TranslatePipe,
     CodexCompareTrayComponent,
@@ -91,7 +94,16 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
-      <h1 class="sc-sr-only">{{ 'codex.title' | translate }}</h1>
+      @if (shellOn()) {
+        <!-- Beta shell hero (concept r1/r8): eyebrow + title, the bar's search field stands under it. -->
+        <div class="cx-hero">
+          <p class="cx-eyebrow">{{ 'codex.landing.hero.eyebrow' | translate }}</p>
+          <h1 class="cx-title">{{ 'codex.landing.hero.title' | translate }}</h1>
+          <div scStageSearch></div>
+        </div>
+      } @else {
+        <h1 class="sc-sr-only">{{ 'codex.title' | translate }}</h1>
+      }
       <!-- ── TOP: Archive Terminal + patch headline + app menu ──────────────── -->
       <header class="terminal">
         <!-- The ONE Codex search (also behind Ctrl+K and above every other
@@ -243,6 +255,27 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
          The landing opens on the terminal's hard edge rather than a heading, so
          it takes the shared --sc-page-lead; the 96px at the bottom keep the
          last row clear of the fixed compare tray. */
+      .cx-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-top: var(--sc-space-6);
+      }
+      .cx-eyebrow {
+        margin: 0;
+        font: 500 max(11px, 0.72rem) / 1.4 var(--sc-font-body);
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--sc-accent);
+      }
+      .cx-title {
+        margin: var(--sc-space-2) 0 0;
+        font: 500 clamp(26px, 3.2vw, 56px) / 1.1 var(--sc-font-display);
+        letter-spacing: 0.02em;
+        color: var(--sc-fg-0);
+        text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+      }
       .landing {
         display: flex;
         flex-direction: column;

@@ -56,6 +56,7 @@ export class ShellChromeService {
   private readonly stage = signal<StageSearchState>('none');
   private readonly sectionLabel = signal<string | null>(null);
   private readonly hiddenState = signal(false);
+  private readonly snapState = signal(false);
   private readonly anchors = signal<readonly HTMLElement[]>([]);
   private readonly filterOwners = signal<readonly { owner: object; read: () => BarFilters }[]>([]);
 
@@ -83,6 +84,12 @@ export class ShellChromeService {
     const list = this.filterOwners();
     return list[list.length - 1]?.read() ?? null;
   });
+  /**
+   * True for the frames in which the bar and the main header jump to a new
+   * state without their transitions (a route change or a programmatic scroll
+   * reset — never the user's own scroll).
+   */
+  readonly snap = this.snapState.asReadonly();
   /** True while the bar is slid away (content pages, scrolling down). */
   readonly barHidden = this.hiddenState.asReadonly();
 
@@ -118,6 +125,11 @@ export class ShellChromeService {
   /** The section in view on a long page (null = none). */
   setSection(label: string | null): void {
     this.sectionLabel.set(label);
+  }
+
+  /** Bar-internal: switch the transitions off for a silent state jump. */
+  setSnap(on: boolean): void {
+    this.snapState.set(on);
   }
 
   /** Bar-internal: the hide/reveal state, published for pages with their own sticky bars. */

@@ -248,6 +248,47 @@
   background: linear-gradient(180deg, transparent, var(--sc-sub-divider), transparent);
 }
 
+// ---- docking grows the logo slot and the plate (concept r8 morph, 10 s loop) ----
+// Docking (22 % = 0 s): logo slot width 0 → 44 at 24–36 %, visible at 36–38 %;
+// plate 0 → full at 30–42 % (ease-out), its text at 34–42 %. Staged they are
+// collapsed to zero width (and inert); undocking (82 % = 0 s) reverses it:
+// plate out at 82–88 %, logo slot fades at 85–86 %, narrows at 86–96 %.
+$dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
+.blogo {
+  overflow: hidden;
+  transition: width 1.2s $dock-ease 0.2s, opacity 0.2s linear 1.4s;
+}
+.blogo img {
+  flex: none;
+}
+.plate {
+  transition: max-width 1.2s ease-out 0.8s, padding 1.2s ease-out 0.8s, opacity 0.8s ease-out 1.2s;
+}
+.div {
+  transition: margin 1.2s ease-out 0.8s, opacity 0.8s ease-out 1.2s;
+}
+:host([data-mode='stage']) .blogo {
+  width: 0;
+  opacity: 0;
+  transition: width 1s $dock-ease 0.4s, opacity 0.1s linear 0.3s;
+}
+:host([data-mode='stage']) .plate {
+  max-width: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-width 0.6s ease-out, padding 0.6s ease-out, opacity 0.4s ease-out;
+}
+:host([data-mode='stage']) .div {
+  margin: 0;
+  opacity: 0;
+  transition: margin 0.6s ease-out, opacity 0.4s ease-out;
+}
+// A silent jump (route change, scroll reset): no transition at all.
+:host(.snap) .cap * {
+  transition: none !important;
+}
+
 // ---- the search field: a quiet field inside the skin, no lines of its own ----
 .search {
   flex: 1 1 auto;
@@ -714,6 +755,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   :host,
+  .blogo,
+  .plate,
+  .div,
+  :host([data-mode='stage']) .blogo,
+  :host([data-mode='stage']) .plate,
+  :host([data-mode='stage']) .div,
   .fpanel,
   .plate:hover .path,
   .plate:focus-within .path {

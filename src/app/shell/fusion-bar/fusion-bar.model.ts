@@ -242,3 +242,31 @@ export function plateBackOf(
   if (path === area.link) return null;
   return { label: null, labelKey: area.labelKey, labelParams: null, link: area.link, queryParams: null };
 }
+
+/**
+ * What a scroll crossing does to a main page's bar. A crossing caused by the
+ * user's own scroll plays the morph once; one caused by a route change or a
+ * programmatic scroll reset (`quiet`) only jumps to the new state (`snap`) —
+ * never the undock morph on top of a page switch, never a flash.
+ */
+export function scrollMorphOf(was: boolean, now: boolean, quiet: boolean): 'dock' | 'undock' | 'snap' | null {
+  if (was === now) return null;
+  if (quiet) return 'snap';
+  return now ? 'dock' : 'undock';
+}
+
+/**
+ * What a route change does to the header and the bar:
+ * - main → subpage: the header compresses into the bar (`dock`), the cap travels
+ *   from its stage (or docked) rect into the subpage bar;
+ * - subpage → main: the reverse (`undock`);
+ * - main (docked) → main: the new page starts at its top — the state jumps
+ *   silently (`snap`), no undock morph over the page switch;
+ * - anything else: nothing moves.
+ */
+export function routeMorphOf(wasMain: boolean, nowMain: boolean, wasDocked: boolean): 'dock' | 'undock' | 'snap' | null {
+  if (wasMain && !nowMain) return 'dock';
+  if (!wasMain && nowMain) return 'undock';
+  if (wasMain && nowMain && wasDocked) return 'snap';
+  return null;
+}
