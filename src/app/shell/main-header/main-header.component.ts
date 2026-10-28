@@ -7,6 +7,7 @@ import { BetaService } from '../../core/beta.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { AREA_ENTRIES, activeAreaOf } from '../fusion-bar/fusion-bar.model';
+import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
 
 /** Width of one nav slot — fixed, so the nav never shifts between main pages. */
 export const MAIN_NAV_SLOT_PX = 112;
@@ -21,7 +22,10 @@ export const MAIN_NAV_SLOT_PX = 112;
  * HQ, the admin hub) and identical on all of them: the row is the page frame
  * (`--sc-page-max`) and every nav slot is {@link MAIN_NAV_SLOT_PX} wide, so a
  * menu switch only moves the active indicator. It scrolls away with the page;
- * the sticky bar below it takes over (Wave 2 compresses it into that bar).
+ * once the page passes the dock threshold the staged search docks as the
+ * subheader and this header compresses into it (`compressed`): the logo glides
+ * onto the bar's logo slot (FusionBarComponent plays that), wordmark and nav
+ * condense away, the avatar fades — all reversed on the way back up.
  *
  * The account menu is the shell's own, projected as `[mhAccount]`.
  */
@@ -30,7 +34,7 @@ export const MAIN_NAV_SLOT_PX = 112;
   standalone: true,
   imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { role: 'banner' },
+  host: { role: 'banner', '[class.compressed]': 'compressed()' },
   template: `
     <div class="row">
       <a class="brand" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
@@ -90,6 +94,43 @@ export const MAIN_NAV_SLOT_PX = 112;
         min-height: 56px;
         margin: 0 auto;
         padding-inline: var(--sc-page-gutter);
+      }
+      /* Compressed into the docked subheader: everything but the gliding logo fades/condenses. */
+      .wordmark,
+      .nav,
+      .account {
+        transition: opacity 0.32s ease, transform 0.42s cubic-bezier(0.55, 0, 0.2, 1), filter 0.32s ease;
+      }
+      :host(.compressed)::before {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      :host(.compressed) .wordmark {
+        opacity: 0;
+        transform: translateX(-10px) scaleX(0.6);
+        transform-origin: left center;
+      }
+      :host(.compressed) .nav {
+        opacity: 0;
+        transform: translateY(-14px) scaleX(0.25) scaleY(0.6);
+        filter: blur(2px);
+      }
+      :host(.compressed) .account {
+        opacity: 0;
+        transform: translate(-24px, -14px) scale(0.55);
+      }
+      :host(.compressed) .logo {
+        opacity: 0;
+      }
+      :host(.compressed) .row > * {
+        pointer-events: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .wordmark,
+        .nav,
+        .account {
+          transition: none;
+        }
       }
       .row > * {
         pointer-events: auto;
@@ -233,6 +274,9 @@ export const MAIN_NAV_SLOT_PX = 112;
   ],
 })
 export class MainHeaderComponent {
+  private readonly chrome = inject(ShellChromeService);
+  /** The staged search docked as the subheader: this header compresses into it. */
+  readonly compressed = computed(() => this.chrome.stageSearch() === 'docked');
   private readonly router = inject(Router);
   private readonly roles = inject(RoleService);
   private readonly beta = inject(BetaService);

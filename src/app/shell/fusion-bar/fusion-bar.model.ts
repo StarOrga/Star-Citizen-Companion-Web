@@ -189,3 +189,65 @@ export function activeSegmentOf(url: string): SegmentId | null {
   }
   return null;
 }
+
+// ---- "Gleiche Leiste": the staged search docks into the subheader ----
+
+/** Scroll depth (px) past which a main page's staged search docks as the subheader. */
+export const STAGE_DOCK_PX = 56;
+/** Scroll depth (px) under which a docked bar returns to the stage (hysteresis: no flutter at the edge). */
+export const STAGE_UNDOCK_PX = 24;
+
+/**
+ * The scroll state machine of a main page's bar: staged (the search field
+ * stands centred in the scene) or docked (the same field widened into the
+ * subheader). Thresholds, not scroll-scrubbing — the morph plays once per
+ * crossing, scrolling back up reverses it.
+ */
+export function nextStageDocked(docked: boolean, scrollY: number): boolean {
+  return docked ? scrollY > STAGE_UNDOCK_PX : scrollY > STAGE_DOCK_PX;
+}
+
+/** Which morph a state change plays: `dock` (stage → bar), `undock` (bar → stage) or none. */
+export function stageMorphOf(was: boolean, now: boolean): 'dock' | 'undock' | null {
+  if (was === now) return null;
+  return now ? 'dock' : 'undock';
+}
+
+/**
+ * Main pages whose page marks its own stage slot (`[scStageSearch]`) for the
+ * staged search; the shell provides a default slot on the others.
+ */
+export function pageOwnsStageSlot(url: string): boolean {
+  const path = url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  return path === '/verse' || path === '/codex';
+}
+
+/** The plate's way back: the origin crumb (the last one the page header published), else the area root. */
+export interface PlateBack {
+  label: string | null;
+  labelKey: string | null;
+  labelParams: Record<string, string> | null;
+  link: string | readonly unknown[];
+  queryParams: Record<string, unknown> | null;
+}
+
+export function plateBackOf(
+  crumbs: readonly { label?: string; labelKey?: string; labelParams?: Record<string, string> | null; link: string | readonly unknown[]; queryParams?: Record<string, unknown> | null }[] | null | undefined,
+  url: string,
+  area: AreaEntry | null,
+): PlateBack | null {
+  const last = crumbs?.length ? crumbs[crumbs.length - 1] : null;
+  if (last) {
+    return {
+      label: last.label ?? null,
+      labelKey: last.label ? null : (last.labelKey ?? null),
+      labelParams: last.labelParams ?? null,
+      link: last.link,
+      queryParams: last.queryParams ?? null,
+    };
+  }
+  if (!area || isMainHeaderPage(url)) return null;
+  const path = url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  if (path === area.link) return null;
+  return { label: null, labelKey: area.labelKey, labelParams: null, link: area.link, queryParams: null };
+}

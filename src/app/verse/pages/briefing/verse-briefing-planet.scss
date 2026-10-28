@@ -167,7 +167,14 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 @media (hover: none) { .step { opacity: 0.7; } }
 .chev { @include w.chevron; }
 
-// Search capsule in the style of the top bar's search.
+// The stage slot the shell bar's search field stands on (its size, nothing else).
+.find-slot {
+  width: min(640px, 100%);
+  height: var(--sc-sub-h, 60px);
+  margin-top: max(16px, 1.4cqw);
+}
+
+// Search capsule in the style of the top bar's search (legacy, unused under the shell bar).
 .find {
   display: flex;
   align-items: center;

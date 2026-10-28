@@ -14,6 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
+import { BetaService } from '../core/beta.service';
 import {
   CodexListRow,
   CodexService,
@@ -97,7 +98,13 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
       <header class="terminal">
         <!-- The ONE Codex search (also behind Ctrl+K and above every other
              Codex page). Activated, it spans this whole row and leads the page. -->
-        <sc-codex-search-bar #searchBar class="terminal-search" variant="terminal" [query]="routeQuery()" scStageSearch />
+        @if (shellOn()) {
+          <!-- Beta shell: the stage slot — the shell bar's own search field stands here
+               and docks as the subheader once the page scrolls ("Gleiche Leiste"). -->
+          <div class="terminal-search stage-slot" scStageSearch></div>
+        } @else {
+          <sc-codex-search-bar #searchBar class="terminal-search" variant="terminal" [query]="routeQuery()" />
+        }
 
         <!-- ONE headline (admin feedback 463872dd): the patch that produced
              everything below it. Round two of that feedback dropped the
@@ -262,6 +269,7 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
          itself against the whole row (position: relative here). */
       .terminal { position: relative; }
       .terminal-search { flex: 1 1 340px; min-width: 0; }
+      .stage-slot { flex-basis: 640px; max-width: 640px; height: var(--sc-sub-h, 60px); }
 
       /* The patch headline is its own component (sc-codex-patch-headline) — it
          owns the pill chrome and the patch-switch overlay. Only its slot in the
@@ -369,6 +377,8 @@ export class CodexLandingComponent implements OnInit {
   readonly hangar = inject(HangarService);
   readonly auth = inject(AuthService);
   private readonly t = inject(TranslateService);
+  /** Beta shell: the shell bar's search stands on this page's stage slot instead of the terminal search. */
+  readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly rsi = inject(UpcomingShipsService);
   private readonly locale = inject(LocaleService);
   private readonly route = inject(ActivatedRoute);

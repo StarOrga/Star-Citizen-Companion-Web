@@ -5093,6 +5093,12 @@
     }
   },
   "fusionBar": {
+    "backTo": "Zurück zu {{name}}",
+    "kindSwitch": "Kategorie wechseln (jetzt: {{kind}})",
+    "removeFilter": "Filter entfernen: {{name}}",
+    "moreFilters": "{{count}} weitere Filter anzeigen",
+    "hits": "{{count}} Treffer",
+    "filter": {"weaponGroup": "Waffengruppe"},
     "navAria": "Hauptbereiche",
     "areaMenu": "Bereich wechseln — jetzt: {{area}}",
     "home": "Startseite",

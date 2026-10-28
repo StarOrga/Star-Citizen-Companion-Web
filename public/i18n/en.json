@@ -5093,6 +5093,12 @@
     }
   },
   "fusionBar": {
+    "backTo": "Back to {{name}}",
+    "kindSwitch": "Switch category (now: {{kind}})",
+    "removeFilter": "Remove filter: {{name}}",
+    "moreFilters": "Show {{count}} more filters",
+    "hits": "{{count}} hits",
+    "filter": {"weaponGroup": "Weapon group"},
     "navAria": "Main areas",
     "areaMenu": "Switch area — now: {{area}}",
     "home": "Home",

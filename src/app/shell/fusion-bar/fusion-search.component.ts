@@ -120,6 +120,7 @@ export const COMPANION_ROUTE = '/companion';
           </button>
         </span>
       }
+      <ng-content select="[fsLeading]" />
       <input #field
              class="input"
              type="search"

@@ -1,40 +1,64 @@
-// The Fusion bar (beta "shell") — one glass capsule, app tokens only.
-// Desktop >= 1280, tablet 721-1279 (own layout: icon segments, last crumb,
-// no wordmark), phone <= 720 (the --sc-bar-h breakpoint): capsule at the bottom.
+// The subheader of the beta shell — skin "Satinkante" (concept 2026-10-28,
+// round 8 d2): 60px, 5px radius, a gradient metal edge, a satin top sheen, one
+// light trace when it docks. Skin colours are tokens (styles.scss, "SUBHEADER SKIN").
+// Desktop/tablet: docked at the top in the page frame's width. Phone ≤ 720px:
+// docked at the bottom under the thumb, the route line alone at the top.
 
 :host {
-  --_cap-h: calc(var(--sc-bar-h) - var(--sc-space-2));
-  --_rim: color-mix(in srgb, var(--sc-accent) 32%, var(--sc-border));
+  --_cap-h: var(--sc-sub-h);
+  // The page frame's content width — the same edges as the main header's row.
+  --_frame-w: calc(min(100%, var(--sc-page-max)) - 2 * var(--sc-page-gutter));
   position: sticky;
   top: var(--sc-imp-banner-h, 0px);
   z-index: 20;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  min-height: var(--sc-bar-h);
-  padding: 6px var(--sc-wide-gutter) 2px;
+  align-items: center;
+  padding: 4px 0;
   pointer-events: none;
   transition: transform var(--sc-bar-hide-ms) cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity var(--sc-bar-hide-ms) ease;
-}
-// The β chip (admins / collaborators) docks into the capsule row's inline end;
-// it publishes its width as --sc-chip-lane, the capsule leaves that lane free.
-@media (min-width: 721px) {
-  :host {
-    padding-inline-end: max(var(--sc-wide-gutter), var(--sc-chip-lane, 0px));
-  }
 }
 :host(.hidden) {
   transform: translateY(calc(-100% - var(--sc-space-2)));
   opacity: 0;
 }
 :host(.hidden) .cap,
-:host(.hidden) .drawer {
+:host(.hidden) .fpanel {
   pointer-events: none;
 }
 :host(.hidden:focus-within) {
   transform: none;
   opacity: 1;
+}
+
+// Main page, docked: out of flow, pinned to the top (the header above scrolls away).
+:host([data-mode='docked']) {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--sc-imp-banner-h, 0px);
+}
+// Main page, staged: a zero-size anchor; the field stands on the page's stage slot.
+:host([data-mode='stage']) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  padding: 0;
+  transform: none;
+  opacity: 1;
+}
+:host([data-mode='stage']) .cap {
+  position: absolute;
+  top: var(--_st-top, 40vh);
+  left: var(--_st-left, 0px);
+  width: var(--_st-w, min(640px, 100%));
+  visibility: hidden;
+}
+:host([data-mode='stage'].placed) .cap {
+  visibility: visible;
 }
 
 .cap {
@@ -43,549 +67,640 @@
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: var(--sc-space-2);
-  width: min(100%, var(--sc-page-max));
+  box-sizing: border-box;
+  width: var(--_frame-w);
   height: var(--_cap-h);
-  margin: 0 auto;
-  padding: 0 var(--sc-space-2);
-  border-radius: 20px;
+  padding: 0 var(--sc-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--sc-sub-radius);
+  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
+  box-shadow: var(--sc-sub-shadow);
 }
-:host([data-mode='tool']) .cap {
-  width: 100%;
+.cap.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
-// Glass lives on a pseudo element: a backdrop-filter on .cap itself would
-// become the containing block of the search sheet (position: fixed) on phones.
-.cap::before {
-  content: '';
+// The satin sheen on top of the fill — no double edge, no corner marks, no grain.
+.skin {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   border-radius: inherit;
-  background: color-mix(in srgb, var(--sc-bg-0) 62%, transparent);
-  border: 1px solid var(--_rim);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.42), 0 0 32px color-mix(in srgb, var(--sc-accent) 10%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(1.35);
-  backdrop-filter: blur(16px) saturate(1.35);
-  transition: background-color var(--sc-bar-hide-ms) ease, border-color var(--sc-bar-hide-ms) ease;
-}
-// The weld line along the bottom edge (mock "d4-weld").
-.cap::after {
-  content: '';
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
   pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    var(--sc-accent),
-    color-mix(in oklab, var(--sc-accent) 40%, var(--sc-fg-0)) 40%,
-    color-mix(in srgb, var(--sc-accent) 12%, transparent)
-  );
-  opacity: 0.75;
-  transform-origin: left center;
+  background: var(--sc-sub-sheen);
 }
-// On the stage the capsule is quieter: the stage is the show.
-:host([data-mode='stage']) .cap::before {
-  background: color-mix(in srgb, var(--sc-bg-0) 38%, transparent);
-  border-color: color-mix(in srgb, var(--sc-fg-0) 14%, transparent);
+.cap > :not(.skin, .trace, .bloom) {
+  position: relative;
+  z-index: 2;
 }
-:host([data-mode='stage']) .cap::after {
-  opacity: 0;
-}
-// Hub top (mock d4-s1): a compact capsule centred over the stage — brand, the
-// main nav and the account; the stage's own search line is the big one.
-:host([data-mode='stage']) .cap {
-  width: fit-content;
-  max-width: 100%;
-  gap: var(--sc-space-3);
-  padding-inline: var(--sc-space-2);
-}
-:host([data-mode='stage']) .nav { margin-left: var(--sc-space-3); }
-
-// ---- brand + nav (stage layer) ----
-.brand {
-  display: flex;
-  align-items: center;
-  gap: var(--sc-space-2);
-  flex: none;
-  padding: 0 var(--sc-space-2) 0 var(--sc-space-1);
-  color: inherit;
-  text-decoration: none;
-  border-radius: 14px;
-  min-height: 44px;
-}
-.brand:focus-visible,
-.nav a:focus-visible,
-.seg:focus-visible,
-.mi:focus-visible,
-.kind:focus-visible,
-.crumb:focus-visible,
-.drawer-toggle:focus-visible,
-.home-link:focus-visible,
-.kchip:focus-visible {
-  outline: 2px solid var(--sc-accent);
-  outline-offset: 2px;
-}
-.logo {
-  width: 30px;
-  height: 30px;
-  flex: none;
-  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--sc-accent) 45%, transparent));
-}
-.wordmark {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.05;
-}
-.title {
-  font-family: var(--sc-font-display);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: 0.86rem;
-  white-space: nowrap;
-}
-.alpha {
-  font-family: var(--sc-font-display);
-  font-size: max(0.6rem, var(--sc-fs-floor));
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--sc-accent) 85%, transparent);
-}
-.nav {
-  display: flex;
-  gap: 2px;
-  margin-left: auto;
-  min-width: 0;
-}
-.nav a,
-.home-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 var(--sc-space-4);
-  border-radius: 13px;
-  color: var(--sc-fg-1);
-  font-family: var(--sc-font-display);
-  font-size: max(0.78rem, var(--sc-fs-floor));
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
-}
-.home-link { margin-left: auto; color: var(--sc-accent); }
-.nav a:hover,
-.home-link:hover {
-  color: var(--sc-fg-0);
-  background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
-}
-.nav a.active {
-  color: var(--sc-fg-0);
-  background: color-mix(in srgb, var(--sc-accent) 20%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 38%, transparent);
-}
-.nav a.elevated { color: var(--sc-accent-hot); }
-.nav a.elevated:hover,
-.nav a.elevated.active {
-  color: var(--sc-accent-hot);
-  background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent-hot) 40%, transparent);
-}
-
-// ---- area segment + menu (docked / content / tool) ----
-.seg-wrap { position: relative; flex: none; }
-.seg {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sc-space-2);
-  height: 40px;
-  padding: 0 var(--sc-space-3) 0 var(--sc-space-2);
-  border: 0;
-  border-radius: 14px;
-  cursor: pointer;
-  color: var(--sc-fg-0);
-  font-family: var(--sc-font-display);
-  font-size: max(0.8rem, var(--sc-fs-floor));
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--sc-accent) 22%, transparent),
-    color-mix(in oklab, var(--sc-accent) 12%, var(--sc-bg-3))
-  );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 28%, transparent);
-  transition: box-shadow 0.16s ease, filter 0.16s ease;
-}
-.seg:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 55%, transparent); }
-.seg .logo { width: 22px; height: 22px; }
-.caret { width: 14px; height: 14px; color: var(--sc-fg-2); transition: transform 0.18s ease; }
-.seg[aria-expanded='true'] .caret { transform: rotate(180deg); }
-.menu {
+// One light trace around the frame: on docking and on the stage entrance, then gone.
+.trace {
   position: absolute;
-  top: calc(100% + var(--sc-space-2));
-  left: 0;
-  z-index: 40;
-  min-width: 220px;
-  display: flex;
-  flex-direction: column;
-  padding: 6px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
-  border: 1px solid var(--_rim);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5), var(--sc-glow);
-  animation: fb-pop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  inset: -1px;
+  z-index: 3;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: conic-gradient(
+    from var(--sc-sub-trace-ang),
+    var(--sc-sub-trace-hi) 0 6%,
+    var(--sc-sub-trace-lo) 16%,
+    var(--sc-sub-trace-lo) 84%,
+    var(--sc-sub-trace-hi) 94%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-.mi {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sc-space-2);
-  min-height: 40px;
-  padding: 10px var(--sc-space-3);
-  border-radius: 9px;
-  color: var(--sc-fg-1);
-  font-family: var(--sc-font-display);
-  font-size: max(0.78rem, var(--sc-fs-floor));
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: none;
+:host(.morph) .trace {
+  animation: sub-trace 1.05s ease-out both;
 }
-.mi:hover,
-.mi:focus-visible { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
-.mi.active { color: var(--sc-accent); }
-.mi-label { flex: 1; }
-.mi.elevated,
-.mi.elevated:hover,
-.mi.elevated:focus-visible { color: var(--sc-accent-hot); }
-.mi.elevated:hover,
-.mi.elevated:focus-visible { background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent); }
-.mi-tag { font-size: max(0.62rem, var(--sc-fs-floor)); opacity: 0.8; white-space: nowrap; }
+:host(.entering[data-mode='stage']) .trace {
+  animation: sub-trace 1.2s 0.25s ease-out both;
+}
+// The stage entrance: a soft bloom behind the field — no lines inside it, little glow.
+.bloom {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: -40%;
+  bottom: -40%;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.3;
+  background: radial-gradient(closest-side, var(--sc-sub-bloom), transparent);
+}
+:host(.entering) .bloom {
+  animation: sub-bloom 1.3s ease-out both;
+}
 
-// ---- where am I: section label + crumbs ----
-.where {
+// ---- logo slot · plate · divider ----
+.blogo {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: var(--sc-space-3);
-  min-width: 0;
-  flex: 1 1 auto;
-  padding-left: var(--sc-space-1);
+  width: 44px;
+  height: 40px;
+  border-radius: var(--sc-radius-sm, 4px);
 }
-.section {
-  flex: none;
-  max-width: 18ch;
+.blogo img {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent));
+}
+.plate {
+  position: relative;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: 220px;
+  padding-right: var(--sc-space-2);
+}
+.cat {
+  font-family: var(--sc-font-display);
+  font-size: max(0.72rem, var(--sc-fs-floor));
+  font-weight: 700;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--sc-fg-0);
+  white-space: nowrap;
+}
+.back {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--sc-fg-2);
+  text-decoration: none;
+  font-size: max(0.8rem, var(--sc-fs-floor));
+  border-radius: 3px;
+}
+.back-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 3px var(--sc-space-2);
-  border-radius: 8px;
-  color: var(--sc-accent);
-  background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
-  font-family: var(--sc-font-display);
-  font-size: max(0.7rem, var(--sc-fs-floor));
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  animation: fb-fade 0.2s ease both;
 }
-.crumbs { min-width: 0; }
-.crumbs ol {
-  list-style: none;
+.tri {
+  color: var(--sc-accent);
+  font-size: 0.8em;
+}
+.back:hover,
+.back:focus-visible {
+  color: var(--sc-fg-0);
+}
+// The full middle path only on hover (or keyboard focus) over the plate.
+.path {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: -8px;
+  z-index: 5;
+  display: none;
+  padding: var(--sc-space-2) var(--sc-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--sc-sub-radius);
+  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
+  box-shadow: var(--sc-sub-shadow);
+  white-space: nowrap;
+}
+.plate:hover .path,
+.plate:focus-within .path {
+  display: block;
+  animation: sub-fade 0.16s ease both;
+}
+.path ol {
+  display: flex;
+  align-items: center;
+  gap: var(--sc-space-2);
   margin: 0;
   padding: 0;
-  display: flex;
-  align-items: center;
-  min-width: 0;
+  list-style: none;
+  font-size: max(0.8rem, var(--sc-fs-floor));
 }
-.crumbs li {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  flex: 0 1 auto;
-}
-.crumbs li + li::before {
+.path li + li::before {
   content: '›';
-  padding: 0 var(--sc-space-2);
+  margin-right: var(--sc-space-2);
   color: var(--sc-fg-2);
 }
-.crumb,
-.here span {
-  display: inline-block;
-  max-width: 24ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: max(0.84rem, var(--sc-fs-floor));
+.path a {
   color: var(--sc-fg-1);
   text-decoration: none;
-  border-radius: 4px;
 }
-.crumb:hover { color: var(--sc-accent); }
-.here span { color: var(--sc-fg-0); font-weight: 600; }
+.path a:hover,
+.path a:focus-visible {
+  color: var(--sc-accent);
+}
+.path .here {
+  color: var(--sc-fg-0);
+  font-weight: 600;
+}
+.div {
+  flex: none;
+  width: 1px;
+  height: 34px;
+  margin: 0 var(--sc-space-4) 0 var(--sc-space-2);
+  background: linear-gradient(180deg, transparent, var(--sc-sub-divider), transparent);
+}
 
-// ---- Codex kinds as segments ----
-.kinds {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+// ---- the search field: a quiet field inside the skin, no lines of its own ----
+.search {
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 3px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.kinds::-webkit-scrollbar { display: none; }
-.kind {
+:host ::ng-deep .search .field {
+  height: 44px;
+  padding-left: var(--sc-space-1);
+  border-radius: var(--sc-radius-sm, 4px);
+}
+:host ::ng-deep .search .field::before {
+  display: none;
+}
+:host ::ng-deep .search .field.focused {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 30%, transparent);
+}
+:host ::ng-deep .search .hint kbd {
+  background: var(--sc-sub-kbd);
+  border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent);
+  color: var(--sc-fg-1);
+}
+
+// ---- Codex tool pages: kind switch, tokens, count, filter button ----
+.kindsw,
+.fbtn {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 34px;
   padding: 0 var(--sc-space-3);
-  border-radius: 11px;
-  color: var(--sc-fg-2);
-  text-decoration: none;
-  white-space: nowrap;
-  font-size: max(0.8rem, var(--sc-fs-floor));
-  transition: color 0.16s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent);
+  font: 600 max(0.8rem, var(--sc-fs-floor)) / 1 var(--sc-font-body, inherit);
+  color: var(--sc-fg-1);
+  cursor: pointer;
 }
-.kind:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
-.kind.active {
+.kindsw {
+  margin-right: var(--sc-space-3);
+  padding-right: var(--sc-space-2);
   color: var(--sc-fg-0);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--sc-accent) 22%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
 }
-.k-icon { display: inline-flex; width: 18px; height: 18px; color: var(--sc-accent); }
-.k-icon svg,
-.k-icon sc-codex-icon { width: 18px; height: 18px; }
-.kinds.arrive .kind.active { animation: fb-collapse 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-// Area sub-pages: text tabs, no icons (the mock's „News · Patches · Galerie“).
-.sections { background: transparent; padding: 0; flex: 0 1 auto; }
-.sections .kind { padding: 0 var(--sc-space-3); }
-.sections.arrive .kind { animation: fb-fade 0.5s ease both; }
-
-// ---- search + account ----
-// The search is the fused subheader: it takes the rest of the capsule.
-.search {
-  flex: 1 1 420px;
-  min-width: 300px;
-  max-width: 760px;
-  margin-left: auto;
-  transition: flex-basis 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), flex-grow 0.28s ease;
+.kindsw i,
+.fbtn i {
+  font-style: normal;
 }
-:host(.searching) .search { flex: 1 1 560px; max-width: none; }
-:host(.searching) .where,
-:host(.searching) .kinds { opacity: 0.35; }
-.spacer { flex: 1 1 auto; }
-.account { flex: none; display: flex; align-items: center; }
-.drawer-toggle {
+.kindsw i {
+  font-size: 0.85em;
+  font-weight: 400;
+  color: var(--sc-fg-2);
+}
+.kindsw svg,
+.fbtn svg {
+  width: 16px;
+  height: 16px;
+  color: var(--sc-accent);
+}
+.kindsw[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.fbtn {
+  margin-left: var(--sc-space-3);
+  background: transparent;
+}
+.fbtn i {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  font-size: 0.8em;
+  color: var(--sc-bg-0);
+  background: var(--sc-accent);
+}
+.kindsw:hover,
+.fbtn:hover,
+.fbtn.on {
+  color: var(--sc-fg-0);
+  border-color: color-mix(in srgb, var(--sc-accent) 75%, transparent);
+}
+.fbtn.on {
+  background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+}
+.count {
   flex: none;
+  margin-left: var(--sc-space-3);
+  font-family: var(--sc-font-display);
+  font-size: max(0.72rem, var(--sc-fs-floor));
+  letter-spacing: 0.12em;
+  color: var(--sc-fg-2);
+  white-space: nowrap;
+}
+.toks {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 var(--sc-space-3);
-  border-radius: 10px;
-  border: 1px solid var(--sc-border);
-  background: transparent;
-  color: var(--sc-fg-1);
+  flex: none;
+  margin-right: var(--sc-space-2);
+}
+.tok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 2px 0 var(--sc-space-2);
+  border-radius: 3px;
+  border: 0;
+  font-size: max(0.75rem, var(--sc-fs-floor));
+  color: var(--sc-fg-0);
+  background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+  white-space: nowrap;
+}
+.tok em {
+  font-style: normal;
+  color: var(--sc-fg-2);
+}
+.tok.more {
+  padding: 0 var(--sc-space-2);
   cursor: pointer;
+}
+.tok-x {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sc-fg-2);
+  cursor: pointer;
+}
+.tok-x svg {
+  width: 12px;
+  height: 12px;
+}
+.tok-x:hover {
+  color: var(--sc-fg-0);
+  background: color-mix(in srgb, var(--sc-accent) 22%, transparent);
+}
+.account {
+  flex: none;
+  display: flex;
+  align-items: center;
+  margin-left: var(--sc-space-3);
+}
+.account:empty {
+  display: none;
+}
+
+// ---- the filter panel hangs from the bar: same skin, same width ----
+.fpanel {
+  position: relative;
+  isolation: isolate;
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: var(--_frame-w);
+  max-height: min(70dvh, 640px);
+  overflow-y: auto;
+  margin-top: -1px;
+  padding: var(--sc-space-4) var(--sc-space-4) var(--sc-space-3);
+  border: 1px solid transparent;
+  border-top-color: transparent;
+  border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
+  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
+  box-shadow: var(--sc-sub-shadow);
+  transform-origin: 50% 0;
+  animation: sub-drop 0.36s cubic-bezier(0.22, 0.85, 0.3, 1) both;
+}
+.fpanel > :not(.skin) {
+  position: relative;
+  z-index: 2;
+}
+.kindrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: var(--sc-space-3);
+  border-bottom: 1px solid var(--sc-sub-rule);
+}
+.kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--sc-space-3);
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--sc-accent) 28%, transparent);
+  font-size: max(0.78rem, var(--sc-fs-floor));
+  color: var(--sc-fg-1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.kind:hover {
+  color: var(--sc-fg-0);
+}
+.kind.active {
+  color: var(--sc-fg-0);
+  border-color: color-mix(in srgb, var(--sc-accent) 75%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent) 25%, transparent);
+}
+.fcols {
+  padding: var(--sc-space-3) 0;
+}
+// The page's toolbar card loses its own card look inside the panel.
+:host ::ng-deep .fcols > .sc-card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.ffoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+  padding-top: var(--sc-space-2);
+  border-top: 1px solid var(--sc-sub-rule);
+  font-size: max(0.75rem, var(--sc-fs-floor));
+  color: var(--sc-fg-2);
+}
+.freset {
+  padding: 4px var(--sc-space-2);
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sc-accent);
+  font: inherit;
+  cursor: pointer;
+}
+.freset:hover {
+  background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+}
+
+// ---- public layout ----
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sc-space-3);
+  color: var(--sc-fg-0);
+  text-decoration: none;
+}
+.brand .logo {
+  width: 28px;
+  height: 28px;
+}
+.title {
   font-family: var(--sc-font-display);
-  font-size: max(0.68rem, var(--sc-fs-floor));
-  letter-spacing: 0.08em;
+  font-size: max(0.85rem, var(--sc-fs-floor));
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
-.drawer-toggle svg { width: 16px; height: 16px; }
-.drawer-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-.drawer-toggle.on {
+.spacer {
+  flex: 1 1 auto;
+}
+.home-link {
   color: var(--sc-accent);
-  border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent);
-  background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
+  text-decoration: none;
+}
+.home-link:hover {
+  text-decoration: underline;
 }
 
-// ---- the tool drawer: the page's toolbar, pinned with the bar ----
-.drawer {
-  pointer-events: auto;
-  width: 100%;
-  max-height: 46dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  margin-top: var(--sc-space-2);
-  border-radius: 16px;
-  animation: fb-drawer 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  transform-origin: top right;
-}
-.drawer > :first-child { margin: 0; }
-
-.kinds-phone { display: none; }
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  margin: -1px;
-  padding: 0;
+.route {
+  display: none;
 }
 
-// ---- the one-shot morph: the stage search flies up and welds on ----
-:host(.morph) .search { animation: fb-weld 0.6s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
-:host(.morph) .seg { animation: fb-shrink 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-:host(.morph) .cap::after { animation: fb-line 0.64s ease both; }
-
-@keyframes fb-weld {
-  from { opacity: 0; transform: translateY(56px) scale(1.08); }
-  60% { opacity: 1; }
-  to { opacity: 1; transform: none; }
-}
-@keyframes fb-shrink { from { opacity: 0.2; transform: scaleX(1.5); transform-origin: left center; } }
-@keyframes fb-line { from { transform: scaleX(0); opacity: 0; } }
-@keyframes fb-collapse { from { opacity: 0.2; transform: translateX(-28px) scaleX(1.25); transform-origin: left center; } }
-@keyframes fb-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
-@keyframes fb-drawer { from { opacity: 0; transform: translateY(-8px); } }
-@keyframes fb-fade { from { opacity: 0; } }
-
-// Desktop below QHD: inactive kinds are icons (named by tooltip), so the search keeps its room.
-// Area sub-pages have no icon, they keep their names.
-@media (max-width: 1599px) {
-  .kinds:not(.sections) .kind:not(.active) .k-label { display: none; }
-  .kinds:not(.sections) .kind:not(.active) { padding: 0 var(--sc-space-2); }
+.blogo:focus-visible,
+.back:focus-visible,
+.kindsw:focus-visible,
+.fbtn:focus-visible,
+.tok-x:focus-visible,
+.tok.more:focus-visible,
+.kind:focus-visible,
+.freset:focus-visible,
+.path a:focus-visible,
+.brand:focus-visible,
+.home-link:focus-visible {
+  outline: 2px solid var(--sc-accent);
+  outline-offset: 2px;
 }
 
-// ---- desktop large: QHD and up get a roomier capsule ----
-@media (min-width: 2200px) {
-  .search { max-width: 960px; }
-  .title { font-size: 0.92rem; }
+@keyframes sub-trace {
+  0% {
+    --sc-sub-trace-ang: 0deg;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.8;
+  }
+  70% {
+    --sc-sub-trace-ang: 360deg;
+    opacity: 0.8;
+  }
+  100% {
+    --sc-sub-trace-ang: 360deg;
+    opacity: 0;
+  }
+}
+@keyframes sub-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 0.85;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+@keyframes sub-drop {
+  from {
+    opacity: 0;
+    transform: scaleY(0.6);
+  }
+}
+@keyframes sub-fade {
+  from {
+    opacity: 0;
+  }
 }
 
-// ---- tablet (721-1279): its own layout ----
-@media (min-width: 721px) and (max-width: 1279px) {
-  .wordmark .title { display: none; }
-  .wordmark .alpha { font-size: max(0.66rem, var(--sc-fs-floor)); }
-  .nav a { padding: 0 var(--sc-space-3); }
-  .seg-label { display: none; }
-  .seg { padding: 0 var(--sc-space-2); }
-  // Only the active kind keeps its name; the others are icons with a tooltip.
-  .kinds:not(.sections) .kind:not(.active) .k-label { display: none; }
-  .kinds:not(.sections) .kind:not(.active) { padding: 0 var(--sc-space-2); }
-  .sections .kind { padding: 0 var(--sc-space-2); }
-  // The trail shrinks to its last two steps.
-  .crumbs li:not(.last):not(.here) { display: none; }
-  .section { display: none; }
-  .kinds { flex: 0 1 auto; }
-  .search { flex: 1 1 260px; min-width: 220px; }
-  :host(.searching) .where,
-  :host(.searching) .kinds { display: none; }
-  .dt-label { display: none; }
-  // Hub top on a tablet: the nav keeps every entry (scrolls if it must).
-  .nav { overflow-x: auto; scrollbar-width: none; }
+// Tablet: the hit count and the button labels give way to the field.
+@media (max-width: 1100px) {
+  .count,
+  .fb-label {
+    display: none;
+  }
+  .plate {
+    max-width: 160px;
+  }
 }
 
-// ---- phone (<= 720): the capsule at the bottom, under the thumb ----
+// ---- phone: the bar at the thumb, the route line alone at the top ----
 @media (max-width: 720px) {
-  :host {
+  :host,
+  :host([data-mode='docked']) {
     position: fixed;
     top: auto;
     left: 0;
     right: 0;
     bottom: var(--sc-float-bottom);
-    margin: 0;
-    min-height: 0;
     padding: 0 var(--sc-page-gutter);
     flex-direction: column-reverse;
-    gap: var(--sc-space-2);
+    align-items: stretch;
+    gap: 0;
   }
-  :host(.hidden) { transform: translateY(calc(100% + var(--sc-float-bottom))); }
+  :host(.hidden) {
+    transform: translateY(calc(100% + var(--sc-float-bottom)));
+  }
   .cap,
-  :host([data-mode]) .cap {
+  .fpanel {
     width: auto;
-    height: var(--sc-bar-h);
-    margin: 0;
     // Clear of the feedback launcher's lane: its disc sits in this row.
     margin-inline-end: calc(var(--sc-fab-clear-inline) - var(--sc-page-gutter));
-    padding: 0 6px;
-    border-radius: 18px;
   }
-  .cap::before { background: color-mix(in srgb, var(--sc-bg-0) 80%, transparent); }
-  .wordmark,
-  .where,
-  .kinds,
-  .seg-label,
-  .caret,
-  .dt-label { display: none; }
-  .brand { padding: 0 var(--sc-space-1); }
-  .nav { margin: 0 auto; }
-  .nav a { padding: 0 var(--sc-space-3); min-height: 44px; }
-  .nav a.elevated { display: none; }
-  .seg { width: 44px; height: 44px; padding: 0; justify-content: center; }
-  .search { flex: 1 1 auto; min-width: 0; margin-left: 0; }
-  :host(.searching) .seg-wrap,
-  :host(.searching) .account,
-  :host(.searching) .drawer-toggle { display: none; }
-  // Menus open upward from a bottom bar.
-  .menu { top: auto; bottom: calc(100% + var(--sc-space-2)); transform-origin: bottom left; }
-  .drawer {
-    pointer-events: auto;
-    max-height: 48dvh;
-    margin: 0;
-    transform-origin: bottom center;
+  .cap {
+    height: var(--sc-bar-h);
+    padding: 0 var(--sc-space-2);
   }
-  .kinds-phone {
+  .cap.open {
+    border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
+  }
+  .fpanel {
+    max-height: 56dvh;
+    margin-top: 0;
+    margin-bottom: -1px;
+    border-radius: var(--sc-sub-radius) var(--sc-sub-radius) 0 0;
+    transform-origin: 50% 100%;
+  }
+  .plate,
+  .div,
+  .count,
+  .fb-label,
+  .ks-label {
+    display: none;
+  }
+  .blogo {
+    width: 36px;
+  }
+  .kindsw {
+    margin-right: var(--sc-space-2);
+  }
+  .toks {
+    display: none;
+  }
+  :host(.searching) .blogo,
+  :host(.searching) .kindsw,
+  :host(.searching) .fbtn,
+  :host(.searching) .account {
+    display: none;
+  }
+  .route {
     pointer-events: auto;
+    position: fixed;
+    top: var(--sc-imp-banner-h, 0px);
+    left: 0;
+    right: 0;
     display: flex;
-    gap: var(--sc-space-2);
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding: 2px;
+    align-items: baseline;
+    gap: var(--sc-space-3);
+    padding: calc(env(safe-area-inset-top, 0px) + var(--sc-space-2)) var(--sc-page-gutter) var(--sc-space-2);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--sc-bg-0) 92%, transparent), transparent);
   }
-  .kinds-phone::-webkit-scrollbar { display: none; }
-  .kchip {
-    flex: none;
-    display: inline-flex;
+  .route .back {
+    min-height: 32px;
     align-items: center;
-    min-height: 40px;
-    padding: 0 var(--sc-space-3);
-    border-radius: 999px;
-    border: 1px solid var(--sc-border);
-    background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    color: var(--sc-fg-1);
-    text-decoration: none;
-    font-size: max(0.8rem, var(--sc-fs-floor));
-    white-space: nowrap;
   }
-  .kchip.active {
-    color: var(--sc-fg-0);
-    border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent);
-    background: color-mix(in srgb, var(--sc-accent) 22%, var(--sc-bg-0));
-  }
-  :host(.searching) .kinds-phone,
-  :host(.searching) .drawer { display: none; }
+}
+
+// Staged on any width (comes after the phone block on purpose: the stage wins).
+:host([data-mode='stage']) {
+  position: absolute;
+  top: 0;
+  bottom: auto;
+  padding: 0;
+}
+:host([data-mode='stage']) .cap {
+  margin: 0;
+  height: var(--_cap-h);
 }
 
 @media (pointer: coarse) {
-  .nav a,
-  .kind,
-  .mi,
-  .crumb { min-height: 44px; }
-  .kind { height: 44px; }
-  .drawer-toggle { height: 40px; }
-  .kchip { min-height: 44px; }
+  .tok-x {
+    width: 32px;
+    height: 32px;
+  }
+  .kindsw,
+  .fbtn {
+    min-height: 40px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :host { transition: opacity 0.12s linear; }
-  :host(.hidden) { transform: none; }
-  :host(.morph) .search,
-  :host(.morph) .seg,
-  .kinds.arrive .kind.active,
-  .menu,
-  .drawer { animation: fb-fade 0.18s linear both; }
-  :host(.morph) .cap::after { animation: none; }
-  .search { transition: none; }
+  :host,
+  .fpanel,
+  .plate:hover .path,
+  .plate:focus-within .path {
+    transition: none;
+    animation: none;
+  }
+  .trace,
+  :host(.morph) .trace,
+  :host(.entering) .trace,
+  :host(.entering) .bloom {
+    animation: none;
+  }
+  .trace {
+    opacity: 0;
+  }
 }
