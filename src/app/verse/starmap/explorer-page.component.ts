@@ -11,7 +11,10 @@ import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
 import { CometTrackComponent } from './comet-track.component';
 import { downloadBlob, renderConstellationPng } from './constellation-render';
+import { KartographCrestComponent, type CrestState } from './kartograph-crest.component';
+import { OwnBadgeService } from './own-badge.service';
 import { MyConstellationsComponent } from './my-constellations.component';
+import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { GuessTrackComponent } from './guess-track.component';
 import { SeriesStripComponent } from './series-strip.component';
@@ -23,8 +26,10 @@ import { wallpaperConstellations } from './wallpaper';
 
 export { wallpaperConstellations } from './wallpaper';
 
-/** Patch chips in the map bar (newest first). */
-const MAX_PATCH_CHIPS = 6;
+/** Patches offered in the head dropdown (newest first). */
+const MAX_PATCH_OPTIONS = 12;
+/** Ranks shown on each side of the current crest. */
+const LADDER_SPAN = 3;
 
 /**
  * The star map ("Sternkarte", Kuppel): one constellation per patch under a dome
@@ -48,6 +53,8 @@ const MAX_PATCH_CHIPS = 6;
     StarmapTourComponent,
     MyConstellationsComponent,
     VerseHeaderComponent,
+    ScSelectComponent,
+    KartographCrestComponent,
   ],
   template: `
     @if (!signedIn()) {
@@ -72,24 +79,14 @@ const MAX_PATCH_CHIPS = 6;
       @let st = state()!;
       @let p = selected()!;
       @let v = view()!;
-      <section #mapEl class="map" [class.nebula]="st.rewards.nebula" [attr.aria-label]="'starmap.stageAria' | translate: { patch: p.patchLine }">
-        <div class="sky" aria-hidden="true"><i class="neb"></i><i class="field"></i><i class="field near"></i></div>
-        <div class="dome" aria-hidden="true"></div>
-
+      <div #mapEl class="page" [attr.aria-label]="'starmap.stageAria' | translate: { patch: p.patchLine }" role="region">
         <sc-verse-header planet="starmap"
                          [title]="(mine() ? 'starmap.gallery.title' : 'starmap.map.title') | translate: { patch: p.patchLine }"
-                         [subtitle]="mine() ? ('starmap.gallery.subtitle' | translate)
-                           : shapeName() ? ('starmap.map.shape' | translate: { name: shapeName() })
-                           : ('starmap.map.subtitle' | translate: { total: total })">
-          @if (chips().length > 1 && !mine()) {
-            <div vhActions class="chips" role="group" [attr.aria-label]="'starmap.map.patchesAria' | translate">
-              @for (lp of chips(); track lp.patchLine) {
-                <button type="button" class="chip" [attr.aria-pressed]="lp === p" (click)="select(lp)"
-                        [scTooltip]="'starmap.map.chipTip' | translate: { patch: lp.patchLine, lit: lit(lp), total: total }">{{ lp.patchLine }}</button>
-              }
-            </div>
+                         [subtitle]="mine() ? ('starmap.gallery.subtitle' | translate) : ('starmap.map.subtitle' | translate: { total: total })">
+          @if (patchOptions().length > 1 && !mine()) {
+            <sc-select vhActions class="patch-pick" [options]="patchOptions()" [value]="p.patchLine" [allowEmpty]="false"
+                       [ariaLabel]="'starmap.map.patchesAria' | translate" (valueChange)="selectLine($event)" />
           }
-          <span vhActions class="count" data-tour="count" [attr.aria-label]="'starmap.progress' | translate: { lit: v.lit, total: total }"><b>{{ v.lit }}</b>/ {{ total }}</span>
           <div vhActions class="acts">
             @if (p.unlocks.wallpaper && !mine()) {
               <button type="button" class="act" [disabled]="exporting()" (click)="exportWallpaper(p)">
@@ -112,13 +109,41 @@ const MAX_PATCH_CHIPS = 6;
           @if (exportError()) { <span vhActions class="err" role="alert">{{ exportError()! | translate }}</span> }
         </sc-verse-header>
 
+        <section class="map sc-enter-stagger">
         @if (mine()) {
-          <div class="mine" animate.enter="ex-build"><sc-my-constellations [embedded]="true" /></div>
+          <div class="mine"><sc-my-constellations [embedded]="true" /></div>
         } @else {
-        <sc-star-dome class="stage" data-tour="stage" animate.enter="ex-build" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
+        <sc-star-dome class="stage" data-tour="stage" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
                       [sun]="sun()" [sunLine]="cometTarget()?.patchLine ?? p.patchLine" [patchLine]="p.patchLine" />
 
-        <div class="tracks" data-tour="tracks" animate.enter="ex-build">
+        <div class="meta" data-tour="count">
+          <p class="caption">
+            @if (shapeName(); as sn) { <span>{{ 'starmap.map.shape' | translate: { name: sn } }}</span> }
+            @if (st.kartograph.unlocked) { <span>{{ 'starmap.kartograph.rank' | translate: { rank: st.kartograph.rank } }}</span> }
+          </p>
+          @if (st.kartograph.unlocked && ladder().length) {
+            <nav class="ladder" [attr.aria-label]="'starmap.ladder.aria' | translate">
+              @for (r of ladder(); track r.rank) {
+                @if (r.state === 'current') {
+                  <a class="rung current" [routerLink]="badge().commands" [queryParams]="badge().queryParams" aria-current="true"
+                     [attr.aria-label]="'starmap.ladder.current' | translate: { rank: r.rank }"
+                     [scTooltip]="'starmap.ladder.current' | translate: { rank: r.rank }">
+                    <sc-kartograph-crest [rank]="r.rank" [size]="44" state="current" />
+                    <small>{{ 'starmap.ladder.here' | translate }}</small>
+                  </a>
+                } @else {
+                  <span class="rung" [class.locked]="r.state === 'locked'" role="img"
+                        [attr.aria-label]="(r.state === 'locked' ? 'starmap.ladder.next' : 'starmap.ladder.earned') | translate: { rank: r.rank }"
+                        [scTooltip]="(r.state === 'locked' ? 'starmap.ladder.next' : 'starmap.ladder.earned') | translate: { rank: r.rank }">
+                    <sc-kartograph-crest [rank]="r.rank" [size]="32" [state]="r.state" />
+                  </span>
+                }
+              }
+            </nav>
+          }
+        </div>
+
+        <div class="tracks" data-tour="tracks">
           @if (cometTarget(); as ct) {
             <sc-comet-track class="track" [patchLine]="ct.patchLine" [comet]="ct.comet" />
           }
@@ -127,8 +152,9 @@ const MAX_PATCH_CHIPS = 6;
           }
         </div>
 
-        <sc-series-strip class="series" data-tour="series" animate.enter="ex-build" [state]="st" />
+        <sc-series-strip class="series" data-tour="series" [state]="st" />
         }
+        </section>
 
         @if (moreOpen()) {
           <aside id="starmap-more" class="more" role="dialog" scDialog [scDialogModal]="false" (scDialogEscape)="moreOpen.set(false)"
@@ -144,7 +170,7 @@ const MAX_PATCH_CHIPS = 6;
         @if (tourOpen() && shellOn()) {
           <sc-starmap-tour id="starmap-tour" [root]="mapEl" [returnTo]="helpBtn()?.nativeElement ?? null" (closed)="tourOpen.set(false)" />
         }
-      </section>
+      </div>
     }
   `,
   styles: [
@@ -159,42 +185,24 @@ const MAX_PATCH_CHIPS = 6;
         font: inherit; cursor: pointer; text-decoration: none; }
       .btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-      /* One viewport on desktop: the map takes what the shell leaves, never less than 640px. */
-      .map { position: relative; isolation: isolate; overflow: hidden; border-radius: 14px; border: 1px solid var(--sc-border);
-        background: color-mix(in srgb, var(--sc-bg-0) 92%, #000);
-        height: calc(100dvh - var(--sc-topbar-h, 64px) - 2 * var(--sc-page-gutter, 24px)); min-height: 640px; max-height: 1100px;
-        display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; padding: 14px 24px 14px; box-sizing: border-box; }
-      .sky, .dome { position: absolute; pointer-events: none; z-index: -1; }
-      .sky { inset: 0; animation: ex-in 0.7s ease-out both; }
-      .sky i { position: absolute; inset: 0; }
-      .neb { background:
-          radial-gradient(ellipse 40% 30% at 30% 28%, color-mix(in srgb, var(--sc-accent) 10%, transparent), transparent 70%),
-          radial-gradient(ellipse 34% 26% at 72% 40%, color-mix(in srgb, var(--sc-accent-hot, var(--sc-accent)) 6%, transparent), transparent 70%),
-          radial-gradient(ellipse 60% 40% at 50% 100%, color-mix(in srgb, var(--sc-accent) 8%, transparent), transparent 70%); }
-      .map.nebula .neb { filter: saturate(1.4) brightness(1.3); }
-      .field { opacity: 0.55; background-image:
-          radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 34% 62%, #fff, transparent),
-          radial-gradient(1px 1px at 58% 12%, #fff, transparent), radial-gradient(1px 1px at 78% 72%, #fff, transparent),
-          radial-gradient(1px 1px at 88% 28%, #fff, transparent), radial-gradient(1px 1px at 22% 84%, #fff, transparent);
-        background-size: 260px 220px; }
-      .field.near { background-size: 410px 330px; background-position: 70px 40px; opacity: 0.35; animation: ex-twinkle 6s ease-in-out infinite; }
-      .dome { left: -8%; right: -8%; top: 52px; height: 1400px; border-radius: 50%; animation: ex-in 0.7s ease-out both;
-        background: radial-gradient(ellipse 46% 26% at 50% 20%, color-mix(in srgb, var(--sc-accent) 12%, transparent), transparent 70%);
-        border-top: 1px solid color-mix(in srgb, var(--sc-accent) 18%, transparent);
-        box-shadow: inset 0 40px 70px -40px color-mix(in srgb, var(--sc-accent) 16%, transparent); }
-      @keyframes ex-in { from { opacity: 0; } to { opacity: 1; } }
-      @keyframes ex-twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.12; } }
+      .page { position: relative; }
+      /* No box: the scene shows through. One viewport on desktop - the map takes what the head and shell leave. */
+      .map { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; gap: 10px; box-sizing: border-box;
+        height: calc(100dvh - var(--sc-topbar-h, 64px) - 2 * var(--sc-page-gutter, 24px) - 110px); min-height: 560px; max-height: 1000px; }
+      .patch-pick { min-width: 120px; }
 
-      .bar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; min-width: 0; }
-      .ttl h1 { margin: 0; font: 400 1.375rem/1.15 var(--sc-font-display); letter-spacing: 0.08em; color: var(--sc-fg-0); }
-      .ttl span { font-size: 0.8rem; color: var(--sc-fg-2); }
-      .chips { display: flex; gap: 4px; flex-wrap: wrap; }
-      .chip { min-height: 32px; padding: 0 10px; border-radius: 16px; border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2);
-        font: 0.8rem var(--sc-font-display); cursor: pointer; }
-      .chip:hover, .chip:focus-visible { color: var(--sc-fg-0); border-color: var(--sc-accent); outline: none; }
-      .chip[aria-pressed='true'] { color: var(--sc-fg-0); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
-      .count { margin-left: auto; font-size: 0.95rem; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .count b { font: 400 1.5rem var(--sc-font-display); color: var(--sc-fg-0); margin-right: 3px; }
+      /* Caption (shape + rank) bottom left, Kartograph crest ladder at the right end, directly under the map. */
+      .meta { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sc-gap-3, 16px); flex-wrap: wrap; min-width: 0; }
+      .caption { margin: 0; display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--sc-fg-1); letter-spacing: 0.04em; }
+      .caption span + span::before { content: ''; display: inline-block; width: 1px; height: 0.9em; margin-right: 14px; vertical-align: -0.1em;
+        background: var(--sc-border); }
+      .ladder { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+      .rung { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 8px; color: var(--sc-fg-2); text-decoration: none; }
+      .rung.locked { opacity: 0.7; }
+      .rung.current { padding: 4px 10px; border-left: 1px solid var(--sc-border); border-right: 1px solid var(--sc-border); border-radius: 0; color: var(--sc-fg-0); }
+      .rung.current small { font: 0.62rem var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
+      a.rung:hover, a.rung:focus-visible { color: var(--sc-fg-0); outline: none; }
+      a.rung:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
       .acts { display: flex; gap: 6px; flex-wrap: wrap; }
       .act { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--sc-accent);
         background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); font: 0.8rem inherit; cursor: pointer; text-decoration: none; }
@@ -210,6 +218,7 @@ const MAX_PATCH_CHIPS = 6;
       .tracks .track { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
       .tracks .track:only-child { grid-column: 1; }
 
+      @keyframes ex-in { from { opacity: 0; } to { opacity: 1; } }
       .more { position: absolute; z-index: 10; top: 10px; right: 10px; bottom: 10px; width: min(380px, calc(100% - 20px)); overflow-y: auto;
         padding: var(--sc-pad-3); box-sizing: border-box; border-radius: 12px; outline: none;
         background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent); border: 1px solid var(--sc-border); backdrop-filter: blur(10px);
@@ -222,21 +231,19 @@ const MAX_PATCH_CHIPS = 6;
       .act.help { min-width: 36px; justify-content: center; padding: 0; font-weight: 600; }
       /* Constellations toggle (shell beta): the dome dissolves, the list builds up in its place. */
       .mine { grid-row: 2 / -1; min-height: 0; overflow-y: auto; padding-right: 4px; }
-      .ex-build { animation: ex-build 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; transform-origin: 50% 0; }
-      @keyframes ex-build { from { opacity: 0; transform: perspective(900px) rotateX(14deg) scale(0.96); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
-      @media (pointer: coarse) { .chip, .act, .x { min-height: 44px; min-width: 44px; } }
+      @media (pointer: coarse) { .act, .x { min-height: 44px; min-width: 44px; } }
 
       /* Phones / narrow: the page may scroll, the dome keeps a square stage. */
       @media (max-width: 900px), (max-height: 700px) {
-        .map { height: auto; min-height: 0; max-height: none; padding: 12px; }
+        .map { height: auto; min-height: 0; max-height: none; }
+        .ladder { margin-left: 0; }
         .stage { height: auto; aspect-ratio: 1; max-height: 70dvh; }
         .tracks { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 22px; }
         .tracks .track { display: block; grid-row: auto; }
         .more { position: fixed; inset: auto 8px var(--sc-float-bottom, 8px) 8px; top: 15dvh; width: auto; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .sky, .dome, .field.near, .more { animation: none; }
-        .ex-build { animation: ex-in 0.2s ease-out both; }
+        .more { animation: none; }
       }
     `,
   ],
@@ -262,10 +269,26 @@ export class ExplorerPageComponent {
     const p = this.selected();
     return p ? patchMapView(p) : null;
   });
-  readonly chips = computed(() => {
+  /** Head dropdown: the live patch first (marked), then the older maps. */
+  readonly patchOptions = computed<ScSelectOption[]>(() => {
     const st = this.state();
     const up = st?.upcoming?.patchLine;
-    return (st?.patches ?? []).filter((p) => p.patchLine !== up || p.liveAt).slice(0, MAX_PATCH_CHIPS);
+    const live = this.fallback();
+    return (st?.patches ?? [])
+      .filter((p) => p.patchLine !== up || p.liveAt)
+      .slice(0, MAX_PATCH_OPTIONS)
+      .map((p) => (p === live ? { value: p.patchLine, labelKey: 'starmap.map.patchLive', labelParams: { patch: p.patchLine } } : { value: p.patchLine, labelKey: 'starmap.map.patchOld', labelParams: { patch: p.patchLine } }));
+  });
+  readonly badge = inject(OwnBadgeService).link;
+  /** Kartograph ladder: up to three earned ranks before, the current one, three locked ones after. */
+  readonly ladder = computed<{ rank: number; state: CrestState }[]>(() => {
+    const k = this.state()?.kartograph;
+    if (!k?.unlocked || k.rank < 1) return [];
+    const out: { rank: number; state: CrestState }[] = [];
+    for (let r = Math.max(1, k.rank - LADDER_SPAN); r < k.rank; r++) out.push({ rank: r, state: 'earned' });
+    out.push({ rank: k.rank, state: 'current' });
+    for (let r = k.rank + 1; r <= k.rank + LADDER_SPAN; r++) out.push({ rank: r, state: 'locked' });
+    return out;
   });
   /**
    * Where the comet flies: on the newest map the patch still in testing (the
@@ -325,12 +348,8 @@ export class ExplorerPageComponent {
     void this.api.loadExplorer();
   }
 
-  select(p: VerseExplorerPatch): void {
-    this.picked.set(p.patchLine);
-  }
-
-  lit(p: VerseExplorerPatch): number {
-    return Math.min(STARS_PER_PATCH, p.starCount);
+  selectLine(line: string | null): void {
+    if (line) this.picked.set(line);
   }
 
   async exportWallpaper(p: VerseExplorerPatch): Promise<void> {

@@ -67,15 +67,16 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
                   (click)="toggle(s)">
             <span class="ent">
               <svg class="sv" viewBox="-14 -14 28 28" aria-hidden="true" focusable="false">
+                <circle class="bk" r="9.5" />
                 @switch (s.state) {
                   @case ('done') {
-                    <g class="st done"><circle class="h" r="8" /><path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" /><circle class="c" r="1.6" /></g>
+                    <g class="st done"><circle class="h" r="9" /><path class="spk" d="M0-13L0.6 0 0 13-0.6 0zM-13 0L0 0.6 13 0 0-0.6z" /><circle class="c" r="2.4" /></g>
                   }
                   @case ('next') {
-                    <g class="st next"><circle class="bl" r="3.4" /><circle class="c" r="1.7" /></g>
+                    <g class="st next"><circle class="bl" r="5" /><circle class="c" r="2.5" /></g>
                   }
                   @default {
-                    <g class="st open"><circle class="c" r="1.7" /></g>
+                    <g class="st open"><circle class="c" r="2.7" /></g>
                   }
                 }
               </svg>
@@ -123,12 +124,12 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       .plane { position: absolute; inset: 6%; }
       .lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
       .ln { fill: none; stroke-linecap: round; }
-      .ln.on { stroke: color-mix(in srgb, var(--sc-accent) 70%, #fff); stroke-width: 0.32; opacity: 0.75;
+      .ln.on { stroke: color-mix(in srgb, var(--sc-accent) 70%, #fff); stroke-width: 0.4; opacity: 0.85;
         stroke-dasharray: 1; stroke-dashoffset: 1; animation: sd-draw 0.4s ease-in-out var(--d) both; }
       /* an unfinished side of the figure: dashed and dim, never a pointer to the next task */
-      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke-width: 0.26; stroke-dasharray: 0.9 1.1;
+      .ln.off { stroke: color-mix(in srgb, var(--sc-accent) 45%, transparent); stroke-width: 0.3; stroke-dasharray: 0.9 1.1;
         animation: sd-in 0.6s ease-out var(--d) both; }
-      .star { position: absolute; width: 9%; aspect-ratio: 1; translate: -50% -50%; border: 0; padding: 0; margin: 0;
+      .star { position: absolute; width: 13%; aspect-ratio: 1; translate: -50% -50%; border: 0; padding: 0; margin: 0;
         background: none; border-radius: 50%; cursor: pointer; z-index: 2; }
       .star::before { content: ''; position: absolute; inset: -38%; border-radius: 50%; pointer-events: none; opacity: 0;
         transition: opacity 0.35s ease;
@@ -137,6 +138,8 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       .star:hover::before, .star:focus-visible::before { opacity: 1; }
       .star:focus-visible { outline: none; }
       .star:focus-visible .sv { outline: 1px dashed color-mix(in srgb, var(--sc-accent) 60%, transparent); outline-offset: 2px; border-radius: 50%; }
+      /* a soft dark seat per star: the figure reads apart from the background stars, the scene itself stays undimmed */
+      .bk { fill: color-mix(in srgb, var(--sc-bg-0) 62%, transparent); filter: blur(1.5px); }
       .ent { position: absolute; inset: 0; display: block; }
       .sv { display: block; width: 100%; height: 100%; overflow: visible;
         transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.35s ease; }
@@ -154,7 +157,7 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
         animation: sd-pulse 2.4s ease-out var(--d) infinite; }
       .st.next .c { fill: color-mix(in srgb, var(--sc-accent) 35%, #fff); filter: drop-shadow(0 0 2px color-mix(in srgb, var(--sc-accent) 70%, #fff)); }
       /* open: a small hollow ring, dim, no glow, no motion */
-      .st.open .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-1) 60%, transparent); stroke-width: 0.7; }
+      .st.open .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-0) 75%, transparent); stroke-width: 0.9; }
       @keyframes sd-in { from { opacity: 0; } to { opacity: 1; } }
       @keyframes sd-draw { to { stroke-dashoffset: 0; } }
       @keyframes sd-ignite { 0% { opacity: 0; transform: scale(0.4); filter: brightness(2.4); }
