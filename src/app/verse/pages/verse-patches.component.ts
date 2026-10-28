@@ -78,7 +78,7 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
     @if (enabled()) {
       <sc-verse-header planet="patches" [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
 
-      <sc-patch-board class="sc-enter" style="--sc-enter-i: 1" [embedded]="true" [searchQuery]="barTerm()">
+      <sc-patch-board class="sc-enter" style="--sc-enter-i: 1" [embedded]="true" [barSearch]="shellOn()" [searchQuery]="barTerm()">
         @if (targetLine(); as line) {
           <div pbNext class="ng">
             <section class="col" aria-labelledby="vp-ready-h">
@@ -201,6 +201,8 @@ export class VersePatchesComponent {
   private readonly router = inject(Router);
   private readonly locale = inject(LocaleService);
   readonly enabled = inject(BetaService).isEnabled('verse');
+  /** Without the shell β there is no subheader search; the board keeps its own field. */
+  protected readonly shellOn = inject(BetaService).isEnabled('shell');
 
   protected readonly steps = READINESS_STEPS;
 

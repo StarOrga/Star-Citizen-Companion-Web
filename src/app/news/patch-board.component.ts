@@ -108,9 +108,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
         <!-- Legacy (β off) board keeps its own sticky search field. Embedded in
              the Verse page the field is gone: the shell subheader owns search,
              this block then only carries the result summary. -->
-        @if (!embedded() || searching()) {
+        @if (fieldShown() || searching()) {
         <div class="search" [class.active]="searching()">
-          @if (!embedded()) {
+          @if (fieldShown()) {
           <label class="s-label" for="patch-board-search">{{ 'news.patch.search.label' | translate }}</label>
           <div class="s-field">
             <input id="patch-board-search" type="search" class="s-input"
@@ -507,6 +507,13 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
    * `?q=` route parameter) is its only way in.
    */
   readonly searchQuery = input('');
+  /**
+   * Whether the shell subheader owns search. False (shell β off) keeps the
+   * board's own field even when embedded — otherwise the page has no search.
+   */
+  readonly barSearch = input(true);
+  /** The board renders its own search field. */
+  protected readonly fieldShown = computed(() => !this.embedded() || !this.barSearch());
   private readonly route = inject(ActivatedRoute, { optional: true });
   readonly svc = inject(NewsService);
 
@@ -659,7 +666,7 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   private readonly externalQuery = effect(() => {
     const ext = this.searchQuery();
     const fromUrl = this.route?.snapshot.queryParamMap.get('q') ?? '';
-    if (this.embedded()) untracked(() => this.query.set(ext || fromUrl));
+    if (this.embedded() && this.barSearch()) untracked(() => this.query.set(ext || fromUrl));
   });
 
   ngOnInit(): void {

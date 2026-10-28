@@ -39,6 +39,11 @@ import { ShareButtonComponent } from '../../shared/share-button/share-button.com
       <sc-share-button [shareTitle]="it.title" />
     } @else if (loaded()) {
       <p class="miss" role="status">{{ 'overlay.news.missing' | translate }}</p>
+    } @else if (svc.error(); as err) {
+      <div class="sc-card err" role="alert">
+        <span><strong>{{ 'news.errorTitle' | translate }}:</strong> {{ err | translate }}</span>
+        <button type="button" class="retry" [disabled]="svc.loading()" (click)="retry()">{{ 'errors.retry' | translate }}</button>
+      </div>
     }
   `,
   styles: [`
@@ -48,10 +53,15 @@ import { ShareButtonComponent } from '../../shared/share-button/share-button.com
     .meta { margin: 0; color: var(--sc-fg-2); font-size: max(0.85rem, var(--sc-fs-floor)); }
     .sum { margin: 0; max-width: var(--sc-measure); color: var(--sc-fg-1); }
     .miss { color: var(--sc-fg-2); }
+    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .err .retry:disabled { opacity: 0.5; cursor: default; }
   `],
 })
 export class VerseNewsItemComponent {
-  private readonly svc = inject(NewsService);
+  protected readonly svc = inject(NewsService);
   private readonly router = inject(Router);
   private readonly origin = inject(OverlayOriginService);
   private readonly i18n = inject(TranslateService);
@@ -95,6 +105,11 @@ export class VerseNewsItemComponent {
     const i = list.findIndex((n) => n.id === this.id());
     const n = i < 0 ? undefined : list[i + step];
     return n ? { commands: ['/verse/news', n.id] } : null;
+  }
+
+  /** A direct load whose feed failed: the list underneath is hidden, so the item owns the retry. */
+  protected retry(): void {
+    void this.svc.refresh();
   }
 
   protected close(): void {
