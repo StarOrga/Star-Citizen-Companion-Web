@@ -63,6 +63,19 @@ describe('spreadStackedPins', () => {
     expect(b.x - a.x).toBeCloseTo(PIN_MIN_GAP, 6);
   });
 
+  it('pushes a fanned-out pair off the neighbour it lands on (Nomad: 1 under 16)', () => {
+    // The pair fans out to 46.75 / 53.25 — right onto the lone pin at 43.
+    const out = spreadStackedPins([{ x: 50, y: 56.5 }, { x: 50, y: 56.5 }, { x: 41, y: 56.5 }, { x: 50, y: 10 }]);
+    expect(minGap(out)).toBeGreaterThanOrEqual(PIN_MIN_GAP - 1e-6);
+    expect(out[3]).toEqual({ x: 50, y: 10 });
+  });
+
+  it('steps an estimated ring pin off an anchored dot (Nomad: 15 over 3)', () => {
+    const out = spreadStackedPins([{ x: 50, y: 7.2 }, { x: 50, y: 4 }]);
+    expect(minGap(out)).toBeGreaterThanOrEqual(PIN_MIN_GAP - 1e-6);
+    for (const p of out) expect(p.y).toBeGreaterThanOrEqual(0);
+  });
+
   it('chains near neighbours into one cluster and stays on the canvas', () => {
     // 40↔43 and 43↔46 are each too close; 40↔46 alone would not be.
     expect(minGap(spreadStackedPins([{ x: 40, y: 50 }, { x: 43, y: 50 }, { x: 46, y: 50 }]))).toBeGreaterThanOrEqual(PIN_MIN_GAP - 1e-9);

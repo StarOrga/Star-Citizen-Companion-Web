@@ -90,18 +90,21 @@ export function ringPositions(ring: PinRing, n: number): { x: number; y: number 
   return out;
 }
 
-/** Closest two anchored dots may sit, in % of the canvas — a dot is ~18px on
- * a ~400px table, so 5 % keeps every number readable down to phone width. */
-export const PIN_MIN_GAP = 5;
+/** Closest two dots may sit, in % of the hull canvas — a dot is 20px and the
+ * canvas beside the leader columns only ~320px wide, so 6.5 % keeps every
+ * number readable. */
+export const PIN_MIN_GAP = 6.5;
 
 /**
  * Anchors that (nearly) coincide — three shield generators on one bulkhead,
  * the coolers stacked over the power plant — drew their dots on top of each
  * other, so only the last number stayed visible (Nomad: 7 of 17). Each such
  * cluster is fanned out on a small circle around its centre, just wide enough
- * that neighbours sit `minGap` apart, in list order starting on the left. A
- * pin that stands alone keeps its anchor exactly; the leader line still
- * points into the cluster, which is where the parts really are.
+ * that neighbours sit `minGap` apart, in list order starting on the left.
+ * A few relaxation passes then push apart what still touches: a fanned
+ * cluster against its neighbour, an estimated ring pin against an anchored
+ * dot. A pin that stands alone keeps its position exactly; the leader line
+ * still points into the cluster, which is where the parts really are.
  */
 export function spreadStackedPins(points: readonly { x: number; y: number }[], minGap = PIN_MIN_GAP): { x: number; y: number }[] {
   const parent = points.map((_, i) => i);
@@ -131,6 +134,26 @@ export function spreadStackedPins(points: readonly { x: number; y: number }[], m
       const a = Math.PI + (2 * Math.PI * n) / k;
       out[i] = { x: clamp(cx + r * Math.cos(a)), y: clamp(cy + r * Math.sin(a)) };
     });
+  }
+  for (let pass = 0; pass < 100; pass++) {
+    let moved = false;
+    for (let i = 0; i < out.length; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        let dx = out[j].x - out[i].x;
+        let dy = out[j].y - out[i].y;
+        let d = Math.hypot(dx, dy);
+        if (d >= minGap - 1e-9) continue;
+        // Only possible after clamping at the canvas edge: part them sideways.
+        if (d < 1e-9) [dx, dy, d] = [1, 0, 1];
+        const push = (minGap - d) / 2 + 1e-6;
+        const ux = (dx / d) * push;
+        const uy = (dy / d) * push;
+        out[i] = { x: clamp(out[i].x - ux), y: clamp(out[i].y - uy) };
+        out[j] = { x: clamp(out[j].x + ux), y: clamp(out[j].y + uy) };
+        moved = true;
+      }
+    }
+    if (!moved) break;
   }
   return out;
 }
