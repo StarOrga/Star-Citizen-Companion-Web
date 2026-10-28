@@ -5,6 +5,9 @@ import type { CodexKind } from '../../codex/codex.service';
 import type { StageSearchState } from './shell-chrome.service';
 import { HQ_ROOT, hqHangar, hqLocker, hqOps } from '../../hq/hq-routes';
 
+/** The admin hub: tiles to Benutzer, Telemetrie and the other admin pages. */
+export const ADMIN_HUB = '/admin/hub';
+
 /** What the capsule shows — see FusionBarComponent. */
 export type BarMode = 'stage' | 'hub' | 'docked' | 'content' | 'tool';
 
@@ -64,7 +67,7 @@ export class HideTracker {
   }
 }
 
-export type AreaId = 'verse' | 'codex' | 'hq' | 'starscape' | 'admin' | 'telemetry';
+export type AreaId = 'verse' | 'codex' | 'hq' | 'starscape' | 'admin';
 
 export interface AreaEntry {
   id: AreaId;
@@ -79,15 +82,24 @@ export const AREA_ENTRIES: readonly AreaEntry[] = [
   { id: 'codex', labelKey: 'nav.codex', link: '/codex', elevated: false },
   { id: 'hq', labelKey: 'nav.hq', link: '/hq', elevated: false },
   { id: 'starscape', labelKey: 'nav.starscape', link: '/verse/gallery', elevated: false },
-  { id: 'admin', labelKey: 'nav.admin', link: '/admin', elevated: true },
-  { id: 'telemetry', labelKey: 'nav.telemetry', link: '/admin/telemetry', elevated: true },
+  // Benutzer and Telemetrie merged into one entry: a plain link to the admin hub, whose tiles lead on.
+  { id: 'admin', labelKey: 'nav.adminMenu', link: ADMIN_HUB, elevated: true },
 ];
+
+/**
+ * The main pages: the cinematic header (MainHeaderComponent) stands over the
+ * scene on exactly these, and a switch between two of them plays the menu
+ * switch (content out, camera moves, content in).
+ */
+export function isMainHeaderPage(url: string): boolean {
+  const path = url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  return path === '/verse' || path === '/codex' || path === HQ_ROOT || path === ADMIN_HUB;
+}
 
 /** The main area a URL belongs to (null outside the main areas: settings, friends …). */
 export function activeAreaOf(url: string, starscapeEntry: boolean): AreaId | null {
   const path = url.split(/[?#]/, 1)[0];
-  if (path === '/admin/telemetry' || path.startsWith('/admin/telemetry/')) return 'telemetry';
-  if (path === '/admin') return 'admin';
+  if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
   if (starscapeEntry && (path === '/verse/gallery' || path.startsWith('/verse/gallery/'))) return 'starscape';
   if (path === '/verse' || path.startsWith('/verse/')) return 'verse';
   if (path === '/codex' || path.startsWith('/codex/')) return 'codex';
@@ -176,4 +188,57 @@ export function activeSegmentOf(url: string): SegmentId | null {
     return (['ship', 'weapon', 'component', 'blueprint'] as const).find((k) => k === kind) ?? null;
   }
   return null;
+}
+
+// ---- "Gleiche Leiste": the staged search docks into the subheader ----
+
+/** Scroll depth (px) past which a main page's staged search docks as the subheader. */
+export const STAGE_DOCK_PX = 56;
+/** Scroll depth (px) under which a docked bar returns to the stage (hysteresis: no flutter at the edge). */
+export const STAGE_UNDOCK_PX = 24;
+
+/**
+ * The scroll state machine of a main page's bar: staged (the search field
+ * stands centred in the scene) or docked (the same field widened into the
+ * subheader). Thresholds, not scroll-scrubbing — the morph plays once per
+ * crossing, scrolling back up reverses it.
+ */
+export function nextStageDocked(docked: boolean, scrollY: number): boolean {
+  return docked ? scrollY > STAGE_UNDOCK_PX : scrollY > STAGE_DOCK_PX;
+}
+
+/** Which morph a state change plays: `dock` (stage → bar), `undock` (bar → stage) or none. */
+export function stageMorphOf(was: boolean, now: boolean): 'dock' | 'undock' | null {
+  if (was === now) return null;
+  return now ? 'dock' : 'undock';
+}
+
+/** The plate's way back: the origin crumb (the last one the page header published), else the area root. */
+export interface PlateBack {
+  label: string | null;
+  labelKey: string | null;
+  labelParams: Record<string, string> | null;
+  link: string | readonly unknown[];
+  queryParams: Record<string, unknown> | null;
+}
+
+export function plateBackOf(
+  crumbs: readonly { label?: string; labelKey?: string; labelParams?: Record<string, string> | null; link: string | readonly unknown[]; queryParams?: Record<string, unknown> | null }[] | null | undefined,
+  url: string,
+  area: AreaEntry | null,
+): PlateBack | null {
+  const last = crumbs?.length ? crumbs[crumbs.length - 1] : null;
+  if (last) {
+    return {
+      label: last.label ?? null,
+      labelKey: last.label ? null : (last.labelKey ?? null),
+      labelParams: last.labelParams ?? null,
+      link: last.link,
+      queryParams: last.queryParams ?? null,
+    };
+  }
+  if (!area || isMainHeaderPage(url)) return null;
+  const path = url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  if (path === area.link) return null;
+  return { label: null, labelKey: area.labelKey, labelParams: null, link: area.link, queryParams: null };
 }

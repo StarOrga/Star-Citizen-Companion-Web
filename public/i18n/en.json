@@ -5093,6 +5093,12 @@
     }
   },
   "fusionBar": {
+    "backTo": "Back to {{name}}",
+    "kindSwitch": "Switch category (now: {{kind}})",
+    "removeFilter": "Remove filter: {{name}}",
+    "moreFilters": "Show {{count}} more filters",
+    "hits": "{{count}} hits",
+    "filter": {"weaponGroup": "Weapon group"},
     "navAria": "Main areas",
     "areaMenu": "Switch area — now: {{area}}",
     "home": "Home",
@@ -5171,6 +5177,33 @@
       "subtitle": "Answers with reasoning — coming soon.",
       "body": "The Companion cannot answer questions like this yet. Until then the search is the fastest way to the answer.",
       "searchInstead": "Search the Codex instead"
+    }
+  },
+  "adminHub": {
+    "eyebrow": "Admin · admins only",
+    "title": "Command centre",
+    "subtitle": "Every admin tool in one place.",
+    "tiles": {
+      "users": {
+        "title": "Users",
+        "text": "Accounts, roles, invitations and moderation."
+      },
+      "telemetry": {
+        "title": "Telemetry",
+        "text": "Usage, products and diagnostics of the desktop apps."
+      },
+      "feedback": {
+        "title": "Feedback",
+        "text": "Work through reports, threads and concepts."
+      },
+      "integrations": {
+        "title": "Integrations",
+        "text": "Manage API tokens for external services."
+      },
+      "uploader": {
+        "title": "Data Uploader",
+        "text": "Ingest game data from Data.p4k."
+      }
     }
   }
 }

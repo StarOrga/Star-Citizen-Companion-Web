@@ -56,12 +56,7 @@
                 }
               </div>
             }
-            <!-- The hub's search capsule, styled like the top bar's; both searches stay. -->
-            <button type="button" class="find" (click)="openSearch()" aria-keyshortcuts="Control+K /">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5l5 5" /></svg>
-              <span class="find-tx">{{ 'verse.hub.search' | translate }}</span>
-              <kbd>{{ 'verse.hub.searchKey' | translate }}</kbd>
-            </button>
+            <!-- The search stands in the shell's stage slot above (the bar's own field). -->
           </div>
         </div>
 

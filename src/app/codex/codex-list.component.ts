@@ -72,6 +72,7 @@ import { PageHeaderComponent } from '../shared/page-header/page-header.component
 import { CodexSearchTriggerComponent } from './search/codex-search-trigger.component';
 import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 import { BarToolbarDirective } from '../shell/fusion-bar/bar-toolbar.directive';
+import { BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { BetaService } from '../core/beta.service';
 
 /**
@@ -1155,10 +1156,40 @@ export class CodexListComponent implements OnInit {
     return formatCraftTime(r.craftTimeSec);
   }
 
+  /** The active facets as the shell bar's removable tokens (beta shell, "Satinkante" bar). */
+  readonly barTokens = computed<readonly BarFilterToken[]>(() => {
+    const out: BarFilterToken[] = [];
+    const add = (id: string, labelKey: string, value: string | null, remove: () => void) =>
+      out.push({ id, labelKey, value, remove });
+    if (this.manufacturer()) add('manufacturer', 'codex.filters.manufacturer', this.manufacturer(), () => this.setManufacturer(''));
+    if (this.size()) add('size', 'codex.filters.size', this.size(), () => this.setSize(''));
+    if (this.grade()) add('grade', 'codex.filters.grade', this.grade(), () => this.setGrade(''));
+    if (this.componentKind()) add('componentKind', 'codex.filters.componentKind', this.componentKind(), () => this.setComponentKind(''));
+    if (this.weaponGroup()) {
+      add('weaponGroup', 'fusionBar.filter.weaponGroup', this.weaponSubGroup() || this.weaponGroup(), () => {
+        this.weaponGroup.set('');
+        this.weaponSubGroup.set('');
+      });
+    }
+    if (this.blueprintGroup()) add('blueprintGroup', 'codex.filters.blueprintGroup', this.blueprintGroup(), () => this.setBlueprintGroup(''));
+    if (this.blueprintCategory()) add('blueprintCategory', 'blueprint.filters.category', this.blueprintCategory(), () => this.setBlueprintCategory(''));
+    if (this.includeVariants()) add('variants', 'codex.filters.includeVariants', null, () => this.setIncludeVariants(false));
+    return out;
+  });
+
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
     });
+    // Beta shell: kind switch, filter tokens, hit count and the panel footer live in the bar.
+    inject(DestroyRef).onDestroy(
+      inject(ShellChromeService).registerFilters(this, () => ({
+        count: this.isUpcoming() || this.loading() ? null : this.total(),
+        kindTotal: this.isUpcoming() ? null : this.kindCount(this.kind()),
+        tokens: this.barTokens(),
+        reset: () => this.resetFilters(),
+      })),
+    );
     // A new LIVE build replaced the one on screen (tab came back): reload.
     reloadOnBuildRefresh(this.svc, () => this.runQuery(true));
     // Keep the data language in sync with UI language switches. (#50)

@@ -18,21 +18,15 @@ import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
-import { RoleService } from '../../auth/role.service';
-import { BetaService } from '../../core/beta.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
-import { CodexCategoryIconComponent } from '../../codex/codex-category-icon.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
 import {
   AREA_ENTRIES,
-  AREA_SECTIONS,
-  AreaSection,
   BarMode,
-  activeSectionOf,
   CODEX_SEGMENTS,
   CodexSegment,
   HideTracker,
@@ -41,195 +35,207 @@ import {
   barModeOf,
   hidesOnScroll,
   isCodexToolPage,
+  isMainHeaderPage,
+  nextStageDocked,
+  plateBackOf,
+  stageMorphOf,
 } from './fusion-bar.model';
 
+/** Morph duration (ms) of "Gleiche Leiste": the staged field flies up and widens into the subheader. */
+export const DOCK_MORPH_MS = 620;
+const DOCK_EASE = 'cubic-bezier(0.55, 0, 0.2, 1)';
+/** Tokens shown inside the search field before the rest folds into "+n". */
+const MAX_TOKENS = 3;
+
+interface PathCrumb {
+  label?: string;
+  labelKey?: string;
+  labelParams?: Record<string, string> | null;
+  link: string | readonly unknown[] | null;
+  queryParams?: unknown;
+}
+
 /**
- * The Fusion bar (beta `shell`, spec §4): header and subheader as ONE glass
- * capsule. The subheader is always the search.
+ * The subheader of the beta shell (concept 2026-10-28 header/subheader, round 8
+ * design d2 "Satinkante"): ONE 60px bar in the page frame's width.
  *
- * Modes (`barModeOf`, from `LayoutService.layout()` + the hub's stage search):
- * - `stage`   cinematic hub, stage search line on screen: brand + main nav only;
- * - `hub`     cinematic page without a stage search: brand + nav + search;
- * - `docked`  cinematic hub scrolled past its search line: the line morphed into
- *             the capsule (played once at the threshold, never scroll-scrubbed);
- * - `content` area segment + section label + crumbs + search; hides on scroll
- *             down after ~1 bar height, back after 8px up or on focus;
- * - `tool`    compact and persistent; the page's toolbar (`*scBarToolbar`) folds
- *             out of the search as the drawer and stays pinned with the bar.
- * On a Codex tool page the seven Codex kinds are segments in the capsule; the
- * crumb collapses into the active one on the way there.
+ * Main pages (`isMainHeaderPage`: Verse, Codex, HQ, admin hub): the bar's search
+ * field stands centred in the scene on the page's stage slot (`[scStageSearch]`)
+ * — mode `stage`, only the field. Past `STAGE_DOCK_PX` of scroll the SAME
+ * element flies up and widens into the docked subheader (mode `docked`, played
+ * once per crossing via FLIP, reversed on the way back); the cinematic header
+ * compresses into it — its logo glides onto the bar's logo slot.
  *
- * Phones (≤ 720px, the `--sc-bar-h` breakpoint): the capsule sits at the BOTTOM,
- * under the thumb, above `--sc-float-bottom` and clear of the feedback
- * launcher's lane (`--sc-fab-clear-inline`).
+ * Other pages: docked from the start (`content` slides away on scroll, `tool` and
+ * `hub` stay). Content of the docked bar: logo slot · plate (category + "◂ origin",
+ * the full path on hover) · divider · search · Strg K. Codex tool pages add the
+ * kind switch, active filters as tokens in the field, the hit count and the
+ * Filter button; the filter panel hangs from the bar in the same skin.
  *
- * The account menu is the shell's own, projected as `[barAccount]`.
+ * Phones (≤ 720px): the bar docks at the bottom under the thumb (above
+ * `--sc-float-bottom`, clear of the feedback launcher's lane); the route line
+ * (category + ◂ back) sits alone at the top.
+ *
+ * The account menu is the shell's own, projected as `[barAccount]` where no
+ * main header carries it.
  */
 @Component({
   selector: 'sc-fusion-bar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, ScTooltipDirective, FusionSearchComponent],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-mode]': 'mode()',
     '[class.hidden]': 'hidden()',
     '[class.searching]': 'searchOpen()',
     '[class.morph]': 'morphing()',
+    '[class.entering]': 'entering()',
+    '[class.placed]': 'placed()',
     '[class.public]': "variant() === 'public'",
     '[class.phone]': 'phone()',
     '(focusin)': 'reveal()',
   },
   template: `
-    <div class="cap" [class.with-drawer]="drawerShown()">
-      @if (showStageLayer()) {
-        <a class="brand" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
-           (click)="onNav($event, '/verse')">
-          <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="30" height="30" />
-          <span class="wordmark">
-            <span class="title">Star Citizen Companion</span>
-            <span class="alpha">{{ 'nav.phaseBadge' | translate }}</span>
-          </span>
-        </a>
-        @if (variant() === 'app') {
-          <nav class="nav" [attr.aria-label]="'fusionBar.navAria' | translate">
-            @for (a of areas(); track a.id) {
-              <a [routerLink]="a.link" [class.active]="activeArea() === a.id" [class.elevated]="a.elevated"
-                 [attr.aria-current]="activeArea() === a.id ? 'page' : null"
-                 (click)="onNav($event, a.link)">
-                {{ a.labelKey | translate }}
-                @if (a.elevated) { <span class="sr-only"> ({{ 'nav.adminOnly' | translate }})</span> }
-              </a>
-            }
-          </nav>
-        } @else {
-          <a class="home-link" routerLink="/">{{ 'nav.backToHome' | translate }}</a>
-        }
-      } @else {
-        <div class="seg-wrap">
-          <button type="button" class="seg" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()"
-                  [attr.aria-label]="'fusionBar.areaMenu' | translate: { area: (areaLabelKey() | translate) }"
-                  (click)="toggleMenu($event)" (keydown)="onSegKeydown($event)">
-            <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="24" height="24" />
-            <span class="seg-label">{{ areaLabelKey() | translate }}</span>
-            <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-          </button>
-          @if (menuOpen()) {
-            <div class="menu" role="menu" [attr.aria-label]="'fusionBar.navAria' | translate" (keydown)="onMenuKeydown($event)">
-              <a class="mi" role="menuitem" routerLink="/verse" (click)="onMenuNav($event, '/verse')">
-                <span class="mi-label">{{ 'fusionBar.home' | translate }}</span>
-              </a>
-              @for (a of areas(); track a.id) {
-                <a class="mi" role="menuitem" [routerLink]="a.link" [class.active]="activeArea() === a.id"
-                   [class.elevated]="a.elevated" (click)="onMenuNav($event, a.link)">
-                  <span class="mi-label">{{ a.labelKey | translate }}</span>
-                  @if (a.elevated) { <span class="mi-tag">{{ 'nav.adminOnly' | translate }}</span> }
-                </a>
-              }
-            </div>
-          }
-        </div>
+    <div class="cap" [class.open]="panelShown()">
+      <span class="skin" aria-hidden="true"></span>
+      <span class="trace" aria-hidden="true"></span>
+      @if (mode() === 'stage') { <span class="bloom" aria-hidden="true"></span> }
 
-        @if (segments(); as segs) {
-          <nav class="kinds" [class.arrive]="collapsing()" [attr.aria-label]="'codex.categoriesAria' | translate">
-            @for (s of segs; track s.id) {
-              <a class="kind" [routerLink]="s.link" [queryParams]="s.queryParams"
-                 [class.active]="activeSegment() === s.id"
-                 [attr.aria-current]="activeSegment() === s.id ? 'page' : null"
-                 [scTooltip]="s.labelKey | translate" scTooltipTier="label"
-                 [scTooltipDisabled]="activeSegment() === s.id || !iconOnlyKinds()">
-                <span class="k-icon" aria-hidden="true">
-                  @if (s.icon) {
-                    <sc-codex-icon [kind]="s.icon" />
-                  } @else if (s.id === 'upcoming') {
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-                  } @else {
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="2" /><path d="M7 11h.01M11 11h.01M15 11h.01M8 15h8" /></svg>
-                  }
-                </span>
-                <span class="k-label">{{ s.labelKey | translate }}</span>
+      @if (variant() === 'public') {
+        <a class="brand" routerLink="/" [attr.aria-label]="'nav.brandAria' | translate">
+          <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
+          <span class="title">Star Citizen Companion</span>
+        </a>
+        <span class="spacer"></span>
+        <a class="home-link" routerLink="/">{{ 'nav.backToHome' | translate }}</a>
+      } @else {
+        @if (mode() !== 'stage') {
+          <a class="blogo" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
+             [scTooltip]="'nav.brandAria' | translate" scTooltipTier="label" (click)="onNav($event, '/verse')">
+            <img src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
+          </a>
+          <div class="plate">
+            <span class="cat">{{ areaLabelKey() | translate }}</span>
+            @if (back(); as b) {
+              <a class="back" [routerLink]="$any(b.link)" [queryParams]="b.queryParams"
+                 [attr.aria-label]="'fusionBar.backTo' | translate: { name: (b.label ?? (b.labelKey! | translate: (b.labelParams ?? undefined))) }">
+                <span class="tri" aria-hidden="true">◂</span>
+                <span class="back-label">{{ b.label ?? (b.labelKey! | translate: (b.labelParams ?? undefined)) }}</span>
               </a>
             }
-          </nav>
-        } @else if (sections(); as secs) {
-          <nav class="kinds sections" [class.arrive]="morphing()" [attr.aria-label]="'fusionBar.sectionsAria' | translate">
-            @for (s of secs; track s.id) {
-              <a class="kind" [routerLink]="s.link"
-                 [class.active]="activeSection() === s.id"
-                 [attr.aria-current]="activeSection() === s.id ? 'page' : null"
-                 (click)="onNav($event, s.link)">
-                <span class="k-label">{{ s.labelKey | translate }}</span>
-              </a>
-            }
-          </nav>
-        } @else if (showCrumbs()) {
-          <div class="where">
-            @if (sectionLabel(); as sec) {
-              <span class="section" aria-live="polite">{{ sec }}</span>
-            }
-            @if (crumbs()?.crumbs?.length) {
-              <nav class="crumbs" [attr.aria-label]="'pageHeader.crumbsAria' | translate">
+            @if (path().length > 1) {
+              <nav class="path" [attr.aria-label]="'pageHeader.crumbsAria' | translate">
                 <ol>
-                  @for (c of crumbs()!.crumbs; track $index; let last = $last) {
-                    <li [class.last]="last">
-                      <a class="crumb" [routerLink]="$any(c.link)" [queryParams]="c.queryParams ?? null">{{
-                        c.label ?? (c.labelKey! | translate: (c.labelParams ?? undefined))
-                      }}</a>
+                  @for (c of path(); track $index) {
+                    <li>
+                      @if (c.link) {
+                        <a [routerLink]="$any(c.link)" [queryParams]="$any(c.queryParams) ?? null">{{ c.label ?? (c.labelKey! | translate: (c.labelParams ?? undefined)) }}</a>
+                      } @else {
+                        <span class="here" aria-current="page">{{ c.label }}</span>
+                      }
                     </li>
-                  }
-                  @if (crumbs()!.title; as t) {
-                    <li class="here" aria-current="page"><span>{{ t }}</span></li>
                   }
                 </ol>
               </nav>
             }
           </div>
-        }
-      }
+          <span class="div" aria-hidden="true"></span>
 
-      @if (variant() === 'app' && showSearch()) {
-        <sc-fusion-search class="search" [placement]="phone() ? 'bottom' : 'top'" [compact]="mode() === 'tool'"
-                          (openChange)="onSearchOpen($event)">
-          @if (toolbar()) {
-            <button fsTrailing type="button" class="drawer-toggle" [class.on]="drawerOpen()"
-                    [attr.aria-expanded]="drawerOpen()" aria-controls="sc-bar-drawer"
-                    [attr.aria-label]="'fusionBar.filters' | translate"
-                    (click)="toggleDrawer()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" />
-              </svg>
-              <span class="dt-label">{{ 'fusionBar.filters' | translate }}</span>
+          @if (segment(); as seg) {
+            <button type="button" class="kindsw" [attr.aria-expanded]="panelOpen()" aria-controls="sc-bar-panel"
+                    [attr.aria-label]="'fusionBar.kindSwitch' | translate: { kind: (seg.labelKey | translate) }"
+                    (click)="togglePanel()">
+              <span class="ks-label">{{ seg.labelKey | translate }}</span>
+              @if (kindTotal() !== null) { <i>{{ kindTotal() }}</i> }
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
             </button>
           }
-        </sc-fusion-search>
-      } @else {
-        <span class="spacer"></span>
-      }
+        }
 
-      <div class="account"><ng-content select="[barAccount]" /></div>
+        <sc-fusion-search class="search" [placement]="phone() && mode() !== 'stage' ? 'bottom' : 'top'"
+                          [compact]="mode() === 'tool'" [hideContext]="mode() === 'stage' || !!segment()"
+                          (openChange)="onSearchOpen($event)">
+          @if (mode() !== 'stage' && tokens().length) {
+            <span fsLeading class="toks">
+              @for (t of shownTokens(); track t.id) {
+                <span class="tok">
+                  <em>{{ t.labelKey | translate }}</em>
+                  @if (t.value) { <span class="tok-v">{{ t.value }}</span> }
+                  <button type="button" class="tok-x" (click)="t.remove()"
+                          [attr.aria-label]="'fusionBar.removeFilter' | translate: { name: (t.labelKey | translate) }"
+                          [scTooltip]="'fusionBar.removeFilter' | translate: { name: (t.labelKey | translate) }" scTooltipTier="label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <line x1="7" y1="7" x2="17" y2="17" /><line x1="17" y1="7" x2="7" y2="17" />
+                    </svg>
+                  </button>
+                </span>
+              }
+              @if (moreTokens() > 0) {
+                <button type="button" class="tok more" (click)="togglePanel(true)"
+                        [attr.aria-label]="'fusionBar.moreFilters' | translate: { count: moreTokens() }">+{{ moreTokens() }}</button>
+              }
+            </span>
+          }
+        </sc-fusion-search>
+
+        @if (mode() !== 'stage') {
+          @if (hitCount() !== null) {
+            <span class="count" aria-live="polite">{{ 'fusionBar.hits' | translate: { count: hitCount() } }}</span>
+          }
+          @if (toolbar()) {
+            <button type="button" class="fbtn" [class.on]="panelOpen()" [attr.aria-expanded]="panelOpen()"
+                    aria-controls="sc-bar-panel" (click)="togglePanel()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" />
+              </svg>
+              <span class="fb-label">{{ 'fusionBar.filters' | translate }}</span>
+              @if (tokens().length) { <i>{{ tokens().length }}</i> }
+            </button>
+          }
+          <div class="account"><ng-content select="[barAccount]" /></div>
+        }
+      }
     </div>
 
-    @if (drawerShown()) {
-      <div class="drawer" id="sc-bar-drawer" role="region" [attr.aria-label]="'fusionBar.filters' | translate">
-        <ng-container [ngTemplateOutlet]="toolbar()" />
+    @if (panelShown()) {
+      <div class="fpanel" id="sc-bar-panel" role="region" [attr.aria-label]="'fusionBar.filters' | translate">
+        <span class="skin" aria-hidden="true"></span>
+        @if (segments(); as segs) {
+          <nav class="kindrow" [attr.aria-label]="'codex.categoriesAria' | translate">
+            @for (s of segs; track s.id) {
+              <a class="kind" [routerLink]="s.link" [queryParams]="s.queryParams" [class.active]="segment()?.id === s.id"
+                 [attr.aria-current]="segment()?.id === s.id ? 'page' : null">{{ s.labelKey | translate }}</a>
+            }
+          </nav>
+        }
+        @if (toolbar()) {
+          <div class="fcols"><ng-container [ngTemplateOutlet]="toolbar()" /></div>
+        }
+        @if (filters(); as f) {
+          <div class="ffoot">
+            <span>
+              @if (f.count !== null) { {{ 'fusionBar.hits' | translate: { count: f.count } }} }
+            </span>
+            @if (f.tokens.length) {
+              <button type="button" class="freset" (click)="f.reset()">{{ 'codex.filters.reset' | translate }}</button>
+            }
+          </div>
+        }
       </div>
     }
 
-    @if (phone() && segments(); as segs) {
-      <!-- Phone: the Codex kinds as a chip row at the top (the capsule at the bottom has no room). -->
-      <nav class="kinds-phone" [attr.aria-label]="'codex.categoriesAria' | translate">
-        @for (s of segs; track s.id) {
-          <a class="kchip" [routerLink]="s.link" [queryParams]="s.queryParams" [class.active]="activeSegment() === s.id"
-             [attr.aria-current]="activeSegment() === s.id ? 'page' : null">{{ s.labelKey | translate }}</a>
+    @if (phone() && variant() === 'app' && mode() !== 'stage') {
+      <!-- Phone: the route line alone at the top; the bar itself sits at the thumb. -->
+      <div class="route">
+        <span class="cat">{{ areaLabelKey() | translate }}</span>
+        @if (back(); as b) {
+          <a class="back" [routerLink]="$any(b.link)" [queryParams]="b.queryParams">
+            <span class="tri" aria-hidden="true">◂</span>
+            {{ b.label ?? (b.labelKey! | translate: (b.labelParams ?? undefined)) }}
+          </a>
         }
-      </nav>
-    } @else if (phone() && sections(); as secs) {
-      <nav class="kinds-phone" [attr.aria-label]="'fusionBar.sectionsAria' | translate">
-        @for (s of secs; track s.id) {
-          <a class="kchip" [routerLink]="s.link" [class.active]="activeSection() === s.id"
-             [attr.aria-current]="activeSection() === s.id ? 'page' : null">{{ s.labelKey | translate }}</a>
-        }
-      </nav>
+      </div>
     }
   `,
   styleUrl: './fusion-bar.component.scss',
@@ -238,8 +244,6 @@ export class FusionBarComponent {
   private readonly router = inject(Router);
   private readonly layout = inject(LayoutService);
   private readonly chrome = inject(ShellChromeService);
-  private readonly roles = inject(RoleService);
-  private readonly beta = inject(BetaService);
   private readonly sameRoute = inject(SameRouteRefreshService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly zone = inject(NgZone);
@@ -249,100 +253,122 @@ export class FusionBarComponent {
   readonly variant = input<'app' | 'public'>('app');
 
   private readonly url = signal(this.router.url);
-  readonly menuOpen = signal(false);
   readonly searchOpen = signal(false);
-  /** The tool drawer starts open where there is room for it (desktop), folded elsewhere. */
-  readonly drawerOpen = signal(matches('(min-width: 1280px) and (min-height: 820px)'));
+  readonly panelOpen = signal(false);
   readonly hidden = signal(false);
   readonly morphing = signal(false);
-  readonly collapsing = signal(false);
+  readonly entering = signal(false);
+  /** Main page scrolled past the threshold: the staged field docked as the subheader. */
+  readonly docked = signal(false);
+  /** The staged field stands on its slot (position measured). */
+  readonly placed = signal(false);
   readonly phone = signal(matches('(max-width: 720px)'));
-  readonly iconOnlyKinds = signal(matches('(max-width: 1599px)'));
-  private readonly autoSection = signal<string | null>(null);
 
-  readonly mode = computed<BarMode>(() => barModeOf(this.layout.layout(), this.chrome.stageSearch()));
+  readonly mainPage = computed(() => this.variant() === 'app' && isMainHeaderPage(this.url()));
+  readonly mode = computed<BarMode>(() => {
+    if (this.mainPage()) return this.docked() ? 'docked' : 'stage';
+    return barModeOf(this.layout.layout(), 'none');
+  });
   readonly crumbs = this.chrome.crumbs;
   readonly toolbar = this.chrome.toolbar;
-  readonly drawerShown = computed(() => !!this.toolbar() && this.drawerOpen() && !this.searchOpen());
-  /**
-   * Brand + main nav only while a hub's stage search is on screen (mock d4-s1:
-   * a compact capsule, the stage is the show). Every other mode fuses header
-   * and subheader: area segment, its sub-pages or the trail, and the search.
-   */
-  readonly showStageLayer = computed(() => this.variant() === 'public' || this.mode() === 'stage');
-  readonly showSearch = computed(() => this.mode() !== 'stage');
-  readonly showCrumbs = computed(() => this.mode() !== 'docked' || !!this.chrome.section());
-  readonly sectionLabel = computed(() => this.chrome.section() ?? this.autoSection());
+  readonly filters = this.chrome.filters;
 
-  readonly areas = computed(() =>
-    AREA_ENTRIES.filter((a) => {
-      if (a.id === 'hq') return this.beta.state().codex;
-      if (a.id === 'starscape') return !this.beta.state().verse;
-      if (a.elevated) return this.roles.isAdmin();
-      return true;
-    }),
-  );
-  readonly activeArea = computed(() => activeAreaOf(this.url(), !this.beta.state().verse));
-  readonly areaLabelKey = computed(() => AREA_ENTRIES.find((a) => a.id === this.activeArea())?.labelKey ?? 'fusionBar.home');
-  readonly activeSegment = computed(() => activeSegmentOf(this.url()));
-  /**
-   * The area's sub-pages as tabs in the capsule (Verse: News · Patches · Galerie ·
-   * Sternkarte; HQ: Übersicht · Spind · Hangar · Einsätze) — on hubs, their
-   * sub-pages and tools. A content page shows its trail instead.
-   */
-  readonly sections = computed<readonly AreaSection[] | null>(() => {
-    if (this.variant() !== 'app') return null;
-    const area = this.activeArea();
-    const list = area ? AREA_SECTIONS[area] : undefined;
-    if (!list) return null;
-    return this.mode() === 'content' && this.crumbs()?.crumbs.length ? null : list;
+  private readonly areaEntry = computed(() => {
+    const id = activeAreaOf(this.url(), false);
+    return AREA_ENTRIES.find((a) => a.id === id) ?? null;
   });
-  readonly activeSection = computed(() => {
-    const secs = this.sections();
-    return secs ? activeSectionOf(this.url(), secs) : null;
+  readonly areaLabelKey = computed(() => this.areaEntry()?.labelKey ?? 'fusionBar.home');
+  /** "◂ <origin>": the page header's last crumb (NavOriginService decides where it leads), else the area root. */
+  readonly back = computed(() => plateBackOf(this.crumbs()?.crumbs, this.url(), this.areaEntry()));
+  /** The full trail for the plate's hover: crumbs + the page title. */
+  readonly path = computed<readonly PathCrumb[]>(() => {
+    const c = this.crumbs();
+    if (!c) return [];
+    const list: PathCrumb[] = [...c.crumbs];
+    if (c.title) list.push({ label: c.title, link: null });
+    return list;
   });
-  /** Codex kinds as segments: on the Codex tool pages (index, FPS, upcoming, keybinds). */
+
+  /** Codex kinds: on the Codex tool pages (index, FPS, upcoming, keybinds) the kind switch + panel row. */
   readonly segments = computed<readonly CodexSegment[] | null>(() =>
     this.variant() === 'app' && isCodexToolPage(this.url()) ? CODEX_SEGMENTS : null,
+  );
+  readonly segment = computed<CodexSegment | null>(() => {
+    if (!this.segments()) return null;
+    const id = activeSegmentOf(this.url());
+    return CODEX_SEGMENTS.find((s) => s.id === id) ?? null;
+  });
+  readonly kindTotal = computed(() => this.filters()?.kindTotal ?? null);
+  readonly hitCount = computed(() => this.filters()?.count ?? null);
+  readonly tokens = computed(() => this.filters()?.tokens ?? []);
+  readonly shownTokens = computed(() => this.tokens().slice(0, MAX_TOKENS));
+  readonly moreTokens = computed(() => Math.max(0, this.tokens().length - MAX_TOKENS));
+  readonly panelShown = computed(
+    () => this.panelOpen() && this.mode() !== 'stage' && !this.searchOpen() && (!!this.toolbar() || !!this.segments()),
   );
 
   private readonly tracker = new HideTracker();
   private morphTimer: ReturnType<typeof setTimeout> | null = null;
-  private collapseTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastMode: BarMode | null = null;
-  private hadCrumbs = false;
-  private sectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private enterTimer: ReturnType<typeof setTimeout> | null = null;
+  private placeFrame = 0;
+  private anchorRo: ResizeObserver | null = null;
   private barH = readBarHeight();
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (!(e instanceof NavigationEnd)) return;
-      this.hadCrumbs = !this.segments() && !!this.crumbs()?.crumbs.length;
+      const wasMain = this.mainPage();
       this.url.set(e.urlAfterRedirects);
-      this.menuOpen.set(false);
-      this.autoSection.set(null);
       this.setHidden(false);
-      this.tracker.reset(typeof window === 'undefined' ? 0 : window.scrollY);
-      // The crumb collapses into the active Codex segment on the way in.
-      if (this.hadCrumbs && this.segments()) this.pulse(this.collapsing, 'collapse', 420);
+      const y = typeof window === 'undefined' ? 0 : window.scrollY;
+      this.tracker.reset(y);
+      if (!this.segments()) this.panelOpen.set(false);
+      // A main page starts staged (the router scrolls to the top) and plays the entrance.
+      this.docked.set(this.mainPage() ? nextStageDocked(false, y) : false);
+      if (this.mainPage() && (!wasMain || !this.docked())) this.pulse('enter');
     });
 
-    // The one-shot morph: stage → docked plays the weld; any other change is a plain swap.
     effect(() => {
       const m = this.mode();
+      const main = this.mainPage();
       untracked(() => {
-        if (this.lastMode === 'stage' && m === 'docked') this.pulse(this.morphing, 'morph', 640);
-        this.lastMode = m;
+        this.chrome.setStageSearch(main ? (m === 'docked' ? 'docked' : 'stage') : 'none');
         if (!hidesOnScroll(m)) this.setHidden(false);
+        this.publishHeight();
       });
     });
 
+    // The stage slot comes and goes with the page: track it and stand on it.
+    effect(() => {
+      const anchor = this.chrome.stageAnchor();
+      const staged = this.mode() === 'stage';
+      untracked(() => {
+        this.anchorRo?.disconnect();
+        this.anchorRo = null;
+        if (!staged || !anchor) {
+          this.placed.set(false);
+          return;
+        }
+        if (typeof ResizeObserver !== 'undefined') {
+          this.anchorRo = new ResizeObserver(() => this.schedulePlace());
+          this.anchorRo.observe(anchor);
+        }
+        this.schedulePlace();
+      });
+    });
+
+    if (this.mainPage()) this.pulse('enter');
     afterNextRender(() => this.zone.runOutsideAngular(() => this.listen()), { injector: this.injector });
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
-      if (this.collapseTimer) clearTimeout(this.collapseTimer);
-      if (this.sectionTimer) clearTimeout(this.sectionTimer);
+      if (this.enterTimer) clearTimeout(this.enterTimer);
+      if (typeof cancelAnimationFrame === 'function') {
+        if (this.placeFrame) cancelAnimationFrame(this.placeFrame);
+        if (this.measureFrame) cancelAnimationFrame(this.measureFrame);
+      }
+      this.anchorRo?.disconnect();
       this.chrome.setBarHidden(false);
+      this.chrome.setStageSearch('none');
       if (typeof document !== 'undefined') {
         document.documentElement.style.removeProperty('--sc-topbar-h');
         document.documentElement.style.removeProperty('--sc-bar-stack-h');
@@ -352,34 +378,25 @@ export class FusionBarComponent {
 
   private listen(): void {
     if (typeof window === 'undefined') return;
-    // Direction is tracked on every scroll event (cheap, never misses a 5-10 px
-    // turn); the section label reads layout, so it is throttled.
-    const onScroll = () => {
-      this.onScrollDirection();
-      if (this.sectionTimer) return;
-      this.sectionTimer = setTimeout(() => {
-        this.sectionTimer = null;
-        this.onScrollSection();
-      }, 120);
-    };
+    const onScroll = () => this.onScroll(window.scrollY);
     const onResize = () => {
       const phone = matches('(max-width: 720px)');
-      const iconOnly = matches('(max-width: 1599px)');
-      if (phone !== this.phone() || iconOnly !== this.iconOnlyKinds()) {
-        this.zone.run(() => {
-          this.phone.set(phone);
-          this.iconOnlyKinds.set(iconOnly);
-        });
-      }
+      if (phone !== this.phone()) this.zone.run(() => this.phone.set(phone));
       this.barH = readBarHeight();
       this.publishHeight();
+      this.schedulePlace();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    // The stack grows with the drawer / kind chips: keep the published heights true.
-    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => this.publishHeight());
+    // The stack grows with the panel; the page above the slot can reflow — keep both true.
+    const ro =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => this.scheduleMeasure());
     ro?.observe(this.host.nativeElement as HTMLElement);
+    ro?.observe(document.body);
     window.addEventListener('resize', onResize, { passive: true });
     this.publishHeight();
+    this.onScroll(window.scrollY);
     this.injector.get(DestroyRef).onDestroy(() => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
@@ -387,9 +404,15 @@ export class FusionBarComponent {
     });
   }
 
-  private onScrollDirection(): void {
-    const y = window.scrollY;
-    if (hidesOnScroll(this.mode()) && !this.searchOpen() && !this.menuOpen()) {
+  /** Scroll feed: the main page's dock state machine, the content page's hide/reveal. */
+  onScroll(y: number): void {
+    if (this.mainPage()) {
+      const next = nextStageDocked(this.docked(), y);
+      if (next !== this.docked() && !this.searchOpen()) this.setDocked(next);
+      this.tracker.reset(y);
+      return;
+    }
+    if (hidesOnScroll(this.mode()) && !this.searchOpen() && !this.panelOpen()) {
       const next = this.tracker.update(y, this.barH);
       if (next !== this.hidden()) this.zone.run(() => this.setHidden(next));
     } else {
@@ -397,10 +420,100 @@ export class FusionBarComponent {
     }
   }
 
-  private onScrollSection(): void {
-    if (this.mode() !== 'content' || this.chrome.section()) return;
-    const label = sectionInView(this.barH);
-    if (label !== this.autoSection()) this.zone.run(() => this.autoSection.set(label));
+  /** One crossing of the threshold: switch state, then play the FLIP morph once. */
+  private setDocked(next: boolean): void {
+    const cap = this.capEl();
+    const first = cap?.getBoundingClientRect() ?? null;
+    const logoFirst = cap?.querySelector<HTMLElement>('.blogo img')?.getBoundingClientRect() ?? null;
+    const morph = stageMorphOf(this.docked(), next);
+    this.zone.run(() => {
+      this.docked.set(next);
+      if (next) this.panelOpen.set(false);
+      if (morph === 'dock') this.pulse('morph');
+    });
+    if (!morph || !first) return;
+    afterNextRender(
+      () => {
+        if (morph === 'undock') this.placeStage();
+        this.playMorph(morph, first, logoFirst);
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private playMorph(kind: 'dock' | 'undock', first: DOMRect, logoFirst: DOMRect | null): void {
+    const cap = this.capEl();
+    if (!cap || reducedMotion() || typeof cap.animate !== 'function') return;
+    const last = cap.getBoundingClientRect();
+    cap.animate(
+      [
+        { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px)`, width: `${first.width}px` },
+        { transform: 'none', width: `${last.width}px` },
+      ],
+      { duration: DOCK_MORPH_MS, easing: DOCK_EASE },
+    );
+    // The header's logo glides onto the bar's logo slot (and back) — never overlapped.
+    const head = document.querySelector<HTMLElement>('sc-main-header .brand > img.logo');
+    const barLogo = cap.querySelector<HTMLElement>('.blogo img');
+    const slot = kind === 'dock' ? (barLogo?.getBoundingClientRect() ?? null) : logoFirst;
+    if (!head || !slot || typeof head.animate !== 'function') return;
+    const h = head.getBoundingClientRect();
+    const dx = slot.left + slot.width / 2 - (h.left + h.width / 2);
+    const dy = slot.top + slot.height / 2 - (h.top + h.height / 2);
+    const to = `translate(${dx}px, ${dy}px) scale(${slot.width / (h.width || 1)})`;
+    if (kind === 'dock') {
+      head.animate(
+        [{ transform: 'none', opacity: 1 }, { transform: to, opacity: 1, offset: 0.92 }, { transform: to, opacity: 0 }],
+        { duration: DOCK_MORPH_MS, easing: DOCK_EASE },
+      );
+      barLogo?.animate([{ opacity: 0 }, { opacity: 0, offset: 0.9 }, { opacity: 1 }], { duration: DOCK_MORPH_MS });
+    } else {
+      head.animate([{ transform: to, opacity: 1 }, { transform: 'none', opacity: 1 }], {
+        duration: DOCK_MORPH_MS,
+        easing: DOCK_EASE,
+      });
+    }
+  }
+
+  private measureFrame = 0;
+
+  /** Heights + stage position, one frame later (a write inside a ResizeObserver callback loops it). */
+  private scheduleMeasure(): void {
+    if (typeof requestAnimationFrame !== 'function' || this.measureFrame) return;
+    this.measureFrame = requestAnimationFrame(() => {
+      this.measureFrame = 0;
+      this.publishHeight();
+      this.placeStage();
+    });
+  }
+
+  private schedulePlace(): void {
+    if (typeof requestAnimationFrame !== 'function') {
+      this.placeStage();
+      return;
+    }
+    if (this.placeFrame) return;
+    this.placeFrame = requestAnimationFrame(() => {
+      this.placeFrame = 0;
+      this.placeStage();
+    });
+  }
+
+  /** Stand the staged field on the slot: its position relative to the bar's host, published as CSS vars. */
+  private placeStage(): void {
+    const anchor = this.chrome.stageAnchor();
+    const el = this.host.nativeElement as HTMLElement;
+    if (this.mode() !== 'stage' || !anchor || !anchor.isConnected) return;
+    const a = anchor.getBoundingClientRect();
+    const h = el.getBoundingClientRect();
+    el.style.setProperty('--_st-top', `${Math.round(a.top - h.top)}px`);
+    el.style.setProperty('--_st-left', `${Math.round(a.left - h.left)}px`);
+    el.style.setProperty('--_st-w', `${Math.round(a.width)}px`);
+    if (!this.placed()) this.zone.run(() => this.placed.set(true));
+  }
+
+  private capEl(): HTMLElement | null {
+    return (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.cap');
   }
 
   private setHidden(hidden: boolean): void {
@@ -411,27 +524,29 @@ export class FusionBarComponent {
   }
 
   /**
-   * `--sc-topbar-h`: where a page's own sticky bar parks (settings rail). The
-   * capsule's height while it is shown at the top; 0 while hidden or on a
-   * phone (the capsule is at the bottom there).
+   * `--sc-topbar-h`: where a page's own sticky bar parks — the docked bar's
+   * height at the top; 0 while staged, hidden or on a phone (bar at the bottom).
    */
   private publishHeight(): void {
     if (typeof document === 'undefined') return;
     const el = this.host.nativeElement as HTMLElement;
-    const px = this.phone() || this.hidden() ? 0 : Math.round(el.getBoundingClientRect().height);
+    const staged = this.mode() === 'stage';
+    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(el.getBoundingClientRect().height);
     document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
-    // Phone: the whole bottom stack (capsule + kind chips / drawer) the page must keep free.
-    const stack = this.phone() ? Math.round(el.getBoundingClientRect().height) : 0;
+    // Phone: the whole bottom stack (bar + panel) the page must keep free.
+    const stack = this.phone() && !staged ? Math.round(el.getBoundingClientRect().height) : 0;
     document.documentElement.style.setProperty('--sc-bar-stack-h', `${stack}px`);
   }
 
-  private pulse(flag: typeof this.morphing, kind: 'morph' | 'collapse', ms: number): void {
-    if (kind === 'morph' && this.morphTimer) clearTimeout(this.morphTimer);
-    if (kind === 'collapse' && this.collapseTimer) clearTimeout(this.collapseTimer);
+  private pulse(kind: 'morph' | 'enter'): void {
+    if (reducedMotion()) return;
+    const flag = kind === 'morph' ? this.morphing : this.entering;
+    const old = kind === 'morph' ? this.morphTimer : this.enterTimer;
+    if (old) clearTimeout(old);
     flag.set(true);
-    const t = setTimeout(() => flag.set(false), ms);
+    const t = setTimeout(() => flag.set(false), kind === 'morph' ? 1100 : 1400);
     if (kind === 'morph') this.morphTimer = t;
-    else this.collapseTimer = t;
+    else this.enterTimer = t;
   }
 
   /** Focus inside the bar always brings it back (keyboard users never lose it). */
@@ -441,14 +556,11 @@ export class FusionBarComponent {
 
   onSearchOpen(open: boolean): void {
     this.searchOpen.set(open);
-    if (open) {
-      this.menuOpen.set(false);
-      this.setHidden(false);
-    }
+    if (open) this.setHidden(false);
   }
 
-  toggleDrawer(): void {
-    this.drawerOpen.update((v) => !v);
+  togglePanel(force?: boolean): void {
+    this.panelOpen.update((v) => force ?? !v);
   }
 
   onNav(ev: MouseEvent, path: string): void {
@@ -456,73 +568,11 @@ export class FusionBarComponent {
     this.sameRoute.request(path);
   }
 
-  // ---- area menu (menu-button pattern) ----
-
-  toggleMenu(ev: Event): void {
-    ev.stopPropagation();
-    this.menuOpen.update((v) => !v);
-  }
-
-  onSegKeydown(ev: KeyboardEvent): void {
-    if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
-    ev.preventDefault();
-    this.menuOpen.set(true);
-    const last = ev.key === 'ArrowUp';
-    afterNextRender(
-      () => {
-        const items = this.menuItems();
-        items[last ? items.length - 1 : 0]?.focus();
-      },
-      { injector: this.injector },
-    );
-  }
-
-  onMenuKeydown(ev: KeyboardEvent): void {
-    const items = this.menuItems();
-    if (!items.length) return;
-    const i = items.indexOf(document.activeElement as HTMLElement);
-    if (ev.key === 'ArrowDown') {
-      ev.preventDefault();
-      items[(i + 1) % items.length].focus();
-    } else if (ev.key === 'ArrowUp') {
-      ev.preventDefault();
-      items[(i - 1 + items.length) % items.length].focus();
-    } else if (ev.key === 'Home' || ev.key === 'End') {
-      ev.preventDefault();
-      items[ev.key === 'Home' ? 0 : items.length - 1].focus();
-    } else if (ev.key === 'Escape') {
-      ev.stopPropagation();
-      this.closeMenu(true);
-    } else if (ev.key === 'Tab') {
-      this.closeMenu();
-    }
-  }
-
-  onMenuNav(ev: MouseEvent, path: string): void {
-    if (!isPlainLeftClick(ev)) return;
-    this.sameRoute.request(path);
-    this.closeMenu();
-  }
-
-  closeMenu(returnFocus = false): void {
-    this.menuOpen.set(false);
-    if (returnFocus) (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.seg')?.focus();
-  }
-
-  private menuItems(): HTMLElement[] {
-    return Array.from((this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.menu .mi'));
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(ev: MouseEvent): void {
-    if (!this.menuOpen()) return;
-    const wrap = (this.host.nativeElement as HTMLElement).querySelector('.seg-wrap');
-    if (wrap && !wrap.contains(ev.target as Node)) this.closeMenu();
-  }
-
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.menuOpen()) this.closeMenu();
+    if (!this.panelOpen()) return;
+    this.panelOpen.set(false);
+    (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.fbtn, .kindsw')?.focus();
   }
 }
 
@@ -537,18 +587,6 @@ function matches(query: string): boolean {
   return typeof matchMedia === 'function' && matchMedia(query).matches;
 }
 
-/** The last `h2` of the routed page whose top has passed under the bar — the section in view. */
-function sectionInView(barH: number): string | null {
-  const main = document.getElementById('sc-main');
-  if (!main) return null;
-  let label: string | null = null;
-  for (const h of Array.from(main.querySelectorAll<HTMLElement>('h2'))) {
-    const top = h.getBoundingClientRect().top;
-    if (top > barH + 24) break;
-    if (h.offsetParent === null) continue;
-    const text = (h.textContent ?? '').replace(/\s+/g, ' ').trim();
-    if (text) label = text.length > 40 ? `${text.slice(0, 39)}…` : text;
-  }
-  return label;
+function reducedMotion(): boolean {
+  return matches('(prefers-reduced-motion: reduce)');
 }
-

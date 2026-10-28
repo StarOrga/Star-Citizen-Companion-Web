@@ -14,6 +14,7 @@ import { ShellChromeService } from './shell-chrome.service';
 @Component({ selector: 'sc-fusion-search', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '<ng-content />' })
 class FusionSearchStub {
   readonly placement = input<'top' | 'bottom'>('top');
+  readonly hideContext = input(false);
   readonly compact = input(false);
   readonly openChange = output<boolean>();
 }
@@ -58,10 +59,16 @@ describe('FusionBarComponent', () => {
     return fixture;
   }
 
-  it('shows the seven Codex kinds as real anchors on a Codex tool page, the active one marked', async () => {
+  it('shows the kind switch on a Codex tool page; its panel carries the seven kinds as real anchors', async () => {
     layout.set('tool');
     const fixture = await setup('/codex/index?kind=weapon');
-    const kinds = Array.from(fixture.nativeElement.querySelectorAll('.kinds a.kind')) as HTMLAnchorElement[];
+    const el = fixture.nativeElement as HTMLElement;
+    const sw = el.querySelector('.kindsw') as HTMLButtonElement;
+    expect(sw.textContent).toContain('codex.kinds.weapon');
+    expect(sw.getAttribute('aria-expanded')).toBe('false');
+    sw.click();
+    fixture.detectChanges();
+    const kinds = Array.from(el.querySelectorAll('.fpanel .kindrow a.kind')) as HTMLAnchorElement[];
     expect(kinds.length).toBe(7);
     expect(kinds.every((a) => !!a.getAttribute('href'))).toBeTrue();
     const active = kinds.filter((a) => a.classList.contains('active'));
@@ -70,84 +77,108 @@ describe('FusionBarComponent', () => {
     expect(active[0].getAttribute('aria-current')).toBe('page');
   });
 
-  it('renders a registered tool toolbar as the drawer, toggled from the search', async () => {
+  it('integrates the tool filters into the bar: tokens in the field, hit count, Filter button and the hanging panel', async () => {
     layout.set('tool');
-    const fixture = await setup('/codex/index');
+    const fixture = await setup('/codex/index?kind=ship');
     const host = TestBed.createComponent(ToolbarHost);
     host.detectChanges();
-    const off = TestBed.inject(ShellChromeService).registerToolbar(host.componentInstance.tb());
+    const chrome = TestBed.inject(ShellChromeService);
+    const offTb = chrome.registerToolbar(host.componentInstance.tb());
+    const removed: string[] = [];
+    let resets = 0;
+    const offF = chrome.registerFilters({}, () => ({
+      count: 212,
+      kindTotal: 368,
+      tokens: [
+        { id: 'manufacturer', labelKey: 'codex.filters.manufacturer', value: 'Aegis', remove: () => removed.push('manufacturer') },
+      ],
+      reset: () => resets++,
+    }));
     fixture.detectChanges();
-    const toggle = fixture.nativeElement.querySelector('.drawer-toggle') as HTMLButtonElement;
-    // Starts open on a roomy desktop window, folded elsewhere (Karma runs narrow).
-    if (toggle.getAttribute('aria-expanded') !== 'true') {
-      toggle.click();
-      fixture.detectChanges();
-    }
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(fixture.nativeElement.querySelector('.drawer .tool-row')?.textContent).toContain('FILTERS');
-    toggle.click();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.kindsw i')?.textContent).toContain('368');
+    expect(el.querySelector('.count')?.textContent).toContain('fusionBar.hits');
+    expect(el.querySelector('sc-fusion-search .tok .tok-v')?.textContent).toContain('Aegis');
+    (el.querySelector('.tok-x') as HTMLButtonElement).click();
+    expect(removed).toEqual(['manufacturer']);
+
+    const fbtn = el.querySelector('.fbtn') as HTMLButtonElement;
+    expect(fbtn.querySelector('i')?.textContent).toContain('1');
+    fbtn.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.drawer')).toBeNull();
-    off();
+    expect(fbtn.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelector('.cap')?.classList).toContain('open');
+    expect(el.querySelector('.fpanel .fcols .tool-row')?.textContent).toContain('FILTERS');
+    (el.querySelector('.fpanel .freset') as HTMLButtonElement).click();
+    expect(resets).toBe(1);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.drawer-toggle')).toBeNull();
+    expect(el.querySelector('.fpanel')).toBeNull();
+    offF();
+    offTb();
+    fixture.detectChanges();
+    expect(el.querySelector('.fbtn')).toBeNull();
+    expect(el.querySelector('.tok')).toBeNull();
   });
 
-  it('shows the published crumbs + title on a content page', async () => {
+  it('plate: category on line one, "◂ origin" as a real anchor on line two, the full path on hover', async () => {
     layout.set('content');
     const fixture = await setup('/codex/ship/AEGS_Avenger');
     TestBed.inject(ShellChromeService).publishCrumbs({}, {
-      crumbs: [{ label: 'Codex', link: ['/codex'] }],
+      crumbs: [
+        { labelKey: 'nav.codex', link: ['/codex'] },
+        { label: 'Schiffe', link: ['/codex', 'index'], queryParams: { kind: 'ship' } },
+      ],
       title: 'Avenger Stalker',
     });
     fixture.detectChanges();
-    const crumb = fixture.nativeElement.querySelector('.crumbs a.crumb') as HTMLAnchorElement;
-    expect(crumb.getAttribute('href')).toBe('/codex');
-    expect(fixture.nativeElement.querySelector('.crumbs .here')?.textContent).toContain('Avenger Stalker');
-    expect(fixture.nativeElement.querySelector('.kinds')).toBeNull();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('nav.codex');
+    const back = el.querySelector('.plate a.back') as HTMLAnchorElement;
+    expect(back.getAttribute('href')).toBe('/codex/index?kind=ship');
+    expect(back.textContent).toContain('◂');
+    expect(back.textContent).toContain('Schiffe');
+    const path = Array.from(el.querySelectorAll('.plate .path li')).map((li) => li.textContent?.trim());
+    expect(path).toEqual(['nav.codex', 'Schiffe', 'Avenger Stalker']);
+    expect(el.querySelector('.blogo')?.getAttribute('href')).toBe('/verse');
+    // No page title row, filter hint, patch chip or main-menu switching in the subheader.
+    expect(el.querySelector('.seg, .menu, .nav, .kindsw')).toBeNull();
   });
 
-  it('leaves the search to the stage line on a cinematic hub, docks it once passed', async () => {
+  it('on a main page the field stands staged alone, docks past the threshold and returns on the way back', async () => {
     layout.set('cinematic');
     const fixture = await setup('/verse');
     const chrome = TestBed.inject(ShellChromeService);
-    chrome.setStageSearch('stage');
+    const el = fixture.nativeElement as HTMLElement;
+    const bar = fixture.componentInstance;
+    expect(el.getAttribute('data-mode')).toBe('stage');
+    expect(el.querySelector('sc-fusion-search')).not.toBeNull();
+    expect(el.querySelector('.plate, .blogo, .div')).toBeNull();
+    expect(chrome.stageSearch()).toBe('stage');
+
+    bar.onScroll(200);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('sc-fusion-search')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.brand')).not.toBeNull();
-    chrome.setStageSearch('docked');
+    expect(el.getAttribute('data-mode')).toBe('docked');
+    expect(el.querySelector('.blogo')).not.toBeNull();
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('nav.verse');
+    expect(chrome.stageSearch()).toBe('docked');
+
+    bar.onScroll(40);
     fixture.detectChanges();
+    expect(el.getAttribute('data-mode')).withContext('hysteresis').toBe('docked');
+    bar.onScroll(0);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('sc-fusion-search')).not.toBeNull();
-    expect((fixture.nativeElement as HTMLElement).classList.contains('morph')).toBeTrue();
-    expect(fixture.nativeElement.getAttribute('data-mode')).toBe('docked');
-    // Docked, the capsule carries the hub's sub-pages next to the search (mock d4-s2).
-    expect(fixture.nativeElement.querySelectorAll('.sections a.kind').length).toBe(4);
-    chrome.setStageSearch('none');
+    expect(el.getAttribute('data-mode')).toBe('stage');
+    expect(chrome.stageSearch()).toBe('stage');
   });
 
-  it('fuses header and subheader on a cinematic sub-page: area segment, sub-page tabs, search — no brand row', async () => {
+  it('is docked from the start on a sub-page, its back link leading to the area root without crumbs', async () => {
     layout.set('cinematic');
     const fixture = await setup('/verse/news');
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.getAttribute('data-mode')).toBe('hub');
-    expect(el.querySelector('.brand')).toBeNull();
-    expect(el.querySelector('.nav')).toBeNull();
-    expect(el.querySelector('.seg')).not.toBeNull();
+    expect(el.querySelector('.plate a.back')?.getAttribute('href')).toBe('/verse');
     expect(el.querySelector('sc-fusion-search')).not.toBeNull();
-    const tabs = Array.from(el.querySelectorAll('.sections a.kind')) as HTMLAnchorElement[];
-    expect(tabs.map((a) => a.getAttribute('href'))).toEqual(['/verse/news', '/verse/patches', '/verse/gallery', '/verse/explorer']);
-    const active = tabs.filter((a) => a.getAttribute('aria-current') === 'page');
-    expect(active.map((a) => a.getAttribute('href'))).toEqual(['/verse/news']);
-  });
-
-  it('carries the HQ tabs in the capsule, the overview active only on /hq itself', async () => {
-    layout.set('tool');
-    const fixture = await setup('/hq/hangar');
-    fixture.detectChanges();
-    const tabs = Array.from(fixture.nativeElement.querySelectorAll('.sections a.kind')) as HTMLAnchorElement[];
-    expect(tabs.length).toBe(4);
-    expect(tabs.filter((a) => a.classList.contains('active')).map((a) => a.getAttribute('href'))).toEqual(['/hq/hangar']);
   });
 });

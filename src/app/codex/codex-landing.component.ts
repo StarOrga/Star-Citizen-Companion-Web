@@ -13,7 +13,7 @@ import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
-import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
+import { BetaService } from '../core/beta.service';
 import {
   CodexListRow,
   CodexService,
@@ -76,7 +76,6 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
   selector: 'sc-codex-landing',
   standalone: true,
   imports: [
-    StageSearchDirective,
     RouterLink,
     TranslatePipe,
     CodexCompareTrayComponent,
@@ -97,7 +96,10 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
       <header class="terminal">
         <!-- The ONE Codex search (also behind Ctrl+K and above every other
              Codex page). Activated, it spans this whole row and leads the page. -->
-        <sc-codex-search-bar #searchBar class="terminal-search" variant="terminal" [query]="routeQuery()" scStageSearch />
+        <!-- Beta shell: the search stands in the shell's stage slot (the bar's own field). -->
+        @if (!shellOn()) {
+          <sc-codex-search-bar #searchBar class="terminal-search" variant="terminal" [query]="routeQuery()" />
+        }
 
         <!-- ONE headline (admin feedback 463872dd): the patch that produced
              everything below it. Round two of that feedback dropped the
@@ -369,6 +371,8 @@ export class CodexLandingComponent implements OnInit {
   readonly hangar = inject(HangarService);
   readonly auth = inject(AuthService);
   private readonly t = inject(TranslateService);
+  /** Beta shell: the shell bar's search stands on this page's stage slot instead of the terminal search. */
+  readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly rsi = inject(UpcomingShipsService);
   private readonly locale = inject(LocaleService);
   private readonly route = inject(ActivatedRoute);
