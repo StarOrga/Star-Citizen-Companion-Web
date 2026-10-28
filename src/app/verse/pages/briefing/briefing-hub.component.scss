@@ -4,10 +4,17 @@
 // wide (7 cqw padding each side), so one mock unit is --u = 100cqi / 86 of the
 // hub here. Shared rhythm: the three features are exactly column width × 26 u,
 // then three rows of 4.6 u — all three columns end on one line.
+// Desktop: the hub plus the footer fit one viewport. A column is 45.8 u tall
+// (2.4 padding + 2.6 head + 1 gap + 26 feature + 3 × 4.6 rows), so u is also
+// capped by the height left under the top bar and above the footer; then the
+// columns narrow with it (86 u wide, centred) and keep the mock's proportions.
 :host { display: block; position: relative; z-index: 1; container-type: inline-size; color: var(--sc-fg-0); }
 
 .cols {
-  --u: calc(100cqi / 86);
+  --u-h: calc((100dvh - var(--sc-bar-h, 64px) - 16px - 2 * var(--sc-space-6, 32px) - var(--sc-footer-h, 56px)) / 45.8);
+  --u: min(calc(100cqi / 86), var(--u-h));
+  max-width: calc(86 * var(--u));
+  margin-inline: auto;
   --feat: calc(26 * var(--u));
   --row: max(56px, calc(4.6 * var(--u)));
   --gap-g: max(6px, calc(0.6 * var(--u)));
