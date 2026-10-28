@@ -324,8 +324,11 @@ export class ScTooltipDirective implements OnDestroy {
 
   private disposeOverlay(): void {
     if (!this.overlayRef) return;
-    this.overlayRef.overlayElement.removeEventListener('mouseenter', this.onBubbleEnter);
-    this.overlayRef.overlayElement.removeEventListener('mouseleave', this.onBubbleLeave);
+    // The CDK nulls the pane once the overlay is disposed from outside (a
+    // route change tears the overlay container down before ngOnDestroy runs).
+    const pane = this.overlayRef.overlayElement as HTMLElement | null;
+    pane?.removeEventListener('mouseenter', this.onBubbleEnter);
+    pane?.removeEventListener('mouseleave', this.onBubbleLeave);
     document.removeEventListener('keydown', this.onDocumentKeydown);
     this.overlayRef.dispose();
     this.overlayRef = null;
