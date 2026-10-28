@@ -314,7 +314,9 @@ export class VerseBriefingComponent {
     return c.version ? c : null;
   });
   /** Hotfix / PTU / Evocati — always three slots. */
-  readonly hubChannels = computed(() => hubChannels(this.channelMap(), this.knownLines(), (l) => this.stability.verdictFor(l)));
+  readonly hubChannels = computed(() =>
+    hubChannels(this.channelMap(), this.knownLines(), (l) => this.stability.verdictFor(l), this.api.digest()?.patch?.channelInfo ?? null),
+  );
   readonly hubPatchImage = computed(() => patchImage(this.news.patchLines()));
   readonly hubGallery = computed(() => hubGallery(this.api.digest()?.items ?? []));
   readonly liveDays = computed(() => this.status()?.live.days ?? null);

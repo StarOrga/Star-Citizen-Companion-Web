@@ -4765,12 +4765,7 @@
         "ptu": "PTU",
         "evocati": "Evocati"
       },
-      "channelState": {
-        "live": "live",
-        "hotfix": "in testing",
-        "ptu": "public test",
-        "evocati": "under NDA"
-      },
+      "wave": "Wave {{n}}",
       "channelOff": "none running right now"
     }
   },

@@ -1,6 +1,7 @@
 import type { PatchLineGroup } from '../../../news/patch-notes';
-import type { StabilityVerdict } from '../../../news/patch-stability';
-import type { VerseDigestItem } from '../../data/verse.models';
+import { channelStability } from '../../../news/patch-stability';
+import type { ChannelBuildSample, StabilityLevel, StabilityVerdict } from '../../../news/patch-stability';
+import type { VerseChannelBuild, VerseChannelInfo, VerseDigestItem } from '../../data/verse.models';
 
 /** News rows in the hub's accordion: one open, the rest as slim rows. */
 export const HUB_NEWS = 4;
@@ -48,6 +49,10 @@ export interface HubChannel {
   readonly version: string | null;
   readonly line: string | null;
   readonly stats: HubStats;
+  /** Whole days since the version entered the channel; null when unknown ("–"). */
+  readonly sinceDays: number | null;
+  /** PTU / Evocati wave of the newest notes; null when they name none. */
+  readonly wave: number | null;
 }
 
 /** `4.3.1` → `4.3`. */
@@ -102,29 +107,72 @@ export function hubStats(cur: StabilityVerdict | null, prev: StabilityVerdict | 
   };
 }
 
-const CHANNEL_SUFFIX: Readonly<Record<HubChannelKind, string>> = { live: '', hotfix: '', ptu: ' PTU', evocati: ' Evocati' };
+const CHANNEL_SUFFIX: Readonly<Record<HubChannelKind, string>> = { live: '', hotfix: ' Hotfix', ptu: ' PTU', evocati: ' Evocati' };
+const DAY_MS = 86_400_000;
+
+type ChannelInfoMap = Readonly<Record<string, VerseChannelInfo>> | null | undefined;
+
+function sample(b: VerseChannelBuild, toIso: string, fromIso = b.threadFirstAt): ChannelBuildSample {
+  return { replies: b.replies, ticketShare: b.ticketShare, ticketVoteShare: b.ticketVoteShare, fromIso, toIso };
+}
+
+type Measured = { stability: number; level: StabilityLevel } | null;
+
+/**
+ * Stabilität + Bekannte Probleme of a test-channel build against its
+ * predecessor. Only the community component is measured for these (see
+ * `channelStability`), and the KB issue count exists for LIVE only: the word
+ * comes from the build's level, the count and its delta stay "–".
+ */
+export function channelStats(cur: Measured, prev: Measured, vs: string | null): HubStats {
+  return {
+    stability: stat(cur?.stability ?? null, prev?.stability ?? null, true),
+    issues: { value: null, delta: null, trend: null, level: cur?.level ?? null },
+    vs,
+  };
+}
+
+/** Whole days between an ISO instant and now; null for a missing / unparsable one. */
+export function daysSince(iso: string | null | undefined, now: number): number | null {
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(t) ? Math.max(0, Math.floor((now - t) / DAY_MS)) : null;
+}
 
 /**
  * One channel from the digest's `patch.channels` (live / hotfix / ptu /
- * evocati). The sampler only measures lines that reached LIVE, so only the
- * LIVE channel carries numbers; the others keep the same grid with "–" until
- * there is data for them. Every channel compares with its own predecessor:
- * LIVE with the line before, a hotfix with the LIVE build, PTU / Evocati with
- * the previous line's PTU / Evocati.
+ * evocati) and `patch.channelInfo`. LIVE is measured by the stability sampler;
+ * Hotfix / PTU / Evocati carry the raw numbers of their running build in
+ * `channelInfo` (Spectrum threads) and compare with the PREVIOUS BUILD OF THE
+ * SAME CHANNEL. Without `channelInfo` for a channel (older digest) the row keeps
+ * the grid with "–": a hotfix against the LIVE build, PTU / Evocati against the
+ * previous line's PTU / Evocati.
  */
 export function hubChannel(
   kind: HubChannelKind,
   channels: Readonly<Record<string, string>> | null | undefined,
   known: readonly string[],
   verdictFor: (line: string) => StabilityVerdict | null,
+  channelInfo?: ChannelInfoMap,
+  now: number = Date.now(),
 ): HubChannel {
-  const version = channels?.[kind]?.trim() || null;
-  if (!version) return { kind, version: null, line: null, stats: hubStats(null, null, null) };
+  const info = kind === 'live' ? undefined : channelInfo?.[kind];
+  const version = info?.version?.trim() || channels?.[kind]?.trim() || null;
+  if (!version) return { kind, version: null, line: null, stats: hubStats(null, null, null), sinceDays: null, wave: null };
   const line = lineOf(version);
   const prev = previousLine(line, known);
-  if (kind === 'live') return { kind, version, line, stats: hubStats(verdictFor(line), prev ? verdictFor(prev) : null, prev) };
+  if (kind === 'live') return { kind, version, line, stats: hubStats(verdictFor(line), prev ? verdictFor(prev) : null, prev), sinceDays: null, wave: null };
+  if (info) {
+    const toIso = new Date(now).toISOString();
+    const p = info.previous;
+    const stats = channelStats(
+      channelStability(sample(info, toIso)),
+      p ? channelStability(sample(p, p.endedAt ?? toIso)) : null,
+      p ? p.version + CHANNEL_SUFFIX[kind] : null,
+    );
+    return { kind, version, line, stats, sinceDays: daysSince(info.startedAt, now), wave: kind === 'hotfix' ? null : info.wave };
+  }
   const vs = kind === 'hotfix' ? (channels?.['live']?.trim() || prev) : prev ? prev + CHANNEL_SUFFIX[kind] : null;
-  return { kind, version, line, stats: hubStats(null, null, vs) };
+  return { kind, version, line, stats: hubStats(null, null, vs), sinceDays: null, wave: null };
 }
 
 /** The three fixed slots under the LIVE feature — always three rows, quiet when a channel is not running. */
@@ -132,8 +180,10 @@ export function hubChannels(
   channels: Readonly<Record<string, string>> | null | undefined,
   known: readonly string[],
   verdictFor: (line: string) => StabilityVerdict | null,
+  channelInfo?: ChannelInfoMap,
+  now: number = Date.now(),
 ): HubChannel[] {
-  return HUB_CHANNELS.map((k) => hubChannel(k, channels, known, verdictFor));
+  return HUB_CHANNELS.map((k) => hubChannel(k, channels, known, verdictFor, channelInfo, now));
 }
 
 /**

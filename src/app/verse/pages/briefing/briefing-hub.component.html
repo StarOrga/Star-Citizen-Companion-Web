@@ -68,7 +68,7 @@
             <span class="ch-id">
               <small><i aria-hidden="true"></i>{{ ('verse.hub.channel.' + ch.kind) | translate }}</small>
               <b>{{ ch.version }}</b>
-              <span>{{ ('verse.hub.channelState.' + ch.kind) | translate }}</span>
+              <span>@if (ch.sinceDays !== null) {{{ sinceKey(ch.sinceDays) | translate: { n: ch.sinceDays } }}} @else {–}@if (ch.wave !== null) { · {{ 'verse.hub.wave' | translate: { n: ch.wave } }}}</span>
             </span>
             <ng-container *ngTemplateOutlet="kv; context: { $implicit: ch }" />
           </a>

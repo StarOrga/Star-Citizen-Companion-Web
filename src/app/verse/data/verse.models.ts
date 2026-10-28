@@ -49,11 +49,39 @@ export interface VerseGateCount {
   readonly total?: number;
 }
 
+/**
+ * One build of a test channel (hotfix / ptu / evocati) with the raw numbers the
+ * client turns into a verdict (`channelVerdict` in news/patch-stability.ts).
+ * Source: Spectrum forum 190048 via the patch-stability-sample edge function.
+ */
+export interface VerseChannelBuild {
+  readonly version: string;
+  /** When the version entered the channel (ISO). */
+  readonly startedAt: string | null;
+  /** First thread of the build — the base for the reply velocity. */
+  readonly threadFirstAt: string | null;
+  /** PTU/Evocati wave of the newest thread; null when it names none. */
+  readonly wave: number | null;
+  readonly replies: number;
+  readonly votes: number;
+  /** Issue-Council ticket share of the top replies (0…1); null when never measured. */
+  readonly ticketShare: number | null;
+  readonly ticketVoteShare: number | null;
+}
+
+/** The running build of a channel and its predecessor in the SAME channel. */
+export interface VerseChannelInfo extends VerseChannelBuild {
+  /** The previous build; `endedAt` is where its reply velocity window closes. */
+  readonly previous: (VerseChannelBuild & { readonly endedAt: string | null }) | null;
+}
+
 export interface VersePatchStatus {
   readonly line: string;
   readonly liveAt: string | null;
   /** channel → version, e.g. `{ live: '4.3.1', ptu: '4.4.0' }`. */
   readonly channels: Readonly<Record<string, string>>;
+  /** Running hotfix / ptu / evocati build per channel; absent on a digest from before the migration. */
+  readonly channelInfo?: Readonly<Record<string, VerseChannelInfo>>;
   readonly status: 'live' | 'ptu';
 }
 
@@ -303,11 +331,40 @@ export function mapDigest(raw: unknown): VerseDigest | null {
           line: s(p['line']),
           liveAt: sn(p['live_at']),
           channels: Object.fromEntries(Object.entries(obj(p['channels'])).map(([k, v]) => [k, s(v)])),
+          channelInfo: mapChannelInfo(p['channel_info']),
           status: p['status'] === 'ptu' ? 'ptu' : 'live',
         }
       : null,
     counts: { news: gate('news'), patches: gate('patches'), gallery: gate('gallery') },
   };
+}
+
+const nn = (v: unknown): number | null => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+
+function mapChannelBuild(r: Row): VerseChannelBuild {
+  return {
+    version: s(r['version']),
+    startedAt: sn(r['started_at']),
+    threadFirstAt: sn(r['thread_first_at']),
+    wave: nn(r['wave']),
+    replies: n(r['replies']),
+    votes: n(r['votes']),
+    ticketShare: nn(r['ticket_share']),
+    ticketVoteShare: nn(r['ticket_vote_share']),
+  };
+}
+
+/** `patch.channel_info` → camelCase; entries without a version are dropped. */
+export function mapChannelInfo(raw: unknown): Readonly<Record<string, VerseChannelInfo>> {
+  const out: Record<string, VerseChannelInfo> = {};
+  for (const [channel, v] of Object.entries(obj(raw))) {
+    const cur = mapChannelBuild(obj(v));
+    if (!cur.version) continue;
+    const prevRaw = obj(obj(v)['previous']);
+    const prev = mapChannelBuild(prevRaw);
+    out[channel] = { ...cur, previous: prev.version ? { ...prev, endedAt: sn(prevRaw['ended_at']) } : null };
+  }
+  return out;
 }
 
 const COMET_STATES: readonly VerseCometStateKey[] = ['none', 'tipped', 'hit', 'miss'];
