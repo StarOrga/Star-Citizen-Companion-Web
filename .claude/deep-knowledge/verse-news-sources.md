@@ -282,6 +282,15 @@ the cache for these urls would make the CSP grant the *only* thing standing
 between a new video and a blank thumbnail — so that grant is a precondition of
 the change above, not an alternative to it.
 
+## YouTube thumbnail resolution
+
+The RSS feed only lists `hqdefault.jpg` (480×360, black bars baked in → 480×270
+of picture), which the 21:9 news stage upscaled into a smear. `fetchYouTube`
+HEAD-probes `maxresdefault.jpg` (1280×720, full-bleed) per retained video and
+swaps it in on a 200 (`youtube-thumb.ts`). Never try-and-fall-back on the
+client: a missing maxres answers 404 with a 120×90 grey placeholder body that
+an `<img>` renders without firing `error`.
+
 ## Caching strategy
 
 - Edge function: `Cache-Control: public, max-age=300, s-maxage=900` — Supabase CDN caches for 15 min.

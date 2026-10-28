@@ -22,6 +22,7 @@ import { isCommLinkArticleUrl } from './comm-link-url.ts';
 import { heroOgTargets, promoteHero } from './hero-image.ts';
 import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.ts';
 import { isImageUrl } from './media-urls.ts';
+import { upgradeYouTubeThumbnail } from './youtube-thumb.ts';
 import { isWallpaperSeries } from './wallpaper-series.ts';
 import {
   NEWS_IMG_BUCKET,
@@ -399,7 +400,14 @@ async function fetchYouTube(): Promise<VerseNewsItem[]> {
     // run — so an aged-out clip never gets a thumbnail written to storage in
     // the first place. `enforceVideoRetention` below cleans up the ones that
     // were cached while they were still fresh.
-    return videos.filter((v) => isWithinVideoRetention(v.publishedAt, now));
+    const kept = videos.filter((v) => isWithinVideoRetention(v.publishedAt, now));
+    // The feed only offers the letterboxed 480×360 hqdefault; swap in the
+    // 1280×720 maxres frame wherever YouTube confirms it (youtube-thumb.ts).
+    return await Promise.all(kept.map(async (v) => {
+      if (!v.thumbnail) return v;
+      const thumb = await upgradeYouTubeThumbnail(v.thumbnail);
+      return thumb === v.thumbnail ? v : { ...v, thumbnail: thumb, images: [thumb] };
+    }));
   } catch (err) {
     console.error('fetchYouTube failed:', err);
     return [];
