@@ -428,6 +428,14 @@ export const routes: Routes = [
         loadComponent: () => import('./admin/admin.component').then((m) => m.AdminComponent),
       },
       {
+        // The admin hub (beta shell): the merged "Admin" main-nav entry lands
+        // here — a cinematic main page with tiles to the admin pages.
+        path: 'admin/hub',
+        data: { layout: 'cinematic' },
+        canActivate: [roleGuard('admin')],
+        loadComponent: () => import('./admin/admin-hub.component').then((m) => m.AdminHubComponent),
+      },
+      {
         // The page is presented as "Integrations" since admin feedback 85477aaa
         // (API tokens are just one integration on it). The path stays as-is so
         // existing links/bookmarks keep resolving; /admin/integrations is the
