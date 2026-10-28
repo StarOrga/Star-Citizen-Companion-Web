@@ -442,9 +442,15 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(meter(live)?.classList.contains('weak')).withContext('56 % is weak, so warning amber').toBeTrue();
     expect(meter(live)?.querySelector('.pct')?.textContent?.replace(/\s/g, '')).toBe('56%');
     expect(meter(superseded)?.classList.contains('weak')).toBeFalse();
-    // The gutter sits left of the card, in the rail's column.
+    // The gutter sits left of the card, in the rail's column. Under 760 px (Karma renders 749)
+    // it folds above the card instead, so the stb must sit above the card there.
     const card = live.querySelector('.card')!.getBoundingClientRect();
-    expect(live.querySelector('.stb')!.getBoundingClientRect().right).toBeLessThanOrEqual(card.left + 1);
+    const stb = live.querySelector('.stb')!.getBoundingClientRect();
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      expect(stb.bottom).toBeLessThanOrEqual(card.top + 1);
+    } else {
+      expect(stb.right).toBeLessThanOrEqual(card.left + 1);
+    }
   });
 
   it('an empty query brings the stack back untouched', async () => {
