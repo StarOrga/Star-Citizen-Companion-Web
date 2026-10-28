@@ -19,7 +19,7 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
-      <sc-verse-header [eyebrow]="'verse.area.news' | translate" [rememberAs]="'verse.area.news' | translate" />
+      <sc-verse-header planet="news" [title]="'verse.area.news' | translate" [subtitle]="'verse.frame.newsSub' | translate" />
     }
     <!-- Shell beta: a direct load of /verse/news/:id is a full page, so the stream
          only stays underneath while the item is an overlay. -->

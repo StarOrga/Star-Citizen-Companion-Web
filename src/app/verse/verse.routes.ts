@@ -2,6 +2,10 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { BetaService } from '../core/beta.service';
 import { OVERLAY_ROUTE_DATA } from '../core/overlay-route-scroll';
+import { verseFlightResolver } from './shared/verse-flight';
+
+/** The hub ⇄ subpage flight (shared/verse-flight.ts) starts in this resolver on the five frame routes. */
+const flight = { verseFlight: verseFlightResolver };
 
 /**
  * Shell beta (implement.md §12): "Meine Sternbilder" is a state of the star-map
@@ -22,12 +26,14 @@ export const VERSE_ROUTES: Routes = [
   {
     path: '',
     data: { layout: 'cinematic' },
+    resolve: flight,
     pathMatch: 'full',
     loadComponent: () => import('./pages/verse-briefing.component').then((m) => m.VerseBriefingComponent),
   },
   {
     path: 'news',
     data: { layout: 'cinematic' },
+    resolve: flight,
     loadComponent: () => import('./pages/verse-news.component').then((m) => m.VerseNewsComponent),
     children: [
       {
@@ -44,6 +50,7 @@ export const VERSE_ROUTES: Routes = [
     // as an overlay over the time stack, browser back closes it.
     path: 'patches',
     data: { layout: 'cinematic' },
+    resolve: flight,
     loadComponent: () => import('./pages/verse-patches.component').then((m) => m.VersePatchesComponent),
     children: [
       {
@@ -65,6 +72,7 @@ export const VERSE_ROUTES: Routes = [
   {
     path: 'gallery',
     data: { layout: 'cinematic' },
+    resolve: flight,
     loadComponent: () => import('./pages/verse-gallery.component').then((m) => m.VerseGalleryComponent),
     children: [
       {
@@ -77,6 +85,7 @@ export const VERSE_ROUTES: Routes = [
   {
     path: 'explorer',
     data: { layout: 'cinematic' },
+    resolve: flight,
     loadChildren: () => import('./starmap/starmap.routes').then((m) => m.STARMAP_ROUTES),
   },
 ];

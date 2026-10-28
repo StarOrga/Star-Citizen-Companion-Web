@@ -54,7 +54,7 @@ export const IDLE_SHOW_MS = 5000;
         ? ('starmap.stageAria' | translate: { patch: patchLine() }) + ' · ' + ('starmap.progress' | translate: { lit: lit(), total: total() })
         : ('starmap.progress' | translate: { lit: lit(), total: total() });
       <a class="const-l" routerLink="/verse/explorer" [class.idle]="idle()" [attr.aria-label]="mapName + ' · ' + mapValue">
-        <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
+        <span class="fig" data-verse-fly="starmap" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
         <span class="lab" aria-hidden="true">
           <span class="lab-n">@for (ch of chars(mapName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>
           <span class="lab-v">{{ mapValue }}</span>

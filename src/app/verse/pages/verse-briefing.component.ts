@@ -12,6 +12,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { AppNoticeComponent } from '../../desktop/app-notice.component';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
@@ -144,7 +145,7 @@ export function fitTitle(h: HTMLElement): void {
   imports: [
     StageSearchDirective,
     StageHeroDirective,
-    RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
+    RouterLink, TranslatePipe, ScTooltipDirective, AppNoticeComponent, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
     BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

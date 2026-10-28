@@ -377,6 +377,11 @@ export class VerseApiService {
     return { ok: true, data: res };
   }
 
+  /** Loads the explorer state once for a signed-in user (the avatar's rank crest needs it on every page). */
+  ensureExplorer(): void {
+    if (this.auth.isAuthenticated() && !this._explorer() && this._explorerState() !== 'loading') void this.loadExplorer();
+  }
+
   /** The explorer state before a claim (loaded on demand so reward diffs are exact); null when unavailable. */
   private async explorerSnapshot(): Promise<VerseExplorerState | null> {
     if (!this.auth.isAuthenticated()) return null;

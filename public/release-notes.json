@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.169.0",
+  "current": "0.169.1",
   "releases": [
+    {
+      "version": "0.169.1",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta shell: the search sits below each main page's title, at the same spot on Verse, Codex, HQ and Admin, and the title may stay on one line; Codex has its own hero."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: the header stays put and folds into the search bar while you scroll; it no longer jumps on back, forward, menu switches or when opening a subpage, and reload keeps your scroll position."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: the search arrives from depth, shows example searches, and the docked bar carries its glow band and the light sweep on menu switches."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: the focused search has a single edge with the results attached to the bar; the Codex filter panel opens over the page, filter chips are short, and on phones the bar no longer collides with the avatar or the feedback button."
+            },
+            {
+              "title": "",
+              "text": "Tooltips no longer throw when their overlay was already closed."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.169.0",
       "date": "2026-10-28",

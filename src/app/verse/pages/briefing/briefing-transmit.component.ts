@@ -58,7 +58,7 @@ export interface TransmitItem {
     @let c = cur();
     <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null" [attr.data-phase]="phase()"><i class="waves"></i></span>
     @for (d of doors; track d) {
-      <a class="pl" [attr.data-door]="d" [class.send]="c?.door === d && (phase() === 'charge' || phase() === 'reveal')"
+      <a class="pl" [attr.data-door]="d" [attr.data-verse-fly]="d" [class.send]="c?.door === d && (phase() === 'charge' || phase() === 'reveal')"
          [routerLink]="'/verse/' + d" (click)="door.emit(d)">
         <span class="plab">{{ ('verse.gates.' + d + '.topic') | translate }}</span>
       </a>

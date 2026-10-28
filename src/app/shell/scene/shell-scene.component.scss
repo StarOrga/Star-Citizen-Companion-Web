@@ -259,6 +259,37 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     .scene[data-home] .follow { animation: none; transform: translateY(calc(var(--scene-scroll, 0px) * -1)); }
   }
 
+  // ── Verse subpages: deep space around the page's planet ─────────────────
+  // No hub horizon or ground behind a subpage: the home planet sinks out of
+  // view, a faint halo in the planet's colour stands behind the head's emblem
+  // (top left of the page frame).
+  .scene[data-world] .planet { opacity: 0; transform: translateY(40dvh); }
+  .scene[data-world] .ground { opacity: 0; }
+  .halo {
+    position: absolute;
+    left: calc(max(0px, (100vw - var(--sc-page-max, 1280px)) / 2) + var(--sc-page-gutter, 28px) + 32px);
+    top: calc(var(--sc-bar-h, 56px) + 96px);
+    width: 0;
+    height: 0;
+    opacity: 0;
+    transition: opacity var(--scene-move) var(--scene-ease);
+  }
+  .halo::before {
+    content: '';
+    position: absolute;
+    left: -36vmax;
+    top: -36vmax;
+    width: 72vmax;
+    height: 72vmax;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--halo, transparent), transparent);
+  }
+  .scene[data-world] .halo { opacity: 1; }
+  .scene[data-world='news'] { --halo: rgba(233, 180, 160, 0.1); }
+  .scene[data-world='patches'] { --halo: rgba(243, 200, 140, 0.09); }
+  .scene[data-world='gallery'] { --halo: rgba(170, 222, 255, 0.1); }
+  .scene[data-world='starmap'] { --halo: color-mix(in srgb, var(--sc-accent) 11%, transparent); }
+
   // Cut: a sub-page target or the first paint takes the pose without motion.
   [data-mode='still'] *, [data-mode='fade'] * { transition: none !important; }
   // Dissolve (reduced motion): the new pose fades in; two names so it restarts.

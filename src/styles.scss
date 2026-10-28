@@ -1388,6 +1388,74 @@ button {
 }
 /* === END SET <-> ARSENAL VIEW TRANSITION =================================== */
 
+/* === VERSE SUBPAGE FRAME: ENTRANCE + FLIGHT ================================
+   Concept 2026-10-28-verse-unterseiten-struktur §3/§4.
+
+   1 · Staged entrance (`.sc-enter`, `.sc-enter-stagger`) — reusable anywhere.
+       The page builds up: the head first, then the sections rise in.
+         class="sc-enter"                  this element rises in
+         style="--sc-enter-i: 2"           …as step 2 (80ms per step; head = 0)
+         class="sc-enter-stagger"          its direct children rise in as
+                                           steps 1, 2, 3 … (capped at 8)
+       `<sc-verse-header>` carries `.sc-enter` itself (step 0). Fill mode
+       `backwards`: nothing stays transformed after the entrance, so fixed
+       overlays inside a section keep the viewport as their containing block.
+       Reduced motion: a plain fade, all at once.
+
+   2 · Flight (verse/shared/verse-flight.ts): one View Transition per hub ⇄
+       subpage hop; `html[data-verse-flight]` names the direction while it
+       runs (down = hub → subpage, up = back to the hub, side = subpage →
+       subpage). The clicked planet morphs into the head's emblem through the
+       shared name `verse-emblem`. No transition starts under reduced motion
+       or without the API — the entrance fade is the crossfade then. */
+.sc-enter,
+.sc-enter-stagger > * {
+  animation: sc-enter-rise 560ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: calc(var(--sc-enter-i, 0) * 80ms);
+}
+.sc-enter-stagger > :nth-child(1) { --sc-enter-i: 1; }
+.sc-enter-stagger > :nth-child(2) { --sc-enter-i: 2; }
+.sc-enter-stagger > :nth-child(3) { --sc-enter-i: 3; }
+.sc-enter-stagger > :nth-child(4) { --sc-enter-i: 4; }
+.sc-enter-stagger > :nth-child(5) { --sc-enter-i: 5; }
+.sc-enter-stagger > :nth-child(6) { --sc-enter-i: 6; }
+.sc-enter-stagger > :nth-child(7) { --sc-enter-i: 7; }
+.sc-enter-stagger > :nth-child(n + 8) { --sc-enter-i: 8; }
+@keyframes sc-enter-rise { from { opacity: 0; transform: translateY(18px); } }
+@keyframes sc-enter-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .sc-enter,
+  .sc-enter-stagger > * { animation: sc-enter-fade 240ms ease-out backwards; }
+}
+
+/* Deep space behind the flight, where neither page covers the view. */
+html[data-verse-flight]::view-transition { background: #02070d; }
+html[data-verse-flight]::view-transition-old(root) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+html[data-verse-flight]::view-transition-new(root) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
+html[data-verse-flight='up']::view-transition-old(root) { animation: sc-flight-sink 460ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+html[data-verse-flight='up']::view-transition-new(root) { animation: sc-flight-from-above 680ms cubic-bezier(0.2, 0.7, 0.2, 1) 120ms both; }
+/* The planet: from its place on the hub to the 64px emblem (and back). */
+html[data-verse-flight]::view-transition-group(verse-emblem) {
+  animation-duration: 760ms;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.25, 1);
+}
+html[data-verse-flight]::view-transition-old(verse-emblem),
+html[data-verse-flight]::view-transition-new(verse-emblem) {
+  animation-duration: 760ms;
+  height: 100%;
+  object-fit: contain;
+}
+/* Subpage → subpage: both emblems share the slot — the old planet leaves
+   upwards with its page, the next one rises into place. */
+html[data-verse-flight='side']::view-transition-old(verse-emblem) { animation: sc-flight-away-up 460ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+html[data-verse-flight='side']::view-transition-new(verse-emblem) { animation: sc-flight-emblem-in 620ms cubic-bezier(0.2, 0.7, 0.2, 1) 160ms both; }
+@keyframes sc-flight-away-up { to { opacity: 0; transform: translateY(-38vh); } }
+@keyframes sc-flight-sink { to { opacity: 0; transform: translateY(14vh); } }
+@keyframes sc-flight-from-above { from { opacity: 0; transform: translateY(-38vh); } }
+@keyframes sc-flight-fade-in { from { opacity: 0; } }
+@keyframes sc-flight-emblem-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } }
+/* === END VERSE SUBPAGE FRAME ============================================= */
+
 /* STAGE SLOT (beta shell, concept 2026-10-28 header/subheader r1/r8): the place
    under a main page's hero title where the bar's own search field stands until
    it docks. Same size and centring on Verse, Codex, HQ and the admin hub. The

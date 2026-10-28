@@ -1,0 +1,91 @@
+@use '../pages/briefing/briefing-worlds' as w;
+
+// The Verse subpage head (see verse-header.component.ts). Not encapsulated —
+// every rule is scoped under the element, the dividers reach projected actions.
+sc-verse-header {
+  --vh-emblem: 64px;
+  --vh-gap-below: 28px;
+  display: block;
+  margin-bottom: var(--vh-gap-below);
+
+  .vh-crumbs ol { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-wrap: wrap; align-items: center; }
+  .vh-crumbs li { display: inline-flex; align-items: center; min-width: 0; }
+  .vh-crumbs li + li::before { content: '›'; color: var(--sc-fg-2); margin: 0 8px; opacity: 0.6; }
+  .vh-crumb {
+    display: inline-flex; align-items: center; min-height: var(--sc-tap-min);
+    font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-2); text-decoration: none;
+  }
+  .vh-crumb:hover, .vh-crumb:focus-visible { color: var(--sc-accent); }
+
+  .vh-row {
+    display: flex;
+    align-items: center;
+    gap: 12px 18px;
+    min-height: var(--vh-emblem);
+    padding: 20px 0 16px;
+    border-bottom: 1px solid color-mix(in srgb, var(--sc-accent) 14%, transparent);
+  }
+
+  // ── Emblem: the page's planet from the hub, in the flow (never over the header) ──
+  .vh-emblem {
+    @include w.body;
+    --s: var(--vh-emblem);
+    flex: none;
+    width: var(--vh-emblem);
+    height: var(--vh-emblem);
+    // The flight lands the hub's planet here (verse-flight.ts).
+    view-transition-name: verse-emblem;
+  }
+  .vh-emblem[data-world='news'] { @include w.crusader; }
+  .vh-emblem[data-world='patches'] { @include w.arccorp; }
+  .vh-emblem[data-world='gallery'] { @include w.microtech; }
+  // Sternkarte: a deep-blue globe carrying a constellation figure.
+  .vh-emblem[data-world='starmap'] {
+    --atm: color-mix(in srgb, var(--sc-accent) 55%, transparent);
+    background: radial-gradient(circle at 40% 38%, #1d4e6e, #0a2233 68%, #04121c);
+  }
+  .vh-emblem svg { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
+  .vh-emblem polyline { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 70%, transparent); stroke-width: 1; }
+  .vh-emblem circle { fill: #e8f6ff; }
+
+  // ── One slim line: small page name (the h1) + subtitle ─────────────────
+  .vh-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 14px;
+  }
+  .vh-title {
+    margin: 0;
+    font: 600 max(0.94rem, var(--sc-fs-floor)) / 1.3 var(--sc-font-display);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sc-fg-0);
+  }
+  .vh-sub {
+    margin: 0;
+    min-width: 0;
+    font-size: max(0.82rem, var(--sc-fs-floor));
+    color: var(--sc-fg-1);
+  }
+
+  // ── Actions / aside: fine dividers, no boxes ───────────────────────────
+  .vh-actions { flex: none; display: flex; align-items: center; flex-wrap: wrap; row-gap: 6px; }
+  .vh-actions:empty { display: none; }
+  .vh-actions > * { padding-inline: 14px; }
+  .vh-actions > :last-child { padding-inline-end: 0; }
+  .vh-actions > * + * { border-left: 1px solid color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+
+  @media (max-width: 720px) {
+    .vh-row { flex-wrap: wrap; padding-top: 12px; }
+    .vh-line { flex-basis: calc(100% - var(--vh-emblem) - 18px); flex-direction: column; align-items: flex-start; }
+    .vh-actions { flex-basis: 100%; }
+    .vh-actions > :first-child { padding-inline-start: 0; }
+  }
+  // Tablet up: the shell subheader carries the trail.
+  @media (min-width: 721px) {
+    [data-layout] & .vh-crumbs { display: none; }
+  }
+}

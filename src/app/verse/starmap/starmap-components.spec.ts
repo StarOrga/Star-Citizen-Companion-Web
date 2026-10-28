@@ -18,8 +18,10 @@ import { MyConstellationsComponent } from './my-constellations.component';
 import { StarmapMoreComponent } from './starmap-more.component';
 import { FALLBACK_POINTS } from './starmap.model';
 
-@Component({ selector: 'sc-verse-header', template: '' })
+// Renders the h1 and projects the actions like the real head (the explorer's map bar lives in it).
+@Component({ selector: 'sc-verse-header', template: '<h1>{{ title() }}</h1><ng-content />' })
 class StubVerseHeaderComponent {
+  readonly planet = input<unknown>();
   readonly trail = input<unknown>();
   readonly title = input<unknown>();
   readonly eyebrow = input<unknown>();
@@ -149,7 +151,21 @@ describe('star map components', () => {
     expect(el.querySelectorAll('button.star.next').length).toBe(1);
     expect(el.querySelector('.tasks')).toBeNull();
     expect(el.querySelector('h1')?.textContent).toContain('starmap.map.title');
-    expect(el.querySelector('.count')?.textContent).toContain('2');
+    expect(el.querySelector('.caption')?.textContent).toContain('starmap.kartograph.rank');
+  });
+
+  it('crest ladder: earned before, current as a real anchor, locked after; patch dropdown replaces the chips', () => {
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.ladder sc-kartograph-crest').length).toBe(5);
+    expect(el.querySelectorAll('.ladder sc-kartograph-crest.earned').length).toBe(1);
+    expect(el.querySelectorAll('.ladder sc-kartograph-crest.locked').length).toBe(3);
+    const cur = el.querySelector('.ladder a.rung.current') as HTMLAnchorElement;
+    expect(cur.getAttribute('href')).toContain('/badge/kartograph');
+    expect(el.querySelector('.chips')).toBeNull();
+    expect(el.querySelector('sc-select.patch-pick')).not.toBeNull();
+    expect(el.querySelector('.map')?.getAttribute('class')).not.toContain('nebula');
   });
 
   it('a star opens its card with the task link as a real anchor; done shows its date', () => {

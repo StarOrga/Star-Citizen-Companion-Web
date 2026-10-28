@@ -1,18 +1,18 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { filter } from 'rxjs';
 import { NewsService } from '../../news/news.service';
 import { PatchBoardComponent } from '../../news/patch-board.component';
-import { PatchStabilityService } from '../../news/patch-stability.service';
 import { nextLineInTesting } from '../../news/patch-stats';
 import { VerseApiService } from '../data/verse-api.service';
 import { BetaService } from '../../core/beta.service';
+import { LocaleService } from '../../core/locale/locale.service';
 import { PredictionMedian } from '../data/verse.models';
 import { StarTriggerService } from '../starmap/star-trigger.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
-import { verseKpiTiles } from './verse-patch-kpis';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 
 /** The pre-flight steps of the readiness checklist (keys of `patch_readiness.checklist`). */
 export const READINESS_STEPS = ['notes', 'keybinds', 'loadout', 'shaders'] as const;
@@ -21,159 +21,189 @@ export type ReadinessStep = (typeof READINESS_STEPS)[number];
 /** How long an opened dossier must stay open before it counts as "notes read". */
 export const NOTES_READ_MS = 8000;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** `/verse/patches/<line>` → `<line>`, else null. */
 export function dossierLineOf(url: string): string | null {
   const m = /^\/verse\/patches\/([^/?#]+)/.exec(url);
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** `YYYY-MM-DD` → UTC ms, NaN when malformed. */
+function dayMs(iso: string): number {
+  return Date.parse(`${iso}T00:00:00Z`);
+}
+
+/** The comet strip: a date axis with the community median and, once tipped, the reader's own tip. */
+export interface CometStrip {
+  medianPct: number;
+  minePct: number | null;
+  from: string;
+  to: string;
 }
 
 /**
- * `/verse/patches` — Patch News. The patch board (monitor rail, time stack,
- * dossier overlay) under the Verse subheader, topped by five fact tiles,
- * the readiness checklist and the comet vote. β off: the bare legacy board.
+ * Positions of the median (and the own tip) on an axis that spans both plus
+ * a margin — pure so the spec can pin it. Null without a parsable median.
+ */
+export function cometStrip(median: string | null, mine: string | null): CometStrip | null {
+  const m = median ? dayMs(median) : NaN;
+  if (!Number.isFinite(m)) return null;
+  const t = mine ? dayMs(mine) : NaN;
+  const own = Number.isFinite(t) ? t : null;
+  const lo = Math.min(m, own ?? m) - 7 * DAY_MS;
+  const hi = Math.max(m, own ?? m) + 7 * DAY_MS;
+  const pct = (x: number) => Math.round(((x - lo) / (hi - lo)) * 1000) / 10;
+  return {
+    medianPct: pct(m),
+    minePct: own === null ? null : pct(own),
+    from: new Date(lo).toISOString().slice(0, 10),
+    to: new Date(hi).toISOString().slice(0, 10),
+  };
+}
+
+/**
+ * `/verse/patches` — Patch News. Shared subpage head, then the patch board:
+ * the next-patch card (monitor, pre-flight checklist, comet tip — projected
+ * into the card), the time line of patch cards with nested sub-versions.
+ * Search is the shell subheader's job; the board has no field of its own.
+ * β off: the bare legacy board.
  */
 @Component({
   selector: 'sc-verse-patches',
   standalone: true,
-  imports: [TranslatePipe, VerseHeaderComponent, PatchBoardComponent],
+  imports: [TranslatePipe, RouterLink, VerseHeaderComponent, PatchBoardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
-      <sc-verse-header [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
+      <sc-verse-header planet="patches" [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
 
-      @if (tiles().length) {
-        <dl class="kpis">
-          @for (k of tiles(); track k.key) {
-            <div class="kpi">
-              <dd><b>{{ k.of !== undefined ? (k.value + ' / ' + k.of) : ('verse.patches.kpi.' + k.key + '.value' | translate:{ n: k.value }) }}</b></dd>
-              <dt>{{ ('verse.patches.kpi.' + k.key + '.label') | translate }}</dt>
-              @if (k.spark.length) {
-                <span class="spark" aria-hidden="true">
-                  @for (s of k.spark; track $index) {
-                    <i [style.height.%]="s.pct" [class.now]="s.now" [attr.data-tone]="s.tone ?? null"></i>
+      <sc-patch-board class="sc-enter" style="--sc-enter-i: 1" [embedded]="true" [searchQuery]="barTerm()">
+        @if (targetLine(); as line) {
+          <div pbNext class="ng">
+            <section class="col" aria-labelledby="vp-ready-h">
+              <div class="ngh">
+                <h3 id="vp-ready-h">{{ 'verse.patches.ready.title' | translate:{ line } }}</h3>
+                <span>{{ 'verse.patches.ready.progress' | translate:{ done: doneCount(), total: steps.length } }}</span>
+              </div>
+              <ul class="checks">
+                @for (step of steps; track step) {
+                  <li>
+                    <button type="button" role="switch" class="check"
+                            [attr.aria-checked]="!!checklist()[step]"
+                            [disabled]="savingReady()"
+                            (click)="toggleStep(step)">
+                      <span class="box" aria-hidden="true">{{ checklist()[step] ? '✓' : '' }}</span>
+                      {{ ('verse.patches.ready.step.' + step) | translate }}
+                    </button>
+                  </li>
+                }
+              </ul>
+              @if (readyError(); as e) { <p class="err" role="alert">{{ e | translate }}</p> }
+            </section>
+
+            <section class="col" aria-labelledby="vp-comet-h">
+              <div class="ngh">
+                <h3 id="vp-comet-h">{{ 'verse.patches.comet.heading' | translate }}</h3>
+                @if (myVote(); as vote) {
+                  <span class="mine">{{ 'verse.patches.comet.mine' | translate:{ date: fmt(vote) } }}</span>
+                  @if (median(); as m) { <span>· {{ 'verse.patches.comet.count' | translate:{ n: m.votes } }}</span> }
+                } @else {
+                  <span>{{ 'verse.patches.comet.crowd' | translate }}</span>
+                  <a class="tip" routerLink="/verse/explorer">{{ 'verse.patches.comet.cta' | translate }} →</a>
+                }
+              </div>
+              @if (releaseDate(); as d) {
+                <p class="release">{{ 'verse.patches.comet.release' | translate:{ date: fmt(d) } }}</p>
+              } @else if (strip(); as s) {
+                <div class="strip" role="img"
+                     [attr.aria-label]="'verse.patches.comet.stripAria' | translate:{ median: fmt(median()!.median), n: median()!.votes }">
+                  <span class="axis"></span>
+                  <span class="mark med" [style.left.%]="s.medianPct"></span>
+                  @if (s.minePct !== null) {
+                    <span class="mark you" [style.left.%]="s.minePct"></span>
+                    <span class="lab you" [style.left.%]="s.minePct">{{ 'verse.patches.comet.you' | translate }}</span>
                   }
-                </span>
+                </div>
+                <div class="strip-l"><span>{{ fmt(s.from) }}</span><span>{{ fmt(s.to) }}</span></div>
+                <p class="legend">
+                  <span><i class="sw med"></i>{{ 'verse.patches.comet.medianShort' | translate:{ date: fmt(median()!.median) } }}</span>
+                  @if (myVote(); as v) { <span><i class="sw you"></i>{{ 'verse.patches.comet.yourShort' | translate:{ date: fmt(v) } }}</span> }
+                </p>
+              } @else {
+                <p class="meta">{{ 'verse.patches.comet.empty' | translate }}</p>
               }
-            </div>
-          }
-        </dl>
-      }
-
-      @if (targetLine(); as line) {
-        <div class="preflight">
-          <section class="panel" [attr.aria-labelledby]="'vp-ready-h'">
-            <h2 id="vp-ready-h">{{ 'verse.patches.ready.title' | translate:{ line } }}</h2>
-            <ul class="checks">
-              @for (step of steps; track step) {
-                <li>
-                  <button type="button" role="switch" class="check"
-                          [attr.aria-checked]="!!checklist()[step]"
-                          [disabled]="savingReady()"
-                          (click)="toggleStep(step)">
-                    <span class="box" aria-hidden="true">{{ checklist()[step] ? '✓' : '' }}</span>
-                    {{ ('verse.patches.ready.step.' + step) | translate }}
-                  </button>
-                </li>
-              }
-            </ul>
-            <p class="meta">{{ 'verse.patches.ready.progress' | translate:{ done: doneCount(), total: steps.length } }}</p>
-            @if (readyError(); as e) { <p class="err" role="alert">{{ e | translate }}</p> }
-          </section>
-
-          <section class="panel comet" [attr.aria-labelledby]="'vp-comet-h'">
-            <h2 id="vp-comet-h">{{ 'verse.patches.comet.title' | translate:{ line } }}</h2>
-            @if (myVote(); as vote) {
-              <p class="vote">{{ 'verse.patches.comet.yours' | translate:{ date: vote } }}</p>
-              @if (median(); as m) {
-                <p class="median">{{ 'verse.patches.comet.median' | translate:{ date: m.median, n: m.votes } }}</p>
-              }
-            } @else {
-              <p class="meta">{{ 'verse.patches.comet.hint' | translate }}</p>
-              <form class="vote-form" (submit)="$event.preventDefault(); vote()">
-                <label for="vp-comet-date">{{ 'verse.patches.comet.label' | translate }}</label>
-                <input id="vp-comet-date" type="date" class="date" [min]="today" [value]="draft()"
-                       (input)="draft.set($any($event.target).value)" />
-                <button type="submit" class="sc-btn sc-btn-primary" [disabled]="!draft() || voting()">
-                  {{ 'verse.patches.comet.submit' | translate }}
-                </button>
-              </form>
-            }
-            @if (voteError(); as e) { <p class="err" role="alert">{{ e | translate }}</p> }
-          </section>
-        </div>
-      }
-
-      <sc-patch-board [embedded]="true" />
+            </section>
+          </div>
+        }
+      </sc-patch-board>
     } @else {
       <sc-patch-board />
     }
   `,
   styles: [`
     :host { display: block; }
-    .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
-    .kpi {
-      position: relative; display: grid; gap: 2px; padding: 12px 12px 30px; border-radius: 12px; overflow: hidden;
-      background: linear-gradient(160deg, color-mix(in srgb, var(--sc-accent) 12%, transparent), var(--sc-bg-1) 60%);
-      border: 1px solid var(--sc-border);
+    /* Inside the next-patch card: two plain columns, no boxes of their own. */
+    .ng {
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px 30px;
+      padding: 14px 16px 16px 150px; border-top: 1px solid color-mix(in srgb, var(--sc-accent) 12%, transparent);
     }
-    .kpi dd { margin: 0; }
-    .kpi b { font-family: var(--sc-font-display); font-size: 1.35rem; color: var(--sc-accent); }
-    .kpi dt { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .spark { position: absolute; left: 12px; right: 12px; bottom: 8px; height: 16px; display: flex; align-items: flex-end; gap: 3px; }
-    .spark i { flex: 1; border-radius: 2px 2px 0 0; background: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
-    .spark i.now { background: var(--sc-accent); }
-    .spark i[data-tone='ok'] { background: var(--sc-success); }
-    .spark i[data-tone='warn'] { background: var(--sc-warning); }
-    .spark i[data-tone='bad'] { background: var(--sc-danger); }
-    .preflight { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-bottom: 16px; }
-    .panel { padding: 14px 16px; border-radius: 12px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+    .ngh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 10px; }
+    .ngh h3 {
+      margin: 0; font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--sc-accent); white-space: nowrap;
+    }
+    .ngh span { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .ngh .mine { color: var(--sc-fg-0); }
+    .tip { margin-left: auto; color: var(--sc-accent); font-size: max(0.82rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; white-space: nowrap; }
+    .tip:hover { text-decoration: underline; }
+    .tip:focus-visible, .check:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 6px; }
     .checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .check {
       display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--sc-tap-min);
-      padding: 6px 10px; border-radius: 10px; border: 1px solid var(--sc-border); background: var(--sc-bg-2);
-      color: inherit; font: inherit; text-align: left; cursor: pointer;
+      padding: 6px 10px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--sc-fg-2) 30%, transparent);
+      background: transparent; color: var(--sc-fg-1); font: inherit; text-align: left; cursor: pointer;
+      position: relative; z-index: 1;
     }
-    .check[aria-checked='true'] { border-color: var(--sc-accent); }
-    .check:focus-visible, .date:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .check:hover { border-color: var(--sc-accent); }
+    .check[aria-checked='true'] { border-color: var(--sc-accent); color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
     .box {
-      display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px;
+      display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 6px;
       border: 1px solid var(--sc-border); color: var(--sc-accent); font-weight: 700;
     }
-    .meta { margin: 8px 0 0; color: var(--sc-fg-2); font-size: max(0.82rem, var(--sc-fs-floor)); }
+    .meta { margin: 0; color: var(--sc-fg-2); font-size: max(0.82rem, var(--sc-fs-floor)); }
     .err { margin: 8px 0 0; color: var(--sc-danger); }
-    .vote-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-    .vote-form label { width: 100%; font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .date {
-      min-height: var(--sc-tap-min); padding: 0 10px; border-radius: 10px; color-scheme: dark;
-      border: 1px solid var(--sc-border); background: var(--sc-bg-2); color: var(--sc-fg-0); font: inherit;
-    }
-    .vote b, .median { color: var(--sc-accent); }
-    .vote, .median { margin: 4px 0 0; }
-    @media (max-width: 900px) {
-      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .preflight { grid-template-columns: minmax(0, 1fr); }
-    }
+    .release { margin: 0; font-family: var(--sc-font-display); font-size: 1.4rem; font-weight: 600; color: var(--sc-fg-0); }
+
+    /* The community's tip on a date axis: median marker, own tip once tipped. */
+    .strip { position: relative; height: 38px; margin: 0 6px; }
+    .axis { position: absolute; left: 0; right: 0; top: 22px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 24%, transparent); }
+    .mark { position: absolute; top: 14px; width: 2px; height: 20px; transform: translateX(-50%); border-radius: 1px; }
+    .mark.med { background: var(--sc-accent); box-shadow: 0 0 8px var(--sc-accent); }
+    .mark.you { background: var(--sc-fg-0); box-shadow: 0 0 8px color-mix(in srgb, var(--sc-fg-0) 60%, transparent); }
+    .lab { position: absolute; top: 0; transform: translateX(-50%); font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-0); white-space: nowrap; }
+    .strip-l { display: flex; justify-content: space-between; margin: 2px 6px 0; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .sw { width: 10px; height: 4px; border-radius: 2px; }
+    .sw.med { background: var(--sc-accent); }
+    .sw.you { background: var(--sc-fg-0); }
+
+    @media (max-width: 900px) { .ng { grid-template-columns: minmax(0, 1fr); padding-left: 12px; padding-right: 12px; } }
+    @media (max-width: 760px) { .ng { padding-left: 12px; } }
     @media (max-width: 480px) { .checks { grid-template-columns: minmax(0, 1fr); } }
   `],
 })
 export class VersePatchesComponent {
   private readonly news = inject(NewsService);
-  private readonly stability = inject(PatchStabilityService);
   private readonly api = inject(VerseApiService);
   private readonly stars = inject(StarTriggerService);
   private readonly router = inject(Router);
+  private readonly locale = inject(LocaleService);
   readonly enabled = inject(BetaService).isEnabled('verse');
 
   protected readonly steps = READINESS_STEPS;
-  protected readonly today = todayIso();
 
-  readonly tiles = computed(() => verseKpiTiles(this.news.patchLines(), this.stability.allTime()));
   /** The line the pre-flight is about: the one in a test ring, else the digest's. */
   readonly targetLine = computed<string | null>(() => {
     const testing = nextLineInTesting(this.news.patchLines());
@@ -189,14 +219,21 @@ export class VersePatchesComponent {
 
   readonly myVote = signal<string | null>(null);
   readonly median = signal<PredictionMedian | null>(null);
-  readonly draft = signal('');
-  readonly voting = signal(false);
-  readonly voteError = signal<string | null>(null);
+  readonly strip = computed(() => cometStrip(this.median()?.median ?? null, this.myVote()));
+  /** An announced LIVE date of the target line, when the digest carries one. */
+  readonly releaseDate = computed<string | null>(() => {
+    const p = this.api.digest()?.patch;
+    return p?.liveAt && p.line === this.targetLine() ? p.liveAt.slice(0, 10) : null;
+  });
 
   private notesTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** What the user types into the subheader search; the board filters its timeline by it. */
+  protected readonly barTerm = signal('');
+
   constructor() {
     const destroyRef = inject(DestroyRef);
+    destroyRef.onDestroy(inject(ShellChromeService).registerPageSearch(this, (term) => this.barTerm.set(term)));
     effect(() => {
       const line = this.targetLine();
       if (line && this.enabled()) void this.loadPreflight(line);
@@ -208,16 +245,22 @@ export class VersePatchesComponent {
     destroyRef.onDestroy(() => this.clearNotesTimer());
   }
 
-  private async loadPreflight(line: string): Promise<void> {
-    const [ready, vote] = await Promise.all([this.api.getReadiness(line), this.api.getMyPrediction(line)]);
-    if (ready.ok) this.checklist.set({ ...(ready.data?.checklist ?? {}) });
-    if (vote.ok) {
-      this.myVote.set(vote.data?.predictedLiveDate ?? null);
-      if (vote.data) await this.loadMedian(line);
+  /** `YYYY-MM-DD` as a short local date ("6. Nov."). */
+  fmt(iso: string): string {
+    const t = dayMs(iso);
+    if (!Number.isFinite(t)) return iso;
+    try {
+      return new Intl.DateTimeFormat(this.locale.intlLocale(), { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(t);
+    } catch {
+      return iso;
     }
   }
 
-  private async loadMedian(line: string): Promise<void> {
+  private async loadPreflight(line: string): Promise<void> {
+    const [ready, vote] = await Promise.all([this.api.getReadiness(line), this.api.getMyPrediction(line)]);
+    if (ready.ok) this.checklist.set({ ...(ready.data?.checklist ?? {}) });
+    if (vote.ok) this.myVote.set(vote.data?.predictedLiveDate ?? null);
+    // The distribution is shown to everyone; a refused read just leaves it empty.
     const res = await this.api.predictionMedian(line);
     this.median.set(res.ok ? res.data : null);
   }
@@ -236,22 +279,6 @@ export class VersePatchesComponent {
       this.checklist.set(before);
       this.readyError.set(res.errorKey);
     }
-  }
-
-  async vote(): Promise<void> {
-    const line = this.targetLine();
-    const date = this.draft();
-    if (!line || !date) return;
-    this.voting.set(true);
-    this.voteError.set(null);
-    const res = await this.api.submitPrediction(line, date);
-    this.voting.set(false);
-    if (!res.ok) {
-      this.voteError.set(res.errorKey);
-      return;
-    }
-    this.myVote.set(date);
-    await this.loadMedian(line);
   }
 
   /** An opened dossier that stays open earns the "notes" star. */

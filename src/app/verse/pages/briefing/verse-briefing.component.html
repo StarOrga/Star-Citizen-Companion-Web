@@ -110,7 +110,7 @@
             <a class="map" routerLink="/verse/explorer"
                [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
                [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
-              <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
+              <span class="fig" data-verse-fly="starmap" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
             </a>
           }
         </div>
@@ -201,6 +201,7 @@
 
     </section>
   }
+  <sc-app-notice app="scc" />
 } @else {
   <sc-news-list />
 }
