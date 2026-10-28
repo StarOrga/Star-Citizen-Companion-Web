@@ -26,6 +26,7 @@ import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
+import { STAGE_SLOT_MOVED } from './stage-hero.directive';
 import {
   AREA_ENTRIES,
   BarMode,
@@ -498,11 +499,15 @@ export class FusionBarComponent {
     ro?.observe(this.host.nativeElement as HTMLElement);
     ro?.observe(document.body);
     window.addEventListener('resize', onResize, { passive: true });
+    // A main page's hero re-aligned its slot (late data around it): stand on it again.
+    const onSlotMoved = () => this.schedulePlace();
+    window.addEventListener(STAGE_SLOT_MOVED, onSlotMoved);
     this.publishHeight();
     this.onScroll(window.scrollY);
     this.injector.get(DestroyRef).onDestroy(() => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener(STAGE_SLOT_MOVED, onSlotMoved);
       ro?.disconnect();
     });
   }

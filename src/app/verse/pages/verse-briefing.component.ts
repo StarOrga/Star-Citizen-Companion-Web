@@ -412,7 +412,13 @@ export class VerseBriefingComponent {
     };
     afterNextRender(() => {
       measure();
-      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+      // One frame later: the custom property resizes the page, i.e. the observed body
+      // (a synchronous write here is a ResizeObserver loop on phones).
+      let frame = 0;
+      const later = () => {
+        if (!frame) frame = requestAnimationFrame(() => ((frame = 0), measure()));
+      };
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(later);
       ro?.observe(document.body);
       window.addEventListener('resize', measure);
       this.destroyRef.onDestroy(() => {

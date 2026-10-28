@@ -359,7 +359,9 @@ export const COMPANION_ROUTE = '/companion';
       color: var(--sc-fg-0); font-family: inherit; font-size: max(0.92rem, var(--sc-fs-input, 1rem));
     }
     .input::placeholder { color: var(--sc-fg-2); opacity: 1; }
-    .inwrap { position: relative; display: flex; align-items: center; flex: 1 1 auto; align-self: stretch; }
+    .inwrap { position: relative; display: flex; align-items: center; flex: 1 1 auto; align-self: stretch; min-width: 0; }
+    /* Basis 0: the input fills the field, never its intrinsic ~20ch past the field's edge. */
+    .inwrap > .input { width: 0; }
     /* The typed demo (concept r8, 8 s loop): placeholder out at 18–22 %, back at 94–98 %;
        "Gladius" types 22–30 %, holds to 42 %; "Patch 4.10.2" 44–54 % / 66 %;
        "Laser-Repeater" 68–80 % / 95 % — steps(characters), like the mock's sty1–3. */
