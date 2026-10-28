@@ -18,8 +18,10 @@ import { MyConstellationsComponent } from './my-constellations.component';
 import { StarmapMoreComponent } from './starmap-more.component';
 import { FALLBACK_POINTS } from './starmap.model';
 
-@Component({ selector: 'sc-verse-header', template: '' })
+// Renders the h1 and projects the actions like the real head (the explorer's map bar lives in it).
+@Component({ selector: 'sc-verse-header', template: '<h1>{{ title() }}</h1><ng-content />' })
 class StubVerseHeaderComponent {
+  readonly planet = input<unknown>();
   readonly trail = input<unknown>();
   readonly title = input<unknown>();
   readonly eyebrow = input<unknown>();

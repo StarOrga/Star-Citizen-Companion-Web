@@ -53,6 +53,8 @@ export class VerseFlight {
 
   /** Swappable for specs. */
   reducedMotion: () => boolean = flightReducedMotion;
+  /** A hidden tab aborts every transition; swappable for specs (the Karma window may be in the background). */
+  hidden: () => boolean = () => this.document.visibilityState !== 'visible';
 
   constructor() {
     this.router.events.subscribe((e) => {
@@ -90,7 +92,7 @@ export class VerseFlight {
     if (
       !dir || !from || !to || this.running ||
       typeof doc.startViewTransition !== 'function' ||
-      doc.visibilityState !== 'visible' ||
+      this.hidden() ||
       this.reducedMotion()
     ) {
       this.clicked = null;
