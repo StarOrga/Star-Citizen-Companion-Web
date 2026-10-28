@@ -4767,6 +4767,9 @@
       },
       "wave": "Wave {{n}}",
       "channelOff": "none running right now"
+    },
+    "frame": {
+      "newsSub": "Comm-Links, videos and Spectrum – the latest from the Verse"
     }
   },
   "starmap": {

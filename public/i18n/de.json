@@ -4767,6 +4767,9 @@
       },
       "wave": "Welle {{n}}",
       "channelOff": "gerade keiner im Lauf"
+    },
+    "frame": {
+      "newsSub": "Comm-Links, Videos und Spectrum – das Neueste aus dem Verse"
     }
   },
   "starmap": {
