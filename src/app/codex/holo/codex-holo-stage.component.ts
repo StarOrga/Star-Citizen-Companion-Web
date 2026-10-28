@@ -58,7 +58,7 @@ export type { HoloSharedBanner } from './codex-holo-shared-banner.component';
 import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
 import { CodexHoloTableComponent } from './codex-holo-table.component';
 import { CodexHoloInspectorComponent } from './codex-holo-inspector.component';
-import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker } from './codex-holo-model';
+import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker, spreadStackedPins } from './codex-holo-model';
 import { anchorKey } from './codex-holo-leader';
 import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
@@ -1662,8 +1662,14 @@ export class CodexHoloStageComponent {
     // Estimated positions are spread evenly ALONG the ring (not by angle), in
     // list order from the nose clockwise — see `ringPositions`.
     const spots = ring ? ringPositions(ring, source.filter(({ raw }) => !byPort.has(anchorKey(raw))).length) : [];
-    let nextIndex = 0;
     let spot = 0;
+    const placed = source.map(({ raw }) => byPort.get(anchorKey(raw)) ?? spots[spot++] ?? { x: 50, y: 50 });
+    // With anchors on the table, coinciding dots fan out and estimated ring
+    // pins step off anchored ones, so no number hides under another
+    // (`spreadStackedPins`). A ring-only table is already evenly spaced.
+    const anchored = source.some(({ raw }) => byPort.has(anchorKey(raw)));
+    const at = anchored ? spreadStackedPins(placed) : placed;
+    let nextIndex = 0;
     // A narrow ring (a slim hull — the X1, a Cutter) leaves the flank labels
     // no room to point inward: both sides met over the hull and collided.
     // There they point OUTWARD, into the free table; on a wide ring the
@@ -1678,7 +1684,7 @@ export class CodexHoloStageComponent {
       return x > 55 ? 'left' : 'right';
     };
     return source
-      .map(({ raw, known }) => {
+      .map(({ raw, known }, i) => {
         const slot = known?.slot ?? null;
         const index = known?.index ?? ++nextIndex;
         const anchor = byPort.get(anchorKey(raw));
@@ -1692,9 +1698,8 @@ export class CodexHoloStageComponent {
           slot,
           section: known?.section ?? null,
         };
-        if (anchor) return { ...base, x: anchor.x, y: anchor.y, side: sideFor(anchor.x, anchor.y, false), resolved: true };
-        const p = spots[spot++] ?? { x: 50, y: 50 };
-        return { ...base, x: p.x, y: p.y, side: sideFor(p.x, p.y, true), resolved: false };
+        const p = at[i];
+        return { ...base, x: p.x, y: p.y, side: sideFor(p.x, p.y, !anchor), resolved: !!anchor };
       })
       .sort((a, b) => a.index - b.index);
   });
