@@ -29,6 +29,8 @@ export const HQ_TABS: readonly HqTab[] = [
  */
 @Component({
   selector: 'sc-hq-shell',
+  // The overview route is cinematic (full track); HQ content keeps the page frame.
+  host: { class: 'sc-track-wide' },
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, HqSuppliesPanelComponent, HqSuppliesPopupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
