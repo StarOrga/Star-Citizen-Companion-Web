@@ -7,6 +7,8 @@ import { humanizeClassName } from '../codex/codex-format';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
+import { StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
 import { HqOwnershipService } from './hq-ownership.service';
 import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } from './hq-routes';
 
@@ -23,13 +25,18 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
 @Component({
   selector: 'sc-hq-overview',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, PageHeaderComponent],
+  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective, StageHeroDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <sc-page-header
-      [eyebrow]="'hq.eyebrow' | translate"
-      [title]="'hq.title' | translate"
-      [subtitle]="'hq.subtitle' | translate" />
+    <!-- The main page hero (beta shell): eyebrow · title · stage slot, centred, the slot
+         at the same spot as on every main page (StageHeroDirective). -->
+    <div class="sc-stage-hero" scStageHero>
+      <sc-page-header
+        [eyebrow]="'hq.eyebrow' | translate"
+        [title]="'hq.title' | translate"
+        [subtitle]="'hq.subtitle' | translate" />
+      <div scStageSearch></div>
+    </div>
 
     @if (loadError(); as err) {
       <div class="sc-card err" role="alert">

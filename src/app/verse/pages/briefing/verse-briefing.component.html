@@ -15,7 +15,7 @@
 
         <!-- Hero: centred in the upper two thirds — kicker, title (the link), search. -->
         <div class="hero-wrap">
-          <div class="hx">
+          <div class="hx" scStageHero>
             @if (api.digestState() === 'error' && !api.digest()) {
               <h1 class="title2"><span class="tl">{{ 'verse.briefing.headlineError' | translate }}</span></h1>
               <p class="err" role="alert">{{ (api.digestError() ?? 'errors.generic') | translate }}</p>
@@ -56,7 +56,8 @@
                 }
               </div>
             }
-            <!-- The search stands in the shell's stage slot above (the bar's own field). -->
+            <!-- Stage slot under the title: the bar's own search field stands here until it docks. -->
+            <div scStageSearch></div>
           </div>
         </div>
 

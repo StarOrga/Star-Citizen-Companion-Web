@@ -212,6 +212,10 @@
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
+      "hero": {
+        "eyebrow": "Codex",
+        "title": "Everything about every ship."
+      },
       "teaser": {
         "eyebrow": "On the drawing board",
         "title": "Ships on the way",
@@ -5137,9 +5141,8 @@
     "removeFilter": "Remove filter: {{name}}",
     "moreFilters": "Show {{count}} more filters",
     "hits": "{{count}} hits",
-    "filter": {
-      "weaponGroup": "Weapon group"
-    },
+    "demo": {"ship": "Gladius", "patch": "Patch 4.10.2", "item": "Laser repeater"},
+    "filter": {"variants": "Variants", "options": "Options", "weaponGroup": "Weapon group"},
     "navAria": "Main areas",
     "areaMenu": "Switch area — now: {{area}}",
     "home": "Home",

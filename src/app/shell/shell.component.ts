@@ -58,13 +58,12 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 import { MainHeaderComponent } from './main-header/main-header.component';
 import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
-import { StageSearchDirective } from './fusion-bar/stage-search.directive';
 import { avatarUrlOf } from './avatar-url';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, StageSearchDirective, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -222,27 +221,27 @@ import { avatarUrlOf } from './avatar-url';
     } @else {
       <!-- Beta "shell": header + subheader as ONE capsule (fusion-bar/). The account
            menu is this component's own, projected, so it keeps its styles and handlers. -->
-      <!-- On the main pages the cinematic header stands over the scene and owns
-           the account menu; the bar below it is the subheader. -->
+      <!-- The cinematic header stays mounted for the whole beta shell: pinned over the
+           scene on the main pages (content scrolls under it), compressed into the bar
+           on scroll and on every other page — so main ↔ subpage is a morph, never an
+           unmount. On the main pages it owns the account menu. -->
+      <!-- Both account menus stay mounted: the header's slides and fades into the bar
+           when it compresses (scroll dock and main → subpage alike), the bar's shows
+           wherever the bar is docked. The compressed header's copy is inert. -->
+      <sc-main-header>
+        <div mhAccount class="mh-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+      </sc-main-header>
       @if (cineHeader()) {
-        <sc-main-header>
-          <div mhAccount class="mh-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
-        </sc-main-header>
+        <!-- The pinned header is out of flow; this keeps its room above the page. -->
+        <div class="cine-spacer" aria-hidden="true"></div>
       }
-      <!-- The bar is the subheader. On a main page its search field stands on a stage
-           slot first (pages with their own stage mark it, the others get this one) and
-           docks as the subheader once scrolled. Where no main header exists the bar
-           keeps the account menu at its far end, so it stays reachable. -->
+      <!-- The bar is the subheader. On a main page its search field stands on the
+           page's own stage slot under the hero ([scStageSearch]) and docks as the
+           subheader once scrolled. Where no main header exists the bar keeps the
+           account menu at its far end, so it stays reachable. -->
       <sc-fusion-bar [class.under-cine]="cineHeader()">
-        @if (!cineHeader()) {
-          <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
-        } @else {
-          <div barAccount class="bar-account"><sc-apps-menu /></div>
-        }
+        <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
       </sc-fusion-bar>
-      @if (cineHeader()) {
-        <div class="stage-slot" scStageSearch></div>
-      }
     }
 
     <ng-template #accountMenu>
@@ -436,7 +435,7 @@ import { avatarUrlOf } from './avatar-url';
          be standing. Renders nothing when there is nothing to say. -->
     <sc-account-notice />
 
-    <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()" [class.switch-out]="switchingOut()" [@.disabled]="reducedMotion" [@routeReveal]="{ value: reveal(), params: revealParams() }">
+    <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()" [class.switch-out]="switchingOut()" [class.switch-in]="switchingIn()" [@.disabled]="reducedMotion" [@routeReveal]="{ value: reveal(), params: revealParams() }">
       <!-- The Codex search on every Codex page below the landing (whose own
            terminal row is the same bar). Ctrl+K, "/", the header button and
            typing on the page bring it forward instead of the overlay. -->
@@ -878,25 +877,16 @@ import { avatarUrlOf } from './avatar-url';
       height: 40px;
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
     }
-    /* The stage slot of every main page: the bar's search field stands here —
-       centred, at the same height on Verse, Codex, HQ and the admin hub — until it docks. */
-    .stage-slot {
+    /* Room of the pinned main header (it is position: fixed; MainHeaderComponent
+       publishes its row height as --sc-mainhead-h). */
+    .cine-spacer {
       flex: none;
-      width: min(640px, calc(100% - 2 * var(--sc-page-gutter)));
-      height: var(--sc-sub-h);
-      margin: var(--sc-space-5) auto var(--sc-space-3);
+      height: var(--sc-mainhead-h, 72px);
     }
     /* Menu switch, part one: the old main page sinks away while the camera moves. */
-    main.switch-out > :not(router-outlet) {
-      opacity: 0;
-      transform: translateY(-14px) scale(0.99);
-      transition: opacity 220ms ease, transform 220ms ease;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      main.switch-out > :not(router-outlet) { transform: none; transition: opacity 120ms linear; }
-    }
+    /* Menu switch out/in: global styles.scss ("MENU SWITCH") — it reaches into the routed page. */
     @media (max-width: 720px) {
-      .bar-account .dropdown { top: auto; bottom: calc(100% + 10px); }
+      /* The bar's account sits at the top route line on phones: its menu opens downwards. */
       :host([data-layout]) {
         padding-bottom: calc(var(--sc-bar-stack-h, var(--sc-bar-h)) + var(--sc-float-bottom) + var(--sc-space-3));
       }
@@ -1072,6 +1062,9 @@ export class ShellComponent implements AfterViewInit {
   readonly cineHeader = computed(() => this.shellOn() && this.onMainPage());
   /** Menu switch main page → main page: the old content is on its way out. */
   readonly switchingOut = signal(false);
+  /** Menu switch, part two: the new page's content rises in around its title. */
+  readonly switchingIn = signal(false);
+  private switchInTimer: ReturnType<typeof setTimeout> | null = null;
   /** The next reveal plays as the second half of a menu switch. */
   private switchIn = false;
   readonly revealParams = signal<RevealParams>(REVEAL_PLAIN);
@@ -1202,9 +1195,17 @@ export class ShellComponent implements AfterViewInit {
 
   /** A routed view mounted — replay the content reveal. */
   onRouteActivate(): void {
-    this.revealParams.set(this.switchIn ? REVEAL_SWITCH : REVEAL_PLAIN);
+    const sw = this.switchIn;
     this.switchIn = false;
     this.switchingOut.set(false);
+    if (sw) {
+      // The title stays: no whole-page reveal, only the content around it rises in.
+      if (this.switchInTimer) clearTimeout(this.switchInTimer);
+      this.switchingIn.set(true);
+      this.switchInTimer = setTimeout(() => this.switchingIn.set(false), REVEAL_SWITCH.delay + REVEAL_SWITCH.dur);
+      return;
+    }
+    this.revealParams.set(REVEAL_PLAIN);
     this.reveal.update((n) => n + 1);
   }
 
@@ -1362,8 +1363,9 @@ export class ShellComponent implements AfterViewInit {
       if (adminEl && !adminEl.contains(event.target as Node)) this.closeAdminMenu();
     }
     if (!this.menuOpen()) return;
-    const menuEl = (this.host.nativeElement as HTMLElement).querySelector('.profile-menu');
-    if (menuEl && !menuEl.contains(event.target as Node)) {
+    // Two account menus can be mounted (header + bar): a click inside either keeps it open.
+    const menus = Array.from((this.host.nativeElement as HTMLElement).querySelectorAll('.profile-menu'));
+    if (menus.length && !menus.some((m) => m.contains(event.target as Node))) {
       this.closeMenu();
     }
   }
@@ -1375,9 +1377,9 @@ export class ShellComponent implements AfterViewInit {
   }
 
   onMenuKeydown(event: KeyboardEvent) {
-    const items = Array.from(
-      (this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.profile-menu .dropdown-item'),
-    );
+    // Only the menu the key was pressed in (the header's and the bar's can both be mounted).
+    const menu = (event.currentTarget as HTMLElement | null) ?? (this.host.nativeElement as HTMLElement);
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('.dropdown-item'));
     if (items.length === 0) return;
     const idx = items.indexOf(document.activeElement as HTMLElement);
     if (event.key === 'ArrowDown') {

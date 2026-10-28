@@ -16,6 +16,7 @@ class FusionSearchStub {
   readonly placement = input<'top' | 'bottom'>('top');
   readonly hideContext = input(false);
   readonly compact = input(false);
+  readonly demo = input(false);
   readonly openChange = output<boolean>();
 }
 
@@ -153,7 +154,9 @@ describe('FusionBarComponent', () => {
     const bar = fixture.componentInstance;
     expect(el.getAttribute('data-mode')).toBe('stage');
     expect(el.querySelector('sc-fusion-search')).not.toBeNull();
-    expect(el.querySelector('.plate, .blogo, .div')).toBeNull();
+    // Logo slot and plate stay mounted while staged — collapsed and inert — so docking can grow them.
+    expect(el.querySelector('.blogo')?.hasAttribute('inert')).toBeTrue();
+    expect(el.querySelector('.plate')?.hasAttribute('inert')).toBeTrue();
     expect(chrome.stageSearch()).toBe('stage');
 
     bar.onScroll(200);

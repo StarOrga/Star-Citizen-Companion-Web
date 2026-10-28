@@ -44,6 +44,8 @@ import {
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, hubGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
+import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
+import { StageHeroDirective } from '../../shell/fusion-bar/stage-hero.directive';
 
 export { verseItemLink } from './verse-item-link';
 export type { VerseItemLink } from './verse-item-link';
@@ -113,6 +115,9 @@ export function fitTitle(h: HTMLElement): void {
     scale = Math.max(TITLE_MIN_SCALE, scale - 0.06);
     h.style.setProperty('--fit', scale.toFixed(2));
   }
+  // One line (the normal case): the heading already hugs its text — a fixed
+  // width would only freeze a measurement taken before the display font loaded.
+  if (lines() <= 1) return;
   const w = Array.from(a.getClientRects()).reduce((m, r) => Math.max(m, r.width), 0);
   if (w > 0) h.style.width = `${Math.ceil(w) + 1}px`;
 }
@@ -133,10 +138,13 @@ export function fitTitle(h: HTMLElement): void {
  * Without the shell β: the "Anflug" stage (nebula, horizon, story pills,
  * moon gates). β "verse" off: the legacy landing (the Verse News list).
  */
+
 @Component({
   selector: 'sc-verse-briefing',
   standalone: true,
   imports: [
+    StageSearchDirective,
+    StageHeroDirective,
     RouterLink, TranslatePipe, ScTooltipDirective, AppNoticeComponent, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
     BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent,
   ],
@@ -405,7 +413,13 @@ export class VerseBriefingComponent {
     };
     afterNextRender(() => {
       measure();
-      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+      // One frame later: the custom property resizes the page, i.e. the observed body
+      // (a synchronous write here is a ResizeObserver loop on phones).
+      let frame = 0;
+      const later = () => {
+        if (!frame) frame = requestAnimationFrame(() => ((frame = 0), measure()));
+      };
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(later);
       ro?.observe(document.body);
       window.addEventListener('resize', measure);
       this.destroyRef.onDestroy(() => {
@@ -450,6 +464,8 @@ export class VerseBriefingComponent {
         if (el) fitTitle(el);
       };
       window.addEventListener('resize', refit);
+      // The display font arrives after the first fit: measure again with it.
+      document.fonts?.ready.then(refit).catch(() => undefined);
       this.destroyRef.onDestroy(() => window.removeEventListener('resize', refit));
     });
   }

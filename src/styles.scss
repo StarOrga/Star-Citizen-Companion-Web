@@ -180,6 +180,10 @@
   --sc-sub-divider: rgba(160, 230, 255, 0.8);
   --sc-sub-rule: rgba(130, 220, 255, 0.14);
   --sc-sub-kbd: linear-gradient(180deg, #17384c, #0b2231);
+  /* Focus on the satin edge itself: a brighter edge and a soft outer glow (no inner ring). */
+  --sc-sub-edge-focus: linear-gradient(160deg, rgba(225, 248, 255, 0.95) 0%, rgba(130, 220, 255, 0.7) 35%, rgba(90, 170, 205, 0.6) 65%, rgba(200, 240, 255, 0.9) 100%);
+  --sc-sub-focus-glow: 0 0 0 1px rgba(130, 220, 255, 0.35), 0 0 22px rgba(82, 193, 230, 0.3);
+  --sc-sub-box: rgba(130, 220, 255, 0.45);
 }
 /* Phone, beta shell: the top carries the subheader's route line (category + ◂ back) —
    the page header's own crumbs would repeat it right below. */
@@ -1451,3 +1455,93 @@ html[data-verse-flight='side']::view-transition-new(verse-emblem) { animation: s
 @keyframes sc-flight-fade-in { from { opacity: 0; } }
 @keyframes sc-flight-emblem-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } }
 /* === END VERSE SUBPAGE FRAME ============================================= */
+
+/* STAGE SLOT (beta shell, concept 2026-10-28 header/subheader r1/r8): the place
+   under a main page's hero title where the bar's own search field stands until
+   it docks. Same size and centring on Verse, Codex, HQ and the admin hub. The
+   attribute is only present while the shell β is on (StageSearchDirective). */
+[data-stage-slot] {
+  display: block;
+  flex: none;
+  align-self: center;
+  box-sizing: border-box;
+  /* One width on every main page at every viewport — from the viewport, never from the
+     page's own column — so a switch or Back/Forward never moves the field sideways. */
+  --sc-stage-w: min(640px, 100vw - 2 * var(--sc-page-gutter));
+  width: var(--sc-stage-w);
+  max-width: none;
+  height: var(--sc-sub-h);
+  margin: var(--sc-space-5) calc(50% - var(--sc-stage-w) / 2) var(--sc-space-3);
+}
+
+/* === MENU SWITCH (beta shell, concept r1 d1-s2 "mega animation") ============ */
+/* The title and the stage field stay where they are (concept r1 d1-s2): only
+   the siblings along the path to the h1 / stage slot sink away (0-220 ms,
+   mock-sw-out: -18 px), so the page is never empty while the camera moves. */
+#sc-main.switch-out :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
+  opacity: 0;
+  transform: translateY(-18px);
+  transition: opacity 220ms ease-in-out, transform 220ms ease-in-out;
+}
+#sc-main.switch-out h1 {
+  opacity: 0.35;
+  transition: opacity 220ms ease-in-out;
+}
+/* Part two: the new page's title swaps its text in place, the rest rises in
+   from 22 px (mock-sw-in, 400 ms ease-out) behind it. */
+#sc-main.switch-in :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
+  animation: sc-switch-in 400ms 160ms ease-out both;
+}
+#sc-main.switch-in h1 {
+  animation: sc-switch-title 260ms ease-out both;
+}
+@keyframes sc-switch-in {
+  from { opacity: 0; transform: translateY(22px); }
+}
+@keyframes sc-switch-title {
+  from { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #sc-main.switch-out :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) { transform: none; transition: opacity 120ms linear; }
+  #sc-main.switch-in :is(*:has(h1, [data-stage-slot])) > *,
+  #sc-main.switch-in h1 { animation: none; }
+}
+/* MAIN PAGE HERO (beta shell): eyebrow · one h1 · stage slot. StageHeroDirective
+   shifts the block so the slot stands at the same spot on every main page. */
+[data-stage-hero] {
+  margin-top: var(--_hero-shift, 0px);
+}
+.sc-stage-hero[data-stage-hero] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.sc-stage-hero[data-stage-hero] sc-page-header { width: 100%; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-top:not(:has(.crumbs, .ph-aside > *)) { display: none; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-main { justify-content: center; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-title { align-items: center; text-align: center; margin-inline: auto; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-actions:empty { display: none; }
+/* Docking lifts the whole hero head away — eyebrow, title, subtitle (concept r8
+   x8-title: 22 → 30 % out by -40 px, 84 → 94 % back), so the field travels alone. */
+[data-stage-hero] > :not([data-stage-slot]) {
+  transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+}
+html:has(sc-fusion-bar[data-mode='docked']) [data-stage-hero] > :not([data-stage-slot]) {
+  opacity: 0;
+  transform: translateY(-40px);
+  transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+}
+html:has(sc-fusion-bar.snap) [data-stage-hero] > :not([data-stage-slot]) {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-stage-hero] > :not([data-stage-slot]) { transition: none; }
+}
+/* Phone: the route line sits fixed at the top while the bar is docked at the thumb —
+   the page keeps that strip free so its own chips never slide under it. */
+@media (max-width: 720px) {
+  html:has(sc-fusion-bar:not([data-mode='stage'])) #sc-main {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
+  }
+}
