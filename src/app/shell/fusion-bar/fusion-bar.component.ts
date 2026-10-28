@@ -20,6 +20,7 @@ import { NavigationEnd, Router, RouterLink, Scroll } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutService } from '../../core/layout/layout.service';
+import { OverlayRouteScrollService } from '../../core/overlay-route-scroll';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -259,6 +260,7 @@ export class FusionBarComponent {
   private readonly layout = inject(LayoutService);
   readonly chrome = inject(ShellChromeService);
   private readonly appRef = inject(ApplicationRef);
+  private readonly routeScroll = inject(OverlayRouteScrollService);
   private readonly sameRoute = inject(SameRouteRefreshService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly zone = inject(NgZone);
@@ -451,7 +453,7 @@ export class FusionBarComponent {
     if (this.mainPage()) {
       const next = nextStageDocked(this.docked(), y);
       if (next !== this.docked() && !this.searchOpen()) {
-        if (scrollMorphOf(this.docked(), next, this.navQuiet) === 'snap') this.snapDocked(next);
+        if (scrollMorphOf(this.docked(), next, this.navQuiet || this.routeScroll.restoring) === 'snap') this.snapDocked(next);
         else this.setDocked(next);
       }
       this.tracker.reset(y);

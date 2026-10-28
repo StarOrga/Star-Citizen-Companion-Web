@@ -5,6 +5,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { BetaService } from '../../core/beta.service';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
+import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
 import { MAIN_NAV_SLOT_PX, MainHeaderComponent } from './main-header.component';
 
 @Component({ standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '' })
@@ -31,6 +32,8 @@ describe('MainHeaderComponent', () => {
       ],
     });
     await TestBed.inject(Router).navigateByUrl(url);
+    // A main page at its top: the bar reports its staged field, the header stands expanded.
+    TestBed.inject(ShellChromeService).setStageSearch('stage');
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -75,5 +78,18 @@ describe('MainHeaderComponent', () => {
     const cs = getComputedStyle(row);
     expect(cs.backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(cs.borderTopWidth).toBe('0px');
+  });
+
+  it('compresses into the bar (inert) whenever the field is not staged', async () => {
+    const fixture = await setup('/verse', false);
+    const header = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
+    expect(header.classList).not.toContain('compressed');
+    TestBed.inject(ShellChromeService).setStageSearch('docked');
+    fixture.detectChanges();
+    expect(header.classList).toContain('compressed');
+    expect(header.hasAttribute('inert')).toBeTrue();
+    TestBed.inject(ShellChromeService).setStageSearch('none');
+    fixture.detectChanges();
+    expect(header.classList).toContain('compressed');
   });
 });
