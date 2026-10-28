@@ -1,0 +1,84 @@
+<section id="iter-4" data-iteration="4" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Verse: Hub &amp; Unterseiten</h2>
+  </div>
+
+  <div class="fr-flow">
+    <span>🪐 Planet auf dem Hub anklicken</span> →
+    <span>🎥 Hub zieht nach oben weg, Kamera fliegt hin</span> →
+    <span>🔰 Planet landet als Wappen im Seitenkopf</span> →
+    <span>📄 Unterseite baut sich gestaffelt auf</span> →
+    <span>↩ Logo oder „◂ Verse“ fliegt zurück</span>
+  </div>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">News, Patches, Galerie und Sternkarte haben jetzt einen gemeinsamen Rahmen mit Planeten-Wappen und Kamera-Flügen vom Hub; jede Seite ist nach deinen drei Runden neu geordnet, und Apps, Rang-Wappen und Begriffe sind vereinheitlicht.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🎥</span><span><b>Kamera-Flüge</b> Hub ⇄ Unterseiten, ohne Box, auf tiefem Weltraum.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span><b>Jede Seite neu geordnet</b>: News-Hero + Filter, Patches ohne Kachelleiste, Sternkarte mit Wappen-Leiter.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⬇</span><span><b>Apps oben rechts</b> plus Meldung unten rechts, die nach × zwei Wochen ruht.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">4767 / 4767</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Karma-Specs grün nach dem Merge-Stand der QA, Ziel alle. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 90%; --fr-target: 80%">
+          <span class="fr-meter-name">♿ Barrierefreiheit</span>
+          <b class="fr-meter-value">1 h1 je Seite</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Reduzierte Bewegung = nur Einblenden, Chips mit aria-pressed, Menü per Tastatur (Ziel geschätzt). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 40%; --fr-target: 90%">
+          <span class="fr-meter-name">📱 Kompatibilität</span>
+          <b class="fr-meter-value">ungesehen</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Desktop- und Handy-Breite noch nicht angemeldet im Browser angesehen, Ziel alle vier Seiten (geschätzt). <span class="fr-meter-verdict">▲ {{final.target_short}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_prod}}<small>Stufe 5 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="open">{{final.level_local}}</li>
+      <li data-level="5" data-state="done">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Nicht umgesetzt, weil Daten fehlen: die echte Tipp-Verteilung (die Datenbank liefert nur Median und Anzahl) und ein angekündigtes Release-Datum (keine Quelle). Lokal angemeldet durchgespielt wurde nichts — die Verse-Seiten brauchen eine Anmeldung, die hier kein Browser hatte.</p>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-walk" data-crit="high" data-guide="web">Hub → 4 Unterseiten angemeldet durchklicken</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="web">Alle vier Seiten in Handy-Breite ansehen</li>
+      <li data-todo-id="t-notice" data-crit="low" data-guide="web">App-Meldung: 3 s warten, aufklappen, ×</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/red-marking-resolution-77ec02</code>, Commits <code>7fc5b69f</code>…<code>c98da855</code> (inkl. Merge von main #843)</li>
+      <li>Bereiche: shell (Apps-Menü, Wappen, Suche-Hook), verse (Kopf, Flug, Seiten), news, desktop (App-Meldung)</li>
+      <li><code>verse/shared/verse-flight.ts</code>, <code>verse/shared/verse-header.component.ts</code>, <code>desktop/app-notice.service.ts</code></li>
+      <li>Typecheck · Lint (0 Fehler) · Karma 4767 grün · Gate 77/77 · Prod-Build nach Merge grün</li>
+    </ul>
+  </details>
+</section>

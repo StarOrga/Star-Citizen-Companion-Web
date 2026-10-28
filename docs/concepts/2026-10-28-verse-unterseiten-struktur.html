@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-10-28T15:25:10" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-10-28T15:25:10" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5192,7 +5192,7 @@ button.an-tr:hover { background: var(--an-s2); }
 .section-nav-state.state-issue { color: var(--accent-color, #58a6ff); font-weight: 600; }
 </style>
 </head>
-<body style="overflow: hidden">
+<body>
   <div class="concept-layout design fullscreen">
     <div class="concept-content">
       <header class="page-header" data-page-header>
@@ -7954,7 +7954,8 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
 </section>
 </section>
 
-<section data-iteration="3" data-iteration-template="design" id="iter-3" data-active>
+<section data-iteration="3" data-iteration-template="design" data-baked id="iter-3" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{"d1-s5":"gern die seite im aufbau super animieren"},"views":{},"userPins":[{"id":"up-mvse3kpx2c2c","design":"d1","screen":"d1-s2","x":67.1,"y":25.5,"target":"div \"StarscapeGalerie-Bilder als wechselndes \"","text":"gern für admins / collaborateur auch data uploader darunter rötlcih natürlich!","attachments":[]},{"id":"up-mvse4nbo8szn","design":"d1","screen":"d1-s4","x":57.5,"y":12.1,"target":"div.mk-r3-fh-t \"NewsComm-Links, Videos und Spectrum – da\"","text":"die suche aus dem bnestehenden (sub)header soll natürlich auch hiermit funktionieren! also den news","attachments":[]},{"id":"up-mvse53lpa6bt","design":"d1","screen":"d1-s5","x":70.6,"y":7.9,"target":"span.mk-r3-phd \"z. B. Orison, Hotfix, Quantum Drive\"","text":"brauchen wir nicht ist im subheader!","attachments":[]},{"id":"up-mvsedsr2ra9u","design":"d1","screen":"d1-s8","x":95.4,"y":84.4,"target":"a.mk-r3-x \"▾\"","text":"dieses aufklappen symbol ist sehr klein, aber generell finde ich das aufklappen super bei anklicken, aber dann  ganze meldung anklicken oder so.","attachments":[]},{"id":"up-mvsefme0hto8","design":"d1","screen":"d1-s9","x":25.7,"y":41.9,"target":"path.mk-r3-cs","text":"Den rang gern als kleines wappen am proiflicon generell ansonsten ist er ja auch unten","attachments":[]},{"id":"up-mvsegac2x1bj","design":"d1","screen":"d1-s9","x":22.1,"y":42.8,"target":"div.mock-app.mk-deep \"Verse◂Verse Verse›Sternkarte Verse×Suche\"","text":"7 /12 brauchen wir gllaueb ich nicht, ist offensichtlich in der sternenkarte!Q","attachments":[]},{"id":"up-mvsejy135ngs","design":"d1","screen":"d1-s5","x":58,"y":23.9,"target":"p \"4.11 ist seit 9 Tagen im Test, üblich si\"","text":"diesen text eher hinter einem info button recht soben in dder box verstecekn","attachments":[]},{"id":"up-mvsek8p3fi8f","design":"d1","screen":"d1-s5","x":57.9,"y":15.9,"target":"b \"Im PTU seit 9 Tagen – live voraussichtli\"","text":"das sollte ersichtlich sein aus der liniengrafik darunter ;)","attachments":[]},{"id":"up-mvsekntpz4i1","design":"d1","screen":"d1-s5","x":65.8,"y":46.8,"target":"a.mk-r3-sv \"4.11.0PTU Patch Notes · Welle 2PTUnoch f\"","text":"hier gern auch stabilität erfassen","attachments":[]}]}</script>
 
 <style>
 /* ── shared mock vocabulary (prefix mock-) ── */
@@ -8729,7 +8730,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p class="anno-bubble-improved"><strong>Verbessert</strong> Kein Teaser mehr, nur Apps oben rechts</p>
         <button type="button" class="anno-bubble-summary" data-anno-summary="r3-d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-d1-s1-a1" aria-label="Verbessert: Kein Teaser mehr, nur Apps oben rechts"></button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s1-a1" data-annotation="r3-d1-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s1-a1" data-annotation="r3-d1-s1-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s1-a1"></div>
         </div>
       </div>
@@ -8770,10 +8771,10 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <div class="mk-apps-head mock-disp">Desktop-Apps</div>
       <div class="mk-apps-item"><span class="mk-ico mk-ico-scc"></span>
         <div><b>SCC App</b><span>SC Companion als eigenes Windows-Fenster</span><small>Windows 10/11 · v0.50 · 92 MB</small></div>
-        <button class="mock-btn">⬇ Laden</button></div>
+        <button class="mock-btn" disabled>⬇ Laden</button></div>
       <div class="mk-apps-item"><span class="mk-ico mk-ico-star"></span>
         <div><b>Starscape</b><span>Galerie-Bilder als wechselndes Wallpaper</span><small>Windows 10/11 · v0.9.4 · 14 MB</small></div>
-        <button class="mock-btn">⬇ Laden</button></div>
+        <button class="mock-btn" disabled>⬇ Laden</button></div>
     </div>
   </div>
   </div>
@@ -8940,7 +8941,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p class="anno-bubble-improved"><strong>Verbessert</strong> Zurück nur über Logo oder ◂ Verse</p>
         <button type="button" class="anno-bubble-summary" data-anno-summary="r3-d1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r3-d1-s3-a1" aria-label="Verbessert: Zurück nur über Logo oder ◂ Verse"></button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s3-a1" data-annotation="r3-d1-s3-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s3-a1" data-annotation="r3-d1-s3-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s3-a1"></div>
         </div>
       </div>
@@ -8972,7 +8973,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <a class="mk-r3-hero-img"><span class="mk-r3-play"></span></a>
       <div class="mk-r3-hero-b"><small class="mock-disp">YouTube · vor 2 Tagen</small><strong>First Time Running Storm Breaker</strong>
         <span>Raise your hand if you've ever felt personally victimized by the valakkar.</span>
-        <span class="mk-r3-acts"><button class="mock-btn">Ansehen →</button><button class="mock-btn mock-ghost">☆ Merken</button></span></div>
+        <span class="mk-r3-acts"><button class="mock-btn" disabled>Ansehen →</button><button class="mock-btn mock-ghost" disabled>☆ Merken</button></span></div>
     </article>
     <div class="mk-r3-filt">
       <a class="mk-r3-chip mk-r3-on">Alle</a>
@@ -9001,7 +9002,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p class="anno-bubble-improved"><strong>Verbessert</strong> Bühne als erste Karte, ohne Abschnitt</p>
         <button type="button" class="anno-bubble-summary" data-anno-summary="r3-d1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r3-d1-s4-a1" aria-label="Verbessert: Bühne als erste Karte, ohne Abschnitt"></button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s4-a1" data-annotation="r3-d1-s4-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s4-a1" data-annotation="r3-d1-s4-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s4-a1"></div>
         </div>
       </div>
@@ -9013,7 +9014,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
           <span class="anno-bubble-question">Die Filter wirken nur auf den Feed; die Bühne zeigt immer die neueste Meldung. Oder soll die Bühne mitfiltern (bei „YouTube“ das neueste Video)?</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s4-a2" data-annotation="r3-d1-s4-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s4-a2" data-annotation="r3-d1-s4-a2" data-attachable placeholder="Deine Antwort…" readonly>Ja genau, nur auf das darutner, bühne bleibt imer!</textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s4-a2"></div>
         </div>
       </div>
@@ -9126,7 +9127,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
           <span class="anno-bubble-question">„Live“ ist jetzt ein gefülltes grünes Wort, die Stabilität ein eisblauer Balkenmesser (schwach: Bernstein). Liest sich das klar getrennt?</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s5-a1" data-annotation="r3-d1-s5-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s5-a1" data-annotation="r3-d1-s5-a1" data-attachable placeholder="Deine Antwort…" readonly>Finde ich gut, aber ist das funksträke symbol wirklich eins für qualität ansonsten finde ich es super!</textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s5-a1"></div>
         </div>
       </div>
@@ -9139,7 +9140,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
           <span class="anno-bubble-question">Unterversionen hängen eingerückt an einer Schiene unter ihrer Hauptversion; ältere PTU-Wellen starten eingeklappt. Sollen auch Hotfixes einklappen, sobald es mehr als zwei sind?</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s5-a2" data-annotation="r3-d1-s5-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s5-a2" data-annotation="r3-d1-s5-a2" data-attachable placeholder="Deine Antwort…" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s5-a2"></div>
         </div>
       </div>
@@ -9150,7 +9151,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p class="anno-bubble-improved"><strong>Verbessert</strong> Tipp abgeben nur ohne eigenen Tipp</p>
         <button type="button" class="anno-bubble-summary" data-anno-summary="r3-d1-s5-a3" aria-expanded="false" aria-controls="anno-bubble-r3-d1-s5-a3" aria-label="Verbessert: Tipp abgeben nur ohne eigenen Tipp"></button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s5-a3" data-annotation="r3-d1-s5-a3" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s5-a3" data-annotation="r3-d1-s5-a3" data-attachable placeholder="Deine Antwort…" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s5-a3"></div>
         </div>
       </div>
@@ -9299,7 +9300,11 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
           <span class="anno-bubble-question">Die Meldung kommt einmal pro Gerät beim ersten Galerie-Besuch und klappt nach 8 s zu ihrer Zeile zurück. Nach × nie wieder, oder erneut bei einer neuen Starscape-Version? Dasselbe Muster ginge für die SCC App (z. B. auf Patches).</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s7-a1" data-annotation="r3-d1-s7-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s7-a1" data-annotation="r3-d1-s7-a1" data-attachable placeholder="Deine Antwort…" readonly>More sophisticated mechanismus, üblciherweise gern wenn der nutzer min. 3 s auf ideser seite war. 
+wenn ignoriert, dann immer wieder das machen bei erneuten besuchen.
+Dann wenn x geklickt, dann erstmal für zwei wochen oder so nicht mehr  anzeigen...
+
+Gern für all die apps außer data uploader (admin apps). </textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s7-a1"></div>
         </div>
       </div>
@@ -9339,7 +9344,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p>Wechselt dein Windows-Wallpaper automatisch durch diese Galerie – auch deine vollendeten Sternkarten.</p>
         <ul class="mk-tc-list"><li>Neue Bilder kommen von selbst</li><li>Wechsel-Takt frei wählbar</li><li>Läuft leise im Hintergrund</li></ul>
         <div class="mk-tc-meta">Windows 10/11 · v0.9.4 · 14 MB</div>
-        <div class="mk-tc-act"><button class="mock-btn">⬇ Download</button><a class="mk-link2" style="margin:0">Versionshinweise</a></div>
+        <div class="mk-tc-act"><button class="mock-btn" disabled>⬇ Download</button><a class="mk-link2" style="margin:0">Versionshinweise</a></div>
       </div>
       <div class="mk-r3-tline"><span class="mk-ico mk-ico-star"></span>
       <a class="mk-r3-tb" data-screen-link="d1-s7"><small>Starscape · Desktop-App</small><b>Diese Galerie als Wallpaper</b><span>Für Windows, kostenlos</span></a>
@@ -9429,7 +9434,8 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p class="anno-bubble-improved"><strong>Verbessert</strong> Kartensterne groß, mit Strahlen-Glyphe</p>
         <button type="button" class="anno-bubble-summary" data-anno-summary="r3-d1-s9-a1" aria-expanded="false" aria-controls="anno-bubble-r3-d1-s9-a1" aria-label="Verbessert: Kartensterne groß, mit Strahlen-Glyphe"></button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s9-a1" data-annotation="r3-d1-s9-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s9-a1" data-annotation="r3-d1-s9-a1" data-attachable placeholder="Deine Antwort…" readonly>so wie heute die sternenbildchen selber! 
+</textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s9-a1"></div>
         </div>
       </div>
@@ -9440,7 +9446,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
         <p class="anno-bubble-improved"><strong>Verbessert</strong> Nur der Live-Patch, Rest im Menü</p>
         <button type="button" class="anno-bubble-summary" data-anno-summary="r3-d1-s9-a2" aria-expanded="false" aria-controls="anno-bubble-r3-d1-s9-a2" aria-label="Verbessert: Nur der Live-Patch, Rest im Menü"></button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s9-a2" data-annotation="r3-d1-s9-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s9-a2" data-annotation="r3-d1-s9-a2" data-attachable placeholder="Deine Antwort…" readonly>Genau aber das sollte eher darunter rechts oben von der steernenkarte sein!</textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s9-a2"></div>
         </div>
       </div>
@@ -9453,7 +9459,7 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
           <span class="anno-bubble-question">Jeder Rang hat sein Wappen: drei vergangene, dein aktuelles (führt zur Abzeichen-Seite), drei gesperrte. Sollen gesperrte Wappen ihr Motiv schon gedimmt zeigen (wie hier) oder nur einen Umriss mit Schloss?</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3-d1-s9-a3" data-annotation="r3-d1-s9-a3" data-attachable placeholder="Deine Antwort…"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3-d1-s9-a3" data-annotation="r3-d1-s9-a3" data-attachable placeholder="Deine Antwort…" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3-d1-s9-a3"></div>
         </div>
       </div>
@@ -9472,12 +9478,12 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <h3>Kleiner Seitenname in der Kopfzeile (wie im Design)</h3>
       <p>Neben dem Wappen steht der Seitenname klein in Versalien, das ist das <code>h1</code>; dahinter der Untertitel. Der Subheader bleibt genau wie in #841. <em>Empfehlung:</em> kein Eingriff in den Subheader, der Name ist trotzdem ohne Darüberfahren zu sehen.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-r3-v1-zeile" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-r3-v1-zeile" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v1-zeile" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v1-zeile" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="r3-v1-zeile-note">Notiz / Override (optional)</label>
-        <textarea id="r3-v1-zeile-note" data-comment="r3-v1-zeile-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="r3-v1-zeile-note" data-comment="r3-v1-zeile-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
 
@@ -9485,12 +9491,12 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <h3>Seitenname in der Plakette des Subheaders</h3>
       <p>Auf Unterseiten zeigt die Plakette den Seitennamen statt des Bereichs: „NEWS“, darunter „◂ Verse“. Die Kopfzeile trägt nur Wappen, Untertitel und Aktionen; das <code>h1</code> steht unsichtbar für Screenreader im Seitenkopf. Braucht eine kleine Änderung an der Plakette (heute immer der Bereich).</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-r3-v1-plakette" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-r3-v1-plakette" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v1-plakette" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v1-plakette" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="r3-v1-plakette-note">Notiz / Override (optional)</label>
-        <textarea id="r3-v1-plakette-note" data-comment="r3-v1-plakette-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="r3-v1-plakette-note" data-comment="r3-v1-plakette-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
   </div>
@@ -9505,12 +9511,12 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <h3>Eigenes Band zwischen den Spuren und der Serie (wie im Design)</h3>
       <p>Die volle Leiste mit Namen und Status steht als eigene Zeile über der Serie, sichtbar ohne Klick. Kostet rund 110 px Höhe unter der Karte. <em>Empfehlung.</em></p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-r3-v2-band" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-r3-v2-band" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v2-band" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v2-band" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="r3-v2-band-note">Notiz / Override (optional)</label>
-        <textarea id="r3-v2-band-note" data-comment="r3-v2-band-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="r3-v2-band-note" data-comment="r3-v2-band-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
 
@@ -9518,12 +9524,12 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <h3>Kompakt im Aktions-Slot rechts im Kopf</h3>
       <p>Im Kopf nur dein aktuelles Wappen, links und rechts je drei kleine Punkte für vergangene und kommende Ränge. Ein Klick klappt die volle Leiste als Menü auf. Spart Höhe, macht den Kopf aber voller (Patch-Auswahl und vier Aktionen stehen schon dort).</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-r3-v2-kopf" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-r3-v2-kopf" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v2-kopf" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v2-kopf" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="r3-v2-kopf-note">Notiz / Override (optional)</label>
-        <textarea id="r3-v2-kopf-note" data-comment="r3-v2-kopf-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="r3-v2-kopf-note" data-comment="r3-v2-kopf-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
 
@@ -9531,16 +9537,101 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <h3>In der Kartenecke bei Form und Sternen</h3>
       <p>Die Zeile „Kartograph · Rang 4“ in der Kartenecke klappt per Klick die Leiste über der Karte auf. Rang, Form und Sterne stehen an einem Ort; die Leiste selbst sieht man aber erst nach dem Klick.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-r3-v2-ecke" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-r3-v2-ecke" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v2-ecke" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-r3-v2-ecke" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="r3-v2-ecke-note">Notiz / Override (optional)</label>
-        <textarea id="r3-v2-ecke-note" data-comment="r3-v2-ecke-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="r3-v2-ecke-note" data-comment="r3-v2-ecke-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
   </div>
 </section>
+</section>
+
+<section id="iter-4" data-iteration="4" data-iteration-template="free" data-final-report data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Verse: Hub &amp; Unterseiten</h2>
+  </div>
+
+  <div class="fr-flow">
+    <span>🪐 Planet auf dem Hub anklicken</span> →
+    <span>🎥 Hub zieht nach oben weg, Kamera fliegt hin</span> →
+    <span>🔰 Planet landet als Wappen im Seitenkopf</span> →
+    <span>📄 Unterseite baut sich gestaffelt auf</span> →
+    <span>↩ Logo oder „◂ Verse“ fliegt zurück</span>
+  </div>
+
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">News, Patches, Galerie und Sternkarte haben jetzt einen gemeinsamen Rahmen mit Planeten-Wappen und Kamera-Flügen vom Hub; jede Seite ist nach deinen drei Runden neu geordnet, und Apps, Rang-Wappen und Begriffe sind vereinheitlicht.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🎥</span><span><b>Kamera-Flüge</b> Hub ⇄ Unterseiten, ohne Box, auf tiefem Weltraum.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span><b>Jede Seite neu geordnet</b>: News-Hero + Filter, Patches ohne Kachelleiste, Sternkarte mit Wappen-Leiter.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⬇</span><span><b>Apps oben rechts</b> plus Meldung unten rechts, die nach × zwei Wochen ruht.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">4767 / 4767</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Karma-Specs grün nach dem Merge-Stand der QA, Ziel alle. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 90%; --fr-target: 80%">
+          <span class="fr-meter-name">♿ Barrierefreiheit</span>
+          <b class="fr-meter-value">1 h1 je Seite</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Reduzierte Bewegung = nur Einblenden, Chips mit aria-pressed, Menü per Tastatur (Ziel geschätzt). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 40%; --fr-target: 90%">
+          <span class="fr-meter-name">📱 Kompatibilität</span>
+          <b class="fr-meter-value">ungesehen</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Desktop- und Handy-Breite noch nicht angemeldet im Browser angesehen, Ziel alle vier Seiten (geschätzt). <span class="fr-meter-verdict">▲ {n} fehlen bis Ziel</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Prod-Build geprüft<small>Stufe 5 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="open">Lokal durchgespielt</li>
+      <li data-level="5" data-state="done">Prod-Build geprüft</li>
+      <li data-level="6" data-state="open">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Nicht umgesetzt, weil Daten fehlen: die echte Tipp-Verteilung (die Datenbank liefert nur Median und Anzahl) und ein angekündigtes Release-Datum (keine Quelle). Lokal angemeldet durchgespielt wurde nichts — die Verse-Seiten brauchen eine Anmeldung, die hier kein Browser hatte.</p>
+  </div>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-walk" data-crit="high" data-guide="web">Hub → 4 Unterseiten angemeldet durchklicken</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="web">Alle vier Seiten in Handy-Breite ansehen</li>
+      <li data-todo-id="t-notice" data-crit="low" data-guide="web">App-Meldung: 3 s warten, aufklappen, ×</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/red-marking-resolution-77ec02</code>, Commits <code>7fc5b69f</code>…<code>c98da855</code> (inkl. Merge von main #843)</li>
+      <li>Bereiche: shell (Apps-Menü, Wappen, Suche-Hook), verse (Kopf, Flug, Seiten), news, desktop (App-Meldung)</li>
+      <li><code>verse/shared/verse-flight.ts</code>, <code>verse/shared/verse-header.component.ts</code>, <code>desktop/app-notice.service.ts</code></li>
+      <li>Typecheck · Lint (0 Fehler) · Karma 4767 grün · Gate 77/77 · Prod-Build nach Merge grün</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -9756,7 +9847,8 @@ Btw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
 <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
-<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Runde 3</button>
+<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false" aria-controls="iter-3">Runde 3</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="4" aria-selected="true" aria-controls="iter-4">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC

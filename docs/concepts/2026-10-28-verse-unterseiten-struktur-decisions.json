@@ -345,5 +345,115 @@
         "text": "hier auch das aktuelle besser"
       }
     ]
+  },
+  {
+    "iteration": 3,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "r3-v1-zeile",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "r3-v1-plakette",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r3-v2-band",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r3-v2-kopf",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r3-v2-ecke",
+        "evaluation": "discard",
+        "note": ""
+      }
+    ],
+    "comments": [
+      {
+        "id": "anno-r3-d1-s4-a2",
+        "text": "Ja genau, nur auf das darutner, bühne bleibt imer!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r3-d1-s5-a1",
+        "text": "Finde ich gut, aber ist das funksträke symbol wirklich eins für qualität ansonsten finde ich es super!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r3-d1-s7-a1",
+        "text": "More sophisticated mechanismus, üblciherweise gern wenn der nutzer min. 3 s auf ideser seite war. \nwenn ignoriert, dann immer wieder das machen bei erneuten besuchen.\nDann wenn x geklickt, dann erstmal für zwei wochen oder so nicht mehr  anzeigen...\n\nGern für all die apps außer data uploader (admin apps).",
+        "attachments": []
+      },
+      {
+        "id": "anno-r3-d1-s9-a1",
+        "text": "so wie heute die sternenbildchen selber!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r3-d1-s9-a2",
+        "text": "Genau aber das sollte eher darunter rechts oben von der steernenkarte sein!",
+        "attachments": []
+      },
+      {
+        "id": "d1-s5",
+        "text": "gern die seite im aufbau super animieren",
+        "attachments": []
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "d1-s2",
+        "target": "div \"StarscapeGalerie-Bilder als wechselndes \"",
+        "text": "gern für admins / collaborateur auch data uploader darunter rötlcih natürlich!"
+      },
+      {
+        "screen": "d1-s4",
+        "target": "div.mk-r3-fh-t \"NewsComm-Links, Videos und Spectrum – da\"",
+        "text": "die suche aus dem bnestehenden (sub)header soll natürlich auch hiermit funktionieren! also den news"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "span.mk-r3-phd \"z. B. Orison, Hotfix, Quantum Drive\"",
+        "text": "brauchen wir nicht ist im subheader!"
+      },
+      {
+        "screen": "d1-s8",
+        "target": "a.mk-r3-x \"▾\"",
+        "text": "dieses aufklappen symbol ist sehr klein, aber generell finde ich das aufklappen super bei anklicken, aber dann  ganze meldung anklicken oder so."
+      },
+      {
+        "screen": "d1-s9",
+        "target": "path.mk-r3-cs",
+        "text": "Den rang gern als kleines wappen am proiflicon generell ansonsten ist er ja auch unten"
+      },
+      {
+        "screen": "d1-s9",
+        "target": "div.mock-app.mk-deep \"Verse◂Verse Verse›Sternkarte Verse×Suche\"",
+        "text": "7 /12 brauchen wir gllaueb ich nicht, ist offensichtlich in der sternenkarte!Q"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "p \"4.11 ist seit 9 Tagen im Test, üblich si\"",
+        "text": "diesen text eher hinter einem info button recht soben in dder box verstecekn"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "b \"Im PTU seit 9 Tagen – live voraussichtli\"",
+        "text": "das sollte ersichtlich sein aus der liniengrafik darunter ;)"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "a.mk-r3-sv \"4.11.0PTU Patch Notes · Welle 2PTUnoch f\"",
+        "text": "hier gern auch stabilität erfassen"
+      }
+    ]
   }
 ]
