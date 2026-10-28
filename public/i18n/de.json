@@ -4471,9 +4471,9 @@
     "cometLocked": "Der offizielle LIVE-Termin steht fest – Tipps sind geschlossen.",
     "cometTipped": "Du hast für diesen Patch schon getippt.",
     "cometDatePast": "Das Datum liegt in der Vergangenheit.",
-    "guessMade": "Du hast dieses Sternbild schon getippt – es gibt nur einen Versuch.",
-    "guessInvalid": "Diese Auswahl gehört nicht zu diesem Sternbild.",
-    "guessUnavailable": "Für diesen Patch gibt es kein Sternbild zu erkennen.",
+    "guessMade": "Du hast diese Sternkarte schon getippt – es gibt nur einen Versuch.",
+    "guessInvalid": "Diese Auswahl gehört nicht zu dieser Sternkarte.",
+    "guessUnavailable": "Für diesen Patch gibt es keine Sternkarte zu erkennen.",
     "sessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
     "forbidden": "Dafür fehlen dir die Rechte.",
     "notFound": "Das gibt es nicht (mehr).",
@@ -4571,7 +4571,7 @@
       "genericTask": "Neuer Stern",
       "unlock": {
         "logEntry": "Logbuch-Eintrag freigeschaltet",
-        "community": "Gemeinschafts-Sternbild freigeschaltet",
+        "community": "Community-Sternkarte freigeschaltet",
         "wallpaper": "4K-Wallpaper freigeschaltet",
         "kartograph": "Kartograph freigeschaltet",
         "road": "Sternenstraße freigeschaltet",
@@ -4713,11 +4713,11 @@
       }
     },
     "gallery": {
-      "mine": "Meine Sternbilder",
+      "mine": "Meine Sternkarten",
       "connected": "Starscape verbunden",
       "share": "Galerie teilen",
       "heroTitle": "Starscape holt die Galerie auf deinen Desktop",
-      "heroBody": "Die Desktop-App wechselt deine Wallpaper automatisch durch die Galerie und zeigt deine verdienten Sternbilder."
+      "heroBody": "Die Desktop-App wechselt deine Wallpaper automatisch durch die Galerie und zeigt deine verdienten Sternkarten."
     },
     "hub": {
       "search": "Suchen …",
@@ -4774,8 +4774,8 @@
     "signedOut": "Melde dich an, um deine Sternkarte zu sehen.",
     "signIn": "Anmelden",
     "loading": "Sternkarte wird geladen …",
-    "empty": "Für diesen Patch gibt es noch kein Sternbild.",
-    "stageAria": "Sternbild von Patch {{patch}}",
+    "empty": "Für diesen Patch gibt es noch keine Sternkarte.",
+    "stageAria": "Sternkarte von Patch {{patch}}",
     "progress": "{{lit}} von {{total}} Sternen",
     "sun": {
       "faded": {
@@ -4794,7 +4794,7 @@
     "export": {
       "wallpaper": "Wallpaper herunterladen (4K)",
       "busy": "Wird gerendert …",
-      "gallery": "Meine Sternbilder",
+      "gallery": "Meine Sternkarten",
       "failed": "Das Wallpaper ließ sich nicht erstellen. Versuch es noch einmal."
     },
     "task": {
@@ -4849,21 +4849,21 @@
         "link": "Loadout bauen"
       },
       "cxGuess": {
-        "title": "Sternbild erkannt",
-        "how": "Erkenne auf der Sternkarte, welches neue Schiff die Form des Sternbilds zeigt – ein Versuch.",
-        "link": "Zum Sternbild"
+        "title": "Sternkarte erkannt",
+        "how": "Erkenne auf der Sternkarte, welches neue Schiff die Form der Sternkarte zeigt – ein Versuch.",
+        "link": "Zur Sternkarte"
       }
     },
     "reward": {
       "unlocked": "freigeschaltet",
-      "locked": "ab {{at}} entzündeten Sternbildern",
+      "locked": "ab {{at}} entzündeten Sternkarten",
       "road": {
         "title": "Sternenstraße",
-        "desc": "Verbindet deine Sternbilder über die Patches."
+        "desc": "Verbindet deine Sternkarten über die Patches."
       },
       "nebula": {
         "title": "Nebel",
-        "desc": "Ein leuchtender Nebel hinter deinen Sternbildern."
+        "desc": "Ein leuchtender Nebel hinter deinen Sternkarten."
       },
       "live": {
         "title": "Live-Wallpaper",
@@ -4876,13 +4876,13 @@
       },
       "meteor": {
         "title": "Meteorschauer",
-        "desc": "Am LIVE-Tag ziehen Meteore über deine Sternbilder.",
-        "today": "Heute ist LIVE-Tag: Der Meteorschauer zieht über deine Sternbilder.",
+        "desc": "Am LIVE-Tag ziehen Meteore über deine Sternkarten.",
+        "today": "Heute ist LIVE-Tag: Der Meteorschauer zieht über deine Sternkarten.",
         "notToday": "Der Meteorschauer erscheint nur am LIVE-Tag des neuesten Patches."
       },
       "supernova": {
         "title": "Supernova",
-        "desc": "Ein generiertes Supernova-Sternbild nur für dich.",
+        "desc": "Ein generiertes Supernova-Sternkarte nur für dich.",
         "download": "Supernova herunterladen (4K)"
       }
     },
@@ -4893,9 +4893,9 @@
       "locked": "Sammle Sterne, um den Kartograph-Rang freizuschalten."
     },
     "community": {
-      "title": "Community-Sternbild",
-      "on": "Deine Sterne leuchten in diesem Patch im Community-Sternbild mit.",
-      "off": "Ab 3 Sternen leuchtest du im Community-Sternbild dieses Patches mit.",
+      "title": "Community-Sternkarte",
+      "on": "Deine Sterne leuchten in diesem Patch im Community-Sternkarte mit.",
+      "off": "Ab 3 Sternen leuchtest du im Community-Sternkarte dieses Patches mit.",
       "count": "{{explorers}} Explorer haben in diesem Patch Sterne entzündet. Hellere Sterne = mehr Explorer."
     },
     "suns": {
@@ -4906,13 +4906,13 @@
       "aria": "Sternkarte: {{lit}} von {{total}} Sternen"
     },
     "gallery": {
-      "title": "Meine Sternbilder",
-      "subtitle": "Jedes vollendete Sternbild landet automatisch hier.",
-      "empty": "Noch kein Sternbild vollendet.",
+      "title": "Meine Sternkarten",
+      "subtitle": "Jede vollendete Sternkarte landet automatisch hier.",
+      "empty": "Noch keine Sternkarte vollendet.",
       "toMap": "Zur Sternkarte",
       "appHint": "Die letzten 7 liegen auch in der Starscape-App.",
       "inApp": "in Starscape",
-      "thumbAria": "Sternbild-Wallpaper von Patch {{patch}}",
+      "thumbAria": "Sternkarten-Wallpaper von Patch {{patch}}",
       "download": "4K herunterladen",
       "share": "Teilen",
       "copied": "Link kopiert."
@@ -4921,8 +4921,8 @@
       "share": "Abzeichen teilen",
       "caption": "Kartograph · Rang {{rank}}",
       "captionSub": "Patch {{patch}} · {{stars}} von {{total}} Sternen · SC Companion",
-      "aria": "Kartograph-Abzeichen Rang {{rank}} mit dem Sternbild von Patch {{patch}}",
-      "explain": "Ein Kartograph hat in SC Companion ganze Sternbilder vollendet: jede Aufgabe eines Patches ein Stern.",
+      "aria": "Kartograph-Abzeichen Rang {{rank}} mit der Sternkarte von Patch {{patch}}",
+      "explain": "Ein Kartograph hat in SC Companion ganze Sternkarten vollendet: jede Aufgabe eines Patches ein Stern.",
       "cta": "Eigene Sternkarte starten",
       "invalid": "Dieser Abzeichen-Link ist unvollständig.",
       "toVerse": "Zum Verse"
@@ -4950,18 +4950,18 @@
       }
     },
     "map": {
-      "title": "Sternbild {{patch}}",
+      "title": "Sternkarte {{patch}}",
       "subtitle": "{{total}} Sterne · die Form verrät ein neues Schiff",
       "shape": "Die Form: {{name}}",
-      "patchesAria": "Sternbild eines Patches wählen",
-      "chipTip": "Sternbild {{patch}} · {{lit}} von {{total}} Sternen",
-      "mine": "Meine Sternbilder"
+      "patchesAria": "Sternkarte eines Patches wählen",
+      "chipTip": "Sternkarte {{patch}} · {{lit}} von {{total}} Sternen",
+      "mine": "Meine Sternkarten"
     },
     "tour": {
       "open": "So funktioniert die Sternkarte",
       "title": "Die Sternkarte und das Logbuch",
-      "p1": "Jeder Patch hat ein Sternbild aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
-      "p2": "Am Rand liegen zwei Herausforderungen: der Kometentipp und das Sternbild-Raten.",
+      "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
+      "p2": "Am Rand liegen zwei Herausforderungen: der Kometentipp und das Erkennen der Sternkarte.",
       "p3": "Im Logbuch findest du den Community-Himmel, deinen Kartograph-Rang und die Serien-Belohnungen.",
       "start": "Zeig es mir",
       "close": "Schließen",
@@ -4972,7 +4972,7 @@
       "step": {
         "stage": {
           "title": "Die Kuppel",
-          "text": "Das Sternbild des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes."
+          "text": "Die Sternkarte des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes."
         },
         "count": {
           "title": "Fortschritt",
@@ -4980,7 +4980,7 @@
         },
         "tracks": {
           "title": "Die zwei Herausforderungen",
-          "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff das Sternbild zeigt."
+          "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff die Sternkarte zeigt."
         },
         "series": {
           "title": "Die Serie",
@@ -4988,7 +4988,7 @@
         },
         "more": {
           "title": "Das Logbuch",
-          "text": "Öffnet das Seitenblatt: Community-Sternbild, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen."
+          "text": "Öffnet das Seitenblatt: Community-Sternkarte, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen."
         }
       }
     },
@@ -5008,7 +5008,7 @@
       "empty": "Für diesen Stern gibt es in diesem Patch keine Aufgabe.",
       "emptyTitle": "Ruhender Stern",
       "lockedComet": "Für diesen Patch kann kein Komet mehr gesetzt werden.",
-      "lockedGuess": "Dein Tipp für dieses Sternbild ist abgegeben."
+      "lockedGuess": "Dein Tipp für diese Sternkarte ist abgegeben."
     },
     "star": {
       "done": "Stern {{n}}: {{task}} · leuchtet",
@@ -5040,9 +5040,9 @@
       "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
-      "kind": "Sternbild",
-      "ruleAria": "Regeln zum Sternbild-Erkennen",
-      "rule": "Die Form des Sternbilds kommt vom neuesten Schiff des Patches. Eines der 7 Schiffe ist richtig. Du hast einen Versuch: Ein Klick auf ein Schiff gibt deinen Tipp ab – ein paar Sekunden lang kannst du ihn noch rückgängig machen. Richtig erkannt, leuchtet ein Stern und der Name erscheint im Sternbild.",
+      "kind": "Erkennen",
+      "ruleAria": "Regeln zum Erkennen",
+      "rule": "Die Form der Sternkarte kommt vom neuesten Schiff des Patches. Eines der 7 Schiffe ist richtig. Du hast einen Versuch: Ein Klick auf ein Schiff gibt deinen Tipp ab – ein paar Sekunden lang kannst du ihn noch rückgängig machen. Richtig erkannt, leuchtet ein Stern und der Name erscheint in der Sternkarte.",
       "optionAria": "Tipp abgeben: {{name}}",
       "state": {
         "open": "offen",
@@ -5051,29 +5051,29 @@
         "unavailable": "nicht verfügbar"
       },
       "head": {
-        "open": "Tippe auf das Schiff, das du im Sternbild erkennst",
+        "open": "Tippe auf das Schiff, das du in der Sternkarte erkennst",
         "correct": "Richtig erkannt: {{name}}",
-        "wrong": "Das Sternbild zeigt die {{name}}",
+        "wrong": "Die Sternkarte zeigt die {{name}}",
         "unavailable": "Das Rätsel ist noch nicht verfügbar"
       },
       "foot": {
-        "open": "Richtig erkannt, erscheint der Name im Sternbild und der Kreis bekommt ein Häkchen.",
-        "wrong": "Diesmal kein Stern – die Auflösung bleibt im Sternbild stehen.",
+        "open": "Richtig erkannt, erscheint der Name in der Sternkarte und der Kreis bekommt ein Häkchen.",
+        "wrong": "Diesmal kein Stern – die Auflösung bleibt in der Sternkarte stehen.",
         "unavailable": "Sobald die Spielwerte geladen sind, kannst du hier tippen."
       },
       "undoToast": "Tipp abgegeben: {{name}}"
     },
     "series": {
       "kind": "Serie",
-      "count": "{{n}} Sternbilder in Folge entzündet",
-      "countOne": "1 Sternbild in Folge entzündet",
+      "count": "{{n}} Sternkarten in Folge entzündet",
+      "countOne": "1 Sternkarte in Folge entzündet",
       "helpAria": "Wie funktioniert die Serie?",
-      "help": "Die Serie zählt die Patches in Folge, in denen du dein Sternbild entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Das neueste Sternbild läuft noch und unterbricht die Serie nie; bleibt ein älteres dunkel, beginnt sie von vorn. Jede Stufe der Straße schaltet ab dieser Zahl eine Belohnung frei, und freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
-      "helpReserve": "Die Serie zählt die Patches in Folge, in denen du dein Sternbild entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Das neueste Sternbild läuft noch und unterbricht die Serie nie. Deine Treibstoffreserve ist bereit: Ein dunkles Sternbild reißt die Serie diesmal nicht. Freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
+      "help": "Die Serie zählt die Patches in Folge, in denen du deine Sternkarte entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Die neueste Sternkarte läuft noch und unterbricht die Serie nie; bleibt ein älteres dunkel, beginnt sie von vorn. Jede Stufe der Straße schaltet ab dieser Zahl eine Belohnung frei, und freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
+      "helpReserve": "Die Serie zählt die Patches in Folge, in denen du deine Sternkarte entzündet hast – mindestens einen Stern, oder deine Sonne ist aufgegangen. Die neueste Sternkarte läuft noch und unterbricht die Serie nie. Deine Treibstoffreserve ist bereit: Eine dunkle Sternkarte reißt die Serie diesmal nicht. Freigeschaltet bleibt freigeschaltet (deine beste Serie: {{best}}).",
       "roadAria": "Belohnungen der Serie",
-      "stopOn": "{{title}} – {{desc}} ✓ freigeschaltet · ab {{at}} entzündeten Sternbildern",
-      "stopNext": "{{title}} – {{desc}} Als Nächstes · ab {{at}} entzündeten Sternbildern in Folge",
-      "stopLocked": "{{title}} – {{desc}} Ab {{at}} entzündeten Sternbildern in Folge",
+      "stopOn": "{{title}} – {{desc}} ✓ freigeschaltet · ab {{at}} entzündeten Sternkarten",
+      "stopNext": "{{title}} – {{desc}} Als Nächstes · ab {{at}} entzündeten Sternkarten in Folge",
+      "stopLocked": "{{title}} – {{desc}} Ab {{at}} entzündeten Sternkarten in Folge",
       "from": "ab {{at}}"
     }
   },

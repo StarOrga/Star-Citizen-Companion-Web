@@ -4471,9 +4471,9 @@
     "cometLocked": "The official LIVE date is announced – tips are closed.",
     "cometTipped": "You already tipped this patch.",
     "cometDatePast": "That date is in the past.",
-    "guessMade": "You already guessed this constellation – there is one try only.",
-    "guessInvalid": "That choice does not belong to this constellation.",
-    "guessUnavailable": "There is no constellation to recognise for this patch.",
+    "guessMade": "You already guessed this star map – there is one try only.",
+    "guessInvalid": "That choice does not belong to this star map.",
+    "guessUnavailable": "There is no star map to recognise for this patch.",
     "sessionExpired": "Your session has expired. Please sign in again.",
     "forbidden": "You don't have permission to do this.",
     "notFound": "This doesn't exist (anymore).",
@@ -4571,7 +4571,7 @@
       "genericTask": "New star",
       "unlock": {
         "logEntry": "Log entry unlocked",
-        "community": "Community constellation unlocked",
+        "community": "Community star map unlocked",
         "wallpaper": "4K wallpaper unlocked",
         "kartograph": "Cartographer unlocked",
         "road": "Star road unlocked",
@@ -4713,11 +4713,11 @@
       }
     },
     "gallery": {
-      "mine": "My constellations",
+      "mine": "My star maps",
       "connected": "Starscape connected",
       "share": "Share gallery",
       "heroTitle": "Starscape brings the gallery to your desktop",
-      "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the constellations you earned."
+      "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the star maps you earned."
     },
     "hub": {
       "search": "Search …",
@@ -4774,8 +4774,8 @@
     "signedOut": "Sign in to see your star map.",
     "signIn": "Sign in",
     "loading": "Loading star map …",
-    "empty": "There is no constellation for this patch yet.",
-    "stageAria": "Constellation of patch {{patch}}",
+    "empty": "There is no star map for this patch yet.",
+    "stageAria": "Star map of patch {{patch}}",
     "progress": "{{lit}} of {{total}} stars",
     "sun": {
       "faded": {
@@ -4794,7 +4794,7 @@
     "export": {
       "wallpaper": "Download wallpaper (4K)",
       "busy": "Rendering …",
-      "gallery": "My constellations",
+      "gallery": "My star maps",
       "failed": "The wallpaper could not be created. Please try again."
     },
     "task": {
@@ -4849,21 +4849,21 @@
         "link": "Build a loadout"
       },
       "cxGuess": {
-        "title": "Constellation recognised",
-        "how": "Recognise on the star map which new ship the constellation's shape shows – one try.",
-        "link": "To the constellation"
+        "title": "Star map recognised",
+        "how": "Recognise on the star map which new ship the star map's shape shows – one try.",
+        "link": "To the star map"
       }
     },
     "reward": {
       "unlocked": "unlocked",
-      "locked": "from {{at}} lit constellations",
+      "locked": "from {{at}} lit star maps",
       "road": {
         "title": "Star road",
-        "desc": "Connects your constellations across patches."
+        "desc": "Connects your star maps across patches."
       },
       "nebula": {
         "title": "Nebula",
-        "desc": "A glowing nebula behind your constellations."
+        "desc": "A glowing nebula behind your star maps."
       },
       "live": {
         "title": "Live wallpaper",
@@ -4876,13 +4876,13 @@
       },
       "meteor": {
         "title": "Meteor shower",
-        "desc": "On LIVE day, meteors streak across your constellations.",
-        "today": "It is LIVE day: the meteor shower streaks across your constellations.",
+        "desc": "On LIVE day, meteors streak across your star maps.",
+        "today": "It is LIVE day: the meteor shower streaks across your star maps.",
         "notToday": "The meteor shower only appears on the newest patch's LIVE day."
       },
       "supernova": {
         "title": "Supernova",
-        "desc": "A generated supernova constellation just for you.",
+        "desc": "A generated supernova star map just for you.",
         "download": "Download supernova (4K)"
       }
     },
@@ -4893,9 +4893,9 @@
       "locked": "Collect stars to unlock the cartographer rank."
     },
     "community": {
-      "title": "Community constellation",
-      "on": "Your stars shine in this patch's community constellation.",
-      "off": "From 3 stars you shine in this patch's community constellation.",
+      "title": "Community star map",
+      "on": "Your stars shine in this patch's community star map.",
+      "off": "From 3 stars you shine in this patch's community star map.",
       "count": "{{explorers}} explorers lit stars in this patch. Brighter stars = more explorers."
     },
     "suns": {
@@ -4906,13 +4906,13 @@
       "aria": "Star map: {{lit}} of {{total}} stars"
     },
     "gallery": {
-      "title": "My constellations",
-      "subtitle": "Every completed constellation lands here automatically.",
-      "empty": "No constellation completed yet.",
+      "title": "My star maps",
+      "subtitle": "Every completed star map lands here automatically.",
+      "empty": "No star map completed yet.",
       "toMap": "Go to the star map",
       "appHint": "The last 7 are in the Starscape app as well.",
       "inApp": "in Starscape",
-      "thumbAria": "Constellation wallpaper of patch {{patch}}",
+      "thumbAria": "Star map wallpaper of patch {{patch}}",
       "download": "Download 4K",
       "share": "Share",
       "copied": "Link copied."
@@ -4921,8 +4921,8 @@
       "share": "Share badge",
       "caption": "Cartographer · Rank {{rank}}",
       "captionSub": "Patch {{patch}} · {{stars}} of {{total}} stars · SC Companion",
-      "aria": "Cartographer badge rank {{rank}} with the constellation of patch {{patch}}",
-      "explain": "A cartographer completed whole constellations in SC Companion: every task of a patch is a star.",
+      "aria": "Cartographer badge rank {{rank}} with the star map of patch {{patch}}",
+      "explain": "A cartographer completed whole star maps in SC Companion: every task of a patch is a star.",
       "cta": "Start your own star map",
       "invalid": "This badge link is incomplete.",
       "toVerse": "Go to the Verse"
@@ -4950,18 +4950,18 @@
       }
     },
     "map": {
-      "title": "Constellation {{patch}}",
+      "title": "Star map {{patch}}",
       "subtitle": "{{total}} stars · the shape gives away a new ship",
       "shape": "The shape: {{name}}",
-      "patchesAria": "Choose a patch constellation",
-      "chipTip": "Constellation {{patch}} · {{lit}} of {{total}} stars",
-      "mine": "My constellations"
+      "patchesAria": "Choose a patch star map",
+      "chipTip": "Star map {{patch}} · {{lit}} of {{total}} stars",
+      "mine": "My star maps"
     },
     "tour": {
       "open": "How the star map works",
       "title": "The star map and the Logbook",
-      "p1": "Every patch has one constellation of 7 stars. Each task you finish lights one.",
-      "p2": "Two challenges sit on the rim: the comet tip and the constellation guess.",
+      "p1": "Every patch has one star map of 7 stars. Each task you finish lights one.",
+      "p2": "Two challenges sit on the rim: the comet tip and recognising the star map.",
       "p3": "The Logbook holds the community sky, your Kartograph rank and the series rewards.",
       "start": "Show me",
       "close": "Close",
@@ -4972,7 +4972,7 @@
       "step": {
         "stage": {
           "title": "The dome",
-          "text": "The constellation of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next."
+          "text": "The star map of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next."
         },
         "count": {
           "title": "Progress",
@@ -4980,7 +4980,7 @@
         },
         "tracks": {
           "title": "The two challenges",
-          "text": "Tip the comet for the next LIVE day and guess which ship the constellation shows."
+          "text": "Tip the comet for the next LIVE day and guess which ship the star map shows."
         },
         "series": {
           "title": "The series",
@@ -4988,7 +4988,7 @@
         },
         "more": {
           "title": "The Logbook",
-          "text": "Opens the side sheet: community constellation, suns, Kartograph rank, suggestions and rewards."
+          "text": "Opens the side sheet: community star map, suns, Kartograph rank, suggestions and rewards."
         }
       }
     },
@@ -5008,7 +5008,7 @@
       "empty": "This star has no task in this patch.",
       "emptyTitle": "Dormant star",
       "lockedComet": "No comet can be set for this patch any more.",
-      "lockedGuess": "Your guess for this constellation is in."
+      "lockedGuess": "Your guess for this star map is in."
     },
     "star": {
       "done": "Star {{n}}: {{task}} · lit",
@@ -5040,9 +5040,9 @@
       "undoToast": "Comet for {{patch}} set: {{date}}"
     },
     "guess": {
-      "kind": "Constellation",
-      "ruleAria": "Constellation guess rules",
-      "rule": "The constellation's shape comes from the patch's newest ship. One of the 7 ships is right. You get one try: a click on a ship places your guess, and for a few seconds you can still undo it. Guess right and a star lights up and the name appears in the constellation.",
+      "kind": "Recognise",
+      "ruleAria": "Recognition rules",
+      "rule": "The star map's shape comes from the patch's newest ship. One of the 7 ships is right. You get one try: a click on a ship places your guess, and for a few seconds you can still undo it. Guess right and a star lights up and the name appears in the star map.",
       "optionAria": "Guess: {{name}}",
       "state": {
         "open": "open",
@@ -5051,29 +5051,29 @@
         "unavailable": "unavailable"
       },
       "head": {
-        "open": "Tap the ship you recognise in the constellation",
+        "open": "Tap the ship you recognise in the star map",
         "correct": "Recognised: {{name}}",
-        "wrong": "The constellation shows the {{name}}",
+        "wrong": "The star map shows the {{name}}",
         "unavailable": "The guess is not available yet"
       },
       "foot": {
-        "open": "Guess right and the name appears in the constellation and the circle gets a check mark.",
-        "wrong": "No star this time – the answer stays in the constellation.",
+        "open": "Guess right and the name appears in the star map and the circle gets a check mark.",
+        "wrong": "No star this time – the answer stays in the star map.",
         "unavailable": "Once the game data has loaded you can guess here."
       },
       "undoToast": "Guess placed: {{name}}"
     },
     "series": {
       "kind": "Series",
-      "count": "{{n}} constellations lit in a row",
-      "countOne": "1 constellation lit in a row",
+      "count": "{{n}} star maps lit in a row",
+      "countOne": "1 star map lit in a row",
       "helpAria": "How does the series work?",
-      "help": "The series counts the patches in a row in which you lit your constellation – at least one star, or your sun rose. The newest constellation is still running and never breaks the series; if an older one stays dark, it starts over. Each stop on the road unlocks a reward from that number on, and unlocked stays unlocked (your best series: {{best}}).",
-      "helpReserve": "The series counts the patches in a row in which you lit your constellation – at least one star, or your sun rose. The newest constellation is still running and never breaks the series. Your fuel reserve is ready: one dark constellation will not break the series this time. Unlocked stays unlocked (your best series: {{best}}).",
+      "help": "The series counts the patches in a row in which you lit your star map – at least one star, or your sun rose. The newest star map is still running and never breaks the series; if an older one stays dark, it starts over. Each stop on the road unlocks a reward from that number on, and unlocked stays unlocked (your best series: {{best}}).",
+      "helpReserve": "The series counts the patches in a row in which you lit your star map – at least one star, or your sun rose. The newest star map is still running and never breaks the series. Your fuel reserve is ready: one dark star map will not break the series this time. Unlocked stays unlocked (your best series: {{best}}).",
       "roadAria": "Series rewards",
-      "stopOn": "{{title}} – {{desc}} ✓ unlocked · from {{at}} lit constellations",
-      "stopNext": "{{title}} – {{desc}} Up next · from {{at}} lit constellations in a row",
-      "stopLocked": "{{title}} – {{desc}} From {{at}} lit constellations in a row",
+      "stopOn": "{{title}} – {{desc}} ✓ unlocked · from {{at}} lit star maps",
+      "stopNext": "{{title}} – {{desc}} Up next · from {{at}} lit star maps in a row",
+      "stopLocked": "{{title}} – {{desc}} From {{at}} lit star maps in a row",
       "from": "from {{at}}"
     }
   },
