@@ -58,7 +58,7 @@ export type { HoloSharedBanner } from './codex-holo-shared-banner.component';
 import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
 import { CodexHoloTableComponent } from './codex-holo-table.component';
 import { CodexHoloInspectorComponent } from './codex-holo-inspector.component';
-import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker } from './codex-holo-model';
+import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker, spreadStackedPins } from './codex-holo-model';
 import { anchorKey } from './codex-holo-leader';
 import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
@@ -1662,6 +1662,11 @@ export class CodexHoloStageComponent {
     // Estimated positions are spread evenly ALONG the ring (not by angle), in
     // list order from the nose clockwise — see `ringPositions`.
     const spots = ring ? ringPositions(ring, source.filter(({ raw }) => !byPort.has(anchorKey(raw))).length) : [];
+    // Coinciding anchors fan out so no dot hides under another (`spreadStackedPins`).
+    // Keyed by source position, not by anchor: two ports can share one anchor.
+    const anchoredAt = source.flatMap(({ raw }, i) => (byPort.has(anchorKey(raw)) ? [i] : []));
+    const spread = spreadStackedPins(anchoredAt.map((i) => byPort.get(anchorKey(source[i].raw)) as SilhouetteAnchor));
+    const spreadAt = new Map(anchoredAt.map((at, n) => [at, spread[n]]));
     let nextIndex = 0;
     let spot = 0;
     // A narrow ring (a slim hull — the X1, a Cutter) leaves the flank labels
@@ -1678,7 +1683,7 @@ export class CodexHoloStageComponent {
       return x > 55 ? 'left' : 'right';
     };
     return source
-      .map(({ raw, known }) => {
+      .map(({ raw, known }, at) => {
         const slot = known?.slot ?? null;
         const index = known?.index ?? ++nextIndex;
         const anchor = byPort.get(anchorKey(raw));
@@ -1692,7 +1697,10 @@ export class CodexHoloStageComponent {
           slot,
           section: known?.section ?? null,
         };
-        if (anchor) return { ...base, x: anchor.x, y: anchor.y, side: sideFor(anchor.x, anchor.y, false), resolved: true };
+        if (anchor) {
+          const p = spreadAt.get(at) ?? anchor;
+          return { ...base, x: p.x, y: p.y, side: sideFor(p.x, p.y, false), resolved: true };
+        }
         const p = spots[spot++] ?? { x: 50, y: 50 };
         return { ...base, x: p.x, y: p.y, side: sideFor(p.x, p.y, true), resolved: false };
       })

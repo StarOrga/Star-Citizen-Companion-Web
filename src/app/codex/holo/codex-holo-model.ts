@@ -90,6 +90,51 @@ export function ringPositions(ring: PinRing, n: number): { x: number; y: number 
   return out;
 }
 
+/** Closest two anchored dots may sit, in % of the canvas — a dot is ~18px on
+ * a ~400px table, so 5 % keeps every number readable down to phone width. */
+export const PIN_MIN_GAP = 5;
+
+/**
+ * Anchors that (nearly) coincide — three shield generators on one bulkhead,
+ * the coolers stacked over the power plant — drew their dots on top of each
+ * other, so only the last number stayed visible (Nomad: 7 of 17). Each such
+ * cluster is fanned out on a small circle around its centre, just wide enough
+ * that neighbours sit `minGap` apart, in list order starting on the left. A
+ * pin that stands alone keeps its anchor exactly; the leader line still
+ * points into the cluster, which is where the parts really are.
+ */
+export function spreadStackedPins(points: readonly { x: number; y: number }[], minGap = PIN_MIN_GAP): { x: number; y: number }[] {
+  const parent = points.map((_, i) => i);
+  const root = (i: number): number => (parent[i] === i ? i : (parent[i] = root(parent[i])));
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      if (Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y) < minGap) parent[root(j)] = root(i);
+    }
+  }
+  const clusters = new Map<number, number[]>();
+  points.forEach((_, i) => {
+    const r = root(i);
+    const hit = clusters.get(r);
+    if (hit) hit.push(i);
+    else clusters.set(r, [i]);
+  });
+  const out = points.map((p) => ({ x: p.x, y: p.y }));
+  const clamp = (v: number) => Math.min(100, Math.max(0, v));
+  for (const members of clusters.values()) {
+    const k = members.length;
+    if (k < 2) continue;
+    const cx = members.reduce((s, i) => s + points[i].x, 0) / k;
+    const cy = members.reduce((s, i) => s + points[i].y, 0) / k;
+    // Chord between neighbours on a circle of radius r is 2r·sin(π/k).
+    const r = minGap / (2 * Math.sin(Math.PI / k));
+    members.forEach((i, n) => {
+      const a = Math.PI + (2 * Math.PI * n) / k;
+      out[i] = { x: clamp(cx + r * Math.cos(a)), y: clamp(cy + r * Math.sin(a)) };
+    });
+  }
+  return out;
+}
+
 /**
  * The ship name without the maker's own first word when the display name
  * repeats it ("Aegis Avenger Stalker" under "Aegis Dynamics" → "Avenger
