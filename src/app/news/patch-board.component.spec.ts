@@ -174,7 +174,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   });
 
   const root = () => fixture.nativeElement as HTMLElement;
-  const rows = () => Array.from(root().querySelectorAll('.stack > .row:not(.fold)')) as HTMLElement[];
+  const rows = () => Array.from(root().querySelectorAll('.stack > .node:not(.fold)')) as HTMLElement[];
 
   it('opens with exactly three cards in time order — next, live, superseded — and folds the rest', async () => {
     await render(FEED, ROADMAP);
@@ -234,7 +234,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('no longer counts the notes on the overview card', async () => {
     await render(FEED, ROADMAP);
     for (const row of rows()) {
-      expect(row.textContent).withContext(row.querySelector('.ver')?.textContent ?? '').not.toContain('Notes');
+      expect(row.textContent).withContext(row.querySelector('.ver')?.textContent ?? '').not.toMatch(/\d+\s+Notes/);
     }
     expect(root().querySelector('.stack .counts, .stack .ct'))
       .withContext('the cell went with it — an empty column is still a column').toBeNull();
@@ -420,7 +420,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
    * columns used to widen with importance (150 / 170 / 190 px), so the status
    * word and the version number stepped sideways between neighbouring rows.
    */
-  it('every card lines up: same status width, same version x, same height for next and superseded', async () => {
+  it('every card lines up: same status width and same version x', async () => {
     await render(FEED, ROADMAP);
     const widths = rows().map((r) => Math.round(r.querySelector('.status')!.getBoundingClientRect().width));
     expect(new Set(widths).size).withContext(`status widths: ${widths}`).toBe(1);
@@ -428,28 +428,23 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     const lefts = rows().map((r) => Math.round(r.querySelector('.ver')!.getBoundingClientRect().left));
     expect(new Set(lefts).size).withContext(`version x: ${lefts}`).toBe(1);
 
-    const cards = rows().map((r) => r.querySelector('.card') as HTMLElement);
-    const [next, , superseded] = cards.map((c) => Math.round(c.getBoundingClientRect().height));
-    expect(next).withContext('"next" and "superseded" are the same kind of row').toBe(superseded);
-    // The shared height is fixed, so it also has to be big enough: a row that
-    // clips its own content would pass the equality above and still be wrong.
-    for (const c of cards) {
+    // Cards are content-sized now (the next card holds the monitor, the sub-versions nest inside).
+    for (const c of rows().map((r) => r.querySelector('.card') as HTMLElement)) {
       expect(c.scrollHeight).withContext(`${c.textContent?.slice(0, 24)} is clipped`).toBeLessThanOrEqual(c.clientHeight + 1);
     }
   });
 
-  it('a shipped line carries its stability as a badge in the card corner; a future one does not', async () => {
+  it('a shipped line carries its stability as a bar meter in the gutter; a future one has an empty scale', async () => {
     await render(FEED, ROADMAP);
     const [next, live, superseded] = rows();
-    expect(next.querySelector('sc-stability-badge .badge')).withContext('4.11 has not shipped').toBeNull();
-    expect(live.querySelector('sc-stability-badge .badge')?.getAttribute('data-tone')).toBe('amber');
-    expect(live.querySelector('sc-stability-badge .val')?.textContent?.replace(/\s/g, '')).toBe('56%');
-    expect(superseded.querySelector('sc-stability-badge .badge')?.getAttribute('data-tone')).toBe('green');
-    // Top-right corner: the badge sits right of the counts and at the card's top.
+    const meter = (r: HTMLElement) => r.querySelector('.stb sc-stability-meter .m');
+    expect(meter(next)?.classList.contains('none')).withContext('4.11 has not shipped').toBeTrue();
+    expect(meter(live)?.classList.contains('weak')).withContext('56 % is weak, so warning amber').toBeTrue();
+    expect(meter(live)?.querySelector('.pct')?.textContent?.replace(/\s/g, '')).toBe('56%');
+    expect(meter(superseded)?.classList.contains('weak')).toBeFalse();
+    // The gutter sits left of the card, in the rail's column.
     const card = live.querySelector('.card')!.getBoundingClientRect();
-    const badge = live.querySelector('sc-stability-badge')!.getBoundingClientRect();
-    expect(badge.right).toBeLessThanOrEqual(card.right + 1);
-    expect(badge.top - card.top).toBeLessThan(card.height / 2);
+    expect(live.querySelector('.stb')!.getBoundingClientRect().right).toBeLessThanOrEqual(card.left + 1);
   });
 
   it('an empty query brings the stack back untouched', async () => {
@@ -464,10 +459,9 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     const panel = root().querySelector('sc-patch-monitor .mon') as HTMLElement | null;
     expect(panel).withContext('the panel is on the board, not only in the dossier').not.toBeNull();
 
-    // Position: the panel comes before the search field and before the stack.
-    const order = Array.from(root().querySelectorAll('sc-patch-monitor, .search, .stack'));
-    expect(order.map((el) => el.tagName === 'SC-PATCH-MONITOR' ? 'monitor' : el.className))
-      .toEqual(['monitor', 'search', 'stack']);
+    // Position: the panel sits INSIDE the next-patch card, above the sub-versions.
+    expect(panel!.closest('.card')?.closest('.node')?.getAttribute('data-status')).toBe('next');
+    expect(root().querySelectorAll('sc-patch-monitor').length).toBe(1);
 
     // Three cells, read as the rail's legend: where the run started (with the
     // hotfixes as a side note there), how it is going, where it ends.

@@ -219,8 +219,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                             <span class="sl">{{ row.version }}</span>
                             <span class="svt">{{ row.title }}</span>
                             <span class="chips">
-                              @if (row.stage) { <span class="chip" [attr.data-stage]="row.stage">{{ ('news.patch.stage.' + row.stage) | translate }}</span> }
-                              @if (row.hotfix) { <span class="chip hf">{{ 'news.patch.hotfix' | translate }}</span> }
+                              @if (row.stage) { <span class="tag" [attr.data-stage]="row.stage">{{ ('news.patch.stage.' + row.stage) | translate }}</span> }
+                              @if (row.hotfix) { <span class="tag hf">{{ 'news.patch.hotfix' | translate }}</span> }
                             </span>
                             <span class="svs">
                               @if (row.stability !== null) {
@@ -445,14 +445,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .sl { font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
     .svt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chips { display: inline-flex; gap: 6px; }
-    .chip {
+    .tag {
       display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; white-space: nowrap;
       font-size: max(0.64rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
       color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent);
     }
-    .chip[data-stage='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
-    .chip[data-stage='ptu'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
-    .chip.hf { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-2) 26%, transparent); }
+    .tag[data-stage='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
+    .tag[data-stage='ptu'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .tag.hf { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-2) 26%, transparent); }
     .svs em { font-style: normal; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .svw { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); text-align: right; white-space: nowrap; }
     .more {
