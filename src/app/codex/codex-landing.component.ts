@@ -13,7 +13,6 @@ import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
-import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 import { BetaService } from '../core/beta.service';
 import {
   CodexListRow,
@@ -77,7 +76,6 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
   selector: 'sc-codex-landing',
   standalone: true,
   imports: [
-    StageSearchDirective,
     RouterLink,
     TranslatePipe,
     CodexCompareTrayComponent,
@@ -98,11 +96,8 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
       <header class="terminal">
         <!-- The ONE Codex search (also behind Ctrl+K and above every other
              Codex page). Activated, it spans this whole row and leads the page. -->
-        @if (shellOn()) {
-          <!-- Beta shell: the stage slot — the shell bar's own search field stands here
-               and docks as the subheader once the page scrolls ("Gleiche Leiste"). -->
-          <div class="terminal-search stage-slot" scStageSearch></div>
-        } @else {
+        <!-- Beta shell: the search stands in the shell's stage slot (the bar's own field). -->
+        @if (!shellOn()) {
           <sc-codex-search-bar #searchBar class="terminal-search" variant="terminal" [query]="routeQuery()" />
         }
 
@@ -269,7 +264,6 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
          itself against the whole row (position: relative here). */
       .terminal { position: relative; }
       .terminal-search { flex: 1 1 340px; min-width: 0; }
-      .stage-slot { flex-basis: 640px; max-width: 640px; height: var(--sc-sub-h, 60px); }
 
       /* The patch headline is its own component (sc-codex-patch-headline) — it
          owns the pill chrome and the patch-switch overlay. Only its slot in the

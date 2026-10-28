@@ -43,7 +43,6 @@ import {
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, hubGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
-import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
 
 export { verseItemLink } from './verse-item-link';
 export type { VerseItemLink } from './verse-item-link';
@@ -138,7 +137,7 @@ export function fitTitle(h: HTMLElement): void {
   standalone: true,
   imports: [
     RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
-    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, StageSearchDirective,
+    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing/verse-briefing.component.html',

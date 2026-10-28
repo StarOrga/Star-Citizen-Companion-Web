@@ -14,6 +14,7 @@ import { ShellChromeService } from './shell-chrome.service';
 @Component({ selector: 'sc-fusion-search', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '<ng-content />' })
 class FusionSearchStub {
   readonly placement = input<'top' | 'bottom'>('top');
+  readonly hideContext = input(false);
   readonly compact = input(false);
   readonly openChange = output<boolean>();
 }

@@ -166,6 +166,9 @@
   /* SUBHEADER SKIN "Satinkante" (concept 2026-10-28 header/subheader, round 8 d2):
      the staged search and the docked subheader are one element in one skin. */
   --sc-sub-h: 60px;
+  /* Content width of the main header row and the subheader: the page frame, and
+     never under the β chip (--sc-chip-lane, published by the chip), kept centred. */
+  --sc-chrome-w: min(100% - 2 * max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)), var(--sc-page-max) - 2 * var(--sc-page-gutter));
   --sc-sub-radius: 5px;
   --sc-sub-fill: linear-gradient(180deg, #0a1d2b, #061724);
   --sc-sub-edge: linear-gradient(160deg, rgba(200, 236, 250, 0.7) 0%, rgba(80, 125, 148, 0.45) 30%, rgba(30, 58, 74, 0.5) 60%, rgba(140, 200, 225, 0.55) 100%);
@@ -177,6 +180,11 @@
   --sc-sub-divider: rgba(160, 230, 255, 0.8);
   --sc-sub-rule: rgba(130, 220, 255, 0.14);
   --sc-sub-kbd: linear-gradient(180deg, #17384c, #0b2231);
+}
+/* Phone, beta shell: the top carries the subheader's route line (category + ◂ back) —
+   the page header's own crumbs would repeat it right below. */
+@media (max-width: 720px) {
+  html:has(sc-fusion-bar) sc-page-header nav.crumbs { display: none; }
 }
 /* The subheader's light trace runs its conic edge around once (needs a typed angle). */
 @property --sc-sub-trace-ang {

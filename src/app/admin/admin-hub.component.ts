@@ -60,6 +60,8 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
  */
 @Component({
   selector: 'sc-admin-hub',
+  // A cinematic route spans the full track; the hub's content keeps the page frame.
+  host: { class: 'sc-track-wide' },
   standalone: true,
   imports: [RouterLink, TranslatePipe, PageHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

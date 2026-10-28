@@ -154,7 +154,8 @@ interface PathCrumb {
         }
 
         <sc-fusion-search class="search" [placement]="phone() && mode() !== 'stage' ? 'bottom' : 'top'"
-                          [compact]="mode() === 'tool'" (openChange)="onSearchOpen($event)">
+                          [compact]="mode() === 'tool'" [hideContext]="mode() === 'stage' || !!segment()"
+                          (openChange)="onSearchOpen($event)">
           @if (mode() !== 'stage' && tokens().length) {
             <span fsLeading class="toks">
               @for (t of shownTokens(); track t.id) {
@@ -361,7 +362,10 @@ export class FusionBarComponent {
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
       if (this.enterTimer) clearTimeout(this.enterTimer);
-      if (this.placeFrame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.placeFrame);
+      if (typeof cancelAnimationFrame === 'function') {
+        if (this.placeFrame) cancelAnimationFrame(this.placeFrame);
+        if (this.measureFrame) cancelAnimationFrame(this.measureFrame);
+      }
       this.anchorRo?.disconnect();
       this.chrome.setBarHidden(false);
       this.chrome.setStageSearch('none');
@@ -387,10 +391,7 @@ export class FusionBarComponent {
     const ro =
       typeof ResizeObserver === 'undefined'
         ? null
-        : new ResizeObserver(() => {
-            this.publishHeight();
-            this.schedulePlace();
-          });
+        : new ResizeObserver(() => this.scheduleMeasure());
     ro?.observe(this.host.nativeElement as HTMLElement);
     ro?.observe(document.body);
     window.addEventListener('resize', onResize, { passive: true });
@@ -431,7 +432,13 @@ export class FusionBarComponent {
       if (morph === 'dock') this.pulse('morph');
     });
     if (!morph || !first) return;
-    afterNextRender(() => this.playMorph(morph, first, logoFirst), { injector: this.injector });
+    afterNextRender(
+      () => {
+        if (morph === 'undock') this.placeStage();
+        this.playMorph(morph, first, logoFirst);
+      },
+      { injector: this.injector },
+    );
   }
 
   private playMorph(kind: 'dock' | 'undock', first: DOMRect, logoFirst: DOMRect | null): void {
@@ -466,6 +473,18 @@ export class FusionBarComponent {
         easing: DOCK_EASE,
       });
     }
+  }
+
+  private measureFrame = 0;
+
+  /** Heights + stage position, one frame later (a write inside a ResizeObserver callback loops it). */
+  private scheduleMeasure(): void {
+    if (typeof requestAnimationFrame !== 'function' || this.measureFrame) return;
+    this.measureFrame = requestAnimationFrame(() => {
+      this.measureFrame = 0;
+      this.publishHeight();
+      this.placeStage();
+    });
   }
 
   private schedulePlace(): void {

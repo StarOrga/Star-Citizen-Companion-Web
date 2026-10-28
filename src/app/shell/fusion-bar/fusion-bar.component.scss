@@ -7,7 +7,7 @@
 :host {
   --_cap-h: var(--sc-sub-h);
   // The page frame's content width — the same edges as the main header's row.
-  --_frame-w: calc(min(100%, var(--sc-page-max)) - 2 * var(--sc-page-gutter));
+  --_frame-w: var(--sc-chrome-w);
   position: sticky;
   top: var(--sc-imp-banner-h, 0px);
   z-index: 20;
@@ -258,6 +258,9 @@
   padding-left: var(--sc-space-1);
   border-radius: var(--sc-radius-sm, 4px);
 }
+:host ::ng-deep .search .input {
+  min-width: 12ch;
+}
 :host ::ng-deep .search .field::before {
   display: none;
 }
@@ -345,7 +348,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   margin-right: var(--sc-space-2);
 }
 .tok {
@@ -360,6 +364,15 @@
   color: var(--sc-fg-0);
   background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
   white-space: nowrap;
+}
+.tok {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.tok-v {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tok em {
   font-style: normal;
@@ -450,7 +463,20 @@
   box-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent) 25%, transparent);
 }
 .fcols {
+  min-width: 0;
   padding: var(--sc-space-3) 0;
+}
+// The page's own controls never run past the panel's edge (phone: the list filter input).
+:host ::ng-deep .fcols :is(.search-row, .facets, input[type='search']) {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+:host ::ng-deep .fcols .search-row {
+  width: 100%;
+}
+:host ::ng-deep .fcols .facets {
+  flex-wrap: wrap;
 }
 // The page's toolbar card loses its own card look inside the panel.
 :host ::ng-deep .fcols > .sc-card {

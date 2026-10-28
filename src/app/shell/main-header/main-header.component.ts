@@ -89,11 +89,10 @@ export const MAIN_NAV_SLOT_PX = 112;
         display: grid;
         grid-template-columns: 1fr auto 1fr;
         align-items: center;
-        width: min(100%, var(--sc-page-max));
+        width: var(--sc-chrome-w);
         box-sizing: border-box;
         min-height: 56px;
         margin: 0 auto;
-        padding-inline: var(--sc-page-gutter);
       }
       /* Compressed into the docked subheader: everything but the gliding logo fades/condenses. */
       .wordmark,
@@ -124,6 +123,13 @@ export const MAIN_NAV_SLOT_PX = 112;
       }
       :host(.compressed) .row > * {
         pointer-events: none;
+      }
+      /* Phone: the β chip keeps the top-right corner; the row leaves it free. */
+      @media (max-width: 720px) {
+        .row {
+          width: 100%;
+          padding-inline: var(--sc-page-gutter) max(var(--sc-page-gutter), var(--sc-chip-lane, 0px));
+        }
       }
       @media (prefers-reduced-motion: reduce) {
         .wordmark,

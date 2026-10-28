@@ -52,7 +52,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 import { MainHeaderComponent } from './main-header/main-header.component';
-import { isMainHeaderPage, pageOwnsStageSlot } from './fusion-bar/fusion-bar.model';
+import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
 import { StageSearchDirective } from './fusion-bar/stage-search.directive';
 import { avatarUrlOf } from './avatar-url';
 
@@ -233,7 +233,7 @@ import { avatarUrlOf } from './avatar-url';
           <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
         }
       </sc-fusion-bar>
-      @if (cineHeader() && !pageStage()) {
+      @if (cineHeader()) {
         <div class="stage-slot" scStageSearch></div>
       }
     }
@@ -870,12 +870,13 @@ import { avatarUrlOf } from './avatar-url';
       height: 40px;
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
     }
-    /* The default stage slot of a main page without its own (HQ, admin hub): the
-       bar's search field stands here, centred, until it docks. */
+    /* The stage slot of every main page: the bar's search field stands here —
+       centred, at the same height on Verse, Codex, HQ and the admin hub — until it docks. */
     .stage-slot {
+      flex: none;
       width: min(640px, calc(100% - 2 * var(--sc-page-gutter)));
       height: var(--sc-sub-h);
-      margin: var(--sc-space-6) auto var(--sc-space-2);
+      margin: var(--sc-space-5) auto var(--sc-space-3);
     }
     /* Menu switch, part one: the old main page sinks away while the camera moves. */
     main.switch-out > :not(router-outlet) {
@@ -1053,9 +1054,6 @@ export class ShellComponent implements AfterViewInit {
   /** On a main page (beta shell): the cinematic header stands over the scene. */
   private readonly onMainPage = signal(isMainHeaderPage(this.router.url));
   readonly cineHeader = computed(() => this.shellOn() && this.onMainPage());
-  /** The main page marks its own stage slot (Verse, Codex); the others get the shell's. */
-  readonly pageStage = computed(() => pageOwnsStageSlot(this.currentUrl()));
-  private readonly currentUrl = signal(this.router.url);
   /** Menu switch main page → main page: the old content is on its way out. */
   readonly switchingOut = signal(false);
   /** The next reveal plays as the second half of a menu switch. */
@@ -1084,7 +1082,6 @@ export class ShellComponent implements AfterViewInit {
         this.onVerseHome.set(isVerseHome(e.urlAfterRedirects));
         this.betaArea.set(betaAreaOf(e.urlAfterRedirects));
         this.onMainPage.set(isMainHeaderPage(e.urlAfterRedirects));
-        this.currentUrl.set(e.urlAfterRedirects);
       }
       if (e instanceof NavigationStart) {
         this.beginMenuSwitch(e.url);

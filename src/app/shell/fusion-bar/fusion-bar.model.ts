@@ -213,15 +213,6 @@ export function stageMorphOf(was: boolean, now: boolean): 'dock' | 'undock' | nu
   return now ? 'dock' : 'undock';
 }
 
-/**
- * Main pages whose page marks its own stage slot (`[scStageSearch]`) for the
- * staged search; the shell provides a default slot on the others.
- */
-export function pageOwnsStageSlot(url: string): boolean {
-  const path = url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
-  return path === '/verse' || path === '/codex';
-}
-
 /** The plate's way back: the origin crumb (the last one the page header published), else the area root. */
 export interface PlateBack {
   label: string | null;

@@ -3,7 +3,6 @@ import {
   STAGE_DOCK_PX,
   STAGE_UNDOCK_PX,
   nextStageDocked,
-  pageOwnsStageSlot,
   plateBackOf,
   stageMorphOf,
 } from './fusion-bar.model';
@@ -25,13 +24,6 @@ describe('Gleiche Leiste: the stage dock state machine', () => {
     expect(stageMorphOf(true, false)).toBe('undock');
     expect(stageMorphOf(true, true)).toBeNull();
     expect(stageMorphOf(false, false)).toBeNull();
-  });
-
-  it('knows which main pages bring their own stage slot', () => {
-    expect(pageOwnsStageSlot('/verse')).toBeTrue();
-    expect(pageOwnsStageSlot('/codex?q=x')).toBeTrue();
-    expect(pageOwnsStageSlot('/hq')).toBeFalse();
-    expect(pageOwnsStageSlot('/admin/hub')).toBeFalse();
   });
 });
 
