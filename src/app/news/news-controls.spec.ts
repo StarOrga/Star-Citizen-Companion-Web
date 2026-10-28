@@ -101,47 +101,52 @@ describe('Verse News — harmonised controls', () => {
 
   // ── The stream toggle ────────────────────────────────────────────────────
 
-  it('renders both halves of the stream as one segmented control', () => {
-    const seg = el('.stream-head .seg');
-    expect(seg).withContext('segmented control').not.toBeNull();
-    expect(all('.stream-head .seg .seg-btn').length).toBe(2);
-    expect(el('.stream-head .count')).withContext('old count pill is gone').toBeNull();
-    expect(el('.stream-head .saved-link')).withContext('old saved link is gone').toBeNull();
+  const chips = () => all('.stream-head .chip');
+  const SAVED = 5;
+
+  it('renders the six source chips as toggle buttons', () => {
+    expect(chips().length).toBe(6);
+    expect(chips().every((c) => c.tagName === 'BUTTON' && c.hasAttribute('aria-pressed'))).toBeTrue();
+    expect(el('.stream-head h2')).withContext('feed has no own heading').toBeNull();
   });
 
   it('states its numbers without brackets', () => {
-    const nums = all('.stream-head .seg .seg-num').map((n) => n.textContent!.trim());
-    expect(nums.length).toBe(2);
+    const nums = all('.stream-head .chip .chip-num').map((n) => n.textContent!.trim());
+    expect(nums.length).toBe(6);
     for (const n of nums) expect(n).withContext(n).toMatch(/^\d+$/);
   });
 
-  it('marks exactly one half as pressed and switches on the other', () => {
-    const [allBtn, savedBtn] = all('.stream-head .seg .seg-btn');
-    expect(allBtn.getAttribute('aria-pressed')).toBe('true');
-    expect(savedBtn.getAttribute('aria-pressed')).toBe('false');
+  it('keeps the hero out of the feed and shows the newest item as an h2', () => {
+    expect(el('.stage h2')!.textContent).toContain('Item stage');
+    expect(el('.stage h1')).toBeNull();
+    expect(all('.cards .card').length).toBe(3);
+  });
 
-    savedBtn.click();
+  it('marks exactly one chip as pressed and filters the feed by source', () => {
+    expect(chips()[0].getAttribute('aria-pressed')).toBe('true');
+    chips()[1].click(); // Comm-Link
+    fixture.detectChanges();
+    expect(chips().filter((c) => c.getAttribute('aria-pressed') === 'true').length).toBe(1);
+    expect(all('.cards .card').length).toBe(3);
+    chips()[2].click(); // YouTube - only the hero is a video, it never repeats in the feed
+    fixture.detectChanges();
+    expect(all('.cards .card').length).toBe(0);
+    expect(el('.sc-card.empty')).not.toBeNull();
+    expect(el('.stage')).withContext('hero is untouched by the filter').not.toBeNull();
+  });
+
+  it('switches on the saved slice', () => {
+    chips()[SAVED].click();
     fixture.detectChanges();
     expect(svc.favoritesOnly()).toBeTrue();
-    expect(all('.stream-head .seg .seg-btn')[1].getAttribute('aria-pressed')).toBe('true');
+    expect(chips()[SAVED].getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('does not flip back when the already-active half is pressed again', () => {
-    // A segmented control states which half is active; a toggle would contradict
-    // its own aria-pressed on the second press.
-    const savedBtn = all('.stream-head .seg .seg-btn')[1];
-    savedBtn.click();
+  it('keeps the counts on the unfiltered pool, so the numbers never move under the filter', () => {
+    const before = all('.stream-head .chip .chip-num').map((n) => n.textContent!.trim());
+    chips()[SAVED].click();
     fixture.detectChanges();
-    savedBtn.click();
-    fixture.detectChanges();
-    expect(svc.favoritesOnly()).withContext('still on the saved half').toBeTrue();
-  });
-
-  it('keeps both counts on the unfiltered stream, so the numbers never move under the filter', () => {
-    const before = all('.stream-head .seg .seg-num').map((n) => n.textContent!.trim());
-    all('.stream-head .seg .seg-btn')[1].click();
-    fixture.detectChanges();
-    const after = all('.stream-head .seg .seg-num').map((n) => n.textContent!.trim());
+    const after = all('.stream-head .chip .chip-num').map((n) => n.textContent!.trim());
     expect(after).toEqual(before);
   });
 
@@ -150,7 +155,7 @@ describe('Verse News — harmonised controls', () => {
   it('counts the staged article as saved — the star and the badge tell one story', () => {
     // Reported as: "the hero is starred and Gemerkt still reads 0". The stage is
     // a presentation surface, not a category, so it cannot scope the saved half.
-    const staged = svc.stage()!;
+    const staged = fixture.componentInstance.hero()!;
     svc.toggleFavorite(staged.id);
     fixture.detectChanges();
     expect(svc.favoriteCount()).toBe(1);
@@ -159,9 +164,9 @@ describe('Verse News — harmonised controls', () => {
   });
 
   it('opens the staged article under the saved half, marked as the one on the stage', () => {
-    const staged = svc.stage()!;
+    const staged = fixture.componentInstance.hero()!;
     svc.toggleFavorite(staged.id);
-    all('.stream-head .seg .seg-btn')[1].click();
+    chips()[SAVED].click();
     fixture.detectChanges();
 
     expect(svc.stream().map((n) => n.id)).toEqual([staged.id]);
@@ -174,18 +179,18 @@ describe('Verse News — harmonised controls', () => {
 
   it('never promises more saved items than the saved list renders', () => {
     for (const n of feed().news) svc.toggleFavorite(n.id);
-    all('.stream-head .seg .seg-btn')[1].click();
+    chips()[SAVED].click();
     fixture.detectChanges();
 
-    const badge = Number(all('.stream-head .seg .seg-num')[1].textContent!.trim());
+    const badge = Number(all('.stream-head .chip .chip-num')[SAVED].textContent!.trim());
     expect(badge).toBe(feed().news.length);
     expect(all('.cards .card').length).toBe(badge);
   });
 
   it('drops a tile out of the saved half when it is unsaved again', () => {
-    const staged = svc.stage()!;
+    const staged = fixture.componentInstance.hero()!;
     svc.toggleFavorite(staged.id);
-    all('.stream-head .seg .seg-btn')[1].click();
+    chips()[SAVED].click();
     fixture.detectChanges();
     expect(svc.favoriteCount()).toBe(1);
 
@@ -198,7 +203,7 @@ describe('Verse News — harmonised controls', () => {
 
   it('only tags the tile that mirrors the stage', () => {
     for (const n of feed().news) svc.toggleFavorite(n.id);
-    all('.stream-head .seg .seg-btn')[1].click();
+    chips()[SAVED].click();
     fixture.detectChanges();
     expect(all('.cards .card .stage-tag').length).toBe(1);
   });
