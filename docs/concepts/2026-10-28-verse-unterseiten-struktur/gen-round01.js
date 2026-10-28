@@ -355,8 +355,8 @@ function d1() {
   </div>`;
   return `
 <section data-design="d1" data-nav-label="Anflug" data-design-active="true" data-screen-fit="full"
-  data-design-motto="Die Kamera fliegt hin."
-  data-design-traits="Kamera zoomt auf den angeklickten Planeten|Planet bleibt als Wappen oben links stehen|Hub verschwindet ganz, Szene gedimmt dahinter"
+  data-design-motto="Kamera zoomt auf den Planeten, Unterseite ersetzt den Hub."
+  data-design-traits="Hub blendet ganz aus, Kamera zoomt auf den angeklickten Planeten|Planet bleibt als kleines Symbol oben links neben dem Seitentitel|Unterseite füllt die Spur, Weltraum-Szene gedimmt dahinter"
   data-design-icon="rocket" data-design-color="#c9845f" data-design-overlay="br">
 ${screen('d1-s1', 'Hub', hub(d, ''), [
     anno('d1-s1-a1', 1, 'right', '.mock-hub-link', 'Ein Klick auf einen Planeten löst den Anflug aus. Soll auch die Kopfnavigation (Capsule-Tabs) denselben Flug zeigen, oder dort nur ein kurzer Schnitt?'),
@@ -405,8 +405,8 @@ function d2() {
   </div>`;
   return `
 <section data-design="d2" data-nav-label="Holo-Deck" hidden data-screen-fit="full"
-  data-design-motto="Der Hub bleibt im Raum."
-  data-design-traits="Unterseite fährt als Holo-Blatt vom Horizont hoch|Hub bleibt gedimmt dahinter sichtbar|Planeten werden zu Tabs am Blattrand"
+  data-design-motto="Unterseite als Blatt über dem gedimmten Hub."
+  data-design-traits="Unterseite fährt als Blatt von unten hoch (Holo-Look)|Hub bleibt gedimmt dahinter sichtbar|Planeten werden zu Tabs am oberen Blattrand"
   data-design-icon="layers" data-design-color="#6c8fb3" data-design-overlay="bl">
 ${screen('d2-s1', 'Hub', hub(d, ''), [], true)}
 ${screen('d2-s2', 'Übergang', trans, [
@@ -457,8 +457,8 @@ function d3() {
   </div>`;
   return `
 <section data-design="d3" data-nav-label="Kapitel" hidden data-screen-fit="full"
-  data-design-motto="Eine Reise, fünf Stationen."
-  data-design-traits="Kamera schwenkt seitlich entlang einer Umlaufbahn|Feste Reihenfolge Hub → News → Patches → Galerie → Sternkarte|Stationsleiste zeigt immer, wo du bist"
+  data-design-motto="Seitlicher Kameraschwenk, Seiten in fester Reihenfolge."
+  data-design-traits="Kamera schwenkt seitlich, alte Seite gleitet raus, neue rein|Feste Reihenfolge Hub → News → Patches → Galerie → Sternkarte|Fortschrittsleiste oben zeigt die aktuelle Seite"
   data-design-icon="compass" data-design-color="#5f9e86" data-design-overlay="tr">
 ${screen('d3-s1', 'Hub', hub(d, ''), [], true)}
 ${screen('d3-s2', 'Übergang', trans, [

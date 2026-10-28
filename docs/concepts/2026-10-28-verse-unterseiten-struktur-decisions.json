@@ -1,0 +1,349 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": "d1",
+    "decisions": [
+      {
+        "id": "v1-all",
+        "evaluation": "include",
+        "note": "ja wobei nur bis zum titel und die absätnde rahmen. Subaufbau des contents mag schon sehr unterschiedlich sein auch ggf. anders styled"
+      },
+      {
+        "id": "v1-stage",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v1-bleed",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v2-vt",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "v2-anim",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v2-webgl",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v2-fade",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v3-context",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v3-only-context",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v3-station",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v3-menu",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "v3-profile",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v4-w1",
+        "evaluation": "include",
+        "note": "Sternebild brauchen wir nicht! Sternenkarte und fertig auch dafür!"
+      },
+      {
+        "id": "v4-w2",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "v4-menu",
+        "evaluation": "include",
+        "note": ""
+      }
+    ],
+    "comments": [
+      {
+        "id": "anno-d1-s1-a1",
+        "text": "siehe wie das gemacht ist beim herunterscrollen ;)",
+        "attachments": []
+      },
+      {
+        "id": "anno-d1-s3-a2",
+        "text": "ja das ist gut! wobei",
+        "attachments": []
+      },
+      {
+        "id": "anno-d1-s4-a1",
+        "text": "Ich finde die Kennzahlen naja nur so halb gut... bitte da nochmal rethink!",
+        "attachments": []
+      },
+      {
+        "id": "anno-d1-s6-a1",
+        "text": "das finde ich gut ohne die große box, aber ich fand den aufbau von sternenkarte und daruner etc. bessser vom heitgen!",
+        "attachments": []
+      },
+      {
+        "id": "anno-d3-s3-a1",
+        "text": "die brauchen wir nicht, einfach weglassen ;) Da nehmen wir den indirekten hinweis aus dem ersten variatne",
+        "attachments": []
+      },
+      {
+        "id": "v1-all-note",
+        "text": "ja wobei nur bis zum titel und die absätnde rahmen. Subaufbau des contents mag schon sehr unterschiedlich sein auch ggf. anders styled",
+        "attachments": []
+      },
+      {
+        "id": "v4-w1-note",
+        "text": "Sternebild brauchen wir nicht! Sternenkarte und fertig auch dafür!",
+        "attachments": []
+      },
+      {
+        "id": "d1-s4",
+        "text": "wasf fehlt hier aktuell ggf. von den geschätzten infos von der akteuellen patches seite!?",
+        "attachments": []
+      },
+      {
+        "id": "d1-s6",
+        "text": "ich fand das aktuelle sternenkarte eigentlich schon sehr gut, aber halt visuell noch nihct adaptiert (z. B. hintergürnd eund umrandungen... und klar der titelleiste das ist hier schon besserer",
+        "attachments": []
+      },
+      {
+        "id": "d2-s1",
+        "text": "2",
+        "attachments": []
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "d1-s3",
+        "target": "div.d1-emblem.d1-emblem-news",
+        "text": "das mit dem planeten finde ich super, hat einen super bezug zur hauptseite! schöne transformation - nur doof, dass er überlappt mit dem header"
+      },
+      {
+        "screen": "d1-s3",
+        "target": "div.mock-horizon",
+        "text": "das hier unten wäre ja weg, weil wir am ende der aniamation ja woanders im verse sind."
+      },
+      {
+        "screen": "d1-s4",
+        "target": "div.mock-check \"Loadout gesichert\"",
+        "text": "Sehr gut direkt die vorbereitung!"
+      },
+      {
+        "screen": "d1-s4",
+        "target": "div.mock-glass.mock-panel \"Kometen-Tipp: Wann kommt 4.11? Median de\"",
+        "text": "Sehr gut, aber gern interessant hier die abgegebenn tipps anzeigen und hinweis Datum tippen eher sekundär anzeigen um zur sternenkarte zu gelangen. Wenn das datum bekann ist das dann naütlrich hier stattdessen anzugziugen."
+      },
+      {
+        "screen": "d1-s4",
+        "target": "div.mock-glass.mock-panel \"Vorbereitung Patch Notes gelesenKeybinds\"",
+        "text": "hier zwei boxne finde ich irgendwie langweilig"
+      },
+      {
+        "screen": "d1-s4",
+        "target": "section.mock-sec \"Zeitleistealle LinienArchiv 4.11PTU Wave\"",
+        "text": "Hier gern die heutige zeitlieiste patches mit ihren infos"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "p \"Wechselt dein Windows-Wallpaper automati\"",
+        "text": "Ich finde wir braujchehn um eine app zu bewerben irgendwo klein und ausgeklappt animierte information. denn wir müssen ja auch die sc app auch bewerben auf der startseite z. B."
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": null,
+    "decisions": [
+      {
+        "id": "r2-v1-emblem",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-aside",
+        "evaluation": "include",
+        "note": "ja, wobei ich den noch nicht elegant finde, gern nochmal reifnen!"
+      },
+      {
+        "id": "r2-v1-gap",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-map",
+        "evaluation": "include",
+        "note": "chip finde ich lahm, warum hbat nicht jede stufe ein wappen und man sieht das wappen anklickbar und man sieht wo man steht die nächsten drei und vergangennedrei"
+      },
+      {
+        "id": "r2-v2-settings",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-both",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-search",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-click",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-hover",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-remember",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-hide",
+        "evaluation": "discard",
+        "note": ""
+      }
+    ],
+    "comments": [
+      {
+        "id": "anno-r2-d1-s1-a1",
+        "text": "Ach ne, lass uns oben rechts nur das apps drin lassen!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s4-a2",
+        "text": "Immer über das logo bzw. dens ub header der ja shcon da ist!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s6-a1",
+        "text": "super, das sieht streamlined aus!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s6-a2",
+        "text": "Mega, ne, man muss erst auf die subseite!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s6-a3",
+        "text": "die hatten vorher auch schon schöne kacheln mit den einzelnen patch inhalten aals preteaser, das war gar nicht sooo schlecht. \nich finde mehrere zeilen pro patch nicht schlecht, aber es wird nicht klar, das diese subversionen davon sind!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s8-a1",
+        "text": "ne, rechts oben rein über die apps geschichte mafchne wir es.",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s10-a1",
+        "text": "Ne, einfach die kartensterne so groß und deutlich, dass sie klar sind. \nBtw. wir haben doch das alles schon designe.....d abrauchst du wenig nur ändern dran, nur polishen auf diesen style!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r2-d1-s10-a2",
+        "text": "ok erstmal",
+        "attachments": []
+      },
+      {
+        "id": "r2-v1-aside-note",
+        "text": "ja, wobei ich den noch nicht elegant finde, gern nochmal reifnen!",
+        "attachments": []
+      },
+      {
+        "id": "r2-v2-map-note",
+        "text": "chip finde ich lahm, warum hbat nicht jede stufe ein wappen und man sieht das wappen anklickbar und man sieht wo man steht die nächsten drei und vergangennedrei",
+        "attachments": []
+      },
+      {
+        "id": "d1-s7",
+        "text": "finde die version sogar noch besser!\nWobei für live gleiche farbe wie zuverlässig zu geben ist schweirig.",
+        "attachments": []
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "d1-s3",
+        "target": "small \"Windows 10/11 · v0.50 · 92 MB\"",
+        "text": "Das finde ich super!"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "a \"Patches\"",
+        "text": "Warum anderer subheader als auf main, bitte den von main beibehalten"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "span \"News\"",
+        "text": "ist schon im subheader, brauchen wir nicht"
+      },
+      {
+        "screen": "d1-s6",
+        "target": "span \"Patches\"",
+        "text": "schon im subheader dem aktuellen, kannst du weglassen"
+      },
+      {
+        "screen": "d1-s5",
+        "target": "span \"vor 2 Tagen · YouTube\"",
+        "text": "warum das als extra sektion, einfach als ersten punkt dick darunter die hero card! gern 1/3 der höhe einnehmend, feed darunter ist peerfekt. GFern dort noch filtermöglichkeiten ergänzen."
+      },
+      {
+        "screen": "d1-s7",
+        "target": "a.mk-link2 \"Selbst tippen auf der Sternkarte →\"",
+        "text": "nur anzeigen wenn noch nicht getippt und gern rechts oben drüber einfach Tipp abgeben auf der höhe von ckometen tipp aber rechtsbündig!"
+      },
+      {
+        "screen": "d1-s9",
+        "target": "p \"Wechselt dein Windows-Wallpaper automati\"",
+        "text": "Den teaser finde ich mega,aber wir machen den lieber rechts unten als nachricht, wie wenn man eine aufgabe erfüllt hat."
+      },
+      {
+        "screen": "d1-s10",
+        "target": "div.mk-patchbar \"Patch4.64.74.84.94.10\"",
+        "text": "finde ich gut wobei einfach aktueller live patch und den rest hinter einem drop down sersteckt und hbaben wir nicht die patchauswahl eh unten ijn der serie, ist btw. super gut dargestellt!"
+      },
+      {
+        "screen": "d1-s10",
+        "target": "div.mock-frame \"Verse›Sternkarte Verse · SternkarteStern\"",
+        "text": "Form, sterneanzahl und rang sollte hier stehen statt daoben"
+      },
+      {
+        "screen": "d1-s10",
+        "target": "div.mk-comet \"Median 6. Novdein Tipp 8. Nov\"",
+        "text": "hierzu finde ich unsere akteulelle version besser"
+      },
+      {
+        "screen": "d1-s10",
+        "target": "div.mk-guess \"Idris21 %\"",
+        "text": "hier auch das aktuelle besser"
+      }
+    ]
+  }
+]
