@@ -51,11 +51,15 @@ import { LayoutService } from '../core/layout/layout.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
+import { MainHeaderComponent } from './main-header/main-header.component';
+import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
+import { StageSearchDirective } from './fusion-bar/stage-search.directive';
+import { avatarUrlOf } from './avatar-url';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, StageSearchDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -67,11 +71,17 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
   // to a per-navigation counter so it replays on every switch. Header/footer are
   // outside .content, so they stay put.
   animations: [
+    // A menu switch between two main pages (beta shell) holds the new page back
+    // while the scene's camera travels (delay), then lets it rise in.
     trigger('routeReveal', [
-      transition(':increment', [
-        style({ opacity: 0, transform: 'translateY(10px) scale(0.994)' }),
-        animate('320ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: 'none' })),
-      ]),
+      transition(
+        ':increment',
+        [
+          style({ opacity: 0, transform: 'translateY({{rise}}px) scale(0.994)' }),
+          animate('{{dur}}ms {{delay}}ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: 'none' })),
+        ],
+        { params: { delay: 0, dur: 320, rise: 10 } },
+      ),
     ]),
   ],
   template: `
@@ -207,9 +217,25 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
     } @else {
       <!-- Beta "shell": header + subheader as ONE capsule (fusion-bar/). The account
            menu is this component's own, projected, so it keeps its styles and handlers. -->
-      <sc-fusion-bar>
-        <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+      <!-- On the main pages the cinematic header stands over the scene and owns
+           the account menu; the bar below it is the subheader. -->
+      @if (cineHeader()) {
+        <sc-main-header>
+          <div mhAccount class="mh-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+        </sc-main-header>
+      }
+      <!-- The bar is the subheader. On a main page its search field stands on a stage
+           slot first (pages with their own stage mark it, the others get this one) and
+           docks as the subheader once scrolled. Where no main header exists the bar
+           keeps the account menu at its far end, so it stays reachable. -->
+      <sc-fusion-bar [class.under-cine]="cineHeader()">
+        @if (!cineHeader()) {
+          <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
+        }
       </sc-fusion-bar>
+      @if (cineHeader()) {
+        <div class="stage-slot" scStageSearch></div>
+      }
     }
 
     <ng-template #accountMenu>
@@ -220,8 +246,13 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
             (click)="toggleMenu($event)"
             [attr.aria-label]="'nav.accountMenu' | translate"
             aria-haspopup="menu"
-            [attr.aria-expanded]="menuOpen()">
-            {{ avatarInitial() }}
+            [attr.aria-expanded]="menuOpen()"
+            [class.has-img]="avatarSrc()">
+            @if (avatarSrc(); as src) {
+              <img class="avatar-img" [src]="src" alt="" referrerpolicy="no-referrer" (error)="onAvatarError(src)" />
+            } @else {
+              {{ avatarInitial() }}
+            }
           </button>
 
           @if (menuOpen()) {
@@ -399,7 +430,7 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
          be standing. Renders nothing when there is nothing to say. -->
     <sc-account-notice />
 
-    <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
+    <main id="sc-main" tabindex="-1" [class.content]="!shellOn()" [class.sc-frame]="shellOn()" [class.switch-out]="switchingOut()" [@.disabled]="reducedMotion" [@routeReveal]="{ value: reveal(), params: revealParams() }">
       <!-- The Codex search on every Codex page below the landing (whose own
            terminal row is the same bar). Ctrl+K, "/", the header button and
            typing on the page bring it forward instead of the overlay. -->
@@ -831,6 +862,31 @@ import { ShellSceneComponent } from './scene/shell-scene.component';
        bar sits at the bottom, so the menu opens upward and the page keeps
        the bar's stack (capsule + kind chips / drawer) free at its end. */
     .bar-account .avatar-btn { width: 40px; height: 40px; }
+    /* The real profile picture fills the round button; the initial stays the fallback. */
+    .avatar-btn.has-img { padding: 0; overflow: hidden; }
+    .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+    .mh-account .avatar-btn {
+      width: 40px;
+      height: 40px;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+    }
+    /* The stage slot of every main page: the bar's search field stands here —
+       centred, at the same height on Verse, Codex, HQ and the admin hub — until it docks. */
+    .stage-slot {
+      flex: none;
+      width: min(640px, calc(100% - 2 * var(--sc-page-gutter)));
+      height: var(--sc-sub-h);
+      margin: var(--sc-space-5) auto var(--sc-space-3);
+    }
+    /* Menu switch, part one: the old main page sinks away while the camera moves. */
+    main.switch-out > :not(router-outlet) {
+      opacity: 0;
+      transform: translateY(-14px) scale(0.99);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      main.switch-out > :not(router-outlet) { transform: none; transition: opacity 120ms linear; }
+    }
     @media (max-width: 720px) {
       .bar-account .dropdown { top: auto; bottom: calc(100% + 10px); }
       :host([data-layout]) {
@@ -995,6 +1051,15 @@ export class ShellComponent implements AfterViewInit {
   /** Angular animations ignore the CSS reduced-motion clamp; read the preference once. */
   readonly reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /** On a main page (beta shell): the cinematic header stands over the scene. */
+  private readonly onMainPage = signal(isMainHeaderPage(this.router.url));
+  readonly cineHeader = computed(() => this.shellOn() && this.onMainPage());
+  /** Menu switch main page → main page: the old content is on its way out. */
+  readonly switchingOut = signal(false);
+  /** The next reveal plays as the second half of a menu switch. */
+  private switchIn = false;
+  readonly revealParams = signal<RevealParams>(REVEAL_PLAIN);
+
   // Navigation "sensor sweep" state. Gated at 250ms so instant/cached routes
   // never flash a loader; escalates to a "weak signal" label past 3s.
   readonly navActive = signal(false);
@@ -1016,6 +1081,13 @@ export class ShellComponent implements AfterViewInit {
         this.onVerseGallery.set(isVerseGallery(e.urlAfterRedirects));
         this.onVerseHome.set(isVerseHome(e.urlAfterRedirects));
         this.betaArea.set(betaAreaOf(e.urlAfterRedirects));
+        this.onMainPage.set(isMainHeaderPage(e.urlAfterRedirects));
+      }
+      if (e instanceof NavigationStart) {
+        this.beginMenuSwitch(e.url);
+      } else if (e instanceof NavigationCancel || e instanceof NavigationError) {
+        this.switchingOut.set(false);
+        this.switchIn = false;
       }
       if (e instanceof NavigationStart) {
         this.startNavIndicator();
@@ -1114,6 +1186,9 @@ export class ShellComponent implements AfterViewInit {
 
   /** A routed view mounted — replay the content reveal. */
   onRouteActivate(): void {
+    this.revealParams.set(this.switchIn ? REVEAL_SWITCH : REVEAL_PLAIN);
+    this.switchIn = false;
+    this.switchingOut.set(false);
     this.reveal.update((n) => n + 1);
   }
 
@@ -1161,6 +1236,33 @@ export class ShellComponent implements AfterViewInit {
       ''
     );
   });
+
+  /** Profile picture: Discord first, then the other linked providers; null → the initial. */
+  private readonly avatarBroken = signal<string | null>(null);
+  readonly avatarSrc = computed(() => {
+    const url = avatarUrlOf(this.auth.user());
+    return url && url !== this.avatarBroken() ? url : null;
+  });
+
+  onAvatarError(src: string): void {
+    this.avatarBroken.set(src);
+  }
+
+  /**
+   * Starts a menu switch when the reader goes from one main page to another
+   * (beta shell): the content fades out now, the next reveal waits for the
+   * camera. Reduced motion keeps a short fade without the hold.
+   */
+  private beginMenuSwitch(target: string): void {
+    const from = this.router.url;
+    const isSwitch =
+      this.shellOn() &&
+      isMainHeaderPage(from) &&
+      isMainHeaderPage(target) &&
+      from.split(/[?#]/, 1)[0] !== target.split(/[?#]/, 1)[0];
+    this.switchIn = isSwitch && !this.reducedMotion;
+    this.switchingOut.set(isSwitch);
+  }
 
   readonly avatarInitial = computed(() => {
     const first = this.displayName().trim().charAt(0);
@@ -1311,8 +1413,18 @@ export class ShellComponent implements AfterViewInit {
 /** The routes behind the header's admin entries (`/admin`, `/admin/telemetry`) - not the account menu's tokens page. */
 export function isAdminNavRoute(url: string): boolean {
   const path = url.split(/[?#]/)[0];
-  return path === '/admin' || path === '/admin/telemetry' || path.startsWith('/admin/telemetry/');
+  return path === '/admin' || path === '/admin/hub' || path === '/admin/telemetry' || path.startsWith('/admin/telemetry/');
 }
+
+interface RevealParams {
+  delay: number;
+  dur: number;
+  rise: number;
+}
+/** Reveal of an ordinary navigation. */
+const REVEAL_PLAIN: RevealParams = { delay: 0, dur: 320, rise: 10 };
+/** Reveal after a menu switch: held while the camera travels, then a longer rise. */
+const REVEAL_SWITCH: RevealParams = { delay: 420, dur: 520, rise: 22 };
 
 /** True on exactly `/verse` (query and fragment ignored) — not on its sub-pages. */
 export function isVerseHome(url: string): boolean {

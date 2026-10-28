@@ -1,44 +1,20 @@
-import { DestroyRef, Directive, ElementRef, afterNextRender, inject } from '@angular/core';
-import { BetaService } from '../../core/beta.service';
+import { DestroyRef, Directive, ElementRef, inject } from '@angular/core';
 import { ShellChromeService } from './shell-chrome.service';
 
 /**
- * Marks a cinematic hub's stage search line (the big search in the stage).
- * While it is on screen the Fusion bar leaves the search to it; once the line
- * has scrolled up under the bar, the bar plays its one-shot morph and carries
- * the search itself (spec §4: played once at a threshold, never scroll-scrubbed).
+ * Marks the stage slot of a main page: the place the bar's search field stands
+ * on while the page is at its top ("Gleiche Leiste", concept 2026-10-28 round 6–8).
+ * The slot is an empty, sized placeholder — the field itself is the bar's own,
+ * so docking moves and widens the very same element into the subheader.
  *
- * Usage: `<div class="stage-search" scStageSearch>…</div>` — nothing else. With
- * the shell β off the directive does nothing.
+ * Usage: `<div class="stage-slot" scStageSearch></div>`. Only the beta shell's
+ * bar reads it; with the β off nothing consumes the registration.
  */
-@Directive({ selector: '[scStageSearch]', standalone: true })
+@Directive({ selector: '[scStageSearch]', standalone: true, host: { 'data-stage-slot': '' } })
 export class StageSearchDirective {
   constructor() {
     const el = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
-    const chrome = inject(ShellChromeService);
-    const shellOn = inject(BetaService).isEnabled('shell');
-    let io: IntersectionObserver | null = null;
-
-    afterNextRender(() => {
-      if (!shellOn() || typeof IntersectionObserver === 'undefined') return;
-      chrome.setStageSearch('stage');
-      // The line counts as "passed" once its bottom edge rose above the bar's
-      // lower edge — the moment the two would overlap.
-      const barH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-bar-h')) || 64;
-      io = new IntersectionObserver(
-        ([entry]) => {
-          if (!entry) return;
-          const above = entry.boundingClientRect.bottom <= barH + 8;
-          chrome.setStageSearch(!entry.isIntersecting && above ? 'docked' : 'stage');
-        },
-        { rootMargin: `-${Math.round(barH + 8)}px 0px 0px 0px`, threshold: 0 },
-      );
-      io.observe(el);
-    });
-
-    inject(DestroyRef).onDestroy(() => {
-      io?.disconnect();
-      chrome.setStageSearch('none');
-    });
+    const off = inject(ShellChromeService).registerStageAnchor(el);
+    inject(DestroyRef).onDestroy(off);
   }
 }

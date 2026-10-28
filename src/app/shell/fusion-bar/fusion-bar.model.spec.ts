@@ -1,5 +1,5 @@
 import { TemplateRef } from '@angular/core';
-import { AREA_SECTIONS, HideTracker, REVEAL_UP_PX, activeAreaOf, activeSectionOf, activeSegmentOf, barModeOf, isCodexToolPage } from './fusion-bar.model';
+import { ADMIN_HUB, AREA_ENTRIES, AREA_SECTIONS, HideTracker, REVEAL_UP_PX, activeAreaOf, activeSectionOf, activeSegmentOf, barModeOf, isCodexToolPage, isMainHeaderPage } from './fusion-bar.model';
 import { ShellChromeService } from './shell-chrome.service';
 
 describe('fusion-bar model', () => {
@@ -38,7 +38,9 @@ describe('fusion-bar model', () => {
     expect(activeAreaOf('/codex/ship/x', false)).toBe('codex');
     expect(activeAreaOf('/verse/gallery', true)).toBe('starscape');
     expect(activeAreaOf('/verse/gallery', false)).toBe('verse');
-    expect(activeAreaOf('/admin/telemetry', false)).toBe('telemetry');
+    expect(activeAreaOf('/admin/telemetry', false)).toBe('admin');
+    expect(activeAreaOf('/admin/hub', false)).toBe('admin');
+    expect(activeAreaOf('/admin', false)).toBe('admin');
     expect(activeAreaOf('/settings', false)).toBeNull();
     expect(activeSegmentOf('/codex/index?kind=weapon')).toBe('weapon');
     expect(activeSegmentOf('/codex/index')).toBe('ship');
@@ -74,5 +76,21 @@ describe('ShellChromeService', () => {
     expect(s.stageSearch()).toBe('none');
     s.setStageSearch('docked');
     expect(s.stageSearch()).toBe('docked');
+  });
+
+  it('merges Benutzer and Telemetrie into one admin entry that links to the hub', () => {
+    const elevated = AREA_ENTRIES.filter((a) => a.elevated);
+    expect(elevated.map((a) => a.id)).toEqual(['admin']);
+    expect(elevated[0].link).toBe(ADMIN_HUB);
+    expect(elevated[0].labelKey).toBe('nav.adminMenu');
+  });
+
+  it('knows the main pages the cinematic header stands on', () => {
+    for (const url of ['/verse', '/codex', '/hq', '/admin/hub', '/verse?x=1', '/codex/']) {
+      expect(isMainHeaderPage(url)).withContext(url).toBeTrue();
+    }
+    for (const url of ['/verse/news', '/codex/index', '/admin', '/admin/telemetry', '/settings']) {
+      expect(isMainHeaderPage(url)).withContext(url).toBeFalse();
+    }
   });
 });

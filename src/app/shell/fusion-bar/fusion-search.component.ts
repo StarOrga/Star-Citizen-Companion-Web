@@ -108,7 +108,7 @@ export const COMPANION_ROUTE = '/companion';
            stroke-linecap="round" aria-hidden="true">
         <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
       </svg>
-      @if (context().key !== 'all') {
+      @if (context().key !== 'all' && !hideContext()) {
         <span class="ctx-chip">
           <span class="ctx-label">{{ contextLabelKey() | translate: { kind: (kindKey() | translate), name: chipName() ?? ('fusionBar.ctx.shipFallback' | translate) } }}</span>
           <button type="button" class="ctx-x" (click)="dropContext()"
@@ -120,6 +120,7 @@ export const COMPANION_ROUTE = '/companion';
           </button>
         </span>
       }
+      <ng-content select="[fsLeading]" />
       <input #field
              class="input"
              type="search"
@@ -557,6 +558,8 @@ export class FusionSearchComponent {
 
   /** `top` (desktop/tablet capsule) or `bottom` (phone thumb bar). */
   readonly placement = input<'top' | 'bottom'>('top');
+  /** Hide the scope chip: the staged field is the search alone, and the kind switch already names the scope. */
+  readonly hideContext = input(false);
   /** Tool pages: the slimmer field. */
   readonly compact = input(false);
   /** Open/closed — the bar widens the field and keeps itself shown while open. */

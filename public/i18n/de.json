@@ -5093,6 +5093,12 @@
     }
   },
   "fusionBar": {
+    "backTo": "Zurück zu {{name}}",
+    "kindSwitch": "Kategorie wechseln (jetzt: {{kind}})",
+    "removeFilter": "Filter entfernen: {{name}}",
+    "moreFilters": "{{count}} weitere Filter anzeigen",
+    "hits": "{{count}} Treffer",
+    "filter": {"weaponGroup": "Waffengruppe"},
     "navAria": "Hauptbereiche",
     "areaMenu": "Bereich wechseln — jetzt: {{area}}",
     "home": "Startseite",
@@ -5171,6 +5177,33 @@
       "subtitle": "Antworten mit Begründung — bald.",
       "body": "Der Companion beantwortet solche Fragen noch nicht. Bis dahin findest du die Antwort am schnellsten über die Suche.",
       "searchInstead": "Stattdessen im Codex suchen"
+    }
+  },
+  "adminHub": {
+    "eyebrow": "Admin · nur für Admins",
+    "title": "Kommandozentrale",
+    "subtitle": "Alle Admin-Werkzeuge an einem Ort.",
+    "tiles": {
+      "users": {
+        "title": "Benutzer",
+        "text": "Konten, Rollen, Einladungen und Moderation."
+      },
+      "telemetry": {
+        "title": "Telemetrie",
+        "text": "Nutzung, Produkte und Diagnosen der Desktop-Apps."
+      },
+      "feedback": {
+        "title": "Feedback",
+        "text": "Rückmeldungen, Threads und Konzepte bearbeiten."
+      },
+      "integrations": {
+        "title": "Integrationen",
+        "text": "API-Tokens für externe Dienste verwalten."
+      },
+      "uploader": {
+        "title": "Data Uploader",
+        "text": "Spieldaten aus Data.p4k einspielen."
+      }
     }
   }
 }

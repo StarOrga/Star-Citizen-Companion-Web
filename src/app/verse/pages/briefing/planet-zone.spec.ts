@@ -204,7 +204,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl')?.getAttribute('href')).toBe('/verse/news?item=n1');
     expect(el.querySelector('.kick')?.textContent).toContain('verse.hub.area.news');
     expect(el.querySelectorAll('.hrow button.step').length).toBe(2);
-    expect(el.querySelector('button.find kbd')).not.toBeNull();
+    expect(el.querySelector('button.find')).withContext('the search stands in the shell stage slot').toBeNull();
     expect(el.querySelector('.cta, .sbar, .pause')).withContext('no CTA, story bars or pause').toBeNull();
     const planets = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pl')).map((a) => [a.dataset['door'], a.getAttribute('href')]);
     expect(planets).toEqual([['news', '/verse/news'], ['patches', '/verse/patches'], ['gallery', '/verse/gallery']]);

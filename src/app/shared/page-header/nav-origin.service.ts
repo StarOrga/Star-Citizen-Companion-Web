@@ -1,4 +1,5 @@
 import { EnvironmentProviders, Injectable, inject, provideEnvironmentInitializer, signal } from '@angular/core';
+import { Location } from '@angular/common';
 import { NavigationEnd, Params, Router, UrlTree } from '@angular/router';
 import { filter } from 'rxjs';
 
@@ -70,6 +71,16 @@ export class NavOriginService {
         if (this.history.length > HISTORY_LIMIT) this.history.shift();
         this.url.set(e.urlAfterRedirects);
       });
+
+    // A list mirrors its filters into the url with Location.replaceState/go —
+    // no router navigation, so NavigationEnd never sees them. Keep the newest
+    // entry of the same path in step, or the way back would drop those filters
+    // (QA 2026-10-28: ?mfr= lost on the Codex index → ship detail).
+    inject(Location).onUrlChange((url) => {
+      const last = this.history[this.history.length - 1];
+      if (!last || last.url === url || this.pathOf(last.url) !== this.pathOf(url)) return;
+      last.url = url;
+    });
   }
 
   /**

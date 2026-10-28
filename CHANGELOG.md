@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.169.0] - 2026-10-28
+
+### Added
+- Beta shell: cinematic main header without a frame on Verse, Codex, HQ and Admin, with fixed nav slots and a menu switch where the content leaves while the scene camera moves.
+- Beta shell: one "Admin" entry (Benutzer + Telemetrie) leading to a new Admin hub page with tiles.
+- Beta shell: the avatar shows your linked profile picture (Discord first, then other providers) instead of the initial.
+- Beta shell: the staged search on every main page turns into the subheader on scroll — logo in front, "◂ back" to where you came from (filters kept), full path on hover; on phones the bar sits at the bottom.
+- Codex index: kind switch, active filters, hit count and the filter panel now live in the bar.
+
+### Fixed
+- HQ content sits inside the page frame instead of running to the left edge.
+
 ## [0.168.2] - 2026-10-28
 
 ### Fixed
