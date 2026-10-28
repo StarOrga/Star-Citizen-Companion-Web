@@ -366,6 +366,8 @@ export class FusionBarComponent {
   private placeFrame = 0;
   private anchorRo: ResizeObserver | null = null;
   private barH = readBarHeight();
+  /** The stage entrance waits for the field's first placement on the new page. */
+  private enterOnPlace = false;
   /** A route change is settling (until the router's scroll reset): scroll crossings only snap. */
   private navQuiet = false;
   private quietTimer: ReturnType<typeof setTimeout> | null = null;
@@ -403,8 +405,11 @@ export class FusionBarComponent {
       if (morph === 'snap') this.snap();
       this.docked.set(false);
       if (this.mainPage() && morph !== 'undock') this.placed.set(false);
-      // Arrival on a main page: the depth fly-in, unless the bar travels down into the stage (undock).
-      if (this.mainPage()) this.pulse(morph === 'undock' ? 'morph' : 'enter');
+      // Arrival on a main page: the depth fly-in plays once the field stands on its slot (it is
+      // invisible until then), unless the bar travels down into the stage (undock).
+      const travels = morph === 'undock' && !!first && first.width > 0;
+      this.enterOnPlace = this.mainPage() && !travels;
+      if (this.mainPage() && travels) this.pulse('morph');
       if ((morph === 'dock' || morph === 'undock') && first && first.width > 0) {
         // Main → subpage after docking: the header is already compressed, only the bar moves.
         this.queueRouteMorph(morph, first, logoFirst, !(morph === 'dock' && wasDocked));
@@ -440,7 +445,7 @@ export class FusionBarComponent {
       });
     });
 
-    if (this.mainPage()) this.pulse('enter');
+    this.enterOnPlace = this.mainPage();
     afterNextRender(() => this.zone.runOutsideAngular(() => this.listen()), { injector: this.injector });
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
@@ -695,7 +700,13 @@ export class FusionBarComponent {
     setVar(el, '--_st-top', `${Math.round(a.top - h.top)}px`);
     setVar(el, '--_st-left', `${Math.round(a.left - h.left)}px`);
     setVar(el, '--_st-w', `${Math.round(a.width)}px`);
-    if (!this.placed()) this.zone.run(() => this.placed.set(true));
+    if (!this.placed()) {
+      this.zone.run(() => {
+        this.placed.set(true);
+        if (this.enterOnPlace) this.pulse('enter');
+        this.enterOnPlace = false;
+      });
+    }
   }
 
   private trackUntil = 0;
