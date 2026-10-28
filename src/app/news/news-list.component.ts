@@ -907,12 +907,12 @@ export class NewsListComponent implements OnInit, OnDestroy {
   readonly activeFilter = computed<FeedFilter>(() => (this.svc.favoritesOnly() ? 'saved' : this.channel()));
 
   /**
-   * Search term for the feed. The subheader search is the Codex search and does
-   * not publish its term (the bar keeps it private), so the feed reads `?q=`
-   * from the URL - a link or a future bar hook can drive it without a shell edit.
+   * Search term for the feed: what the user types into the subheader search
+   * (`ShellChromeService.registerPageSearch`), else `?q=` from a link.
    */
   private readonly queryParams = toSignal(inject(ActivatedRoute).queryParamMap);
-  readonly term = computed(() => (this.queryParams()?.get('q') ?? '').trim().toLowerCase());
+  private readonly barTerm = signal('');
+  readonly term = computed(() => (this.barTerm() || (this.queryParams()?.get('q') ?? '')).trim().toLowerCase());
 
   /** Everything the feed can show, newest first (patch notes included - they have a chip). */
   private readonly pool = computed(() =>
@@ -1104,6 +1104,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
   constructor() {
     // The bar shows an active source chip as a removable token in its search field.
     const chrome = inject(ShellChromeService);
+    inject(DestroyRef).onDestroy(chrome.registerPageSearch(this, (term) => this.barTerm.set(term)));
     inject(DestroyRef).onDestroy(
       chrome.registerFilters(this, () => {
         const f = this.activeFilter();

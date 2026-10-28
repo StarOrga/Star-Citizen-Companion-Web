@@ -9,8 +9,10 @@ import {
   NgZone,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -1015,6 +1017,10 @@ export class ShellComponent implements AfterViewInit {
   readonly kartographRank = computed<number | null>(() => {
     const k = this.verseApi.explorer()?.kartograph;
     return k?.unlocked && k.rank >= 1 ? k.rank : null;
+  });
+  /** Signed in under the beta shell → load the star-map state once, so the crest shows on every page. */
+  private readonly crestLoad = effect(() => {
+    if (this.shellOn() && this.auth.user()) untracked(() => this.verseApi.ensureExplorer());
   });
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);

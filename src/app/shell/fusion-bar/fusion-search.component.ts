@@ -777,6 +777,7 @@ export class FusionSearchComponent {
 
   onInput(value: string): void {
     this.engine.setInput(value);
+    this.chrome.pageSearch()?.(value);
     this.activeIndex.set(-1);
     this.addFailed.set(false);
   }

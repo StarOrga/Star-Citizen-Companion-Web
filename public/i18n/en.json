@@ -2415,7 +2415,14 @@
           "colAriaScored": "Patch {{version}}: {{percent}} % stable – {{level}}"
         },
         "badgeAria": "Stability of patch {{version}}: {{percent}} % – {{level}}",
-        "deductions": "Every patch starts at 100 %; the bars are what was taken off."
+        "deductions": "Every patch starts at 100 %; the bars are what was taken off.",
+        "meter": {
+          "none": "Stability: no data yet",
+          "aria": "Stability {{percent}}% – {{level}}",
+          "notLive": "not live yet",
+          "final": "Final",
+          "early": "too early"
+        }
       },
       "status": {
         "next": "Next",
@@ -2569,6 +2576,13 @@
         "moreInDossier": "{{n}} more hits in the dossier",
         "loadRest": "Load and search the remaining {{n}} notes",
         "loading": "Loading notes …"
+      },
+      "timeline": {
+        "versionsOf": "Versions of {{line}}",
+        "showVersions": "Show {{n}} versions",
+        "hideVersions": "Hide versions",
+        "moreBuilds": "+ {{n}} earlier test builds",
+        "lessBuilds": "Hide earlier test builds"
       }
     },
     "detail": {
@@ -2602,7 +2616,9 @@
       "more": "Show {{count}} more",
       "all": "Posts",
       "filterAria": "Filter the news feed",
-      "onStage": "On the stage"
+      "onStage": "On the stage",
+      "noMatch": "No posts match this search.",
+      "sourceFacet": "Source"
     },
     "verdict": {
       "label": "Live in the Verse",
@@ -4709,7 +4725,18 @@
         "label": "Your guess for the LIVE day",
         "submit": "Cast vote",
         "yours": "Your vote: {{date}}",
-        "median": "Community median: {{date}} ({{n}} votes)"
+        "median": "Community median: {{date}} ({{n}} tips)",
+        "heading": "Comet tip",
+        "crowd": "How the community tips",
+        "cta": "Place your tip",
+        "mine": "your tip: {{date}}",
+        "count": "{{n}} tips",
+        "release": "Release: {{date}}",
+        "stripAria": "Community median {{date}}, {{n}} tips",
+        "you": "your tip",
+        "medianShort": "Median {{date}}",
+        "yourShort": "your tip {{date}}",
+        "empty": "No tips yet – place the first one on the star map."
       }
     },
     "gallery": {
@@ -4958,7 +4985,9 @@
       "shape": "The shape: {{name}}",
       "patchesAria": "Choose a patch star map",
       "chipTip": "Star map {{patch}} · {{lit}} of {{total}} stars",
-      "mine": "My star maps"
+      "mine": "My star maps",
+      "patchLive": "{{patch}} · Live",
+      "patchOld": "{{patch}}"
     },
     "tour": {
       "open": "How the star map works",
@@ -4978,8 +5007,8 @@
           "text": "The star map of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next."
         },
         "count": {
-          "title": "Progress",
-          "text": "How many of the 7 stars are lit on this map."
+          "title": "Shape and rank",
+          "text": "The caption names the shape of this map and your Kartograph rank. The crests below show the ranks behind and ahead of you; your current crest opens your badge."
         },
         "tracks": {
           "title": "The two challenges",
@@ -5078,6 +5107,13 @@
       "stopNext": "{{title}} – {{desc}} Up next · from {{at}} lit star maps in a row",
       "stopLocked": "{{title}} – {{desc}} From {{at}} lit star maps in a row",
       "from": "from {{at}}"
+    },
+    "ladder": {
+      "aria": "Kartograph ranks",
+      "here": "You are here",
+      "current": "Kartograph rank {{rank}} - open your badge",
+      "earned": "Kartograph rank {{rank}} - earned",
+      "next": "Kartograph rank {{rank}} - still locked"
     }
   },
   "beta": {
@@ -5227,6 +5263,20 @@
       "name": "Data Uploader",
       "tag": "For collaborators only",
       "desc": "Reads your Star Citizen install and uploads the Codex data."
+    }
+  },
+  "appNotice": {
+    "aria": "App notice",
+    "eyebrow": "App",
+    "close": "Close",
+    "download": "Download",
+    "scc": {
+      "line": "SCC App for your desktop",
+      "desc": "The Companion app for your desktop."
+    },
+    "starscape": {
+      "line": "Starscape as a wallpaper app",
+      "desc": "Rotates your wallpaper through the Starscape gallery."
     }
   }
 }

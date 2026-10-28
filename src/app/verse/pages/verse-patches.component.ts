@@ -12,6 +12,7 @@ import { LocaleService } from '../../core/locale/locale.service';
 import { PredictionMedian } from '../data/verse.models';
 import { StarTriggerService } from '../starmap/star-trigger.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 
 /** The pre-flight steps of the readiness checklist (keys of `patch_readiness.checklist`). */
 export const READINESS_STEPS = ['notes', 'keybinds', 'loadout', 'shaders'] as const;
@@ -77,7 +78,7 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
     @if (enabled()) {
       <sc-verse-header planet="patches" [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
 
-      <sc-patch-board class="sc-enter" style="--sc-enter-i: 1" [embedded]="true">
+      <sc-patch-board class="sc-enter" style="--sc-enter-i: 1" [embedded]="true" [searchQuery]="barTerm()">
         @if (targetLine(); as line) {
           <div pbNext class="ng">
             <section class="col" aria-labelledby="vp-ready-h">
@@ -227,8 +228,12 @@ export class VersePatchesComponent {
 
   private notesTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** What the user types into the subheader search; the board filters its timeline by it. */
+  protected readonly barTerm = signal('');
+
   constructor() {
     const destroyRef = inject(DestroyRef);
+    destroyRef.onDestroy(inject(ShellChromeService).registerPageSearch(this, (term) => this.barTerm.set(term)));
     effect(() => {
       const line = this.targetLine();
       if (line && this.enabled()) void this.loadPreflight(line);

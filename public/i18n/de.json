@@ -2415,7 +2415,14 @@
           "colAriaScored": "Patch {{version}}: {{percent}} % stabil – {{level}}"
         },
         "badgeAria": "Stabilität von Patch {{version}}: {{percent}} % – {{level}}",
-        "deductions": "Jeder Patch startet bei 100 %; die Balken sind die Abzüge daraus."
+        "deductions": "Jeder Patch startet bei 100 %; die Balken sind die Abzüge daraus.",
+        "meter": {
+          "none": "Stabilität: noch keine Daten",
+          "aria": "Stabilität {{percent}} % – {{level}}",
+          "notLive": "noch nicht live",
+          "final": "Endstand",
+          "early": "noch früh"
+        }
       },
       "status": {
         "next": "Nächster",
@@ -2569,6 +2576,13 @@
         "moreInDossier": "Weitere {{n}} Treffer im Dossier",
         "loadRest": "Restliche {{n}} Notes laden und durchsuchen",
         "loading": "Notes werden geladen …"
+      },
+      "timeline": {
+        "versionsOf": "Versionen von {{line}}",
+        "showVersions": "{{n}} Versionen anzeigen",
+        "hideVersions": "Versionen ausblenden",
+        "moreBuilds": "+ {{n}} frühere Test-Builds",
+        "lessBuilds": "Frühere Test-Builds ausblenden"
       }
     },
     "detail": {
@@ -2602,7 +2616,9 @@
       "more": "{{count}} weitere anzeigen",
       "all": "Beiträge",
       "filterAria": "News Feed filtern",
-      "onStage": "Auf der Bühne"
+      "onStage": "Auf der Bühne",
+      "noMatch": "Keine Beiträge zu dieser Suche.",
+      "sourceFacet": "Quelle"
     },
     "verdict": {
       "label": "Aktuell im Verse",
@@ -4709,7 +4725,18 @@
         "label": "Dein Tipp für den LIVE-Tag",
         "submit": "Tipp abgeben",
         "yours": "Dein Tipp: {{date}}",
-        "median": "Community-Median: {{date}} ({{n}} Tipps)"
+        "median": "Community-Median: {{date}} ({{n}} Tipps)",
+        "heading": "Kometen-Tipp",
+        "crowd": "So tippt die Community",
+        "cta": "Tipp abgeben",
+        "mine": "dein Tipp: {{date}}",
+        "count": "{{n}} Tipps",
+        "release": "Release: {{date}}",
+        "stripAria": "Community-Median {{date}}, {{n}} Tipps",
+        "you": "dein Tipp",
+        "medianShort": "Median {{date}}",
+        "yourShort": "dein Tipp {{date}}",
+        "empty": "Noch keine Tipps – gib den ersten auf der Sternkarte ab."
       }
     },
     "gallery": {
@@ -4958,7 +4985,9 @@
       "shape": "Die Form: {{name}}",
       "patchesAria": "Sternkarte eines Patches wählen",
       "chipTip": "Sternkarte {{patch}} · {{lit}} von {{total}} Sternen",
-      "mine": "Meine Sternkarten"
+      "mine": "Meine Sternkarten",
+      "patchLive": "{{patch}} · Live",
+      "patchOld": "{{patch}}"
     },
     "tour": {
       "open": "So funktioniert die Sternkarte",
@@ -4978,8 +5007,8 @@
           "text": "Die Sternkarte des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes."
         },
         "count": {
-          "title": "Fortschritt",
-          "text": "Wie viele der 7 Sterne auf dieser Karte leuchten."
+          "title": "Form und Rang",
+          "text": "Die Bildunterschrift nennt die Form dieser Karte und deinen Kartograph-Rang. Die Wappen darunter zeigen die Ränge hinter und vor dir; dein aktuelles Wappen öffnet dein Abzeichen."
         },
         "tracks": {
           "title": "Die zwei Herausforderungen",
@@ -5078,6 +5107,13 @@
       "stopNext": "{{title}} – {{desc}} Als Nächstes · ab {{at}} entzündeten Sternkarten in Folge",
       "stopLocked": "{{title}} – {{desc}} Ab {{at}} entzündeten Sternkarten in Folge",
       "from": "ab {{at}}"
+    },
+    "ladder": {
+      "aria": "Kartograph-Ränge",
+      "here": "Hier stehst du",
+      "current": "Kartograph-Rang {{rank}} - Abzeichen öffnen",
+      "earned": "Kartograph-Rang {{rank}} - erreicht",
+      "next": "Kartograph-Rang {{rank}} - noch gesperrt"
     }
   },
   "beta": {
@@ -5227,6 +5263,20 @@
       "name": "Data Uploader",
       "tag": "Nur für Collaborators",
       "desc": "Liest deinen Star-Citizen-Install aus und lädt die Codex-Daten hoch."
+    }
+  },
+  "appNotice": {
+    "aria": "App-Hinweis",
+    "eyebrow": "App",
+    "close": "Schließen",
+    "download": "Herunterladen",
+    "scc": {
+      "line": "SCC App für deinen Desktop",
+      "desc": "Die Companion-App für deinen Desktop."
+    },
+    "starscape": {
+      "line": "Starscape als Wallpaper-App",
+      "desc": "Wechselt dein Hintergrundbild durch die Starscape-Galerie."
     }
   }
 }

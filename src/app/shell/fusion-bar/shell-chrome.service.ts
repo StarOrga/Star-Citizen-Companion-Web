@@ -58,6 +58,10 @@ export class ShellChromeService {
   private readonly hiddenState = signal(false);
   private readonly anchors = signal<readonly HTMLElement[]>([]);
   private readonly filterOwners = signal<readonly { owner: object; read: () => BarFilters }[]>([]);
+  private readonly pageSearchOwners = signal<readonly { owner: object; apply: (term: string) => void }[]>([]);
+
+  /** The newest page that filters itself by the bar's typed term, or null (the bar then only searches the Codex). */
+  readonly pageSearch = computed<((term: string) => void) | null>(() => this.pageSearchOwners().at(-1)?.apply ?? null);
 
   /** The newest page header's crumbs + title, or null. */
   readonly crumbs = computed<ChromeCrumbs | null>(() => {
@@ -108,6 +112,12 @@ export class ShellChromeService {
   registerFilters(owner: object, read: () => BarFilters): () => void {
     this.filterOwners.update((list) => [...list.filter((e) => e.owner !== owner), { owner, read }]);
     return () => this.filterOwners.update((list) => list.filter((e) => e.owner !== owner));
+  }
+
+  /** A page with its own list (News feed, patch board) follows the bar's typed term; returns the unregister function. */
+  registerPageSearch(owner: object, apply: (term: string) => void): () => void {
+    this.pageSearchOwners.update((list) => [...list.filter((e) => e.owner !== owner), { owner, apply }]);
+    return () => this.pageSearchOwners.update((list) => list.filter((e) => e.owner !== owner));
   }
 
   /** A hub page reports where its stage search line is (`'none'` when it leaves). */
