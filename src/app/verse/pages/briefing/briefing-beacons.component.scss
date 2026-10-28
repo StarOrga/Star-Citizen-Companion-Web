@@ -1,0 +1,107 @@
+// Sun + constellation (concept "Funkfeuer 2", d1 arrangement): the sun top
+// right (5.2 cqw, right 6.5, top 5 of 56.25), the constellation left below it
+// (8 × 5.6 cqw, right 12.5, top 11.5). cqw = the stage width; tops are
+// fractions of the stage height. No orbit ring, no orbit arc.
+:host { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+
+.sun-l, .const-l {
+  position: absolute;
+  pointer-events: auto;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 50%;
+}
+.sun-l { right: 6.5cqw; top: 8.9%; width: max(5.2cqw, 52px); aspect-ratio: 1; }
+.const-l { right: 12.5cqw; top: 20.4%; width: max(8cqw, 84px); aspect-ratio: 8 / 5.6; border-radius: 12px; }
+.sun-l:focus-visible, .const-l:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+
+// ── Sun: warm, the one warm tone on the stage ───────────────────────────
+.sun {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffdf0 0 16%, #ffe8b0 28%, rgba(255, 196, 110, 0.42) 48%, rgba(255, 170, 80, 0.08) 64%, transparent 72%);
+  transition: transform 0.35s ease, filter 0.35s ease;
+}
+.sun-l:hover .sun, .sun-l:focus-visible .sun {
+  transform: scale(1.1);
+  filter: brightness(1.18) drop-shadow(0 0 14px rgba(255, 214, 140, 0.55));
+}
+.flare {
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 236, 190, 0.85) 45%, #fff 50%, rgba(255, 236, 190, 0.85) 55%, transparent);
+  opacity: 0;
+  transform: rotate(-12deg) scaleX(0.4);
+  transition: opacity 0.35s, transform 0.45s;
+  pointer-events: none;
+}
+.sun-l:hover .flare, .sun-l:focus-visible .flare { opacity: 0.9; transform: rotate(-12deg) scaleX(1); }
+// Idle hint: one light-ring pulse.
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 226, 160, 0.75);
+  pointer-events: none;
+  animation: ring 2.6s ease-out 0.2s 1 both;
+}
+@keyframes ring { 0% { transform: scale(0.7); opacity: 0.95; } 100% { transform: scale(2.1); opacity: 0; } }
+
+// ── Constellation ───────────────────────────────────────────────────────
+.fig { position: absolute; inset: 0; display: block; transition: filter 0.3s; }
+.fig > * { width: 100%; height: 100%; }
+.const-l:hover .fig, .const-l:focus-visible .fig { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
+
+// ── Labels: rise letter by letter under the beacon ──────────────────────
+.lab {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  line-height: 1.25;
+}
+.lab-n {
+  font-size: max(11px, 0.62cqw);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  // The star map's white/blue …
+  color: color-mix(in srgb, var(--sc-accent) 30%, #fff);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent);
+}
+// … only the sun keeps its warm tone.
+.warm .lab-n { color: #ffe3a0; text-shadow: 0 0 8px rgba(255, 214, 140, 0.45); }
+.lab-n i { display: inline-block; font-style: normal; white-space: pre; }
+.lab-v { font-size: max(11px, 0.56cqw); letter-spacing: 0.04em; color: var(--sc-fg-0); opacity: 0.85; }
+
+:is(.sun-l, .const-l):is(:hover, :focus-visible, .idle) .lab { opacity: 1; }
+:is(.sun-l, .const-l):is(:hover, :focus-visible) .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.1s + var(--n, 0) * 0.035s); }
+:is(.sun-l, .const-l):is(:hover, :focus-visible) .lab-v { animation: rise 0.5s ease-out 0.5s both; }
+// The hint shows the names only and calms down after ~5 s (the class goes).
+.idle .lab-v { display: none; }
+.idle .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.7s + var(--n, 0) * 0.04s); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+// Phones: the constellation sits beside the sun, clear of the hero.
+@media (max-width: 720px) {
+  .sun-l { right: 4%; top: 3%; }
+  .const-l { right: calc(4% + 64px); top: 4%; }
+  .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sun, .flare, .lab { transition: none; }
+  .ring, .lab-n i, .lab-v { animation: none !important; }
+}

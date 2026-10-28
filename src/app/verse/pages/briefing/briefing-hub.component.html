@@ -1,0 +1,137 @@
+<div class="cols">
+  <!-- News: the accordion, newest open. -->
+  <section class="col" aria-labelledby="hub-news-h">
+    <h2 class="colh-w" id="hub-news-h">
+      <a class="colh" routerLink="/verse/news" (click)="openDoor.emit('news')">
+        <span class="mini" data-door="news" aria-hidden="true"></span>{{ 'verse.gates.news.topic' | translate }}<span class="chev r" aria-hidden="true"></span>
+      </a>
+    </h2>
+    @if (news().length) {
+      <ul class="acc" (pointerleave)="acc.leave()" (focusout)="accFocusOut($event)">
+        @for (n of news(); track n.id; let i = $index) {
+          <li class="acc-i" [class.open]="acc.open() === i">
+            <a class="acc-a" routerLink="/verse/news" [queryParams]="{ item: n.id }"
+               (pointermove)="acc.move(i, $event.clientX, $event.clientY)" (focus)="acc.focus(i)">
+              @if (n.thumbnail) {
+                <img class="acc-img" [src]="n.thumbnail" alt="" loading="lazy" decoding="async" />
+              } @else {
+                <span class="acc-img blank" aria-hidden="true"></span>
+              }
+              <span class="acc-t">{{ n.title }}<small>{{ ago(n.publishedAt) }}</small></span>
+            </a>
+          </li>
+        }
+      </ul>
+    } @else if (newsError() && !newsLoading()) {
+      <div class="state" role="alert">
+        <p>{{ newsError() ?? 'errors.generic' | translate }}</p>
+        <button type="button" class="sc-btn" (click)="retryNews.emit()">{{ 'errors.retry' | translate }}</button>
+      </div>
+    } @else if (newsLoading()) {
+      <div class="feat sk sc-skel-field" aria-hidden="true"></div>
+      <span class="sc-sr-only">{{ 'verse.briefing.loading' | translate }}</span>
+    } @else {
+      <p class="state">{{ 'verse.hub.newsEmpty' | translate }}</p>
+    }
+  </section>
+
+  <!-- Patches: LIVE feature + the fixed Hotfix / PTU / Evocati slots, one grid and wording for all. -->
+  <section class="col" aria-labelledby="hub-patches-h">
+    <h2 class="colh-w" id="hub-patches-h">
+      <a class="colh" routerLink="/verse/patches" (click)="openDoor.emit('patches')">
+        <span class="mini" data-door="patches" aria-hidden="true"></span>{{ 'verse.gates.patches.topic' | translate }}<span class="chev r" aria-hidden="true"></span>
+      </a>
+    </h2>
+    <div class="pcol">
+      @if (live(); as lv) {
+        <a class="feat" [routerLink]="['/verse/patches', lv.line]">
+          @if (patchImage(); as img) {
+            <img class="feat-img" [src]="img" alt="" loading="lazy" decoding="async" />
+          } @else {
+            <span class="feat-img blank" aria-hidden="true"></span>
+          }
+          <span class="feat-c">
+            <span class="feat-k"><b>● {{ 'verse.hub.channel.live' | translate }}</b>@if (liveDays(); as d) { · {{ sinceKey(d) | translate: { n: d } }}} @else if (liveDays() === 0) { · {{ 'verse.hub.liveSinceToday' | translate }}}</span>
+            <span class="feat-h">
+              <span class="feat-t">{{ 'verse.hub.patchTitle' | translate: { v: lv.version } }}</span>
+              <span class="verdict" [attr.data-verdict]="verdict() ?? 'none'">{{ ('verse.hub.verdict.' + (verdict() ?? 'none')) | translate }}</span>
+            </span>
+            <ng-container *ngTemplateOutlet="kv; context: { $implicit: lv }" />
+          </span>
+        </a>
+      } @else {
+        <p class="feat state">{{ 'verse.hub.patchesEmpty' | translate }}</p>
+      }
+      @for (ch of channels(); track ch.kind) {
+        @if (ch.version) {
+          <a class="ch" [attr.data-ch]="ch.kind" [routerLink]="['/verse/patches', ch.line]">
+            <span class="ch-id">
+              <small><i aria-hidden="true"></i>{{ ('verse.hub.channel.' + ch.kind) | translate }}</small>
+              <b>{{ ch.version }}</b>
+              <span>{{ ('verse.hub.channelState.' + ch.kind) | translate }}</span>
+            </span>
+            <ng-container *ngTemplateOutlet="kv; context: { $implicit: ch }" />
+          </a>
+        } @else {
+          <div class="ch off" [attr.data-ch]="ch.kind">
+            <span class="ch-id"><small><i aria-hidden="true"></i>{{ ('verse.hub.channel.' + ch.kind) | translate }}</small><span>–</span></span>
+            <span class="quiet">{{ 'verse.hub.channelOff' | translate }}</span>
+          </div>
+        }
+      }
+    </div>
+  </section>
+
+  <!-- Galerie: the newest as the feature, then the mosaic. -->
+  <section class="col" aria-labelledby="hub-gallery-h">
+    <h2 class="colh-w" id="hub-gallery-h">
+      <a class="colh" routerLink="/verse/gallery" (click)="openDoor.emit('gallery')">
+        <span class="mini" data-door="gallery" aria-hidden="true"></span>{{ 'verse.gates.gallery.topic' | translate }}<span class="chev r" aria-hidden="true"></span>
+      </a>
+    </h2>
+    @if (galleryMain(); as g) {
+      <div class="gal">
+        <ng-container *ngTemplateOutlet="tile; context: { $implicit: g, cls: 'feat shot' }" />
+        <div class="mosaic">
+          @for (m of mosaic(); track m.slot) {
+            @if (m.item) {
+              <ng-container *ngTemplateOutlet="tile; context: { $implicit: m.item, cls: 'shot ' + m.slot }" />
+            } @else {
+              <span [class]="'shot blank ' + m.slot" aria-hidden="true"></span>
+            }
+          }
+        </div>
+      </div>
+    } @else {
+      <p class="feat state">{{ 'verse.gates.gallery.teaser' | translate }}</p>
+    }
+  </section>
+</div>
+
+<ng-template #tile let-g let-cls="cls">
+  @let gl = link(g);
+  @if (gl && gl.internal) {
+    <a [class]="cls" [routerLink]="gl.path" [queryParams]="gl.query" [attr.aria-label]="g.title" (click)="openItem.emit(g)" (auxclick)="openItem.emit(g)">
+      <img [src]="g.image" alt="" loading="lazy" decoding="async" />
+    </a>
+  } @else if (gl) {
+    <a [class]="cls" [href]="gl.path" target="_blank" rel="noopener noreferrer" [attr.aria-label]="g.title" (click)="openItem.emit(g)" (auxclick)="openItem.emit(g)">
+      <img [src]="g.image" alt="" loading="lazy" decoding="async" />
+    </a>
+  } @else {
+    <span [class]="cls + ' blank'" aria-hidden="true"></span>
+  }
+</ng-template>
+
+<ng-template #kv let-c>
+  <span class="kv">
+    <span class="kv-l">{{ 'verse.hub.kv.stability' | translate }}</span>
+    <span class="kv-v">{{ c.stats.stability.value !== null ? ('verse.hub.kv.pct' | translate: { n: c.stats.stability.value }) : '–' }}</span>
+    <span class="kv-d" [attr.data-trend]="c.stats.stability.trend">{{ delta(c.stats.stability, true) }}</span>
+    <span class="kv-c">{{ c.stats.vs ? ('verse.hub.vs' | translate: { v: c.stats.vs }) : '–' }}</span>
+    <span class="kv-l">{{ 'verse.hub.kv.issues' | translate }}</span>
+    <span class="kv-v">{{ c.stats.issues.level !== null ? (('verse.hub.issueWord.' + c.stats.issues.level) | translate) : '–' }}</span>
+    <span class="kv-d" [attr.data-trend]="c.stats.issues.trend">{{ delta(c.stats.issues, false) }}</span>
+    <span class="kv-c">{{ c.stats.vs ? ('verse.hub.vs' | translate: { v: c.stats.vs }) : '–' }}</span>
+  </span>
+</ng-template>

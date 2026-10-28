@@ -4,13 +4,15 @@ import {
   DestroyRef,
   ElementRef,
   afterNextRender,
+  afterRenderEffect,
   computed,
   effect,
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
-import { Params, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
@@ -18,7 +20,6 @@ import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../news/news.service';
 import { PatchStabilityService } from '../../news/patch-stability.service';
-import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
 import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
@@ -26,6 +27,9 @@ import { VerseDigestItem, VerseDoor } from '../data/verse.models';
 import { STARS_PER_PATCH, defaultPatch } from '../starmap/starmap.model';
 import { BriefingMoonComponent, MoonTiming, moonSchedule } from './briefing/briefing-moon.component';
 import { BriefingSkyComponent } from './briefing/briefing-sky.component';
+import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
+import { BriefingHubComponent } from './briefing/briefing-hub.component';
+import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
 import {
   BriefingStatus,
   IntroMode,
@@ -37,42 +41,24 @@ import {
   nextStatusKey,
   uniqueStories,
 } from './briefing/briefing.model';
-import {
-  EMPTY_FOR_YOU,
-  ForYouState,
-  forYouQueue,
-  forYouStorageKey,
-  pickForYou,
-  readForYou,
-  writeForYou,
-} from './briefing/briefing-for-you';
-import { GATE_LABEL_MS, HUB_NEWS, hubGallery, hubPatches, kickerVersion } from './briefing/briefing-hub';
+import { HUB_NEWS, hubChannel, hubChannels, hubGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
+import { VerseItemLink, verseItemLink } from './verse-item-link';
+
+export { verseItemLink } from './verse-item-link';
+export type { VerseItemLink } from './verse-item-link';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** How many stories the hero rotates through (one story pill each). */
 export const HERO_STORIES = 3;
 
+/** β shell: the hero switches to the next story after this long (held while hovered / focused). */
+export const HERO_MS = 7000;
+/** The hero title never takes a third line: it shrinks down to this scale first. */
+export const TITLE_MIN_SCALE = 0.55;
+
 /** Entrance length in seconds: the full "Anflug" once per session, a short one afterwards. */
 export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 0.6 };
-
-/** An item's link, split for `[routerLink]` (in-app) or `[href]` (external). */
-export interface VerseItemLink {
-  internal: boolean;
-  path: string;
-  query: Params | null;
-}
-
-export function verseItemLink(url: string | null): VerseItemLink | null {
-  if (!url) return null;
-  if (url.startsWith('/') && !url.startsWith('//')) {
-    const u = new URL(url, 'https://x.invalid');
-    const query: Params = {};
-    u.searchParams.forEach((v, k) => (query[k] = v));
-    return { internal: true, path: u.pathname, query: Object.keys(query).length ? query : null };
-  }
-  return /^https:\/\//.test(url) ? { internal: false, path: url, query: null } : null;
-}
 
 interface Gate {
   door: VerseDoor;
@@ -108,20 +94,51 @@ interface HeroStory {
 }
 
 /**
- * `/verse` — the briefing, "Anflug": a cinematic stage (nebula, sun and the
- * a static planet horizon) that flies in once per session. One viewport on
- * desktop: the instrument strip (patch status centred), the current patch's
- * constellation as the star-map link at the right edge beside the hero — only
- * once the explorer state has loaded, built up star by star, never a stand-in
- * figure first — the centred hero (the newest stories rotate; pills only switch, the CTA is
- * the one way in) and the gate band of three moons above the footer strip.
- * One pause control holds all auto motion. β off: the legacy landing (the
- * Verse News list) renders instead.
+ * Keeps the hero title at two lines at most: shrinks the font (down to
+ * {@link TITLE_MIN_SCALE}) before a third line would appear, then sizes the
+ * heading to its longest line so the chevrons hang at the text, not the box.
+ */
+export function fitTitle(h: HTMLElement): void {
+  const a = h.querySelector<HTMLElement>('.tl');
+  if (!a) return;
+  h.style.width = '';
+  let scale = 1;
+  h.style.setProperty('--fit', '1');
+  const lines = (): number => {
+    const lh = parseFloat(getComputedStyle(a).lineHeight) || a.getBoundingClientRect().height || 1;
+    return Math.round(a.getBoundingClientRect().height / lh);
+  };
+  while (lines() > 2 && scale > TITLE_MIN_SCALE) {
+    scale = Math.max(TITLE_MIN_SCALE, scale - 0.06);
+    h.style.setProperty('--fit', scale.toFixed(2));
+  }
+  const w = Array.from(a.getClientRects()).reduce((m, r) => Math.max(m, r.width), 0);
+  if (w > 0) h.style.width = `${Math.ceil(w) + 1}px`;
+}
+
+/**
+ * `/verse` — the briefing.
+ *
+ * β "shell" (concept "Funkfeuer 2"): one cinematic stage on its own big
+ * planet (the bottom third). Top right the beacons — the sun (patch status)
+ * and the current patch's constellation (star map). The hero stands centred
+ * in the upper two thirds: area kicker, the story title as the link (two lines
+ * at most, chevrons at the text on hover/focus, auto switch every 7 s held
+ * while hovered) and the search capsule. Above the rim, Crusader (News),
+ * ArcCorp (Patches) and microTech (Galerie) take turns transmitting their
+ * newest item to the holo in the planet. Below, the hub columns on the
+ * planet's night side.
+ *
+ * Without the shell β: the "Anflug" stage (nebula, horizon, story pills,
+ * moon gates). β "verse" off: the legacy landing (the Verse News list).
  */
 @Component({
   selector: 'sc-verse-briefing',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent, StageSearchDirective],
+  imports: [
+    RouterLink, TranslatePipe, ScTooltipDirective, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
+    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing/verse-briefing.component.html',
   styleUrls: ['./briefing/verse-briefing.component.scss', './briefing/verse-briefing-planet.scss'],
@@ -133,14 +150,10 @@ export class VerseBriefingComponent {
   private readonly auth = inject(AuthService);
   private readonly beta = inject(BetaService);
   private readonly stability = inject(PatchStabilityService);
+  private readonly translate = inject(TranslateService);
   readonly enabled = this.beta.isEnabled('verse');
-  /**
-   * β "shell": the planet zone (holo gate labels on the scene's planet, the
-   * personal line) and the hub sections below the stage; the shell scene
-   * draws sky and planet, so the stage keeps only its sun.
-   */
+  /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
-  private readonly reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   readonly total = STARS_PER_PATCH;
 
   readonly top = this.api.topItems;
@@ -228,6 +241,8 @@ export class VerseBriefingComponent {
   readonly lit = computed(() => Math.min(STARS_PER_PATCH, this.patch()?.starCount ?? 0));
   /** The star map's placement of the lit stars, so both pages light the same ones. */
   readonly litSet = computed(() => explorerLit(this.patch()));
+  /** The constellation's patch, in the star map's wording ("Sternbild von Patch 4.4"). */
+  readonly starPatch = computed(() => this.patch()?.patchLine ?? null);
   /** The next line for the Patches hook ("Wann 4.11 kommt …"). */
   readonly nextLine = computed(() => this.status()?.next?.line ?? null);
 
@@ -269,44 +284,85 @@ export class VerseBriefingComponent {
     };
   });
 
-  /** Verse kicker under β shell: "Live 4.3.1 · stabil 82 %" (no countdown). */
+  /** The LIVE build and its stability, for the sun's hover line ("LIVE 4.3.1 · Stabilität 50 %"). */
   readonly kicker = computed(() => {
     const patch = this.api.digest()?.patch ?? null;
     const line = this.status()?.live.line ?? patch?.line ?? null;
     const version = kickerVersion(patch?.channels, line);
     if (!version) return null;
     const v = line ? this.stability.verdictFor(line) : null;
-    return { version, stability: v && !v.insufficient ? v.stability : null };
+    return { version, stability: v && !v.insufficient && v.stability !== null ? Math.round(v.stability) : null };
   });
 
-  /** The one gate whose holo label stands on the planet; the others wait their turn. */
-  readonly gateIndex = signal(0);
-  /** Pointer or focus on the gates: the relay holds on what the reader looks at. */
-  private readonly gateHold = signal(false);
-
-  private readonly forYouStore = computed(() => forYouStorageKey(this.auth.user()?.id));
-  private readonly forYouState = signal<ForYouState>(EMPTY_FOR_YOU);
-  private forYouLoadedFor: string | null = null;
-  /** Unread items for the personal line, oldest first; the hero's own stories only when nothing else is left. */
-  private readonly forYouQueue = computed(() => {
-    const hero = new Set(this.stories().map((s) => s.item.key));
-    return forYouQueue([...this.top(), ...(this.api.digest()?.items ?? []), ...this.feedNews()], this.api.seen(), hero);
-  });
-  readonly forYou = computed(() => {
-    const q = this.forYouQueue();
-    const key = this.forYouState().key;
-    const i = key ? q.findIndex((x) => x.key === key) : -1;
-    if (i < 0) return null;
-    const link = verseItemLink(q[i].url);
-    return link ? { item: q[i], link, n: i + 1, total: q.length } : null;
-  });
-
+  // ── β shell: hub data ────────────────────────────────────────────────
   readonly hubNews = computed<VerseNewsItem[]>(() => {
     const st = this.news.stage();
     return [...(st ? [st] : []), ...this.news.stream()].slice(0, HUB_NEWS);
   });
-  readonly hubPatches = computed(() => hubPatches(this.news.patchLines(), (line) => this.stability.verdictFor(line)));
+  /** Known patch lines (feed + stability table) for "the line before". */
+  private readonly knownLines = computed(() => [
+    ...new Set([...this.news.patchLines().map((g) => g.line).filter(Boolean), ...(this.stability.allTime?.() ?? []).map((v) => v.line)]),
+  ]);
+  private readonly channelMap = computed<Readonly<Record<string, string>> | null>(() => {
+    const ch = this.api.digest()?.patch?.channels ?? null;
+    const line = this.status()?.live.line ?? null;
+    return ch?.['live'] || !line ? ch : { ...(ch ?? {}), live: line };
+  });
+  /** The LIVE feature (null until a LIVE build is known). */
+  readonly hubLive = computed(() => {
+    const c = hubChannel('live', this.channelMap(), this.knownLines(), (l) => this.stability.verdictFor(l));
+    return c.version ? c : null;
+  });
+  /** Hotfix / PTU / Evocati — always three slots. */
+  readonly hubChannels = computed(() => hubChannels(this.channelMap(), this.knownLines(), (l) => this.stability.verdictFor(l)));
+  readonly hubPatchImage = computed(() => patchImage(this.news.patchLines()));
   readonly hubGallery = computed(() => hubGallery(this.api.digest()?.items ?? []));
+  readonly liveDays = computed(() => this.status()?.live.days ?? null);
+  /** The sun leads to the LIVE patch's status. */
+  readonly sunLink = computed<string | string[]>(() => {
+    const line = this.hubLive()?.line ?? this.status()?.live.line ?? null;
+    return line ? ['/verse/patches', line] : '/verse/patches';
+  });
+
+  /** Bumped on a language switch: the holo types plain strings. */
+  private readonly lang = signal(0);
+
+  /** The holo's messages, News → Patches → Galerie: each area's newest item. */
+  readonly transmit = computed<TransmitItem[]>(() => {
+    this.lang();
+    const t = (k: string, p?: object): string => this.translate.instant(k, p);
+    const digest = [...this.top(), ...(this.api.digest()?.items ?? [])];
+    const none = new Set<string>();
+    const out: TransmitItem[] = [];
+    const n = this.hubNews()[0];
+    const dn = newestFor('news', digest, none);
+    if (n) {
+      out.push({
+        key: `news:${n.id}`, door: 'news', title: n.title, body: holoBody(n.summary || t('verse.gates.news.hook')),
+        internal: true, path: '/verse/news', query: { item: n.id },
+      });
+    } else if (dn) {
+      out.push(this.txItem(dn, 'news', t('verse.gates.news.hook')));
+    }
+    const next = this.nextLine();
+    const pHook = next ? t('verse.gates.patches.hook', { next }) : t('verse.gates.patches.hookNoLine');
+    const p = newestFor('patches', digest, none);
+    const lv = this.hubLive();
+    if (p) out.push(this.txItem(p, 'patches', pHook));
+    else if (lv) {
+      out.push({
+        key: `patch:${lv.version}`, door: 'patches', title: t('verse.hub.patchTitle', { v: lv.version }), body: holoBody(pHook),
+        internal: true, path: `/verse/patches/${lv.line}`, query: null,
+      });
+    }
+    const g = newestFor('gallery', digest, none);
+    if (g) out.push(this.txItem(g, 'gallery', t('verse.gates.gallery.hook')));
+    return out;
+  });
+
+  /** Pointer / focus on the hero title: the auto switch holds. */
+  readonly heroHold = signal(false);
+  private readonly titleEl = viewChild<ElementRef<HTMLElement>>('titleEl');
 
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
@@ -320,7 +376,7 @@ export class VerseBriefingComponent {
       if (this.enabled() && this.auth.isAuthenticated() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
     });
 
-    if (this.shell()) this.wirePlanetZone();
+    if (this.shell()) this.wireStage();
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
     // focused time; the clock restarts with every switch.
@@ -358,82 +414,78 @@ export class VerseBriefingComponent {
     // The briefing carries no page header, so it names itself for the
     // detail pages' origin crumb here.
     const origin = inject(NavOriginService, { optional: true });
-    const translate = inject(TranslateService);
     if (origin) {
-      const sub = translate.stream('verse.crumb').subscribe((t: string) => origin.rememberTitle('/verse', t));
+      const sub = this.translate.stream('verse.crumb').subscribe((t: string) => origin.rememberTitle('/verse', t));
       inject(DestroyRef).onDestroy(() => sub.unsubscribe());
     }
   }
 
-  /** β shell: stability load, gate relay, the personal line's away clock. */
-  private wirePlanetZone(): void {
+  /** β shell: stability load, the hero's auto switch, the title fit, language bumps. */
+  private wireStage(): void {
     const on = (): boolean => this.enabled() && this.shell();
     effect(() => {
       if (on()) void this.stability.load();
     });
+    // Auto switch every HERO_MS; any switch (chevron or auto) restarts the clock.
     effect((onCleanup) => {
-      const n = this.gates().length;
-      if (!on() || this.paused() || this.gateHold() || this.reducedMotion || n < 2) return;
-      const id = setInterval(() => this.gateIndex.update((i) => (i + 1) % n), GATE_LABEL_MS);
-      onCleanup(() => clearInterval(id));
+      const n = this.stories().length;
+      this.index();
+      if (!on() || this.heroHold() || n < 2) return;
+      const id = setTimeout(() => this.advance(), HERO_MS);
+      onCleanup(() => clearTimeout(id));
     });
-    effect(() => {
-      if (!on()) return;
-      const q = this.forYouQueue();
-      const store = this.forYouStore();
-      untracked(() => this.resolveForYou(q, store));
+    const sub = this.translate.onLangChange.subscribe(() => this.lang.update((v) => v + 1));
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
+    afterRenderEffect(() => {
+      this.current();
+      const el = this.titleEl()?.nativeElement;
+      if (el) fitTitle(el);
     });
-
-    const away = (): void => {
-      const st = this.forYouState();
-      if (st.awayAt !== null || !st.key) return;
-      const next = { ...st, awayAt: Date.now() };
-      this.forYouState.set(next);
-      writeForYou(this.forYouStore(), next);
-    };
-    const back = (): void => this.resolveForYou(this.forYouQueue(), this.forYouStore());
-    const onVisibility = (): void => (document.visibilityState === 'hidden' ? away() : back());
     afterNextRender(() => {
-      document.addEventListener('visibilitychange', onVisibility);
-      window.addEventListener('blur', away);
-      window.addEventListener('focus', back);
-      window.addEventListener('pagehide', away);
-      this.destroyRef.onDestroy(() => {
-        document.removeEventListener('visibilitychange', onVisibility);
-        window.removeEventListener('blur', away);
-        window.removeEventListener('focus', back);
-        window.removeEventListener('pagehide', away);
-        // Leaving the hub counts as away: the line moves on after 30 min.
-        away();
-      });
+      const refit = (): void => {
+        const el = this.titleEl()?.nativeElement;
+        if (el) fitTitle(el);
+      };
+      window.addEventListener('resize', refit);
+      this.destroyRef.onDestroy(() => window.removeEventListener('resize', refit));
     });
   }
 
-  /** Place the personal line: same item while unread, the next one after 30+ min away. */
-  private resolveForYou(queue: ReturnType<typeof forYouQueue>, store: string): void {
-    if (!queue.length) return;
-    const state = this.forYouLoadedFor === store ? this.forYouState() : readForYou(store);
-    this.forYouLoadedFor = store;
-    const i = pickForYou(queue, state, Date.now());
-    if (i === null) return;
-    const next: ForYouState = { key: queue[i].key, at: queue[i].at, awayAt: null };
-    if (next.key === state.key && next.at === state.at && state.awayAt === null && this.forYouState() === state) return;
-    this.forYouState.set(next);
-    writeForYou(store, next);
+  private txItem(item: VerseDigestItem, door: VerseDoor, fallback: string): TransmitItem {
+    const l = verseItemLink(item.url);
+    return {
+      key: item.key, door, title: item.title, body: holoBody(item.summary || fallback),
+      internal: l?.internal ?? true, path: l?.path ?? `/verse/${door}`, query: (l?.query as Record<string, string> | null) ?? null,
+    };
   }
 
-  /** Pointer on a moon marker or focus on a label: show that gate. */
-  showGate(i: number): void {
-    if (i >= 0 && i < this.gates().length) this.gateIndex.set(i);
+  holdHero(hold: boolean): void {
+    this.heroHold.set(hold);
   }
 
-  holdGates(hold: boolean): void {
-    this.gateHold.set(hold);
-  }
-
-  gatesFocusOut(ev: FocusEvent): void {
+  heroFocusOut(ev: FocusEvent): void {
     const next = ev.relatedTarget as Node | null;
-    if (!next || !(ev.currentTarget as HTMLElement).contains(next)) this.gateHold.set(false);
+    if (!next || !(ev.currentTarget as HTMLElement).contains(next)) this.heroHold.set(false);
+  }
+
+  /** Chevron: previous / next story (restarts the auto clock, does not stop it). */
+  step(dir: 1 | -1): void {
+    const n = this.stories().length;
+    if (n < 2) return;
+    this.firstRun.set(false);
+    this._index.set((this.index() + dir + n) % n);
+  }
+
+  /** "Mehr im Verse": down to the hub columns. */
+  toHub(): void {
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('verse-hub')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  openTransmit(item: TransmitItem): void {
+    const d = [...this.top(), ...(this.api.digest()?.items ?? [])].find((i) => i.key === item.key);
+    if (d) this.openItem(d);
+    else this.openDoor(item.door);
   }
 
   /** The stage search line opens the app search (same path as Ctrl+K). */

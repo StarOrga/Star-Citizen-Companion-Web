@@ -1,0 +1,203 @@
+@use './briefing-worlds' as w;
+
+// The hub columns (mock "Hub · gescrollt"): the mock's column area is 86 cqw
+// wide (7 cqw padding each side), so one mock unit is --u = 100cqi / 86 of the
+// hub here. Shared rhythm: the three features are exactly column width × 26 u,
+// then three rows of 4.6 u — all three columns end on one line.
+:host { display: block; position: relative; z-index: 1; container-type: inline-size; color: var(--sc-fg-0); }
+
+.cols {
+  --u: calc(100cqi / 86);
+  --feat: calc(26 * var(--u));
+  --row: max(56px, calc(4.6 * var(--u)));
+  --gap-g: max(6px, calc(0.6 * var(--u)));
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: max(20px, calc(2.4 * var(--u)));
+  align-items: start;
+  padding-top: max(16px, calc(2.4 * var(--u)));
+  padding-bottom: var(--sc-space-6, 32px);
+}
+.col { display: flex; flex-direction: column; gap: max(8px, var(--u)); min-width: 0; }
+
+// ── Column head: mini planet + area word + chevron, the whole head is the link ──
+.colh-w { margin: 0; font: inherit; }
+.colh {
+  --cs: 7px;
+  display: flex;
+  align-items: center;
+  gap: max(8px, calc(0.8 * var(--u)));
+  min-height: max(44px, calc(2.6 * var(--u)));
+  border-bottom: 1px solid color-mix(in srgb, var(--sc-accent) 14%, transparent);
+  font-size: max(12px, calc(0.74 * var(--u)));
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--sc-fg-0);
+  opacity: 0.85;
+  text-decoration: none;
+}
+.colh:hover, .colh:focus-visible { opacity: 1; }
+.colh:hover .chev, .colh:focus-visible .chev { color: var(--sc-accent); }
+.colh:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+.mini {
+  @include w.body;
+  @include w.by-door;
+  --s: max(20px, calc(1.6 * var(--u)));
+  flex: none;
+  width: var(--s);
+  height: var(--s);
+  transition: box-shadow 0.25s;
+}
+.colh:hover .mini { box-shadow: 0 0 12px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+.chev { @include w.chevron; }
+
+// ── Shared feature tile ─────────────────────────────────────────────────
+.feat { position: relative; display: block; height: var(--feat); border-radius: 6px; overflow: hidden; color: inherit; text-decoration: none; }
+.feat-img, .acc-img, .shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.blank { background: linear-gradient(160deg, #0e1a2a, #24405c 55%, #0b1622); }
+.feat:focus-visible, .acc-a:focus-visible, .ch:focus-visible, .shot:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+.state { margin: 0; display: grid; place-content: center; gap: var(--sc-space-3, 12px); text-align: center; color: var(--sc-fg-1); }
+.state p { margin: 0; }
+.sk { border-radius: 6px; }
+
+// ── News accordion (exactly one open; hover intent in TS) ───────────────
+.acc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.acc-i {
+  --o: 0;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  height: calc(var(--row) + var(--o) * (var(--feat) - var(--row)));
+  border-top: 1px solid color-mix(in srgb, var(--sc-accent) 12%, transparent);
+  overflow: hidden;
+  transition: height 0.45s var(--ease);
+}
+.acc-i:first-child { border-top-color: transparent; }
+.acc-i.open { --o: 1; }
+.acc-a { position: absolute; inset: 0; display: block; color: inherit; text-decoration: none; border-radius: 6px; }
+.acc-a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 50%, rgba(4, 11, 19, 0.88));
+  opacity: var(--o);
+  transition: opacity 0.45s;
+  pointer-events: none;
+}
+.acc-img {
+  position: absolute;
+  left: 0;
+  top: calc((var(--row) - 3.4 * var(--u)) / 2 * (1 - var(--o)));
+  width: calc(5.6 * var(--u) + var(--o) * (100% - 5.6 * var(--u)));
+  height: calc(3.4 * var(--u) + var(--o) * (100% - 3.4 * var(--u)));
+  border-radius: 4px;
+  transition: top 0.45s var(--ease), width 0.45s var(--ease), height 0.45s var(--ease);
+}
+.acc-t {
+  position: absolute;
+  z-index: 1;
+  left: calc(6.4 * var(--u) - var(--o) * 5.2 * var(--u));
+  right: max(8px, calc(0.8 * var(--u)));
+  bottom: calc(50% - 1.3em + var(--o) * (1.3em - 50% + max(10px, 1.1 * var(--u))));
+  font-size: max(13px, calc(0.78 * var(--u) + var(--o) * 0.22 * var(--u)));
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  transition: left 0.45s var(--ease), bottom 0.45s var(--ease), font-size 0.45s;
+}
+.acc-t small { display: block; font-size: max(11px, calc(0.6 * var(--u))); font-weight: 400; color: var(--sc-fg-2, var(--sc-fg-1)); margin-top: 2px; }
+.acc-a:hover .acc-t { color: #fff; }
+
+// ── Patches: feature + verdict chip + the one grid, identical in every row ──
+.pcol { display: flex; flex-direction: column; }
+.feat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 38%, rgba(4, 11, 19, 0.92) 72%);
+  pointer-events: none;
+}
+.feat-img { position: absolute; inset: 0; }
+.feat-c { position: absolute; left: max(12px, var(--u)); right: max(12px, var(--u)); bottom: max(12px, 1.1 * var(--u)); z-index: 1; display: flex; flex-direction: column; gap: max(6px, 0.45 * var(--u)); }
+.feat-k { font-size: max(11px, calc(0.6 * var(--u))); letter-spacing: 0.22em; text-transform: uppercase; color: var(--sc-fg-0); opacity: 0.85; }
+.feat-k b { color: var(--sc-success); font-weight: 600; }
+.feat-h { display: flex; align-items: center; flex-wrap: wrap; gap: max(6px, 0.7 * var(--u)); }
+.feat-t { font-size: max(15px, var(--u)); font-weight: 600; line-height: 1.25; }
+.feat:hover .feat-t { color: #fff; }
+.verdict {
+  flex: none;
+  padding: 2px max(7px, 0.55 * var(--u));
+  border-radius: 999px;
+  font-size: max(11px, calc(0.6 * var(--u)));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  color: var(--sc-fg-1);
+  background: color-mix(in srgb, var(--sc-fg-1) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc-fg-1) 30%, transparent);
+}
+.verdict[data-verdict='stable'] { color: var(--sc-success); background: color-mix(in srgb, var(--sc-success) 14%, transparent); border-color: color-mix(in srgb, var(--sc-success) 45%, transparent); }
+.verdict:is([data-verdict='shaky'], [data-verdict='troubled']) { color: var(--sc-warning); background: color-mix(in srgb, var(--sc-warning) 14%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 45%, transparent); }
+
+.kv { display: grid; grid-template-columns: auto auto auto 1fr; column-gap: max(6px, 0.6 * var(--u)); row-gap: 2px; align-items: baseline; font-size: max(12px, calc(0.7 * var(--u))); }
+.kv-l { color: var(--sc-fg-1); }
+.kv-v { font-weight: 600; color: var(--sc-fg-0); }
+.kv-d { color: var(--sc-fg-2, var(--sc-fg-1)); font-variant-numeric: tabular-nums; }
+.kv-d[data-trend='better'] { color: var(--sc-success); }
+.kv-d[data-trend='worse'] { color: var(--sc-warning); }
+.kv-c { color: var(--sc-fg-2, var(--sc-fg-1)); font-size: 0.9em; }
+
+.ch {
+  display: grid;
+  grid-template-columns: minmax(64px, 7fr) minmax(0, 20fr);
+  align-items: center;
+  gap: max(6px, 0.6 * var(--u));
+  height: var(--row);
+  border-top: 1px solid color-mix(in srgb, var(--sc-accent) 12%, transparent);
+  color: inherit;
+  text-decoration: none;
+}
+a.ch:hover b { color: #fff; }
+.ch .kv { font-size: max(11px, calc(0.6 * var(--u))); row-gap: 1px; }
+.ch-id { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; min-width: 0; }
+.ch-id small { font-size: max(10px, calc(0.58 * var(--u))); letter-spacing: 0.2em; text-transform: uppercase; color: var(--sc-accent); }
+.ch-id small i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent); margin-right: 5px; vertical-align: 1px; box-sizing: border-box; }
+.ch-id b { font-family: var(--sc-font-display, Orbitron, sans-serif); font-weight: 500; font-size: max(13px, calc(0.82 * var(--u))); }
+.ch-id span { color: var(--sc-fg-2, var(--sc-fg-1)); font-size: max(11px, calc(0.56 * var(--u))); }
+// Quiet slot: name, an empty dot, "gerade keiner im Lauf".
+.off .ch-id small { color: var(--sc-fg-2, var(--sc-fg-1)); }
+.off .ch-id small i { background: transparent; border: 1px solid var(--sc-fg-2, var(--sc-fg-1)); }
+.quiet { font-size: max(12px, calc(0.66 * var(--u))); color: var(--sc-fg-2, var(--sc-fg-1)); font-style: italic; }
+
+// ── Galerie: feature + a dense mosaic of six (one 2×2, one 2×1, four small) ──
+.gal { display: flex; flex-direction: column; gap: max(8px, 0.7 * var(--u)); }
+.shot { display: block; border-radius: 6px; overflow: hidden; }
+.shot img { transition: transform 0.3s ease; }
+.shot:hover img { transform: scale(1.04); }
+.mosaic {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  height: calc(3 * var(--row) - max(8px, 0.7 * var(--u)));
+  gap: var(--gap-g);
+  grid-template-areas: 'm1 m1 m2 m2 s1' 'm1 m1 s2 s3 s4';
+}
+.m1 { grid-area: m1; }
+.m2 { grid-area: m2; }
+.s1 { grid-area: s1; }
+.s2 { grid-area: s2; }
+.s3 { grid-area: s3; }
+.s4 { grid-area: s4; }
+
+// One column on tablets in portrait and phones: the unit follows the column.
+@media (max-width: 900px) {
+  .cols { --u: calc(100cqi / 27.07); --feat: min(calc(26 * var(--u)), 72vh); grid-template-columns: minmax(0, 1fr); gap: var(--sc-space-6, 32px); }
+  .colh { font-size: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acc-i, .acc-img, .acc-t, .acc-a::after, .shot img, .mini { transition: none; }
+}

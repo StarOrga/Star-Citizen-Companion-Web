@@ -1,0 +1,85 @@
+// The three real SC planets of the Verse hub, drawn with gradients only —
+// realistic, no dot overlays. One terminator (light from the top right, where
+// the sun stands) and a thin atmosphere glow for all three. Shared by the
+// stage planets (transmit) and the hub's column heads.
+//   Crusader  = News     (gas giant, soft pink-beige bands)
+//   ArcCorp   = Patches  (ochre-beige city world, layered gradients, haze rim)
+//   microTech = Galerie  (icy white-blue, cloud streaks, pale land masses)
+
+@mixin body {
+  position: relative;
+  border-radius: 50%;
+  box-shadow: 0 0 calc(var(--s, 48px) * 0.09) var(--atm);
+  // Terminator: day side top right, night bottom left.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 72% 26%, rgba(0, 0, 0, 0) 34%, rgba(0, 0, 0, 0.4) 57%, rgba(0, 0, 0, 0.86) 80%);
+    pointer-events: none;
+  }
+  // Atmosphere: a hairline ring, brightest towards the sun.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -6%;
+    border-radius: 50%;
+    background: radial-gradient(circle closest-side, transparent 86%, var(--atm) 91%, transparent 100%);
+    mask-image: linear-gradient(225deg, #000 25%, rgba(0, 0, 0, 0.25) 75%);
+    pointer-events: none;
+  }
+}
+
+@mixin crusader {
+  --atm: rgba(255, 226, 205, 0.4);
+  background:
+    radial-gradient(circle at 66% 30%, rgba(255, 255, 255, 0.3), transparent 45%),
+    repeating-linear-gradient(170deg, #e9c9b8 0 9%, #d39e8a 9% 16%, #f1ddc9 16% 23%, #b97c6c 23% 28%);
+}
+
+@mixin arccorp {
+  --atm: rgba(255, 214, 160, 0.5);
+  background:
+    repeating-linear-gradient(32deg, rgba(70, 38, 14, 0.24) 0 1.1%, transparent 1.1% 4.4%),
+    repeating-linear-gradient(-58deg, rgba(70, 38, 14, 0.18) 0 0.9%, transparent 0.9% 3.6%),
+    radial-gradient(ellipse 30% 22% at 38% 62%, rgba(90, 52, 22, 0.5), transparent 70%),
+    radial-gradient(ellipse 18% 12% at 58% 74%, rgba(90, 52, 22, 0.35), transparent 70%),
+    radial-gradient(ellipse 24% 18% at 62% 38%, rgba(255, 236, 200, 0.38), transparent 70%),
+    radial-gradient(circle at 66% 30%, #f3dcb2, #cfa26a 38%, #946236 70%, #55331a);
+}
+
+@mixin microtech {
+  --atm: rgba(170, 222, 255, 0.5);
+  background:
+    radial-gradient(ellipse 38% 11% at 38% 34%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(ellipse 30% 9% at 60% 58%, rgba(255, 255, 255, 0.7), transparent 70%),
+    radial-gradient(ellipse 22% 8% at 30% 68%, rgba(255, 255, 255, 0.55), transparent 70%),
+    conic-gradient(from 200deg at 48% 52%, transparent 0 10%, rgba(255, 255, 255, 0.28) 18%, transparent 30%, rgba(255, 255, 255, 0.2) 55%, transparent 68%),
+    radial-gradient(ellipse 26% 17% at 62% 30%, rgba(104, 136, 164, 0.6), transparent 72%),
+    radial-gradient(ellipse 20% 14% at 35% 52%, rgba(94, 126, 154, 0.55), transparent 72%),
+    radial-gradient(ellipse 16% 10% at 70% 74%, rgba(104, 136, 164, 0.45), transparent 72%),
+    radial-gradient(circle at 66% 30%, #f6fbff, #d6eaf6 32%, #9cc0da 64%, #5a7f9c);
+}
+
+@mixin by-door {
+  &[data-door='news'] { @include crusader; }
+  &[data-door='patches'] { @include arccorp; }
+  &[data-door='gallery'] { @include microtech; }
+}
+
+// One chevron everywhere: a drawn L (1px right + bottom border), rotated;
+// only the size scales (--cs). down 45°, right −45°, left 135°.
+@mixin chevron {
+  display: inline-block;
+  flex: none;
+  width: var(--cs, 9px);
+  height: var(--cs, 9px);
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  color: var(--sc-fg-1);
+  transition: color 0.2s, opacity 0.25s;
+  &.d { transform: rotate(45deg); }
+  &.r { transform: rotate(-45deg); }
+  &.l { transform: rotate(135deg); }
+}

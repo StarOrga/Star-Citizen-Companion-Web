@@ -221,7 +221,10 @@
       },
       "tiles": {
         "label": "Werkzeuge",
-        "keybinds": { "title": "Tastenbelegungen", "text": "Alle Standardbelegungen des Live-Builds, durchsuchbar." }
+        "keybinds": {
+          "title": "Tastenbelegungen",
+          "text": "Alle Standardbelegungen des Live-Builds, durchsuchbar."
+        }
       },
       "terminal": {
         "keybinds": "Tastenbelegungen"
@@ -4377,9 +4380,21 @@
     "prev": "Vorheriger Eintrag",
     "next": "Nächster Eintrag",
     "close": "Schließen",
-    "news": { "source": "Quelle", "missing": "Dieser Eintrag ist nicht (mehr) im Feed." },
-    "gallery": { "image": "Bild", "missing": "Dieses Bild wurde nicht gefunden.", "download": "Original herunterladen", "article": "Artikel bei RSI" },
-    "share": { "label": "Link zu diesem Abschnitt teilen", "copied": "Link kopiert", "failed": "Teilen nicht möglich" }
+    "news": {
+      "source": "Quelle",
+      "missing": "Dieser Eintrag ist nicht (mehr) im Feed."
+    },
+    "gallery": {
+      "image": "Bild",
+      "missing": "Dieses Bild wurde nicht gefunden.",
+      "download": "Original herunterladen",
+      "article": "Artikel bei RSI"
+    },
+    "share": {
+      "label": "Link zu diesem Abschnitt teilen",
+      "copied": "Link kopiert",
+      "failed": "Teilen nicht möglich"
+    }
   },
   "share": {
     "title": "Set teilen",
@@ -4496,7 +4511,10 @@
     },
     "supplies": {
       "button": "Nachschub",
-      "add": { "name": "Was brauchst du noch?", "submit": "Hinzufügen" },
+      "add": {
+        "name": "Was brauchst du noch?",
+        "submit": "Hinzufügen"
+      },
       "qty": "Menge",
       "qtyOf": "Menge von {{name}}",
       "less": "Eins weniger",
@@ -4702,30 +4720,58 @@
       "heroBody": "Die Desktop-App wechselt deine Wallpaper automatisch durch die Galerie und zeigt deine verdienten Sternbilder."
     },
     "hub": {
-      "kicker": "Live {{v}} · stabil {{n}} %",
-      "kickerNoScore": "Live {{v}}",
-      "search": "Suche in News, Patches, Galerie …",
+      "search": "Suchen …",
       "searchKey": "Strg K",
-      "forYou": "Für dich",
-      "forYouCount": "{{n}} / {{total}}",
-      "overview": "→ Übersicht",
+      "more": "Mehr im Verse",
+      "prev": "Vorherige Meldung",
+      "next": "Nächste Meldung",
+      "area": {
+        "news": "News",
+        "patch": "Patches",
+        "gallery": "Galerie",
+        "link": "Verse"
+      },
+      "sun": "Patch-Status",
+      "sunValue": "LIVE {{v}} · Stabilität {{n}} %",
+      "sunValueNoScore": "LIVE {{v}}",
       "newsEmpty": "Gerade keine News.",
       "patchesEmpty": "Noch keine Patch Notes.",
-      "notes": "{{n}} Notes",
-      "stability": "Stabilität {{n}} %",
-      "state": {
-        "live": "Live",
-        "ptu": "Im Test",
-        "past": "Vorher"
+      "patchTitle": "Star Citizen Alpha {{v}}",
+      "liveSince": "seit {{n}} Tagen",
+      "liveSinceOne": "seit 1 Tag",
+      "liveSinceToday": "seit heute",
+      "verdict": {
+        "stable": "stabil",
+        "shaky": "wackelig",
+        "troubled": "viele Probleme",
+        "none": "noch kein Urteil"
       },
-      "issues": {
-        "1": "kaum bekannte Probleme",
-        "2": "wenige bekannte Probleme",
-        "3": "einige bekannte Probleme",
-        "4": "viele bekannte Probleme",
-        "5": "schwere Probleme",
-        "early": "noch zu früh für ein Urteil"
-      }
+      "kv": {
+        "stability": "Stabilität",
+        "issues": "Bekannte Probleme",
+        "pct": "{{n}} %"
+      },
+      "issueWord": {
+        "1": "kaum",
+        "2": "wenige",
+        "3": "einige",
+        "4": "viele",
+        "5": "schwere"
+      },
+      "vs": "vs. {{v}}",
+      "channel": {
+        "live": "Live",
+        "hotfix": "Hotfix",
+        "ptu": "PTU",
+        "evocati": "Evocati"
+      },
+      "channelState": {
+        "live": "live",
+        "hotfix": "im Test",
+        "ptu": "öffentlicher Test",
+        "evocati": "unter NDA"
+      },
+      "channelOff": "gerade keiner im Lauf"
     }
   },
   "starmap": {
@@ -4929,11 +4975,26 @@
       "done": "Fertig",
       "progress": "Schritt {{n}} von {{total}}",
       "step": {
-        "stage": { "title": "Die Kuppel", "text": "Das Sternbild des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes." },
-        "count": { "title": "Fortschritt", "text": "Wie viele der 7 Sterne auf dieser Karte leuchten." },
-        "tracks": { "title": "Die zwei Herausforderungen", "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff das Sternbild zeigt." },
-        "series": { "title": "Die Serie", "text": "Deine Serie über mehrere Patches - Belohnungen schalten sich entlang davon frei." },
-        "more": { "title": "Das Logbuch", "text": "Öffnet das Seitenblatt: Community-Sternbild, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen." }
+        "stage": {
+          "title": "Die Kuppel",
+          "text": "Das Sternbild des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes."
+        },
+        "count": {
+          "title": "Fortschritt",
+          "text": "Wie viele der 7 Sterne auf dieser Karte leuchten."
+        },
+        "tracks": {
+          "title": "Die zwei Herausforderungen",
+          "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff das Sternbild zeigt."
+        },
+        "series": {
+          "title": "Die Serie",
+          "text": "Deine Serie über mehrere Patches - Belohnungen schalten sich entlang davon frei."
+        },
+        "more": {
+          "title": "Das Logbuch",
+          "text": "Öffnet das Seitenblatt: Community-Sternbild, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen."
+        }
       }
     },
     "more": {
