@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.168.0] - 2026-10-28
+
+### Added
+- Beta Verse hub "Funkfeuer 2": real Stanton planets send the top story as a holo transmission onto the background planet; the two-line hero gets a search capsule; the sun opens Patch-Status, the constellation opens the star map, both with hover states and a one-time idle hint.
+- Hub below the stage: three equal columns on the planet.
+  - News accordion with hover intent.
+  - Patches show only the channels that are running, each with a verdict and the same comparison with its predecessor.
+  - Galerie mosaic.
+- Per-channel patch stats for PTU, Evocati and Hotfix: stability, start date and wave, read from Spectrum.
+
+### Changed
+- The phone hand-off button now sits at the same height and size as the feedback button. On the Verse hub the footer is a real row and no longer overlaps the content.
+
+### Removed
+- "Für dich" line and "Übersicht" links on the beta Verse hub.
+
 ## [0.167.2] - 2026-10-28
 
 ### Fixed
