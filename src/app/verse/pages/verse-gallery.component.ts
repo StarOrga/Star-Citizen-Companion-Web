@@ -25,8 +25,10 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
     @if (enabled()) {
       <sc-verse-header planet="gallery" [title]="'verse.area.gallery' | translate" [subtitle]="'starscape.subtitle' | translate">
         @if (connected()) {
-          <span vhActions class="pill"><span class="dot" aria-hidden="true"></span>{{ 'verse.gallery.connected' | translate }}</span>
-          <button vhActions type="button" class="sub-link" (click)="shareGallery()">{{ 'verse.gallery.share' | translate }}</button>
+          <ng-container vhActions>
+            <span class="pill"><span class="dot" aria-hidden="true"></span>{{ 'verse.gallery.connected' | translate }}</span>
+            <button type="button" class="sub-link" (click)="shareGallery()">{{ 'verse.gallery.share' | translate }}</button>
+          </ng-container>
         }
         <a vhActions class="sub-link" routerLink="/verse/gallery/constellations">{{ 'verse.gallery.mine' | translate }}</a>
       </sc-verse-header>
