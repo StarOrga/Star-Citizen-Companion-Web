@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.168.2] - 2026-10-28
+
+### Fixed
+- Beta Verse hub: the big planet now runs on behind the footer to the bottom of the page instead of ending above it.
+- Beta Verse hub: on desktop the scrolled hub columns and the footer always fit on one screen; on lower screens the columns narrow and stay centred.
+
+## [0.168.1] - 2026-10-28
+
+### Changed
+- Vercel MCP in `.mcp.json` is scoped to the sc-companion project.
+
 ## [0.168.0] - 2026-10-28
 
 ### Added

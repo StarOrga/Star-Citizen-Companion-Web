@@ -22,11 +22,14 @@
 }
 
 // ── The big planet: bottom third of the stage, radius 80 % of the width ──
+// It runs on under the footer to the page's last pixel: the clip reaches a
+// full viewport past the page, and the body clips it at its own bottom edge
+// (shell-scene.component.scss), so the overshoot never adds scroll height.
 .world-clip {
   position: absolute;
   z-index: 0;
   top: 0;
-  bottom: calc(-1 * var(--sc-space-6, 32px));
+  bottom: -100vh;
   left: calc(50% - 50vw);
   width: 100vw;
   overflow: hidden;
