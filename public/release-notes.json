@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.168.0",
+  "current": "0.168.1",
   "releases": [
+    {
+      "version": "0.168.1",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Vercel MCP in .mcp.json is scoped to the sc-companion project."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.168.0",
       "date": "2026-10-28",
