@@ -1397,10 +1397,13 @@ button {
   flex: none;
   align-self: center;
   box-sizing: border-box;
-  width: min(640px, calc(100% - 2 * var(--sc-page-gutter)));
-  max-width: 100%;
+  /* One width on every main page at every viewport — from the viewport, never from the
+     page's own column — so a switch or Back/Forward never moves the field sideways. */
+  --sc-stage-w: min(640px, 100vw - 2 * var(--sc-page-gutter));
+  width: var(--sc-stage-w);
+  max-width: none;
   height: var(--sc-sub-h);
-  margin: var(--sc-space-5) auto var(--sc-space-3);
+  margin: var(--sc-space-5) calc(50% - var(--sc-stage-w) / 2) var(--sc-space-3);
 }
 
 /* === MENU SWITCH (beta shell, concept r1 d1-s2 "mega animation") ============ */

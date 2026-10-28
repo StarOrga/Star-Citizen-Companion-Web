@@ -726,9 +726,13 @@ export class FusionBarComponent {
     if (this.navQuiet && !force) return;
     const a = anchor.getBoundingClientRect();
     const h = el.getBoundingClientRect();
+    // Centred on the viewport with the slot's (viewport-derived) width: the same x and width
+    // on every main page, whatever column the page puts its slot in.
+    const vw = document.documentElement.clientWidth;
+    const w = Math.round(a.width);
     setVar(el, '--_st-top', `${Math.round(a.top - h.top)}px`);
-    setVar(el, '--_st-left', `${Math.round(a.left - h.left)}px`);
-    setVar(el, '--_st-w', `${Math.round(a.width)}px`);
+    setVar(el, '--_st-left', `${Math.round((vw - w) / 2 - h.left)}px`);
+    setVar(el, '--_st-w', `${w}px`);
     if (!this.placed()) {
       this.zone.run(() => {
         this.placed.set(true);
@@ -816,8 +820,27 @@ export class FusionBarComponent {
   }
 
   togglePanel(force?: boolean): void {
-    this.panelOpen.update((v) => force ?? !v);
+    const opening = force ?? !this.panelOpen();
+    if (opening && !this.panelOpen()) {
+      const active = typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null);
+      this.panelOpener = active && (this.host.nativeElement as HTMLElement).contains(active) ? active : null;
+    }
+    this.panelOpen.set(opening);
+    if (!opening) return;
+    // The panel comes after the account in the DOM: move focus into it, so Tab walks the
+    // panel first (kind row, columns, reset), never the avatar behind the button.
+    afterNextRender(
+      () => {
+        const panel = (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.fpanel');
+        const first = panel?.querySelector<HTMLElement>('.kind.active, a, button, input');
+        first?.focus({ preventScroll: true });
+      },
+      { injector: this.injector },
+    );
   }
+
+  /** The visible control that opened the panel (the kind switch is hidden on phones). */
+  private panelOpener: HTMLElement | null = null;
 
   onNav(ev: MouseEvent, path: string): void {
     if (!isPlainLeftClick(ev)) return;
@@ -839,7 +862,13 @@ export class FusionBarComponent {
   onEscape(): void {
     if (!this.panelOpen()) return;
     this.panelOpen.set(false);
-    (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.fbtn, .kindsw')?.focus();
+    const host = this.host.nativeElement as HTMLElement;
+    const visible = (el: HTMLElement | null) => !!el && el.isConnected && el.getClientRects().length > 0;
+    const back = visible(this.panelOpener)
+      ? this.panelOpener
+      : Array.from(host.querySelectorAll<HTMLElement>('.fbtn, .kindsw')).find(visible);
+    back?.focus();
+    this.panelOpener = null;
   }
 }
 

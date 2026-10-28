@@ -973,7 +973,10 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     align-items: baseline;
     gap: var(--sc-space-3);
     padding: calc(env(safe-area-inset-top, 0px) + var(--sc-space-2)) var(--sc-page-gutter) var(--sc-space-2);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--sc-bg-0) 92%, transparent), transparent);
+    // A satin backdrop: cards scrolling under the route line never show through it.
+    background: var(--sc-sub-fill);
+    border-bottom: 1px solid var(--sc-sub-rule);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   }
   .route .back {
     min-height: 32px;

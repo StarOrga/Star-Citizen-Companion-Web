@@ -15,6 +15,8 @@ export const RELOAD_SCROLL_KEY = 'sc.reloadScroll';
 /** How long a reload keeps trying to reach the old position while the page fills in (ms). */
 /** A Codex list loads its rows late: keep retrying the restore until then (or the user scrolls). */
 const RESTORE_WINDOW_MS = 8000;
+/** Extra wait while the page is still too short to reach the old position. */
+const RESTORE_LOADING_GRACE_MS = 12000;
 
 /** The position to restore after a reload, or null (other URL, nothing stored, bad data). */
 export function reloadScrollTarget(stored: string | null, url: string): number | null {
@@ -136,7 +138,10 @@ export class OverlayRouteScrollService implements OnDestroy {
     for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown']) window.addEventListener(ev, stop, opts);
     const step = () => {
       if (!userMoved) window.scrollTo({ top: y, behavior: 'instant' as ScrollBehavior });
-      if (userMoved || Math.abs(window.scrollY - y) < 2 || Date.now() > until || typeof requestAnimationFrame !== 'function') {
+      // Still too short to reach y (the list is loading): keep waiting a while longer.
+      const tooShort = document.documentElement.scrollHeight < y + window.innerHeight;
+      const expired = Date.now() > until + (tooShort ? RESTORE_LOADING_GRACE_MS : 0);
+      if (userMoved || Math.abs(window.scrollY - y) < 2 || expired || typeof requestAnimationFrame !== 'function') {
         for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown']) window.removeEventListener(ev, stop);
         requestAnimationFrame?.(() => (this.restoring = false));
         return;
