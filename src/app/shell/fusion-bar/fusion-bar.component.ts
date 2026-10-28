@@ -16,7 +16,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { NavigationEnd, Router, RouterLink, Scroll } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutService } from '../../core/layout/layout.service';
@@ -54,6 +54,10 @@ export const UNDOCK_MORPH_MS = 1400;
 const LOGO_GLIDE_MS = 1400;
 const LOGO_FADE_MS = 400;
 const DOCK_EASE = 'cubic-bezier(0.55, 0, 0.2, 1)';
+/** Stage entrance, concept r8 (8 s loop): fly 0–16 %, bloom to 30 %, trace settled at 38 % = 3.04 s. */
+export const ENTER_MS = 3100;
+/** The menu switch's light head (r1 mock-sw-head, 5 s loop): in by 5.9 %, sweeps to 32 %, gone at 34 %. */
+export const SWEEP_MS = 1700;
 /** Longest wait for the router's scroll reset after a route change before the state settles anyway. */
 const NAV_SETTLE_MS = 400;
 /** Tokens shown inside the search field before the rest folds into "+n". */
@@ -106,13 +110,23 @@ interface PathCrumb {
     '[class.public]': "variant() === 'public'",
     '[class.phone]': 'phone()',
     '[class.snap]': 'chrome.snap()',
+    '[class.switching]': 'switching()',
     '(focusin)': 'reveal()',
   },
   template: `
-    <div class="cap" [class.open]="panelShown()">
+    <div class="cap" [class.open]="panelShown() || (searchOpen() && !phone())">
       <span class="skin" aria-hidden="true"></span>
       <span class="trace" aria-hidden="true"></span>
-      @if (mode() === 'stage') { <span class="bloom" aria-hidden="true"></span> }
+      <!-- Menu switch main → main: a white light head sweeps along the bar (concept r1 d1-s2). -->
+      <span class="head" aria-hidden="true"></span>
+      @if (mode() === 'stage') {
+        <span class="bloom" aria-hidden="true"></span>
+        <!-- Stage entrance: three echo frames trail the depth fly-in (concept r8 secho). -->
+        <span class="echo" aria-hidden="true"></span><span class="echo e2" aria-hidden="true"></span><span class="echo e3" aria-hidden="true"></span>
+      } @else if (variant() === 'app') {
+        <!-- Deck glow: a light band runs along the docked bar's bottom edge (concept r1 d1-s4). -->
+        <span class="band" aria-hidden="true"></span>
+      }
 
       @if (variant() === 'public') {
         <a class="brand" routerLink="/" [attr.aria-label]="'nav.brandAria' | translate">
@@ -169,14 +183,14 @@ interface PathCrumb {
           }
 
         <sc-fusion-search class="search" [placement]="phone() && mode() !== 'stage' ? 'bottom' : 'top'"
-                          [compact]="mode() === 'tool'" [hideContext]="mode() === 'stage' || !!segment()"
-                          (openChange)="onSearchOpen($event)">
+                          [compact]="mode() === 'tool'" [hideContext]="mainPage() || !!segment()"
+                          [demo]="mode() === 'stage'" (openChange)="onSearchOpen($event)">
           @if (mode() !== 'stage' && tokens().length) {
             <span fsLeading class="toks">
               @for (t of shownTokens(); track t.id) {
-                <span class="tok">
-                  <em>{{ t.labelKey | translate }}</em>
-                  @if (t.value) { <span class="tok-v">{{ t.value }}</span> }
+                <!-- Short chip: the value only ("Aegis"); the facet's name is its tooltip. -->
+                <span class="tok" [scTooltip]="t.labelKey | translate" scTooltipTier="label">
+                  <span class="tok-v">{{ t.value ?? (t.labelKey | translate) }}</span>
                   <button type="button" class="tok-x" (click)="t.remove()"
                           [attr.aria-label]="'fusionBar.removeFilter' | translate: { name: (t.labelKey | translate) }"
                           [scTooltip]="'fusionBar.removeFilter' | translate: { name: (t.labelKey | translate) }" scTooltipTier="label">
@@ -224,7 +238,25 @@ interface PathCrumb {
             }
           </nav>
         }
-        @if (toolbar()) {
+        @if (facets().length) {
+          <!-- The concept's filter columns (r8 d2-s4): one column of checkboxes per facet. -->
+          <div class="fgrid">
+            @for (f of facets(); track f.id) {
+              <fieldset class="fcol">
+                <legend class="fh">{{ f.labelKey | translate }}</legend>
+                <div class="fopts">
+                  @for (o of f.options; track o.value) {
+                    <label class="fopt" [class.on]="f.selected === o.value">
+                      <input type="checkbox" [checked]="f.selected === o.value"
+                             (change)="f.set($any($event.target).checked ? o.value : null)" />
+                      <span>{{ o.label ?? (o.labelKey! | translate) }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            }
+          </div>
+        } @else if (toolbar()) {
           <div class="fcols"><ng-container [ngTemplateOutlet]="toolbar()" /></div>
         }
         @if (filters(); as f) {
@@ -318,6 +350,10 @@ export class FusionBarComponent {
   readonly kindTotal = computed(() => this.filters()?.kindTotal ?? null);
   readonly hitCount = computed(() => this.filters()?.count ?? null);
   readonly tokens = computed(() => this.filters()?.tokens ?? []);
+  readonly facets = computed(() => this.filters()?.facets ?? []);
+  /** Main → main menu switch in flight: the light head sweeps the bar. */
+  readonly switching = signal(false);
+  private switchTimer: ReturnType<typeof setTimeout> | null = null;
   readonly shownTokens = computed(() => this.tokens().slice(0, MAX_TOKENS));
   readonly moreTokens = computed(() => Math.max(0, this.tokens().length - MAX_TOKENS));
   readonly panelShown = computed(
@@ -346,6 +382,10 @@ export class FusionBarComponent {
         this.trackPlacement();
         return;
       }
+      if (e instanceof NavigationStart) {
+        if (this.mainPage() && isMainHeaderPage(e.url) && pathOf(e.url) !== pathOf(this.url())) this.sweep();
+        return;
+      }
       if (!(e instanceof NavigationEnd)) return;
       const wasMain = this.mainPage();
       const wasDocked = this.docked();
@@ -363,7 +403,8 @@ export class FusionBarComponent {
       if (morph === 'snap') this.snap();
       this.docked.set(false);
       if (this.mainPage() && morph !== 'undock') this.placed.set(false);
-      if (this.mainPage()) this.pulse('enter');
+      // Arrival on a main page: the depth fly-in, unless the bar travels down into the stage (undock).
+      if (this.mainPage()) this.pulse(morph === 'undock' ? 'morph' : 'enter');
       if ((morph === 'dock' || morph === 'undock') && first && first.width > 0) {
         // Main → subpage after docking: the header is already compressed, only the bar moves.
         this.queueRouteMorph(morph, first, logoFirst, !(morph === 'dock' && wasDocked));
@@ -407,6 +448,7 @@ export class FusionBarComponent {
       this.pendingFlip = null;
       this.chrome.setSnap(false);
       if (this.enterTimer) clearTimeout(this.enterTimer);
+      if (this.switchTimer) clearTimeout(this.switchTimer);
       if (typeof cancelAnimationFrame === 'function') {
         if (this.snapFrame) cancelAnimationFrame(this.snapFrame);
         if (this.trackFrame) cancelAnimationFrame(this.trackFrame);
@@ -709,9 +751,18 @@ export class FusionBarComponent {
     const old = kind === 'morph' ? this.morphTimer : this.enterTimer;
     if (old) clearTimeout(old);
     flag.set(true);
-    const t = setTimeout(() => flag.set(false), kind === 'morph' ? 1100 : 1400);
+    // The entrance runs fly-in (1.28 s), echoes, bloom (2.4 s) and one trace (settled at 3.04 s).
+    const t = setTimeout(() => flag.set(false), kind === 'morph' ? 1100 : ENTER_MS);
     if (kind === 'morph') this.morphTimer = t;
     else this.enterTimer = t;
+  }
+
+  /** The menu switch's light head: one sweep (mock-sw-head, 1.7 s). */
+  private sweep(): void {
+    if (reducedMotion()) return;
+    if (this.switchTimer) clearTimeout(this.switchTimer);
+    this.switching.set(true);
+    this.switchTimer = setTimeout(() => this.switching.set(false), SWEEP_MS);
   }
 
   /** Focus inside the bar always brings it back (keyboard users never lose it). */
@@ -731,6 +782,17 @@ export class FusionBarComponent {
   onNav(ev: MouseEvent, path: string): void {
     if (!isPlainLeftClick(ev)) return;
     this.sameRoute.request(path);
+  }
+
+  /** The filter panel is an overlay: a press outside the bar closes it. */
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointer(ev: Event): void {
+    if (!this.panelOpen()) return;
+    const t = ev.target as Node | null;
+    if (t && (this.host.nativeElement as HTMLElement).contains(t)) return;
+    // An option list can live in an overlay of its own (CDK pane): leave those alone.
+    if (t instanceof Element && t.closest('.cdk-overlay-container')) return;
+    this.panelOpen.set(false);
   }
 
   @HostListener('document:keydown.escape')
@@ -767,6 +829,10 @@ function flipCap(cap: HTMLElement, first: DOMRect, last: DOMRect, duration: numb
     anim = cap.animate(frames(x, y), opts);
   }
   return anim;
+}
+
+function pathOf(url: string): string {
+  return url.split(/[?#]/, 1)[0];
 }
 
 function setVar(el: HTMLElement, name: string, value: string): void {

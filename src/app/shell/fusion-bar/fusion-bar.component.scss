@@ -89,9 +89,20 @@
   pointer-events: none;
   background: var(--sc-sub-sheen);
 }
-.cap > :not(.skin, .trace, .bloom) {
+.cap > :not(.skin, .trace, .bloom, .head, .echo, .band) {
   position: relative;
   z-index: 2;
+}
+// The search's results panel hangs from the cap itself (welded, same width), so the
+// search host does not position it.
+.cap > .search {
+  position: static;
+}
+// Focus shows on the satin edge itself — no inner ring, no second edge (r7/r8):
+// the edge brightens and a soft outer glow lifts the bar.
+.cap:has(.input:focus) {
+  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge-focus) border-box;
+  box-shadow: var(--sc-sub-focus-glow), var(--sc-sub-shadow);
 }
 // One light trace around the frame: on docking and on the stage entrance, then gone.
 .trace {
@@ -116,8 +127,66 @@
 :host(.morph) .trace {
   animation: sub-trace 1.05s ease-out both;
 }
+// Stage entrance (r8, 8 s loop): one trace turn from 14 % to 30 %, settled at 38 %.
 :host(.entering[data-mode='stage']) .trace {
-  animation: sub-trace 1.2s 0.25s ease-out both;
+  animation: sub-trace 1.92s 1.12s linear both;
+}
+// The field flies in from depth: translateZ(-480px) → 0 over 16 % (1.28 s),
+// opacity 0 → .3 by 3 %, then 1 (mock-r8x8-fly).
+:host(.entering[data-mode='stage']) .cap {
+  animation: sub-fly 1.28s cubic-bezier(0.22, 0.85, 0.3, 1) both;
+}
+// Three echo frames trail it (mock-r8x8-secho at 0 / 150 / 300 ms).
+.echo {
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  border: 1px solid var(--sc-sub-trace-lo);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+:host(.entering[data-mode='stage']) .echo {
+  animation: sub-echo 1.76s ease-out both;
+}
+:host(.entering[data-mode='stage']) .echo.e2 {
+  animation-delay: 0.15s;
+}
+:host(.entering[data-mode='stage']) .echo.e3 {
+  animation-delay: 0.3s;
+}
+// Deck glow (r1 d1-s4): a 3 px light band runs along the docked bar's bottom edge.
+.band {
+  position: absolute;
+  left: var(--sc-sub-radius);
+  right: var(--sc-sub-radius);
+  bottom: 0;
+  z-index: 1;
+  height: 3px;
+  pointer-events: none;
+  opacity: 0.55;
+  background: linear-gradient(90deg, transparent, var(--sc-accent), transparent) no-repeat;
+  background-size: 50% 100%;
+  animation: sub-band 3.2s ease-in-out infinite;
+}
+.cap.open .band {
+  display: none;
+}
+// Menu switch (r1 d1-s2): a white light head sweeps once along the bar.
+.head {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 14px;
+  z-index: 4;
+  width: 2px;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--sc-sub-trace-hi);
+  box-shadow: 0 0 8px var(--sc-sub-trace-hi);
+}
+:host(.switching) .head {
+  animation: sub-head 1.7s linear both;
 }
 // The stage entrance: a soft bloom behind the field — no lines inside it, little glow.
 .bloom {
@@ -132,8 +201,9 @@
   opacity: 0.3;
   background: radial-gradient(closest-side, var(--sc-sub-bloom), transparent);
 }
+// Bloom (r8): 0 → 4 % hidden at scale .4, 14 % full at 1.15, 30 % resting at 1 (2.4 s).
 :host(.entering) .bloom {
-  animation: sub-bloom 1.3s ease-out both;
+  animation: sub-bloom 2.4s ease-out both;
 }
 
 // ---- logo slot · plate · divider ----
@@ -306,7 +376,27 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   display: none;
 }
 :host ::ng-deep .search .field.focused {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 30%, transparent);
+  box-shadow: none;
+}
+// The results panel welds to the bar (desktop/tablet): the cap's width, its skin,
+// square top corners where it joins, dropping out like the filter panel.
+:host ::ng-deep .cap > .search:not(.bottom) .panel {
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  width: auto;
+  border: 1px solid transparent;
+  border-top: 0;
+  border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
+  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
+  box-shadow: var(--sc-sub-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transform-origin: 50% 0;
+  animation: sub-drop 0.5s cubic-bezier(0.22, 0.85, 0.3, 1) both;
+}
+:host ::ng-deep .cap > .search:not(.bottom) .panel::before {
+  display: none;
 }
 :host ::ng-deep .search .hint kbd {
   background: var(--sc-sub-kbd);
@@ -453,16 +543,21 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   display: none;
 }
 
-// ---- the filter panel hangs from the bar: same skin, same width ----
+// ---- the filter panel drops out of the bar as an overlay: same skin, same width,
+// it never pushes the page (r8 d2-s4 fdrop: scaleY .6 → 1, 0.5 s) ----
 .fpanel {
-  position: relative;
+  position: absolute;
+  top: calc(4px + var(--_cap-h) - 1px);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin-inline: auto;
   isolation: isolate;
   pointer-events: auto;
   box-sizing: border-box;
   width: var(--_frame-w);
   max-height: min(70dvh, 640px);
   overflow-y: auto;
-  margin-top: -1px;
   padding: var(--sc-space-4) var(--sc-space-4) var(--sc-space-3);
   border: 1px solid transparent;
   border-top-color: transparent;
@@ -470,7 +565,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
   box-shadow: var(--sc-sub-shadow);
   transform-origin: 50% 0;
-  animation: sub-drop 0.36s cubic-bezier(0.22, 0.85, 0.3, 1) both;
+  animation: sub-drop 0.5s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 }
 .fpanel > :not(.skin) {
   position: relative;
@@ -502,6 +597,70 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   color: var(--sc-fg-0);
   border-color: color-mix(in srgb, var(--sc-accent) 75%, transparent);
   box-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent) 25%, transparent);
+}
+// The facet columns (mock-r8x8-fcols): head in small caps, one checkbox per value.
+.fgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 220px));
+  gap: var(--sc-space-4) 28px;
+  padding: var(--sc-space-4) 0;
+}
+.fcol {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fh {
+  padding: 0 0 var(--sc-space-2);
+  font-family: var(--sc-font-display);
+  font-size: max(0.66rem, var(--sc-fs-floor));
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--sc-accent);
+}
+.fopts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 232px;
+  overflow-y: auto;
+}
+.fopt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: max(0.8rem, var(--sc-fs-floor));
+  color: var(--sc-fg-1);
+  cursor: pointer;
+}
+.fopt.on {
+  color: var(--sc-fg-0);
+}
+.fopt input {
+  appearance: none;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border: 1px solid var(--sc-sub-box);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+}
+.fopt input:checked {
+  border-color: var(--sc-accent);
+  background: var(--sc-accent);
+  box-shadow: inset 0 0 0 3px #061724;
+}
+.fopt input:focus-visible {
+  outline: 2px solid var(--sc-accent);
+  outline-offset: 2px;
+}
+.fopt span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fcols {
   min-width: 0;
@@ -617,17 +776,71 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   }
 }
 @keyframes sub-bloom {
-  0% {
+  0%,
+  13.3% {
     opacity: 0;
     transform: scale(0.4);
   }
-  35% {
-    opacity: 0.85;
-    transform: scale(1.1);
+  46.7% {
+    opacity: 1;
+    transform: scale(1.15);
   }
   100% {
     opacity: 0.3;
     transform: scale(1);
+  }
+}
+@keyframes sub-fly {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) translateZ(-480px);
+  }
+  18.75% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(800px) translateZ(0);
+  }
+}
+@keyframes sub-echo {
+  0%,
+  36.4% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  50% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}
+@keyframes sub-band {
+  0% {
+    background-position: -50% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+@keyframes sub-head {
+  0% {
+    left: 14px;
+    opacity: 0;
+  }
+  17.4% {
+    left: 14px;
+    opacity: 1;
+  }
+  94% {
+    left: calc(100% - 16px);
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 16px);
+    opacity: 0;
   }
 }
 @keyframes sub-drop {
@@ -684,9 +897,11 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
   }
   .fpanel {
+    top: auto;
+    bottom: calc(100% - 1px);
+    left: 0;
+    right: 0;
     max-height: 56dvh;
-    margin-top: 0;
-    margin-bottom: -1px;
     border-radius: var(--sc-sub-radius) var(--sc-sub-radius) 0 0;
     transform-origin: 50% 100%;
   }
@@ -700,11 +915,21 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   .blogo {
     width: 36px;
   }
-  .kindsw {
-    margin-right: var(--sc-space-2);
-  }
+  // Under the thumb: logo · field · compact filter button. The kind switch and the
+  // tokens live in the panel (its kind row, its columns); the field keeps its width.
+  .kindsw,
   .toks {
     display: none;
+  }
+  .search {
+    min-width: 140px;
+  }
+  .fbtn {
+    margin-left: var(--sc-space-1);
+    padding: 0 var(--sc-space-2);
+  }
+  .fgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   :host(.searching) .blogo,
   :host(.searching) .kindsw,
@@ -770,7 +995,18 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   .trace,
   :host(.morph) .trace,
   :host(.entering) .trace,
-  :host(.entering) .bloom {
+  :host(.entering) .bloom,
+  :host(.entering[data-mode='stage']) .cap,
+  :host(.entering[data-mode='stage']) .echo,
+  :host(.switching) .head {
+    animation: none;
+  }
+  // The deck band stands still, centred.
+  .band {
+    animation: none;
+    background-position: 50% 0;
+  }
+  :host ::ng-deep .cap > .search:not(.bottom) .panel {
     animation: none;
   }
   .trace {

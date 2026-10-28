@@ -121,8 +121,10 @@ export const COMPANION_ROUTE = '/companion';
         </span>
       }
       <ng-content select="[fsLeading]" />
+      <span class="inwrap">
       <input #field
              class="input"
+             [class.demoing]="demoOn()"
              type="search"
              role="combobox"
              autocomplete="off"
@@ -139,6 +141,18 @@ export const COMPANION_ROUTE = '/companion';
              (input)="onInput($any($event.target).value)"
              (focus)="openPanel()"
              (keydown)="onKeydown($event)" />
+        @if (demoOn()) {
+          <!-- Staged and idle: the placeholder fades, example searches type themselves
+               (concept r8 sty1–3). Decoration only — the input's label stays its name. -->
+          <span class="demo" aria-hidden="true">
+            <span class="demo-ph">{{ ('fusionBar.placeholder.' + context().key) | translate }}</span>
+            @for (k of demoKeys; track k) {
+              @let text = k | translate;
+              <span class="demo-t" [style.--n]="text.length">{{ text }}</span>
+            }
+          </span>
+        }
+      </span>
       @if (!open() && !engine.input()) {
         <span class="hint" aria-hidden="true"><kbd>{{ 'codex.search.bar.keys.ctrl' | translate }} K</kbd><kbd>/</kbd></span>
       }
@@ -345,6 +359,25 @@ export const COMPANION_ROUTE = '/companion';
       color: var(--sc-fg-0); font-family: inherit; font-size: max(0.92rem, var(--sc-fs-input, 1rem));
     }
     .input::placeholder { color: var(--sc-fg-2); opacity: 1; }
+    .inwrap { position: relative; display: flex; align-items: center; flex: 1 1 auto; align-self: stretch; }
+    /* The typed demo (concept r8, 8 s loop): placeholder out at 18–22 %, back at 94–98 %;
+       "Gladius" types 22–30 %, holds to 42 %; "Patch 4.10.2" 44–54 % / 66 %;
+       "Laser-Repeater" 68–80 % / 95 % — steps(characters), like the mock's sty1–3. */
+    .input.demoing::placeholder { color: transparent; }
+    .demo {
+      position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden; pointer-events: none;
+      font-size: max(0.92rem, var(--sc-fs-input, 1rem)); color: var(--sc-fg-0);
+    }
+    .demo-ph, .demo-t { position: absolute; left: 0; white-space: nowrap; }
+    .demo-ph { color: var(--sc-fg-2); animation: fs-demo-ph 8s ease-out infinite; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .demo-t { clip-path: inset(0 100% 0 0); animation: 8s steps(var(--n, 10)) infinite; }
+    .demo-t:nth-child(2) { animation-name: fs-demo-1; }
+    .demo-t:nth-child(3) { animation-name: fs-demo-2; }
+    .demo-t:nth-child(4) { animation-name: fs-demo-3; }
+    @keyframes fs-demo-ph { 0%, 18% { opacity: 1; } 22%, 94% { opacity: 0; } 98%, 100% { opacity: 1; } }
+    @keyframes fs-demo-1 { 0%, 22% { clip-path: inset(0 100% 0 0); } 30%, 42% { clip-path: inset(0 0 0 0); } 43%, 100% { clip-path: inset(0 100% 0 0); } }
+    @keyframes fs-demo-2 { 0%, 44% { clip-path: inset(0 100% 0 0); } 54%, 66% { clip-path: inset(0 0 0 0); } 67%, 100% { clip-path: inset(0 100% 0 0); } }
+    @keyframes fs-demo-3 { 0%, 68% { clip-path: inset(0 100% 0 0); } 80%, 95% { clip-path: inset(0 0 0 0); } 96%, 100% { clip-path: inset(0 100% 0 0); } }
     .input::-webkit-search-cancel-button { display: none; }
     .ctx-chip {
       flex: none; display: inline-flex; align-items: center; gap: 2px;
@@ -560,6 +593,12 @@ export class FusionSearchComponent {
   readonly placement = input<'top' | 'bottom'>('top');
   /** Hide the scope chip: the staged field is the search alone, and the kind switch already names the scope. */
   readonly hideContext = input(false);
+  /** Staged search: while idle and unfocused, example searches type themselves. */
+  readonly demo = input(false);
+  readonly demoKeys = ['fusionBar.demo.ship', 'fusionBar.demo.patch', 'fusionBar.demo.item'] as const;
+  private readonly reducedMotion =
+    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  readonly demoOn = computed(() => this.demo() && !this.reducedMotion && !this.open() && !this.engine.input());
   /** Tool pages: the slimmer field. */
   readonly compact = input(false);
   /** Open/closed — the bar widens the field and keeps itself shown while open. */

@@ -26,6 +26,16 @@ export interface BarFilterToken {
   remove: () => void;
 }
 
+/** One facet of the bar's filter panel: a column of checkboxes, at most one picked. */
+export interface BarFacet {
+  id: string;
+  /** i18n key of the column head ("Hersteller"). */
+  labelKey: string;
+  options: readonly { value: string; label?: string; labelKey?: string }[];
+  selected: string | null;
+  set: (value: string | null) => void;
+}
+
 /** What a tool page tells the bar about its filters (Codex index). */
 export interface BarFilters {
   /** Hits after filtering; null while unknown. */
@@ -33,6 +43,8 @@ export interface BarFilters {
   /** Unfiltered size of the current kind, for the kind switch ("Schiffe 368"); null when unknown. */
   kindTotal: number | null;
   tokens: readonly BarFilterToken[];
+  /** The panel's checkbox columns; absent → the page's own toolbar fills the panel. */
+  facets?: readonly BarFacet[];
   reset: () => void;
 }
 

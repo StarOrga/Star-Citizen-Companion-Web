@@ -72,7 +72,7 @@ import { PageHeaderComponent } from '../shared/page-header/page-header.component
 import { CodexSearchTriggerComponent } from './search/codex-search-trigger.component';
 import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 import { BarToolbarDirective } from '../shell/fusion-bar/bar-toolbar.directive';
-import { BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+import { BarFacet, BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { BetaService } from '../core/beta.service';
 
 /**
@@ -152,8 +152,10 @@ export function blueprintCategoriesForGroup(
         [subtitle]="'codex.subtitle' | translate">
         <!-- This page filters its own list below; the whole-Codex search
              is the compact trigger here, so the shell's slim bar tucks away. -->
-        <sc-codex-search-trigger phAside />
-        <sc-codex-status-banner phAside />
+        <!-- Beta "shell": the bar IS the Codex search and names the area, so the
+             page repeats neither the whole-Codex trigger nor the source chip. -->
+        @if (!shellOn()) { <sc-codex-search-trigger phAside /> }
+        @if (!shellOn()) { <sc-codex-status-banner phAside /> }
       </sc-page-header>
 
       <!-- Category switcher (datamined kinds + the RSI "upcoming" category).
@@ -1161,8 +1163,12 @@ export class CodexListComponent implements OnInit {
     const out: BarFilterToken[] = [];
     const add = (id: string, labelKey: string, value: string | null, remove: () => void) =>
       out.push({ id, labelKey, value, remove });
-    if (this.manufacturer()) add('manufacturer', 'codex.filters.manufacturer', this.manufacturer(), () => this.setManufacturer(''));
-    if (this.size()) add('size', 'codex.filters.size', this.size(), () => this.setSize(''));
+    const mfr = this.manufacturer();
+    if (mfr) {
+      const label = this.manufacturerOptions().find((m) => m.code === mfr)?.label ?? mfr;
+      add('manufacturer', 'codex.filters.manufacturer', label, () => this.setManufacturer(''));
+    }
+    if (this.size()) add('size', 'codex.filters.size', 'S' + this.size(), () => this.setSize(''));
     if (this.grade()) add('grade', 'codex.filters.grade', this.grade(), () => this.setGrade(''));
     if (this.componentKind()) add('componentKind', 'codex.filters.componentKind', this.componentKind(), () => this.setComponentKind(''));
     if (this.weaponGroup()) {
@@ -1173,7 +1179,63 @@ export class CodexListComponent implements OnInit {
     }
     if (this.blueprintGroup()) add('blueprintGroup', 'codex.filters.blueprintGroup', this.blueprintGroup(), () => this.setBlueprintGroup(''));
     if (this.blueprintCategory()) add('blueprintCategory', 'blueprint.filters.category', this.blueprintCategory(), () => this.setBlueprintCategory(''));
-    if (this.includeVariants()) add('variants', 'codex.filters.includeVariants', null, () => this.setIncludeVariants(false));
+    if (this.includeVariants()) add('variants', 'fusionBar.filter.variants', null, () => this.setIncludeVariants(false));
+    return out;
+  });
+
+  /** The bar panel's checkbox columns (beta shell, concept r8 d2-s4): the same facets as the toolbar. */
+  readonly barFacets = computed<readonly BarFacet[]>(() => {
+    const out: BarFacet[] = [];
+    const mfrs = this.manufacturerOptions();
+    if (mfrs.length) {
+      out.push({
+        id: 'manufacturer', labelKey: 'codex.filters.manufacturer',
+        options: mfrs.map((m) => ({ value: m.code, label: m.label })),
+        selected: this.manufacturer() || null, set: (v) => this.setManufacturer(v ?? ''),
+      });
+    }
+    if (this.sizeOptions().length > 1 || this.size()) {
+      out.push({
+        id: 'size', labelKey: 'codex.filters.size',
+        options: this.sizeOptions().map((s) => ({ value: s, label: 'S' + s })),
+        selected: this.size() || null, set: (v) => this.setSize(v ?? ''),
+      });
+    }
+    if (this.gradeOptions().length > 1 || this.grade()) {
+      out.push({
+        id: 'grade', labelKey: 'codex.filters.grade',
+        options: this.gradeOptions().map((g) => ({ value: g, label: g })),
+        selected: this.grade() || null, set: (v) => this.setGrade(v ?? ''),
+      });
+    }
+    if (this.kind() === 'component' && this.componentKindOptions().length) {
+      out.push({
+        id: 'componentKind', labelKey: 'codex.filters.componentKind',
+        options: this.componentKindOptions().map((c) => ({ value: c, labelKey: 'codex.componentKind.' + c })),
+        selected: this.componentKind() || null, set: (v) => this.setComponentKind(v ?? ''),
+      });
+    }
+    if (this.kind() === 'blueprint') {
+      out.push({
+        id: 'blueprintGroup', labelKey: 'codex.filters.blueprintGroup',
+        options: this.blueprintGroupOptions.filter((o) => o.value !== 'all').map((o) => ({ value: o.value, labelKey: o.labelKey })),
+        selected: this.blueprintGroup() || null, set: (v) => this.setBlueprintGroup(v ?? ''),
+      });
+      if (this.blueprintCategoryOptions().length) {
+        out.push({
+          id: 'blueprintCategory', labelKey: 'blueprint.filters.category',
+          options: this.blueprintCategoryOptions().map((c) => ({ value: c, label: this.categoryLabel(c) })),
+          selected: this.blueprintCategory() || null, set: (v) => this.setBlueprintCategory(v ?? ''),
+        });
+      }
+    }
+    if (this.supportsVariants()) {
+      out.push({
+        id: 'variants', labelKey: 'fusionBar.filter.options',
+        options: [{ value: 'on', labelKey: 'codex.filters.includeVariants' }],
+        selected: this.includeVariants() ? 'on' : null, set: (v) => this.setIncludeVariants(v === 'on'),
+      });
+    }
     return out;
   });
 
@@ -1187,6 +1249,7 @@ export class CodexListComponent implements OnInit {
         count: this.isUpcoming() || this.loading() ? null : this.total(),
         kindTotal: this.isUpcoming() ? null : this.kindCount(this.kind()),
         tokens: this.barTokens(),
+        facets: this.isUpcoming() ? [] : this.barFacets(),
         reset: () => this.resetFilters(),
       })),
     );

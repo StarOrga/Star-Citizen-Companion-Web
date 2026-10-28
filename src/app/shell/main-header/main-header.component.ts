@@ -73,7 +73,8 @@ export const MAIN_NAV_SLOT_PX = 112;
         }
       </nav>
 
-      <div class="account"><ng-content select="[mhAccount]" /></div>
+      <!-- Compressed into the bar: the bar carries its own account menu; this one is inert. -->
+      <div class="account" [attr.inert]="compressed() ? '' : null"><ng-content select="[mhAccount]" /></div>
     </div>
   `,
   styles: [
