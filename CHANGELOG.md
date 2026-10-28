@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.170.0] - 2026-10-28
+
+### Added
+- Beta Verse: News, Patches, Galerie and Sternkarte share one page head with the planet as an emblem; clicking a planet on the hub flies the camera there, and the logo or the back link flies you back.
+- Beta Verse: News opens with the newest item large on top and a feed with source filters below; the search in the bar filters the feed.
+- Beta Verse: Patches shows the next patch with its readiness checklist and the community tips, and a timeline of patch cards with their sub-versions nested underneath and a stability bar on every row.
+- Beta Verse: the Sternkarte has no box any more, larger stars, a patch picker and a Kartograph crest ladder showing your rank and the next ones.
+- Beta shell: an Apps menu next to your avatar (Companion App, Starscape; Data Uploader for collaborators), your Kartograph rank as a small crest on the avatar, and a one-line app hint at the bottom right that expands on click.
+
+### Changed
+- "Sternbild" is now called "Sternkarte" everywhere; the Kartograph badge left the account menu.
+
+### Fixed
+- The news stage shows YouTube thumbnails in 1280×720.
+
 ## [0.169.1] - 2026-10-28
 
 ### Fixed
