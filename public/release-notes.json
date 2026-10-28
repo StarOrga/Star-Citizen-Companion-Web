@@ -1,7 +1,51 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.167.2",
+  "current": "0.168.0",
   "releases": [
+    {
+      "version": "0.168.0",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta Verse hub \"Funkfeuer 2\": real Stanton planets send the top story as a holo transmission onto the background planet; the two-line hero gets a search capsule; the sun opens Patch-Status, the constellation opens the star map, both with hover states and a one-time idle hint."
+            },
+            {
+              "title": "",
+              "text": "Hub below the stage: three equal columns on the planet. - News accordion with hover intent. - Patches show only the channels that are running, each with a verdict and the same comparison with its predecessor. - Galerie mosaic."
+            },
+            {
+              "title": "",
+              "text": "Per-channel patch stats for PTU, Evocati and Hotfix: stability, start date and wave, read from Spectrum."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The phone hand-off button now sits at the same height and size as the feedback button. On the Verse hub the footer is a real row and no longer overlaps the content."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "\"Für dich\" line and \"Übersicht\" links on the beta Verse hub."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.167.2",
       "date": "2026-10-28",
