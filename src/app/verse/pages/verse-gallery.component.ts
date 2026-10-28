@@ -27,7 +27,7 @@ const STARSCAPE_FALLBACK_URL =
   template: `
     <div [hidden]="hideList()">
     @if (enabled()) {
-      <sc-verse-header [title]="'verse.area.gallery' | translate" [subtitle]="'starscape.subtitle' | translate">
+      <sc-verse-header planet="gallery" [title]="'verse.area.gallery' | translate" [subtitle]="'starscape.subtitle' | translate">
         <a vhActions class="sub-link" routerLink="/verse/gallery/constellations">{{ 'verse.gallery.mine' | translate }}</a>
       </sc-verse-header>
 

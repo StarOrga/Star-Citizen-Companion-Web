@@ -1,7 +1,9 @@
 @if (on()) {
   <div class="scene" [attr.data-scene]="scene()" [attr.data-mode]="mode()" [attr.data-from]="from()"
-       [attr.data-home]="home() ? '' : null" [attr.data-fade]="fadeTick() % 2">
+       [attr.data-home]="home() ? '' : null" [attr.data-world]="world()" [attr.data-fade]="fadeTick() % 2">
     <div class="sky"><div class="neb"></div><div class="stars"></div><div class="stars near"></div></div>
+    <!-- Verse subpage: the page's planet glows faintly where its emblem stands. -->
+    <div class="halo"></div>
     <!-- Codex: the data plane the camera turns towards. -->
     <div class="plane"><i></i></div>
     <div class="follow">

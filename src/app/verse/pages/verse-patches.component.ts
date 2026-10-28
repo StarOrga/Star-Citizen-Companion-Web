@@ -44,7 +44,7 @@ function todayIso(): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
-      <sc-verse-header [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
+      <sc-verse-header planet="patches" [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
 
       @if (tiles().length) {
         <dl class="kpis">

@@ -12,6 +12,7 @@ import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
 import { CometTrackComponent } from './comet-track.component';
 import { downloadBlob, renderConstellationPng } from './constellation-render';
 import { MyConstellationsComponent } from './my-constellations.component';
+import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { GuessTrackComponent } from './guess-track.component';
 import { SeriesStripComponent } from './series-strip.component';
 import { StarDomeComponent } from './star-dome.component';
@@ -46,6 +47,7 @@ const MAX_PATCH_CHIPS = 6;
     StarmapMoreComponent,
     StarmapTourComponent,
     MyConstellationsComponent,
+    VerseHeaderComponent,
   ],
   template: `
     @if (!signedIn()) {
@@ -74,32 +76,21 @@ const MAX_PATCH_CHIPS = 6;
         <div class="sky" aria-hidden="true"><i class="neb"></i><i class="field"></i><i class="field near"></i></div>
         <div class="dome" aria-hidden="true"></div>
 
-        <header class="bar">
-          <div class="ttl">
-            @if (mine()) {
-              <h1>{{ 'starmap.gallery.title' | translate }}</h1>
-              <span>{{ 'starmap.gallery.subtitle' | translate }}</span>
-            } @else {
-              <h1>{{ 'starmap.map.title' | translate: { patch: p.patchLine } }}</h1>
-            }
-            <span [hidden]="mine()">
-              @if (shapeName(); as name) {
-                {{ 'starmap.map.shape' | translate: { name: name } }}
-              } @else {
-                {{ 'starmap.map.subtitle' | translate: { total: total } }}
-              }
-            </span>
-          </div>
+        <sc-verse-header planet="starmap"
+                         [title]="(mine() ? 'starmap.gallery.title' : 'starmap.map.title') | translate: { patch: p.patchLine }"
+                         [subtitle]="mine() ? ('starmap.gallery.subtitle' | translate)
+                           : shapeName() ? ('starmap.map.shape' | translate: { name: shapeName() })
+                           : ('starmap.map.subtitle' | translate: { total: total })">
           @if (chips().length > 1 && !mine()) {
-            <div class="chips" role="group" [attr.aria-label]="'starmap.map.patchesAria' | translate">
+            <div vhActions class="chips" role="group" [attr.aria-label]="'starmap.map.patchesAria' | translate">
               @for (lp of chips(); track lp.patchLine) {
                 <button type="button" class="chip" [attr.aria-pressed]="lp === p" (click)="select(lp)"
                         [scTooltip]="'starmap.map.chipTip' | translate: { patch: lp.patchLine, lit: lit(lp), total: total }">{{ lp.patchLine }}</button>
               }
             </div>
           }
-          <span class="count" data-tour="count" [attr.aria-label]="'starmap.progress' | translate: { lit: v.lit, total: total }"><b>{{ v.lit }}</b>/ {{ total }}</span>
-          <div class="acts">
+          <span vhActions class="count" data-tour="count" [attr.aria-label]="'starmap.progress' | translate: { lit: v.lit, total: total }"><b>{{ v.lit }}</b>/ {{ total }}</span>
+          <div vhActions class="acts">
             @if (p.unlocks.wallpaper && !mine()) {
               <button type="button" class="act" [disabled]="exporting()" (click)="exportWallpaper(p)">
                 {{ (exporting() ? 'starmap.export.busy' : 'starmap.export.wallpaper') | translate }}
@@ -118,8 +109,8 @@ const MAX_PATCH_CHIPS = 6;
                       (click)="tourOpen.set(!tourOpen())">?</button>
             }
           </div>
-          @if (exportError()) { <span class="err" role="alert">{{ exportError()! | translate }}</span> }
-        </header>
+          @if (exportError()) { <span vhActions class="err" role="alert">{{ exportError()! | translate }}</span> }
+        </sc-verse-header>
 
         @if (mine()) {
           <div class="mine" animate.enter="ex-build"><sc-my-constellations [embedded]="true" /></div>

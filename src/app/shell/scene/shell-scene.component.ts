@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewEncapsu
 import { NavigationEnd, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
 import { SceneKind, SceneMode, isVerseHome, sceneOf, sceneStep } from './scene.model';
+import { VerseWorld, verseWorldOf } from '../../verse/shared/verse-world';
 
 /** Reduced-motion check; a field so specs can swap it. */
 export function sceneReducedMotion(): boolean {
@@ -44,6 +45,8 @@ export class ShellSceneComponent {
   readonly mode = signal<SceneMode>('still');
   readonly from = signal<SceneKind | null>(null);
   readonly home = signal(isVerseHome(this.router.url));
+  /** A Verse subpage: deep space around its planet, no hub horizon (concept 2026-10-28 §3). */
+  readonly world = signal<VerseWorld | null>(verseWorldOf(this.router.url));
   /** Flips per dissolve so the fade animation restarts. */
   readonly fadeTick = signal(0);
 
@@ -87,6 +90,7 @@ export class ShellSceneComponent {
   /** One navigation: decide the step, set the pose. Exposed for the spec. */
   apply(url: string): void {
     this.home.set(isVerseHome(url));
+    this.world.set(verseWorldOf(url));
     const step = sceneStep(this.scene(), url, this.reducedMotion());
     if (!step) {
       // Same pose: keep the last mode, so a running camera move is never cut short.
