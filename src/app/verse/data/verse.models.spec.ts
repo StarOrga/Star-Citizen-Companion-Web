@@ -38,6 +38,8 @@ describe('verse.models', () => {
       channelInfo: {},
       status: 'ptu',
     });
+    expect(d.counts.gallery).toEqual({ recent: 5, total: 900 });
+    expect(d.counts.news).toEqual({ recent: 3 });
   });
 
   it('maps patch.channel_info: running build + predecessor, numbers and nulls', () => {
@@ -61,8 +63,6 @@ describe('verse.models', () => {
     expect(info['hotfix'].previous).toBeNull();
     expect(info['hotfix'].startedAt).toBeNull();
     expect(mapChannelInfo(null)).toEqual({});
-    expect(d.counts.gallery).toEqual({ recent: 5, total: 900 });
-    expect(d.counts.news).toEqual({ recent: 3 });
   });
 
   it('drops the trailing "| Star Citizen" channel tag from titles', () => {
