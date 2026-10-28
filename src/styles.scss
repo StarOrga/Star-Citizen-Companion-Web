@@ -1435,21 +1435,37 @@ button {
   #sc-main.switch-in :is(*:has(h1, [data-stage-slot])) > *,
   #sc-main.switch-in h1 { animation: none; }
 }
-/* Docking lifts the hero title away (concept r8 x8-title: 22 → 30 % out by -40 px,
-   84 → 94 % back), so the field travels alone into the subheader. */
-html:has(sc-fusion-bar[data-mode='stage'], sc-fusion-bar[data-mode='docked']) #sc-main h1 {
+/* MAIN PAGE HERO (beta shell): eyebrow · one h1 · stage slot. StageHeroDirective
+   shifts the block so the slot stands at the same spot on every main page. */
+[data-stage-hero] {
+  margin-top: var(--_hero-shift, 0px);
+}
+.sc-stage-hero[data-stage-hero] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.sc-stage-hero[data-stage-hero] sc-page-header { width: 100%; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-top:not(:has(.crumbs, .ph-aside > *)) { display: none; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-main { justify-content: center; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-title { align-items: center; text-align: center; margin-inline: auto; }
+.sc-stage-hero[data-stage-hero] sc-page-header .ph-actions:empty { display: none; }
+/* Docking lifts the whole hero head away — eyebrow, title, subtitle (concept r8
+   x8-title: 22 → 30 % out by -40 px, 84 → 94 % back), so the field travels alone. */
+[data-stage-hero] > :not([data-stage-slot]) {
   transition: opacity 1s ease-in-out, transform 1s ease-in-out;
 }
-html:has(sc-fusion-bar[data-mode='docked']) #sc-main h1 {
+html:has(sc-fusion-bar[data-mode='docked']) [data-stage-hero] > :not([data-stage-slot]) {
   opacity: 0;
   transform: translateY(-40px);
   transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
 }
-html:has(sc-fusion-bar.snap) #sc-main h1 {
+html:has(sc-fusion-bar.snap) [data-stage-hero] > :not([data-stage-slot]) {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  html:has(sc-fusion-bar) #sc-main h1 { transition: none; }
+  [data-stage-hero] > :not([data-stage-slot]) { transition: none; }
 }
 /* Phone: the route line sits fixed at the top while the bar is docked at the thumb —
    the page keeps that strip free so its own chips never slide under it. */

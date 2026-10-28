@@ -15,7 +15,7 @@
 
         <!-- Hero: centred in the upper two thirds — kicker, title (the link), search. -->
         <div class="hero-wrap">
-          <div class="hx">
+          <div class="hx" scStageHero>
             @if (api.digestState() === 'error' && !api.digest()) {
               <h1 class="title2"><span class="tl">{{ 'verse.briefing.headlineError' | translate }}</span></h1>
               <p class="err" role="alert">{{ (api.digestError() ?? 'errors.generic') | translate }}</p>

@@ -362,7 +362,13 @@ export class MainHeaderComponent {
       const publish = () =>
         document.documentElement.style.setProperty('--sc-mainhead-h', `${Math.round(host.offsetHeight)}px`);
       publish();
-      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(publish);
+      // One frame later: the published height resizes the spacer (and the body), which a
+      // write inside this callback would report again in the same frame (RO loop error).
+      let frame = 0;
+      const later = () => {
+        if (!frame) frame = requestAnimationFrame(() => ((frame = 0), publish()));
+      };
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(later);
       ro?.observe(host);
       destroyRef.onDestroy(() => {
         ro?.disconnect();

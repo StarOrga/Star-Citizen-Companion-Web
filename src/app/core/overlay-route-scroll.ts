@@ -13,7 +13,8 @@ export const OVERLAY_ROUTE_DATA = 'scOverlay';
 /** sessionStorage key: the scroll position of the page as it was left, for a reload of the same URL. */
 export const RELOAD_SCROLL_KEY = 'sc.reloadScroll';
 /** How long a reload keeps trying to reach the old position while the page fills in (ms). */
-const RESTORE_WINDOW_MS = 2500;
+/** A Codex list loads its rows late: keep retrying the restore until then (or the user scrolls). */
+const RESTORE_WINDOW_MS = 8000;
 
 /** The position to restore after a reload, or null (other URL, nothing stored, bad data). */
 export function reloadScrollTarget(stored: string | null, url: string): number | null {
@@ -129,9 +130,14 @@ export class OverlayRouteScrollService implements OnDestroy {
     if (y === null) return false;
     this.restoring = true;
     const until = Date.now() + RESTORE_WINDOW_MS;
+    let userMoved = false;
+    const stop = () => (userMoved = true);
+    const opts = { passive: true, once: true } as AddEventListenerOptions;
+    for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown']) window.addEventListener(ev, stop, opts);
     const step = () => {
-      window.scrollTo({ top: y, behavior: 'instant' as ScrollBehavior });
-      if (Math.abs(window.scrollY - y) < 2 || Date.now() > until || typeof requestAnimationFrame !== 'function') {
+      if (!userMoved) window.scrollTo({ top: y, behavior: 'instant' as ScrollBehavior });
+      if (userMoved || Math.abs(window.scrollY - y) < 2 || Date.now() > until || typeof requestAnimationFrame !== 'function') {
+        for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown']) window.removeEventListener(ev, stop);
         requestAnimationFrame?.(() => (this.restoring = false));
         return;
       }

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
+import { StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
 
 /** One admin page reachable from the hub. */
 export interface AdminHubTile {
@@ -64,15 +65,18 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
   // A cinematic route spans the full track; the hub's content keeps the page frame.
   host: { class: 'sc-track-wide' },
   standalone: true,
-  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective],
+  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective, StageHeroDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <sc-page-header
-      [eyebrow]="'adminHub.eyebrow' | translate"
-      [title]="'adminHub.title' | translate"
-      [subtitle]="'adminHub.subtitle' | translate" />
-    <!-- Stage slot under the hero: the bar's own search field stands here (beta shell). -->
-    <div scStageSearch></div>
+    <!-- The main page hero (beta shell): eyebrow · title · stage slot, centred, the slot
+         at the same spot as on every main page (StageHeroDirective). -->
+    <div class="sc-stage-hero" scStageHero>
+      <sc-page-header
+        [eyebrow]="'adminHub.eyebrow' | translate"
+        [title]="'adminHub.title' | translate"
+        [subtitle]="'adminHub.subtitle' | translate" />
+      <div scStageSearch></div>
+    </div>
     <ul class="tiles" role="list">
       @for (t of tiles; track t.id) {
         <li>

@@ -880,7 +880,7 @@ import { avatarUrlOf } from './avatar-url';
     /* Menu switch, part one: the old main page sinks away while the camera moves. */
     /* Menu switch out/in: global styles.scss ("MENU SWITCH") — it reaches into the routed page. */
     @media (max-width: 720px) {
-      .bar-account .dropdown { top: auto; bottom: calc(100% + 10px); }
+      /* The bar's account sits at the top route line on phones: its menu opens downwards. */
       :host([data-layout]) {
         padding-bottom: calc(var(--sc-bar-stack-h, var(--sc-bar-h)) + var(--sc-float-bottom) + var(--sc-space-3));
       }

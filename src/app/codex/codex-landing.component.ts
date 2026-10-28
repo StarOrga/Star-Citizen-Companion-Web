@@ -49,6 +49,7 @@ import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexSearchBarComponent } from './search/codex-search-bar.component';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
+import { StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
 
 /**
  * The Codex landing — the "Spot" stage (concept 2026-09-20, rounds 14-17,
@@ -79,6 +80,7 @@ import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive
   standalone: true,
   imports: [
     StageSearchDirective,
+    StageHeroDirective,
     RouterLink,
     TranslatePipe,
     CodexCompareTrayComponent,
@@ -96,7 +98,7 @@ import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive
     <section class="landing">
       @if (shellOn()) {
         <!-- Beta shell hero (concept r1/r8): eyebrow + title, the bar's search field stands under it. -->
-        <div class="cx-hero">
+        <div class="cx-hero" scStageHero>
           <p class="cx-eyebrow">{{ 'codex.landing.hero.eyebrow' | translate }}</p>
           <h1 class="cx-title">{{ 'codex.landing.hero.title' | translate }}</h1>
           <div scStageSearch></div>

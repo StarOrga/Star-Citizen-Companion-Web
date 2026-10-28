@@ -146,10 +146,13 @@ export function blueprintCategoriesForGroup(
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
+      <!-- Beta shell: the bar names the page (plate) and carries the count, so the list
+           follows it directly (concept r8 d2-s1); the h1 stays for assistive tech. -->
+      @if (shellOn()) { <h1 class="sc-sr-only">{{ 'codex.index.title' | translate }}</h1> }
       <sc-page-header
         [crumbs]="codexCrumbs"
-        [title]="'codex.index.title' | translate"
-        [subtitle]="'codex.subtitle' | translate">
+        [title]="shellOn() ? null : ('codex.index.title' | translate)"
+        [subtitle]="shellOn() ? null : ('codex.subtitle' | translate)">
         <!-- This page filters its own list below; the whole-Codex search
              is the compact trigger here, so the shell's slim bar tucks away. -->
         <!-- Beta "shell": the bar IS the Codex search and names the area, so the
@@ -337,6 +340,7 @@ export function blueprintCategoriesForGroup(
         </div>
       } @else {
         <div class="result-head">
+          @if (!shellOn()) {
           <span class="count">
             @if (loading() && rows().length === 0) {
               <!-- Not "0 results" above the skeletons: nothing has been counted yet. -->
@@ -345,6 +349,7 @@ export function blueprintCategoriesForGroup(
               {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
             }
           </span>
+          }
           @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
           }

@@ -542,6 +542,14 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 .account:empty {
   display: none;
 }
+// Docked main page (desktop): no avatar in the subheader — the header's own slid and faded away.
+.account.gone {
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
 
 // ---- the filter panel drops out of the bar as an overlay: same skin, same width,
 // it never pushes the page (r8 d2-s4 fdrop: scaleY .6 → 1, 0.5 s) ----
@@ -937,8 +945,26 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   :host(.searching) .account {
     display: none;
   }
+  // No avatar under the thumb: the account sits at the route line's right end,
+  // clear of the β chip's lane (the bar itself keeps clear of the feedback launcher).
+  .cap > .account,
+  .cap > .account.gone {
+    position: fixed;
+    top: calc(var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + 4px);
+    right: max(var(--sc-page-gutter), var(--sc-chip-lane, 0px));
+    z-index: 3;
+    width: auto;
+    margin: 0;
+    overflow: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  :host ::ng-deep .search .input {
+    min-width: 4ch;
+  }
   .route {
     pointer-events: auto;
+    padding-right: calc(max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)) + 52px) !important;
     position: fixed;
     top: var(--sc-imp-banner-h, 0px);
     left: 0;

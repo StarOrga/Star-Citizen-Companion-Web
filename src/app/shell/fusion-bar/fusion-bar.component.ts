@@ -222,7 +222,10 @@ interface PathCrumb {
               @if (tokens().length) { <i>{{ tokens().length }}</i> }
             </button>
           }
-          <div class="account"><ng-content select="[barAccount]" /></div>
+          <!-- The account sits at the bar's far end on pages without the main header; on a
+               docked main page it fades out with the header (concept r7/r8), on phones it
+               moves to the top route line. -->
+          <div class="account" [class.gone]="mode() === 'docked'" [attr.inert]="mode() === 'docked' && !phone() ? '' : null"><ng-content select="[barAccount]" /></div>
         }
       }
     </div>
@@ -401,14 +404,17 @@ export class FusionBarComponent {
       if (!this.segments()) this.panelOpen.set(false);
       this.beginNavQuiet();
       const morph = this.variant() === 'app' ? routeMorphOf(wasMain, this.mainPage(), wasDocked) : null;
+      const travels = morph === 'undock' && !!first && first.width > 0;
+      // Main → main at the top: the field stays exactly where it stands (every main page
+      // puts its slot at the same spot, StageHeroDirective) — only its placeholder changes.
+      const stays = wasMain && this.mainPage() && !wasDocked;
       // A main page starts staged: the router resets the scroll to its top right after this event.
-      if (morph === 'snap') this.snap();
       this.docked.set(false);
-      if (this.mainPage() && morph !== 'undock') this.placed.set(false);
+      if (this.mainPage() && !stays && !travels) this.placed.set(false);
       // Arrival on a main page: the depth fly-in plays once the field stands on its slot (it is
       // invisible until then), unless the bar travels down into the stage (undock).
-      const travels = morph === 'undock' && !!first && first.width > 0;
-      this.enterOnPlace = this.mainPage() && !travels;
+      // The depth fly-in belongs to the arrival on the app's main pages, never to a switch.
+      this.enterOnPlace = this.mainPage() && !wasMain && !travels;
       if (this.mainPage() && travels) this.pulse('morph');
       if ((morph === 'dock' || morph === 'undock') && first && first.width > 0) {
         // Main → subpage after docking: the header is already compressed, only the bar moves.
@@ -433,10 +439,13 @@ export class FusionBarComponent {
       untracked(() => {
         this.anchorRo?.disconnect();
         this.anchorRo = null;
-        if (!staged || !anchor) {
+        if (!staged) {
           this.placed.set(false);
           return;
         }
+        // Between two main pages the old slot is gone before the new one mounts: the
+        // field keeps standing where it was (same spot on every main page).
+        if (!anchor) return;
         if (typeof ResizeObserver !== 'undefined') {
           this.anchorRo = new ResizeObserver(() => this.schedulePlace());
           this.anchorRo.observe(anchor);
@@ -501,6 +510,12 @@ export class FusionBarComponent {
   /** Scroll feed: the main page's dock state machine, the content page's hide/reveal. */
   onScroll(y: number): void {
     if (this.mainPage()) {
+      // While a route change settles the scroll belongs to the router (old offset, then its
+      // reset): it never docks or undocks the bar — that would cut into the route morph.
+      if (this.navQuiet || this.pendingFlip) {
+        this.tracker.reset(y);
+        return;
+      }
       const next = nextStageDocked(this.docked(), y);
       if (next !== this.docked() && !this.searchOpen()) {
         if (scrollMorphOf(this.docked(), next, this.navQuiet || this.routeScroll.restoring) === 'snap') this.snapDocked(next);
@@ -578,7 +593,11 @@ export class FusionBarComponent {
     if (this.quietTimer) clearTimeout(this.quietTimer);
     this.quietTimer = null;
     // The scroll event of the reset itself still arrives before the next frame: stay quiet through it.
-    const done = () => (this.navQuiet = false);
+    const done = () => {
+      this.navQuiet = false;
+      // Catch up with where the page really stands now (a reload restore, a kept scroll).
+      if (!this.pendingFlip && typeof window !== 'undefined') this.onScroll(window.scrollY);
+    };
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done));
     else done();
   }
@@ -607,7 +626,12 @@ export class FusionBarComponent {
     const hold = flipCap(cap, first, cap.getBoundingClientRect(), NAV_SETTLE_MS * 4, true);
     this.pendingFlip = () => {
       hold.cancel();
-      if (kind === 'undock') this.placeStage(true);
+      if (kind === 'undock') {
+        // The stage rect is measured after the scroll reset and with the stage state rendered,
+        // so the width travels continuously into the field's own width (no last-frame snap).
+        this.flush();
+        this.placeStage(true);
+      }
       this.playMorph(kind, first, logoFirst, withLogo);
     };
   }

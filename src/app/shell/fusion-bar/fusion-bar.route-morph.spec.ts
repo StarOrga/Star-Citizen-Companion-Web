@@ -17,11 +17,11 @@ describe('fusion bar: route-aware dock state machine', () => {
     expect(scrollMorphOf(false, false, true)).toBeNull();
   });
 
-  it('morphs header and bar between main page and subpage, snaps main → main', () => {
+  it('morphs header and bar between main page and subpage, undocks docked main → main', () => {
     expect(routeMorphOf(true, false, false)).toBe('dock');
     expect(routeMorphOf(true, false, true)).toBe('dock');
     expect(routeMorphOf(false, true, false)).toBe('undock');
-    expect(routeMorphOf(true, true, true)).toBe('snap');
+    expect(routeMorphOf(true, true, true)).toBe('undock');
     expect(routeMorphOf(true, true, false)).toBeNull();
     expect(routeMorphOf(false, false, false)).toBeNull();
   });

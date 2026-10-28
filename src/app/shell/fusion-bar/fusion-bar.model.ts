@@ -267,6 +267,7 @@ export function scrollMorphOf(was: boolean, now: boolean, quiet: boolean): 'dock
 export function routeMorphOf(wasMain: boolean, nowMain: boolean, wasDocked: boolean): 'dock' | 'undock' | 'snap' | null {
   if (wasMain && !nowMain) return 'dock';
   if (!wasMain && nowMain) return 'undock';
-  if (wasMain && nowMain && wasDocked) return 'snap';
+  // Back/Forward or a switch from a docked main page: the bar travels down into the stage.
+  if (wasMain && nowMain && wasDocked) return 'undock';
   return null;
 }
