@@ -16,6 +16,7 @@ class FusionSearchStub {
   readonly placement = input<'top' | 'bottom'>('top');
   readonly hideContext = input(false);
   readonly compact = input(false);
+  readonly demo = input(false);
   readonly openChange = output<boolean>();
 }
 

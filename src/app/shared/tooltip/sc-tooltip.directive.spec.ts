@@ -244,6 +244,18 @@ describe('ScTooltipDirective', () => {
     tick(0);
     expect(overlayContainerElement.querySelector('.sc-tooltip-bubble')).toBeNull();
   }));
+
+  it('destroy is null-safe when the overlay was disposed from outside (route change)', fakeAsync(() => {
+    hoverIn(btnB());
+    tick(500);
+    expect(bubble()).not.toBeNull();
+    // Tear the overlay down underneath the directive, as a navigation does.
+    const dir = (fixture.debugElement.query((d) => d.nativeElement === btnB())!.injector.get(ScTooltipDirective)) as unknown as {
+      overlayRef: { dispose(): void } | null;
+    };
+    dir.overlayRef!.dispose();
+    expect(() => fixture.destroy()).not.toThrow();
+  }));
 });
 
 // A wrapper that only carries the tooltip of the control inside it (a disabled
@@ -306,16 +318,5 @@ describe('ScTooltipDirective on a display: contents wrapper', () => {
     expect(Math.abs(pane.top - btn.top)).toBeLessThan(150);
     inner().blur();
     tick(200);
-  }));
-  it('destroy is null-safe when the overlay was disposed from outside (route change)', fakeAsync(() => {
-    hoverIn(btnB());
-    tick(500);
-    expect(bubble()).not.toBeNull();
-    // Tear the overlay down underneath the directive, as a navigation does.
-    const dir = (fixture.debugElement.query((d) => d.nativeElement === btnB())!.injector.get(ScTooltipDirective)) as unknown as {
-      overlayRef: { dispose(): void } | null;
-    };
-    dir.overlayRef!.dispose();
-    expect(() => fixture.destroy()).not.toThrow();
   }));
 });
