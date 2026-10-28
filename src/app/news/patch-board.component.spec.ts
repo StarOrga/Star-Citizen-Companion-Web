@@ -501,4 +501,13 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await render(FEED, null);
     expect(rows().map((r) => r.dataset['status'])).toEqual(['live', 'superseded']);
   });
+  it('embedded: the search field yields to the shell subheader, but stays when the shell β is off', async () => {
+    await render(FEED, ROADMAP);
+    fixture.componentRef.setInput('embedded', true);
+    fixture.detectChanges();
+    expect(root().querySelector('#patch-board-search')).withContext('subheader owns search').toBeNull();
+    fixture.componentRef.setInput('barSearch', false);
+    fixture.detectChanges();
+    expect(root().querySelector('#patch-board-search')).withContext('no subheader → own field').not.toBeNull();
+  });
 });
