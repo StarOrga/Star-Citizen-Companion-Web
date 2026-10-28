@@ -8,7 +8,7 @@ import {
   inject,
   signal,
   untracked, input } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, RouterLink, RouterOutlet } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { NewsService } from './news.service';
@@ -24,7 +24,8 @@ import { TEASER_BOX, TeaserStripDirective, teaserFit, type TeaserBox, type Tease
 import type { RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
-import { StabilityBadgeComponent } from './stability-badge.component';
+import { StabilityMeterComponent } from './stability-meter.component';
+import { subVersionRows, type SubVersionRow } from './patch-timeline';
 import { StabilityHistoryComponent } from './stability-history.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
@@ -57,7 +58,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   standalone: true,
   imports: [
     TranslatePipe, RouterLink, RouterOutlet, PatchMonitorComponent,
-    StabilityHistoryComponent, StabilityBadgeComponent, PatchFindResultsComponent,
+    StabilityHistoryComponent, StabilityMeterComponent, PatchFindResultsComponent,
     TeaserStripDirective,
     ScTooltipDirective,
   ],
@@ -95,18 +96,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
              aside — a search is a different question, and the reader asked for
              the answer, not for the dashboard above it (owner, 2026-09-05). -->
         @if (!searching()) {
-          <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" />
+          @if (!monitorInCard()) {
+            <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" [bare]="embedded()" />
+          }
 
           @if (!stability.unavailable()) {
             <sc-stability-history [verdicts]="stability.allTime()" [query]="query()" />
           }
         }
 
-        <!-- The ONE control on this level, and it stays reachable: stuck to the
-             top, so a long result list never strands the reader away from the
-             field that produced it. A label, not a placeholder, so the field
-             keeps its description while you type. -->
+        <!-- Legacy (β off) board keeps its own sticky search field. Embedded in
+             the Verse page the field is gone: the shell subheader owns search,
+             this block then only carries the result summary. -->
+        @if (!embedded() || searching()) {
         <div class="search" [class.active]="searching()">
+          @if (!embedded()) {
           <label class="s-label" for="patch-board-search">{{ 'news.patch.search.label' | translate }}</label>
           <div class="s-field">
             <input id="patch-board-search" type="search" class="s-input"
@@ -122,19 +126,22 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                       (click)="clearQuery()">×</button>
             }
           </div>
+          }
           @if (searching()) {
             <p class="s-summary" role="status">
               {{ 'news.patch.find.summary' | translate:{ hits: findTotal(), patches: findGroups().length, loaded: roadmap.loadedOutlineCount(), total: noteTotal() } }}
               @if (unloadedCount() > 0) {
-                <!-- Searching the notes that are not in memory yet is an ACTION
-                     on this page → a button, not a link. -->
                 <button type="button" class="s-more" (click)="loadAllNotes()" [disabled]="loadingNotes()">
                   {{ (loadingNotes() ? 'news.patch.find.loading' : 'news.patch.find.loadRest') | translate:{ n: unloadedCount() } }}
                 </button>
               }
+              @if (embedded()) {
+                <button type="button" class="s-more" (click)="clearQuery()">{{ 'news.patch.search.clear' | translate }}</button>
+              }
             </p>
           }
         </div>
+        }
 
         @if (searching()) {
           @if (findGroups().length === 0) {
@@ -145,35 +152,30 @@ const DAY_MS = 24 * 60 * 60 * 1000;
         } @else {
           <ol class="stack" [attr.aria-label]="'news.patch.stack.aria' | translate">
             @for (card of visible(); track card.line; let i = $index) {
-              <li class="row" [attr.data-status]="card.status" [class.hero]="card.status === 'live'"
-                  [style.--in-delay]="i * 60 + 'ms'">
+              <li class="node" [attr.data-status]="card.status" [class.hero]="card.status === 'live'"
+                  [style.--in-delay]="i * 70 + 'ms'">
+                <!-- Quality mark in its own gutter, left of the rail: a bar
+                     meter + number, never the stage word's language. -->
+                <div class="stb">
+                  <sc-stability-meter [percent]="verdictFor(card)?.stability ?? null" [level]="verdictFor(card)?.level ?? null"
+                                      [label]="meterLabel(card)" />
+                </div>
                 <div class="card">
-                  <!-- The whole card is the way into the dossier → a real
-                       anchor, so middle click and "open in new tab" keep
-                       working. It is STRETCHED over the card rather than
-                       wrapping it, because the roadmap thumbnails inside are
-                       links of their own now (feedback fdaad6b7) and an anchor
-                       inside an anchor is not HTML. -->
-                  <a class="card-link" [routerLink]="['/verse/patches', card.line]"
-                     [queryParams]="query() ? { q: query() } : null"
-                     [attr.aria-label]="cardLabel(card)"></a>
-                  <span class="status" [attr.data-status]="card.status">
-                    {{ ('news.patch.status.' + card.status) | translate }}
-                    @if (statusNote(card); as note) { <small>{{ note }}</small> }
-                  </span>
-                  <span class="ver">{{ card.line ? ('news.patch.line' | translate:{ version: card.line }) : ('news.patch.otherLine' | translate) }}</span>
-                  <span class="sent">
-                    <b>{{ sentence(card) }}</b>
-                    @if (facts(card); as f) { <span class="facts">{{ f }}</span> }
-                    @if (card.status === 'next' || card.status === 'ptu' || card.status === 'evocati') {
+                  <div class="ch">
+                    <a class="card-link" [routerLink]="['/verse/patches', card.line]"
+                       [queryParams]="query() ? { q: query() } : null"
+                       [attr.aria-label]="cardLabel(card)"></a>
+                    <span class="status" [attr.data-status]="card.status">
+                      {{ ('news.patch.status.' + card.status) | translate }}
+                      @if (statusNote(card); as note) { <small>{{ note }}</small> }
+                    </span>
+                    <span class="ver">{{ card.line ? ('news.patch.line' | translate:{ version: card.line }) : ('news.patch.otherLine' | translate) }}</span>
+                    <span class="sent">
+                      <b>{{ sentence(card) }}</b>
+                      @if (facts(card); as f) { <span class="facts">{{ f }}</span> }
                       @if (teaserPool(card).length > 0) {
-                        <!-- As many roadmap items as TWO rows of the measured
-                             width hold, then "…" — and every one of them a
-                             link to its own entry in the dossier. The names
-                             that used to run along the strip are gone: they
-                             were the thing that made room for three icons and
-                             no more (feedback fdaad6b7). They survive as the
-                             links' accessible names. -->
+                        <!-- Content preview: the line's headline items, each a
+                             link into its own entry of the dossier. -->
                         <span class="teaser" (scTeaserStrip)="onTeaserBox(card.line, $event)">
                           @for (item of teaser(card); track item.id) {
                             <a class="tz" [routerLink]="['/verse/patches', card.line]"
@@ -195,24 +197,59 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                           }
                         </span>
                       }
-                    }
-                  </span>
-                  <!-- No note count here any more: "die x notes in dieser
-                       Übersicht ist auch unnötig" (feedback fdaad6b7). How
-                       many notes a line has is a fact of the dossier, which
-                       still states it; on the board it was a number nobody
-                       chose a patch by. -->
-                  <!-- How the patch RAN, as a picture in the corner — only on
-                       lines that actually shipped (owner, 2026-09-05). -->
-                  @if (verdictFor(card); as v) {
-                    <span class="stab"><sc-stability-badge [verdict]="v" [size]="card.status === 'live' ? 'md' : 'sm'" /></span>
+                    </span>
+                  </div>
+
+                  @if (monitorInCard() && card === stack().next) {
+                    <div class="inset">
+                      <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" [bare]="true" />
+                    </div>
+                    <ng-content select="[pbNext]" />
+                  }
+
+                  @if (subCount(card) > 0) {
+                    <div class="subs">
+                      @if (subsOpen(card)) {
+                        <p class="subs-h">{{ 'news.patch.timeline.versionsOf' | translate:{ line: card.line } }}</p>
+                      }
+                      @if (subsOpen(card)) {
+                        @for (row of shownSubs(card); track row.id) {
+                          <a class="sv" [routerLink]="['/verse/patches', card.line]" [queryParams]="query() ? { q: query() } : null"
+                             [attr.aria-label]="row.title">
+                            <span class="sl">{{ row.version }}</span>
+                            <span class="svt">{{ row.title }}</span>
+                            <span class="chips">
+                              @if (row.stage) { <span class="chip" [attr.data-stage]="row.stage">{{ ('news.patch.stage.' + row.stage) | translate }}</span> }
+                              @if (row.hotfix) { <span class="chip hf">{{ 'news.patch.hotfix' | translate }}</span> }
+                            </span>
+                            <span class="svs">
+                              @if (row.stability !== null) {
+                                <sc-stability-meter [percent]="row.stability" [level]="row.level" label="" />
+                              } @else {
+                                <em>{{ 'news.patch.stability.meter.early' | translate }}</em>
+                              }
+                            </span>
+                            <time class="svw">{{ relTime(row.publishedAt) }}</time>
+                          </a>
+                        }
+                        @if (olderSubCount(card) > 0) {
+                          <button type="button" class="more" [attr.aria-expanded]="moreOpen(card)" (click)="toggleMore(card.line)">
+                            {{ (moreOpen(card) ? 'news.patch.timeline.lessBuilds' : 'news.patch.timeline.moreBuilds') | translate:{ n: olderSubCount(card) } }}
+                          </button>
+                        }
+                      }
+                      @if (card.status !== 'next' && card.status !== 'live') {
+                        <button type="button" class="more first" [attr.aria-expanded]="subsOpen(card)" (click)="toggleSubs(card.line)">
+                          {{ (subsOpen(card) ? 'news.patch.timeline.hideVersions' : 'news.patch.timeline.showVersions') | translate:{ n: subCount(card) } }}
+                        </button>
+                      }
+                    </div>
                   }
                 </div>
               </li>
             }
             @if (stack().older.length > 0) {
-              <li class="row fold">
-                <!-- Folding older lines is an action on this page → button. -->
+              <li class="node fold">
                 <button type="button" class="fold-btn" [attr.aria-expanded]="olderOpen()" (click)="toggleOlder()">
                   <span class="caret" aria-hidden="true">›</span>
                   {{ (olderOpen() ? 'news.patch.stack.olderHide' : 'news.patch.stack.older') | translate:{ n: stack().older.length, lines: olderLines() } }}
@@ -298,115 +335,76 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .s-more:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .s-more:disabled { opacity: 0.6; cursor: default; }
 
-    /* The stack: one spine on the left, future → past top to bottom. */
-    .stack { list-style: none; margin: 0; padding: 0 0 0 24px; position: relative; display: flex; flex-direction: column; gap: 10px; }
+    /* The timeline: stability gutter, one rail, patch cards (future → past).
+       Cards are translucent so the scene behind the subpage shows through. */
+    .stack { list-style: none; margin: 0; padding: 0 0 0 112px; position: relative; display: flex; flex-direction: column; gap: 14px; }
+    .stack.skeleton { padding-left: 24px; }
     .stack::before {
-      content: ''; position: absolute; left: 9px; top: 14px; bottom: 14px; width: 2px;
+      content: ''; position: absolute; left: 92px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px;
       background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 55%, transparent), var(--sc-success) 45%, color-mix(in srgb, var(--sc-fg-2) 35%, transparent));
     }
-    .row { position: relative; }
-    .row::before {
-      content: ''; position: absolute; left: -20px; top: 50%; width: 10px; height: 10px; border-radius: 50%;
-      transform: translateY(-50%); background: var(--sc-fg-2); border: 2px solid var(--sc-bg-0);
+    .stack.skeleton::before { left: 9px; }
+    .node, .row { position: relative; animation: pb-in 0.46s cubic-bezier(0.22, 0.9, 0.3, 1) both; animation-delay: var(--in-delay, 0ms); }
+    @keyframes pb-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .node::before, .row::before {
+      content: ''; position: absolute; left: -26px; top: 30px; width: 10px; height: 10px; border-radius: 50%;
+      background: var(--sc-fg-2); border: 2px solid var(--sc-bg-0); z-index: 1;
     }
-    .row[data-status='live']::before { width: 14px; height: 14px; left: -22px; background: var(--sc-success); box-shadow: var(--sc-glow); }
-    .row[data-status='next']::before, .row[data-status='ptu']::before, .row[data-status='evocati']::before { background: var(--sc-accent); }
-    /* ONE geometry for every card (owner, 2026-09-05: "Die Labels live etc.
-       darin sollten immer gleich breit sein. Die Patch zahl auch immer an der
-       gleichen stelle horizontal anfangen"). The columns used to widen with
-       importance — 150 / 170 / 190 px — which moved the status word and the
-       version number by 40 px between neighbouring rows and made the stack
-       look like three different lists. Status and version now sit in the same
-       two columns on every row, and the live card is louder through colour,
-       type size and breathing room instead of through geometry. The last
-       column collapses to 0 when the card carries no stability badge, so
-       nothing reserves space for an absent thing. */
-    .card {
-      position: relative;
-      display: grid; grid-template-columns: 116px 150px minmax(0, 1fr) auto;
-      align-items: center; gap: 10px 18px;
-      padding: 14px 16px; min-height: var(--row-h); overflow: hidden;
-      border: 1px solid var(--sc-border); border-radius: 10px;
-      background: var(--sc-bg-1); color: var(--sc-fg-0); text-decoration: none;
-    }
-    /* One height for every ordinary row (owner: "abgelöst und nächster gleich
-       hoch"). A min-height cannot deliver that on its own — the "next" card
-       carries a roadmap teaser its neighbour does not, which pushed it 60 px
-       taller. So the ordinary rows get a FIXED height and their contents are
-       kept inside it: the teaser is a clipped block of at most two rows, the
-       sentence clamps to two lines.
+    .row::before { left: -20px; top: 50%; transform: translateY(-50%); }
+    .node[data-status='live']::before { width: 14px; height: 14px; left: -28px; top: 28px; background: var(--sc-success); box-shadow: var(--sc-glow); }
+    .node[data-status='next']::before, .node[data-status='ptu']::before, .node[data-status='evocati']::before { background: var(--sc-accent); }
+    .stb { position: absolute; left: -112px; top: 16px; width: 76px; display: flex; justify-content: flex-end; }
 
-       That fixed height grew with the thumbnails (feedback fdaad6b7 round 2:
-       double the icons, two rows). The whole stack pays for the teaser card,
-       which is the price of the shared height — and the hero grows with it,
-       because a LIVE card shorter than the rows around it would be the loudest
-       thing on the page rendered as the smallest. */
-    .stack { --row-h: 220px; }
-    .row:not(.hero) .card { height: var(--row-h); }
-    .sent b {
-      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-      overflow: hidden;
+    .card {
+      position: relative; overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 20%, var(--sc-border)); border-radius: 12px;
+      background: color-mix(in srgb, var(--sc-bg-1) 42%, transparent);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      color: var(--sc-fg-0);
     }
+    .skeleton .card { border-radius: 10px; }
+    .node[data-status='live'] .card {
+      border-color: color-mix(in srgb, var(--sc-success) 55%, var(--sc-border));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--sc-success) 10%, transparent), color-mix(in srgb, var(--sc-bg-1) 42%, transparent) 60%);
+    }
+    .node[data-status='next'] .card, .node[data-status='ptu'] .card, .node[data-status='evocati'] .card {
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--sc-accent) 10%, transparent), color-mix(in srgb, var(--sc-bg-1) 42%, transparent) 60%);
+    }
+    .node[data-status='superseded'] .card, .node[data-status='other'] .card { opacity: 0.86; }
     .card:hover { border-color: var(--sc-accent); }
-    /* The stretched link: it covers the card, so a click anywhere that is not
-       one of the roadmap thumbnails opens the dossier — the behaviour the
-       wrapping anchor had, without nesting anchors. Absolutely positioned, so
-       it claims no grid track. */
-    .card-link { position: absolute; inset: 0; border-radius: 10px; }
+
+    /* One geometry for every card head: stage word, version, sentence + preview. */
+    .ch {
+      position: relative; display: grid; grid-template-columns: 116px 150px minmax(0, 1fr);
+      align-items: center; gap: 10px 18px; padding: 14px 16px;
+    }
+    .node[data-status='live'] .ch { padding-block: 20px; }
+    .card-link { position: absolute; inset: 0; border-radius: 12px; }
     .card:has(.card-link:focus-visible) { border-color: var(--sc-accent); }
     .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-    .row.hero .card {
-      padding: 22px 16px; min-height: var(--row-h);
-      border-color: color-mix(in srgb, var(--sc-success) 55%, var(--sc-border));
-      background: linear-gradient(135deg, color-mix(in srgb, var(--sc-success) 10%, var(--sc-bg-1)), var(--sc-bg-1) 60%);
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-success) 18%, transparent);
-    }
-    .row[data-status='next'] .card, .row[data-status='ptu'] .card, .row[data-status='evocati'] .card {
-      border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      background: linear-gradient(135deg, color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-1)), var(--sc-bg-1) 60%);
-    }
-    .row[data-status='superseded'] .card, .row[data-status='other'] .card { opacity: 0.78; }
 
-    /* Cards arrive rather than appear: the stack is a time axis, so the rows
-       fly in along it, staggered by their position (--in-delay). Purely
-       decorative — reduced motion drops it entirely. */
-    .row { animation: pb-in 0.42s cubic-bezier(0.22, 0.9, 0.3, 1) both; animation-delay: var(--in-delay, 0ms); }
-    @keyframes pb-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
-
-    /* Status = a WORD in a colour; LIVE filled and glowing. */
-    /* Fixed width, centred: LIVE, PTU and ABGELÖST are 3 to 9 characters and
-       used to make three differently-sized boxes down the left edge. */
+    /* Stage = a FILLED word. Stability lives in the gutter as a bar meter. */
     .status {
       display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      width: 100%; padding: 5px 8px; border-radius: 6px;
+      width: 100%; padding: 5px 8px; border-radius: 6px; justify-self: start;
       font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor));
       letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; text-align: center;
-      justify-self: start;
     }
     .status small { font-family: var(--sc-font-body); font-weight: 400; letter-spacing: 0; text-transform: none; font-size: max(0.64rem, var(--sc-fs-floor)); opacity: 0.85; white-space: nowrap; }
     .status[data-status='live'] { color: var(--sc-bg-0); background: var(--sc-success); box-shadow: 0 0 18px color-mix(in srgb, var(--sc-success) 35%, transparent); }
-    .status[data-status='next'] { color: var(--sc-accent); border: 1.5px solid var(--sc-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
-    .status[data-status='ptu'] { color: var(--sc-accent); border: 1.5px solid var(--sc-accent); }
-    .status[data-status='evocati'] { color: var(--sc-fg-1); border: 1.5px solid color-mix(in srgb, var(--sc-fg-1) 50%, transparent); }
-    .status[data-status='superseded'], .status[data-status='other'] { color: var(--sc-fg-2); border: 1.5px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
+    .status[data-status='next'], .status[data-status='ptu'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .status[data-status='evocati'] { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-1) 16%, transparent); }
+    .status[data-status='superseded'], .status[data-status='other'] { color: var(--sc-fg-2); background: color-mix(in srgb, var(--sc-fg-2) 16%, transparent); }
 
     .ver { font-family: var(--sc-font-display); font-size: 1.15rem; font-weight: 600; letter-spacing: 0.02em; }
-    .row.hero .ver { font-size: 2rem; }
-    .row[data-status='next'] .ver, .row[data-status='ptu'] .ver, .row[data-status='evocati'] .ver { font-size: 1.5rem; }
+    .node[data-status='live'] .ver { font-size: 2rem; }
+    .node[data-status='next'] .ver, .node[data-status='ptu'] .ver, .node[data-status='evocati'] .ver { font-size: 1.5rem; }
     .sent { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .sent b { color: var(--sc-fg-0); font-weight: 500; }
-    .row.hero .sent { font-size: max(0.84rem, var(--sc-fs-floor)); }
-    /* Two rows, never three: the wrap is capped by a max-height derived from
-       the same custom properties the strip is drawn with, which is what keeps
-       the card's height independent of how many items the roadmap lists. The
-       properties ARE the strip's geometry — TeaserStripDirective reads them
-       back out of the computed style, so the phone breakpoint below is the
-       ONLY place the smaller thumbnail is written down.
+    .node[data-status='live'] .sent { font-size: max(0.84rem, var(--sc-fs-floor)); }
 
-       The thumbnails are double their round-1 size (48 → 96 px wide, 30 → 60
-       tall) at the admin's request. A welcome side effect: at 96 × 60 every
-       thumbnail clears the 48 px tap target that the round-1 strip missed on
-       both breakpoints. */
+    /* Headline items of the patch, two rows at most (geometry read back by TeaserStripDirective). */
     .teaser {
       --tz-w: 96px; --tz-h: 60px; --tz-rest: 40px; --tz-gap: 6px; --tz-rows: 2;
       display: flex; align-items: center; align-content: flex-start;
@@ -414,8 +412,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       max-height: calc(var(--tz-rows) * var(--tz-h) + (var(--tz-rows) - 1) * var(--tz-gap));
       overflow: hidden;
     }
-    /* Each thumbnail is its own link into its own roadmap entry, so it has to
-       sit ABOVE the stretched card link (feedback fdaad6b7). */
     .teaser .tz {
       position: relative; z-index: 1; display: block; flex: none;
       width: var(--tz-w); height: var(--tz-h); border-radius: 6px; overflow: hidden;
@@ -424,19 +420,50 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .teaser .tz img, .teaser .tz i { display: block; width: 100%; height: 100%; object-fit: cover; }
     .teaser .tz:hover { border-color: var(--sc-accent); box-shadow: 0 0 10px -2px var(--sc-accent); }
     .teaser .tz:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-    /* "… and more" — the same height as a thumbnail so it sits on the strip's
-       last row, narrower because it is a sign, not a tile. */
     .teaser .rest {
       width: var(--tz-rest); display: flex; align-items: center; justify-content: center;
       border-style: dashed; background: transparent; color: var(--sc-fg-2); text-decoration: none;
       font-size: max(1rem, var(--sc-fs-floor)); line-height: 1;
     }
     .teaser .rest:hover { color: var(--sc-fg-0); }
-    /* Top-right corner of the card, in its own column so it can never land on
-       top of the sentence the way an absolutely positioned badge would. */
-    .stab { display: inline-flex; align-self: start; }
 
-    .fold::before { width: 8px; height: 8px; left: -19px; opacity: 0.6; }
+    /* The monitor sits inside the next card, without a box of its own. */
+    .inset { padding: 0 16px 14px 16px; border-top: 1px solid color-mix(in srgb, var(--sc-accent) 12%, transparent); padding-top: 12px; }
+
+    /* Sub-versions: nested under their main version on a connecting rail. */
+    .subs { position: relative; margin: 0 16px 14px 150px; padding-left: 16px; }
+    .subs::before { content: ''; position: absolute; left: 0; top: -4px; bottom: 14px; width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+    .subs-h { margin: 0 0 4px; padding-left: 10px; font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .sv {
+      position: relative; display: grid; grid-template-columns: 62px minmax(0, 1fr) auto 124px 88px; gap: 10px; align-items: center;
+      padding: 7px 10px; border-radius: 8px; min-height: var(--sc-tap-min);
+      font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); text-decoration: none;
+    }
+    .sv::before { content: ''; position: absolute; left: -16px; top: 50%; width: 14px; height: 2px; background: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+    .sv:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); color: var(--sc-fg-0); }
+    .sv:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+    .sl { font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
+    .svt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chips { display: inline-flex; gap: 6px; }
+    .chip {
+      display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+      font-size: max(0.64rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent);
+    }
+    .chip[data-stage='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
+    .chip[data-stage='ptu'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
+    .chip.hf { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-2) 26%, transparent); }
+    .svs em { font-style: normal; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .svw { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); text-align: right; white-space: nowrap; }
+    .more {
+      display: inline-flex; align-items: center; min-height: var(--sc-tap-min); margin: 2px 0 0 10px; padding: 0 10px;
+      border: 0; border-radius: 8px; background: transparent; color: var(--sc-fg-2); font: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer;
+    }
+    .more:hover { color: var(--sc-accent); }
+    .more:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .more.first { margin-left: 0; }
+
+    .fold::before { width: 8px; height: 8px; left: -23px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
     .fold-btn {
       display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--sc-tap-min);
       padding: 10px 16px; border: 1px dashed color-mix(in srgb, var(--sc-fg-2) 40%, transparent); border-radius: 10px;
@@ -448,29 +475,39 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .fold-btn .caret { color: var(--sc-accent); transition: transform .16s ease; }
     .fold-btn[aria-expanded='true'] .caret { transform: rotate(90deg); }
 
+    @media (prefers-reduced-motion: reduce) {
+      .node, .row { animation: pb-fade 0.3s ease both; animation-delay: 0ms; }
+      @keyframes pb-fade { from { opacity: 0; } to { opacity: 1; } }
+    }
     @media (max-width: 760px) {
-      .stack { padding-left: 18px; }
+      /* The gutter folds into the flow: meter above the card, rail at the edge. */
+      .stack { padding-left: 18px; gap: 12px; }
       .stack::before { left: 5px; }
-      .row::before { left: -17px; }
-      .row[data-status='live']::before { left: -19px; }
+      .node::before { left: -17px; top: 14px; }
+      .node[data-status='live']::before { left: -19px; top: 12px; }
       .fold::before { left: -16px; }
-      /* Phones stack the cells into two rows, so the shared height is a
-         bigger number here — but it stays SHARED: "abgelöst und nächster
-         gleich hoch" is not a desktop-only promise. */
-      .stack { --row-h: 248px; }
-      .card, .row.hero .card {
-        grid-template-columns: 104px minmax(0, 1fr) auto; gap: 8px 10px; padding: 12px;
-      }
-      .teaser { --tz-w: 84px; --tz-h: 52px; --tz-rest: 34px; }
+      .stb { position: static; width: auto; justify-content: flex-start; margin-bottom: 6px; }
+      .ch { grid-template-columns: 104px minmax(0, 1fr); gap: 8px 10px; padding: 12px; }
       .sent { grid-column: 1 / -1; }
-      .row.hero .ver { font-size: 1.6rem; }
-      .stab { grid-row: 1; grid-column: 3; }
+      .teaser { --tz-w: 84px; --tz-h: 52px; --tz-rest: 34px; }
+      .node[data-status='live'] .ver { font-size: 1.6rem; }
+      .subs { margin: 0 12px 12px 12px; }
+      .sv { grid-template-columns: 56px minmax(0, 1fr) auto; }
+      .sv .svs, .sv .svw { grid-column: 2 / -1; text-align: left; }
+      .sv .svs { display: block; }
     }
   `],
 })
 export class PatchBoardComponent implements OnInit, OnDestroy {
   /** Inside the Verse hub: the Verse subheader owns crumbs and title. */
   readonly embedded = input(false);
+  /**
+   * The text of the shell subheader search, when the host page can read it.
+   * An embedded board has no search field of its own; this input (and the
+   * `?q=` route parameter) is its only way in.
+   */
+  readonly searchQuery = input('');
+  private readonly route = inject(ActivatedRoute, { optional: true });
   readonly svc = inject(NewsService);
 
   /** The feed error card's retry — the service's own refresh. */
@@ -542,6 +579,51 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   });
   readonly loadingNotes = computed(() => this.roadmap.pending().size > 0);
 
+
+  /** The next card carries the monitor (and the host's projected pre-flight) inside it. */
+  readonly monitorInCard = computed(() => this.stack().next !== null && !this.searching());
+
+  private readonly subMap = computed(() => {
+    const map = new Map<string, SubVersionRow[]>();
+    for (const card of stackCards(this.stack())) map.set(card.line, subVersionRows(card, this.verdictFor(card)));
+    return map;
+  });
+  private readonly toggledSubs = signal<ReadonlySet<string>>(new Set());
+  private readonly moreSubs = signal<ReadonlySet<string>>(new Set());
+
+  subCount(card: StackCard): number {
+    return this.subMap().get(card.line)?.length ?? 0;
+  }
+  /** Rows of a line open by default while it is the next/live one; the rest sits behind a button. */
+  subsOpen(card: StackCard): boolean {
+    const byDefault = card.status === 'next' || card.status === 'ptu' || card.status === 'evocati' || card.status === 'live';
+    return byDefault !== this.toggledSubs().has(card.line);
+  }
+  shownSubs(card: StackCard): SubVersionRow[] {
+    const rows = this.subMap().get(card.line) ?? [];
+    return this.moreSubs().has(card.line) ? rows : rows.filter((r) => !r.older);
+  }
+  olderSubCount(card: StackCard): number {
+    return (this.subMap().get(card.line) ?? []).filter((r) => r.older).length;
+  }
+  moreOpen(card: StackCard): boolean {
+    return this.moreSubs().has(card.line);
+  }
+  toggleSubs(line: string): void {
+    this.toggledSubs.update((s) => toggled(s, line));
+  }
+  toggleMore(line: string): void {
+    this.moreSubs.update((s) => toggled(s, line));
+  }
+  relTime(iso: string): string {
+    return relativeTime(iso, this.now(), (k, p) => this.t.instant(k, p));
+  }
+  /** Caption under a card's meter: "Endstand" on a closed line, "noch nicht live" before release. */
+  meterLabel(card: StackCard): string | null {
+    if (this.verdictFor(card)) return card.status === 'superseded' ? this.t.instant('news.patch.stability.meter.final') : null;
+    return card.liveAt === null ? this.t.instant('news.patch.stability.meter.notLive') : '';
+  }
+
   readonly olderLines = computed(() => this.stack().older.map((c) => c.line || '…').join(' · '));
 
   readonly now = signal(Date.now());
@@ -571,6 +653,13 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
       .map((c) => threadSlugOf(c.group!.entries[0]?.item.url ?? ''))
       .filter(Boolean);
     if (slugs.length > 0) untracked(() => this.roadmap.requestOutlines(slugs));
+  });
+
+  /** `?q=` and the host's search input drive the query of an embedded board. */
+  private readonly externalQuery = effect(() => {
+    const ext = this.searchQuery();
+    const fromUrl = this.route?.snapshot.queryParamMap.get('q') ?? '';
+    if (this.embedded()) untracked(() => this.query.set(ext || fromUrl));
   });
 
   ngOnInit(): void {
@@ -761,4 +850,10 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
     const weeks = Math.round(n / 7);
     return this.t.instant(overdue ? 'news.patch.forecast.overdueWeeks' : 'news.patch.forecast.inWeeks', { n: weeks });
   }
+}
+
+function toggled(set: ReadonlySet<string>, key: string): ReadonlySet<string> {
+  const next = new Set(set);
+  if (!next.delete(key)) next.add(key);
+  return next;
 }

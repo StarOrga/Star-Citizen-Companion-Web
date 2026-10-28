@@ -75,7 +75,7 @@ interface MonitorView {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (view(); as v) {
-      <section class="mon" [attr.data-state]="v.state" [attr.aria-label]="'news.patch.monitor.title' | translate">
+      <section class="mon" [class.bare]="bare()" [attr.data-state]="v.state" [attr.aria-label]="'news.patch.monitor.title' | translate">
         <header class="mh">
           <span class="beacon" aria-hidden="true"></span>
           <h2>{{ 'news.patch.monitor.title' | translate }}</h2>
@@ -148,6 +148,7 @@ interface MonitorView {
       border: 1px solid color-mix(in srgb, var(--sc-success) 40%, var(--sc-border));
       background: linear-gradient(135deg, color-mix(in srgb, var(--sc-success) 8%, var(--sc-bg-1)), var(--sc-bg-1) 65%);
     }
+    .mon.bare, .mon.bare[data-state='over'] { padding: 0; border: 0; border-radius: 0; background: transparent; }
     .mon[data-state='over'] { border-color: color-mix(in srgb, var(--sc-warning) 45%, var(--sc-border)); background: linear-gradient(135deg, color-mix(in srgb, var(--sc-warning) 8%, var(--sc-bg-1)), var(--sc-bg-1) 65%); }
 
     .mh { display: flex; align-items: center; gap: 8px; }
@@ -225,6 +226,8 @@ export class PatchMonitorComponent {
   readonly stack = input.required<PatchStack>();
   readonly groups = input.required<readonly PatchLineGroup[]>();
   readonly now = input<number>(Date.now());
+  /** Inside the next-patch card: no box of its own (border, fill, padding). */
+  readonly bare = input(false);
 
   /**
    * THE estimate — the same function the Build-Stand card on `/news` renders
