@@ -1,0 +1,168 @@
+@use './briefing-worlds' as w;
+
+// Planets, light cone and holo, positioned in the stage box (cqw = stage
+// width, % tops = fractions of its height; the mock's 16:9 stage is 56.25 cqw
+// high, so a mock top of 34 cqw is 60.4 %). Mock centres: News (6.5 | 34),
+// Patches (17 | 30), Galerie (85 | 30); holo top 41.4 cqw, 34 cqw wide.
+:host {
+  --news-x: 6.5%; --news-y: 60.4%; --news-s: max(6cqw, 52px);
+  --patches-x: 17%; --patches-y: 53.3%; --patches-s: max(4.4cqw, 40px);
+  --gallery-x: 85%; --gallery-y: 53.3%; --gallery-s: max(6cqw, 52px);
+  --holo-w: 34cqw;
+  --holo-top: 73.6%;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+@property --wave {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+// ── Planets ─────────────────────────────────────────────────────────────
+.pl {
+  @include w.body;
+  @include w.by-door;
+  position: absolute;
+  z-index: 3;
+  width: var(--s);
+  height: var(--s);
+  translate: -50% -50%;
+  pointer-events: auto;
+  text-decoration: none;
+  color: inherit;
+  transition: scale 0.25s, box-shadow 0.5s ease;
+}
+.pl[data-door='news'] { --s: var(--news-s); left: var(--news-x); top: var(--news-y); }
+.pl[data-door='patches'] { --s: var(--patches-s); left: var(--patches-x); top: var(--patches-y); }
+.pl[data-door='gallery'] { --s: var(--gallery-s); left: var(--gallery-x); top: var(--gallery-y); }
+.pl:hover { scale: 1.06; }
+.pl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+// Charging: the sender's atmosphere brightens (a glow, no rings).
+.pl.send { box-shadow: 0 0 calc(var(--s) * 0.32) rgba(150, 225, 255, 0.6); }
+.plab {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: max(11px, 0.62cqw);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sc-fg-1);
+}
+.pl:hover .plab { color: var(--sc-fg-0); }
+
+// ── Light cone: a trapezoid, narrow in the sender's atmosphere, wide at the holo ──
+.cone {
+  --px: var(--news-x);
+  --py: var(--news-y);
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.04);
+  transform-origin: var(--px) var(--py);
+  clip-path: polygon(calc(var(--px) - 1%) var(--py), calc(var(--px) + 1%) var(--py),
+    calc(50% + var(--holo-w) / 2) var(--holo-top), calc(50% - var(--holo-w) / 2) var(--holo-top));
+  background: radial-gradient(circle at var(--px) var(--py), rgba(82, 193, 230, 0.36), rgba(82, 193, 230, 0.06) 60%);
+  transition: opacity 0.6s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cone[data-door='patches'] { --px: var(--patches-x); --py: var(--patches-y); }
+.cone[data-door='gallery'] { --px: var(--gallery-x); --py: var(--gallery-y); }
+.cone[data-phase='charge'], .cone[data-phase='reveal'] { opacity: 0.85; transform: none; }
+.cone[data-phase='type'] { opacity: 0.35; transform: none; }
+.cone[data-phase='hold'] { opacity: 0; transform: none; transition: opacity 1.4s ease; }
+.cone[data-phase='out'] { transition: none; }
+// Soft area waves: wide, low-contrast bands running planet → holo, 1.6 s each.
+.waves {
+  position: absolute;
+  inset: 0;
+  background: repeating-radial-gradient(circle at var(--px) var(--py),
+    rgba(170, 232, 255, 0) calc(var(--wave) - 6.4cqw), rgba(170, 232, 255, 0) calc(var(--wave) - 4.2cqw),
+    rgba(170, 232, 255, 0.26) calc(var(--wave) - 2.2cqw), rgba(170, 232, 255, 0) var(--wave));
+  animation: wave 1.6s linear infinite;
+}
+@keyframes wave { from { --wave: 0px; } to { --wave: 6.4cqw; } }
+
+// ── Holo: in the planet's surface, tilted, no box ───────────────────────
+.holo {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: var(--holo-top);
+  width: var(--holo-w);
+  transform: translateX(-50%) perspective(40cqw) rotateX(26deg);
+  transform-origin: 50% 0;
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  pointer-events: auto;
+}
+.holo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+.holo-in {
+  position: relative;
+  display: block;
+  padding: 0.8cqw 1cqw;
+  color: #bfeeff;
+  text-shadow: 0 0 0.6cqw rgba(82, 193, 230, 0.75);
+  background: repeating-linear-gradient(rgba(82, 193, 230, 0.07) 0 0.12cqw, transparent 0.12cqw 0.36cqw);
+  border-top: 1px solid rgba(82, 193, 230, 0.5);
+  border-bottom: 1px solid rgba(82, 193, 230, 0.2);
+  transition: opacity 0.4s ease;
+}
+.holo:hover .holo-in { color: #e8ffff; }
+.k { display: block; font-size: max(10px, 0.66cqw); letter-spacing: 0.3em; text-transform: uppercase; color: var(--sc-accent); }
+.t {
+  display: block;
+  margin: 0.45cqw 0;
+  font-family: var(--sc-font-display, Orbitron, sans-serif);
+  font-size: max(15px, 1.4cqw);
+  color: #e8ffff;
+  overflow-wrap: anywhere;
+}
+.b { display: block; min-height: 2.6em; font-size: max(12px, 0.88cqw); line-height: 1.35; }
+.ghost { color: transparent; text-shadow: none; }
+
+// Reception: revealed vertically, top to bottom, a scan edge leading.
+.holo[data-phase='charge'] .holo-in { clip-path: inset(0 0 100% 0); }
+.holo[data-phase='reveal'] .holo-in { animation: recv 0.7s linear both; }
+.holo[data-phase='reveal'] .holo-in::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(190, 240, 255, 0.95), transparent);
+  box-shadow: 0 0 10px rgba(82, 193, 230, 0.8);
+  animation: scan 0.7s linear both;
+}
+.holo[data-phase='out'] .holo-in { opacity: 0; }
+@keyframes recv { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes scan { from { top: 0; } to { top: 100%; } }
+
+// Phones: planets along the rim, the holo nearly full width.
+@media (max-width: 720px) {
+  :host {
+    --news-x: 12%; --news-y: 59%; --news-s: 46px;
+    --patches-x: 32%; --patches-y: 56%; --patches-s: 38px;
+    --gallery-x: 86%; --gallery-y: 56%; --gallery-s: 46px;
+    --holo-w: 88%;
+    --holo-top: 72%;
+  }
+  .holo { transform: translateX(-50%) perspective(600px) rotateX(18deg); }
+  .holo-in { padding: 8px 10px; }
+  .t { margin: 4px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cone { display: none; }
+  .pl, .holo-in { transition: none; }
+  .holo .holo-in, .holo .holo-in::after { animation: none !important; clip-path: none !important; }
+  .holo[data-phase='out'] .holo-in { opacity: 1; }
+}

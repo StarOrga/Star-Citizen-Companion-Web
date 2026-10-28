@@ -1,7 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter, map } from 'rxjs';
+import { isVerseHome } from './scene/scene.model';
 import { AuthService } from '../auth/auth.service';
 import { BetaService } from '../core/beta.service';
 import { LayoutService } from '../core/layout/layout.service';
@@ -121,6 +123,10 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        button's lane: the footer's last link ends before both. */
     @media (min-width: 721px) {
       .sf { padding-inline-end: max(var(--sc-page-gutter), calc(var(--sc-fab-clear-inline) + var(--sc-space-2) + 44px)); }
+      /* The left corner is the hand-off launcher's (same lane as the feedback one):
+         "Made by the Community" starts after it. */
+      .sf { padding-inline-start: max(var(--sc-page-gutter), var(--sc-fab-clear-inline)); }
+      .sf-stage .sf-badge { left: max(var(--sc-page-gutter), var(--sc-fab-clear-inline)); }
     }
     .sf-stage { margin-top: calc(-1 * var(--sc-footer-h)); justify-content: center; pointer-events: none; z-index: 2; }
     .sf-stage > * { pointer-events: auto; }
@@ -337,8 +343,14 @@ export class FooterComponent {
   protected readonly auth = inject(AuthService);
   private readonly layoutSvc = inject(LayoutService);
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
-  /** Hub (cinematic) pages: the footer sits on the stage's bottom edge. */
-  protected readonly stage = computed(() => this.layoutSvc.layout() === 'cinematic');
+  private readonly router = inject(Router);
+  private readonly url = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)), { initialValue: this.router.url });
+  /**
+   * Hub (cinematic) pages: the footer sits on the stage's bottom edge. The
+   * Verse front page is the exception — its content runs on below the stage
+   * (the hub columns), so the footer is a real row under it, never over it.
+   */
+  protected readonly stage = computed(() => this.layoutSvc.layout() === 'cinematic' && !isVerseHome(this.url()));
 
   /** Disclaimer bubble: hover / focus peeks, a click pins it (then it is a real dialog). */
   protected readonly bubble = signal<'closed' | 'peek' | 'pinned'>('closed');

@@ -75,6 +75,34 @@ lokaler Test (z. B. um den Verse-News-Render-Pfad zu prüfen):
    (keine lokalen Ports/Keys committen) und `npx supabase stop --project-id sc-companion`.
    Der Account bleibt im Volume; Hatchit bleibt unberührt.
 
+## Try-it-Link für den User: nur mit funktionierendem Login
+
+Ein lokaler Link auf eine login-pflichtige Route ist nur dann ein Angebot,
+wenn der User sich auf genau dieser Origin auch anmelden kann. Am
+2026-10-28 bekam der User im Concept-Abschluss „▶ Selbst ausprobieren“ mit
+`http://127.0.0.1:4201/verse` angeboten. Der Primär-Checkout belegte 4200,
+die Anmeldung scheiterte, und er konnte nichts testen.
+
+- **OAuth (Google/Discord) kehrt nur zu freigegebenen URLs zurück:**
+  `http://localhost:4200/…` und die Prod-Domains (Dashboard → Auth → URL
+  Configuration, gespiegelt in `supabase/config.toml`
+  `additional_redirect_urls`). Ein anderer Port (4201+) oder `127.0.0.1`
+  statt `localhost` steht nicht in der Liste. Supabase fällt dann auf die
+  `site_url` zurück, und die Anmeldung endet nicht auf dem Dev-Server.
+- **E-Mail + Passwort funktioniert auf jeder Origin**, auch mit dem
+  Test-Account (`sc-companion/test-account` im Windows-Credential-Manager,
+  `.claude/deep-knowledge/test-account.md`). Claude tippt ihn nie ein, darf
+  ihn aber benennen.
+
+Deshalb gehört zu jedem Try-it-Link für eine Auth-Route ein Satz dazu, wie man
+sich dort anmeldet. Muster: „Anmelden per E-Mail/Passwort, z. B. mit dem
+Test-Account aus dem Credential-Manager; Google/Discord geht nur auf
+localhost:4200.“ Ist 4200 frei, den eigenen Dev-Server mit `--host localhost
+--port 4200` starten und `http://localhost:4200/…` verlinken. Ist 4200
+belegt, nicht einfach einen anderen Port nehmen und schweigen. Kann der User
+sich auf keinem verfügbaren Weg anmelden, gibt es keinen Link, sondern einen
+Hinweis darauf, was fehlt.
+
 ## Worktrees
 
 Aktuelle Worktrees liegen unter `.claude/worktrees/<random-slug>/`. Jeder

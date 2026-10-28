@@ -65,3 +65,11 @@ a scale, and the two middle ones were indistinguishable.
   chip (`sc-stability-chip`), and the full panel inside an expanded LIVE note.
 - Live velocity is measured as new replies per day across both threads; historical velocity is release-notes replies over the whole lifetime. The two are deliberately different bases, so older columns in the all-time chart read quieter than the newest one — don't "fix" that by making them match.
 - The plain daily path (no query params) is unauthenticated and self-throttled (6 h) — that is what pg_cron calls; a failed throttle lookup fails CLOSED (skips).
+
+## Test channels (Hotfix / PTU / Evocati) — Verse hub rows
+
+Same sampler run, `channels.ts` + migration `20261028120000`: the Spectrum 190048 list is grouped into BUILDS (one version in one channel) in `patch_channel_builds`; `verse_digest()` serves the running one plus its predecessor in the SAME channel as `patch.channel_info` (`patch.channels` is untouched).
+- Titles: `[Wave N] … PTU Patch Notes` = PTU, `[Evocati NDA] …` = Evocati (wins over the PTU word), `… LIVE - Hotfix Central` = hotfix. Wave = the newest thread's `Wave N`; `[All Backers]`, `RC2` and `[All Waves]` carry none → "–".
+- Start = the version's first thread (hotfix: newest `►M.D.YYYY:` event). Running: PTU = newest version above LIVE; Evocati = same, but only until a PTU reaches it; hotfix = latest event ≤ 14 days old.
+- Stability = the community component only (`channelStability`): no outage window belongs to a PTU and the KB article names LIVE only, so **known-issue counts do not exist for these channels** (no "Known Issues" heading in the PTU notes either, checked 2026-10-28); the hub shows the level word and "–" for the count delta.
+- The list is 3 pages (~2 months): a build whose first thread scrolled out would restart its start date on the next upsert.

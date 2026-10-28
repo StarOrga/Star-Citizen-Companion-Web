@@ -1,5 +1,7 @@
 import {
   EARLY_DAYS,
+  MIN_REPLIES,
+  channelStability,
   StabilityPatchRow,
   StabilitySampleRow,
   cigScore,
@@ -208,5 +210,30 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
     ], { now: '2026-10-04T12:00:00Z', endAt: null });
     expect(v.days[0].velocity).toBeCloseTo(20, 6);
     expect(v.days[1].velocity).toBeCloseTo(4, 6);
+  });
+});
+
+describe('channelStability (Hotfix / PTU / Evocati builds)', () => {
+  const base = { replies: 120, ticketShare: 0.2, ticketVoteShare: 0.1, fromIso: '2026-10-01T00:00:00Z', toIso: '2026-10-11T00:00:00Z' };
+
+  it('is the community component only, read through stabilityPercent / levelOf', () => {
+    const r = channelStability(base)!;
+    const score = communityScore({ velocity: 12, ticketShare: 0.2, ticketVoteShare: 0.1 });
+    expect(r.stability).toBe(stabilityPercent(score)!);
+    expect(r.level).toBe(levelOf(score));
+  });
+
+  it('gets worse with more replies per day and with more ticket density', () => {
+    const calm = channelStability({ ...base, replies: 20 })!;
+    const loud = channelStability({ ...base, replies: 900, ticketShare: 0.9, ticketVoteShare: 0.9 })!;
+    expect(loud.stability).toBeLessThan(calm.stability);
+  });
+
+  it('is null without ticket data, a start, or enough replies; a same-day window counts as one day', () => {
+    expect(channelStability({ ...base, ticketShare: null })).toBeNull();
+    expect(channelStability({ ...base, ticketVoteShare: null })).toBeNull();
+    expect(channelStability({ ...base, fromIso: null })).toBeNull();
+    expect(channelStability({ ...base, replies: MIN_REPLIES - 1 })).toBeNull();
+    expect(channelStability({ ...base, toIso: base.fromIso })).not.toBeNull();
   });
 });

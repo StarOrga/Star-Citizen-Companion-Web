@@ -1,301 +1,209 @@
 @if (enabled()) {
-  <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [class.planetary]="shell()" [attr.data-intro]="intro"
-           [attr.aria-label]="'verse.briefing.stageAria' | translate">
-    <!-- Full-bleed backdrop: nebula and sun stand from frame 0 and ride the
-         dolly; the far star field arrives later. -->
-    <!-- β shell: the shell scene draws sky and planet behind the page; the
-         stage keeps only its sun (the constellation hangs below it). -->
-    <div class="bleed" aria-hidden="true">
-      <div class="sky">
-        @if (!shell()) {
-          <div class="neb"></div>
-        }
-        <!-- The light source: one sun direction for planet, moons and sky. -->
-        <div class="sun"></div>
+  @if (shell()) {
+    <!-- The stage's own big planet (the bottom third of the stage, radius 80 %
+         of the width): its rim arcs into the lower corners, its night side
+         carries the hub columns further down — one cinematic picture. -->
+    <div class="world-clip" aria-hidden="true">
+      <div class="brief-world"></div>
+      <div class="city"></div>
+    </div>
+    <section class="bstage" [attr.aria-label]="'verse.briefing.stageAria' | translate">
+      <div class="scn">
+        <sc-briefing-beacons [sunLink]="sunLink()" [version]="kicker()?.version ?? null" [stability]="kicker()?.stability ?? null"
+                             [skyReady]="skyReady()" [points]="points()" [lit]="lit()" [total]="total" [litSet]="litSet()"
+                             [patchLine]="starPatch()" />
+
+        <!-- Hero: centred in the upper two thirds — kicker, title (the link), search. -->
+        <div class="hero-wrap">
+          <div class="hx">
+            @if (api.digestState() === 'error' && !api.digest()) {
+              <h1 class="title2"><span class="tl">{{ 'verse.briefing.headlineError' | translate }}</span></h1>
+              <p class="err" role="alert">{{ (api.digestError() ?? 'errors.generic') | translate }}</p>
+              <button type="button" class="sc-btn" (click)="reload()">{{ 'errors.retry' | translate }}</button>
+            } @else if (api.digestState() === 'loading' && !api.digest()) {
+              <h1 class="title2"><span class="sk sc-skel-field" aria-hidden="true"></span><span class="sc-sr-only">{{ 'verse.briefing.loading' | translate }}</span></h1>
+            } @else {
+              @let c = current();
+              <p class="kick">
+                @if (c) {
+                  {{ ('verse.hub.area.' + c.item.kind) | translate }}@if (c.unseen) {<em> · {{ 'verse.briefing.newSince' | translate }}</em>}
+                }
+              </p>
+              <div class="hrow" (mouseenter)="holdHero(true)" (mouseleave)="holdHero(false)"
+                   (focusin)="holdHero(true)" (focusout)="heroFocusOut($event)">
+                @if (stories().length > 1) {
+                  <button type="button" class="step" (click)="step(-1)" [attr.aria-label]="'verse.hub.prev' | translate"
+                          [scTooltip]="'verse.hub.prev' | translate" scTooltipTier="label"><span class="chev l" aria-hidden="true"></span></button>
+                }
+                <h1 class="title2" #titleEl>
+                  @if (c) {
+                    @for (st of currentList(); track st.item.key) {
+                      @if (st.link.internal) {
+                        <a class="tl" animate.enter="t-in" [routerLink]="st.link.path" [queryParams]="st.link.query"
+                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">{{ st.item.title }}</a>
+                      } @else {
+                        <a class="tl" animate.enter="t-in" [href]="st.link.path" target="_blank" rel="noopener noreferrer"
+                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">{{ st.item.title }}</a>
+                      }
+                    }
+                  } @else {
+                    <span class="tl">{{ 'verse.briefing.headlineQuiet' | translate }}</span>
+                  }
+                </h1>
+                @if (stories().length > 1) {
+                  <button type="button" class="step" (click)="step(1)" [attr.aria-label]="'verse.hub.next' | translate"
+                          [scTooltip]="'verse.hub.next' | translate" scTooltipTier="label"><span class="chev r" aria-hidden="true"></span></button>
+                }
+              </div>
+            }
+            <!-- The hub's search capsule, styled like the top bar's; both searches stay. -->
+            <button type="button" class="find" (click)="openSearch()" aria-keyshortcuts="Control+K /">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5l5 5" /></svg>
+              <span class="find-tx">{{ 'verse.hub.search' | translate }}</span>
+              <kbd>{{ 'verse.hub.searchKey' | translate }}</kbd>
+            </button>
+          </div>
+        </div>
+
+        <sc-briefing-transmit [items]="transmit()" (opened)="openTransmit($event)" (door)="openDoor($event)" />
+
+        <button type="button" class="more-cue" (click)="toHub()">
+          {{ 'verse.hub.more' | translate }}<span class="chev d" aria-hidden="true"></span>
+        </button>
       </div>
-      @if (!shell()) {
+    </section>
+
+    <sc-briefing-hub id="verse-hub" class="hub"
+                     [news]="hubNews()" [newsLoading]="news.loading()" [newsError]="news.error()"
+                     [live]="hubLive()" [liveDays]="liveDays()" [patchImage]="hubPatchImage()" [channels]="hubChannels()"
+                     [gallery]="hubGallery()"
+                     (retryNews)="retryNews()" (openItem)="openItem($event)" (openDoor)="openDoor($event)" />
+  } @else {
+    <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [attr.data-intro]="intro"
+             [attr.aria-label]="'verse.briefing.stageAria' | translate">
+      <!-- Full-bleed backdrop: nebula and sun stand from frame 0 and ride the
+           dolly; the far star field arrives later. -->
+      <div class="bleed" aria-hidden="true">
+        <div class="sky">
+          <div class="neb"></div>
+          <!-- The light source: one sun direction for planet, moons and sky. -->
+          <div class="sun"></div>
+        </div>
         <div class="far"><div class="stars"></div><div class="stars near"></div></div>
         <div class="horizon">
           <div class="atmo"></div>
           <div class="pl"><span class="pl-surface"></span><span class="pl-clouds"></span><span class="pl-shade"></span><span class="pl-city"></span></div>
         </div>
         <div class="vignette"></div>
-      }
-    </div>
+      </div>
 
-    <div class="frame">
-      <!-- Row 1 · instrument strip: patch status centred; the current patch's
-           constellation hangs below it at the right edge, beside the hero —
-           itself the way into the star map, shown once its data has loaded. -->
-      <div class="top">
-        @if (shell()) {
-          @if (kicker(); as k) {
+      <div class="frame">
+        <!-- Row 1 · instrument strip: patch status centred; the current patch's
+             constellation hangs below it at the right edge, beside the hero —
+             itself the way into the star map, shown once its data has loaded. -->
+        <div class="top">
+          @if (status(); as s) {
             <p class="status">
-              <span class="si live"><i aria-hidden="true"></i><span class="tx">{{ (k.stability !== null ? 'verse.hub.kicker' : 'verse.hub.kickerNoScore') | translate: { v: k.version, n: k.stability } }}</span></span>
+              <span class="si live"><i aria-hidden="true"></i><span class="tx">{{ liveKey(s.live.days) | translate: { line: s.live.line, n: s.live.days } }}</span></span>
+              @if (s.next; as nx) {
+                <span class="si due"><i aria-hidden="true"></i><span class="tx">{{ nextKey(nx) | translate: { line: nx.line, n: nx.n } }}</span></span>
+              }
             </p>
           }
-        } @else if (status(); as s) {
-          <p class="status">
-            <span class="si live"><i aria-hidden="true"></i><span class="tx">{{ liveKey(s.live.days) | translate: { line: s.live.line, n: s.live.days } }}</span></span>
-            @if (s.next; as nx) {
-              <span class="si due"><i aria-hidden="true"></i><span class="tx">{{ nextKey(nx) | translate: { line: nx.line, n: nx.n } }}</span></span>
-            }
-          </p>
-        }
-        @if (skyReady()) {
-          <a class="map" routerLink="/verse/explorer"
-             [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
-             [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
-            <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
-          </a>
-        }
-      </div>
-
-      <!-- Row 2 · hero: centred column, headline clamped to two lines. -->
-      <div class="hero">
-        @if (api.digestState() === 'error' && !api.digest()) {
-          <h1 class="title">{{ 'verse.briefing.headlineError' | translate }}</h1>
-          <p class="err" role="alert">{{ (api.digestError() ?? 'errors.generic') | translate }}</p>
-          <button type="button" class="cta" (click)="reload()">{{ 'errors.retry' | translate }}</button>
-        } @else if (api.digestState() === 'loading' && !api.digest()) {
-          <h1 class="title"><span class="sk sc-skel-field" aria-hidden="true"></span><span class="sc-sr-only">{{ 'verse.briefing.loading' | translate }}</span></h1>
-        } @else {
-          <h1 class="title">
-            <span class="roll">
-              @for (st of currentList(); track st.item.key) {
-                <span class="slide" animate.enter="roll-in" animate.leave="roll-out" [scTooltip]="st.item.title">{{ st.item.title }}</span>
-              } @empty {
-                <span class="slide">{{ 'verse.briefing.headlineQuiet' | translate }}</span>
-              }
-            </span>
-          </h1>
-          @if (cta(); as c) {
-            <div class="go">
-              @if (c.link.internal) {
-                <a class="cta" [routerLink]="c.link.path" [queryParams]="c.link.query"
-                   (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
-              } @else {
-                <a class="cta" [href]="c.link.path" target="_blank" rel="noopener noreferrer"
-                   (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
-              }
-              <p class="where">
-                <span class="roll">
-                  @for (st of currentList(); track st.item.key) {
-                    <span class="slide" animate.enter="roll-in" animate.leave="roll-out">{{ ('verse.briefing.ctaWhere.' + st.item.kind) | translate }}@if (st.unseen) {<span class="since"> · {{ 'verse.briefing.newSince' | translate }}</span>}</span>
-                  }
-                </span>
-              </p>
-            </div>
-          } @else {
-            <p class="where">{{ 'verse.briefing.allSeen' | translate }}</p>
+          @if (skyReady()) {
+            <a class="map" routerLink="/verse/explorer"
+               [attr.aria-label]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }"
+               [scTooltip]="'starmap.glyph.aria' | translate: { lit: lit(), total: total }" scTooltipTier="label">
+              <span class="fig" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
+            </a>
           }
-          <div class="ctl">
-            @if (stories().length > 1) {
-              <div class="story" role="group" [attr.aria-label]="'verse.briefing.topAria' | translate">
-                @for (st of stories(); track st.item.key; let i = $index) {
-                  <button type="button" class="sbar" [class.on]="i === index()" [class.done]="i < index()" [class.first]="firstRun()"
-                          [attr.aria-pressed]="i === index()"
-                          [attr.aria-label]="'verse.briefing.storyAria' | translate: { n: i + 1, title: st.item.title }"
-                          [scTooltip]="st.item.title" scTooltipTier="label"
-                          (click)="select(i)"><i (animationend)="barEnded(i, $event)"></i></button>
+        </div>
+
+        <!-- Row 2 · hero: centred column, headline clamped to two lines. -->
+        <div class="hero">
+          @if (api.digestState() === 'error' && !api.digest()) {
+            <h1 class="title">{{ 'verse.briefing.headlineError' | translate }}</h1>
+            <p class="err" role="alert">{{ (api.digestError() ?? 'errors.generic') | translate }}</p>
+            <button type="button" class="cta" (click)="reload()">{{ 'errors.retry' | translate }}</button>
+          } @else if (api.digestState() === 'loading' && !api.digest()) {
+            <h1 class="title"><span class="sk sc-skel-field" aria-hidden="true"></span><span class="sc-sr-only">{{ 'verse.briefing.loading' | translate }}</span></h1>
+          } @else {
+            <h1 class="title">
+              <span class="roll">
+                @for (st of currentList(); track st.item.key) {
+                  <span class="slide" animate.enter="roll-in" animate.leave="roll-out" [scTooltip]="st.item.title">{{ st.item.title }}</span>
+                } @empty {
+                  <span class="slide">{{ 'verse.briefing.headlineQuiet' | translate }}</span>
                 }
-              </div>
-            }
-            <button type="button" class="pause" (click)="togglePause()"
-                    [attr.aria-label]="(paused() ? 'verse.briefing.resume' : 'verse.briefing.pause') | translate"
-                    [scTooltip]="(paused() ? 'verse.briefing.resume' : 'verse.briefing.pause') | translate" scTooltipTier="label">
-              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                @if (paused()) {
-                  <path d="M5 3.5v9l7-4.5z" />
+              </span>
+            </h1>
+            @if (cta(); as c) {
+              <div class="go">
+                @if (c.link.internal) {
+                  <a class="cta" [routerLink]="c.link.path" [queryParams]="c.link.query"
+                     (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
                 } @else {
-                  <rect x="4" y="3.5" width="2.6" height="9" rx="0.8" /><rect x="9.4" y="3.5" width="2.6" height="9" rx="0.8" />
+                  <a class="cta" [href]="c.link.path" target="_blank" rel="noopener noreferrer"
+                     (click)="openItem(c.item)" (auxclick)="openItem(c.item)">{{ 'verse.briefing.cta' | translate }}</a>
                 }
-              </svg>
-            </button>
-          </div>
-        }
-        @if (shell()) {
-          <!-- The hub's own search line; the bar morphs it into the capsule once it scrolls away. -->
-          <button type="button" class="find" scStageSearch (click)="openSearch()" aria-keyshortcuts="Control+K /">
-            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
-            <span class="find-tx">{{ 'verse.hub.search' | translate }}</span>
-            <kbd>{{ 'verse.hub.searchKey' | translate }}</kbd>
-          </button>
-        }
-      </div>
-
-      <!-- Row 3 · gate band above the footer strip. The gates stay usable
-           when the digest failed: their numbers fall back to the live feeds. -->
-      @if (!shell()) {
-      <nav class="moons" [attr.aria-label]="'verse.gates.aria' | translate">
-        @for (g of gates(); track g.door; let i = $index) {
-          @let item = moonItems()[g.door];
-          @let t = timings()[i];
-          <sc-briefing-moon class="moon-slot" [attr.data-door]="g.door" [style.--start]="t.start" [style.--cycle]="t.cycle"
-            [door]="g.door" [link]="g.link"
-            [topic]="('verse.gates.' + g.door + '.topic') | translate"
-            [hook]="g.door === 'patches'
-              ? (nextLine() ? ('verse.gates.patches.hook' | translate: { next: nextLine() }) : ('verse.gates.patches.hookNoLine' | translate))
-              : (('verse.gates.' + g.door + '.hook') | translate)"
-            [neu]="'verse.gates.neu' | translate"
-            [fresh]="item ? item.title : g.count > 0 ? (('verse.gates.' + g.door + '.stat') | translate: { n: g.count }) : null"
-            (opened)="openDoor(g.door)" />
-        }
-      </nav>
-      }
-    </div>
-
-    @if (shell()) {
-      <!-- Planet zone: three moon markers above the rim, ONE holo label on the
-           night side at a time (the relay), the personal line under it. -->
-      <div class="pz">
-        <nav class="gates" [attr.aria-label]="'verse.gates.aria' | translate"
-             (mouseenter)="holdGates(true)" (mouseleave)="holdGates(false)"
-             (focusin)="holdGates(true)" (focusout)="gatesFocusOut($event)">
-          @for (g of gates(); track g.door; let i = $index) {
-            <a class="mk" [attr.data-door]="g.door" [class.on]="i === gateIndex()" [routerLink]="g.link"
-               tabindex="-1" aria-hidden="true" (pointerenter)="showGate(i)" (click)="openDoor(g.door)"><i></i></a>
-          }
-          <div class="labels">
-            @for (g of gates(); track g.door; let i = $index) {
-              @let item = moonItems()[g.door];
-              @let fresh = item ? item.title : g.count > 0 ? (('verse.gates.' + g.door + '.stat') | translate: { n: g.count }) : null;
-              <a class="holo" [attr.data-door]="g.door" [class.on]="i === gateIndex()" [routerLink]="g.link"
-                 (focus)="showGate(i)" (click)="openDoor(g.door)">
-                <b class="topic">{{ ('verse.gates.' + g.door + '.topic') | translate }}</b>
-                <span class="hook">{{ g.door === 'patches'
-                  ? (nextLine() ? ('verse.gates.patches.hook' | translate: { next: nextLine() }) : ('verse.gates.patches.hookNoLine' | translate))
-                  : (('verse.gates.' + g.door + '.hook') | translate) }}</span>
-                @if (fresh) {
-                  <span class="nw"><i class="neu">{{ 'verse.gates.neu' | translate }}</i><span class="item">{{ fresh }}</span></span>
-                }
-              </a>
-            }
-          </div>
-        </nav>
-        @if (forYou(); as fy) {
-          @if (fy.link.internal) {
-            <a class="fy" [routerLink]="fy.link.path" [queryParams]="fy.link.query"
-               (click)="openItem(fy.item)" (auxclick)="openItem(fy.item)">
-              <small>{{ 'verse.hub.forYou' | translate }}</small><b [scTooltip]="fy.item.title">{{ fy.item.title }}</b>
-              <em>{{ 'verse.hub.forYouCount' | translate: { n: fy.n, total: fy.total } }}</em>
-            </a>
-          } @else {
-            <a class="fy" [href]="fy.link.path" target="_blank" rel="noopener noreferrer"
-               (click)="openItem(fy.item)" (auxclick)="openItem(fy.item)">
-              <small>{{ 'verse.hub.forYou' | translate }}</small><b [scTooltip]="fy.item.title">{{ fy.item.title }}</b>
-              <em>{{ 'verse.hub.forYouCount' | translate: { n: fy.n, total: fy.total } }}</em>
-            </a>
-          }
-        }
-      </div>
-    }
-  </section>
-
-  @if (shell()) {
-    <!-- Hub sections: News, a qualitative Patches preview, the gallery last. -->
-    <div class="hub">
-      <section class="hs" aria-labelledby="hub-news-h">
-        <header class="hs-head">
-          <h2 id="hub-news-h">{{ 'verse.gates.news.title' | translate }}</h2>
-          <a class="more" routerLink="/verse/news">{{ 'verse.hub.overview' | translate }}</a>
-        </header>
-        @if (hubNews().length) {
-          <ul class="rows">
-            @for (n of hubNews(); track n.id) {
-              <li>
-                <a class="row" routerLink="/verse/news" [queryParams]="{ item: n.id }">
-                  @if (n.thumbnail) {
-                    <img class="thumb" [src]="n.thumbnail" alt="" loading="lazy" decoding="async" />
-                  } @else {
-                    <span class="thumb blank" aria-hidden="true"></span>
-                  }
-                  <span class="row-tx">{{ n.title }}</span>
-                </a>
-              </li>
-            }
-          </ul>
-        } @else if (news.error() && !news.loading()) {
-          <div class="hs-state" role="alert">
-            <p>{{ news.error() ?? 'errors.generic' | translate }}</p>
-            <button type="button" class="sc-btn" (click)="retryNews()">{{ 'errors.retry' | translate }}</button>
-          </div>
-        } @else if (news.loading()) {
-          <ul class="rows" aria-hidden="true">
-            @for (k of [0, 1, 2]; track k) {
-              <li><span class="row sk sc-skel-field"></span></li>
-            }
-          </ul>
-        } @else {
-          <p class="hs-empty">{{ 'verse.hub.newsEmpty' | translate }}</p>
-        }
-      </section>
-
-      <section class="hs" aria-labelledby="hub-patches-h">
-        <header class="hs-head">
-          <h2 id="hub-patches-h">{{ 'verse.gates.patches.title' | translate }}</h2>
-          <a class="more" routerLink="/verse/patches">{{ 'verse.hub.overview' | translate }}</a>
-        </header>
-        @if (hubPatches().length) {
-          <ul class="patches">
-            @for (p of hubPatches(); track p.line) {
-              <li>
-                <a class="pcard" [routerLink]="['/verse/patches', p.line]" [attr.data-state]="p.state">
-                  <span class="pc-top">
-                    <b class="pc-line">{{ p.line }}</b>
-                    <span class="pc-state">{{ ('verse.hub.state.' + p.state) | translate }}</span>
-                  </span>
-                  <span class="pc-words">
-                    @if (p.issuesKey) {
-                      {{ p.issuesKey | translate }}
-                    } @else {
-                      {{ 'verse.hub.notes' | translate: { n: p.notes } }}
+                <p class="where">
+                  <span class="roll">
+                    @for (st of currentList(); track st.item.key) {
+                      <span class="slide" animate.enter="roll-in" animate.leave="roll-out">{{ ('verse.briefing.ctaWhere.' + st.item.kind) | translate }}@if (st.unseen) {<span class="since"> · {{ 'verse.briefing.newSince' | translate }}</span>}</span>
                     }
                   </span>
-                  @if (p.stability !== null) {
-                    <small class="pc-num">{{ 'verse.hub.stability' | translate: { n: p.stability } }}</small>
+                </p>
+              </div>
+            } @else {
+              <p class="where">{{ 'verse.briefing.allSeen' | translate }}</p>
+            }
+            <div class="ctl">
+              @if (stories().length > 1) {
+                <div class="story" role="group" [attr.aria-label]="'verse.briefing.topAria' | translate">
+                  @for (st of stories(); track st.item.key; let i = $index) {
+                    <button type="button" class="sbar" [class.on]="i === index()" [class.done]="i < index()" [class.first]="firstRun()"
+                            [attr.aria-pressed]="i === index()"
+                            [attr.aria-label]="'verse.briefing.storyAria' | translate: { n: i + 1, title: st.item.title }"
+                            [scTooltip]="st.item.title" scTooltipTier="label"
+                            (click)="select(i)"><i (animationend)="barEnded(i, $event)"></i></button>
                   }
-                </a>
-              </li>
-            }
-          </ul>
-        } @else if (news.error() && !news.loading()) {
-          <div class="hs-state" role="alert">
-            <p>{{ news.error() ?? 'errors.generic' | translate }}</p>
-            <button type="button" class="sc-btn" (click)="retryNews()">{{ 'errors.retry' | translate }}</button>
-          </div>
-        } @else {
-          <p class="hs-empty">{{ (news.loading() ? 'verse.briefing.loading' : 'verse.hub.patchesEmpty') | translate }}</p>
-        }
-      </section>
+                </div>
+              }
+              <button type="button" class="pause" (click)="togglePause()"
+                      [attr.aria-label]="(paused() ? 'verse.briefing.resume' : 'verse.briefing.pause') | translate"
+                      [scTooltip]="(paused() ? 'verse.briefing.resume' : 'verse.briefing.pause') | translate" scTooltipTier="label">
+                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  @if (paused()) {
+                    <path d="M5 3.5v9l7-4.5z" />
+                  } @else {
+                    <rect x="4" y="3.5" width="2.6" height="9" rx="0.8" /><rect x="9.4" y="3.5" width="2.6" height="9" rx="0.8" />
+                  }
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
 
-      <section class="hs" aria-labelledby="hub-gallery-h">
-        <header class="hs-head">
-          <h2 id="hub-gallery-h">{{ 'verse.gates.gallery.title' | translate }}</h2>
-          <a class="more" routerLink="/verse/gallery">{{ 'verse.hub.overview' | translate }}</a>
-        </header>
-        @if (hubGallery().length) {
-          <ul class="shots">
-            @for (g of hubGallery(); track g.key) {
-              @let gl = itemLink(g);
-              <li>
-                @if (gl && gl.internal) {
-                  <a class="shot" [routerLink]="gl.path" [queryParams]="gl.query" [attr.aria-label]="g.title" (click)="openItem(g)" (auxclick)="openItem(g)">
-                    <img [src]="g.image" alt="" loading="lazy" decoding="async" />
-                  </a>
-                } @else if (gl) {
-                  <a class="shot" [href]="gl.path" target="_blank" rel="noopener noreferrer" [attr.aria-label]="g.title" (click)="openItem(g)" (auxclick)="openItem(g)">
-                    <img [src]="g.image" alt="" loading="lazy" decoding="async" />
-                  </a>
-                }
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="hs-empty">{{ 'verse.gates.gallery.teaser' | translate }}</p>
-        }
-      </section>
-    </div>
+        <!-- Row 3 · gate band above the footer strip. The gates stay usable
+             when the digest failed: their numbers fall back to the live feeds. -->
+        <nav class="moons" [attr.aria-label]="'verse.gates.aria' | translate">
+          @for (g of gates(); track g.door; let i = $index) {
+            @let item = moonItems()[g.door];
+            @let t = timings()[i];
+            <sc-briefing-moon class="moon-slot" [attr.data-door]="g.door" [style.--start]="t.start" [style.--cycle]="t.cycle"
+              [door]="g.door" [link]="g.link"
+              [topic]="('verse.gates.' + g.door + '.topic') | translate"
+              [hook]="g.door === 'patches'
+                ? (nextLine() ? ('verse.gates.patches.hook' | translate: { next: nextLine() }) : ('verse.gates.patches.hookNoLine' | translate))
+                : (('verse.gates.' + g.door + '.hook') | translate)"
+              [neu]="'verse.gates.neu' | translate"
+              [fresh]="item ? item.title : g.count > 0 ? (('verse.gates.' + g.door + '.stat') | translate: { n: g.count }) : null"
+              (opened)="openDoor(g.door)" />
+          }
+        </nav>
+      </div>
+
+    </section>
   }
 } @else {
   <sc-news-list />

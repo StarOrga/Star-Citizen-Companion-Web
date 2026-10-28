@@ -24,11 +24,11 @@ export const SKY_STEP_S = 0.16;
   template: `
     <svg viewBox="-12 -12 124 124" aria-hidden="true" focusable="false">
       @for (l of figure().lines; track $index) {
-        <line [class]="'ln ' + l.state" [attr.pathLength]="l.state === 'lit' ? 1 : null" [style.--d]="lineDelay($index)"
+        <line [class]="'ln ' + l.state" [attr.pathLength]="l.state === 'lit' ? 1 : null" [style.--d]="lineDelay($index)" [style.--i]="$index"
               [attr.x1]="l.x1" [attr.y1]="l.y1" [attr.x2]="l.x2" [attr.y2]="l.y2" />
       }
       @for (s of figure().stars; track s.i) {
-        <g [class]="'st ' + s.state" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'" [style.--ph]="s.phase + 's'">
+        <g [class]="'st ' + s.state" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'" [style.--ph]="s.phase + 's'" [style.--si]="s.i">
           <g class="in" [style.--d]="starDelay(s.i)">
             @if (s.state === 'lit') {
               <circle class="h" r="8" />
@@ -66,8 +66,21 @@ export const SKY_STEP_S = 0.16;
       @keyframes line-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
       @keyframes line-in { from { opacity: 0; } }
       @keyframes glow { 0%, 100% { opacity: 0.24; } 50% { opacity: 0.4; } }
+      /* Hub hover (the surrounding star-map link): the lines draw themselves again
+         (0.9 s, 0.18 s apart), the stars twinkle — in the star map's own white/blue. */
+      :host-context(.const-l:hover) .ln.lit, :host-context(.const-l:focus-visible) .ln.lit {
+        animation: line-draw 0.9s ease-out calc(var(--i) * 0.18s) both; }
+      :host-context(.const-l:hover) .ln.open, :host-context(.const-l:focus-visible) .ln.open {
+        animation: line-in 0.9s ease-out calc(var(--i) * 0.18s) both; }
+      :host-context(.const-l:hover) .st .in, :host-context(.const-l:focus-visible) .st .in {
+        animation: twinkle 1.6s ease-in-out calc(var(--si) * 0.23s) infinite; }
+      /* Idle hint: the lines glimmer once. */
+      :host-context(.const-l.idle) .ln { animation: glim 2.4s ease-in-out 0.4s 1 both; }
+      @keyframes twinkle { 0%, 100% { opacity: 1; transform: none; } 50% { opacity: 0.6; transform: scale(1.35); } }
+      @keyframes glim { 50% { stroke: #fff; stroke-opacity: 1; filter: drop-shadow(0 0 3px var(--sc-accent)); } }
       @media (prefers-reduced-motion: reduce) {
         .lit .h, .in, .ln { animation: none; }
+        :host-context(.const-l) .ln, :host-context(.const-l) .st .in { animation: none !important; }
       }
     `,
   ],

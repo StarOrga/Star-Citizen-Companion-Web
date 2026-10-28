@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.167.1",
+  "current": "0.167.2",
   "releases": [
+    {
+      "version": "0.167.2",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Holotisch: übereinanderliegende Pins aufgefächert.",
+              "text": "Bauteile an derselben Rumpfstelle (Schildgeneratoren, Kühler, Waffenhalterungen) zeigten ihre Pins deckungsgleich, auf der Nomad waren 7 von 17 Nummern verdeckt. Solche Gruppen fächern sich jetzt kreisförmig um ihre echte Position auf, und geschätzte Ring-Pins weichen verankerten aus. Jede Nummer bleibt sichtbar, die Leader-Linien zeigen weiter auf die Gruppe."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.167.1",
       "date": "2026-10-28",

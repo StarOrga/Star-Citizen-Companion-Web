@@ -371,3 +371,33 @@ export function computeVerdict(
     hotfixes: latest.hotfix_events,
   };
 }
+
+/** Raw numbers of one Hotfix / PTU / Evocati build (Spectrum threads) for {@link channelStability}. */
+export interface ChannelBuildSample {
+  replies: number;
+  ticketShare: number | null;
+  ticketVoteShare: number | null;
+  /** When the build's threads started and where its window closes (now for a running build). */
+  fromIso: string | null;
+  toIso: string;
+}
+
+/**
+ * Stability of a test-channel build. Only the community component exists for
+ * it — no unplanned-downtime window belongs to a PTU, and the CIG Known-Issues
+ * article names LIVE patches only — so the score is `combineScore` over that
+ * one component, read through the same `stabilityPercent` / `levelOf` as every
+ * LIVE verdict. Null (shown as "–") without ticket data or below MIN_REPLIES.
+ */
+export function channelStability(b: ChannelBuildSample): { stability: number; level: StabilityLevel } | null {
+  if (b.ticketShare === null || b.ticketVoteShare === null || b.fromIso === null) return null;
+  if (!(b.replies >= MIN_REPLIES)) return null;
+  const days = Math.max(1, daysBetween(b.fromIso, b.toIso));
+  const score = combineScore({
+    community: communityScore({ velocity: b.replies / days, ticketShare: b.ticketShare, ticketVoteShare: b.ticketVoteShare }),
+    service: null,
+    cig: null,
+  });
+  const stability = stabilityPercent(score);
+  return score === null || stability === null ? null : { stability, level: levelOf(score) };
+}

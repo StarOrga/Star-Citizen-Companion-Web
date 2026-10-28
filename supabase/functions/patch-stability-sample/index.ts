@@ -13,6 +13,10 @@
 //   4. CIG Known Issues article (Zendesk Help Center API) → entry count per
 //      section, when its title names the line.
 //   → one row per line in patch_stability_samples (upsert on the day).
+//   5. The same thread list also yields the Hotfix / PTU / Evocati builds
+//      (channels.ts): start date, wave, reply counts and the top-reply ticket
+//      shares of the newest + previous build per channel → patch_channel_builds,
+//      which verse_digest() serves as patch.channel_info.
 //
 // `?backfill=1` registers every LIVE line the forum still lists (6 pages ≈ two
 // years) with its measured END-STATE, for lines that predate the sampler.
@@ -40,6 +44,7 @@ import {
   statusWindow,
   topReplyMetrics,
 } from './parsers.ts';
+import { ChannelBuild, groupChannelBuilds, newestHotfixDate } from './channels.ts';
 
 const RSI_BASE = 'https://robertsspaceindustries.com';
 const SPECTRUM_LIST_URL = `${RSI_BASE}/api/spectrum/forum/channel/threads`;
@@ -49,7 +54,7 @@ const STATUS_URL = 'https://status.robertsspaceindustries.com/issues/index.json'
 const KB_URL = 'https://support.robertsspaceindustries.com/api/v2/help_center/en-us/articles/360056254754.json';
 const USER_AGENT = 'SC-Companion/0.6 (+patch-stability)';
 
-const LIST_PAGES_DAILY = 2;
+const LIST_PAGES_DAILY = 3;
 const LIST_PAGES_BACKFILL = 6;
 const THROTTLE_MS = 6 * 60 * 60 * 1000;
 const WINDOW_DAYS = 7;
@@ -251,6 +256,55 @@ async function sampleLine(patch: LivePatch, issues: StatusIssue[] | null, kb: Aw
   return { rn, hf, community };
 }
 
+/**
+ * Hotfix / PTU / Evocati builds (channels.ts) -> patch_channel_builds. Reply
+ * counts come free from the list; the top-reply ticket shares need one nested
+ * fetch, so only the running build and the newest other build per channel
+ * are measured (<= 6 fetches). Everything else keeps its stored numbers.
+ */
+async function sampleChannels(rows: ThreadRow[], now: Date) {
+  const central = rows.filter((r) => /Hotfix Central/i.test(r.subject) && /LIVE/.test(r.subject));
+  const hotfixStart = new Map<number, string>();
+  const payloads = new Map<number, ThreadPayload | null>();
+  for (const r of central.slice(0, 2)) {
+    const p = await fetchThread(r.slug);
+    payloads.set(r.id, p);
+    const d = p ? newestHotfixDate(parseHotfixEvents(p.content_blocks)) : null;
+    if (d) hotfixStart.set(r.id, d);
+  }
+  const builds = groupChannelBuilds(rows, now, hotfixStart);
+  const measured: ChannelBuild[] = [];
+  for (const channel of ['hotfix', 'ptu', 'evocati'] as const) {
+    const mine = builds.filter((b) => b.channel === channel).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
+    measured.push(...mine.slice(0, 2));
+  }
+  const out: Record<string, unknown>[] = [];
+  for (const b of measured) {
+    const payload = payloads.has(b.newest.id) ? payloads.get(b.newest.id)! : await fetchThread(b.newest.slug);
+    const m = payload ? topReplyMetrics(payload.replies) : null;
+    out.push({
+      channel: b.channel,
+      version: b.version,
+      line: b.line,
+      started_at: b.startedAt,
+      thread_first_at: b.threadFirstAt,
+      wave: b.wave,
+      thread_count: b.threadCount,
+      replies: b.replies,
+      votes: b.votes,
+      running: b.running,
+      // Only send the ticket shares when the nested fetch worked: an omitted
+      // key keeps yesterday's value instead of nulling it.
+      ...(m ? { top_ticket_share: m.ticketShare, top_ticket_vote_share: m.ticketVoteShare } : {}),
+      updated_at: now.toISOString(),
+    });
+  }
+  if (out.length === 0) return 0;
+  const { error } = await admin().from('patch_channel_builds').upsert(out, { onConflict: 'channel,version' });
+  if (error) throw new Error(`channel builds upsert: ${error.message}`);
+  return out.length;
+}
+
 async function newestSampleAt(): Promise<{ at: number; readable: boolean }> {
   const { data, error } = await admin()
     .from('patch_stability_samples')
@@ -304,7 +358,13 @@ async function runDaily(force: boolean): Promise<Response> {
       console.error(`patch-stability: line ${patch.line} failed:`, err);
     }
   }
-  return json({ ok: true, lines: done });
+  let channels = 0;
+  try {
+    channels = await sampleChannels(rows, now);
+  } catch (err) {
+    console.error('patch-stability: channel builds failed:', err);
+  }
+  return json({ ok: true, lines: done, channelBuilds: channels });
 }
 
 /**

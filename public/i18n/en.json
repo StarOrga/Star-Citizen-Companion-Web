@@ -221,7 +221,10 @@
       },
       "tiles": {
         "label": "Tools",
-        "keybinds": { "title": "Keybindings", "text": "Every default binding of the live build, searchable." }
+        "keybinds": {
+          "title": "Keybindings",
+          "text": "Every default binding of the live build, searchable."
+        }
       },
       "terminal": {
         "keybinds": "Keybindings"
@@ -4377,9 +4380,21 @@
     "prev": "Previous entry",
     "next": "Next entry",
     "close": "Close",
-    "news": { "source": "Source", "missing": "This entry is no longer in the feed." },
-    "gallery": { "image": "Image", "missing": "This image was not found.", "download": "Download original", "article": "Article on RSI" },
-    "share": { "label": "Share a link to this section", "copied": "Link copied", "failed": "Sharing failed" }
+    "news": {
+      "source": "Source",
+      "missing": "This entry is no longer in the feed."
+    },
+    "gallery": {
+      "image": "Image",
+      "missing": "This image was not found.",
+      "download": "Download original",
+      "article": "Article on RSI"
+    },
+    "share": {
+      "label": "Share a link to this section",
+      "copied": "Link copied",
+      "failed": "Sharing failed"
+    }
   },
   "share": {
     "title": "Share set",
@@ -4496,7 +4511,10 @@
     },
     "supplies": {
       "button": "Supplies",
-      "add": { "name": "What do you still need?", "submit": "Add" },
+      "add": {
+        "name": "What do you still need?",
+        "submit": "Add"
+      },
       "qty": "Quantity",
       "qtyOf": "Quantity of {{name}}",
       "less": "One less",
@@ -4702,30 +4720,53 @@
       "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the constellations you earned."
     },
     "hub": {
-      "kicker": "Live {{v}} · {{n}} % stable",
-      "kickerNoScore": "Live {{v}}",
-      "search": "Search news, patches, gallery …",
+      "search": "Search …",
       "searchKey": "Ctrl K",
-      "forYou": "For you",
-      "forYouCount": "{{n}} / {{total}}",
-      "overview": "→ Overview",
+      "more": "More in the Verse",
+      "prev": "Previous story",
+      "next": "Next story",
+      "area": {
+        "news": "News",
+        "patch": "Patches",
+        "gallery": "Gallery",
+        "link": "Verse"
+      },
+      "sun": "Patch status",
+      "sunValue": "LIVE {{v}} · Stability {{n}} %",
+      "sunValueNoScore": "LIVE {{v}}",
       "newsEmpty": "No news right now.",
       "patchesEmpty": "No patch notes yet.",
-      "notes": "{{n}} notes",
-      "stability": "Stability {{n}} %",
-      "state": {
-        "live": "Live",
-        "ptu": "In testing",
-        "past": "Earlier"
+      "patchTitle": "Star Citizen Alpha {{v}}",
+      "liveSince": "for {{n}} days",
+      "liveSinceOne": "for 1 day",
+      "liveSinceToday": "since today",
+      "verdict": {
+        "stable": "stable",
+        "shaky": "shaky",
+        "troubled": "many issues",
+        "none": "no verdict yet"
       },
-      "issues": {
-        "1": "hardly any known issues",
-        "2": "few known issues",
-        "3": "some known issues",
-        "4": "many known issues",
-        "5": "severe issues",
-        "early": "too early to tell"
-      }
+      "kv": {
+        "stability": "Stability",
+        "issues": "Known issues",
+        "pct": "{{n}} %"
+      },
+      "issueWord": {
+        "1": "hardly any",
+        "2": "few",
+        "3": "some",
+        "4": "many",
+        "5": "severe"
+      },
+      "vs": "vs. {{v}}",
+      "channel": {
+        "live": "Live",
+        "hotfix": "Hotfix",
+        "ptu": "PTU",
+        "evocati": "Evocati"
+      },
+      "wave": "Wave {{n}}",
+      "channelOff": "none running right now"
     }
   },
   "starmap": {
@@ -4929,11 +4970,26 @@
       "done": "Done",
       "progress": "Step {{n}} of {{total}}",
       "step": {
-        "stage": { "title": "The dome", "text": "The constellation of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next." },
-        "count": { "title": "Progress", "text": "How many of the 7 stars are lit on this map." },
-        "tracks": { "title": "The two challenges", "text": "Tip the comet for the next LIVE day and guess which ship the constellation shows." },
-        "series": { "title": "The series", "text": "Your streak across patches - rewards unlock along it." },
-        "more": { "title": "The Logbook", "text": "Opens the side sheet: community constellation, suns, Kartograph rank, suggestions and rewards." }
+        "stage": {
+          "title": "The dome",
+          "text": "The constellation of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next."
+        },
+        "count": {
+          "title": "Progress",
+          "text": "How many of the 7 stars are lit on this map."
+        },
+        "tracks": {
+          "title": "The two challenges",
+          "text": "Tip the comet for the next LIVE day and guess which ship the constellation shows."
+        },
+        "series": {
+          "title": "The series",
+          "text": "Your streak across patches - rewards unlock along it."
+        },
+        "more": {
+          "title": "The Logbook",
+          "text": "Opens the side sheet: community constellation, suns, Kartograph rank, suggestions and rewards."
+        }
       }
     },
     "more": {

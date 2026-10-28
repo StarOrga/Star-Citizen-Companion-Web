@@ -1,4 +1,4 @@
-import { mapConstellation, mapDigest, mapExplorer, rankTopItems, VerseDigest } from './verse.models';
+import { mapChannelInfo, mapConstellation, mapDigest, mapExplorer, rankTopItems, VerseDigest } from './verse.models';
 
 const item = (key: string, kind: string, rank: number, pinned = false) => ({
   key,
@@ -35,10 +35,34 @@ describe('verse.models', () => {
       line: '4.3',
       liveAt: '2026-09-30T00:00:00Z',
       channels: { live: '4.3.1', ptu: '4.4.0' },
+      channelInfo: {},
       status: 'ptu',
     });
     expect(d.counts.gallery).toEqual({ recent: 5, total: 900 });
     expect(d.counts.news).toEqual({ recent: 3 });
+  });
+
+  it('maps patch.channel_info: running build + predecessor, numbers and nulls', () => {
+    const info = mapChannelInfo({
+      ptu: {
+        version: '4.4.0', started_at: '2026-10-23T12:00:00Z', thread_first_at: '2026-10-23T12:00:00Z', wave: 2, replies: '121', votes: 7,
+        ticket_share: '0.4', ticket_vote_share: null,
+        previous: { version: '4.3.0', started_at: '2026-09-25T00:00:00Z', thread_first_at: '2026-09-25T00:00:00Z', wave: null, replies: 380, votes: 9, ticket_share: 0.2, ticket_vote_share: 0.1, ended_at: '2026-10-23T12:00:00Z' },
+      },
+      evocati: { version: '' },
+      hotfix: { version: '4.3.2', replies: 3 },
+    });
+    expect(Object.keys(info).sort()).toEqual(['hotfix', 'ptu']);
+    expect(info['ptu'].wave).toBe(2);
+    expect(info['ptu'].replies).toBe(121);
+    expect(info['ptu'].ticketShare).toBe(0.4);
+    expect(info['ptu'].ticketVoteShare).toBeNull();
+    expect(info['ptu'].previous?.version).toBe('4.3.0');
+    expect(info['ptu'].previous?.wave).toBeNull();
+    expect(info['ptu'].previous?.endedAt).toBe('2026-10-23T12:00:00Z');
+    expect(info['hotfix'].previous).toBeNull();
+    expect(info['hotfix'].startedAt).toBeNull();
+    expect(mapChannelInfo(null)).toEqual({});
   });
 
   it('drops the trailing "| Star Citizen" channel tag from titles', () => {
