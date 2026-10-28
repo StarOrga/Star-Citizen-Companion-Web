@@ -201,7 +201,7 @@ a.ch:hover b { color: #fff; }
 
 // One column on tablets in portrait and phones: the unit follows the column.
 @media (max-width: 900px) {
-  .cols { --u: calc(100cqi / 27.07); --feat: min(calc(26 * var(--u)), 72vh); grid-template-columns: minmax(0, 1fr); gap: var(--sc-space-6, 32px); }
+  .cols { --u: calc(100cqi / 27.07); --feat: min(calc(26 * var(--u)), 72vh); --feat: min(calc(26 * var(--u)), 72dvh); grid-template-columns: minmax(0, 1fr); gap: var(--sc-space-6, 32px); }
   .colh { font-size: 13px; }
 }
 

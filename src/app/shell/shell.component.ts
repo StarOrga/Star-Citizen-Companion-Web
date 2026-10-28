@@ -1108,7 +1108,10 @@ export class ShellComponent implements AfterViewInit {
         this.stopNavIndicator();
       }
     });
-    this.destroyRef.onDestroy(() => this.clearNavTimers());
+    this.destroyRef.onDestroy(() => {
+      this.clearNavTimers();
+      if (this.switchInTimer) clearTimeout(this.switchInTimer);
+    });
     this.destroyRef.onDestroy(() => this.stopTopbarProbe());
   }
 

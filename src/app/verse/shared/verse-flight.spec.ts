@@ -60,6 +60,7 @@ describe('VerseFlight', () => {
     const flight = TestBed.inject(VerseFlight);
     flight.reducedMotion = () => false;
     flight.hidden = () => false;
+    flight.enabled = () => true;
   });
 
   afterEach(() => delete document.documentElement.dataset['verseFlight']);
@@ -100,6 +101,14 @@ describe('VerseFlight', () => {
     expect(start).not.toHaveBeenCalled();
     TestBed.inject(VerseFlight).reducedMotion = () => true;
     await h.navigateByUrl('/verse');
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it('no flight with the Verse β off: the legacy pages have no emblem to land on', async () => {
+    TestBed.inject(VerseFlight).enabled = () => false;
+    const h = await RouterTestingHarness.create('/verse');
+    await h.navigateByUrl('/verse/news');
+    await settle(h);
     expect(start).not.toHaveBeenCalled();
   });
 });
