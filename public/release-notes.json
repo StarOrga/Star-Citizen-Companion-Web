@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.167.0",
+  "current": "0.167.1",
   "releases": [
+    {
+      "version": "0.167.1",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Neue App-Hülle (Beta „shell“): Kopf und Unterkopf verschmolzen.",
+              "text": "Unterseiten, Werkzeuge und der angedockte Hub zeigen jetzt Bereich, Unterseiten als Tabs (Verse: News/Patches/Galerie/Sternkarte, HQ: Übersicht/Spind/Hangar/Einsätze) und eine breite Suche statt der alten Marken- und Navigationszeile, wie im Konzept-Mock. Der Hub behält eine kompakte, zentrierte Kapsel und eine große Suchzeile auf der Bühne."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.167.0",
       "date": "2026-10-26",
