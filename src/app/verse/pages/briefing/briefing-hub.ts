@@ -1,5 +1,5 @@
 import type { PatchLineGroup } from '../../../news/patch-notes';
-import { channelStability } from '../../../news/patch-stability';
+import { channelStability, stabilityWord } from '../../../news/patch-stability';
 import type { ChannelBuildSample, StabilityLevel, StabilityVerdict } from '../../../news/patch-stability';
 import type { VerseChannelBuild, VerseChannelInfo, VerseDigestItem } from '../../data/verse.models';
 
@@ -14,16 +14,12 @@ export type HubChannelKind = 'live' | (typeof HUB_CHANNELS)[number];
 export type HubVerdict = 'stable' | 'shaky' | 'troubled';
 
 /**
- * THE verdict thresholds — the one place that turns a stability score into
- * the chip's word. Deliberately isolated: a follow-up replaces this default
- * (stabil >= 75 %, wackelig 45–74 %, viele Probleme < 45 %) with a rolling
- * default from the last patches corrected by community votes.
+ * Legacy mapping onto the single scale in `patch-stability.ts` (`stabilityWord`).
+ * Wave 2 removes this together with the hub's verdict word.
  */
 export function verdictWord(stability: number | null): HubVerdict | null {
-  if (stability === null || !Number.isFinite(stability)) return null;
-  if (stability >= 75) return 'stable';
-  if (stability >= 45) return 'shaky';
-  return 'troubled';
+  const w = stabilityWord(stability);
+  return w === null ? null : w === 'stabil' ? 'stable' : w === 'wackelig' ? 'shaky' : 'troubled';
 }
 
 export type HubTrend = 'better' | 'worse' | 'same';
