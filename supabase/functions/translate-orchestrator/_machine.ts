@@ -211,7 +211,11 @@ export async function computePlan(
   const fewShot: Record<string, CigPair[]> = {};
   for (const c of chunks) fewShot[c.id] = pickSimilar(index, c.items, 8);
 
-  const estimate = estimateJob(job.lang, chunks, estimateTokens(system.length));
+  const estimate = estimateJob(
+    job.lang,
+    chunks.map((c) => ({ model: c.model, inputChars: c.inputChars, enChars: c.enChars, strings: c.items.length })),
+    estimateTokens(system.length),
+  );
   // The few-shot pairs ride in the (uncached) user message.
   estimate.usd += (chunks.reduce((a, c) => a + (fewShot[c.id]?.length ?? 0), 0) * 60 * 0.9 * 3) / 1e6;
 
@@ -236,7 +240,7 @@ export async function dryRun(deps: Deps, build_id: string, lang: string, mode: '
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
+const round4 = (n: number) => Math.round(n * 1e6) / 1e6; // micro-dollars; the name is historical
 export const monthOf = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
 
 interface Res {
