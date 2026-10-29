@@ -191,7 +191,8 @@
       "dismiss": "Dismiss"
     },
     "hq": "HQ",
-    "verse": "Verse"
+    "verse": "Verse",
+    "translations": "AI translation"
   },
   "impersonation": {
     "banner": {
@@ -3188,6 +3189,139 @@
       "missingToggle": "Show the {{count}} hulls without silhouette",
       "noBuild": "No current build — nothing to count yet.",
       "retry": "Try again"
+    },
+    "translations": {
+      "eyebrow": "Admin · admins only",
+      "title": "AI translation",
+      "subtitle": "Claude translation of the game strings: switch, caps, languages, jobs and glossary.",
+      "tabs": {
+        "overview": "Overview",
+        "glossary": "Glossary"
+      },
+      "loading": "Loading …",
+      "retry": "Try again",
+      "refresh": "Refresh",
+      "saved": "Saved.",
+      "switch": {
+        "label": "Claude API translation",
+        "hint": "Applies from the next data upload. Only deltas are translated automatically (new or changed strings compared to the previous build)."
+      },
+      "caps": {
+        "upload": "Cap per upload (USD)",
+        "monthly": "Monthly cap (USD)"
+      },
+      "spend": {
+        "month": "Spend this month (UTC)"
+      },
+      "languages": {
+        "title": "Languages",
+        "approved": "Approved",
+        "notApproved": "Not approved",
+        "approve": "Approve",
+        "revoke": "Revoke",
+        "fullRun": "Start full run",
+        "approveTitle": "Approve {{lang}}?",
+        "approveText": "New uploads will also be translated into {{lang}} from now on (deltas only).",
+        "revokeTitle": "Revoke approval for {{lang}}?",
+        "revokeText": "New uploads will no longer be translated into {{lang}}. Existing translations stay."
+      },
+      "fullRun": {
+        "title": "Start a full run for {{lang}}?",
+        "text": "Costs about {{usd}} $ ({{count}} strings) — the whole backlog is translated. The job still waits for your approval afterwards.",
+        "confirm": "Create full run"
+      },
+      "jobs": {
+        "title": "Jobs",
+        "empty": "No jobs yet.",
+        "noBuild": "There is no current build.",
+        "approve": "Approve",
+        "cancel": "Cancel",
+        "cancelTitle": "Cancel the job for {{lang}}?",
+        "cancelText": "The job is stopped; costs already incurred stay.",
+        "cols": {
+          "build": "Build",
+          "lang": "Language",
+          "mode": "Mode",
+          "status": "Status",
+          "strings": "Strings",
+          "estimate": "Estimate",
+          "spent": "Spent",
+          "judge": "Judge",
+          "created": "Created"
+        },
+        "mode": {
+          "delta": "Delta",
+          "full": "Full"
+        },
+        "status": {
+          "estimating": "Estimating",
+          "awaiting_approval": "Awaiting approval",
+          "queued": "Queued",
+          "submitted": "Submitted",
+          "validating": "Validating",
+          "post_editing": "Post-editing",
+          "publishing": "Publishing",
+          "published": "Published",
+          "failed": "Failed",
+          "cancelled": "Cancelled",
+          "skipped": "Skipped"
+        }
+      },
+      "jobErrors": {
+        "unknown": "Unknown error in the translation job.",
+        "base_build_missing": "The comparison build is missing.",
+        "conflict": "The job was changed in parallel. Please reload.",
+        "english_missing": "The English source strings are missing.",
+        "job_not_found": "Job not found.",
+        "lang_unknown": "Unknown language.",
+        "no_api_key": "No Claude API key is configured.",
+        "no_base_build": "There is no previous build to compare against.",
+        "not_awaiting_approval": "The job is no longer awaiting approval.",
+        "not_cancellable": "The job can no longer be cancelled.",
+        "plan_missing": "The translation plan is missing.",
+        "results_missing": "The results are missing.",
+        "r2_not_configured": "Storage (R2) is not configured.",
+        "internal": "Internal error in the translation pipeline."
+      },
+      "glossary": {
+        "title": "Glossary",
+        "search": "Search (source or translation)",
+        "lang": "Language",
+        "origin": "Origin",
+        "category": "Category",
+        "all": "All",
+        "langLabel": "{{lang}}",
+        "add": "Add entry",
+        "source": "Source",
+        "target": "Translation",
+        "save": "Save",
+        "edit": "Edit",
+        "cancelEdit": "Cancel",
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "retranslate": "Retranslate",
+        "history": "History",
+        "historyEmpty": "No changes yet.",
+        "deleted": "deleted",
+        "undo": "Undo",
+        "undoTitle": "Undo this change?",
+        "undoText": "The entry is restored to “{{term}}”.",
+        "empty": "No entries for these filters.",
+        "prev": "Previous",
+        "next": "Next",
+        "pageOf": "Page {{page}} of {{pages}}",
+        "origins": {
+          "cig": "CIG",
+          "ai": "AI",
+          "admin": "Admin"
+        },
+        "categories": {
+          "term": "Term",
+          "label": "Field label",
+          "unit": "Unit",
+          "dnt": "Do not translate"
+        }
+      }
     }
   },
   "desktop": {
@@ -5360,6 +5494,10 @@
       "uploader": {
         "title": "Data Uploader",
         "text": "Ingest game data from Data.p4k."
+      },
+      "translations": {
+        "title": "AI translation",
+        "text": "Switch, caps, languages, jobs and glossary of the game translation."
       }
     }
   },

@@ -159,6 +159,9 @@ import { avatarUrlOf } from './avatar-url';
           <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link admin-inline">
             {{ 'nav.telemetry' | translate }}
           </a>
+          <a routerLink="/admin/translations" routerLinkActive="active" class="admin-link admin-inline">
+            {{ 'nav.translations' | translate }}
+          </a>
           <!-- Between the phone layout and ~1180px the two admin entries fold
                into this one menu, so the header stays a single row (the CSS
                swaps .admin-inline for .admin-more). Red like the entries it
@@ -187,6 +190,11 @@ import { avatarUrlOf } from './avatar-url';
                 <a class="dropdown-item elevated" role="menuitem" routerLink="/admin/telemetry"
                    (click)="onAdminMenuNavigate($event)">
                   <span class="di-label">{{ 'nav.telemetry' | translate }}</span>
+                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                </a>
+                <a class="dropdown-item elevated" role="menuitem" routerLink="/admin/translations"
+                   (click)="onAdminMenuNavigate($event)">
+                  <span class="di-label">{{ 'nav.translations' | translate }}</span>
                   <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
               </div>

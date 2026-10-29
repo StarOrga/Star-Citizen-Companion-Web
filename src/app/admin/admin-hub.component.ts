@@ -39,6 +39,13 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
     icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
   },
   {
+    id: 'translations',
+    link: '/admin/translations',
+    titleKey: 'adminHub.tiles.translations.title',
+    textKey: 'adminHub.tiles.translations.text',
+    icon: 'M4 5h8M8 3v2M5 9c1 3 3 5 6 6M11 5c-1 4-3 7-7 10M13 21l4-10 4 10M14.5 18h5',
+  },
+  {
     id: 'integrations',
     link: '/admin/api-tokens',
     titleKey: 'adminHub.tiles.integrations.title',

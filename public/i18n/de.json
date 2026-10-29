@@ -191,7 +191,8 @@
       "dismiss": "Ausblenden"
     },
     "hq": "HQ",
-    "verse": "Verse"
+    "verse": "Verse",
+    "translations": "KI-Übersetzung"
   },
   "impersonation": {
     "banner": {
@@ -3188,6 +3189,139 @@
       "missingToggle": "Die {{count}} Rümpfe ohne Silhouette anzeigen",
       "noBuild": "Kein aktueller Build — noch nichts zu zählen.",
       "retry": "Erneut versuchen"
+    },
+    "translations": {
+      "eyebrow": "Admin · nur für Admins",
+      "title": "KI-Übersetzung",
+      "subtitle": "Claude-Übersetzung der Spieltexte: Schalter, Limits, Sprachen, Aufträge und Glossar.",
+      "tabs": {
+        "overview": "Übersicht",
+        "glossary": "Glossar"
+      },
+      "loading": "Lädt …",
+      "retry": "Erneut versuchen",
+      "refresh": "Aktualisieren",
+      "saved": "Gespeichert.",
+      "switch": {
+        "label": "Claude-API-Übersetzung",
+        "hint": "Gilt ab dem nächsten Data-Upload. Automatisch werden nur Deltas übersetzt (neue oder geänderte Texte gegenüber dem vorigen Build)."
+      },
+      "caps": {
+        "upload": "Limit pro Upload (USD)",
+        "monthly": "Monatslimit (USD)"
+      },
+      "spend": {
+        "month": "Ausgaben diesen Monat (UTC)"
+      },
+      "languages": {
+        "title": "Sprachen",
+        "approved": "Freigegeben",
+        "notApproved": "Nicht freigegeben",
+        "approve": "Freigeben",
+        "revoke": "Entziehen",
+        "fullRun": "Voll-Lauf starten",
+        "approveTitle": "Sprache {{lang}} freigeben?",
+        "approveText": "Neue Uploads werden ab jetzt auch nach {{lang}} übersetzt (nur Deltas).",
+        "revokeTitle": "Freigabe für {{lang}} entziehen?",
+        "revokeText": "Neue Uploads werden nicht mehr nach {{lang}} übersetzt. Bestehende Übersetzungen bleiben."
+      },
+      "fullRun": {
+        "title": "Voll-Lauf für {{lang}} starten?",
+        "text": "Kostet ca. {{usd}} $ ({{count}} Texte) — der Altbestand wird komplett übersetzt. Der Auftrag wartet danach noch auf deine Freigabe.",
+        "confirm": "Voll-Lauf anlegen"
+      },
+      "jobs": {
+        "title": "Aufträge",
+        "empty": "Noch keine Aufträge.",
+        "noBuild": "Es gibt keinen aktuellen Build.",
+        "approve": "Freigeben",
+        "cancel": "Abbrechen",
+        "cancelTitle": "Auftrag für {{lang}} abbrechen?",
+        "cancelText": "Der Auftrag wird beendet; bereits angefallene Kosten bleiben.",
+        "cols": {
+          "build": "Build",
+          "lang": "Sprache",
+          "mode": "Modus",
+          "status": "Status",
+          "strings": "Texte",
+          "estimate": "Schätzung",
+          "spent": "Ausgegeben",
+          "judge": "Judge",
+          "created": "Erstellt"
+        },
+        "mode": {
+          "delta": "Delta",
+          "full": "Voll"
+        },
+        "status": {
+          "estimating": "Schätzung",
+          "awaiting_approval": "Wartet auf Freigabe",
+          "queued": "In Warteschlange",
+          "submitted": "Übermittelt",
+          "validating": "Prüfung",
+          "post_editing": "Nachbearbeitung",
+          "publishing": "Veröffentlichung",
+          "published": "Veröffentlicht",
+          "failed": "Fehlgeschlagen",
+          "cancelled": "Abgebrochen",
+          "skipped": "Übersprungen"
+        }
+      },
+      "jobErrors": {
+        "unknown": "Unbekannter Fehler im Übersetzungsauftrag.",
+        "base_build_missing": "Der Vergleichs-Build fehlt.",
+        "conflict": "Der Auftrag wurde parallel geändert. Bitte neu laden.",
+        "english_missing": "Die englischen Quelltexte fehlen.",
+        "job_not_found": "Auftrag nicht gefunden.",
+        "lang_unknown": "Unbekannte Sprache.",
+        "no_api_key": "Es ist kein Claude-API-Schlüssel hinterlegt.",
+        "no_base_build": "Es gibt keinen vorigen Build zum Vergleichen.",
+        "not_awaiting_approval": "Der Auftrag wartet nicht (mehr) auf Freigabe.",
+        "not_cancellable": "Der Auftrag lässt sich nicht mehr abbrechen.",
+        "plan_missing": "Der Übersetzungsplan fehlt.",
+        "results_missing": "Die Ergebnisse fehlen.",
+        "r2_not_configured": "Der Speicher (R2) ist nicht eingerichtet.",
+        "internal": "Interner Fehler der Übersetzungs-Pipeline."
+      },
+      "glossary": {
+        "title": "Glossar",
+        "search": "Suche (Original oder Übersetzung)",
+        "lang": "Sprache",
+        "origin": "Herkunft",
+        "category": "Kategorie",
+        "all": "Alle",
+        "langLabel": "{{lang}}",
+        "add": "Eintrag hinzufügen",
+        "source": "Original",
+        "target": "Übersetzung",
+        "save": "Speichern",
+        "edit": "Bearbeiten",
+        "cancelEdit": "Abbrechen",
+        "lock": "Sperren",
+        "unlock": "Entsperren",
+        "retranslate": "Neu übersetzen",
+        "history": "Verlauf",
+        "historyEmpty": "Noch keine Änderungen.",
+        "deleted": "gelöscht",
+        "undo": "Rückgängig",
+        "undoTitle": "Änderung rückgängig machen?",
+        "undoText": "Der Eintrag wird auf „{{term}}“ zurückgesetzt.",
+        "empty": "Keine Einträge für diese Filter.",
+        "prev": "Zurück",
+        "next": "Weiter",
+        "pageOf": "Seite {{page}} von {{pages}}",
+        "origins": {
+          "cig": "CIG",
+          "ai": "KI",
+          "admin": "Admin"
+        },
+        "categories": {
+          "term": "Begriff",
+          "label": "Feldlabel",
+          "unit": "Einheit",
+          "dnt": "Nicht übersetzen"
+        }
+      }
     }
   },
   "desktop": {
@@ -5360,6 +5494,10 @@
       "uploader": {
         "title": "Data Uploader",
         "text": "Spieldaten aus Data.p4k einspielen."
+      },
+      "translations": {
+        "title": "KI-Übersetzung",
+        "text": "Schalter, Limits, Sprachen, Aufträge und Glossar der Spiel-Übersetzung."
       }
     }
   },

@@ -455,6 +455,13 @@ export const routes: Routes = [
           import('./admin/telemetry-stats.component').then((m) => m.TelemetryStatsComponent),
       },
       {
+        path: 'admin/translations',
+        data: { layout: 'content' },
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/translations/translations.component').then((m) => m.AdminTranslationsComponent),
+      },
+      {
         path: 'admin/feedback',
         data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
