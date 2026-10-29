@@ -8,10 +8,14 @@ import {
   verseFlightOf,
   verseFrameOf,
 } from './verse-world';
+import { Subscription } from 'rxjs';
 import { BetaService } from '../../core/beta.service';
 
 /** Upper bound of the frozen snapshot: past it the update callback settles regardless (slow chunk, lost router event). */
 const LANDING_CAP_MS = 3000;
+
+/** How long the camera aims at the clicked tile before the dive (live page, before the transition starts). */
+export const VERSE_AIM_MS = 400;
 
 /** Reduced-motion check. */
 export function flightReducedMotion(): boolean {
@@ -60,6 +64,8 @@ export class VerseFlight {
   enabled: () => boolean = () => this.verseBeta();
   /** Swappable for specs. */
   reducedMotion: () => boolean = flightReducedMotion;
+  /** Length of the aim step on `down`; 0 skips it. Swappable for specs. */
+  aimMs = VERSE_AIM_MS;
   /** A hidden tab aborts every transition; swappable for specs (the Karma window may be in the background). */
   hidden: () => boolean = () => this.document.visibilityState !== 'visible';
 
@@ -115,18 +121,36 @@ export class VerseFlight {
       named.push(el);
     };
     const unname = () => named.splice(0).forEach((el) => el.style.removeProperty('view-transition-name'));
+    let streaks: HTMLElement | null = null;
     const cleanup = () => {
       unname();
+      streaks?.remove();
+      streaks = null;
       delete root.dataset['verseFlight'];
+      delete root.dataset['verseAim'];
+      root.style.removeProperty('--vf-ox');
+      root.style.removeProperty('--vf-oy');
       this.running = false;
     };
 
-    if (dir === 'down') nameEl(this.source(to as VerseWorld));
+    // Aim: the tile the camera dives into (the clicked one, else the first in view).
+    const aimTile = dir === 'down' ? this.source(to as VerseWorld) : null;
     this.clicked = null;
-    root.dataset['verseFlight'] = dir;
     this.running = true;
+    if (aimTile) {
+      this.setOrigin(aimTile);
+      root.dataset['verseAim'] = to;
+    }
+    const aimed = aimTile && this.aimMs > 0 ? this.aimMs : 0;
 
-    return new Promise<null>((started) => {
+    const run = () => new Promise<null>((started) => {
+      root.dataset['verseFlight'] = dir;
+      if (dir === 'down') {
+        streaks = doc.createElement('div');
+        streaks.className = 'sc-flight-streaks';
+        streaks.setAttribute('aria-hidden', 'true');
+        doc.body.appendChild(streaks);
+      }
       let transition: ViewTransition;
       try {
         transition = doc.startViewTransition(() =>
@@ -148,28 +172,45 @@ export class VerseFlight {
       // Never hold the navigation hostage: a skipped transition may not call back in time.
       setTimeout(() => started(null), 500);
     });
+    // Down: the aim highlights the tile and dims the rest first; the old page stays live meanwhile.
+    return aimed ? new Promise<null>((resolve) => setTimeout(() => run().then(resolve), aimed)) : run();
+  }
+
+  /** Publishes the centre of `el` as the camera origin (`--vf-ox/--vf-oy`, px). */
+  private setOrigin(el: HTMLElement): void {
+    const r = el.getBoundingClientRect();
+    const root = this.document.documentElement;
+    root.style.setProperty('--vf-ox', `${Math.round(r.left + r.width / 2)}px`);
+    root.style.setProperty('--vf-oy', `${Math.round(r.top + r.height / 2)}px`);
   }
 
   /** Settles after the navigation ended and the new page rendered; on `up` names the hub's planet first. */
   private landed(dir: VerseFlightDirection, from: string, nameEl: (el: HTMLElement | null) => void): Promise<void> {
     return new Promise((done) => {
       let settled = false;
-      let sub: { unsubscribe(): void } | undefined;
+      const sub = new Subscription();
       const resolve = () => {
         if (settled) return;
         settled = true;
         clearTimeout(cap);
-        sub?.unsubscribe();
+        sub.unsubscribe();
         done();
       };
-      const cap = setTimeout(resolve, LANDING_CAP_MS);
+      // Outside the zone: a pending safety timer must not hold the app unstable for 3 s.
+      const cap = this.zone.runOutsideAngular(() => setTimeout(() => this.zone.run(resolve), LANDING_CAP_MS));
       const land = () =>
         afterNextRender(
           {
             read: () => {
               if (dir === 'up' && from !== 'hub') {
-                // Named until the flight is over (the cleanup drops it).
-                nameEl(this.source(from as VerseWorld));
+                // Named until the flight is over (the cleanup drops it); the pull-out ends on this tile,
+                // which lands highlighted and un-dims with the cleanup.
+                const tile = this.source(from as VerseWorld);
+                nameEl(tile);
+                if (tile) {
+                  this.setOrigin(tile);
+                  this.document.documentElement.dataset['verseAim'] = from;
+                }
               }
               setTimeout(resolve);
             },
@@ -181,11 +222,11 @@ export class VerseFlight {
         land();
         return;
       }
-      sub = this.router.events.subscribe((e) => {
+      sub.add(this.router.events.subscribe((e) => {
         if (!(e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError || e instanceof NavigationSkipped)) return;
         if (e instanceof NavigationEnd) land();
         else resolve();
-      });
+      }));
     });
   }
 

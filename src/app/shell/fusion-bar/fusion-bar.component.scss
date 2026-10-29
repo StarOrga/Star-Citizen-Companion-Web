@@ -6,8 +6,8 @@
 
 :host {
   --_cap-h: var(--sc-sub-h);
-  // The page frame's content width — the same edges as the main header's row.
-  --_frame-w: var(--sc-chrome-w);
+  // The docked capsule's width: the content width (--sc-content-max), centred, not the full bar.
+  --_frame-w: var(--sc-dock-w);
   position: sticky;
   top: var(--sc-imp-banner-h, 0px);
   z-index: 20;
@@ -135,6 +135,33 @@
 // opacity 0 → .3 by 3 %, then 1 (mock-r8x8-fly).
 :host(.entering[data-mode='stage']) .cap {
   animation: sub-fly 1.28s cubic-bezier(0.22, 0.85, 0.3, 1) both;
+}
+// Hub title sequence (concept 2026-10-29): the field is a clipped centre line until
+// 3.4 s * k, then opens to the full field over 0.75 s * k; glow + sheen ride inside it.
+:host(.hero-intro[data-mode='stage']) .cap {
+  animation: fi-open calc(0.75s * var(--sc-intro-k, 1)) cubic-bezier(0.65, 0, 0.25, 1) calc(3.4s * var(--sc-intro-k, 1)) both;
+}
+:host(.hero-intro[data-mode='stage']) .trace,
+:host(.hero-intro[data-mode='stage']) .echo {
+  animation: none;
+}
+.ifx {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+  background: linear-gradient(100deg, transparent 42%, rgba(255, 255, 255, 0.55) 50%, transparent 58%) no-repeat;
+  background-size: 260% 100%;
+  mix-blend-mode: screen;
+  animation:
+    fi-glow calc(0.75s * var(--sc-intro-k, 1)) ease-out calc(3.4s * var(--sc-intro-k, 1)) both,
+    fi-sheen calc(0.5s * var(--sc-intro-k, 1)) cubic-bezier(0.4, 0, 0.2, 1) calc(3.9s * var(--sc-intro-k, 1)) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  :host(.hero-intro[data-mode='stage']) .cap { animation: none; }
+  .ifx { display: none; }
 }
 // Three echo frames trail it (mock-r8x8-secho at 0 / 150 / 300 ms).
 .echo {
@@ -324,8 +351,12 @@
 // collapsed to zero width (and inert); undocking (82 % = 0 s) reverses it:
 // plate out at 82–88 %, logo slot fades at 85–86 %, narrows at 86–96 %.
 $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
+// The slot clips the logo while it narrows, but the clip margin leaves room
+// for the logo's glow: a plain `overflow: hidden` cut it off at the slot's
+// edge and the docked logo looked clipped.
 .blogo {
-  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: 12px;
   transition: width 1.2s $dock-ease 0.2s, opacity 0.2s linear 1.4s;
 }
 .blogo img {
@@ -353,6 +384,51 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   margin: 0;
   opacity: 0;
   transition: margin 0.6s ease-out, opacity 0.4s ease-out;
+}
+// ---- scroll-linked condense (main pages) ----
+// The progress --sc-dock-p (0 = staged, 1 = docked) is painted per frame by
+// ShellChromeService. Logo slot, plate and divider grow with it instead of
+// transitioning; the header's own logo and account glide in to their ends and
+// the bar's copies show once they have landed (.settled).
+:host(.condense) .blogo,
+:host(.condense) .plate,
+:host(.condense) .div {
+  transition: none;
+}
+:host(.condense:not(.settled)) .blogo img {
+  opacity: 0;
+}
+:host(.condense) .blogo img {
+  transition: opacity 0.15s linear;
+}
+:host(.condensing) .cap {
+  // Between the stage slot and the docked rect: width and travel follow the scroll.
+  width: calc(var(--_st-w, 0px) * (1 - var(--sc-dock-p, 1)) + var(--_frame-w) * var(--sc-dock-p, 1));
+  transform: translate(
+    calc(var(--_dx, 0px) * (1 - var(--sc-dock-p, 1))),
+    calc(var(--_dy, 0px) * (1 - var(--sc-dock-p, 1)))
+  );
+}
+:host(.condensing) .blogo {
+  width: calc(44px * var(--sc-dock-p, 1));
+}
+:host(.condensing) .plate {
+  max-width: calc(220px * var(--sc-dock-p, 1));
+  opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
+  overflow: hidden;
+}
+:host(.condensing) .div {
+  margin: 0 calc(var(--sc-space-4) * var(--sc-dock-p, 1)) 0 calc(var(--sc-space-2) * var(--sc-dock-p, 1));
+  opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
+}
+@media (max-width: 720px) {
+  // The phone bar sits at the bottom: the cap keeps its own (auto) width while it travels.
+  :host(.condensing) .cap {
+    width: auto;
+  }
+  :host(.condensing) .blogo {
+    width: calc(36px * var(--sc-dock-p, 1));
+  }
 }
 // A silent jump (route change, scroll reset): no transition at all.
 :host(.snap) .cap * {
@@ -542,11 +618,12 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 .account:empty {
   display: none;
 }
-// Docked main page (desktop): no avatar in the subheader — the header's own slid and faded away.
-.account.gone {
-  width: 0;
-  margin-left: 0;
-  overflow: hidden;
+// Docked main page: the header's own copy is still gliding in — this one keeps its
+// room (the field never shifts when it lands) but stays invisible until it has.
+.account {
+  transition: opacity 0.2s ease;
+}
+.account.pending {
   opacity: 0;
   pointer-events: none;
 }
@@ -766,102 +843,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   outline-offset: 2px;
 }
 
-@keyframes sub-trace {
-  0% {
-    --sc-sub-trace-ang: 0deg;
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.8;
-  }
-  70% {
-    --sc-sub-trace-ang: 360deg;
-    opacity: 0.8;
-  }
-  100% {
-    --sc-sub-trace-ang: 360deg;
-    opacity: 0;
-  }
-}
-@keyframes sub-bloom {
-  0%,
-  13.3% {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  46.7% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-  100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-}
-@keyframes sub-fly {
-  0% {
-    opacity: 0;
-    transform: perspective(800px) translateZ(-480px);
-  }
-  18.75% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 1;
-    transform: perspective(800px) translateZ(0);
-  }
-}
-@keyframes sub-echo {
-  0%,
-  36.4% {
-    opacity: 0;
-    transform: scale(0.55);
-  }
-  50% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.03);
-  }
-}
-@keyframes sub-band {
-  0% {
-    background-position: -50% 0;
-  }
-  100% {
-    background-position: 150% 0;
-  }
-}
-@keyframes sub-head {
-  0% {
-    left: 14px;
-    opacity: 0;
-  }
-  17.4% {
-    left: 14px;
-    opacity: 1;
-  }
-  94% {
-    left: calc(100% - 16px);
-    opacity: 1;
-  }
-  100% {
-    left: calc(100% - 16px);
-    opacity: 0;
-  }
-}
-@keyframes sub-drop {
-  from {
-    opacity: 0;
-    transform: scaleY(0.6);
-  }
-}
-@keyframes sub-fade {
-  from {
-    opacity: 0;
-  }
-}
 
 // Tablet: the hit count and the button labels give way to the field.
 @media (max-width: 1100px) {
@@ -948,7 +929,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   // No avatar under the thumb: the account sits at the route line's right end,
   // clear of the β chip's lane (the bar itself keeps clear of the feedback launcher).
   .cap > .account,
-  .cap > .account.gone {
+  .cap > .account.pending {
     position: fixed;
     top: calc(var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + 4px);
     right: max(var(--sc-page-gutter), var(--sc-chip-lane, 0px));
@@ -956,8 +937,10 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     width: auto;
     margin: 0;
     overflow: visible;
-    opacity: 1;
     pointer-events: auto;
+  }
+  .cap > .account:not(.pending) {
+    opacity: 1;
   }
   :host ::ng-deep .search .input {
     min-width: 4ch;

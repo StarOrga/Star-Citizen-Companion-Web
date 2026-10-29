@@ -1,0 +1,1119 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "decisions": [
+      {
+        "id": "r1-f1",
+        "label": "B1 · Subheader-Wildwuchs",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f2",
+        "label": "B2 · Zurück-Navigation",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f3",
+        "label": "B3 · Suche an 5 Orten",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f4",
+        "label": "B4 · Vertikale Abstände",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f5",
+        "label": "B5 · Breiten",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f6",
+        "label": "B6 · Shell-Header",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f7",
+        "label": "B7 · Footer",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f8",
+        "label": "B8 · Verse β gegen Shell",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f9",
+        "label": "B9 · Detail-Overlays",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-f10",
+        "label": "B10 · Technische Kopplung",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-p1",
+        "label": "P1 · Header-Modus pro Typ",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-p2",
+        "label": "P2 · Crumbs ODER Zurück",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-p3",
+        "label": "P3 · Overlay = Route",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-p4",
+        "label": "P4 · Kein Footer bei Endlos-Scroll",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-p5",
+        "label": "P5 · Subheader ordnet sich unter",
+        "evaluation": "include"
+      },
+      {
+        "id": "r1-p6",
+        "label": "P6 · Layout in Route-Daten",
+        "evaluation": "include"
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "devops löearn waruzm hier die abgeschnitten sind die custom notizen, s. anbei!\nbtw, setze das alles hier für den beta mode um! den du dann gern überall links unten overlayen lässt für admins und collaborateure.\n\nUnd mach das ganze layout top tablet und mobile fit, dass muss ein genuss aber mit frischer innovation sein, keine unübersichtliche seite und auch keine lahme alte seite. Die mujss bangen!\n\nGenerell habe ich etwas mehr kommentiert als der urspürngliche scope, setze das abe rauch mit um!!! nix bleibt übrig hier.\n\nAußerdem mach wie bei hatchit ein icon mobile wenn man darauf klickt ein popup welches einem ermöglich t direkt auf dme ahandy weiter zu amchen im eingeloggten zustand ohne erneutes einlogen! das ist nämlich super cool!",
+        "attachments": [
+          {
+            "id": "ea66eca8aeabfc1d8dc49a6df7c49f9f712680538aac0703046ee729327b5bc3.png",
+            "name": "image.png",
+            "mime": "image/png",
+            "size": 16424,
+            "path": ".claude/concepts/2026-10-25-header-footer-subheader-analyse/attachments/ea66eca8aeabfc1d8dc49a6df7c49f9f712680538aac0703046ee729327b5bc3.png"
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "r1-f3",
+          "text": "Ich würde es sogar anders machen die suchleiste haben wir ja schon überarbeitet. Ich würde aus dem header die suchleiste aufruf komplett rausnehmen, dafür im subheader praktisch überall fest integrieren. Dort die suchergebnisse aber jeweils so sortieren / gruppieeren top x je nachdem anzeigen, dass man immer je nachdem wo man sucht eher die antworten passend findet (sogar in der Star Galerie), aber auch im zweifelsfall überall z. B. (s)ein schiff finden. Außerdem hotkey wird angezeigt in dem input field wenn nicht focussed. Dieser lässt sich aber wirklich von überall auch aufrufen und wie heute kommt die suche dann hervor und sucht. Vllt. bisschen mehr transformation beim aufrufen / fokussieren, dann besser animiert und nach und nach gefunden beim suchen und dann animativ / transformation je nachdem beim auswählen des ergebnsises. \nAuch darf man bis zu drei icons für quick actions und eine button action direkt auf dem suchergebnis kontextbezogen und suchergebnisbezogen machen. \nDie Suche soll immer als suche funktionieren, aber gerade wenn mehr als drei wörter eingegeben werden soll die option angeboten werdne den Companion zu fragen ;)",
+          "attachments": []
+        },
+        {
+          "id": "r1-f5",
+          "text": "Uff, das hört sich 0 responsiv für 4k etc. an. Aber ich fidne super, dass inhaltsswchwere wie schiffseiten schmal sind weil man eh nicht so viel erfassen kann bei so viel infos und es einen zum fokus der infos zwingt  und sonst standardmäßig alle volle breite oder so....",
+          "attachments": []
+        },
+        {
+          "id": "r1-f9",
+          "text": "Ja genau, mach urls für die overlays, ansonsten alle subseiten sowieso. Aueßrdem cehck das sie anchors haben wenn nicht ohne scroll seiten. Überprüfe nochmal welche overlays sein sollten, Suche finde ich sinnvoll, codex komponenten swappen, galerie lightbox, news detail und patch detail (sollten zuletzt die drei gelieechförmig aufgebaut werden)",
+          "attachments": []
+        },
+        {
+          "id": "r1-p2",
+          "text": "Lass uns das deterministirsch festhalten. Z. b. cinmematisch gar nix, inhalt breadcrumb leiste, werkzeug auch, popup detial kein zurück leiste sondern x und immer feste repsonsive einnahme des screens (und das muss gut ausgeabrieetet werden damit es für die suche und die ergebnisse übersichtlich funktioniert und die waffenauswahl viel püoehntential z. B. birgt).",
+          "attachments": []
+        },
+        {
+          "id": "r1-p5",
+          "text": "Genau und überlege ob der subheader immer oben sein muss oder z. B. an der linken siete in dem freien bereich bei schmalen seiten, hmmm, wo würde das dann brechen?",
+          "attachments": []
+        },
+        {
+          "id": "map-seitentypen-note",
+          "text": "constellations sehe ich eigentlich als eine umschaltvariante von der sternenkarte dem oberen hauptpanel. Das sollte das panel gern einfach drehen / auflösen und aufbauen wie auch immer. keine extra seite. Außerdem logbuch eher hinter einem hilfe button, dann aber wie ein inline tutorial erklärt mit  hervorherbungen worum es hier in drei bullets geht und dann schrittweise ein tutorial mit per zeit und klick welches element tut was.\nUpcoming-Liste (/codex/upcoming) hat ein cinematisches element was auch in codex startseite sein sollte und dann eine unterseite die ist ja eher werkzeug. \nnachschub panel auch entsprechend anpassen oder als popup variante weil es ja eher eine shopping cart sogar auf aufträge und gegenstände etc. und co. beztogen ist. wie eine mischung aus task liste und shopping cart. \n\nDesktop-/Uploader-Auth - cinematisch aber einfach, sehr fokussiert, nicht viel aber das was da ist, krass ich tauche jetzt ein in die welt...",
+          "attachments": []
+        }
+      ]
+    },
+    "mappings": [
+      {
+        "id": "seitentypen",
+        "diff": [
+          {
+            "item": "constellations",
+            "target": "typ.cine_sub",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "constellations",
+            "target": "typ.content",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "star_card",
+            "target": "typ.content",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "star_card",
+            "target": "typ.overlay",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "codex_upcoming_detail",
+            "target": "typ.content",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "codex_upcoming_detail",
+            "target": "typ.overlay",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "settings",
+            "target": "typ.cine_hub",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "settings",
+            "target": "typ.plain",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "friends",
+            "target": "typ.cine_sub",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "friends",
+            "target": "typ.tool",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "admin_telemetry",
+            "target": "typ.content",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "admin_telemetry",
+            "target": "typ.tool",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "login",
+            "target": "typ.cine_hub",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "login",
+            "target": "typ.plain",
+            "proposed": true,
+            "now": false
+          },
+          {
+            "item": "auth_cards",
+            "target": "typ.overlay",
+            "proposed": false,
+            "now": true
+          },
+          {
+            "item": "auth_cards",
+            "target": "typ.plain",
+            "proposed": true,
+            "now": false
+          }
+        ],
+        "note": "constellations sehe ich eigentlich als eine umschaltvariante von der sternenkarte dem oberen hauptpanel. Das sollte das panel gern einfach drehen / auflösen und aufbauen wie auch immer. keine extra seite. Außerdem logbuch eher hinter einem hilfe button, dann aber wie ein inline tutorial erklärt mit  hervorherbungen worum es hier in drei bullets geht und dann schrittweise ein tutorial mit per zeit und klick welches element tut was.\nUpcoming-Liste (/codex/upcoming) hat ein cinematisches element was auch in codex startseite sein sollte und dann eine unterseite die ist ja eher werkzeug. \nnachschub panel auch entsprechend anpassen oder als popup variante weil es ja eher eine shopping cart sogar auf aufträge und gegenstände etc. und co. beztogen ist. wie eine mischung aus task liste und shopping cart. \n\nDesktop-/Uploader-Auth - cinematisch aber einfach, sehr fokussiert, nicht viel aber das was da ist, krass ich tauche jetzt ein in die welt..."
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mvoe9opq758j",
+        "design": "",
+        "screen": "seitentypen",
+        "x": 21.6,
+        "y": 51.4,
+        "target": "tr \"Kartograph-Badge (/badge/kartograph) | |\"",
+        "text": "keine ahnugn wann die überhaupt kommt.... gern auch vorschlgäe frü seiten die gerade untergehjen, die schwirig hinzukommen sind etc. ich habe das gefühl wiwr habne lost seiten...",
+        "anchor": {
+          "section": "seitentypen",
+          "kind": "tr",
+          "index": 53,
+          "ref": "",
+          "text": "Kartograph-Badge (/badge/kartograph) | | | | | | | 1"
+        },
+        "attachments": []
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": "morph",
+    "decisions": [
+      {
+        "id": "r2-v1-header",
+        "label": "Header-Modus pro Seitentyp",
+        "evaluation": "discard",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-sub",
+        "label": "Subheader und Rückweg fest pro Typ",
+        "evaluation": "include",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-space",
+        "label": "8-px-Skala, je ein Wert pro Strecke",
+        "evaluation": "include",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-tokens",
+        "label": "Höhen als Tokens und scroll-padding",
+        "evaluation": "include",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-motion",
+        "label": "Schwellen fürs Aus- und Einblenden",
+        "evaluation": "include",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-footer",
+        "label": "Zwei Footer-Modi",
+        "evaluation": "include",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v1-contract",
+        "label": "Layout-Vertrag, erst im Beta-Modus",
+        "evaluation": "include",
+        "view": "regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-panes",
+        "label": "Spuren plus Zusatzspalten",
+        "evaluation": "include",
+        "view": "breiten",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-fluid",
+        "label": "Alles fluid mit clamp-Rand",
+        "evaluation": "discard",
+        "view": "breiten",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-cap",
+        "label": "Voll breit bis 2400 px",
+        "evaluation": "discard",
+        "view": "breiten",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-grow",
+        "label": "Rahmen wächst weiter",
+        "evaluation": "discard",
+        "view": "breiten",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-scale",
+        "label": "Mitwachsende Schrift",
+        "evaluation": "discard",
+        "view": "breiten",
+        "note": ""
+      },
+      {
+        "id": "r2-v2-user",
+        "label": "Breite als Einstellung",
+        "evaluation": "discard",
+        "view": "breiten",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-otc",
+        "label": "Einmal-Code per QR, serverseitig getauscht",
+        "evaluation": "include",
+        "view": "handy",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-mail",
+        "label": "Magic Link per E-Mail",
+        "evaluation": "include",
+        "view": "handy",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-approve",
+        "label": "QR plus Freigabe am Desktop",
+        "evaluation": "discard",
+        "view": "handy",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-passkey",
+        "label": "Passkey über mehrere Geräte",
+        "evaluation": "discard",
+        "view": "handy",
+        "note": ""
+      },
+      {
+        "id": "r2-v3-token",
+        "label": "QR mit dem aktuellen Refresh-Token",
+        "evaluation": "discard",
+        "view": "handy",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-rank",
+        "label": "Kontext-Gewicht statt Filter",
+        "evaluation": "include",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-actions",
+        "label": "Drei Icons und ein Button pro Treffer",
+        "evaluation": "include",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-ask",
+        "label": "Companion fragen ab vier Wörtern",
+        "evaluation": "include",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-dock",
+        "label": "Suchzeile in der Bühne, dockt an",
+        "evaluation": "include",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-pill",
+        "label": "Such-Pille im transparenten Header",
+        "evaluation": "discard",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-orb",
+        "label": "Nur Hotkey und schwebender Such-Knopf",
+        "evaluation": "discard",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v4-stage",
+        "label": "Suchzeile nur in der Bühne",
+        "evaluation": "discard",
+        "view": "suche",
+        "note": ""
+      },
+      {
+        "id": "r2-v6-anatomy",
+        "label": "Ein Gerüst für drei Overlays",
+        "evaluation": "include",
+        "view": "overlays",
+        "note": ""
+      },
+      {
+        "id": "r2-v6-urls",
+        "label": "URL für jedes Overlay",
+        "evaluation": "include",
+        "view": "overlays",
+        "note": ""
+      },
+      {
+        "id": "r2-v6-anchors",
+        "label": "Anker-Liste pro langer Seite",
+        "evaluation": "include",
+        "view": "overlays",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "bei den hauptmenüseiten, statt einefach einen anderne background zu laden, kann der background zoomen z. B. zum hangar background und dann ggf. transofmren und bei codex gern nach rechts drehen und man schaut auf einen dezenten hintergrund etc. Es müssen aber alle routen gehen, auuch von hq direkt zu codex. \nSo ist gvisuell nicht nur anhand des menüs sondern auch wörtlich wo man ist klar.\nnur für die hauptseiten backgrounds.",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-d3-s4-a1",
+          "text": "das finde ich sehr gut perfekt. Aber wie paswst das zusammen mit VI?",
+          "attachments": []
+        },
+        {
+          "id": "anno-d3-s6-a1",
+          "text": "wohl eher eine art tabelle, aber innovativ!",
+          "attachments": []
+        },
+        {
+          "id": "d1-s1",
+          "text": "2",
+          "attachments": []
+        },
+        {
+          "id": "d3-s3",
+          "text": "hier wollen wir holotisch und klassisch nicht anfassen die inhalte, außer ggf. die popups überarbeiten, background, abstände, subheader aber sonst nix inhaltlifch und visuell!!! Machen wir abseits dieses konzepts",
+          "attachments": []
+        },
+        {
+          "id": "d3-s5",
+          "text": "das finde ich eine super idee",
+          "attachments": []
+        },
+        {
+          "id": "d3-s6",
+          "text": "ich magh es eigentlich, aber normalerweise vergleicht man eh alle möglichen die man für die filter, z. B. ballistisch / laser setzen kann, ggf. auch alle drei miteinander, also alles. und ggf. weiteren uauswahlen.",
+          "attachments": []
+        },
+        {
+          "id": "design-morph",
+          "text": "ich finde den style den wir heute hjaben sehr gut (vom background und der mitte der schrifttexte. Wobei ich das suschfeldg genial finde.",
+          "attachments": []
+        },
+        {
+          "id": "view-regelwerk",
+          "text": "cinemastisch hzauptseite => Lass uns die sucheleite beim scrollen auch zum header werden, denn z. B. News, patches etc. wollen vllt. auch  durchsucht werden...",
+          "attachments": []
+        }
+      ],
+      "designs": {
+        "morph": "ich finde den style den wir heute hjaben sehr gut (vom background und der mitte der schrifttexte. Wobei ich das suschfeldg genial finde."
+      },
+      "screens": {
+        "d1-s1": "2",
+        "d3-s3": "hier wollen wir holotisch und klassisch nicht anfassen die inhalte, außer ggf. die popups überarbeiten, background, abstände, subheader aber sonst nix inhaltlifch und visuell!!! Machen wir abseits dieses konzepts",
+        "d3-s5": "das finde ich eine super idee",
+        "d3-s6": "ich magh es eigentlich, aber normalerweise vergleicht man eh alle möglichen die man für die filter, z. B. ballistisch / laser setzen kann, ggf. auch alle drei miteinander, also alles. und ggf. weiteren uauswahlen."
+      },
+      "views": {
+        "regelwerk": "cinemastisch hzauptseite => Lass uns die sucheleite beim scrollen auch zum header werden, denn z. B. News, patches etc. wollen vllt. auch  durchsucht werden..."
+      }
+    },
+    "userPins": [
+      {
+        "id": "up-mvownpz3zq3l",
+        "design": "morph",
+        "screen": "d3-s1",
+        "x": 70.9,
+        "y": 97.9,
+        "target": "footer.d3-strip \"SC Companion · Fan-Projekt, nicht mit Cl\"",
+        "text": "Können wir den Footer nicht ohne hintergruhnd machen? und wo ist das fan made logo? Das muss sein. Zudem brauchen wir keine versionsnummer dort, neuigkeiten gern.",
+        "attachments": []
+      },
+      {
+        "id": "up-mvowoyznwlhy",
+        "design": "morph",
+        "screen": "d3-s1",
+        "x": 47.6,
+        "y": 60,
+        "target": "button.d3-cmd \"⌕ Suche im Verse oder frag den Companion\"",
+        "text": "Die suche ist hier ja super pplatzziertg, könnte diese nicht zum subheader werden beim scrolllen und auf anderen seiten schon sein?",
+        "attachments": []
+      },
+      {
+        "id": "up-mvowpidzklcp",
+        "design": "morph",
+        "screen": "d3-s1",
+        "x": 51.8,
+        "y": 28.3,
+        "target": "span.d3-kick \"Live 4.3.1 · stabil 82 %\"",
+        "text": "Sehr gute Infos, gut platziert! reicht auch auf verse",
+        "attachments": []
+      },
+      {
+        "id": "up-mvowr9ru2zdg",
+        "design": "morph",
+        "screen": "d3-s1",
+        "x": 62.4,
+        "y": 5,
+        "target": "button.d3-ib \"▯\"",
+        "text": "lass uns das mobnile icon links unten auf der seite machen wo heute das beta panel ist. Wobei das beta panel ruhig rechts oben hinkann, vllt. beta panel auch nochmal leicht überarbeiten...",
+        "attachments": []
+      },
+      {
+        "id": "up-mvowxf93oxpf",
+        "design": "morph",
+        "screen": "d3-s6",
+        "x": 5.3,
+        "y": 87.4,
+        "target": "a \"↗ Ganze Seite öffnen\"",
+        "text": "nö, würde ich als popup lassen, ansonsten eher auf jeder waffe detailseite öffnen möglich machen",
+        "attachments": []
+      },
+      {
+        "id": "up-mvowy5qdgcge",
+        "design": "morph",
+        "screen": "d3-s7",
+        "x": 87.9,
+        "y": 16.5,
+        "target": "header \"Auf dem Handy weitermachen✕\"",
+        "text": "Das passt gut, aber gern von links unten kommend, handy icon",
+        "attachments": []
+      },
+      {
+        "id": "up-mvox4ky9xkb2",
+        "design": "morph",
+        "screen": "d3-s2",
+        "x": 52.2,
+        "y": 12.3,
+        "target": "div.d3-tail \"12 · 04 · 31bis 4.4 · Live 4.3.1 stabil\"",
+        "text": "Finde ich gut, wenn das inhaltlich zum scroll fortschritt passt. Sprich hier gerade zu den news. \nAber vllt. irgendwie etwas anderes?",
+        "attachments": []
+      },
+      {
+        "id": "up-mvox5llj7dka",
+        "design": "morph",
+        "screen": "d3-s2",
+        "x": 34.9,
+        "y": 70.9,
+        "target": "small \"vor 9 Wochen\"",
+        "text": "Patches gern auch interessant previewen!",
+        "attachments": []
+      },
+      {
+        "id": "up-mvox5voq7ofl",
+        "design": "morph",
+        "screen": "d3-s2",
+        "x": 3.5,
+        "y": 75.7,
+        "target": "div.d3-pchips \"4.4PTU · Welle 24.3.1Live · stabil4.3.0v\"",
+        "text": "Mir fehlt hier die Galerie!? als letztes mit Bildervorschau!",
+        "attachments": []
+      },
+      {
+        "id": "up-mvox74kmdax0",
+        "design": "morph",
+        "screen": "d3-s2",
+        "x": 95.6,
+        "y": 65.9,
+        "target": "a \"Patch-Übersicht →\"",
+        "text": "GUte Idee so zu den unteseiten zu kommen.",
+        "attachments": []
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "decisions": [
+      {
+        "id": "r3-k-sub",
+        "label": "Subheader und Rückweg fest pro Typ",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-space",
+        "label": "8-px-Skala, Höhen-Tokens, Schwellen",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-contract",
+        "label": "Layout-Vertrag, erst im Beta-Modus",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-widths",
+        "label": "Spuren plus Zusatzspalten",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-handoff",
+        "label": "Einmal-Code per QR und Magic Link",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-search",
+        "label": "Suchregeln aus Runde 2",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-overlays",
+        "label": "Overlays: ein Gerüst, URL, Anker",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-k-mapping",
+        "label": "Seitentyp-Zuordnung bestätigt",
+        "evaluation": "include",
+        "view": "r3-uebernommen",
+        "note": ""
+      },
+      {
+        "id": "r3-rw-one",
+        "label": "Eine Morph-Bar für alle Seitentypen",
+        "evaluation": "include",
+        "view": "r3-regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r3-rw-morph",
+        "label": "Suchzeile der Bühne wird zur Leiste",
+        "evaluation": "include",
+        "view": "r3-regelwerk",
+        "note": "subheader soll imemr auch suche sein! deshalb suche integral sehen  und ja genau beim scrollen transofrmieren weil cinematisch haauptseite ja keinen subheader hat!"
+      },
+      {
+        "id": "r3-rw-tool",
+        "label": "Werkzeug: Ablage ist die Werkzeugleiste",
+        "evaluation": "include",
+        "view": "r3-regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r3-rw-tail",
+        "label": "Ende der Leiste zeigt den Abschnitt im Blick",
+        "evaluation": "include",
+        "view": "r3-regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r3-rw-hide",
+        "label": "Leiste blendet auf Inhalt aus",
+        "evaluation": "include",
+        "view": "r3-regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r3-rw-pinned",
+        "label": "Leiste bleibt überall stehen",
+        "evaluation": "discard",
+        "view": "r3-regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r3-rw-corners",
+        "label": "Feste Ecken für Handy, Beta, Feedback",
+        "evaluation": "include",
+        "view": "r3-regelwerk",
+        "note": ""
+      },
+      {
+        "id": "r3-tr-css",
+        "label": "Eine Szene aus Ebenen, Kamera per CSS",
+        "evaluation": "include",
+        "view": "r3-uebergaenge",
+        "note": "ja genau, hq dann gern auf dem planeten. bei codex gern den planeten noch etwas drin lassen, dass man sieht wo man herkommt, noch bezug hat. Bitte"
+      },
+      {
+        "id": "r3-tr-video",
+        "label": "Vorgerenderte Clips pro Weg",
+        "evaluation": "discard",
+        "view": "r3-uebergaenge",
+        "note": ""
+      },
+      {
+        "id": "r3-tr-webgl",
+        "label": "Echte 3D-Szene in WebGL",
+        "evaluation": "discard",
+        "view": "r3-uebergaenge",
+        "note": ""
+      },
+      {
+        "id": "r3-tr-hubonly",
+        "label": "Fahrt nur, wenn das Ziel eine Hauptseite ist",
+        "evaluation": "include",
+        "view": "r3-uebergaenge",
+        "note": ""
+      },
+      {
+        "id": "r3-tr-area",
+        "label": "Fahrt bei jedem Bereichswechsel",
+        "evaluation": "discard",
+        "view": "r3-uebergaenge",
+        "note": ""
+      },
+      {
+        "id": "r3-tr-fallback",
+        "label": "Überblendung bei reduzierter Bewegung",
+        "evaluation": "include",
+        "view": "r3-uebergaenge",
+        "note": ""
+      },
+      {
+        "id": "r3-ft-clear",
+        "label": "Kein Hintergrund, keine Linie",
+        "evaluation": "include",
+        "view": "r3-footer",
+        "note": ""
+      },
+      {
+        "id": "r3-ft-badge",
+        "label": "Fan-Badge immer sichtbar",
+        "evaluation": "include",
+        "view": "r3-footer",
+        "note": "der text star citizen conmpanion und ... dazu kann hinter einem popup versteckt werden, laut cig reicht doch logo + made by the community daneben für die direkte sichtarbe homepage, oder?"
+      },
+      {
+        "id": "r3-ft-news",
+        "label": "Neuigkeiten statt Versionsnummer",
+        "evaluation": "include",
+        "view": "r3-footer",
+        "note": ""
+      },
+      {
+        "id": "r3-ft-edge",
+        "label": "Hauptseiten: am Bühnenrand, scrollt mit",
+        "evaluation": "include",
+        "view": "r3-footer",
+        "note": ""
+      },
+      {
+        "id": "r3-ft-fixed",
+        "label": "Hauptseiten: fest am Fensterrand",
+        "evaluation": "discard",
+        "view": "r3-footer",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-m3-s1-a1",
+          "text": "passt!",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s1-a3",
+          "text": "vllt. wenn man drauf klickt dann so ein speech bubble popup mit dem text. Laut cig richtlinien reicht doch made by the community und logo als erstdarstellung oder?",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s2-a1",
+          "text": "jain, schon aber muss man mal animativ sehen.",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s2-a2",
+          "text": "gute idee aber irgendwie da rechts detached von links wo eigentlich die subabschnitte sind und auch der menü wechsel",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s4-a1",
+          "text": "finde die crumbs super, links die codex auswahl asber noch schrott....",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s4-a2",
+          "text": "ne, solange die inhalte exakt weiterhin verfügbar bleiben!",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s5-a1",
+          "text": "Die idee finde ich super und wiederverwendbar!",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s6-a1",
+          "text": "schau dir V an bzgl. der header und suche finde ichb viel besser doirt gelöst. Für mich ist der kontext nur wie ein filter oder eine crumb",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s8-a1",
+          "text": "finde ich super, aber visuell noch etwas zu groß und nicht klar, wie das man ja links vom qr code über die schritte dann zu der handy ansicht kommt visuell.",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s9-a1",
+          "text": "ja das ist eine gute idee",
+          "attachments": []
+        },
+        {
+          "id": "anno-m3-s10-a1",
+          "text": "mitten auf dem planeten bitte! Finde super wie sich die hangar türen öffnen!",
+          "attachments": []
+        },
+        {
+          "id": "r3-rw-morph-note",
+          "text": "subheader soll imemr auch suche sein! deshalb suche integral sehen  und ja genau beim scrollen transofrmieren weil cinematisch haauptseite ja keinen subheader hat!",
+          "attachments": []
+        },
+        {
+          "id": "r3-tr-css-note",
+          "text": "ja genau, hq dann gern auf dem planeten. bei codex gern den planeten noch etwas drin lassen, dass man sieht wo man herkommt, noch bezug hat. Bitte",
+          "attachments": []
+        },
+        {
+          "id": "r3-ft-badge-note",
+          "text": "der text star citizen conmpanion und ... dazu kann hinter einem popup versteckt werden, laut cig reicht doch logo + made by the community daneben für die direkte sichtarbe homepage, oder?",
+          "attachments": []
+        },
+        {
+          "id": "m3-s4",
+          "text": "ganz wichtig, der holotisch / klassisch bereich (außer der subheader teil ganz ganz oben mit patch auswahl und zurück etc.) ddarf sich erstmal 0 händern. Ziehe ein großes rechteck über alle inhalte die unterschiedlich sind zwischen den beiden, das ist der bereiich der exakt so bleiben muss.hintergrund, abstände etc. die darfst du ändern von dem reechteck zu dem rest.! aber bitte nicht neu ktegorisieren etc.....",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {
+        "m3-s4": "ganz wichtig, der holotisch / klassisch bereich (außer der subheader teil ganz ganz oben mit patch auswahl und zurück etc.) ddarf sich erstmal 0 händern. Ziehe ein großes rechteck über alle inhalte die unterschiedlich sind zwischen den beiden, das ist der bereiich der exakt so bleiben muss.hintergrund, abstände etc. die darfst du ändern von dem reechteck zu dem rest.! aber bitte nicht neu ktegorisieren etc....."
+      },
+      "views": {}
+    },
+    "userPins": [
+      {
+        "id": "up-mvozvhp4zyxg",
+        "design": "morph",
+        "screen": "m3-s1",
+        "x": 51.3,
+        "y": 36.1,
+        "target": "p.mk-eyebig \"Countdown 4.4\"",
+        "text": "das können wir rausnehmen",
+        "attachments": []
+      },
+      {
+        "id": "up-mvp0sdza9o6m",
+        "design": "morph",
+        "screen": "m3-s3",
+        "x": 20.2,
+        "y": 65,
+        "target": "span.mk-pmeta \"12 bekannte Probleme314 Meldungen auf Sp\"",
+        "text": "hier eher mehr als die letzttren 3 oder weniger und die ztahl zweitranig. Finde es aber super toll informativ!",
+        "attachments": []
+      },
+      {
+        "id": "up-mvp0w5d4ouxp",
+        "design": "morph",
+        "screen": "m3-s4",
+        "x": 81.8,
+        "y": 5,
+        "target": "b \"Bewaffnung\"",
+        "text": "abschnitte b rauchen wir hier n icht, again, gern mehr teilen buttons für anchros einführen ;) \nOder bei scrollable seiten gern einen teilen button der sticky ist und automatisch anchor mitnimmt ohne das der nutzer das merkt, für ihn immer dedr gleiche tielnen button",
+        "attachments": []
+      },
+      {
+        "id": "up-mvp0xfgwjbxn",
+        "design": "morph",
+        "screen": "m3-s5",
+        "x": 58.8,
+        "y": 10.2,
+        "target": "span.mk-vt \"▦☰\"",
+        "text": "das sich filter aus der suche ausklappen finde ich super bzw. aus dem sub header!",
+        "attachments": []
+      },
+      {
+        "id": "up-mvp0xy1h8r7j",
+        "design": "morph",
+        "screen": "m3-s5",
+        "x": 68.1,
+        "y": 9.3,
+        "target": "span.mk-vt \"▦☰\"",
+        "text": "finde toll das das integriert ist!",
+        "attachments": []
+      },
+      {
+        "id": "up-mvp10a8bqoyu",
+        "design": "morph",
+        "screen": "m3-s1",
+        "x": 61.4,
+        "y": 6.1,
+        "target": "a.mk-adm \"Admin\"",
+        "text": "de3r header und subheader, lass uns die nochmal beide explorieren die müssen ineinander übergehhen sicht zusammengehören transofr mikeren. etc.",
+        "attachments": []
+      }
+    ],
+    "recoveredPinTexts": "up-mvoynbn9e2ga => das finde ich sehr gut als footer, sehr sch�n rechts unten!\r\nup-mvoyphcn0jv4 => Ok, dann lass uns hier die drei zeilen der pers�nlichen news so machen, dass wir immer nur eine anzeigen und die bei mindestens 30 minuten unfocus oder geschlossen etc.  wechseln kann (falls ees noch weitere gibt) / weiterroriteiren. das im background weil ich will nicht das der nutzer eine nachricht vermisst, deshalb alle 30 minuten. aber trotzdem pers�nlich und immer wieder interessant ist reinzuschauen.  / btw, ich finde den aktuellen style schrift technisch sehr gut und passend. aber sch�n finde ich das wir die dreier balken los werden uhnd auch das jetzt ansehen.  / Ich w�rde dar�ber das countdown 4.4 weg lassen, das ist zu viel... \r\nup-mvoyurndwr5m => du hast den style des headers ja gar nicht �berarbeitet der ist ja nur so mittel sexy... \r\nup-mvoz0lydnoy5 => header sollte zu sub header transformieren. und subheader dann die header auswahl reinnehmen beim scrollen. Also schau mal wie die beiden zusammenpassen wie sie transofmrierne. ich bin von beiden stilistisch nohc nicht begeistert... \r\nup-mvoz2c4k6knp => finde ich richtig gut, die zahlen 12 und 314 ben�tigen aber einordnung. Eher so etwas wie wenig / viele .... und die zahl nur zweitrangig\r\nup-mvoz40n3x5pr => genau unver�ndert, aber insgesammt der klassscihehn und holotisch teil im inhalt. also nicht in neue kategorien sortieren usw. wie bei flugwerte, bitte ein gro�es concent rechteck und diesen untouched lassne bei schiff detail view (subheader, background etc.. ok). bei allen anderen kannst du gern stark �berarbeiten und so das neue design anpreisen. \r\nup-mvoz6urvhq2v => ich finde subheader hat integral die suche und das sollte nun nicht imer unterschiedlich dargestellt werden. \r\nup-mvoz7mynlv15 => d\r\n"
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "favorite": "fusion",
+    "decisions": [
+      {
+        "id": "r4-v-ctxchip",
+        "label": "Suchkontext als Chip im Feld",
+        "evaluation": "include",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-v-secleft",
+        "label": "Abschnitt im Blick links bei den Crumbs",
+        "evaluation": "include",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-v-kinds-seg",
+        "label": "Codex-Arten als Segmente in der Leiste",
+        "evaluation": "include",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-v-kinds-rail",
+        "label": "Codex-Arten als schmale Icon-Schiene",
+        "evaluation": "discard",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-v-trigger",
+        "label": "Verwandlung ab Schwelle, einmal abgespielt",
+        "evaluation": "include",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-v-scrub",
+        "label": "Verwandlung an die Scroll-Position gekoppelt",
+        "evaluation": "discard",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-v-phone",
+        "label": "Handy: Leiste unten am Daumen",
+        "evaluation": "include",
+        "view": "r4-vergleich",
+        "note": ""
+      },
+      {
+        "id": "r4-f-ship",
+        "label": "Schiffsseite: ein Rechteck unverändert, Teilen mit Anker",
+        "evaluation": "include",
+        "view": "r4-verfeinerungen",
+        "note": ""
+      },
+      {
+        "id": "r4-f-footer",
+        "label": "Footer: Badge plus Schriftzug, Hinweis in der Sprechblase",
+        "evaluation": "include",
+        "view": "r4-verfeinerungen",
+        "note": ""
+      },
+      {
+        "id": "r4-f-news",
+        "label": "Eine persönliche Nachricht, Wechsel nach 30 Minuten",
+        "evaluation": "include",
+        "view": "r4-verfeinerungen",
+        "note": ""
+      },
+      {
+        "id": "r4-f-patch",
+        "label": "Patches: Einordnung in Worten, Zahl klein",
+        "evaluation": "include",
+        "view": "r4-verfeinerungen",
+        "note": ""
+      },
+      {
+        "id": "r4-f-handoff",
+        "label": "Handy-Übergabe: kleiner, drei Schritte von links nach rechts",
+        "evaluation": "include",
+        "view": "r4-verfeinerungen",
+        "note": ""
+      },
+      {
+        "id": "r4-f-trans",
+        "label": "Übergänge: HQ auf dem Planeten, Codex mit Planetenrand",
+        "evaluation": "include",
+        "view": "r4-verfeinerungen",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-d4-s1-a1",
+          "text": "das ist eine gute idee!",
+          "attachments": []
+        },
+        {
+          "id": "anno-d4-s2-a1",
+          "text": "Sehr gut! genial!",
+          "attachments": []
+        },
+        {
+          "id": "anno-d4-s4-a1",
+          "text": "das macht schon sinnn aber breadcrumbs vs das hier, ist das nicht zu wild. Najna wenn es gut animiert wird im übergang eigentlich gut",
+          "attachments": []
+        },
+        {
+          "id": "anno-d4-s6-a1",
+          "text": "sehr gut!",
+          "attachments": []
+        },
+        {
+          "id": "design-fusion",
+          "text": "in der mitte unten footer infos beim planeten. Made by sthe community finde ich gut, aber dann gern eher links unten",
+          "attachments": []
+        }
+      ],
+      "designs": {
+        "fusion": "in der mitte unten footer infos beim planeten. Made by sthe community finde ich gut, aber dann gern eher links unten"
+      },
+      "screens": {},
+      "views": {}
+    },
+    "userPins": [
+      {
+        "id": "up-mvp3xq9nn9ve",
+        "design": "fusion",
+        "screen": "d4-s3",
+        "x": 24.8,
+        "y": 19.5,
+        "target": "h1 \"Avenger Stalker\"",
+        "text": "hier brauchen wir nicht namen ujnd darüber...",
+        "attachments": []
+      },
+      {
+        "id": "up-mvp48eaxwtn4",
+        "design": "fusion",
+        "screen": "d4-s1",
+        "x": 50.8,
+        "y": 65.2,
+        "target": "b \"Dein Avenger Stalker hat in 4.4 PTU neue\"",
+        "text": "Das finde ich hmmm, könnten wir das unten nicht auf den planeten einbauen? Ich mochte an den ursprühngichen planeten drei stück, weil sie eine Augenweide waren, sc bezug und klar interessante infos durchrollierten. Vllt. kann man das für dieses concept hier neudenken? ggf. sogar das made by the community mit logo miteinabuen...  Der rest ist schon pretty goo9d, lass uns es lgihter concepten und hierauf fokussieren. für die nächhste runde.l",
+        "attachments": []
+      }
+    ]
+  }
+]

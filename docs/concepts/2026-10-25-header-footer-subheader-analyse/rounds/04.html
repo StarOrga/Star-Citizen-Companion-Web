@@ -1,0 +1,1403 @@
+<section data-iteration="4" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop tablet phone" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{"fusion":"in der mitte unten footer infos beim planeten. Made by sthe community finde ich gut, aber dann gern eher links unten"},"screens":{},"views":{},"favorite":"fusion","userPins":[{"id":"up-mvp3xq9nn9ve","design":"fusion","screen":"d4-s3","x":24.8,"y":19.5,"target":"h1 \"Avenger Stalker\"","text":"hier brauchen wir nicht namen ujnd darüber...","attachments":[]},{"id":"up-mvp48eaxwtn4","design":"fusion","screen":"d4-s1","x":50.8,"y":65.2,"target":"b \"Dein Avenger Stalker hat in 4.4 PTU neue\"","text":"Das finde ich hmmm, könnten wir das unten nicht auf den planeten einbauen? Ich mochte an den ursprühngichen planeten drei stück, weil sie eine Augenweide waren, sc bezug und klar interessante infos durchrollierten. Vllt. kann man das für dieses concept hier neudenken? ggf. sogar das made by the community mit logo miteinabuen...  Der rest ist schon pretty goo9d, lass uns es lgihter concepten und hierauf fokussieren. für die nächhste runde.l","attachments":[]}]}</script>
+  <style>
+    /* ── Round 4 · Header ⇄ Subheader: three directions ──
+       shared mock base s4-, A Fusion d4-, B Stack-Dock d5-, C Orbit d6-.
+       Every moving part reads its two geometries from custom properties
+       (…-t0/l0 = hub top, …-t1/l1 = docked), so the static states, the
+       animated loop and the tablet/phone container rules share one source. */
+    .s4-app {
+      --c-bg: #030c14; --c-text: #e8ebed; --c-mute: #9fb3c8; --c-dim: #6f879b; --c-acc: #52c1e6; --c-acc2: #8be0ff;
+      --c-hot: #ff5722; --c-warn: #f0c27b; --c-ok: #5fd698; --c-vio: #9b7bff; --c-ln: rgba(82,193,230,.24); --c-card: rgba(8,24,36,.72);
+      --s4-T: 9s; --s4-ez: cubic-bezier(.65,0,.35,1); --s4-q: calc(28% + 168px); --s4-band: 64px;
+      position: relative; display: flex; flex-direction: column; width: 100%; min-height: 100%; box-sizing: border-box;
+      background: var(--c-bg); color: var(--c-text); font: 14px/1.45 Inter, "Segoe UI", system-ui, sans-serif;
+      text-align: left; overflow: clip; isolation: isolate;
+      border-top: var(--s4-band) solid #02080e; /* desktop only: keeps the bar clear of the concept chrome */
+    }
+    @container device (min-width: 1px) { .s4-app { --s4-band: 0px; } }
+    .s4-app.s4-fix { height: 100%; min-height: 600px; }
+    :where(.s4-app) *, :where(.s4-app) *::before, :where(.s4-app) *::after { box-sizing: border-box; }
+    :where(.s4-app) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; }
+    :where(.s4-app) a { color: inherit; text-decoration: none; cursor: pointer; }
+    :where(.s4-app) h1, :where(.s4-app) h2, :where(.s4-app) h3, :where(.s4-app) h4, :where(.s4-app) h5, :where(.s4-app) p { margin: 0; }
+
+    /* backgrounds: Verse = sky + planet, Codex = calm data wall */
+    .s4-sky {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        radial-gradient(1.2px 1.2px at 22px 34px, #fff 60%, transparent 62%),
+        radial-gradient(1px 1px at 140px 90px, rgba(255,255,255,.75) 60%, transparent 62%),
+        radial-gradient(1.5px 1.5px at 262px 22px, #cfeeff 60%, transparent 62%),
+        radial-gradient(1px 1px at 80px 172px, rgba(255,255,255,.6) 60%, transparent 62%),
+        radial-gradient(1px 1px at 204px 228px, rgba(255,255,255,.85) 60%, transparent 62%),
+        radial-gradient(1.7px 1.7px at 300px 150px, #fff 60%, transparent 62%),
+        radial-gradient(55% 45% at 70% 28%, rgba(82,193,230,.17), transparent 70%),
+        radial-gradient(40% 40% at 18% 78%, rgba(150,90,220,.15), transparent 70%),
+        linear-gradient(180deg, #02080e 0%, #03111b 62%, #061520 100%);
+      background-size: 320px 260px, 320px 260px, 320px 260px, 320px 260px, 320px 260px, 320px 260px, 100% 100%, 100% 100%, 100% 100%;
+    }
+    .s4-planet {
+      position: absolute; z-index: 1; aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle at 32% 30%, #ffe1b0 0%, #e59a5c 20%, #a2502c 44%, #3d1810 66%, #12070a 82%);
+      box-shadow: inset -60px -40px 120px rgba(0,0,0,.85), 0 0 140px rgba(240,150,80,.22);
+    }
+    .s4-wall {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(50% 40% at 82% 18%, rgba(155,123,255,.16), transparent 70%),
+        radial-gradient(40% 50% at 8% 92%, rgba(82,193,230,.10), transparent 70%),
+        repeating-linear-gradient(90deg, rgba(82,193,230,.05) 0 1px, transparent 1px 48px),
+        repeating-linear-gradient(0deg, rgba(82,193,230,.035) 0 1px, transparent 1px 48px),
+        linear-gradient(180deg, #040d16, #061520);
+    }
+
+    /* atoms */
+    .s4-logo { width: 26px; height: 26px; flex: none; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); background: linear-gradient(140deg, #8be0ff, #52c1e6 40%, #145a78); }
+    .s4-word { font: 700 15px/1 Orbitron, "Segoe UI", sans-serif; letter-spacing: .05em; white-space: nowrap; }
+    .s4-alpha { font: 12px/1 "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive; color: var(--c-acc); transform: rotate(-9deg) translateY(-7px); margin-left: -4px; }
+    .s4-av { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #04202c; background: linear-gradient(135deg, #8be0ff, #52c1e6 55%, #1b6f93); }
+    .s4-kbd { display: inline-block; flex: none; font: 600 11px/1 ui-monospace, Consolas, monospace; padding: 4px 6px; border-radius: 5px; border: 1px solid rgba(159,179,200,.35); color: var(--c-mute); background: rgba(255,255,255,.03); white-space: nowrap; }
+    .s4-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 12px; border: 1px solid var(--c-ln); background: rgba(82,193,230,.07); font-size: 13px; white-space: nowrap; }
+    .s4-btn.s4-p { background: var(--c-acc); color: #04202c; border-color: transparent; font-weight: 600; }
+    .s4-up { color: var(--c-acc2); }
+    .s4-down { color: var(--c-warn); }
+    .s4-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(82,193,230,.14); border: 1px solid rgba(82,193,230,.3); font-size: 12.5px; white-space: nowrap; }
+    .s4-chip.s4-add { background: none; border-style: dashed; color: var(--c-mute); }
+    .s4-chip.s4-on { background: rgba(82,193,230,.28); border-color: rgba(82,193,230,.7); color: #fff; }
+    .s4-sp { margin-left: auto; }
+    .s4-vt2 { display: inline-flex; flex: none; padding: 3px; border-radius: 12px; background: rgba(2,10,16,.6); }
+    .s4-vt2 b { padding: 6px 10px; border-radius: 9px; font-weight: 500; color: var(--c-mute); white-space: nowrap; }
+    .s4-vt2 b.s4-on { background: rgba(82,193,230,.24); color: #fff; }
+    .s4-stack { display: grid; }
+    .s4-stack > * { grid-area: 1 / 1; }
+    .s4-lyr { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+    .s4-crumbs { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 0 8px; white-space: nowrap; font-size: 13px; color: var(--c-mute); overflow: hidden; }
+    .s4-crumbs i { font-style: normal; opacity: .45; }
+    .s4-crumbs span { color: var(--c-text); font-weight: 600; }
+    .s4-fchip { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 4px 6px 4px 10px; border-radius: 9px; background: rgba(82,193,230,.16); border: 1px solid rgba(82,193,230,.42); color: #dff6ff; font-size: 12px; white-space: nowrap; }
+    .s4-fchip i { width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.1); font-style: normal; font-size: 9px; }
+    .s4-ftog { display: inline-flex; align-items: center; gap: 6px; flex: none; height: 32px; padding: 0 10px; border-radius: 10px; background: rgba(82,193,230,.2); border: 1px solid rgba(82,193,230,.55); color: #fff; font-size: 12.5px; white-space: nowrap; }
+    @keyframes s4-rise { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+    @keyframes s4-blink { 50% { opacity: 0; } }
+    @keyframes s4-fold { from { clip-path: inset(0 0 100% 0); opacity: .4; } }
+
+    /* ── the shared loop: 0–24 % hub top, 24–40 % morph, 40–76 % docked, 76–90 % back ── */
+    @keyframes s4-scroll { 0%, 24% { transform: translateY(0); } 40%, 76% { transform: translateY(-70%); } 90%, 100% { transform: translateY(0); } }
+    @keyframes s4-thumb { 0%, 24% { top: 6px; } 40%, 76% { top: 46%; } 90%, 100% { top: 6px; } }
+    @keyframes s4-out { 0%, 27% { opacity: 1; } 37%, 79% { opacity: 0; } 87%, 100% { opacity: 1; } }
+    @keyframes s4-in { 0%, 29% { opacity: 0; } 39%, 77% { opacity: 1; } 85%, 100% { opacity: 0; } }
+    @keyframes s4-grow { 0%, 30% { max-width: 0; opacity: 0; } 40%, 76% { max-width: var(--mw, 360px); opacity: 1; } 86%, 100% { max-width: 0; opacity: 0; } }
+    .s4-st-top .s4-lB { opacity: 0; pointer-events: none; }
+    .s4-st-dock .s4-lA, .s4-st-anim .s4-lA { opacity: 0; pointer-events: none; }
+    .s4-st-anim .s4-lA { animation: s4-out var(--s4-T) linear infinite; }
+    .s4-st-anim .s4-lB { animation: s4-in var(--s4-T) linear infinite; }
+    .s4-flow { position: absolute; inset: 0; z-index: 1; }
+    .s4-st-dock .s4-flow, .s4-st-anim .s4-flow { transform: translateY(-70%); }
+    .s4-st-anim .s4-flow { animation: s4-scroll var(--s4-T) var(--s4-ez) infinite; }
+    .s4-thumb { position: absolute; z-index: 50; right: 3px; top: 46%; width: 4px; height: 22%; border-radius: 3px; background: rgba(139,224,255,.4); pointer-events: none; }
+    .s4-st-anim .s4-thumb { animation: s4-thumb var(--s4-T) var(--s4-ez) infinite; }
+
+    /* hub stage — centred type stays as today, no "Countdown 4.4" eyebrow */
+    .s4-stage { position: relative; height: 100%; overflow: hidden; text-align: center; }
+    .s4-stage .s4-planet { width: 150%; left: -25%; top: 76%; }
+    .s4-stage > .s4-kick, .s4-stage > .s4-big, .s4-stage > .s4-cap, .s4-stage > .s4-pnews { position: absolute; left: 50%; z-index: 2; transform: translateX(-50%); white-space: nowrap; }
+    .s4-kick { top: 21%; display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(95,214,152,.45); background: rgba(10,40,30,.45); color: #c9f5dd; font-size: 12.5px; }
+    .s4-kick i { width: 8px; height: 8px; border-radius: 50%; background: var(--c-ok); box-shadow: 0 0 10px var(--c-ok); }
+    .s4-big { top: 28%; font: 800 96px/1 Orbitron, "Segoe UI", sans-serif; letter-spacing: .02em; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #fff 10%, #8be0ff 70%, #52c1e6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .s4-cap { top: calc(28% + 112px); font-size: 16px; color: var(--c-mute); }
+    .s4-pnews { top: calc(var(--s4-q) + 92px); display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px 8px 12px; border-radius: 999px; background: rgba(8,24,36,.62); border: 1px solid rgba(82,193,230,.22); backdrop-filter: blur(10px); font-size: 13.5px; }
+    .s4-pnews i { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--c-acc); box-shadow: 0 0 8px var(--c-acc); }
+    .s4-pnews small { font: 600 10.5px/1 Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--c-acc2); }
+    .s4-pnews b { font-weight: 600; }
+    .s4-pnews em { font-style: normal; font-size: 11.5px; color: var(--c-dim); }
+
+    /* fixed corners: beta top-right, hand-off bottom-left, feedback bottom-right */
+    .s4-beta { position: absolute; top: 12px; right: 16px; z-index: 34; display: flex; align-items: center; gap: 9px; width: 160px; height: 56px; padding: 0 12px; border-radius: 18px; background: rgba(30,10,4,.82); border: 1px solid rgba(255,87,34,.6); color: #ffc7b2; font-size: 12.5px; line-height: 1.15; white-space: nowrap; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+    .s4-beta > b { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--c-hot); color: #fff; font: 700 14px/1 Inter, sans-serif; }
+    .s4-beta small { display: block; font-size: 10.5px; color: rgba(255,199,178,.72); }
+    .s4-beta em { margin-left: auto; font-style: normal; color: rgba(255,199,178,.7); }
+    .s4-float { position: sticky; bottom: 0; height: 0; margin-top: auto; z-index: 60; order: 100; flex: none; }
+    .s4-hand { position: absolute; left: 16px; bottom: 16px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: rgba(8,24,36,.92); border: 1px solid rgba(82,193,230,.55); color: var(--c-acc2); box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+    .s4-phi { position: relative; display: block; width: 13px; height: 21px; border: 2px solid currentColor; border-radius: 4px; }
+    .s4-phi::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: currentColor; }
+    .s4-fab { position: absolute; right: 16px; bottom: 16px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--c-acc); color: #04202c; font-size: 19px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+    .s4-share { position: absolute; right: 16px; bottom: 100px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 14px; border-radius: 999px; background: rgba(8,24,36,.94); border: 1px solid rgba(82,193,230,.55); color: #dff6ff; font-weight: 600; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+    .s4-share > b { color: var(--c-acc2); }
+    .s4-toast { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); padding: 8px 12px; border-radius: 12px; background: rgba(12,50,36,.94); border: 1px solid rgba(95,214,152,.55); color: #c9f5dd; font-weight: 500; font-size: 12px; white-space: nowrap; animation: s4-rise .6s .4s both; }
+    .s4-toast b { color: #fff; }
+    .s4-ptop { display: none; }
+
+    /* footer — no background, right-bottom, badge + "Made by the Community", disclaimer in a speech bubble */
+    .s4-foot { position: absolute; right: 104px; bottom: 18px; z-index: 4; display: flex; align-items: center; gap: 12px 20px; font-size: 12px; color: var(--c-dim); text-shadow: 0 1px 6px rgba(0,0,0,.85); }
+    .s4-foot.s4-fend { position: relative; right: auto; bottom: auto; justify-content: flex-end; padding: 22px 104px 24px; flex: none; }
+    .s4-flinks { display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+    .s4-flinks a { color: var(--c-mute); }
+    .s4-flinks a.s4-new { color: var(--c-acc2); font-weight: 600; }
+    .s4-flinks a.s4-new::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--c-acc); box-shadow: 0 0 6px var(--c-acc); vertical-align: middle; }
+    .s4-fbadge { position: relative; display: flex; align-items: center; gap: 8px; flex: none; padding: 4px 6px; border-radius: 12px; }
+    .s4-fbadge:hover, .s4-fbadge:focus { background: rgba(82,193,230,.08); outline: none; }
+    .s4-badge { display: block; width: 32px; height: 32px; flex: none; border-radius: 50%; background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACKZSURBVHhe7d0F1K1F1QdwlbC7QERBEbsVUewuxO5Axe7GBru7wO7uBOxusRu7UFAwMGe+9RvP/zDv8Jzznkte/NhrzbrnPjUze3b89579PO+JTnQCnUCrUq1101rr6UspW5ZSth7als65ZrzvBNpAqrVuXkrZvpSySynlYaWUl5VS9iul7F9KOaCUcmAp5Y+11j9pfs+OOeca17rHvZ6xvWeO/ZxAHZVSti2l3L6U8opSyjdKKX+rRxN5Vinl66WUl8/62Hbs//8lzUzJbqWUD8yk+Qj061//un7xi1+sb33rW+vzn//8+tjHPrbe5z73qXe+853r7W9/+3q7292u/XbsMY95TLvmbW97W/3Sl77U7l1AtOb9s763HMf1P0+llJ1mJuLAniv/+c9/6je+8Y36spe9rN7lLnepl7nMZepZznKWyiptaDvxiU9ct9pqq3rZy1623vWud60vf/nL27P10dPMdL20lHK5cZz/c1RKuW4pZZ81HKi1fu5zn6uPetSjGsNPdapTrWGk/1/4wheuN7jBDerlLne5uskmm9STn/zk9RSnOEX7jbmvf/3r64tf/OL6uMc9rmnCrW9963quc52rLcL4rB133LE++tGPrp///OfHYViMDxnjOO7jPZVSrmhy/WR/+9vf1uc973l1p512qptvvvmcSZh6xjOesT7jGc+on/jEJ+pBBx1U//GPf8zvu//979+uswD+fd/73teOW8Tvfe979cADD6x///vf6x3veMf5dWknPelJ5/1sttlmbUGZLGPpqZTywVLKFcZ5HO9oBg85vrne//CHP6wPetCD6tnOdrY5M052spPNmYQxpz/96esf//jH+uc//7ne7373q1e/+tXrRS5ykfrd7363/vznP59fR8I//vGP19/85jf1fOc7Xz3HOc7RGum3iP1z+0aD3J/+jeXBD35wG1u3CP+Zmcmtx3kdL6jWumsp5VeZEIdokhjjNOYxOac5zWna71Oe8pRz5jj/yU9+sv7oRz9aY0Ke85zntGfFvJDoz372s5hVDz300HrIIYe0fq5ylau06/PMsTl329vetu6777712te+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") center / contain no-repeat; filter: drop-shadow(0 0 8px rgba(0,212,255,.35)); }
+    .s4-fbadge small { max-width: 11ch; font: 600 9.5px/1.2 Orbitron, "Segoe UI", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--c-mute); text-align: left; }
+    .s4-bub { position: absolute; right: -6px; bottom: calc(100% + 14px); z-index: 10; display: none; width: 310px; padding: 12px 14px; border-radius: 16px; background: rgba(6,20,30,.97); border: 1px solid rgba(82,193,230,.45); box-shadow: 0 20px 60px rgba(0,0,0,.55); color: var(--c-text); font-size: 12.5px; line-height: 1.45; text-align: left; text-shadow: none; white-space: normal; animation: s4-rise .3s both; }
+    .s4-bub::after { content: ""; position: absolute; right: 26px; bottom: -8px; width: 14px; height: 14px; transform: rotate(45deg); background: rgba(6,20,30,.97); border-right: 1px solid rgba(82,193,230,.45); border-bottom: 1px solid rgba(82,193,230,.45); }
+    .s4-bub b { display: block; margin-bottom: 4px; font: 700 11px/1.2 Orbitron, "Segoe UI", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    .s4-bub u { color: var(--c-acc); text-underline-offset: 3px; }
+    .s4-fbadge:hover .s4-bub, .s4-fbadge:focus .s4-bub { display: block; }
+
+    /* hub: what comes after the stage */
+    .s4-after { position: absolute; left: 0; right: 0; top: 100%; z-index: 2; display: grid; gap: 8px; padding: 26px 16px 40px; }
+    .s4-sec h2 { display: flex; align-items: baseline; gap: 12px; margin: 0 8px 14px; font: 700 26px/1 Orbitron, "Segoe UI", sans-serif; }
+    .s4-sec h2 small { font: 500 12px/1 Inter, sans-serif; color: var(--c-dim); }
+    .s4-sec h2 a { margin-left: auto; font: 500 13px/1 Inter, sans-serif; color: var(--c-acc); }
+    .s4-news { display: grid; grid-template-columns: 2fr 1fr 1fr; grid-auto-rows: 150px; gap: 12px; }
+    .s4-nb { position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px 16px; border-radius: 20px; overflow: hidden; border: 1px solid rgba(82,193,230,.18); background: radial-gradient(circle at 70% 30%, #e59a5c, transparent 35%), linear-gradient(160deg, #164664, #050f18); }
+    .s4-nb.s4-n2 { background: radial-gradient(circle at 30% 60%, rgba(150,90,220,.6), transparent 45%), linear-gradient(200deg, #0d2635, #03101a); }
+    .s4-nb.s4-n3 { background: radial-gradient(circle at 60% 30%, rgba(95,214,152,.45), transparent 40%), linear-gradient(200deg, #123246, #03101a); }
+    .s4-nb small { color: rgba(232,235,237,.7); font-size: 11.5px; }
+    .s4-nb b { font-size: 16px; line-height: 1.25; }
+    .s4-nb em { position: absolute; top: 12px; left: 12px; padding: 3px 8px; border-radius: 999px; font-style: normal; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: #04202c; background: var(--c-acc); }
+    .s4-pgrid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; }
+    .s4-pcard { display: grid; align-content: start; gap: 10px; padding: 16px 18px; border-radius: 20px; border: 1px solid rgba(82,193,230,.22); background: radial-gradient(70% 90% at 100% 0%, rgba(155,123,255,.22), transparent 60%), linear-gradient(160deg, #0b2738, #050f18); }
+    .s4-pcard.s4-live { border-color: rgba(95,214,152,.4); background: radial-gradient(70% 90% at 100% 0%, rgba(95,214,152,.16), transparent 60%), linear-gradient(160deg, #0b2738, #050f18); }
+    .s4-ptag { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--c-mute); }
+    .s4-ptag b { padding: 3px 9px; border-radius: 999px; font-size: 11px; letter-spacing: .06em; color: #fff; background: rgba(155,123,255,.4); }
+    .s4-live .s4-ptag b { background: rgba(95,214,152,.3); color: #c9f5dd; }
+    .s4-pver { font: 800 38px/1 Orbitron, "Segoe UI", sans-serif; }
+    .s4-qrow { display: flex; flex-wrap: wrap; gap: 6px; }
+    .s4-ql { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid; }
+    .s4-ql small { font-size: 10.5px; font-weight: 500; opacity: .62; font-variant-numeric: tabular-nums; }
+    .s4-ql.s4-lo { color: #c9f5dd; border-color: rgba(95,214,152,.45); background: rgba(95,214,152,.1); }
+    .s4-ql.s4-mid { color: #ffe2b8; border-color: rgba(240,194,123,.4); background: rgba(240,194,123,.08); }
+    .s4-ql.s4-hi { color: #ffd18f; border-color: rgba(240,194,123,.65); background: rgba(240,194,123,.16); }
+
+    /* content + tool pages: the bar wrapper holds the docked geometry */
+    .s4-barwrap { position: sticky; top: var(--s4-band); z-index: 30; height: 80px; flex: none; --cap-t1: 12px; --fly-t1: 12px; --sub-t1: 10px; --orb-t1: 12px; --nav-t1: 12px; }
+    .s4-barwrap.s4-tall { height: 118px; --sub-t1: 60px; --top-t0: 10px; }
+    .s4-barwrap.s4-arcw { height: 80px; }
+    .s4-drawer { position: sticky; top: calc(var(--s4-band) + 74px); z-index: 29; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; flex: none; border-radius: 0 0 16px 16px; background: rgba(8,24,36,.9); border: 1px solid rgba(82,193,230,.3); border-top-color: rgba(82,193,230,.1); backdrop-filter: blur(14px); white-space: nowrap; overflow: hidden; animation: s4-fold .5s cubic-bezier(.2,.8,.2,1) both; }
+    .s4-drawer .s4-btn.s4-p { padding: 7px 12px; }
+    .s4-pkinds { display: none; }
+    .s4-col { position: relative; z-index: 1; width: min(1120px, calc(100% - 48px)); margin: 26px auto 0; display: grid; gap: 18px; }
+    .s4-shead { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px 14px; }
+    .s4-shead h1 { font: 700 30px/1.05 Orbitron, "Segoe UI", sans-serif; }
+    .s4-shead p { width: 100%; order: -1; font-size: 12.5px; color: var(--c-dim); }
+    .s4-shead .s4-sp { margin-left: auto; }
+    .s4-psel { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--c-ln); background: rgba(8,24,36,.8); font-size: 13px; white-space: nowrap; }
+    .s4-psel b { padding: 2px 7px; border-radius: 999px; font-size: 10.5px; letter-spacing: .06em; color: #c9f5dd; background: rgba(95,214,152,.25); }
+    .s4-keep { position: relative; display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; min-height: 620px; padding: 48px 28px 28px; border-radius: 24px; border: 2px dashed rgba(240,194,123,.6); background: repeating-linear-gradient(135deg, rgba(240,194,123,.06) 0 14px, rgba(240,194,123,.02) 14px 28px); }
+    .s4-kl { position: absolute; top: -15px; left: 24px; padding: 5px 14px; border-radius: 999px; background: #2a1d0e; border: 1px solid rgba(240,194,123,.65); color: #ffe2b8; font: 700 12.5px/1.2 Orbitron, "Segoe UI", sans-serif; letter-spacing: .05em; white-space: nowrap; }
+    .s4-kg { position: relative; border-radius: 18px; background: radial-gradient(45% 45% at 50% 50%, rgba(159,179,200,.12), transparent 70%); border: 1px solid rgba(159,179,200,.12); }
+    .s4-kg::before { content: ""; position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1.15; transform: translate(-50%,-50%); clip-path: polygon(50% 0, 56% 22%, 60% 40%, 97% 60%, 99% 70%, 62% 68%, 58% 88%, 66% 98%, 50% 94%, 34% 98%, 42% 88%, 38% 68%, 1% 70%, 3% 60%, 40% 40%, 44% 22%); background: rgba(159,179,200,.22); }
+    .s4-kt { display: grid; align-content: start; gap: 10px; }
+    .s4-kt i { display: block; height: 54px; border-radius: 12px; background: rgba(159,179,200,.1); border: 1px solid rgba(159,179,200,.1); }
+    .s4-kt i:nth-child(3n) { height: 96px; }
+    .s4-kn { grid-column: 1 / -1; font-size: 12.5px; color: #e8d9c4; }
+    .s4-kn b { color: #ffe2b8; }
+
+    /* codex grid */
+    .s4-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; padding: 18px 16px; }
+    .s4-card { position: relative; display: block; border-radius: 22px; overflow: hidden; border: 1px solid rgba(82,193,230,.16); background: var(--c-card); }
+    .s4-card.s4-hl { border-color: rgba(82,193,230,.6); box-shadow: 0 0 0 4px rgba(82,193,230,.1); }
+    .s4-cimg { display: grid; place-items: center; height: 140px; background: radial-gradient(60% 70% at 50% 60%, rgba(82,193,230,.22), transparent 70%), linear-gradient(160deg, #0b2738, #040d15); }
+    .s4-ship { display: block; width: 34%; aspect-ratio: 1.15; clip-path: polygon(50% 0, 56% 22%, 60% 40%, 97% 60%, 99% 70%, 62% 68%, 58% 88%, 66% 98%, 50% 94%, 34% 98%, 42% 88%, 38% 68%, 1% 70%, 3% 60%, 40% 40%, 44% 22%); background: linear-gradient(90deg, #4b5f6e, #8ea3b3 30%, #e7f0f6 49%, #c9d8e3 51%, #8ea3b3 70%, #4b5f6e); }
+    .s4-cb { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 12px 16px 14px; }
+    .s4-cb b { display: block; font: 700 16px/1.2 Orbitron, sans-serif; }
+    .s4-cb small { color: var(--c-dim); font-size: 12px; }
+    .s4-cb span { font: 600 12px/1 ui-monospace, monospace; color: var(--c-mute); white-space: nowrap; }
+    .s4-ck { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(2,8,14,.5); font-size: 13px; }
+    .s4-ck.s4-on { background: var(--c-acc); border-color: transparent; color: #04202c; }
+
+    /* search grown out of the bar */
+    .s4-ghost { position: absolute; inset: 0; z-index: 0; display: grid; align-content: start; gap: 16px; padding: 150px 18% 0; filter: blur(1.5px); opacity: .5; }
+    .s4-ghost i { display: block; height: 18px; border-radius: 6px; background: rgba(82,193,230,.13); }
+    .s4-ghost i.s4-gh { height: 230px; border-radius: 18px; background: linear-gradient(135deg, rgba(82,193,230,.16), rgba(22,70,100,.32)); }
+    .s4-ghost i.s4-gw { width: 55%; height: 34px; }
+    .s4-scrim { position: absolute; inset: 0; z-index: 35; background: rgba(2,8,14,.64); backdrop-filter: blur(3px); }
+    .s4-grown { position: absolute; z-index: 40; top: 12px; left: 16px; right: 16px; display: grid; grid-template-columns: minmax(0,1fr) 300px; grid-template-rows: auto auto minmax(0,1fr) auto; padding: 8px; background: rgba(6,20,30,.97); border: 1px solid rgba(82,193,230,.5); box-shadow: 0 0 0 1px rgba(82,193,230,.14), 0 0 80px rgba(82,193,230,.18), 0 40px 120px rgba(0,0,0,.6); }
+    .s4-gl { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .s4-field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 12px; border-radius: 16px; background: rgba(2,10,16,.75); border: 1px solid rgba(82,193,230,.7); box-shadow: 0 0 0 4px rgba(82,193,230,.14); font-size: 17px; white-space: nowrap; overflow: hidden; }
+    .s4-field .s4-kbd { margin-left: auto; }
+    .s4-cchip { display: inline-flex; align-items: center; gap: 7px; flex: none; padding: 5px 6px 5px 10px; border-radius: 10px; background: rgba(82,193,230,.2); border: 1px solid rgba(82,193,230,.55); color: #dff6ff; font-size: 13px; font-weight: 600; }
+    .s4-cchip i { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.12); font-style: normal; font-size: 10px; font-weight: 400; }
+    .s4-caret { width: 2px; height: 22px; flex: none; margin-left: -6px; background: var(--c-acc); animation: s4-blink 1s steps(1) infinite; }
+    .s4-x { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 13px; background: rgba(82,193,230,.1); border: 1px solid rgba(82,193,230,.4); font-size: 18px; }
+    .s4-ask { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; margin: 10px 4px 4px; padding: 12px 16px; border-radius: 14px; border: 1px solid transparent; background: linear-gradient(90deg, rgba(14,40,56,.96), rgba(30,24,60,.96)) padding-box, linear-gradient(90deg, #52c1e6, #9b7bff) border-box; animation: s4-rise .5s .25s both; }
+    .s4-ask span { color: var(--c-mute); font-size: 13px; }
+    .s4-ask .s4-kbd { margin-left: auto; }
+    .s4-rs { display: grid; align-content: start; gap: 2px; padding: 8px 6px; min-width: 0; }
+    .s4-rs h4 { display: flex; gap: 8px; margin: 10px 8px 4px; font-size: 12px; font-weight: 600; color: var(--c-dim); }
+    .s4-rs h4 em { font-style: normal; color: var(--c-acc); }
+    .s4-r { display: grid; grid-template-columns: 38px minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 14px; animation: s4-rise .5s both; animation-delay: calc(var(--i, 0) * 70ms + 300ms); }
+    .s4-r.s4-on { background: rgba(82,193,230,.15); }
+    .s4-ri { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: linear-gradient(135deg, rgba(82,193,230,.3), rgba(82,193,230,.06)); font-size: 15px; }
+    .s4-r b { font-size: 14px; }
+    .s4-r small { display: block; font-size: 12px; color: var(--c-dim); }
+    .s4-qa { display: flex; gap: 4px; }
+    .s4-qa i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,.05); font-style: normal; font-size: 13px; color: var(--c-mute); }
+    .s4-r .s4-btn { padding: 7px 12px; font-size: 12.5px; }
+    .s4-peek { display: grid; align-content: start; gap: 10px; margin: 8px 6px; padding: 16px; border-radius: 18px; background: linear-gradient(160deg, #0d2c40, #061520); border: 1px solid rgba(82,193,230,.25); animation: s4-rise .5s .8s both; }
+    .s4-peek h5 { font: 700 20px/1.1 Orbitron, sans-serif; }
+    .s4-peek > small { color: var(--c-dim); }
+    .s4-meter { display: grid; grid-template-columns: 76px minmax(0,1fr) 54px; align-items: center; gap: 8px; font-size: 12px; color: var(--c-mute); }
+    .s4-meter i { position: relative; height: 7px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .s4-meter i::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--a, 0%); background: rgba(159,179,200,.45); }
+    .s4-meter i::after { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: var(--b, 50%); border-radius: 3px; background: linear-gradient(90deg, var(--c-acc), var(--c-acc2)); }
+    .s4-meter b { text-align: right; font-variant-numeric: tabular-nums; }
+    .s4-keys { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 12px 4px; border-top: 1px solid rgba(82,193,230,.12); font-size: 11.5px; color: var(--c-dim); }
+
+    /* phone showcase screen: each phone is its own "device" container, so the phone rules apply inside it */
+    .s4-phones { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 28px 40px; padding: 8px 0 24px; }
+    .s4-phf { margin: 0; display: grid; justify-items: center; gap: 10px; }
+    .s4-phf figcaption { font-size: .82rem; color: var(--text-secondary, #8b949e); }
+    .s4-phm { container: device / inline-size; width: 320px; height: 660px; border-radius: 40px; border: 8px solid #0a1820; overflow: hidden; background: #030c14; box-shadow: 0 0 0 1px rgba(82,193,230,.3), 0 30px 80px rgba(0,0,0,.55); }
+
+    /* ═══ A · Fusion — one capsule: header shrinks to a segment, the stage search welds on ═══ */
+    .d4-app { --cap-t0: 16px; --cap-l0: calc(50% - 300px); --cap-w0: 600px; --cap-t1: 12px; --cap-l1: 16px; --cap-w1: 372px;
+      --fly-t0: var(--s4-q); --fly-l0: calc(50% - 320px); --fly-r0: calc(50% - 320px); --fly-h0: 64px;
+      --fly-t1: 12px; --fly-l1: 388px; --fly-r1: 192px; --fly-h1: 56px; }
+    .d4-app.s4-wide { --cap-w1: 452px; --fly-l1: 468px; }
+    .d4-app.s4-tool { --cap-w1: calc(100% - 656px); --fly-l1: calc(100% - 640px); }
+    .d4-cap { position: absolute; z-index: 31; height: 56px; overflow: hidden; isolation: isolate; border-radius: 20px; }
+    .d4-cap::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgba(2,8,14,.42); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(14px); }
+    .d4-cap .s4-lyr { height: 56px; padding: 0 8px; }
+    .d4-brand { display: flex; align-items: center; gap: 9px; flex: none; padding: 0 8px 0 4px; }
+    .d4-nav { display: flex; gap: 2px; margin-left: auto; }
+    .d4-nav a { padding: 9px 14px; border-radius: 13px; color: #c3d3df; font-weight: 500; }
+    .d4-nav a.s4-on { color: #fff; background: rgba(82,193,230,.2); box-shadow: inset 0 0 0 1px rgba(82,193,230,.35); }
+    .d4-nav a.s4-adm, .d4-kinds a.s4-adm { color: #ff7a4d; }
+    .d4-cap .s4-lA > .s4-av { margin-left: 8px; }
+    .d4-seg { display: flex; align-items: center; gap: 8px; flex: none; height: 40px; padding: 0 12px 0 8px; border-radius: 14px; background: linear-gradient(135deg, rgba(82,193,230,.22), rgba(155,123,255,.16)); box-shadow: inset 0 0 0 1px rgba(139,224,255,.25); font-weight: 600; }
+    .d4-seg .s4-logo { width: 22px; height: 22px; }
+    .d4-seg em { font-style: normal; font-size: 11px; color: var(--c-mute); }
+    .d4-ctx { display: flex; align-items: center; gap: 16px; min-width: 0; padding: 0 12px; font-size: 13px; color: var(--c-mute); overflow: hidden; }
+    .d4-ctx a { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; }
+    .d4-ctx a.s4-on { color: #fff; font-weight: 600; }
+    .d4-ctx a.s4-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c-acc), var(--c-vio)); }
+    .d4-ctx small { padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: #04202c; background: var(--c-acc); }
+    .d4-kinds { display: flex; align-items: center; gap: 2px; min-width: 0; margin-left: 6px; padding: 3px; border-radius: 13px; background: rgba(2,10,16,.55); overflow: hidden; }
+    .d4-kinds a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; font-size: 12.5px; color: var(--c-mute); white-space: nowrap; }
+    .d4-kinds a i { font-style: normal; color: var(--c-acc2); }
+    .d4-kinds a.s4-on { color: #fff; font-weight: 600; background: rgba(82,193,230,.22); box-shadow: inset 0 0 0 1px rgba(82,193,230,.45); }
+    .d4-kinds small { font-size: 10.5px; color: var(--c-acc2); }
+    .d4-weld { position: absolute; z-index: 30; top: var(--cap-t1); left: var(--cap-l1); right: var(--fly-r1); height: 56px; border-radius: 20px; background: rgba(6,20,30,.9); border: 1px solid rgba(82,193,230,.4); backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 14px 40px rgba(0,0,0,.45), 0 0 34px rgba(82,193,230,.14); transform-origin: 30% 50%; }
+    .d4-weld::before { content: ""; position: absolute; inset: -5px; border-radius: 24px; border: 1px solid transparent; background: linear-gradient(90deg, var(--c-acc) 0 22px, transparent 22px calc(100% - 22px), var(--c-vio) calc(100% - 22px)) border-box; -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: .8; }
+    .d4-weld::after { content: ""; position: absolute; left: 22px; right: 22px; bottom: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c-acc), var(--c-vio) var(--p, 34%), rgba(82,193,230,.12) 0); }
+    .s4-st-top .d4-weld { opacity: 0; }
+    .d4-fly { position: absolute; z-index: 31; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 18px; overflow: hidden; isolation: isolate; border-radius: 22px; color: #9db6c8; white-space: nowrap; }
+    .d4-fly::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; border: 1px solid transparent; background: linear-gradient(rgba(4,16,25,.9), rgba(4,16,25,.9)) padding-box, linear-gradient(90deg, #52c1e6, #9b7bff, #52c1e6) border-box; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 40px rgba(82,193,230,.18); }
+    .d4-fly::after { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 1px; background: rgba(139,224,255,.35); opacity: 0; }
+    .d4-qi { color: var(--c-acc2); font-size: 1.15em; }
+    .d4-qt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .d4-fly .s4-kbd { margin-left: auto; }
+    .d4-fly .s4-ftog { margin-left: auto; }
+    .s4-st-top .d4-cap { top: var(--cap-t0); left: var(--cap-l0); width: var(--cap-w0); }
+    .s4-st-dock .d4-cap, .s4-st-anim .d4-cap, .s4-barwrap .d4-cap { top: var(--cap-t1); left: var(--cap-l1); width: var(--cap-w1); border-radius: 20px 0 0 20px; }
+    .s4-st-dock .d4-cap::before, .s4-st-anim .d4-cap::before, .s4-barwrap .d4-cap::before { opacity: 0; }
+    .s4-st-top .d4-fly { top: var(--fly-t0); left: var(--fly-l0); right: var(--fly-r0); height: var(--fly-h0); font-size: 16px; }
+    .s4-st-dock .d4-fly, .s4-st-anim .d4-fly, .s4-barwrap .d4-fly { top: var(--fly-t1); left: var(--fly-l1); right: var(--fly-r1); height: var(--fly-h1); font-size: 14px; border-radius: 0 20px 20px 0; padding-left: 16px; }
+    .s4-st-dock .d4-fly::before, .s4-st-anim .d4-fly::before, .s4-barwrap .d4-fly::before { opacity: 0; }
+    .s4-st-dock .d4-fly::after, .s4-st-anim .d4-fly::after, .s4-barwrap .d4-fly::after { opacity: 1; }
+    @keyframes d4-cap { 0%, 24% { top: var(--cap-t0); left: var(--cap-l0); width: var(--cap-w0); border-radius: 20px; } 40%, 76% { top: var(--cap-t1); left: var(--cap-l1); width: var(--cap-w1); border-radius: 20px 0 0 20px; } 90%, 100% { top: var(--cap-t0); left: var(--cap-l0); width: var(--cap-w0); border-radius: 20px; } }
+    @keyframes d4-fly { 0%, 24% { top: var(--fly-t0); left: var(--fly-l0); right: var(--fly-r0); height: var(--fly-h0); font-size: 16px; border-radius: 22px; } 40%, 76% { top: var(--fly-t1); left: var(--fly-l1); right: var(--fly-r1); height: var(--fly-h1); font-size: 14px; border-radius: 0 20px 20px 0; } 90%, 100% { top: var(--fly-t0); left: var(--fly-l0); right: var(--fly-r0); height: var(--fly-h0); font-size: 16px; border-radius: 22px; } }
+    @keyframes d4-weld { 0%, 33% { opacity: 0; transform: scaleX(.97); } 41%, 75% { opacity: 1; transform: none; } 83%, 100% { opacity: 0; transform: scaleX(.97); } }
+    .s4-st-anim .d4-cap { animation: d4-cap var(--s4-T) var(--s4-ez) infinite; }
+    .s4-st-anim .d4-cap::before, .s4-st-anim .d4-fly::before { animation: s4-out var(--s4-T) linear infinite; }
+    .s4-st-anim .d4-fly { animation: d4-fly var(--s4-T) var(--s4-ez) infinite; }
+    .s4-st-anim .d4-fly::after { animation: s4-in var(--s4-T) linear infinite; }
+    .s4-st-anim .d4-weld { animation: d4-weld var(--s4-T) linear infinite; }
+    .d4-drawer { margin: -8px var(--fly-r1) 0 var(--fly-l1); }
+    .d4-grown { border-radius: 22px; }
+    .d4-grown::before { content: ""; position: absolute; left: 22px; right: 22px; top: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c-acc), var(--c-vio)); }
+
+    /* ═══ B · Stack-Dock — two thin visor layers; the header slides behind, its nav becomes tabs ═══ */
+    .d5-app { --top-l: 16px; --top-r: 192px; --top-t0: 10px; --top-t1: -58px;
+      --sub-t0: var(--s4-q); --sub-l0: calc(50% - 320px); --sub-r0: calc(50% - 320px); --sub-h0: 64px;
+      --sub-tm: 60px; --sub-t1: 10px; --sub-l1: 16px; --sub-r1: 192px; --sub-h1: 50px; }
+    .d5-top { position: absolute; z-index: 30; top: var(--top-t0); left: var(--top-l); right: var(--top-r); height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 28px; isolation: isolate; white-space: nowrap; }
+    .d5-top::before { content: ""; position: absolute; inset: 0; z-index: -1; clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 20px 100%); background: linear-gradient(180deg, rgba(14,40,58,.9), rgba(4,14,22,.86)), repeating-linear-gradient(0deg, rgba(139,224,255,.04) 0 1px, transparent 1px 3px); border-top: 1px solid rgba(139,224,255,.6); backdrop-filter: blur(14px); }
+    .d5-top::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(82,193,230,.65), transparent); }
+    .d5-brand { display: flex; align-items: center; gap: 9px; }
+    .d5-brand .s4-logo { width: 22px; height: 22px; }
+    .d5-word { font: 700 12.5px/1 Orbitron, "Segoe UI", sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+    .d5-nav { display: flex; gap: 6px; margin: 0 auto; }
+    .d5-nav a { position: relative; padding: 6px 12px; font: 600 11.5px/1 Orbitron, "Segoe UI", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #9fb3c8; }
+    .d5-nav a.s4-on { color: #fff; text-shadow: 0 0 12px rgba(139,224,255,.6); }
+    .d5-nav a.s4-on::before, .d5-nav a.s4-on::after { content: ""; position: absolute; top: 2px; bottom: 2px; width: 6px; border: 1px solid var(--c-acc); }
+    .d5-nav a.s4-on::before { left: 0; border-right: 0; }
+    .d5-nav a.s4-on::after { right: 0; border-left: 0; }
+    .d5-nav a.s4-adm, .d5-tabs a.s4-adm { color: #ff7a4d; }
+    .d5-hud { font: 500 10.5px/1 ui-monospace, Consolas, monospace; letter-spacing: .08em; color: var(--c-dim); }
+    .d5-sub { position: absolute; z-index: 31; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 10px; isolation: isolate; overflow: hidden; color: #9db6c8; white-space: nowrap; }
+    .d5-sub::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 22px; border: 1px solid transparent; background: linear-gradient(rgba(4,16,25,.9), rgba(4,16,25,.9)) padding-box, linear-gradient(90deg, #52c1e6, #9b7bff, #52c1e6) border-box; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 40px rgba(82,193,230,.18); }
+    .d5-sub::after { content: ""; position: absolute; inset: 0; z-index: -1; clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px); background: linear-gradient(90deg, var(--c-acc) 0 44px, rgba(82,193,230,.25) 44px calc(100% - 44px), var(--c-acc) calc(100% - 44px)) top / 100% 2px no-repeat, linear-gradient(180deg, rgba(12,34,50,.96), rgba(5,16,25,.96)); box-shadow: inset 0 -1px 0 rgba(82,193,230,.22); }
+    .d5-tabs { display: flex; flex: none; gap: 2px; max-width: var(--mw, 360px); padding: 3px; border-radius: 8px; background: rgba(2,10,16,.6); border: 1px solid rgba(82,193,230,.22); overflow: hidden; }
+    .d5-tabs a { padding: 7px 11px; border-radius: 6px; font: 600 10.5px/1 Orbitron, "Segoe UI", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--c-dim); }
+    .d5-tabs a.s4-on { color: #04202c; background: linear-gradient(180deg, #8be0ff, #52c1e6); }
+    .d5-secs { display: flex; align-items: center; flex: none; gap: 14px; max-width: var(--mw, 360px); padding: 0 12px 0 4px; overflow: hidden; font-size: 12.5px; color: var(--c-mute); }
+    .d5-secs a { display: inline-flex; align-items: center; gap: 6px; }
+    .d5-secs a.s4-on { color: #fff; font-weight: 600; }
+    .d5-secs a.s4-on::before { content: "▸"; color: var(--c-acc); }
+    .d5-secs small { padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: #04202c; background: var(--c-acc); }
+    .d5-kinds { display: flex; flex: none; gap: 2px; padding: 3px; border-radius: 8px; background: rgba(2,10,16,.6); border: 1px solid rgba(82,193,230,.22); overflow: hidden; }
+    .d5-kinds a { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 6px; font-size: 12px; color: var(--c-mute); white-space: nowrap; }
+    .d5-kinds a i { font-style: normal; color: var(--c-acc2); }
+    .d5-kinds a.s4-on { color: #04202c; font-weight: 700; background: linear-gradient(180deg, #8be0ff, #52c1e6); }
+    .d5-kinds a.s4-on i { color: #04202c; }
+    .d5-q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid transparent; }
+    .d5-q .s4-kbd { margin-left: auto; }
+    .d5-qi { color: var(--c-acc2); font-size: 1.15em; }
+    .d5-qt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .d5-sav { max-width: 40px; overflow: hidden; }
+    .s4-st-top .d5-top { top: var(--top-t0); }
+    .s4-st-dock .d5-top, .s4-st-anim .d5-top { top: var(--top-t1); opacity: 0; }
+    .s4-barwrap .d5-top { top: var(--top-t0); }
+    .s4-st-top .d5-sub { top: var(--sub-t0); left: var(--sub-l0); right: var(--sub-r0); height: var(--sub-h0); font-size: 16px; padding-left: 18px; }
+    .s4-st-top .d5-sub::after { opacity: 0; }
+    .s4-st-top .d5-tabs, .s4-st-top .d5-secs, .s4-st-top .d5-sav { max-width: 0; opacity: 0; padding-left: 0; padding-right: 0; border-width: 0; margin: 0 -5px; }
+    .s4-st-dock .d5-sub, .s4-st-anim .d5-sub, .s4-barwrap .d5-sub { top: var(--sub-t1); left: var(--sub-l1); right: var(--sub-r1); height: var(--sub-h1); font-size: 14px; }
+    .s4-st-dock .d5-sub::before, .s4-st-anim .d5-sub::before, .s4-barwrap .d5-sub::before { opacity: 0; }
+    .s4-st-dock .d5-q, .s4-st-anim .d5-q, .s4-barwrap .d5-q { background-color: rgba(2,10,16,.55); border-color: rgba(82,193,230,.22); }
+    @keyframes d5-top { 0%, 31% { top: var(--top-t0); opacity: 1; } 40%, 76% { top: var(--top-t1); opacity: 0; } 84%, 100% { top: var(--top-t0); opacity: 1; } }
+    @keyframes d5-sub { 0%, 24% { top: var(--sub-t0); left: var(--sub-l0); right: var(--sub-r0); height: var(--sub-h0); font-size: 16px; } 32% { top: var(--sub-tm); left: var(--sub-l1); right: var(--sub-r1); height: var(--sub-h1); font-size: 14px; } 40%, 76% { top: var(--sub-t1); left: var(--sub-l1); right: var(--sub-r1); height: var(--sub-h1); font-size: 14px; } 83% { top: var(--sub-tm); left: var(--sub-l1); right: var(--sub-r1); height: var(--sub-h1); font-size: 14px; } 90%, 100% { top: var(--sub-t0); left: var(--sub-l0); right: var(--sub-r0); height: var(--sub-h0); font-size: 16px; } }
+    @keyframes d5-q { 0%, 28% { background-color: transparent; border-color: transparent; } 36%, 80% { background-color: rgba(2,10,16,.55); border-color: rgba(82,193,230,.22); } 88%, 100% { background-color: transparent; border-color: transparent; } }
+    @keyframes d5-pill { 0%, 26% { opacity: 1; } 32%, 82% { opacity: 0; } 88%, 100% { opacity: 1; } }
+    @keyframes d5-slab { 0%, 26% { opacity: 0; } 32%, 82% { opacity: 1; } 88%, 100% { opacity: 0; } }
+    .s4-st-anim .d5-top { animation: d5-top var(--s4-T) var(--s4-ez) infinite; }
+    .s4-st-anim .d5-sub { animation: d5-sub var(--s4-T) var(--s4-ez) infinite; }
+    .s4-st-anim .d5-sub::before { animation: d5-pill var(--s4-T) linear infinite; }
+    .s4-st-anim .d5-sub::after { animation: d5-slab var(--s4-T) linear infinite; }
+    .s4-st-anim .d5-q { animation: d5-q var(--s4-T) linear infinite; }
+    .s4-st-anim .d5-tabs, .s4-st-anim .d5-secs, .s4-st-anim .d5-sav { animation: s4-grow var(--s4-T) var(--s4-ez) infinite; }
+    .d5-drawer { width: min(640px, calc(100% - 208px)); margin: -6px 192px 0 auto; border-radius: 0 0 14px 14px; }
+    .d5-grown { border-radius: 4px; clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px); }
+    .d5-grown::before { content: ""; position: absolute; left: 16px; right: 16px; top: 0; height: 2px; background: linear-gradient(90deg, var(--c-acc) 0 60px, rgba(82,193,230,.3) 60px calc(100% - 60px), var(--c-acc) calc(100% - 60px)); }
+
+    /* ═══ C · Orbit — the search is the centre; brand and nav swing in on arcs, a ring closes the group ═══ */
+    .d6-app { --orb-t0: 18px; --orb-l0: 24px; --orb-tm: 24%; --orb-t1: 12px; --orb-l1: calc(50% - 420px);
+      --fly-t0: var(--s4-q); --fly-l0: calc(50% - 320px); --fly-w0: 640px; --fly-h0: 64px;
+      --fly-t1: 12px; --fly-l1: calc(50% - 356px); --fly-w1: 520px; --fly-h1: 56px;
+      --nav-t0: 20px; --nav-l0: calc(100% - 586px); --nav-tm: 26%; --nav-t1: 12px; --nav-l1: calc(50% + 172px); }
+    .d6-app.s4-wide { --orb-l1: calc(50% - 470px); --fly-l1: calc(50% - 406px); --fly-w1: 620px; --nav-l1: calc(50% + 222px); }
+    .d6-orb { position: absolute; z-index: 32; display: flex; align-items: center; gap: 12px; height: 56px; white-space: nowrap; }
+    .d6-emb { position: relative; width: 56px; height: 56px; flex: none; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(139,224,255,.32), rgba(8,24,36,.96) 62%); border: 1px solid rgba(82,193,230,.55); box-shadow: 0 0 26px rgba(82,193,230,.3), inset 0 0 14px rgba(82,193,230,.2); }
+    .d6-emb::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1px dashed rgba(139,224,255,.35); }
+    .d6-wm { display: flex; align-items: center; gap: 4px; }
+    .d6-fly { position: absolute; z-index: 31; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 10px; border-radius: 999px; border: 1px solid transparent; background: linear-gradient(rgba(4,16,25,.92), rgba(4,16,25,.92)) padding-box, linear-gradient(90deg, #52c1e6, #9b7bff, #5fd698, #52c1e6) border-box; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 44px rgba(82,193,230,.2); color: #9db6c8; white-space: nowrap; overflow: hidden; }
+    .d6-qb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 100%; padding-left: 6px; }
+    .d6-qb .s4-kbd { margin-left: auto; }
+    .d6-qi { color: var(--c-acc2); font-size: 1.15em; }
+    .d6-qt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .d6-cc { display: inline-flex; align-items: center; gap: 6px; flex: none; max-width: var(--mw, 360px); padding: 6px 10px; border-radius: 999px; background: rgba(82,193,230,.14); border: 1px solid rgba(82,193,230,.4); color: #dff6ff; font-size: 12.5px; overflow: hidden; }
+    .d6-cc i { font-style: normal; opacity: .5; }
+    .d6-cc b { font-weight: 600; }
+    .d6-cc u { text-decoration: none; opacity: .7; }
+    .d6-navs { position: absolute; z-index: 32; height: 56px; }
+    .d6-row { gap: 4px; }
+    .d6-row a { padding: 8px 13px; border-radius: 999px; color: #c3d3df; font-weight: 500; }
+    .d6-row a.s4-on { color: #fff; background: rgba(82,193,230,.2); box-shadow: inset 0 0 0 1px rgba(82,193,230,.35); }
+    .d6-row a.s4-adm, .d6-moon.s4-adm { color: #ff7a4d; }
+    .d6-row .s4-av { margin-left: 8px; }
+    .d6-moons { gap: 6px; }
+    .d6-moon { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: rgba(8,24,36,.92); border: 1px solid rgba(82,193,230,.35); font-size: 10px; font-weight: 600; letter-spacing: .02em; color: #c3d3df; }
+    .d6-moon.s4-on { color: #04202c; background: radial-gradient(circle at 35% 30%, #c9f1ff, #52c1e6 70%); border-color: transparent; box-shadow: 0 0 18px rgba(82,193,230,.5); }
+    .d6-moon.s4-adm { border-color: rgba(255,87,34,.6); }
+    .d6-moon.d6-menu { display: none; font-size: 18px; }
+    .d6-moons .s4-av { margin-left: 4px; }
+    .d6-ring { position: absolute; z-index: 29; top: 2px; height: 76px; left: calc(var(--orb-l1) - 22px); width: calc(var(--nav-l1) - var(--orb-l1) + 286px); border-radius: 50%; pointer-events: none; border: 1px solid transparent; background: linear-gradient(90deg, rgba(139,224,255,.55), rgba(82,193,230,.08) 30%, rgba(82,193,230,.08) 70%, rgba(155,123,255,.55)) border-box; -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+    .s4-st-top .d6-ring { opacity: 0; }
+    .s4-st-top .d6-orb { top: var(--orb-t0); left: var(--orb-l0); }
+    .s4-st-dock .d6-orb, .s4-st-anim .d6-orb, .s4-barwrap .d6-orb { top: var(--orb-t1); left: var(--orb-l1); }
+    .s4-st-top .d6-fly { top: var(--fly-t0); left: var(--fly-l0); width: var(--fly-w0); height: var(--fly-h0); font-size: 16px; padding-left: 14px; }
+    .s4-st-dock .d6-fly, .s4-st-anim .d6-fly, .s4-barwrap .d6-fly { top: var(--fly-t1); left: var(--fly-l1); width: var(--fly-w1); height: var(--fly-h1); font-size: 14px; }
+    .s4-st-top .d6-cc { max-width: 0; opacity: 0; padding-left: 0; padding-right: 0; border-width: 0; margin-right: -10px; }
+    .s4-st-top .d6-navs { top: var(--nav-t0); left: var(--nav-l0); }
+    .s4-st-dock .d6-navs, .s4-st-anim .d6-navs, .s4-barwrap .d6-navs { top: var(--nav-t1); left: var(--nav-l1); }
+    @keyframes d6-ox { 0%, 24% { left: var(--orb-l0); } 40%, 76% { left: var(--orb-l1); } 90%, 100% { left: var(--orb-l0); } }
+    @keyframes d6-oy { 0%, 24% { top: var(--orb-t0); } 32% { top: var(--orb-tm); } 40%, 76% { top: var(--orb-t1); } 83% { top: var(--orb-tm); } 90%, 100% { top: var(--orb-t0); } }
+    @keyframes d6-nx { 0%, 24% { left: var(--nav-l0); } 40%, 76% { left: var(--nav-l1); } 90%, 100% { left: var(--nav-l0); } }
+    @keyframes d6-ny { 0%, 24% { top: var(--nav-t0); } 32% { top: var(--nav-tm); } 40%, 76% { top: var(--nav-t1); } 83% { top: var(--nav-tm); } 90%, 100% { top: var(--nav-t0); } }
+    @keyframes d6-fly { 0%, 24% { top: var(--fly-t0); left: var(--fly-l0); width: var(--fly-w0); height: var(--fly-h0); font-size: 16px; } 40%, 76% { top: var(--fly-t1); left: var(--fly-l1); width: var(--fly-w1); height: var(--fly-h1); font-size: 14px; } 90%, 100% { top: var(--fly-t0); left: var(--fly-l0); width: var(--fly-w0); height: var(--fly-h0); font-size: 16px; } }
+    @keyframes d6-ring { 0%, 33% { opacity: 0; transform: scale(1.3, 1.8); } 43%, 74% { opacity: 1; transform: none; } 82%, 100% { opacity: 0; transform: scale(1.3, 1.8); } }
+    .s4-st-anim .d6-orb { animation: d6-ox var(--s4-T) cubic-bezier(.5,0,.3,1) infinite, d6-oy var(--s4-T) cubic-bezier(.3,.6,.4,1) infinite; }
+    .s4-st-anim .d6-navs { animation: d6-nx var(--s4-T) cubic-bezier(.5,0,.3,1) infinite, d6-ny var(--s4-T) cubic-bezier(.3,.6,.4,1) infinite; }
+    .s4-st-anim .d6-fly { animation: d6-fly var(--s4-T) var(--s4-ez) infinite; }
+    .s4-st-anim .d6-ring { animation: d6-ring var(--s4-T) var(--s4-ez) infinite; }
+    .s4-st-anim .d6-cc { animation: s4-grow var(--s4-T) var(--s4-ez) infinite; }
+    .d6-drawer { flex-direction: column; align-items: stretch; height: auto; gap: 10px; width: 760px; margin: -6px 0 0 calc(var(--fly-l1) + var(--fly-w1) / 2 - 380px); padding: 12px 14px; border-radius: 0 0 22px 22px; }
+    .d6-drawer > div { display: flex; align-items: center; gap: 8px; }
+    .d6-arc { justify-content: center; padding: 2px 0 8px; border-bottom: 1px solid rgba(82,193,230,.14); }
+    .d6-arc a { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(82,193,230,.3); background: rgba(2,10,16,.6); font-size: 12.5px; color: var(--c-mute); transform: translateY(calc(var(--k, 0) * var(--k, 0) * 2px)); }
+    .d6-arc a i { font-style: normal; color: var(--c-acc2); }
+    .d6-arc a.s4-on { color: #04202c; font-weight: 700; background: radial-gradient(circle at 35% 30%, #c9f1ff, #52c1e6 75%); border-color: transparent; box-shadow: 0 0 16px rgba(82,193,230,.45); }
+    .d6-arc a.s4-on i { color: #04202c; }
+    .d6-grown { left: 50%; right: auto; width: min(1180px, calc(100% - 32px)); transform: translateX(-50%); border-radius: 30px; }
+    .d6-grown .s4-field { border-radius: 999px; }
+    .d6-gnav { display: flex; gap: 6px; opacity: .45; }
+
+    /* ── tablet ── */
+    @container device (max-width: 1000px) {
+      .s4-app { --s4-q: calc(28% + 150px); }
+      .s4-big { font-size: 72px; }
+      .s4-cap { top: calc(28% + 90px); font-size: 15px; }
+      .s4-news { grid-template-columns: 1fr 1fr; }
+      .s4-nb:first-child { grid-column: 1 / -1; }
+      .s4-pgrid { grid-template-columns: 1fr 1fr; }
+      .s4-pcard.s4-old { display: none; }
+      .s4-grown { grid-template-columns: minmax(0,1fr); }
+      .s4-peek { display: none; }
+      .s4-keep { grid-template-columns: 1fr; min-height: 560px; }
+      .s4-foot.s4-fend { flex-wrap: wrap; }
+      .s4-crumbs > :not(.s4-par):not(span) { display: none; }
+      .d4-app { --cap-l0: 16px; --cap-w0: calc(100% - 208px); --cap-w1: 196px; --fly-l0: 8%; --fly-r0: 8%; --fly-l1: 212px; }
+      .d4-app.s4-wide { --cap-w1: 300px; --fly-l1: 316px; }
+      .d4-app.s4-tool { --cap-w1: calc(100% - 528px); --fly-l1: calc(100% - 512px); }
+      .d4-ctx, .d4-fly .s4-kbd { display: none; }
+      .d4-kinds a:not(.s4-on) span, .d4-kinds small { display: none; }
+      .d5-app { --sub-l0: 8%; --sub-r0: 8%; }
+      .d5-secs, .d5-hud, .d5-q .s4-kbd { display: none; }
+      .d5-nav a { padding: 6px 9px; letter-spacing: .1em; }
+      .d5-kinds a:not(.s4-on) span { display: none; }
+      .d5-drawer { width: auto; margin: -6px 192px 0 16px; }
+      .d6-app, .d6-app.s4-wide { --orb-l1: 16px; --fly-l0: 8%; --fly-w0: 84%; --fly-l1: 82px; --fly-w1: calc(100% - 484px); --nav-l0: calc(100% - 520px); --nav-l1: calc(100% - 394px); }
+      .d6-ring { display: none; }
+      .d6-moon.s4-adm, .d6-qb .s4-kbd { display: none; }
+      .d6-cc u { display: none; }
+      .d6-drawer { width: auto; margin: -6px 192px 0 16px; }
+      .d6-arc { flex-wrap: wrap; }
+      .d6-arc a { transform: none; }
+      .d6-gnav { display: none; }
+    }
+
+    /* ── phone: bars go down to the thumb ── */
+    @container device (max-width: 640px) {
+      .s4-app { font-size: 13px; --s4-q: calc(24% + 118px); }
+      .s4-app.s4-fix { min-height: 560px; }
+      .s4-kick { top: 14%; }
+      .s4-big { top: 22%; font-size: 46px; }
+      .s4-stage > .s4-cap { top: calc(22% + 58px); width: 86%; white-space: normal; font-size: 13px; }
+      .s4-stage > .s4-pnews { top: calc(var(--s4-q) + 72px); width: calc(100% - 32px); white-space: normal; text-align: left; border-radius: 16px; font-size: 12.5px; }
+      .s4-stage .s4-planet { width: 220%; left: -60%; top: 70%; }
+      .s4-foot { right: 16px; bottom: 84px; flex-direction: column; align-items: flex-end; gap: 8px; }
+      .s4-foot.s4-fend { align-items: flex-end; padding: 16px 16px 92px; }
+      .s4-flinks { flex-wrap: wrap; justify-content: flex-end; gap: 6px 12px; }
+      .s4-bub { width: 260px; }
+      .s4-beta, .s4-hand { display: none; }
+      .s4-share { bottom: 82px; }
+      .s4-toast { display: none; }
+      .s4-ptop { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px 0 14px; flex: none; position: sticky; top: 0; z-index: 31; background: rgba(3,12,20,.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(82,193,230,.14); font-weight: 600; }
+      .s4-ptop .s4-logo { width: 20px; height: 20px; }
+      .s4-ptop .s4-pb { margin-left: auto; padding: 3px 9px; border-radius: 999px; font-size: 11px; color: #ffc7b2; background: rgba(30,10,4,.9); border: 1px solid rgba(255,87,34,.65); }
+      .s4-ptop .s4-av { width: 26px; height: 26px; }
+      .s4-pkinds { display: flex; gap: 6px; padding: 8px 12px; flex: none; overflow-x: auto; scrollbar-width: none; position: sticky; top: 44px; z-index: 30; background: rgba(3,12,20,.86); border-bottom: 1px solid rgba(82,193,230,.12); }
+      .s4-barwrap, .s4-barwrap.s4-arcw { order: 99; position: sticky; top: auto; bottom: 0; height: 80px; }
+      .s4-drawer { order: 98; position: sticky; top: auto; bottom: 74px; margin: 0 12px; width: auto; border-radius: 16px 16px 0 0; overflow-x: auto; scrollbar-width: none; }
+      .s4-sec h2 { font-size: 20px; }
+      .s4-news { grid-template-columns: 1fr; grid-auto-rows: 120px; }
+      .s4-pgrid { grid-template-columns: 1fr; }
+      .s4-pcard.s4-live { display: none; }
+      .s4-col { width: calc(100% - 24px); margin-top: 14px; }
+      .s4-shead h1 { font-size: 22px; }
+      .s4-shead .s4-sp { margin-left: 0; }
+      .s4-keep { min-height: 440px; padding: 40px 14px 16px; }
+      .s4-kl { left: 12px; font-size: 11px; white-space: normal; }
+      .s4-grid { grid-template-columns: 1fr; padding: 12px; }
+      .s4-grown { inset: 0; top: 0; left: 0; right: 0; width: auto; min-height: 100%; transform: none; border-radius: 0; clip-path: none; }
+      .s4-field { font-size: 15px; }
+      .s4-r { grid-template-columns: 34px minmax(0,1fr) auto; gap: 6px 10px; }
+      .s4-r .s4-qa { grid-column: 2 / -1; grid-row: 2; }
+      .s4-keys { display: none; }
+      .d4-app, .d4-app.s4-wide, .d4-app.s4-tool { --cap-t0: calc(100% - 68px); --cap-l0: 12px; --cap-w0: calc(100% - 88px); --cap-t1: calc(100% - 68px); --cap-l1: 12px; --cap-w1: 58px; --fly-l0: 16px; --fly-r0: 16px; --fly-h0: 54px; --fly-t1: calc(100% - 68px); --fly-l1: 70px; --fly-r1: 76px; }
+      .s4-barwrap .d4-cap, .s4-barwrap .d4-weld { --cap-t1: 12px; }
+      .d4-brand .s4-word, .d4-brand .s4-alpha, .d4-nav a.s4-adm, .d4-cap .s4-lA > .s4-av, .d4-seg > span:not(.s4-logo), .d4-seg em, .d4-crumbs, .d4-kinds, .d4-ctx, .d4-fly .s4-av, .d4-fly .s4-kbd, .d4-fly .s4-fchip { display: none; }
+      .d4-nav { margin: 0 auto; }
+      .d4-nav a { padding: 9px 12px; }
+      .d4-seg { padding: 0 8px; }
+      .d4-drawer { margin: 0 12px; }
+      .d5-app { --top-l: 12px; --top-r: 76px; --top-t0: calc(100% - 60px); --top-t1: calc(100% + 8px); --sub-l0: 16px; --sub-r0: 16px; --sub-h0: 54px; --sub-tm: calc(100% - 116px); --sub-t1: calc(100% - 62px); --sub-l1: 12px; --sub-r1: 76px; --sub-h1: 50px; }
+      .s4-barwrap.s4-tall { height: 122px; --sub-t1: 8px; --top-t0: 66px; }
+      .d5-top { justify-content: center; padding: 0 14px; }
+      .d5-top::before { clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 100%, 0 100%); border-top: 0; border-bottom: 1px solid rgba(139,224,255,.6); }
+      .d5-brand, .d5-hud, .d5-top .s4-av, .d5-nav a.s4-adm, .d5-secs, .d5-sav, .d5-q .s4-kbd, .d5-kinds, .d5-sub .s4-fchip { display: none; }
+      .d5-tabs a:not(.s4-on) { display: none; }
+      .d5-tabs { --mw: 90px; }
+      .d5-drawer { margin: 0 12px; }
+      .d6-app, .d6-app.s4-wide { --orb-t0: 14px; --orb-l0: 14px; --orb-tm: 58%; --orb-t1: calc(100% - 68px); --orb-l1: 12px; --fly-l0: 16px; --fly-w0: calc(100% - 32px); --fly-h0: 54px; --fly-t1: calc(100% - 68px); --fly-l1: 74px; --fly-w1: calc(100% - 150px); }
+      .s4-barwrap .d6-orb { --orb-t1: 12px; }
+      .s4-barwrap .d6-fly { --fly-t1: 12px; }
+      .d6-emb { width: 52px; height: 52px; }
+      .d6-wm, .d6-navs, .d6-cc, .d6-qb .s4-kbd, .d6-fly .s4-fchip, .d6-fly .s4-ftog { display: none; }
+      .d6-drawer { margin: 0 12px; padding: 10px; }
+      .d6-arc { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .s4-app *, .s4-app *::before, .s4-app *::after, .s4-vthumb, .s4-vthumb *, .s4-vthumb *::before, .s4-vthumb *::after { animation: none !important; transition: none !important; }
+    }
+
+    /* ── question views (never cloned into device frames) ── */
+    .s4-vt { width: 100%; border-collapse: collapse; margin: .6rem 0 1rem; font-size: .88rem; }
+    .s4-vt th, .s4-vt td { padding: 8px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+    .s4-vt th { font-size: .74rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .75; }
+    .s4-vt td:first-child { font-weight: 600; white-space: nowrap; }
+    .s4-vscroll { max-width: 100%; overflow-x: auto; }
+    .s4-vbox { margin: .8rem 0; padding: 8px 14px; border-left: 3px solid var(--accent-color, #58a6ff); border-radius: 0 8px 8px 0; background: color-mix(in srgb, var(--accent-color, #58a6ff) 8%, transparent); }
+    .s4-vbox.s4-vwarn { border-left-color: #f0c27b; background: color-mix(in srgb, #f0c27b 10%, transparent); }
+    .s4-vbox ul { margin: .3rem 0; padding-left: 1.2rem; }
+    .s4-vnext { margin: .8rem 0; padding: 10px 14px; border-radius: 10px; border: 1px solid color-mix(in srgb, #52c1e6 45%, transparent); font-weight: 600; }
+    .s4-vrow { display: grid; grid-template-columns: 240px minmax(0,1fr); gap: 16px; align-items: start; margin: .3rem 0 .6rem; }
+    .s4-vrow p { margin: 0 0 .4rem; }
+    .s4-vthumb { position: relative; width: 240px; height: 136px; overflow: hidden; border-radius: 12px; border: 1px solid rgba(82,193,230,.3); background: #030c14; color: #e8ebed; font: 11px/1.3 Inter, "Segoe UI", sans-serif; }
+    .s4-vthumb .s4-sky, .s4-vthumb .s4-wall { position: absolute; inset: 0; }
+    .s4-tbar { position: absolute; left: 10px; right: 10px; top: 8px; height: 18px; border-radius: 7px; background: rgba(6,20,30,.92); border: 1px solid rgba(82,193,230,.4); }
+    .s4-tkeep { position: absolute; left: 14px; right: 14px; top: 44px; bottom: 12px; display: grid; place-items: center; border-radius: 8px; border: 1.5px dashed rgba(240,194,123,.7); background: repeating-linear-gradient(135deg, rgba(240,194,123,.08) 0 7px, transparent 7px 14px); color: #ffe2b8; font-weight: 700; font-size: 10px; text-align: center; }
+    .s4-thead { position: absolute; left: 14px; top: 31px; display: flex; gap: 4px; }
+    .s4-thead i { width: 30px; height: 8px; border-radius: 3px; background: rgba(82,193,230,.3); }
+    .s4-tshare { position: absolute; right: 10px; bottom: 18px; padding: 3px 8px; border-radius: 999px; background: rgba(8,24,36,.95); border: 1px solid rgba(82,193,230,.6); font-size: 9.5px; font-weight: 600; }
+    .s4-tfoot { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; font: 600 7.5px/1.2 Orbitron, "Segoe UI", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #9fb3c8; }
+    .s4-tfoot .s4-badge { width: 20px; height: 20px; }
+    .s4-tbub { position: absolute; right: 8px; bottom: 40px; width: 170px; padding: 7px 9px; border-radius: 10px; background: rgba(6,20,30,.97); border: 1px solid rgba(82,193,230,.5); font-size: 9.5px; line-height: 1.35; }
+    .s4-tbub::after { content: ""; position: absolute; right: 18px; bottom: -5px; width: 9px; height: 9px; transform: rotate(45deg); background: rgba(6,20,30,.97); border-right: 1px solid rgba(82,193,230,.5); border-bottom: 1px solid rgba(82,193,230,.5); }
+    .s4-tnews { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 999px; background: rgba(8,24,36,.8); border: 1px solid rgba(82,193,230,.3); font-size: 10px; }
+    .s4-tnews i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: #52c1e6; box-shadow: 0 0 6px #52c1e6; }
+    .s4-tnews em { margin-left: auto; font-style: normal; color: #6f879b; }
+    .s4-tclock { position: absolute; left: 12px; bottom: 12px; font-size: 9.5px; color: #9fb3c8; }
+    .s4-tpatch { position: absolute; inset: 14px; display: grid; align-content: start; gap: 6px; padding: 10px; border-radius: 10px; background: linear-gradient(160deg, #0b2738, #050f18); border: 1px solid rgba(82,193,230,.25); }
+    .s4-tpatch b { font: 800 18px/1 Orbitron, "Segoe UI", sans-serif; }
+    .s4-tpatch .s4-qrow { gap: 4px; }
+    .s4-tpatch .s4-ql { padding: 2px 7px; font-size: 9.5px; }
+    .s4-tsteps { position: absolute; inset: 18px 12px; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 4px; text-align: center; font-size: 9px; color: #9fb3c8; }
+    .s4-tsteps > span { display: grid; justify-items: center; gap: 5px; }
+    .s4-tsteps i { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; font-style: normal; font-size: 18px; background: rgba(82,193,230,.12); border: 1px solid rgba(82,193,230,.35); color: #8be0ff; }
+    .s4-tsteps .s4-tqr { background: #f2f6f8 repeating-conic-gradient(#0b1820 0 25%, #f2f6f8 0 50%) 0 0 / 8px 8px; border-color: #f2f6f8; }
+    .s4-tsteps b { color: #52c1e6; font-size: 14px; }
+    .s4-tscene { position: absolute; inset: 0; transform-origin: 50% 64%; animation: s4-tzoom 4.5s cubic-bezier(.6,0,.2,1) infinite alternate; }
+    @keyframes s4-tzoom { 0%, 15% { transform: scale(1); } 85%, 100% { transform: scale(2.4); } }
+    .s4-tscene .s4-planet { width: 130%; left: -15%; top: 58%; }
+    .s4-thangar { position: absolute; z-index: 2; left: 50%; top: 58%; width: 34px; height: 18px; transform: translate(-50%, -100%); clip-path: polygon(12% 0, 88% 0, 100% 40%, 100% 100%, 0 100%, 0 40%); background: linear-gradient(180deg, #6b8294, #2a3a46); }
+    .s4-thangar::after { content: ""; position: absolute; left: 25%; right: 25%; top: 40%; bottom: 0; background: #f0c27b; box-shadow: 0 0 8px #f0c27b; transform: scaleX(.08); animation: s4-tdoor 4.5s cubic-bezier(.6,0,.2,1) infinite alternate; }
+    @keyframes s4-tdoor { 0%, 45% { transform: scaleX(.08); } 90%, 100% { transform: scaleX(1); } }
+    .s4-tcodex { position: absolute; inset: 0; }
+    .s4-tcodex .s4-planet { width: 160%; left: -30%; top: 86%; opacity: .85; }
+    .s4-tlbl { position: absolute; z-index: 3; left: 8px; top: 8px; padding: 2px 7px; border-radius: 999px; background: rgba(3,12,20,.8); font-size: 9.5px; color: #9fb3c8; }
+    .s4-tkinds { position: absolute; inset: 14px; display: grid; gap: 6px; }
+    .s4-tkinds > div { display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 8px; background: rgba(6,20,30,.9); border: 1px solid rgba(82,193,230,.35); }
+    .s4-tkinds span { padding: 3px 6px; border-radius: 6px; font-size: 9px; color: #9fb3c8; }
+    .s4-tkinds span.s4-on { background: #52c1e6; color: #04202c; font-weight: 700; }
+    .s4-trail { position: absolute; left: 10px; top: 12px; bottom: 12px; width: 52px; display: grid; align-content: start; gap: 4px; padding: 5px 4px; border-radius: 10px; background: rgba(6,20,30,.92); border: 1px solid rgba(82,193,230,.35); text-align: center; font-size: 7.5px; color: #9fb3c8; }
+    .s4-trail span { display: grid; gap: 1px; padding: 2px 0; border-radius: 6px; }
+    .s4-trail span::before { content: attr(data-i); font-size: 11px; color: #8be0ff; }
+    .s4-trail span.s4-on { background: rgba(82,193,230,.25); color: #fff; }
+    .s4-tgrid { position: absolute; left: 72px; right: 10px; top: 12px; bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .s4-tgrid i { border-radius: 8px; background: rgba(82,193,230,.1); border: 1px solid rgba(82,193,230,.15); }
+    @container (max-width: 560px) { .s4-vrow { grid-template-columns: 1fr; } }
+  </style>
+
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 4 · Header ⇄ Subheader: drei Richtungen, wie sie ineinander übergehen</h2>
+    <p>Alles aus Runde 3 ist bestätigt, offen war nur der Kern: Header und Subheader sollen zusammengehören und ineinander übergehen. Dafür gibt es hier drei klar verschiedene Richtungen, A · Fusion, B · Stack-Dock und C · Orbit. Alle drei folgen denselben Regeln: Der Subheader ist immer die Suche, die Crumbs und der Abschnitt im Blick stehen links, Filter klappen aus der Suche, die Leiste blendet auf Inhaltsseiten aus und bleibt auf Werkzeugseiten stehen, und die Ecken sind fest. Jede Richtung zeigt dieselben sechs Zustände. Der zweite Zustand spielt die Verwandlung beim Scrollen als Schleife ab. Die Verfeinerungen aus Runde 3 stehen in einer eigenen Frage.</p>
+  </header>
+
+  <!-- ═════════════════════════════ A · Fusion ═════════════════════════════ -->
+  <section data-design="fusion" data-nav-label="A · Fusion" data-design-active="true"
+           data-design-motto="Eine Kapsel, ein Griff"
+           data-design-traits="Kopf und Suche verschmelzen zu einer Kapsel|Das Menü schrumpft zum Segment ◆ Verse ▾|Codex-Arten als Segmente in der Kapsel"
+           data-design-icon="cube" data-design-color="#9b7bff" data-design-overlay="bl" data-design-overlay-tone="warm">
+
+    <section id="d4-s1" data-screen data-screen-active="true" data-screen-fit="full" data-nav-label="Hub · oben">
+      <div class="s4-app s4-fix d4-app s4-st-top">
+        <div class="s4-sky"></div>
+        <div class="s4-flow">
+          <div class="s4-stage">
+            <div class="s4-planet"></div>
+            <span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span>
+            <h1 class="s4-big">12 · 04 · 31</h1>
+            <p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live · PTU Welle 2 läuft</p>
+            <a class="s4-pnews" data-screen-link="d4-s2"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat in 4.4 PTU neue Schildwerte</b><em>1 / 3</em></a>
+            <footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+          </div>
+        </div>
+        <div class="d4-weld"></div>
+        <div class="d4-cap s4-stack">
+          <div class="s4-lyr s4-lA"><a class="d4-brand" data-screen-link="d4-s1"><span class="s4-logo"></span><span class="s4-word">SC Companion</span><span class="s4-alpha">alpha</span></a><nav class="d4-nav"><a class="s4-on" data-screen-link="d4-s2">Verse</a><a data-screen-link="d4-s4">Codex</a><a>HQ</a><a class="s4-adm">Admin</a></nav><span class="s4-av">JT</span></div>
+          <div class="s4-lyr s4-lB"><a class="d4-seg"><span class="s4-logo"></span><span>Verse</span><em>▾</em></a><nav class="d4-ctx"><a class="s4-on">News<small>3 neu</small></a><a>Patches</a><a>Galerie</a></nav></div>
+        </div>
+        <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="d4-qt">Suche in News, Patches, Galerie oder frag den Companion …</span><span class="s4-kbd">Strg K</span></button>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d4-s1-a1" data-anno-side="bottom" data-anno-target=".d4-cap" style="--anno-x:50%;--anno-y:6%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s1-a1" data-anno-bubble="d4-s1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s1-a1"><span class="anno-bubble-question">Auf der Bühne steht oben nur eine schmale Glas-Kapsel mit Marke und Hauptmenü, die Suche lebt groß in der Mitte. Beide haben schon dieselbe Form, damit sie beim Scrollen zu einer Kapsel werden (Zustand II). Ist die Kopf-Kapsel hier zurückhaltend genug, oder soll sie stärker leuchten?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s1-a1" data-annotation="d4-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}">das ist eine gute idee!</textarea><div class="attach-slot" data-attach-slot="anno-d4-s1-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d4-s2" data-screen data-screen-fit="full" data-nav-label="Hub · Übergang (animiert)" hidden>
+      <div class="s4-app s4-fix d4-app s4-st-anim">
+        <div class="s4-sky"></div>
+        <div class="s4-flow">
+          <div class="s4-stage">
+            <div class="s4-planet"></div>
+            <span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span>
+            <h1 class="s4-big">12 · 04 · 31</h1>
+            <p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live · PTU Welle 2 läuft</p>
+            <a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat in 4.4 PTU neue Schildwerte</b><em>1 / 3</em></a>
+            <footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+          </div>
+          <div class="s4-after">
+            <section class="s4-sec">
+              <h2>News <small>3 neue seit gestern</small><a>Alle News →</a></h2>
+              <div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a><a class="s4-nb s4-n3"><small>Patch-Notes · 3 T</small><b>Star Citizen Alpha 4.3.1</b></a></div>
+            </section>
+            <section class="s4-sec">
+              <h2>Patches <small>alle laufenden Zyklen</small><a>Patch-Übersicht →</a></h2>
+              <div class="s4-pgrid">
+                <article class="s4-pcard"><span class="s4-ptag"><b>PTU</b>Welle 2 von 4</span><span class="s4-pver">4.4</span><span class="s4-qrow"><span class="s4-ql s4-lo">wenige bekannte Probleme<small>12</small></span><span class="s4-ql s4-hi">sehr viele Meldungen<small>314</small></span></span></article>
+                <article class="s4-pcard s4-live"><span class="s4-ptag"><b>LIVE</b>seit 9 Tagen</span><span class="s4-pver">4.3.1</span><span class="s4-qrow"><span class="s4-ql s4-lo">stabil<small>82 %</small></span><span class="s4-ql s4-mid">einige Meldungen<small>96</small></span></span></article>
+                <article class="s4-pcard s4-old"><span class="s4-ptag"><b>HOTFIX</b>vor 3 Wochen</span><span class="s4-pver">4.3.0</span><span class="s4-qrow"><span class="s4-ql s4-lo">kaum Probleme<small>3</small></span></span></article>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="d4-weld"></div>
+        <div class="d4-cap s4-stack">
+          <div class="s4-lyr s4-lA"><a class="d4-brand" data-screen-link="d4-s1"><span class="s4-logo"></span><span class="s4-word">SC Companion</span><span class="s4-alpha">alpha</span></a><nav class="d4-nav"><a class="s4-on">Verse</a><a data-screen-link="d4-s4">Codex</a><a>HQ</a><a class="s4-adm">Admin</a></nav><span class="s4-av">JT</span></div>
+          <div class="s4-lyr s4-lB"><a class="d4-seg" data-screen-link="d4-s1"><span class="s4-logo"></span><span>Verse</span><em>▾</em></a><nav class="d4-ctx"><a class="s4-on">News<small>3 neu</small></a><a>Patches</a><a>Galerie</a></nav></div>
+        </div>
+        <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="d4-qt">Suche in News, Patches, Galerie oder frag den Companion …</span><span class="s4-kbd">Strg K</span></button>
+        <span class="s4-thumb"></span>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d4-s2-a1" data-anno-side="bottom" style="--anno-x:57%;--anno-y:11%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s2-a1" data-anno-bubble="d4-s2-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Verwandlung jetzt animiert</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s2-a1"><span class="anno-bubble-question">Die Verwandlung als Schleife (9 s, langsamer als später echt): Die Kopf-Kapsel schrumpft zum Segment „◆ Verse ▾“, die Bühnen-Suche fliegt hoch und schweißt sich rechts an, eine gemeinsame Leuchtlinie läuft unten durch. Liest sich das als ein Element, das sich verwandelt?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s2-a1" data-annotation="d4-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Sehr gut! genial!</textarea><div class="attach-slot" data-attach-slot="anno-d4-s2-a1"></div></div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d4-s2-a2" data-anno-side="bottom" style="--anno-x:15%;--anno-y:11%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d4-s2-a2" aria-label="{{anno.pin_label}}">2</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s2-a2" data-anno-bubble="d4-s2-a2" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Abschnitt links statt rechts</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d4-s2-a2"><span class="anno-bubble-question">Der Abschnitt im Blick (News · Patches · Galerie, dazu „3 neu“) steht jetzt links direkt hinter dem Bereichswechsel und nicht mehr abgekoppelt rechts. Passt die Nähe, und reicht die kleine Zahl als Info?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s2-a2" data-annotation="d4-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d4-s2-a2"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d4-s3" data-screen data-screen-fit="full" data-nav-label="Inhalt · Schiff" hidden>
+      <div class="s4-app d4-app s4-wide">
+        <div class="s4-wall"></div>
+        <div class="s4-ptop"><span class="s4-logo"></span><span>Avenger Stalker</span><span class="s4-pb">β</span><span class="s4-av">JT</span></div>
+        <div class="s4-barwrap">
+          <div class="d4-weld"></div>
+          <div class="d4-cap"><div class="s4-lyr"><a class="d4-seg" data-screen-link="d4-s4"><span class="s4-logo"></span><span>Codex</span><em>▾</em></a><nav class="s4-crumbs d4-crumbs"><a data-screen-link="d4-s4">Schiffe</a><i>›</i><a class="s4-par" data-screen-link="d4-s4">Aegis</a><i>›</i><span>Avenger Stalker</span></nav></div></div>
+          <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="d4-qt">Suche: Waffen, Komponenten, Schiffe …</span><span class="s4-kbd">/</span><span class="s4-av">JT</span></button>
+        </div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <main class="s4-col">
+          <div class="s4-shead"><p>Aegis Dynamics · Klein · Kopfgeld</p><h1>Avenger Stalker</h1><span class="s4-sp"></span><span class="s4-psel">Patch 4.3.1 <b>LIVE</b> ▾</span><span class="s4-vt2"><b class="s4-on">Holotisch</b><b>Klassisch</b></span></div>
+          <div class="s4-keep"><span class="s4-kl">Holotisch / Klassisch — unverändert</span><div class="s4-kg"></div><div class="s4-kt"><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="s4-kn"><b>Bleibt exakt wie heute:</b> alles, was sich zwischen Holotisch und Klassisch unterscheidet, mit Inhalt, Reihenfolge und Kategorien. Keine Abschnitts-Navigation. Neu sind nur der Rahmen außen, Hintergrund und Abstände. Tausch-Popups laufen im neuen Rahmen, mit allen Inhalten von heute.</p></div>
+        </main>
+        <footer class="s4-foot s4-fend"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+        <div class="s4-float"><a class="s4-share" aria-label="Teilen"><b>↗</b>Teilen<span class="s4-toast">Link kopiert · …/avenger-stalker<b>#bewaffnung</b></span></a><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d4-s3-a1" data-anno-side="left" data-anno-target=".s4-share" style="--anno-x:92%;--anno-y:88%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s3-a1" data-anno-bubble="d4-s3-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ein Teilen-Knopf statt Abschnitte</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s3-a1"><span class="anno-bubble-question">Keine Abschnitts-Auswahl mehr. Ein Teilen-Knopf steht immer an derselben Stelle und nimmt still den Anker des Abschnitts im Blick mit (hier #bewaffnung). Für dich ist es immer derselbe Knopf. Reicht der eine, oder willst du zusätzlich Teilen an einzelnen Überschriften?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s3-a1" data-annotation="d4-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d4-s3-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d4-s4" data-screen data-screen-fit="full" data-nav-label="Werkzeug · Codex-Index" hidden>
+      <div class="s4-app d4-app s4-tool">
+        <div class="s4-wall"></div>
+        <div class="s4-ptop"><span class="s4-logo"></span><span>Codex · Schiffe</span><span class="s4-pb">β</span><span class="s4-av">JT</span></div>
+        <div class="s4-pkinds"><span class="s4-chip s4-on">▲ Schiffe 262</span><span class="s4-chip">✶ Waffen</span><span class="s4-chip">⚙ Komponenten</span><span class="s4-chip">⌖ FPS</span><span class="s4-chip">▤ Blueprints</span><span class="s4-chip">◷ Upcoming</span><span class="s4-chip">⌨ Keybinds</span></div>
+        <div class="s4-barwrap">
+          <div class="d4-weld"></div>
+          <div class="d4-cap"><div class="s4-lyr"><a class="d4-seg" data-screen-link="d4-s1"><span class="s4-logo"></span><span>Codex</span><em>▾</em></a><nav class="d4-kinds"><a class="s4-on"><i>▲</i><span>Schiffe</span><small>262</small></a><a><i>✶</i><span>Waffen</span></a><a><i>⚙</i><span>Komponenten</span></a><a><i>⌖</i><span>FPS</span></a><a><i>▤</i><span>Blueprints</span></a><a><i>◷</i><span>Upcoming</span></a><a><i>⌨</i><span>Keybinds</span></a></nav></div></div>
+          <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="s4-fchip">Hersteller: Aegis <i>✕</i></span><span class="d4-qt">In Schiffen filtern oder überall suchen …</span><span class="s4-ftog">⚙ Filter ▴</span><span class="s4-av">JT</span></button>
+        </div>
+        <div class="s4-drawer d4-drawer"><span class="s4-chip s4-add">＋ Größe</span><span class="s4-chip s4-add">＋ Rolle</span><span class="s4-chip s4-add">＋ Filter</span><span class="s4-sp"></span><span class="s4-chip s4-add">Sortieren: SCM ↓</span><span class="s4-vt2"><b class="s4-on">▦</b><b>☰</b></span><span class="s4-btn s4-p">⚖ Vergleich (2)</span></div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <main class="s4-grid">
+          <a class="s4-card s4-hl" data-screen-link="d4-s3"><span class="s4-ck s4-on">✓</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Stalker</b><small>Klein · Kopfgeld</small></div><span>220 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d4-s3"><span class="s4-ck s4-on">✓</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Titan</b><small>Klein · Fracht leicht</small></div><span>220 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d4-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Warlock</b><small>Klein · EMP</small></div><span>218 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d4-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Gladius</b><small>Klein · Jäger</small></div><span>235 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d4-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Sabre</b><small>Klein · Stealth-Jäger</small></div><span>230 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d4-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Eclipse</b><small>Mittel · Stealth-Bomber</small></div><span>205 m/s</span></div></a>
+        </main>
+        <footer class="s4-foot s4-fend"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d4-s4-a1" data-anno-side="bottom" data-anno-target=".d4-kinds" style="--anno-x:24%;--anno-y:6%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s4-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s4-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s4-a1" data-anno-bubble="d4-s4-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Codex-Auswahl als Segmente</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s4-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s4-a1"><span class="anno-bubble-question">Statt des „Codex ▾“-Menüs links stehen alle sieben Codex-Arten als Segmente direkt in der Kapsel, die aktive mit Zahl. Auf dem Tablet bleiben Icons plus die aktive mit Namen, am Handy eine Chip-Zeile oben. Lesbar so, oder zu voll neben der Suche?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s4-a1" data-annotation="d4-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}">das macht schon sinnn aber breadcrumbs vs das hier, ist das nicht zu wild. Najna wenn es gut animiert wird im übergang eigentlich gut</textarea><div class="attach-slot" data-attach-slot="anno-d4-s4-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d4-s5" data-screen data-screen-fit="full" data-nav-label="Suche aktiv" hidden>
+      <div class="s4-app">
+        <div class="s4-wall"></div>
+        <div class="s4-ghost"><i class="s4-gw"></i><i class="s4-gh"></i><i></i><i></i><i class="s4-gw"></i></div>
+        <div class="s4-scrim"></div>
+        <div class="s4-grown d4-grown">
+          <div class="s4-gl"><a class="d4-seg" data-screen-link="d4-s3"><span class="s4-logo"></span><span>Codex</span><em>▾</em></a><div class="s4-field"><span class="d4-qi">⌕</span><span class="s4-cchip">▲ Avenger Stalker <i>✕</i></span><span>beste s3 kanone für stalker</span><span class="s4-caret"></span><span class="s4-kbd">Esc</span></div><button type="button" class="s4-x" data-screen-link="d4-s3" aria-label="Schließen">✕</button></div>
+          <button type="button" class="s4-ask"><b>✦ Companion fragen</b><span>„beste s3 kanone für stalker“ · Antwort mit Begründung und Loadout-Vorschlag</span><span class="s4-kbd">Shift ↵</span></button>
+          <div class="s4-rs">
+            <h4>Auf dieser Seite · Avenger Stalker <em>1</em></h4>
+            <a class="s4-r" style="--i:0" data-screen-link="d4-s3"><span class="s4-ri">⌖</span><span><b>Flügel links · S3</b><small>Hardpoint · Tarantula GT-870 Mk3</small></span><span class="s4-qa"><i>⚖</i></span><span class="s4-btn s4-p">Tauschen</span></a>
+            <h4>Waffen · S3 <em>18</em></h4>
+            <a class="s4-r s4-on" style="--i:1"><span class="s4-ri">✶</span><span><b>Deadbolt III</b><small>Kanone ballistisch · DPS 624 · 2,1 km · im Spind</small></span><span class="s4-qa"><i>⇄</i><i>⚖</i><i>☆</i></span><span class="s4-btn">Details</span></a>
+            <a class="s4-r" style="--i:2"><span class="s4-ri">✶</span><span><b>Attrition-3</b><small>Laser-Repeater · DPS 583 · 1,5 km</small></span><span class="s4-qa"><i>⇄</i><i>⚖</i><i>☆</i></span><span class="s4-btn">Details</span></a>
+            <h4>Schiffe <em>2</em></h4>
+            <a class="s4-r" style="--i:3" data-screen-link="d4-s3"><span class="s4-ri">▲</span><span><b>Avenger Titan</b><small>Aegis · gleiche S3-Hardpoints</small></span><span class="s4-qa"><i>⚖</i><i>＋</i><i>⛭</i></span><span class="s4-btn">Öffnen</span></a>
+            <h4>News <em>1</em></h4>
+            <a class="s4-r" style="--i:4"><span class="s4-ri">≡</span><span><b>Waffen-Balance in 4.4 PTU</b><small>Patch-Dossier · #balance</small></span><span class="s4-qa"><i>☆</i><i>↗</i></span><span class="s4-btn">Lesen</span></a>
+          </div>
+          <aside class="s4-peek"><small>Vorschau</small><h5>Deadbolt III</h5><small>S3 · Ballistische Kanone · im Spind 1×</small><div class="s4-meter"><span>DPS</span><i style="--a:88%;--b:100%"></i><b class="s4-up">624</b></div><div class="s4-meter"><span>Alpha</span><i style="--a:43%;--b:54%"></i><b class="s4-up">520</b></div><div class="s4-meter"><span>Reichweite</span><i style="--a:75%;--b:66%"></i><b class="s4-down">2,1 km</b></div><span class="s4-btn s4-p">⇄ Auf Flügel links montieren</span></aside>
+          <div class="s4-keys"><span><span class="s4-kbd">↑ ↓</span> wählen</span><span><span class="s4-kbd">↵</span> öffnen</span><span><span class="s4-kbd">⌫</span> am Feldanfang: Kontext-Chip weg, überall suchen</span><span><span class="s4-kbd">Esc</span> zurück zur Leiste</span></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d4-s5-a1" data-anno-side="bottom" data-anno-target=".s4-cchip" style="--anno-x:22%;--anno-y:7%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s5-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s5-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s5-a1" data-anno-bubble="d4-s5-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Kontext als Chip im Feld</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s5-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s5-a1"><span class="anno-bubble-question">Dein „V“ lese ich als Runde 2, Frage „Suche: Ranking und Ort“ samt dem Such-Zustand der damaligen Morph-Bar: Die Leiste selbst wird zur Suche. Deshalb ist der Kontext kein eigener Block mehr, sondern ein Chip im Feld, wie ein Filter oder eine Crumb. ✕ oder Rücktaste am Feldanfang sucht überall. Stimmt das so?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s5-a1" data-annotation="d4-s5-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d4-s5-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d4-s6" data-screen data-nav-label="Handy" hidden>
+      <div class="s4-phones">
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d4-app s4-st-top">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div></div>
+          <div class="d4-weld"></div>
+          <div class="d4-cap s4-stack"><div class="s4-lyr s4-lA"><a class="d4-brand"><span class="s4-logo"></span></a><nav class="d4-nav"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></nav></div><div class="s4-lyr s4-lB"><a class="d4-seg"><span class="s4-logo"></span></a></div></div>
+          <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="d4-qt">Suche in News, Patches …</span></button>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Hub oben</figcaption></figure>
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d4-app s4-st-anim">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div>
+            <div class="s4-after"><section class="s4-sec"><h2>News <small>3 neu</small></h2><div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a></div></section></div></div>
+          <div class="d4-weld"></div>
+          <div class="d4-cap s4-stack"><div class="s4-lyr s4-lA"><a class="d4-brand"><span class="s4-logo"></span></a><nav class="d4-nav"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></nav></div><div class="s4-lyr s4-lB"><a class="d4-seg"><span class="s4-logo"></span></a></div></div>
+          <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="d4-qt">Suche in News, Patches …</span></button>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Übergang (Schleife)</figcaption></figure>
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d4-app s4-st-dock">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div>
+            <div class="s4-after"><section class="s4-sec"><h2>News <small>3 neu</small></h2><div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a></div></section></div></div>
+          <div class="d4-weld"></div>
+          <div class="d4-cap s4-stack"><div class="s4-lyr s4-lA"><a class="d4-brand"><span class="s4-logo"></span></a><nav class="d4-nav"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></nav></div><div class="s4-lyr s4-lB"><a class="d4-seg"><span class="s4-logo"></span></a></div></div>
+          <button type="button" class="d4-fly" data-screen-link="d4-s5"><span class="d4-qi">⌕</span><span class="d4-qt">Suche in News, Patches …</span></button>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Gescrollt</figcaption></figure>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d4-s6-a1" data-anno-side="top" data-anno-target=".s4-phf:nth-child(3) .d4-fly" style="--anno-x:72%;--anno-y:80%">
+          <button class="anno-pin" type="button" data-anno-pin="d4-s6-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s6-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d4-s6-a1" data-anno-bubble="d4-s6-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d4-s6-a1" aria-expanded="false" aria-controls="anno-bubble-d4-s6-a1"><span class="anno-bubble-question">Am Handy liegt die Kapsel unten am Daumen, wie in Runde 3 angenommen. Beim Scrollen bleibt links nur ◆ (öffnet das Menü), die Suche fliegt herunter und nimmt den Rest. Fehlt dir so das sichtbare Menü?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d4-s6-a1" data-annotation="d4-s6-a1" data-attachable placeholder="{{anno.answer_placeholder}}">sehr gut!</textarea><div class="attach-slot" data-attach-slot="anno-d4-s6-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═══════════════════════════ B · Stack-Dock ═══════════════════════════ -->
+  <section data-design="stack" data-nav-label="B · Stack-Dock" hidden
+           data-design-motto="Zwei Lagen, ein Visier"
+           data-design-traits="Zwei dünne Lagen wie ein Cockpit-Visier|Das Menü taucht weg und wird zur Tab-Leiste|Werkzeugseiten zeigen beide Lagen"
+           data-design-icon="layers" data-design-color="#f0c27b" data-design-overlay="bl" data-design-overlay-tone="warm">
+
+    <section id="d5-s1" data-screen data-screen-active="true" data-screen-fit="full" data-nav-label="Hub · oben">
+      <div class="s4-app s4-fix d5-app s4-st-top">
+        <div class="s4-sky"></div>
+        <div class="s4-flow">
+          <div class="s4-stage">
+            <div class="s4-planet"></div>
+            <span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span>
+            <h1 class="s4-big">12 · 04 · 31</h1>
+            <p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live · PTU Welle 2 läuft</p>
+            <a class="s4-pnews" data-screen-link="d5-s2"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat in 4.4 PTU neue Schildwerte</b><em>1 / 3</em></a>
+            <footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+          </div>
+        </div>
+        <header class="d5-top"><a class="d5-brand" data-screen-link="d5-s1"><span class="s4-logo"></span><span class="d5-word">SC Companion</span><span class="s4-alpha">alpha</span></a><nav class="d5-nav"><a class="s4-on" data-screen-link="d5-s2">Verse</a><a data-screen-link="d5-s4">Codex</a><a>HQ</a><a class="s4-adm">Admin</a></nav><span class="d5-hud">UEE 2955 · 14:32</span><span class="s4-av">JT</span></header>
+        <div class="d5-sub"><span class="d5-tabs"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></span><span class="d5-secs"><a class="s4-on">News<small>3 neu</small></a><a>Patches</a><a>Galerie</a></span><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="d5-qt">Suche in News, Patches, Galerie oder frag den Companion …</span><span class="s4-kbd">Strg K</span></button><span class="s4-av d5-sav">JT</span></div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d5-s1-a1" data-anno-side="bottom" data-anno-target=".d5-top" style="--anno-x:50%;--anno-y:5%">
+          <button class="anno-pin" type="button" data-anno-pin="d5-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d5-s1-a1" data-anno-bubble="d5-s1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d5-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s1-a1"><span class="anno-bubble-question">Zwei dünne Lagen wie ein Cockpit-Visier: oben das Hauptmenü mit schrägen Kanten, Leuchtkante und Klammern um den aktiven Bereich, darunter dockt beim Scrollen die Suche an. Ist das Visier zu technisch, oder genau der HUD-Ton, den du willst?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d5-s1-a1" data-annotation="d5-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d5-s1-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d5-s2" data-screen data-screen-fit="full" data-nav-label="Hub · Übergang (animiert)" hidden>
+      <div class="s4-app s4-fix d5-app s4-st-anim">
+        <div class="s4-sky"></div>
+        <div class="s4-flow">
+          <div class="s4-stage">
+            <div class="s4-planet"></div>
+            <span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span>
+            <h1 class="s4-big">12 · 04 · 31</h1>
+            <p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live · PTU Welle 2 läuft</p>
+            <a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat in 4.4 PTU neue Schildwerte</b><em>1 / 3</em></a>
+            <footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+          </div>
+          <div class="s4-after">
+            <section class="s4-sec">
+              <h2>News <small>3 neue seit gestern</small><a>Alle News →</a></h2>
+              <div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a><a class="s4-nb s4-n3"><small>Patch-Notes · 3 T</small><b>Star Citizen Alpha 4.3.1</b></a></div>
+            </section>
+            <section class="s4-sec">
+              <h2>Patches <small>alle laufenden Zyklen</small><a>Patch-Übersicht →</a></h2>
+              <div class="s4-pgrid">
+                <article class="s4-pcard"><span class="s4-ptag"><b>PTU</b>Welle 2 von 4</span><span class="s4-pver">4.4</span><span class="s4-qrow"><span class="s4-ql s4-lo">wenige bekannte Probleme<small>12</small></span><span class="s4-ql s4-hi">sehr viele Meldungen<small>314</small></span></span></article>
+                <article class="s4-pcard s4-live"><span class="s4-ptag"><b>LIVE</b>seit 9 Tagen</span><span class="s4-pver">4.3.1</span><span class="s4-qrow"><span class="s4-ql s4-lo">stabil<small>82 %</small></span><span class="s4-ql s4-mid">einige Meldungen<small>96</small></span></span></article>
+                <article class="s4-pcard s4-old"><span class="s4-ptag"><b>HOTFIX</b>vor 3 Wochen</span><span class="s4-pver">4.3.0</span><span class="s4-qrow"><span class="s4-ql s4-lo">kaum Probleme<small>3</small></span></span></article>
+              </div>
+            </section>
+          </div>
+        </div>
+        <header class="d5-top"><a class="d5-brand" data-screen-link="d5-s1"><span class="s4-logo"></span><span class="d5-word">SC Companion</span><span class="s4-alpha">alpha</span></a><nav class="d5-nav"><a class="s4-on">Verse</a><a data-screen-link="d5-s4">Codex</a><a>HQ</a><a class="s4-adm">Admin</a></nav><span class="d5-hud">UEE 2955 · 14:32</span><span class="s4-av">JT</span></header>
+        <div class="d5-sub"><span class="d5-tabs"><a class="s4-on">Verse</a><a data-screen-link="d5-s4">Codex</a><a>HQ</a></span><span class="d5-secs"><a class="s4-on">News<small>3 neu</small></a><a>Patches</a><a>Galerie</a></span><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="d5-qt">Suche in News, Patches, Galerie oder frag den Companion …</span><span class="s4-kbd">Strg K</span></button><span class="s4-av d5-sav">JT</span></div>
+        <span class="s4-thumb"></span>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d5-s2-a1" data-anno-side="bottom" style="--anno-x:56%;--anno-y:10.5%">
+          <button class="anno-pin" type="button" data-anno-pin="d5-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d5-s2-a1" data-anno-bubble="d5-s2-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Verwandlung jetzt animiert</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d5-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s2-a1"><span class="anno-bubble-question">Verwandlung in zwei Schritten (Schleife, 9 s): Die Suche dockt erst unter dem Menü an, dann taucht das Menü hinter ihr weg, und seine Bereiche erscheinen links als Tab-Leiste VERSE · CODEX · HQ. Wirken zwei Schritte klarer, oder ist das zu viel Bewegung?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d5-s2-a1" data-annotation="d5-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d5-s2-a1"></div></div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d5-s2-a2" data-anno-side="bottom" style="--anno-x:20%;--anno-y:10.5%">
+          <button class="anno-pin" type="button" data-anno-pin="d5-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d5-s2-a2" aria-label="{{anno.pin_label}}">2</button>
+          <div class="anno-bubble" id="anno-bubble-d5-s2-a2" data-anno-bubble="d5-s2-a2" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Abschnitt links bei den Tabs</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d5-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d5-s2-a2"><span class="anno-bubble-question">Der Abschnitt im Blick steht links direkt neben den Tabs, also dort, wo der Menüwechsel ist, nicht mehr abgekoppelt rechts. Passt das?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d5-s2-a2" data-annotation="d5-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d5-s2-a2"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d5-s3" data-screen data-screen-fit="full" data-nav-label="Inhalt · Schiff" hidden>
+      <div class="s4-app d5-app">
+        <div class="s4-wall"></div>
+        <div class="s4-ptop"><span class="s4-logo"></span><span>Avenger Stalker</span><span class="s4-pb">β</span><span class="s4-av">JT</span></div>
+        <div class="s4-barwrap">
+          <div class="d5-sub"><span class="d5-tabs"><a data-screen-link="d5-s1">Verse</a><a class="s4-on" data-screen-link="d5-s4">Codex</a><a>HQ</a></span><nav class="s4-crumbs"><a data-screen-link="d5-s4">Schiffe</a><i>›</i><a class="s4-par" data-screen-link="d5-s4">Aegis</a><i>›</i><span>Avenger Stalker</span></nav><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="d5-qt">Suche: Waffen, Komponenten, Schiffe …</span><span class="s4-kbd">/</span></button><span class="s4-av d5-sav">JT</span></div>
+        </div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <main class="s4-col">
+          <div class="s4-shead"><p>Aegis Dynamics · Klein · Kopfgeld</p><h1>Avenger Stalker</h1><span class="s4-sp"></span><span class="s4-psel">Patch 4.3.1 <b>LIVE</b> ▾</span><span class="s4-vt2"><b class="s4-on">Holotisch</b><b>Klassisch</b></span></div>
+          <div class="s4-keep"><span class="s4-kl">Holotisch / Klassisch — unverändert</span><div class="s4-kg"></div><div class="s4-kt"><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="s4-kn"><b>Bleibt exakt wie heute:</b> alles, was sich zwischen Holotisch und Klassisch unterscheidet, mit Inhalt, Reihenfolge und Kategorien. Keine Abschnitts-Navigation. Neu sind nur der Rahmen außen, Hintergrund und Abstände. Tausch-Popups laufen im neuen Rahmen, mit allen Inhalten von heute.</p></div>
+        </main>
+        <footer class="s4-foot s4-fend"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+        <div class="s4-float"><a class="s4-share" aria-label="Teilen"><b>↗</b>Teilen<span class="s4-toast">Link kopiert · …/avenger-stalker<b>#bewaffnung</b></span></a><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+    </section>
+
+    <section id="d5-s4" data-screen data-screen-fit="full" data-nav-label="Werkzeug · Codex-Index" hidden>
+      <div class="s4-app d5-app">
+        <div class="s4-wall"></div>
+        <div class="s4-ptop"><span class="s4-logo"></span><span>Codex · Schiffe</span><span class="s4-pb">β</span><span class="s4-av">JT</span></div>
+        <div class="s4-pkinds"><span class="s4-chip s4-on">▲ Schiffe 262</span><span class="s4-chip">✶ Waffen</span><span class="s4-chip">⚙ Komponenten</span><span class="s4-chip">⌖ FPS</span><span class="s4-chip">▤ Blueprints</span><span class="s4-chip">◷ Upcoming</span><span class="s4-chip">⌨ Keybinds</span></div>
+        <div class="s4-barwrap s4-tall">
+          <header class="d5-top"><a class="d5-brand" data-screen-link="d5-s1"><span class="s4-logo"></span><span class="d5-word">SC Companion</span><span class="s4-alpha">alpha</span></a><nav class="d5-nav"><a data-screen-link="d5-s1">Verse</a><a class="s4-on">Codex</a><a>HQ</a><a class="s4-adm">Admin</a></nav><span class="d5-hud">UEE 2955 · 14:32</span><span class="s4-av">JT</span></header>
+          <div class="d5-sub"><nav class="d5-kinds"><a class="s4-on"><i>▲</i><span>Schiffe 262</span></a><a><i>✶</i><span>Waffen</span></a><a><i>⚙</i><span>Komponenten</span></a><a><i>⌖</i><span>FPS</span></a><a><i>▤</i><span>Blueprints</span></a><a><i>◷</i><span>Upcoming</span></a><a><i>⌨</i><span>Keybinds</span></a></nav><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="s4-fchip">Hersteller: Aegis <i>✕</i></span><span class="d5-qt">In Schiffen filtern …</span><span class="s4-ftog">⚙ Filter ▴</span></button></div>
+        </div>
+        <div class="s4-drawer d5-drawer"><span class="s4-chip s4-add">＋ Größe</span><span class="s4-chip s4-add">＋ Rolle</span><span class="s4-chip s4-add">＋ Filter</span><span class="s4-sp"></span><span class="s4-chip s4-add">Sortieren: SCM ↓</span><span class="s4-vt2"><b class="s4-on">▦</b><b>☰</b></span><span class="s4-btn s4-p">⚖ Vergleich (2)</span></div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <main class="s4-grid">
+          <a class="s4-card s4-hl" data-screen-link="d5-s3"><span class="s4-ck s4-on">✓</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Stalker</b><small>Klein · Kopfgeld</small></div><span>220 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d5-s3"><span class="s4-ck s4-on">✓</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Titan</b><small>Klein · Fracht leicht</small></div><span>220 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d5-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Warlock</b><small>Klein · EMP</small></div><span>218 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d5-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Gladius</b><small>Klein · Jäger</small></div><span>235 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d5-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Sabre</b><small>Klein · Stealth-Jäger</small></div><span>230 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d5-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Eclipse</b><small>Mittel · Stealth-Bomber</small></div><span>205 m/s</span></div></a>
+        </main>
+        <footer class="s4-foot s4-fend"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d5-s4-a1" data-anno-side="bottom" data-anno-target=".d5-kinds" style="--anno-x:22%;--anno-y:12%">
+          <button class="anno-pin" type="button" data-anno-pin="d5-s4-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s4-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d5-s4-a1" data-anno-bubble="d5-s4-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Codex-Arten als Tabs</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d5-s4-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s4-a1"><span class="anno-bubble-question">Auf Werkzeugseiten bleiben beide Lagen stehen: oben das Menü, unten die Codex-Arten als Tabs und die Suche, aus der rechts die Filter klappen. Kostet 44 + 50 px Höhe. Zu viel für eine Werkzeugseite?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d5-s4-a1" data-annotation="d5-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d5-s4-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d5-s5" data-screen data-screen-fit="full" data-nav-label="Suche aktiv" hidden>
+      <div class="s4-app">
+        <div class="s4-wall"></div>
+        <div class="s4-ghost"><i class="s4-gw"></i><i class="s4-gh"></i><i></i><i></i><i class="s4-gw"></i></div>
+        <div class="s4-scrim"></div>
+        <div class="s4-grown d5-grown">
+          <div class="s4-gl"><span class="d5-tabs"><a>Verse</a><a class="s4-on" data-screen-link="d5-s3">Codex</a><a>HQ</a></span><div class="s4-field"><span class="d5-qi">⌕</span><span class="s4-cchip">▲ Avenger Stalker <i>✕</i></span><span>beste s3 kanone für stalker</span><span class="s4-caret"></span><span class="s4-kbd">Esc</span></div><button type="button" class="s4-x" data-screen-link="d5-s3" aria-label="Schließen">✕</button></div>
+          <button type="button" class="s4-ask"><b>✦ Companion fragen</b><span>„beste s3 kanone für stalker“ · Antwort mit Begründung und Loadout-Vorschlag</span><span class="s4-kbd">Shift ↵</span></button>
+          <div class="s4-rs">
+            <h4>Auf dieser Seite · Avenger Stalker <em>1</em></h4>
+            <a class="s4-r" style="--i:0" data-screen-link="d5-s3"><span class="s4-ri">⌖</span><span><b>Flügel links · S3</b><small>Hardpoint · Tarantula GT-870 Mk3</small></span><span class="s4-qa"><i>⚖</i></span><span class="s4-btn s4-p">Tauschen</span></a>
+            <h4>Waffen · S3 <em>18</em></h4>
+            <a class="s4-r s4-on" style="--i:1"><span class="s4-ri">✶</span><span><b>Deadbolt III</b><small>Kanone ballistisch · DPS 624 · 2,1 km · im Spind</small></span><span class="s4-qa"><i>⇄</i><i>⚖</i><i>☆</i></span><span class="s4-btn">Details</span></a>
+            <a class="s4-r" style="--i:2"><span class="s4-ri">✶</span><span><b>Attrition-3</b><small>Laser-Repeater · DPS 583 · 1,5 km</small></span><span class="s4-qa"><i>⇄</i><i>⚖</i><i>☆</i></span><span class="s4-btn">Details</span></a>
+            <h4>Schiffe <em>2</em></h4>
+            <a class="s4-r" style="--i:3" data-screen-link="d5-s3"><span class="s4-ri">▲</span><span><b>Avenger Titan</b><small>Aegis · gleiche S3-Hardpoints</small></span><span class="s4-qa"><i>⚖</i><i>＋</i><i>⛭</i></span><span class="s4-btn">Öffnen</span></a>
+            <h4>News <em>1</em></h4>
+            <a class="s4-r" style="--i:4"><span class="s4-ri">≡</span><span><b>Waffen-Balance in 4.4 PTU</b><small>Patch-Dossier · #balance</small></span><span class="s4-qa"><i>☆</i><i>↗</i></span><span class="s4-btn">Lesen</span></a>
+          </div>
+          <aside class="s4-peek"><small>Vorschau</small><h5>Deadbolt III</h5><small>S3 · Ballistische Kanone · im Spind 1×</small><div class="s4-meter"><span>DPS</span><i style="--a:88%;--b:100%"></i><b class="s4-up">624</b></div><div class="s4-meter"><span>Alpha</span><i style="--a:43%;--b:54%"></i><b class="s4-up">520</b></div><div class="s4-meter"><span>Reichweite</span><i style="--a:75%;--b:66%"></i><b class="s4-down">2,1 km</b></div><span class="s4-btn s4-p">⇄ Auf Flügel links montieren</span></aside>
+          <div class="s4-keys"><span><span class="s4-kbd">↑ ↓</span> wählen</span><span><span class="s4-kbd">↵</span> öffnen</span><span><span class="s4-kbd">⌫</span> am Feldanfang: Kontext-Chip weg, überall suchen</span><span><span class="s4-kbd">Esc</span> zurück zur Leiste</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d5-s6" data-screen data-nav-label="Handy" hidden>
+      <div class="s4-phones">
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d5-app s4-st-top">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div></div>
+          <header class="d5-top"><nav class="d5-nav"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></nav></header>
+          <div class="d5-sub"><span class="d5-tabs"><a class="s4-on">◆ Verse</a></span><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="d5-qt">Suche in News, Patches …</span></button></div>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Hub oben</figcaption></figure>
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d5-app s4-st-anim">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div>
+            <div class="s4-after"><section class="s4-sec"><h2>News <small>3 neu</small></h2><div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a></div></section></div></div>
+          <header class="d5-top"><nav class="d5-nav"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></nav></header>
+          <div class="d5-sub"><span class="d5-tabs"><a class="s4-on">◆ Verse</a></span><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="d5-qt">Suche in News, Patches …</span></button></div>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Übergang (Schleife)</figcaption></figure>
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d5-app s4-st-dock">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div>
+            <div class="s4-after"><section class="s4-sec"><h2>News <small>3 neu</small></h2><div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a></div></section></div></div>
+          <header class="d5-top"><nav class="d5-nav"><a class="s4-on">Verse</a><a>Codex</a><a>HQ</a></nav></header>
+          <div class="d5-sub"><span class="d5-tabs"><a class="s4-on">◆ Verse</a></span><button type="button" class="d5-q" data-screen-link="d5-s5"><span class="d5-qi">⌕</span><span class="d5-qt">Suche in News, Patches …</span></button></div>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Gescrollt</figcaption></figure>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d5-s6-a1" data-anno-side="top" data-anno-target=".s4-phf:nth-child(1) .d5-top" style="--anno-x:28%;--anno-y:80%">
+          <button class="anno-pin" type="button" data-anno-pin="d5-s6-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s6-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d5-s6-a1" data-anno-bubble="d5-s6-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d5-s6-a1" aria-expanded="false" aria-controls="anno-bubble-d5-s6-a1"><span class="anno-bubble-question">Am Handy dreht sich der Stapel um: unten liegt die Menü-Lage als Tab-Leiste, die Suche dockt darüber an. Beim Scrollen taucht die Tab-Leiste nach unten ab, die Suche rutscht an den Daumen, links bleibt „◆ Verse“. Gut so?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d5-s6-a1" data-annotation="d5-s6-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d5-s6-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═════════════════════════════ C · Orbit ═════════════════════════════ -->
+  <section data-design="orbit" data-nav-label="C · Orbit" hidden
+           data-design-motto="Die Suche ist die Mitte"
+           data-design-traits="Marke und Menü kreisen um die Suche|Crumbs als Chip in der Suche|Die Codex-Art ist der erste Filter"
+           data-design-icon="compass" data-design-color="#5fd698" data-design-overlay="bl" data-design-overlay-tone="warm">
+
+    <section id="d6-s1" data-screen data-screen-active="true" data-screen-fit="full" data-nav-label="Hub · oben">
+      <div class="s4-app s4-fix d6-app s4-st-top">
+        <div class="s4-sky"></div>
+        <div class="s4-flow">
+          <div class="s4-stage">
+            <div class="s4-planet"></div>
+            <span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span>
+            <h1 class="s4-big">12 · 04 · 31</h1>
+            <p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live · PTU Welle 2 läuft</p>
+            <a class="s4-pnews" data-screen-link="d6-s2"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat in 4.4 PTU neue Schildwerte</b><em>1 / 3</em></a>
+            <footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+          </div>
+        </div>
+        <div class="d6-ring"></div>
+        <a class="d6-orb" data-screen-link="d6-s1"><span class="d6-emb"><span class="s4-logo"></span></span><span class="d6-wm s4-lA"><span class="s4-word">SC Companion</span><span class="s4-alpha">alpha</span></span></a>
+        <div class="d6-fly"><span class="d6-cc"><b>Verse</b><i>›</i>News ▾</span><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="d6-qt">Suche in News, Patches, Galerie oder frag den Companion …</span><span class="s4-kbd">Strg K</span></button></div>
+        <nav class="d6-navs s4-stack"><span class="s4-lyr s4-lA d6-row"><a class="s4-on" data-screen-link="d6-s2">Verse</a><a data-screen-link="d6-s4">Codex</a><a>HQ</a><a class="s4-adm">Admin</a><span class="s4-av">JT</span></span><span class="s4-lyr s4-lB d6-moons"><a class="d6-moon s4-on">Verse</a><a class="d6-moon" data-screen-link="d6-s4">Codex</a><a class="d6-moon">HQ</a><a class="d6-moon s4-adm">Admin</a><a class="d6-moon d6-menu" aria-label="Menü">◎</a><span class="s4-av">JT</span></span></nav>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d6-s1-a1" data-anno-side="top" data-anno-target=".d6-fly" style="--anno-x:50%;--anno-y:48%">
+          <button class="anno-pin" type="button" data-anno-pin="d6-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d6-s1-a1" data-anno-bubble="d6-s1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d6-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s1-a1"><span class="anno-bubble-question">Die Suche ist hier die Mitte von allem. Marke (links oben) und Menü (rechts oben) sind nur Begleiter, ohne eigene Leiste. Fehlt dir oben eine sichtbare Kopfzeile, oder ist die freie Bühne genau richtig?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d6-s1-a1" data-annotation="d6-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d6-s1-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d6-s2" data-screen data-screen-fit="full" data-nav-label="Hub · Übergang (animiert)" hidden>
+      <div class="s4-app s4-fix d6-app s4-st-anim">
+        <div class="s4-sky"></div>
+        <div class="s4-flow">
+          <div class="s4-stage">
+            <div class="s4-planet"></div>
+            <span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span>
+            <h1 class="s4-big">12 · 04 · 31</h1>
+            <p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live · PTU Welle 2 läuft</p>
+            <a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat in 4.4 PTU neue Schildwerte</b><em>1 / 3</em></a>
+            <footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+          </div>
+          <div class="s4-after">
+            <section class="s4-sec">
+              <h2>News <small>3 neue seit gestern</small><a>Alle News →</a></h2>
+              <div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a><a class="s4-nb s4-n3"><small>Patch-Notes · 3 T</small><b>Star Citizen Alpha 4.3.1</b></a></div>
+            </section>
+            <section class="s4-sec">
+              <h2>Patches <small>alle laufenden Zyklen</small><a>Patch-Übersicht →</a></h2>
+              <div class="s4-pgrid">
+                <article class="s4-pcard"><span class="s4-ptag"><b>PTU</b>Welle 2 von 4</span><span class="s4-pver">4.4</span><span class="s4-qrow"><span class="s4-ql s4-lo">wenige bekannte Probleme<small>12</small></span><span class="s4-ql s4-hi">sehr viele Meldungen<small>314</small></span></span></article>
+                <article class="s4-pcard s4-live"><span class="s4-ptag"><b>LIVE</b>seit 9 Tagen</span><span class="s4-pver">4.3.1</span><span class="s4-qrow"><span class="s4-ql s4-lo">stabil<small>82 %</small></span><span class="s4-ql s4-mid">einige Meldungen<small>96</small></span></span></article>
+                <article class="s4-pcard s4-old"><span class="s4-ptag"><b>HOTFIX</b>vor 3 Wochen</span><span class="s4-pver">4.3.0</span><span class="s4-qrow"><span class="s4-ql s4-lo">kaum Probleme<small>3</small></span></span></article>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="d6-ring"></div>
+        <a class="d6-orb" data-screen-link="d6-s1"><span class="d6-emb"><span class="s4-logo"></span></span><span class="d6-wm s4-lA"><span class="s4-word">SC Companion</span><span class="s4-alpha">alpha</span></span></a>
+        <div class="d6-fly"><span class="d6-cc"><b>Verse</b><i>›</i>News ▾</span><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="d6-qt">Suche in News, Patches, Galerie oder frag den Companion …</span><span class="s4-kbd">Strg K</span></button></div>
+        <nav class="d6-navs s4-stack"><span class="s4-lyr s4-lA d6-row"><a class="s4-on">Verse</a><a data-screen-link="d6-s4">Codex</a><a>HQ</a><a class="s4-adm">Admin</a><span class="s4-av">JT</span></span><span class="s4-lyr s4-lB d6-moons"><a class="d6-moon s4-on">Verse</a><a class="d6-moon" data-screen-link="d6-s4">Codex</a><a class="d6-moon">HQ</a><a class="d6-moon s4-adm">Admin</a><a class="d6-moon d6-menu" aria-label="Menü">◎</a><span class="s4-av">JT</span></span></nav>
+        <span class="s4-thumb"></span>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d6-s2-a1" data-anno-side="bottom" style="--anno-x:44%;--anno-y:11%">
+          <button class="anno-pin" type="button" data-anno-pin="d6-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d6-s2-a1" data-anno-bubble="d6-s2-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Verwandlung jetzt animiert</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d6-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s2-a1"><span class="anno-bubble-question">Verwandlung als Schleife (9 s): Die Suchzeile der Bühne fliegt hoch und wird zur Mitte der Leiste. Marke und Menü schwingen auf Bögen an ihre Seiten, das Menü wird zu runden Monden, ein feiner Orbit-Ring schließt die Gruppe. Zu verspielt für jede Hauptseite, oder genau das Besondere?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d6-s2-a1" data-annotation="d6-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d6-s2-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d6-s3" data-screen data-screen-fit="full" data-nav-label="Inhalt · Schiff" hidden>
+      <div class="s4-app d6-app s4-wide">
+        <div class="s4-wall"></div>
+        <div class="s4-ptop"><span class="s4-logo"></span><span>Avenger Stalker</span><span class="s4-pb">β</span><span class="s4-av">JT</span></div>
+        <div class="s4-barwrap">
+          <div class="d6-ring"></div>
+          <a class="d6-orb" data-screen-link="d6-s1"><span class="d6-emb"><span class="s4-logo"></span></span></a>
+          <div class="d6-fly"><span class="d6-cc"><a data-screen-link="d6-s4"><u>Schiffe</u></a><i>›</i><a data-screen-link="d6-s4">Aegis</a><i>›</i><b>Avenger Stalker</b></span><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="d6-qt">Suche: Waffen, Komponenten …</span><span class="s4-kbd">/</span></button></div>
+          <nav class="d6-navs"><span class="s4-lyr d6-moons"><a class="d6-moon" data-screen-link="d6-s1">Verse</a><a class="d6-moon s4-on" data-screen-link="d6-s4">Codex</a><a class="d6-moon">HQ</a><a class="d6-moon s4-adm">Admin</a><a class="d6-moon d6-menu" aria-label="Menü">◎</a><span class="s4-av">JT</span></span></nav>
+        </div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <main class="s4-col">
+          <div class="s4-shead"><p>Aegis Dynamics · Klein · Kopfgeld</p><h1>Avenger Stalker</h1><span class="s4-sp"></span><span class="s4-psel">Patch 4.3.1 <b>LIVE</b> ▾</span><span class="s4-vt2"><b class="s4-on">Holotisch</b><b>Klassisch</b></span></div>
+          <div class="s4-keep"><span class="s4-kl">Holotisch / Klassisch — unverändert</span><div class="s4-kg"></div><div class="s4-kt"><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="s4-kn"><b>Bleibt exakt wie heute:</b> alles, was sich zwischen Holotisch und Klassisch unterscheidet, mit Inhalt, Reihenfolge und Kategorien. Keine Abschnitts-Navigation. Neu sind nur der Rahmen außen, Hintergrund und Abstände. Tausch-Popups laufen im neuen Rahmen, mit allen Inhalten von heute.</p></div>
+        </main>
+        <footer class="s4-foot s4-fend"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+        <div class="s4-float"><a class="s4-share" aria-label="Teilen"><b>↗</b>Teilen<span class="s4-toast">Link kopiert · …/avenger-stalker<b>#bewaffnung</b></span></a><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d6-s3-a1" data-anno-side="bottom" data-anno-target=".d6-cc" style="--anno-x:36%;--anno-y:6%">
+          <button class="anno-pin" type="button" data-anno-pin="d6-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d6-s3-a1" data-anno-bubble="d6-s3-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Crumbs links im Feld</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d6-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s3-a1"><span class="anno-bubble-question">Hier stehen die Crumbs als Chip IN der Suche: Kontext, Crumb und Filter sind eins. Ein Klick auf „Aegis“ springt hoch, beim Tippen wird derselbe Chip zum Such-Kontext, ✕ sucht überall. Zu viel in einem Feld, oder genau deine Idee vom Kontext als Crumb?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d6-s3-a1" data-annotation="d6-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d6-s3-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d6-s4" data-screen data-screen-fit="full" data-nav-label="Werkzeug · Codex-Index" hidden>
+      <div class="s4-app d6-app">
+        <div class="s4-wall"></div>
+        <div class="s4-ptop"><span class="s4-logo"></span><span>Codex · Schiffe</span><span class="s4-pb">β</span><span class="s4-av">JT</span></div>
+        <div class="s4-barwrap s4-arcw">
+          <div class="d6-ring"></div>
+          <a class="d6-orb" data-screen-link="d6-s1"><span class="d6-emb"><span class="s4-logo"></span></span></a>
+          <div class="d6-fly"><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="s4-fchip">▲ Schiffe <i>✕</i></span><span class="s4-fchip">Aegis <i>✕</i></span><span class="d6-qt">In Schiffen filtern …</span><span class="s4-ftog">⚙ ▴</span></button></div>
+          <nav class="d6-navs"><span class="s4-lyr d6-moons"><a class="d6-moon" data-screen-link="d6-s1">Verse</a><a class="d6-moon s4-on">Codex</a><a class="d6-moon">HQ</a><a class="d6-moon s4-adm">Admin</a><a class="d6-moon d6-menu" aria-label="Menü">◎</a><span class="s4-av">JT</span></span></nav>
+        </div>
+        <div class="s4-drawer d6-drawer">
+          <div class="d6-arc"><a class="s4-on" style="--k:-3"><i>▲</i>Schiffe 262</a><a style="--k:-2"><i>✶</i>Waffen</a><a style="--k:-1"><i>⚙</i>Komponenten</a><a style="--k:0"><i>⌖</i>FPS</a><a style="--k:1"><i>▤</i>Blueprints</a><a style="--k:2"><i>◷</i>Upcoming</a><a style="--k:3"><i>⌨</i>Keybinds</a></div>
+          <div><span class="s4-chip s4-on">Hersteller: Aegis ✕</span><span class="s4-chip s4-add">＋ Größe</span><span class="s4-chip s4-add">＋ Rolle</span><span class="s4-sp"></span><span class="s4-chip s4-add">SCM ↓</span><span class="s4-vt2"><b class="s4-on">▦</b><b>☰</b></span><span class="s4-btn s4-p">⚖ Vergleich (2)</span></div>
+        </div>
+        <a class="s4-beta"><b>β</b><span>Beta<small>Verse an · Codex aus</small></span><em>▾</em></a>
+        <main class="s4-grid">
+          <a class="s4-card s4-hl" data-screen-link="d6-s3"><span class="s4-ck s4-on">✓</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Stalker</b><small>Klein · Kopfgeld</small></div><span>220 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d6-s3"><span class="s4-ck s4-on">✓</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Titan</b><small>Klein · Fracht leicht</small></div><span>220 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d6-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Avenger Warlock</b><small>Klein · EMP</small></div><span>218 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d6-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Gladius</b><small>Klein · Jäger</small></div><span>235 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d6-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Sabre</b><small>Klein · Stealth-Jäger</small></div><span>230 m/s</span></div></a>
+          <a class="s4-card" data-screen-link="d6-s3"><span class="s4-ck">＋</span><div class="s4-cimg"><span class="s4-ship"></span></div><div class="s4-cb"><div><b>Eclipse</b><small>Mittel · Stealth-Bomber</small></div><span>205 m/s</span></div></a>
+        </main>
+        <footer class="s4-foot s4-fend"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Datenschutz</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small><span class="s4-bub"><b>Star Citizen Companion</b>Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC. <u>Rechtliches</u></span></button></footer>
+        <div class="s4-float"><a class="s4-hand" aria-label="Auf dem Handy weitermachen"><i class="s4-phi"></i></a><span class="s4-fab">✎</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d6-s4-a1" data-anno-side="bottom" data-anno-target=".d6-arc" style="--anno-x:44%;--anno-y:16%">
+          <button class="anno-pin" type="button" data-anno-pin="d6-s4-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s4-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d6-s4-a1" data-anno-bubble="d6-s4-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Codex-Art als erster Filter</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d6-s4-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s4-a1"><span class="anno-bubble-question">Die Codex-Art ist hier der erste Filter der Suche (Chip „▲ Schiffe“ im Feld). Alle sieben Arten liegen als Bogen oben in der Ablage, die aus der Suche klappt, darunter die übrigen Filter. Zugeklappt kostet ein Wechsel der Art einen Klick mehr. Okay so?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d6-s4-a1" data-annotation="d6-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d6-s4-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d6-s5" data-screen data-screen-fit="full" data-nav-label="Suche aktiv" hidden>
+      <div class="s4-app">
+        <div class="s4-wall"></div>
+        <div class="s4-ghost"><i class="s4-gw"></i><i class="s4-gh"></i><i></i><i></i><i class="s4-gw"></i></div>
+        <div class="s4-scrim"></div>
+        <div class="s4-grown d6-grown">
+          <div class="s4-gl"><a class="d6-emb" data-screen-link="d6-s3"><span class="s4-logo"></span></a><div class="s4-field"><span class="d6-qi">⌕</span><span class="s4-cchip">▲ Avenger Stalker <i>✕</i></span><span>beste s3 kanone für stalker</span><span class="s4-caret"></span><span class="s4-kbd">Esc</span></div><span class="d6-gnav"><span class="d6-moon">Verse</span><span class="d6-moon s4-on">Codex</span><span class="d6-moon">HQ</span></span><button type="button" class="s4-x" data-screen-link="d6-s3" aria-label="Schließen">✕</button></div>
+          <button type="button" class="s4-ask"><b>✦ Companion fragen</b><span>„beste s3 kanone für stalker“ · Antwort mit Begründung und Loadout-Vorschlag</span><span class="s4-kbd">Shift ↵</span></button>
+          <div class="s4-rs">
+            <h4>Auf dieser Seite · Avenger Stalker <em>1</em></h4>
+            <a class="s4-r" style="--i:0" data-screen-link="d6-s3"><span class="s4-ri">⌖</span><span><b>Flügel links · S3</b><small>Hardpoint · Tarantula GT-870 Mk3</small></span><span class="s4-qa"><i>⚖</i></span><span class="s4-btn s4-p">Tauschen</span></a>
+            <h4>Waffen · S3 <em>18</em></h4>
+            <a class="s4-r s4-on" style="--i:1"><span class="s4-ri">✶</span><span><b>Deadbolt III</b><small>Kanone ballistisch · DPS 624 · 2,1 km · im Spind</small></span><span class="s4-qa"><i>⇄</i><i>⚖</i><i>☆</i></span><span class="s4-btn">Details</span></a>
+            <a class="s4-r" style="--i:2"><span class="s4-ri">✶</span><span><b>Attrition-3</b><small>Laser-Repeater · DPS 583 · 1,5 km</small></span><span class="s4-qa"><i>⇄</i><i>⚖</i><i>☆</i></span><span class="s4-btn">Details</span></a>
+            <h4>Schiffe <em>2</em></h4>
+            <a class="s4-r" style="--i:3" data-screen-link="d6-s3"><span class="s4-ri">▲</span><span><b>Avenger Titan</b><small>Aegis · gleiche S3-Hardpoints</small></span><span class="s4-qa"><i>⚖</i><i>＋</i><i>⛭</i></span><span class="s4-btn">Öffnen</span></a>
+            <h4>News <em>1</em></h4>
+            <a class="s4-r" style="--i:4"><span class="s4-ri">≡</span><span><b>Waffen-Balance in 4.4 PTU</b><small>Patch-Dossier · #balance</small></span><span class="s4-qa"><i>☆</i><i>↗</i></span><span class="s4-btn">Lesen</span></a>
+          </div>
+          <aside class="s4-peek"><small>Vorschau</small><h5>Deadbolt III</h5><small>S3 · Ballistische Kanone · im Spind 1×</small><div class="s4-meter"><span>DPS</span><i style="--a:88%;--b:100%"></i><b class="s4-up">624</b></div><div class="s4-meter"><span>Alpha</span><i style="--a:43%;--b:54%"></i><b class="s4-up">520</b></div><div class="s4-meter"><span>Reichweite</span><i style="--a:75%;--b:66%"></i><b class="s4-down">2,1 km</b></div><span class="s4-btn s4-p">⇄ Auf Flügel links montieren</span></aside>
+          <div class="s4-keys"><span><span class="s4-kbd">↑ ↓</span> wählen</span><span><span class="s4-kbd">↵</span> öffnen</span><span><span class="s4-kbd">⌫</span> am Feldanfang: Kontext-Chip weg, überall suchen</span><span><span class="s4-kbd">Esc</span> zurück zur Leiste</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d6-s6" data-screen data-nav-label="Handy" hidden>
+      <div class="s4-phones">
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d6-app s4-st-top">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div></div>
+          <a class="d6-orb"><span class="d6-emb"><span class="s4-logo"></span></span></a>
+          <div class="d6-fly"><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="d6-qt">Suche in News, Patches …</span></button></div>
+          <nav class="d6-navs s4-stack"><span class="s4-lyr s4-lA d6-row"></span><span class="s4-lyr s4-lB d6-moons"><a class="d6-moon d6-menu" aria-label="Menü">◎</a></span></nav>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Hub oben</figcaption></figure>
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d6-app s4-st-anim">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div>
+            <div class="s4-after"><section class="s4-sec"><h2>News <small>3 neu</small></h2><div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a></div></section></div></div>
+          <a class="d6-orb"><span class="d6-emb"><span class="s4-logo"></span></span></a>
+          <div class="d6-fly"><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="d6-qt">Suche in News, Patches …</span></button></div>
+          <nav class="d6-navs s4-stack"><span class="s4-lyr s4-lA d6-row"></span><span class="s4-lyr s4-lB d6-moons"><a class="d6-moon d6-menu" aria-label="Menü">◎</a></span></nav>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Übergang (Schleife)</figcaption></figure>
+        <figure class="s4-phf"><div class="s4-phm"><div class="s4-app s4-fix d6-app s4-st-dock">
+          <div class="s4-sky"></div>
+          <div class="s4-flow"><div class="s4-stage"><div class="s4-planet"></div><span class="s4-kick"><i></i>Live 4.3.1 · stabil 82 %</span><h1 class="s4-big">12 · 04 · 31</h1><p class="s4-cap">Tage · Stunden · Minuten bis 4.4 auf Live</p><a class="s4-pnews"><i></i><small>Für dich</small><b>Dein Avenger Stalker hat neue Schildwerte</b></a><footer class="s4-foot"><nav class="s4-flinks"><a class="s4-new">Neuigkeiten</a><a>Über</a><a>Impressum</a></nav><button type="button" class="s4-fbadge" aria-label="Made by the Community · Hinweis anzeigen"><span class="s4-badge"></span><small>Made by the Community</small></button></footer></div>
+            <div class="s4-after"><section class="s4-sec"><h2>News <small>3 neu</small></h2><div class="s4-news"><a class="s4-nb"><em>NEU</em><small>Video · vor 2 Std</small><b>Inside Star Citizen: Pyro-Feinschliff</b></a><a class="s4-nb s4-n2"><small>Comm-Link · gestern</small><b>This Week in Star Citizen</b></a></div></section></div></div>
+          <a class="d6-orb"><span class="d6-emb"><span class="s4-logo"></span></span></a>
+          <div class="d6-fly"><button type="button" class="d6-qb" data-screen-link="d6-s5"><span class="d6-qi">⌕</span><span class="d6-qt">Suche in News, Patches …</span></button></div>
+          <nav class="d6-navs s4-stack"><span class="s4-lyr s4-lA d6-row"></span><span class="s4-lyr s4-lB d6-moons"><a class="d6-moon d6-menu" aria-label="Menü">◎</a></span></nav>
+          <div class="s4-float"><span class="s4-fab">✎</span></div>
+        </div></div><figcaption>Gescrollt</figcaption></figure>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d6-s6-a1" data-anno-side="top" data-anno-target=".s4-phf:nth-child(3) .d6-orb" style="--anno-x:76%;--anno-y:80%">
+          <button class="anno-pin" type="button" data-anno-pin="d6-s6-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s6-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d6-s6-a1" data-anno-bubble="d6-s6-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d6-s6-a1" aria-expanded="false" aria-controls="anno-bubble-d6-s6-a1"><span class="anno-bubble-question">Am Handy kreist alles nach unten: links das Emblem, daneben die Suche. Das Emblem ist hier zugleich das Menü: Ein Tipp öffnet die Monde Verse, Codex, HQ als Halbkreis über dem Daumen. Verständlich ohne Beschriftung?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d6-s6-a1" data-annotation="d6-s6-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-d6-s6-a1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ View · comparison of the three directions + orthogonal rules ══ -->
+  <section data-view="r4-vergleich" data-view-kind="decision" data-nav-label="Header ⇄ Subheader im Vergleich" hidden>
+    <div class="view-frame">
+      <h2>Header ⇄ Subheader: die drei Richtungen im Vergleich, und was für jede gilt</h2>
+      <p class="s4-vnext">Nächster Schritt, sobald du eine Richtung gewählt hast (☆ im Überblick oder deine Notiz pro Richtung): Umsetzung hinter dem Beta-Schalter.</p>
+      <div class="s4-vbox">
+        <p><strong>„V“ verstehe ich so:</strong> Runde 2, Frage „Suche: Ranking und Ort“, samt dem Such-Zustand der damaligen Morph-Bar, in dem die Leiste selbst zur Suche wurde. Deshalb steht der Kontext jetzt in allen drei Richtungen als Chip im Feld, wie ein Filter oder eine Crumb, und nicht mehr als eigener Block.</p>
+      </div>
+      <div class="s4-vbox">
+        <p><strong>Gilt für alle drei Richtungen</strong> (bestätigt in Runde 3, hier nicht noch einmal gefragt):</p>
+        <ul>
+          <li>Eine Leiste für alles: Der Subheader ist immer die Suche. Cinematische Hauptseiten haben oben keinen Subheader, ihre Suchzeile verwandelt sich beim Scrollen.</li>
+          <li>Crumbs und der Abschnitt im Blick stehen links beim Bereichswechsel (deine Notiz: rechts war er abgekoppelt).</li>
+          <li>Filter klappen aus der Suche, die Ablage ist die Werkzeugleiste.</li>
+          <li>Inhaltsseiten: Leiste blendet beim Runterscrollen aus. Werkzeugseiten: Leiste bleibt stehen.</li>
+          <li>Feste Ecken: Beta oben rechts, Handy-Knopf unten links, Feedback unten rechts.</li>
+        </ul>
+      </div>
+      <h3>Die Richtungen nebeneinander</h3>
+      <div class="s4-vscroll">
+        <table class="s4-vt">
+          <thead><tr><th>Kriterium</th><th>A · Fusion</th><th>B · Stack-Dock</th><th>C · Orbit</th></tr></thead>
+          <tbody>
+            <tr><td>Zusammengehörigkeit</td><td>Eine Kapsel: Kopf und Suche teilen Rand, Glas und Leuchtlinie</td><td>Zwei Lagen gleicher Form, Visier oben, Suchlage darunter</td><td>Die Suche ist die Mitte, Marke und Menü sind ihre Begleiter, ein Ring fasst sie</td></tr>
+            <tr><td>Verwandlung</td><td>Ein Schritt: Kopf schrumpft zum Segment, Suche fliegt hoch und schweißt sich an</td><td>Zwei Schritte: Suche dockt unter dem Menü an, Menü taucht weg und wird Tab-Leiste</td><td>Ein Schritt: Suche fliegt hoch, Marke und Menü schwingen auf Bögen heran</td></tr>
+            <tr><td>Platz</td><td>Eine Zeile, 56 px; Hauptmenü hinter „◆ ▾“ (ein Klick mehr)</td><td>Eine Lage 50 px; auf Werkzeugseiten zwei Lagen, 44 + 50 px; Bereiche bleiben als Tabs sichtbar</td><td>Eine Zeile, 56 px, mittig; braucht Breite, ab Tablet ohne Ring</td></tr>
+            <tr><td>Handy</td><td>Kapsel unten, links bleibt ◆</td><td>Stapel umgedreht: Tab-Leiste unten, Suche darüber</td><td>Unten Emblem und Suche, das Emblem öffnet die Monde</td></tr>
+            <tr><td>Codex-Arten</td><td>Segmente in der Kapsel</td><td>Tabs der unteren Lage</td><td>Erster Filter in der Suche, Bogen in der Ablage</td></tr>
+            <tr><td>Umsetzungsaufwand</td><td>Mittel: eine Komponente, zwei Zustände</td><td>Mittel bis hoch: zwei Leisten, Bewegung in zwei Stufen</td><td>Hoch: Bogenbahnen, Ring, Crumbs im Feld brauchen eigene Tastaturlogik</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Die Wahl der Richtung gehört in deine Notizen pro Richtung oder den ☆ im Überblick. Die folgenden Punkte gelten für jede Richtung.</p>
+
+      <div class="variant-evaluation" data-decision="r4-v-ctxchip" data-label="Suchkontext als Chip im Feld">
+        <h3>Suchkontext als Chip im Feld</h3>
+        <p>„▲ Avenger Stalker ✕“ steht vorn im Suchfeld und gewichtet die Treffer wie in Runde 2. ✕ oder die Rücktaste am Feldanfang entfernt ihn, dann sucht die Leiste überall. Kein eigener Kontext-Block mehr.</p>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-ctxchip" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-ctxchip" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-ctxchip-note">{{decision.comment_label}}</label><textarea id="r4-v-ctxchip-note" data-comment="r4-v-ctxchip-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-v-secleft" data-label="Abschnitt im Blick links bei den Crumbs">
+        <h3>Abschnitt im Blick links, direkt beim Bereichswechsel</h3>
+        <p>Auf Hubs zeigt die Leiste links die Abschnitte (News · Patches · Galerie) mit dem aktiven hervorgehoben und einer kleinen Zahl, ein Klick springt hin. Auf Inhaltsseiten stehen dort die Crumbs. Rechts bleiben nur Suche und Profil.</p>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-secleft" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-secleft" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-secleft-note">{{decision.comment_label}}</label><textarea id="r4-v-secleft-note" data-comment="r4-v-secleft-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-v-kinds-seg" data-label="Codex-Arten als Segmente in der Leiste">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-wall"></div><div class="s4-tkinds"><div><span class="s4-on">▲ Schiffe</span><span>✶ Waffen</span><span>⚙ Komp.</span><span>⌖ FPS</span><span>▤</span><span>◷</span><span>⌨</span></div><div style="height:18px"></div></div></div>
+          <div><h3>Codex-Arten als Segmente in der Leiste</h3><p>Alle sieben Arten (Schiffe, Waffen, Komponenten, FPS, Blueprints, Upcoming, Keybinds) stehen sichtbar in der Leiste, die aktive mit Zahl. Ersetzt das „Codex ▾“-Menü links. A und B zeigen diese Form, C macht die Art zum ersten Filter der Suche.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-kinds-seg" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-kinds-seg" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-kinds-seg-note">{{decision.comment_label}}</label><textarea id="r4-v-kinds-seg-note" data-comment="r4-v-kinds-seg-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-v-kinds-rail" data-label="Codex-Arten als schmale Icon-Schiene">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-wall"></div><div class="s4-trail"><span class="s4-on" data-i="▲">Schiffe</span><span data-i="✶">Waffen</span><span data-i="⚙">Komp.</span><span data-i="⌖">FPS</span><span data-i="▤">Blueprints</span></div><div class="s4-tgrid"><i></i><i></i><i></i><i></i></div></div>
+          <div><h3>Codex-Arten als schmale Icon-Schiene links</h3><p>Die Alternative: eine 64 px schmale Schiene am linken Rand, Icon mit kleinem Namen darunter, nur auf Codex-Werkzeugseiten. Die Leiste bleibt frei für Crumbs und Suche, kostet aber eine Spalte Breite.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-kinds-rail" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-kinds-rail" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-kinds-rail-note">{{decision.comment_label}}</label><textarea id="r4-v-kinds-rail-note" data-comment="r4-v-kinds-rail-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-v-trigger" data-label="Verwandlung ab Schwelle, einmal abgespielt">
+        <h3>Verwandlung ab einer Schwelle, einmal abgespielt</h3>
+        <p>Sobald die Suchzeile der Bühne den oberen Rand erreicht, läuft die Verwandlung in etwa 450 ms ab, beim Hochscrollen zurück, mit etwas Abstand (Hysterese) gegen Flackern, wie die Schwellen aus Runde 2. In diesen Mocks läuft sie langsamer, damit du sie sehen kannst.</p>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-trigger" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-trigger" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-trigger-note">{{decision.comment_label}}</label><textarea id="r4-v-trigger-note" data-comment="r4-v-trigger-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-v-scrub" data-label="Verwandlung an die Scroll-Position gekoppelt">
+        <h3>Verwandlung an die Scroll-Position gekoppelt</h3>
+        <p>Die Alternative: Die Verwandlung folgt dem Scrollen Pixel für Pixel (scroll-driven Animation) und bleibt mittendrin stehen, wenn du aufhörst. Wirkt direkter, kann aber halb verwandelt stehen bleiben, und nicht jeder Browser kann es gleich gut.</p>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-scrub" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-scrub" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-scrub-note">{{decision.comment_label}}</label><textarea id="r4-v-scrub-note" data-comment="r4-v-scrub-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-v-phone" data-label="Handy: Leiste unten am Daumen">
+        <h3>Handy: die Leiste liegt unten am Daumen</h3>
+        <p>Die Annahme aus Runde 3 bleibt in allen drei Richtungen: Am Handy sitzt die Leiste unten, oben steht nur eine schmale Zeile mit Seitentitel, β und Profil. Die Filter-Ablage klappt am Handy nach oben aus der Leiste.</p>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-v-phone" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-v-phone" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-v-phone-note">{{decision.comment_label}}</label><textarea id="r4-v-phone-note" data-comment="r4-v-phone-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ View · refinements carried over from round 3 ══ -->
+  <section data-view="r4-verfeinerungen" data-view-kind="decision" data-nav-label="Verfeinerungen aus Runde 3" hidden>
+    <div class="view-frame">
+      <h2>Verfeinerungen aus Runde 3: was sich nach deinen Notizen geändert hat</h2>
+      <p>Jede Zeile ist eine deiner Notizen aus Runde 3, umgesetzt. Alle sind vorbelegt mit „Miteinbeziehen“. Sie gelten für jede der drei Richtungen.</p>
+      <div class="s4-vbox">
+        <p><strong>Bleibt wie bestätigt:</strong> Beta-Chip oben rechts („Passt!“, „gute Idee“), die Filter-Ablage aus der Suche („super und wiederverwendbar“), Handy-Knopf unten links, Footer rechts unten am Bühnenrand.</p>
+      </div>
+
+      <div class="variant-evaluation" data-decision="r4-f-ship" data-label="Schiffsseite: ein Rechteck unverändert, Teilen mit Anker">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-wall"></div><span class="s4-tbar"></span><span class="s4-thead"><i></i><i></i><i></i></span><span class="s4-tkeep">Holotisch / Klassisch<br>unverändert</span><span class="s4-tshare">↗ Teilen</span></div>
+          <div><h3>Schiffsseite: ein großes Rechteck bleibt unverändert, ein Teilen-Knopf nimmt den Anker mit</h3><p>Ein Rechteck über allem, was sich zwischen Holotisch und Klassisch unterscheidet. Darin ändert sich nichts: keine neuen Kategorien wie bei „Flugwerte“, keine Abschnitts-Navigation. Außerhalb dürfen Hintergrund, Abstände, Leiste und die Kopfzeile mit Patch-Auswahl und Ansicht neu werden. Ein Teilen-Knopf steht immer an derselben Stelle über dem Feedback-Knopf und teilt still die URL mit dem Anker des Abschnitts im Blick (zum Beispiel #bewaffnung).</p><p>Zu den Tausch-Popups (deine Antwort „solange die Inhalte exakt weiterhin verfügbar bleiben“): Sie laufen im neuen Rahmen, und vor dem Umbau wird jeder Wert und jede Aktion von heute auf einer Liste abgehakt.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-f-ship" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-f-ship" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-f-ship-note">{{decision.comment_label}}</label><textarea id="r4-f-ship-note" data-comment="r4-f-ship-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-f-footer" data-label="Footer: Badge plus Schriftzug, Hinweis in der Sprechblase">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-sky"></div><span class="s4-tbub">Inoffizielles Fan-Projekt, nicht mit Cloud Imperium Games verbunden. Star Citizen® ist eine Marke von Cloud Imperium Rights LLC.</span><span class="s4-tfoot"><span class="s4-badge"></span>Made by the<br>Community</span></div>
+          <div><h3>Footer: Badge plus „Made by the Community“, der Hinweis öffnet als Sprechblase</h3><p>Im Footer stehen nur noch das Fan-Badge und „Made by the Community“ daneben, rechts unten. Ein Klick öffnet eine Sprechblase mit dem Fan-Site-Hinweis und dem Marken-Hinweis plus Link auf /legal. Im Mock reicht Hover oder Fokus auf dem Badge.</p></div>
+        </div>
+        <div class="s4-vbox s4-vwarn"><p><strong>Vorsicht:</strong> Ob Logo plus Schriftzug allein als direkte Sichtbarkeit reicht, kann ich nicht verbindlich bestätigen. Die Fankit- und Fan-Site-Regeln von CIG erwarten außerdem, dass der Marken-Hinweis erreichbar ist. Er bleibt deshalb einen Klick entfernt in der Sprechblase und vollständig auf /legal. Vor dem Ausliefern gegen die aktuelle Fankit-FAQ von CIG prüfen. Das ist keine Rechtsberatung.</p></div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-f-footer" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-f-footer" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-f-footer-note">{{decision.comment_label}}</label><textarea id="r4-f-footer-note" data-comment="r4-f-footer-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-f-news" data-label="Eine persönliche Nachricht, Wechsel nach 30 Minuten">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-sky"></div><span class="s4-tnews"><i></i><b>Dein Stalker: neue Schildwerte</b><em>1 / 3</em></span><span class="s4-tclock">◷ nächste frühestens nach 30 min ohne Fokus</span></div>
+          <div><h3>Hub: eine persönliche Nachricht statt drei Balken</h3><p>Unter der Suche steht immer nur eine persönliche Zeile, in der heutigen Schrift. Gibt es mehrere, wechselt sie im Hintergrund frühestens nach 30 Minuten ohne Fokus (Tab im Hintergrund oder geschlossen) zur nächsten. Eine ungelesene wird nie übersprungen: Sie bleibt, bis du sie gesehen hast. „1 / 3“ zeigt, dass weitere warten. Das „Countdown 4.4“ darüber ist weg, der Live-Hinweis bleibt.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-f-news" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-f-news" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-f-news-note">{{decision.comment_label}}</label><textarea id="r4-f-news-note" data-comment="r4-f-news-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-f-patch" data-label="Patches: Einordnung in Worten, Zahl klein">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-tpatch"><small>PTU · Welle 2</small><b>4.4</b><span class="s4-qrow"><span class="s4-ql s4-lo">wenige bekannte Probleme<small>12</small></span><span class="s4-ql s4-hi">sehr viele Meldungen<small>314</small></span></span></div></div>
+          <div><h3>Patch-Vorschau: Einordnung in Worten, die Zahl nur klein dahinter</h3><p>Statt „12 bekannte Probleme · 314 Meldungen“ steht „wenige bekannte Probleme“ und „sehr viele Meldungen“, die Zahl klein. Die Einordnung kommt aus festen Schwellen, für Meldungen im Vergleich zu den letzten Patches. Die Anzahl ist flexibel: alle laufenden Zyklen (PTU-Wellen, Live, Hotfix) als Karten, ältere als kleine Chips, also mal mehr, mal weniger als drei.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-f-patch" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-f-patch" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-f-patch-note">{{decision.comment_label}}</label><textarea id="r4-f-patch-note" data-comment="r4-f-patch-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-f-handoff" data-label="Handy-Übergabe: kleiner, drei Schritte von links nach rechts">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-sky"></div><div class="s4-tsteps"><span><i class="s4-tqr"></i>1 scannen</span><b>→</b><span><i>✓</i>2 bestätigen</span><b>→</b><span><i>▯</i>3 Handy öffnet</span></div></div>
+          <div><h3>Handy-Übergabe: kleiner, mit klarem Weg von links nach rechts</h3><p>Das Popup wird etwa ein Drittel kleiner und zeigt drei Schritte nebeneinander mit Pfeilen: 1 QR-Code scannen → 2 am Handy bestätigen → 3 das Handy öffnet diese Seite an derselben Stelle. Der jeweils aktive Schritt leuchtet. Der Magic Link per E-Mail bleibt als Ausweg darunter.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-f-handoff" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-f-handoff" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-f-handoff-note">{{decision.comment_label}}</label><textarea id="r4-f-handoff-note" data-comment="r4-f-handoff-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+      <div class="variant-evaluation" data-decision="r4-f-trans" data-label="Übergänge: HQ auf dem Planeten, Codex mit Planetenrand">
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-tscene"><div class="s4-sky"></div><div class="s4-planet"></div><span class="s4-thangar"></span></div><span class="s4-tlbl">Verse → HQ</span></div>
+          <div><h3>Hauptseiten-Übergänge: HQ mitten auf dem Planeten, Codex behält einen Rest Planet</h3><p>Der HQ-Hangar steht mitten auf dem Planeten: Die Kamera senkt sich auf die Oberfläche, dann öffnen sich die Hangartüren (Vorschau links, als Schleife). Beim Weg in den Codex bleibt unten ein Streifen des Planeten sichtbar, damit klar ist, wo du herkommst. Wie bestätigt: eine Szene aus CSS-Ebenen, Kamerafahrt nur, wenn das Ziel eine Hauptseite ist, Überblendung bei reduzierter Bewegung.</p></div>
+        </div>
+        <div class="s4-vrow">
+          <div class="s4-vthumb"><div class="s4-tcodex"><div class="s4-wall"></div><div class="s4-planet"></div></div><span class="s4-tlbl">Codex mit Planetenrand</span></div>
+          <div><p>So sieht der Codex nach der Drehung aus: die ruhige Daten-Wand, unten noch der Rand des Planeten.</p></div>
+        </div>
+        <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-r4-f-trans" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-r4-f-trans" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
+        <div class="field-row decision-comment-row"><label for="r4-f-trans-note">{{decision.comment_label}}</label><textarea id="r4-f-trans-note" data-comment="r4-f-trans-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+      </div>
+    </div>
+  </section>
+</section>

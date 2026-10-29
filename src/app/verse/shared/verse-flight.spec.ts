@@ -61,25 +61,52 @@ describe('VerseFlight', () => {
     flight.reducedMotion = () => false;
     flight.hidden = () => false;
     flight.enabled = () => true;
+    flight.aimMs = 0;
   });
 
-  afterEach(() => delete document.documentElement.dataset['verseFlight']);
+  afterEach(() => {
+    delete document.documentElement.dataset['verseFlight'];
+    delete document.documentElement.dataset['verseAim'];
+  });
 
   const settle = async (h: RouterTestingHarness) => {
     await h.fixture.whenStable();
     await new Promise((r) => setTimeout(r, 20));
   };
 
-  it('hub → subpage: names the hub planet while the hub is captured, then cleans up', async () => {
+  it('hub → subpage: dives (no emblem name on the hub tile), streaks layer while running, then cleans up', async () => {
     const h = await RouterTestingHarness.create('/verse');
     expect(start).not.toHaveBeenCalled();
     await h.navigateByUrl('/verse/news');
     await settle(h);
     expect(start).toHaveBeenCalledTimes(1);
-    expect(seen[0]).toEqual({ name: 'verse-emblem', dir: 'down' });
+    expect(seen[0]).toEqual({ name: '', dir: 'down' });
+    expect(document.querySelector('.sc-flight-streaks')).not.toBeNull();
     finish();
     await settle(h);
     expect(document.documentElement.dataset['verseFlight']).toBeUndefined();
+    expect(document.documentElement.dataset['verseAim']).toBeUndefined();
+    expect(document.querySelector('.sc-flight-streaks')).toBeNull();
+  });
+
+  it('hub → subpage: aims at the clicked tile first (origin + highlighted world), then starts the transition', async () => {
+    const flight = TestBed.inject(VerseFlight);
+    flight.aimMs = 60;
+    const h = await RouterTestingHarness.create('/verse');
+    const src = document.querySelector<HTMLElement>('.src')!;
+    src.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const nav = h.navigateByUrl('/verse/news');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(start).not.toHaveBeenCalled();
+    expect(document.documentElement.dataset['verseAim']).toBe('news');
+    expect(document.documentElement.style.getPropertyValue('--vf-ox')).toMatch(/^\d+px$/);
+    await nav;
+    await settle(h);
+    expect(start).toHaveBeenCalledTimes(1);
+    finish();
+    await settle(h);
+    expect(document.documentElement.dataset['verseAim']).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--vf-ox')).toBe('');
   });
 
   it('subpage → hub: flies back and names the hub planet for the new capture', async () => {
@@ -88,6 +115,7 @@ describe('VerseFlight', () => {
     await settle(h);
     expect(start).toHaveBeenCalledTimes(1);
     expect(seen[0].dir).toBe('up');
+    expect(document.documentElement.dataset['verseAim']).toBe('news');
     expect(document.querySelector<HTMLElement>('.src')!.style.getPropertyValue('view-transition-name')).toBe('verse-emblem');
     finish();
     await settle(h);

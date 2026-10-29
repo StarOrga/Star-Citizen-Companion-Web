@@ -101,6 +101,18 @@
   .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
 }
 
+// Entrance (the stage carries .intro only while the sequence plays and never
+// under reduced motion): the sun arrives with the details, the constellation
+// is lit by the comet (planet.scss) a beat later — its stars and lines build up
+// from --intro-d on (briefing-sky).
+:host-context(.bstage.intro) .sun-l { animation: bk-in calc(0.6s * var(--k, 1)) ease-out calc(4.85s * var(--k, 1)) both; }
+:host-context(.bstage.intro) .const-l {
+  --intro-d: calc(5.3s * var(--k, 1));
+  animation: bk-ignite calc(0.9s * var(--k, 1)) ease-out calc(5.3s * var(--k, 1)) both;
+}
+@keyframes bk-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+@keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   .sun, .flare, .lab { transition: none; }
   .ring, .lab-n i, .lab-v { animation: none !important; }

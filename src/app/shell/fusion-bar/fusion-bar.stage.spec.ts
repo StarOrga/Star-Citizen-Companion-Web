@@ -1,13 +1,32 @@
 import {
   AREA_ENTRIES,
+  DOCK_SCROLL_PX,
   STAGE_DOCK_PX,
   STAGE_UNDOCK_PX,
   nextStageDocked,
+  dockProgress,
   plateBackOf,
-  stageMorphOf,
 } from './fusion-bar.model';
 
-describe('Gleiche Leiste: the stage dock state machine', () => {
+describe('Gleiche Leiste: the scroll-linked condense progress', () => {
+  it('maps the scroll distance linearly onto 0 to 1 and clamps both ends', () => {
+    expect(dockProgress(0)).toBe(0);
+    expect(dockProgress(-30)).toBe(0);
+    expect(dockProgress(DOCK_SCROLL_PX / 2)).toBeCloseTo(0.5, 5);
+    expect(dockProgress(DOCK_SCROLL_PX)).toBe(1);
+    expect(dockProgress(DOCK_SCROLL_PX * 5)).toBe(1);
+    expect(dockProgress(NaN)).toBe(0);
+  });
+
+  it('is reversible: the same depth gives the same progress on the way down and up', () => {
+    const down = [0, 40, 80, 120, 160].map(dockProgress);
+    const up = [160, 120, 80, 40, 0].map(dockProgress).reverse();
+    expect(up).toEqual(down);
+    for (let i = 1; i < down.length; i++) expect(down[i]).toBeGreaterThan(down[i - 1]);
+  });
+});
+
+describe('Gleiche Leiste: reduced motion jumps between the ends at the hysteresis thresholds', () => {
   it('docks once past the threshold and stays docked inside the hysteresis band', () => {
     expect(nextStageDocked(false, 0)).toBeFalse();
     expect(nextStageDocked(false, STAGE_DOCK_PX)).toBeFalse();
@@ -17,13 +36,6 @@ describe('Gleiche Leiste: the stage dock state machine', () => {
     expect(nextStageDocked(true, STAGE_UNDOCK_PX)).toBeFalse();
     // Between both thresholds an undocked bar stays staged.
     expect(nextStageDocked(false, STAGE_UNDOCK_PX + 10)).toBeFalse();
-  });
-
-  it('plays the morph once per crossing, in the direction of the crossing', () => {
-    expect(stageMorphOf(false, true)).toBe('dock');
-    expect(stageMorphOf(true, false)).toBe('undock');
-    expect(stageMorphOf(true, true)).toBeNull();
-    expect(stageMorphOf(false, false)).toBeNull();
   });
 });
 

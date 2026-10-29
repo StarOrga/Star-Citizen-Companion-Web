@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.170.0",
+  "current": "0.170.1",
   "releases": [
+    {
+      "version": "0.170.1",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta Verse: opening a news item by link shows an error with a retry button when the feed cannot be loaded, instead of an empty page."
+            },
+            {
+              "title": "",
+              "text": "Patches: the board keeps its own search field when the beta shell is off."
+            },
+            {
+              "title": "",
+              "text": "Beta Verse: the camera flight only runs with the Verse beta on and never freezes the page for more than 3 seconds."
+            },
+            {
+              "title": "",
+              "text": "The hub tiles size correctly on phones with a moving URL bar."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.170.0",
       "date": "2026-10-28",

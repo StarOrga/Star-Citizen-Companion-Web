@@ -40,10 +40,12 @@ import {
   liveStatusKey,
   newestFor,
   nextStatusKey,
+  splitChars,
   uniqueStories,
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, hubGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
 import { StageHeroDirective } from '../../shell/fusion-bar/stage-hero.directive';
 
@@ -62,6 +64,9 @@ export const TITLE_MIN_SCALE = 0.55;
 
 /** Entrance length in seconds: the full "Anflug" once per session, a short one afterwards. */
 export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 0.6 };
+
+/** Hub title sequence (beta shell), seconds at --k 1: letterbox, title cascade, search, calm, details, comet. */
+export const HUB_INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 6.4, short: 6.4 * (0.6 / 3.4) };
 
 interface Gate {
   door: VerseDoor;
@@ -160,6 +165,7 @@ export class VerseBriefingComponent {
   private readonly beta = inject(BetaService);
   private readonly stability = inject(PatchStabilityService);
   private readonly translate = inject(TranslateService);
+  private readonly chrome = inject(ShellChromeService);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -388,6 +394,7 @@ export class VerseBriefingComponent {
     });
 
     if (this.shell()) this.wireStage();
+    if (this.shell()) this.startTitleIntro();
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
     // focused time; the clock restarts with every switch.
@@ -493,6 +500,31 @@ export class VerseBriefingComponent {
     if (n < 2) return;
     this.firstRun.set(false);
     this._index.set((this.index() + dir + n) % n);
+  }
+
+  /** True while the title letters cascade in; afterwards the title renders as plain text again. */
+  readonly titleIntro = signal(false);
+
+  /** Splits the hub title into letters for the entrance only (never under reduced motion). */
+  private startTitleIntro(): void {
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !this.enabled()) return;
+    this.titleIntro.set(true);
+    // The shell reveals its search field and (first visit) the main header in step with it.
+    this.chrome.startHeroIntro(this.intro === 'full' ? 1 : INTRO_SECONDS.short / INTRO_SECONDS.full, this.intro === 'full');
+    const id = setTimeout(() => {
+      this.titleIntro.set(false);
+      this.chrome.endHeroIntro();
+    }, (HUB_INTRO_SECONDS[this.intro] + 0.4) * 1000);
+    this.destroyRef.onDestroy(() => {
+      clearTimeout(id);
+      this.chrome.endHeroIntro();
+    });
+  }
+
+  /** Letters of a (translated) title for the cascade. */
+  chars(text: string): readonly { readonly c: string; readonly i: number }[] {
+    return splitChars(text);
   }
 
   /** "Mehr im Verse": down to the hub columns. */
