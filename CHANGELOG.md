@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.177.0] - 2026-10-29
+
+### Added
+- Verse start page (β shell): the big planet is alive — a made-up world that turns once every 30 minutes under a fixed sun, so every visit shows another part of it. Its night side carries city lights, a rail network with two to five small trains that stop at stations and sometimes run back, and now and then an aurora over the thinly settled north.
+
+### Changed
+- The start page's planet is opaque all the way down — the stars no longer show through it — and its edge is smooth.
+- Headline, search and hub columns sit on a soft dark pool, so city lights and stars step back behind the text.
+
 ## [0.176.0] - 2026-10-29
 
 ### Added
