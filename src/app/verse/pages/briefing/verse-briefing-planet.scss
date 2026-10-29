@@ -33,6 +33,8 @@
   left: calc(50% - 50vw);
   width: 100vw;
   overflow: hidden;
+  // clip, not a scroll container: the live planet's canvas sticks to the viewport inside it.
+  overflow: clip;
   pointer-events: none;
 }
 .brief-world {
@@ -44,11 +46,14 @@
   translate: -50% 0;
   border-radius: 50%;
   overflow: hidden;
-  // The body only carries the lit rim; it fades out well before the hub, so the
-  // scrolled columns stand on the shell's own background planet (no veil).
-  background: radial-gradient(circle at 60% 3%, #2f6585 0, #143a52 7%, #0a2232 14%, rgba(6, 20, 31, 0.5) 20%, transparent 28%);
+  // Opaque all the way down — the stars never show through the planet. This is
+  // the fallback; the live planet (sc-briefing-planet) draws over it.
+  background: radial-gradient(circle at 60% 3%, #2f6585 0, #143a52 7%, #0a2232 14%, #061722 22%, #040f17 40%, #030a10 70%);
   box-shadow: 0 -4px 24px rgba(82, 193, 230, 0.5), inset 0 7px 22px rgba(150, 225, 255, 0.35);
 }
+// The live planet runs: the CSS one only lends it its geometry.
+.brief-world.gl { background: none; box-shadow: none; }
+.brief-world.gl::before, .city.gl { display: none; }
 // Soft city glows near the rim on the night side (no dots).
 .brief-world::before {
   content: '';
@@ -245,6 +250,19 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 .more-cue:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 6px; }
 
 .hub { scroll-margin-top: calc(var(--sc-bar-h, 56px) + 16px); }
+
+// Readability: every text block sits on a soft dark pool, so city lights and
+// stars step back behind it (concept 2026-10-29, round 1).
+.hx { position: relative; isolation: isolate; }
+.hx::before, .hub::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(2, 6, 11, 0.6), rgba(2, 6, 11, 0.36) 55%, transparent);
+}
+.hx::before { inset: -40% -18%; }
+.hub::before { inset: -6% -8% 0; background: radial-gradient(closest-side, rgba(2, 6, 11, 0.55), rgba(2, 6, 11, 0.3) 60%, transparent); }
 
 // ── Entrance: "Titelsequenz" (concept 2026-10-29, A1) ───────────────────
 // Timeline in seconds at --k 1 (a repeat visit scales it by --k, .short):
