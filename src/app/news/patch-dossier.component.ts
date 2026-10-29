@@ -11,7 +11,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { LocaleService } from '../core/locale/locale.service';
@@ -28,14 +29,20 @@ import { GENERAL_PREP_KEYS, extractPrep } from './patch-prep';
 import { PatchStabilityService } from './patch-stability.service';
 import { HighlightSegment, fuzzyTokens, highlightSegments, matchesFuzzy, tokenizeQuery } from './patch-search';
 import { stackCardFor, type StackCard } from './patch-stack';
-import { StabilityBadgeComponent } from './stability-badge.component';
+import { StabilityChipComponent, chipFromVerdict } from './stability-chip.component';
+import { StabilityLongComponent } from './stability-long.component';
 import { groupCardsByCategory, roadmapCardUrl, type RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ShareButtonComponent } from '../shared/share-button/share-button.component';
 
-type SectionId = 'prep' | 'contents' | 'fixed' | 'next';
+type SectionId = 'stabilitaet' | 'prep' | 'contents' | 'fixed' | 'next';
+
+/** DOM id of a section: the stability long form is the deep-link target `#stabilitaet`. */
+function anchorId(id: SectionId): string {
+  return id === 'stabilitaet' ? id : 'pd-' + id;
+}
 
 /**
  * A patch has exactly two reading orders, and the line between them is whether
@@ -46,7 +53,7 @@ type SectionId = 'prep' | 'contents' | 'fixed' | 'next';
  * Once it has landed, what is in it and whether one's own bug is gone lead;
  * the preparation is done and slides to the end.
  */
-export function sectionOrder(status: StackCard['status']): SectionId[] {
+export function sectionOrder(status: StackCard['status']): Exclude<SectionId, 'stabilitaet'>[] {
   switch (status) {
     case 'next':
     case 'evocati':
@@ -113,7 +120,7 @@ function scrollBehavior(): ScrollBehavior {
   standalone: true,
   imports: [
     TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
-    PatchNoteDetailComponent, StabilityBadgeComponent, ScDialogDirective,
+    PatchNoteDetailComponent, StabilityChipComponent, StabilityLongComponent, ScDialogDirective,
     ScTooltipDirective, ShareButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -128,8 +135,8 @@ function scrollBehavior(): ScrollBehavior {
               <h2>{{ title() }}</h2>
               <!-- Same corner, same picture as on the board card the reader
                    just came from (owner, 2026-09-05). -->
-              @if (verdict(); as v) {
-                <span class="stab"><sc-stability-badge [verdict]="v" size="lg" /></span>
+              @if (chip(); as ch) {
+                <span class="stab"><sc-stability-chip [data]="ch" size="lg" [live]="c.status === 'live'" /></span>
               }
             </div>
             <p class="state">{{ stateLine() }}
@@ -145,7 +152,7 @@ function scrollBehavior(): ScrollBehavior {
                 <ul class="toc-list">
                   @for (s of sections(); track s) {
                     <li>
-                      <a class="toc-link" [class.active]="active() === s" [href]="'#pd-' + s"
+                      <a class="toc-link" [class.active]="active() === s" [href]="'#' + anchorId(s)"
                          [attr.aria-current]="active() === s ? 'true' : null" (click)="onToc($event, s)">
                         <span class="toc-marker" aria-hidden="true"></span>
                         <span class="toc-text">{{ sectionKey(s) | translate }}</span>
@@ -158,6 +165,16 @@ function scrollBehavior(): ScrollBehavior {
 
             <div class="col">
               @for (s of sections(); track s) { @switch (s) {
+              @case ('stabilitaet') {
+              <!-- ── Stabilität: the long form, first section once the patch is out. ── -->
+              @if (verdict(); as v) {
+                <section id="stabilitaet" class="sec" [class.flash]="flash() === 'stabilitaet'">
+                  <h3>{{ sectionKey('stabilitaet') | translate }}</h3>
+                  <sc-stability-long [verdict]="v" [live]="c.status === 'live'" [previous]="previous()" />
+                </section>
+              }
+              }
+
               @case ('prep') {
               <!-- ── How do I prepare? / on a superseded patch: what was
                    there to watch out for? (heading via sectionKey)
@@ -597,6 +614,8 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   private readonly overlayOrigin = inject(OverlayOriginService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly stability = inject(PatchStabilityService);
+  readonly anchorId = anchorId;
+  private readonly fragment = toSignal(inject(ActivatedRoute).fragment, { initialValue: null });
 
   /** Route params, bound by the router. */
   readonly line = input.required<string>();
@@ -650,6 +669,15 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   private readonly clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
   private scrollListener?: () => void;
   private previousOverflow = '';
+  /** `#stabilitaet` (from a chip): bring the long form into view and light it once the section exists. */
+  private readonly jumpToFragment = effect(() => {
+    const f = this.fragment();
+    if (f !== 'stabilitaet' || !this.sections().includes('stabilitaet')) return;
+    untracked(() => setTimeout(() => {
+      this.host.nativeElement.querySelector<HTMLElement>('#stabilitaet')?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+      this.glow('stabilitaet');
+    }));
+  });
   /** The carried-in query focuses `fixed` once, not on every recompute. */
 
   readonly card = computed<StackCard | null>(() =>
@@ -675,7 +703,17 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   readonly sourceUrl = computed(() => this.currentEntry()?.item.url ?? null);
 
   readonly prep = computed(() => extractPrep(this.currentOutline()));
-  /** The line's stability, for the hero badge — only once it has shipped. */
+  readonly previous = computed(() => {
+    const c = this.card();
+    return c && c.line ? this.stability.previousOf(c.line) : null;
+  });
+  /** The hero chip: the line's stability, comparison against the nearest older patch. */
+  readonly chip = computed(() => {
+    const c = this.card();
+    const p = this.previous();
+    return chipFromVerdict(this.verdict(), { previous: p?.percent ?? null, previousLabel: p?.line ?? null, finished: c?.status === 'superseded' });
+  });
+  /** The line's stability, for the hero chip — only once it has shipped. */
   readonly verdict = computed(() => {
     const c = this.card();
     return c && c.line && c.liveAt !== null ? this.stability.verdictFor(c.line) : null;
@@ -703,12 +741,13 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     const has: Record<SectionId, boolean> = {
       // Always: the general advice below the patch-specific facts holds for
       // every build, so this question is never unanswerable (2026-09-05).
+      stabilitaet: !!this.verdict(),
       prep: true,
       contents: this.hasContents(),
       fixed: !!c?.group,
       next: this.hasCycle(),
     };
-    const out = sectionOrder(c?.status ?? 'other').filter((id) => has[id]);
+    const out = (['stabilitaet', ...sectionOrder(c?.status ?? 'other')] as SectionId[]).filter((id) => has[id]);
     if (!this.openedWithQuery() || !out.includes('fixed')) return out;
     return ['fixed', ...out.filter((id) => id !== 'fixed')];
   });
@@ -873,7 +912,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
 
   onToc(ev: MouseEvent, id: SectionId): void {
     if (!isPlainLeftClick(ev)) return;
-    const target = this.host.nativeElement.querySelector<HTMLElement>(`#pd-${id}`);
+    const target = this.host.nativeElement.querySelector<HTMLElement>(`#${anchorId(id)}`);
     if (!target) return;
     ev.preventDefault();
     this.chosen.set(id);
@@ -903,7 +942,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     const line = panel.getBoundingClientRect().top + (panel.querySelector<HTMLElement>('.hero')?.offsetHeight ?? 0) + SPY_CLEARANCE_PX;
     let next: SectionId = this.sections()[0] ?? 'prep';
     for (const id of this.sections()) {
-      const el = panel.querySelector<HTMLElement>(`#pd-${id}`);
+      const el = panel.querySelector<HTMLElement>(`#${anchorId(id)}`);
       if (el && el.getBoundingClientRect().top <= line) next = id;
     }
     if (panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 4) next = this.sections()[this.sections().length - 1] ?? next;

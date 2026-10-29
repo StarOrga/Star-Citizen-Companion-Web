@@ -91,6 +91,8 @@
 :is(.sun-l, .const-l):is(:hover, :focus-visible) .lab-v { animation: rise 0.5s ease-out 0.5s both; }
 // The hint shows the names only and calms down after ~5 s (the class goes).
 .idle .lab-v { display: none; }
+.sw { font-weight: 700; color: var(--sc-success); }
+.sw[data-word='wackelig'], .sw[data-word='instabil'] { color: var(--sc-warning); }
 .idle .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.7s + var(--n, 0) * 0.04s); }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 

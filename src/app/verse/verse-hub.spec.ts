@@ -1,5 +1,4 @@
 import { verseItemLink } from './pages/verse-briefing.component';
-import { verseKpiTiles } from './pages/verse-patch-kpis';
 import { dossierLineOf } from './pages/verse-patches.component';
 import { verseStatusView } from './shared/verse-status.component';
 import { VERSE_ROUTES } from './verse.routes';
@@ -27,10 +26,6 @@ describe('Verse hub — pure helpers', () => {
     const v = verseStatusView([], { line: '4.3', liveAt: '2026-09-28T12:00:00Z', channels: { ptu: '4.4.0' }, status: 'ptu' }, now);
     expect(v).toEqual(jasmine.objectContaining({ line: '4.3', state: 'ptu', ptuLine: '4.4.0', sinceDays: 10, nextDays: null }));
     expect(verseStatusView([], null, now)).toBeNull();
-  });
-
-  it('verseKpiTiles shows nothing it cannot prove', () => {
-    expect(verseKpiTiles([], [])).toEqual([]);
   });
 
   it('every in-app digest url shape has a Verse route', () => {

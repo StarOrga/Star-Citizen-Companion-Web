@@ -3,7 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { PatchNoteEntry, patchLineOf } from './patch-notes';
 import { PatchNoteDetailComponent } from './patch-note-detail.component';
 import { PatchStabilityService } from './patch-stability.service';
-import { StabilityChipComponent } from './stability-chip.component';
+import { StabilityChipComponent, StabilityChipData, chipFromVerdict } from './stability-chip.component';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { outlineMatchCount } from './patch-outline';
 import { HighlightSegment, highlightSegments } from './patch-search';
@@ -55,9 +55,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             @if (!compact() && entry().hotfix) {
               <span class="tag hotfix">{{ 'news.patch.hotfix' | translate }}</span>
             }
-            @if (!compact() && chipVerdict(); as v) {
-              <sc-stability-chip [verdict]="v" />
-            }
             <time>{{ when() }}</time>
             <!-- How many lines INSIDE the note the query hits. Only shown once
                  the note's contents are actually loaded, so it can never
@@ -70,6 +67,9 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
           </span>
         </span>
       </button>
+      @if (!compact() && chip(); as c) {
+        <span class="chipc"><sc-stability-chip [data]="c" [live]="isLiveLine()" /></span>
+      }
       <a class="rsi" [href]="entry().item.url" target="_blank" rel="noopener noreferrer"
          [attr.aria-label]="'news.patch.detail.openOnRsiAria' | translate:{ title: entry().item.title }"
          [scTooltip]="'news.patch.detail.openOnRsiAria' | translate:{ title: entry().item.title }">
@@ -77,7 +77,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       </a>
     </div>
     @if (open()) {
-      <sc-patch-note-detail [slug]="slug()" [url]="entry().item.url" [tokens]="tokens()" [verdict]="verdict()" />
+      <sc-patch-note-detail [slug]="slug()" [url]="entry().item.url" [tokens]="tokens()" />
     }
   `,
   styles: [`
@@ -103,6 +103,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
       font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
     }
+    .chipc { flex: 0 0 auto; display: inline-flex; align-items: center; padding: 0 4px; }
     .rsi {
       flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
       min-width: var(--sc-tap-min); min-height: var(--sc-tap-min);
@@ -138,25 +139,29 @@ export class PatchEntryRowComponent {
   private readonly svc = inject(RoadmapService);
   private readonly stability = inject(PatchStabilityService);
 
-  /**
-   * Only the LIVE release-notes row carries the verdict: it is the one row a
-   * reader identifies with "the patch". Hotfix threads and PTU waves stay bare.
-   * Inside a folded wave the summary row already names the patch, so the chip
-   * stays off compact rows like the other per-row tags.
-   */
-  readonly verdict = computed(() => {
+  /** The line this row names (release-notes rows only). */
+  private readonly line = computed(() => {
     const e = this.entry();
-    if (e.stage !== 'live' || e.hotfix || !e.version) return null;
-    return this.stability.verdictFor(patchLineOf(e.version));
+    return e.stage !== 'live' || e.hotfix || !e.version ? null : patchLineOf(e.version);
   });
 
   /**
-   * The chip renders nothing without a level, so don't give it a flex slot
-   * either — an empty host still costs `.meta`'s gap.
+   * Only the LIVE release-notes row carries the chip: it is the one row a
+   * reader identifies with "the patch". Hotfix threads and PTU waves stay bare,
+   * and so do folded wave rows (the summary above already names the patch).
+   * The chip sits beside the row's button, not inside it — no anchor in a button.
    */
-  readonly chipVerdict = computed(() => {
-    const v = this.verdict();
-    return v && v.level !== null ? v : null;
+  readonly chip = computed<StabilityChipData | null>(() => {
+    const line = this.line();
+    if (!line) return null;
+    const v = this.stability.verdictFor(line);
+    const prev = this.stability.previousOf(line);
+    return chipFromVerdict(v, { previous: prev?.percent ?? null, previousLabel: prev?.line ?? null, finished: !this.isLiveLine() });
+  });
+  /** The LIVE line is the one the community corrects. */
+  readonly isLiveLine = computed(() => {
+    const line = this.line();
+    return !!line && this.stability.isLiveLine(line);
   });
 
   readonly entry = input.required<PatchNoteEntry>();

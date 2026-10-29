@@ -1,6 +1,7 @@
 import type { PatchLineGroup } from '../../../news/patch-notes';
-import { channelStability, stabilityWord } from '../../../news/patch-stability';
-import type { ChannelBuildSample, StabilityLevel, StabilityVerdict } from '../../../news/patch-stability';
+import { channelStability } from '../../../news/patch-stability';
+import type { ChannelBuildSample, StabilityVerdict } from '../../../news/patch-stability';
+import { chipFromVerdict, type StabilityChipData } from '../../../news/stability-chip.component';
 import type { VerseChannelBuild, VerseChannelInfo, VerseDigestItem } from '../../data/verse.models';
 
 /** News rows in the hub's accordion: one open, the rest as slim rows. */
@@ -11,40 +12,13 @@ export const HUB_GALLERY = 14;
 export const HUB_CHANNELS = ['hotfix', 'ptu', 'evocati'] as const;
 export type HubChannelKind = 'live' | (typeof HUB_CHANNELS)[number];
 
-export type HubVerdict = 'stable' | 'shaky' | 'troubled';
-
-/**
- * Legacy mapping onto the single scale in `patch-stability.ts` (`stabilityWord`).
- * Wave 2 removes this together with the hub's verdict word.
- */
-export function verdictWord(stability: number | null): HubVerdict | null {
-  const w = stabilityWord(stability);
-  return w === null ? null : w === 'stabil' ? 'stable' : w === 'wackelig' ? 'shaky' : 'troubled';
-}
-
-export type HubTrend = 'better' | 'worse' | 'same';
-
-export interface HubStat {
-  readonly value: number | null;
-  readonly delta: number | null;
-  readonly trend: HubTrend | null;
-}
-
-/** One channel row's grid: Stabilität + Bekannte Probleme, both against the channel's predecessor. */
-export interface HubStats {
-  readonly stability: HubStat;
-  /** `value` = open known issues (KB count); `level` picks the word (1 kaum … 5 schwere). */
-  readonly issues: HubStat & { readonly level: number | null };
-  /** What the deltas compare against ("4.2", "4.3.1", "4.3 PTU"); null when there is no predecessor. */
-  readonly vs: string | null;
-}
-
 export interface HubChannel {
   readonly kind: HubChannelKind;
   /** Null: nothing running in this channel right now (the quiet slot). */
   readonly version: string | null;
   readonly line: string | null;
-  readonly stats: HubStats;
+  /** The stability chip's data; null for a quiet slot and for Evocati (no chip, it would never change). */
+  readonly chip: StabilityChipData | null;
   /** Whole days since the version entered the channel; null when unknown ("–"). */
   readonly sinceDays: number | null;
   /** PTU / Evocati wave of the newest notes; null when they name none. */
@@ -79,30 +53,6 @@ export function previousLine(line: string, known: readonly string[]): string | n
   return min ? `${maj}.${min - 1}` : null;
 }
 
-function usable(v: StabilityVerdict | null | undefined): StabilityVerdict | null {
-  return v && !v.insufficient && v.stability !== null ? v : null;
-}
-
-function stat(cur: number | null, prev: number | null, higherIsBetter: boolean): HubStat {
-  if (cur === null) return { value: null, delta: null, trend: null };
-  if (prev === null) return { value: cur, delta: null, trend: null };
-  const delta = Math.round(cur - prev);
-  const trend: HubTrend = delta === 0 ? 'same' : (delta > 0) === higherIsBetter ? 'better' : 'worse';
-  return { value: cur, delta, trend };
-}
-
-/** Stabilität + Bekannte Probleme of `cur` against `prev`; a missing value stays null ("–"). */
-export function hubStats(cur: StabilityVerdict | null, prev: StabilityVerdict | null, vs: string | null): HubStats {
-  const c = usable(cur);
-  const p = usable(prev);
-  const issues = stat(c?.kbOpen ?? null, p?.kbOpen ?? null, false);
-  return {
-    stability: stat(c ? Math.round(c.stability!) : null, p ? Math.round(p.stability!) : null, true),
-    issues: { ...issues, level: c?.level ?? null },
-    vs,
-  };
-}
-
 const CHANNEL_SUFFIX: Readonly<Record<HubChannelKind, string>> = { live: '', hotfix: ' Hotfix', ptu: ' PTU', evocati: ' Evocati' };
 const DAY_MS = 86_400_000;
 
@@ -112,20 +62,11 @@ function sample(b: VerseChannelBuild, toIso: string, fromIso = b.threadFirstAt):
   return { replies: b.replies, ticketShare: b.ticketShare, ticketVoteShare: b.ticketVoteShare, fromIso, toIso };
 }
 
-type Measured = { stability: number; level: StabilityLevel } | null;
+const EMPTY = { chip: null, sinceDays: null, wave: null } as const;
 
-/**
- * Stabilität + Bekannte Probleme of a test-channel build against its
- * predecessor. Only the community component is measured for these (see
- * `channelStability`), and the KB issue count exists for LIVE only: the word
- * comes from the build's level, the count and its delta stay "–".
- */
-export function channelStats(cur: Measured, prev: Measured, vs: string | null): HubStats {
-  return {
-    stability: stat(cur?.stability ?? null, prev?.stability ?? null, true),
-    issues: { value: null, delta: null, trend: null, level: cur?.level ?? null },
-    vs,
-  };
+/** Chip of a test-channel build against the previous build of the SAME channel; PTU is provisional by nature. */
+function channelChip(kind: HubChannelKind, line: string, cur: ReturnType<typeof channelStability>, prev: ReturnType<typeof channelStability>, prevLabel: string | null): StabilityChipData {
+  return { line, percent: cur?.stability ?? null, early: kind === 'ptu', finished: false, previous: prev?.stability ?? null, previousLabel: prev ? prevLabel : null };
 }
 
 /** Whole days between an ISO instant and now; null for a missing / unparsable one. */
@@ -153,22 +94,29 @@ export function hubChannel(
 ): HubChannel {
   const info = kind === 'live' ? undefined : channelInfo?.[kind];
   const version = info?.version?.trim() || channels?.[kind]?.trim() || null;
-  if (!version) return { kind, version: null, line: null, stats: hubStats(null, null, null), sinceDays: null, wave: null };
+  if (!version) return { kind, version: null, line: null, ...EMPTY };
   const line = lineOf(version);
-  const prev = previousLine(line, known);
-  if (kind === 'live') return { kind, version, line, stats: hubStats(verdictFor(line), prev ? verdictFor(prev) : null, prev), sinceDays: null, wave: null };
+  if (kind === 'live') {
+    const prev = previousLine(line, known);
+    const pv = prev ? verdictFor(prev) : null;
+    const p = pv && !pv.insufficient ? pv.stability : null;
+    return { kind, version, line, chip: chipFromVerdict(verdictFor(line), { previous: p, previousLabel: p === null ? null : prev }), sinceDays: null, wave: null };
+  }
+  // Evocati never changes within a build: no chip at all.
+  const noChip = kind === 'evocati';
   if (info) {
     const toIso = new Date(now).toISOString();
     const p = info.previous;
-    const stats = channelStats(
+    const chip = noChip ? null : channelChip(
+      kind,
+      line,
       channelStability(sample(info, toIso)),
       p ? channelStability(sample(p, p.endedAt ?? toIso)) : null,
       p ? p.version + CHANNEL_SUFFIX[kind] : null,
     );
-    return { kind, version, line, stats, sinceDays: daysSince(info.startedAt, now), wave: kind === 'hotfix' ? null : info.wave };
+    return { kind, version, line, chip, sinceDays: daysSince(info.startedAt, now), wave: kind === 'hotfix' ? null : info.wave };
   }
-  const vs = kind === 'hotfix' ? (channels?.['live']?.trim() || prev) : prev ? prev + CHANNEL_SUFFIX[kind] : null;
-  return { kind, version, line, stats: hubStats(null, null, vs), sinceDays: null, wave: null };
+  return { kind, version, line, chip: noChip ? null : channelChip(kind, line, null, null, null), sinceDays: null, wave: null };
 }
 
 /** The three fixed slots under the LIVE feature — always three rows, quiet when a channel is not running. */
@@ -192,15 +140,6 @@ export function patchImage(groups: readonly PatchLineGroup[]): string | null {
     for (const e of g.entries) if (e.item.thumbnail) return e.item.thumbnail;
   }
   return null;
-}
-
-/** "▲ 8" / "▼ 29" for the stability, "+14" / "−3" for the known issues; "–" without a comparison. */
-export function deltaText(s: HubStat, arrows: boolean): string {
-  if (s.delta === null) return '–';
-  if (s.delta === 0) return '±0';
-  const n = Math.abs(s.delta);
-  if (arrows) return `${s.delta > 0 ? '▲' : '▼'} ${n}`;
-  return `${s.delta > 0 ? '+' : '−'}${n}`;
 }
 
 /** Gallery previews: digest gallery items that carry an image, rank order (newest feature first). */

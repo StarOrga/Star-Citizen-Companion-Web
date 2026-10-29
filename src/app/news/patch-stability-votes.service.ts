@@ -64,10 +64,27 @@ export class PatchStabilityVotesService {
     return { verdict: a?.ownVerdict ?? null, nextChangeAt: a?.ownNextChangeAt ?? null };
   });
 
+  private readonly _revealed = signal(false);
+  /**
+   * Blind voting: a signed-in user without a vote sees neither the number nor the
+   * distribution until they voted, abstained or asked for it (`reveal()`).
+   * Never blind without loaded votes — there is nothing to protect then.
+   */
+  readonly blind = computed(() => !!this.auth.user() && this._aggregate() !== null && this.own().verdict === null && !this._revealed());
+
+  reveal(): void {
+    this._revealed.set(true);
+  }
+
   /** Correction for computed stability `S` against the loaded votes; null before the load. */
   correctionFor(S: number): CommunityCorrection | null {
     const a = this._aggregate();
     return a ? communityCorrection(S, a) : null;
+  }
+
+  /** Load `line` unless it is already the loaded (or failed) line — chips ask on every render, only the first asks the server. */
+  ensure(line: string): void {
+    if (this._line() !== line) void this.load(line);
   }
 
   async load(line: string): Promise<void> {

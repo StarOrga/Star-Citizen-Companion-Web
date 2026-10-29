@@ -121,6 +121,12 @@ export interface StabilityVerdict {
   tickets: StabilityTicket[];
   kbOpen: number | null;
   hotfixes: HotfixEvent[];
+  /** Spectrum replies (release notes + hotfix thread) of the newest sample; null on an end-state. */
+  replies?: number | null;
+  /** Spectrum threads behind `replies`. */
+  threads?: number;
+  /** Unplanned degraded minutes of the last 7 days per RSI Status; null on an end-state. */
+  outageMin7d?: number | null;
 }
 
 /** Below this many live days the verdict is provisional (hatched in the UI). */
@@ -365,11 +371,42 @@ export function computeVerdict(
     components: last.components,
     insufficient,
     historical: false,
+    replies: totalReplies(latest),
+    threads: latest.hf_replies === null ? 1 : 2,
+    outageMin7d: latest.outage_min_7d,
     days,
     tickets: latest.top_tickets,
     kbOpen: latest.kb_open_total,
     hotfixes: latest.hotfix_events,
   };
+}
+
+export type DeductionKey = keyof StabilityComponents;
+
+/**
+ * The 100 − S points split over the three components, so the long form can show
+ * "Startwert 100 − a − b − c = S". The score is 0.7·worst + 0.3·weighted mean, so
+ * each component owns its share of the mean and the worst one additionally the
+ * 0.7 term; the integer total (100 − stability) is spread by largest remainder.
+ * Components without data stay null.
+ */
+export function componentDeductions(c: StabilityComponents, stability: number): Record<DeductionKey, number | null> {
+  const keys = (Object.keys(WEIGHTS) as DeductionKey[]).filter((k) => c[k] !== null);
+  const out: Record<DeductionKey, number | null> = { community: null, service: null, cig: null };
+  if (keys.length === 0) return out;
+  const weightSum = keys.reduce((s, k) => s + WEIGHTS[k], 0);
+  const worstKey = keys.reduce((a, b) => ((c[b] as number) > (c[a] as number) ? b : a));
+  const raw = keys.map((k) => 0.3 * (WEIGHTS[k] / weightSum) * (c[k] as number) + (k === worstKey ? 0.7 * (c[k] as number) : 0));
+  const rawSum = raw.reduce((s, v) => s + v, 0);
+  const total = Math.max(0, Math.round(100 - stability));
+  const scaled = raw.map((v) => (rawSum > 0 ? (v / rawSum) * total : 0));
+  const floor = scaled.map(Math.floor);
+  let rest = total - floor.reduce((s, v) => s + v, 0);
+  [...scaled.keys()].sort((a, b) => (scaled[b] - floor[b]) - (scaled[a] - floor[a])).forEach((i) => {
+    if (rest > 0) { floor[i]++; rest--; }
+  });
+  keys.forEach((k, i) => (out[k] = floor[i]));
+  return out;
 }
 
 /** Raw numbers of one Hotfix / PTU / Evocati build (Spectrum threads) for {@link channelStability}. */

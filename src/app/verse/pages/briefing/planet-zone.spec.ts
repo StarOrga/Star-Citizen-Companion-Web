@@ -17,7 +17,7 @@ import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing
 import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
 import { INTRO_FLAG } from './briefing.model';
 import {
-  deltaText, holoBody, hubChannel, hubChannels, hubGallery, hubStats, kickerVersion, lineOf, patchImage, previousLine, verdictWord,
+  holoBody, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
 import { TX_CHARGE_MS, TX_CHARS_PER_S, TX_HOLD_MS, TX_OUT_MS, TX_REVEAL_MS } from './briefing-transmit.component';
 
@@ -37,28 +37,13 @@ const verdict = (line: string, level: 1 | 2 | 3 | 4 | 5 | null, stability: numbe
   ({ line, level, stability, kbOpen, insufficient } as unknown as StabilityVerdict);
 
 describe('Verse hub — verdict + patch grid model', () => {
-  it('keeps the verdict thresholds in one function: stabil >= 75, wackelig 45–74, viele Probleme < 45', () => {
-    expect(verdictWord(100)).toBe('stable');
-    expect(verdictWord(75)).toBe('stable');
-    expect(verdictWord(74.9)).toBe('shaky');
-    expect(verdictWord(45)).toBe('shaky');
-    expect(verdictWord(44)).toBe('troubled');
-    expect(verdictWord(null)).toBeNull();
-  });
-
-  it('compares Stabilität + Bekannte Probleme with the predecessor; worse is a trend, never an error', () => {
-    const s = hubStats(verdict('4.3', 4, 50, 30), verdict('4.2', 2, 79, 16), '4.2');
-    expect(s.stability).toEqual({ value: 50, delta: -29, trend: 'worse' });
-    expect(s.issues).toEqual({ value: 30, delta: 14, trend: 'worse', level: 4 });
-    expect(deltaText(s.stability, true)).toBe('▼ 29');
-    expect(deltaText(s.issues, false)).toBe('+14');
-    const up = hubStats(verdict('4.3', 2, 58, 13), verdict('4.2', 4, 50, 16), '4.2');
-    expect(up.stability.trend).toBe('better');
-    expect(deltaText(up.issues, false)).toBe('−3');
-    const none = hubStats(null, verdict('4.2', 2, 79), '4.2');
-    expect(none.stability.value).toBeNull();
-    expect(deltaText(none.stability, true)).toBe('–');
-    expect(hubStats(verdict('4.3', null, null, null, true), null, null).issues.level).toBeNull();
+  it('hands the LIVE row a chip with the previous line as comparison; worse is a trend, never an error', () => {
+    const known = ['4.3', '4.2'];
+    const v = (l: string): StabilityVerdict | null => ({ '4.3': verdict('4.3', 4, 50, 30), '4.2': verdict('4.2', 2, 79, 16) })[l] ?? null;
+    const live = hubChannel('live', { live: '4.3.1' }, known, v);
+    expect(live.chip).toEqual(jasmine.objectContaining({ line: '4.3', percent: 50, previous: 79, previousLabel: '4.2', finished: false }));
+    const none = hubChannel('live', { live: '4.3.1' }, known, () => null);
+    expect(none.chip).toBeNull();
   });
 
   it('builds fixed Hotfix / PTU / Evocati slots, each against its own predecessor, quiet when not running', () => {
@@ -66,14 +51,12 @@ describe('Verse hub — verdict + patch grid model', () => {
     const v = (l: string): StabilityVerdict | null => ({ '4.3': verdict('4.3', 4, 50, 30), '4.2': verdict('4.2', 2, 79, 16) })[l] ?? null;
     const channels = { live: '4.3.1', ptu: '4.4.0', evocati: '4.5' };
     const live = hubChannel('live', channels, known, v);
-    expect([live.version, live.line, live.stats.vs, live.stats.stability.value]).toEqual(['4.3.1', '4.3', '4.2', 50]);
+    expect([live.version, live.line, live.chip?.previousLabel, live.chip?.percent]).toEqual(['4.3.1', '4.3', '4.2', 50]);
     const rows = hubChannels(channels, known, v);
     expect(rows.map((r) => r.kind)).toEqual(['hotfix', 'ptu', 'evocati']);
     expect(rows[0].version).withContext('no hotfix in the data → quiet slot').toBeNull();
-    expect(rows[1].stats.vs).toBe('4.3 PTU');
-    expect(rows[2].stats.vs).toBe('4.4 Evocati');
-    expect(rows[1].stats.stability.value).withContext('only LIVE lines are measured').toBeNull();
-    expect(hubChannel('hotfix', { live: '4.3.1', hotfix: '4.3.2' }, known, v).stats.vs).toBe('4.3.1');
+    expect(rows[1].chip?.percent).withContext('no channelInfo → no number').toBeNull();
+    expect(rows[2].chip).withContext('Evocati never carries a chip').toBeNull();
     expect(hubChannels(null, known, v).every((r) => r.version === null)).toBeTrue();
     expect(lineOf('4.3.1')).toBe('4.3');
     expect(previousLine('4.3', known)).toBe('4.2');
