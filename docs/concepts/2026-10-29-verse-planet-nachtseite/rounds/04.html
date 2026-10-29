@@ -1,0 +1,45 @@
+<section data-iteration="4" data-iteration-template="free" data-final-report>
+  <header class="iteration-intro">
+    <h2>{{iteration.final_tab}}</h2>
+    <p>Der Planet der Verse-Startseite ist umgesetzt: Commit <code>3076a8d</code> auf dem Branch <code>claude/worst-news-planet-night-d7c65c</code>.</p>
+  </header>
+
+  <section id="summary" data-nav-label="Zusammenfassung">
+    <h3>Zusammenfassung</h3>
+    <p>Der große Hub-Planet ist jetzt eine WebGL-Kugel und nicht mehr durchsichtig. Er dreht sich in 30 Minuten einmal unter einer festen Sonne oben rechts. Die Drehung richtet sich nach der Uhrzeit, deshalb siehst du bei jedem Besuch einen anderen Teil der Welt. Die Welt ist frei erfunden: rund 1.100 Städte in Amber mit dünn besiedeltem Norden und einem Bahnnetz. Darauf fahren 2–5 Züge mit zufälligen Strecken; sie halten an Bahnhöfen und fahren manchmal zurück, eine Fahrt dauert höchstens 2,5 min. Etwa alle 40 s bis 2,5 min erscheint für 45–90 s ein Polarlicht am Nordhorizont. Hero und Hub-Spalten liegen auf einer weichen dunklen Fläche.</p>
+    <p>Die Welt wird beim Laden in kleinen Häppchen in Leerlaufzeiten erzeugt, die Seite bleibt also flüssig. Danach blendet der Live-Planet über den CSS-Planeten ein. Der CSS-Planet ist jetzt ebenfalls deckend und bleibt die Rückfallebene ohne WebGL. Bei <em>reduced motion</em> wird ein einziges Standbild ohne Züge gezeichnet. Im Hintergrund-Tab pausiert alles.</p>
+    <p>Die Umsetzung habe ich direkt in dieser Sitzung gemacht statt über einen Agenten-Dispatch: Es ist ein zusammenhängendes Frontend-Paket, dessen ganzer Kontext hier schon vorlag.</p>
+  </section>
+
+  <section id="files" data-nav-label="Geänderte Dateien">
+    <h3>Geänderte Dateien</h3>
+    <ul>
+      <li><code>src/app/verse/pages/briefing/planet/planet-world.ts</code>: Welt-Generator (Noise, Kontinente, Städte, Bahnnetz) und Projektionsmathematik, als Generator in Häppchen.</li>
+      <li><code>src/app/verse/pages/briefing/planet/planet-trains.ts</code>: Zug-Simulation (2–5 sichtbar, Halt, Rückfahrt, maximale Fahrtdauer) und Polarlicht-Uhr.</li>
+      <li><code>src/app/verse/pages/briefing/planet/planet-textures.ts</code>: Tag-, Wolken- und Nachtlicht-Texturen (4096 px auf Desktop, 2048 px auf schmalen Geräten).</li>
+      <li><code>src/app/verse/pages/briefing/planet/planet-gl.ts</code>: WebGL-Shader für Kugel, Terminator, Atmosphäre in <code>--sc-accent</code> und Polarlicht.</li>
+      <li><code>src/app/verse/pages/briefing/briefing-planet.component.ts</code>: neue Komponente mit Sticky-Canvas, Render-Schleife, Zug-Ebene, Reduced-Motion und Aufräumen beim Verlassen.</li>
+      <li><code>verse-briefing.component.html</code> / <code>.ts</code>: Komponente in <code>.world-clip</code> eingebaut. Die alten Glows (<code>.brief-world</code> / <code>.city</code>) werden ausgeblendet, sobald der Live-Planet läuft.</li>
+      <li><code>verse-briefing-planet.scss</code>: deckender CSS-Planet, <code>overflow: clip</code> (damit der Canvas kleben bleibt), Abdunklung hinter Hero und Hub.</li>
+      <li><code>src/app/verse/pages/briefing/planet/planet.spec.ts</code>: Tests für Welt, Drehung, Tag/Nacht, Züge und Polarlicht.</li>
+    </ul>
+  </section>
+
+  <section id="tests" data-nav-label="Tests / Verifikation">
+    <h3>Tests / Verifikation</h3>
+    <ul>
+      <li><strong>Grün:</strong> <code>npm run typecheck</code>, ESLint auf allen geänderten Dateien, kompletter Angular-Compile inklusive Templates (<code>ngc</code>) und die Prebuild-Guards (native UI, rohe Fehler, CSP).</li>
+      <li><strong>Grün:</strong> alle 10 Tests in <code>planet.spec.ts</code>, ausgeführt mit einem eigenen Mini-Runner per esbuild/Node.</li>
+      <li><strong>Nicht gelaufen:</strong> <code>ng test</code> (Karma), <code>ng build</code> und ein Blick in die echte App. Die Angular-CLI verlangt mindestens Node 24.15, lokal ist 24.14 installiert, und das Nachladen einer neueren Node-Version wurde abgelehnt. Die CI läuft mit der richtigen Version.</li>
+      <li><strong>Optisch geprüft:</strong> nur im Prototyp, der dieselben Rechenwege und denselben Shader nutzt (Standbilder in Runde 2 und 3).</li>
+    </ul>
+  </section>
+
+  <section id="handoffs" data-nav-label="{{final.handoffs}}" data-handoffs>
+    <h3>Danach von Hand</h3>
+    <ol>
+      <li>Node auf mindestens 24.15 aktualisieren (die Angular-CLI verweigert sonst lokal den Start).</li>
+      <li>Die Verse-Startseite mit <code>npm start</code> öffnen und Planet, Scrollen und Text-Lesbarkeit auf Desktop und Handy ansehen.</li>
+    </ol>
+  </section>
+</section>

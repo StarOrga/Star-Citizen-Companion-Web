@@ -1,0 +1,79 @@
+<section data-iteration="3" data-iteration-template="design" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{}}</script>
+<style>
+.mock-r3-frame { position: relative; width: 100%; max-width: 1200px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #02060b; }
+.mock-r3-shot { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.mock-r3-bar { position: absolute; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 6px; z-index: 2; }
+.mock-r3-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(82, 193, 230, 0.35);
+  background: rgba(4, 12, 20, 0.78); color: #cfe7f2; font: 500 12px/1.2 system-ui, sans-serif; cursor: pointer; text-decoration: none; }
+.mock-r3-chip:hover, .mock-r3-chip:focus-visible { border-color: #52c1e6; color: #fff; }
+.mock-r3-chip[aria-current="true"] { border-color: #52c1e6; background: rgba(82, 193, 230, 0.16); color: #fff; }
+.mock-r3-live { border-color: rgba(255, 196, 128, 0.55); color: #ffe2bf; }
+.mock-r3-list { margin: 8px 0 0; padding-left: 20px; }
+.mock-r3-list li { margin: 4px 0; }
+</style>
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 3 · Kalter Norden, mehr Polarlicht</h2>
+    <p>Deine beiden Notizen aus Runde 2 sind umgesetzt. Alles andere ist geblieben, wie es war.</p>
+    <ul class="mock-r3-list">
+      <li><strong>Weniger Städte im Norden:</strong> Ab etwa 31° nördlicher Breite wird die Besiedlung stetig dünner. Am Horizont, wo die Polarlichter stehen, ist es jetzt fast dunkel.</li>
+      <li><strong>Polarlicht häufiger:</strong> Das erste kommt nach 20–60 s, danach etwa alle 40 s bis 2,5 min, jeweils für 45–90 s (bisher alle 2–7 min).</li>
+    </ul>
+    <p><a class="mock-r3-chip mock-r3-live" href="2026-10-29-verse-planet-nachtseite/prototype.html" target="_blank" rel="noopener noreferrer">Live-Prototyp öffnen ↗</a></p>
+    <p><strong>Wenn das so passt</strong>, klick auf „Mit Feedback implementieren“. Ich baue den Planeten dann in die Verse-Startseite ein: Der heutige transparente <code>.brief-world</code> und die <code>.city</code>-Glows werden durch eine eigene Komponente mit WebGL-Planet und Zug-Ebene ersetzt. Die Werte bleiben wie im Prototyp (30 min pro Umdrehung, 2–5 Züge, Polarlicht). Dazu kommen die Abdunklung hinter Hero und Hub-Spalten, eine Pause im Hintergrund-Tab, eine ruhende Variante für <em>reduced motion</em> und ein deckender CSS-Planet, wo WebGL fehlt.</p>
+  </header>
+
+  <section data-design="orbit" data-nav-label="Orbit-Live" data-design-active="true">
+    <section id="r3-s1" data-nav-label="Startansicht" data-screen data-screen-active="true">
+      <div class="mock-r3-frame">
+        <img class="mock-r3-shot" src="2026-10-29-verse-planet-nachtseite/img/stage3.png" alt="Startansicht mit dünn besiedeltem Norden">
+        <div class="mock-r3-bar">
+          <button class="mock-r3-chip" type="button" aria-current="true">Startansicht</button>
+          <button class="mock-r3-chip" type="button" data-screen-link="r3-s2">Polarlicht ›</button>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="r3-s1-a1" data-anno-side="right" style="--anno-x:52%;--anno-y:70%">
+          <button class="anno-pin" type="button" data-anno-pin="r3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-r3-s1-a1" data-anno-bubble="r3-s1-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Norden dünner besiedelt</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="r3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-s1-a1">
+              <span class="anno-bubble-question">Stimmt das Verhältnis am Horizont jetzt, oder soll der Norden noch leerer sein?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-r3-s1-a1" data-annotation="r3-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-r3-s1-a1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-s2" data-nav-label="Polarlicht" data-screen hidden>
+      <div class="mock-r3-frame">
+        <img class="mock-r3-shot" src="2026-10-29-verse-planet-nachtseite/img/aurora3.png" alt="Polarlicht über dem nördlichen Horizont">
+        <div class="mock-r3-bar">
+          <button class="mock-r3-chip" type="button" data-screen-link="r3-s1">‹ Startansicht</button>
+          <button class="mock-r3-chip" type="button" aria-current="true">Polarlicht</button>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="r3-s2-a1" data-anno-side="right" style="--anno-x:50%;--anno-y:64%">
+          <button class="anno-pin" type="button" data-anno-pin="r3-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r3-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-r3-s2-a1" data-anno-bubble="r3-s2-a1" data-open="false">
+            <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Polarlicht etwa 3× so oft</p>
+            <button type="button" class="anno-bubble-summary" data-anno-summary="r3-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r3-s2-a1">
+              <span class="anno-bubble-question">Häufiger passt so? Soll es dabei auch kräftiger leuchten?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-r3-s2-a1" data-annotation="r3-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-r3-s2-a1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
