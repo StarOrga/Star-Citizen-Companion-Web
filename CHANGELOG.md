@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.170.1] - 2026-10-29
+
+### Fixed
+- Beta Verse: opening a news item by link shows an error with a retry button when the feed cannot be loaded, instead of an empty page.
+- Patches: the board keeps its own search field when the beta shell is off.
+- Beta Verse: the camera flight only runs with the Verse beta on and never freezes the page for more than 3 seconds.
+- The hub tiles size correctly on phones with a moving URL bar.
+
 ## [0.170.0] - 2026-10-28
 
 ### Added

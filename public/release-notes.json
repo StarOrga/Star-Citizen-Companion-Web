@@ -1,7 +1,59 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.169.1",
+  "current": "0.170.0",
   "releases": [
+    {
+      "version": "0.170.0",
+      "date": "2026-10-28",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta Verse: News, Patches, Galerie and Sternkarte share one page head with the planet as an emblem; clicking a planet on the hub flies the camera there, and the logo or the back link flies you back."
+            },
+            {
+              "title": "",
+              "text": "Beta Verse: News opens with the newest item large on top and a feed with source filters below; the search in the bar filters the feed."
+            },
+            {
+              "title": "",
+              "text": "Beta Verse: Patches shows the next patch with its readiness checklist and the community tips, and a timeline of patch cards with their sub-versions nested underneath and a stability bar on every row."
+            },
+            {
+              "title": "",
+              "text": "Beta Verse: the Sternkarte has no box any more, larger stars, a patch picker and a Kartograph crest ladder showing your rank and the next ones."
+            },
+            {
+              "title": "",
+              "text": "Beta shell: an Apps menu next to your avatar (Companion App, Starscape; Data Uploader for collaborators), your Kartograph rank as a small crest on the avatar, and a one-line app hint at the bottom right that expands on click."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "\"Sternbild\" is now called \"Sternkarte\" everywhere; the Kartograph badge left the account menu."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The news stage shows YouTube thumbnails in 1280×720."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.169.1",
       "date": "2026-10-28",

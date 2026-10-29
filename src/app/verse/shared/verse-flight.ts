@@ -8,6 +8,11 @@ import {
   verseFlightOf,
   verseFrameOf,
 } from './verse-world';
+import { Subscription } from 'rxjs';
+import { BetaService } from '../../core/beta.service';
+
+/** Upper bound of the frozen snapshot: past it the update callback settles regardless (slow chunk, lost router event). */
+const LANDING_CAP_MS = 3000;
 
 /** Reduced-motion check. */
 export function flightReducedMotion(): boolean {
@@ -46,11 +51,14 @@ export class VerseFlight {
   private readonly zone = inject(NgZone);
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
+  private readonly verseBeta = inject(BetaService).isEnabled('verse');
 
   private lastUrl: string | null = null;
   private clicked: HTMLElement | null = null;
   private running = false;
 
+  /** Only the Verse β pages carry the emblem the flight lands on; swappable for specs. */
+  enabled: () => boolean = () => this.verseBeta();
   /** Swappable for specs. */
   reducedMotion: () => boolean = flightReducedMotion;
   /** A hidden tab aborts every transition; swappable for specs (the Karma window may be in the background). */
@@ -91,6 +99,7 @@ export class VerseFlight {
     const to = verseFrameOf(url);
     if (
       !dir || !from || !to || this.running ||
+      !this.enabled() ||
       typeof doc.startViewTransition !== 'function' ||
       this.hidden() ||
       this.reducedMotion()
@@ -144,14 +153,19 @@ export class VerseFlight {
 
   /** Settles after the navigation ended and the new page rendered; on `up` names the hub's planet first. */
   private landed(dir: VerseFlightDirection, from: string, nameEl: (el: HTMLElement | null) => void): Promise<void> {
-    return new Promise((resolve) => {
-      const sub = this.router.events.subscribe((e) => {
-        if (!(e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError || e instanceof NavigationSkipped)) return;
+    return new Promise((done) => {
+      let settled = false;
+      const sub = new Subscription();
+      const resolve = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(cap);
         sub.unsubscribe();
-        if (!(e instanceof NavigationEnd)) {
-          resolve();
-          return;
-        }
+        done();
+      };
+      // Outside the zone: a pending safety timer must not hold the app unstable for 3 s.
+      const cap = this.zone.runOutsideAngular(() => setTimeout(() => this.zone.run(resolve), LANDING_CAP_MS));
+      const land = () =>
         afterNextRender(
           {
             read: () => {
@@ -164,7 +178,16 @@ export class VerseFlight {
           },
           { injector: this.injector },
         );
-      });
+      // The 500 ms release in begin() can let the navigation finish before this callback runs.
+      if (!this.router.currentNavigation()) {
+        land();
+        return;
+      }
+      sub.add(this.router.events.subscribe((e) => {
+        if (!(e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError || e instanceof NavigationSkipped)) return;
+        if (e instanceof NavigationEnd) land();
+        else resolve();
+      }));
     });
   }
 
