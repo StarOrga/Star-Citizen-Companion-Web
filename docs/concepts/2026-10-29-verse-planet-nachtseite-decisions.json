@@ -1,0 +1,60 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": null,
+    "general": "Versuch das ganze mal so zu setzten als wäre es ein 4k Video das Life aus dem All gedreht wurde. aber natürlich nicht die erde ist",
+    "annotations": [
+      {
+        "id": "d1-s1-a1",
+        "answer": "Nicht heller. \nAber mehr Städte, Mehr Schienen. Kleinerer Zug. \n2-5 Züge gleichzeitig. langsamer Fahren und Zufällig von Start, End und Zeit aber nicht endlos lang dürfen die fahren also 5 Min für eine Fahrt hin und ist viel zu lang"
+      },
+      {
+        "id": "d1-s1-a2",
+        "answer": "Random wie oft der Zug kommt. Aber nicht nur rum fahren der muss ja auch anhalten  und auch mal hin und her Fahren. \nEventuell den Zug noch etwas kleiner machen \nMehr Städte, Somit auch mehr wege. \nStädte richtig erkennen so wie bei uns auf der Erde das man Theoretisch schon gebiete erkennt. \nAber nicht unsere Städte von der erde!"
+      },
+      {
+        "id": "d1-s1-a3",
+        "answer": "Dimm der Städte und Sterne ist super damit man die texte da auch richtig lesen kann. Den Dimm effekt bitte auch bei allen texten haben damit das überall gut gelesen werden kann!"
+      },
+      {
+        "id": "d2-s1-a1",
+        "answer": "unsere Farben nehmen die passen und nichts neues machen! eher \"hintergrund\" dimmen"
+      },
+      {
+        "id": "d2-s1-a2",
+        "answer": "Richtiges Zugnetz bauen sowie Städte. \nzüge  nicht nur in eine Richtung fahren lassen. \nversuche es Natürlich aussehen zu lassen und nicht so \"digital\""
+      },
+      {
+        "id": "d3-s1-a3",
+        "answer": "ab und zu mal Polar Lichter wären gar nicht schlecht."
+      }
+    ],
+    "screens": {
+      "d1-s2": "Dreht sich zu schnell. \nEs fühlt sich auch noch so an als würden die nur raus geschoben werden und nicht auf einem drehenden Planeten sind"
+    },
+    "outcome": "Merged into one direction (Orbit-Live): live WebGL prototype with real sphere rotation, sun-fixed terminator, procedural cities and rail network, 2-5 random trains with stops, occasional aurora, text scrims."
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": null,
+    "annotations": [
+      {
+        "id": "anno-r2-s1-a1",
+        "answer": "Ja im Norden weniger Städte dafür die Polarlichter \n\nDenn im Nordern ist es eher Kalt da will man icht immer voll Wohnen XD"
+      },
+      {
+        "id": "anno-r2-s3-a1",
+        "answer": "können gerne häufiger kommen die sehen geil aus!"
+      }
+    ],
+    "outcome": "Northern latitudes thinned out (from ~31 deg N), aurora about 3x as frequent (40 s - 2.5 min apart)."
+  },
+  {
+    "iteration": 3,
+    "action": "implement",
+    "annotations": [],
+    "outcome": "Implemented in commit 3076a8d: WebGL hub planet (briefing-planet component + planet/ modules), opaque CSS fallback, text scrims."
+  }
+]

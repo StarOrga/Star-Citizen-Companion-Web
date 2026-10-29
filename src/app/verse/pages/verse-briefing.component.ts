@@ -34,6 +34,7 @@ import { BriefingMoonComponent, MoonTiming, moonSchedule } from './briefing/brie
 import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
 import { BriefingHubComponent } from './briefing/briefing-hub.component';
+import { BriefingPlanetComponent } from './briefing/briefing-planet.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
 import {
   BriefingStatus,
@@ -171,7 +172,7 @@ export function fitTitle(h: HTMLElement): boolean {
     StageSearchDirective,
     StageHeroDirective,
     RouterLink, TranslatePipe, ScTooltipDirective, AppNoticeComponent, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
-    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent,
+    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingPlanetComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing/verse-briefing.component.html',

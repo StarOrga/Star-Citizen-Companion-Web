@@ -1,0 +1,447 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Versuch das ganze mal so zu setzten als wäre es ein 4k Video das Life aus dem All gedreht wurde. aber natürlich nicht die erde ist","attachments":[]},"designs":{},"screens":{"d1-s2":"Dreht sich zu schnell. \nEs fühlt sich auch noch so an als würden die nur raus geschoben werden und nicht auf einem drehenden Planeten sind"},"views":{}}</script>
+<style>
+/* Shared planet mock — namespaced mock-*, per-design rules d1-/d2-/d3-. */
+.mock-frame { --spin: 1800s; position: relative; width: 100%; max-width: 980px; margin: 0 auto; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 14px;
+  background: radial-gradient(ellipse 70% 50% at 50% 30%, #0a1a28 0%, #050c14 60%, #02060b 100%); font-family: system-ui, sans-serif; color: #e6f2f8; isolation: isolate; }
+.mock-frame.mock-fast { --spin: 45s; }
+.mock-stars { position: absolute; inset: 0;
+  background: radial-gradient(1px 1px at 12% 8%, #fff, transparent), radial-gradient(1px 1px at 33% 21%, #cfe9ff, transparent),
+    radial-gradient(1.4px 1.4px at 71% 12%, #fff, transparent), radial-gradient(1px 1px at 88% 30%, #d9f2ff, transparent),
+    radial-gradient(1px 1px at 52% 6%, #fff, transparent), radial-gradient(1.2px 1.2px at 6% 33%, #fff, transparent),
+    radial-gradient(1px 1px at 92% 4%, #fff, transparent), radial-gradient(1px 1px at 24% 30%, #bfe0ff, transparent),
+    radial-gradient(1px 1px at 63% 27%, #fff, transparent), radial-gradient(1px 1px at 44% 16%, #fff, transparent);
+  opacity: 0.8; }
+.mock-sun { position: absolute; right: 4%; top: 3%; width: 8%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, #fff8e8 0 18%, rgba(255, 220, 160, 0.5) 30%, rgba(255, 200, 120, 0.08) 60%, transparent 72%); }
+/* The disk: the hub planet (radius 80 % of the width, rim at 37.5 % of this frame). Opaque now. */
+.mock-disk { position: absolute; left: -30%; top: 37.5%; width: 160%; aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+  box-shadow: 0 -4px 24px rgba(82, 193, 230, 0.45); }
+.mock-body { position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 50% 8%, #0b2333 0, #071824 10%, #04101a 22%, #030b12 40%, #02070c 70%); }
+/* Layer = the frame's visible part of the disk, in frame coordinates. */
+.mock-layer { position: absolute; left: 18.75%; top: 0; width: 62.5%; height: 39.0625%; overflow: hidden; }
+.mock-spin { position: absolute; inset: 0 auto 0 0; width: 200%; display: flex; animation: mock-spin var(--spin) linear infinite; will-change: transform; }
+.mock-tile { position: relative; flex: 0 0 50%; height: 100%; }
+@keyframes mock-spin { to { transform: translateX(-50%); } }
+.mock-land { position: absolute; left: var(--x); top: var(--y); width: var(--w); height: var(--h); border-radius: 46% 54% 40% 60% / 55% 45% 55% 45%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(60, 110, 120, 0.55), rgba(40, 80, 90, 0.25) 60%, transparent 75%); }
+/* Terrain only shows where the sun lights it (day side, top right). */
+.mock-terrain { mask-image: linear-gradient(285deg, #000 0 28%, rgba(0, 0, 0, 0.25) 40%, transparent 50%); }
+/* Day side: fixed to the sun, the surface turns underneath it. */
+.mock-day { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 34% 14% at 72% 0%, rgba(140, 210, 245, 0.42), rgba(60, 140, 190, 0.2) 45%, transparent 80%); }
+/* Night lights: only left of the terminator, and dimmer under the hub columns. */
+.mock-lights { -webkit-mask-image: linear-gradient(105deg, #000 0 50%, rgba(0, 0, 0, 0.35) 60%, transparent 66%), linear-gradient(180deg, #000 0 32%, rgba(0, 0, 0, var(--under, 0.45)) 52%);
+  mask-image: linear-gradient(105deg, #000 0 50%, rgba(0, 0, 0, 0.35) 60%, transparent 66%), linear-gradient(180deg, #000 0 32%, rgba(0, 0, 0, var(--under, 0.45)) 52%);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+.mock-rim { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; box-shadow: inset 0 7px 22px rgba(150, 225, 255, 0.3); }
+.mock-rails { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.mock-rails path { fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* A train is a dash running along its rail: glow tail + bright head at the front. */
+.mock-tail { stroke-dasharray: 70 3000; animation: mock-tail var(--dur, 16s) linear infinite var(--delay, 0s); }
+.mock-head { stroke-dasharray: 5 3000; animation: mock-head var(--dur, 16s) linear infinite var(--delay, 0s); }
+@keyframes mock-tail { 0% { stroke-dashoffset: 70; } 40%, 100% { stroke-dashoffset: -1000; } }
+@keyframes mock-head { 0% { stroke-dashoffset: 5; } 40%, 100% { stroke-dashoffset: -1065; } }
+/* Cities: a soft glow plus a few points, no grid. */
+.mock-tile > i[style*="--y"] { position: absolute; left: var(--x); top: var(--y); translate: -50% -50%; border-radius: 50%; }
+
+/* Page content on top (unchanged from the hub). */
+.mock-hero { position: absolute; left: 0; right: 0; top: 13%; text-align: center; z-index: 3; }
+.mock-kick { margin: 0; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #52c1e6; }
+.mock-title { margin: 8px 0 0; font-size: clamp(20px, 3.6cqw, 34px); font-weight: 500; letter-spacing: 0.02em; }
+.mock-find { display: inline-block; margin: 18px 0 0; padding: 8px 18px; min-width: 220px; border: 1px solid rgba(82, 193, 230, 0.3); border-radius: 999px;
+  font-size: 13px; color: #8fb3c4; background: rgba(6, 14, 22, 0.4); text-align: left; }
+.mock-cards { position: absolute; left: 6%; right: 6%; top: 66%; bottom: 6%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3%; z-index: 3; }
+.mock-card { padding: 14px; border-radius: 10px; border: 1px solid rgba(82, 193, 230, 0.14); background: rgba(5, 12, 19, 0.42); backdrop-filter: blur(2px); }
+.mock-card b { display: block; width: 55%; height: 10px; border-radius: 4px; background: rgba(230, 242, 248, 0.75); margin-bottom: 14px; }
+.mock-card i { display: block; height: 7px; border-radius: 4px; background: rgba(230, 242, 248, 0.22); margin-top: 9px; }
+.mock-card i:nth-child(3) { width: 82%; } .mock-card i:nth-child(4) { width: 64%; }
+.mock-chip { position: absolute; left: 14px; top: 14px; z-index: 5; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(82, 193, 230, 0.35);
+  background: rgba(4, 12, 20, 0.7); color: #cfe7f2; font: 500 12px/1.2 system-ui, sans-serif; cursor: pointer; }
+.mock-chip:hover { border-color: #52c1e6; color: #fff; }
+
+/* ── D1 Glimmen: sparse warm amber, one rail, strongest dimming ── */
+.mock-frame.d1 .mock-lights { --under: 0.32; }
+.d1-c { background: radial-gradient(circle, rgba(255, 214, 160, 0.9) 0 6%, rgba(255, 184, 107, 0.35) 18%, rgba(255, 170, 90, 0.1) 45%, transparent 70%); }
+.d1-c-s { width: 2.2%; aspect-ratio: 2 / 1; }
+.d1-c-m { width: 3.4%; aspect-ratio: 2 / 1; }
+.d1-c-l { width: 5%; aspect-ratio: 2.2 / 1; background: radial-gradient(circle at 46% 50%, rgba(255, 236, 200, 0.95) 0 3%, transparent 5%), radial-gradient(circle at 60% 40%, rgba(255, 214, 160, 0.8) 0 2%, transparent 4%), radial-gradient(circle, rgba(255, 184, 107, 0.38) 0 20%, rgba(255, 170, 90, 0.1) 48%, transparent 70%); }
+.d1-rail { stroke: rgba(255, 190, 120, 0.07); stroke-width: 1; }
+.d1-train { --dur: 18s; }
+.mock-tail.d1-train { stroke: rgba(255, 210, 160, 0.28); stroke-width: 3; }
+.mock-head.d1-train { stroke: rgba(255, 244, 220, 0.85); stroke-width: 1.6; }
+
+/* ── D2 Neon-Metropolen: dense, arcology rings, cyan + amber, three trains ── */
+.mock-frame.d2 .mock-lights { --under: 0.45; }
+.d2-c { animation: d2-twinkle 6s ease-in-out infinite var(--tw, 0s); }
+.d2-amber { --core: 255, 224, 176; --glow: 255, 176, 96; }
+.d2-cyan { --core: 220, 248, 255; --glow: 90, 205, 245; }
+.d2-c-s { width: 2%; aspect-ratio: 2 / 1; }
+.d2-c-m { width: 3.6%; aspect-ratio: 2 / 1; }
+.d2-c-mega { width: 6.4%; aspect-ratio: 2.4 / 1; }
+.d2-c { background: radial-gradient(circle, rgba(var(--core), 0.95) 0 6%, rgba(var(--glow), 0.36) 18%, rgba(var(--glow), 0.08) 48%, transparent 70%); }
+.d2-c.d2-c-mega { background: radial-gradient(ellipse 30% 32% at 50% 50%, transparent 62%, rgba(var(--core), 0.55) 70%, transparent 80%),
+  radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 3%, rgba(var(--core), 0.6) 7%, rgba(var(--glow), 0.25) 22%, rgba(var(--glow), 0.06) 50%, transparent 70%); }
+@keyframes d2-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+.d2-rail { stroke: rgba(120, 220, 255, 0.11); stroke-width: 1; }
+.mock-tail.d2-train { stroke: rgba(110, 220, 255, 0.3); stroke-width: 3; }
+.mock-head.d2-train { stroke: rgba(230, 250, 255, 0.95); stroke-width: 1.6; }
+.d2-t1 { --dur: 14s; --delay: 0s; } .d2-t2 { --dur: 19s; --delay: -7s; } .d2-t3 { --dur: 11s; --delay: -3s; }
+
+/* ── D3 Lichtband: one glowing hyperloop band, the train lights cities as it passes ── */
+.mock-frame.d3 .mock-lights { --under: 0.4; }
+.d3-band { stroke: rgba(110, 220, 255, 0.07); stroke-width: 6; }
+.d3-band-core { stroke: rgba(170, 235, 255, 0.16); stroke-width: 1; }
+.d3-train { --dur: 16s; }
+.mock-tail.d3-train { stroke: rgba(150, 230, 255, 0.4); stroke-width: 4; stroke-dasharray: 110 3000; animation-name: d3-tail; }
+.mock-head.d3-train { stroke: #fff; stroke-width: 2; }
+@keyframes d3-tail { 0% { stroke-dashoffset: 110; } 40%, 100% { stroke-dashoffset: -1000; } }
+.d3-c { background: radial-gradient(circle, rgba(255, 230, 190, 0.92) 0 6%, rgba(255, 184, 107, 0.34) 18%, rgba(255, 170, 90, 0.08) 46%, transparent 70%); }
+.d3-c-s { width: 1.8%; aspect-ratio: 2 / 1; opacity: 0.7; }
+.d3-c-m { width: 3.2%; aspect-ratio: 2 / 1; }
+.d3-c-l { width: 4.6%; aspect-ratio: 2.2 / 1; }
+.d3-flare { animation: d3-flare 16s ease-out infinite var(--fd, 0s); }
+@keyframes d3-flare { 0% { opacity: 0.6; scale: 1; filter: none; } 2% { opacity: 1; scale: 1.6; filter: brightness(1.6) hue-rotate(-20deg); } 14%, 100% { opacity: 0.6; scale: 1; filter: none; } }
+.d3-aurora { position: absolute; left: 18.75%; width: 40%; top: 0.2%; height: 3%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 60% 40% at 50% 30%, rgba(95, 211, 160, 0.22), rgba(82, 193, 230, 0.08) 60%, transparent 80%);
+  animation: d3-aurora 22s ease-in-out infinite alternate; }
+@keyframes d3-aurora { from { opacity: 0.55; translate: 0 0; } to { opacity: 1; translate: 6% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mock-spin, .d2-c, .d3-flare, .d3-aurora { animation: none; }
+  .mock-tail, .mock-head { display: none; }
+}
+</style>
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 1 · Nachtseite des Hub-Planeten</h2>
+    <p>Es geht um den großen Planeten der Verse-Startseite (<code>.brief-world</code> in <code>verse-briefing-planet.scss</code>). Heute trägt sein Körper nur den beleuchteten Rand und läuft nach ~28 % ins Transparente aus, deshalb sieht man beim Scrollen die Sterne durch ihn hindurch.</p>
+    <p><strong>Das ist in allen drei Varianten gleich:</strong> Der Planetenkörper ist durchgehend deckend. Die Sonne steht wie bisher oben rechts, Tag- und Nachtseite bleiben fest zu ihr, und die Oberfläche dreht sich darunter weg: eine volle Umdrehung dauert <strong>30 Minuten</strong>. Stadtlichter und Züge erscheinen nur auf der Nachtseite, die Tagseite zeigt beleuchtetes Gelände. Unter den Hub-Spalten werden die Lichter gedimmt. Mit <em>prefers-reduced-motion</em> steht alles still und es fahren keine Züge.</p>
+    <p>Jede Variante hat zwei Screens: <strong>Echtzeit</strong> (so läuft es später, die Drehung siehst du kaum) und <strong>Zeitraffer</strong> (45 s pro Umdrehung, damit du die Bewegung und den Tag-Nacht-Wechsel beurteilen kannst). Umschalten geht über den Chip oben links im Mock.</p>
+  </header>
+
+  <section data-design="glimmen" data-nav-label="Glimmen" data-design-active="true"
+           data-design-motto="Kaum da, aber lebendig" data-design-traits="Wenige warme Städte, nur Amber|Eine Trasse, ein Zug alle 18 s|Stärkste Abdunklung unter den Spalten" data-design-icon="moon" data-design-color="#e0a060" data-design-overlay="tl">
+    <section id="d1-s1" data-nav-label="Echtzeit" data-screen data-screen-active="true">
+      <div class="mock-frame d1">
+      <div class="mock-stars"></div>
+      <div class="mock-sun"></div>
+      <div class="mock-disk">
+        <div class="mock-body"></div>
+        <div class="mock-layer mock-terrain"><div class="mock-spin"><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div></div></div>
+        <div class="mock-day"></div>
+        <div class="mock-layer mock-lights"><div class="mock-spin"><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d1-rail" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-tail d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-head d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+    </svg><i class="d1-c d1-c-m" style="--x:12.00%;--y:57.60%"></i><i class="d1-c d1-c-s" style="--x:18.00%;--y:67.20%"></i><i class="d1-c d1-c-l" style="--x:30.00%;--y:40.00%"></i><i class="d1-c d1-c-s" style="--x:34.00%;--y:75.20%"></i><i class="d1-c d1-c-m" style="--x:47.00%;--y:22.40%"></i><i class="d1-c d1-c-s" style="--x:56.00%;--y:60.80%"></i><i class="d1-c d1-c-l" style="--x:64.00%;--y:36.80%"></i><i class="d1-c d1-c-m" style="--x:76.00%;--y:72.00%"></i><i class="d1-c d1-c-s" style="--x:88.00%;--y:48.00%"></i></div><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d1-rail" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-tail d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-head d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+    </svg><i class="d1-c d1-c-m" style="--x:12.00%;--y:57.60%"></i><i class="d1-c d1-c-s" style="--x:18.00%;--y:67.20%"></i><i class="d1-c d1-c-l" style="--x:30.00%;--y:40.00%"></i><i class="d1-c d1-c-s" style="--x:34.00%;--y:75.20%"></i><i class="d1-c d1-c-m" style="--x:47.00%;--y:22.40%"></i><i class="d1-c d1-c-s" style="--x:56.00%;--y:60.80%"></i><i class="d1-c d1-c-l" style="--x:64.00%;--y:36.80%"></i><i class="d1-c d1-c-m" style="--x:76.00%;--y:72.00%"></i><i class="d1-c d1-c-s" style="--x:88.00%;--y:48.00%"></i></div></div></div>
+        <div class="mock-rim"></div>
+        
+      </div>
+      <div class="mock-hero">
+        <p class="mock-kick">Verse · Briefing</p>
+        <p class="mock-title">Alpha 4.4 — Pyro ist live</p>
+        <p class="mock-find">Suchen …</p>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+      </div>
+      <button class="mock-chip" type="button" data-screen-link="d1-s2">Echtzeit · 30 min / Umdrehung ▸ Zeitraffer</button>
+    </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d1-s1-a1" data-anno-side="right" data-anno-target=".d1-c-l" style="--anno-x:30%;--anno-y:60%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s1-a1" data-anno-bubble="d1-s1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a1">
+            <span class="anno-bubble-question">Reicht diese Lichtstärke der Städte, oder dürfen sie eine Spur heller sein?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s1-a1" data-annotation="d1-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Nicht heller. 
+Aber mehr Städte, Mehr Schienen. Kleinerer Zug. 
+2-5 Züge gleichzeitig. langsamer Fahren und Zufällig von Start, End und Zeit aber nicht endlos lang dürfen die fahren also 5 Min für eine Fahrt hin und ist viel zu lang</textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d1-s1-a2" data-anno-side="left" data-anno-target=".d1-rail" style="--anno-x:50%;--anno-y:68%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s1-a2" data-anno-bubble="d1-s1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a2">
+            <span class="anno-bubble-question">Ein Zug alle ~18 s auf einer einzigen Trasse — zu selten, passend oder schon zu viel?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s1-a2" data-annotation="d1-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Random wie oft der Zug kommt. Aber nicht nur rum fahren der muss ja auch anhalten  und auch mal hin und her Fahren. 
+Eventuell den Zug noch etwas kleiner machen 
+Mehr Städte, Somit auch mehr wege. 
+Städte richtig erkennen so wie bei uns auf der Erde das man Theoretisch schon gebiete erkennt. 
+Aber nicht unsere Städte von der erde!
+</textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s1-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d1-s1-a3" data-anno-side="left" data-anno-target=".mock-cards" style="--anno-x:70%;--anno-y:76%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s1-a3" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s1-a3" data-anno-bubble="d1-s1-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s1-a3" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a3">
+            <span class="anno-bubble-question">Unter den Hub-Spalten dimmen die Lichter auf ~40 % — genug Ruhe zum Lesen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s1-a3" data-annotation="d1-s1-a3" data-attachable placeholder="{{anno.answer_placeholder}}">Dimm der Städte und Sterne ist super damit man die texte da auch richtig lesen kann. Den Dimm effekt bitte auch bei allen texten haben damit das überall gut gelesen werden kann!</textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s1-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="d1-s2" data-nav-label="Zeitraffer" data-screen hidden>
+      <div class="mock-frame d1 mock-fast">
+      <div class="mock-stars"></div>
+      <div class="mock-sun"></div>
+      <div class="mock-disk">
+        <div class="mock-body"></div>
+        <div class="mock-layer mock-terrain"><div class="mock-spin"><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div></div></div>
+        <div class="mock-day"></div>
+        <div class="mock-layer mock-lights"><div class="mock-spin"><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d1-rail" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-tail d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-head d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+    </svg><i class="d1-c d1-c-m" style="--x:12.00%;--y:57.60%"></i><i class="d1-c d1-c-s" style="--x:18.00%;--y:67.20%"></i><i class="d1-c d1-c-l" style="--x:30.00%;--y:40.00%"></i><i class="d1-c d1-c-s" style="--x:34.00%;--y:75.20%"></i><i class="d1-c d1-c-m" style="--x:47.00%;--y:22.40%"></i><i class="d1-c d1-c-s" style="--x:56.00%;--y:60.80%"></i><i class="d1-c d1-c-l" style="--x:64.00%;--y:36.80%"></i><i class="d1-c d1-c-m" style="--x:76.00%;--y:72.00%"></i><i class="d1-c d1-c-s" style="--x:88.00%;--y:48.00%"></i></div><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d1-rail" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-tail d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+      <path class="mock-head d1-train" d="M0 420 C150 420 220 260 300 250 S520 140 640 230 S860 300 1000 420" pathLength="1000"/>
+    </svg><i class="d1-c d1-c-m" style="--x:12.00%;--y:57.60%"></i><i class="d1-c d1-c-s" style="--x:18.00%;--y:67.20%"></i><i class="d1-c d1-c-l" style="--x:30.00%;--y:40.00%"></i><i class="d1-c d1-c-s" style="--x:34.00%;--y:75.20%"></i><i class="d1-c d1-c-m" style="--x:47.00%;--y:22.40%"></i><i class="d1-c d1-c-s" style="--x:56.00%;--y:60.80%"></i><i class="d1-c d1-c-l" style="--x:64.00%;--y:36.80%"></i><i class="d1-c d1-c-m" style="--x:76.00%;--y:72.00%"></i><i class="d1-c d1-c-s" style="--x:88.00%;--y:48.00%"></i></div></div></div>
+        <div class="mock-rim"></div>
+        
+      </div>
+      <div class="mock-hero">
+        <p class="mock-kick">Verse · Briefing</p>
+        <p class="mock-title">Alpha 4.4 — Pyro ist live</p>
+        <p class="mock-find">Suchen …</p>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+      </div>
+      <button class="mock-chip" type="button" data-screen-link="d1-s1">Zeitraffer · 45 s / Umdrehung ▸ Echtzeit</button>
+    </div>
+    </section>
+  </section>
+
+  <section data-design="metropolen" data-nav-label="Neon-Metropolen" hidden
+           data-design-motto="Eine Welt voller Arkologien" data-design-traits="Dichtes Städtenetz mit Arkologie-Ringen|Cyan-weiße Kerne neben Amber|Drei Trassen, drei Züge versetzt" data-design-icon="layers" data-design-color="#a48bff" data-design-overlay="tl">
+    <section id="d2-s1" data-nav-label="Echtzeit" data-screen data-screen-active="true">
+      <div class="mock-frame d2">
+      <div class="mock-stars"></div>
+      <div class="mock-sun"></div>
+      <div class="mock-disk">
+        <div class="mock-body"></div>
+        <div class="mock-layer mock-terrain"><div class="mock-spin"><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div></div></div>
+        <div class="mock-day"></div>
+        <div class="mock-layer mock-lights"><div class="mock-spin"><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true"><path class="d2-rail" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-tail d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-head d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="d2-rail" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-tail d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-head d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="d2-rail" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-tail d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-head d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/></svg><i class="d2-c d2-c-mega d2-amber" style="--x:9.00%;--y:48.00%;--tw:0s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:15.00%;--y:75.20%;--tw:0.7s"></i><i class="d2-c d2-c-m d2-amber" style="--x:23.00%;--y:60.80%;--tw:1.4s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:31.00%;--y:33.60%;--tw:2.0999999999999996s"></i><i class="d2-c d2-c-m d2-amber" style="--x:36.00%;--y:83.20%;--tw:2.8s"></i><i class="d2-c d2-c-mega d2-cyan" style="--x:43.00%;--y:52.80%;--tw:3.5s"></i><i class="d2-c d2-c-s d2-amber" style="--x:52.00%;--y:24.00%;--tw:4.199999999999999s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:56.00%;--y:72.00%;--tw:4.8999999999999995s"></i><i class="d2-c d2-c-m d2-amber" style="--x:64.00%;--y:44.80%;--tw:0.5999999999999996s"></i><i class="d2-c d2-c-s d2-amber" style="--x:70.00%;--y:86.40%;--tw:1.2999999999999998s"></i><i class="d2-c d2-c-mega d2-amber" style="--x:76.00%;--y:60.80%;--tw:2s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:83.00%;--y:32.00%;--tw:2.6999999999999993s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:90.00%;--y:75.20%;--tw:3.3999999999999986s"></i><i class="d2-c d2-c-s d2-amber" style="--x:96.00%;--y:52.80%;--tw:4.1s"></i><i class="d2-c d2-c-s d2-amber" style="--x:48.00%;--y:89.60%;--tw:4.799999999999999s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:26.00%;--y:89.60%;--tw:0.5s"></i></div><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true"><path class="d2-rail" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-tail d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-head d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="d2-rail" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-tail d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-head d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="d2-rail" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-tail d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-head d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/></svg><i class="d2-c d2-c-mega d2-amber" style="--x:9.00%;--y:48.00%;--tw:0s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:15.00%;--y:75.20%;--tw:0.7s"></i><i class="d2-c d2-c-m d2-amber" style="--x:23.00%;--y:60.80%;--tw:1.4s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:31.00%;--y:33.60%;--tw:2.0999999999999996s"></i><i class="d2-c d2-c-m d2-amber" style="--x:36.00%;--y:83.20%;--tw:2.8s"></i><i class="d2-c d2-c-mega d2-cyan" style="--x:43.00%;--y:52.80%;--tw:3.5s"></i><i class="d2-c d2-c-s d2-amber" style="--x:52.00%;--y:24.00%;--tw:4.199999999999999s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:56.00%;--y:72.00%;--tw:4.8999999999999995s"></i><i class="d2-c d2-c-m d2-amber" style="--x:64.00%;--y:44.80%;--tw:0.5999999999999996s"></i><i class="d2-c d2-c-s d2-amber" style="--x:70.00%;--y:86.40%;--tw:1.2999999999999998s"></i><i class="d2-c d2-c-mega d2-amber" style="--x:76.00%;--y:60.80%;--tw:2s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:83.00%;--y:32.00%;--tw:2.6999999999999993s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:90.00%;--y:75.20%;--tw:3.3999999999999986s"></i><i class="d2-c d2-c-s d2-amber" style="--x:96.00%;--y:52.80%;--tw:4.1s"></i><i class="d2-c d2-c-s d2-amber" style="--x:48.00%;--y:89.60%;--tw:4.799999999999999s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:26.00%;--y:89.60%;--tw:0.5s"></i></div></div></div>
+        <div class="mock-rim"></div>
+        
+      </div>
+      <div class="mock-hero">
+        <p class="mock-kick">Verse · Briefing</p>
+        <p class="mock-title">Alpha 4.4 — Pyro ist live</p>
+        <p class="mock-find">Suchen …</p>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+      </div>
+      <button class="mock-chip" type="button" data-screen-link="d2-s2">Echtzeit · 30 min / Umdrehung ▸ Zeitraffer</button>
+    </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d2-s1-a1" data-anno-side="right" data-anno-target=".d2-c-mega" style="--anno-x:30%;--anno-y:60%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s1-a1" data-anno-bubble="d2-s1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a1">
+            <span class="anno-bubble-question">Cyan-weiße Kerne neben warmem Amber — wirkt das Sci-Fi genug, oder zu bunt?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s1-a1" data-annotation="d2-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}">unsere Farben nehmen die passen und nichts neues machen! eher "hintergrund" dimmen</textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d2-s1-a2" data-anno-side="left" data-anno-target=".d2-rail" style="--anno-x:50%;--anno-y:68%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s1-a2" data-anno-bubble="d2-s1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a2">
+            <span class="anno-bubble-question">Drei sichtbare Trassen mit drei Zügen — lebendig oder schon unruhig hinter dem Text?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s1-a2" data-annotation="d2-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Richtiges Zugnetz bauen sowie Städte. 
+züge  nicht nur in eine Richtung fahren lassen. 
+versuche es Natürlich aussehen zu lassen und nicht so "digital"</textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s1-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d2-s1-a3" data-anno-side="left" data-anno-target=".mock-day" style="--anno-x:70%;--anno-y:76%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s1-a3" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s1-a3" data-anno-bubble="d2-s1-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s1-a3" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a3">
+            <span class="anno-bubble-question">Die Terminator-Kante (Sonne oben rechts) ist weich über ~15 % — härter oder weicher?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s1-a3" data-annotation="d2-s1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s1-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="d2-s2" data-nav-label="Zeitraffer" data-screen hidden>
+      <div class="mock-frame d2 mock-fast">
+      <div class="mock-stars"></div>
+      <div class="mock-sun"></div>
+      <div class="mock-disk">
+        <div class="mock-body"></div>
+        <div class="mock-layer mock-terrain"><div class="mock-spin"><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div></div></div>
+        <div class="mock-day"></div>
+        <div class="mock-layer mock-lights"><div class="mock-spin"><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true"><path class="d2-rail" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-tail d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-head d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="d2-rail" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-tail d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-head d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="d2-rail" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-tail d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-head d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/></svg><i class="d2-c d2-c-mega d2-amber" style="--x:9.00%;--y:48.00%;--tw:0s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:15.00%;--y:75.20%;--tw:0.7s"></i><i class="d2-c d2-c-m d2-amber" style="--x:23.00%;--y:60.80%;--tw:1.4s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:31.00%;--y:33.60%;--tw:2.0999999999999996s"></i><i class="d2-c d2-c-m d2-amber" style="--x:36.00%;--y:83.20%;--tw:2.8s"></i><i class="d2-c d2-c-mega d2-cyan" style="--x:43.00%;--y:52.80%;--tw:3.5s"></i><i class="d2-c d2-c-s d2-amber" style="--x:52.00%;--y:24.00%;--tw:4.199999999999999s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:56.00%;--y:72.00%;--tw:4.8999999999999995s"></i><i class="d2-c d2-c-m d2-amber" style="--x:64.00%;--y:44.80%;--tw:0.5999999999999996s"></i><i class="d2-c d2-c-s d2-amber" style="--x:70.00%;--y:86.40%;--tw:1.2999999999999998s"></i><i class="d2-c d2-c-mega d2-amber" style="--x:76.00%;--y:60.80%;--tw:2s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:83.00%;--y:32.00%;--tw:2.6999999999999993s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:90.00%;--y:75.20%;--tw:3.3999999999999986s"></i><i class="d2-c d2-c-s d2-amber" style="--x:96.00%;--y:52.80%;--tw:4.1s"></i><i class="d2-c d2-c-s d2-amber" style="--x:48.00%;--y:89.60%;--tw:4.799999999999999s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:26.00%;--y:89.60%;--tw:0.5s"></i></div><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true"><path class="d2-rail" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-tail d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="mock-head d2-train d2-t1" d="M0 300 C150 260 300 200 430 330 S700 420 760 380 S900 280 1000 300" pathLength="1000"/><path class="d2-rail" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-tail d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="mock-head d2-train d2-t2" d="M0 470 C120 470 250 560 360 520 S520 430 560 450 S760 560 1000 470" pathLength="1000"/><path class="d2-rail" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-tail d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/><path class="mock-head d2-train d2-t3" d="M310 210 C380 180 470 140 520 150 S700 220 830 200" pathLength="1000"/></svg><i class="d2-c d2-c-mega d2-amber" style="--x:9.00%;--y:48.00%;--tw:0s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:15.00%;--y:75.20%;--tw:0.7s"></i><i class="d2-c d2-c-m d2-amber" style="--x:23.00%;--y:60.80%;--tw:1.4s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:31.00%;--y:33.60%;--tw:2.0999999999999996s"></i><i class="d2-c d2-c-m d2-amber" style="--x:36.00%;--y:83.20%;--tw:2.8s"></i><i class="d2-c d2-c-mega d2-cyan" style="--x:43.00%;--y:52.80%;--tw:3.5s"></i><i class="d2-c d2-c-s d2-amber" style="--x:52.00%;--y:24.00%;--tw:4.199999999999999s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:56.00%;--y:72.00%;--tw:4.8999999999999995s"></i><i class="d2-c d2-c-m d2-amber" style="--x:64.00%;--y:44.80%;--tw:0.5999999999999996s"></i><i class="d2-c d2-c-s d2-amber" style="--x:70.00%;--y:86.40%;--tw:1.2999999999999998s"></i><i class="d2-c d2-c-mega d2-amber" style="--x:76.00%;--y:60.80%;--tw:2s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:83.00%;--y:32.00%;--tw:2.6999999999999993s"></i><i class="d2-c d2-c-m d2-cyan" style="--x:90.00%;--y:75.20%;--tw:3.3999999999999986s"></i><i class="d2-c d2-c-s d2-amber" style="--x:96.00%;--y:52.80%;--tw:4.1s"></i><i class="d2-c d2-c-s d2-amber" style="--x:48.00%;--y:89.60%;--tw:4.799999999999999s"></i><i class="d2-c d2-c-s d2-cyan" style="--x:26.00%;--y:89.60%;--tw:0.5s"></i></div></div></div>
+        <div class="mock-rim"></div>
+        
+      </div>
+      <div class="mock-hero">
+        <p class="mock-kick">Verse · Briefing</p>
+        <p class="mock-title">Alpha 4.4 — Pyro ist live</p>
+        <p class="mock-find">Suchen …</p>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+      </div>
+      <button class="mock-chip" type="button" data-screen-link="d2-s1">Zeitraffer · 45 s / Umdrehung ▸ Echtzeit</button>
+    </div>
+    </section>
+  </section>
+
+  <section data-design="lichtband" data-nav-label="Lichtband" hidden
+           data-design-motto="Der Zug zündet die Städte" data-design-traits="Ein glimmendes Hyperloop-Band als Hauptlinie|Städte blitzen beim Vorbeifahren auf|Polarlicht-Schimmer am Nachtrand" data-design-icon="bolt" data-design-color="#5fd3a0" data-design-overlay="tl">
+    <section id="d3-s1" data-nav-label="Echtzeit" data-screen data-screen-active="true">
+      <div class="mock-frame d3">
+      <div class="mock-stars"></div>
+      <div class="mock-sun"></div>
+      <div class="mock-disk">
+        <div class="mock-body"></div>
+        <div class="mock-layer mock-terrain"><div class="mock-spin"><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div></div></div>
+        <div class="mock-day"></div>
+        <div class="mock-layer mock-lights"><div class="mock-spin"><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d3-band" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="d3-band-core" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-tail d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-head d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+    </svg><i class="d3-c d3-c-m d3-flare" style="--x:6.53%;--y:51.86%;--fd:0.38s"></i><i class="d3-c d3-c-l d3-flare" style="--x:19.57%;--y:44.52%;--fd:1.22s"></i><i class="d3-c d3-c-m d3-flare" style="--x:30.66%;--y:35.30%;--fd:1.98s"></i><i class="d3-c d3-c-m d3-flare" style="--x:43.74%;--y:28.06%;--fd:2.82s"></i><i class="d3-c d3-c-l d3-flare" style="--x:56.53%;--y:28.14%;--fd:3.58s"></i><i class="d3-c d3-c-m d3-flare" style="--x:69.57%;--y:35.48%;--fd:4.42s"></i><i class="d3-c d3-c-m d3-flare" style="--x:80.66%;--y:44.70%;--fd:5.18s"></i><i class="d3-c d3-c-l d3-flare" style="--x:93.74%;--y:51.94%;--fd:6.02s"></i><i class="d3-c d3-c-s" style="--x:20.00%;--y:76.80%"></i><i class="d3-c d3-c-s" style="--x:42.00%;--y:67.20%"></i><i class="d3-c d3-c-s" style="--x:64.00%;--y:80.00%"></i><i class="d3-c d3-c-s" style="--x:86.00%;--y:83.20%"></i><i class="d3-c d3-c-s" style="--x:56.00%;--y:48.00%"></i></div><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d3-band" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="d3-band-core" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-tail d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-head d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+    </svg><i class="d3-c d3-c-m d3-flare" style="--x:6.53%;--y:51.86%;--fd:0.38s"></i><i class="d3-c d3-c-l d3-flare" style="--x:19.57%;--y:44.52%;--fd:1.22s"></i><i class="d3-c d3-c-m d3-flare" style="--x:30.66%;--y:35.30%;--fd:1.98s"></i><i class="d3-c d3-c-m d3-flare" style="--x:43.74%;--y:28.06%;--fd:2.82s"></i><i class="d3-c d3-c-l d3-flare" style="--x:56.53%;--y:28.14%;--fd:3.58s"></i><i class="d3-c d3-c-m d3-flare" style="--x:69.57%;--y:35.48%;--fd:4.42s"></i><i class="d3-c d3-c-m d3-flare" style="--x:80.66%;--y:44.70%;--fd:5.18s"></i><i class="d3-c d3-c-l d3-flare" style="--x:93.74%;--y:51.94%;--fd:6.02s"></i><i class="d3-c d3-c-s" style="--x:20.00%;--y:76.80%"></i><i class="d3-c d3-c-s" style="--x:42.00%;--y:67.20%"></i><i class="d3-c d3-c-s" style="--x:64.00%;--y:80.00%"></i><i class="d3-c d3-c-s" style="--x:86.00%;--y:83.20%"></i><i class="d3-c d3-c-s" style="--x:56.00%;--y:48.00%"></i></div></div></div>
+        <div class="mock-rim"></div>
+        <div class="d3-aurora"></div>
+      </div>
+      <div class="mock-hero">
+        <p class="mock-kick">Verse · Briefing</p>
+        <p class="mock-title">Alpha 4.4 — Pyro ist live</p>
+        <p class="mock-find">Suchen …</p>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+      </div>
+      <button class="mock-chip" type="button" data-screen-link="d3-s2">Echtzeit · 30 min / Umdrehung ▸ Zeitraffer</button>
+    </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d3-s1-a1" data-anno-side="right" data-anno-target=".d3-train" style="--anno-x:30%;--anno-y:60%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s1-a1" data-anno-bubble="d3-s1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a1">
+            <span class="anno-bubble-question">Die Städte leuchten kurz auf, wenn der Zug vorbeirauscht — gefällt die Lichtwelle?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s1-a1" data-annotation="d3-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d3-s1-a2" data-anno-side="left" data-anno-target=".d3-band" style="--anno-x:50%;--anno-y:68%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s1-a2" data-anno-bubble="d3-s1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a2">
+            <span class="anno-bubble-question">Das Hyperloop-Band glimmt dauerhaft — sichtbar lassen oder nur beim Zug aufleuchten?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s1-a2" data-annotation="d3-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s1-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d3-s1-a3" data-anno-side="left" data-anno-target=".d3-aurora" style="--anno-x:70%;--anno-y:76%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s1-a3" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s1-a3" data-anno-bubble="d3-s1-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s1-a3" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a3">
+            <span class="anno-bubble-question">Polarlicht-Schimmer am Rand der Nachtseite — behalten oder streichen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s1-a3" data-annotation="d3-s1-a3" data-attachable placeholder="{{anno.answer_placeholder}}">ab und zu mal Polar Lichter wären gar nicht schlecht. 
+</textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s1-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="d3-s2" data-nav-label="Zeitraffer" data-screen hidden>
+      <div class="mock-frame d3 mock-fast">
+      <div class="mock-stars"></div>
+      <div class="mock-sun"></div>
+      <div class="mock-disk">
+        <div class="mock-body"></div>
+        <div class="mock-layer mock-terrain"><div class="mock-spin"><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div><div class="mock-tile"><i class="mock-land" style="--x:8%;--y:30%;--w:26%;--h:34%"></i><i class="mock-land" style="--x:44%;--y:12%;--w:22%;--h:28%"></i><i class="mock-land" style="--x:62%;--y:52%;--w:30%;--h:30%"></i><i class="mock-land" style="--x:30%;--y:66%;--w:18%;--h:22%"></i></div></div></div>
+        <div class="mock-day"></div>
+        <div class="mock-layer mock-lights"><div class="mock-spin"><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d3-band" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="d3-band-core" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-tail d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-head d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+    </svg><i class="d3-c d3-c-m d3-flare" style="--x:6.53%;--y:51.86%;--fd:0.38s"></i><i class="d3-c d3-c-l d3-flare" style="--x:19.57%;--y:44.52%;--fd:1.22s"></i><i class="d3-c d3-c-m d3-flare" style="--x:30.66%;--y:35.30%;--fd:1.98s"></i><i class="d3-c d3-c-m d3-flare" style="--x:43.74%;--y:28.06%;--fd:2.82s"></i><i class="d3-c d3-c-l d3-flare" style="--x:56.53%;--y:28.14%;--fd:3.58s"></i><i class="d3-c d3-c-m d3-flare" style="--x:69.57%;--y:35.48%;--fd:4.42s"></i><i class="d3-c d3-c-m d3-flare" style="--x:80.66%;--y:44.70%;--fd:5.18s"></i><i class="d3-c d3-c-l d3-flare" style="--x:93.74%;--y:51.94%;--fd:6.02s"></i><i class="d3-c d3-c-s" style="--x:20.00%;--y:76.80%"></i><i class="d3-c d3-c-s" style="--x:42.00%;--y:67.20%"></i><i class="d3-c d3-c-s" style="--x:64.00%;--y:80.00%"></i><i class="d3-c d3-c-s" style="--x:86.00%;--y:83.20%"></i><i class="d3-c d3-c-s" style="--x:56.00%;--y:48.00%"></i></div><div class="mock-tile"><svg class="mock-rails" viewBox="0 0 1000 625" preserveAspectRatio="none" aria-hidden="true">
+      <path class="d3-band" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="d3-band-core" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-tail d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+      <path class="mock-head d3-train" d="M0 330 C200 330 300 170 500 170 C700 170 800 330 1000 330" pathLength="1000"/>
+    </svg><i class="d3-c d3-c-m d3-flare" style="--x:6.53%;--y:51.86%;--fd:0.38s"></i><i class="d3-c d3-c-l d3-flare" style="--x:19.57%;--y:44.52%;--fd:1.22s"></i><i class="d3-c d3-c-m d3-flare" style="--x:30.66%;--y:35.30%;--fd:1.98s"></i><i class="d3-c d3-c-m d3-flare" style="--x:43.74%;--y:28.06%;--fd:2.82s"></i><i class="d3-c d3-c-l d3-flare" style="--x:56.53%;--y:28.14%;--fd:3.58s"></i><i class="d3-c d3-c-m d3-flare" style="--x:69.57%;--y:35.48%;--fd:4.42s"></i><i class="d3-c d3-c-m d3-flare" style="--x:80.66%;--y:44.70%;--fd:5.18s"></i><i class="d3-c d3-c-l d3-flare" style="--x:93.74%;--y:51.94%;--fd:6.02s"></i><i class="d3-c d3-c-s" style="--x:20.00%;--y:76.80%"></i><i class="d3-c d3-c-s" style="--x:42.00%;--y:67.20%"></i><i class="d3-c d3-c-s" style="--x:64.00%;--y:80.00%"></i><i class="d3-c d3-c-s" style="--x:86.00%;--y:83.20%"></i><i class="d3-c d3-c-s" style="--x:56.00%;--y:48.00%"></i></div></div></div>
+        <div class="mock-rim"></div>
+        <div class="d3-aurora"></div>
+      </div>
+      <div class="mock-hero">
+        <p class="mock-kick">Verse · Briefing</p>
+        <p class="mock-title">Alpha 4.4 — Pyro ist live</p>
+        <p class="mock-find">Suchen …</p>
+      </div>
+      <div class="mock-cards">
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+        <div class="mock-card"><b></b><i></i><i></i><i></i></div>
+      </div>
+      <button class="mock-chip" type="button" data-screen-link="d3-s1">Zeitraffer · 45 s / Umdrehung ▸ Echtzeit</button>
+    </div>
+    </section>
+  </section>
+</section>

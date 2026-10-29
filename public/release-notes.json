@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.176.0",
+  "current": "0.177.0",
   "releases": [
+    {
+      "version": "0.177.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page (β shell): the big planet is alive — a made-up world that turns once every 30 minutes under a fixed sun, so every visit shows another part of it. Its night side carries city lights, a rail network with two to five small trains that stop at stations and sometimes run back, and now and then an aurora over the thinly settled north."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The start page's planet is opaque all the way down — the stars no longer show through it — and its edge is smooth."
+            },
+            {
+              "title": "",
+              "text": "Headline, search and hub columns sit on a soft dark pool, so city lights and stars step back behind the text."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.176.0",
       "date": "2026-10-29",

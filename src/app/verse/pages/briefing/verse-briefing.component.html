@@ -2,10 +2,13 @@
   @if (shell()) {
     <!-- The stage's own big planet (the bottom third of the stage, radius 80 %
          of the width): its rim arcs into the lower corners, its night side
-         carries the hub columns further down — one cinematic picture. -->
+         carries the hub columns further down — one cinematic picture. The live
+         WebGL planet draws over the CSS one once its world is generated; the
+         CSS planet stays as the fallback and as its geometry. -->
     <div class="world-clip" aria-hidden="true">
-      <div class="brief-world"></div>
-      <div class="city"></div>
+      <div class="brief-world" #world [class.gl]="planet.ready()"></div>
+      <div class="city" [class.gl]="planet.ready()"></div>
+      <sc-briefing-planet #planet [anchor]="world" />
     </div>
     <section class="bstage" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
       <div class="scn">
