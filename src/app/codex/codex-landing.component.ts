@@ -33,8 +33,8 @@ export const ROTATION_MS = 8000;
  * healthy gap to the header above (round 6 feedback).
  */
 export const CODEX_STAGE_TOP = 0.3;
-/** Phones stack everything under the hero: the field sits higher still. */
-export const CODEX_STAGE_TOP_PHONE = 0.2;
+/** Phones stack everything under the hero (News chip above it): the field stays below the two-row header. */
+export const CODEX_STAGE_TOP_PHONE = 0.3;
 const PHONE_QUERY = '(max-width: 720px)';
 
 /** Category side rail (brief A8): index links, keybindings as the quiet last entry. */
