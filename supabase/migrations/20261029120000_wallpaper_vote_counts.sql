@@ -117,4 +117,5 @@ comment on function public.starscape_gallery_page(text, integer, integer) is
   'top/newest are capped at 48 rows, mine is complete. Same visibility rules as '
   'the table read (series gate + variant_role).';
 
+revoke execute on function public.starscape_gallery_page(text, integer, integer) from public;
 grant execute on function public.starscape_gallery_page(text, integer, integer) to anon, authenticated;

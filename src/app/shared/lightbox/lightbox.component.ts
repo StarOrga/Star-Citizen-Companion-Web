@@ -208,6 +208,7 @@ export class LightboxComponent {
 
   @HostListener('document:fullscreenchange')
   protected onFullscreenChange(): void {
+    if (typeof document === 'undefined') return;
     this.fullscreen.set(document.fullscreenElement === this.root()?.nativeElement);
   }
 

@@ -1,8 +1,11 @@
 import { Location } from '@angular/common';
 import { Injectable, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, NavigationStart, Router, UrlTree } from '@angular/router';
 
 const pathOf = (url: string): string => url.split(/[?#]/)[0];
+/** Whether `path` is `base` itself or a segment below it (`/verse/news-old` is not under `/verse/news`). */
+const within = (path: string, base: string): boolean => path === base || path.startsWith(base.endsWith('/') ? base : base + '/');
 
 /**
  * Whether the current overlay route was opened from its list in this tab, and
@@ -37,7 +40,7 @@ export class OverlayOriginService {
   private replacing = false;
 
   constructor() {
-    this.router.events.subscribe((e) => {
+    this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationStart) {
         this.replacing = !!this.router.getCurrentNavigation()?.extras.replaceUrl;
       } else if (e instanceof NavigationEnd) {
@@ -46,7 +49,7 @@ export class OverlayOriginService {
         if (!this.replacing && next !== this.curPath) this.prevPath = this.curPath;
         this.curPath = next;
         this.replacing = false;
-        if (this.section && !next.startsWith(this.section)) this.reset();
+        if (this.section && !within(next, this.section)) this.reset();
       }
     });
   }
