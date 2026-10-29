@@ -47,6 +47,9 @@ export interface TransmitItem {
  * No line beam, packets, impact flash, shock wave or glitch, no radar rings.
  * Pointer or focus on the holo holds the relay. Reduced motion: no cone, no
  * waves, no reveal or typing — the message stands, the relay swaps it.
+ *
+ * Away from the top of the page (`away`, briefing-dock) the relay rests:
+ * no cone, no holo, no timers — back at the top it sends again.
  */
 @Component({
   selector: 'sc-briefing-transmit',
@@ -54,6 +57,7 @@ export interface TransmitItem {
   imports: [RouterLink, TranslatePipe, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
+  host: { '[class.away]': 'away()', '[class.docked]': 'docked()' },
   template: `
     @let c = cur();
     <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null" [attr.data-phase]="phase()"><i class="waves"></i></span>
@@ -89,6 +93,10 @@ export interface TransmitItem {
 })
 export class BriefingTransmitComponent {
   readonly items = input<readonly TransmitItem[]>([]);
+  /** The reader left the top of the page: the relay rests until they are back. */
+  readonly away = input(false);
+  /** The planets landed in the hub heads: they hide, the heads show their own. */
+  readonly docked = input(false);
   /** A planet was used (analytics). */
   readonly door = output<VerseDoor>();
   /** The holo was opened. */
@@ -112,8 +120,12 @@ export class BriefingTransmitComponent {
   constructor() {
     effect(() => {
       const n = this.items().length;
+      const away = this.away();
       untracked(() => {
-        if (n && !this.running) {
+        if (away) {
+          this.stop();
+          this.phase.set('out');
+        } else if (n && !this.running) {
           this.running = true;
           this.run();
         } else if (!n) {

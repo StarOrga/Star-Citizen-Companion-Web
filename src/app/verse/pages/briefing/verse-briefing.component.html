@@ -64,9 +64,10 @@
           </div>
         </div>
 
-        <sc-briefing-transmit [items]="transmit()" (opened)="openTransmit($event)" (door)="openDoor($event)" />
+        <sc-briefing-transmit [items]="transmit()" [away]="dock() !== 'top'" [docked]="dockFlying() && dock() === 'docked'" (opened)="openTransmit($event)" (door)="openDoor($event)" />
 
-        <button type="button" class="more-cue" (click)="toHub()">
+        <button type="button" class="more-cue" [class.gone]="dock() === 'docked'" [attr.aria-hidden]="dock() === 'docked' ? 'true' : null"
+                [attr.tabindex]="dock() === 'docked' ? -1 : null" (click)="toHub()">
           {{ 'verse.hub.more' | translate }}<span class="chev d" aria-hidden="true"></span>
         </button>
       </div>
@@ -75,7 +76,7 @@
     <sc-briefing-hub id="verse-hub" class="hub"
                      [news]="hubNews()" [newsLoading]="news.loading()" [newsError]="news.error()"
                      [live]="hubLive()" [liveDays]="liveDays()" [patchImage]="hubPatchImage()" [channels]="hubChannels()"
-                     [gallery]="hubGallery()"
+                     [gallery]="hubGallery()" [incoming]="dockFlying() && dock() !== 'docked'"
                      (retryNews)="retryNews()" (openItem)="openItem($event)" (openDoor)="openDoor($event)" />
   } @else {
     <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [attr.data-intro]="intro"

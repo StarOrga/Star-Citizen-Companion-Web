@@ -34,6 +34,7 @@ export const MOSAIC_SLOTS = ['m1', 'm2', 's1', 's2', 's3', 's4'] as const;
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing-hub.component.html',
   styleUrl: './briefing-hub.component.scss',
+  host: { '[class.incoming]': 'incoming()' },
 })
 export class BriefingHubComponent {
   readonly news = input<readonly VerseNewsItem[]>([]);
@@ -44,6 +45,8 @@ export class BriefingHubComponent {
   readonly patchImage = input<string | null>(null);
   readonly channels = input<readonly HubChannel[]>([]);
   readonly gallery = input<readonly VerseDigestItem[]>([]);
+  /** The stage planets are still on their way into the heads (briefing-dock): the heads' own planet and word wait. */
+  readonly incoming = input(false);
 
   readonly retryNews = output<void>();
   readonly openItem = output<VerseDigestItem>();
