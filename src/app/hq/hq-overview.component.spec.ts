@@ -1,4 +1,4 @@
-import { computed, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -7,6 +7,10 @@ import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { HqOverviewComponent } from './hq-overview.component';
 import { HqOwnershipService } from './hq-ownership.service';
+import { HqSpotStageComponent } from './hq-spot-stage.component';
+
+@Component({ selector: 'sc-hq-spot-stage', standalone: true, template: '' })
+class SpotStageStub {}
 
 const ship = (id: string, cn: string): HangarShip => ({
   id,
@@ -64,6 +68,10 @@ describe('HqOverviewComponent', () => {
         { provide: HqOwnershipService, useValue: ownership },
       ],
     });
+    TestBed.overrideComponent(HqOverviewComponent, {
+      remove: { imports: [HqSpotStageComponent] },
+      add: { imports: [SpotStageStub] },
+    });
     const fixture = TestBed.createComponent(HqOverviewComponent);
     fixture.detectChanges();
     return { fixture, hangar, el: fixture.nativeElement as HTMLElement };
@@ -76,6 +84,13 @@ describe('HqOverviewComponent', () => {
     expect(links).toEqual(['/hq/hangar', '/hq/spind']);
     expect(el.textContent).toContain('hq.overview.opsEmpty');
     expect(el.textContent).toContain('hq.overview.suppliesEmpty');
+  });
+
+  it('shows the fleet-in-patch placeholder card tagged as coming soon', () => {
+    const { el } = setup({});
+    expect(el.textContent).toContain('hq.overview.fleetPatch.title');
+    expect(el.textContent).toContain('hq.overview.fleetPatch.soon');
+    expect(el.querySelector('#hq-ov-patch a')).toBeNull();
   });
 
   it('links the active ship into the hangar and its active variant into the codex (?v)', () => {

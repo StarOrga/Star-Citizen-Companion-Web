@@ -4584,7 +4584,13 @@
       "openCodex": "Im Codex ansehen",
       "recentShips": "Zuletzt gewählte Schiffe",
       "recentSets": "Zuletzt gewählte Sets",
-      "loadFailed": "Dein HQ konnte nicht geladen werden."
+      "loadFailed": "Dein HQ konnte nicht geladen werden.",
+      "fleetPatch": {
+        "title": "Deine Flotte im Patch",
+        "soon": "bald",
+        "mock": "3 deiner Schiffe wurden in 4.3.1 verändert",
+        "hint": "Vorschau: Bald siehst du hier, welche deiner Schiffe der aktuelle Patch berührt hat."
+      }
     },
     "locker": {
       "title": "Spind",

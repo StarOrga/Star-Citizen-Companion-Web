@@ -4584,7 +4584,13 @@
       "openCodex": "View in codex",
       "recentShips": "Recently picked ships",
       "recentSets": "Recently picked sets",
-      "loadFailed": "Your HQ could not be loaded."
+      "loadFailed": "Your HQ could not be loaded.",
+      "fleetPatch": {
+        "title": "Your fleet in the patch",
+        "soon": "soon",
+        "mock": "3 of your ships changed in 4.3.1",
+        "hint": "Preview: soon you will see here which of your ships the current patch touched."
+      }
     },
     "locker": {
       "title": "Locker",
