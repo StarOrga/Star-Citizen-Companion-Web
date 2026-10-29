@@ -91,6 +91,16 @@ export interface Settings {
    * falls back to the automatic search when it no longer holds a Data.p4k.
    */
   gamePath?: string;
+  /**
+   * 3D asset packages beyond the ships (docs/asset-package.md), built in the
+   * 3D-model step on top of the always-on ship packages. Off by default: each
+   * one adds a long conversion run and R2 storage. FPS weapons (`--fps`).
+   */
+  pkgFps: boolean;
+  /** Standalone ship-item packages — components, ship weapons, missiles (`--items`). */
+  pkgItems: boolean;
+  /** Armor + clothing packages (`--armor`). */
+  pkgArmor: boolean;
 }
 
 /** Persisted resource limits — see `lib/resource-limits.ts`. */
@@ -197,6 +207,9 @@ export class SettingsStore {
         ? { resourceLimits: readResourceLimits(parsed?.resourceLimits) }
         : {}),
       useGpu: typeof parsed?.useGpu === 'boolean' ? parsed.useGpu : false,
+      pkgFps: parsed?.pkgFps === true,
+      pkgItems: parsed?.pkgItems === true,
+      pkgArmor: parsed?.pkgArmor === true,
       updateChannel:
         parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
           ? parsed.updateChannel

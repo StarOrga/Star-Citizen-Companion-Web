@@ -125,6 +125,15 @@ function bodyHtml(s: PublicSettings, rings: Array<'alpha' | 'beta' | 'stable'>):
         </div>
       </section>
 
+      <section class="settings-section">
+        <h3 class="settings-section-title">${t('settings.models.title')}</h3>
+        <div class="settings-chips">
+          ${chip('pkgFps', `${escapeHtml(t('settings.models.pkgFps'))}: ${escapeHtml(onOff(s.pkgFps))}`)}
+          ${chip('pkgItems', `${escapeHtml(t('settings.models.pkgItems'))}: ${escapeHtml(onOff(s.pkgItems))}`)}
+          ${chip('pkgArmor', `${escapeHtml(t('settings.models.pkgArmor'))}: ${escapeHtml(onOff(s.pkgArmor))}`)}
+        </div>
+      </section>
+
       <p class="settings-foot">${t('settings.footer', { version: toolVersion ?? '…' })}</p>
   `;
 }
@@ -284,6 +293,19 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
             { value: 'off', label: t('settings.off'), desc: t('settings.app.telemetryOffDesc') },
           ],
           onPick: (v) => void apply(key, () => ctx.setTelemetry(v === 'on')),
+        };
+      case 'pkgFps':
+      case 'pkgItems':
+      case 'pkgArmor':
+        return {
+          label: t('settings.models.' + key),
+          current: s[key] ? 'on' : 'off',
+          options: [
+            { value: 'on', label: t('settings.on'), desc: t('settings.models.' + key + 'Desc') },
+            { value: 'off', label: t('settings.off') },
+          ],
+          hint: t('settings.models.hint'),
+          onPick: (v) => void apply(key, () => ctx.patch({ [key]: v === 'on' })),
         };
       case 'ring':
         return {

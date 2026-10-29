@@ -301,6 +301,16 @@
       "shutdownDesc": "60-second countdown to cancel.",
       "hint": "Only for runs it starts itself. Your own runs: ⏻ on the run."
     },
+    "models": {
+      "title": "3D models",
+      "pkgFps": "FPS weapons",
+      "pkgFpsDesc": "Builds the FPS weapon bodies and their attachments.",
+      "pkgItems": "Ship items",
+      "pkgItemsDesc": "Builds components, ship weapons, missiles and racks on their own.",
+      "pkgArmor": "Armor & clothing",
+      "pkgArmorDesc": "Builds armor and clothing pieces.",
+      "hint": "Applies to the next 3D-model run. Each kind adds conversion time and storage."
+    },
     "app": {
       "title": "App",
       "tray": "closes to the tray",

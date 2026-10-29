@@ -13,6 +13,9 @@ function baseSettings(overrides: Partial<Settings> = {}): Settings {
     whenDoneLast: 'nothing',
     speedProfile: 'standard',
     useGpu: false,
+    pkgFps: false,
+    pkgItems: false,
+    pkgArmor: false,
     updateChannel: 'stable',
     ...overrides,
   };

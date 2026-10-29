@@ -250,6 +250,9 @@ function publicSettings(): {
   autoRunPreset: 'gaming' | 'balanced' | 'full';
   whenDoneLast: 'nothing' | 'quit';
   updateChannel: 'alpha' | 'beta' | 'stable';
+  pkgFps: boolean;
+  pkgItems: boolean;
+  pkgArmor: boolean;
   language?: string;
 } {
   const s = getSettings();
@@ -263,6 +266,9 @@ function publicSettings(): {
     autoRunPreset: s.autoRunPreset,
     whenDoneLast: s.whenDoneLast,
     updateChannel: s.updateChannel,
+    pkgFps: s.pkgFps,
+    pkgItems: s.pkgItems,
+    pkgArmor: s.pkgArmor,
     ...(s.language !== undefined ? { language: s.language } : {}),
   };
 }
@@ -285,6 +291,9 @@ ipcMain.handle(
       autoRunPreset?: 'gaming' | 'balanced' | 'full';
       whenDoneLast?: 'nothing' | 'quit';
       updateChannel?: 'alpha' | 'beta' | 'stable';
+      pkgFps?: boolean;
+      pkgItems?: boolean;
+      pkgArmor?: boolean;
       language?: string;
     },
   ) => {
@@ -317,6 +326,9 @@ ipcMain.handle(
     ) {
       clean.updateChannel = partial.updateChannel;
     }
+    if (typeof partial?.pkgFps === 'boolean') clean.pkgFps = partial.pkgFps;
+    if (typeof partial?.pkgItems === 'boolean') clean.pkgItems = partial.pkgItems;
+    if (typeof partial?.pkgArmor === 'boolean') clean.pkgArmor = partial.pkgArmor;
     if (typeof partial?.language === 'string' && partial.language.length > 0) {
       clean.language = partial.language;
     }
@@ -1015,7 +1027,17 @@ ipcMain.handle('sc:skin:ensureTools', async (event) => {
 ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<SkinExportFinal> => {
   const jobId = `skin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   // Same rule as the extract: parallelism follows the limits live at start.
-  req = { ...req, workers: resources.workers().skin };
+  // Which extra 3D package kinds to build is the operator's persisted choice
+  // (settings, 3D models); main reads it here so every start path — manual run,
+  // unattended auto-run — honours it without the renderer passing it along.
+  const pk = getSettings();
+  req = {
+    ...req,
+    workers: resources.workers().skin,
+    fps: pk.pkgFps,
+    items: pk.pkgItems,
+    armor: pk.pkgArmor,
+  };
   const watchdog = createWatchdog({
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('skin', idle, jobId),

@@ -25,7 +25,7 @@ CLI:
     # standalone packages (docs/asset-package.md), with or without ships:
     python -m sc_extract.skin_export_app --p4k <Data.p4k> --out <dir> \
         --converter <cgf-converter.exe> --fps [--weapon <class|glob>] \
-        --items [--item <class|glob>] [--max-packages N]
+        --items [--item <class|glob>] --armor [--armor-class <class|glob>]         [--max-packages N]
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import stage_timing
 from .events import count, done, error, log, phase, progress
 from .hull3d import EXPORT_FORMAT, Hull3DExporter, HullExportConfig
-from .ship_discovery import ShipDiscovery, ShipRef
+from .ship_discovery import SHIPS_ROOT, ShipDiscovery, ShipRef
 from .ship_export import parse_ship
 
 
@@ -71,6 +71,7 @@ def _refs_from_manifest(path: Path) -> list[ShipRef]:
         out.append(ShipRef(
             ship_id=s["ship_id"], mfr=s["mfr"],
             ship=s["ship"], series_token=s.get("series_token", s["ship"]),
+            root=s.get("root", SHIPS_ROOT),  # absent in pre-ground manifests = ships
         ))
     return out
 
@@ -173,9 +174,11 @@ class _PackageBuilder:
         return {k: v for k, v in row.items() if k != "parts"}
 
     def standalone(self, kind: str, patterns: list[str], limit) -> list[dict]:
-        """--fps / --items: one package per class into <out>/_fps|_items/<class>/.
+        """--fps / --items / --armor: one package per class into
+        <out>/_fps|_items|_armor/<class>/.
         ``patterns`` = exact class names or fnmatch globs (empty = every class
         the kind's enumeration rule admits). A failure skips the class."""
+        from .assets3d import armor as armor_mod
         from .assets3d import fps as fps_mod
         from .assets3d import items as items_mod
         if kind == "fps":
@@ -184,6 +187,12 @@ class _PackageBuilder:
             enumerate_all = lambda: fps_mod.fps_weapon_classes(src)  # noqa: E731
             build = lambda c: fps_mod.build_fps_package(c, src, self.store, self.out)  # noqa: E731
             folder = fps_mod.FPS_DIR
+        elif kind == "armor":
+            src = getattr(self, "_fps_source", None) or fps_mod.FpsSource(self.source, self.reader)
+            self._fps_source = src
+            enumerate_all = lambda: armor_mod.armor_classes(src)  # noqa: E731
+            build = lambda c: armor_mod.build_armor_package(c, src, self.store, self.out)  # noqa: E731
+            folder = armor_mod.ARMOR_DIR
         else:
             src = self.source
             enumerate_all = lambda: items_mod.item_classes(src)  # noqa: E731
@@ -294,8 +303,12 @@ def _parser() -> argparse.ArgumentParser:
                     help="build standalone ship-item packages into <out>/_items/<class>/package.json")
     ap.add_argument("--item", action="append", default=[],
                     help="with --items: item class or glob (repeatable; default = all)")
+    ap.add_argument("--armor", action="store_true",
+                    help="build armor + clothing packages into <out>/_armor/<class>/package.json")
+    ap.add_argument("--armor-class", action="append", default=[],
+                    help="with --armor: armor class or glob (repeatable; default = all)")
     ap.add_argument("--max-packages", type=int, default=None,
-                    help="cap for --fps / --items: per glob pattern, or overall "
+                    help="cap for --fps / --items / --armor: per glob pattern, or overall "
                          "when no class filter is given")
     ap.add_argument("--cache-salt", default="",
                     help="host tool versions (gltf-transform, meshoptimizer) folded into the "
@@ -384,7 +397,7 @@ class _ShipRun:
         if many:
             self.disco.build_index()
         self.pkg = _PackageBuilder(self.p4k, args, self.exporter, _on_log, worker) \
-            if (args.package or args.fps or args.items) else None
+            if (args.package or args.fps or args.items or args.armor) else None
 
     def build(self, ref: ShipRef) -> Tuple[Optional[dict], Optional[dict]]:
         """(entry, barren) for one ship; entry None = no hull mesh found."""
@@ -621,8 +634,8 @@ def _build_parallel(args, jobs: List[Tuple[int, ShipRef]], workers: int, total: 
 def main() -> int:
     ap = _parser()
     args = ap.parse_args()
-    if not args.ship and not args.manifest and not (args.fps or args.items):
-        ap.error("provide --ship (repeatable), --manifest, --fps or --items")
+    if not args.ship and not args.manifest and not (args.fps or args.items or args.armor):
+        ap.error("provide --ship (repeatable), --manifest, --fps, --items or --armor")
 
     # UTF-8 stdout is forced centrally in events.py (imported above) for every
     # sidecar entrypoint — the host launches us with `-E`, so PYTHONIOENCODING
@@ -669,7 +682,7 @@ def main() -> int:
         pkg_parts: list = []
         pkg_stats = {"hits": 0, "misses": 0, "ships": 0}
         run: Optional[_ShipRun] = None
-        needs_local = (args.fps or args.items) or (jobs and workers == 1)
+        needs_local = (args.fps or args.items or args.armor) or (jobs and workers == 1)
         if needs_local:
             run = _ShipRun(args, many=len(refs) > 1)
         if jobs and workers > 1:
@@ -728,6 +741,8 @@ def main() -> int:
             run_result["fpsPackages"] = run.pkg.standalone("fps", args.weapon, args.max_packages)
         if run is not None and run.pkg and args.items:
             run_result["itemPackages"] = run.pkg.standalone("items", args.item, args.max_packages)
+        if run is not None and run.pkg and args.armor:
+            run_result["armorPackages"] = run.pkg.standalone("armor", args.armor_class, args.max_packages)
         if args.package or args.fps or args.items:
             if run is not None and run.pkg:
                 pkg_parts.extend(r["parts"] for r in run.pkg.rows if "parts" in r)

@@ -632,6 +632,10 @@ class CodexExtractor:
             (d / f"{_safe_filename(obj['className'])}.json").write_text(
                 json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
             n += 1
+            # Ammunition silhouette (kind `ammo`): only when the AmmoParams
+            # record itself points at a mesh (projectile/shell geometry). Most
+            # ballistic rounds are pure physics with none — those are skipped.
+            self._note_silhouette_candidate("ammo", obj["className"], [rv])
         self._bump("ammunition", n)
 
     # ── blueprints ─────────────────────────────────────────────────────────────
@@ -1091,15 +1095,11 @@ class CodexExtractor:
                 item_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_item += 1
-                # Only ARMOR items get a silhouette (the tile-view use case the
-                # user asked for) — not every consumable/tool item. Should-fix
-                # "kind" (wave1-redteam.md): these land in `items/`/`codex_items`
-                # on the website (web kind `item`), so the silhouette kind is
-                # `item`, not `armor` — the DB enum's `armor` value stays unused.
-                is_armor = (atype in _ARMOR_TYPES
-                            or _find_component(comps, "SCItemVehicleArmorParams") is not None)
-                if is_armor:
-                    self._note_silhouette_candidate("item", obj["className"], comps)
+                # Every item with a mesh gets a silhouette (tiles for armor,
+                # tools, consumables, ...). Silhouette kind is `item`, not
+                # `armor` — these land in `items/`/`codex_items` on the website
+                # (web kind `item`); the DB enum's `armor` value stays unused.
+                self._note_silhouette_candidate("item", obj["className"], comps)
             # entities with no AttachDef (rooms, AI templates, etc.) are still
             # captured by dump_all_records().
 
@@ -1356,6 +1356,7 @@ class CodexExtractor:
             self._skin_build_refs.append({
                 "ship_id": ref.ship_id, "mfr": ref.mfr,
                 "ship": ref.ship, "series_token": ref.series_token,
+                "root": ref.root,
             })
         else:
             # Counted, not logged per ship: a full catalog run rejects hundreds.
@@ -1396,7 +1397,7 @@ class CodexExtractor:
 
     def _write_silhouette_manifest(self) -> None:
         """Drop silhouettes/_build_manifest.json listing every ship / weapon /
-        component / armor item with a resolvable mesh. The follow-on silhouette
+        component / item / ammunition entity with a resolvable mesh. The follow-on silhouette
         build (`silhouette_export.py`, driven the same way the skin glb build
         is) reads this instead of re-walking every entity."""
         d = self.out / "silhouettes"
@@ -2125,8 +2126,8 @@ class CodexExtractor:
             # AttachDef.Type (e.g. WeaponGun/Turret/MissileLauncher) — the key
             # that matches a hardpoint's accepted port `types`. Promoted so the
             # slot-compatibility resolver can match weapons to ports.
-            "attachType": atype,
-            "subType": attach.get("SubType") if attach else None,
+            "attachType": _undefined_to_none(atype),
+            "subType": _undefined_to_none(attach.get("SubType")) if attach else None,
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
             "weaponParams": weapon_params,
@@ -2224,8 +2225,8 @@ class CodexExtractor:
         base.update({
             "entityKind": "component",
             "kind": kind,
-            "attachType": atype,
-            "subType": attach.get("SubType") if attach else None,
+            "attachType": _undefined_to_none(atype),
+            "subType": _undefined_to_none(attach.get("SubType")) if attach else None,
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
             "stats": self._component_stats(comps, kind),
@@ -2237,8 +2238,8 @@ class CodexExtractor:
         base = self._base_entity(r, resolved, comps, attach)
         base.update({
             "entityKind": "item",
-            "attachType": atype,
-            "subType": attach.get("SubType") if attach else None,
+            "attachType": _undefined_to_none(atype),
+            "subType": _undefined_to_none(attach.get("SubType")) if attach else None,
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
         })
@@ -2747,6 +2748,15 @@ def _damage_set(d: Any) -> Optional[Dict[str, Any]]:
             "stun": d.get("DamageStun"),
         }
     return None
+
+
+def _undefined_to_none(v: Any) -> Any:
+    """CIG fills AttachDef.Type / SubType with the literal "UNDEFINED" when an
+    item has no value. That is "no value", not a category — null it (the web's
+    filter lists would otherwise show an "UNDEFINED" chip)."""
+    if isinstance(v, str) and v.strip().upper() == "UNDEFINED":
+        return None
+    return v
 
 
 def _to_int(v: Any) -> Optional[int]:

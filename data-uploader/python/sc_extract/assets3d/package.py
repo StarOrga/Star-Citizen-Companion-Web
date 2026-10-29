@@ -1,6 +1,6 @@
 """Entity package builder: resolve -> export parts -> enrich -> manifest.
 
-Generic over ``kind`` ("ship" | "fps_weapon"). Ship-only extras (interior,
+Generic over ``kind`` ("ship" | "fps_weapon" | "item" | "armor"). Ship-only extras (interior,
 vehicle-XML ports) are wired in :mod:`sc_extract.assets3d.ships`.
 """
 from __future__ import annotations
