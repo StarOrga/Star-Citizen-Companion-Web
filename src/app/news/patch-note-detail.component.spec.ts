@@ -42,7 +42,7 @@ describe('PatchNoteDetailComponent', () => {
       providers: [
         provideTranslateService({}),
         { provide: RoadmapService, useValue: roadmap },
-        { provide: PatchStabilityService, useValue: { patchRowFor: () => null, verdictFor: () => null } },
+        { provide: PatchStabilityService, useValue: { patchRowFor: () => null, verdictFor: () => null, previousOf: () => null, isLiveLine: () => false } },
       ],
     });
   });

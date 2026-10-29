@@ -121,6 +121,12 @@ export interface StabilityVerdict {
   tickets: StabilityTicket[];
   kbOpen: number | null;
   hotfixes: HotfixEvent[];
+  /** Spectrum replies (release notes + hotfix thread) of the newest sample; null on an end-state. */
+  replies?: number | null;
+  /** Spectrum threads behind `replies`. */
+  threads?: number;
+  /** Unplanned degraded minutes of the last 7 days per RSI Status; null on an end-state. */
+  outageMin7d?: number | null;
 }
 
 /** Below this many live days the verdict is provisional (hatched in the UI). */
@@ -365,11 +371,42 @@ export function computeVerdict(
     components: last.components,
     insufficient,
     historical: false,
+    replies: totalReplies(latest),
+    threads: latest.hf_replies === null ? 1 : 2,
+    outageMin7d: latest.outage_min_7d,
     days,
     tickets: latest.top_tickets,
     kbOpen: latest.kb_open_total,
     hotfixes: latest.hotfix_events,
   };
+}
+
+export type DeductionKey = keyof StabilityComponents;
+
+/**
+ * The 100 − S points split over the three components, so the long form can show
+ * "Startwert 100 − a − b − c = S". The score is 0.7·worst + 0.3·weighted mean, so
+ * each component owns its share of the mean and the worst one additionally the
+ * 0.7 term; the integer total (100 − stability) is spread by largest remainder.
+ * Components without data stay null.
+ */
+export function componentDeductions(c: StabilityComponents, stability: number): Record<DeductionKey, number | null> {
+  const keys = (Object.keys(WEIGHTS) as DeductionKey[]).filter((k) => c[k] !== null);
+  const out: Record<DeductionKey, number | null> = { community: null, service: null, cig: null };
+  if (keys.length === 0) return out;
+  const weightSum = keys.reduce((s, k) => s + WEIGHTS[k], 0);
+  const worstKey = keys.reduce((a, b) => ((c[b] as number) > (c[a] as number) ? b : a));
+  const raw = keys.map((k) => 0.3 * (WEIGHTS[k] / weightSum) * (c[k] as number) + (k === worstKey ? 0.7 * (c[k] as number) : 0));
+  const rawSum = raw.reduce((s, v) => s + v, 0);
+  const total = Math.max(0, Math.round(100 - stability));
+  const scaled = raw.map((v) => (rawSum > 0 ? (v / rawSum) * total : 0));
+  const floor = scaled.map(Math.floor);
+  let rest = total - floor.reduce((s, v) => s + v, 0);
+  [...scaled.keys()].sort((a, b) => (scaled[b] - floor[b]) - (scaled[a] - floor[a])).forEach((i) => {
+    if (rest > 0) { floor[i]++; rest--; }
+  });
+  keys.forEach((k, i) => (out[k] = floor[i]));
+  return out;
 }
 
 /** Raw numbers of one Hotfix / PTU / Evocati build (Spectrum threads) for {@link channelStability}. */
@@ -400,4 +437,139 @@ export function channelStability(b: ChannelBuildSample): { stability: number; le
   });
   const stability = stabilityPercent(score);
   return score === null || stability === null ? null : { stability, level: levelOf(score) };
+}
+
+// ---------------------------------------------------------------------------
+// The one three-word scale
+// ---------------------------------------------------------------------------
+
+export type StabilityWord = 'stabil' | 'wackelig' | 'instabil';
+
+/** stabil ≥ 75 · wackelig 45–74 · instabil < 45 — the ONE scale, everywhere. */
+export const STABIL_MIN = 75;
+export const WACKELIG_MIN = 45;
+
+/** Word for a percentage; null when there is no number. Fractions floor into the lower word (74.9 → wackelig). */
+export function stabilityWord(percent: number | null): StabilityWord | null {
+  if (percent === null || !Number.isFinite(percent)) return null;
+  if (percent >= STABIL_MIN) return 'stabil';
+  if (percent >= WACKELIG_MIN) return 'wackelig';
+  return 'instabil';
+}
+
+// ---------------------------------------------------------------------------
+// Trend indicator
+// ---------------------------------------------------------------------------
+
+/** Below this many points of difference the patches count as equal (≈). */
+export const TREND_THRESHOLD = 3;
+
+export type StabilityTrend = 'better' | 'worse' | 'same';
+
+/** Glyph per trend: ▲ better, ▼ worse, ≈ equal. */
+export const TREND_GLYPH: Readonly<Record<StabilityTrend, string>> = { better: '▲', worse: '▼', same: '≈' };
+
+/** Current vs previous patch of the same channel/line; null when either number is missing. */
+export function stabilityTrend(current: number | null, previous: number | null): StabilityTrend | null {
+  if (current === null || previous === null || !Number.isFinite(current) || !Number.isFinite(previous)) return null;
+  const delta = current - previous;
+  if (Math.abs(delta) < TREND_THRESHOLD) return 'same';
+  return delta > 0 ? 'better' : 'worse';
+}
+
+// ---------------------------------------------------------------------------
+// Community verdict (spec: briefs/implement.md "Community-Urteil")
+// ---------------------------------------------------------------------------
+
+/** Band centres the three verdicts count as. */
+export const VOTE_VALUE: Readonly<Record<StabilityWord, number>> = { stabil: 90, wackelig: 60, instabil: 20 };
+/** Accounts younger than this weigh 0 (enforced by the RPC). */
+export const VOTE_MIN_ACCOUNT_DAYS = 7;
+/** Half-life of a vote's weight (RPC). */
+export const VOTE_HALF_LIFE_DAYS = 7;
+/** A vote can be changed at most this often (DB trigger). */
+export const VOTE_CHANGE_HOURS = 12;
+/** Below this effective sample size there is no correction. */
+export const MIN_EFFECTIVE_VOTES = 25;
+/** One-sided z of the interval (≈ 90 % two-sided). */
+export const VOTE_Z = 1.65;
+/** Weight of the computed stability against the votes in the posterior. */
+export const VOTE_PRIOR_STRENGTH = 15;
+/** No correction while S sits this close to the vote interval. */
+export const VOTE_DEAD_BAND = 3;
+/** Symmetric cap of the correction in points. */
+export const VOTE_CORRECTION_CAP = 10;
+/** Both extreme shares at or above this → the votes are split. */
+export const VOTE_SPLIT_SHARE = 0.25;
+/** Correction multiplier when split. */
+export const VOTE_SPLIT_FACTOR = 0.5;
+
+/** What `patch_stability_vote_state` returns, camelCased. */
+export interface VoteAggregate {
+  /** Weighted counts per verdict. */
+  wStabil: number;
+  wWackelig: number;
+  wInstabil: number;
+  /** Σw and Σw². */
+  sumW: number;
+  sumW2: number;
+  /** Raw number of votes (unweighted, every account age). */
+  votes: number;
+  /** The caller's own vote; null when signed out or not voted. */
+  ownVerdict: StabilityWord | null;
+  /** ISO time the caller may change the vote again; null without a vote. */
+  ownNextChangeAt: string | null;
+}
+
+export type CommunityState = 'too-few' | 'confirmed' | 'split' | 'applied';
+
+export interface CommunityCorrection {
+  state: CommunityState;
+  /** Points added to S (rounded, 0 for too-few / confirmed). */
+  correction: number;
+  /** Effective sample size (Σw)² / Σw². */
+  nEff: number;
+  /** Weighted shares 0…1; all 0 when there is no weight. */
+  shares: Readonly<Record<StabilityWord, number>>;
+  /** Half-width of the interval around the vote mean, in points (0 when too few). */
+  halfWidth: number;
+  /** Raw vote count (for "N Stimmen"). */
+  votes: number;
+}
+
+/**
+ * The community correction for computed stability `S`. Stateless: recomputed
+ * from all current votes every call. Output smoothing (α = 1 − e^(−Δt/24 h),
+ * ≤ 2 pt/h) is NOT implemented — it needs a persisted previous value.
+ */
+export function communityCorrection(S: number, agg: VoteAggregate): CommunityCorrection {
+  const sumW = Math.max(0, agg.sumW);
+  const nEff = sumW > 0 && agg.sumW2 > 0 ? (sumW * sumW) / agg.sumW2 : 0;
+  const shares: Record<StabilityWord, number> = sumW > 0
+    ? { stabil: agg.wStabil / sumW, wackelig: agg.wWackelig / sumW, instabil: agg.wInstabil / sumW }
+    : { stabil: 0, wackelig: 0, instabil: 0 };
+  const base = { nEff, shares, votes: agg.votes };
+
+  if (!(nEff >= MIN_EFFECTIVE_VOTES)) return { ...base, state: 'too-few', correction: 0, halfWidth: 0 };
+
+  const mean = shares.stabil * VOTE_VALUE.stabil + shares.wackelig * VOTE_VALUE.wackelig + shares.instabil * VOTE_VALUE.instabil;
+  const variance = shares.stabil * (VOTE_VALUE.stabil - mean) ** 2
+    + shares.wackelig * (VOTE_VALUE.wackelig - mean) ** 2
+    + shares.instabil * (VOTE_VALUE.instabil - mean) ** 2;
+  const halfWidth = VOTE_Z * Math.sqrt(variance) / Math.sqrt(nEff);
+
+  if (S >= mean - halfWidth - VOTE_DEAD_BAND && S <= mean + halfWidth + VOTE_DEAD_BAND) {
+    return { ...base, state: 'confirmed', correction: 0, halfWidth };
+  }
+
+  const posterior = (nEff * mean + VOTE_PRIOR_STRENGTH * S) / (nEff + VOTE_PRIOR_STRENGTH);
+  let target = Math.min(VOTE_CORRECTION_CAP, Math.max(-VOTE_CORRECTION_CAP, posterior - S));
+  const split = shares.stabil >= VOTE_SPLIT_SHARE && shares.instabil >= VOTE_SPLIT_SHARE;
+  if (split) target *= VOTE_SPLIT_FACTOR;
+  return { ...base, state: split ? 'split' : 'applied', correction: Math.round(target) || 0, halfWidth };
+}
+
+/** The value the UI shows: S plus the correction, rounded and clamped to 0…100. The word follows this value. */
+export function correctedStability(S: number, c: CommunityCorrection): number {
+  return Math.min(100, Math.max(0, Math.round(S + c.correction)));
 }

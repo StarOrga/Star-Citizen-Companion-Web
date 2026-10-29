@@ -9,6 +9,7 @@ import { installResizeDriver } from '../testing/frames';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { PatchBoardComponent } from './patch-board.component';
 import { PatchStabilityService } from './patch-stability.service';
+import { PatchStabilityVotesService } from './patch-stability-votes.service';
 import { StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 import type { PatchOutline } from './patch-outline';
 import type { RoadmapPayload } from './roadmap';
@@ -131,6 +132,8 @@ function stabilityStub() {
     load: () => Promise.resolve(),
     verdictFor: (line: string) => map.get(line) ?? null,
     patchRowFor: () => null,
+    previousOf: (line: string) => (line === '4.10' ? { line: '4.9', percent: 90 } : null),
+    isLiveLine: (line: string) => line === '4.10',
   };
 }
 
@@ -157,6 +160,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
         { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
         { provide: RoadmapService, useValue: roadmapStub(roadmap) },
         { provide: PatchStabilityService, useValue: stabilityStub() },
+        { provide: PatchStabilityVotesService, useValue: { line: () => null, correctionFor: () => null, ensure: () => undefined } },
       ],
     });
     const translate = TestBed.inject(TranslateService);
@@ -185,7 +189,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(fold!.textContent).toContain('4.8');
     expect(fold!.textContent).toContain('4.7');
     // No chip filters beside the search — the stack is the selection.
-    expect(root().querySelector('.patch-filter, .chip')).toBeNull();
+    expect(root().querySelector('.patch-filter, .search .chip')).toBeNull();
   });
 
   it('says the status as a word, LIVE as the hero row, and every card is a real link into its dossier', async () => {
@@ -397,12 +401,12 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(hit.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('a query hides the monitor and the all-time stability chart', async () => {
+  it('a query hides the monitor', async () => {
     await render(FEED, ROADMAP);
     expect(root().querySelector('sc-patch-monitor')).not.toBeNull();
     search('quantum');
     expect(root().querySelector('sc-patch-monitor')).toBeNull();
-    expect(root().querySelector('sc-stability-history')).toBeNull();
+    expect(root().querySelector('sc-stability-history')).withContext('the column chart is gone for good').toBeNull();
   });
 
   it('British spelling finds American text', async () => {
@@ -434,23 +438,16 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     }
   });
 
-  it('a shipped line carries its stability as a bar meter in the gutter; a future one has an empty scale', async () => {
+  it('a shipped line carries its stability as a chip in the card head; a future one has none', async () => {
     await render(FEED, ROADMAP);
     const [next, live, superseded] = rows();
-    const meter = (r: HTMLElement) => r.querySelector('.stb sc-stability-meter .m');
-    expect(meter(next)?.classList.contains('none')).withContext('4.11 has not shipped').toBeTrue();
-    expect(meter(live)?.classList.contains('weak')).withContext('56 % is weak, so warning amber').toBeTrue();
-    expect(meter(live)?.querySelector('.pct')?.textContent?.replace(/\s/g, '')).toBe('56%');
-    expect(meter(superseded)?.classList.contains('weak')).toBeFalse();
-    // The gutter sits left of the card, in the rail's column. Under 760 px (Karma renders 749)
-    // it folds above the card instead, so the stb must sit above the card there.
-    const card = live.querySelector('.card')!.getBoundingClientRect();
-    const stb = live.querySelector('.stb')!.getBoundingClientRect();
-    if (window.matchMedia('(max-width: 760px)').matches) {
-      expect(stb.bottom).toBeLessThanOrEqual(card.top + 1);
-    } else {
-      expect(stb.right).toBeLessThanOrEqual(card.left + 1);
-    }
+    const chip = (r: HTMLElement) => r.querySelector('.ch .stb a.chip');
+    expect(chip(next)).withContext('4.11 has not shipped').toBeNull();
+    expect(chip(live)?.getAttribute('data-word')).withContext('56 % is wackelig').toBe('wackelig');
+    expect(chip(live)?.textContent?.replace(/\s/g, '')).toContain('56%');
+    expect(chip(live)?.getAttribute('href')).toBe('/verse/patches/4.10#stabilitaet');
+    expect(chip(superseded)?.classList.contains('finished')).withContext('a finished line is a plain chip').toBeTrue();
+    expect(chip(superseded)?.querySelector('.ind')).toBeNull();
   });
 
   it('an empty query brings the stack back untouched', async () => {

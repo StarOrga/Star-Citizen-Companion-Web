@@ -24,9 +24,8 @@ import { TEASER_BOX, TeaserStripDirective, teaserFit, type TeaserBox, type Tease
 import type { RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
-import { StabilityMeterComponent } from './stability-meter.component';
+import { StabilityChipComponent, StabilityChipData, chipFromVerdict } from './stability-chip.component';
 import { subVersionRows, type SubVersionRow } from './patch-timeline';
-import { StabilityHistoryComponent } from './stability-history.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -58,7 +57,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   standalone: true,
   imports: [
     TranslatePipe, RouterLink, RouterOutlet, PatchMonitorComponent,
-    StabilityHistoryComponent, StabilityMeterComponent, PatchFindResultsComponent,
+    StabilityChipComponent, PatchFindResultsComponent,
     TeaserStripDirective,
     ScTooltipDirective,
   ],
@@ -100,9 +99,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" [bare]="embedded()" />
           }
 
-          @if (!stability.unavailable()) {
-            <sc-stability-history [verdicts]="stability.allTime()" [query]="query()" />
-          }
         }
 
         <!-- Legacy (β off) board keeps its own sticky search field. Embedded in
@@ -154,14 +150,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             @for (card of visible(); track card.line; let i = $index) {
               <li class="node" [attr.data-status]="card.status" [class.hero]="card.status === 'live'"
                   [style.--in-delay]="i * 70 + 'ms'">
-                <!-- Quality mark in its own gutter, left of the rail: a bar
-                     meter + number, never the stage word's language. -->
-                <div class="stb">
-                  <sc-stability-meter [percent]="verdictFor(card)?.stability ?? null" [level]="verdictFor(card)?.level ?? null"
-                                      [label]="meterLabel(card)" />
-                </div>
                 <div class="card">
-                  <div class="ch">
+                  <div class="ch" [class.has-chip]="!!chipFor(card)">
                     <a class="card-link" [routerLink]="['/verse/patches', card.line]"
                        [queryParams]="query() ? { q: query() } : null"
                        [attr.aria-label]="cardLabel(card)"></a>
@@ -198,6 +188,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                         </span>
                       }
                     </span>
+                    @if (chipFor(card); as ch) {
+                      <span class="stb"><sc-stability-chip [data]="ch" [live]="card.status === 'live'" /></span>
+                    }
                   </div>
 
                   @if (monitorInCard() && card === stack().next) {
@@ -223,8 +216,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                               @if (row.hotfix) { <span class="tag hf">{{ 'news.patch.hotfix' | translate }}</span> }
                             </span>
                             <span class="svs">
-                              @if (row.stability !== null) {
-                                <sc-stability-meter [percent]="row.stability" [level]="row.level" label="" />
+                              @if (rowChip(row, card); as rc) {
+                                <sc-stability-chip [data]="rc" [linked]="false" />
                               } @else {
                                 <em>{{ 'news.patch.stability.meter.early' | translate }}</em>
                               }
@@ -337,10 +330,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
     /* The timeline: stability gutter, one rail, patch cards (future → past).
        Cards are translucent so the scene behind the subpage shows through. */
-    .stack { list-style: none; margin: 0; padding: 0 0 0 112px; position: relative; display: flex; flex-direction: column; gap: 14px; }
+    .stack { list-style: none; margin: 0; padding: 0 0 0 36px; position: relative; display: flex; flex-direction: column; gap: 14px; }
     .stack.skeleton { padding-left: 24px; }
     .stack::before {
-      content: ''; position: absolute; left: 92px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px;
+      content: ''; position: absolute; left: 16px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px;
       background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 55%, transparent), var(--sc-success) 45%, color-mix(in srgb, var(--sc-fg-2) 35%, transparent));
     }
     .stack.skeleton::before { left: 9px; }
@@ -353,7 +346,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .row::before { left: -20px; top: 50%; transform: translateY(-50%); }
     .node[data-status='live']::before { width: 14px; height: 14px; left: -28px; top: 28px; background: var(--sc-success); box-shadow: var(--sc-glow); }
     .node[data-status='next']::before, .node[data-status='ptu']::before, .node[data-status='evocati']::before { background: var(--sc-accent); }
-    .stb { position: absolute; left: -112px; top: 16px; width: 76px; display: flex; justify-content: flex-end; }
+    .ch.has-chip { grid-template-columns: 116px 150px minmax(0, 1fr) auto; }
+    .stb { position: relative; z-index: 2; display: inline-flex; justify-content: flex-end; }
 
     .card {
       position: relative; overflow: hidden;
@@ -486,7 +480,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       .node::before { left: -17px; top: 14px; }
       .node[data-status='live']::before { left: -19px; top: 12px; }
       .fold::before { left: -16px; }
-      .stb { position: static; width: auto; justify-content: flex-start; margin-bottom: 6px; }
+      .ch.has-chip { grid-template-columns: 104px minmax(0, 1fr); }
+      .stb { grid-column: 1 / -1; justify-content: flex-start; }
       .ch { grid-template-columns: 104px minmax(0, 1fr); gap: 8px 10px; padding: 12px; }
       .sent { grid-column: 1 / -1; }
       .teaser { --tz-w: 84px; --tz-h: 52px; --tz-rest: 34px; }
@@ -625,10 +620,17 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   relTime(iso: string): string {
     return relativeTime(iso, this.now(), (k, p) => this.t.instant(k, p));
   }
-  /** Caption under a card's meter: "Endstand" on a closed line, "noch nicht live" before release. */
-  meterLabel(card: StackCard): string | null {
-    if (this.verdictFor(card)) return card.status === 'superseded' ? this.t.instant('news.patch.stability.meter.final') : null;
-    return card.liveAt === null ? this.t.instant('news.patch.stability.meter.notLive') : '';
+  /** Chip of a card: LIVE and finished lines only — a patch still in a test ring has no number to report. */
+  chipFor(card: StackCard): StabilityChipData | null {
+    const v = this.verdictFor(card);
+    if (!v) return null;
+    const prev = this.stability.previousOf(card.line);
+    return chipFromVerdict(v, { previous: prev?.percent ?? null, previousLabel: prev?.line ?? null, finished: card.status === 'superseded' });
+  }
+  /** Chip of one version row of a LIVE line (null while the build has no number). */
+  rowChip(row: SubVersionRow, card: StackCard): StabilityChipData | null {
+    if (row.stability === null) return null;
+    return { line: card.line, percent: row.stability, early: false, finished: card.status === 'superseded', previous: null, previousLabel: null };
   }
 
   readonly olderLines = computed(() => this.stack().older.map((c) => c.line || '…').join(' · '));

@@ -54,9 +54,8 @@
             <span class="feat-k"><b>● {{ 'verse.hub.channel.live' | translate }}</b>@if (liveDays(); as d) { · {{ sinceKey(d) | translate: { n: d } }}} @else if (liveDays() === 0) { · {{ 'verse.hub.liveSinceToday' | translate }}}</span>
             <span class="feat-h">
               <span class="feat-t">{{ 'verse.hub.patchTitle' | translate: { v: lv.version } }}</span>
-              <span class="verdict" [attr.data-verdict]="verdict() ?? 'none'">{{ ('verse.hub.verdict.' + (verdict() ?? 'none')) | translate }}</span>
+              @if (lv.chip) { <sc-stability-chip [data]="lv.chip" [live]="true" [linked]="false" /> }
             </span>
-            <ng-container *ngTemplateOutlet="kv; context: { $implicit: lv }" />
           </span>
         </a>
       } @else {
@@ -70,7 +69,7 @@
               <b>{{ ch.version }}</b>
               <span>@if (ch.sinceDays !== null) {{{ sinceKey(ch.sinceDays) | translate: { n: ch.sinceDays } }}} @else {–}@if (ch.wave !== null) { · {{ 'verse.hub.wave' | translate: { n: ch.wave } }}}</span>
             </span>
-            <ng-container *ngTemplateOutlet="kv; context: { $implicit: ch }" />
+            @if (ch.chip) { <span class="ch-chip"><sc-stability-chip [data]="ch.chip" [linked]="false" /></span> }
           </a>
         } @else {
           <div class="ch off" [attr.data-ch]="ch.kind">
@@ -119,15 +118,3 @@
   }
 </ng-template>
 
-<ng-template #kv let-c>
-  <span class="kv">
-    <span class="kv-l">{{ 'verse.hub.kv.stability' | translate }}</span>
-    <span class="kv-v">{{ c.stats.stability.value !== null ? ('verse.hub.kv.pct' | translate: { n: c.stats.stability.value }) : '–' }}</span>
-    <span class="kv-d" [attr.data-trend]="c.stats.stability.trend">{{ delta(c.stats.stability, true) }}</span>
-    <span class="kv-c">{{ c.stats.vs ? ('verse.hub.vs' | translate: { v: c.stats.vs }) : '–' }}</span>
-    <span class="kv-l">{{ 'verse.hub.kv.issues' | translate }}</span>
-    <span class="kv-v">{{ c.stats.issues.level !== null ? (('verse.hub.issueWord.' + c.stats.issues.level) | translate) : '–' }}</span>
-    <span class="kv-d" [attr.data-trend]="c.stats.issues.trend">{{ delta(c.stats.issues, false) }}</span>
-    <span class="kv-c">{{ c.stats.vs ? ('verse.hub.vs' | translate: { v: c.stats.vs }) : '–' }}</span>
-  </span>
-</ng-template>

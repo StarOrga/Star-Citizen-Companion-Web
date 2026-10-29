@@ -12,7 +12,7 @@
         <!-- Entrance only (CSS, gone after the sequence / under reduced motion): letterbox bars and the comet that lights the constellation. -->
         <i class="lb lb-t" aria-hidden="true"></i><i class="lb lb-b" aria-hidden="true"></i>
         <i class="comet" aria-hidden="true"></i>
-        <sc-briefing-beacons [sunLink]="sunLink()" [version]="kicker()?.version ?? null" [stability]="kicker()?.stability ?? null"
+        <sc-briefing-beacons [sunLink]="sunLink()" [version]="kicker()?.version ?? null" [stability]="kicker()?.stability ?? null" [trend]="kicker()?.trend ?? null"
                              [skyReady]="skyReady()" [points]="points()" [lit]="lit()" [total]="total" [litSet]="litSet()"
                              [patchLine]="starPatch()" />
 

@@ -7,7 +7,8 @@ import { relativeTime } from '../../../news/relative-time';
 import type { VerseDigestItem, VerseDoor } from '../../data/verse.models';
 import { verseItemLink } from '../verse-item-link';
 import { AccordionIntent } from './briefing-accordion';
-import { HubChannel, HubStat, deltaText, verdictWord } from './briefing-hub';
+import { StabilityChipComponent } from '../../../news/stability-chip.component';
+import { HubChannel } from './briefing-hub';
 
 /** The mosaic's six slots under the gallery feature: one 2×2, one 2×1, four small; newer = bigger. */
 export const MOSAIC_SLOTS = ['m1', 'm2', 's1', 's2', 's3', 's4'] as const;
@@ -21,15 +22,15 @@ export const MOSAIC_SLOTS = ['m1', 'm2', 's1', 's2', 's3', 's4'] as const;
  *
  * - News: an accordion, the newest entry open, hover intent in TS
  *   ({@link AccordionIntent}); leaving the list keeps the open entry.
- * - Patches: the LIVE patch's RSI image with a verdict chip and the
- *   Stabilität / Bekannte Probleme grid, then the fixed Hotfix / PTU / Evocati
- *   slots in the same grid and wording ("gerade keiner im Lauf" when quiet).
+ * - Patches: the LIVE patch's RSI image with its stability chip, then the fixed
+ *   Hotfix / PTU / Evocati slots, each with its own chip (Evocati none) and the
+ *   same wording ("gerade keiner im Lauf" when quiet).
  * - Galerie: the newest image, then a dense mosaic of up to six (only filled tiles).
  */
 @Component({
   selector: 'sc-briefing-hub',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, NgTemplateOutlet],
+  imports: [RouterLink, TranslatePipe, NgTemplateOutlet, StabilityChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing-hub.component.html',
   styleUrl: './briefing-hub.component.scss',
@@ -52,7 +53,6 @@ export class BriefingHubComponent {
   readonly slots = MOSAIC_SLOTS;
   private readonly translate = inject(TranslateService);
 
-  readonly verdict = computed(() => verdictWord(this.live()?.stats.stability.value ?? null));
   /** Image URLs that failed to load: the next candidate takes their place. */
   private readonly broken = signal<ReadonlySet<string>>(new Set());
   /** More candidates than slots (see HUB_GALLERY): every shown tile is a real, linkable, loading picture. */
@@ -68,10 +68,6 @@ export class BriefingHubComponent {
 
   ago(iso: string): string {
     return relativeTime(iso, Date.now(), (k, p) => this.translate.instant(k, p));
-  }
-
-  delta(s: HubStat, arrows: boolean): string {
-    return deltaText(s, arrows);
   }
 
   /** A gallery picture failed to load: drop it so the next candidate fills its tile. */

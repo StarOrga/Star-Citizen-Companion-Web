@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { VersePoint } from '../../data/verse.models';
 import { BriefingSkyComponent } from './briefing-sky.component';
+import { TREND_GLYPH, StabilityTrend, stabilityWord } from '../../../news/patch-stability';
 import { splitChars } from './briefing.model';
 
 /** Quiet time (no scroll, no pointer movement, window focused) before the idle hint. */
@@ -33,9 +34,12 @@ export const IDLE_SHOW_MS = 5000;
   template: `
     @let sunName = 'verse.hub.sun' | translate;
     @let sunValue = version()
-      ? ((stability() !== null ? 'verse.hub.sunValue' : 'verse.hub.sunValueNoScore') | translate: { v: version(), n: stability() })
+      ? ((stability() !== null ? 'verse.hub.sunValue' : 'verse.hub.sunValueNoScore') | translate: { v: version() })
       : '';
-    <a class="sun-l" [routerLink]="sunLink()" [class.idle]="idle()" [attr.aria-label]="sunValue ? sunName + ' · ' + sunValue : sunName">
+    @let sunScore = stability() !== null
+      ? (trendGlyph() ? trendGlyph() + ' ' : '') + (('stability.word.' + word()) | translate) + ' ' + stability() + ' %'
+      : '';
+    <a class="sun-l" [routerLink]="sunLink()" [class.idle]="idle()" [attr.aria-label]="sunValue ? sunName + ' · ' + sunValue + (sunScore ? ' ' + sunScore : '') : sunName">
       @if (idle()) {
         <span class="ring" aria-hidden="true"></span>
       }
@@ -44,7 +48,7 @@ export const IDLE_SHOW_MS = 5000;
       <span class="lab warm" aria-hidden="true">
         <span class="lab-n">@for (ch of chars(sunName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>
         @if (sunValue) {
-          <span class="lab-v">{{ sunValue }}</span>
+          <span class="lab-v">{{ sunValue }}@if (sunScore) { <span class="sw" [attr.data-word]="word()">{{ sunScore }}</span>}</span>
         }
       </span>
     </a>
@@ -67,6 +71,10 @@ export class BriefingBeaconsComponent {
   readonly sunLink = input<string | readonly string[]>('/verse/patches');
   readonly version = input<string | null>(null);
   readonly stability = input<number | null>(null);
+  /** Trend against the previous patch (▲/▼/≈); null while provisional or without a comparison. */
+  readonly trend = input<StabilityTrend | null>(null);
+  readonly word = computed(() => stabilityWord(this.stability()) ?? 'wackelig');
+  readonly trendGlyph = computed(() => { const t = this.trend(); return t ? TREND_GLYPH[t] : ''; });
   readonly skyReady = input(false);
   readonly points = input<readonly VersePoint[] | null>(null);
   readonly lit = input(0);

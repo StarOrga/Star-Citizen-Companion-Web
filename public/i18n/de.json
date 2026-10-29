@@ -2459,16 +2459,8 @@
         "points": "{{count}} Punkte"
       },
       "stability": {
-        "title": "Stabilität",
-        "earlyShort": "früh",
-        "early": "Tag {{day}} von {{threshold}} – Einordnung noch vorläufig",
         "insufficient": "Noch zu wenig Daten für eine Einordnung.",
-        "historical": "Endstand – kein Tagesverlauf, der Patch lief vor dem Start der täglichen Messung.",
-        "score": "von 100 % Startwert",
         "component": {
-          "community": "Community",
-          "service": "Dienste",
-          "cig": "CIG Known Issues",
           "none": "keine Daten"
         },
         "componentHint": {
@@ -2476,41 +2468,14 @@
           "service": "Ungeplante Störungsminuten pro Tag laut RSI-Status (7 Tage), plus offene Störung",
           "cig": "Offene Einträge im Known-Issues-Artikel von CIG und deren Zuwachs über 7 Tage"
         },
-        "level": {
-          "1": "Alle Systeme nominal",
-          "2": "Leichte Turbulenzen",
-          "3": "Systeme beeinträchtigt",
-          "4": "Instabil",
-          "5": "Kritisch"
-        },
         "timeline": "Verlauf seit LIVE",
         "timelineAria": "Stabilität pro Tag seit LIVE, {{days}} Messpunkte",
-        "dayTitle": "{{date}}: {{score}} % – {{level}}, {{velocity}} neue Antworten/Tag",
         "hotfixMark": "Hotfix {{build}} am {{date}}",
-        "hotfixes": "{{count}} Hotfixes",
         "tickets": {
           "title": "Was die Community meldet",
-          "hint": "Issue-Council-Tickets aus den höchstbewerteten Antworten",
-          "votes": "{{count}} Stimmen",
           "empty": "Keine Tickets in den Top-Antworten."
         },
-        "kb": "{{count}} offene Known Issues laut CIG",
-        "cigFixes": "CIG: {{fixes}} Fixes in diesem Patch, {{ic}} davon aus dem Issue Council",
-        "source": "Quellen: Spectrum-Kommentare, RSI-Status, CIG Known Issues. Keine Issue-Council-Zahlen (Login-Pflicht).",
-        "history": {
-          "title": "Stabilität je Patch",
-          "hint": "Höher ist ruhiger. Endstand je LIVE-Patch; der aktuelle ist schraffiert, solange er früh ist",
-          "colAria": "Patch {{version}}: {{level}}",
-          "noData": "ohne Einordnung",
-          "colAriaScored": "Patch {{version}}: {{percent}} % stabil – {{level}}"
-        },
-        "badgeAria": "Stabilität von Patch {{version}}: {{percent}} % – {{level}}",
-        "deductions": "Jeder Patch startet bei 100 %; die Balken sind die Abzüge daraus.",
         "meter": {
-          "none": "Stabilität: noch keine Daten",
-          "aria": "Stabilität {{percent}} % – {{level}}",
-          "notLive": "noch nicht live",
-          "final": "Endstand",
           "early": "noch früh"
         }
       },
@@ -2549,6 +2514,7 @@
         "toc": "Abschnitte",
         "unknown": "Zu Alpha {{line}} liegen keine Patch-Daten vor.",
         "section": {
+          "stabilitaet": "Stabilität",
           "prep": "Wie bereite ich mich vor?",
           "prepPast": "Was war zu beachten?",
           "contents": "Was steckt drin?",
@@ -2731,6 +2697,83 @@
       "sinceDays": "Seit {{days}} Tagen",
       "toBoard": "Patch-Zentrale",
       "toNotes": "Patch-Notes lesen"
+    }
+  },
+  "stability": {
+    "word": {
+      "stabil": "Stabil",
+      "wackelig": "Wackelig",
+      "instabil": "Instabil"
+    },
+    "noData": "Zu wenig Daten",
+    "tip": {
+      "noData": "Zu wenig Daten für eine Einordnung",
+      "better": "{{d}} Punkte stärker als {{prev}} ({{p}} %)",
+      "worse": "{{d}} Punkte schwächer als {{prev}} ({{p}} %)",
+      "same": "etwa gleich wie {{prev}} ({{p}} %)",
+      "community": "davon {{c}} durch das Community-Urteil",
+      "early": "noch vorläufig",
+      "open": "Klick öffnet die Berechnung"
+    },
+    "long": {
+      "ghost": "{{prev}}: {{p}} %",
+      "bandInstabil": "Instabil · unter {{n}}",
+      "bandWackelig": "Wackelig · {{a}}–{{b}}",
+      "bandStabil": "Stabil · ab {{n}}",
+      "sumTitle": "So entstehen die {{n}} %",
+      "start": "Startwert jedes Patches",
+      "ded": {
+        "community": "Community-Signale",
+        "service": "Dienste",
+        "cig": "CIG Known Issues",
+        "verdict": "Community-Urteil"
+      },
+      "kbOpen": "{{n}} offen",
+      "votesN": "{{n}} Stimmen",
+      "total": "Stabilität",
+      "final": "Endstand – kein Tagesverlauf, dieser Patch lief vor dem täglichen Messen.",
+      "asOf": "Stand {{date}}",
+      "day": "Tag {{day}} von {{threshold}}",
+      "provisional": "Einordnung noch vorläufig",
+      "sources": "Quellen:",
+      "src": {
+        "replies": "{{n}} Forenantworten in {{threads}} Threads",
+        "outage": "{{n}} Störungsminuten (RSI-Status)",
+        "kb": "{{n}} Known Issues (CIG)",
+        "votes": "{{n}} Community-Stimmen"
+      },
+      "hatched": "Schraffiert: die ersten {{n}} Tage, in denen ein Hotfix das Bild noch kippen kann.",
+      "dayTitle": "{{date}}: {{score}} % – {{word}}, {{velocity}} neue Antworten/Tag",
+      "ticketsHint": "aus öffentlichen Forenantworten",
+      "mentions": "{{count}} Nennungen"
+    },
+    "vote": {
+      "title": "Community-Urteil",
+      "loading": "Urteile werden geladen …",
+      "tooFew": "Noch zu wenig Stimmen ({{n}} von {{min}}) – keine Korrektur",
+      "tooFewSub": "Die Stimmen werden gesammelt, die Verteilung bleibt bis zur Mindestmenge verborgen.",
+      "applied": "Community-Urteil: {{c}} ({{n}} Stimmen, Spanne ± {{hw}})",
+      "split": "Gespalten ({{a}} % stabil · {{b}} % instabil) – halbe Korrektur",
+      "splitSub": "Erfahrungen gehen auseinander.",
+      "confirmed": "Bestätigt – keine Korrektur",
+      "confirmedSub": "Die berechnete Zahl liegt im Rahmen des Community-Urteils.",
+      "sum": "{{n}} Stimmen · Korrektur {{c}}",
+      "yours": "dein Urteil",
+      "blindTitle": "Erst dein Urteil, dann die Zahl",
+      "ask": "Wie stabil läuft {{line}} bei dir?",
+      "mine": "Dein Urteil:",
+      "changeFrom": "änderbar ab {{time}}",
+      "hint": {
+        "stabil": "läuft, kaum Abbrüche",
+        "wackelig": "spielbar, aber nervig",
+        "instabil": "ständig Abbrüche"
+      },
+      "cannotJudge": "Kann ich nicht beurteilen",
+      "showNumber": "Zahl ohne Urteil anzeigen",
+      "tooSoon": "Änderbar frühestens {{h}} h nach deiner Abgabe.",
+      "rules": "Gezählt werden Accounts, die mindestens {{days}} Tage alt sind. Änderbar frühestens {{h}} h nach deiner Abgabe. Dein Urteil wird nie mit deinem Namen gezeigt.",
+      "signedOut": "Melde dich an, um mitzuurteilen.",
+      "signIn": "Anmelden"
     }
   },
   "p4k": {
@@ -5000,7 +5043,7 @@
         "link": "Verse"
       },
       "sun": "Patch-Status",
-      "sunValue": "LIVE {{v}} · Stabilität {{n}} %",
+      "sunValue": "LIVE {{v}} ·",
       "sunValueNoScore": "LIVE {{v}}",
       "newsEmpty": "Gerade keine News.",
       "patchesEmpty": "Noch keine Patch Notes.",
@@ -5008,25 +5051,6 @@
       "liveSince": "seit {{n}} Tagen",
       "liveSinceOne": "seit 1 Tag",
       "liveSinceToday": "seit heute",
-      "verdict": {
-        "stable": "stabil",
-        "shaky": "wackelig",
-        "troubled": "viele Probleme",
-        "none": "noch kein Urteil"
-      },
-      "kv": {
-        "stability": "Stabilität",
-        "issues": "Bekannte Probleme",
-        "pct": "{{n}} %"
-      },
-      "issueWord": {
-        "1": "kaum",
-        "2": "wenige",
-        "3": "einige",
-        "4": "viele",
-        "5": "schwere"
-      },
-      "vs": "vs. {{v}}",
       "channel": {
         "live": "Live",
         "hotfix": "Hotfix",

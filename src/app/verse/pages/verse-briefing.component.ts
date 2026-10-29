@@ -21,6 +21,8 @@ import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../news/news.service';
 import { PatchStabilityService } from '../../news/patch-stability.service';
+import { PatchStabilityVotesService } from '../../news/patch-stability-votes.service';
+import { stabilityTrend } from '../../news/patch-stability';
 import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
@@ -179,6 +181,7 @@ export class VerseBriefingComponent {
   private readonly auth = inject(AuthService);
   private readonly beta = inject(BetaService);
   private readonly stability = inject(PatchStabilityService);
+  private readonly votes = inject(PatchStabilityVotesService);
   private readonly translate = inject(TranslateService);
   private readonly chrome = inject(ShellChromeService);
   readonly enabled = this.beta.isEnabled('verse');
@@ -321,7 +324,13 @@ export class VerseBriefingComponent {
     const version = kickerVersion(patch?.channels, line);
     if (!version) return null;
     const v = line ? this.stability.verdictFor(line) : null;
-    return { version, stability: v && !v.insufficient && v.stability !== null ? Math.round(v.stability) : null };
+    const base = v && !v.insufficient && v.stability !== null ? v.stability : null;
+    if (base === null || !v) return { version, stability: null, trend: null };
+    // The same number the LIVE chip shows: computed stability plus the community correction (once the votes are loaded).
+    const corr = this.votes.line() === v.line ? (this.votes.correctionFor(base)?.correction ?? 0) : 0;
+    const shown = Math.min(100, Math.max(0, Math.round(base + corr)));
+    const prev = this.stability.previousOf(v.line);
+    return { version, stability: shown, trend: v.early ? null : stabilityTrend(shown, prev?.percent ?? null) };
   });
 
   // ── β shell: hub data ────────────────────────────────────────────────
@@ -468,6 +477,10 @@ export class VerseBriefingComponent {
     const on = (): boolean => this.enabled() && this.shell();
     effect(() => {
       if (on()) void this.stability.load();
+    });
+    effect(() => {
+      const line = this.hubLive()?.line;
+      if (on() && line) untracked(() => this.votes.ensure(line));
     });
     // Auto switch every HERO_MS; any switch (chevron or auto) restarts the clock.
     effect((onCleanup) => {

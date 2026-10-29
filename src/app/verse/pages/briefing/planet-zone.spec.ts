@@ -9,6 +9,7 @@ import { NewsListComponent } from '../../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../../news/news.service';
 import type { PatchLineGroup } from '../../../news/patch-notes';
 import { PatchStabilityService } from '../../../news/patch-stability.service';
+import { PatchStabilityVotesService } from '../../../news/patch-stability-votes.service';
 import type { StabilityVerdict } from '../../../news/patch-stability';
 import { VerseApiService } from '../../data/verse-api.service';
 import { VerseDigest, VerseDigestItem } from '../../data/verse.models';
@@ -17,7 +18,7 @@ import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing
 import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
 import { INTRO_FLAG } from './briefing.model';
 import {
-  deltaText, holoBody, hubChannel, hubChannels, hubGallery, hubStats, kickerVersion, lineOf, patchImage, previousLine, verdictWord,
+  holoBody, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
 import { TX_CHARGE_MS, TX_CHARS_PER_S, TX_HOLD_MS, TX_OUT_MS, TX_REVEAL_MS } from './briefing-transmit.component';
 
@@ -37,28 +38,13 @@ const verdict = (line: string, level: 1 | 2 | 3 | 4 | 5 | null, stability: numbe
   ({ line, level, stability, kbOpen, insufficient } as unknown as StabilityVerdict);
 
 describe('Verse hub — verdict + patch grid model', () => {
-  it('keeps the verdict thresholds in one function: stabil >= 75, wackelig 45–74, viele Probleme < 45', () => {
-    expect(verdictWord(100)).toBe('stable');
-    expect(verdictWord(75)).toBe('stable');
-    expect(verdictWord(74.9)).toBe('shaky');
-    expect(verdictWord(45)).toBe('shaky');
-    expect(verdictWord(44)).toBe('troubled');
-    expect(verdictWord(null)).toBeNull();
-  });
-
-  it('compares Stabilität + Bekannte Probleme with the predecessor; worse is a trend, never an error', () => {
-    const s = hubStats(verdict('4.3', 4, 50, 30), verdict('4.2', 2, 79, 16), '4.2');
-    expect(s.stability).toEqual({ value: 50, delta: -29, trend: 'worse' });
-    expect(s.issues).toEqual({ value: 30, delta: 14, trend: 'worse', level: 4 });
-    expect(deltaText(s.stability, true)).toBe('▼ 29');
-    expect(deltaText(s.issues, false)).toBe('+14');
-    const up = hubStats(verdict('4.3', 2, 58, 13), verdict('4.2', 4, 50, 16), '4.2');
-    expect(up.stability.trend).toBe('better');
-    expect(deltaText(up.issues, false)).toBe('−3');
-    const none = hubStats(null, verdict('4.2', 2, 79), '4.2');
-    expect(none.stability.value).toBeNull();
-    expect(deltaText(none.stability, true)).toBe('–');
-    expect(hubStats(verdict('4.3', null, null, null, true), null, null).issues.level).toBeNull();
+  it('hands the LIVE row a chip with the previous line as comparison; worse is a trend, never an error', () => {
+    const known = ['4.3', '4.2'];
+    const v = (l: string): StabilityVerdict | null => ({ '4.3': verdict('4.3', 4, 50, 30), '4.2': verdict('4.2', 2, 79, 16) })[l] ?? null;
+    const live = hubChannel('live', { live: '4.3.1' }, known, v);
+    expect(live.chip).toEqual(jasmine.objectContaining({ line: '4.3', percent: 50, previous: 79, previousLabel: '4.2', finished: false }));
+    const none = hubChannel('live', { live: '4.3.1' }, known, () => null);
+    expect(none.chip).toBeNull();
   });
 
   it('builds fixed Hotfix / PTU / Evocati slots, each against its own predecessor, quiet when not running', () => {
@@ -66,14 +52,12 @@ describe('Verse hub — verdict + patch grid model', () => {
     const v = (l: string): StabilityVerdict | null => ({ '4.3': verdict('4.3', 4, 50, 30), '4.2': verdict('4.2', 2, 79, 16) })[l] ?? null;
     const channels = { live: '4.3.1', ptu: '4.4.0', evocati: '4.5' };
     const live = hubChannel('live', channels, known, v);
-    expect([live.version, live.line, live.stats.vs, live.stats.stability.value]).toEqual(['4.3.1', '4.3', '4.2', 50]);
+    expect([live.version, live.line, live.chip?.previousLabel, live.chip?.percent]).toEqual(['4.3.1', '4.3', '4.2', 50]);
     const rows = hubChannels(channels, known, v);
     expect(rows.map((r) => r.kind)).toEqual(['hotfix', 'ptu', 'evocati']);
     expect(rows[0].version).withContext('no hotfix in the data → quiet slot').toBeNull();
-    expect(rows[1].stats.vs).toBe('4.3 PTU');
-    expect(rows[2].stats.vs).toBe('4.4 Evocati');
-    expect(rows[1].stats.stability.value).withContext('only LIVE lines are measured').toBeNull();
-    expect(hubChannel('hotfix', { live: '4.3.1', hotfix: '4.3.2' }, known, v).stats.vs).toBe('4.3.1');
+    expect(rows[1].chip?.percent).withContext('no channelInfo → no number').toBeNull();
+    expect(rows[2].chip).withContext('Evocati never carries a chip').toBeNull();
     expect(hubChannels(null, known, v).every((r) => r.version === null)).toBeTrue();
     expect(lineOf('4.3.1')).toBe('4.3');
     expect(previousLine('4.3', known)).toBe('4.2');
@@ -158,10 +142,11 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy(), flags: () => ({}) } },
         { provide: BetaService, useValue: { isEnabled: (a: string) => () => !!beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
+        { provide: PatchStabilityVotesService, useValue: { line: () => null, correctionFor: () => null, ensure: () => undefined } },
         {
           provide: PatchStabilityService,
           useValue: {
-            load: jasmine.createSpy().and.resolveTo(), allTime: () => [],
+            load: jasmine.createSpy().and.resolveTo(), allTime: () => [], previousOf: () => null,
             verdictFor: (l: string) => (l === '4.3' ? verdict('4.3', 3, 50, 30) : l === '4.2' ? verdict('4.2', 2, 79, 16) : null),
           },
         },
@@ -265,7 +250,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     discardPeriodicTasks();
   }));
 
-  it('hub columns: heads as anchors, a 4-entry accordion, LIVE feature with verdict chip and the fixed channel slots', fakeAsync(() => {
+  it('hub columns: heads as anchors, a 4-entry accordion, LIVE feature with its stability chip and the fixed channel slots', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     tick();
@@ -277,13 +262,15 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('.acc .acc-i.open a')?.getAttribute('href')).toBe('/verse/news?item=f1');
     const feat = el.querySelector<HTMLAnchorElement>('.pcol a.feat')!;
     expect(feat.getAttribute('href')).toBe('/verse/patches/4.3');
-    expect(feat.querySelector('.verdict')?.getAttribute('data-verdict')).toBe('shaky');
-    expect(feat.querySelector('.kv')?.textContent).toContain('▼ 29');
-    expect(feat.querySelector('.kv-d[data-trend="worse"]')).not.toBeNull();
+    const chip = feat.querySelector('sc-stability-chip .chip')!;
+    expect(chip.getAttribute('data-word')).toBe('wackelig');
+    expect(chip.querySelector('.ind')?.textContent).withContext(' 50 % against 79 % of 4.2').toBe('▼');
+    expect(feat.querySelector('a.chip')).withContext('the row is the link, no anchor inside an anchor').toBeNull();
+    expect(el.querySelector('.kv, .verdict')).toBeNull();
     const slots = Array.from(el.querySelectorAll<HTMLElement>('.pcol .ch')).map((c) => [c.dataset['ch'], c.classList.contains('off')]);
     expect(slots).toEqual([['hotfix', true], ['ptu', false], ['evocati', true]]);
     expect(el.querySelector('.ch.off .quiet')?.textContent).toContain('verse.hub.channelOff');
-    expect(el.querySelectorAll('.ch .kv').length).withContext('same grid in every running channel').toBe(1);
+    expect(el.querySelectorAll('.ch .ch-chip').length).withContext('the running PTU row carries a chip, Evocati none').toBe(1);
     expect(el.querySelector<HTMLAnchorElement>('.gal a.feat')?.getAttribute('href')).toBe('/verse/gallery?image=g1');
     expect(el.querySelectorAll('.mosaic > .blank').length).withContext('never an empty tile').toBe(0);
     expect(el.querySelectorAll('.mosaic > *').length).withContext('one picture only: no mosaic tiles to fill').toBe(0);

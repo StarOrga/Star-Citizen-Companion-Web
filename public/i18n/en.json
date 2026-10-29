@@ -2459,16 +2459,8 @@
         "points": "{{count}} points"
       },
       "stability": {
-        "title": "Stability",
-        "earlyShort": "early",
-        "early": "Day {{day}} of {{threshold}} – verdict still provisional",
         "insufficient": "Not enough data for a verdict yet.",
-        "historical": "Final state – no daily timeline, this patch ran before daily sampling started.",
-        "score": "of a 100 % start",
         "component": {
-          "community": "Community",
-          "service": "Services",
-          "cig": "CIG known issues",
           "none": "no data"
         },
         "componentHint": {
@@ -2476,41 +2468,14 @@
           "service": "Unplanned degraded minutes per day per RSI Status (7 days), plus any open incident",
           "cig": "Open entries in CIG's Known Issues article and their 7-day growth"
         },
-        "level": {
-          "1": "All systems nominal",
-          "2": "Minor turbulence",
-          "3": "Systems degraded",
-          "4": "Unstable",
-          "5": "Critical"
-        },
         "timeline": "Since LIVE",
         "timelineAria": "Stability per day since LIVE, {{days}} samples",
-        "dayTitle": "{{date}}: {{score}} % – {{level}}, {{velocity}} new replies/day",
         "hotfixMark": "Hotfix {{build}} on {{date}}",
-        "hotfixes": "{{count}} hotfixes",
         "tickets": {
           "title": "What the community reports",
-          "hint": "Issue Council tickets from the top-voted replies",
-          "votes": "{{count}} votes",
           "empty": "No tickets in the top replies."
         },
-        "kb": "{{count}} open known issues per CIG",
-        "cigFixes": "CIG: {{fixes}} fixes in this patch, {{ic}} of them from the Issue Council",
-        "source": "Sources: Spectrum comments, RSI Status, CIG Known Issues. No Issue Council counts (login required).",
-        "history": {
-          "title": "Stability per patch",
-          "hint": "Higher is calmer. End state per LIVE patch; the current one is hatched while it is early",
-          "colAria": "Patch {{version}}: {{level}}",
-          "noData": "no verdict",
-          "colAriaScored": "Patch {{version}}: {{percent}} % stable – {{level}}"
-        },
-        "badgeAria": "Stability of patch {{version}}: {{percent}} % – {{level}}",
-        "deductions": "Every patch starts at 100 %; the bars are what was taken off.",
         "meter": {
-          "none": "Stability: no data yet",
-          "aria": "Stability {{percent}}% – {{level}}",
-          "notLive": "not live yet",
-          "final": "Final",
           "early": "too early"
         }
       },
@@ -2549,6 +2514,7 @@
         "toc": "Sections",
         "unknown": "No patch data for Alpha {{line}}.",
         "section": {
+          "stabilitaet": "Stability",
           "prep": "How do I prepare?",
           "prepPast": "What you needed to know",
           "contents": "What's in it?",
@@ -2731,6 +2697,83 @@
       "sinceDays": "For {{days}} days",
       "toBoard": "Patch Central",
       "toNotes": "Read the patch notes"
+    }
+  },
+  "stability": {
+    "word": {
+      "stabil": "Stable",
+      "wackelig": "Shaky",
+      "instabil": "Unstable"
+    },
+    "noData": "Not enough data",
+    "tip": {
+      "noData": "Not enough data for a rating yet",
+      "better": "{{d}} points stronger than {{prev}} ({{p}} %)",
+      "worse": "{{d}} points weaker than {{prev}} ({{p}} %)",
+      "same": "about the same as {{prev}} ({{p}} %)",
+      "community": "of which {{c}} from the community verdict",
+      "early": "still provisional",
+      "open": "click to open the calculation"
+    },
+    "long": {
+      "ghost": "{{prev}}: {{p}} %",
+      "bandInstabil": "Unstable · below {{n}}",
+      "bandWackelig": "Shaky · {{a}}–{{b}}",
+      "bandStabil": "Stable · from {{n}}",
+      "sumTitle": "How the {{n}} % come about",
+      "start": "Every patch starts at",
+      "ded": {
+        "community": "Community signals",
+        "service": "Services",
+        "cig": "CIG Known Issues",
+        "verdict": "Community verdict"
+      },
+      "kbOpen": "{{n}} open",
+      "votesN": "{{n}} votes",
+      "total": "Stability",
+      "final": "Final state – no daily timeline, this patch ran before daily sampling started.",
+      "asOf": "As of {{date}}",
+      "day": "Day {{day}} of {{threshold}}",
+      "provisional": "rating still provisional",
+      "sources": "Sources:",
+      "src": {
+        "replies": "{{n}} forum replies in {{threads}} threads",
+        "outage": "{{n}} outage minutes (RSI Status)",
+        "kb": "{{n}} Known Issues (CIG)",
+        "votes": "{{n}} community votes"
+      },
+      "hatched": "Hatched: the first {{n}} days, when a hotfix can still turn the picture.",
+      "dayTitle": "{{date}}: {{score}} % – {{word}}, {{velocity}} new replies/day",
+      "ticketsHint": "from public forum replies",
+      "mentions": "{{count}} mentions"
+    },
+    "vote": {
+      "title": "Community verdict",
+      "loading": "Loading verdicts …",
+      "tooFew": "Not enough votes yet ({{n}} of {{min}}) – no correction",
+      "tooFewSub": "Votes are being collected; the distribution stays hidden until the minimum is reached.",
+      "applied": "Community verdict: {{c}} ({{n}} votes, range ± {{hw}})",
+      "split": "Split ({{a}} % stable · {{b}} % unstable) – half correction",
+      "splitSub": "Experiences differ.",
+      "confirmed": "Confirmed – no correction",
+      "confirmedSub": "The computed number is within the community verdict.",
+      "sum": "{{n}} votes · correction {{c}}",
+      "yours": "your verdict",
+      "blindTitle": "Your verdict first, then the number",
+      "ask": "How stable does {{line}} run for you?",
+      "mine": "Your verdict:",
+      "changeFrom": "changeable from {{time}}",
+      "hint": {
+        "stabil": "runs fine, hardly any drops",
+        "wackelig": "playable, but annoying",
+        "instabil": "constant drops"
+      },
+      "cannotJudge": "I can't judge this",
+      "showNumber": "Show the number without a verdict",
+      "tooSoon": "You can change it {{h}} h after your last vote at the earliest.",
+      "rules": "Only accounts at least {{days}} days old count. Changeable {{h}} h after your last vote at the earliest. Your verdict is never shown with your name.",
+      "signedOut": "Sign in to add your verdict.",
+      "signIn": "Sign in"
     }
   },
   "p4k": {
@@ -5000,7 +5043,7 @@
         "link": "Verse"
       },
       "sun": "Patch status",
-      "sunValue": "LIVE {{v}} · Stability {{n}} %",
+      "sunValue": "LIVE {{v}} ·",
       "sunValueNoScore": "LIVE {{v}}",
       "newsEmpty": "No news right now.",
       "patchesEmpty": "No patch notes yet.",
@@ -5008,25 +5051,6 @@
       "liveSince": "for {{n}} days",
       "liveSinceOne": "for 1 day",
       "liveSinceToday": "since today",
-      "verdict": {
-        "stable": "stable",
-        "shaky": "shaky",
-        "troubled": "many issues",
-        "none": "no verdict yet"
-      },
-      "kv": {
-        "stability": "Stability",
-        "issues": "Known issues",
-        "pct": "{{n}} %"
-      },
-      "issueWord": {
-        "1": "hardly any",
-        "2": "few",
-        "3": "some",
-        "4": "many",
-        "5": "severe"
-      },
-      "vs": "vs. {{v}}",
       "channel": {
         "live": "Live",
         "hotfix": "Hotfix",
