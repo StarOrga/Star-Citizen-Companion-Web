@@ -15,6 +15,14 @@ Decided in the concept `docs/concepts/2026-10-29-ki-spieluebersetzung.html`
   the R2 locale publish of a build, it enqueues a job per approved language. The job
   translates only `(key, sha256(english))` pairs that the translation memory (TM) does
   not hold yet, deduplicated by English text. A re-upload costs nothing.
+- **Deltas only — no initial full translation (user decision 2026-10-29, cost).**
+  Every automatic job has `mode = 'delta'`: its candidates are only the keys whose
+  English value is **new or changed against the previous build of the same channel**
+  (`base_build_id`, read from its R2 locale shards), minus what the TM already holds
+  and minus valid CIG translations. The untranslated back catalogue is never picked up
+  by a delta. With no previous build to compare against, the job is `skipped`. A
+  `mode = 'full'` job (the whole gap) exists only through the admin op `start_full`
+  and always parks as `awaiting_approval` with its estimate, whatever the caps say.
 - **Budget.** `upload_cap_usd` (default **20**) per upload, summed over all its
   languages; `monthly_cap_usd` (default **190**, the Max-20x monthly API credit minus a
   reserve) as a hard ledger per calendar month. An estimate above either cap parks the
@@ -61,7 +69,7 @@ Decided in the concept `docs/concepts/2026-10-29-ki-spieluebersetzung.html`
 |---|---|
 | `translation_settings` (singleton, `id = 1`) | `enabled bool default false`, `upload_cap_usd numeric default 20`, `monthly_cap_usd numeric default 190`, `lore_model text`, `rest_model text`, `updated_at`, `updated_by` |
 | `translation_languages` | `lang text pk` (short code as in `localization.py`), `cig_folder text`, `approved bool default false`, `approved_at`, `approved_by` |
-| `translation_jobs` | `id uuid pk`, `build_id uuid → codex_builds`, `lang`, `status` (`estimating · awaiting_approval · queued · submitted · validating · post_editing · publishing · published · failed · cancelled · skipped`), `string_count int`, `estimate_usd numeric`, `spent_usd numeric default 0`, `batch_ids jsonb default '[]'`, `stats jsonb` (qa counts, judge score), `error text`, `created_at`, `updated_at`, `approved_by` |
+| `translation_jobs` | `id uuid pk`, `build_id uuid → codex_builds`, `lang`, `mode text default 'delta'` (`delta · full`), `base_build_id uuid → codex_builds` (previous build of the channel, null for full), `status` (`estimating · awaiting_approval · queued · submitted · validating · post_editing · publishing · published · failed · cancelled · skipped`), `string_count int`, `estimate_usd numeric`, `spent_usd numeric default 0`, `batch_ids jsonb default '[]'`, `stats jsonb` (qa counts, judge score), `error text`, `created_at`, `updated_at`, `approved_by` |
 | `translation_ledger` | `id`, `job_id → translation_jobs`, `month date` (first of month, UTC), `usd numeric`, `created_at` — sum per month = spend |
 | `translation_glossary` | `id uuid pk`, `lang`, `source_term text`, `target_term text`, `category` (`term · label · unit · dnt`), `origin` (`cig · ai · admin`), `locked bool default false`, `needs_retranslate bool default false`, `updated_by`, `updated_at`; `unique (lang, lower(source_term))` |
 | `translation_glossary_history` | `id`, `glossary_id`, `before jsonb`, `after jsonb`, `actor uuid`, `at` — written by trigger |
@@ -86,7 +94,7 @@ as a public Worker path.
 | Function | Contract |
 |---|---|
 | `ingest-catalog` (changed) | keeps **all** languages in staging and the R2 locale publish (drop the de/en-only filter); after a **verified** publish, if `translation_settings.enabled`, inserts one `translation_jobs` row per approved language with status `estimating` (idempotent per `(build_id, lang)`), then fire-and-forget calls `translate-orchestrator` `{op:"tick"}` |
-| `translate-orchestrator` (new, service role / admin JWT) | `op: "tick"` (also run by pg_cron every 10 min): advances every open job one step — `estimating` (diff vs TM, dedupe, chunk, cost estimate with measured ratios: input ≈ 0.90 tok/char incl. keys, German output ≈ 1.74× English tokens, Opus +30 % thinking) → `queued` or `awaiting_approval` → `submitted` (create batch) → `validating` (stream results, QA) → `post_editing` (one retry batch for failures) → `publishing` (TM + overlay to R2, ledger row) → `published`. Resumable at every step, idempotent (compare-and-set on `status`). `op: "approve" \| "cancel"` `{job_id}` (admin). `op: "estimate"` `{build_id, lang}` dry run (admin). |
+| `translate-orchestrator` (new, service role / admin JWT) | `op: "tick"` (also run by pg_cron every 10 min): advances every open job one step — `estimating` (diff vs TM, dedupe, chunk, cost estimate with measured ratios: input ≈ 0.90 tok/char incl. keys, German output ≈ 1.74× English tokens, Opus +30 % thinking) → `queued` or `awaiting_approval` → `submitted` (create batch) → `validating` (stream results, QA) → `post_editing` (one retry batch for failures) → `publishing` (TM + overlay to R2, ledger row) → `published`. Resumable at every step, idempotent (compare-and-set on `status`). `op: "approve" \| "cancel"` `{job_id}` (admin). `op: "estimate"` `{build_id, lang, mode}` dry run (admin). `op: "start_full"` `{build_id, lang}` (admin) creates a `full` job that always waits in `awaiting_approval`. |
 | `translation-overlay` (new, signed-in user) | `GET ?lang=de[&build_id=…]` → the overlay JSON (`latest` without `build_id`); 401 without a user JWT; 404 when the language has no published overlay |
 
 Pure logic lives in importable modules next to the orchestrator
