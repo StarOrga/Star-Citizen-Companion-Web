@@ -32,6 +32,8 @@ const THUMB = { width: 480, height: 270 } as const;
  */
 @Component({
   selector: 'sc-my-constellations',
+  // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
+  host: { class: 'sc-track-page' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, TranslatePipe, ScTooltipDirective, VerseHeaderComponent],
   template: `

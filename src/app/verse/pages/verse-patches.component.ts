@@ -71,6 +71,8 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
  */
 @Component({
   selector: 'sc-verse-patches',
+  // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
+  host: { class: 'sc-track-page' },
   standalone: true,
   imports: [TranslatePipe, RouterLink, VerseHeaderComponent, PatchBoardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

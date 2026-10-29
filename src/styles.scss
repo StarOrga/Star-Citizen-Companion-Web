@@ -300,6 +300,13 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
 .sc-frame > .sc-track-wide { grid-column: wide-start / wide-end; }
 .sc-frame > .sc-track-narrow { grid-column: narrow-start / narrow-end; }
 .sc-frame > .sc-track-measure { grid-column: measure-start / measure-end; }
+/* The page frame inside a cinematic route: the stage (backdrop) stays edge to
+   edge, the page's content keeps the frame width and gutter (Verse subpages). */
+.sc-frame > .sc-track-page {
+  grid-column: full-start / full-end;
+  justify-self: center;
+  width: min(100% - 2 * var(--sc-page-gutter), var(--sc-content-max));
+}
 
 /* ============================================================
    HOLODECK MOTION — one system for every holo surface

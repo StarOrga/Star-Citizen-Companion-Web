@@ -39,6 +39,8 @@ const LADDER_SPAN = 3;
  */
 @Component({
   selector: 'sc-explorer-page',
+  // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
+  host: { class: 'sc-track-page' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,

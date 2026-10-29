@@ -760,7 +760,8 @@ import { avatarUrlOf } from './avatar-url';
       align-items: center;
       gap: 6px;
       margin: 4px 2px 2px;
-      padding-top: 6px;
+      /* Text on the items' left edge (.dropdown-item: 12px padding, here 2px margin). */
+      padding: 6px 10px 0;
       border-top: 1px solid var(--sc-border);
       font-family: var(--sc-font-display);
       font-size: max(0.66rem, var(--sc-fs-floor));
