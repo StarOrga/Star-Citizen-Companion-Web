@@ -123,7 +123,7 @@ describe('FusionBarComponent', () => {
     expect(el.querySelector('.tok')).toBeNull();
   });
 
-  it('plate: category on line one, "◂ origin" as a real anchor on line two, the full path on hover', async () => {
+  it('plate (brandcrumb): the brand name on line one, the path as real anchors on line two', async () => {
     layout.set('content');
     const fixture = await setup('/codex/ship/AEGS_Avenger');
     TestBed.inject(ShellChromeService).publishCrumbs({}, {
@@ -135,13 +135,12 @@ describe('FusionBarComponent', () => {
     });
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.plate .cat')?.textContent).toContain('nav.codex');
-    const back = el.querySelector('.plate a.back') as HTMLAnchorElement;
-    expect(back.getAttribute('href')).toBe('/codex/index?kind=ship');
-    expect(back.textContent).toContain('◂');
-    expect(back.textContent).toContain('Schiffe');
-    const path = Array.from(el.querySelectorAll('.plate .path li')).map((li) => li.textContent?.trim());
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('Star Citizen Companion');
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.plate .trail a'));
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/codex', '/codex/index?kind=ship']);
+    const path = Array.from(el.querySelectorAll('.plate .trail li')).map((li) => li.textContent?.trim());
     expect(path).toEqual(['nav.codex', 'Schiffe', 'Avenger Stalker']);
+    expect(el.querySelector('.plate .trail .here')?.getAttribute('aria-current')).toBe('page');
     expect(el.querySelector('.blogo')?.getAttribute('href')).toBe('/verse');
     // No page title row, filter hint, patch chip or main-menu switching in the subheader.
     expect(el.querySelector('.seg, .menu, .nav, .kindsw')).toBeNull();
@@ -172,7 +171,8 @@ describe('FusionBarComponent', () => {
     fixture.detectChanges();
     expect(el.getAttribute('data-mode')).toBe('docked');
     expect(el.classList).not.toContain('condensing');
-    expect(el.querySelector('.plate .cat')?.textContent).toContain('nav.verse');
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('Star Citizen Companion');
+    expect(el.querySelector('.plate .trail')?.textContent).toContain('nav.verse');
     expect(chrome.stageSearch()).toBe('docked');
     expect(chrome.dockProgress).toBe(1);
     expect(chrome.dockFull()).toBeTrue();
@@ -198,7 +198,7 @@ describe('FusionBarComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.getAttribute('data-mode')).toBe('hub');
-    expect(el.querySelector('.plate a.back')?.getAttribute('href')).toBe('/verse');
+    expect(el.querySelector('.plate .trail')?.textContent).toContain('nav.verse');
     expect(el.querySelector('sc-fusion-search')).not.toBeNull();
   });
 });

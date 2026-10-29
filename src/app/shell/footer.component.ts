@@ -117,8 +117,10 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       padding: var(--sc-space-2) var(--sc-page-gutter) calc(var(--sc-space-2) + var(--sc-safe-bottom, 0px));
       min-height: var(--sc-footer-h);
     }
-    /* Hub stage: the footer sits on the stage's bottom edge and scrolls along
-       (in flow, pulled up over the stage by its own height), infos centred. */
+    /* One footer position on every page (Verse is the reference): badge left,
+       links right, same paddings. Hub stage: the footer sits on the stage's bottom
+       edge (in flow, pulled up over the stage by its own height) and nothing else
+       changes - no centring, no absolute badge. */
     /* The bottom-right corner is the feedback launcher's, and beside it the share
        button's lane: the footer's last link ends before both. */
     @media (min-width: 721px) {
@@ -126,21 +128,19 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       /* The left corner is the hand-off launcher's (same lane as the feedback one):
          "Made by the Community" starts after it. */
       .sf { padding-inline-start: max(var(--sc-page-gutter), var(--sc-fab-clear-inline)); }
-      .sf-stage .sf-badge { left: max(var(--sc-page-gutter), var(--sc-fab-clear-inline)); }
     }
-    .sf-stage { margin-top: calc(-1 * var(--sc-footer-h)); justify-content: center; pointer-events: none; z-index: 2; }
+    .sf-stage { margin-top: calc(-1 * var(--sc-footer-h)); pointer-events: none; z-index: 2; }
     .sf-stage > * { pointer-events: auto; }
-    .sf-stage .sf-badge { position: absolute; left: var(--sc-page-gutter); bottom: var(--sc-space-2); }
     .sf-badge { position: relative; }
-    /* The badge sits over the scene (the HQ floor, the hub planet): its own soft
-       backdrop keeps emblem + wordmark legible on any camera pose. */
+    /* The badge sits straight on the page background: no pill, no panel, no blur -
+       only the emblem's glow (and a faint text shadow) keep it legible. */
     .sf-badge-btn {
       display: inline-flex; align-items: center; gap: var(--sc-space-2); cursor: pointer;
       min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3) 0 var(--sc-space-2); border: 0; font: inherit;
-      color: var(--sc-fg-1); border-radius: 999px;
-      background: color-mix(in srgb, var(--sc-bg-0) 62%, transparent); backdrop-filter: blur(6px);
+      color: var(--sc-fg-1); background: none; border-radius: 6px;
     }
     .sf-badge-btn img { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.35)); }
+    .sf-word { text-shadow: 0 0 10px rgba(0, 212, 255, 0.35); }
     .sf-word {
       font-family: var(--sc-font-display); font-size: max(0.58rem, var(--sc-fs-floor));
       letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.2; max-width: 11ch;
@@ -164,7 +164,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .sf-bubble p { margin: 0; }
     .sf-bubble .sf-tm { margin-top: var(--sc-space-2); opacity: 0.8; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .sf-links {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sc-space-2);
+      display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sc-space-2);
       font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
     }
     .sf-links a { color: var(--sc-fg-2); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
@@ -179,8 +179,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         padding-bottom: max(var(--sc-fab-clear-block), calc(var(--sc-bar-stack-h, 0px) + var(--sc-float-bottom) + var(--sc-space-3))); }
       .sf-word { display: none; }
       .sf-badge-btn { padding: 0 var(--sc-space-2); }
-      .sf-stage { align-items: center; }
-      .sf-stage .sf-badge { position: relative; left: auto; bottom: auto; align-self: flex-start; }
     }
 
     

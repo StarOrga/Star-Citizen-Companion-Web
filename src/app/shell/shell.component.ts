@@ -868,14 +868,14 @@ import { avatarUrlOf } from './avatar-url';
     /* Beta "shell": the account menu rides in the Fusion bar. On a phone the
        bar sits at the bottom, so the menu opens upward and the page keeps
        the bar's stack (capsule + kind chips / drawer) free at its end. */
-    .bar-account .avatar-btn { width: 40px; height: 40px; }
+    .bar-account .avatar-btn { width: var(--sc-head-item-h, 40px); height: var(--sc-head-item-h, 40px); }
     /* The real profile picture fills the round button; the initial stays the fallback. */
     .avatar-btn.has-img { padding: 0; overflow: hidden; }
     .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
     .mh-account, .bar-account { display: flex; align-items: center; gap: 8px; }
     .mh-account .avatar-btn {
-      width: 40px;
-      height: 40px;
+      width: var(--sc-head-item-h, 40px);
+      height: var(--sc-head-item-h, 40px);
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
     }
     /* Room of the pinned main header (it is position: fixed; MainHeaderComponent

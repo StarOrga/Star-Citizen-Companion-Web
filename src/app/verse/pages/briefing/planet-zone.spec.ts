@@ -80,12 +80,12 @@ describe('Verse hub — verdict + patch grid model', () => {
     expect(previousLine('4.2', [])).toBe('4.1');
   });
 
-  it('takes the LIVE patch image and falls back to the previous patch; gallery 1 + 6; kicker prefers the full version', () => {
+  it('takes the LIVE patch image and falls back to the previous patch; gallery 1 + 6 slots from 14 candidates; kicker prefers the full version', () => {
     expect(patchImage([group('4.4', false, false, [note('ptu.jpg')]), group('4.3', true, true, [note(null)]), group('4.2', false, true, [note('42.jpg')])])).toBe('42.jpg');
     expect(patchImage([group('4.3', true, true, [note('43.jpg')])])).toBe('43.jpg');
     expect(patchImage([])).toBeNull();
-    const items = Array.from({ length: 9 }, (_, i) => item(`g${i}`, null, 'gallery', { image: `${i}.jpg`, rank: i }));
-    expect(hubGallery(items).length).toBe(7);
+    const items = Array.from({ length: 20 }, (_, i) => item(`g${i}`, null, 'gallery', { image: `${i}.jpg`, rank: i }));
+    expect(hubGallery(items).length).withContext('spare candidates beyond the 1 + 6 slots').toBe(14);
     expect(kickerVersion({ live: '4.3.1' }, '4.3')).toBe('4.3.1');
     expect(kickerVersion({}, '4.3')).toBe('4.3');
     expect(holoBody('a '.repeat(100)).length).toBeLessThanOrEqual(112);
@@ -93,42 +93,44 @@ describe('Verse hub — verdict + patch grid model', () => {
 });
 
 describe('Verse hub — accordion hover intent', () => {
-  it('opens only after the pointer rested, ignores sweeps, finishes a started transition, returns to the newest on leave', fakeAsync(() => {
+  it('opens at once for a pointer that stands still or jitters, ignores sweeps, finishes a started transition, keeps the open entry on leave', fakeAsync(() => {
     const acc = new AccordionIntent(0);
-    // A quick vertical sweep: every move restarts the rest clock — nothing opens.
+    // A quick vertical sweep (40 px every 10 ms): nothing opens.
     for (let i = 1; i <= 3; i++) {
-      acc.move(i, 10, i * 40);
-      tick(ACC_REST_MS / 2);
+      acc.move(i, 10, i * 40, i * 10);
+      tick(10);
     }
     expect(acc.open()).toBe(0);
-    // Jitter within 2 px counts as rest.
-    acc.move(2, 10, 80);
-    tick(ACC_REST_MS - 50);
-    acc.move(2, 11, 81);
-    tick(50);
-    expect(acc.open()).toBe(2);
+    // A resting pointer: the first sample arms the rest timer, the next jittery one opens at once.
+    acc.move(2, 10, 80, 1000);
+    acc.move(2, 12, 81, 1016);
+    expect(acc.open()).withContext('jitter within the tolerance: no delay').toBe(2);
     expect(acc.transitioning).toBeTrue();
     // A new target during the transition waits for its end …
-    acc.move(3, 10, 120);
-    tick(ACC_REST_MS);
+    acc.move(3, 10, 120, 1100);
+    acc.move(3, 10, 121, 1116);
     expect(acc.open()).toBe(2);
     tick(ACC_TRANSITION_MS);
     expect(acc.open()).toBe(3);
     tick(ACC_TRANSITION_MS);
-    // … or is dropped when the pointer moved on before it could start.
-    acc.move(1, 10, 40);
-    tick(ACC_REST_MS);
-    expect(acc.open()).toBe(1);
-    acc.move(2, 10, 80);
-    tick(ACC_REST_MS);
-    acc.move(3, 10, 125);
-    tick(ACC_REST_MS - 50);
-    expect(acc.open()).withContext('2 was dropped, 3 still resting').toBe(1);
+    // A pointer that stops after a fast move opens its entry after the short rest — and then waits for the transition.
+    acc.move(2, 10, 80, 3000);
+    acc.move(2, 10, 81, 3016);
+    expect(acc.open()).toBe(2);
+    acc.move(3, 10, 200, 3020);
+    tick(ACC_REST_MS + 10);
+    expect(acc.open()).toBe(2);
     tick(ACC_TRANSITION_MS);
     expect(acc.open()).toBe(3);
-    tick(ACC_TRANSITION_MS);
+    // … and a target that was still waiting is dropped when the pointer moved on and left.
+    acc.move(1, 10, 40, 4000);
+    tick(ACC_REST_MS + 10);
+    acc.move(2, 10, 300, 4100);
     acc.leave();
-    expect(acc.open()).toBe(0);
+    tick(ACC_TRANSITION_MS * 2 + ACC_REST_MS);
+    expect(acc.open()).toBe(3);
+    // Leaving the list keeps the open entry.
+    expect(acc.open()).toBe(3);
     acc.destroy();
   }));
 });
@@ -283,7 +285,8 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('.ch.off .quiet')?.textContent).toContain('verse.hub.channelOff');
     expect(el.querySelectorAll('.ch .kv').length).withContext('same grid in every running channel').toBe(1);
     expect(el.querySelector<HTMLAnchorElement>('.gal a.feat')?.getAttribute('href')).toBe('/verse/gallery?image=g1');
-    expect(el.querySelectorAll('.mosaic > *').length).toBe(6);
+    expect(el.querySelectorAll('.mosaic > .blank').length).withContext('never an empty tile').toBe(0);
+    expect(el.querySelectorAll('.mosaic > *').length).withContext('one picture only: no mosaic tiles to fill').toBe(0);
     fixture.destroy();
     discardPeriodicTasks();
   }));

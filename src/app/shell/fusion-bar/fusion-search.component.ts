@@ -103,6 +103,15 @@ export const COMPANION_ROUTE = '/companion';
     '[class.compact]': 'compact()',
   },
   template: `
+    <!-- Phone (bottom placement): the closed search is a magnifier button; tapping opens the field. -->
+    <button #mag type="button" class="mag" (click)="openFromButton()"
+            [attr.aria-label]="'fusionBar.search.open' | translate"
+            [attr.aria-expanded]="open()"
+            [scTooltip]="'fusionBar.search.open' | translate" scTooltipTier="label">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
+      </svg>
+    </button>
     <div class="field" [class.focused]="open()" (pointerdown)="onFieldPointer($event)">
       <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
            stroke-linecap="round" aria-hidden="true">
@@ -157,15 +166,27 @@ export const COMPANION_ROUTE = '/companion';
         <span class="hint" aria-hidden="true"><kbd>{{ 'codex.search.bar.keys.ctrl' | translate }} K</kbd><kbd>/</kbd></span>
       }
       <ng-content select="[fsTrailing]" />
-      @if (open()) {
-        <button type="button" class="close" (click)="close(true)"
-                [attr.aria-label]="'codex.search.bar.close' | translate"
-                [scTooltip]="'codex.search.bar.close' | translate" scTooltipTier="label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
-          </svg>
-        </button>
-      }
+      <!-- One slot, always reserved: the clear ✕ from the first character (click clears AND
+           refocuses), else the close ✕ while open. The field never gives it up to text. -->
+      <span class="xslot">
+        @if (engine.input()) {
+          <button type="button" class="close clear" (click)="clearInput()"
+                  [attr.aria-label]="'fusionBar.search.clear' | translate"
+                  [scTooltip]="'fusionBar.search.clear' | translate" scTooltipTier="label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        } @else if (open()) {
+          <button type="button" class="close" (click)="close(true)"
+                  [attr.aria-label]="'codex.search.bar.close' | translate"
+                  [scTooltip]="'codex.search.bar.close' | translate" scTooltipTier="label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        }
+      </span>
     </div>
 
     @if (open()) {
@@ -406,6 +427,7 @@ export const COMPANION_ROUTE = '/companion';
       background: var(--sc-bg-2); color: var(--sc-fg-1);
       font-family: var(--sc-font-mono, monospace); font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1; white-space: nowrap;
     }
+    .xslot { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
     .close {
       flex: none; display: inline-flex; align-items: center; justify-content: center;
       width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--sc-fg-2); cursor: pointer;
@@ -544,12 +566,23 @@ export const COMPANION_ROUTE = '/companion';
       animation-name: fs-sheet-in;
     }
     :host(.bottom) .keys, :host(.bottom) .hint { display: none; }
+    .mag { display: none; }
+    :host(.bottom:not(.open)) .field { display: none; }
+    :host(.bottom:not(.open)) .mag {
+      display: inline-flex; align-items: center; justify-content: center; margin-left: auto;
+      width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--sc-radius-sm, 4px);
+      background: transparent; color: var(--sc-fg-1); cursor: pointer;
+    }
+    .mag svg { width: 22px; height: 22px; color: var(--sc-accent); }
+    .mag:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
+    .mag:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     /* Under the thumb the field needs its width: the context chip shows once the search is open. */
     :host(.bottom:not(.open)) .ctx-chip { display: none; }
     @media (pointer: coarse) {
       .hint, .keys { display: none; }
       .qi { width: 44px; height: 44px; opacity: 1; }
       .act, .more, .chip { min-height: 44px; }
+      .xslot { width: 44px; height: 44px; }
       .close { width: 44px; height: 44px; }
       .ctx-x { width: 36px; height: 36px; }
     }
@@ -609,6 +642,7 @@ export class FusionSearchComponent {
   readonly companionRoute = [COMPANION_ROUTE];
   readonly listboxId = 'fs-results';
   private readonly fieldRef = viewChild<ElementRef<HTMLInputElement>>('field');
+  private readonly magRef = viewChild<ElementRef<HTMLButtonElement>>('mag');
 
   readonly open = signal(false);
   private readonly url = signal(this.router.url);
@@ -788,6 +822,8 @@ export class FusionSearchComponent {
     if (seed != null) this.onInput(this.engine.input() + seed);
     this.openPanel();
     queueMicrotask(() => this.fieldRef()?.nativeElement.focus());
+    // Collapsed (phone) the field is only shown after the next render: focus again then.
+    if (this.placement() === 'bottom') setTimeout(() => this.fieldRef()?.nativeElement.focus());
   }
 
   openPanel(): void {
@@ -804,8 +840,17 @@ export class FusionSearchComponent {
     this.activeIndex.set(-1);
     this.openChange.emit(false);
     const field = this.fieldRef()?.nativeElement;
-    if (returnFocus) field?.focus({ preventScroll: true });
+    if (returnFocus && this.placement() === 'bottom') {
+      // Collapsed to the magnifier: focus goes back to it once it is shown.
+      setTimeout(() => this.magRef()?.nativeElement.focus({ preventScroll: true }));
+    } else if (returnFocus) field?.focus({ preventScroll: true });
     else field?.blur();
+  }
+
+  /** Phone: the magnifier opens the field and puts the caret in it (after the field is shown). */
+  openFromButton(): void {
+    this.openPanel();
+    setTimeout(() => this.fieldRef()?.nativeElement.focus());
   }
 
   onFieldPointer(ev: PointerEvent): void {
@@ -823,6 +868,12 @@ export class FusionSearchComponent {
     this.addFailed.set(false);
   }
 
+  /** The ✕ in the field: empties it and puts the caret back in, ready to type. */
+  clearInput(): void {
+    this.onInput('');
+    this.focus();
+  }
+
   dropContext(): void {
     this.contextDropped.set(true);
     this.fieldRef()?.nativeElement.focus();
@@ -838,6 +889,8 @@ export class FusionSearchComponent {
         this.close();
         return;
       }
+      // A page with its own search field (admin feedback) takes the chord while it is on screen.
+      if (this.chrome.focusPageSearch()) return;
       // A hub stage with its own search line on screen keeps it (landing terminal).
       if (this.chrome.stageSearch() === 'stage' && this.hub.activate()) return;
       this.focus();

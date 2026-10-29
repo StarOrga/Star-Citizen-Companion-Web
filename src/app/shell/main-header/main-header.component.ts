@@ -103,7 +103,11 @@ export const MAIN_NAV_SLOT_PX = 112;
         /* Where the corners stand: the feedback launcher's inset + the safe areas. */
         --_x: max(var(--sc-fab-inset), env(safe-area-inset-left, 0px));
         --_xr: max(var(--sc-fab-inset), env(safe-area-inset-right, 0px));
-        --_top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-fab-inset) + env(safe-area-inset-top, 0px));
+        --_top: var(--sc-chrome-top);
+        /* One centre line for brand, nav, apps and avatar: every control is this tall. */
+        --_item: var(--sc-head-item-h, 40px);
+        /* Where a control's top lands on the docked bar (60px, same top): centred in it. */
+        --_dock-top: calc(var(--sc-chrome-top) + (var(--sc-sub-h) - var(--_item)) / 2);
         /* The docked bar the corners glide into: its content edge (border + padding). */
         --_rail: calc((100% - var(--sc-dock-w)) / 2 + 1px + var(--sc-space-4));
         --_p: var(--sc-dock-p, 0);
@@ -145,15 +149,17 @@ export const MAIN_NAV_SLOT_PX = 112;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 34px;
+        height: var(--_item);
       }
       /* Brand: the logo is the anchor, top-left at the inset, gliding to the docked bar's logo slot. */
       .brand {
         position: absolute;
         z-index: 1;
         left: calc(var(--_x) * (1 - var(--_p)) + var(--_rail) * var(--_p));
-        top: calc(var(--_top) * (1 - var(--_p)) + (var(--sc-imp-banner-h, 0px) + 20px) * var(--_p));
-        display: block;
+        top: calc(var(--_top) * (1 - var(--_p)) + var(--_dock-top) * var(--_p));
+        display: flex;
+        align-items: center;
+        height: var(--_item);
         color: var(--sc-fg-0);
         text-decoration: none;
         text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
@@ -204,10 +210,16 @@ export const MAIN_NAV_SLOT_PX = 112;
         position: absolute;
         z-index: 1;
         right: calc(var(--_xr) * (1 - var(--_p)) + var(--_rail) * var(--_p));
-        top: calc((var(--_top) - 3px) * (1 - var(--_p)) + (var(--sc-imp-banner-h, 0px) + 14px) * var(--_p));
+        top: calc(var(--_top) * (1 - var(--_p)) + var(--_dock-top) * var(--_p));
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
         pointer-events: auto;
       }
       .acc-main {
+        display: flex;
+        align-items: center;
+        height: var(--_item);
         opacity: clamp(0, calc((0.99 - var(--_p)) * 100), 1);
       }
       /* Admin (red, says so in words) beside the beta chip's lane, directly under the account. */
@@ -254,9 +266,15 @@ export const MAIN_NAV_SLOT_PX = 112;
         pointer-events: none;
       }
       .slot {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
         width: var(--mh-slot);
-        padding: 12px 0;
+        height: var(--_item);
+        padding: 0;
+        /* The trailing letter-spacing would shift the label left of its slot's centre. */
+        text-indent: 0.22em;
         text-align: center;
         font-family: var(--sc-font-display);
         font-size: 13px;
@@ -341,15 +359,24 @@ export const MAIN_NAV_SLOT_PX = 112;
         .account {
           position: static;
         }
+        /* The wordmark shares the row with apps + avatar: it shrinks, then truncates — never overlaps. */
         .wordmark {
           position: static;
           display: grid;
+          min-width: 0;
           transform: none;
+        }
+        .title {
+          overflow: hidden;
+          font-size: 12px;
+          letter-spacing: 0.1em;
+          text-overflow: ellipsis;
         }
         .brand {
           display: flex;
           align-items: center;
-          gap: var(--sc-space-3);
+          min-width: 0;
+          gap: var(--sc-space-2);
         }
         .logo {
           width: 34px;
@@ -366,7 +393,7 @@ export const MAIN_NAV_SLOT_PX = 112;
           transform: none;
         }
         .slot.adm {
-          display: block;
+          display: flex;
         }
         .ind.elevated {
           display: block;
@@ -374,6 +401,7 @@ export const MAIN_NAV_SLOT_PX = 112;
         .slot {
           font-size: 12px;
           letter-spacing: 0.14em;
+          text-indent: 0.14em;
           min-height: var(--sc-tap-min, 44px);
           box-sizing: border-box;
         }

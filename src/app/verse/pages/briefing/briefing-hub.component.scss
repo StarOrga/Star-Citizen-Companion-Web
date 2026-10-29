@@ -97,8 +97,10 @@
   width: calc(5.6 * var(--u) + var(--o) * (100% - 5.6 * var(--u)));
   height: calc(3.4 * var(--u) + var(--o) * (100% - 3.4 * var(--u)));
   border-radius: 4px;
-  transition: top 0.45s var(--ease), width 0.45s var(--ease), height 0.45s var(--ease);
+  transition: top 0.45s var(--ease), width 0.45s var(--ease), height 0.45s var(--ease), transform 0.3s ease;
 }
+// Same slow image zoom as the gallery tiles — on the open (feature-sized) entry.
+.acc-i.open .acc-a:hover .acc-img { transform: scale(1.04); }
 .acc-t {
   position: absolute;
   z-index: 1;
@@ -127,7 +129,8 @@
   background: linear-gradient(transparent 38%, rgba(4, 11, 19, 0.92) 72%);
   pointer-events: none;
 }
-.feat-img { position: absolute; inset: 0; }
+.feat-img { position: absolute; inset: 0; transition: transform 0.3s ease; }
+.feat:hover .feat-img { transform: scale(1.04); }
 .feat-c { position: absolute; left: max(12px, var(--u)); right: max(12px, var(--u)); bottom: max(12px, 1.1 * var(--u)); z-index: 1; display: flex; flex-direction: column; gap: max(6px, 0.45 * var(--u)); }
 .feat-k { font-size: max(11px, calc(0.6 * var(--u))); letter-spacing: 0.22em; text-transform: uppercase; color: var(--sc-fg-0); opacity: 0.85; }
 .feat-k b { color: var(--sc-success); font-weight: 600; }
@@ -179,7 +182,7 @@ a.ch:hover b { color: #fff; }
 .off .ch-id small i { background: transparent; border: 1px solid var(--sc-fg-2, var(--sc-fg-1)); }
 .quiet { font-size: max(12px, calc(0.66 * var(--u))); color: var(--sc-fg-2, var(--sc-fg-1)); font-style: italic; }
 
-// ── Galerie: feature + a dense mosaic of six (one 2×2, one 2×1, four small) ──
+// ── Galerie: feature + a dense mosaic of up to six (one 2×2, one 2×1, four small) ──
 .gal { display: flex; flex-direction: column; gap: max(8px, 0.7 * var(--u)); }
 .shot { display: block; border-radius: 6px; overflow: hidden; }
 .shot img { transition: transform 0.3s ease; }
@@ -191,6 +194,12 @@ a.ch:hover b { color: #fff; }
   height: calc(3 * var(--row) - max(8px, 0.7 * var(--u)));
   gap: var(--gap-g);
   grid-template-areas: 'm1 m1 m2 m2 s1' 'm1 m1 s2 s3 s4';
+  // Fewer pictures than slots: the tiles that exist share the same block, no holes.
+  &[data-n='5'] { grid-template-areas: 'm1 m1 m2 m2 s1' 'm1 m1 s2 s2 s3'; }
+  &[data-n='4'] { grid-template-areas: 'm1 m1 m2 m2 m2' 'm1 m1 s1 s1 s2'; }
+  &[data-n='3'] { grid-template-areas: 'm1 m1 m2 m2 m2' 'm1 m1 s1 s1 s1'; }
+  &[data-n='2'] { grid-template-areas: 'm1 m1 m2 m2 m2' 'm1 m1 m2 m2 m2'; }
+  &[data-n='1'], &[data-n='0'] { grid-template-areas: 'm1 m1 m1 m1 m1' 'm1 m1 m1 m1 m1'; }
 }
 .m1 { grid-area: m1; }
 .m2 { grid-area: m2; }
@@ -206,5 +215,6 @@ a.ch:hover b { color: #fff; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .acc-i, .acc-img, .acc-t, .acc-a::after, .shot img, .mini { transition: none; }
+  .acc-i, .acc-img, .acc-t, .acc-a::after, .shot img, .feat-img, .mini { transition: none; }
+  .acc-i.open .acc-a:hover .acc-img, .feat:hover .feat-img, .shot:hover img { transform: none; }
 }

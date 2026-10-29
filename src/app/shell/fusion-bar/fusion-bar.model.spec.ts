@@ -1,5 +1,5 @@
 import { TemplateRef } from '@angular/core';
-import { ADMIN_HUB, AREA_ENTRIES, AREA_SECTIONS, HideTracker, REVEAL_UP_PX, activeAreaOf, activeSectionOf, activeSegmentOf, barModeOf, isCodexToolPage, isMainHeaderPage } from './fusion-bar.model';
+import { ADMIN_HUB, AREA_ENTRIES, AREA_SECTIONS, HideTracker, REVEAL_UP_PX, activeAreaOf, activeSectionOf, activeSegmentOf, barModeOf, foldTrail, trailOf, isCodexToolPage, isMainHeaderPage } from './fusion-bar.model';
 import { ShellChromeService } from './shell-chrome.service';
 
 describe('fusion-bar model', () => {
@@ -133,5 +133,34 @@ describe('ShellChromeService', () => {
     for (const url of ['/verse/news', '/codex/index', '/admin', '/admin/telemetry', '/settings']) {
       expect(isMainHeaderPage(url)).withContext(url).toBeFalse();
     }
+  });
+
+  it('brandcrumb: the area root leads the path, a long path folds its middle', () => {
+    const codex = AREA_ENTRIES.find((a) => a.id === 'codex')!;
+    expect(trailOf(null, null, codex)).toEqual([{ labelKey: 'nav.codex', link: null }]);
+    const t = trailOf([{ label: 'Schiffe', link: '/codex/index' }], 'Avenger', codex);
+    expect(t.map((p) => p.label ?? p.labelKey)).toEqual(['nav.codex', 'Schiffe', 'Avenger']);
+    expect(t[0].link).toBe('/codex');
+    // No second area entry when the crumbs already start at the root.
+    expect(trailOf([{ labelKey: 'nav.codex', link: '/codex' }], 'X', codex).length).toBe(2);
+    const long = [1, 2, 3, 4, 5].map((n) => ({ label: `p${n}`, link: `/p${n}` }));
+    expect(foldTrail(long).map((p) => (p.fold ? '…' : p.label))).toEqual(['p1', '…', 'p5']);
+    expect(foldTrail(long.slice(0, 3)).length).toBe(3);
+  });
+
+  it('Ctrl+K goes to the newest page search that takes it, else to the subheader', () => {
+    const s = new ShellChromeService();
+    expect(s.focusPageSearch()).toBeFalse();
+    const a = {};
+    const b = {};
+    const calls: string[] = [];
+    s.registerSearchFocus(a, () => (calls.push('a'), true));
+    const offB = s.registerSearchFocus(b, () => (calls.push('b'), false));
+    expect(s.focusPageSearch()).toBeTrue();
+    expect(calls).toEqual(['b', 'a']);
+    offB();
+    calls.length = 0;
+    expect(s.focusPageSearch()).toBeTrue();
+    expect(calls).toEqual(['a']);
   });
 });

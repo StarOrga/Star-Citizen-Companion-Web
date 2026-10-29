@@ -8,8 +8,12 @@
   --_cap-h: var(--sc-sub-h);
   // The docked capsule's width: the content width (--sc-content-max), centred, not the full bar.
   --_frame-w: var(--sc-dock-w);
+  // The capsule stands as far from the top edge as the main header's row (--sc-chrome-top);
+  // the host's own 4px padding sits above it. In flow the imp banner is already above.
+  --_lift: calc(var(--sc-chrome-top) - var(--sc-imp-banner-h, 0px) - 4px);
   position: sticky;
-  top: var(--sc-imp-banner-h, 0px);
+  top: calc(var(--sc-imp-banner-h, 0px) + var(--_lift));
+  margin-top: var(--_lift);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -37,7 +41,12 @@
   position: fixed;
   left: 0;
   right: 0;
-  top: var(--sc-imp-banner-h, 0px);
+  top: calc(var(--sc-imp-banner-h, 0px) + var(--_lift));
+  margin-top: 0;
+}
+// The public layout keeps its own frame: no lift.
+:host(.public) {
+  --_lift: 0px;
 }
 // Main page, staged: a zero-size anchor; the field stands on the page's stage slot.
 :host([data-mode='stage']) {
@@ -47,6 +56,7 @@
   right: 0;
   height: 0;
   padding: 0;
+  margin-top: 0;
   transform: none;
   opacity: 1;
 }
@@ -255,7 +265,7 @@
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  max-width: 220px;
+  max-width: 260px;
   padding-right: var(--sc-space-2);
 }
 .cat {
@@ -263,10 +273,12 @@
   font-size: max(0.72rem, var(--sc-fs-floor));
   font-weight: 700;
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sc-fg-0);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .back {
   display: inline-flex;
@@ -292,50 +304,59 @@
 .back:focus-visible {
   color: var(--sc-fg-0);
 }
-// The full middle path only on hover (or keyboard focus) over the plate.
-.path {
-  position: absolute;
-  top: calc(100% + 12px);
-  left: -8px;
-  z-index: 5;
-  display: none;
-  padding: var(--sc-space-2) var(--sc-space-3);
-  border: 1px solid transparent;
-  border-radius: var(--sc-sub-radius);
-  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
-  box-shadow: var(--sc-sub-shadow);
-  white-space: nowrap;
+// Brandcrumb: the path under the brand's name; a long one folds its middle to "…".
+.trail {
+  min-width: 0;
 }
-.plate:hover .path,
-.plate:focus-within .path {
-  display: block;
-  animation: sub-fade 0.16s ease both;
-}
-.path ol {
+.trail ol {
   display: flex;
-  align-items: center;
-  gap: var(--sc-space-2);
+  align-items: baseline;
+  gap: var(--sc-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: max(0.8rem, var(--sc-fs-floor));
+  font-size: max(0.78rem, var(--sc-fs-floor));
+  line-height: 1.2;
+  white-space: nowrap;
 }
-.path li + li::before {
+.trail li {
+  display: inline-flex;
+  min-width: 0;
+}
+.trail li:first-child,
+.trail li.fold {
+  flex: none;
+}
+.trail li + li::before {
   content: '›';
-  margin-right: var(--sc-space-2);
+  margin-right: var(--sc-space-1);
   color: var(--sc-fg-2);
 }
-.path a {
-  color: var(--sc-fg-1);
-  text-decoration: none;
+.trail a,
+.trail .here {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.path a:hover,
-.path a:focus-visible {
+.trail a {
+  color: var(--sc-fg-2);
+  text-decoration: none;
+  border-radius: 3px;
+}
+.trail a:hover,
+.trail a:focus-visible {
   color: var(--sc-accent);
 }
-.path .here {
-  color: var(--sc-fg-0);
-  font-weight: 600;
+.trail .here {
+  color: var(--sc-fg-1);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 .div {
   flex: none;
@@ -413,7 +434,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   width: calc(44px * var(--sc-dock-p, 1));
 }
 :host(.condensing) .plate {
-  max-width: calc(220px * var(--sc-dock-p, 1));
+  max-width: calc(260px * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
   overflow: hidden;
 }
@@ -439,6 +460,11 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 .search {
   flex: 1 1 auto;
   min-width: 0;
+}
+// Docked: the field is no wider than ~520px; what is left goes to the count and the account on the right.
+:host(:not([data-mode='stage'])) .search {
+  max-width: 520px;
+  margin-right: auto;
 }
 :host ::ng-deep .search .field {
   height: 44px;
@@ -836,7 +862,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 .tok.more:focus-visible,
 .kind:focus-visible,
 .freset:focus-visible,
-.path a:focus-visible,
+.trail a:focus-visible,
 .brand:focus-visible,
 .home-link:focus-visible {
   outline: 2px solid var(--sc-accent);
@@ -851,7 +877,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     display: none;
   }
   .plate {
-    max-width: 160px;
+    max-width: 200px;
   }
 }
 
@@ -864,6 +890,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     left: 0;
     right: 0;
     bottom: var(--sc-float-bottom);
+    margin-top: 0;
     padding: 0 var(--sc-page-gutter);
     flex-direction: column-reverse;
     align-items: stretch;
@@ -912,6 +939,12 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   }
   .search {
     min-width: 140px;
+  }
+  // Collapsed to its magnifier button: it takes only its own width, at the bar's end.
+  .search.bottom:not(.open) {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: auto;
   }
   .fbtn {
     margin-left: var(--sc-space-1);
@@ -998,9 +1031,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   :host([data-mode='stage']) .blogo,
   :host([data-mode='stage']) .plate,
   :host([data-mode='stage']) .div,
-  .fpanel,
-  .plate:hover .path,
-  .plate:focus-within .path {
+  .fpanel {
     transition: none;
     animation: none;
   }

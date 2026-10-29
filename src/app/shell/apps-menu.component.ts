@@ -14,7 +14,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
-import { ringsForRole } from '../desktop/desktop-access';
+import { DesktopProduct, ReleaseRing, isAdminOnlyRing, ringsForRole } from '../desktop/desktop-access';
 import { DesktopReleaseService, RingRelease } from '../desktop/desktop-release.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 
@@ -29,6 +29,22 @@ export function formatAppSize(bytes: number | null | undefined): string | null {
 }
 
 let uid = 0;
+
+/** One row of the Apps menu: what the user may download of one app. */
+export interface AppEntry {
+  id: 'scc' | 'starscape' | 'uploader';
+  nameKey: string;
+  descKey: string;
+  tagKey: string | null;
+  /** Collaborator-gated app: head painted in the hot accent. */
+  elevated: boolean;
+  /** Channel rows (role-filtered); two or more -> the picker, else a plain download. */
+  rows: readonly RingRelease[];
+  href: string | null;
+  meta: string;
+  soloRing: ReleaseRing | null;
+  adminOnly: (ring: ReleaseRing) => boolean;
+}
 
 /**
  * `<sc-apps-menu>` - the "Apps" menu next to the avatar (main header and docked
@@ -57,34 +73,34 @@ let uid = 0;
         </button>
         @if (open()) {
           <div class="pop" [id]="panelId" role="group" [attr.aria-label]="'appsMenu.aria' | translate">
-            <a class="entry" [href]="sccUrl" rel="noopener noreferrer" download (click)="onPick($event)">
-              <span class="ico" aria-hidden="true">
-                <img src="icons/brand/scc-mark.svg" alt="" width="22" height="22" />
-              </span>
-              <span class="txt">
-                <strong>{{ 'appsMenu.scc.name' | translate }}</strong>
-                <span class="desc">{{ 'appsMenu.scc.desc' | translate }}</span>
-                <span class="meta">{{ 'appsMenu.platform' | translate }}</span>
-              </span>
-            </a>
-            <a class="entry" [href]="starscapeHref()" rel="noopener noreferrer" download (click)="onPick($event)">
-              <span class="ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 17l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" /></svg>
-              </span>
-              <span class="txt">
-                <strong>{{ 'appsMenu.starscape.name' | translate }}</strong>
-                <span class="desc">{{ 'appsMenu.starscape.desc' | translate }}</span>
-                <span class="meta">{{ starscapeMeta() }}</span>
-              </span>
-            </a>
-            @if (roles.isCollaborator()) {
-              @if (uploaderHref(); as href) {
-                <a class="entry elevated" [href]="href" rel="noopener noreferrer" download (click)="onPick($event)">
-                  <ng-container *ngTemplateOutlet="uploaderBody" />
+            @for (app of apps(); track app.id) {
+              @if (app.rows.length > 1) {
+                <!-- Several channels for this role: head + one real download anchor per channel. -->
+                <div class="app" [class.elevated]="app.elevated" role="group" [attr.aria-label]="app.nameKey | translate">
+                  <div class="entry head">
+                    <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
+                  </div>
+                  <div class="rings">
+                    @for (r of app.rows; track r.ring) {
+                      <a class="ring" [class.admin-only]="app.adminOnly(r.ring)" [href]="r.url" rel="noopener noreferrer" download (click)="onPick($event)">
+                        <span class="r-name">{{ 'desktop.channel.' + r.ring | translate }}</span>
+                        <span class="r-meta">{{ metaOf(r) }}</span>
+                        @if (app.adminOnly(r.ring)) {
+                          <span class="r-tag">{{ 'appMenu.adminOnly' | translate }}</span>
+                        } @else if (r.ring === 'stable') {
+                          <span class="r-tag">{{ 'appMenu.recommended' | translate }}</span>
+                        }
+                      </a>
+                    }
+                  </div>
+                </div>
+              } @else if (app.href) {
+                <a class="entry" [class.elevated]="app.elevated" [href]="app.href" rel="noopener noreferrer" download (click)="onPick($event)">
+                  <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
                 </a>
               } @else {
-                <a class="entry elevated" routerLink="/uploader" (click)="onPick($event)">
-                  <ng-container *ngTemplateOutlet="uploaderBody" />
+                <a class="entry" [class.elevated]="app.elevated" routerLink="/uploader" (click)="onPick($event)">
+                  <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
                 </a>
               }
             }
@@ -92,14 +108,35 @@ let uid = 0;
         }
       </div>
     }
-    <ng-template #uploaderBody>
+    <ng-template #appBody let-app>
       <span class="ico" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14" /></svg>
+        @switch (app.id) {
+          @case ('scc') { <img src="icons/brand/scc-mark.svg" alt="" width="22" height="22" /> }
+          @case ('starscape') {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 17l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" /></svg>
+          }
+          @default {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14" /></svg>
+          }
+        }
       </span>
       <span class="txt">
-        <strong>{{ 'appsMenu.uploader.name' | translate }}<em>{{ 'appsMenu.uploader.tag' | translate }}</em></strong>
-        <span class="desc">{{ 'appsMenu.uploader.desc' | translate }}</span>
-        <span class="meta">{{ uploaderMeta() }}</span>
+        <strong>{{ app.nameKey | translate }}@if (app.tagKey) {<em>{{ app.tagKey | translate }}</em>}</strong>
+        <span class="desc">{{ app.descKey | translate }}</span>
+        @if (app.rows.length > 1) {
+          <span class="meta">{{ 'appsMenu.pickChannel' | translate }}</span>
+        } @else {
+          <span class="meta">
+            @if (app.id === 'scc') {
+              {{ 'appsMenu.platform' | translate }}
+            } @else {
+              {{ app.meta }}
+              @if (app.soloRing && app.soloRing !== 'stable') {
+                · {{ 'desktop.channel.' + app.soloRing | translate }}
+              }
+            }
+          </span>
+        }
       </span>
     </ng-template>
   `,
@@ -107,8 +144,8 @@ let uid = 0;
     :host { display: inline-flex; }
     .apps { position: relative; }
     .trigger {
-      display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 12px;
-      border-radius: 20px; border: 1px solid var(--sc-border); background: var(--sc-bg-1);
+      display: inline-flex; align-items: center; gap: 7px; height: var(--sc-head-item-h, 40px); padding: 0 12px;
+      border-radius: calc(var(--sc-head-item-h, 40px) / 2); border: 1px solid var(--sc-border); background: var(--sc-bg-1);
       color: var(--sc-fg-1); font-family: var(--sc-font-display); font-size: 12px;
       letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6); transition: border-color 0.18s ease, color 0.18s ease;
@@ -146,8 +183,34 @@ let uid = 0;
     .entry.elevated strong, .entry.elevated em { color: var(--sc-accent-hot); }
     .entry.elevated:hover, .entry.elevated:focus-visible { background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent); }
     .entry.elevated:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-hot); }
+    .app { display: flex; flex-direction: column; border-radius: 8px; }
+    .app.elevated { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--sc-accent-hot) 40%, transparent); }
+    .entry.head { cursor: default; padding-bottom: 4px; }
+    .app.elevated .entry.head { margin-top: 0; border-top: 0; }
+    .app.elevated .entry.head:hover { background: none; }
+    .entry.head:hover { background: none; }
+    .rings { display: flex; flex-direction: column; gap: 2px; padding: 0 6px 6px 58px; }
+    .ring {
+      display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 10px; border-radius: 6px;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, var(--sc-border));
+      color: var(--sc-fg-1); text-decoration: none; font-size: 0.78rem;
+    }
+    .ring:hover, .ring:focus-visible {
+      outline: none; color: var(--sc-fg-0); border-color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
+    }
+    .ring:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent); }
+    .r-name { font-family: var(--sc-font-display); letter-spacing: 0.05em; flex: 1 1 auto; }
+    .r-meta { font-variant-numeric: tabular-nums; color: var(--sc-fg-2); font-size: 0.72rem; }
+    .r-tag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    .ring.admin-only { border-color: color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border)); }
+    .ring.admin-only .r-name, .ring.admin-only .r-tag { color: var(--sc-accent-hot); }
+    .ring.admin-only:hover, .ring.admin-only:focus-visible {
+      border-color: var(--sc-accent-hot); background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent);
+    }
+    .ring.admin-only:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-hot); }
     @media (max-width: 720px) { .label { display: none; } .trigger { padding: 0 11px; } }
-    @media (pointer: coarse) { .trigger { min-height: 48px; } .entry { min-height: 48px; } }
+    @media (pointer: coarse) { .trigger { min-height: 48px; } .entry { min-height: 48px; } .ring { min-height: 48px; } }
   `],
 })
 export class AppsMenuComponent {
@@ -156,22 +219,52 @@ export class AppsMenuComponent {
   private readonly releases = inject(DesktopReleaseService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  readonly sccUrl = SCC_INSTALLER_URL;
   readonly panelId = `apps-menu-${++uid}`;
   readonly open = signal(false);
-  private readonly starscape = signal<RingRelease | null>(null);
-  private readonly uploader = signal<RingRelease | null>(null);
+  private readonly loadedReleases = signal<Record<DesktopProduct, readonly RingRelease[]>>({
+    starscape: [],
+    uploader: [],
+  });
   private loaded = false;
 
   private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   readonly offered = computed(() => this.device.canInstall());
 
-  readonly starscapeHref = computed(() => this.starscape()?.url ?? STARSCAPE_FALLBACK_URL);
-  readonly uploaderHref = computed(() => this.uploader()?.url ?? null);
-  readonly starscapeMeta = computed(() => this.metaOf(this.starscape()));
-  readonly uploaderMeta = computed(() => this.metaOf(this.uploader()));
+  /**
+   * The apps this role sees, each with the channels its role may take. SCC App has
+   * no release channels (one never-stale installer alias), so it stays a single
+   * download. More than one resolved channel -> channel rows; otherwise a plain download.
+   */
+  readonly apps = computed<AppEntry[]>(() => {
+    const role = this.roles.role();
+    const rel = this.loadedReleases();
+    const list: AppEntry[] = [
+      {
+        id: 'scc', nameKey: 'appsMenu.scc.name', descKey: 'appsMenu.scc.desc', tagKey: null, elevated: false,
+        rows: [], href: SCC_INSTALLER_URL, meta: '', soloRing: null, adminOnly: () => false,
+      },
+    ];
+    const build = (product: DesktopProduct, base: Omit<AppEntry, 'rows' | 'href' | 'meta' | 'soloRing' | 'adminOnly'>, fallback: string | null) => {
+      const allowed = ringsForRole(product, role);
+      const rows = rel[product].filter((r) => allowed.includes(r.ring));
+      const solo = rows.length === 1 ? rows[0] : null;
+      list.push({
+        ...base,
+        rows,
+        href: solo?.url ?? fallback,
+        meta: this.metaOf(solo),
+        soloRing: solo?.ring ?? null,
+        adminOnly: (ring: ReleaseRing) => isAdminOnlyRing(product, ring),
+      });
+    };
+    build('starscape', { id: 'starscape', nameKey: 'appsMenu.starscape.name', descKey: 'appsMenu.starscape.desc', tagKey: null, elevated: false }, STARSCAPE_FALLBACK_URL);
+    if (this.roles.isCollaborator() && ringsForRole('uploader', role).length > 0) {
+      build('uploader', { id: 'uploader', nameKey: 'appsMenu.uploader.name', descKey: 'appsMenu.uploader.desc', tagKey: 'appsMenu.uploader.tag', elevated: true }, null);
+    }
+    return list;
+  });
 
-  private metaOf(r: RingRelease | null): string {
+  metaOf(r: RingRelease | null): string {
     const parts = ['Windows'];
     if (r) {
       parts.push(`v${r.version}`);
@@ -196,13 +289,13 @@ export class AppsMenuComponent {
   private async load(): Promise<void> {
     if (this.loaded) return;
     this.loaded = true;
-    const wantsUploader = this.roles.isCollaborator() && ringsForRole('uploader', this.roles.role()).length > 0;
+    const role = this.roles.role();
+    const wantsUploader = this.roles.isCollaborator() && ringsForRole('uploader', role).length > 0;
     const [s, u] = await Promise.all([
-      this.releases.ringsFor('starscape', ['stable']),
-      wantsUploader ? this.releases.ringsFor('uploader', ['stable']) : Promise.resolve({ releases: [] as RingRelease[] }),
+      this.releases.ringsFor('starscape', ringsForRole('starscape', role)),
+      wantsUploader ? this.releases.ringsFor('uploader', ringsForRole('uploader', role)) : Promise.resolve({ releases: [] as RingRelease[] }),
     ]);
-    this.starscape.set(s.releases[0] ?? null);
-    this.uploader.set(u.releases[0] ?? null);
+    this.loadedReleases.set({ starscape: s.releases, uploader: u.releases });
   }
 
   @HostListener('document:click', ['$event'])

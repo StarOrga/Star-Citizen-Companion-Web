@@ -3,24 +3,24 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { OverlayOriginService } from '../../shared/overlay-frame/overlay-origin.service';
 import { ChildRouteService } from '../../shared/overlay-frame/child-route.service';
 import { TranslatePipe } from '@ngx-translate/core';
-import { AppNoticeComponent } from '../../desktop/app-notice.component';
 import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
 import { StarscapeComponent } from '../../starscape/starscape.component';
 import { BetaService } from '../../core/beta.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
+import { DOCK_HOST_CLASS, DOCK_WIDTH_STYLE } from '../shared/dock-width';
 
 /**
  * `/verse/gallery` — the Starscape gallery under the shared subpage head. The
- * app download lives in the header apps menu; a Starscape notice (3 s on the
- * page, snoozable) offers it here. Every image carries a share button. β off:
+ * app download lives in the header apps menu only (no notice or promo here).
+ * Every image carries a share button. β off:
  * the bare legacy gallery.
  */
 @Component({
   selector: 'sc-verse-gallery',
   // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
-  host: { class: 'sc-track-page' },
+  host: { class: DOCK_HOST_CLASS },
   standalone: true,
-  imports: [RouterLink, RouterOutlet, TranslatePipe, VerseHeaderComponent, StarscapeComponent, AppNoticeComponent],
+  imports: [RouterLink, RouterOutlet, TranslatePipe, VerseHeaderComponent, StarscapeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [hidden]="hideList()">
@@ -38,7 +38,6 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
       @if (hint(); as h) { <p class="hint sc-enter" role="status">{{ h | translate }}</p> }
 
       <sc-starscape class="sc-enter" style="--sc-enter-i: 2" [embedded]="true" />
-      <sc-app-notice app="starscape" />
     } @else {
       <sc-starscape />
     }
@@ -58,7 +57,7 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc-success); }
     button.sub-link { background: none; font: inherit; cursor: pointer; }
     .hint { margin: 0 0 12px; color: var(--sc-fg-2); font-size: max(0.82rem, var(--sc-fs-floor)); }
-  `],
+  `, DOCK_WIDTH_STYLE],
 })
 export class VerseGalleryComponent {
   private readonly connections = inject(DesktopConnectionService);

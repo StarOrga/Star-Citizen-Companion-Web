@@ -429,6 +429,11 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
 :root {
   --sc-fab-size: 56px;
   --sc-fab-inset: 24px;
+  /* HEADER ROW: where the main header and the subheader start from the top (imp banner +
+     the launcher's inset + safe area), and the height of one header control (avatar, APPS,
+     brand, nav slot). Every control of the row is centred on the same line. */
+  --sc-chrome-top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-fab-inset) + env(safe-area-inset-top, 0px));
+  --sc-head-item-h: 40px;
   --sc-fab-lane: calc(var(--sc-fab-inset) + var(--sc-fab-size));
   /* Breathing room between the launcher and whatever sits beside it. */
   --sc-fab-gutter: 12px;

@@ -44,7 +44,9 @@
   translate: -50% 0;
   border-radius: 50%;
   overflow: hidden;
-  background: radial-gradient(circle at 60% 3%, #2f6585 0, #143a52 7%, #0a2232 17%, #06141f 32%, #040b13 55%);
+  // The body only carries the lit rim; it fades out well before the hub, so the
+  // scrolled columns stand on the shell's own background planet (no veil).
+  background: radial-gradient(circle at 60% 3%, #2f6585 0, #143a52 7%, #0a2232 14%, rgba(6, 20, 31, 0.5) 20%, transparent 28%);
   box-shadow: 0 -4px 24px rgba(82, 193, 230, 0.5), inset 0 7px 22px rgba(150, 225, 255, 0.35);
 }
 // Soft city glows near the rim on the night side (no dots).
@@ -60,7 +62,7 @@
     radial-gradient(1.4% 0.6% at 69% 6.8%, rgba(255, 200, 140, 0.24), transparent),
     radial-gradient(2.6% 1% at 56% 8.6%, rgba(255, 184, 107, 0.18), transparent);
 }
-// The hub's night side: weak city-light glows and a little haze behind the columns.
+// The hub's night side: weak city-light glows (no haze layer behind the columns).
 .city {
   position: absolute;
   left: 0;
@@ -68,7 +70,6 @@
   top: var(--stage-h);
   height: max(56vw, 760px);
   background:
-    radial-gradient(120% 22% at 50% 0, rgba(82, 193, 230, 0.1), transparent 70%),
     radial-gradient(5vw 1.6vw at 14% 28%, rgba(255, 184, 107, 0.13), transparent 70%),
     radial-gradient(1.4vw 0.5vw at 15% 28%, rgba(255, 206, 150, 0.22), transparent 70%),
     radial-gradient(6vw 1.8vw at 24% 56%, rgba(255, 184, 107, 0.11), transparent 70%),
@@ -105,8 +106,8 @@
   justify-content: center;
   pointer-events: none;
 }
-// The hero spans the page frame: the title takes one line and wraps only when
-// it genuinely does not fit (phone), never a forced two-line balance.
+// The hero spans the page frame: the title takes one line and wraps to at most
+// two (long ones shrink first, see fitTitle; only then an ellipsis).
 .hx {
   width: min(calc(100% - 32px), var(--sc-page-max, 1280px));
   display: flex;
@@ -129,7 +130,9 @@
   align-items: center;
   justify-content: center;
   gap: max(8px, 1.2cqw);
-  max-width: 100%;
+  // Desktop: the row (title + chevrons) stays left of the star map hanging at
+  // the right edge (it starts ~79.5 cqw), so the arrows never sit on top of it.
+  max-width: min(100%, 56cqw);
   margin-top: max(6px, 0.6cqw);
 }
 .title2 {
@@ -140,6 +143,11 @@
   font: 500 calc(clamp(26px, 3.2cqw, 64px) * var(--fit)) / 1.1 var(--sc-font-display);
   letter-spacing: 0.02em;
   overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 .tl { color: inherit; text-decoration: none; transition: color 0.2s, text-shadow 0.2s; }
 a.tl:hover, a.tl:focus-visible { color: #fff; text-shadow: 0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent); }
@@ -302,6 +310,7 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 
 @media (max-width: 720px) {
   .hero-wrap { height: 60%; padding-top: 72px; box-sizing: border-box; }
+  .hrow { max-width: 100%; }
   .more-cue { display: none; }
 }
 

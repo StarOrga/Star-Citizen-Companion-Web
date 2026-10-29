@@ -11,11 +11,12 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { LocaleService } from '../core/locale/locale.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import { NewsService } from './news.service';
 import { PatchCycleComponent } from './patch-cycle.component';
 import { PatchEntryRowComponent } from './patch-entry-row.component';
@@ -121,7 +122,7 @@ function scrollBehavior(): ScrollBehavior {
       <div class="panel" role="dialog" aria-modal="true" scDialog (scDialogEscape)="onEscape()" [attr.aria-label]="title()" (click)="$event.stopPropagation()" #panel>
         @if (card(); as c) {
           <header class="hero" [attr.data-status]="c.status">
-            <a class="close" [routerLink]="['/verse/patches']" [queryParams]="closeParams()" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
+            <a class="close" [routerLink]="['/verse/patches']" [queryParams]="closeParams()" (click)="onClose($event)" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
             <div class="hero-row">
               <span class="status" [attr.data-status]="c.status">{{ ('news.patch.status.' + c.status) | translate }}</span>
               <h2>{{ title() }}</h2>
@@ -593,7 +594,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   readonly roadmap = inject(RoadmapService);
   private readonly t = inject(TranslateService);
   private readonly locale = inject(LocaleService);
-  private readonly router = inject(Router);
+  private readonly overlayOrigin = inject(OverlayOriginService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly stability = inject(PatchStabilityService);
 
@@ -832,7 +833,15 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
 
   /** Escape inside the panel (ScDialogDirective), the scrim and the ✕ all close. */
   onEscape(): void {
-    void this.router.navigate(['/verse/patches'], { queryParams: this.closeParams() });
+    // History back when the board is the entry before (Forward reopens the dossier); never a pushed entry.
+    this.overlayOrigin.close(['/verse/patches'], { queryParams: this.closeParams() });
+  }
+
+  /** The ✕ is a real anchor: only a plain left click closes in place, modified clicks stay the browser's. */
+  onClose(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.onEscape();
   }
 
   /** A click on the scrim (not the panel) closes — same as Esc and the ✕. */

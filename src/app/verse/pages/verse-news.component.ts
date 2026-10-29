@@ -6,6 +6,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { NewsListComponent } from '../../news/news-list.component';
 import { BetaService } from '../../core/beta.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
+import { DOCK_HOST_CLASS, DOCK_WIDTH_STYLE } from '../shared/dock-width';
 
 /**
  * `/verse/news` — the Verse News stream under the uniform Verse subheader.
@@ -15,7 +16,7 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
 @Component({
   selector: 'sc-verse-news',
   // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
-  host: { class: 'sc-track-page' },
+  host: { class: DOCK_HOST_CLASS },
   standalone: true,
   imports: [TranslatePipe, RouterOutlet, VerseHeaderComponent, NewsListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,7 +31,7 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
     }
     <router-outlet />
   `,
-  styles: [`:host { display: block; }`],
+  styles: [`:host { display: block; }`, DOCK_WIDTH_STYLE],
 })
 export class VerseNewsComponent {
   readonly enabled = inject(BetaService).isEnabled('verse');

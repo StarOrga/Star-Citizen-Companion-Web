@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.172.0] - 2026-10-29
+
+### Added
+- Subheader shows "Star Citizen Companion" with a mini breadcrumb; the search has a clear button, opens with Ctrl/⌘+K everywhere and collapses to a magnifier on phones.
+- Verse gallery filters: All, Newest, Community Top and My votes, with automatic loading while scrolling.
+- One shared image popup: controls on hover, ‹ › and arrow keys, full screen, download and RSI link.
+- Apps menu offers every channel your role may use (alpha marked admin-only).
+
+### Changed
+- Verse start page: news accordion reacts as soon as the pointer rests and stays open, news newest first, no empty gallery tiles, no veil behind the columns, hero title at most two lines, planets aligned with the subheader.
+- Verse subpages (news, patches, gallery) are exactly as wide as the subheader.
+- Header controls share one centre line; subheader keeps the same top gap as the header.
+- Footer looks the same on every page; the community badge lost its pill background.
+
+### Fixed
+- Browser Back/Forward on image, news and patch overlays no longer loses the popup or lands on a phantom page.
+- Phone header wordmark truncates instead of running under the avatar.
+
 ## [0.171.1] - 2026-10-29
 
 ### Fixed

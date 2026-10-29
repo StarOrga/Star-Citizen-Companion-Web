@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { StarscapeService, VISIBLE_VARIANT_ROLES } from './starscape.service';
+import { STARSCAPE_FILTERS, StarscapeService, VISIBLE_VARIANT_ROLES } from './starscape.service';
 
 /** Everything one PostgREST call did, so a test can assert on the query itself. */
 interface RecordedQuery {
@@ -72,11 +72,22 @@ describe('StarscapeService', () => {
    * call — which is how the deploy-order retry is exercised without guessing
    * the order the service happens to fire its requests in.
    */
+  let rpcCalls: { fn: string; args: Record<string, unknown> }[];
+  let rpcResult: unknown;
+
   function make(
     resolve: (call: RecordedQuery) => unknown = () => ({ data: [ROW], error: null, count: 1 }),
   ): StarscapeService {
     queries = [];
-    const client = { from: () => builder(resolve, queries) };
+    rpcCalls = [];
+    rpcResult = { data: [{ ...ROW, votes: 3, voted: false, total_count: 30 }], error: null };
+    const client = {
+      from: () => builder(resolve, queries),
+      rpc: (fn: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ fn, args });
+        return { abortSignal: () => Promise.resolve(rpcResult) };
+      },
+    };
     TestBed.configureTestingModule({
       providers: [{ provide: SupabaseClientProvider, useValue: { client } }],
     });
@@ -109,12 +120,51 @@ describe('StarscapeService', () => {
     expect(page!.orders.every((o) => !o.ascending)).toBeTrue();
   });
 
-  it('keeps the series probe on the same visibility rule as the grid', async () => {
+  it('offers exactly four stable views, All first', () => {
+    expect(STARSCAPE_FILTERS.map((f) => f.id)).toEqual(['all', 'newest', 'top', 'mine']);
+    expect(make().filter()).toBe('all');
+  });
+
+  it('no longer probes series: the table is read only for the page itself', async () => {
     const svc = make();
     await svc.load(true);
-    const probe = queries.find((q) => q.select === 'series');
-    expect(probe).toBeTruthy();
-    expect(probe!.filters.some((f) => f.column === 'variant_role')).toBeTrue();
+    expect(queries.some((q) => q.select === 'series')).toBeFalse();
+    expect(queries.some((q) => q.filters.some((f) => f.op === 'eq' && f.column === 'series'))).toBeFalse();
+  });
+
+  it('serves Community Top / Newest / My votes through the paging RPC', async () => {
+    const svc = make();
+    await svc.setFilter('top');
+    expect(rpcCalls).toEqual([
+      { fn: 'starscape_gallery_page', args: { p_filter: 'top', p_limit: 24, p_offset: 0 } },
+    ]);
+    expect(svc.wallpapers().length).toBe(1);
+    expect(svc.total()).toBe(30);
+    expect(svc.hasMore()).toBeTrue();
+    // Next page continues at the loaded count and appends.
+    await svc.load();
+    expect(rpcCalls[1].args['p_offset']).toBe(1);
+    expect(svc.wallpapers().length).toBe(2);
+  });
+
+  it('reloads from the top and drops the old tiles when the view changes', async () => {
+    const svc = make();
+    await svc.load(true);
+    expect(svc.wallpapers().length).toBe(1);
+    rpcResult = { data: [], error: null };
+    await svc.setFilter('mine');
+    expect(svc.filter()).toBe('mine');
+    expect(svc.wallpapers().length).toBe(0);
+    expect(svc.hasMore()).toBeFalse();
+    await svc.setFilter('all');
+    expect(svc.wallpapers().length).toBe(1);
+  });
+
+  it('turns a failed RPC into an error state, not an empty gallery', async () => {
+    const svc = make();
+    rpcResult = { data: null, error: { code: 'PGRST202', message: 'function not found' } };
+    await svc.setFilter('top');
+    expect(svc.error()).not.toBeNull();
   });
 
   it('resolves a shared image id regardless of its variant role', async () => {

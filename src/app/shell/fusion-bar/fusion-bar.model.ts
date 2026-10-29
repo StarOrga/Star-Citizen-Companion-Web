@@ -245,6 +245,44 @@ export function plateBackOf(
   return { label: null, labelKey: area.labelKey, labelParams: null, link: area.link, queryParams: null };
 }
 
+/** One part of the brandcrumb (the subheader's second line). */
+export interface TrailPart {
+  label?: string;
+  labelKey?: string;
+  labelParams?: Record<string, string> | null;
+  /** Where it leads; null = the current page (plain text) or the folded "…". */
+  link: string | readonly unknown[] | null;
+  queryParams?: Record<string, unknown> | null;
+  /** The folded middle ("…"). */
+  fold?: boolean;
+}
+
+function linkPath(link: string | readonly unknown[] | null): string {
+  if (link === null) return '';
+  const p = typeof link === 'string' ? link : link.join('/').replace(/\/{2,}/g, '/');
+  return p.startsWith('/') ? p : `/${p}`;
+}
+
+/** The path from the area root to the current page: the page header's crumbs + its title; the area root leads it. */
+export function trailOf(
+  crumbs: readonly { label?: string; labelKey?: string; labelParams?: Record<string, string> | null; link: string | readonly unknown[]; queryParams?: Record<string, unknown> | null }[] | null | undefined,
+  title: string | null | undefined,
+  area: AreaEntry | null,
+): TrailPart[] {
+  const list: TrailPart[] = (crumbs ?? []).map((c) => ({ ...c }));
+  if (title) list.push({ label: title, link: null });
+  if (area && (list.length === 0 || linkPath(list[0].link) !== area.link)) {
+    list.unshift({ labelKey: area.labelKey, link: list.length ? area.link : null });
+  }
+  return list;
+}
+
+/** More than three parts: first · "…" · last (the full path goes into a tooltip). */
+export function foldTrail(trail: readonly TrailPart[], max = 3): TrailPart[] {
+  if (trail.length <= max) return [...trail];
+  return [trail[0], { link: null, fold: true }, trail[trail.length - 1]];
+}
+
 /**
  * What a route change does to the header and the bar:
  * - main → subpage: the header compresses into the bar (`dock`), the cap travels

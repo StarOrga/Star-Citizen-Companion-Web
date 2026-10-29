@@ -5,8 +5,12 @@
 // high, so a mock top of 34 cqw is 60.4 %). Mock centres: News (6.5 | 34),
 // Patches (17 | 30), Galerie (85 | 30); holo top 41.4 cqw, 34 cqw wide.
 :host {
-  --news-x: 6.5%; --news-y: 60.4%; --news-s: max(6cqw, 52px);
-  --patches-x: 17%; --patches-y: 53.3%; --patches-s: max(4.4cqw, 40px);
+  // Patches' left edge sits under the (theoretical) left edge of the sub-header
+  // incl. search — never further left than the mock's 17 % — and News keeps the
+  // mock's 10.5 % gap to it, so both move in by the same amount and the hero
+  // centre keeps the focus. The stage is viewport wide, so % here = the chrome's %.
+  --news-x: calc(var(--patches-x) - 10.5%); --news-y: 60.4%; --news-s: max(6cqw, 52px);
+  --patches-x: max(17%, calc((100% - var(--sc-chrome-w, 100%)) / 2 + var(--patches-s) / 2)); --patches-y: 53.3%; --patches-s: max(4.4cqw, 40px);
   --gallery-x: 85%; --gallery-y: 53.3%; --gallery-s: max(6cqw, 52px);
   --holo-w: 34cqw;
   --holo-top: 73.6%;

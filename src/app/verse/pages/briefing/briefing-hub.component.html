@@ -92,13 +92,9 @@
     @if (galleryMain(); as g) {
       <div class="gal">
         <ng-container *ngTemplateOutlet="tile; context: { $implicit: g, cls: 'feat shot' }" />
-        <div class="mosaic">
+        <div class="mosaic" [attr.data-n]="mosaic().length">
           @for (m of mosaic(); track m.slot) {
-            @if (m.item) {
-              <ng-container *ngTemplateOutlet="tile; context: { $implicit: m.item, cls: 'shot ' + m.slot }" />
-            } @else {
-              <span [class]="'shot blank ' + m.slot" aria-hidden="true"></span>
-            }
+            <ng-container *ngTemplateOutlet="tile; context: { $implicit: m.item, cls: 'shot ' + m.slot }" />
           }
         </div>
       </div>
@@ -112,11 +108,11 @@
   @let gl = link(g);
   @if (gl && gl.internal) {
     <a [class]="cls" [routerLink]="gl.path" [queryParams]="gl.query" [attr.aria-label]="g.title" (click)="openItem.emit(g)" (auxclick)="openItem.emit(g)">
-      <img [src]="g.image" alt="" loading="lazy" decoding="async" />
+      <img [src]="g.image" alt="" loading="lazy" decoding="async" (error)="imgFailed(g.image)" />
     </a>
   } @else if (gl) {
     <a [class]="cls" [href]="gl.path" target="_blank" rel="noopener noreferrer" [attr.aria-label]="g.title" (click)="openItem.emit(g)" (auxclick)="openItem.emit(g)">
-      <img [src]="g.image" alt="" loading="lazy" decoding="async" />
+      <img [src]="g.image" alt="" loading="lazy" decoding="async" (error)="imgFailed(g.image)" />
     </a>
   } @else {
     <span [class]="cls + ' blank'" aria-hidden="true"></span>

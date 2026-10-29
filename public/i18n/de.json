@@ -4145,6 +4145,15 @@
     "title": "Starscape",
     "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
     "filterAll": "Alle",
+    "filter": {
+      "label": "Galerie-Ansicht",
+      "all": "Alle",
+      "newest": "Neueste",
+      "top": "Community Top",
+      "mine": "Meine Votes",
+      "mineSignedOut": "Melde dich an, um deine bewerteten Wallpaper zu sehen",
+      "emptyMine": "Du hast noch kein Wallpaper bewertet. Tippe auf den Daumen bei einem Bild, dann landet es hier."
+    },
     "lightboxAria": "Hintergrundbild",
     "source": {
       "label": "Bildquelle"
@@ -4400,6 +4409,9 @@
     "prev": "Vorheriger Eintrag",
     "next": "Nächster Eintrag",
     "close": "Schließen",
+    "fullscreen": "Vollbild",
+    "exitFullscreen": "Vollbild beenden",
+    "openOriginal": "Original in neuem Tab öffnen",
     "news": {
       "source": "Quelle",
       "missing": "Dieser Eintrag ist nicht (mehr) im Feed."
@@ -4408,7 +4420,7 @@
       "image": "Bild",
       "missing": "Dieses Bild wurde nicht gefunden.",
       "download": "Original herunterladen",
-      "article": "Artikel bei RSI"
+      "article": "Auf RSI sehen"
     },
     "share": {
       "label": "Link zu diesem Abschnitt teilen",
@@ -5177,6 +5189,8 @@
     },
     "search": {
       "label": "Suche",
+      "open": "Suche öffnen",
+      "clear": "Eingabe löschen",
       "dropContext": "Kontext entfernen — überall suchen",
       "ask": "Companion fragen",
       "askKey": "Shift ↵",
@@ -5253,6 +5267,7 @@
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Apps herunterladen",
+    "pickChannel": "Kanal wählen",
     "platform": "Windows · immer die neueste Version",
     "scc": {
       "name": "SCC App",
