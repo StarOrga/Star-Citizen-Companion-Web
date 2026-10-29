@@ -145,7 +145,9 @@ export const CATEGORY_GLYPH: Record<LandingCategory, string> = {
         opacity: 0.9;
         animation: flicker 7s steps(1) infinite;
       }
-      .sil sc-codex-icon { width: 100%; height: 100%; max-width: 220px; max-height: 220px; }
+      .sil sc-codex-icon { --sc-icon-max: 200px; width: 100%; height: 100%; }
+      /* A hologram is never tinted: the category colour of the icon gives way to holo light. */
+      .sil sc-codex-icon ::ng-deep svg { color: var(--holo) !important; }
       .scan {
         position: absolute; inset: 4% 8%; pointer-events: none; mix-blend-mode: screen;
         background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.1) 0 1px, transparent 1px 4px);

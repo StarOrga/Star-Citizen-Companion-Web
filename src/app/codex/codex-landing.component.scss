@@ -140,17 +140,21 @@
 // ── Phone: one column, still no page scroll. ──
 @media (max-width: 720px) {
   :host { --cx-side: 0px; --cx-gut: 0px; }
+  // The bar sits at the thumb on phones: the landing ends above it and the stage
+  // takes whatever the column leaves (never a page scroll).
   .landing {
-    height: auto;
+    height: calc(100vh - var(--cx-top, 0px) - var(--sc-bar-h) - var(--sc-space-3) - var(--sc-space-6));
+    height: calc(100dvh - var(--cx-top, 0px) - var(--sc-bar-h) - var(--sc-float-bottom, 0px) - var(--sc-space-3) - var(--sc-space-6));
     min-height: 0;
     padding-bottom: 0;
     gap: var(--sc-space-2);
   }
+  :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 1; padding-inline: 0; }
   .title { font-size: 24px; }
   .news, .card, .rail { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   .news { order: 0; align-self: flex-end; }
-  .stage { order: 2; flex: 0 0 auto; height: clamp(170px, 26dvh, 230px); margin-top: 0; }
+  .stage { order: 2; flex: 1 1 auto; min-height: 150px; max-height: 260px; margin-top: 0; }
   .card { order: 3; }
   .rail {
     order: 4; flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none;

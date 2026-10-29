@@ -23,6 +23,8 @@ import { CodexLandingCardComponent } from './landing/codex-landing-card.componen
 import { CodexLandingFilmstripComponent, FilmstripMode } from './landing/codex-landing-filmstrip.component';
 import { CodexLandingNewsComponent } from './landing/codex-landing-news.component';
 
+/** Filmstrip tiles before the "+ N weitere" tile (round 6: five + the rest). */
+export const FILM_TILES = 5;
 /** One rotation step (brief A4: ≈ 8 s per category). */
 export const ROTATION_MS = 8000;
 /**
@@ -31,6 +33,9 @@ export const ROTATION_MS = 8000;
  * healthy gap to the header above (round 6 feedback).
  */
 export const CODEX_STAGE_TOP = 0.3;
+/** Phones stack everything under the hero: the field sits higher still. */
+export const CODEX_STAGE_TOP_PHONE = 0.2;
+const PHONE_QUERY = '(max-width: 720px)';
 
 /** Category side rail (brief A8): index links, keybindings as the quiet last entry. */
 export const LANDING_RAIL = [
@@ -70,7 +75,7 @@ export const LANDING_RAIL = [
   template: `
     <section class="landing">
       @if (shellOn()) {
-        <div class="hero" scStageHero [scStageHeroTop]="stageTop">
+        <div class="hero" scStageHero [scStageHeroTop]="stageTop()">
           <p class="eyebrow">{{ 'codex.landing.hero.eyebrow' | translate }}</p>
           <h1 class="title">{{ 'codex.landing.hero.title' | translate }}</h1>
           <div scStageSearch></div>
@@ -123,7 +128,8 @@ export class CodexLandingComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   readonly shellOn = inject(BetaService).isEnabled('shell');
   protected readonly rail = LANDING_RAIL;
-  protected readonly stageTop = CODEX_STAGE_TOP;
+  private readonly phone = signal(typeof matchMedia === 'function' && matchMedia(PHONE_QUERY).matches);
+  protected readonly stageTop = computed(() => (this.phone() ? CODEX_STAGE_TOP_PHONE : CODEX_STAGE_TOP));
   protected readonly rotationMs = ROTATION_MS;
 
   readonly items = signal<LandingItem[]>([]);
@@ -185,6 +191,11 @@ export class CodexLandingComponent {
       });
     });
 
+    const phoneMq = typeof matchMedia === 'function' ? matchMedia(PHONE_QUERY) : null;
+    const onPhone = (e: MediaQueryListEvent) => this.phone.set(e.matches);
+    phoneMq?.addEventListener('change', onPhone);
+    destroyRef.onDestroy(() => phoneMq?.removeEventListener('change', onPhone));
+
     const onVisibility = () => this.hidden.set(document.visibilityState === 'hidden');
     document.addEventListener('visibilitychange', onVisibility);
 
@@ -221,8 +232,8 @@ export class CodexLandingComponent {
     this.loading.set(true);
     const [items, ready, announced] = await Promise.all([
       this.data.rotationItems(),
-      this.data.flightReadyFilmstrip(),
-      this.data.announcedFilmstrip(),
+      this.data.flightReadyFilmstrip(FILM_TILES),
+      this.data.announcedFilmstrip(FILM_TILES),
     ]);
     this.items.set(items);
     this.ready.set(ready);
