@@ -70,7 +70,10 @@ Deno.serve(async (req) => {
   let actor: string | null = null; // admin user id; null for service role
   let allowed = false;
   if (token && serviceKey && token === serviceKey) allowed = true;
-  else if (op === 'tick' && token && anonKey && token === anonKey) allowed = true;
+  // tick is the pg_cron entry point. The cron job sends the public sb_publishable_* key, which
+  // the runtime's SUPABASE_ANON_KEY may not equal (it can still hold the legacy JWT). Both are
+  // public, and tick only advances jobs already inside the caps, so either one is enough.
+  else if (op === 'tick' && token && ((anonKey && token === anonKey) || token.startsWith('sb_publishable_'))) allowed = true;
   else if (token) {
     const { data: { user } } = await admin.auth.getUser(token);
     if (user) {
