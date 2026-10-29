@@ -9,6 +9,7 @@ import { NewsListComponent } from '../../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../../news/news.service';
 import type { PatchLineGroup } from '../../../news/patch-notes';
 import { PatchStabilityService } from '../../../news/patch-stability.service';
+import { PatchStabilityVotesService } from '../../../news/patch-stability-votes.service';
 import type { StabilityVerdict } from '../../../news/patch-stability';
 import { VerseApiService } from '../../data/verse-api.service';
 import { VerseDigest, VerseDigestItem } from '../../data/verse.models';
@@ -141,10 +142,11 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy(), flags: () => ({}) } },
         { provide: BetaService, useValue: { isEnabled: (a: string) => () => !!beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
+        { provide: PatchStabilityVotesService, useValue: { line: () => null, correctionFor: () => null, ensure: () => undefined } },
         {
           provide: PatchStabilityService,
           useValue: {
-            load: jasmine.createSpy().and.resolveTo(), allTime: () => [],
+            load: jasmine.createSpy().and.resolveTo(), allTime: () => [], previousOf: () => null,
             verdictFor: (l: string) => (l === '4.3' ? verdict('4.3', 3, 50, 30) : l === '4.2' ? verdict('4.2', 2, 79, 16) : null),
           },
         },
@@ -248,7 +250,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     discardPeriodicTasks();
   }));
 
-  it('hub columns: heads as anchors, a 4-entry accordion, LIVE feature with verdict chip and the fixed channel slots', fakeAsync(() => {
+  it('hub columns: heads as anchors, a 4-entry accordion, LIVE feature with its stability chip and the fixed channel slots', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     tick();
@@ -260,13 +262,15 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('.acc .acc-i.open a')?.getAttribute('href')).toBe('/verse/news?item=f1');
     const feat = el.querySelector<HTMLAnchorElement>('.pcol a.feat')!;
     expect(feat.getAttribute('href')).toBe('/verse/patches/4.3');
-    expect(feat.querySelector('.verdict')?.getAttribute('data-verdict')).toBe('shaky');
-    expect(feat.querySelector('.kv')?.textContent).toContain('▼ 29');
-    expect(feat.querySelector('.kv-d[data-trend="worse"]')).not.toBeNull();
+    const chip = feat.querySelector('sc-stability-chip .chip')!;
+    expect(chip.getAttribute('data-word')).toBe('wackelig');
+    expect(chip.querySelector('.ind')?.textContent).withContext(' 50 % against 79 % of 4.2').toBe('▼');
+    expect(feat.querySelector('a.chip')).withContext('the row is the link, no anchor inside an anchor').toBeNull();
+    expect(el.querySelector('.kv, .verdict')).toBeNull();
     const slots = Array.from(el.querySelectorAll<HTMLElement>('.pcol .ch')).map((c) => [c.dataset['ch'], c.classList.contains('off')]);
     expect(slots).toEqual([['hotfix', true], ['ptu', false], ['evocati', true]]);
     expect(el.querySelector('.ch.off .quiet')?.textContent).toContain('verse.hub.channelOff');
-    expect(el.querySelectorAll('.ch .kv').length).withContext('same grid in every running channel').toBe(1);
+    expect(el.querySelectorAll('.ch .ch-chip').length).withContext('the running PTU row carries a chip, Evocati none').toBe(1);
     expect(el.querySelector<HTMLAnchorElement>('.gal a.feat')?.getAttribute('href')).toBe('/verse/gallery?image=g1');
     expect(el.querySelectorAll('.mosaic > .blank').length).withContext('never an empty tile').toBe(0);
     expect(el.querySelectorAll('.mosaic > *').length).withContext('one picture only: no mosaic tiles to fill').toBe(0);

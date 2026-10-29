@@ -106,7 +106,7 @@ describe('CommunityVerdictComponent', () => {
 
   it('after the vote: own verdict, change lock time, own entry marked, correction visible', () => {
     agg.set({ ...AGG, ownVerdict: 'wackelig', ownNextChangeAt: new Date(Date.now() + 5 * 3_600_000).toISOString() });
-    const { el } = render(64);
+    const { el } = render(80);
     expect(el.querySelector('.mine')!.textContent).toContain('Shaky');
     expect(el.querySelector('.mine')!.textContent).toContain('changeable from');
     expect(el.querySelector('.bar')).not.toBeNull();

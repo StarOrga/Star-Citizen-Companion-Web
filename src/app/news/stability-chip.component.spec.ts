@@ -53,7 +53,7 @@ describe('StabilityChipComponent', () => {
   it('shows indicator, word and percent, and links to the long form of the line', () => {
     const el = render(data());
     const chip = el.querySelector('a.chip')!;
-    expect(chip.textContent!.replace(/\s+/g, ' ').trim()).toBe('▼ Shaky 59 %');
+    expect(chip.textContent!.trim()).toBe('▼Shaky59 %');
     expect(chip.getAttribute('data-word')).toBe('wackelig');
     expect(chip.getAttribute('href')).toBe('/verse/patches/4.3#stabilitaet');
   });

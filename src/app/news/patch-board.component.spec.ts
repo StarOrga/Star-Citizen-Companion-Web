@@ -189,7 +189,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(fold!.textContent).toContain('4.8');
     expect(fold!.textContent).toContain('4.7');
     // No chip filters beside the search — the stack is the selection.
-    expect(root().querySelector('.patch-filter, .chip')).toBeNull();
+    expect(root().querySelector('.patch-filter, .search .chip')).toBeNull();
   });
 
   it('says the status as a word, LIVE as the hero row, and every card is a real link into its dossier', async () => {
