@@ -410,6 +410,8 @@ export const api = {
       outDir: string,
       /** Phases of subthemes the server already holds for this build. */
       skipPhases: string[] = [],
+      /** The channel's Data.p4k - its folder may hold the game's build_manifest.id. */
+      p4kPath: string | null = null,
     ): Promise<{
       ok: boolean;
       buildId?: string;
@@ -420,7 +422,7 @@ export const api = {
       errorCode?: string;
       /** Publish phase that failed, so the UI can name where it stopped. */
       errorPhase?: string;
-    }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir, skipPhases),
+    }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir, skipPhases, p4kPath),
     /** The Silhouetten step: the built outlines (+ constellation) for the Codex step's build row. */
     silhouettes: (
       accessToken: string,

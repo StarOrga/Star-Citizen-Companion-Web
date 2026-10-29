@@ -2423,7 +2423,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // finalize the build a second time.
   const codexDone = job?.catalog?.status === 'done';
   if (codexDone) setStage('entries', 'done');
-  const codex = codexDone ? 'ok' : await promoteToCodex(result.output_dir, uploadProgress);
+  const codex = codexDone ? 'ok' : await promoteToCodex(result.output_dir, uploadProgress, gameP4kFor(result));
   // Stop the whole run on a pause. Falling through would reach the cleanup
   // below, deleting the out_dir that a resume needs.
   if (codex === 'paused') {
@@ -2746,6 +2746,7 @@ function subthemeName(key: SubthemeKey): string {
 async function promoteToCodex(
   outDir: string | undefined,
   progress?: ProgressController | null,
+  p4kPath: string | null = null,
 ): Promise<'ok' | 'failed' | 'paused'> {
   if (!outDir || !state.authToken) {
     // Never fail silently: a session lost mid-upload (sign-out, expiry) or a
@@ -2791,7 +2792,7 @@ async function promoteToCodex(
     });
   });
   try {
-    const res = await window.sc.catalog.upload(state.authToken, outDir, phasesOf(state.subthemePlan?.skip ?? []));
+    const res = await window.sc.catalog.upload(state.authToken, outDir, phasesOf(state.subthemePlan?.skip ?? []), p4kPath);
     if (res.ok) {
       const ships = res.counts?.['ships'] ?? 0;
       progress?.update({ overallPct: 100, indeterminate: false });
@@ -2975,6 +2976,15 @@ function installFor(result: ExtractResultPayload): (typeof state.channels)[numbe
   const ch = matching.find((c) => c.selected) ?? matching[0];
   if (!ch) throw new Error(t('upload.installMissing', { channel: result.channel }));
   return ch;
+}
+
+/** The Data.p4k of the install this extract came from, or null (never throws). */
+function gameP4kFor(result: ExtractResultPayload): string | null {
+  try {
+    return installFor(result).dataP4kPath;
+  } catch {
+    return null;
+  }
 }
 
 /** How a silhouette build ended — `stopped` is a pause/abort, not a failure. */

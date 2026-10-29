@@ -16,7 +16,7 @@
 
 import { readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import log from 'electron-log';
 import { API_BASE, RELEASE_TOKEN } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
@@ -194,6 +194,11 @@ export interface CatalogHooks {
    * mid-upload is honoured by the next chunk instead of at the next run.
    */
   pace?: () => Promise<void>;
+  /**
+   * The channel's `Data.p4k`. `build_manifest.id` next to it (the game's own
+   * build info) is sent with `init` as `game_build_manifest`; absent -> omitted.
+   */
+  p4kPath?: string | null;
   /** Reuse a build row from an interrupted run instead of `init`-ing a new one. */
   buildId?: string | null;
   /**
@@ -242,6 +247,22 @@ async function readJsonDir(outDir: string, sub: string): Promise<Record<string, 
     }
   }
   return out;
+}
+
+/** The game's own `build_manifest.id` (JSON) next to Data.p4k, or null. */
+export async function readGameBuildManifest(p4kPath: string | null | undefined): Promise<Record<string, unknown> | null> {
+  if (!p4kPath) return null;
+  try {
+    const file = join(dirname(p4kPath), 'build_manifest.id');
+    if (!existsSync(file)) return null;
+    const text = (await readFile(file, 'utf-8')).replace(/^﻿/, '');
+    if (text.length > 262_144) return null;
+    const parsed: unknown = JSON.parse(text);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    // Unreadable / not JSON: the field is optional, never block the upload.
+    return null;
+  }
 }
 
 /**
@@ -453,9 +474,11 @@ export async function uploadCatalog(
     if (buildId) {
       log.info(`[catalog] resuming build ${buildId}`);
     } else {
+      const gameBuildManifest = await readGameBuildManifest(hooks.p4kPath);
       const initRes = await post('init', {
         build: {
           ...nat,
+          ...(gameBuildManifest ? { game_build_manifest: gameBuildManifest } : {}),
           schema_version: manifest.schema_version ?? 1,
           quality_score: manifest.quality_score ?? null,
           tool_version: manifest.tool_version ?? null,
