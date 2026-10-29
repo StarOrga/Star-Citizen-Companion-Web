@@ -302,6 +302,91 @@
         "setupHangar": "Set up your hangar",
         "searchShip": "Search the Codex for a ship",
         "createSet": "Create an FPS set"
+      },
+      "news": {
+        "button": "News",
+        "open": "Open patch summary {{patch}}",
+        "unread": "New summary",
+        "title": "What {{patch}} changes",
+        "source": "AI summary",
+        "notes": "Patch notes at CIG",
+        "notesOverview": "All patch notes at CIG"
+      },
+      "holo": {
+        "label": "Holotable",
+        "open": "Open {{name}}",
+        "rotation": "Choose a category",
+        "next": "Click: resume",
+        "hold": "Click: hold",
+        "loading": "Holotable loading …",
+        "empty": "No entries for this patch yet.",
+        "newIn": "New"
+      },
+      "category": {
+        "ship": "Ship",
+        "fpsWeapon": "FPS weapon",
+        "armor": "Armour",
+        "component": "Component",
+        "tool": "Tool"
+      },
+      "card": {
+        "label": "Data card",
+        "grow": "Enlarge card",
+        "shrink": "Shrink card",
+        "flip": "Back",
+        "flipLabel": "Flip card: values and paints",
+        "front": "Front",
+        "frontLabel": "Flip card: image",
+        "render": "RSI render",
+        "standard": "Standard",
+        "paintOf": "{{index}} of {{count}} paints",
+        "paints": "Paints",
+        "morePaints": "Show all {{count}} paints",
+        "fewer": "Fewer",
+        "isNew": "new",
+        "values": "Values"
+      },
+      "value": {
+        "flight": {
+          "scmSpeed": "SCM speed",
+          "maxSpeed": "Top speed"
+        },
+        "hull": {
+          "hp": "Hull",
+          "mass": "Mass"
+        },
+        "armorHp": "Armour",
+        "cargoScu": "Cargo",
+        "crew": {
+          "size": "Crew"
+        }
+      },
+      "overview": {
+        "role": "Role",
+        "size": "Size",
+        "manufacturer": "Manufacturer",
+        "type": "Type",
+        "part": "Part",
+        "class": "Class"
+      },
+      "film": {
+        "label": "Ships",
+        "newReady": "New & flight-ready",
+        "announced": "Announced",
+        "more": "+ {{count}} more",
+        "moreReady": "flight-ready",
+        "moreAnnounced": "announced",
+        "isNew": "new",
+        "empty": "No ships in this list."
+      },
+      "rail": {
+        "label": "Categories",
+        "ships": "Ships",
+        "components": "Components",
+        "weapons": "Weapons",
+        "armor": "Armour",
+        "tools": "Tools",
+        "keybinds": "Keybindings"
       }
     },
     "index": {
@@ -5159,8 +5244,16 @@
     "removeFilter": "Remove filter: {{name}}",
     "moreFilters": "Show {{count}} more filters",
     "hits": "{{count}} hits",
-    "demo": {"ship": "Gladius", "patch": "Patch 4.10.2", "item": "Laser repeater"},
-    "filter": {"variants": "Variants", "options": "Options", "weaponGroup": "Weapon group"},
+    "demo": {
+      "ship": "Gladius",
+      "patch": "Patch 4.10.2",
+      "item": "Laser repeater"
+    },
+    "filter": {
+      "variants": "Variants",
+      "options": "Options",
+      "weaponGroup": "Weapon group"
+    },
     "navAria": "Main areas",
     "areaMenu": "Switch area — now: {{area}}",
     "home": "Home",

@@ -1,4 +1,4 @@
-import { DestroyRef, Directive, ElementRef, afterNextRender, inject } from '@angular/core';
+import { DestroyRef, Directive, ElementRef, afterNextRender, inject, input } from '@angular/core';
 import { BetaService } from '../../core/beta.service';
 
 /** Fired on window when a hero moved its slot: the bar re-places its staged field. */
@@ -11,8 +11,8 @@ const MAX_LIFT_PX = 200;
 const MAX_PASSES = 6;
 
 /** Document y the stage slot's top aims at, the same on every main page. */
-export function stageSlotTarget(viewportHeight: number): number {
-  return Math.round(viewportHeight * STAGE_FIELD_TOP);
+export function stageSlotTarget(viewportHeight: number, top: number = STAGE_FIELD_TOP): number {
+  return Math.round(viewportHeight * top);
 }
 
 /**
@@ -30,6 +30,13 @@ export function stageSlotTarget(viewportHeight: number): number {
 })
 export class StageHeroDirective {
   readonly on = inject(BetaService).isEnabled('shell');
+  /**
+   * Per-page slot height as a fraction of the viewport (default
+   * {@link STAGE_FIELD_TOP}). Only for a page whose stage needs the room below
+   * the field — the Codex landing lifts it for its holotable (concept
+   * 2026-10-29-codex-landing-neu, round 6 feedback).
+   */
+  readonly top = input<number | null>(null, { alias: 'scStageHeroTop' });
 
   constructor() {
     const el = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
@@ -48,7 +55,7 @@ export class StageHeroDirective {
       for (let pass = 0; pass < MAX_PASSES; pass++) {
         const cur = parseFloat(el.style.getPropertyValue('--_hero-shift')) || 0;
         const slotTop = slot.getBoundingClientRect().top + window.scrollY;
-        const next = Math.max(-MAX_LIFT_PX, Math.round(cur + stageSlotTarget(window.innerHeight) - slotTop));
+        const next = Math.max(-MAX_LIFT_PX, Math.round(cur + stageSlotTarget(window.innerHeight, this.top() ?? STAGE_FIELD_TOP) - slotTop));
         if (Math.abs(next - cur) < 1) break;
         el.style.setProperty('--_hero-shift', `${next}px`);
         moved = true;

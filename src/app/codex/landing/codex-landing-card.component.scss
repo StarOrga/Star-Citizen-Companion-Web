@@ -1,0 +1,213 @@
+// Datenkarte (concept 2026-10-29-codex-landing-neu, round 6). The landing
+// positions the host (a column box from the hero's top edge down to the
+// filmstrip); the small card sits at its top, the enlarged one fills it.
+:host {
+  --acc: var(--sc-accent);
+  position: relative;
+  display: block;
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+  margin: 0;
+  pointer-events: auto;
+  border: 1px solid rgba(232, 235, 237, 0.16);
+  border-radius: 3px;
+  background: linear-gradient(160deg, rgba(232, 235, 237, 0.09), rgba(10, 30, 44, 0.66));
+  backdrop-filter: blur(6px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 30px rgba(82, 193, 230, 0.06);
+  color: var(--sc-fg-0);
+}
+.card::before,
+.card::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--acc);
+  pointer-events: none;
+}
+.card::before { left: -4px; top: -4px; border-right: 0; border-bottom: 0; }
+.card::after { right: -4px; bottom: -4px; border-left: 0; border-top: 0; }
+
+.label {
+  display: block;
+  font: 600 max(9px, 0.56rem) / 1.3 var(--sc-font-display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sc-fg-2);
+}
+
+// ── Small card ──
+.small {
+  width: 100%;
+  transform: perspective(1400px) rotateY(7deg);
+  transform-origin: 0 50%;
+  transition: opacity 0.2s ease;
+}
+.small.under { opacity: 0; pointer-events: none; }
+.grow { position: absolute; inset: 0; z-index: 1; border: 0; border-radius: 3px; background: none; cursor: zoom-in; padding: 0; }
+.grow:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; }
+.grow-ic {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%;
+  color: var(--sc-fg-0); background: rgba(6, 16, 24, 0.55); opacity: 0.7; pointer-events: none;
+}
+.grow-ic svg { width: 12px; height: 12px; }
+.small:hover .grow-ic { opacity: 1; }
+.thumb { display: block; height: 140px; overflow: hidden; border-radius: 3px 3px 0 0; background: #07141c; }
+.thumb img, .shot { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cap { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 12px; pointer-events: none; }
+.cap a { pointer-events: auto; }
+.cap-line {
+  font: 600 max(10px, 0.62rem) var(--sc-font-display);
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--sc-fg-0);
+}
+.cap-line span { color: var(--sc-fg-2); }
+.src {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; min-height: 24px;
+  font: 11px var(--font-monospace, 'Share Tech Mono', monospace); color: var(--sc-fg-2); text-decoration: none;
+}
+.src i { width: 6px; height: 6px; border-radius: 50%; background: var(--acc); }
+.src b { font-weight: 400; opacity: 0.7; }
+a.src:hover, a.src:focus-visible { color: var(--sc-fg-1); }
+a.src:hover b, a.src:focus-visible b { opacity: 1; color: var(--sc-accent); }
+
+.solo-body { position: relative; z-index: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; pointer-events: none; }
+.solo-name { font: 500 20px / 1.1 var(--sc-font-display); }
+.top3 { margin: 0; display: flex; flex-direction: column; }
+.top3 div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--sc-border); }
+.top3 dd { margin: 0; font: 400 26px / 1 var(--font-monospace, 'Share Tech Mono', monospace); }
+.top3 dt { font: 600 max(9px, 0.56rem) var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); text-align: right; }
+
+// ── Enlarged card ──
+.big {
+  position: absolute; left: 0; top: 0; bottom: 0; z-index: 5;
+  width: min(372px, 100vw - 2 * var(--sc-page-gutter));
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(82, 193, 230, 0.1);
+  animation: card-in 0.22s ease-out both;
+}
+.big::after { display: none; }
+.big::before { width: 20px; height: 20px; }
+.big:focus { outline: none; }
+.front { position: relative; flex: 1 1 auto; min-height: 0; }
+.front .shot { position: absolute; inset: 0; border-radius: 3px; }
+.shade {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 44%, rgba(4, 10, 16, 0.92) 100%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 58%, rgba(0, 0, 0, 0.55));
+}
+.big-cap { position: absolute; left: 0; right: 52px; bottom: 0; gap: 6px; padding: 18px 18px 16px; }
+.shrink {
+  position: absolute; top: 10px; right: 10px; z-index: 4;
+  width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border-radius: 50%;
+  border: 1px solid rgba(232, 235, 237, 0.3); background: rgba(6, 16, 24, 0.6); backdrop-filter: blur(6px);
+  color: var(--sc-fg-0); cursor: pointer;
+}
+.shrink svg { width: 13px; height: 13px; }
+.shrink:focus-visible, .fold:focus-visible, .pt:focus-visible, .more:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+.back-head .shrink { position: static; flex: 0 0 auto; }
+
+// Folded corner ↻ (flip), label on hover.
+.fold { position: absolute; right: 0; bottom: 0; z-index: 4; width: 46px; height: 46px; padding: 0; border: 0; background: none; cursor: pointer; }
+.fold::before {
+  content: ''; position: absolute; inset: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 3px 0;
+  background: linear-gradient(135deg, transparent 49%, rgba(200, 245, 255, 0.9) 49.5%, rgba(82, 193, 230, 0.55) 52%, rgba(20, 60, 80, 0.9) 100%);
+}
+.fold::after { content: ''; position: absolute; inset: 0; clip-path: polygon(100% 0, 0 100%, 0 0); background: linear-gradient(315deg, rgba(0, 0, 0, 0.35), transparent 40%); pointer-events: none; }
+.fold svg { position: absolute; right: 6px; bottom: 6px; z-index: 1; width: 13px; height: 13px; color: #eaf9ff; filter: drop-shadow(0 0 4px rgba(130, 220, 255, 0.8)); }
+.fold-tip {
+  position: absolute; right: 50px; bottom: 12px; padding: 3px 8px; border-radius: 3px;
+  background: rgba(6, 16, 24, 0.85); border: 1px solid var(--sc-border);
+  font: 600 max(9px, 0.56rem) var(--sc-font-display); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--sc-fg-0); white-space: nowrap; opacity: 0; transform: translateX(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease; pointer-events: none;
+}
+.fold:hover .fold-tip, .fold:focus-visible .fold-tip { opacity: 1; transform: none; }
+
+.back {
+  position: relative; flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px;
+  background: linear-gradient(200deg, rgba(232, 235, 237, 0.08), rgba(10, 30, 44, 0.82));
+}
+.back-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.back-name {
+  position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
+  font: 500 24px / 1.1 var(--sc-font-display); color: var(--sc-fg-0); text-decoration: none;
+}
+.back-name i { font-style: normal; font-size: 13px; line-height: 1; color: var(--sc-accent); opacity: 0.65; transform: translateY(-0.08em); }
+.back-name:hover i, .back-name:focus-visible i { opacity: 1; }
+.facts {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 9px 0;
+  border-top: 1px solid var(--sc-border); border-bottom: 1px solid var(--sc-border);
+}
+.facts div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.facts dt { font: 600 max(9px, 0.56rem) var(--sc-font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--sc-fg-2); }
+.facts dd { margin: 0; font-size: 13px; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top7 { margin: 0; display: flex; flex-direction: column; }
+.top7 div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 5px 2px; border-bottom: 1px solid rgba(82, 193, 230, 0.1); }
+.top7 dt { font: 600 max(9px, 0.56rem) var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
+.top7 dd { margin: 0; font: 400 16px / 1.2 var(--font-monospace, 'Share Tech Mono', monospace); color: var(--sc-fg-0); }
+.solo-values div { padding: 8px 2px; }
+.solo-values dd { font-size: 24px; }
+
+.paints { display: flex; flex-direction: column; gap: 8px; margin-top: auto; min-height: 0; padding-right: 40px; }
+.paints.fill { flex: 1 1 auto; margin-top: 0; padding-right: 0; padding-bottom: 40px; }
+.paints-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.pgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; }
+.pgrid.all { align-content: start; overflow: auto; min-height: 0; flex: 1 1 auto; padding: 4px; margin: -4px; }
+.more {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid rgba(82, 193, 230, 0.4); background: none; cursor: pointer;
+  font: 600 max(10px, 0.62rem) var(--sc-font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-accent);
+}
+.pt {
+  position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 0;
+  border: 0; background: none; text-align: left; cursor: pointer; color: inherit;
+}
+.pimg {
+  position: relative; display: block; height: 52px; border-radius: 3px; overflow: hidden;
+  background: #0b2231; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.pimg img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pt.on .pimg { box-shadow: 0 0 0 2px #08131c, 0 0 0 3px var(--sc-accent); }
+.pn { font-size: 11px; color: var(--sc-fg-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt.on .pn { color: var(--sc-fg-0); }
+.pt em {
+  position: absolute; top: 4px; left: 4px; padding: 0 5px; border-radius: 999px;
+  border: 1px solid rgba(82, 193, 230, 0.6); background: rgba(8, 19, 28, 0.88);
+  font: 600 8px / 12px var(--sc-font-display); font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent);
+}
+.pmore .pimg { display: grid; place-items: center; background: rgba(13, 38, 53, 0.6); box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.45); }
+.pmore .pimg b { font: 400 18px var(--font-monospace, 'Share Tech Mono', monospace); color: var(--sc-accent); }
+.pmore .pn { color: var(--sc-accent); }
+
+@keyframes card-in {
+  from { opacity: 0; transform: scale(0.96); transform-origin: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .big { animation: none; }
+  .small, .fold-tip { transition: none; }
+}
+
+// Phone: the small card is a horizontal row; the enlarged one fills the landing.
+@media (max-width: 720px) {
+  .small { transform: none; display: grid; grid-template-columns: 116px minmax(0, 1fr); }
+  .small.solo { display: block; }
+  .thumb { height: 72px; border-radius: 3px 0 0 3px; }
+  .cap { padding: 8px 10px; gap: 3px; }
+  .solo-body { padding: 8px 12px; gap: 4px; }
+  .solo-name { font-size: 16px; }
+  .top3 { flex-direction: row; gap: 8px; }
+  .top3 div { flex: 1; flex-direction: column-reverse; align-items: flex-start; gap: 4px; padding: 2px 0; border: 0; }
+  .top3 dd { font-size: 18px; }
+  .top3 dt { text-align: left; }
+  .big { position: fixed; left: 12px; right: 12px; top: 12px; bottom: var(--sc-float-bottom, 12px); width: auto; }
+  .back { padding: 12px; gap: 8px; }
+  .top7 dd { font-size: 14px; }
+  .pgrid { gap: 8px 6px; }
+  .pimg { height: 40px; }
+}
