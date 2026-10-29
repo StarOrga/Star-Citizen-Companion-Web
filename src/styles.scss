@@ -305,7 +305,7 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
 .sc-frame > .sc-track-page {
   grid-column: full-start / full-end;
   justify-self: center;
-  width: min(100% - 2 * var(--sc-page-gutter), var(--sc-page-max) - 2 * var(--sc-page-gutter));
+  width: min(100% - 2 * var(--sc-page-gutter), var(--sc-content-max));
 }
 
 /* ============================================================
