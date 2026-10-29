@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.179.0",
+  "current": "0.179.1",
   "releases": [
+    {
+      "version": "0.179.1",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Verse start page's sky easter egg actually goes off now."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.179.0",
       "date": "2026-10-29",
