@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.177.0",
+  "current": "0.179.0",
   "releases": [
+    {
+      "version": "0.179.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page (β shell): a small easter egg hides somewhere in the sky — find it and an asteroid comes uncomfortably close to the planet."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.178.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex subpages are one search page: an area tree with counts, manufacturer, size and grade filters on the left, result rows with silhouettes on the right, and hits from other kinds below the list. Enter in the subheader search opens it."
+            },
+            {
+              "title": "",
+              "text": "Data uploader 0.64.0 builds silhouettes for every item and for ammunition, and 3D models for FPS weapons, ship items, armor and clothing (switchable in the settings) and ground vehicles."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Old /codex/fps and /codex/upcoming links open the new search page with their filters."
+            },
+            {
+              "title": "",
+              "text": "Results no longer show the raw class name, the size bar, the category chip rows or extra badges."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "CIG's placeholder \"UNDEFINED\" is stored as empty and never shown."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.177.0",
       "date": "2026-10-29",
