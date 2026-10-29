@@ -101,6 +101,7 @@ export const COMPANION_ROUTE = '/companion';
     '[class.open]': 'open()',
     '[class.bottom]': "placement() === 'bottom'",
     '[class.compact]': 'compact()',
+    '(window:resize)': 'fitPanel()',
   },
   template: `
     <!-- Phone (bottom placement): the closed search is a magnifier button; tapping opens the field. -->
@@ -439,7 +440,10 @@ export const COMPANION_ROUTE = '/companion';
     .panel {
       position: absolute; top: calc(100% + var(--sc-space-2)); right: 0; z-index: 40;
       width: max(100%, min(720px, calc(100vw - 2 * var(--sc-wide-gutter, 16px))));
-      max-height: min(72dvh, 680px); overflow-y: auto; overscroll-behavior: contain;
+      /* --fs-panel-room: the space from the field down to the viewport edge
+         (fitPanel), so a field placed low on a stage page never pushes the
+         panel past the fold and scrolls the page. */
+      max-height: min(72dvh, 680px, var(--fs-panel-room, 680px)); overflow-y: auto; overscroll-behavior: contain;
       display: flex; flex-direction: column; gap: var(--sc-space-3);
       padding: var(--sc-space-3);
       border-radius: 20px;
@@ -754,6 +758,9 @@ export class FusionSearchComponent {
         }
       });
     });
+    effect(() => {
+      if (this.open()) untracked(() => this.fitPanel());
+    });
     // Keep the active row inside the list when the results change under it.
     effect(() => {
       const n = this.options().length;
@@ -765,6 +772,13 @@ export class FusionSearchComponent {
       this.unregisterHub?.();
       if (this.copiedTimer) clearTimeout(this.copiedTimer);
     });
+  }
+
+  /** Caps the dropdown panel at the room left below the field. */
+  fitPanel(): void {
+    const el = this.host.nativeElement as HTMLElement;
+    const room = window.innerHeight - el.getBoundingClientRect().bottom - 24;
+    el.style.setProperty('--fs-panel-room', `${Math.max(240, Math.round(room))}px`);
   }
 
   private suggestionSections(): FusionSection[] {
