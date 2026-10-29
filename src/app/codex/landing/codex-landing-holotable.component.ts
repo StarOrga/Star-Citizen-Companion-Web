@@ -1,10 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
 import { LandingCategory, LandingItem } from './codex-landing-data.types';
+
+/** How long a "no hull" answer of the viewer is doubted: its first emit precedes the skin catalog read. */
+const NO_HULL_GRACE_MS = 3000;
 
 /** Tiny etched glyph per rotation category (decorative, the label carries the meaning). */
 export const CATEGORY_GLYPH: Record<LandingCategory, string> = {
@@ -41,7 +44,7 @@ export const CATEGORY_GLYPH: Record<LandingCategory, string> = {
              [attr.aria-label]="'codex.landing.holo.open' | translate: { name: it.name }">
             <span class="ring" aria-hidden="true"></span>
             @if (it.kind === 'ship' && !no3d().has(it.className)) {
-              @defer (on idle) {
+              @defer (on immediate) {
                 <sc-ship-skin-viewer class="viewer" [shipId]="it.className" [embedded]="true" [holo]="true"
                                      [still]="still()" (available)="onAvailable(it.className, $event)" />
               } @placeholder {
@@ -128,7 +131,7 @@ export const CATEGORY_GLYPH: Record<LandingCategory, string> = {
         background: linear-gradient(0deg, rgba(240, 253, 255, 0.95), rgba(160, 230, 255, 0.4) 55%, transparent);
         filter: blur(1.5px);
       }
-      .holo {
+      a.holo {
         position: absolute; left: 50%; top: 0; bottom: 24%; z-index: 2;
         width: min(96%, 700px); transform: translateX(-50%);
         display: block; color: var(--holo); text-decoration: none;
@@ -279,7 +282,7 @@ export const CATEGORY_GLYPH: Record<LandingCategory, string> = {
       }
       @media (max-width: 720px) {
         .air { min-height: 0; }
-        .holo { bottom: 30%; }
+        a.holo { bottom: 30%; }
         .name { font-size: 18px; }
         .plate { padding: 6px 24px 8px; bottom: 2px; }
         .table { width: 100%; height: 84px; }
@@ -326,8 +329,30 @@ export class CodexLandingHolotableComponent {
     return `${this.layout()[i]?.r ?? 0}deg`;
   }
 
+  private readonly noHullTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.noHullTimers.forEach((t) => clearTimeout(t)));
+  }
+
+  /**
+   * The viewer emits false at once (skin list still empty) and true when the
+   * catalog arrives, so a false only counts as "no 3D hull" if no true
+   * follows within the grace period.
+   */
   onAvailable(className: string, available: boolean): void {
-    if (available) return;
-    this.no3d.update((s) => new Set([...s, className]));
+    const pending = this.noHullTimers.get(className);
+    if (pending) clearTimeout(pending);
+    if (available) {
+      this.noHullTimers.delete(className);
+      return;
+    }
+    this.noHullTimers.set(
+      className,
+      setTimeout(() => {
+        this.noHullTimers.delete(className);
+        this.no3d.update((s) => new Set([...s, className]));
+      }, NO_HULL_GRACE_MS),
+    );
   }
 }
