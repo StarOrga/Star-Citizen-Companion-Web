@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.171.0] - 2026-10-29
+
+### Added
+- Start page (shell beta): cinematic intro — the title sharpens letter by letter, the search is projected in, details and header follow after a calm beat, a comet ignites the constellation.
+- Header and search now fuse into the subheader along the scroll; „Mehr im Verse“ plays the same transition. The subheader keeps the content width (new `--sc-content-max` token).
+- Each main menu entry has its own camera view of the scene (HQ zooms down onto the surface); every switch flies directly to it.
+- Opening a Verse subpage first aims at the tile, then dives in and builds the page up step by step.
+
+### Changed
+- Main header: logo top left, apps and profile top right, admin below.
+
+### Fixed
+- The logo in the docked subheader is no longer clipped.
+
 ## [0.170.1] - 2026-10-29
 
 ### Fixed
