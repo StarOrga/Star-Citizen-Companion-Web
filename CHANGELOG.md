@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.176.0] - 2026-10-29
+
+### Added
+- Verse start page (β shell): while scrolling down, the News, Patches and Galerie planets fly with their area word into the hub's column heads and take their place; the heads' own planet and word only appear once they land.
+- A scroll gesture (wheel, keys) on the start page glides all the way to the hub or back to the stage — never a half-and-half picture; a scroll that stops half way finishes in its direction.
+
+### Changed
+- "Mehr im Verse" scrolls all the way down and hides at the bottom.
+- The holo relay rests (no light cone, no holo) away from the top of the page and transmits again once back at the top.
+
 ## [0.175.0] - 2026-10-29
 
 ### Added

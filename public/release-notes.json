@@ -1,7 +1,85 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.174.0",
+  "current": "0.176.0",
   "releases": [
+    {
+      "version": "0.176.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page (β shell): while scrolling down, the News, Patches and Galerie planets fly with their area word into the hub's column heads and take their place; the heads' own planet and word only appear once they land."
+            },
+            {
+              "title": "",
+              "text": "A scroll gesture (wheel, keys) on the start page glides all the way to the hub or back to the stage — never a half-and-half picture; a scroll that stops half way finishes in its direction."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "\"Mehr im Verse\" scrolls all the way down and hides at the bottom."
+            },
+            {
+              "title": "",
+              "text": "The holo relay rests (no light cone, no holo) away from the top of the page and transmits again once back at the top."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.175.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "One stability chip — trend arrow, word and percent — on the briefing hub, the sun beacon, the patch board and the patch dossier; the comparison with the previous patch sits in its tooltip."
+            },
+            {
+              "title": "",
+              "text": "The patch dossier opens with a \"Stability\" section that shows how the number comes about: scale, deductions, data basis, history and tickets."
+            },
+            {
+              "title": "",
+              "text": "Community verdict: signed-in players rate a patch as stable, shaky or unstable and see the result after voting; a vote can be changed every 12 hours, and the community moves the number by at most ±10 points."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Stability uses one three-word scale everywhere (stable ≥ 75 %, shaky 45–74 %, unstable below 45 %) and no longer shows red."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The stability ring, bar meter, history columns and the stability panel in the LIVE patch note."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.174.0",
       "date": "2026-10-29",
