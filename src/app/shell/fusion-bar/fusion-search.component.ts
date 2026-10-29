@@ -157,15 +157,27 @@ export const COMPANION_ROUTE = '/companion';
         <span class="hint" aria-hidden="true"><kbd>{{ 'codex.search.bar.keys.ctrl' | translate }} K</kbd><kbd>/</kbd></span>
       }
       <ng-content select="[fsTrailing]" />
-      @if (open()) {
-        <button type="button" class="close" (click)="close(true)"
-                [attr.aria-label]="'codex.search.bar.close' | translate"
-                [scTooltip]="'codex.search.bar.close' | translate" scTooltipTier="label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
-          </svg>
-        </button>
-      }
+      <!-- One slot, always reserved: the clear ✕ from the first character (click clears AND
+           refocuses), else the close ✕ while open. The field never gives it up to text. -->
+      <span class="xslot">
+        @if (engine.input()) {
+          <button type="button" class="close clear" (click)="clearInput()"
+                  [attr.aria-label]="'fusionBar.search.clear' | translate"
+                  [scTooltip]="'fusionBar.search.clear' | translate" scTooltipTier="label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        } @else if (open()) {
+          <button type="button" class="close" (click)="close(true)"
+                  [attr.aria-label]="'codex.search.bar.close' | translate"
+                  [scTooltip]="'codex.search.bar.close' | translate" scTooltipTier="label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        }
+      </span>
     </div>
 
     @if (open()) {
@@ -406,6 +418,7 @@ export const COMPANION_ROUTE = '/companion';
       background: var(--sc-bg-2); color: var(--sc-fg-1);
       font-family: var(--sc-font-mono, monospace); font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1; white-space: nowrap;
     }
+    .xslot { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
     .close {
       flex: none; display: inline-flex; align-items: center; justify-content: center;
       width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--sc-fg-2); cursor: pointer;
@@ -550,6 +563,7 @@ export const COMPANION_ROUTE = '/companion';
       .hint, .keys { display: none; }
       .qi { width: 44px; height: 44px; opacity: 1; }
       .act, .more, .chip { min-height: 44px; }
+      .xslot { width: 44px; height: 44px; }
       .close { width: 44px; height: 44px; }
       .ctx-x { width: 36px; height: 36px; }
     }
@@ -823,6 +837,12 @@ export class FusionSearchComponent {
     this.addFailed.set(false);
   }
 
+  /** The ✕ in the field: empties it and puts the caret back in, ready to type. */
+  clearInput(): void {
+    this.onInput('');
+    this.focus();
+  }
+
   dropContext(): void {
     this.contextDropped.set(true);
     this.fieldRef()?.nativeElement.focus();
@@ -838,6 +858,8 @@ export class FusionSearchComponent {
         this.close();
         return;
       }
+      // A page with its own search field (admin feedback) takes the chord while it is on screen.
+      if (this.chrome.focusPageSearch()) return;
       // A hub stage with its own search line on screen keeps it (landing terminal).
       if (this.chrome.stageSearch() === 'stage' && this.hub.activate()) return;
       this.focus();

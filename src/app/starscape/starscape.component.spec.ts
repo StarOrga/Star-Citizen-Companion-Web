@@ -5,13 +5,8 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { StarscapeComponent } from './starscape.component';
-import {
-  STARSCAPE_SOURCE_ALL,
-  StarscapeService,
-  StarscapeSourceOption,
-  Wallpaper,
-  starscapeSourceId,
-} from './starscape.service';
+import { StarscapeFilterId, StarscapeService, Wallpaper } from './starscape.service';
+import { AuthService } from '../auth/auth.service';
 import { StarscapeVotesService } from './starscape-votes.service';
 import { By } from '@angular/platform-browser';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -37,20 +32,14 @@ function serviceStub(wallpapers: Wallpaper[]) {
     loading: signal(false),
     error: signal<string | null>(null),
     timedOut: signal(false),
-    activeSeries: signal(''),
-    seriesOptions: signal<string[]>([]),
-    sourceOptions: signal<readonly StarscapeSourceOption[]>([
-      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
-    ]),
-    activeSource: signal(STARSCAPE_SOURCE_ALL),
+    filter: signal<StarscapeFilterId>('all'),
     hasMore: signal(false),
     desktopRelease: signal(null),
     ringReleases: signal([]),
     loadRingReleases: jasmine.createSpy('loadRingReleases').and.resolveTo(undefined),
     loadDesktopRelease: jasmine.createSpy('loadDesktopRelease').and.resolveTo(undefined),
     load: jasmine.createSpy('load').and.resolveTo(undefined),
-    setSeries: jasmine.createSpy('setSeries').and.resolveTo(undefined),
-    setSource: jasmine.createSpy('setSource').and.resolveTo(undefined),
+    setFilter: jasmine.createSpy('setFilter').and.resolveTo(undefined),
     loadOne: jasmine.createSpy('loadOne').and.resolveTo(null),
   };
 }
@@ -77,11 +66,14 @@ function votesStub(opts: { canVote?: boolean; counts?: Record<string, number>; m
 describe('StarscapeComponent', () => {
   const first = wallpaper('abc123');
 
+  const signedIn = signal(true);
+
   function configure(
     svc: ReturnType<typeof serviceStub>,
     queryParams: Record<string, string> = {},
     votes: ReturnType<typeof votesStub> = votesStub(),
   ): void {
+    signedIn.set(true);
     TestBed.configureTestingModule({
       imports: [StarscapeComponent],
       providers: [
@@ -90,6 +82,7 @@ describe('StarscapeComponent', () => {
         { provide: StarscapeService, useValue: svc },
         { provide: StarscapeVotesService, useValue: votes },
         { provide: RoleService, useValue: { role: signal('viewer') } },
+        { provide: AuthService, useValue: { isAuthenticated: signedIn } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: convertToParamMap(queryParams) } },
@@ -423,154 +416,130 @@ describe('StarscapeComponent', () => {
     f.destroy();
   });
 
-  it('keeps the ranking tallies visible without hover while Top-N is on', () => {
-    const votes = votesStub({ counts: { top001: 4 } });
-    votes.topOnly.set(true);
-    votes.topWallpapers.set([wallpaper('top001')]);
-    const f = setup(serviceStub([first]), {}, votes);
+  it('keeps the ranking tallies visible without hover in the Community Top view', () => {
+    const svc = serviceStub([wallpaper('top001')]);
+    svc.filter.set('top');
+    const f = setup(svc, {}, votesStub({ counts: { top001: 4 } }));
     const host = f.nativeElement.querySelector('sc-vote-button.tile-vote') as HTMLElement;
-    // Hovering seven tiles one by one is not a way to check whether the Top 7
-    // reflects everyone's votes.
     expect(host.classList).toContain('always-on');
     expect(host.textContent).toContain('4');
     f.destroy();
   });
 
-  it('persists the Top-N toggle through the service rather than locally', () => {
-    const votes = votesStub();
-    const f = setup(serviceStub([first]), {}, votes);
-    const toggle = f.nativeElement.querySelector('.top-toggle') as HTMLButtonElement;
-    expect(toggle.getAttribute('role')).toBe('switch');
-    expect(toggle.getAttribute('aria-checked')).toBe('false');
-    toggle.click();
-    expect(votes.setTopOnly).toHaveBeenCalledWith(true);
-    f.destroy();
-  });
-
-  it('renders the source filter as one segmented control with a stable option set', () => {
-    const svc = serviceStub([first]);
-    svc.seriesOptions.set(['Release Info', 'This Week in Star Citizen']);
-    svc.sourceOptions.set([
-      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
-      { id: starscapeSourceId('Release Info'), series: 'Release Info', label: 'Release Info', labelKey: null },
-      {
-        id: starscapeSourceId('This Week in Star Citizen'),
-        series: 'This Week in Star Citizen',
-        label: 'This Week in Star Citizen',
-        labelKey: null,
-      },
-    ]);
-    const f = setup(svc);
-    const group = f.nativeElement.querySelector('sc-segmented [role="radiogroup"]') as HTMLElement;
-    const segments = group.querySelectorAll('.seg-btn');
-    expect(segments.length).toBe(3);
+  it('offers exactly the four views, All selected, and no Top-N switch or series filter', () => {
+    const f = setup();
+    const host = f.nativeElement as HTMLElement;
+    const segments = Array.from(
+      host.querySelectorAll<HTMLElement>('sc-segmented [role="radiogroup"] .seg-btn'),
+    );
+    expect(segments.length).toBe(4);
     expect(segments[0].getAttribute('aria-checked')).toBe('true');
+    expect(f.nativeElement.querySelector('.top-toggle')).toBeNull();
+    expect(f.nativeElement.querySelectorAll('sc-segmented').length).toBe(1);
+    f.destroy();
+  });
 
-    // Picking a series must go through the NAMED source id, not a raw label:
-    // the same states are what the desktop tray menu will offer (#185).
-    (segments[1] as HTMLButtonElement).click();
-    expect(svc.setSource).toHaveBeenCalledWith('series:Release Info');
+  it('picks a view by its stable id', () => {
+    const svc = serviceStub([first]);
+    const f = setup(svc);
+    const segments = f.nativeElement.querySelectorAll('sc-segmented .seg-btn');
+    (segments[2] as HTMLButtonElement).click();
+    expect(svc.setFilter).toHaveBeenCalledWith('top');
+    (segments[3] as HTMLButtonElement).click();
+    expect(svc.setFilter).toHaveBeenCalledWith('mine');
+    f.destroy();
+  });
 
-    // And the option set must NOT be rebuilt from whatever the pick loaded —
-    // that is what made the row change width and shove the Top-N switch around
-    // (admin feedback 1f78e57f). The service owns a stable catalogue, so a
-    // filtered page leaves the control exactly as wide as it was.
-    svc.wallpapers.set([first]);
+  it('keeps "My votes" visible but not pickable while signed out', () => {
+    const svc = serviceStub([first]);
+    configure(svc);
+    signedIn.set(false);
+    const f = TestBed.createComponent(StarscapeComponent);
     f.detectChanges();
-    expect(group.querySelectorAll('.seg-btn').length).toBe(3);
+    const mine = f.nativeElement.querySelectorAll('sc-segmented .seg-btn')[3] as HTMLButtonElement;
+    expect(mine.getAttribute('aria-disabled')).toBe('true');
+    mine.click();
+    expect(svc.setFilter).not.toHaveBeenCalled();
     f.destroy();
   });
 
-  /*
-   * With "Roadmap Roundup" excluded at the data layer (RLS +
-   * fetch-verse-news/wallpaper-series.ts, admin feedback 1f78e57f) the live
-   * catalogue holds exactly ONE series, so the control the visitor actually
-   * sees is two segments wide — the shape PR #461 never rendered. Pinned here
-   * because a segmented control is easy to get right at four segments and
-   * wrong at two: `flex: 1 0 auto` has to share the slot, not collapse one
-   * side, and the pill must still not outgrow its column.
-   */
-  it('renders a two-segment filter when only one series survives the exclusion', () => {
+  it('falls back to All when the user signs out inside "My votes"', () => {
     const svc = serviceStub([first]);
-    svc.seriesOptions.set(['Release Info']);
-    svc.sourceOptions.set([
-      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
-      { id: starscapeSourceId('Release Info'), series: 'Release Info', label: 'Release Info', labelKey: null },
-    ]);
+    svc.filter.set('mine');
     const f = setup(svc);
-    const group = f.nativeElement.querySelector('sc-segmented [role="radiogroup"]') as HTMLElement;
-    const segments = Array.from(group.querySelectorAll<HTMLElement>('.seg-btn'));
-    expect(segments.length).toBe(2);
-    // Both readable, neither squeezed to nothing, and the pill inside its slot.
-    expect(segments.every((s) => s.offsetWidth > 0 && s.offsetHeight >= 48)).toBeTrue();
-    const seg = group as HTMLElement;
-    expect(seg.scrollWidth).toBeLessThanOrEqual(seg.offsetWidth + 1);
-    // "All" is still the selected default, and the one series is still pickable.
-    expect(segments[0].getAttribute('aria-checked')).toBe('true');
-    segments[1].click();
-    expect(svc.setSource).toHaveBeenCalledWith('series:Release Info');
-    f.destroy();
-  });
-
-  it('drops the filter entirely when no series is left to choose between', () => {
-    // The degenerate end of the same change: if the only series the gallery
-    // ever had were excluded, a control offering just "All" would be a control
-    // with nothing to decide. It must not render at all — and the Top-N switch
-    // must still sit exactly where it does with a filter beside it.
-    const svc = serviceStub([first]);
-    svc.seriesOptions.set([]);
-    svc.sourceOptions.set([
-      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
-    ]);
-    const f = setup(svc);
-    expect(f.nativeElement.querySelector('sc-segmented')).toBeNull();
-    const toggle = f.nativeElement.querySelector('.top-toggle') as HTMLElement;
-    expect(getComputedStyle(toggle).gridColumnStart).toBe('2');
-    f.destroy();
-  });
-
-  it('keeps the Top-N switch in its own grid column, so it cannot move', () => {
-    const svc = serviceStub([first]);
-    svc.seriesOptions.set(['Release Info']);
-    const f = setup(svc);
-    const toggle = f.nativeElement.querySelector('.top-toggle') as HTMLElement;
-    // A wrapping flex row re-lays itself out whenever a sibling changes width;
-    // a fixed second column cannot.
-    expect(getComputedStyle(toggle).gridColumnStart).toBe('2');
-    f.destroy();
-  });
-
-  it('does not move the Top-N switch when the source filter changes width', () => {
-    const svc = serviceStub([first]);
-    const wide = (n: number): StarscapeSourceOption[] => [
-      { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
-      ...Array.from({ length: n }, (_, i) => ({
-        id: starscapeSourceId(`Series ${i}`),
-        series: `Series ${i}`,
-        label: `A rather long series name ${i}`,
-        labelKey: null,
-      })),
-    ];
-    svc.seriesOptions.set(['Series 0']);
-    svc.sourceOptions.set(wide(1));
-    const f = setup(svc);
-    // The measured symptom the report described: the Top-N control "jumps"
-    // while the source is toggled. Its box has to survive the widest and the
-    // narrowest the neighbouring control can ever get.
-    const box = () => (f.nativeElement.querySelector('.top-toggle') as HTMLElement).getBoundingClientRect();
-    const before = box();
-    svc.sourceOptions.set(wide(4));
+    signedIn.set(false);
     f.detectChanges();
-    const wider = box();
-    svc.sourceOptions.set(wide(0));
+    expect(svc.setFilter).toHaveBeenCalledWith('all');
+    f.destroy();
+  });
+
+  it('says what an empty "My votes" means instead of the generic empty text', () => {
+    const svc = serviceStub([]);
+    svc.filter.set('mine');
+    const f = setup(svc);
+    expect(f.nativeElement.querySelector('.empty')?.textContent).toContain('starscape.filter.emptyMine');
+    f.destroy();
+  });
+
+  it('pitches the desktop app nowhere inside the Verse gallery', () => {
+    configure(serviceStub([first]));
+    const f = TestBed.createComponent(StarscapeComponent);
+    f.componentRef.setInput('embedded', true);
     f.detectChanges();
-    const narrow = box();
-    for (const after of [wider, narrow]) {
-      expect(Math.abs(after.left - before.left)).toBeLessThanOrEqual(1);
-      expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(1);
-      expect(Math.abs(after.width - before.width)).toBeLessThanOrEqual(1);
+    expect(f.nativeElement.querySelector('sc-starscape-app-promo')).toBeNull();
+    expect(f.nativeElement.querySelector('sc-app-download-menu')).toBeNull();
+    f.destroy();
+  });
+
+  it('lays the wall out as a grid that continues downwards, not as balanced columns', () => {
+    const f = setup();
+    const wall = f.nativeElement.querySelector('.wall') as HTMLElement;
+    expect(getComputedStyle(wall).display).toBe('grid');
+    f.destroy();
+  });
+
+  it('auto-loads the next page when the scroll marker comes into view, once at a time', () => {
+    const observers: { cb: IntersectionObserverCallback; disconnect: jasmine.Spy }[] = [];
+    const Original = window.IntersectionObserver;
+    (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = class {
+      disconnect = jasmine.createSpy('disconnect');
+      constructor(public cb: IntersectionObserverCallback) {
+        observers.push(this);
+      }
+      observe(): void {}
+      unobserve(): void {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
+    };
+    try {
+      const svc = serviceStub([first]);
+      svc.hasMore.set(true);
+      const f = setup(svc);
+      const fire = () =>
+        observers[observers.length - 1].cb(
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          {} as IntersectionObserver,
+        );
+      svc.load.calls.reset();
+      fire();
+      expect(svc.load).toHaveBeenCalledTimes(1);
+      // While a page is in flight, further hits are ignored.
+      svc.loading.set(true);
+      fire();
+      expect(svc.load).toHaveBeenCalledTimes(1);
+      // ...and so is a failed state (no endless retry loop).
+      svc.loading.set(false);
+      svc.error.set('errors.network');
+      fire();
+      expect(svc.load).toHaveBeenCalledTimes(1);
+      // The button stays as the fallback.
+      expect(f.nativeElement.querySelector('button.more')).not.toBeNull();
+      f.destroy();
+      expect(observers.every((o) => o.disconnect.calls.count() > 0)).toBeTrue();
+    } finally {
+      window.IntersectionObserver = Original;
     }
-    f.destroy();
   });
 
   /* ---------------------------------------------------------------- *
@@ -658,24 +627,5 @@ describe('StarscapeComponent', () => {
     expect((back.nativeElement.querySelector('.tile') as HTMLElement).classList)
       .not.toContain('loaded');
     back.destroy();
-  });
-
-  it('paints the server-side ranking (not the paged list) while Top-N is on', () => {
-    const votes = votesStub();
-    votes.topOnly.set(true);
-    votes.topWallpapers.set([wallpaper('top001')]);
-    const svc = serviceStub([first]);
-    svc.hasMore.set(true);
-    const f = setup(svc, {}, votes);
-    const tiles = f.nativeElement.querySelectorAll('.tile-wrap');
-    expect(tiles.length).toBe(1);
-    expect((tiles[0].querySelector('.tile') as HTMLAnchorElement).getAttribute('aria-label'))
-      .toBe('Wallpaper top001');
-    // A ranked Top-N is a complete list - "load more" would contradict it.
-    expect(f.nativeElement.querySelector('.more')).toBeNull();
-    // The source filter picks a slice of the gallery; the ranking is global by
-    // definition, so the two cannot both be active.
-    expect(f.nativeElement.querySelector('sc-segmented')).toBeNull();
-    f.destroy();
   });
 });

@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -19,14 +19,19 @@ describe('formatAppSize', () => {
 describe('AppsMenuComponent', () => {
   let fixture: ComponentFixture<AppsMenuComponent>;
   const canInstall = signal(true);
-  const collaborator = signal(false);
+  const role = signal<string>('viewer');
   let ringsFor: jasmine.Spy;
 
-  beforeEach(() => {
+  const setup = (r: string) => {
+    role.set(r);
     canInstall.set(true);
-    collaborator.set(false);
-    ringsFor = jasmine.createSpy('ringsFor').and.callFake(async (app: string) => ({
-      releases: [{ version: app === 'starscape' ? '1.2.0' : '0.41.0', url: `https://example.test/${app}.exe`, sizeBytes: 5 * 1024 * 1024 }],
+    ringsFor = jasmine.createSpy('ringsFor').and.callFake(async (app: string, rings: readonly string[]) => ({
+      releases: rings.map((ring) => ({
+        ring,
+        version: app === 'starscape' ? '1.2.0' : '0.41.0',
+        url: `https://example.test/${app}-${ring}.exe`,
+        sizeBytes: 5 * 1024 * 1024,
+      })),
     }));
     TestBed.configureTestingModule({
       imports: [AppsMenuComponent],
@@ -34,13 +39,16 @@ describe('AppsMenuComponent', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: DesktopCapabilityService, useValue: { canInstall } },
-        { provide: RoleService, useValue: { isCollaborator: collaborator, role: signal('admin') } },
+        {
+          provide: RoleService,
+          useValue: { role, isCollaborator: computed(() => role() === 'admin' || role() === 'collaborator') },
+        },
         { provide: DesktopReleaseService, useValue: { ringsFor } },
       ],
     });
     fixture = TestBed.createComponent(AppsMenuComponent);
     fixture.detectChanges();
-  });
+  };
 
   const el = () => fixture.nativeElement as HTMLElement;
   const openMenu = async () => {
@@ -49,32 +57,57 @@ describe('AppsMenuComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
   };
+  const hrefs = (sel: string) =>
+    Array.from(el().querySelectorAll<HTMLAnchorElement>(sel)).map((a) => a.getAttribute('href'));
 
   it('renders nothing on a device that cannot install a desktop app', () => {
+    setup('viewer');
     canInstall.set(false);
     fixture.detectChanges();
     expect(el().querySelector('.trigger')).toBeNull();
   });
 
-  it('lists the public apps as real download anchors in the normal accent, no uploader for a viewer', async () => {
+  for (const r of ['viewer', 'anon']) {
+    it(`${r}: SCC App + Starscape as plain stable downloads, no picker, no uploader`, async () => {
+      setup(r);
+      await openMenu();
+      const entries = Array.from(el().querySelectorAll<HTMLAnchorElement>('.pop a.entry'));
+      expect(entries.length).toBe(2);
+      expect(entries.some((a) => a.classList.contains('elevated'))).toBeFalse();
+      expect(entries[1].getAttribute('href')).toBe('https://example.test/starscape-stable.exe');
+      expect(entries[1].textContent).toContain('v1.2.0 · 5.0 MB');
+      expect(el().querySelector('.ring')).toBeNull();
+      expect(ringsFor).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('collaborator: Starscape and Data Uploader offer stable + beta, no admin-only entry', async () => {
+    setup('collaborator');
     await openMenu();
-    const entries = Array.from(el().querySelectorAll<HTMLAnchorElement>('.pop a.entry'));
-    expect(entries.length).toBe(2);
-    expect(entries.every((a) => a.hasAttribute('href') && !a.classList.contains('elevated'))).toBeTrue();
-    expect(entries[1].getAttribute('href')).toBe('https://example.test/starscape.exe');
-    expect(entries[1].textContent).toContain('v1.2.0 · 5.0 MB');
-    expect(ringsFor).toHaveBeenCalledTimes(1);
+    expect(hrefs('.pop .app:not(.elevated) a.ring')).toEqual([
+      'https://example.test/starscape-stable.exe',
+      'https://example.test/starscape-beta.exe',
+    ]);
+    expect(hrefs('.pop .app.elevated a.ring')).toEqual([
+      'https://example.test/uploader-stable.exe',
+      'https://example.test/uploader-beta.exe',
+    ]);
+    expect(el().querySelector('.ring.admin-only')).toBeNull();
   });
 
-  it('adds the Data Uploader in the hot accent for a collaborator', async () => {
-    collaborator.set(true);
+  it('admin: all three channels per app, alpha in the hot accent and labelled admin only', async () => {
+    setup('admin');
     await openMenu();
-    const up = el().querySelector<HTMLAnchorElement>('.pop a.entry.elevated');
-    expect(up).not.toBeNull();
-    expect(up!.getAttribute('href')).toBe('https://example.test/uploader.exe');
+    expect(hrefs('.pop .app.elevated a.ring').length).toBe(3);
+    const alphas = Array.from(el().querySelectorAll<HTMLAnchorElement>('.ring.admin-only'));
+    expect(alphas.length).toBe(2);
+    expect(alphas.every((a) => a.getAttribute('href')!.endsWith('-alpha.exe'))).toBeTrue();
+    expect(alphas.every((a) => !!a.querySelector('.r-tag')?.textContent?.trim())).toBeTrue();
+    expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable', 'beta', 'alpha']);
   });
 
   it('closes on Escape and returns focus to the trigger', async () => {
+    setup('viewer');
     await openMenu();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
@@ -83,6 +116,7 @@ describe('AppsMenuComponent', () => {
   });
 
   it('a modified click on an entry keeps the menu open (new tab)', async () => {
+    setup('viewer');
     await openMenu();
     const a = el().querySelector<HTMLAnchorElement>('.pop a.entry')!;
     a.addEventListener('click', (e) => e.preventDefault());

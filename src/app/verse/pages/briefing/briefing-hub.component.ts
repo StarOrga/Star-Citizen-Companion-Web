@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { VerseNewsItem } from '../../../news/news.service';
@@ -20,11 +20,11 @@ export const MOSAIC_SLOTS = ['m1', 'm2', 's1', 's2', 's3', 's4'] as const;
  * so all three columns end on one line:
  *
  * - News: an accordion, the newest entry open, hover intent in TS
- *   ({@link AccordionIntent}); leaving the list returns to the newest.
+ *   ({@link AccordionIntent}); leaving the list keeps the open entry.
  * - Patches: the LIVE patch's RSI image with a verdict chip and the
  *   Stabilität / Bekannte Probleme grid, then the fixed Hotfix / PTU / Evocati
  *   slots in the same grid and wording ("gerade keiner im Lauf" when quiet).
- * - Galerie: the newest image, then a dense mosaic of six.
+ * - Galerie: the newest image, then a dense mosaic of up to six (only filled tiles).
  */
 @Component({
   selector: 'sc-briefing-hub',
@@ -53,8 +53,14 @@ export class BriefingHubComponent {
   private readonly translate = inject(TranslateService);
 
   readonly verdict = computed(() => verdictWord(this.live()?.stats.stability.value ?? null));
-  readonly galleryMain = computed(() => this.gallery()[0] ?? null);
-  readonly mosaic = computed(() => MOSAIC_SLOTS.map((slot, i) => ({ slot, item: this.gallery()[i + 1] ?? null })));
+  /** Image URLs that failed to load: the next candidate takes their place. */
+  private readonly broken = signal<ReadonlySet<string>>(new Set());
+  /** More candidates than slots (see HUB_GALLERY): every shown tile is a real, linkable, loading picture. */
+  private readonly candidates = computed(() => this.gallery().filter((g) => !this.broken().has(g.image ?? '') && !!verseItemLink(g.url)));
+  readonly galleryMain = computed(() => this.candidates()[0] ?? null);
+  /** Only filled slots; fewer pictures → fewer tiles (the grid adapts via data-n), never an empty one. */
+  readonly mosaic = computed(() =>
+    this.candidates().slice(1, 1 + MOSAIC_SLOTS.length).map((item, i) => ({ slot: MOSAIC_SLOTS[i], item })));
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.acc.destroy());
@@ -68,6 +74,12 @@ export class BriefingHubComponent {
     return deltaText(s, arrows);
   }
 
+  /** A gallery picture failed to load: drop it so the next candidate fills its tile. */
+  imgFailed(url: string | null): void {
+    if (!url) return;
+    this.broken.update((b) => new Set(b).add(url));
+  }
+
   link(item: VerseDigestItem): ReturnType<typeof verseItemLink> {
     return verseItemLink(item.url);
   }
@@ -76,7 +88,7 @@ export class BriefingHubComponent {
     return days <= 0 ? 'verse.hub.liveSinceToday' : days === 1 ? 'verse.hub.liveSinceOne' : 'verse.hub.liveSince';
   }
 
-  /** Focus left the accordion: back to the newest, like the pointer leaving. */
+  /** Focus left the accordion: like the pointer leaving, the open entry stays. */
   accFocusOut(ev: FocusEvent): void {
     const next = ev.relatedTarget as Node | null;
     if (!next || !(ev.currentTarget as HTMLElement).contains(next)) this.acc.leave();

@@ -12,6 +12,7 @@ import { LocaleService } from '../../core/locale/locale.service';
 import { PredictionMedian } from '../data/verse.models';
 import { StarTriggerService } from '../starmap/star-trigger.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
+import { DOCK_HOST_CLASS, DOCK_WIDTH_STYLE } from '../shared/dock-width';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 
 /** The pre-flight steps of the readiness checklist (keys of `patch_readiness.checklist`). */
@@ -72,7 +73,7 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
 @Component({
   selector: 'sc-verse-patches',
   // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
-  host: { class: 'sc-track-page' },
+  host: { class: DOCK_HOST_CLASS },
   standalone: true,
   imports: [TranslatePipe, RouterLink, VerseHeaderComponent, PatchBoardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -194,7 +195,7 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
     @media (max-width: 900px) { .ng { grid-template-columns: minmax(0, 1fr); padding-left: 12px; padding-right: 12px; } }
     @media (max-width: 760px) { .ng { padding-left: 12px; } }
     @media (max-width: 480px) { .checks { grid-template-columns: minmax(0, 1fr); } }
-  `],
+  `, DOCK_WIDTH_STYLE],
 })
 export class VersePatchesComponent {
   private readonly news = inject(NewsService);

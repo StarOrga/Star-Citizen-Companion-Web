@@ -42,10 +42,10 @@
                   @if (c) {
                     @for (st of currentList(); track st.item.key) {
                       @if (st.link.internal) {
-                        <a class="tl" animate.enter="t-in" [routerLink]="st.link.path" [queryParams]="st.link.query"
+                        <a class="tl" animate.enter="t-in" [scTooltip]="st.item.title" [scTooltipDisabled]="!titleClipped()" [routerLink]="st.link.path" [queryParams]="st.link.query"
                            (click)="openItem(st.item)" (auxclick)="openItem(st.item)">@if (titleIntro()) {<span class="sc-sr-only">{{ st.item.title }}</span>@for (ch of chars(st.item.title); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}} @else {<ng-container>{{ st.item.title }}</ng-container>}</a>
                       } @else {
-                        <a class="tl" animate.enter="t-in" [href]="st.link.path" target="_blank" rel="noopener noreferrer"
+                        <a class="tl" animate.enter="t-in" [scTooltip]="st.item.title" [scTooltipDisabled]="!titleClipped()" [href]="st.link.path" target="_blank" rel="noopener noreferrer"
                            (click)="openItem(st.item)" (auxclick)="openItem(st.item)">@if (titleIntro()) {<span class="sc-sr-only">{{ st.item.title }}</span>@for (ch of chars(st.item.title); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}} @else {<ng-container>{{ st.item.title }}</ng-container>}</a>
                       }
                     }

@@ -181,6 +181,26 @@ export class ShellChromeService {
     return () => this.pageSearchOwners.update((list) => list.filter((e) => e.owner !== owner));
   }
 
+  private readonly searchFocusers: { owner: object; focus: () => boolean }[] = [];
+
+  /**
+   * A page with a search field of its own (admin feedback) takes Ctrl/⌘+K while it is on screen:
+   * `focus` returns true when it took the key. Returns the unregister function.
+   */
+  registerSearchFocus(owner: object, focus: () => boolean): () => void {
+    this.searchFocusers.push({ owner, focus });
+    return () => {
+      const i = this.searchFocusers.findIndex((e) => e.owner === owner);
+      if (i >= 0) this.searchFocusers.splice(i, 1);
+    };
+  }
+
+  /** Ctrl/⌘+K: the newest page search that takes it (true), else the subheader search handles it. */
+  focusPageSearch(): boolean {
+    for (let i = this.searchFocusers.length - 1; i >= 0; i--) if (this.searchFocusers[i].focus()) return true;
+    return false;
+  }
+
   /** A hub page reports where its stage search line is (`'none'` when it leaves). */
   setStageSearch(state: StageSearchState): void {
     this.stage.set(state);

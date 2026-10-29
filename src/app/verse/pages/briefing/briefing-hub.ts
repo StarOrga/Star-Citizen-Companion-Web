@@ -5,8 +5,8 @@ import type { VerseChannelBuild, VerseChannelInfo, VerseDigestItem } from '../..
 
 /** News rows in the hub's accordion: one open, the rest as slim rows. */
 export const HUB_NEWS = 4;
-/** Gallery: the newest as the feature, six more as the mosaic below it. */
-export const HUB_GALLERY = 7;
+/** Gallery candidates: the newest as the feature, six more as the mosaic below it, the rest are spares for pictures that fail to load. */
+export const HUB_GALLERY = 14;
 /** The fixed channel slots under the LIVE feature, top to bottom. */
 export const HUB_CHANNELS = ['hotfix', 'ptu', 'evocati'] as const;
 export type HubChannelKind = 'live' | (typeof HUB_CHANNELS)[number];

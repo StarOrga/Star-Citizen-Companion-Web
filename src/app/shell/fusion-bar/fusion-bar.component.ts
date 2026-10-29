@@ -17,8 +17,8 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TranslatePipe } from '@ngx-translate/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LayoutService } from '../../core/layout/layout.service';
 import { OverlayRouteScrollService } from '../../core/overlay-route-scroll';
 import { isPlainLeftClick } from '../../core/modified-click.util';
@@ -35,7 +35,10 @@ import {
   HideTracker,
   activeAreaOf,
   activeSegmentOf,
+  TrailPart,
   barModeOf,
+  foldTrail,
+  trailOf,
   dockProgress,
   hidesOnScroll,
   isCodexToolPage,
@@ -60,14 +63,6 @@ export const SWEEP_MS = 1700;
 const NAV_SETTLE_MS = 400;
 /** Tokens shown inside the search field before the rest folds into "+n". */
 const MAX_TOKENS = 3;
-
-interface PathCrumb {
-  label?: string;
-  labelKey?: string;
-  labelParams?: Record<string, string> | null;
-  link: string | readonly unknown[] | null;
-  queryParams?: unknown;
-}
 
 /**
  * The subheader of the beta shell (concept 2026-10-28 header/subheader, round 8
@@ -152,23 +147,20 @@ interface PathCrumb {
             <img src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
           </a>
           <div class="plate" [attr.inert]="mode() === 'stage' ? '' : null">
-            <span class="cat">{{ areaLabelKey() | translate }}</span>
-            @if (back(); as b) {
-              <a class="back" [routerLink]="$any(b.link)" [queryParams]="b.queryParams"
-                 [attr.aria-label]="'fusionBar.backTo' | translate: { name: (b.label ?? (b.labelKey! | translate: (b.labelParams ?? undefined))) }">
-                <span class="tri" aria-hidden="true">◂</span>
-                <span class="back-label">{{ b.label ?? (b.labelKey! | translate: (b.labelParams ?? undefined)) }}</span>
-              </a>
-            }
-            @if (path().length > 1) {
-              <nav class="path" [attr.aria-label]="'pageHeader.crumbsAria' | translate">
+            <!-- Brandcrumb: the brand's name on line 1, the path below it. No second "Verse". -->
+            <span class="cat">Star Citizen Companion</span>
+            @if (trail().length) {
+              <nav class="trail" [attr.aria-label]="'pageHeader.crumbsAria' | translate"
+                   [scTooltip]="trailFolded() ? trailText() : null" scTooltipTier="label">
                 <ol>
-                  @for (c of path(); track $index) {
-                    <li>
-                      @if (c.link) {
+                  @for (c of trail(); track $index) {
+                    <li [class.fold]="c.fold">
+                      @if (c.fold) {
+                        <span aria-hidden="true">…</span><span class="sr-only">{{ trailText() }}</span>
+                      } @else if (c.link) {
                         <a [routerLink]="$any(c.link)" [queryParams]="$any(c.queryParams) ?? null">{{ c.label ?? (c.labelKey! | translate: (c.labelParams ?? undefined)) }}</a>
                       } @else {
-                        <span class="here" aria-current="page">{{ c.label }}</span>
+                        <span class="here" [attr.aria-current]="$last ? 'page' : null">{{ c.label ?? (c.labelKey! | translate: (c.labelParams ?? undefined)) }}</span>
                       }
                     </li>
                   }
@@ -285,12 +277,10 @@ interface PathCrumb {
     @if (phone() && variant() === 'app' && mode() !== 'stage') {
       <!-- Phone: the route line alone at the top; the bar itself sits at the thumb. -->
       <div class="route">
-        <span class="cat">{{ areaLabelKey() | translate }}</span>
-        @if (back(); as b) {
-          <a class="back" [routerLink]="$any(b.link)" [queryParams]="b.queryParams">
-            <span class="tri" aria-hidden="true">◂</span>
-            {{ b.label ?? (b.labelKey! | translate: (b.labelParams ?? undefined)) }}
-          </a>
+        @if (trailLast(); as last) {
+          <span class="cat">{{ last.label ?? (last.labelKey! | translate: (last.labelParams ?? undefined)) }}</span>
+        } @else {
+          <span class="cat">{{ areaLabelKey() | translate }}</span>
         }
       </div>
     }
@@ -346,14 +336,24 @@ export class FusionBarComponent {
   readonly areaLabelKey = computed(() => this.areaEntry()?.labelKey ?? 'fusionBar.home');
   /** "◂ <origin>": the page header's last crumb (NavOriginService decides where it leads), else the area root. */
   readonly back = computed(() => plateBackOf(this.crumbs()?.crumbs, this.url(), this.areaEntry()));
-  /** The full trail for the plate's hover: crumbs + the page title. */
-  readonly path = computed<readonly PathCrumb[]>(() => {
-    const c = this.crumbs();
-    if (!c) return [];
-    const list: PathCrumb[] = [...c.crumbs];
-    if (c.title) list.push({ label: c.title, link: null });
-    return list;
+  private readonly translate = inject(TranslateService);
+  private readonly lang = toSignal(this.translate.onLangChange, { initialValue: null });
+  /** The full path from the area root to this page (the brandcrumb's source). */
+  readonly fullTrail = computed<readonly TrailPart[]>(() =>
+    trailOf(this.crumbs()?.crumbs, this.crumbs()?.title, this.areaEntry()),
+  );
+  /** What the second line shows: the path, its middle folded to "…" past three parts. */
+  readonly trail = computed(() => foldTrail(this.fullTrail()));
+  readonly trailFolded = computed(() => this.trail().length < this.fullTrail().length);
+  /** "Verse › Galerie › Bild", translated: the folded path's tooltip and screen-reader text. */
+  readonly trailText = computed(() => {
+    this.lang();
+    return this.fullTrail()
+      .map((c) => c.label ?? (c.labelKey ? this.translate.instant(c.labelKey, c.labelParams ?? undefined) : ''))
+      .join(' › ');
   });
+  /** Phone: only the current page's name. */
+  readonly trailLast = computed(() => this.fullTrail().at(-1) ?? null);
 
   /** Codex kinds: on the Codex tool pages (index, FPS, upcoming, keybinds) the kind switch + panel row. */
   readonly segments = computed<readonly CodexSegment[] | null>(() =>
@@ -797,7 +797,9 @@ export class FusionBarComponent {
     if (typeof document === 'undefined') return;
     const el = this.host.nativeElement as HTMLElement;
     const staged = this.mode() === 'stage';
-    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(el.getBoundingClientRect().height);
+    // The bar parks `--sc-chrome-top` (minus its 4px padding) below the viewport top: that lift counts.
+    const lift = Math.max(0, (parseFloat(getComputedStyle(el).top) || 0) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-imp-banner-h')) || 0));
+    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(el.getBoundingClientRect().height + lift);
     document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
     // Phone: the whole bottom stack (bar + panel) the page must keep free.
     const stack = this.phone() && !staged ? Math.round(el.getBoundingClientRect().height) : 0;

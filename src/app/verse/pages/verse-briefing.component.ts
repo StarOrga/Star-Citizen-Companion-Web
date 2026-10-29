@@ -101,17 +101,30 @@ interface HeroStory {
   unseen: boolean;
 }
 
+/** From this many characters the hero title starts to shrink (in steps), before the line fit does the rest. */
+export const TITLE_SHRINK_FROM = 40;
+
+/** Start scale for a title of `len` characters: 1 up to {@link TITLE_SHRINK_FROM}, then one step per 12 characters. */
+export function titleStartScale(len: number): number {
+  if (len <= TITLE_SHRINK_FROM) return 1;
+  const steps = Math.ceil((len - TITLE_SHRINK_FROM) / 12);
+  return Math.max(TITLE_MIN_SCALE, 1 - steps * 0.1);
+}
+
 /**
- * Keeps the hero title at two lines at most: shrinks the font (down to
- * {@link TITLE_MIN_SCALE}) before a third line would appear, then sizes the
- * heading to its longest line so the chevrons hang at the text, not the box.
+ * Keeps the hero title at two lines at most: starts smaller for long titles
+ * ({@link titleStartScale}), shrinks the font (down to {@link TITLE_MIN_SCALE})
+ * before a third line would appear, then sizes the heading to its longest line
+ * so the chevrons hang at the text, not the box. Only a title that still needs
+ * more than two lines at the smallest size is cut (CSS ellipsis); returns true
+ * then, so the full title can go into a tooltip.
  */
-export function fitTitle(h: HTMLElement): void {
+export function fitTitle(h: HTMLElement): boolean {
   const a = h.querySelector<HTMLElement>('.tl');
-  if (!a) return;
+  if (!a) return false;
   h.style.width = '';
-  let scale = 1;
-  h.style.setProperty('--fit', '1');
+  let scale = titleStartScale((a.textContent ?? '').trim().length);
+  h.style.setProperty('--fit', scale.toFixed(2));
   const lines = (): number => {
     const lh = parseFloat(getComputedStyle(a).lineHeight) || a.getBoundingClientRect().height || 1;
     return Math.round(a.getBoundingClientRect().height / lh);
@@ -120,11 +133,13 @@ export function fitTitle(h: HTMLElement): void {
     scale = Math.max(TITLE_MIN_SCALE, scale - 0.06);
     h.style.setProperty('--fit', scale.toFixed(2));
   }
+  const clipped = lines() > 2;
   // One line (the normal case): the heading already hugs its text — a fixed
   // width would only freeze a measurement taken before the display font loaded.
-  if (lines() <= 1) return;
+  if (lines() <= 1) return false;
   const w = Array.from(a.getClientRects()).reduce((m, r) => Math.max(m, r.width), 0);
   if (w > 0) h.style.width = `${Math.ceil(w) + 1}px`;
+  return clipped;
 }
 
 /**
@@ -312,7 +327,11 @@ export class VerseBriefingComponent {
   // ── β shell: hub data ────────────────────────────────────────────────
   readonly hubNews = computed<VerseNewsItem[]>(() => {
     const st = this.news.stage();
-    return [...(st ? [st] : []), ...this.news.stream()].slice(0, HUB_NEWS);
+    // Newest first, whatever order the stage item and the stream arrive in.
+    return [...(st ? [st] : []), ...this.news.stream()]
+      .filter((n, i, all) => all.findIndex((m) => m.id === n.id) === i)
+      .sort((a, b) => (Date.parse(b.publishedAt) || 0) - (Date.parse(a.publishedAt) || 0))
+      .slice(0, HUB_NEWS);
   });
   /** Known patch lines (feed + stability table) for "the line before". */
   private readonly knownLines = computed(() => [
@@ -463,12 +482,12 @@ export class VerseBriefingComponent {
     afterRenderEffect(() => {
       this.current();
       const el = this.titleEl()?.nativeElement;
-      if (el) fitTitle(el);
+      if (el) this.titleClipped.set(fitTitle(el));
     });
     afterNextRender(() => {
       const refit = (): void => {
         const el = this.titleEl()?.nativeElement;
-        if (el) fitTitle(el);
+        if (el) this.titleClipped.set(fitTitle(el));
       };
       window.addEventListener('resize', refit);
       // The display font arrives after the first fit: measure again with it.
@@ -504,6 +523,8 @@ export class VerseBriefingComponent {
 
   /** True while the title letters cascade in; afterwards the title renders as plain text again. */
   readonly titleIntro = signal(false);
+  /** The hero title needed more than two lines even at the smallest size: it is cut with an ellipsis. */
+  readonly titleClipped = signal(false);
 
   /** Splits the hub title into letters for the entrance only (never under reduced motion). */
   private startTitleIntro(): void {

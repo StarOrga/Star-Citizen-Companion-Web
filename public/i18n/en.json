@@ -4145,6 +4145,15 @@
     "title": "Starscape",
     "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
     "filterAll": "All",
+    "filter": {
+      "label": "Gallery view",
+      "all": "All",
+      "newest": "Newest",
+      "top": "Community top",
+      "mine": "My votes",
+      "mineSignedOut": "Sign in to see the wallpapers you voted for",
+      "emptyMine": "You have not voted for a wallpaper yet. Tap the thumbs-up on an image to collect it here."
+    },
     "lightboxAria": "Wallpaper",
     "source": {
       "label": "Image source"
@@ -5177,6 +5186,7 @@
     },
     "search": {
       "label": "Search",
+      "clear": "Clear input",
       "dropContext": "Remove context — search everywhere",
       "ask": "Ask the Companion",
       "askKey": "Shift ↵",
@@ -5253,6 +5263,7 @@
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Download apps",
+    "pickChannel": "Pick a channel",
     "platform": "Windows · always the latest version",
     "scc": {
       "name": "SCC App",

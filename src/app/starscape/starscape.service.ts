@@ -77,37 +77,35 @@ function isMissingVariantColumn(error: { code?: string; message?: string } | nul
 }
 
 /**
- * How many rows the one-off series probe reads. Only the `series` column is
- * selected, so this is a few kB even at the ceiling, and the gallery grows by a
- * handful of comm-link images a week — the cap exists purely so the request can
- * never become unbounded, not because it is expected to be reached.
- */
-const SERIES_PROBE_LIMIT = 2000;
-
-/**
- * The "which images" dimension of the gallery, as a set of NAMED states.
+ * The "which images" dimension of the gallery: exactly four named views.
  *
- * `id` is a stable identity, not a label: `all` and `series:<name>`. The names
- * matter beyond this page — the Starscape desktop app wants to offer the same
- * dimensions in its tray menu, and a menu cannot key off a translated string.
+ * `id` is a stable identity, not a label (labels come from i18n): the Starscape
+ * desktop app offers the same views in its tray menu and cannot key off a
+ * translated string. Series is deliberately no filter any more - it stays a
+ * badge on the tile.
  */
-export interface StarscapeSourceOption {
-  /** Stable id — `all`, or `series:<series>`. */
-  readonly id: string;
-  /** The `verse_wallpapers.series` this selects, or null for "every series". */
-  readonly series: string | null;
-  /** Label straight from the data (an RSI series name), or null when it needs translating. */
-  readonly label: string | null;
-  /** i18n key for the label, or null when `label` carries it. */
-  readonly labelKey: string | null;
+export type StarscapeFilterId = 'all' | 'newest' | 'top' | 'mine';
+
+export interface StarscapeFilterOption {
+  readonly id: StarscapeFilterId;
+  /** i18n key of the segment label. */
+  readonly labelKey: string;
 }
 
-/** Id of the "no series filter" option. */
-export const STARSCAPE_SOURCE_ALL = 'all';
+/** The four views, in display order. `all` is the default. */
+export const STARSCAPE_FILTERS: readonly StarscapeFilterOption[] = [
+  { id: 'all', labelKey: 'starscape.filter.all' },
+  { id: 'newest', labelKey: 'starscape.filter.newest' },
+  { id: 'top', labelKey: 'starscape.filter.top' },
+  { id: 'mine', labelKey: 'starscape.filter.mine' },
+];
 
-/** Id for one concrete RSI series. */
-export function starscapeSourceId(series: string): string {
-  return `series:${series}`;
+/** Id of the default view. */
+export const STARSCAPE_FILTER_DEFAULT: StarscapeFilterId = 'all';
+
+/** True for an id the service knows (a stale persisted value must not break the page). */
+export function isStarscapeFilter(id: string): id is StarscapeFilterId {
+  return STARSCAPE_FILTERS.some((f) => f.id === id);
 }
 
 /**
@@ -139,55 +137,8 @@ export class StarscapeService {
   readonly error = signal<string | null>(null);
   /** The last failure was our own {@link LOAD_TIMEOUT_MS} abort, not a server error. */
   readonly timedOut = signal(false);
-  readonly activeSeries = signal<string>('');
-
-  /**
-   * Every series the table knows, resolved ONCE from the whole table.
-   *
-   * This used to be derived from the rows currently on screen, which made the
-   * filter rewrite itself on every pick: choosing "Release Info" reloads only
-   * Release Info rows, so every other option disappeared from the control. The
-   * row then changed width and the Top-N switch beside it visibly jumped
-   * (admin feedback 1f78e57f) — and a sibling series was only reachable by
-   * going back through "All" first. Empty until the probe answers.
-   */
-  private readonly seriesCatalogue = signal<readonly string[]>([]);
-  /** In-flight/finished probe — the catalogue is fetched at most once per session. */
-  private seriesProbe: Promise<void> | null = null;
-
-  /**
-   * Filter options, catalogue-backed. Falls back to whatever the loaded pages
-   * happen to show if the probe failed, so a dead probe costs completeness, not
-   * the filter itself.
-   */
-  readonly seriesOptions = computed<readonly string[]>(() => {
-    const catalogue = this.seriesCatalogue();
-    if (catalogue.length > 0) return catalogue;
-    const set = new Set<string>();
-    for (const w of this.wallpapers()) if (w.series) set.add(w.series);
-    return [...set].sort((a, b) => a.localeCompare(b));
-  });
-
-  /**
-   * The source filter as named states — "all" plus one per series, in a fixed
-   * order. Stable across picks by construction, which is what keeps the
-   * controls row from reflowing.
-   */
-  readonly sourceOptions = computed<readonly StarscapeSourceOption[]>(() => [
-    { id: STARSCAPE_SOURCE_ALL, series: null, label: null, labelKey: 'starscape.filterAll' },
-    ...this.seriesOptions().map((series) => ({
-      id: starscapeSourceId(series),
-      series,
-      label: series,
-      labelKey: null,
-    })),
-  ]);
-
-  /** Id of the currently selected source. */
-  readonly activeSource = computed(() => {
-    const series = this.activeSeries();
-    return series ? starscapeSourceId(series) : STARSCAPE_SOURCE_ALL;
-  });
+  /** The active view - see {@link StarscapeFilterId}. */
+  readonly filter = signal<StarscapeFilterId>(STARSCAPE_FILTER_DEFAULT);
 
   readonly hasMore = computed(() => this.wallpapers().length < this.total());
 
@@ -272,15 +223,13 @@ export class StarscapeService {
   }
 
   async load(reset = false): Promise<void> {
-    // Independent of the page request and never awaited: the gallery must paint
-    // as fast as it always did, the filter just fills in a beat later.
-    void this.ensureSeriesCatalogue();
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
     this.timedOut.set(false);
     const offset = reset ? 0 : this.wallpapers().length;
-    // Deadline for the whole page request — see LOAD_TIMEOUT_MS. `expired` is
+    const filter = this.filter();
+    // Deadline for the whole page request - see LOAD_TIMEOUT_MS. `expired` is
     // what distinguishes our abort from a genuine server error, because the
     // client reports both as a plain rejected/errored query.
     const abort = new AbortController();
@@ -301,29 +250,49 @@ export class StarscapeService {
         // Tiebreaker, and it is not cosmetic: a comm-link contributes up to six
         // rows sharing one `published_at` to the second, and Postgres gives no
         // stable order inside a tie. With plain `range()` paging, that let one
-        // row come back on page 1 AND page 2 while another never appeared —
+        // row come back on page 1 AND page 2 while another never appeared -
         // a duplicate tile with no duplicate data behind it.
         .order('image_id', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
-      const series = this.activeSeries();
-      if (series) q = q.eq('series', series);
       return q.abortSignal(abort.signal);
     };
     try {
-      let { data, error, count } = await page(true);
-      // Deploy-order guard: the bundle reaches visitors the moment Vercel
-      // finishes, but migration 20260903170000 is applied out of band. Without
-      // this the gallery would answer 42703 ("column variant_role does not
-      // exist") and show an error page for the whole gap. Costs one retry, only
-      // ever on that specific error, and disappears once the column is there.
-      if (error && isMissingVariantColumn(error)) {
-        logWarn('starscape', 'variant columns not deployed yet, listing every row');
-        ({ data, error, count } = await page(false));
+      let mapped: Wallpaper[];
+      let total: number;
+      if (filter === 'all') {
+        let { data, error, count } = await page(true);
+        // Deploy-order guard: the bundle reaches visitors the moment Vercel
+        // finishes, but migration 20260903170000 is applied out of band. Without
+        // this the gallery would answer 42703 ("column variant_role does not
+        // exist") and show an error page for the whole gap. Costs one retry, only
+        // ever on that specific error, and disappears once the column is there.
+        if (error && isMissingVariantColumn(error)) {
+          logWarn('starscape', 'variant columns not deployed yet, listing every row');
+          ({ data, error, count } = await page(false));
+        }
+        if (error) throw error;
+        mapped = (data ?? []).map(mapWallpaperRow);
+        total = count ?? mapped.length;
+      } else {
+        // Newest / Community Top / My votes: ranked or per-user, so server-side
+        // (starscape_gallery_page aggregates the self-read-only wallpaper_votes).
+        const { data, error } = await this.sb.client
+          .rpc('starscape_gallery_page', {
+            p_filter: filter,
+            p_limit: PAGE_SIZE,
+            p_offset: offset,
+          })
+          .abortSignal(abort.signal);
+        if (error) throw error;
+        const rows = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        mapped = rows.map(mapWallpaperRow);
+        total = rows.length > 0 ? Number(rows[0]['total_count'] ?? mapped.length) : offset;
       }
-      if (error) throw error;
-      const mapped = (data ?? []).map(mapWallpaperRow);
+      // The user switched view while this page was in flight: it belongs to a
+      // list that is no longer on screen.
+      if (filter !== this.filter()) return;
       this.wallpapers.set(reset ? mapped : [...this.wallpapers(), ...mapped]);
-      this.total.set(count ?? mapped.length);
+      this.total.set(total);
     } catch (err) {
       this.timedOut.set(expired);
       const key = toErrorKey('starscape', 'load', err, { expired });
@@ -356,49 +325,21 @@ export class StarscapeService {
     }
   }
 
-  async setSeries(series: string): Promise<void> {
-    if (this.activeSeries() === series) return;
-    this.activeSeries.set(series);
-    await this.load(true);
-  }
-
-  /** Pick a source by its stable id (see {@link StarscapeSourceOption}). */
-  async setSource(id: string): Promise<void> {
-    const option = this.sourceOptions().find((o) => o.id === id);
-    if (!option) return; // unknown id — leave the gallery as it is
-    await this.setSeries(option.series ?? '');
-  }
-
   /**
-   * Read the distinct series once. Deliberately NOT filtered by the active
-   * series: the whole point is an option list that does not depend on what is
-   * currently shown. One column, capped at {@link SERIES_PROBE_LIMIT} rows.
+   * Switch the view and reload from the top. A pick that arrives while a page
+   * request is still running waits for it, then loads - otherwise `load()`'s
+   * in-flight guard would swallow the pick and leave the old list on screen.
    */
-  private ensureSeriesCatalogue(): Promise<void> {
-    this.seriesProbe ??= (async () => {
-      try {
-        const { data, error } = await this.sb.client
-          .from('verse_wallpapers')
-          .select('series')
-          .not('series', 'is', null)
-          // Same visibility rule as the grid, or the filter could offer a series
-          // whose every row is a hidden crop variant — an option that opens an
-          // empty gallery.
-          .in('variant_role', VISIBLE_VARIANT_ROLES)
-          .limit(SERIES_PROBE_LIMIT);
-        if (error) throw new Error(error.message);
-        const set = new Set<string>();
-        for (const row of (data ?? []) as { series?: string | null }[]) {
-          if (row.series) set.add(row.series);
-        }
-        this.seriesCatalogue.set([...set].sort((a, b) => a.localeCompare(b)));
-      } catch {
-        // Silent: `seriesOptions` falls back to the loaded rows, and a retried
-        // page load gets a fresh attempt.
-        this.seriesProbe = null;
-      }
-    })();
-    return this.seriesProbe;
+  async setFilter(id: StarscapeFilterId): Promise<void> {
+    if (this.filter() === id) return;
+    this.filter.set(id);
+    // Drop the old list at once: tiles of another view must not linger (and
+    // be appended to) while the new one loads.
+    this.wallpapers.set([]);
+    this.total.set(0);
+    while (this.loading()) await new Promise((r) => setTimeout(r, 50));
+    if (this.filter() !== id) return;
+    await this.load(true);
   }
 }
 

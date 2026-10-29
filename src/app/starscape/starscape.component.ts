@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   OnInit,
   computed,
   effect,
   inject,
   signal,
   input,
+  viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BetaService } from '../core/beta.service';
@@ -15,7 +17,15 @@ import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.ser
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { AnalyticsService } from '../core/analytics.service';
-import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
+import {
+  STARSCAPE_FILTERS,
+  StarscapeService,
+  StarscapeRing,
+  Wallpaper,
+  isStarscapeFilter,
+  ringsForRole,
+} from './starscape.service';
+import { AuthService } from '../auth/auth.service';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 import { RoleService } from '../auth/role.service';
@@ -125,46 +135,25 @@ const RENDER_CHUNK = 24;
              trigger that expands into an overlay with one download per ring.
              The ring is still chosen HERE, before the download: the app reads it
              off the filename and locks to it, no in-app switch. -->
-        <div class="app-cta">
-          <sc-app-download-menu [product]="'starscape'" [fallbackUrl]="appDownloadUrl" />
-        </div>
+        @if (!embedded()) {
+          <div class="app-cta">
+            <sc-app-download-menu [product]="'starscape'" [fallbackUrl]="appDownloadUrl" />
+          </div>
+        }
       </header>
 
-      <!-- Two fixed slots, not a wrapping flex row: the source filter owns the
-           left one, the Top-N switch the right one, and the switch is pinned to
-           its column whatever the left slot contains — including nothing.
-           Before this the switch moved every time the source changed. -->
+      <!-- Exactly four views (note #15): All, Newest, Community Top, My votes.
+           Series is no filter any more - it stays a badge on the tile. "My
+           votes" needs an account, so a signed-out visitor sees it disabled,
+           with the reason as its tooltip. -->
       <div class="controls">
-        <!-- The source filter is a filter over the WHOLE gallery; the Top list
-             is a global ranking by definition, so the two cannot both be
-             active. Same segmented control as the telemetry time range. -->
-        @if (!votes.topOnly() && svc.seriesOptions().length > 0) {
-          <sc-segmented
-            class="source-filter"
-            [options]="sourceOptions()"
-            [value]="svc.activeSource()"
-            [ariaLabel]="'starscape.source.label' | translate"
-            (valueChange)="setSource($event)" />
-        }
-        <!-- "Only the Top 7". A real switch, persisted per user: signed in it
-             lives on the profile (profiles.starscape_top_only) so the Starscape
-             desktop app can read the SAME preference; signed out it falls back
-             to local storage so a reload does not undo the choice. -->
-        <button
-          type="button"
-          class="top-toggle"
-          role="switch"
-          [class.active]="votes.topOnly()"
-          [attr.aria-checked]="votes.topOnly()"
-          (click)="toggleTopOnly()">
-          <span class="tt-track" aria-hidden="true"><span class="tt-knob"></span></span>
-          {{ 'starscape.top.label' | translate: { count: votes.topLimit } }}
-        </button>
+        <sc-segmented
+          class="source-filter"
+          [options]="filterOptions()"
+          [value]="svc.filter()"
+          [ariaLabel]="'starscape.filter.label' | translate"
+          (valueChange)="setFilter($event)" />
       </div>
-
-      @if (votes.topOnly()) {
-        <p class="hint top-hint">{{ 'starscape.top.hint' | translate: { count: votes.topLimit } }}</p>
-      }
 
       <!-- A failed page load is a dead end without a way back in: the request is
            only ever fired on mount, so a phone that lost the connection for one
@@ -187,9 +176,9 @@ const RENDER_CHUNK = 24;
         </div>
       }
 
-      @if (tiles().length === 0 && !svc.loading() && !votes.topLoading() && !svc.error()) {
+      @if (tiles().length === 0 && !svc.loading() && !svc.error()) {
         <div class="sc-card empty">
-          <p>{{ 'starscape.empty' | translate }}</p>
+          <p>{{ (svc.filter() === 'mine' ? 'starscape.filter.emptyMine' : 'starscape.empty') | translate }}</p>
         </div>
       }
 
@@ -197,11 +186,7 @@ const RENDER_CHUNK = 24;
            so the grid reads as "images incoming", never as collapsed stripes.
            The caption is what tells a visitor that the bars ARE the loading
            state — unlabelled, a screen of them just reads as broken content. -->
-      @if (votes.topOnly() && votes.topLoading() && tiles().length === 0) {
-        <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.top.loading' | translate }}</p>
-      }
-
-      @if (!votes.topOnly() && svc.loading() && svc.wallpapers().length === 0) {
+      @if (svc.loading() && svc.wallpapers().length === 0) {
         <p class="wall-status" role="status" aria-live="polite">{{ 'starscape.loadingImages' | translate }}</p>
         <div class="wall" aria-hidden="true">
           @for (i of skeletonSlots; track i) {
@@ -332,14 +317,18 @@ const RENDER_CHUNK = 24;
           }
           <sc-vote-button
             class="tile-vote"
-            [class.always-on]="votes.topOnly()"
+            [class.always-on]="svc.filter() === 'top'"
             [imageId]="w.imageId"
             [compact]="true" />
         </div>
         }
       </div>
 
-      @if (!votes.topOnly() && svc.hasMore()) {
+      <!-- Auto-load: reaching this marker (it sits well before the end of the
+           wall) pulls the next page. The button stays as the fallback and for
+           keyboard / reduced-data users. -->
+      @if (svc.hasMore()) {
+        <div #sentinel class="sentinel" aria-hidden="true"></div>
         <button type="button" class="sc-btn more" [disabled]="svc.loading()" (click)="svc.load()">
           {{ (svc.loading() ? 'starscape.loading' : 'starscape.loadMore') | translate }}
         </button>
@@ -351,10 +340,13 @@ const RENDER_CHUNK = 24;
     <!-- The download pitch: three seconds in, once per browser session, and only
          on a desktop-sized viewport (admin feedback eb9c6ec3). -->
     @if (tileHint(); as th) { <p class="tile-toast" role="status">{{ th | translate }}</p> }
-    <sc-starscape-app-promo
-      [wallpapers]="promoWallpapers()"
-      [downloadUrl]="promoDownloadUrl()"
-      [version]="promoVersion()" />
+    <!-- The app lives under APPS in the header; the Verse gallery does not pitch it again. -->
+    @if (!embedded()) {
+      <sc-starscape-app-promo
+        [wallpapers]="promoWallpapers()"
+        [downloadUrl]="promoDownloadUrl()"
+        [version]="promoVersion()" />
+    }
 
     @if (active(); as w) {
       <div class="lightbox" role="dialog" aria-modal="true"
@@ -418,74 +410,41 @@ const RENDER_CHUNK = 24;
        overlay positioning (sc-app-download-menu); this only aligns the column. */
     .app-cta { display: flex; justify-content: flex-end; flex: 0 0 auto; }
 
-    /* The source filter and the Top switch share one row via a two-column GRID,
-       not a wrapping flex row. A flex row re-lays itself out whenever a child
-       changes width, so switching the source used to shove the Top switch
-       around (admin feedback 1f78e57f); with fixed columns the switch is
-       anchored to the trailing edge and the left column absorbs every width
-       change on its own. minmax(0, 1fr) lets the left column shrink below its
-       content — the filter scrolls sideways inside it rather than pushing the
-       switch off screen. The row also reserves its height, so the source filter
-       appearing or disappearing cannot move the gallery below it. */
-    .controls {
-      display: grid; grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px 16px; align-items: center; min-height: 48px;
-    }
-    .source-filter { grid-column: 1; grid-row: 1; justify-self: start; }
-    .controls .top-toggle { grid-column: 2; grid-row: 1; justify-self: end; }
-    .top-hint { color: var(--sc-fg-2); margin: -6px 0 0; max-width: 68ch;
-      font-size: max(0.76rem, var(--sc-fs-floor)); }
+    /* One row: the four-view filter. It reserves its height so the wall below
+       never jumps when a view loads. */
+    .controls { display: flex; align-items: center; min-height: 48px; }
+    .source-filter { max-width: 100%; }
 
-    /* A switch, not a chip: it changes WHAT the gallery is, not which slice of
-       it you see, so it gets the on/off affordance rather than a filter pill. */
-    .top-toggle {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      min-height: 48px; padding: 4px 14px 4px 8px; border-radius: 999px; cursor: pointer;
-      font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
-      background: var(--sc-bg-1); color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border);
-      /* The label is the only thing in the row whose text can change length
-         (the count is interpolated), so it is not allowed to wrap — a two-line
-         switch would change the row height under the gallery. */
-      white-space: nowrap;
+    /* A grid of uniform cells, not CSS columns. Columns balance their height
+       on every append, so a loaded page re-flowed tiles sideways and left
+       holes; a grid fills row after row, so each new page simply continues
+       downwards. Wallpapers vary in shape (most are ultrawide), so every cell
+       crops to one ratio (object-fit: cover) - the lightbox shows the whole
+       picture. */
+    .wall {
+      --sc-tile-ratio: 2 / 1;
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      grid-auto-flow: row dense;
     }
-    .top-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .top-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .top-toggle.active { color: var(--sc-accent); border-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
-    .tt-track {
-      display: inline-block; position: relative; width: 32px; height: 18px;
-      border-radius: 999px; background: var(--sc-bg-0);
-      border: 1px solid var(--sc-border); flex: 0 0 auto;
-    }
-    .tt-knob {
-      position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
-      border-radius: 50%; background: var(--sc-fg-2);
-      transition: transform 0.16s ease, background 0.16s ease;
-    }
-    .top-toggle.active .tt-track { border-color: var(--sc-accent); }
-    .top-toggle.active .tt-knob { transform: translateX(14px); background: var(--sc-accent); }
-    @media (prefers-reduced-motion: reduce) { .tt-knob { transition: none; } }
-
-    /* Masonry via CSS columns — tiles keep their natural aspect ratio. */
-    .wall { columns: 4 260px; column-gap: 12px; }
-    /* The masonry box is the WRAPPER (tile link + thumbs-up button), so the
-       column break and the hover lift apply to both together — the overlay
-       button is positioned against this element. */
-    .tile-wrap { position: relative; display: block; width: 100%; margin: 0 0 12px;
-      break-inside: avoid; transition: transform 0.16s ease; }
+    /* The wrapper is the grid cell (tile link + thumbs-up button), so the hover
+       lift applies to both together - the overlay button is positioned against
+       this element. */
+    .tile-wrap { position: relative; display: block; width: 100%; margin: 0;
+      aspect-ratio: var(--sc-tile-ratio); transition: transform 0.16s ease; }
     .tile {
-      position: relative; display: block; width: 100%; margin: 0 0 12px;
+      position: absolute; inset: 0; display: block; width: 100%; height: 100%; margin: 0;
       padding: 0; border: 1px solid var(--sc-border); border-radius: 8px;
       overflow: hidden; cursor: zoom-in; background: var(--sc-bg-1);
-      break-inside: avoid; color: inherit; text-decoration: none;
+      color: inherit; text-decoration: none;
       transition: transform 0.16s ease, box-shadow 0.16s ease;
     }
-    .tile-wrap > .tile { margin: 0; }
     .tile:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .tile-wrap:hover { transform: translateY(-2px); }
     .tile-wrap:hover > .tile {
       box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
+    /* Scroll marker for the auto-load: zero height, sits a screenful before the end. */
+    .sentinel { height: 1px; margin-top: -1px; pointer-events: none; }
 
     /* Thumbs-up overlay. Base state = VISIBLE: hiding it by default and
        revealing it on hover would make it unreachable on every touch device,
@@ -520,8 +479,8 @@ const RENDER_CHUNK = 24;
     @media (prefers-reduced-motion: reduce) { .tile-vote { transition: none; } }
     /* <picture> is inline by default — it has to become the tile's block box so
        the image keeps filling the column. */
-    .tile picture { display: block; }
-    .tile img { display: block; width: 100%; max-width: 100%; height: auto; }
+    .tile picture { display: block; position: absolute; inset: 0; }
+    .tile img { display: block; width: 100%; max-width: 100%; height: 100%; object-fit: cover; }
     .tile img.hidden { display: none; }
 
     /* Blur-up "power-on" reveal: the preview develops out of a blur the moment
@@ -535,11 +494,11 @@ const RENDER_CHUNK = 24;
 
     /* Skeleton layer (per-tile + the first-load grid) — holds height and runs
        das gemeinsame Neuronenfeld aus .sc-skel-field (styles.scss). */
-    .tile-skel { display: block; width: 100%; border-radius: inherit; }
+    .tile-skel { display: block; position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto !important; border-radius: inherit; }
     .skel-tile {
-      display: block; width: 100%; margin: 0 0 12px;
+      display: block; width: 100%; margin: 0; aspect-ratio: var(--sc-tile-ratio) !important;
       border: 1px solid var(--sc-border); border-radius: 8px;
-      break-inside: avoid; cursor: default; pointer-events: none;
+      cursor: default; pointer-events: none;
     }
     .skel-tile:hover { transform: none; box-shadow: none; }
 
@@ -570,8 +529,8 @@ const RENDER_CHUNK = 24;
        instead of collapsing into an unexplained border stripe. */
     .tile-failed {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 8px; width: 100%; padding: 12px; text-align: center;
-      background: var(--sc-bg-1);
+      gap: 8px; position: absolute; inset: 0; width: 100%; padding: 12px; text-align: center;
+      aspect-ratio: auto !important; background: var(--sc-bg-1);
       border-radius: inherit; box-sizing: border-box;
     }
     .tf-msg { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
@@ -658,7 +617,7 @@ const RENDER_CHUNK = 24;
          lands at 358x153 px and reads as a picture. It is also the layout the
          request asked for by name — a full-width feed is what "mobile friendly
          zum durchscrollen" means. */
-      .wall { columns: 1; }
+      .wall { grid-template-columns: minmax(0, 1fr); }
       /* …but one column also turns the twelve-slot first-load wall into two
          full screens of nothing but shimmering placeholder bars, which is
          precisely the thing being complained about ("ich sehe nur graue blaue
@@ -681,15 +640,8 @@ const RENDER_CHUNK = 24;
       /* One full-width column on a phone: the thumbs-up sits on the artwork
          with a safe inset and is never hidden behind a hover it cannot get. */
       .tile-vote { top: 10px; right: 10px; }
-      /* One control per row: side by side there is no width left for either.
-         The placement is left IMPLICIT here (grid-*: auto) on purpose — pinned rows
-         would leave a 48px hole where the source filter used to be whenever the
-         Top view hides it. Both stretch, so the source filter's segments share
-         the full width as thumb-sized targets and the switch label never
-         truncates. */
-      .controls { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-      .source-filter { grid-column: auto; grid-row: auto; justify-self: stretch; display: block; }
-      .controls .top-toggle { grid-column: auto; grid-row: auto; justify-self: stretch; }
+      /* The four segments share the full width as thumb-sized targets. */
+      .source-filter { display: block; width: 100%; }
       .lb-hint { text-align: left; }
     }
 
@@ -715,7 +667,6 @@ const RENDER_CHUNK = 24;
       .tile { cursor: pointer; }
       .tile-wrap:hover { transform: none; }
       .tile-wrap:hover > .tile { box-shadow: none; }
-      .top-toggle { min-height: 48px; }
     }
 
     /* Layout rule only: below the desktop breakpoint the header has no room for
@@ -747,6 +698,7 @@ export class StarscapeComponent implements OnInit {
   /** Decode state that has to survive leaving the page — see the service's doc. */
   private readonly tileState = inject(StarscapeTilesService);
   private readonly roles = inject(RoleService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -785,17 +737,8 @@ export class StarscapeComponent implements OnInit {
     () => this.rings().find((r) => r.ring === 'stable')?.version ?? this.appVersion(),
   );
 
-  /**
-   * What the grid actually paints: the global Top-N ranking while the toggle is
-   * on, the normal (optionally series-filtered) page otherwise.
-   *
-   * The ranking is a SNAPSHOT — it is refetched when the toggle is switched on
-   * and on reload, never live while you vote. Re-sorting under the finger would
-   * make tiles jump away from the button that was just tapped.
-   */
-  readonly tiles = computed<readonly Wallpaper[]>(() =>
-    this.votes.topOnly() ? this.votes.topWallpapers() : this.svc.wallpapers(),
-  );
+  /** What the grid paints: the active view's rows (the service owns the ordering). */
+  readonly tiles = computed<readonly Wallpaper[]>(() => this.svc.wallpapers());
 
   /**
    * How much of {@link tiles} is currently in the DOM. Grows one
@@ -813,17 +756,23 @@ export class StarscapeComponent implements OnInit {
   });
 
   /**
-   * The source filter's segments. The service owns the named states (`all`,
-   * `series:<name>`); this only paints them — the series name is data, so it
-   * ships as a ready-made label, "All" is ours and gets translated.
+   * The four views as segments. Ids are stable names (the service owns them),
+   * labels are i18n keys. "My votes" is visible but not pickable while signed
+   * out, with the reason as its tooltip.
    */
-  readonly sourceOptions = computed<readonly ScSegmentOption[]>(() =>
-    this.svc.sourceOptions().map((o) => ({
-      value: o.id,
-      label: o.label ?? undefined,
-      labelKey: o.labelKey ?? undefined,
-    })),
-  );
+  readonly filterOptions = computed<readonly ScSegmentOption[]>(() => {
+    const signedIn = this.auth.isAuthenticated();
+    return STARSCAPE_FILTERS.map((f) => ({
+      value: f.id,
+      labelKey: f.labelKey,
+      disabled: f.id === 'mine' && !signedIn,
+      titleKey: f.id === 'mine' && !signedIn ? 'starscape.filter.mineSignedOut' : undefined,
+    }));
+  });
+
+  /** Scroll marker that pulls the next page - see {@link observeSentinel}. */
+  private readonly sentinel = viewChild<ElementRef<HTMLElement>>('sentinel');
+  private observer: IntersectionObserver | null = null;
 
   readonly active = signal<Wallpaper | null>(null);
   /** Translation key of the clipboard-fallback confirmation, or null. */
@@ -880,7 +829,6 @@ export class StarscapeComponent implements OnInit {
     // per page/ranking change, never one per tile. `starscape_top_wallpapers`
     // already returns its own counts, so only the paged list needs this.
     effect(() => {
-      if (this.votes.topOnly()) return;
       const ids = this.svc.wallpapers().map((w) => w.imageId);
       if (ids.length > 0) void this.votes.syncCounts(ids);
     });
@@ -898,11 +846,49 @@ export class StarscapeComponent implements OnInit {
       }
       if (this.renderLimit() < list.length) this.scheduleFill(list.length);
     });
+    // Signing out while "My votes" is up would strand an empty, unpickable view.
+    effect(() => {
+      if (this.svc.filter() === 'mine' && !this.auth.isAuthenticated()) void this.svc.setFilter('all');
+    });
+    // Auto-load. Re-armed on every change that could leave the marker on
+    // screen with more to load (page arrived, loading ended, wall painted).
+    effect(() => {
+      const el = this.sentinel()?.nativeElement;
+      void this.svc.wallpapers().length;
+      void this.svc.loading();
+      void this.renderLimit();
+      this.observeSentinel(el ?? null);
+    });
     this.destroyRef.onDestroy(() => {
+      this.observer?.disconnect();
+      this.observer = null;
       if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
       if (this.stallTimer) clearTimeout(this.stallTimer);
       if (this.fillHandle !== null) cancelAnimationFrame(this.fillHandle);
     });
+  }
+
+  /**
+   * (Re)observe the scroll marker. Observing anew makes the browser report the
+   * marker's current state at once, so a page that landed while the marker is
+   * still in view chains straight into the next one. Skipped while a request
+   * is running, after an error (no endless retry loop) and while the wall is
+   * still painting its already-loaded rows chunk by chunk.
+   */
+  private observeSentinel(el: HTMLElement | null): void {
+    this.observer?.disconnect();
+    this.observer = null;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        if (this.svc.loading() || this.svc.error() || !this.svc.hasMore()) return;
+        if (this.renderLimit() < this.tiles().length) return;
+        void this.svc.load();
+      },
+      { rootMargin: '0px 0px 900px 0px' },
+    );
+    this.observer.observe(el);
   }
 
   /**
@@ -925,23 +911,14 @@ export class StarscapeComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     void this.svc.loadDesktopRelease();
     if (this.svc.wallpapers().length === 0) await this.svc.load(true);
-    // Restore the per-user toggle, then fetch the ranking if it is on. Done
-    // after the first page so the gallery paints either way.
-    await this.votes.loadPreference();
-    if (this.votes.topOnly() && this.votes.topWallpapers().length === 0) {
-      await this.votes.loadTop();
-    }
     await this.openDeepLink();
   }
 
-  /** Switch the gallery's source (see `StarscapeService.sourceOptions`). */
-  setSource(id: string): void {
-    void this.svc.setSource(id);
-  }
-
-  /** Flip "only the Top N" — persisted per user, and it refetches the ranking. */
-  toggleTopOnly(): void {
-    void this.votes.setTopOnly(!this.votes.topOnly());
+  /** Switch the gallery's view (see `STARSCAPE_FILTERS`). */
+  setFilter(id: string): void {
+    if (!isStarscapeFilter(id)) return;
+    if (id === 'mine' && !this.auth.isAuthenticated()) return;
+    void this.svc.setFilter(id);
   }
 
   /** Start (or restart) the "no picture has arrived yet" deadline. */

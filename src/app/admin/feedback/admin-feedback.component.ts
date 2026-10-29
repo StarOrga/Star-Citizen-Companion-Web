@@ -1,3 +1,4 @@
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { logWarn } from '../../core/log';
 import { toErrorKey } from '../../core/describe-error';
 import {
@@ -2185,6 +2186,16 @@ export class AdminFeedbackComponent implements OnInit {
   // ---- Lifecycle -------------------------------------------------------------
 
   constructor() {
+    // Ctrl/⌘+K lands in this board's own search while it is on screen (one chord for every search).
+    inject(DestroyRef).onDestroy(
+      inject(ShellChromeService).registerSearchFocus(this, () => {
+        const input = this.host.nativeElement.querySelector<HTMLInputElement>('.search-box input');
+        if (!input || input.offsetParent === null) return false;
+        input.focus();
+        input.select();
+        return true;
+      }),
+    );
     if (typeof matchMedia === 'function') {
       const mq = matchMedia('(max-width: 720px)');
       this.phone.set(mq.matches);
