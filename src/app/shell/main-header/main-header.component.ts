@@ -359,15 +359,24 @@ export const MAIN_NAV_SLOT_PX = 112;
         .account {
           position: static;
         }
+        /* The wordmark shares the row with apps + avatar: it shrinks, then truncates — never overlaps. */
         .wordmark {
           position: static;
           display: grid;
+          min-width: 0;
           transform: none;
+        }
+        .title {
+          overflow: hidden;
+          font-size: 12px;
+          letter-spacing: 0.1em;
+          text-overflow: ellipsis;
         }
         .brand {
           display: flex;
           align-items: center;
-          gap: var(--sc-space-3);
+          min-width: 0;
+          gap: var(--sc-space-2);
         }
         .logo {
           width: 34px;
@@ -384,7 +393,7 @@ export const MAIN_NAV_SLOT_PX = 112;
           transform: none;
         }
         .slot.adm {
-          display: block;
+          display: flex;
         }
         .ind.elevated {
           display: block;
