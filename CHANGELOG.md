@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.179.0] - 2026-10-29
+
+### Added
+- Verse start page (β shell): a small easter egg hides somewhere in the sky — find it and an asteroid comes uncomfortably close to the planet.
+
 ## [0.178.0] - 2026-10-29
 
 ### Added
