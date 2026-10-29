@@ -1,0 +1,354 @@
+<section data-iteration="1" data-iteration-template="free" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"devops löearn waruzm hier die abgeschnitten sind die custom notizen, s. anbei!\nbtw, setze das alles hier für den beta mode um! den du dann gern überall links unten overlayen lässt für admins und collaborateure.\n\nUnd mach das ganze layout top tablet und mobile fit, dass muss ein genuss aber mit frischer innovation sein, keine unübersichtliche seite und auch keine lahme alte seite. Die mujss bangen!\n\nGenerell habe ich etwas mehr kommentiert als der urspürngliche scope, setze das abe rauch mit um!!! nix bleibt übrig hier.\n\nAußerdem mach wie bei hatchit ein icon mobile wenn man darauf klickt ein popup welches einem ermöglich t direkt auf dme ahandy weiter zu amchen im eingeloggten zustand ohne erneutes einlogen! das ist nämlich super cool!","attachments":[{"id":"ea66eca8aeabfc1d8dc49a6df7c49f9f712680538aac0703046ee729327b5bc3.png","name":"image.png","mime":"image/png","size":16424,"path":".claude/concepts/2026-10-25-header-footer-subheader-analyse/attachments/ea66eca8aeabfc1d8dc49a6df7c49f9f712680538aac0703046ee729327b5bc3.png"}]},"userPins":[{"id":"up-mvoe9opq758j","design":"","screen":"seitentypen","x":21.6,"y":51.4,"target":"tr \"Kartograph-Badge (/badge/kartograph) | |\"","text":"keine ahnugn wann die überhaupt kommt.... gern auch vorschlgäe frü seiten die gerade untergehjen, die schwirig hinzukommen sind etc. ich habe das gefühl wiwr habne lost seiten...","anchor":{"section":"seitentypen","kind":"tr","index":53,"ref":"","text":"Kartograph-Badge (/badge/kartograph) | | | | | | | 1"},"attachments":[]}]}</script>
+  <style>
+    [data-iteration="1"] .r1-tbl { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0.6rem 0 1rem; }
+    [data-iteration="1"] .r1-tbl th, [data-iteration="1"] .r1-tbl td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+    [data-iteration="1"] .r1-tbl th { font-weight: 600; opacity: 0.8; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    [data-iteration="1"] .r1-tbl td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    [data-iteration="1"] .r1-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0.8rem 0 1.2rem; }
+    [data-iteration="1"] .r1-kpi { border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 10px; padding: 10px 12px; }
+    [data-iteration="1"] .r1-kpi b { display: block; font-size: 1.5rem; line-height: 1.1; }
+    [data-iteration="1"] .r1-kpi span { font-size: 0.82rem; opacity: 0.8; }
+    [data-iteration="1"] .r1-verdict { border-left: 3px solid var(--accent, #4aa3ff); padding: 6px 12px; margin: 0.6rem 0; background: color-mix(in srgb, var(--accent, #4aa3ff) 8%, transparent); border-radius: 0 8px 8px 0; }
+    [data-iteration="1"] .r1-warn { border-left-color: #e0a030; background: color-mix(in srgb, #e0a030 9%, transparent); }
+    [data-iteration="1"] .r1-bar { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; margin: 3px 0; }
+    [data-iteration="1"] .r1-bar i { display: inline-block; height: 10px; border-radius: 3px; background: var(--accent, #4aa3ff); opacity: 0.75; }
+    [data-iteration="1"] .r1-bar code { min-width: 150px; }
+    [data-iteration="1"] .r1-small { font-size: 0.85rem; opacity: 0.8; }
+  </style>
+
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 1 · Ist-Analyse: Header, Footer, Subheader, Raum und Navigation</h2>
+    <p>Grundlage: 38 Routen live auf Produktion gemessen, jeweils bei 1280, 1920 und 390 px und mit Verse β an und aus. Dazu Code-Analysen von Shell, Footer und allen Subheadern sowie eine Best-Practice-Recherche (NN/g, GOV.UK, Material, Polaris, WCAG). Diese Runde baut noch kein Zieldesign. Sie zeigt, was heute da ist und warum es nicht zusammenpasst, und am Ende ordnest du jede Seite einem Seitentyp zu. Bitte bestätige oder verwirf die Befunde und Prinzipien und korrigiere die Zuordnung.</p>
+  </header>
+
+  <section id="r1-overview" data-nav-label="Übersicht &amp; Empfehlung">
+    <h3>Auf einen Blick</h3>
+    <div class="r1-kpis">
+      <div class="r1-kpi"><b>9</b><span>verschiedene Subheader-Muster</span></div>
+      <div class="r1-kpi"><b>6</b><span>getrennt gebaute Tab-/Toolbar-Varianten</span></div>
+      <div class="r1-kpi"><b>15</b><span>verschiedene Abstände Header → Inhalt (98–237 px)</span></div>
+      <div class="r1-kpi"><b>1</b><span>Inhaltsbreite für alle Seiten (1214 px @1280), es gibt keine schmale</span></div>
+      <div class="r1-kpi"><b>177 px</b><span>Header-Höhe am Handy, scrollt mit statt zu verschwinden</span></div>
+      <div class="r1-kpi"><b>1 von 9</b><span>Detail-Overlays mit eigener URL</span></div>
+    </div>
+    <p><strong>Kernaussage:</strong> Horizontal ist die App dank der Regel „One page frame“ schon einheitlich. Fast jede Seite ist exakt gleich breit. Das Chaos ist <em>vertikal</em> und <em>funktional</em>: Jede Seitenfamilie baut ihren eigenen Kopf, ihren eigenen Rückweg, ihre eigene Suche und ihre eigenen Tabs, mit Abständen zwischen 0 und 26 px. Verse β ist inhaltlich der richtige cinematische Maßstab. Es kämpft aber gegen eine Shell, die nur für flache Seiten gebaut ist. Welcher Header, Subheader und Footer gilt, entscheidet die Shell heute anhand der URL statt über einen Seitentyp.</p>
+
+    <table class="r1-tbl">
+      <thead><tr><th>Befund</th><th>Kern</th><th>Empfehlung</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Subheader-Wildwuchs</td><td>9 Muster, <code>sc-page-header</code> nur auf 12 Seiten</td><td>Welle 1: ein Subheader mit 3 Varianten</td><td><a href="#r1-f1">→</a></td></tr>
+        <tr><td>Zurück-Navigation</td><td>6 Mechanismen, viele Seiten ohne Rückweg</td><td>Welle 1: Breadcrumbs als Standard, <code>originCrumb</code> nur fürs Handy</td><td><a href="#r1-f2">→</a></td></tr>
+        <tr><td>Suche an 5 Orten</td><td>Teils zwei Suchfelder untereinander</td><td>Welle 1: eine globale Suche plus ein lokaler Filter</td><td><a href="#r1-f3">→</a></td></tr>
+        <tr><td>Vertikale Abstände</td><td>15 Werte für Header → Inhalt</td><td>Welle 1: Abstands-Tokens pro Seitentyp</td><td><a href="#r1-f4">→</a></td></tr>
+        <tr><td>Keine schmale Breite</td><td>Lesetext und Datenblätter sind 1214 px breit</td><td>Welle 1: drei Breiten (voll / Rahmen / Lesen)</td><td><a href="#r1-f5">→</a></td></tr>
+        <tr><td>Shell-Header</td><td>Nur ab 1080 px sticky, nie ausgeblendet, am Handy 177 px</td><td>Welle 1: Verhalten pro Seitentyp festlegen</td><td><a href="#r1-f6">→</a></td></tr>
+        <tr><td>Footer</td><td>Steht schon am Ende, am Handy aber 267 px, auf Verse ein Sonderfall</td><td>Welle 2: kompakter Footer, Minimal-Leiste</td><td><a href="#r1-f7">→</a></td></tr>
+        <tr><td>Verse β gegen Shell</td><td>Harte Kante, 5 Hintergründe, 3 schwebende Elemente</td><td>Welle 1: Referenz für „cinematisch“</td><td><a href="#r1-f8">→</a></td></tr>
+        <tr><td>Detail-Overlays</td><td>9 Overlays, nur das Patch-Dossier hat eine URL</td><td>Welle 2: Overlay und Seite auf derselben Route</td><td><a href="#r1-f9">→</a></td></tr>
+        <tr><td>Technische Kopplung</td><td>Chrome per URL-String, 6 Stellen nutzen <code>--sc-topbar-h</code>, feste Höhen</td><td>Voraussetzung: Layout-Vertrag per Route-Daten</td><td><a href="#r1-f10">→</a></td></tr>
+      </tbody>
+    </table>
+    <table class="r1-tbl">
+      <thead><tr><th>Weitere Entscheidung</th><th>Kern</th><th>Empfehlung</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Prinzipien aus der Recherche (P1–P6)</td><td>Leitplanken für das Zielkonzept</td><td>Alle übernehmen, P1 ist eine Einschränkung deines Wunsches</td><td><a href="#r1-principles">→</a></td></tr>
+        <tr><td>Zuordnung Seite → Seitentyp</td><td>48 Seiten und Overlays, 6 Typen</td><td>Vorschlag ist vorbelegt, bitte korrigieren</td><td><a href="#seitentypen">→</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="r1-f1" data-nav-label="B1 · Subheader-Wildwuchs">
+    <h3>B1 · Subheader: 9 Muster für dieselbe Aufgabe</h3>
+    <p>Der Bereich zwischen globalem Header und Inhalt soll laut CLAUDE.md immer <code>&lt;sc-page-header&gt;</code> sein. In Wirklichkeit nutzen ihn nur 12 Seiten, und das in vier Varianten (nur Crumbs, Liste, ohne Crumbs, nur Eyebrow). Der Rest:</p>
+    <table class="r1-tbl">
+      <thead><tr><th>Muster</th><th>Wo</th><th class="num">Seiten</th></tr></thead>
+      <tbody>
+        <tr><td><code>sc-page-header</code> direkt</td><td>Codex-Listen und -Details, HQ, Hangar</td><td class="num">12</td></tr>
+        <tr><td>Handgebauter Kopf aus h1 und <code>.hint</code> (CSS fast 1:1 kopiert)</td><td>Admin ×4, Friends, Uploader, Download, Release-Notes …</td><td class="num">10</td></tr>
+        <tr><td>Nackter <code>&lt;h1&gt;</code></td><td>About, Legal ×2, Settings, Tools/Extension</td><td class="num">5</td></tr>
+        <tr><td>Bühne hat die h1</td><td>Verse-Briefing, Explorer, News-Stage, Codex-Landing, Login</td><td class="num">5</td></tr>
+        <tr><td><code>sc-verse-header</code> (eigene Kopie, Crumbs-Input wird nie befüllt)</td><td>Verse News, Patches, Galerie, Sternbilder</td><td class="num">4</td></tr>
+        <tr><td>Zentrierte Karte</td><td>Unavailable, Set-Password, Desktop-/Uploader-Auth</td><td class="num">4</td></tr>
+        <tr><td>Eyebrow, h1, Badges und Autorzeile (kopiert)</td><td>Geteiltes Loadout, geteilter Hangar</td><td class="num">2</td></tr>
+        <tr><td>Utility-Leiste</td><td>Concept-Seite, Public-Layout „Zurück zur Startseite“</td><td class="num">2</td></tr>
+        <tr><td>Vom Rahmen davorgesetzte Leiste</td><td>Codex-Slimbar (Suche), HQ-Tab-Leiste</td><td class="num">2 Familien</td></tr>
+      </tbody>
+    </table>
+    <p>Tabs gibt es sechsmal getrennt gebaut: HQ mit Unterstrich, Codex-<code>kind-bar</code> als Pills, Waffengruppen als Buttons, <code>sc-segmented</code> sowie private Segmented-Kopien in News, Keybinds und Explorer und das Settings-Inhaltsverzeichnis. Die Höhe von <code>sc-page-header</code> streut bei 1280 px über 8 Werte (28–157 px). Ohne Crumbs rendert er trotzdem eine leere 28-px-Zeile.</p>
+    <div class="r1-verdict"><strong>Bewertung:</strong> Das ist der Hauptgrund, warum die Abstände dich wahnsinnig machen. Jede Seitenfamilie bringt ihren eigenen Kopf mit eigenem Innenabstand mit. <strong>Empfehlung:</strong> ein Subheader mit genau drei Varianten (Inhalt, Werkzeug, Overlay) und ein Tab-Baustein. Cinematische Seiten bekommen keinen Subheader, der Titel lebt in der Bühne.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f1" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f1" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f1" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-f2" data-nav-label="B2 · Zurück-Navigation">
+    <h3>B2 · Zurück: sechs Mechanismen, viele Seiten ohne Rückweg</h3>
+    <ul>
+      <li><strong><code>originCrumb()</code></strong> (führt dorthin zurück, wo man herkam) nutzen nur 3 von 6 Detailseiten: Codex-Detail, Blueprint, Upcoming.</li>
+      <li><strong>Fest verdrahtete Crumbs</strong> gibt es auf Hangar-Schiff, Hangar-Import und Codex-Set.</li>
+      <li><strong>Fest verdrahtete Textlinks</strong> wie „← Verse News“ auf dem alten Patch-Board, „Zurück zu /admin/feedback“ auf der Concept-Seite und auf Set-Password.</li>
+      <li><strong>Zurück im Overlay</strong> ist ein Button (News-Detail, Admin-Feedback) oder ein „✕“-Link (Patch-Dossier).</li>
+      <li><strong>Gar kein Rückweg</strong> auf allen Verse-Unterseiten (besonders <code>/verse/gallery/constellations</code>) sowie auf Admin, Settings, Friends und Release-Notes.</li>
+      <li><strong>Doppelt:</strong> <code>/hq/hangar/:id</code> und <code>/hq/spind/:id</code> zeigen „Hangar“ bzw. „Spind“ als aktiven Tab <em>und</em> direkt darunter noch einmal als Crumb.</li>
+    </ul>
+    <div class="r1-verdict"><strong>Recherche:</strong> GOV.UK sagt, Back-Link und Breadcrumbs nie gleichzeitig zu verwenden. NN/g empfiehlt, die Brotkrumen-Spur nicht zu personalisieren: Sie zeigt die Hierarchie, nicht den Verlauf. <code>originCrumb()</code> verstößt dagegen, löst aber ein echtes Problem: zurück zur gefilterten Liste. <strong>Empfehlung:</strong> Auf dem Desktop kanonische Crumbs, wobei der Eltern-Crumb die Filter der Liste behält (das ist Zustand, kein Verlauf). Auf dem Handy ein einziger beschrifteter Eltern-Link. Cinematische Seiten bekommen keinen Rückweg, dort führt die Hauptnavigation zurück, so wie du es dir wünschst.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f2" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f2" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f2" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-f3" data-nav-label="B3 · Suche an 5 Orten">
+    <h3>B3 · Suche: fünf Orte, teils doppelt</h3>
+    <p>Gesucht wird heute in der Codex-Slimbar der Shell, in der Terminal-Zeile der Codex-Landing, über einen Trigger im Header, in einer Filterkarte auf der Seite und in eigenen sticky Toolbars (Keybinds, Patch-Board, Admin-Feedback). Dazu kommt Ctrl+K als Overlay. Auf <code>codex-list</code> und <code>fps-list</code> stehen dadurch <strong>zwei Suchfelder untereinander</strong>.</p>
+    <div class="r1-verdict"><strong>Recherche:</strong> NN/g empfiehlt eine globale Suche mit dem Standardbereich „alles“. Der Filter eines Datenbank-Index ist ein <em>lokaler Filter</em> und gehört sichtbar anders gestaltet in die Werkzeugleiste (Baymard). <strong>Empfehlung:</strong> Ctrl+K und das Lupen-Icon im Header als einzige globale Suche. Ein lokaler Filter nur auf Werkzeug-Seiten, immer an derselben Stelle der Werkzeugleiste.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f3" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f3" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f3" placeholder="Notiz…">Ich würde es sogar anders machen die suchleiste haben wir ja schon überarbeitet. Ich würde aus dem header die suchleiste aufruf komplett rausnehmen, dafür im subheader praktisch überall fest integrieren. Dort die suchergebnisse aber jeweils so sortieren / gruppieeren top x je nachdem anzeigen, dass man immer je nachdem wo man sucht eher die antworten passend findet (sogar in der Star Galerie), aber auch im zweifelsfall überall z. B. (s)ein schiff finden. Außerdem hotkey wird angezeigt in dem input field wenn nicht focussed. Dieser lässt sich aber wirklich von überall auch aufrufen und wie heute kommt die suche dann hervor und sucht. Vllt. bisschen mehr transformation beim aufrufen / fokussieren, dann besser animiert und nach und nach gefunden beim suchen und dann animativ / transformation je nachdem beim auswählen des ergebnsises. 
+Auch darf man bis zu drei icons für quick actions und eine button action direkt auf dem suchergebnis kontextbezogen und suchergebnisbezogen machen. 
+Die Suche soll immer als suche funktionieren, aber gerade wenn mehr als drei wörter eingegeben werden soll die option angeboten werdne den Companion zu fragen ;)
+</textarea>
+  </section>
+
+  <section id="r1-f4" data-nav-label="B4 · Vertikale Abstände">
+    <h3>B4 · Abstände: 15 Werte für dieselbe Strecke</h3>
+    <p>Gemessen ist die Strecke von der Unterkante des Shell-Headers bis zum ersten Inhaltsblock unter dem Subheader, bei 1280 px mit Verse β an:</p>
+    <div class="r1-bar"><code>/verse/news</code><i style="width:98px"></i>98 px</div>
+    <div class="r1-bar"><code>Blueprint, Upcoming-Detail</code><i style="width:128px"></i>128 px</div>
+    <div class="r1-bar"><code>Schiff, Waffe</code><i style="width:138px"></i>138 px</div>
+    <div class="r1-bar"><code>Spind-Set</code><i style="width:142px"></i>142 px</div>
+    <div class="r1-bar"><code>Patches</code><i style="width:146px"></i>146 px</div>
+    <div class="r1-bar"><code>Sternbilder</code><i style="width:153px"></i>153 px</div>
+    <div class="r1-bar"><code>FPS</code><i style="width:162px"></i>162 px</div>
+    <div class="r1-bar"><code>Codex-Index, Upcoming</code><i style="width:184px"></i>184 px</div>
+    <div class="r1-bar"><code>Galerie</code><i style="width:191px"></i>191 px</div>
+    <div class="r1-bar"><code>Spind, Einsätze</code><i style="width:215px"></i>215 px</div>
+    <div class="r1-bar"><code>Keybinds</code><i style="width:220px"></i>220 px</div>
+    <div class="r1-bar"><code>/hq</code><i style="width:231px"></i>231 px</div>
+    <div class="r1-bar"><code>/hq/hangar</code><i style="width:237px"></i>237 px</div>
+    <p>Ursachen, die sich gegenseitig aufaddieren:</p>
+    <ul>
+      <li><code>.content</code> hat 26 px Kopf-Padding (20 px ab ≤720). Davor setzen sich je nach Seite die HQ-Tab-Leiste (40 + 16 px), die Codex-Slimbar (+18 px plus eigene Höhe) oder <code>--sc-page-lead</code> (+11 px).</li>
+      <li>Die Lücke zwischen Subheader und Inhalt beträgt 0, 8, 15, 16, 20, 26 oder 31 px. Der Wert hängt nur davon ab, wer die Seite gebaut hat.</li>
+      <li>Der Fallback 18 px im <code>sc-verse-header</code> ist tot, weil <code>--sc-gap-3</code> 8 px ist. Die Tokens <code>--sc-space-1..4</code> werden 8× benutzt, sind aber <strong>nirgends definiert</strong>.</li>
+      <li>Header-Höhe, Footer-Höhe und der obere Versatz des Inhalts sind nicht als Token angelegt. Seiten raten mit festen Werten (84, 96 px, <code>4rem</code>).</li>
+    </ul>
+    <div class="r1-verdict"><strong>Empfehlung:</strong> Pro Seitentyp genau ein Wert für „Header → Subheader“ und einer für „Subheader → Inhalt“. Dafür eine Abstands-Skala auf 8-px-Basis (Atlassian, GOV.UK): Abstände zwischen Abschnitten 32–80 px, innerhalb 8–24 px, am Handy die großen Stufen kleiner. Kein Seitenkopf setzt mehr einen eigenen äußeren Abstand.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f4" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f4" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f4" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-f5" data-nav-label="B5 · Breiten">
+    <h3>B5 · Breite: alles gleich, es gibt kein „schmal“</h3>
+    <p>37 von 38 Routen haben exakt dieselbe Inhaltsbreite: 1214 px bei 1280, 1224 px bei 1920 und 366 px am Handy. Ausreißer sind nur <code>/codex</code> (4 px eingerückt) und das Kartograph-Badge (860 px). Die Regel „One page frame“ hat das Breiten-Chaos also schon beseitigt. Jetzt fehlt das Gegenteil: Eine Inhaltsseite ist genauso breit wie die Bühne. Nur Fließtext, der selbst <code>--sc-measure</code> (70ch) setzt, liest sich schmal.</p>
+    <p>Full-Bleed gibt es heute nur über einen <code>100vw</code>-Hack mit −26 px (Verse-Briefing). Der funktioniert nur, weil <code>html</code> <code>overflow-x:hidden</code> hat, und schießt um eine halbe Scrollbar-Breite über.</p>
+    <div class="r1-verdict"><strong>Empfehlung:</strong> ein Grid mit benannten Spuren, <code>full</code> / <code>frame</code> / <code>measure</code> (Breakout-Muster, Rachel Andrew, Ryan Mulligan). Cinematisch nutzt <code>full</code> für Bühne und Bildbänder, Text dort in <code>measure</code>. Inhalt nutzt einen schmaleren Rahmen von etwa 1040–1120 px für Datenblätter und <code>measure</code> (50–75ch, nie über 80ch) für Prosa. Werkzeug nutzt <code>frame</code> oder breiter. <span class="r1-small">Einwand: Schiffs- und Waffen-Datenblätter haben breite Tabellen. Zu schmal kostet dort Spalten, deshalb kein Lese-Maß für Datenblätter.</span></div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f5" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f5" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f5" placeholder="Notiz…">Uff, das hört sich 0 responsiv für 4k etc. an. Aber ich fidne super, dass inhaltsswchwere wie schiffseiten schmal sind weil man eh nicht so viel erfassen kann bei so viel infos und es einen zum fokus der infos zwingt  und sonst standardmäßig alle volle breite oder so.... </textarea>
+  </section>
+
+  <section id="r1-f6" data-nav-label="B6 · Shell-Header">
+    <h3>B6 · Shell-Header: steht oder scrollt mit, versteckt sich aber nie</h3>
+    <table class="r1-tbl">
+      <thead><tr><th>Viewport</th><th class="num">Höhe</th><th>Verhalten</th></tr></thead>
+      <tbody>
+        <tr><td>1920</td><td class="num">67 px</td><td>sticky, z-index 10</td></tr>
+        <tr><td>1280</td><td class="num">63 px</td><td>sticky (public: 61 px)</td></tr>
+        <tr><td>1024 (Tablet quer)</td><td class="num">~63 px</td><td><strong>statisch</strong>, erst ab 1080 px sticky</td></tr>
+        <tr><td>390</td><td class="num">177 px</td><td><strong>statisch</strong>, zwei Zeilen (Nav-Pill-Reihe), kein Hamburger, keine Bottom-Nav</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>Kein Ausblenden beim Runterscrollen, kein Wiedereinblenden beim Hochscrollen. Die Höhe ändert sich beim Scrollen nicht.</li>
+      <li>Der Hintergrund (Verlauf, <code>blur(12px)</code>, opake 1-px-Kante) ist für die flache Seite gebaut. Über Bildern gibt es keinen Scrim und keinen Wechsel zu „solid beim Scrollen“.</li>
+      <li>Logo und Avatar sitzen auf breiten Screens außerhalb des 1280–1600-px-Rahmens, nur die Footer-Innenzeile fluchtet mit ihm.</li>
+      <li>Der Beta-Schalter (unten links) und der Feedback-Launcher (unten rechts) schweben separat. Auf öffentlichen Seiten fehlt der Feedback-Launcher.</li>
+    </ul>
+    <div class="r1-verdict r1-warn"><strong>Recherche dämpft deinen Wunsch:</strong> Ausblenden beim Runter- und Einblenden beim Hochscrollen ist für Lese- und cinematische Seiten belegt sinnvoll (NN/g). Für Werkzeug-Seiten zeigt der einzige echte A/B-Test (Wikimedia: 15 % weniger Scrolls) das Gegenteil: Nutzer, die viel arbeiten, wollen den Header dauerhaft. <strong>Empfehlung:</strong> Header-Verhalten pro Seitentyp (siehe P1). Am Handy wird der 177-px-Block zum größten Gewinn: eine Zeile, die sich ausblendet.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f6" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f6" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f6" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-f7" data-nav-label="B7 · Footer">
+    <h3>B7 · Footer: am Ende ist er schon, aber zu schwer und mit Sonderfall</h3>
+    <ul>
+      <li>Der Footer steht schon im Fluss am Ende des Dokuments (<code>margin-top:auto</code>). Auf kurzen Seiten liegt er genau an der Unterkante des Viewports und schwebt nicht in der Seitenmitte. Auf langen Seiten erscheint er erst nach komplettem Runterscrollen, so wie du es willst.</li>
+      <li>Desktop: 61 px. <strong>Handy: 267 px</strong> plus Platz für den Launcher, gestapelt aus Community-Badge, Disclaimer, drei Links und einem „neu“-Punkt.</li>
+      <li><strong>Sonderfall Verse:</strong> Nur auf <code>/verse</code> mit β an und erst ab 641 × 681 px ist er eine fest positionierte 48-px-Glasleiste, mit einem von Hand gemessenen 190-px-Loch für den Beta-Schalter. Darunter fällt er auf den normalen Footer zurück. Die Shell schaltet das per URL-Vergleich (<code>isVerseHome</code>).</li>
+      <li>Die Explorer-Karte rechnet ihre Höhe falsch (2× Gutter statt 26 + 32 px, ohne Footer). Die Seite scrollt deshalb immer etwa um die Höhe des Footers.</li>
+      <li>Endloses Scrollen (News-Stream) und ein Footer schließen sich aus, außer es gibt einen „Mehr laden“-Schritt (NN/g).</li>
+    </ul>
+    <div class="r1-verdict"><strong>Empfehlung:</strong> zwei Footer-Modi. <em>Kompakt</em> am Dokumentende (eine bis zwei Zeilen, am Handy ≤ 120 px). <em>Minimal-Leiste</em> für One-Pager (Briefing, Karte): eine Zeile mit Rechtlichem und Version, im Fluss statt fixiert, damit die schwebenden Elemente nicht mehr einzeln ausgerichtet werden müssen.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f7" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f7" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f7" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-f8" data-nav-label="B8 · Verse β gegen Shell">
+    <h3>B8 · Warum Verse β nicht zur Shell passt</h3>
+    <p>Wirklich cinematisch ist nur das Briefing (<code>/verse</code>). Die übrigen Verse-Seiten sind normale Rahmen-Seiten mit einem zusätzlichen <code>sc-verse-header</code> unter dem globalen Header. Das Briefing kämpft an acht Stellen gegen die Shell:</p>
+    <ol>
+      <li><strong>Harte Kante:</strong> Der Himmel beginnt erst unter dem Header (<code>top:-26px</code> gleicht nur das Padding aus) und liegt nie hinter ihm. Die Vignette startet direkt unter dessen Rand.</li>
+      <li><strong>Fünf Hintergründe übereinander:</strong> <code>body::before</code>, Seite, Header-Verlauf, <code>.bleed #02080e</code> und Vignette.</li>
+      <li><strong>Drei schwebende Elemente</strong> mit festen Werten: Footer (z 30), Beta-Schalter (z 40, Loch 190 px), Feedback-Button (z 1400).</li>
+      <li><strong>Die Höhe kommt aus JavaScript</strong> (<code>--brief-chrome</code>, Summe aus <code>offsetTop</code> plus ResizeObserver), weil die Routen-Einblendung (320 ms Transform) <code>getBoundingClientRect</code> verfälscht.</li>
+      <li><strong><code>100vw</code> enthält die Scrollbar.</strong> Die Bildfläche ist voll breit, der Text bleibt im Rahmen.</li>
+      <li><strong>Zwei Scroll-Modelle:</strong> ab 641 × 681 px fix ohne Scrollen, darunter mit Scrollen. Tablets dazwischen bekommen eine Mischform.</li>
+      <li><strong>Kein Kontrast-Vertrag:</strong> Sonnen-Flare und Planetenseite sind hell, der Header hat keinen Scrim.</li>
+      <li><strong>Zwei cinematische Idiome:</strong> Briefing als Full-Bleed, Explorer und News-Stage als gerahmte, abgerundete Karten. Dazu dreifache Status-Anzeige (Chip im Header, <code>sc-verse-status</code>, Satz im Briefing).</li>
+    </ol>
+    <p class="r1-small">Hinweis: Standard ist <code>verse:false</code>. Die meisten Nutzer sehen heute noch die alten Verse-Seiten.</p>
+    <div class="r1-verdict"><strong>Empfehlung:</strong> Verse β ist der inhaltliche Maßstab für „cinematisch“. Im Zielbild liegt der Header transparent <em>über</em> der Bühne und wird beim Scrollen solid. Die Bühne beginnt bei y = 0, ihre Höhe steuert CSS (<code>svh</code>) statt JavaScript, es gibt einen Full-Bleed-Idiom statt zwei und eine Statusquelle.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f8" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f8" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f8" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-f9" data-nav-label="B9 · Detail-Overlays">
+    <h3>B9 · Popup-Detail: viele Overlays, nur eines hat eine URL</h3>
+    <table class="r1-tbl">
+      <thead><tr><th>Overlay</th><th>Eigene URL</th></tr></thead>
+      <tbody>
+        <tr><td>Patch-Dossier <code>/verse/patches/:line</code></td><td>✅ echt geroutet</td></tr>
+        <tr><td>News-Detail</td><td>◐ nur Einstieg per <code>?item=</code>, beim Öffnen und Schließen ändert sich die URL nicht</td></tr>
+        <tr><td>Galerie-Lightbox</td><td>◐ nur Einstieg per <code>?image=</code></td></tr>
+        <tr><td>Codex-Komponenten-Modal, Waffen-Detail, Swap-Picker</td><td>❌ obwohl der Inhalt ganze Datenblätter sind</td></tr>
+        <tr><td>Sternkarte: Stern-Karte und „mehr“-Panel</td><td>❌</td></tr>
+        <tr><td>HQ-Nachschub-Panel, Admin-Feedback-Sheets</td><td>❌</td></tr>
+        <tr><td>Quick-Search (Ctrl+K), Dialoge (Download, API-Token)</td><td>❌, bei echten Aktionen richtig so</td></tr>
+      </tbody>
+    </table>
+    <div class="r1-verdict"><strong>Recherche:</strong> Ein Overlay ist nur dann sicher, wenn es auch eine echte URL ist, die beim direkten Aufruf als ganze Seite rendert. Zurück schließt das Overlay (Intercepting-Routes-Muster, NN/g zu Modals). Das passt genau zu deiner Regel „echter Anker + <code>isPlainLeftClick</code>“. <strong>Empfehlung:</strong> Popup-Detail als vierter Seitentyp für schnelle Blicke (unter einem Bildschirm Inhalt). Lange, gegliederte oder verlinkte Inhalte wie Patch-Notes oder Datenblätter bekommen eine ganze Seite. Am Handy wird jedes Popup-Detail zur ganzen Seite.</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f9" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f9" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f9" placeholder="Notiz…">Ja genau, mach urls für die overlays, ansonsten alle subseiten sowieso. Aueßrdem cehck das sie anchors haben wenn nicht ohne scroll seiten. Überprüfe nochmal welche overlays sein sollten, Suche finde ich sinnvoll, codex komponenten swappen, galerie lightbox, news detail und patch detail (sollten zuletzt die drei gelieechförmig aufgebaut werden)</textarea>
+  </section>
+
+  <section id="r1-f10" data-nav-label="B10 · Technische Kopplung">
+    <h3>B10 · Was ein Umbau heute bricht</h3>
+    <ul>
+      <li><strong>Header, Footer und Rahmen per URL-String:</strong> Die Shell entscheidet mit <code>isVerseHome</code>, <code>isCodexSubpage</code> und <code>betaAreaOf</code>, wie sie sich verhält. Ein neuer Seitentyp hieße heute: noch ein <code>if</code>.</li>
+      <li><strong><code>--sc-topbar-h</code></strong> wird an 6 Stellen gelesen: KPI-Band, Settings (6×), Codex-Suchleiste, Feedback-Spots, Release-Notes, Explorer. Alle gehen von „steht fest oder ist weg“ aus. Ein Header, der sich ausblendet, ändert die Höhe laufend.</li>
+      <li><strong>Feste Werte:</strong> 84 px (Holo-Stage), 96 und 84 px (Dossier-Inhaltsverzeichnis), <code>4rem</code> (Concept-Seite), <code>top:0</code> (Patch-Board-Suche, rutscht hinter den Header).</li>
+      <li><strong>Zwei Kopien des Rahmens:</strong> <code>.content</code> ist in Shell und Public-Layout jeweils kopiert. Der Public-Header ignoriert das Impersonation-Banner.</li>
+      <li><strong>Specs, die das heutige Verhalten festschreiben:</strong> <code>shell-header-condense</code>, <code>shell-nav</code>, <code>shell-menu-nav</code>, <code>public-layout-*</code>, <code>feedback-fab-layering</code>, <code>verse/pages/briefing/*</code> und der 48-px-Tap-Check des Mobile-Gates.</li>
+      <li>Am Handy: Blueprint-Detail läuft horizontal über (414 px statt 390 px). Seitliche Safe-Areas (Notch im Querformat) werden nicht behandelt.</li>
+    </ul>
+    <div class="r1-verdict"><strong>Empfehlung:</strong> Voraussetzung für alles andere ist ein <strong>Layout-Vertrag in den Route-Daten</strong>: <code>data: { layout: 'cinematic' | 'content' | 'tool' | 'overlay' }</code>. Daraus leitet die Shell Header-Modus, Subheader-Variante, Footer-Modus und Breitenspur ab, einmal und zentral. Header- und Footer-Höhe werden echte Tokens, und <code>scroll-padding-top</code> hängt an der Header-Höhe (WCAG 2.4.11).</div>
+    <div class="tri-state-group">
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f10" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+      <label class="tri-state-option"><input type="radio" name="eval-r1-f10" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+    </div>
+    <textarea data-comment="r1-f10" placeholder="Notiz…"></textarea>
+  </section>
+
+  <section id="r1-principles" data-nav-label="Recherche · Seitentypen-Modell">
+    <h3>Was die Recherche als Modell stützt</h3>
+    <table class="r1-tbl">
+      <thead><tr><th>Typ</th><th>Breite</th><th>Header</th><th>Subheader</th><th>Footer</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Cinematisch</strong><br><span class="r1-small">Hauptseiten, News-/Patch-Übersicht, Galerie, Sternkarte</span></td><td><code>full</code> für Bühne und Bänder, Text in <code>measure</code></td><td>transparent mit Scrim über der Bühne, danach solid. Blendet sich beim Runterscrollen aus und beim Hochscrollen ein</td><td>keiner. Titel und Eyebrow leben in der Bühne</td><td>nur am Dokumentende. One-Pager: Minimal-Leiste oder keiner</td></tr>
+        <tr><td><strong>Inhalt</strong><br><span class="r1-small">Schiff, Waffe, Ausrüstung, Artikel</span></td><td>schmaler Rahmen, Prosa in <code>measure</code></td><td>solid, blendet sich aus und beim Hochscrollen bzw. bei Fokus wieder ein</td><td>Crumbs (Desktop) bzw. Eltern-Link (Handy), h1, max. 1 Hauptaktion. Bei langen Seiten sticky Abschnitts-Nav</td><td>kompakt am Ende</td></tr>
+        <tr><td><strong>Werkzeug</strong><br><span class="r1-small">Codex-Index, HQ, Hangar, Loadout, Admin</span></td><td><code>frame</code> oder breiter, Leinwand voll</td><td>kompakt und <em>dauerhaft</em></td><td>schlanker Titel und sticky Werkzeugleiste: lokaler Filter, Chips, Sortierung, Ansicht, Hauptaktion</td><td>keiner auf Leinwänden. Listen: am Ende mit „Mehr laden“</td></tr>
+        <tr><td><strong>Popup-Detail</strong><br><span class="r1-small">Schnellansicht aus Listen und Karte</span></td><td>eigene max-width oder Seitenblatt</td><td>bleibt unter dem Scrim</td><td>Titel, ✕ und „Ganze Seite öffnen“</td><td>keiner</td></tr>
+      </tbody>
+    </table>
+    <p class="r1-small">Lücke in den Belegen: Das Header- und Footer-Verhalten von erkul.games, spviewer und light.gg ließ sich nicht aus Primärquellen verifizieren. Die Pixel-Schwellen fürs Ausblenden (Ausblenden nach etwa einer Header-Höhe, Einblenden nach 5–10 px Hochscrollen, 200–300 ms) sind Erfahrungswerte, keine Studienwerte.</p>
+
+    <section id="r1-p1" data-nav-label="P1 · Header-Modus pro Typ">
+      <h4>P1 · Header-Modus pro Seitentyp, statt überall auszublenden</h4>
+      <p>Der Header blendet sich auf cinematischen und Inhalts-Seiten aus, auf Werkzeug-Seiten bleibt er kompakt stehen. Das weicht von deinem „Header soll verschwinden“ ab, weil die Wikimedia-Daten bei Nutzern, die mit der Seite arbeiten, für einen dauerhaften Header sprechen. Wenn du verwirfst, blendet er sich überall aus.</p>
+      <div class="tri-state-group">
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p1" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p1" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+      </div>
+      <textarea data-comment="r1-p1" placeholder="Notiz…"></textarea>
+    </section>
+    <section id="r1-p2" data-nav-label="P2 · Crumbs ODER Zurück">
+      <h4>P2 · Pro Viewport Breadcrumbs <em>oder</em> Zurück-Link, nie beides</h4>
+      <p>Desktop: kanonische Crumbs, der Eltern-Crumb behält die Listenfilter. Handy: ein beschrifteter Eltern-Link. Ein Tab, der schon aktiv ist, wird nicht noch einmal als Crumb gezeigt.</p>
+      <div class="tri-state-group">
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p2" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p2" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+      </div>
+      <textarea data-comment="r1-p2" placeholder="Notiz…">Lass uns das deterministirsch festhalten. Z. b. cinmematisch gar nix, inhalt breadcrumb leiste, werkzeug auch, popup detial kein zurück leiste sondern x und immer feste repsonsive einnahme des screens (und das muss gut ausgeabrieetet werden damit es für die suche und die ergebnisse übersichtlich funktioniert und die waffenauswahl viel püoehntential z. B. birgt). </textarea>
+    </section>
+    <section id="r1-p3" data-nav-label="P3 · Overlay = Route">
+      <h4>P3 · Ein Popup-Detail ist dieselbe Route wie die Seite</h4>
+      <p>Ein echter Anker. Ein normaler Linksklick öffnet das Overlay, jeder andere Klick die Seite. Neu laden und Teilen zeigen die Seite, Zurück schließt das Overlay.</p>
+      <div class="tri-state-group">
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p3" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p3" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+      </div>
+      <textarea data-comment="r1-p3" placeholder="Notiz…"></textarea>
+    </section>
+    <section id="r1-p4" data-nav-label="P4 · Kein Footer bei Endlos-Scroll">
+      <h4>P4 · Kein Footer neben endlosem Scrollen</h4>
+      <p>News-Stream und lange Listen bekommen einen „Mehr laden“-Schritt, damit man den Footer überhaupt erreicht.</p>
+      <div class="tri-state-group">
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p4" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p4" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+      </div>
+      <textarea data-comment="r1-p4" placeholder="Notiz…"></textarea>
+    </section>
+    <section id="r1-p5" data-nav-label="P5 · Subheader ordnet sich unter">
+      <h4>P5 · Der Subheader ordnet sich dem globalen Header unter</h4>
+      <p>Visuell leiser als der Header. Er schwebt nie über unruhigen Bildern. Auf cinematischen Seiten gibt es keinen, dort übernimmt die Bühne.</p>
+      <div class="tri-state-group">
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p5" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p5" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+      </div>
+      <textarea data-comment="r1-p5" placeholder="Notiz…">Genau und überlege ob der subheader immer oben sein muss oder z. B. an der linken siete in dem freien bereich bei schmalen seiten, hmmm, wo würde das dann brechen? </textarea>
+    </section>
+    <section id="r1-p6" data-nav-label="P6 · Layout in Route-Daten">
+      <h4>P6 · Der Seitentyp steht einmal in den Route-Daten</h4>
+      <p>Header-Modus, Subheader-Variante, Footer-Modus und Breitenspur folgen aus <code>data.layout</code>. Komponenten raten nichts mehr. Dazu ein <code>scroll-padding-top</code>, gebunden an die Header-Höhe.</p>
+      <div class="tri-state-group">
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p6" value="discard"><span class="tri-state-label">Verwerfen</span></label>
+        <label class="tri-state-option"><input type="radio" name="eval-r1-p6" value="include" checked><span class="tri-state-label">Miteinbeziehen</span></label>
+      </div>
+      <textarea data-comment="r1-p6" placeholder="Notiz…"></textarea>
+    </section>
+  </section>
+
+  <section data-mapping="seitentypen" id="seitentypen" data-nav-label="Zuordnung Seite → Seitentyp">
+    <h2>Welche Seite bekommt welchen Seitentyp?</h2>
+    <p>Mein Vorschlag ist vorbelegt (◆). Hauptseiten der Navigation sind cinematisch, wie du es beschrieben hast. Unterseiten sind entweder cinematisch und inhaltsschwer (Galerie, News) oder auf Inhalt bzw. Werkzeug fokussiert (Codex, HQ). Zwei bewusst strittige Punkte: Das <strong>Patch-Dossier</strong> schlage ich als <em>Inhalt</em> statt als Popup vor, weil es langer, gegliederter Lesetext ist. Die <strong>Sternkarte</strong> schlage ich als cinematischen One-Pager vor, nicht als Werkzeug. „Schlicht“ steht für Formular-, Auth- und Rechtsseiten, die keinen der vier Typen brauchen.</p>
+    <script type="application/json" data-mapping-spec>{"items":[{"id":"verse_home","label":"Verse – Briefing (/verse)","group":"Hauptseiten"},{"id":"codex_home","label":"Codex – Landing (/codex)","group":"Hauptseiten"},{"id":"hq_home","label":"HQ – Übersicht (/hq)","group":"Hauptseiten"},{"id":"verse_news","label":"News-Stream (/verse/news)","group":"Verse"},{"id":"news_item","label":"News-Artikel (heute Overlay ?item=)","group":"Verse"},{"id":"verse_patches","label":"Patch-Übersicht (/verse/patches)","group":"Verse"},{"id":"patch_line","label":"Patch-Dossier (/verse/patches/:line)","group":"Verse"},{"id":"verse_gallery","label":"Galerie (/verse/gallery)","group":"Verse"},{"id":"gallery_image","label":"Galerie-Bild (Lightbox ?image=)","group":"Verse"},{"id":"constellations","label":"Sternbilder (/verse/gallery/constellations)","group":"Verse"},{"id":"explorer","label":"Sternkarte (/verse/explorer)","group":"Verse"},{"id":"star_card","label":"Stern-Karte / mehr-Panel auf der Sternkarte","group":"Verse"},{"id":"codex_index","label":"Datenbank-Index (/codex/index)","group":"Codex"},{"id":"codex_upcoming","label":"Upcoming-Liste (/codex/upcoming)","group":"Codex"},{"id":"codex_fps","label":"FPS-Liste (/codex/fps)","group":"Codex"},{"id":"codex_keybinds","label":"Keybinds (/codex/keybinds)","group":"Codex"},{"id":"codex_detail","label":"Schiff/Waffe/Item-Detail (/codex/:kind/:class)","group":"Codex"},{"id":"codex_blueprint","label":"Blueprint-Detail (/codex/blueprint/:class)","group":"Codex"},{"id":"codex_upcoming_detail","label":"Upcoming-Detail (/codex/upcoming/:id)","group":"Codex"},{"id":"codex_modal","label":"Komponenten-/Waffen-Modal im Schiff","group":"Codex"},{"id":"hq_hangar","label":"Hangar (/hq/hangar)","group":"HQ"},{"id":"hq_import","label":"Hangar-Import (/hq/hangar/import)","group":"HQ"},{"id":"hq_ship","label":"Hangar-Schiff (/hq/hangar/:id)","group":"HQ"},{"id":"hq_spind","label":"Spind (/hq/spind)","group":"HQ"},{"id":"hq_spind_set","label":"Spind-Set (/hq/spind/:id)","group":"HQ"},{"id":"hq_einsaetze","label":"Einsätze (/hq/einsaetze)","group":"HQ"},{"id":"hq_loadout","label":"Loadout-Planer (/hangar/loadout/:id)","group":"HQ"},{"id":"hq_supplies","label":"Nachschub-Panel","group":"HQ"},{"id":"settings","label":"Einstellungen (/settings)","group":"Konto & Tools"},{"id":"friends","label":"Freunde (/friends)","group":"Konto & Tools"},{"id":"release_notes","label":"Release-Notes (/release-notes)","group":"Konto & Tools"},{"id":"uploader","label":"Data-Uploader (/uploader)","group":"Konto & Tools"},{"id":"download","label":"Starscape-Download (/download)","group":"Konto & Tools"},{"id":"tools_extension","label":"Browser-Extension (/tools/extension)","group":"Konto & Tools"},{"id":"quick_search","label":"Quick-Search (Ctrl+K)","group":"Konto & Tools"},{"id":"admin_home","label":"Admin (/admin)","group":"Admin"},{"id":"admin_tokens","label":"API-Tokens (/admin/api-tokens)","group":"Admin"},{"id":"admin_telemetry","label":"Telemetrie (/admin/telemetry)","group":"Admin"},{"id":"admin_feedback","label":"Feedback (/admin/feedback)","group":"Admin"},{"id":"admin_topic","label":"Feedback-Topic-Sheet","group":"Admin"},{"id":"concept_page","label":"Konzept-Seite (/konzept/:id)","group":"Admin"},{"id":"about","label":"About (/about)","group":"Öffentlich"},{"id":"legal","label":"Datenschutz & Impressum","group":"Öffentlich"},{"id":"shared_loadout","label":"Geteiltes Loadout / geteilter Hangar","group":"Öffentlich"},{"id":"badge","label":"Kartograph-Badge (/badge/kartograph)","group":"Öffentlich"},{"id":"login","label":"Login (/login)","group":"Öffentlich"},{"id":"auth_cards","label":"Set-Password, Unavailable, Desktop-/Uploader-Auth","group":"Öffentlich"}],"axes":[{"id":"typ","label":"Seitentyp","itemTargets":"one","columns":[{"id":"cine_hub","label":"Cinematisch · Hauptseite"},{"id":"cine_sub","label":"Cinematisch · Unterseite"},{"id":"content","label":"Inhalt · Detail/Lesen"},{"id":"tool","label":"Werkzeug"},{"id":"overlay","label":"Popup-Detail"},{"id":"plain","label":"Schlicht · Formular/Recht"}]}],"proposal":[["verse_home","typ.cine_hub"],["codex_home","typ.cine_hub"],["hq_home","typ.cine_hub"],["verse_news","typ.cine_sub"],["news_item","typ.overlay"],["verse_patches","typ.cine_sub"],["patch_line","typ.content"],["verse_gallery","typ.cine_sub"],["gallery_image","typ.overlay"],["constellations","typ.cine_sub"],["explorer","typ.cine_sub"],["star_card","typ.overlay"],["codex_index","typ.tool"],["codex_upcoming","typ.tool"],["codex_fps","typ.tool"],["codex_keybinds","typ.tool"],["codex_detail","typ.content"],["codex_blueprint","typ.content"],["codex_upcoming_detail","typ.content"],["codex_modal","typ.overlay"],["hq_hangar","typ.tool"],["hq_import","typ.tool"],["hq_ship","typ.content"],["hq_spind","typ.tool"],["hq_spind_set","typ.content"],["hq_einsaetze","typ.tool"],["hq_loadout","typ.tool"],["hq_supplies","typ.overlay"],["settings","typ.plain"],["friends","typ.tool"],["release_notes","typ.content"],["uploader","typ.tool"],["download","typ.content"],["tools_extension","typ.content"],["quick_search","typ.overlay"],["admin_home","typ.tool"],["admin_tokens","typ.tool"],["admin_telemetry","typ.tool"],["admin_feedback","typ.tool"],["admin_topic","typ.overlay"],["concept_page","typ.tool"],["about","typ.content"],["legal","typ.plain"],["shared_loadout","typ.content"],["badge","typ.cine_sub"],["login","typ.plain"],["auth_cards","typ.plain"]],"adhocItems":true,"submitted":{"cells":{"typ":[["verse_home","typ.cine_hub"],["codex_home","typ.cine_hub"],["hq_home","typ.cine_hub"],["verse_news","typ.cine_sub"],["news_item","typ.overlay"],["verse_patches","typ.cine_sub"],["patch_line","typ.content"],["verse_gallery","typ.cine_sub"],["gallery_image","typ.overlay"],["explorer","typ.cine_sub"],["codex_index","typ.tool"],["codex_fps","typ.tool"],["codex_keybinds","typ.tool"],["codex_detail","typ.content"],["codex_blueprint","typ.content"],["codex_modal","typ.overlay"],["hq_hangar","typ.tool"],["hq_import","typ.tool"],["hq_ship","typ.content"],["hq_spind","typ.tool"],["hq_spind_set","typ.content"],["hq_einsaetze","typ.tool"],["hq_loadout","typ.tool"],["hq_supplies","typ.overlay"],["release_notes","typ.content"],["uploader","typ.tool"],["download","typ.content"],["tools_extension","typ.content"],["quick_search","typ.overlay"],["admin_home","typ.tool"],["admin_tokens","typ.tool"],["admin_feedback","typ.tool"],["admin_topic","typ.overlay"],["concept_page","typ.tool"],["about","typ.content"],["legal","typ.plain"],["shared_loadout","typ.content"],["badge","typ.cine_sub"],["star_card","typ.content"],["constellations","typ.content"],["codex_upcoming","typ.tool"],["codex_upcoming_detail","typ.overlay"],["settings","typ.cine_hub"],["friends","typ.cine_sub"],["admin_telemetry","typ.content"],["login","typ.cine_hub"],["auth_cards","typ.overlay"]]},"order":{},"adhoc":[],"slotNotes":{}}}</script>
+    <div class="field-row decision-comment-row">
+      <label for="seitentypen-note">{{decision.comment_label}}</label>
+      <textarea id="seitentypen-note" data-comment="map-seitentypen-note" data-attachable rows="3" placeholder="{{decision.comment_placeholder}}">constellations sehe ich eigentlich als eine umschaltvariante von der sternenkarte dem oberen hauptpanel. Das sollte das panel gern einfach drehen / auflösen und aufbauen wie auch immer. keine extra seite. Außerdem logbuch eher hinter einem hilfe button, dann aber wie ein inline tutorial erklärt mit  hervorherbungen worum es hier in drei bullets geht und dann schrittweise ein tutorial mit per zeit und klick welches element tut was.
+Upcoming-Liste (/codex/upcoming) hat ein cinematisches element was auch in codex startseite sein sollte und dann eine unterseite die ist ja eher werkzeug. 
+nachschub panel auch entsprechend anpassen oder als popup variante weil es ja eher eine shopping cart sogar auf aufträge und gegenstände etc. und co. beztogen ist. wie eine mischung aus task liste und shopping cart. 
+
+Desktop-/Uploader-Auth - cinematisch aber einfach, sehr fokussiert, nicht viel aber das was da ist, krass ich tauche jetzt ein in die welt... 
+</textarea>
+    </div>
+  </section>
+
+  <section id="r1-next" data-nav-label="Nächste Runde">
+    <h3>Was in Runde 2 kommt</h3>
+    <p>Aus deinen bestätigten Befunden, Prinzipien und der Zuordnung baue ich das <strong>Zielkonzept als Design-Runde</strong>: je Seitentyp ein Klick-Mock mit Header-Verhalten (Scroll-Zustände), Subheader-Variante, Footer-Modus und Abstandsraster, bei 1280 px und am Handy, und zwar mit echten SC-Companion-Inhalten (Briefing, Schiffs-Detail, Codex-Index, Popup). Notizen zu Dingen, die ich übersehen habe, schreib bitte in den allgemeinen 💬-Kommentar.</p>
+  </section>
+</section>
