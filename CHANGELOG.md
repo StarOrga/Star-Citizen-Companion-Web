@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.175.0] - 2026-10-29
+
+### Added
+- One stability chip — trend arrow, word and percent — on the briefing hub, the sun beacon, the patch board and the patch dossier; the comparison with the previous patch sits in its tooltip.
+- The patch dossier opens with a "Stability" section that shows how the number comes about: scale, deductions, data basis, history and tickets.
+- Community verdict: signed-in players rate a patch as stable, shaky or unstable and see the result after voting; a vote can be changed every 12 hours, and the community moves the number by at most ±10 points.
+
+### Changed
+- Stability uses one three-word scale everywhere (stable ≥ 75 %, shaky 45–74 %, unstable below 45 %) and no longer shows red.
+
+### Removed
+- The stability ring, bar meter, history columns and the stability panel in the LIVE patch note.
+
 ## [0.174.0] - 2026-10-29
 
 ### Added
