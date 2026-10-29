@@ -2,13 +2,12 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
@@ -238,7 +237,6 @@ export class UpcomingDetailComponent implements OnInit {
     });
   });
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly origin = inject(OverlayOriginService);
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
   private readonly rsi = inject(UpcomingShipsService);
@@ -300,14 +298,9 @@ export class UpcomingDetailComponent implements OnInit {
     return out;
   });
 
-  constructor() {
-    inject(DestroyRef).onDestroy(() => this.origin.reset());
-  }
-
   /** Overlay closed (✕, Escape, scrim): back to the list it lay over. */
   protected close(): void {
-    this.origin.reset();
-    void this.router.navigate(['/codex/upcoming']);
+    this.origin.close(['/codex/upcoming']);
   }
 
   /** Retry of the feed error card. */

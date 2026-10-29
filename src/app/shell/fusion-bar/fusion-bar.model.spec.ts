@@ -147,4 +147,20 @@ describe('ShellChromeService', () => {
     expect(foldTrail(long).map((p) => (p.fold ? '…' : p.label))).toEqual(['p1', '…', 'p5']);
     expect(foldTrail(long.slice(0, 3)).length).toBe(3);
   });
+
+  it('Ctrl+K goes to the newest page search that takes it, else to the subheader', () => {
+    const s = new ShellChromeService();
+    expect(s.focusPageSearch()).toBeFalse();
+    const a = {};
+    const b = {};
+    const calls: string[] = [];
+    s.registerSearchFocus(a, () => (calls.push('a'), true));
+    const offB = s.registerSearchFocus(b, () => (calls.push('b'), false));
+    expect(s.focusPageSearch()).toBeTrue();
+    expect(calls).toEqual(['b', 'a']);
+    offB();
+    calls.length = 0;
+    expect(s.focusPageSearch()).toBeTrue();
+    expect(calls).toEqual(['a']);
+  });
 });

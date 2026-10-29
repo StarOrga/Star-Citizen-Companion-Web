@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { channelIconSvg } from '../../news/channel-icons';
 import { NewsThumbComponent } from '../../news/news-thumb.component';
@@ -62,7 +61,6 @@ import { ShareButtonComponent } from '../../shared/share-button/share-button.com
 })
 export class VerseNewsItemComponent {
   protected readonly svc = inject(NewsService);
-  private readonly router = inject(Router);
   private readonly origin = inject(OverlayOriginService);
   private readonly i18n = inject(TranslateService);
 
@@ -97,7 +95,6 @@ export class VerseNewsItemComponent {
 
   constructor() {
     void this.svc.refresh(true);
-    inject(DestroyRef).onDestroy(() => this.origin.reset());
   }
 
   private neighbour(step: number): OverlayNeighbour | null {
@@ -113,7 +110,6 @@ export class VerseNewsItemComponent {
   }
 
   protected close(): void {
-    this.origin.reset();
-    void this.router.navigate(['/verse/news']);
+    this.origin.close(['/verse/news']);
   }
 }

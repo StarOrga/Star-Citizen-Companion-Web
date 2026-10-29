@@ -941,6 +941,12 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   .search {
     min-width: 140px;
   }
+  // Collapsed to its magnifier button: it takes only its own width, at the bar's end.
+  .search.bottom:not(.open) {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: auto;
+  }
   .fbtn {
     margin-left: var(--sc-space-1);
     padding: 0 var(--sc-space-2);

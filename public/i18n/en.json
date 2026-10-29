@@ -4409,6 +4409,9 @@
     "prev": "Previous entry",
     "next": "Next entry",
     "close": "Close",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "openOriginal": "Open original in a new tab",
     "news": {
       "source": "Source",
       "missing": "This entry is no longer in the feed."
@@ -4417,7 +4420,7 @@
       "image": "Image",
       "missing": "This image was not found.",
       "download": "Download original",
-      "article": "Article on RSI"
+      "article": "View on RSI"
     },
     "share": {
       "label": "Share a link to this section",
@@ -5186,6 +5189,7 @@
     },
     "search": {
       "label": "Search",
+      "open": "Open search",
       "clear": "Clear input",
       "dropContext": "Remove context — search everywhere",
       "ask": "Ask the Companion",

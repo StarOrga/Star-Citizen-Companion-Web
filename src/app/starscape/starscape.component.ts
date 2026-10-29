@@ -15,7 +15,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BetaService } from '../core/beta.service';
 import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
+import { LightboxComponent, LightboxImage } from '../shared/lightbox/lightbox.component';
 import { AnalyticsService } from '../core/analytics.service';
 import {
   STARSCAPE_FILTERS,
@@ -35,7 +35,6 @@ import { StarscapeVoteButtonComponent } from './starscape-vote-button.component'
 import { StarscapeVotesService } from './starscape-votes.service';
 import { StarscapeTilesService } from './starscape-tiles.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
-import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
@@ -107,13 +106,12 @@ const RENDER_CHUNK = 24;
   standalone: true,
   imports: [NeuroFieldDirective, 
     TranslatePipe,
-    ScDatePipe,
     ImgReadyDirective,
     AppDownloadMenuComponent,
     StarscapeAppPromoComponent,
     StarscapeVoteButtonComponent,
     ScSegmentedComponent,
-    ScDialogDirective,
+    LightboxComponent,
     ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -349,55 +347,17 @@ const RENDER_CHUNK = 24;
     }
 
     @if (active(); as w) {
-      <div class="lightbox" role="dialog" aria-modal="true"
-           scDialog scDialogInitialFocus="container" (scDialogEscape)="close()"
-           [attr.aria-label]="w.title || ('starscape.lightboxAria' | translate)"
-           (click)="close()">
-        <figure (click)="$event.stopPropagation()">
-          <!-- Phones get the 1140w cover rather than the untouched original: a
-               375 px screen at DPR 3 can resolve 1125 px, so the cover is
-               visually identical there but a fraction of the bytes — opening a
-               tile on mobile data used to mean waiting on a multi-MB source
-               file (admin feedback 4e54ad2c). "Full resolution" stays one tap
-               away: the download button and the tile link both keep the
-               original. -->
-          <picture>
-            <source media="(max-width: 900px)" [srcset]="previewFor(w)" />
-            <img [src]="w.sourceUrl" [alt]="w.title ?? ''" />
-          </picture>
-          <figcaption>
-            <div class="lb-meta">
-              <strong>{{ w.title }}</strong>
-              <span class="lb-sub">
-                @if (w.series) { {{ w.series }} · }
-                @if (w.publishedAt) { {{ w.publishedAt | scDate }} }
-              </span>
-            </div>
-            <div class="lb-actions">
-              <!-- Same control as on the tile, at full button height: on a phone
-                   the lightbox is where an image is actually looked at, so the
-                   vote has to be reachable from here too. -->
-              <sc-vote-button [imageId]="w.imageId" />
-              <!-- A real ACTION, so a <button>: it opens the Android/iOS share
-                   sheet via the Web Share API and only falls back to the
-                   clipboard where that API is missing (desktop browsers). -->
-              <button type="button" class="sc-btn lb-share" (click)="share(w)">
-                {{ 'starscape.share.label' | translate }}
-              </button>
-              <a class="sc-btn" [href]="w.sourceUrl" target="_blank" rel="noopener noreferrer" download>
-                {{ 'starscape.download' | translate }}
-              </a>
-              <a class="lb-link" [href]="w.articleUrl" target="_blank" rel="noopener noreferrer">
-                {{ 'starscape.sourceArticle' | translate }}
-              </a>
-              <button type="button" class="lb-close" (click)="close()" [attr.aria-label]="'starscape.close' | translate" [scTooltip]="'starscape.close' | translate">✕</button>
-            </div>
-            @if (shareHint(); as hint) {
-              <p class="lb-hint" role="status" aria-live="polite">{{ hint | translate }}</p>
-            }
-          </figcaption>
-        </figure>
-      </div>
+      <!-- ONE popup for the wall and the routed item (shared/lightbox). Phones get
+           the 1140w cover (previewFor) instead of the multi-MB original; the
+           download and the "open" anchor keep the original (admin feedback 4e54ad2c). -->
+      <sc-lightbox [image]="lightboxImage(w)" (closed)="close()">
+        <!-- A phone views images here, so the vote and the share stay reachable. -->
+        <sc-vote-button [imageId]="w.imageId" />
+        <button type="button" class="sc-btn lb-share" (click)="share(w)">{{ 'starscape.share.label' | translate }}</button>
+        @if (shareHint(); as hint) {
+          <p class="lb-hint" role="status" aria-live="polite">{{ hint | translate }}</p>
+        }
+      </sc-lightbox>
     }
   `,
   styles: [`
@@ -553,51 +513,8 @@ const RENDER_CHUNK = 24;
     .stalled p { margin: 0; }
     .attribution { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); margin: 0; opacity: 0.85; }
 
-    .lightbox {
-      position: fixed; inset: 0; z-index: 1200;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(6px);
-      padding: 24px; cursor: zoom-out;
-    }
-    .lightbox figure {
-      margin: 0; max-width: min(1400px, 96vw); max-height: 92vh;
-      display: flex; flex-direction: column; gap: 0; cursor: default;
-    }
-    /* display: contents keeps the <img> as the figure's flex item, so the
-       sizing rules below apply exactly as they did before the <picture>. */
-    .lightbox picture { display: contents; }
-    .lightbox img {
-      max-width: 100%; max-height: calc(92vh - 64px); object-fit: contain;
-      border-radius: 8px 8px 0 0; background: var(--sc-bg-0);
-    }
-    /* Dynamic viewport units where supported: on a phone "vh" is the URL-bar-less
-       LARGE viewport, so a 92vh figure is taller than what is actually on screen
-       and the caption (with the share button) sits below the fold. */
-    @supports (height: 100dvh) {
-      .lightbox figure { max-height: 92dvh; }
-      .lightbox img { max-height: calc(92dvh - 64px); }
-    }
-    figcaption {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; flex-wrap: wrap;
-      padding: 10px 14px; border-radius: 0 0 8px 8px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-top: 0;
-    }
-    .lb-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .lb-meta strong { font-size: 0.9rem; color: var(--sc-fg-0); }
-    .lb-sub { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
-    .lb-actions { display: flex; align-items: center; gap: 12px; }
-    .lb-actions .sc-btn { text-decoration: none; color: var(--sc-accent); border-color: var(--sc-accent); }
-    .lb-actions .sc-btn:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .lb-link { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
-    .lb-link:hover { color: var(--sc-fg-0); }
-    .lb-close {
-      background: transparent; border: 0; color: var(--sc-fg-2);
-      font-size: 1rem; cursor: pointer; padding: 4px;
-    }
-    .lb-close:hover { color: var(--sc-fg-0); }
     .lb-hint {
-      flex: 1 0 100%; margin: 0; text-align: right;
+      margin: 0; padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.6);
       color: var(--sc-accent); font-size: max(0.72rem, var(--sc-fs-floor));
     }
 
@@ -626,23 +543,11 @@ const RENDER_CHUNK = 24;
          make. The desktop grid, where twelve slots are three short rows, is
          untouched. */
       .skel-tile:nth-child(n + 5) { display: none; }
-      /* Full-bleed overlay → respect the notch / home indicator. */
-      .lightbox {
-        padding:
-          max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
-          max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-      }
-      /* Caption stacks so the actions get a full-width row of their own instead
-         of being squeezed against the title on a 375px screen. */
-      figcaption { flex-direction: column; align-items: stretch; gap: 10px; }
-      .lb-actions { flex-wrap: wrap; gap: 8px; }
-      .lb-actions .sc-btn { flex: 1 1 auto; text-align: center; }
       /* One full-width column on a phone: the thumbs-up sits on the artwork
          with a safe inset and is never hidden behind a hover it cannot get. */
       .tile-vote { top: 10px; right: 10px; }
       /* The four segments share the full width as thumb-sized targets. */
       .source-filter { display: block; width: 100%; }
-      .lb-hint { text-align: left; }
     }
 
     /* Touch targets. 48px rather than the 44px minimum because the app-wide
@@ -660,9 +565,7 @@ const RENDER_CHUNK = 24;
          cannot leave a half-composited layer behind. */
       .tile-img { filter: none; transform: none; transition: opacity 0.3s ease; }
       .tile-img.ready { filter: none; transform: none; }
-      .lb-actions .sc-btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
-      .lb-link { min-height: 48px; display: inline-flex; align-items: center; }
-      .lb-close { min-width: 48px; min-height: 48px; }
+      .lb-share { min-height: 48px; }
       /* No hover on touch — the lift and the zoom-in cursor are mouse idioms. */
       .tile { cursor: pointer; }
       .tile-wrap:hover { transform: none; }
@@ -1128,6 +1031,11 @@ export class StarscapeComponent implements OnInit {
   onTileSpace(ev: Event, w: Wallpaper): void {
     ev.preventDefault();
     this.open(w);
+  }
+
+  /** The popup's view of a wallpaper: phones get the 1140w cover as stand-in. */
+  lightboxImage(w: Wallpaper): LightboxImage {
+    return { title: w.title, sourceUrl: w.sourceUrl, previewUrl: this.previewFor(w), articleUrl: w.articleUrl };
   }
 
   close(): void {

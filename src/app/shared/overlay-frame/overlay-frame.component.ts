@@ -19,7 +19,7 @@ export interface OverlayNeighbour {
  * Two modes, decided by `OverlayOriginService`:
  * - overlay (opened from its list): fixed takeover - centred sheet on desktop,
  *   wide sheet on tablet, full-screen (`dvh`) on phones; Escape, scrim and the
- *   close button emit `closed`, the host navigates back to the list.
+ *   close button emit `closed`, the host closes via `OverlayOriginService.close()` (history back, never a pushed entry).
  * - page (direct load / refresh / shared link): the same content flows in the
  *   page frame, no scrim, no dialog semantics.
  * Prev/next are real anchors (`routerLink` leaves modified clicks to the browser).
@@ -45,11 +45,11 @@ export interface OverlayNeighbour {
         <h2 class="ttl">{{ heading() }}</h2>
         <span class="nav">
           @if (prev(); as p) {
-            <a class="nb" [routerLink]="p.commands" [attr.aria-label]="'overlay.prev' | translate"
+            <a class="nb" [routerLink]="p.commands" [replaceUrl]="true" [attr.aria-label]="'overlay.prev' | translate"
                [scTooltip]="'overlay.prev' | translate" scTooltipTier="label">‹</a>
           }
           @if (next(); as n) {
-            <a class="nb" [routerLink]="n.commands" [attr.aria-label]="'overlay.next' | translate"
+            <a class="nb" [routerLink]="n.commands" [replaceUrl]="true" [attr.aria-label]="'overlay.next' | translate"
                [scTooltip]="'overlay.next' | translate" scTooltipTier="label">›</a>
           }
           @if (overlay()) {
