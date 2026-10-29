@@ -66,6 +66,6 @@ describe('HqSpotStageComponent', () => {
     const { el } = await setup();
     const hrefs = Array.from(el.querySelectorAll('a.archive-line__link')).map((a) => a.getAttribute('href') ?? '');
     expect(hrefs.some((h) => h.startsWith('/codex/index?kind=ship'))).toBeTrue();
-    expect(hrefs.some((h) => h.startsWith('/codex/fps?cat=armor'))).toBeTrue();
+    expect(hrefs.some((h) => h.startsWith('/codex/index?kind=armor'))).toBeTrue();
   });
 });

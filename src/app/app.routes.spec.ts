@@ -1,7 +1,7 @@
 import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { blueprintListRedirect, hangarLoadoutRedirect, routes } from './app.routes';
+import { blueprintListRedirect, fpsEquipMode, fpsListRedirect, hangarLoadoutRedirect, routes } from './app.routes';
 
 /**
  * The retired hangar loadout editor (admin feedback 34505d70, decision "2A").
@@ -74,6 +74,39 @@ describe('codex/blueprint bridge', () => {
     expect(list?.loadComponent).toBeUndefined();
     expect(detail).toBeDefined();
     expect(detail?.loadComponent).toBeDefined();
+  });
+});
+
+describe('codex/fps bridge (concept 2026-10-29, b3)', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  });
+
+  it('sends a bare link to the on-foot weapons of the browse page', () => {
+    const tree = TestBed.runInInjectionContext(() => fpsListRedirect({ queryParams: {} }));
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/index?kind=weapon&wg=fps');
+  });
+
+  it('keeps an old armour bookmark working', () => {
+    const tree = TestBed.runInInjectionContext(() => fpsListRedirect({ queryParams: { cat: 'armor', slot: 'Helmet', q: 'x' } }));
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/index?kind=armor&slot=helmet&q=x');
+  });
+
+  it('keeps the equip flow on the on-foot list, redirects plain browsing', () => {
+    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'codex/fps'));
+    const fps = (shell?.children ?? []).filter((c) => c.path === 'codex/fps');
+    expect(fps.length).toBe(2);
+    expect(fps[0].canMatch).toEqual([fpsEquipMode]);
+    expect(fps[0].loadComponent).toBeDefined();
+    expect(fps[1].redirectTo).toBe(fpsListRedirect);
+  });
+
+  it('matches the equip route only with equipInto in the url', () => {
+    const router = TestBed.inject(Router);
+    const nav = (url: string) => ({ extractedUrl: router.parseUrl(url) });
+    spyOn(router, 'currentNavigation').and.returnValues(nav('/codex/fps?equipInto=s1&equipSlot=primary') as never, nav('/codex/fps?cat=armor') as never);
+    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBeTrue();
+    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBeFalse();
   });
 });
 
