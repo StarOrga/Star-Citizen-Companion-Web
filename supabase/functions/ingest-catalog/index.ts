@@ -287,10 +287,24 @@ async function translationAfterPublish(
         if (error) throw error;
         return ((data ?? []) as { lang: string }[]).map((x) => x.lang);
       },
+      async previousBuildId(id) {
+        const { data: cur, error: e1 } = await admin
+          .from('codex_builds').select('channel, finalized_at').eq('id', id).maybeSingle();
+        if (e1) throw e1;
+        const c = cur as { channel?: string; finalized_at?: string | null } | null;
+        if (!c?.channel || !c.finalized_at) return null;
+        const { data, error } = await admin
+          .from('codex_builds').select('id')
+          .eq('channel', c.channel).neq('id', id).not('finalized_at', 'is', null)
+          .lt('finalized_at', c.finalized_at)
+          .order('finalized_at', { ascending: false }).limit(1);
+        if (error) throw error;
+        return ((data ?? []) as { id: string }[])[0]?.id ?? null;
+      },
       async insertJobs(rows) {
         const { error } = await admin
           .from('translation_jobs')
-          .upsert(rows, { onConflict: 'build_id,lang', ignoreDuplicates: true });
+          .upsert(rows, { onConflict: 'build_id,lang,mode', ignoreDuplicates: true });
         if (error) throw error;
       },
     },

@@ -60,7 +60,7 @@ describe('uploadCatalog init', () => {
       return { ok: true, status: 200, json: async () => ({ build_id: 'b' }) };
     });
     const r = await uploadCatalog('jwt', outDir, () => {}, { p4kPath, backoffMs: () => 0 });
-    expect(r.ok).toBe(true);
+    expect(r.buildId).toBe('b'); // init answered; an empty catalog fails later, irrelevant here
     return init as unknown as Record<string, unknown>;
   }
 

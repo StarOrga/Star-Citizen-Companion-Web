@@ -67,6 +67,11 @@ create table if not exists public.translation_jobs (
   id           uuid primary key default gen_random_uuid(),
   build_id     uuid not null references public.codex_builds(id) on delete cascade,
   lang         text not null,
+  -- 'delta' = only keys changed vs base_build_id (the only automatic mode);
+  -- 'full' = the whole gap, admin-started only. base_build_id null = no previous
+  -- build of the channel (the orchestrator marks a delta job skipped).
+  mode         text not null default 'delta' check (mode in ('delta','full')),
+  base_build_id uuid references public.codex_builds(id) on delete set null,
   status       text not null default 'estimating' check (status in (
     'estimating','awaiting_approval','queued','submitted','validating',
     'post_editing','publishing','published','failed','cancelled','skipped')),
@@ -79,7 +84,7 @@ create table if not exists public.translation_jobs (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
   approved_by  uuid references auth.users(id) on delete set null,
-  unique (build_id, lang)
+  unique (build_id, lang, mode)
 );
 create index if not exists translation_jobs_open_idx on public.translation_jobs (status)
   where status not in ('published','failed','cancelled','skipped');

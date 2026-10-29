@@ -6,13 +6,14 @@ import { enqueueTranslationJobs } from './_translation-enqueue.ts';
 const B = 'a3fb1249-9115-4035-9039-2ffc6043d832';
 const ok = [{ lang: 'en', verified: true }, { lang: 'de', verified: true }, { lang: 'fr', verified: true }];
 
-function fake({ enabled = true, approved = ['de'] } = {}) {
+function fake({ enabled = true, approved = ['de'], prev = 'prev-build' } = {}) {
   const calls = { inserted: [], ticks: 0 };
   return {
     calls,
     db: {
       isEnabled: async () => enabled,
       approvedLangs: async () => approved,
+      previousBuildId: async () => prev,
       insertJobs: async (rows) => { calls.inserted.push(...rows); },
     },
     tick: async () => { calls.ticks++; },
@@ -27,6 +28,13 @@ describe('enqueueTranslationJobs', () => {
     assert.deepEqual(f.calls.inserted.map((j) => j.lang), ['de', 'fr']);
     assert.ok(f.calls.inserted.every((j) => j.status === 'estimating' && j.build_id === B));
     assert.equal(f.calls.ticks, 1);
+    assert.ok(f.calls.inserted.every((j) => j.mode === 'delta' && j.base_build_id === 'prev-build'));
+  });
+  it('still inserts the job without a previous build (orchestrator skips it)', async () => {
+    const f = fake({ prev: null });
+    await enqueueTranslationJobs(f.db, B, ok, f.tick);
+    assert.equal(f.calls.inserted.length, 1);
+    assert.equal(f.calls.inserted[0].base_build_id, null);
   });
   it('does nothing while translation is disabled', async () => {
     const f = fake({ enabled: false });

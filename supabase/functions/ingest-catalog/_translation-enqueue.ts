@@ -10,7 +10,17 @@ export interface EnqueueDb {
   /** Languages with approved = true. */
   approvedLangs(): Promise<string[]>;
   /** insert ... on conflict (build_id, lang) do nothing. */
-  insertJobs(rows: { build_id: string; lang: string; status: 'estimating' }[]): Promise<void>;
+  insertJobs(rows: EnqueueRow[]): Promise<void>;
+  /** Newest finalized build of the same channel that precedes `buildId`, or null. */
+  previousBuildId(buildId: string): Promise<string | null>;
+}
+
+export interface EnqueueRow {
+  build_id: string;
+  lang: string;
+  mode: 'delta';
+  base_build_id: string | null;
+  status: 'estimating';
 }
 
 export interface EnqueueResult {
@@ -35,7 +45,11 @@ export async function enqueueTranslationJobs(
     // Never enqueue a language this build did not publish at all.
     const langs = (await db.approvedLangs()).filter((l) => l !== 'en' && published.has(l));
     if (langs.length === 0) return { status: 'no_languages', jobs: 0 };
-    await db.insertJobs(langs.map((lang) => ({ build_id: buildId, lang, status: 'estimating' as const })));
+    // Delta only: no previous build -> still a row, the orchestrator skips it.
+    const base = await db.previousBuildId(buildId);
+    await db.insertJobs(langs.map((lang) => ({
+      build_id: buildId, lang, mode: 'delta' as const, base_build_id: base, status: 'estimating' as const,
+    })));
     await tick().catch((e) => console.error(`ingest-catalog: translate tick failed: ${(e as Error).message}`));
     return { status: 'enqueued', jobs: langs.length };
   } catch (e) {
