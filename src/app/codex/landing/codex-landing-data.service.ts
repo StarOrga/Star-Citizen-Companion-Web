@@ -256,11 +256,14 @@ export class CodexLandingDataService {
     const key = `${this.codex.build()?.id ?? ''}:${category}`;
     let hit = this.newestCache.get(key);
     if (!hit) {
-      hit = this.loadNewest(category).catch((err) => {
-        this.newestCache.delete(key);
-        this.error.set(toErrorKey('codex-landing', `newest ${category}`, err));
-        return null;
-      });
+      // One quiet retry: the catalog read is heavy, an odd 5xx would otherwise drop the category from the rotation.
+      hit = this.loadNewest(category)
+        .catch(() => new Promise<void>((r) => setTimeout(r, 700)).then(() => this.loadNewest(category)))
+        .catch((err) => {
+          this.newestCache.delete(key);
+          this.error.set(toErrorKey('codex-landing', `newest ${category}`, err));
+          return null;
+        });
       this.newestCache.set(key, hit);
     }
     return hit;
@@ -269,9 +272,11 @@ export class CodexLandingDataService {
   private async candidates(category: LandingCategory): Promise<CodexListRow[]> {
     switch (category) {
       case 'ship': {
+        // New-this-patch first; the full list follows so a showroom copy that is new
+        // can be swapped for its flyable sibling (see dedupeByName).
         const added = await this.diff.addedShipsMemo();
-        if (added.length) return added;
-        return (await this.codex.listByKind('ship', { limit: CANDIDATE_LIMIT })).rows;
+        const all = (await this.codex.listByKind('ship', { limit: CANDIDATE_LIMIT })).rows;
+        return added.length ? [...added, ...all] : all;
       }
       case 'fpsWeapon':
         return this.codex.listFpsCatalog('weapon');
