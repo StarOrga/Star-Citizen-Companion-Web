@@ -5,12 +5,14 @@
          carries the hub columns further down — one cinematic picture. The live
          WebGL planet draws over the CSS one once its world is generated; the
          CSS planet stays as the fallback and as its geometry. -->
-    <div class="world-clip" aria-hidden="true">
+    <div class="world-clip" aria-hidden="true" [class.quake]="quake()">
       <div class="brief-world" #world [class.gl]="planet.ready()"></div>
       <div class="city" [class.gl]="planet.ready()"></div>
       <sc-briefing-planet #planet [anchor]="world" />
     </div>
-    <section class="bstage" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
+    <!-- Easter egg: a double click on the empty sky left of the hero (see the component). -->
+    <sc-briefing-asteroid #egg [planet]="world" (passing)="shake()" />
+    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
       <div class="scn">
         <!-- Entrance only (CSS, gone after the sequence / under reduced motion): letterbox bars and the comet that lights the constellation. -->
         <i class="lb lb-t" aria-hidden="true"></i><i class="lb lb-b" aria-hidden="true"></i>

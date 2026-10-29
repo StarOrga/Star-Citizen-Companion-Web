@@ -35,6 +35,7 @@ import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
 import { BriefingHubComponent } from './briefing/briefing-hub.component';
 import { BriefingPlanetComponent } from './briefing/briefing-planet.component';
+import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
 import {
   BriefingStatus,
@@ -172,7 +173,7 @@ export function fitTitle(h: HTMLElement): boolean {
     StageSearchDirective,
     StageHeroDirective,
     RouterLink, TranslatePipe, ScTooltipDirective, AppNoticeComponent, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
-    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingPlanetComponent,
+    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingPlanetComponent, BriefingAsteroidComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing/verse-briefing.component.html',
@@ -416,6 +417,15 @@ export class VerseBriefingComponent {
   /** Pointer / focus on the hero title: the auto switch holds. */
   readonly heroHold = signal(false);
   private readonly titleEl = viewChild<ElementRef<HTMLElement>>('titleEl');
+  /** The asteroid's closest pass: stage and planet shake once. */
+  readonly quake = signal(false);
+  private quakeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  shake(): void {
+    clearTimeout(this.quakeTimer);
+    this.quake.set(true);
+    this.quakeTimer = setTimeout(() => this.quake.set(false), 600);
+  }
 
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
