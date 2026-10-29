@@ -53,6 +53,29 @@ describe('MainHeaderComponent', () => {
     expect(fixture.nativeElement.querySelector('a[href="/admin/telemetry"]')).toBeNull();
   });
 
+  it('holds the header back only during the first-visit hub intro, scaled by k', async () => {
+    const fixture = await setup('/verse', false);
+    const host = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
+    expect(host.classList.contains('hero-intro')).toBeFalse();
+    const chrome = TestBed.inject(ShellChromeService);
+    chrome.startHeroIntro(1, true);
+    fixture.detectChanges();
+    expect(host.classList.contains('hero-intro')).toBeTrue();
+    expect(host.hasAttribute('inert')).toBeTrue();
+    expect(host.style.getPropertyValue('--sc-intro-k')).toBe('1');
+    chrome.endHeroIntro();
+    fixture.detectChanges();
+    expect(host.classList.contains('hero-intro')).toBeFalse();
+  });
+
+  it('does not delay the header on a repeat visit of the hub', async () => {
+    const fixture = await setup('/verse', false);
+    const host = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
+    TestBed.inject(ShellChromeService).startHeroIntro(0.1765, false);
+    fixture.detectChanges();
+    expect(host.classList.contains('hero-intro')).toBeFalse();
+  });
+
   it('hides the admin entry from non-admins', async () => {
     const fixture = await setup('/codex', false);
     expect(slots(fixture.nativeElement).map((a) => a.getAttribute('href'))).toEqual(['/verse', '/codex', '/hq']);
@@ -64,7 +87,10 @@ describe('MainHeaderComponent', () => {
     const active = links.filter((a) => a.getAttribute('aria-current') === 'page');
     expect(active.map((a) => a.getAttribute('href'))).toEqual(['/admin/hub']);
     expect(fixture.nativeElement.querySelector('.ind.elevated')).not.toBeNull();
-    const widths = links.map((a) => Math.round(a.getBoundingClientRect().width));
+    // Desktop keeps Admin out of the nav (it lives in the sub row), so only the shown slots count.
+    const widths = links
+      .map((a) => Math.round(a.getBoundingClientRect().width))
+      .filter((w) => w > 0);
     // Karma renders at 749px: the phone branch spreads the slots evenly, wider screens pin them.
     expect(new Set(widths).size).toBe(1);
     if (window.innerWidth > 720) expect(widths[0]).toBe(MAIN_NAV_SLOT_PX);
@@ -80,16 +106,53 @@ describe('MainHeaderComponent', () => {
     expect(cs.borderTopWidth).toBe('0px');
   });
 
-  it('compresses into the bar (inert) whenever the field is not staged', async () => {
+  it('condenses into the bar only once the progress has landed (or off the main pages)', async () => {
     const fixture = await setup('/verse', false);
     const header = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
+    const chrome = TestBed.inject(ShellChromeService);
     expect(header.classList).not.toContain('compressed');
-    TestBed.inject(ShellChromeService).setStageSearch('docked');
+    chrome.setStageSearch('docked');
+    chrome.setDockProgress(0.5);
+    fixture.detectChanges();
+    expect(header.classList).withContext('half docked is still reachable').not.toContain('compressed');
+    expect(header.hasAttribute('inert')).toBeFalse();
+    chrome.setDockProgress(1);
     fixture.detectChanges();
     expect(header.classList).toContain('compressed');
     expect(header.hasAttribute('inert')).toBeTrue();
-    TestBed.inject(ShellChromeService).setStageSearch('none');
+    chrome.setDockProgress(0.3);
+    fixture.detectChanges();
+    expect(header.classList).not.toContain('compressed');
+    chrome.setStageSearch('none');
     fixture.detectChanges();
     expect(header.classList).toContain('compressed');
+  });
+
+  it('corner layout: brand top-left, account top-right, Admin in a row directly below the account', async () => {
+    const fixture = await setup('/verse', true);
+    const header = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
+    const account = header.querySelector('.account') as HTMLElement;
+    const admin = account.querySelector('.subrow a.admin') as HTMLAnchorElement;
+    expect(admin).withContext('admin entry in the sub row').not.toBeNull();
+    expect(admin.getAttribute('href')).toBe('/admin/hub');
+    expect(admin.querySelector('.sr-only')).withContext('says admin-only in words').not.toBeNull();
+    expect(header.querySelector('.row .admin')).toBeNull();
+    if (window.innerWidth > 720) {
+      expect(getComputedStyle(header.querySelector('.brand')!).position).toBe('absolute');
+      expect(getComputedStyle(account).position).toBe('absolute');
+      const main = account.querySelector('.acc-main')!.getBoundingClientRect();
+      expect(admin.getBoundingClientRect().top).toBeGreaterThanOrEqual(main.bottom - 1);
+      // The nav keeps Admin out of its centred run on desktop.
+      expect(getComputedStyle(header.querySelector('.slot.adm')!).display).toBe('none');
+    } else {
+      // Phone: the sub row yields to the nav slot, brand and account share the top row.
+      expect(getComputedStyle(header.querySelector('.subrow')!).display).toBe('none');
+      expect(getComputedStyle(header.querySelector('.slot.adm')!).display).toBe('block');
+    }
+  });
+
+  it('shows no Admin row to non-admins', async () => {
+    const fixture = await setup('/verse', false);
+    expect(fixture.nativeElement.querySelector('sc-main-header .subrow')).toBeNull();
   });
 });

@@ -288,6 +288,35 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     discardPeriodicTasks();
   }));
 
+  it('splits the hero title into letter spans for the entrance and still exposes the full title once', fakeAsync(() => {
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const link = el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl');
+    const full = fixture.componentInstance.current()?.item.title ?? '';
+    expect(full).not.toBe('');
+    expect(el.querySelector('.bstage')?.classList.contains('intro')).toBeTrue();
+    const letters = Array.from(link?.querySelectorAll<HTMLElement>('i.ltr') ?? []);
+    expect(letters.length).toBe(Array.from(full).length);
+    expect(letters.every((l) => l.getAttribute('aria-hidden') === 'true')).toBeTrue();
+    // The letters carry no-break spaces so a title never collapses its gaps.
+    expect(letters.map((l) => l.textContent).join('').replace(/ /g, ' ')).toBe(full);
+    expect(letters[3].style.getPropertyValue('--i')).toBe('3');
+    // The accessible name is the title once: the visually hidden copy, letters hidden.
+    expect(link?.querySelector('.sc-sr-only')?.textContent).toBe(full);
+    // After the sequence the title is plain text again.
+    tick(10000);
+    fixture.detectChanges();
+    expect(el.querySelector('.bstage')?.classList.contains('intro')).toBeFalse();
+    expect(el.querySelector('.hrow h1 a.tl i.ltr')).toBeNull();
+    // The carousel may have moved on during the wait: compare against the title now shown.
+    expect(el.querySelector('.hrow h1 a.tl')?.textContent?.trim()).toBe(fixture.componentInstance.current()?.item.title);
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
+
   it('keeps today\'s briefing untouched with the shell beta off', () => {
     beta.set({ verse: true, shell: false });
     const fixture = TestBed.createComponent(VerseBriefingComponent);

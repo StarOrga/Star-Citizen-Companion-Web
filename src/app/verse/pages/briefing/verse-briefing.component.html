@@ -7,8 +7,11 @@
       <div class="brief-world"></div>
       <div class="city"></div>
     </div>
-    <section class="bstage" [attr.aria-label]="'verse.briefing.stageAria' | translate">
+    <section class="bstage" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
       <div class="scn">
+        <!-- Entrance only (CSS, gone after the sequence / under reduced motion): letterbox bars and the comet that lights the constellation. -->
+        <i class="lb lb-t" aria-hidden="true"></i><i class="lb lb-b" aria-hidden="true"></i>
+        <i class="comet" aria-hidden="true"></i>
         <sc-briefing-beacons [sunLink]="sunLink()" [version]="kicker()?.version ?? null" [stability]="kicker()?.stability ?? null"
                              [skyReady]="skyReady()" [points]="points()" [lit]="lit()" [total]="total" [litSet]="litSet()"
                              [patchLine]="starPatch()" />
@@ -40,10 +43,10 @@
                     @for (st of currentList(); track st.item.key) {
                       @if (st.link.internal) {
                         <a class="tl" animate.enter="t-in" [routerLink]="st.link.path" [queryParams]="st.link.query"
-                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">{{ st.item.title }}</a>
+                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">@if (titleIntro()) {<span class="sc-sr-only">{{ st.item.title }}</span>@for (ch of chars(st.item.title); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}} @else {<ng-container>{{ st.item.title }}</ng-container>}</a>
                       } @else {
                         <a class="tl" animate.enter="t-in" [href]="st.link.path" target="_blank" rel="noopener noreferrer"
-                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">{{ st.item.title }}</a>
+                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">@if (titleIntro()) {<span class="sc-sr-only">{{ st.item.title }}</span>@for (ch of chars(st.item.title); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}} @else {<ng-container>{{ st.item.title }}</ng-container>}</a>
                       }
                     }
                   } @else {

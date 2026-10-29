@@ -118,11 +118,41 @@
                        edge to edge (the settings sub-navigation)
                        undoes exactly this much.
      --sc-measure      comfortable line length for running text.
+     --sc-content-max  the content columns' width AND the docked subheader's
+                       (the main header itself is no longer sized by the
+                       frame: its corners stand at the feedback launcher's
+                       inset). The same 1280px = 2/3 of Full HD, 1600px from
+                       QHD as --sc-page-max, no vw fraction, so nothing jumps
+                       between routes. Running text stays --sc-measure.
+     --sc-content-narrow  a narrower column inside the frame (forms, detail
+                       text) where --sc-measure is too tight.
    ============================================================ */
 :root {
   --sc-page-max: clamp(1280px, 50vw + 320px, 1600px);
   --sc-page-gutter: 28px;
   --sc-measure: 70ch;
+  --sc-content-max: var(--sc-page-max);
+  --sc-content-narrow: 56rem;
+}
+/* Scroll-linked condense of the main header into the subheader (0 = header
+   expanded, 1 = docked): set per frame on the header, the bar and the β chip
+   by ShellChromeService. A registered number, so a route change can ease it
+   (`data-ease`) while scrolling drives it directly. */
+@property --sc-dock-p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+/* The β chip stands in a small row under apps + profile while the main header
+   is expanded (desktop) and glides back into the bar's lane as it docks. */
+@media (min-width: 721px) {
+  sc-beta-chip .chip-wrap.chip-wrap {
+    top: calc(
+      (var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + var(--sc-fab-inset) + 46px) * (1 - var(--sc-dock-p, 1)) +
+        (var(--sc-imp-banner-h, 0px) + 6px + (var(--sc-bar-h) - var(--sc-space-2) - var(--_h)) / 2) * var(--sc-dock-p, 1)
+    );
+    right: calc(max(var(--sc-fab-inset), env(safe-area-inset-right)) * (1 - var(--sc-dock-p, 1)) + max(var(--sc-space-3), env(safe-area-inset-right)) * var(--sc-dock-p, 1));
+  }
 }
 @media (max-width: 720px) {
   :root { --sc-page-gutter: 16px; }
@@ -168,6 +198,8 @@
   --sc-sub-h: 60px;
   /* Content width of the main header row and the subheader: the page frame, and
      never under the β chip (--sc-chip-lane, published by the chip), kept centred. */
+  /* The docked subheader capsule: the content width, centred, never under the β chip. */
+  --sc-dock-w: min(100% - 2 * max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)), var(--sc-content-max));
   --sc-chrome-w: min(100% - 2 * max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)), var(--sc-page-max) - 2 * var(--sc-page-gutter));
   --sc-sub-radius: 5px;
   --sc-sub-fill: linear-gradient(180deg, #0a1d2b, #061724);
@@ -1428,27 +1460,97 @@ button {
   .sc-enter-stagger > * { animation: sc-enter-fade 240ms ease-out backwards; }
 }
 
+/* Camera moves (concept 2026-10-29 startseite-animationen §B). `html[data-verse-aim]`
+   names the world whose tile the camera aims at: it stands highlighted, the other
+   tiles dim. `--vf-ox/--vf-oy` (px) is that tile's centre, the origin of the dive.
+     down  aim 0.4 s (live page, VerseFlight.AIM_MS) -> dive 0.7 s (old page x3,
+           blur, fade) with star streaks -> the subpage builds up staggered from
+           --vf-build: crumb, title + emblem (shrinks in from large), tabs, rows
+           (90 ms apart). The transition is held open until the build is done.
+     up    pull-out 1.5 s (hub from x3 back to 1), the tile lands highlighted and
+           un-dims when the transition ends. */
+:root { --vf-ox: 50%; --vf-oy: 50%; --vf-build: 0.45s; --vf-cam: cubic-bezier(0.65, 0, 0.25, 1); --vf-rise: cubic-bezier(0.16, 1, 0.3, 1); }
+[data-verse-fly] { transition: opacity 0.4s ease, filter 0.4s ease; }
+@each $w in news, patches, gallery, starmap {
+  html[data-verse-aim='#{$w}'] [data-verse-fly]:not([data-verse-fly='#{$w}']) { opacity: 0.35; filter: saturate(0.5); }
+  html[data-verse-aim='#{$w}'] [data-verse-fly='#{$w}'] { filter: brightness(1.25) drop-shadow(0 0 10px color-mix(in srgb, var(--sc-accent) 80%, transparent)); }
+}
+
 /* Deep space behind the flight, where neither page covers the view. */
 html[data-verse-flight]::view-transition { background: #02070d; }
-html[data-verse-flight]::view-transition-old(root) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
-html[data-verse-flight]::view-transition-new(root) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
-html[data-verse-flight='up']::view-transition-old(root) { animation: sc-flight-sink 460ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
-html[data-verse-flight='up']::view-transition-new(root) { animation: sc-flight-from-above 680ms cubic-bezier(0.2, 0.7, 0.2, 1) 120ms both; }
-/* The planet: from its place on the hub to the 64px emblem (and back). */
-html[data-verse-flight]::view-transition-group(verse-emblem) {
+html[data-verse-flight='side']::view-transition-old(root) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+html[data-verse-flight='side']::view-transition-new(root) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
+html[data-verse-flight='down']::view-transition-old(root) {
+  transform-origin: var(--vf-ox) var(--vf-oy);
+  animation: sc-flight-dive 700ms var(--vf-cam) both;
+}
+html[data-verse-flight='down']::view-transition-new(root) { animation: sc-flight-hold-in 1800ms linear both; }
+html[data-verse-flight='up']::view-transition-old(root) { animation: sc-flight-sink 520ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+html[data-verse-flight='up']::view-transition-new(root) {
+  transform-origin: var(--vf-ox) var(--vf-oy);
+  animation: sc-flight-pull-out 1500ms var(--vf-cam) both;
+}
+/* Star streaks radiate from the tile while the old page dives (own layer, only in the old state). */
+.sc-flight-streaks {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  view-transition-name: vf-streaks;
+  background: repeating-conic-gradient(from 0deg at var(--vf-ox) var(--vf-oy), rgba(190, 230, 255, 0.5) 0 0.5deg, transparent 0.5deg 4.5deg);
+  -webkit-mask-image: radial-gradient(circle at var(--vf-ox) var(--vf-oy), transparent 6%, #000 32%, transparent 78%);
+  mask-image: radial-gradient(circle at var(--vf-ox) var(--vf-oy), transparent 6%, #000 32%, transparent 78%);
+}
+html[data-verse-flight='down']::view-transition-group(vf-streaks) { animation-duration: 0s; }
+html[data-verse-flight='down']::view-transition-old(vf-streaks) {
+  transform-origin: var(--vf-ox) var(--vf-oy);
+  animation: sc-flight-streaks 700ms ease-out both;
+}
+html[data-verse-flight='down']::view-transition-new(vf-streaks) { display: none; }
+/* The planet: from its place on the hub to the 64px emblem (and back) - not on the dive, where the head's emblem shrinks in itself. */
+html[data-verse-flight='up']::view-transition-group(verse-emblem),
+html[data-verse-flight='side']::view-transition-group(verse-emblem) {
   animation-duration: 760ms;
   animation-timing-function: cubic-bezier(0.65, 0, 0.25, 1);
 }
-html[data-verse-flight]::view-transition-old(verse-emblem),
-html[data-verse-flight]::view-transition-new(verse-emblem) {
+html[data-verse-flight='up']::view-transition-old(verse-emblem),
+html[data-verse-flight='up']::view-transition-new(verse-emblem),
+html[data-verse-flight='side']::view-transition-old(verse-emblem),
+html[data-verse-flight='side']::view-transition-new(verse-emblem) {
   animation-duration: 760ms;
   height: 100%;
   object-fit: contain;
 }
+html[data-verse-flight='down']::view-transition-group(verse-emblem),
+html[data-verse-flight='down']::view-transition-old(verse-emblem),
+html[data-verse-flight='down']::view-transition-new(verse-emblem) { animation: none; }
 /* Subpage → subpage: both emblems share the slot — the old planet leaves
    upwards with its page, the next one rises into place. */
 html[data-verse-flight='side']::view-transition-old(verse-emblem) { animation: sc-flight-away-up 460ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
 html[data-verse-flight='side']::view-transition-new(verse-emblem) { animation: sc-flight-emblem-in 620ms cubic-bezier(0.2, 0.7, 0.2, 1) 160ms both; }
+/* The build-up after the dive: crumb -> title + emblem -> tabs -> rows, 90 ms apart. */
+html[data-verse-flight='down'] sc-verse-header.sc-enter { animation: none; }
+html[data-verse-flight='down'] sc-verse-header .vh-crumbs { animation: sc-enter-rise 600ms var(--vf-rise) var(--vf-build) backwards; }
+html[data-verse-flight='down'] sc-verse-header :is(.vh-title, .vh-sub, .vh-actions) { animation: sc-enter-rise 600ms var(--vf-rise) calc(var(--vf-build) + 90ms) backwards; }
+html[data-verse-flight='down'] sc-verse-header .vh-emblem { animation: sc-flight-emblem-build 800ms var(--vf-rise) calc(var(--vf-build) + 90ms) backwards; }
+html[data-verse-flight='down'] .sc-enter:not(sc-verse-header),
+html[data-verse-flight='down'] .sc-enter-stagger > * {
+  animation-duration: 600ms;
+  animation-timing-function: var(--vf-rise);
+  animation-delay: calc(var(--vf-build) + (2 + var(--sc-enter-i, 0)) * 90ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-verse-fly] { transition: none; }
+}
+@keyframes sc-flight-dive {
+  0% { opacity: 1; transform: none; filter: none; }
+  16% { opacity: 1; transform: scale(1.06); filter: none; }
+  100% { opacity: 0; transform: scale(3); filter: blur(5px); }
+}
+@keyframes sc-flight-hold-in { 0%, 22% { opacity: 0; } 34%, 100% { opacity: 1; } }
+@keyframes sc-flight-pull-out { from { opacity: 0; transform: scale(3); filter: blur(5px); } 35% { opacity: 1; } to { opacity: 1; transform: none; filter: none; } }
+@keyframes sc-flight-streaks { 0% { opacity: 0; transform: scale(0.8); } 30% { opacity: 0.85; } 100% { opacity: 0; transform: scale(2.2); } }
+@keyframes sc-flight-emblem-build { from { opacity: 0; transform: scale(2.6); filter: blur(4px); } }
 @keyframes sc-flight-away-up { to { opacity: 0; transform: translateY(-38vh); } }
 @keyframes sc-flight-sink { to { opacity: 0; transform: translateY(14vh); } }
 @keyframes sc-flight-from-above { from { opacity: 0; transform: translateY(-38vh); } }
@@ -1543,5 +1645,114 @@ html:has(sc-fusion-bar.snap) [data-stage-hero] > :not([data-stage-slot]) {
 @media (max-width: 720px) {
   html:has(sc-fusion-bar:not([data-mode='stage'])) #sc-main {
     padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
+  }
+}
+
+// Keyframes of the shell subheader (fusion-bar): global so they do not count against the component style budget.
+@keyframes fi-open {
+  from { clip-path: inset(48% 50% 48% 50% round 23px); }
+  50% { clip-path: inset(48% 0 48% 0 round 23px); }
+  to { clip-path: inset(0 round 23px); }
+}
+@keyframes fi-glow {
+  0% { box-shadow: inset 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 26px color-mix(in srgb, var(--sc-accent) 85%, transparent); }
+  100% { box-shadow: inset 0 0 0 transparent; }
+}
+@keyframes fi-sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes sub-trace {
+  0% {
+    --sc-sub-trace-ang: 0deg;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.8;
+  }
+  70% {
+    --sc-sub-trace-ang: 360deg;
+    opacity: 0.8;
+  }
+  100% {
+    --sc-sub-trace-ang: 360deg;
+    opacity: 0;
+  }
+}
+@keyframes sub-bloom {
+  0%,
+  13.3% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  46.7% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+@keyframes sub-fly {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) translateZ(-480px);
+  }
+  18.75% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(800px) translateZ(0);
+  }
+}
+@keyframes sub-echo {
+  0%,
+  36.4% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  50% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}
+@keyframes sub-band {
+  0% {
+    background-position: -50% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+@keyframes sub-head {
+  0% {
+    left: 14px;
+    opacity: 0;
+  }
+  17.4% {
+    left: 14px;
+    opacity: 1;
+  }
+  94% {
+    left: calc(100% - 16px);
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 16px);
+    opacity: 0;
+  }
+}
+@keyframes sub-drop {
+  from {
+    opacity: 0;
+    transform: scaleY(0.6);
+  }
+}
+@keyframes sub-fade {
+  from {
+    opacity: 0;
   }
 }

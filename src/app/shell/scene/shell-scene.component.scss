@@ -134,8 +134,6 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   // ── Codex data plane (off to the right until the camera turns) ─────────
   .plane {
     left: 38%;
-    opacity: 0;
-    transform: translateX(24vw);
     perspective: 900px;
   }
   .plane > i {
@@ -149,61 +147,33 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     mask-image: radial-gradient(ellipse 70% 60% at 60% 50%, #000, transparent 75%);
   }
 
-  // ── Hangar (HQ) ─────────────────────────────────────────────────────────
-  .hangar {
+  // ── Surface detail (HQ): faint city lights and a survey grid, only when the camera is down ──
+  .detail {
     position: absolute;
-    left: 50%;
-    top: 42dvh;
-    width: min(620px, 78vw);
-    height: min(170px, 20dvh);
-    opacity: 0;
-    transform: translate(-50%, 40dvh) scale(0.45);
-    transform-origin: 50% 100%;
-  }
-  .hangar > span, .hg-bay > span { position: absolute; }
-  .hg-roof {
     inset: 0;
-    clip-path: polygon(0 100%, 6% 22%, 22% 0, 78% 0, 94% 22%, 100% 100%);
-    background: linear-gradient(180deg, #13212d, #070e15 70%);
-    box-shadow: inset 0 1px 0 rgba(150, 225, 255, 0.3);
+    opacity: var(--pose-detail, 0);
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 30%, transparent 85%);
   }
-  .hg-roof::before {
-    content: '';
-    position: absolute;
-    left: 22%;
-    right: 22%;
-    top: 0;
-    height: 1px;
-    background: color-mix(in srgb, var(--sc-accent) 70%, transparent);
-    box-shadow: 0 0 10px var(--sc-accent);
-  }
-  .hg-bay {
-    left: 22%;
-    right: 22%;
-    bottom: 0;
-    height: 66%;
-    overflow: hidden;
-    background: #03070b;
-  }
-  .hg-glow {
-    inset: 0;
+  .detail > i { position: absolute; inset: 0; }
+  .detail .grid {
     background:
-      radial-gradient(ellipse 60% 70% at 50% 100%, rgba(255, 196, 130, 0.5), transparent 70%),
-      linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 18%, transparent), transparent 60%);
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 12%, transparent) 0 1px, transparent 1px 96px),
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 9%, transparent) 0 1px, transparent 1px 96px);
   }
-  .door {
-    top: 0;
-    bottom: 0;
-    width: 50%;
-    background: repeating-linear-gradient(180deg, #16242f 0 10px, #101b24 10px 12px);
-    box-shadow: inset 0 0 0 1px rgba(150, 225, 255, 0.08);
+  .detail .lights {
+    opacity: 0.8;
+    background-image:
+      radial-gradient(circle at 9px 11px, #fff0c8 0 1.2px, transparent 2px),
+      radial-gradient(circle at 41px 27px, #ffc878 0 1px, transparent 1.7px),
+      radial-gradient(circle at 23px 52px, #ffb35a 0 0.9px, transparent 1.5px);
+    background-size: 71px 63px;
+    mask-image: radial-gradient(ellipse 40% 30% at 30% 55%, #000 10%, transparent 75%), radial-gradient(ellipse 25% 20% at 72% 40%, #000 10%, transparent 75%);
   }
-  .door.l { left: 0; }
-  .door.r { right: 0; }
+  .dim { position: absolute; inset: 0; background: #02070d; opacity: var(--pose-dim, 0); }
   .ground {
     position: absolute;
     inset: 55% 0 0 0;
-    opacity: 0;
+    opacity: var(--pose-ground, 0);
     background: linear-gradient(180deg, transparent, #02070d 70%);
     transition: opacity var(--scene-move) var(--scene-ease);
   }
@@ -217,37 +187,16 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     opacity: 0.7;
   }
 
-  // ── Motion: every pose change is a transition ───────────────────────────
-  .sky, .planet, .plane, .hangar {
+  // ── Motion: every pose change is a transition from the current visual state ──
+  // The pose arrives as custom properties on .scene (scene.model.ts POSES); the
+  // flight length as --scene-move. A new pose mid-flight restarts the transition
+  // from the computed (current) value, so an interrupted flight never jumps.
+  .sky { transform: var(--pose-sky, none); opacity: var(--pose-sky-o, 1); }
+  .planet { transform: var(--pose-planet, none); }
+  .plane { transform: translateX(calc((1 - var(--pose-plane, 0)) * 24vw)); opacity: var(--pose-plane, 0); }
+  .sky, .planet, .plane, .detail, .ground, .dim {
     transition: transform var(--scene-move) var(--scene-ease), opacity var(--scene-move) var(--scene-ease);
   }
-  .door { transition: transform 300ms ease-in; }
-
-  // ── Poses ───────────────────────────────────────────────────────────────
-  // HQ: down to the planet — sky rises and dims, the planet fills the lower
-  // view, the hangar comes up with it, then the doors part.
-  [data-scene='hq'] .sky { transform: translateY(-10dvh) scale(1.08); opacity: 0.55; }
-  [data-scene='hq'] .planet { transform: translateY(calc(var(--sc-pl-cap) - 58dvh)) scale(2.8); }
-  [data-scene='hq'] .hangar { opacity: 1; transform: translate(-50%, -100%); }
-  // The ground falls off into darkness towards the bottom edge, so the footer's
-  // corner never sits on lit planet surface.
-  [data-scene='hq'] .ground { opacity: 1; }
-  [data-scene='hq'] .door { transition: transform 700ms cubic-bezier(0.3, 0, 0.2, 1) 650ms; }
-  [data-scene='hq'] .door.l { transform: translateX(-100%); }
-  [data-scene='hq'] .door.r { transform: translateX(100%); }
-
-  // Codex: turned right — sky slides left, the planet keeps a strip at the
-  // left edge, the data plane swings in.
-  [data-scene='codex'] .sky { transform: translateX(-16vw); }
-  // The planet's centre goes to (9vw - r, 45dvh): a strip at the left edge,
-  // high enough that the bottom-left corner (the community badge) stays free.
-  [data-scene='codex'] .planet {
-    transform: translateX(calc(9vw - var(--sc-pl-xv) - var(--sc-pl-d) / 2)) translateY(calc(var(--sc-pl-cap) - var(--sc-pl-d) / 2 - 55dvh));
-  }
-  [data-scene='codex'] .plane { opacity: 1; transform: none; }
-
-  // Leaving the hangar: the doors close first, then the camera rises.
-  [data-from='hq'] .sky, [data-from='hq'] .planet { transition-delay: 220ms; }
 
   // The hub: the planet scrolls with the page (compositor scroll timeline).
   .scene[data-home] .follow {

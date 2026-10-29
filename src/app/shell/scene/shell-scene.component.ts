@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewEncapsulation, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, ViewEncapsulation, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
-import { SceneKind, SceneMode, isVerseHome, sceneOf, sceneStep } from './scene.model';
+import { POSES, SceneKind, SceneMode, flightMs, isVerseHome, sceneOf, sceneStep } from './scene.model';
 import { VerseWorld, verseWorldOf } from '../../verse/shared/verse-world';
 
 /** Reduced-motion check; a field so specs can swap it. */
@@ -19,8 +19,8 @@ function supportsScrollTimeline(): boolean {
  * (beta `shell` only; renders nothing otherwise). One camera over sky,
  * planet, hangar and the Codex data plane: a navigation to a main page
  * (`/verse`, `/hq`, `/codex`) moves the camera into that area's pose with CSS
- * transitions, so every one of the six directed routes plays from wherever
- * the camera stands; a sub-page target cuts to its main page's pose and
+ * transitions (duration from the pose distance), so every route flies directly
+ * from wherever the camera stands, an interrupted flight re-targets without a jump; a sub-page target cuts to its main page's pose and
  * stays static; reduced motion dissolves instead of moving. On `/verse` the
  * planet scrolls with the page so the hub's planet zone stays on it.
  *
@@ -49,6 +49,9 @@ export class ShellSceneComponent {
   readonly world = signal<VerseWorld | null>(verseWorldOf(this.router.url));
   /** Flips per dissolve so the fade animation restarts. */
   readonly fadeTick = signal(0);
+  /** Length of the current flight, written to `--scene-move`. */
+  readonly moveMs = signal(0);
+  readonly pose = computed(() => POSES[this.scene()]);
 
   /** Swappable for specs. */
   reducedMotion: () => boolean = sceneReducedMotion;
@@ -98,6 +101,7 @@ export class ShellSceneComponent {
     }
     this.from.set(this.scene());
     this.mode.set(step.mode);
+    this.moveMs.set(step.mode === 'move' ? flightMs(this.scene(), step.scene) : 0);
     if (step.mode === 'fade') this.fadeTick.update((t) => t + 1);
     this.scene.set(step.scene);
   }

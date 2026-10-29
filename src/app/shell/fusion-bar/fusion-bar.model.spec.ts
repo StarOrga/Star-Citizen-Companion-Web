@@ -78,6 +78,47 @@ describe('ShellChromeService', () => {
     expect(s.stageSearch()).toBe('docked');
   });
 
+  it('paints the condense progress on its targets and lands "full" only at 1', () => {
+    const s = new ShellChromeService();
+    const el = document.createElement('div');
+    const off = s.registerDockTarget(el);
+    expect(s.dockProgress).toBeNull();
+    s.setDockProgress(0.4);
+    expect(el.style.getPropertyValue('--sc-dock-p')).toBe('0.4');
+    expect(s.dockFull()).toBeFalse();
+    s.setDockProgress(7);
+    expect(el.style.getPropertyValue('--sc-dock-p')).toBe('1');
+    expect(s.dockFull()).toBeTrue();
+    s.setDockProgress(0.9);
+    expect(s.dockFull()).toBeFalse();
+    off();
+    s.setDockProgress(0);
+    expect(el.style.getPropertyValue('--sc-dock-p')).toBe('0.9');
+  });
+
+  it('publishes the hub intro (scale + first-visit flag) until it ends', () => {
+    const s = new ShellChromeService();
+    expect(s.heroIntro()).toBeNull();
+    s.startHeroIntro(1, true);
+    expect(s.heroIntro()).toEqual({ k: 1, full: true });
+    s.endHeroIntro();
+    expect(s.heroIntro()).toBeNull();
+  });
+
+  it('a page that is not a main page condenses the header at once (the first value never glides)', () => {
+    const s = new ShellChromeService();
+    const el = document.createElement('div');
+    s.registerDockTarget(el);
+    s.setStageSearch('none');
+    expect(s.dockProgress).toBe(1);
+    expect(s.dockFull()).toBeTrue();
+    expect(el.hasAttribute('data-ease')).toBeFalse();
+    // Arriving on a main page expands it again, eased.
+    s.setStageSearch('stage');
+    expect(s.dockProgress).toBe(0);
+    expect(el.hasAttribute('data-ease')).toBeTrue();
+  });
+
   it('merges Benutzer and Telemetrie into one admin entry that links to the hub', () => {
     const elevated = AREA_ENTRIES.filter((a) => a.elevated);
     expect(elevated.map((a) => a.id)).toEqual(['admin']);
