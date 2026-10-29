@@ -51,9 +51,10 @@
   background: radial-gradient(circle at 60% 3%, #2f6585 0, #143a52 7%, #0a2232 14%, #061722 22%, #040f17 40%, #030a10 70%);
   box-shadow: 0 -4px 24px rgba(82, 193, 230, 0.5), inset 0 7px 22px rgba(150, 225, 255, 0.35);
 }
-// The live planet runs: the CSS one only lends it its geometry.
-.brief-world.gl { background: none; box-shadow: none; }
-.brief-world.gl::before, .city.gl { display: none; }
+// The live planet runs: the CSS one only lends it its geometry. It stays
+// visible while the canvas fades in (1.6 s), then steps out of the way.
+.brief-world, .city { transition: opacity 0s 1.6s; }
+.brief-world.gl, .city.gl { opacity: 0; }
 // Soft city glows near the rim on the night side (no dots).
 .brief-world::before {
   content: '';
