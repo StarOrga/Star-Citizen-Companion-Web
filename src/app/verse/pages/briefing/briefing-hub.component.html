@@ -2,8 +2,8 @@
   <!-- News: the accordion, newest open. -->
   <section class="col" aria-labelledby="hub-news-h">
     <h2 class="colh-w" id="hub-news-h">
-      <a class="colh" routerLink="/verse/news" (click)="openDoor.emit('news')">
-        <span class="mini" data-door="news" data-verse-fly="news" aria-hidden="true"></span>{{ 'verse.gates.news.topic' | translate }}<span class="chev r" aria-hidden="true"></span>
+      <a class="colh" data-door="news" routerLink="/verse/news" (click)="openDoor.emit('news')">
+        <span class="mini" data-door="news" data-verse-fly="news" aria-hidden="true"></span><span class="colh-t">{{ 'verse.gates.news.topic' | translate }}</span><span class="chev r" aria-hidden="true"></span>
       </a>
     </h2>
     @if (news().length) {
@@ -38,8 +38,8 @@
   <!-- Patches: LIVE feature + the fixed Hotfix / PTU / Evocati slots, one grid and wording for all. -->
   <section class="col" aria-labelledby="hub-patches-h">
     <h2 class="colh-w" id="hub-patches-h">
-      <a class="colh" routerLink="/verse/patches" (click)="openDoor.emit('patches')">
-        <span class="mini" data-door="patches" data-verse-fly="patches" aria-hidden="true"></span>{{ 'verse.gates.patches.topic' | translate }}<span class="chev r" aria-hidden="true"></span>
+      <a class="colh" data-door="patches" routerLink="/verse/patches" (click)="openDoor.emit('patches')">
+        <span class="mini" data-door="patches" data-verse-fly="patches" aria-hidden="true"></span><span class="colh-t">{{ 'verse.gates.patches.topic' | translate }}</span><span class="chev r" aria-hidden="true"></span>
       </a>
     </h2>
     <div class="pcol">
@@ -84,8 +84,8 @@
   <!-- Galerie: the newest as the feature, then the mosaic. -->
   <section class="col" aria-labelledby="hub-gallery-h">
     <h2 class="colh-w" id="hub-gallery-h">
-      <a class="colh" routerLink="/verse/gallery" (click)="openDoor.emit('gallery')">
-        <span class="mini" data-door="gallery" data-verse-fly="gallery" aria-hidden="true"></span>{{ 'verse.gates.gallery.topic' | translate }}<span class="chev r" aria-hidden="true"></span>
+      <a class="colh" data-door="gallery" routerLink="/verse/gallery" (click)="openDoor.emit('gallery')">
+        <span class="mini" data-door="gallery" data-verse-fly="gallery" aria-hidden="true"></span><span class="colh-t">{{ 'verse.gates.gallery.topic' | translate }}</span><span class="chev r" aria-hidden="true"></span>
       </a>
     </h2>
     @if (galleryMain(); as g) {

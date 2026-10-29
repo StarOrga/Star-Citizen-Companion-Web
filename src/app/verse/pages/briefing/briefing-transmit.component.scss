@@ -39,11 +39,19 @@
   text-decoration: none;
   color: inherit;
   transition: scale 0.25s, box-shadow 0.5s ease;
+  // The dock's scroll flight (briefing-dock) writes an inline transform from the top left.
+  transform-origin: 0 0;
 }
 .pl[data-door='news'] { --s: var(--news-s); left: var(--news-x); top: var(--news-y); }
 .pl[data-door='patches'] { --s: var(--patches-s); left: var(--patches-x); top: var(--patches-y); }
 .pl[data-door='gallery'] { --s: var(--gallery-s); left: var(--gallery-x); top: var(--gallery-y); }
 .pl:hover { scale: 1.06; }
+// Away from the top: the relay rests (no cone, no waves, no holo), the planets only fly.
+:host(.away) .pl:hover { scale: none; }
+:host(.away) .cone { display: none; }
+:host(.away) .holo { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+// Landed in the hub heads: the heads' own planet and word take over.
+:host(.docked) .pl { visibility: hidden; }
 .pl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 // Charging: the sender's atmosphere brightens (a glow, no rings).
 .pl.send { box-shadow: 0 0 calc(var(--s) * 0.32) rgba(150, 225, 255, 0.6); }
@@ -51,7 +59,8 @@
   position: absolute;
   left: 50%;
   top: calc(100% + 8px);
-  transform: translateX(-50%);
+  translate: -50% 0;
+  transform-origin: 0 0;
   white-space: nowrap;
   font-size: max(11px, 0.62cqw);
   letter-spacing: 0.2em;

@@ -55,6 +55,9 @@
   height: var(--s);
   transition: box-shadow 0.25s;
 }
+// The stage planet and its word fly in and take this place (briefing-dock);
+// until they land, the head keeps its slot and its accessible name, unpainted.
+:host(.incoming) .mini, :host(.incoming) .colh-t { opacity: 0; }
 .colh:hover .mini { box-shadow: 0 0 12px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
 .chev { @include w.chevron; }
 

@@ -3,11 +3,13 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  NgZone,
   afterNextRender,
   afterRenderEffect,
   computed,
   effect,
   inject,
+  Injector,
   signal,
   untracked,
   viewChild,
@@ -46,6 +48,7 @@ import {
   uniqueStories,
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, hubGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
+import { DockState, wireDock } from './briefing/briefing-dock';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
@@ -405,12 +408,17 @@ export class VerseBriefingComponent {
     return out;
   });
 
+  /** The scroll flight stage → hub (briefing-dock): where the page stands, and whether the planets fly. */
+  readonly dock = signal<DockState>('top');
+  readonly dockFlying = signal(false);
+
   /** Pointer / focus on the hero title: the auto switch holds. */
   readonly heroHold = signal(false);
   private readonly titleEl = viewChild<ElementRef<HTMLElement>>('titleEl');
 
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   constructor() {
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
@@ -497,6 +505,17 @@ export class VerseBriefingComponent {
       const el = this.titleEl()?.nativeElement;
       if (el) this.titleClipped.set(fitTitle(el));
     });
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const zone = inject(NgZone);
+    afterNextRender(() => {
+      const d = wireDock(host, zone);
+      this.glide = d.glide;
+      effect(() => {
+        this.dock.set(d.state());
+        this.dockFlying.set(d.flying());
+      }, { injector: this.injector });
+      this.destroyRef.onDestroy(d.destroy);
+    });
     afterNextRender(() => {
       const refit = (): void => {
         const el = this.titleEl()?.nativeElement;
@@ -561,10 +580,14 @@ export class VerseBriefingComponent {
     return splitChars(text);
   }
 
-  /** "Mehr im Verse": down to the hub columns. */
+  /** The dock's glide (briefing-dock), set once the stage rendered. */
+  private glide: ((dir: number) => boolean) | null = null;
+
+  /** "Mehr im Verse": all the way down — the hub and the footer fill the last viewport. */
   toHub(): void {
+    if (this.glide?.(1)) return;
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.getElementById('verse-hub')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
   }
 
   openTransmit(item: TransmitItem): void {

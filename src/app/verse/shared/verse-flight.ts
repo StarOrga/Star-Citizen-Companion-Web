@@ -239,7 +239,9 @@ export class VerseFlight {
     return (
       all.find((el) => {
         const r = el.getBoundingClientRect();
-        return r.width > 0 && r.bottom > 0 && r.top < vh;
+        // The hub's scroll flight leaves one of each pair unpainted (briefing-dock): skip it.
+        const shown = el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) ?? true;
+        return shown && r.width > 0 && r.bottom > 0 && r.top < vh;
       }) ?? null
     );
   }
