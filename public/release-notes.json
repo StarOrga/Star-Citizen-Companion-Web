@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.171.0",
+  "current": "0.171.1",
   "releases": [
+    {
+      "version": "0.171.1",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta Verse: News, Patches, Galerie and Sternkarte no longer run to the screen edge — they sit in the same content frame as the subheader; only the hub stays full-bleed."
+            },
+            {
+              "title": "",
+              "text": "Account menu: the \"Ansehen als\" heading lines up with its entries."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.171.0",
       "date": "2026-10-29",
