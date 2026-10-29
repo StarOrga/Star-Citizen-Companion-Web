@@ -73,7 +73,7 @@ export const SEARCH_CATEGORY_SHORTCUTS: readonly { labelKey: string; target: Sea
     labelKey: 'codex.search.bar.category.shipWeapons',
     target: { link: ['/codex/index'], queryParams: { kind: 'weapon', weaponClass: 'Ship' } },
   },
-  { labelKey: 'codex.search.bar.category.fps', target: { link: ['/codex/fps'], queryParams: null } },
+  { labelKey: 'codex.search.bar.category.fps', target: { link: ['/codex/index'], queryParams: { kind: 'weapon', wg: 'fps' } } },
   { labelKey: 'codex.search.bar.category.upcoming', target: { link: ['/codex/upcoming'], queryParams: null } },
   { labelKey: 'codex.search.bar.category.keybinds', target: { link: ['/codex/keybinds'], queryParams: null } },
 ];

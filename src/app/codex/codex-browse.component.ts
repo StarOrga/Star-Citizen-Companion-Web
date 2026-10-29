@@ -13,8 +13,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { Location } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Location, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
@@ -24,15 +23,17 @@ import {
   CodexListFilters,
   CodexListRow,
   CodexService,
+  FPS_ARMOR_ATTACH_TYPES,
+  fpsArmorSlot,
   manufacturerFacetOptions,
   manufacturerLabel,
   pickLocalizedDistinct,
   toLang,
 } from './codex.service';
-import { UpcomingGridComponent } from './upcoming-grid.component';
-import { FallbackImageComponent } from './fallback-image.component';
-import { ShipTileArtComponent } from './ship-blueprint/ship-tile-art.component';
-import { UpcomingShipsService } from './upcoming-ships.service';
+import { UpcomingShip, UpcomingShipsService, upcomingRoleLabel } from './upcoming-ships.service';
+import { HoloSilhouette, SilhouetteKind } from './holo-silhouette';
+import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -64,21 +65,20 @@ import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { HqLink, personalShipLink } from '../hq/hq-routes';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
-import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
+import { ARMOR_CATEGORY, ARMOR_SLOT_IDS, AreaNode, AreaTarget, CodexCategory, UPCOMING_CATEGORY, armorAttachTypeOf, inferWeaponSuperGroup } from './codex-browse-params';
+import { FPS_ARMOR_SLOT_ID, fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
-import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { CodexSearchTriggerComponent } from './search/codex-search-trigger.component';
-import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
-import { BarToolbarDirective } from '../shell/fusion-bar/bar-toolbar.directive';
+import { CODEX_ROOT_CRUMB, PageCrumb } from '../shared/page-header/nav-origin.service';
 import { BarFacet, BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { BetaService } from '../core/beta.service';
 
 /**
- * A card in the grid: a list row after variant folding, livery grouping (FPS
+ * A row of the list: a list row after variant folding, livery grouping (FPS
  * weapons) and edition grouping (ships).
  */
 type CodexGridRow = EditionGroupedRow<SkinGroupedRow<FoldedRow<CodexListRow>>>;
@@ -103,8 +103,11 @@ const COMPONENT_KINDS = [
  * sub-tab. It is not a `CodexKind` — no table backs it; the feed comes from the
  * `rsi-upcoming-ships` edge function.
  */
-export const UPCOMING_CATEGORY = 'upcoming' as const;
-export type CodexCategory = CodexKind | typeof UPCOMING_CATEGORY;
+export { UPCOMING_CATEGORY } from './codex-browse-params';
+export type { CodexCategory } from './codex-browse-params';
+export { ARMOR_CATEGORY, ARMOR_SLOT_IDS, armorAttachTypeOf, fpsToBrowseParams, inferWeaponSuperGroup } from './codex-browse-params';
+export type { AreaNode, AreaTarget } from './codex-browse-params';
+
 
 /** Blueprint browse taxonomy (prio 4, the board/hangar archive links): the flat
  * category select stays, this only folds it into "on-foot" vs "vehicle" first —
@@ -142,610 +145,448 @@ export function blueprintCategoriesForGroup(
 }
 
 @Component({
-  selector: 'sc-codex-list',
+  selector: 'sc-codex-browse',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent, BarToolbarDirective],
+  imports: [NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="codex-page">
-      <!-- Beta shell: the bar names the page (plate) and carries the count, so the list
-           follows it directly (concept r8 d2-s1); the h1 stays for assistive tech. -->
-      @if (shellOn()) { <h1 class="sc-sr-only">{{ 'codex.index.title' | translate }}</h1> }
+    <section class="browse">
       <sc-page-header
-        [crumbs]="codexCrumbs"
-        [title]="shellOn() ? null : ('codex.index.title' | translate)"
-        [subtitle]="shellOn() ? null : ('codex.subtitle' | translate)">
-        <!-- This page filters its own list below; the whole-Codex search
-             is the compact trigger here, so the shell's slim bar tucks away. -->
-        <!-- Beta "shell": the bar IS the Codex search and names the area, so the
-             page repeats neither the whole-Codex trigger nor the source chip. -->
+        [crumbs]="crumbs()"
+        [eyebrow]="'codex.browse.eyebrow' | translate"
+        [title]="areaLabelKey() | translate"
+        [subtitle]="subtitle()">
         @if (!shellOn()) { <sc-codex-search-trigger phAside /> }
         @if (!shellOn()) { <sc-codex-status-banner phAside /> }
       </sc-page-header>
 
-      <!-- Category switcher (datamined kinds + the RSI "upcoming" category).
-           Real links since the category lives in the URL (?kind=): middle
-           click and "open in new tab" work, a plain left click switches in
-           place. A category that is not in the build yet is no link at all. -->
-      <!-- Beta "shell": the kinds are segments in the Fusion bar instead. -->
-      @if (!shellOn()) {
-      <nav class="kind-bar" [attr.aria-label]="'codex.categoriesAria' | translate">
-        @for (k of categories; track k) {
-          @if (isComingSoon(k)) {
-            <span class="kind soon" aria-disabled="true" [scTooltip]="'codex.soon' | translate" scTooltipTier="label">
-              <span>{{ ('codex.kinds.' + k) | translate }}</span>
-              <span class="kind-ct soon-tag">{{ 'codex.soonShort' | translate }}</span>
-            </span>
-          } @else {
-            <a class="kind" [attr.href]="categoryHrefs().get(k)"
-               [class.active]="category() === k"
-               [attr.aria-current]="category() === k ? 'page' : null"
-               (click)="onCategoryClick($event, k)">
-              <span>{{ ('codex.kinds.' + k) | translate }}</span>
-              @if (categoryCount(k); as ct) { <span class="kind-ct">{{ ct }}</span> }
-            </a>
-          }
-        }
-      </nav>
-      }
+      <div class="layout">
+        <aside class="side" [attr.aria-label]="'codex.browse.filtersAria' | translate">
+          <ng-container [ngTemplateOutlet]="facetsTpl" />
+        </aside>
 
-      <!-- Weapons hold BOTH the on-foot catalog and every ship hardpoint mount
-           in one table (admin feedback 7897bcb0), so the flat A-Z grid was
-           unbrowsable. Two levels of filter, both derived from columns the
-           catalog already promotes — see codex-weapon-taxonomy. -->
-      @if (showsWeaponGroups()) {
-        <div class="group-rail">
-          <div class="group-row" role="group" [attr.aria-label]="'codex.weaponGroup.superAria' | translate">
-            <button class="group" type="button" [class.active]="weaponGroup() === ''"
-                    [attr.aria-pressed]="weaponGroup() === ''"
-                    (click)="setWeaponGroup('')">
-              <span>{{ 'codex.weaponGroup.all' | translate }}</span>
-            </button>
-            @for (g of weaponSuperGroups; track g.id) {
-              <button class="group" type="button" [class.active]="weaponGroup() === g.id"
-                      [attr.aria-pressed]="weaponGroup() === g.id"
-                      (click)="setWeaponGroup(g.id)">
-                <span>{{ ('codex.weaponGroup.super.' + g.id) | translate }}</span>
-                @if (weaponGroupCount(g.id); as ct) { <span class="group-ct">{{ ct }}</span> }
-              </button>
-            }
-          </div>
-          @if (activeWeaponSubGroups(); as subs) {
-            <div class="group-row sub" role="group" [attr.aria-label]="'codex.weaponGroup.subAria' | translate">
-              <button class="group sub" type="button" [class.active]="weaponSubGroup() === ''"
-                      [attr.aria-pressed]="weaponSubGroup() === ''"
-                      (click)="setWeaponSubGroup('')">
-                <span>{{ 'codex.weaponGroup.allOf' | translate: { group: ('codex.weaponGroup.super.' + weaponGroup()) | translate } }}</span>
-              </button>
-              @for (s of subs; track s.id) {
-                <button class="group sub" type="button" [class.active]="weaponSubGroup() === s.id"
-                        [attr.aria-pressed]="weaponSubGroup() === s.id"
-                        (click)="setWeaponSubGroup(s.id)">
-                  <span>{{ ('codex.weaponGroup.' + weaponGroup() + '.' + s.id) | translate }}</span>
-                  @if (weaponGroupCount(weaponGroup(), s.id); as ct) { <span class="group-ct">{{ ct }}</span> }
-                </button>
+        <div class="results">
+          @if (!isUpcoming() && upcomingMatchNames(); as names) {
+            <p class="upcoming-hint">
+              <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
+              <span>{{ 'codex.search.upcomingHint' | translate: { names } }}</span>
+              <a class="upcoming-link" [routerLink]="['/codex', 'upcoming']" [queryParams]="{ q: searchInput().trim() }">
+                {{ 'codex.search.upcomingLink' | translate }}
+              </a>
+            </p>
+          }
+
+          @if (listError(); as err) {
+            <div class="sc-card err" role="alert">
+              <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
+              <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
+            </div>
+          } @else {
+            <div class="list sc-card">
+              <div class="list-head">
+                <span class="count" role="status">
+                  @if (listLoading() && listLength() === 0) {
+                    {{ 'codex.results.loading' | translate }}
+                  } @else {
+                    {{ (listTotal() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: listTotal() } }}
+                  }
+                </span>
+                @if (!isUpcoming()) {
+                  <div class="sort">
+                    <sc-select [options]="sortSelect()" [value]="sortNew() ? 'new' : 'name'"
+                               [ariaLabel]="'codex.browse.sort.label' | translate"
+                               (valueChange)="setSort($event)" />
+                  </div>
+                }
+              </div>
+
+              @if (isPartialKind() && !isUpcoming()) {
+                <p class="partial-note">{{ 'codex.empty.partial' | translate }}</p>
+              }
+              @if (blueprintRecipesMissing()) {
+                <p class="partial-note">{{ 'blueprint.recipesMissing' | translate }}</p>
+              }
+
+              @if (listLoading() && listLength() === 0) {
+                <ul class="rows" role="list">
+                  @for (s of skeletons; track s; let i = $index) {
+                    <li class="row skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></li>
+                  }
+                </ul>
+              } @else if (listLength() === 0) {
+                <div class="empty">
+                  <strong>{{ 'codex.empty.title' | translate }}</strong>
+                  @if (hasActiveFilters() || searchInput().trim()) {
+                    <p>{{ 'codex.empty.filtered' | translate }}</p>
+                    @if (searchInput().trim()) {
+                      <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
+                    }
+                    <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
+                  } @else {
+                    <p>{{ 'codex.empty.kind' | translate: { kind: (areaLabelKey() | translate) } }}</p>
+                  }
+                </div>
+              } @else if (isUpcoming()) {
+                <ul class="rows" role="list">
+                  @for (s of upcomingRows(); track s.id) {
+                    <li class="row">
+                      <a class="row-link" [routerLink]="['/codex/upcoming', s.id]" (click)="openUpcoming($event)">
+                        <span class="sil icon" aria-hidden="true"><sc-codex-icon kind="ship" /></span>
+                        <span class="main">
+                          <span class="name">{{ s.name }}</span>
+                          @if (upcomingMeta(s); as m) { <span class="meta">{{ m }}</span> }
+                        </span>
+                        <span class="spec"><span class="soon">{{ 'codex.upcoming.badge' | translate }}</span></span>
+                      </a>
+                      <span class="acts">
+                        <button type="button" class="act pin" [class.pinned]="rsi.isFavorite(s.id)"
+                                [attr.aria-pressed]="rsi.isFavorite(s.id)"
+                                [attr.aria-label]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
+                                [scTooltip]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
+                                scTooltipTier="label"
+                                (click)="rsi.toggleFavorite(s.id)">{{ rsi.isFavorite(s.id) ? '★' : '☆' }}</button>
+                      </span>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <ul class="rows" role="list">
+                  @for (r of rows(); track r.classNameSlug) {
+                    <li class="row">
+                      <a class="row-link" [routerLink]="['/codex', kind(), r.classNameSlug]">
+                        @if (silhouetteOf(r); as s) {
+                          <span class="sil" aria-hidden="true">
+                            <svg [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" focusable="false"><path [attr.d]="s.path" /></svg>
+                          </span>
+                        } @else {
+                          <span class="sil icon" aria-hidden="true"><sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" /></span>
+                        }
+                        <span class="main">
+                          <span class="name">{{ cardName(r) }}</span>
+                          <span class="meta">
+                            @if (rowMeta(r); as m) { <span>{{ m }}</span> }
+                            @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                          </span>
+                        </span>
+                        <span class="spec">
+                          @if (r.size !== null && r.size !== undefined) { <span class="size">S{{ r.size }}</span> }
+                          @if (r.grade) { <span class="grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
+                        </span>
+                      </a>
+                      <span class="acts">
+                        @if (kind() === 'ship') {
+                          @if (shipVariantLink(r.classNameSlug); as l) {
+                            <a class="act hangar-chip" [routerLink]="l.commands" [queryParams]="l.queryParams"
+                               [attr.aria-label]="'codex.personal.openVariant' | translate"
+                               [scTooltip]="'codex.personal.openVariant' | translate" scTooltipTier="label">✓</a>
+                          } @else if (inHangarSet().has(r.classNameSlug.toLowerCase())) {
+                            <span class="act hangar-chip" role="img" tabindex="0"
+                                  [attr.aria-label]="'codex.card.inHangar' | translate"
+                                  [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
+                          } @else {
+                            <button type="button" class="act hangar-add"
+                                    [disabled]="addBusy() !== null"
+                                    [attr.aria-busy]="addBusy() === r.classNameSlug"
+                                    (click)="addShipToHangar(r.classNameSlug)"
+                                    [attr.aria-label]="'codex.card.addToHangar' | translate"
+                                    [scTooltip]="'codex.card.addToHangar' | translate" scTooltipTier="label">+</button>
+                          }
+                        }
+                        <button type="button" class="act pin"
+                                [class.pinned]="isPinned(r.classNameSlug)"
+                                [attr.aria-pressed]="isPinned(r.classNameSlug)"
+                                (click)="togglePin(r.classNameSlug)"
+                                [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
+                                [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
+                                scTooltipTier="label">{{ isPinned(r.classNameSlug) ? '★' : '☆' }}</button>
+                      </span>
+                      @if (addFailed() === r.classNameSlug) {
+                        <p class="row-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
+                      }
+                    </li>
+                  }
+                </ul>
+                @if (hasMore()) {
+                  <div class="more-row">
+                    <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
+                    <button type="button" class="load-more" [disabled]="loading()" (click)="loadMore()">
+                      {{ (loading() ? 'codex.results.loading' : 'codex.results.loadMore') | translate }}
+                    </button>
+                  </div>
+                }
               }
             </div>
+
+            <!-- Hits of the same term in the other areas, under the list (concept 2026-10-29, a-s2). -->
+            @if (!isUpcoming() && crossHits().length > 0) {
+              <ul class="also" role="list" [attr.aria-label]="'codex.search.alsoIn' | translate">
+                @for (h of crossHits(); track h.kind) {
+                  <li>
+                    <a class="also-link" [attr.href]="categoryHrefs().get(h.kind)" (click)="onCategoryClick($event, h.kind)">
+                      {{ (h.count === 1 ? 'codex.browse.alsoInOne' : 'codex.browse.alsoInMany') | translate: { kind: ('codex.kinds.' + h.kind) | translate, count: h.count } }}
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
           }
+        </div>
+      </div>
+
+      <!-- Phones: the facets live in a bottom sheet behind one button. -->
+      <button type="button" class="filter-fab" (click)="filtersOpen.set(true)" [attr.aria-expanded]="filtersOpen()">
+        {{ 'codex.browse.filterButton' | translate: { count: activeFilterCount() } }}
+      </button>
+      @if (filtersOpen()) {
+        <div class="sheet-backdrop" aria-hidden="true" (click)="filtersOpen.set(false)"></div>
+        <div class="sheet" scDialog role="dialog" aria-modal="true"
+             [attr.aria-label]="'codex.browse.filtersAria' | translate"
+             (scDialogEscape)="filtersOpen.set(false)">
+          <div class="sheet-head">
+            <strong>{{ 'codex.browse.filtersTitle' | translate }}</strong>
+            <button type="button" class="sheet-close" (click)="filtersOpen.set(false)"
+                    [attr.aria-label]="'codex.browse.closeFilters' | translate"
+                    [scTooltip]="'codex.browse.closeFilters' | translate" scTooltipTier="label">✕</button>
+          </div>
+          <ng-container [ngTemplateOutlet]="facetsTpl" />
+          <button type="button" class="sheet-done" (click)="filtersOpen.set(false)">
+            {{ 'codex.browse.showResults' | translate: { count: listTotal() } }}
+          </button>
         </div>
       }
 
-      @if (isUpcoming()) {
-        <p class="hint upcoming-lede">{{ 'codex.upcoming.subtitle' | translate }}</p>
-        <sc-upcoming-grid />
-      } @else {
+      <sc-codex-compare-tray />
+    </section>
 
-      <!-- Search + facets -->
-      <!-- Beta "shell": *scBarToolbar hands this toolbar to the Fusion bar (its filter drawer). -->
-      <div class="controls sc-card" *scBarToolbar>
-        <div class="search-row">
-          <input class="search" type="search" [ngModel]="searchInput()"
-                 (ngModelChange)="onSearchInput($event)"
-                 (keydown.enter)="commitSearch()"
-                 [attr.aria-label]="'codex.search.listFilterLabel' | translate"
-                 [attr.placeholder]="'codex.search.placeholder' | translate" />
-          @if (searchInput()) {
-            <button class="search-clear" type="button" (click)="clearSearch()"
-                    [attr.aria-label]="'codex.search.clear' | translate"
-                    [scTooltip]="'codex.search.clear' | translate">×</button>
-          }
-        </div>
-
-        <div class="facets">
-          <!-- Facets use the themed select (a native one opens as an unthemed
-               OS menu, admin feedback fd58a5eb) inside a div: a label would
-               forward clicks on the listbox's options to the trigger. -->
-          @if (manufacturerOptions().length > 0) {
-            <div class="facet mfr">
-              <span>{{ 'codex.filters.manufacturer' | translate }}</span>
-              <sc-select [options]="manufacturerSelect()" [value]="manufacturer() || null" placeholderKey="codex.filters.all"
-                         [ariaLabel]="'codex.filters.manufacturer' | translate"
-                         (valueChange)="setManufacturer($event ?? '')" />
-            </div>
-          }
-          <!-- One option is no choice — but a picked one stays reachable (the options come from the loaded rows). -->
-          @if (sizeOptions().length > 1 || size()) {
+    <ng-template #facetsTpl>
+      <nav class="tree" [attr.aria-label]="'codex.browse.areaLabel' | translate">
+        <p class="side-h">{{ 'codex.browse.areaLabel' | translate }}</p>
+        <ng-container [ngTemplateOutlet]="nodesTpl" [ngTemplateOutletContext]="{ $implicit: areaTree(), depth: 0 }" />
+      </nav>
+      @if (!isUpcoming()) {
+        @if (manufacturerOptions().length > 0) {
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.manufacturer' | translate }}</span>
+            <sc-select [options]="manufacturerSelect()" [value]="manufacturer() || null" placeholderKey="codex.filters.all"
+                       [ariaLabel]="'codex.filters.manufacturer' | translate"
+                       (valueChange)="setManufacturer($event ?? '')" />
+          </div>
+        }
+        @if (sizeOptions().length > 1 || size()) {
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.size' | translate }}</span>
+            <sc-segmented [options]="sizeSegments()" [value]="size() || 'all'"
+                          [ariaLabel]="'codex.filters.size' | translate"
+                          (valueChange)="setSize($event === 'all' ? '' : $event)" />
+          </div>
+        }
+        @if (gradeOptions().length > 1 || grade()) {
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.grade' | translate }}</span>
+            <sc-select [options]="gradeSelect()" [value]="grade() || null" placeholderKey="codex.filters.anyGrade"
+                       [ariaLabel]="'codex.filters.grade' | translate"
+                       (valueChange)="setGrade($event ?? '')" />
+          </div>
+        }
+        @if (kind() === 'component' && componentKindOptions().length > 0) {
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.componentKind' | translate }}</span>
+            <sc-select [options]="componentKindSelect()" [value]="componentKind() || null" placeholderKey="codex.filters.all"
+                       [ariaLabel]="'codex.filters.componentKind' | translate"
+                       (valueChange)="setComponentKind($event ?? '')" />
+          </div>
+        }
+        @if (kind() === 'blueprint') {
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.blueprintGroup' | translate }}</span>
+            <sc-segmented [options]="blueprintGroupOptions" [value]="blueprintGroup() || 'all'"
+                          [ariaLabel]="'codex.filters.blueprintGroup' | translate"
+                          (valueChange)="setBlueprintGroup($event)" />
+          </div>
+          @if (blueprintCategoryOptions().length > 0) {
             <div class="facet">
-              <span>{{ 'codex.filters.size' | translate }}</span>
-              <sc-select [options]="sizeSelect()" [value]="size() || null" placeholderKey="codex.filters.anySize"
-                         [ariaLabel]="'codex.filters.size' | translate"
-                         (valueChange)="setSize($event ?? '')" />
-            </div>
-          }
-          @if (gradeOptions().length > 1 || grade()) {
-            <div class="facet">
-              <span>{{ 'codex.filters.grade' | translate }}</span>
-              <sc-select [options]="gradeSelect()" [value]="grade() || null" placeholderKey="codex.filters.anyGrade"
-                         [ariaLabel]="'codex.filters.grade' | translate"
-                         (valueChange)="setGrade($event ?? '')" />
-            </div>
-          }
-          @if (kind() === 'component' && componentKindOptions().length > 0) {
-            <div class="facet">
-              <span>{{ 'codex.filters.componentKind' | translate }}</span>
-              <sc-select [options]="componentKindSelect()" [value]="componentKind() || null" placeholderKey="codex.filters.all"
-                         [ariaLabel]="'codex.filters.componentKind' | translate"
-                         (valueChange)="setComponentKind($event ?? '')" />
-            </div>
-          }
-          @if (kind() === 'blueprint') {
-            <!-- A div, not a label: clicking a label's caption presses its first control (the "Alle" segment). -->
-            <div class="facet">
-              <span>{{ 'codex.filters.blueprintGroup' | translate }}</span>
-              <sc-segmented
-                [options]="blueprintGroupOptions"
-                [value]="blueprintGroup() || 'all'"
-                [ariaLabel]="'codex.filters.blueprintGroup' | translate"
-                (valueChange)="setBlueprintGroup($event)" />
-            </div>
-          }
-          @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
-            <div class="facet">
-              <span>{{ 'blueprint.filters.category' | translate }}</span>
+              <span class="side-h">{{ 'blueprint.filters.category' | translate }}</span>
               <sc-select [options]="blueprintCategorySelect()" [value]="blueprintCategory() || null" placeholderKey="codex.filters.all"
                          [ariaLabel]="'blueprint.filters.category' | translate"
                          (valueChange)="setBlueprintCategory($event ?? '')" />
             </div>
           }
-          @if (supportsVariants()) {
-            <label class="facet check">
-              <input type="checkbox" [ngModel]="includeVariants()" (ngModelChange)="setIncludeVariants($event)" />
-              <span>{{ 'codex.filters.includeVariants' | translate }}</span>
-            </label>
-          }
-          @if (hasActiveFilters()) {
-            <button class="reset" type="button" (click)="resetFilters()">{{ 'codex.filters.reset' | translate }}</button>
-          }
-        </div>
-      </div>
-
-      <!-- The catalog only knows what the extractor found in the build, so a
-           search for a CONCEPT hull ("Arrastra", admin feedback 7b91c5ae) came
-           up empty even though the app holds the ship in the RSI announcement
-           feed. Name the match and hand the reader a real link to it. -->
-      @if (upcomingMatchNames(); as names) {
-        <p class="upcoming-hint">
-          <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
-          <span>{{ 'codex.search.upcomingHint' | translate: { names } }}</span>
-          <a class="upcoming-link" [routerLink]="['/codex', 'upcoming']"
-             [queryParams]="{ q: searchInput().trim() }">
-            {{ 'codex.search.upcomingLink' | translate }}
-          </a>
-        </p>
-      }
-
-      <!-- Results -->
-      @if (error(); as err) {
-        <div class="sc-card err" role="alert">
-          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
-          <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
-        </div>
-      } @else {
-        <div class="result-head">
-          @if (!shellOn()) {
-          <span class="count">
-            @if (loading() && rows().length === 0) {
-              <!-- Not "0 results" above the skeletons: nothing has been counted yet. -->
-              {{ 'codex.results.loading' | translate }}
-            } @else {
-              {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
-            }
-          </span>
-          }
-          @if (hasMore()) {
-            <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
-          }
-        </div>
-
-        <!-- The search runs inside the active category first (feedback #7), but
-             a hit in another one is named here instead of silently missing. -->
-        @if (crossHits().length > 0) {
-          <!-- Links (the same list URL a reload would restore) — no count: the
-               server counts raw records, the target list folds variants,
-               liveries and editions, so a number here would not match it. -->
-          <p class="cross-hits">
-            <span class="cross-label">{{ 'codex.search.alsoIn' | translate }}</span>
-            @for (h of crossHits(); track h.kind) {
-              <a class="cross-hit" [attr.href]="categoryHrefs().get(h.kind)"
-                 (click)="onCategoryClick($event, h.kind)">
-                {{ ('codex.kinds.' + h.kind) | translate }}
-              </a>
-            }
-          </p>
         }
-
-        @if (isPartialKind()) {
-          <p class="partial-note">{{ 'codex.empty.partial' | translate }}</p>
+        @if (supportsVariants()) {
+          <label class="facet check">
+            <input type="checkbox" [checked]="includeVariants()" (change)="onVariantsToggle($event)" />
+            <span>{{ 'codex.filters.includeVariants' | translate }}</span>
+          </label>
         }
-        @if (blueprintRecipesMissing()) {
-          <p class="partial-note">{{ 'blueprint.recipesMissing' | translate }}</p>
-        }
-
-        @if (loading() && rows().length === 0) {
-          <div class="grid">
-            @for (s of skeletons; track s; let i = $index) {
-              <div class="card-wrap skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
-            }
-          </div>
-        } @else if (rows().length === 0) {
-          <div class="sc-card empty">
-            <strong>{{ 'codex.empty.title' | translate }}</strong>
-            @if (searchInput().trim() && crossHits().length > 0) {
-              <!-- Nothing here, but the term matches elsewhere (L07): lead with
-                   where it IS before offering to throw the search away. -->
-              <p class="empty-elsewhere">
-                <span>{{ 'codex.empty.foundElsewhere' | translate: { kind: ('codex.kinds.' + kind()) | translate, term: searchInput().trim() } }}</span>
-                @for (h of crossHits(); track h.kind) {
-                  <a class="cross-hit" [attr.href]="categoryHrefs().get(h.kind)"
-                     (click)="onCategoryClick($event, h.kind)">
-                    {{ ('codex.kinds.' + h.kind) | translate }}
-                  </a>
-                }
-              </p>
-              <button type="button" class="reset-all secondary" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
-            } @else if (hasActiveFilters() || searchInput()) {
-              <p>{{ 'codex.empty.filtered' | translate }}</p>
-              <!-- Typo tolerance (L06): close names when the term matched nothing anywhere. -->
-              @if (searchInput().trim()) {
-                <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
-              }
-              <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
-              <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
-            } @else {
-              <p>{{ 'codex.empty.kind' | translate: { kind: ('codex.kinds.' + kind()) | translate } }}</p>
-            }
-          </div>
-        } @else {
-          <div class="grid">
-            @for (r of rows(); track r.classNameSlug) {
-              <!-- The card is the navigation; pin and add-to-hangar are actions,
-                   so they sit NEXT TO the link inside the wrapper (no interactive
-                   content nested in an <a>) — the upcoming grid's pattern. -->
-              <div class="card-wrap">
-                <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
-                  <div class="thumb" [class.icon-only]="thumbs(r).length === 0">
-                    @if (kind() === 'ship') {
-                      <!-- Blueprint first, store art cross-fades in once it has loaded. -->
-                      <sc-ship-tile-art [shipId]="r.classNameSlug" [candidates]="thumbs(r)" [alt]="cardName(r)">
-                        <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" />
-                      </sc-ship-tile-art>
-                    } @else {
-                      <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
-                        <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" />
-                      </sc-fallback-image>
-                    }
-                  </div>
-                  <h3 class="name">{{ cardName(r) }}</h3>
-                  <div class="badges">
-                    @if (cardMfr(r); as mfr) { <span class="badge mfr" [scTooltip]="mfr" scTooltipTier="label">{{ mfr }}</span> }
-                    @if (r.componentKind) { <span class="badge cat">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
-                    @if (r.weaponClass) { <span class="badge cat">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
-                    @if (r.subType) { <span class="badge subtle">{{ subTypeKey(r) ? (subTypeKey(r)! | translate) : r.subType }}</span> }
-                    @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
-                    @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
-                    @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
-                    @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
-                    @if (r.blueprintCategory) { <span class="badge cat">{{ categoryLabel(r.blueprintCategory) }}</span> }
-                    @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
-                    @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
-                    @if (r.foldedClassNames.length; as folded) {
-                      <span class="badge folded"
-                            [scTooltip]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
-                        {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
-                      </span>
-                    }
-                    @if (r.skinVariants.length; as skins) {
-                      <span class="badge skins"
-                            [scTooltip]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
-                        {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
-                      </span>
-                    }
-                    @if (r.editions.length; as editions) {
-                      <span class="badge editions"
-                            [scTooltip]="'codex.card.editionsTitle' | translate: { names: editionNames(r) }">
-                        {{ (editions === 1 ? 'codex.card.editionsOne' : 'codex.card.editionsMany') | translate: { count: editions } }}
-                      </span>
-                    }
-                    <sc-class-chip class="cls" [value]="r.classNameSlug" [copyable]="false" />
-                  </div>
-                  @if (r.size != null) {
-                    <div class="size-bar" [scTooltip]="'codex.card.size' | translate: { size: r.size }">
-                      <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
-                      <span class="size-tag">S{{ r.size }}</span>
-                    </div>
-                  }
-                </a>
-                <div class="card-actions">
-                  @if (kind() === 'ship') {
-                    @if (shipVariantLink(r.classNameSlug); as l) {
-                      <a class="hangar-chip" [routerLink]="l.commands" [queryParams]="l.queryParams"
-                         [attr.aria-label]="'codex.personal.openVariant' | translate"
-                         [scTooltip]="'codex.personal.openVariant' | translate" scTooltipTier="label">✓</a>
-                    } @else if (inHangarSet().has(r.classNameSlug.toLowerCase())) {
-                      <span class="hangar-chip" role="img" tabindex="0"
-                            [attr.aria-label]="'codex.card.inHangar' | translate"
-                            [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
-                    } @else {
-                      <button type="button" class="act hangar-add"
-                              [disabled]="addBusy() !== null"
-                              [attr.aria-busy]="addBusy() === r.classNameSlug"
-                              (click)="addShipToHangar(r.classNameSlug)"
-                              [attr.aria-label]="'codex.card.addToHangar' | translate"
-                              [scTooltip]="'codex.card.addToHangar' | translate" scTooltipTier="label">+</button>
-                    }
-                  }
-                  <button type="button" class="act pin"
-                          [class.pinned]="isPinned(r.classNameSlug)"
-                          [attr.aria-pressed]="isPinned(r.classNameSlug)"
-                          (click)="togglePin(r.classNameSlug)"
-                          [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                          [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                          scTooltipTier="label">
-                    {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
-                  </button>
-                </div>
-                @if (addFailed() === r.classNameSlug) {
-                  <p class="card-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
-                }
-              </div>
-            }
-          </div>
-
-          @if (hasMore()) {
-            <div class="more-row">
-              <button type="button" class="load-more" [disabled]="loading()" (click)="loadMore()">
-                {{ (loading() ? 'codex.results.loading' : 'codex.results.loadMore') | translate }}
-              </button>
-            </div>
-          }
+        @if (hasActiveFilters()) {
+          <button class="reset" type="button" (click)="resetFilters()">{{ 'codex.filters.reset' | translate }}</button>
         }
       }
-      }
+    </ng-template>
 
-      <sc-codex-compare-tray />
-    </section>
+    <ng-template #nodesTpl let-nodes let-depth="depth">
+      <ul class="nodes" role="list" [class.nested]="depth > 0">
+        @for (n of nodes; track n.id) {
+          <li>
+            <a class="node" [class.on]="n.active" [class.current]="n.current"
+               [attr.aria-current]="n.current ? 'page' : null"
+               [attr.href]="n.href" (click)="onAreaClick($event, n)">
+              <span class="node-label">{{ n.labelKey | translate }}</span>
+              @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
+            </a>
+            @if (n.open && n.children.length > 0) {
+              <ng-container [ngTemplateOutlet]="nodesTpl" [ngTemplateOutletContext]="{ $implicit: n.children, depth: depth + 1 }" />
+            }
+          </li>
+        }
+      </ul>
+    </ng-template>
   `,
   styles: [`
     :host { display: block; }
-    .codex-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
-
-
-    .upcoming-lede { margin: -4px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; max-width: 72ch; }
-
-    /* Amber = announced, not in the build. Never the hot red (elevated access). */
-    .upcoming-hint {
-      --soon: #f0b44a;
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      margin: 0; padding: 9px 12px; border-radius: 8px;
-      border: 1px solid color-mix(in srgb, var(--soon) 34%, var(--sc-border));
-      background: color-mix(in srgb, var(--soon) 9%, var(--sc-bg-1));
-      color: var(--sc-fg-1); font-size: max(0.82rem, var(--sc-fs-floor));
+    .browse { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); padding-bottom: 80px; }
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--sc-space-4, 16px); align-items: start; }
+    .side {
+      position: sticky; top: calc(var(--sc-sticky-top, 0px) + var(--sc-space-3, 12px));
+      display: flex; flex-direction: column; gap: var(--sc-space-3, 12px);
+      max-height: calc(100dvh - var(--sc-sticky-top, 0px) - 24px); overflow-y: auto;
     }
-    .upcoming-hint .soon-badge {
-      padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
-      font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--soon);
-      border: 1px solid color-mix(in srgb, var(--soon) 40%, transparent);
-      background: color-mix(in srgb, var(--soon) 14%, transparent);
+    .side-h { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+    .nodes.nested { padding-left: 12px; margin: 2px 0 4px 6px; border-left: 1px solid var(--sc-border); }
+    .node {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 4px 10px; border-radius: 6px;
+      color: var(--sc-fg-1); text-decoration: none; font-size: 13px;
     }
-    .upcoming-hint .upcoming-link { margin-left: auto; color: var(--soon); font-weight: 600; }
-    .upcoming-hint .upcoming-link:hover { text-decoration: underline; }
+    .node:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    .node:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    .node.on { color: var(--sc-fg-0); }
+    .node.current { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
+    .node-ct { font-size: 11px; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
+    .facet { display: flex; flex-direction: column; gap: 2px; }
+    .facet.check { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; color: var(--sc-fg-1); cursor: pointer; }
+    .facet.check input { accent-color: var(--sc-accent); }
+    .reset { align-self: flex-start; background: none; border: 0; padding: 4px 0; color: var(--sc-accent); cursor: pointer; font: inherit; font-size: 13px; text-decoration: underline; }
+    .reset:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-    .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
-    .kind {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 999px;
-      border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: var(--sc-font-display); text-decoration: none;
-      font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
-      cursor: pointer; transition: all 0.16s;
+    .results { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; }
+    .list { padding: 0; overflow: hidden; }
+    .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); }
+    .count { font-size: 13px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    .sort { min-width: 180px; }
+    .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
+    .rows { list-style: none; margin: 0; padding: 0; }
+    .row { position: relative; display: flex; align-items: center; border-bottom: 1px solid var(--sc-border); }
+    .row:last-child { border-bottom: 0; }
+    .row.skel { height: 56px; }
+    .row-link {
+      flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto;
+      align-items: center; gap: 14px; min-height: 56px; padding: 6px 14px; color: inherit; text-decoration: none;
     }
-    .kind:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .kind:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .kind.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .kind-ct { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    /* Light text on the tint — the dark bg-0 on two stacked accent tints read at ~2.3:1. */
-    .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-fg-0); }
-    .kind.soon { opacity: 0.5; cursor: not-allowed; }
-    .kind.soon:hover { color: var(--sc-fg-1); border-color: var(--sc-border); }
-    .kind-ct.soon-tag { background: color-mix(in srgb, var(--sc-warning, #f0c419) 22%, transparent); color: var(--sc-warning, #f0c419); text-transform: uppercase; letter-spacing: 0.04em; }
-
-    /* Two-level weapon browse rail. Level 1 mirrors the kind-bar pill, level 2
-       is the quieter chip so the hierarchy reads at a glance. */
-    .group-rail { display: flex; flex-direction: column; gap: 8px; }
-    .group-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .group-row.sub { padding-left: 14px; border-left: 2px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .group {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 7px 14px; border-radius: 999px;
-      border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: var(--sc-font-display);
-      font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase;
-      cursor: pointer; transition: all 0.16s;
+    .row:hover, .row:focus-within { background: color-mix(in srgb, var(--sc-accent) 6%, transparent); }
+    .row-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+    .sil { width: 56px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: var(--sc-accent); }
+    .sil svg { width: 100%; height: 100%; overflow: visible; }
+    .sil path {
+      fill: color-mix(in srgb, var(--sc-accent) 10%, transparent); stroke: currentColor;
+      stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-linejoin: round;
+      filter: drop-shadow(0 0 2px color-mix(in srgb, var(--sc-accent) 55%, transparent));
     }
-    .group:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .group.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .group.sub { padding: 5px 12px; text-transform: none; letter-spacing: 0.02em; font-family: inherit; }
-    .group-ct { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .group.active .group-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-fg-0); }
-
-    .controls { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
-    .search-row { position: relative; display: flex; }
-    .search {
-      flex: 1; padding: 10px 36px 10px 14px; border-radius: 8px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
-      font-family: inherit; font-size: max(0.92rem, var(--sc-fs-input));
-    }
-    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-    /* The field has its own clear button; the browser's would be a second x (audit L16). */
-    input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
-    .search-clear {
-      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-      display: inline-flex; align-items: center; justify-content: center;
-      min-width: max(32px, var(--sc-tap-min)); min-height: max(32px, var(--sc-tap-min));
-      border: none; border-radius: 6px; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer;
-    }
-    /* Clearing a search is neither an error nor destructive — no danger red. */
-    .search-clear:hover { color: var(--sc-accent); }
-    .search-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-
-    .facets { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-    .facet { display: flex; flex-direction: column; gap: 4px; }
-    .facet > span { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
-    .facet.check { flex-direction: row; align-items: center; gap: 6px; align-self: center; }
-    .facet.check span { font-size: max(0.78rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; color: var(--sc-fg-1); }
-    /* The themed select (shared/sc-select) draws itself; the facet only sizes it. */
-    .facet sc-select { min-width: 160px; }
-    /* Maker names run long ("Clark Defense Systems") and the list is as wide as its trigger. */
-    .facet.mfr sc-select { min-width: 220px; }
-    .reset { align-self: center; padding: 7px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
-    .reset:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
-
-    .result-head { display: flex; align-items: baseline; gap: 12px; }
-    .count { font-family: var(--sc-font-display); font-size: 0.82rem; letter-spacing: 0.06em; color: var(--sc-accent); text-transform: uppercase; }
-    .showing { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .partial-note { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-warning); padding: 6px 10px; border-radius: 6px; background: color-mix(in srgb, var(--sc-warning) 10%, transparent); border: 1px solid color-mix(in srgb, var(--sc-warning) 28%, transparent); }
-
-    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-    /* The wrapper is the visible card (frame, lift on hover); the link fills it
-       and the actions ride on top as its siblings. */
-    .card-wrap {
-      position: relative; display: flex; flex-direction: column; min-height: 116px;
-      border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1);
-      transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
-    }
-    .card-wrap:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
-    /* Keyboard focus on the card link lights the frame the way a hover does. */
-    .card-wrap:has(> .card:focus-visible) { border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
-    .card {
-      flex: 1; display: flex; flex-direction: column; gap: 8px;
-      padding: 14px; border-radius: 8px; color: inherit; text-decoration: none;
-    }
-    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-    .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
-      border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0));
-      /* sc-fallback-image owns the <img>; sizing crosses the boundary as a var. */
-      --sc-img-max-h: 88px; }
-    .card .thumb sc-codex-icon { width: 100%; height: 100%; }
-    .card-wrap:hover .thumb sc-codex-icon { transform: scale(1.05); transition: transform 0.16s; }
-    .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
-    .card .cls { max-width: 100%; }
-    .card-actions { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .sil.icon { color: var(--sc-fg-2); }
+    .sil.icon sc-codex-icon { width: 22px; height: 22px; }
+    .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .name { font-size: 14px; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+    .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; color: var(--sc-fg-2); min-width: 0; }
+    .wc { flex: none; padding: 0 6px; border: 1px solid var(--sc-border); border-radius: 4px; font-size: 11px; color: var(--sc-fg-1); }
+    .spec { display: flex; align-items: baseline; gap: 12px; font-size: 12px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .size { color: var(--sc-fg-0); font-weight: 600; }
+    .soon { color: var(--sc-accent); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .acts { flex: none; display: flex; align-items: center; gap: 4px; padding-right: 10px; opacity: 0; transition: opacity 120ms ease; }
+    .row:hover .acts, .row:focus-within .acts { opacity: 1; }
     .act {
-      width: max(32px, var(--sc-tap-min)); height: max(32px, var(--sc-tap-min));
-      display: inline-flex; align-items: center; justify-content: center; padding: 0;
-      border-radius: 8px; border: 1px solid transparent; cursor: pointer; line-height: 1;
-      background: color-mix(in srgb, var(--sc-bg-0) 66%, transparent); color: var(--sc-fg-2);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: max(32px, var(--sc-tap-min, 0px)); height: max(32px, var(--sc-tap-min, 0px));
+      border-radius: 6px; border: 1px solid var(--sc-border); background: var(--sc-bg-1);
+      color: var(--sc-fg-1); cursor: pointer; font: inherit; text-decoration: none;
     }
-    .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .act:disabled { cursor: progress; opacity: 0.6; }
-    .card-err { margin: 0 14px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger); }
-    .pin { font-size: 1.1rem; }
-    .pin:hover, .pin.pinned { color: var(--sc-accent); }
-    .pin:hover { border-color: var(--sc-border); }
-    .hangar-chip { font-size: 0.82rem; line-height: 1; color: var(--sc-success); padding: 0 6px; }
-    .hangar-add { font-size: 1rem; border-color: var(--sc-border); }
-    .hangar-add:hover { color: var(--sc-success); border-color: var(--sc-success); }
-    .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
-    .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    /* Holds a spelled-out manufacturer now ("Musashi Industrial & Starflight
-       Concern"), so the pill has to stay inside the card on a phone. */
-    .badge.mfr { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1);
-      max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    /* Category-type badges read neutral, as on the FPS and blueprint lists. */
-    .badge.cat { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
-    .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
-    .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
-    /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
-       the catalog simply carries several records for one object. */
-    .badge.folded { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); cursor: help; }
-    /* Liveries and ship editions are a feature of the entry, not file noise like
-       .folded — so the accent, and the detail view picks them up in a picker. */
-    .badge.skins, .badge.editions {
-      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
-      border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
-      color: var(--sc-fg-0); cursor: help;
+    .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    .act.pinned, .hangar-chip { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .act:disabled { opacity: .5; cursor: default; }
+    .row-err { position: absolute; right: 14px; bottom: 2px; margin: 0; font-size: 11px; color: var(--sc-danger); }
+    .more-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--sc-border); }
+    .showing { font-size: 12px; color: var(--sc-fg-2); }
+    .load-more, .reset-all, .sheet-done {
+      min-height: max(36px, var(--sc-tap-min, 0px)); padding: 6px 16px; border-radius: 6px; cursor: pointer; font: inherit;
+      border: 1px solid var(--sc-accent); background: transparent; color: var(--sc-accent);
     }
-    .badge.grade[data-grade="A"] { background: color-mix(in srgb, var(--sc-success) 18%, transparent); border-color: color-mix(in srgb, var(--sc-success) 42%, transparent); color: color-mix(in srgb, var(--sc-success) 70%, #fff); }
-    .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
-    .badge.grade[data-grade="C"] { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: color-mix(in srgb, var(--sc-warning) 75%, #fff); }
-    .badge.grade[data-grade="D"] { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
-    .size-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .size-track { flex: 1; height: 5px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
-    .size-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
-    .size-tag { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); flex: 0 0 auto; }
-
-    .card-wrap.skel { min-height: 116px; }
-
-    .cross-hits { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .cross-hit {
-      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
-      border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1); font-family: inherit;
-      font-size: max(0.78rem, var(--sc-fs-floor)); min-height: max(28px, var(--sc-tap-min)); text-decoration: none;
+    .load-more:hover, .reset-all:hover, .sheet-done:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    .load-more:disabled { opacity: .6; cursor: default; }
+    .load-more:focus-visible, .reset-all:focus-visible, .sheet-done:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .empty { padding: 24px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; color: var(--sc-fg-1); }
+    .empty p { margin: 0; }
+    .also { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .also-link {
+      display: flex; align-items: center; min-height: max(40px, var(--sc-tap-min, 0px)); padding: 6px 14px;
+      border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-accent); text-decoration: none; font-size: 13px;
     }
-    .cross-hit:hover, .cross-hit:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .cross-hit:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-
-    .more-row { display: flex; justify-content: center; }
-    .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
-    .load-more:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
-    .load-more:disabled { opacity: 0.6; cursor: progress; }
-
-    .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
-    .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
-    .empty .reset-all { margin-top: 12px; padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-family: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
-    .empty .reset-all:hover, .empty .reset-all:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .empty .empty-elsewhere { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; margin-top: 10px; color: var(--sc-fg-1); }
-    .empty .reset-all.secondary { border-color: transparent; color: var(--sc-fg-2); }
-    /* Touch (L31): the back link and the ways out reach the 44px target. */
-    @media (pointer: coarse) {
-      .empty .reset-all, .cross-hit { min-height: max(44px, var(--sc-tap-min)); }
-    }
-    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .also-link:hover { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 6%, transparent); }
+    .also-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .upcoming-hint { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--sc-fg-1); }
+    .soon-badge { padding: 1px 6px; border-radius: 4px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: 11px; }
+    .upcoming-link { color: var(--sc-accent); }
     .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
-    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font: inherit; }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
-    /* Phones stack the facets one per row — full width, not ragged 160/220 px boxes. */
-    @media (max-width: 640px) {
-      .facet:not(.check) { flex: 1 1 100%; }
-      .facet sc-select, .facet.mfr sc-select { min-width: 0; }
+    .filter-fab, .sheet, .sheet-backdrop { display: none; }
+    @media (pointer: coarse) {
+      .acts { opacity: 1; }
+    }
+    @media (max-width: 767px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .side { display: none; }
+      .acts { opacity: 1; }
+      .sil { width: 44px; }
+      .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
+      .filter-fab {
+        display: inline-flex; align-items: center; justify-content: center;
+        position: fixed; z-index: 30; left: var(--sc-space-3, 12px); right: var(--sc-fab-clear-inline);
+        bottom: var(--sc-float-bottom); min-height: 48px; border-radius: 24px;
+        border: 1px solid var(--sc-accent); background: var(--sc-bg-1); color: var(--sc-accent); font: inherit; cursor: pointer;
+      }
+      .filter-fab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .browse { padding-bottom: calc(var(--sc-fab-clear-block) + 24px); }
+      .sheet-backdrop { display: block; position: fixed; inset: 0; z-index: 40; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); }
+      .sheet {
+        display: flex; flex-direction: column; gap: 14px; position: fixed; z-index: 41; left: 0; right: 0; bottom: 0;
+        max-height: 85vh; max-height: 85dvh; overflow-y: auto; padding: 16px 16px calc(16px + var(--sc-safe-bottom, 0px));
+        background: var(--sc-bg-1); border-top: 1px solid var(--sc-border); border-radius: 14px 14px 0 0;
+      }
+      .sheet-head { display: flex; align-items: center; justify-content: space-between; }
+      .sheet-close {
+        width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--sc-border); background: transparent;
+        color: var(--sc-fg-1); cursor: pointer; font: inherit;
+      }
+      .sheet-close:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .node { min-height: 44px; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .card-wrap, .kind, .group { transition: none; }
-      .card-wrap:hover { transform: none; }
-      .card-wrap:hover .thumb sc-codex-icon { transform: none; }
+      .acts { transition: none; }
     }
   `],
 })
-export class CodexListComponent implements OnInit {
-  protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
+
+export class CodexBrowseComponent implements OnInit {
   /** Beta "shell": kinds + filters move into the Fusion bar. */
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
-  private readonly rsi = inject(UpcomingShipsService);
+  readonly rsi = inject(UpcomingShipsService);
+  private readonly overlayOrigin = inject(OverlayOriginService);
+  private readonly chrome = inject(ShellChromeService);
   private readonly route = inject(ActivatedRoute);
   private readonly injector = inject(Injector);
   /**
@@ -764,7 +605,16 @@ export class CodexListComponent implements OnInit {
 
   readonly kinds = CODEX_KINDS;
   /** Datamined kinds + the RSI-sourced "upcoming ships" category. */
-  readonly categories: readonly CodexCategory[] = [...CODEX_KINDS, UPCOMING_CATEGORY];
+  readonly categories: readonly CodexCategory[] = [...CODEX_KINDS, ARMOR_CATEGORY, UPCOMING_CATEGORY];
+  /** Phones: the facet sheet is open. */
+  readonly filtersOpen = signal(false);
+  /** `?slot=` — one armour slot id ('helmet'), '' = all armour. */
+  readonly armorSlot = signal('');
+  /** Records per armour attach type (advisory, for the tree counts). */
+  private readonly armorCounts = signal<ReadonlyMap<string, number>>(new Map());
+  /** Silhouettes of the rows on screen, by class name (codex_silhouettes). */
+  private readonly silhouetteMap = signal<ReadonlyMap<string, HoloSilhouette>>(new Map());
+  private readonly silhouetteAsked = new Set<string>();
 
   /**
    * Where each category link points: that category's list URL with the
@@ -780,7 +630,9 @@ export class CodexListComponent implements OnInit {
     for (const k of this.categories) {
       const q = (k === UPCOMING_CATEGORY ? upcomingTerm : term) || null;
       try {
-        const tree = this.router.createUrlTree([], { relativeTo: this.route, queryParams: { kind: k, q } });
+        const tree = this.router.createUrlTree(k === UPCOMING_CATEGORY ? ['/codex/upcoming'] : ['/codex/index'], {
+          queryParams: k === UPCOMING_CATEGORY ? { q } : { kind: k, q },
+        });
         hrefs.set(k, this.location.prepareExternalUrl(this.router.serializeUrl(tree)));
       } catch {
         hrefs.set(k, null); // a view outside the router (tests): the in-place click still works
@@ -815,6 +667,7 @@ export class CodexListComponent implements OnInit {
     // The upcoming category is fed by RSI, not by a build manifest — it is
     // never "coming soon" and never disabled.
     if (k === UPCOMING_CATEGORY) return false;
+    if (k === ARMOR_CATEGORY) return this.kindCount('item') === 0;
     return this.kindCount(k) === 0;
   }
 
@@ -825,31 +678,6 @@ export class CodexListComponent implements OnInit {
     const key = `blueprint.category.${c}`;
     const translated = this.t.instant(key);
     return translated && translated !== key ? translated : humanizeBlueprintCategory(c);
-  }
-
-  /**
-   * Ordered art candidates for a list row, best-looking first.
-   *
-   * For SHIPS the RSI store render leads: our datamined "preview" is the game's
-   * flat white UI silhouette (Data/Textures/UI/Spaceships), which identifies a
-   * hull but does not show it. RSI publishes an actual photo of nearly every
-   * hull we hold, so the Codex uses that and keeps the silhouette as the
-   * fallback for hulls RSI has no matrix entry for. Other kinds have no RSI
-   * counterpart, so their datamined render is all there is.
-   *
-   * Any of these urls can be missing, so the list is handed to
-   * `sc-fallback-image`, which walks it and shows the category glyph only once
-   * every candidate has failed.
-   */
-  thumbs(r: CodexListRow): string[] {
-    const out: string[] = [];
-    // Match on the denormalized `name_localized` — the very column the edge
-    // function keys `gameShipArt` by, so no second normalization dialect exists.
-    if (this.kind() === 'ship') out.push(...this.rsi.artFor(r.nameLocalized ?? this.cardName(r)));
-    const p = r.payload as { previewImage?: string | null } | undefined;
-    const local = this.svc.previewUrl(p?.previewImage);
-    if (local) out.push(local);
-    return out;
   }
 
   /**
@@ -871,6 +699,222 @@ export class CodexListComponent implements OnInit {
     if (r.weaponClass === 'FPS') return fpsWeaponTypeKey(r.subType);
     if (this.kind() === 'item') return fpsArmorWeightKey(r.subType);
     return null;
+  }
+
+  /**
+   * The row's type in words, or null. Only a TRANSLATED value is shown: a raw
+   * token ("UNDEFINED", "Ball") never reaches the list (concept 2026-10-29, u4).
+   */
+  typeLabel(r: CodexListRow): string | null {
+    this.dataLang();
+    const tr = (key: string): string | null => {
+      const v = this.t.instant(key);
+      return typeof v === 'string' && v && v !== key ? v : null;
+    };
+    if (r.componentKind) return tr('codex.componentKind.' + r.componentKind);
+    if (r.blueprintCategory) return this.categoryLabel(r.blueprintCategory);
+    if (this.category() === ARMOR_CATEGORY) {
+      const slot = FPS_ARMOR_SLOT_ID[fpsArmorSlot(r.attachType) ?? ''];
+      if (slot) return tr('codex.landing.paperdoll.' + slot);
+    }
+    const key = this.subTypeKey(r);
+    return key ? tr(key) : null;
+  }
+
+  /** "Manufacturer · type" under the row's name; null when neither is known. */
+  rowMeta(r: CodexListRow): string | null {
+    const parts = [this.cardMfr(r), this.typeLabel(r)].filter((p): p is string => !!p);
+    return parts.length ? parts.join(' · ') : null;
+  }
+
+  /** The silhouette of a row, or null (the category icon stands in). */
+  silhouetteOf(r: CodexListRow): HoloSilhouette | null {
+    return this.silhouetteMap().get(r.classNameSlug) ?? null;
+  }
+
+  /** Which silhouette table slice a row of the current area reads. */
+  private silhouetteKind(): SilhouetteKind | null {
+    if (this.category() === ARMOR_CATEGORY) return 'armor';
+    const k = this.kind();
+    return k === 'ship' || k === 'weapon' || k === 'component' || k === 'item' ? k : null;
+  }
+
+  /** Batch-load silhouettes for rows not asked for yet. Advisory: a failure keeps the icons. */
+  private async loadSilhouettes(rows: readonly CodexListRow[]): Promise<void> {
+    const kind = this.silhouetteKind();
+    if (!kind) return;
+    const wanted = rows.map((r) => r.classNameSlug).filter((c) => !this.silhouetteAsked.has(kind + ':' + c));
+    if (!wanted.length) return;
+    wanted.forEach((c) => this.silhouetteAsked.add(kind + ':' + c));
+    try {
+      const found = await this.svc.silhouettes(kind, wanted);
+      if (!found.size) return;
+      const next = new Map(this.silhouetteMap());
+      for (const [c, s] of found) next.set(c, s);
+      this.silhouetteMap.set(next);
+    } catch {
+      /* the category icon stays */
+    }
+  }
+
+  /** "Manufacturer · role" of an announced ship. */
+  upcomingMeta(s: UpcomingShip): string | null {
+    this.dataLang();
+    const role = s.type || s.focus ? upcomingRoleLabel(s.type || s.focus, (k) => this.t.instant(k)) : '';
+    const parts = [s.manufacturer, role].filter((p): p is string => !!p);
+    return parts.length ? parts.join(' · ') : null;
+  }
+
+  /** Beta shell: a plain click on an announced ship opens it as an overlay over this list. */
+  openUpcoming(ev: MouseEvent): void {
+    if (this.shellOn() && isPlainLeftClick(ev)) this.overlayOrigin.fromList();
+  }
+
+  /** Announced ships matching the term, concept first. */
+  readonly upcomingRows = computed(() => [...this.rsi.concept(), ...this.rsi.flightReadyMissing()]);
+
+  /** What the list renders right now — the catalog rows or the announced ships. */
+  readonly listLength = computed(() => (this.isUpcoming() ? this.upcomingRows().length : this.rows().length));
+  readonly listTotal = computed(() => (this.isUpcoming() ? this.upcomingRows().length : this.total()));
+  readonly listLoading = computed(() => (this.isUpcoming() ? this.rsi.loading() : this.loading()));
+  readonly listError = computed(() => (this.isUpcoming() ? this.rsi.error() : this.error()));
+
+  /** i18n key of the area on screen — the page's h1. */
+  readonly areaLabelKey = computed(() => {
+    const c = this.category();
+    if (c === ARMOR_CATEGORY) {
+      return this.armorSlot() ? 'codex.landing.paperdoll.' + this.armorSlot() : 'codex.browse.area.armor';
+    }
+    if (c === 'weapon' && this.weaponGroup()) {
+      return this.weaponSubGroup()
+        ? 'codex.weaponGroup.' + this.weaponGroup() + '.' + this.weaponSubGroup()
+        : 'codex.weaponGroup.super.' + this.weaponGroup();
+    }
+    return 'codex.kinds.' + c;
+  });
+
+  /** Codex › area › sub area — every crumb a real link. */
+  readonly crumbs = computed<readonly PageCrumb[]>(() => {
+    const out: PageCrumb[] = [CODEX_ROOT_CRUMB];
+    const c = this.category();
+    if (c === 'weapon' && this.weaponGroup()) {
+      out.push({ labelKey: 'codex.kinds.weapon', link: ['/codex/index'], queryParams: { kind: 'weapon' } });
+      if (this.weaponSubGroup()) {
+        out.push({
+          labelKey: 'codex.weaponGroup.super.' + this.weaponGroup(),
+          link: ['/codex/index'],
+          queryParams: { kind: 'weapon', wg: this.weaponGroup() },
+        });
+      }
+    } else if (c === ARMOR_CATEGORY && this.armorSlot()) {
+      out.push({ labelKey: 'codex.browse.area.armor', link: ['/codex/index'], queryParams: { kind: ARMOR_CATEGORY } });
+    }
+    return out;
+  });
+
+  /** "16 of 1346 weapons · 4.3.2" — filtered count, the area's size, the patch. */
+  readonly subtitle = computed<string | null>(() => {
+    this.dataLang();
+    const patch = this.svc.build()?.patchVersion ?? '';
+    if (this.listLoading() && this.listLength() === 0) return patch || null;
+    const total = this.isUpcoming() ? (this.rsi.feed()?.ships.length ?? null) : this.categoryCount(this.category());
+    const params = { shown: this.listTotal(), total: total ?? this.listTotal(), patch };
+    const key = total != null && total !== this.listTotal() ? 'codex.browse.subtitleOf' : 'codex.browse.subtitleAll';
+    return this.t.instant(patch ? key : key + 'NoPatch', params) as string;
+  });
+
+  /** Number of active facets — the phone button's "(n)". */
+  readonly activeFilterCount = computed(
+    () =>
+      [this.manufacturer(), this.size(), this.grade(), this.componentKind(), this.blueprintCategory(), this.blueprintGroup()].filter(Boolean)
+        .length + (this.includeVariants() ? 1 : 0),
+  );
+
+  readonly sortSelect = computed<ScSelectOption[]>(() => [
+    { value: 'name', labelKey: 'codex.browse.sort.name' },
+    ...(this.kind() === 'ship' ? [{ value: 'new', labelKey: 'codex.browse.sort.new' }] : []),
+  ]);
+
+  readonly sizeSegments = computed<ScSegmentOption[]>(() => [
+    { value: 'all', labelKey: 'codex.browse.sizeAll' },
+    ...this.sizeOptions().map((s) => ({ value: s, label: 'S' + s })),
+  ]);
+
+  setSort(v: string | null): void {
+    const on = v === 'new' && this.kind() === 'ship';
+    this.sortNew.set(on);
+    if (on && !this.newShipOrder().size) this.loadNewShipOrder();
+    mirrorQueryParams(this.router, this.route, this.location, { sort: on ? 'new' : null });
+  }
+
+  onVariantsToggle(ev: Event): void {
+    this.setIncludeVariants((ev.target as HTMLInputElement).checked);
+  }
+
+  /** The "Bereich" tree: every area with its count, the current path open. */
+  readonly areaTree = computed<AreaNode[]>(() => {
+    const cat = this.category();
+    const wg = this.weaponGroup();
+    const wsg = this.weaponSubGroup();
+    const slot = this.armorSlot();
+    const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, active: boolean, current: boolean, children: AreaNode[] = []): AreaNode => ({
+      id, labelKey, count, target, active, current, open: active, children, href: this.areaHref(target),
+    });
+    const out: AreaNode[] = [];
+    for (const k of this.categories) {
+      if (this.isComingSoon(k)) continue;
+      const on = cat === k;
+      if (k === 'weapon') {
+        const supers = WEAPON_SUPER_GROUPS.map((g) => {
+          const gOn = on && wg === g.id;
+          const subs = g.subGroups
+            .filter((s) => (this.weaponGroupCount(g.id, s.id) ?? 1) > 0)
+            .map((s) => node(g.id + '-' + s.id, 'codex.weaponGroup.' + g.id + '.' + s.id, this.weaponGroupCount(g.id, s.id), { category: 'weapon', wg: g.id, wsg: s.id }, gOn && wsg === s.id, gOn && wsg === s.id));
+          return node('weapon-' + g.id, 'codex.weaponGroup.super.' + g.id, this.weaponGroupCount(g.id), { category: 'weapon', wg: g.id }, gOn, gOn && !wsg, subs);
+        });
+        out.push(node('weapon', 'codex.kinds.weapon', this.kindCount('weapon'), { category: 'weapon' }, on, on && !wg, supers));
+      } else if (k === ARMOR_CATEGORY) {
+        const counts = this.armorCounts();
+        const slots = ARMOR_SLOT_IDS.map((id) => {
+          const at = armorAttachTypeOf(id);
+          return node('armor-' + id, 'codex.landing.paperdoll.' + id, at ? (counts.get(at) ?? null) : null, { category: ARMOR_CATEGORY, slot: id }, on && slot === id, on && slot === id);
+        }).filter((n) => n.count !== 0);
+        const total = counts.size ? [...counts.values()].reduce((a, b) => a + b, 0) : null;
+        out.push(node('armor', 'codex.browse.area.armor', total, { category: ARMOR_CATEGORY }, on, on && !slot, slots));
+      } else {
+        out.push(node(k, 'codex.kinds.' + k, this.categoryCount(k), { category: k }, on, on));
+      }
+    }
+    return out;
+  });
+
+  private areaHref(t: AreaTarget): string | null {
+    const q = (t.category === UPCOMING_CATEGORY ? this.rsi.query() : this.searchTerm()) || null;
+    const params: Record<string, string | null> =
+      t.category === UPCOMING_CATEGORY ? { q } : { kind: t.category, wg: t.wg ?? null, wsg: t.wsg ?? null, slot: t.slot ?? null, q };
+    try {
+      const tree = this.router.createUrlTree(t.category === UPCOMING_CATEGORY ? ['/codex/upcoming'] : ['/codex/index'], { queryParams: params });
+      return this.location.prepareExternalUrl(this.router.serializeUrl(tree));
+    } catch {
+      return null;
+    }
+  }
+
+  onAreaClick(ev: MouseEvent, n: AreaNode): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.applyArea(n.target);
+    this.filtersOpen.set(false);
+  }
+
+  /** Switch the list to one area of the tree, in place. */
+  applyArea(t: AreaTarget): void {
+    this.setCategory(t.category);
+    if (t.category === 'weapon') {
+      this.weaponGroup.set(t.wg ?? '');
+      this.weaponSubGroup.set(t.wsg ?? '');
+    }
+    if (t.category === ARMOR_CATEGORY) this.armorSlot.set(t.slot ?? '');
   }
 
   /** Class names of the records folded into this card, for the badge tooltip. */
@@ -1275,6 +1319,19 @@ export class CodexListComponent implements OnInit {
         reset: () => this.resetFilters(),
       })),
     );
+    // The Fusion bar's typed term filters this list live (concept 2026-10-29, a-s2).
+    inject(DestroyRef).onDestroy(
+      this.chrome.registerPageSearch(this, (term) => {
+        if (this.isUpcoming()) this.rsi.query.set(term.trim());
+        else this.onSearchInput(term);
+      }),
+    );
+    // Silhouettes for the rows on screen (u2), batched per page.
+    effect(() => {
+      const rows = this.rows();
+      this.category();
+      untracked(() => void this.loadSilhouettes(rows));
+    });
     // A new LIVE build replaced the one on screen (tab came back): reload.
     reloadOnBuildRefresh(this.svc, () => this.runQuery(true));
     // Keep the data language in sync with UI language switches. (#50)
@@ -1285,6 +1342,8 @@ export class CodexListComponent implements OnInit {
     effect(() => {
       // track dependencies
       this.kind();
+      this.category();
+      this.armorSlot();
       this.searchTerm();
       this.manufacturer();
       this.size();
@@ -1313,6 +1372,7 @@ export class CodexListComponent implements OnInit {
         wsg: this.weaponSubGroup() || null,
         bpc: this.blueprintCategory() || null,
         group: this.blueprintGroup() || null,
+        slot: this.category() === ARMOR_CATEGORY ? this.armorSlot() || null : null,
         v: this.includeVariants() ? '1' : null,
         // Superseded by wg — a landing link's weaponClass must not linger.
         weaponClass: null,
@@ -1369,7 +1429,7 @@ export class CodexListComponent implements OnInit {
     // Three characters: below that the trigram index can't help and every
     // count would scan a whole table.
     if (term.length < 3) return;
-    const others = CODEX_KINDS.filter((k) => k !== active && !this.isComingSoon(k));
+    const others = CODEX_KINDS.filter((k) => k !== active && !(active === ARMOR_CATEGORY && k === 'item') && !this.isComingSoon(k));
     try {
       const counts = await this.svc.countSearchMatches(term, others);
       if (seq !== this.crossSeq) return;
@@ -1423,6 +1483,7 @@ export class CodexListComponent implements OnInit {
     await this.svc.loadCurrentBuild();
     // UC-02: hangar membership backs the in-hangar badge on ship cards.
     void this.ownership.ensureLoaded();
+    void this.loadArmorCounts();
     await this.loadBlueprintCategories();
     if (this.kind() === 'weapon') await this.loadWeaponFacets();
   }
@@ -1513,18 +1574,38 @@ export class CodexListComponent implements OnInit {
     if (this.kind() === 'component') take('ck', (v) => this.componentKind.set(v));
     if (this.kind() === 'weapon') {
       take('wg', (v) => WEAPON_SUPER_GROUPS.some((g) => g.id === v) && this.weaponGroup.set(v));
-      take('wsg', (v) => this.weaponSubGroup.set(v));
+      take('wsg', (v) => {
+        // Legacy links carry the sub group alone (?wsg=utility): infer its super group.
+        if (!this.weaponGroup()) {
+          const sup = inferWeaponSuperGroup(v);
+          if (!sup) return;
+          this.weaponGroup.set(sup);
+        }
+        if (weaponSuperGroup(this.weaponGroup())?.subGroups.some((s) => s.id === v)) this.weaponSubGroup.set(v);
+      });
     }
+    if (this.category() === ARMOR_CATEGORY) take('slot', (v) => ARMOR_SLOT_IDS.includes(v) && this.armorSlot.set(v));
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
     if (q.get('v') === '1') this.includeVariants.set(true);
     this.sortNew.set(this.kind() === 'ship' && q.get('sort') === 'new');
-    if (this.sortNew()) {
-      void this.injector
-        .get(CodexBuildDiffService)
-        .addedShipsMemo()
-        .then((added) => this.newShipOrder.set(new Map(added.map((r, i) => [r.classNameSlug, i]))))
-        .catch(() => this.newShipOrder.set(new Map()));
+    if (this.sortNew()) this.loadNewShipOrder();
+  }
+
+  /** Armour records per slot for the tree. Advisory — a failure leaves the counts off. */
+  private async loadArmorCounts(): Promise<void> {
+    try {
+      this.armorCounts.set(await this.svc.countItemsByAttachType(FPS_ARMOR_ATTACH_TYPES));
+    } catch {
+      this.armorCounts.set(new Map());
     }
+  }
+
+  private loadNewShipOrder(): void {
+    void this.injector
+      .get(CodexBuildDiffService)
+      .addedShipsMemo()
+      .then((added) => this.newShipOrder.set(new Map(added.map((r, i) => [r.classNameSlug, i]))))
+      .catch(() => this.newShipOrder.set(new Map()));
   }
 
   /** Facet source for the blueprint kind. Advisory — a failure just hides it. */
@@ -1579,6 +1660,10 @@ export class CodexListComponent implements OnInit {
   /** Badge count for a strip entry; the upcoming one comes from the RSI feed. */
   categoryCount(k: CodexCategory): number | null {
     if (k === UPCOMING_CATEGORY) return this.rsi.feed()?.ships.length ?? null;
+    if (k === ARMOR_CATEGORY) {
+      const counts = this.armorCounts();
+      return counts.size ? [...counts.values()].reduce((a, b) => a + b, 0) : null;
+    }
     return this.kindCount(k);
   }
 
@@ -1594,9 +1679,14 @@ export class CodexListComponent implements OnInit {
     // A kind the build reports as empty is shown disabled — ignore stray
     // activation (keyboard, deep link). (UC-13)
     if (this.isComingSoon(k)) return;
+    const wasArmor = this.category() === ARMOR_CATEGORY;
     this.category.set(k);
+    this.armorSlot.set('');
     if (k === UPCOMING_CATEGORY) return;
-    this.setKind(k);
+    const kind: CodexKind = k === ARMOR_CATEGORY ? 'item' : k;
+    // Armour ↔ items share the table: the facets still belong to the other list.
+    if (kind === this.kind() && (wasArmor || k === ARMOR_CATEGORY)) this.resetFilters();
+    this.setKind(kind);
   }
 
   setKind(k: CodexKind): void {
@@ -1664,6 +1754,7 @@ export class CodexListComponent implements OnInit {
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
     this.blueprintGroup.set('');
+    this.armorSlot.set('');
     this.includeVariants.set(false);
   }
 
@@ -1712,10 +1803,6 @@ export class CodexListComponent implements OnInit {
   }
 
   /** UC-10: size S1–S12 as a 0–100% bar width for at-a-glance scanning. */
-  sizePct(size: number): number {
-    return Math.min(100, Math.max(8, Math.round((size / 12) * 100)));
-  }
-
   private buildFilters(): CodexListFilters {
     // The single-category select wins when it names a category outside the
     // active group (e.g. group=fps but the reader picked a Vehicle bucket by
@@ -1733,6 +1820,11 @@ export class CodexListComponent implements OnInit {
       size: this.size() ? Number(this.size()) : undefined,
       grade: this.grade() || undefined,
       componentKind: this.componentKind() || undefined,
+      ...(this.category() === ARMOR_CATEGORY
+        ? this.armorSlot() && armorAttachTypeOf(this.armorSlot())
+          ? { attachType: armorAttachTypeOf(this.armorSlot())! }
+          : { attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] }
+        : {}),
       ...(this.kind() === 'weapon' ? weaponGroupQuery(this.weaponGroup(), this.weaponSubGroup()) : {}),
       category: category || undefined,
       blueprintCategoryIn,

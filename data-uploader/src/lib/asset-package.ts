@@ -4,16 +4,21 @@
  * retry / concurrency primitives the transport uses. No I/O, no Electron.
  */
 
-export type PackageKind = 'ship' | 'fps_weapon' | 'item';
+export type PackageKind = 'ship' | 'fps_weapon' | 'item' | 'armor';
 export type PackageObjectType = 'part' | 'interior' | 'manifest';
 
-/** Extra `skin_export_app` flags: every ship builds its package + interior; FPS and items on request. */
-export function packageExportArgs(req: { fps?: boolean; items?: boolean }): string[] {
-  return ['--package', '--interior', ...(req.fps ? ['--fps'] : []), ...(req.items ? ['--items'] : [])];
+/** Extra `skin_export_app` flags: every ship builds its package + interior; FPS, items and armor on request. */
+export function packageExportArgs(req: { fps?: boolean; items?: boolean; armor?: boolean }): string[] {
+  return [
+    '--package', '--interior',
+    ...(req.fps ? ['--fps'] : []),
+    ...(req.items ? ['--items'] : []),
+    ...(req.armor ? ['--armor'] : []),
+  ];
 }
 
 /** Folders the exporter writes next to the ship folders — never a ship. */
-const NON_SHIP_DIRS = new Set(['_parts', '_interiors', '_work_parts', '_fps', '_items', '_manifests']);
+const NON_SHIP_DIRS = new Set(['_parts', '_interiors', '_work_parts', '_fps', '_items', '_armor', '_manifests']);
 
 /** True for a real ship folder name; the export's shared/scratch dirs are not. */
 export function isShipFolder(name: string): boolean {
@@ -52,7 +57,7 @@ export function planPackage(manifest: unknown, manifestSha: string, manifestByte
   };
   if (!m || typeof m !== 'object') throw new Error('manifest is not an object');
   if (m.schemaVersion !== 1) throw new Error(`unsupported manifest schemaVersion ${String(m.schemaVersion)}`);
-  if (m.kind !== 'ship' && m.kind !== 'fps_weapon' && m.kind !== 'item') throw new Error('manifest kind must be ship, fps_weapon or item');
+  if (m.kind !== 'ship' && m.kind !== 'fps_weapon' && m.kind !== 'item' && m.kind !== 'armor') throw new Error('manifest kind must be ship, fps_weapon, item or armor');
   const entityClass = typeof m.entity?.className === 'string' ? m.entity.className : '';
   if (!entityClass) throw new Error('manifest has no entity.className');
 

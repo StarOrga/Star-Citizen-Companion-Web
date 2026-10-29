@@ -969,6 +969,12 @@ export class FusionSearchComponent {
           this.close();
           return;
         }
+        // From the subheader (not a cinematic hub stage), Enter without a picked
+        // row opens the full result list (concept 2026-10-29, Codex subpages).
+        if (!this.activeOption() && this.chrome.stageSearch() === 'none' && this.engine.input().trim()) {
+          this.openResultsPage(this.engine.input().trim(), ev.ctrlKey || ev.metaKey);
+          return;
+        }
         if (this.engine.commit()) return; // results are on their way
         const opt = this.activeOption() ?? (this.engine.input().trim() ? (this.options()[0] ?? null) : null);
         if (!opt) return;
@@ -978,6 +984,34 @@ export class FusionSearchComponent {
       default:
         return;
     }
+  }
+
+  /**
+   * The Codex browse page for `term`. On that page already, its list follows
+   * the typed term live — Enter only commits it and closes the dropdown.
+   * Elsewhere it opens /codex/index in the reader's area (the context's kind),
+   * else in the kind with the best hits.
+   */
+  private openResultsPage(term: string, newTab: boolean): void {
+    this.engine.remember(term);
+    const onBrowse = /^\/codex\/(index|upcoming)(\?|$)/.test(this.url());
+    const page = this.chrome.pageSearch();
+    if (onBrowse && page && !newTab) {
+      page(term);
+      this.close();
+      return;
+    }
+    const ctxKind = this.context().labelParams?.['kind'];
+    const best = this.engine.groups().find((g) => g.kind !== 'upcoming')?.kind;
+    const kind = ctxKind || best;
+    const queryParams: Record<string, string> = kind ? { kind, q: term } : { q: term };
+    const target = { link: ['/codex/index'], queryParams };
+    if (newTab) {
+      window.open(this.href(target), '_blank', 'noopener');
+      return;
+    }
+    void this.router.navigate(target.link, { queryParams: target.queryParams });
+    this.close();
   }
 
   private openOption(opt: FusionOption, newTab: boolean): void {

@@ -25,7 +25,7 @@ const ship = () => ({
 
 describe('isShipFolder', () => {
   it('rejects the exporter shared and scratch dirs', () => {
-    for (const n of ['_parts', '_interiors', '_work_parts', '_fps', '_items', '_hulls', '.git', '']) {
+    for (const n of ['_parts', '_interiors', '_work_parts', '_fps', '_items', '_armor', '_hulls', '.git', '']) {
       expect(isShipFolder(n)).toBe(false);
     }
     expect(isShipFolder('DRAK_Cutlass_Black')).toBe(true);
@@ -37,6 +37,17 @@ describe('packageExportArgs', () => {
     expect(packageExportArgs({})).toEqual(['--package', '--interior']);
     expect(packageExportArgs({ fps: true })).toEqual(['--package', '--interior', '--fps']);
     expect(packageExportArgs({ fps: true, items: true })).toEqual(['--package', '--interior', '--fps', '--items']);
+    expect(packageExportArgs({ armor: true })).toEqual(['--package', '--interior', '--armor']);
+    expect(packageExportArgs({ fps: true, items: true, armor: true })).toEqual([
+      '--package', '--interior', '--fps', '--items', '--armor',
+    ]);
+  });
+});
+
+describe('planPackage armor', () => {
+  it('accepts an armor manifest like an fps weapon (root is a shared part)', () => {
+    const m = { ...ship(), kind: 'armor', interior: null, parts: { [C]: { bytes: 200 } } };
+    expect(planPackage(m, M, 90).kind).toBe('armor');
   });
 });
 

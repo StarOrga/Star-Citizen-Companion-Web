@@ -23,6 +23,10 @@ export interface PublicSettings {
   /** Last remembered ⏻ choice on the operator's own runs (never 'shutdown'). */
   whenDoneLast: 'nothing' | 'quit';
   updateChannel: 'alpha' | 'beta' | 'stable';
+  /** Extra 3D asset packages the 3D-model step also builds (settings, 3D models). */
+  pkgFps: boolean;
+  pkgItems: boolean;
+  pkgArmor: boolean;
   /** Persisted UI locale; undefined = renderer's own detection/fallback. */
   language?: string;
 }

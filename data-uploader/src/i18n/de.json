@@ -301,6 +301,16 @@
       "shutdownDesc": "60-Sekunden-Countdown zum Abbrechen.",
       "hint": "Nur für Läufe, die er selbst startet. Deine eigenen Läufe: ⏻ am Lauf."
     },
+    "models": {
+      "title": "3D-Modelle",
+      "pkgFps": "FPS-Waffen",
+      "pkgFpsDesc": "Baut die FPS-Waffenkörper samt Aufsätzen.",
+      "pkgItems": "Schiffs-Items",
+      "pkgItemsDesc": "Baut Komponenten, Schiffswaffen, Raketen und Racks einzeln.",
+      "pkgArmor": "Rüstung & Kleidung",
+      "pkgArmorDesc": "Baut Rüstungs- und Kleidungsteile.",
+      "hint": "Gilt für den nächsten 3D-Modell-Lauf. Jede Art kostet Rechenzeit und Speicher."
+    },
     "app": {
       "title": "App",
       "tray": "schließt in den Tray",

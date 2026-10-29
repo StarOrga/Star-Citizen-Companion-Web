@@ -163,6 +163,20 @@ optimize output before `meshopt` (meshopt buffers are not decodable in Python).
 If the first rung fails the hull is not exported (`HullIntegrityError`); if a
 later rung fails, the last gap-free rung is kept even over budget.
 
+## Beyond ships: ground vehicles, silhouettes, other 3D kinds
+
+- **Ground vehicles** take the ship path: `ship_discovery.ref_from_hull`
+  accepts every root in `VEHICLE_ROOTS` (spaceships + ground-vehicle roots) and
+  `ShipRef.root` travels through `skins/_build_manifest.json` (`root`; absent =
+  spaceships), so `find_hull` / material lookup search the right folder.
+- **Silhouettes** (`silhouettes/_build_manifest.json`) now list every ship,
+  weapon, component and item with a resolvable mesh (kind `item` for armor and
+  every other item; kind `armor` stays unused) plus ammunition (`ammo`) whose
+  `AmmoParams` record carries a mesh path — most ballistic rounds have none and
+  are skipped silently.
+- **Other 3D kinds** (`--fps`, `--items`, `--armor`) are asset packages, not
+  hulls: see `data-uploader/docs/asset-package.md`.
+
 ## Why an external geometry converter?
 
 `scdatatools` 1.0.4 cannot parse SC 4.x Ivo *mesh* chunks (unknown chunk-type

@@ -89,7 +89,7 @@ import { hqHangar, hqLocker, hqSet } from './hq-routes';
             <a class="archive-line__link stage-cta" [routerLink]="lockerLink">{{ 'codex.landing.cta.createSet' | translate }}</a>
           }
           <span class="archive-line__eyebrow">{{ 'codex.landing.archive.label' | translate }}</span>
-          <a class="archive-line__link" routerLink="/codex/fps" [queryParams]="{ cat: 'armor' }">
+          <a class="archive-line__link" routerLink="/codex/index" [queryParams]="{ kind: 'armor' }">
             {{ 'codex.landing.archive.armor' | translate }}
           </a>
           <a class="archive-line__link" routerLink="/codex/fps" [queryParams]="{ cat: 'weapon' }">

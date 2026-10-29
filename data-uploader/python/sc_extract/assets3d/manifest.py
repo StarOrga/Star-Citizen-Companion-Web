@@ -17,8 +17,8 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict
 SCHEMA_VERSION = 1
 SCHEMA_PATH = Path(__file__).with_name("manifest.schema.json")
 
-Kind = Literal["ship", "fps_weapon", "item"]
-KINDS = ("ship", "fps_weapon", "item")
+Kind = Literal["ship", "fps_weapon", "item", "armor"]
+KINDS = ("ship", "fps_weapon", "item", "armor")
 Group = Literal["weapons", "missiles", "components", "attachments", "interior", "other"]
 GROUPS = ("weapons", "missiles", "components", "attachments", "interior", "other")
 COORDINATE_SYSTEM = "gltf-y-up-metres"

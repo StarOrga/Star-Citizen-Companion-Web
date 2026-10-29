@@ -98,9 +98,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/python/sc_extract/thresholds.py',
     ],
   },
-  { key: 'components', revision: 2, phases: ['codex_components'], sources: CATALOG_SHARED },
-  { key: 'weapons', revision: 2, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
-  { key: 'items', revision: 2, phases: ['codex_items'], sources: CATALOG_SHARED },
+  { key: 'components', revision: 3, phases: ['codex_components'], sources: CATALOG_SHARED },
+  { key: 'weapons', revision: 3, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
+  { key: 'items', revision: 3, phases: ['codex_items'], sources: CATALOG_SHARED },
   {
     key: 'codex_extra',
     // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on
@@ -135,7 +135,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
     //    wrote them — only the CLI driver did; both share build_rows now).
     // 5: #795/#794 — anchors come from the corrected hardpointTransforms (turret
     //    ports from the vehicle XML, helper offsets, no origin anchors).
-    revision: 5,
+    // 6: silhouettes for every item (not only armor) and for ammunition.
+    revision: 6,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',
@@ -146,7 +147,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
   },
   {
     key: 'hulls',
-    revision: 1,
+    // 2: ground-vehicle hulls and armor/clothing asset packages.
+    revision: 2,
     phases: [],
     sources: [
       'data-uploader/python/sc_extract/assets3d/',

@@ -563,7 +563,8 @@
       "ammunition": "Ammunition",
       "manufacturer": "Manufacturers",
       "blueprint": "Blueprints",
-      "upcoming": "Upcoming"
+      "upcoming": "Upcoming",
+      "armor": "Armor"
     },
     "kindSingular": {
       "ship": "Ship",
@@ -2177,6 +2178,30 @@
       "usesTitle": "In your HQ",
       "equippedOn": "Fitted on: {{ship}} ({{variant}})",
       "inSet": "In set {{name}}"
+    },
+    "browse": {
+      "eyebrow": "Codex index",
+      "filtersAria": "Filters",
+      "filtersTitle": "Filters",
+      "closeFilters": "Close filters",
+      "filterButton": "Filters ({{count}})",
+      "showResults": "Show {{count}} results",
+      "areaLabel": "Area",
+      "area": {
+        "armor": "Armor"
+      },
+      "sort": {
+        "label": "Sort order",
+        "name": "Name A–Z",
+        "new": "New this patch first"
+      },
+      "sizeAll": "All",
+      "alsoInOne": "Also in {{kind}} · show 1 hit ›",
+      "alsoInMany": "Also in {{kind}} · show {{count}} hits ›",
+      "subtitleOf": "{{shown}} of {{total}} · Patch {{patch}}",
+      "subtitleAll": "{{shown}} entries · Patch {{patch}}",
+      "subtitleOfNoPatch": "{{shown}} of {{total}}",
+      "subtitleAllNoPatch": "{{shown}} entries"
     }
   },
   "blueprint": {

@@ -185,6 +185,18 @@ describe('SettingsStore', () => {
     expect(new SettingsStore(io, seqIds()).load().useGpu).toBe(false);
   });
 
+  it('defaults the extra 3D package switches to off and round-trips them', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    const s = store.load();
+    expect([s.pkgFps, s.pkgItems, s.pkgArmor]).toEqual([false, false, false]);
+    store.patch({ pkgFps: true, pkgArmor: true });
+    const again = new SettingsStore(io, seqIds()).load();
+    expect([again.pkgFps, again.pkgItems, again.pkgArmor]).toEqual([true, false, true]);
+    io.data = JSON.stringify({ v: 3, settings: { installId: 'x', pkgItems: 'yes' } });
+    expect(new SettingsStore(io, seqIds()).load().pkgItems).toBe(false);
+  });
+
   it('persists the GPU limit gpuPct with the resource limits and drops a non-number', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());

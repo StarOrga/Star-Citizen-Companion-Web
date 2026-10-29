@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ChildRouteService } from '../shared/overlay-frame/child-route.service';
 import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
-import { CodexListComponent } from './codex-list.component';
+import { CodexBrowseComponent } from './codex-browse.component';
 
 /**
  * `/codex/upcoming` with the `shell` beta on: the list stays a tool page and
@@ -13,11 +13,11 @@ import { CodexListComponent } from './codex-list.component';
 @Component({
   selector: 'sc-upcoming-route',
   standalone: true,
-  imports: [CodexListComponent, RouterOutlet],
+  imports: [CodexBrowseComponent, RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!child.active() || origin.overlaid()) {
-      <sc-codex-list />
+      <sc-codex-browse />
     }
     <router-outlet />
   `,

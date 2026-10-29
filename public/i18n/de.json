@@ -563,7 +563,8 @@
       "ammunition": "Munition",
       "manufacturer": "Hersteller",
       "blueprint": "Baupläne",
-      "upcoming": "Kommend"
+      "upcoming": "Kommend",
+      "armor": "Rüstung"
     },
     "kindSingular": {
       "ship": "Schiff",
@@ -2177,6 +2178,30 @@
       "usesTitle": "In deinem HQ",
       "equippedOn": "Verbaut auf: {{ship}} ({{variant}})",
       "inSet": "In Set {{name}}"
+    },
+    "browse": {
+      "eyebrow": "Codex-Index",
+      "filtersAria": "Filter",
+      "filtersTitle": "Filter",
+      "closeFilters": "Filter schließen",
+      "filterButton": "Filter ({{count}})",
+      "showResults": "{{count}} Treffer anzeigen",
+      "areaLabel": "Bereich",
+      "area": {
+        "armor": "Rüstung"
+      },
+      "sort": {
+        "label": "Sortierung",
+        "name": "Name A–Z",
+        "new": "Neu in diesem Patch zuerst"
+      },
+      "sizeAll": "Alle",
+      "alsoInOne": "Auch in {{kind}} · 1 Treffer anzeigen ›",
+      "alsoInMany": "Auch in {{kind}} · {{count}} Treffer anzeigen ›",
+      "subtitleOf": "{{shown}} von {{total}} · Patch {{patch}}",
+      "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
+      "subtitleOfNoPatch": "{{shown}} von {{total}}",
+      "subtitleAllNoPatch": "{{shown}} Einträge"
     }
   },
   "blueprint": {

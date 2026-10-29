@@ -1,4 +1,4 @@
-# 3D asset package (ships, FPS weapons, ship items)
+# 3D asset package (ships, ground vehicles, FPS weapons, ship items, armor)
 
 A **ready-to-display** 3D package per entity, built at upload time by the
 Python extractor (`data-uploader/python/sc_extract/assets3d/`). The web only
@@ -21,6 +21,7 @@ root GLB (hull / weapon body) + shared part GLBs + optional interior GLB
 | `<ship_id>/package.json` | the manifest | ship |
 | `_fps/<WeaponClassName>/package.json` | FPS weapon manifest (root = weapon body in `_parts/`) | weapon class |
 | `_items/<ItemClassName>/package.json` | standalone ship-item manifest (root = the item's part in `_parts/`) | item class |
+| `_armor/<ClassName>/package.json` | armor / clothing manifest (root = the body in `_parts/`) | armor class |
 
 Uploaders (Wave 2) store blobs by sha256 and rewrite nothing: the manifest
 already refers to every GLB by sha256 (`root.sha256`, `interior.sha256`,
@@ -94,16 +95,52 @@ MissileLauncher, Missile, Torpedo, Bomb, BombLauncher, Shield, PowerPlant,
 Cooler, QuantumDrive, JumpDrive, Radar, QuantumInterdictionGenerator, EMP,
 TractorBeam, TowingBeam, SalvageHead, MiningModifier), geometry present.
 
+### Armor + clothing (`kind: "armor"`, `assets3d/armor.py`)
+
+Personal armor and clothing take the FPS-weapon path: the entity's geometry is
+a `.cdf` (skeleton `.chr` + `CA_SKIN` body meshes + `CA_BONE` pieces) or a plain
+`.cga`/`.cgf`, built into ONE content-addressed part by
+`fps.export_body` (`PartStore.export_composite`). Ports are the attachment slots
+of the record (`is_attachment_port`), placed from the `.chr` bones; no locator
+cross-check (`locators: null`).
+
+Which pieces (`armor.armor_classes`, default of `--armor`): any item record
+outside `scitem/ships|weapons|vehicles` and `…/dev/`, class name passing
+`_is_catalog_entity`, `AttachDef.Type` starting with `Char_Armor_` (Helmet,
+Torso, Arms, Legs, Undersuit, Backpack) or `Char_Clothing_`, geometry present in
+the P4K. The record folder is deliberately not hard-wired: the type is the rule.
+`entity.className` = `codex_items.class_name`. A piece whose `.cdf` has no
+convertible mesh is skipped with a warning (same as the 27 FPS weapons).
+Gendered/variant geometry: the first `SGeometryResourceParams` path is used.
+
+Upload: `ingest-skins` accepts `kind: "armor"` (table `asset_packages`, check
+widened in migration `20261029190000_uploader_kinds_widen.sql`). In the app the
+FPS / item / armor builds are switches under settings -> "3D models"
+(`pkgFps`, `pkgItems`, `pkgArmor`, off by default); main passes them to the
+export as `--fps` / `--items` / `--armor`.
+
+### Ground vehicles
+
+A ground vehicle is a `ship` package like any ship: `ship_discovery.ref_from_hull`
+accepts the spaceship root and the ground-vehicle roots
+(`ship_discovery.VEHICLE_ROOTS`: `Data/Objects/Spaceships/Ships`,
+`Data/Objects/GroundVehicles`, `Data/Objects/Vehicles`) and `ShipRef.root`
+carries the root through the skin build manifest (`skins/_build_manifest.json`,
+key `root`; absent = spaceships). The `ingest-skins` path is unchanged (ships
+are keyed by class name). Paints/livery lookup is by the `<root>/<MFR>/<Folder>/`
+shape; a ground vehicle without a base material is simply "barren" and listed as
+skipped.
+
 ### CLI
 
 ```
 python -m sc_extract.skin_export_app --p4k … --out … --converter … \
-    --fps [--weapon <class|glob> …] --items [--item <class|glob> …] [--max-packages N]
+    --fps [--weapon <class|glob> …] --items [--item <class|glob> …] \n    --armor [--armor-class <class|glob> …] [--max-packages N]
 ```
 
 Ship flags are independent (`--ship`/`--manifest` may be omitted). `--max-packages`
 caps each glob (or the whole kind when no filter is given). The `done` event
-gains `fpsPackages` / `itemPackages`: `[{className, manifestPath (relative to
+gains `fpsPackages` / `itemPackages` / `armorPackages`: `[{className, manifestPath (relative to
 --out), bytes (manifest), rootSha256, rootBytes, partBytes, parts, placements,
 withPart}]`; `packages` (dedup summary) counts every entity of the run.
 
@@ -111,7 +148,7 @@ Generic changes made for FPS (backwards compatible): `PartStore.export_composite
 + `parts.merge_glbs` (multi-mesh part), `PartStore._publish` (shared tail of
 `_build`), `datacore.port_types_with_subtypes` (port `types` now
 `Type.SubType` — ships' DataCore ports gain subtypes too, matching the
-vehicle-XML ports), manifest kind `item`.
+vehicle-XML ports), manifest kinds `item` and `armor`.
 
 ## Manifest (`schemaVersion: 1`)
 
@@ -121,7 +158,7 @@ both in step.
 
 | Field | Meaning |
 |---|---|
-| `kind` | `ship` \| `fps_weapon` \| `item` |
+| `kind` | `ship` \| `fps_weapon` \| `item` \| `armor` |
 | `coordinateSystem` | always `gltf-y-up-metres` |
 | `entity` | `{className, guid}` — DataCore class name + GUID: `codex_ships` / `codex_weapons` (FPS + ship guns) / `codex_components` / `codex_items` `.class_name` + `.guid` |
 | `root` | `{sha256, bytes, bounds{min,max}}` or null |

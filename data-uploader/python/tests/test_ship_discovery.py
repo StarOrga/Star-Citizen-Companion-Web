@@ -133,9 +133,9 @@ def test_ref_from_hull_derives_mfr_and_folder():
     assert ref.ship_id == "DRAK_Cutlass_Black"
 
 
-def test_ref_from_hull_returns_none_off_ships_root():
-    # ground vehicles / other meshes are not under the ships root
-    assert ref_from_hull("X", "Data/Objects/GroundVehicles/Foo/bar.cga") is None
+def test_ref_from_hull_returns_none_off_vehicle_roots():
+    # ground vehicles now resolve (see test_uploader_kinds); other meshes do not
+    assert ref_from_hull("X", "Data/Objects/Characters/Foo/bar.cga") is None
     assert ref_from_hull("X", "") is None
 
 

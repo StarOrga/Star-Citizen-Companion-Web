@@ -7,6 +7,7 @@ import { roleGuard } from './auth/role.guard';
 import { OVERLAY_ROUTE_DATA } from './core/overlay-route-scroll';
 import { shellBetaOn } from './core/layout/shell-beta.guard';
 import { hqSet } from './hq/hq-routes';
+import { fpsToBrowseParams } from './codex/codex-browse-params';
 
 // Guard policy (access-control design, 2026-08-05, supersedes #131): the app
 // is now a login wall by default — fail closed. `canActivateChild` on the
@@ -46,6 +47,24 @@ export function blueprintListRedirect({ queryParams }: { queryParams: Params }):
   const params: Params = { kind: 'blueprint' };
   if (queryParams['q']) params['q'] = queryParams['q'];
   return inject(Router).createUrlTree(['/codex/index'], { queryParams: params });
+}
+
+/**
+ * Bridge for the retired on-foot list (concept 2026-10-29, b3): /codex/fps is
+ * a preset of the one Codex browse page now. Old links and bookmarks keep
+ * working — `cat`, `slot` and the rest are translated (fpsToBrowseParams).
+ */
+export function fpsListRedirect({ queryParams }: { queryParams: Params }): UrlTree {
+  return inject(Router).createUrlTree(['/codex/index'], { queryParams: fpsToBrowseParams(queryParams) });
+}
+
+/**
+ * The set page's equip flow (`equipInto` + `equipSlot`) still needs the
+ * on-foot list with its equip controls, so only a plain browse is redirected.
+ */
+export function fpsEquipMode(): boolean {
+  const nav = inject(Router).currentNavigation();
+  return !!nav?.extractedUrl.queryParamMap.get('equipInto');
 }
 
 /**
@@ -199,7 +218,7 @@ export const routes: Routes = [
         path: 'codex/index',
         data: { layout: 'tool' },
         loadComponent: () =>
-          import('./codex/codex-list.component').then((m) => m.CodexListComponent),
+          import('./codex/codex-browse.component').then((m) => m.CodexBrowseComponent),
       },
       {
         // The standalone blueprint list is retired (AUD-061) — it duplicated
@@ -225,9 +244,16 @@ export const routes: Routes = [
         // Static segment placed BEFORE codex/:kind/:className so it is never
         // consumed by the :kind wildcard.
         path: 'codex/fps',
+        canMatch: [fpsEquipMode],
         data: { layout: 'tool' },
         loadComponent: () =>
           import('./codex/fps-list.component').then((m) => m.FpsListComponent),
+      },
+      {
+        // Plain browsing: a preset of the one Codex browse page (b3).
+        path: 'codex/fps',
+        pathMatch: 'full',
+        redirectTo: fpsListRedirect,
       },
       {
         // Keybindings reference — the complete default action profile for the
@@ -267,7 +293,7 @@ export const routes: Routes = [
         path: 'codex/upcoming',
         data: { layout: 'tool', category: 'upcoming' },
         loadComponent: () =>
-          import('./codex/codex-list.component').then((m) => m.CodexListComponent),
+          import('./codex/codex-browse.component').then((m) => m.CodexBrowseComponent),
       },
       {
         // One announced ship — the Codex's own page for a hull that has no

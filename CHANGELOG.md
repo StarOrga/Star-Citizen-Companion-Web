@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.178.0] - 2026-10-29
+
+### Added
+- Codex subpages are one search page: an area tree with counts, manufacturer, size and grade filters on the left, result rows with silhouettes on the right, and hits from other kinds below the list. Enter in the subheader search opens it.
+- Data uploader 0.64.0 builds silhouettes for every item and for ammunition, and 3D models for FPS weapons, ship items, armor and clothing (switchable in the settings) and ground vehicles.
+
+### Changed
+- Old /codex/fps and /codex/upcoming links open the new search page with their filters.
+- Results no longer show the raw class name, the size bar, the category chip rows or extra badges.
+
+### Fixed
+- CIG's placeholder "UNDEFINED" is stored as empty and never shown.
+
 ## [0.177.0] - 2026-10-29
 
 ### Added

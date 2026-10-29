@@ -56,6 +56,8 @@ export interface SkinExportRequest {
    * store as the ships, so a docked component and its item page share one GLB.
    */
   items?: boolean;
+  /** Also export every armor + clothing package (`--armor`, `_armor/<className>/package.json`). */
+  armor?: boolean;
   /** Ships built at once (`--workers`); resolved by main from the live speed profile. */
   workers?: number;
 }

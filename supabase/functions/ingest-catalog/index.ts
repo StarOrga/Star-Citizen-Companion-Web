@@ -82,6 +82,7 @@ import {
   pickNewest,
   sanitizeCandidates,
 } from './_constellation.ts';
+import { nullUndefinedPlaceholders } from './_placeholders.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -429,7 +430,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const rows = body.rows as unknown[];
       if (!CATALOG_TABLES.has(table)) return json({ error: 'invalid_body', message: 'bad table' }, 400);
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      const { error } = await admin.from(table).upsert(rows, { onConflict: NAT_CONFLICT });
+      // CIG's literal "UNDEFINED" type / sub_type is no value -> null.
+      const clean = rows.map(nullUndefinedPlaceholders);
+      const { error } = await admin.from(table).upsert(clean, { onConflict: NAT_CONFLICT });
       if (error) throw error;
       return json({ ok: true, upserted: rows.length });
     }

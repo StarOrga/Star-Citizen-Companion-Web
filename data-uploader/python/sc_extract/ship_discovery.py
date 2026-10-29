@@ -23,6 +23,11 @@ from typing import Dict, List, Optional
 from .hull3d import Paint, ShipSpec
 
 SHIPS_ROOT = "Data/Objects/Spaceships/Ships"
+# Mesh roots a vehicle hull can live under, same <root>/<MFR>/<Folder>/ shape.
+# Ground vehicles are NOT filed with the spaceships (see dataforge_extract
+# _VEHICLE_ROOT_RE for the matching DataCore record roots).
+GROUND_ROOTS = ("Data/Objects/GroundVehicles", "Data/Objects/Vehicles")
+VEHICLE_ROOTS = (SHIPS_ROOT,) + GROUND_ROOTS
 ICON_DIR = "Data/UI/SharedAssets/PaintColorLogos"
 
 # mtl name tokens that are sub-parts / states, never a sellable livery
@@ -46,6 +51,7 @@ class ShipRef:
     mfr: str            # "DRAK"
     ship: str           # ship folder, e.g. "Cutlass"
     series_token: str   # icon/localization token, e.g. "Cutlass"
+    root: str = SHIPS_ROOT   # mesh root the hull lives under (ships vs ground vehicles)
 
 
 class ShipDiscovery:
@@ -72,7 +78,7 @@ class ShipDiscovery:
         skins for every ship in a single extract run."""
         if self._indexed:
             return
-        root = SHIPS_ROOT.lower() + "/"
+        roots = tuple(r.lower() + "/" for r in VEHICLE_ROOTS)
         for i in self.infos:
             fn = i.filename.lower().replace("\\", "/")
             if "/paintcolorlogos/" in fn and fn.endswith(".dds") and ".dds." not in fn:
@@ -80,7 +86,8 @@ class ShipDiscovery:
                 if stem.startswith("paint_"):
                     series = stem[len("paint_"):].split("_", 1)[0]
                     self._icons_index.setdefault(series, []).append(i)
-            elif fn.startswith(root) and fn.endswith(".mtl"):
+            elif fn.startswith(roots) and fn.endswith(".mtl"):
+                root = next(r for r in roots if fn.startswith(r))
                 parts = fn[len(root):].split("/")
                 if len(parts) >= 2:
                     self._mtls_index.setdefault(f"{parts[0]}/{parts[1]}", []).append(i)
@@ -109,7 +116,7 @@ class ShipDiscovery:
     # ---- discovery --------------------------------------------------------
     def find_hull(self, ref: ShipRef) -> Optional[str]:
         """The whole-ship render mesh: exact <ShipId>.cga, else largest ship .cga."""
-        base = f"{SHIPS_ROOT}/{ref.mfr}/{ref.ship}".lower()
+        base = f"{ref.root}/{ref.mfr}/{ref.ship}".lower()
         exact = self._lower.get(f"{base}/{ref.ship_id}.cga".lower())
         if exact:
             return exact.filename
@@ -122,7 +129,7 @@ class ShipDiscovery:
         return cands[0].filename if cands else None
 
     def _ship_mtls(self, ref: ShipRef) -> List[str]:
-        base = f"{SHIPS_ROOT}/{ref.mfr}/{ref.ship}".lower()
+        base = f"{ref.root}/{ref.mfr}/{ref.ship}".lower()
         src = self._mtls_index.get(f"{ref.mfr}/{ref.ship}".lower(), []) if self._indexed else self.infos
         out = []
         for i in src:
@@ -325,20 +332,24 @@ class ShipDiscovery:
 
 def ref_from_hull(ship_id: str, hull_path: str) -> Optional[ShipRef]:
     """Build a ShipRef from a resolved hull mesh path
-    (``Data/Objects/Spaceships/Ships/<MFR>/<Ship>/...``). The series token —
-    used for the ``Paint_<series>_`` icon prefix and the
-    ``item_Name<series>_Paint_`` localization keys — defaults to the ship folder,
-    which matches the P4K convention for every ship verified so far. Returns
-    None when the path is not under the ships root (e.g. ground vehicles)."""
+    (``Data/Objects/Spaceships/Ships/<MFR>/<Ship>/...`` or the same shape under
+    a ground-vehicle root, see :data:`VEHICLE_ROOTS`). The series token — used
+    for the ``Paint_<series>_`` icon prefix and the
+    ``item_Name<series>_Paint_`` localization keys — defaults to the vehicle
+    folder, which matches the P4K convention for every ship verified so far.
+    Returns None when the path is under none of the vehicle roots."""
     if not hull_path:
         return None
-    low = hull_path.replace("\\", "/").lower()
-    marker = SHIPS_ROOT.lower() + "/"
-    idx = low.find(marker)
-    if idx == -1:
-        return None
-    rest = hull_path.replace("\\", "/")[idx + len(marker):].split("/")
-    if len(rest) < 2:
-        return None
-    mfr, ship = rest[0], rest[1]
-    return ShipRef(ship_id=ship_id, mfr=mfr, ship=ship, series_token=ship)
+    norm = hull_path.replace("\\", "/")
+    low = norm.lower()
+    for root in VEHICLE_ROOTS:
+        marker = root.lower() + "/"
+        idx = low.find(marker)
+        if idx == -1:
+            continue
+        rest = norm[idx + len(marker):].split("/")
+        if len(rest) < 2:
+            return None
+        mfr, ship = rest[0], rest[1]
+        return ShipRef(ship_id=ship_id, mfr=mfr, ship=ship, series_token=ship, root=root)
+    return None

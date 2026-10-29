@@ -42,7 +42,7 @@ export const LANDING_RAIL = [
   { key: 'ships', glyph: CATEGORY_GLYPH.ship, link: '/codex/index', query: { kind: 'ship' } },
   { key: 'components', glyph: CATEGORY_GLYPH.component, link: '/codex/index', query: { kind: 'component' } },
   { key: 'weapons', glyph: CATEGORY_GLYPH.fpsWeapon, link: '/codex/index', query: { kind: 'weapon', weaponClass: 'Ship' } },
-  { key: 'armor', glyph: CATEGORY_GLYPH.armor, link: '/codex/fps', query: { cat: 'armor' } },
+  { key: 'armor', glyph: CATEGORY_GLYPH.armor, link: '/codex/index', query: { kind: 'armor' } },
   { key: 'tools', glyph: CATEGORY_GLYPH.tool, link: '/codex/index', query: { kind: 'weapon', wg: 'ship', wsg: 'utility' } },
 ] as const;
 

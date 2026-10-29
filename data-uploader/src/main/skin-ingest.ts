@@ -381,6 +381,7 @@ export async function uploadSkins(
     for (const [kind, sub, label] of [
       ['fps_weapon', '_fps', 'FPS weapon'],
       ['item', '_items', 'Item'],
+      ['armor', '_armor', 'Armor'],
     ] as const) {
       const kindDir = resolve(root, sub);
       const classes = existsSync(kindDir)
