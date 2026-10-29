@@ -73,7 +73,7 @@ export const FILMSTRIP_MORE_QUERY = { kind: 'ship', sort: 'new' } as const;
       .toggle button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; border-radius: 999px; }
       .strip { flex: 1; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; overflow: hidden; }
       .fcard {
-        display: flex; align-items: baseline; gap: 8px; min-width: 0; min-height: 32px; padding: 6px 10px;
+        display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 32px; padding: 6px 10px;
         border: 1px solid var(--sc-border); border-radius: 5px; background: rgba(13, 38, 53, 0.75);
         color: var(--sc-fg-0); text-decoration: none;
       }
@@ -81,7 +81,12 @@ export const FILMSTRIP_MORE_QUERY = { kind: 'ship', sort: 'new' } as const;
       .fcard:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
       .fcard.on { border-color: var(--sc-accent); box-shadow: 0 0 0 1px var(--sc-accent) inset; }
       .fcard.rest { border-style: dashed; }
-      .fcard b { min-width: 0; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* Two lines: variants of one hull ("RSI Constellation Mk IV Andromeda / Taurus")
+         only differ at the end, which a one-line ellipsis cut off. */
+      .fcard b {
+        min-width: 0; font-size: 12px; font-weight: 600; line-height: 1.2; overflow: hidden;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere;
+      }
       .fcard span { flex: 0 1 auto; min-width: 0; font-size: 11px; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .fcard em {
         flex: 0 0 auto; padding: 0 5px; border-radius: 999px; border: 1px solid rgba(82, 193, 230, 0.6);
