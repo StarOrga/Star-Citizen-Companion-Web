@@ -8,6 +8,7 @@ import {
   verseFlightOf,
   verseFrameOf,
 } from './verse-world';
+import { Subscription } from 'rxjs';
 import { BetaService } from '../../core/beta.service';
 
 /** Upper bound of the frozen snapshot: past it the update callback settles regardless (slow chunk, lost router event). */
@@ -154,12 +155,12 @@ export class VerseFlight {
   private landed(dir: VerseFlightDirection, from: string, nameEl: (el: HTMLElement | null) => void): Promise<void> {
     return new Promise((done) => {
       let settled = false;
-      let sub: { unsubscribe(): void } | undefined;
+      const sub = new Subscription();
       const resolve = () => {
         if (settled) return;
         settled = true;
         clearTimeout(cap);
-        sub?.unsubscribe();
+        sub.unsubscribe();
         done();
       };
       const cap = setTimeout(resolve, LANDING_CAP_MS);
@@ -181,11 +182,11 @@ export class VerseFlight {
         land();
         return;
       }
-      sub = this.router.events.subscribe((e) => {
+      sub.add(this.router.events.subscribe((e) => {
         if (!(e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError || e instanceof NavigationSkipped)) return;
         if (e instanceof NavigationEnd) land();
         else resolve();
-      });
+      }));
     });
   }
 
