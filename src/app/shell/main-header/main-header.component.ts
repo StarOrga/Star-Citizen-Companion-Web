@@ -413,6 +413,63 @@ export const MAIN_NAV_SLOT_PX = 112;
           display: none;
         }
       }
+      /* Narrow phones: five equal slots cannot hold "Starscape" (a slot is ~58px
+         under the beta chip lane) and the wordmark ran under the account buttons.
+         The nav row takes the full width (the chip lane only guards the top row),
+         slots size to their label, the active one carries its own underline, and
+         the wordmark wraps. */
+      @media (max-width: 420px) {
+        :host {
+          grid-template-columns: minmax(0, 1fr) auto;
+          column-gap: var(--sc-space-2);
+        }
+        .row {
+          margin-inline-end: calc(var(--_x) - max(var(--_xr), var(--sc-chip-lane, 0px)));
+        }
+        .nav {
+          justify-content: space-between;
+        }
+        .slot {
+          position: relative;
+          width: auto;
+          flex: 0 1 auto;
+          padding-inline: 4px;
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          white-space: nowrap;
+        }
+        .ind {
+          display: none !important;
+        }
+        .slot.active::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          bottom: 2px;
+          width: 28px;
+          height: 2px;
+          border-radius: 2px;
+          transform: translateX(-50%);
+          background: var(--sc-accent);
+          box-shadow: 0 0 12px var(--sc-accent);
+        }
+        .slot.elevated.active::after {
+          background: var(--sc-accent-hot);
+          box-shadow: 0 0 12px var(--sc-accent-hot);
+        }
+        .brand {
+          min-width: 0;
+        }
+        .wordmark {
+          min-width: 0;
+          white-space: normal;
+        }
+        .title {
+          font-size: 11px;
+          letter-spacing: 0.1em;
+          line-height: 1.15;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         :host([data-ease]) {
           transition: none;
