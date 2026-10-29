@@ -1,0 +1,166 @@
+// Codex landing (concept 2026-10-29-codex-landing-neu, round 6): one viewport.
+// The landing measures its own page offset (--cx-top) and takes the rest of
+// the viewport above the frame's bottom padding; the shell's stage footer is
+// drawn over its last strip, so the filmstrip keeps clear of it.
+:host {
+  --cx-side: clamp(250px, 21vw, 330px);
+  --cx-gut: var(--sc-page-gutter);
+  --cx-film: 48px;
+  display: block;
+  color: var(--sc-fg-0);
+}
+
+.landing {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--cx-top, 0px) - var(--sc-space-6));
+  height: calc(100dvh - var(--cx-top, 0px) - var(--sc-space-6));
+  min-height: 560px;
+  // The stage footer (cinematic layout) lies over the bottom of the page.
+  padding-bottom: max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1)));
+  box-sizing: border-box;
+}
+:host(:not(.shell)) .landing {
+  height: calc(100dvh - var(--cx-top, 0px) - 32px);
+  padding-bottom: 0;
+}
+
+// ── Hero: Verse spacing; StageHeroDirective sets the height (CODEX_STAGE_TOP). ──
+.hero {
+  position: relative;
+  z-index: 6;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-inline: var(--cx-side);
+}
+.eyebrow {
+  margin: 0;
+  min-height: 1.4em;
+  font: 500 max(11px, 0.72rem) / 1.4 var(--sc-font-body);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--sc-accent);
+}
+.title {
+  margin: max(6px, 0.6vw) 0 0;
+  font: 500 clamp(26px, 3.2vw, 56px) / 1.1 var(--sc-font-display);
+  letter-spacing: 0.02em;
+  color: var(--sc-fg-0);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+}
+.search { width: min(640px, 100%); margin-top: var(--sc-space-5); }
+
+// ── Stage: centred on the page axis, between the side columns. ──
+.stage {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-inline: var(--cx-side);
+  margin-top: var(--sc-space-3);
+}
+.holotable { flex: 1 1 auto; min-height: 0; }
+.err, .empty {
+  position: absolute; left: var(--cx-side); right: var(--cx-side); top: 30%; z-index: 4;
+  margin: 0; text-align: center; font-size: 13px; color: var(--sc-fg-2);
+}
+.err {
+  padding: 14px; border: 1px solid var(--sc-danger); border-radius: 3px;
+  background: color-mix(in srgb, var(--sc-danger) 8%, var(--sc-bg-1)); color: var(--sc-fg-0);
+}
+.err p { margin: 0 0 8px; }
+
+// ── Side columns: card left, News + rail right, all from the hero's top edge. ──
+.card {
+  position: absolute;
+  z-index: 7;
+  left: var(--cx-gut);
+  top: var(--cx-hero-top, 0px);
+  bottom: calc(var(--cx-film) + var(--sc-space-3) + max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1))));
+  width: min(248px, var(--cx-side) - var(--cx-gut) - var(--sc-space-4));
+}
+:host(:not(.shell)) .card { bottom: calc(var(--cx-film) + var(--sc-space-3)); }
+.news {
+  position: absolute;
+  z-index: 8;
+  right: var(--cx-gut);
+  top: var(--cx-hero-top, 0px);
+}
+.rail {
+  position: absolute;
+  z-index: 3;
+  right: var(--cx-gut);
+  top: calc(var(--cx-hero-top, 0px) + 64px);
+  width: min(180px, var(--cx-side) - var(--cx-gut));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rail a {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-height: 36px; padding: 0 8px;
+  border-radius: 4px; text-decoration: none;
+  font: 600 max(10px, 0.62rem) var(--sc-font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2);
+}
+.rail a i {
+  width: 28px; height: 28px; flex: 0 0 auto; border-radius: 50%; border: 1px solid var(--sc-border);
+  display: grid; place-items: center; font-style: normal; font-size: 13px; color: var(--sc-fg-1); background: rgba(13, 38, 53, 0.7);
+}
+.rail a:hover, .rail a:focus-visible { color: var(--sc-fg-0); }
+.rail a:hover i, .rail a:focus-visible i { border-color: var(--sc-accent); color: var(--sc-accent); }
+.rail a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+.rail a.quiet {
+  margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--sc-border); border-radius: 0;
+  font: 11px var(--sc-font-body); letter-spacing: 0; text-transform: none; opacity: 0.85;
+}
+
+// ── Filmstrip row ──
+.film {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 var(--cx-film);
+  padding-inline: var(--cx-gut);
+}
+
+// Below ~1100px the side columns no longer fit beside the stage: the card and
+// rail stay, the stage gets the middle, the rail labels fold to their glyphs.
+@media (min-width: 721px) and (max-width: 1099px) {
+  :host { --cx-side: 210px; }
+  .rail { width: 44px; }
+  .rail a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .rail a.quiet { font-size: 0; }
+  .rail a.quiet span { position: static; width: auto; height: auto; clip: auto; font-size: 14px; }
+}
+
+// ── Phone: one column, still no page scroll. ──
+@media (max-width: 720px) {
+  :host { --cx-side: 0px; --cx-gut: 0px; }
+  // The bar sits at the thumb on phones: the landing ends above it and the stage
+  // takes whatever the column leaves (never a page scroll).
+  .landing {
+    height: calc(100vh - var(--cx-top, 0px) - var(--sc-bar-h) - var(--sc-space-3) - var(--sc-space-6));
+    height: calc(100dvh - var(--cx-top, 0px) - var(--sc-bar-h) - var(--sc-float-bottom, 0px) - var(--sc-space-3) - var(--sc-space-6));
+    min-height: 0;
+    padding-bottom: 0;
+    gap: var(--sc-space-2);
+  }
+  :host(:not(.shell)) .landing { height: auto; }
+  .hero { order: 1; padding-inline: 0; }
+  .title { font-size: 24px; }
+  .news, .card, .rail { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
+  .news { order: 0; align-self: flex-end; }
+  .stage { order: 2; flex: 1 1 auto; min-height: 150px; max-height: 260px; margin-top: 0; }
+  .card { order: 3; }
+  .rail {
+    order: 4; flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  }
+  .rail a { flex: 0 0 auto; min-height: 32px; padding: 0 10px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: 9px; }
+  .rail a i { display: none; }
+  .rail a.quiet { margin: 0; padding: 0 6px; border: 0; }
+  .film { order: 5; flex: 0 0 auto; }
+}

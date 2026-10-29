@@ -302,6 +302,91 @@
         "setupHangar": "Hangar einrichten",
         "searchShip": "Schiff im Codex suchen",
         "createSet": "FPS-Set anlegen"
+      },
+      "news": {
+        "button": "News",
+        "open": "Patch-Zusammenfassung {{patch}} öffnen",
+        "unread": "Neue Zusammenfassung",
+        "title": "Was {{patch}} verändert",
+        "source": "KI-Zusammenfassung",
+        "notes": "Patch-Notes bei CIG",
+        "notesOverview": "Alle Patch-Notes bei CIG"
+      },
+      "holo": {
+        "label": "Holotisch",
+        "open": "{{name}} öffnen",
+        "rotation": "Kategorie wählen",
+        "next": "Klick: weiter",
+        "hold": "Klick: halten",
+        "loading": "Holotisch lädt …",
+        "empty": "Für diesen Patch liegen noch keine Einträge vor.",
+        "newIn": "Neu"
+      },
+      "category": {
+        "ship": "Schiff",
+        "fpsWeapon": "FPS-Waffe",
+        "armor": "Rüstung",
+        "component": "Komponente",
+        "tool": "Werkzeug"
+      },
+      "card": {
+        "label": "Datenkarte",
+        "grow": "Karte vergrößern",
+        "shrink": "Karte verkleinern",
+        "flip": "Rückseite",
+        "flipLabel": "Karte umdrehen: Werte und Lackierungen",
+        "front": "Vorderseite",
+        "frontLabel": "Karte umdrehen: Bild",
+        "render": "RSI-Render",
+        "standard": "Standard",
+        "paintOf": "{{index}} von {{count}} Lackierungen",
+        "paints": "Lackierungen",
+        "morePaints": "Alle {{count}} Lackierungen zeigen",
+        "fewer": "Weniger",
+        "isNew": "neu",
+        "values": "Werte"
+      },
+      "value": {
+        "flight": {
+          "scmSpeed": "SCM-Tempo",
+          "maxSpeed": "Höchsttempo"
+        },
+        "hull": {
+          "hp": "Rumpf",
+          "mass": "Masse"
+        },
+        "armorHp": "Panzerung",
+        "cargoScu": "Fracht",
+        "crew": {
+          "size": "Crew"
+        }
+      },
+      "overview": {
+        "role": "Rolle",
+        "size": "Größe",
+        "manufacturer": "Hersteller",
+        "type": "Typ",
+        "part": "Teil",
+        "class": "Klasse"
+      },
+      "film": {
+        "label": "Schiffe",
+        "newReady": "Neu & flight-ready",
+        "announced": "Angekündigt",
+        "more": "+ {{count}} weitere",
+        "moreReady": "flight-ready",
+        "moreAnnounced": "angekündigt",
+        "isNew": "neu",
+        "empty": "Keine Schiffe in dieser Liste."
+      },
+      "rail": {
+        "label": "Kategorien",
+        "ships": "Schiffe",
+        "components": "Komponenten",
+        "weapons": "Waffen",
+        "armor": "Rüstung",
+        "tools": "Werkzeuge",
+        "keybinds": "Tastenbelegungen"
       }
     },
     "index": {
@@ -4584,7 +4669,13 @@
       "openCodex": "Im Codex ansehen",
       "recentShips": "Zuletzt gewählte Schiffe",
       "recentSets": "Zuletzt gewählte Sets",
-      "loadFailed": "Dein HQ konnte nicht geladen werden."
+      "loadFailed": "Dein HQ konnte nicht geladen werden.",
+      "fleetPatch": {
+        "title": "Deine Flotte im Patch",
+        "soon": "bald",
+        "mock": "3 deiner Schiffe wurden in 4.3.1 verändert",
+        "hint": "Vorschau: Bald siehst du hier, welche deiner Schiffe der aktuelle Patch berührt hat."
+      }
     },
     "locker": {
       "title": "Spind",
@@ -5153,8 +5244,16 @@
     "removeFilter": "Filter entfernen: {{name}}",
     "moreFilters": "{{count}} weitere Filter anzeigen",
     "hits": "{{count}} Treffer",
-    "demo": {"ship": "Gladius", "patch": "Patch 4.10.2", "item": "Laser-Repeater"},
-    "filter": {"variants": "Varianten", "options": "Optionen", "weaponGroup": "Waffengruppe"},
+    "demo": {
+      "ship": "Gladius",
+      "patch": "Patch 4.10.2",
+      "item": "Laser-Repeater"
+    },
+    "filter": {
+      "variants": "Varianten",
+      "options": "Optionen",
+      "weaponGroup": "Waffengruppe"
+    },
     "navAria": "Hauptbereiche",
     "areaMenu": "Bereich wechseln — jetzt: {{area}}",
     "home": "Startseite",

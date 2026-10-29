@@ -1,7 +1,71 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.171.1",
+  "current": "0.172.0",
   "releases": [
+    {
+      "version": "0.172.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Subheader shows \"Star Citizen Companion\" with a mini breadcrumb; the search has a clear button, opens with Ctrl/⌘+K everywhere and collapses to a magnifier on phones."
+            },
+            {
+              "title": "",
+              "text": "Verse gallery filters: All, Newest, Community Top and My votes, with automatic loading while scrolling."
+            },
+            {
+              "title": "",
+              "text": "One shared image popup: controls on hover, ‹ › and arrow keys, full screen, download and RSI link."
+            },
+            {
+              "title": "",
+              "text": "Apps menu offers every channel your role may use (alpha marked admin-only)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page: news accordion reacts as soon as the pointer rests and stays open, news newest first, no empty gallery tiles, no veil behind the columns, hero title at most two lines, planets aligned with the subheader."
+            },
+            {
+              "title": "",
+              "text": "Verse subpages (news, patches, gallery) are exactly as wide as the subheader."
+            },
+            {
+              "title": "",
+              "text": "Header controls share one centre line; subheader keeps the same top gap as the header."
+            },
+            {
+              "title": "",
+              "text": "Footer looks the same on every page; the community badge lost its pill background."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Browser Back/Forward on image, news and patch overlays no longer loses the popup or lands on a phantom page."
+            },
+            {
+              "title": "",
+              "text": "Phone header wordmark truncates instead of running under the avatar."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.171.1",
       "date": "2026-10-29",

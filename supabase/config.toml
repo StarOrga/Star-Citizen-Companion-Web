@@ -200,3 +200,12 @@ policy = "oneshot"
 # self-throttles to one run per 5 min, so the public URL cannot be abused to
 # hammer the upstream API.
 verify_jwt = false
+
+[functions.codex-patch-summary]
+# Service-role only: ingest-catalog `finalize` calls it with the service key
+# (own check in index.ts), so the platform JWT gate must stay off.
+verify_jwt = false
+
+[functions.rsi-paints-sync]
+# Service-role only crawler (own check in index.ts); no user JWT involved.
+verify_jwt = false

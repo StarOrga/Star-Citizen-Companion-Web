@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.173.0] - 2026-10-29
+
+### Added
+- Codex landing rebuilt as a holotable: the newest flight-ready ship, FPS weapon, armor, component and tool rotate on the table, with a data card that enlarges and flips to key values and RSI paints.
+- Filmstrip of new and announced ships; "+N more" opens the index sorted by newest.
+- Patch news on the Codex: three AI trend lines per game build, with an unread dot that follows your account.
+- HQ overview now hosts the spotlight stage and a "Your fleet in this patch" placeholder.
+
+### Changed
+- The Codex search field sits higher on the landing to give the hologram room.
+
+### Fixed
+- The search panel no longer runs past the bottom of the screen under a low search field.
+- On narrow phones the header nav and wordmark no longer overlap the account buttons.
+- The large search field sits exactly on the page's centre line.
+
 ## [0.172.0] - 2026-10-29
 
 ### Added

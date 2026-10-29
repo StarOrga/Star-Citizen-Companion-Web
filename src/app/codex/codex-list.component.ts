@@ -1,4 +1,5 @@
 import { rankBySearch } from './codex-search';
+import { CodexBuildDiffService } from './codex-build-diff.service';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -7,6 +8,7 @@ import {
   DestroyRef,
   computed,
   effect,
+  Injector,
   inject,
   signal,
   untracked,
@@ -745,6 +747,13 @@ export class CodexListComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly rsi = inject(UpcomingShipsService);
   private readonly route = inject(ActivatedRoute);
+  private readonly injector = inject(Injector);
+  /**
+   * `?sort=new` (the Codex landing's "+ N weitere" tile): ships new in this
+   * patch first, newest first; the rest keeps the server's alphabetical order.
+   */
+  readonly sortNew = signal(false);
+  private readonly newShipOrder = signal<ReadonlyMap<string, number>>(new Map());
   private readonly router = inject(Router);
   private readonly location = inject(Location);
 
@@ -988,8 +997,16 @@ export class CodexListComponent implements OnInit {
     // The server answers alphabetically; a search puts the exact and prefix
     // matches first ("gladius" → Gladius before Gladius Valiant before a
     // Pirate edition), the server order breaking ties.
-    return this.rankFirstPage(rows);
+    return this.newFirst(this.rankFirstPage(rows));
   });
+
+  /** Stable: new-this-patch ships move to the front in diff order, nothing else moves. */
+  private newFirst<T extends CodexGridRow>(rows: T[]): T[] {
+    const order = this.newShipOrder();
+    if (!this.sortNew() || !order.size) return rows;
+    const rank = (r: T) => order.get(r.classNameSlug) ?? Number.MAX_SAFE_INTEGER;
+    return rows.map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map((e) => e.r);
+  }
 
   /**
    * Relevance order for the FIRST page only; later pages append in server
@@ -1500,6 +1517,14 @@ export class CodexListComponent implements OnInit {
     }
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
     if (q.get('v') === '1') this.includeVariants.set(true);
+    this.sortNew.set(this.kind() === 'ship' && q.get('sort') === 'new');
+    if (this.sortNew()) {
+      void this.injector
+        .get(CodexBuildDiffService)
+        .addedShipsMemo()
+        .then((added) => this.newShipOrder.set(new Map(added.map((r, i) => [r.classNameSlug, i]))))
+        .catch(() => this.newShipOrder.set(new Map()));
+    }
   }
 
   /** Facet source for the blueprint kind. Advisory — a failure just hides it. */

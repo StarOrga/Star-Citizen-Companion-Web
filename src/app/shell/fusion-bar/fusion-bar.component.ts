@@ -742,8 +742,11 @@ export class FusionBarComponent {
     const a = anchor.getBoundingClientRect();
     const h = el.getBoundingClientRect();
     // Centred on the viewport with the slot's (viewport-derived) width: the same x and width
-    // on every main page, whatever column the page puts its slot in.
-    const vw = document.documentElement.clientWidth;
+    // on every main page, whatever column the page puts its slot in. The body's width, not
+    // documentElement.clientWidth: with `scrollbar-gutter: stable` and no scrollbar showing,
+    // Blink still counts the reserved gutter in clientWidth, which put the field half a
+    // gutter (5px) right of the page axis.
+    const vw = document.body.getBoundingClientRect().width;
     const w = Math.round(a.width);
     setVar(el, '--_st-top', `${Math.round(a.top - h.top)}px`);
     setVar(el, '--_st-left', `${Math.round((vw - w) / 2 - h.left)}px`);

@@ -623,6 +623,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
       const { error } = await admin.rpc('set_current_codex_build', { p_build_id: buildId });
       if (error) throw error;
+      // KI patch summary, once per build (idempotent, graceful - a failure only
+      // leaves the News button hidden). Fire-and-forget after the response.
+      afterResponse(
+        fetch(`${supabaseUrl}/functions/v1/codex-patch-summary`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${serviceKey}` },
+          body: JSON.stringify({ build_id: buildId }),
+        })
+          .then(async (r) => console.log(`ingest-catalog: patch summary ${buildId}: ${r.status} ${(await r.text()).slice(0, 120)}`))
+          .catch((e) => console.error(`ingest-catalog: patch summary ${buildId} failed: ${(e as Error).message}`)),
+      );
       const r2 = r2FromEnv((k) => Deno.env.get(k));
       if (!r2) return json({ ok: true, current: true, locale_publish: 'r2_not_configured' });
       // After the response: the uploader's finalize must not wait ~30 s for

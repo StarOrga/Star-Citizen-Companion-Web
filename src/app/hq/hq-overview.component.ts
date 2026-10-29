@@ -9,6 +9,7 @@ import { HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 import { StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
+import { HqSpotStageComponent } from './hq-spot-stage.component';
 import { HqOwnershipService } from './hq-ownership.service';
 import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } from './hq-routes';
 
@@ -25,7 +26,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
 @Component({
   selector: 'sc-hq-overview',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective, StageHeroDirective],
+  imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective, StageHeroDirective, HqSpotStageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- The main page hero (beta shell): eyebrow · title · stage slot, centred, the slot
@@ -44,6 +45,8 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
         <button type="button" class="sc-btn small" (click)="retry()">{{ 'errors.retry' | translate }}</button>
       </div>
     }
+
+    <sc-hq-spot-stage />
 
     <div class="grid">
       <section class="sc-card tile" aria-labelledby="hq-ov-ship">
@@ -106,6 +109,16 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
         <h2 id="hq-ov-supplies" class="tile-eyebrow">{{ 'hq.overview.suppliesPreview' | translate }}</h2>
         <p class="hint">{{ 'hq.overview.suppliesEmpty' | translate }}</p>
       </section>
+
+      <!-- Placeholder: static mock, no logic yet (concept 2026-10-29). -->
+      <section class="sc-card tile tile--soon" aria-labelledby="hq-ov-patch">
+        <h2 id="hq-ov-patch" class="tile-eyebrow">
+          {{ 'hq.overview.fleetPatch.title' | translate }}
+          <span class="soon-tag">{{ 'hq.overview.fleetPatch.soon' | translate }}</span>
+        </h2>
+        <strong class="tile-title">{{ 'hq.overview.fleetPatch.mock' | translate }}</strong>
+        <p class="hint">{{ 'hq.overview.fleetPatch.hint' | translate }}</p>
+      </section>
     </div>
   `,
   styles: [
@@ -130,6 +143,16 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
       .tile-main:focus-visible, .tile-link:focus-visible, .chip:focus-visible {
         outline: 2px solid var(--sc-accent);
         outline-offset: 2px;
+      }
+      .tile--soon { border-style: dashed; }
+      .soon-tag {
+        margin-left: 8px;
+        padding: 1px 8px;
+        border: 1px solid var(--sc-border);
+        border-radius: 999px;
+        font-size: max(0.7rem, var(--sc-fs-floor));
+        letter-spacing: 0.08em;
+        color: var(--sc-accent);
       }
       .hint { margin: 0; color: var(--sc-fg-2); }
       .chips { display: flex; flex-wrap: wrap; gap: 6px; }
