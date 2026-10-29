@@ -1,7 +1,63 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.172.0",
+  "current": "0.173.0",
   "releases": [
+    {
+      "version": "0.173.0",
+      "date": "2026-10-29",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing rebuilt as a holotable: the newest flight-ready ship, FPS weapon, armor, component and tool rotate on the table, with a data card that enlarges and flips to key values and RSI paints."
+            },
+            {
+              "title": "",
+              "text": "Filmstrip of new and announced ships; \"+N more\" opens the index sorted by newest."
+            },
+            {
+              "title": "",
+              "text": "Patch news on the Codex: three AI trend lines per game build, with an unread dot that follows your account."
+            },
+            {
+              "title": "",
+              "text": "HQ overview now hosts the spotlight stage and a \"Your fleet in this patch\" placeholder."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Codex search field sits higher on the landing to give the hologram room."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The search panel no longer runs past the bottom of the screen under a low search field."
+            },
+            {
+              "title": "",
+              "text": "On narrow phones the header nav and wordmark no longer overlap the account buttons."
+            },
+            {
+              "title": "",
+              "text": "The large search field sits exactly on the page's centre line."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.172.0",
       "date": "2026-10-29",

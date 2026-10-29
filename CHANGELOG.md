@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.174.0] - 2026-10-29
+
+### Added
+- AI translation pipeline for game strings (global.ini) via the Claude Batch API: delta-only per data upload, off by default, 20 $ per upload and 190 $ per month caps, admin approval for every language beyond German and for any full run.
+- Admin page "Übersetzungen" (/admin/translations): enable switch, caps, language approvals, jobs with approve/cancel, and a glossary editor with search, filters, lock, retranslate and history with undo.
+- Edge functions `translate-orchestrator` (pg_cron tick every 10 min) and `translation-overlay` (signed-in download of the translation overlay).
+- Data uploader sends the game's `build_manifest.id` with every catalog upload.
+- Live-test kit `scripts/localization-live-test/` for checking in-game language switching.
+
+### Changed
+- `ingest-catalog` keeps every game language in the R2 locale publish instead of German and English only.
+
 ## [0.173.0] - 2026-10-29
 
 ### Added

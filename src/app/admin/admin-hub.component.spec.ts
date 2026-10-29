@@ -16,6 +16,7 @@ describe('AdminHubComponent', () => {
       '/admin',
       '/admin/telemetry',
       '/admin/feedback',
+      '/admin/translations',
       '/admin/api-tokens',
       '/uploader',
     ]);

@@ -1186,7 +1186,13 @@ ipcMain.handle('sc:silhouette:cancel', (_e, jobId: string) => {
 // out_dir still exists. Streams per-table progress to the renderer.
 ipcMain.handle(
   'sc:catalog:upload',
-  async (event, accessToken: string, outDir: string, skipPhases: string[] = []): Promise<CatalogUploadResult> => {
+  async (
+    event,
+    accessToken: string,
+    outDir: string,
+    skipPhases: string[] = [],
+    p4kPath: string | null = null,
+  ): Promise<CatalogUploadResult> => {
     try {
       // Phases of subthemes the server already holds for this build (see
       // lib/subthemes.ts) count as done: sent nothing, cleared nothing.
@@ -1207,7 +1213,11 @@ ipcMain.handle(
           hub.update('upload', p.phase, pct);
           event.sender.send('sc:catalog:event', p);
         },
-        { ...hooks, donePhases: [...(hooks.donePhases ?? []), ...skip] },
+        {
+          ...hooks,
+          donePhases: [...(hooks.donePhases ?? []), ...skip],
+          p4kPath: typeof p4kPath === 'string' && p4kPath.length < 1024 ? p4kPath : null,
+        },
       );
       if (result.ok) uploadJob.update((s) => ({ ...s, catalog: { ...s.catalog, status: 'done' } }));
       return result;
