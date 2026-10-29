@@ -92,6 +92,15 @@ FNV-1a of the key, everything smaller lands in hashed `_misc-<n>` shards. The
 index stores the split, so a client computes a key's shard with no extra
 lookup. Keybinds then loads ~3 shards per language.
 
+**All languages (since 2026-10-29).** ingest-catalog no longer filters to de/en:
+every language the uploader sends reaches the staging table and the R2 publish
+(the translation pipeline needs English as source and CIG's own tables as
+memory; `docs/translation/ARCHITECTURE.md`). The numbers above already counted
+11 languages per build (~323k rows, ~95 MB staging while an ingest runs), so
+the budget is unchanged; the staging rows are deleted after a verified publish.
+After a verified publish, if `translation_settings.enabled`, it also opens
+`translation_jobs` per approved language and pokes `translate-orchestrator`.
+
 **Write path.** The uploader is unchanged: it still sends row chunks
 (`locale_strings` op), so the table stays the staging area of a running
 ingest (~95 MB for one build while it runs). After `finalize` answers,

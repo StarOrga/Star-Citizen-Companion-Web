@@ -39,6 +39,9 @@
 //         build id is no longer in codex_builds, i.e. pruned builds. Send
 //         dry_run:false to delete. See _locale-gc.ts for the safety rules.)
 //
+// ALL languages are staged and published (translation pipeline, docs/translation/);
+// after a VERIFIED publish enabled translation opens jobs (_translation-enqueue.ts).
+//
 // LOCALIZATION STRINGS live in R2 since 2026-10-03 (storage plan): the
 // `locale_strings` rows are only the staging area of a running ingest. See
 // _locale-shards.ts for the layout and _locale-publish.ts for the order of steps.
@@ -68,6 +71,7 @@ import { bucketBytes, deleteObject, listObjects, putObject, r2FromEnv, readUsage
 import { usageGate } from '../ingest-skins/_r2-usage.ts';
 import { BUILD_ID_RE, LANG_RE } from './_locale-shards.ts';
 import { publishLocale } from './_locale-publish.ts';
+import { enqueueTranslationJobs } from './_translation-enqueue.ts';
 import { gcLocalePrefixes } from './_locale-gc.ts';
 import {
   type ConstellationRow,
@@ -161,8 +165,6 @@ type R2 = NonNullable<ReturnType<typeof r2FromEnv>>;
 type Admin = ReturnType<typeof createClient>;
 /** Rows per export/delete RPC — ~1-2 s each, measured 2026-10-03. */
 const LOCALE_PAGE = 20_000;
-/** Languages the web app reads (src/app/codex/codex.types.ts `Lang`). */
-const READ_LANGS = new Set(['de', 'en']);
 
 /** Public read path the publish verifies against (cloudflare/assets-worker). */
 function assetsPublicBase(): string {
@@ -262,6 +264,50 @@ async function publishBuildLocales(
   return results;
 }
 
+/**
+ * Verified publish -> translation jobs (docs/translation/ARCHITECTURE.md).
+ * Fire-and-forget: logs, never throws, never fails the ingest.
+ */
+async function translationAfterPublish(
+  admin: Admin,
+  supabaseUrl: string,
+  serviceKey: string,
+  buildId: string,
+  results: PublishResult[],
+): Promise<void> {
+  const r = await enqueueTranslationJobs(
+    {
+      async isEnabled() {
+        const { data, error } = await admin.from('translation_settings').select('enabled').eq('id', 1).maybeSingle();
+        if (error) throw error;
+        return (data as { enabled?: boolean } | null)?.enabled === true;
+      },
+      async approvedLangs() {
+        const { data, error } = await admin.from('translation_languages').select('lang').eq('approved', true);
+        if (error) throw error;
+        return ((data ?? []) as { lang: string }[]).map((x) => x.lang);
+      },
+      async insertJobs(rows) {
+        const { error } = await admin
+          .from('translation_jobs')
+          .upsert(rows, { onConflict: 'build_id,lang', ignoreDuplicates: true });
+        if (error) throw error;
+      },
+    },
+    buildId,
+    results.map((x) => ({ lang: x.lang, verified: x.verified })),
+    async () => {
+      const res = await fetch(`${supabaseUrl}/functions/v1/translate-orchestrator`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify({ op: 'tick' }),
+      });
+      console.log(`ingest-catalog: translate tick ${buildId}: ${res.status}`);
+    },
+  );
+  console.log(`ingest-catalog: translation ${buildId}: ${JSON.stringify(r)}`);
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -350,6 +396,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
             tool_version: b.tool_version ?? null,
             entity_counts: b.entity_counts ?? {},
             manifest: b.manifest ?? {},
+            // The game's build_manifest.id (uploader); absent -> keep what is stored.
+            ...(b.game_build_manifest && typeof b.game_build_manifest === 'object' && !Array.isArray(b.game_build_manifest)
+              ? { game_build_manifest: b.game_build_manifest }
+              : {}),
             extracted_at: new Date().toISOString(),
           },
           { onConflict: 'channel,patch_version,build_number' },
@@ -410,16 +460,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'locale_strings') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      // The app reads de + en only; other languages would just inflate the
-      // staging table and the R2 publish.
-      const kept = rows.filter((r) => READ_LANGS.has(String((r as { lang?: unknown })?.lang ?? '')));
-      if (kept.length > 0) {
-        const { error } = await admin
-          .from('codex_locale_strings')
-          .upsert(kept, { onConflict: 'build_id,lang,key' });
-        if (error) throw error;
-      }
-      return json({ ok: true, upserted: kept.length, skipped: rows.length - kept.length });
+      // ALL languages are kept (since the translation pipeline): English is the
+      // source and CIG's own tables are translation memory / few-shot context.
+      const { error } = await admin
+        .from('codex_locale_strings')
+        .upsert(rows, { onConflict: 'build_id,lang,key' });
+      if (error) throw error;
+      return json({ ok: true, upserted: rows.length });
     }
 
     if (op === 'preview') {
@@ -641,7 +688,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // reading them); locale_publish or the backfill script can redo it.
       afterResponse(
         publishBuildLocales(admin, r2, buildId, null, true)
-          .then((results) => console.log(`ingest-catalog: locale publish ${buildId}: ${JSON.stringify(results)}`))
+          .then(async (results) => {
+            console.log(`ingest-catalog: locale publish ${buildId}: ${JSON.stringify(results)}`);
+            await translationAfterPublish(admin, supabaseUrl, serviceKey, buildId, results);
+          })
           .catch((e) => console.error(`ingest-catalog: locale publish ${buildId} failed: ${(e as Error).message}`)),
       );
       return json({ ok: true, current: true, locale_publish: 'started' });
@@ -658,6 +708,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const blocked = await r2WriteBlocked(r2);
       if (blocked) return json({ error: blocked.code, message: blocked.message }, blocked.status);
       const results = await publishBuildLocales(admin, r2, buildId, lang ? [lang] : null, body.delete_source === true, true);
+      // A full redo (no lang) may enqueue too; idempotent per (build_id, lang).
+      if (!lang) afterResponse(translationAfterPublish(admin, supabaseUrl, serviceKey, buildId, results));
       return json({ ok: true, results });
     }
 
