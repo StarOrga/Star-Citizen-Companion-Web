@@ -66,6 +66,29 @@ export function pickNewest(candidates: readonly string[], previous: ReadonlySet<
   return candidates[0];
 }
 
+/** Display name used to spot the same ship listed under two class names. */
+function nameKey(r: Pick<CodexListRow, 'nameLocalized' | 'classNameSlug'>): string {
+  return (r.nameLocalized ?? r.classNameSlug).trim().toLowerCase();
+}
+
+const DISPLAY_COPY = /_Display$/i;
+
+/**
+ * One row per display name, first-occurrence order. The catalog carries showroom
+ * copies (<Ship>_Display: same name, no hull skins) next to the flyable ship;
+ * the flyable row represents the group, so the holotable finds its 3D hull and
+ * the filmstrip does not show the ship twice.
+ */
+export function dedupeByName<T extends Pick<CodexListRow, 'nameLocalized' | 'classNameSlug'>>(rows: readonly T[]): T[] {
+  const best = new Map<string, T>();
+  for (const r of rows) {
+    const k = nameKey(r);
+    const cur = best.get(k);
+    if (!cur || (DISPLAY_COPY.test(cur.classNameSlug) && !DISPLAY_COPY.test(r.classNameSlug))) best.set(k, r);
+  }
+  return [...best.values()];
+}
+
 const SHIP_VALUES: readonly { path: string; unit: LandingValue['unit'] }[] = [
   { path: 'flight.scmSpeed', unit: 'm/s' },
   { path: 'flight.maxSpeed', unit: 'm/s' },
@@ -277,7 +300,7 @@ export class CodexLandingDataService {
 
   private async loadNewest(category: LandingCategory): Promise<LandingItem | null> {
     const kind = KIND_OF[category];
-    const rows = (await this.candidates(category)).filter((r) => !r.isVariant);
+    const rows = dedupeByName((await this.candidates(category)).filter((r) => !r.isVariant));
     const previous = category === 'ship' ? null : await this.previousClassNames(kind);
     const className = pickNewest(rows.map((r) => r.classNameSlug), previous);
     if (!className) return null;
@@ -362,15 +385,11 @@ export class CodexLandingDataService {
     try {
       const added = await this.diff.addedShipsMemo();
       const rest = await this.codex.listByKind('ship', { limit: CANDIDATE_LIMIT });
-      const seen = new Set<string>();
-      const ordered: { row: CodexListRow; isNew: boolean }[] = [];
-      for (const [rows, isNew] of [[added, true], [rest.rows, false]] as const) {
-        for (const row of rows) {
-          if (row.isVariant || seen.has(row.classNameSlug)) continue;
-          seen.add(row.classNameSlug);
-          ordered.push({ row, isNew });
-        }
-      }
+      const newNames = new Set(added.map(nameKey));
+      const ordered = dedupeByName([...added, ...rest.rows].filter((r) => !r.isVariant)).map((row) => ({
+        row,
+        isNew: newNames.has(nameKey(row)),
+      }));
       const total = Math.max(rest.count, ordered.length);
       const lang = toLang(this.translate.getCurrentLang() || this.translate.getFallbackLang());
       await this.upcoming.ensureLoaded().catch(() => undefined);

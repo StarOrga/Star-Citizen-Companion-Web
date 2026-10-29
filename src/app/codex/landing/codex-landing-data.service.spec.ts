@@ -1,5 +1,6 @@
 import { LandingPaint } from './codex-landing-data.types';
 import {
+  dedupeByName,
   isNewPaint,
   overviewFor,
   paintRecency,
@@ -75,5 +76,19 @@ describe('codex-landing-data pure helpers', () => {
     expect(pickPatchThread(groups, '4.4.0')).toEqual({ url: 'https://rsi/440ptu', exact: true });
     expect(pickPatchThread(groups, '4.4.2')).toEqual({ url: 'https://rsi/441', exact: false });
     expect(pickPatchThread(groups, '4.5.0')).toBeNull();
+  });
+});
+
+describe('dedupeByName', () => {
+  const r = (classNameSlug: string, nameLocalized: string | null) => ({ classNameSlug, nameLocalized });
+
+  it('keeps the flyable row of a showroom copy, in first-occurrence position', () => {
+    const rows = [r('A_Display', 'Alpha'), r('B', 'Beta'), r('A', 'Alpha')];
+    expect(dedupeByName(rows).map((x) => x.classNameSlug)).toEqual(['A', 'B']);
+  });
+
+  it('keeps distinct names and rows without a name', () => {
+    const rows = [r('X', null), r('Y', null), r('Z', 'Zed')];
+    expect(dedupeByName(rows).length).toBe(3);
   });
 });
