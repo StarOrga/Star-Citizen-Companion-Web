@@ -163,7 +163,8 @@ export class VerseFlight {
         sub.unsubscribe();
         done();
       };
-      const cap = setTimeout(resolve, LANDING_CAP_MS);
+      // Outside the zone: a pending safety timer must not hold the app unstable for 3 s.
+      const cap = this.zone.runOutsideAngular(() => setTimeout(() => this.zone.run(resolve), LANDING_CAP_MS));
       const land = () =>
         afterNextRender(
           {
