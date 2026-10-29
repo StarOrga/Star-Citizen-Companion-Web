@@ -20,7 +20,7 @@ export function inAsteroidZone(x: number, y: number, vw: number, stage: DOMRect)
 }
 
 /** Anything the reader can actually use: a click there is never the egg. */
-const INTERACTIVE = 'a, button, input, textarea, select, label, [role="button"], [tabindex], [contenteditable]';
+const INTERACTIVE = 'a, button, input, textarea, select, label, [role="button"], [tabindex]:not([tabindex="-1"]), [contenteditable]';
 
 /** Reduced-motion check; a field so specs can swap it. */
 function reducedMotion(): boolean {
@@ -199,8 +199,9 @@ export class BriefingAsteroidComponent {
   }
 
   private hit(e: MouseEvent, stage: HTMLElement): boolean {
-    const target = e.target instanceof Element ? e.target : null;
-    if (target?.closest(INTERACTIVE)) return false;
+    // Only controls inside the stage count: the page frame around it (<main tabindex="-1">) is no control.
+    const control = e.target instanceof Element ? e.target.closest(INTERACTIVE) : null;
+    if (control && stage.contains(control)) return false;
     return inAsteroidZone(e.clientX, e.clientY, window.innerWidth, stage.getBoundingClientRect());
   }
 

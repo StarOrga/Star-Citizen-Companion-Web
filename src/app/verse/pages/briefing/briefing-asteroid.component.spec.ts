@@ -32,7 +32,10 @@ describe('briefing asteroid', () => {
     expect(egg.path()).toBeNull();
 
     egg.reducedMotion = () => false;
-    const el = document.createElement('div');
+    // The real stage sits in the shell's <main tabindex="-1">: that frame must not count as a control.
+    const frame = document.createElement('main');
+    frame.tabIndex = -1;
+    const el = frame.appendChild(document.createElement('div'));
     spyOn(el, 'getBoundingClientRect').and.returnValue({ top: 0, height: window.innerHeight } as DOMRect);
     const tap = (t: number): void =>
       egg.tap({ button: 0, timeStamp: t, clientX: window.innerWidth * 0.18, clientY: window.innerHeight * 0.25, target: el } as unknown as PointerEvent, el);
