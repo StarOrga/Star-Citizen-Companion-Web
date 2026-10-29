@@ -105,7 +105,7 @@ describe('ShellComponent condensed header', () => {
     fixture.detectChanges();
 
     expect(button().getAttribute('aria-expanded')).toBe('true');
-    expect(items().map((a) => a.getAttribute('href'))).toEqual(['/admin', '/admin/telemetry']);
+    expect(items().map((a) => a.getAttribute('href'))).toEqual(['/admin', '/admin/telemetry', '/admin/translations']);
     expect(items().every((a) => a.classList.contains('elevated') && a.getAttribute('role') === 'menuitem')).toBeTrue();
     expect(items().every((a) => a.querySelector('.di-tag')?.textContent?.trim() === 'nav.adminOnly')).toBeTrue();
     const hot = getComputedStyle(document.documentElement).getPropertyValue('--sc-accent-hot').trim();
@@ -115,7 +115,7 @@ describe('ShellComponent condensed header', () => {
       document.body.appendChild(probe);
       const expected = getComputedStyle(probe).color;
       probe.remove();
-      expect(items().map((a) => getComputedStyle(a).color)).toEqual([expected, expected]);
+      expect(items().map((a) => getComputedStyle(a).color)).toEqual([expected, expected, expected]);
       expect(getComputedStyle(button()).color).toBe(expected);
     }
   });
@@ -169,7 +169,7 @@ describe('ShellComponent condensed header', () => {
       return;
     }
     const inline = Array.from(el.querySelectorAll<HTMLElement>('nav.nav > a.admin-inline'));
-    expect(inline.length).toBe(2);
+    expect(inline.length).toBe(3);
     expect(inline.every((a) => getComputedStyle(a).display === 'none')).toBeTrue();
     expect(getComputedStyle(el.querySelector('.admin-more')!).display).not.toBe('none');
     expect(getComputedStyle(el.querySelector('.topbar')!).flexWrap).toBe(
