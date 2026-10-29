@@ -8,6 +8,7 @@ import {
   DestroyRef,
   computed,
   effect,
+  Injector,
   inject,
   signal,
   untracked,
@@ -746,7 +747,7 @@ export class CodexListComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly rsi = inject(UpcomingShipsService);
   private readonly route = inject(ActivatedRoute);
-  private readonly buildDiff = inject(CodexBuildDiffService);
+  private readonly injector = inject(Injector);
   /**
    * `?sort=new` (the Codex landing's "+ N weitere" tile): ships new in this
    * patch first, newest first; the rest keeps the server's alphabetical order.
@@ -1518,7 +1519,8 @@ export class CodexListComponent implements OnInit {
     if (q.get('v') === '1') this.includeVariants.set(true);
     this.sortNew.set(this.kind() === 'ship' && q.get('sort') === 'new');
     if (this.sortNew()) {
-      void this.buildDiff
+      void this.injector
+        .get(CodexBuildDiffService)
         .addedShipsMemo()
         .then((added) => this.newShipOrder.set(new Map(added.map((r, i) => [r.classNameSlug, i]))))
         .catch(() => this.newShipOrder.set(new Map()));
