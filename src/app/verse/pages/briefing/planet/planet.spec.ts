@@ -22,7 +22,7 @@ describe('Verse planet — world', () => {
     // Cities per unit of area (a latitude band's area ∝ sin hi − sin lo).
     const density = (lo: number, hi: number) =>
       world.cities.filter((c) => c.lat >= lo && c.lat < hi).length / (Math.sin(hi) - Math.sin(lo));
-    expect(density(0.95, 1.25)).toBeLessThan(density(-0.5, 0.5) / 4);
+    expect(density(1.0, 1.25)).toBeLessThan(density(-0.5, 0.5) / 4);
   });
 
   it('turns once per DAY_MS: half a turn carries a point from the front to the back', () => {

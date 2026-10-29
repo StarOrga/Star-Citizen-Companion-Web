@@ -5,21 +5,22 @@
  * planet-textures.ts / planet-gl.ts.
  *
  * Coordinates: planet-frame unit vectors p = (cos lat · cos lon, sin lat,
- * cos lat · sin lon). The view tilts the spin axis away from the viewer by
- * TILT, so the hub's rim (the top of the disc) sits near latitude 35° N and
- * the visible cap runs from there down over the equator.
+ * cos lat · sin lon). The north pole stands just behind the hub's rim: the
+ * spin axis points up, leans TILT away from the viewer and ROLL to the side,
+ * so the surface travels across the stage in shallow arcs instead of
+ * circling around the viewer.
  */
 
 export type Vec3 = readonly [number, number, number];
 
 /** One full turn of the planet. */
 export const DAY_MS = 30 * 60 * 1000;
-/** Spin axis leans away from the viewer by this angle (radians). */
-export const TILT = 0.95;
+/** Spin axis leans away from the viewer by this angle (radians, ~12°). */
+export const TILT = 0.21;
+/** …and to the side, like a planet's axial tilt (radians, ~13°). */
+export const ROLL = 0.23;
 /** Sun direction in view space: top right, slightly behind the planet. */
 export const SUN: Vec3 = normalize([0.85, -0.22, -0.45]);
-/** A starting turn that shows a populated region under the stage. */
-export const START_ROT = 4.0;
 
 /** Equirect grid of the surface fields (land height, clouds, population). */
 export const FIELD_W = 1024;
@@ -97,8 +98,10 @@ export function project(v: Vec3, rot: number, cx: number, cy: number, r: number)
   const cr = Math.cos(rot), sr = Math.sin(rot);
   const qx = v[0] * cr + v[2] * sr, qz = -v[0] * sr + v[2] * cr;
   const ct = Math.cos(TILT), st = Math.sin(TILT);
-  const ny = v[1] * ct + qz * st, nz = -v[1] * st + qz * ct;
-  return { x: cx + r * qx, y: cy - r * ny, z: nz, ndl: qx * SUN[0] + ny * SUN[1] + nz * SUN[2] };
+  const my = v[1] * ct + qz * st, nz = -v[1] * st + qz * ct;
+  const co = Math.cos(ROLL), so = Math.sin(ROLL);
+  const nx = qx * co - my * so, ny = qx * so + my * co;
+  return { x: cx + r * nx, y: cy - r * ny, z: nz, ndl: nx * SUN[0] + ny * SUN[1] + nz * SUN[2] };
 }
 
 // ── 3D value noise on the sphere (seamless, no poles seam) ─────────────
@@ -176,7 +179,7 @@ export function* generateWorld(seed = 1337, yieldEvery = 16): Generator<void, Pl
     if (!isLand(lat, lon)) continue;
     const k = fieldIndex(lat, lon);
     const coast = 1 - Math.min(1, (height[k] - SEA) / 0.05);
-    const cold = lat > 0.55 ? Math.max(0.05, 1 - (lat - 0.55) / 0.45) : 1;
+    const cold = lat > 0.8 ? Math.max(0.04, 1 - (lat - 0.8) / 0.3) : 1;
     const p = Math.min(1, Math.pow(Math.max(0, people[k] - 0.36) * 3.2, 1.6)) * (0.3 + 0.7 * coast) * cold;
     if (rnd() > p) continue;
     const size = Math.min(1, 0.06 + Math.pow(rnd(), 4) * 0.95);

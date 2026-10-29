@@ -102,7 +102,7 @@ export class BriefingPlanetComponent {
     let dpr = 1, frame = 0, last = performance.now(), lastPlanet = 0, lastTrains = 0, lastCy = NaN, time = 0;
 
     const resize = () => {
-      dpr = Math.min(1.5, devicePixelRatio || 1);
+      dpr = Math.min(2, devicePixelRatio || 1);
       for (const c of [glCanvas, trainCanvas]) {
         c.width = Math.round(c.clientWidth * dpr);
         c.height = Math.round(c.clientHeight * dpr);
