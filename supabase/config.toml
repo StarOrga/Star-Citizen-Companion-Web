@@ -200,3 +200,16 @@ policy = "oneshot"
 # self-throttles to one run per 5 min, so the public URL cannot be abused to
 # hammer the upstream API.
 verify_jwt = false
+
+[functions.translate-orchestrator]
+# JWT verification OFF — the function does its own auth (index.ts): service-role key for
+# every op, the project's anon key for `tick` only (pg_cron has no vault for the service
+# key), or an admin user JWT (profiles.role = 'admin') for approve/cancel/estimate/start_full.
+# The gateway cannot verify the asymmetric session tokens, and `supabase functions deploy`
+# defaults verify_jwt to TRUE when a function has no block. Don't revert.
+verify_jwt = false
+
+[functions.translation-overlay]
+# JWT verification OFF — getUser() in index.ts rejects anything but a signed-in user (401).
+# Same reason as ingest-bundle: the gateway cannot verify asymmetric session tokens.
+verify_jwt = false

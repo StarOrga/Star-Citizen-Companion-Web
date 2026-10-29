@@ -39,6 +39,8 @@ export interface DiffCounts {
   tm: number;
   forced: number;
   todo: number;
+  /** Untranslated keys left out because their English is unchanged vs the base build (delta mode). */
+  unchanged: number;
 }
 
 export interface DiffResult {
@@ -55,6 +57,10 @@ export interface DiffInput {
   tm: Record<string, TmEntry>;
   /** Glossary terms flagged needs_retranslate: strings containing them skip the TM. */
   forceTerms?: string[];
+  /** 'delta' (default): only keys new/changed vs `baseEn` are candidates. 'full': the whole gap. */
+  mode?: 'delta' | 'full';
+  /** English table of the base build (delta mode). */
+  baseEn?: Record<string, string> | null;
   hash?: (s: string) => Promise<string>;
 }
 
@@ -64,7 +70,9 @@ export async function diffStrings(input: DiffInput): Promise<DiffResult> {
   const cache = new Map<string, string>();
   const todoMap = new Map<string, UniqueText>();
   const reused: Record<string, { h: string; t: string }> = {};
-  const counts: DiffCounts = { keys: 0, cig: 0, blank: 0, tm: 0, forced: 0, todo: 0 };
+  const counts: DiffCounts = { keys: 0, cig: 0, blank: 0, tm: 0, forced: 0, todo: 0, unchanged: 0 };
+  const delta = (input.mode ?? 'delta') === 'delta';
+  if (delta && !input.baseEn) throw new Error('translate.no_base_build');
 
   for (const key of Object.keys(input.en).sort()) {
     const en = input.en[key];
@@ -85,6 +93,11 @@ export async function diffStrings(input: DiffInput): Promise<DiffResult> {
     if (hit && !forced) {
       counts.tm++;
       reused[key] = { h, t: hit.t };
+      continue;
+    }
+    // Delta: an untranslated key whose English did not change is back catalogue, never a candidate.
+    if (delta && !forced && input.baseEn![key] === en) {
+      counts.unchanged++;
       continue;
     }
     if (forced) counts.forced++;
