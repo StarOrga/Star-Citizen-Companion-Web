@@ -509,6 +509,7 @@ export class VerseBriefingComponent {
     const zone = inject(NgZone);
     afterNextRender(() => {
       const d = wireDock(host, zone);
+      this.glide = d.glide;
       effect(() => {
         this.dock.set(d.state());
         this.dockFlying.set(d.flying());
@@ -579,8 +580,12 @@ export class VerseBriefingComponent {
     return splitChars(text);
   }
 
+  /** The dock's glide (briefing-dock), set once the stage rendered. */
+  private glide: ((dir: number) => boolean) | null = null;
+
   /** "Mehr im Verse": all the way down — the hub and the footer fill the last viewport. */
   toHub(): void {
+    if (this.glide?.(1)) return;
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
   }

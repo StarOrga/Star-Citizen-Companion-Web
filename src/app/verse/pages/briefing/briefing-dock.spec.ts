@@ -1,4 +1,4 @@
-import { dockEase, dockProgress, dockState, labelMove, planetMove } from './briefing-dock';
+import { dockEase, dockProgress, dockState, glideEase, glideTarget, keyDirection, labelMove, planetMove } from './briefing-dock';
 
 describe('briefing-dock', () => {
   it('maps the scroll range to 0…1 and the states', () => {
@@ -34,5 +34,23 @@ describe('briefing-dock', () => {
   it('stays put at the top', () => {
     const pl = { x: 1, y: 2, w: 3, h: 3 };
     expect(planetMove(pl, { x: 9, y: 9, w: 1, h: 1 }, 0)).toEqual({ tx: 0, ty: 0, k: 1 });
+  });
+
+  it('glides to the end in the direction of the gesture, never half way', () => {
+    expect(glideTarget(0, 800, 1)).toBe(800);
+    expect(glideTarget(300, 800, -1)).toBe(0);
+    expect(glideTarget(800, 800, 1)).toBeNull();
+    expect(glideTarget(0, 800, -1)).toBeNull();
+    expect(glideTarget(0, 0, 1)).toBeNull();
+    expect(glideEase(0)).toBe(0);
+    expect(glideEase(1)).toBe(1);
+    expect(glideEase(0.5)).toBeCloseTo(0.5, 6);
+  });
+
+  it('reads the scrolling keys as a direction', () => {
+    expect(keyDirection({ key: 'PageDown', shiftKey: false })).toBe(1);
+    expect(keyDirection({ key: 'Home', shiftKey: false })).toBe(-1);
+    expect(keyDirection({ key: ' ', shiftKey: true })).toBe(-1);
+    expect(keyDirection({ key: 'a', shiftKey: false })).toBe(0);
   });
 });
