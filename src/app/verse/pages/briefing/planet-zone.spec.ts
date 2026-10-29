@@ -302,7 +302,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(letters.length).toBe(Array.from(full).length);
     expect(letters.every((l) => l.getAttribute('aria-hidden') === 'true')).toBeTrue();
     // The letters carry no-break spaces so a title never collapses its gaps.
-    expect(letters.map((l) => l.textContent).join('').replace(/ /g, ' ')).toBe(full);
+    expect(letters.map((l) => l.textContent).join('').replace(/\u00a0/g, ' ')).toBe(full);
     expect(letters[3].style.getPropertyValue('--i')).toBe('3');
     // The accessible name is the title once: the visually hidden copy, letters hidden.
     expect(link?.querySelector('.sc-sr-only')?.textContent).toBe(full);
