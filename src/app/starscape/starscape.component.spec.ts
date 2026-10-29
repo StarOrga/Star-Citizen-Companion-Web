@@ -82,7 +82,7 @@ describe('StarscapeComponent', () => {
         { provide: StarscapeService, useValue: svc },
         { provide: StarscapeVotesService, useValue: votes },
         { provide: RoleService, useValue: { role: signal('viewer') } },
-        { provide: AuthService, useValue: { isAuthenticated: signedIn } },
+        { provide: AuthService, useValue: { isAuthenticated: signedIn, user: signal(null) } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { queryParamMap: convertToParamMap(queryParams) } },
@@ -321,7 +321,7 @@ describe('StarscapeComponent', () => {
     // The page keeps timers running (fill, arrival watchdog), so whenStable never
     // settles here; a tick runs the directive's afterNextRender directly.
     TestBed.inject(ApplicationRef).tick();
-    const box = f.nativeElement.querySelector('.lightbox') as HTMLElement;
+    const box = f.nativeElement.querySelector('sc-lightbox [role="dialog"]') as HTMLElement;
     expect(document.activeElement).withContext('container focus, so the name is read first').toBe(box);
     expect(box.getAttribute('aria-label')).toBeTruthy();
 

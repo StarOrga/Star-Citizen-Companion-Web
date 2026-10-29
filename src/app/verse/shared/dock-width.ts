@@ -13,6 +13,13 @@ export const DOCK_WIDTH_STYLE = `
   :host(.sc-track-dock.sc-track-page) {
     width: var(--sc-dock-w, min(100% - 2 * var(--sc-page-gutter), var(--sc-page-max)));
   }
+  /* Phones: the subheader is the thumb bar, not a capsule under the beta chip - the chip lane
+     (a 72px margin per side) would squeeze the page to ~230px. Normal page gutter instead. */
+  @media (max-width: 720px) {
+    :host(.sc-track-dock.sc-track-page) {
+      width: min(100% - 2 * var(--sc-page-gutter), var(--sc-content-max));
+    }
+  }
 `;
 
 /** Host classes for a page that sits in the page frame at subheader width. */

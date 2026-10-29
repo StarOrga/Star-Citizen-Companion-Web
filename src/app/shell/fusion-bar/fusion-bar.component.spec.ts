@@ -171,7 +171,8 @@ describe('FusionBarComponent', () => {
     fixture.detectChanges();
     expect(el.getAttribute('data-mode')).toBe('docked');
     expect(el.classList).not.toContain('condensing');
-    expect(el.querySelector('.plate .cat')?.textContent).toContain('nav.verse');
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('Star Citizen Companion');
+    expect(el.querySelector('.plate .trail')?.textContent).toContain('nav.verse');
     expect(chrome.stageSearch()).toBe('docked');
     expect(chrome.dockProgress).toBe(1);
     expect(chrome.dockFull()).toBeTrue();
@@ -197,7 +198,7 @@ describe('FusionBarComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.getAttribute('data-mode')).toBe('hub');
-    expect(el.querySelector('.plate a.back')?.getAttribute('href')).toBe('/verse');
+    expect(el.querySelector('.plate .trail')?.textContent).toContain('nav.verse');
     expect(el.querySelector('sc-fusion-search')).not.toBeNull();
   });
 });
