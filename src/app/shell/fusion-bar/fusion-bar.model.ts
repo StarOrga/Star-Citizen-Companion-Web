@@ -190,27 +190,29 @@ export function activeSegmentOf(url: string): SegmentId | null {
   return null;
 }
 
-// ---- "Gleiche Leiste": the staged search docks into the subheader ----
+// ---- "Gleiche Leiste": the staged search condenses into the subheader with the scroll ----
 
-/** Scroll depth (px) past which a main page's staged search docks as the subheader. */
+/** Scroll distance (px) over which the main header condenses into the subheader (progress 0 → 1). */
+export const DOCK_SCROLL_PX = 160;
+/** Reduced motion: scroll depth (px) past which the condense jumps to 1 … */
 export const STAGE_DOCK_PX = 56;
-/** Scroll depth (px) under which a docked bar returns to the stage (hysteresis: no flutter at the edge). */
+/** … and under which it jumps back to 0 (hysteresis: no flutter at the edge). */
 export const STAGE_UNDOCK_PX = 24;
 
 /**
- * The scroll state machine of a main page's bar: staged (the search field
- * stands centred in the scene) or docked (the same field widened into the
- * subheader). Thresholds, not scroll-scrubbing — the morph plays once per
- * crossing, scrolling back up reverses it.
+ * The condense progress of a main page at scroll depth `scrollY`: 0 = staged
+ * (header expanded, search field standing in the scene), 1 = docked (header
+ * compressed into the subheader), linear in between and reversible — half
+ * scrolled is half docked.
  */
-export function nextStageDocked(docked: boolean, scrollY: number): boolean {
-  return docked ? scrollY > STAGE_UNDOCK_PX : scrollY > STAGE_DOCK_PX;
+export function dockProgress(scrollY: number): number {
+  if (!Number.isFinite(scrollY) || scrollY <= 0) return 0;
+  return Math.min(1, scrollY / DOCK_SCROLL_PX);
 }
 
-/** Which morph a state change plays: `dock` (stage → bar), `undock` (bar → stage) or none. */
-export function stageMorphOf(was: boolean, now: boolean): 'dock' | 'undock' | null {
-  if (was === now) return null;
-  return now ? 'dock' : 'undock';
+/** Reduced motion: no glide, the progress jumps between 0 and 1 at the (hysteresis) thresholds. */
+export function nextStageDocked(docked: boolean, scrollY: number): boolean {
+  return docked ? scrollY > STAGE_UNDOCK_PX : scrollY > STAGE_DOCK_PX;
 }
 
 /** The plate's way back: the origin crumb (the last one the page header published), else the area root. */
@@ -244,30 +246,16 @@ export function plateBackOf(
 }
 
 /**
- * What a scroll crossing does to a main page's bar. A crossing caused by the
- * user's own scroll plays the morph once; one caused by a route change or a
- * programmatic scroll reset (`quiet`) only jumps to the new state (`snap`) —
- * never the undock morph on top of a page switch, never a flash.
- */
-export function scrollMorphOf(was: boolean, now: boolean, quiet: boolean): 'dock' | 'undock' | 'snap' | null {
-  if (was === now) return null;
-  if (quiet) return 'snap';
-  return now ? 'dock' : 'undock';
-}
-
-/**
  * What a route change does to the header and the bar:
  * - main → subpage: the header compresses into the bar (`dock`), the cap travels
  *   from its stage (or docked) rect into the subpage bar;
  * - subpage → main: the reverse (`undock`);
- * - main (docked) → main: the new page starts at its top — the state jumps
- *   silently (`snap`), no undock morph over the page switch;
+ * - main (docked) → main: the new page starts at its top — the condense
+ *   progress jumps to 0 silently (nothing travels over the page switch);
  * - anything else: nothing moves.
  */
-export function routeMorphOf(wasMain: boolean, nowMain: boolean, wasDocked: boolean): 'dock' | 'undock' | 'snap' | null {
+export function routeMorphOf(wasMain: boolean, nowMain: boolean): 'dock' | 'undock' | null {
   if (wasMain && !nowMain) return 'dock';
   if (!wasMain && nowMain) return 'undock';
-  // Back/Forward or a switch from a docked main page: the bar travels down into the stage.
-  if (wasMain && nowMain && wasDocked) return 'undock';
   return null;
 }

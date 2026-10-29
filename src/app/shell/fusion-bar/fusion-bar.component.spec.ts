@@ -10,6 +10,7 @@ import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { FusionBarComponent } from './fusion-bar.component';
 import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
+import { DOCK_SCROLL_PX } from './fusion-bar.model';
 
 @Component({ selector: 'sc-fusion-search', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '<ng-content />' })
 class FusionSearchStub {
@@ -146,7 +147,7 @@ describe('FusionBarComponent', () => {
     expect(el.querySelector('.seg, .menu, .nav, .kindsw')).toBeNull();
   });
 
-  it('on a main page the field stands staged alone, docks past the threshold and returns on the way back', async () => {
+  it('on a main page the condense follows the scroll: staged at the top, half docked half way, docked past the distance', async () => {
     layout.set('cinematic');
     const fixture = await setup('/verse');
     const chrome = TestBed.inject(ShellChromeService);
@@ -154,25 +155,41 @@ describe('FusionBarComponent', () => {
     const bar = fixture.componentInstance;
     expect(el.getAttribute('data-mode')).toBe('stage');
     expect(el.querySelector('sc-fusion-search')).not.toBeNull();
-    // Logo slot and plate stay mounted while staged — collapsed and inert — so docking can grow them.
+    // Logo slot and plate stay mounted while staged (collapsed and inert), so docking can grow them.
     expect(el.querySelector('.blogo')?.hasAttribute('inert')).toBeTrue();
     expect(el.querySelector('.plate')?.hasAttribute('inert')).toBeTrue();
     expect(chrome.stageSearch()).toBe('stage');
 
-    bar.onScroll(200);
+    bar.onScroll(DOCK_SCROLL_PX / 2);
     fixture.detectChanges();
     expect(el.getAttribute('data-mode')).toBe('docked');
-    expect(el.querySelector('.blogo')).not.toBeNull();
+    expect(el.classList).toContain('condensing');
+    expect(chrome.dockProgress).toBeCloseTo(0.5, 5);
+    expect(chrome.dockFull()).withContext('not landed yet').toBeFalse();
+    expect(el.querySelector('.account')?.classList).toContain('pending');
+
+    bar.onScroll(DOCK_SCROLL_PX + 40);
+    fixture.detectChanges();
+    expect(el.getAttribute('data-mode')).toBe('docked');
+    expect(el.classList).not.toContain('condensing');
     expect(el.querySelector('.plate .cat')?.textContent).toContain('nav.verse');
     expect(chrome.stageSearch()).toBe('docked');
+    expect(chrome.dockProgress).toBe(1);
+    expect(chrome.dockFull()).toBeTrue();
+    expect(el.classList).toContain('settled');
+    expect(el.querySelector('.account')?.classList).not.toContain('pending');
 
-    bar.onScroll(40);
+    // Reversible mid-scroll: no hysteresis band, the same depth gives the same state.
+    bar.onScroll(DOCK_SCROLL_PX / 4);
     fixture.detectChanges();
-    expect(el.getAttribute('data-mode')).withContext('hysteresis').toBe('docked');
+    expect(chrome.dockProgress).toBeCloseTo(0.25, 5);
+    expect(chrome.dockFull()).toBeFalse();
+    expect(el.getAttribute('data-mode')).toBe('docked');
     bar.onScroll(0);
     fixture.detectChanges();
     expect(el.getAttribute('data-mode')).toBe('stage');
     expect(chrome.stageSearch()).toBe('stage');
+    expect(chrome.dockProgress).toBe(0);
   });
 
   it('is docked from the start on a sub-page, its back link leading to the area root without crumbs', async () => {

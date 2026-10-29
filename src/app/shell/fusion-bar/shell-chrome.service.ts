@@ -10,6 +10,24 @@ import type { PageCrumb } from '../../shared/page-header/nav-origin.service';
  */
 export type StageSearchState = 'none' | 'stage' | 'docked';
 
+/** How long an eased (route-driven) condense glides. */
+export const DOCK_EASE_MS = 1100;
+
+/**
+ * The hub's title sequence as the shell sees it: `k` scales every second of
+ * the sequence (1 on the first Verse visit of a session, ~0.18 afterwards),
+ * `full` is that first visit. The staged search field is revealed at 3.4 s * k
+ * and, on the full intro only, the main header appears at 4.85 s * k.
+ */
+export interface HeroIntro {
+  k: number;
+  full: boolean;
+}
+
+/** Seconds at k = 1: the staged search field ignites / the main header appears. */
+export const HERO_INTRO_FIELD_S = 3.4;
+export const HERO_INTRO_HEADER_S = 4.85;
+
 /** What a page publishes about its own header for the bar (crumbs + title). */
 export interface ChromeCrumbs {
   crumbs: readonly PageCrumb[];
@@ -69,12 +87,20 @@ export class ShellChromeService {
   private readonly sectionLabel = signal<string | null>(null);
   private readonly hiddenState = signal(false);
   private readonly snapState = signal(false);
+  private readonly fullState = signal(false);
+  private readonly dockTargets = new Set<HTMLElement>();
+  private dockP: number | null = null;
+  private easeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly introState = signal<HeroIntro | null>(null);
   private readonly anchors = signal<readonly HTMLElement[]>([]);
   private readonly filterOwners = signal<readonly { owner: object; read: () => BarFilters }[]>([]);
   private readonly pageSearchOwners = signal<readonly { owner: object; apply: (term: string) => void }[]>([]);
 
   /** The newest page that filters itself by the bar's typed term, or null (the bar then only searches the Codex). */
   readonly pageSearch = computed<((term: string) => void) | null>(() => this.pageSearchOwners().at(-1)?.apply ?? null);
+
+  /** The hub's running title sequence, or null (set by the hub, read by the bar and the main header). */
+  readonly heroIntro = this.introState.asReadonly();
 
   /** The newest page header's crumbs + title, or null. */
   readonly crumbs = computed<ChromeCrumbs | null>(() => {
@@ -106,8 +132,24 @@ export class ShellChromeService {
    * reset — never the user's own scroll).
    */
   readonly snap = this.snapState.asReadonly();
+  /**
+   * The condense is complete (progress 1 on a main page, or any page that is
+   * not one): the header is inert and gone, the bar carries logo and account.
+   * Turning true after an eased route change waits for the glide to land.
+   */
+  readonly dockFull = this.fullState.asReadonly();
   /** True while the bar is slid away (content pages, scrolling down). */
   readonly barHidden = this.hiddenState.asReadonly();
+
+  /** The hub's title sequence starts (never call it under reduced motion). */
+  startHeroIntro(k: number, full: boolean): void {
+    this.introState.set({ k, full });
+  }
+
+  /** The hub's title sequence is over or the hub left. */
+  endHeroIntro(): void {
+    this.introState.set(null);
+  }
 
   /** Publish a page header's crumbs + title; returns the unpublish function. */
   publishCrumbs(owner: object, value: ChromeCrumbs): () => void {
@@ -142,6 +184,61 @@ export class ShellChromeService {
   /** A hub page reports where its stage search line is (`'none'` when it leaves). */
   setStageSearch(state: StageSearchState): void {
     this.stage.set(state);
+    // Off the main pages the header is condensed; arriving on one the bar drives it from the scroll.
+    if (state === 'none') this.setDockProgress(1, true);
+    else if (state === 'stage' && this.dockP !== 0) this.setDockProgress(0, this.dockP !== null);
+  }
+
+  /** The current condense progress (0 … 1), or null before the first one. */
+  get dockProgress(): number | null {
+    return this.dockP;
+  }
+
+  /**
+   * Paint the condense progress `p` (0 = header expanded, 1 = docked) as
+   * `--sc-dock-p` on the header, the bar and the β chip. `eased` (route
+   * changes) lets the registered property glide for a moment; scrolling sets it
+   * directly. The first value never glides.
+   */
+  setDockProgress(p: number, eased = false): void {
+    const next = Math.min(1, Math.max(0, p));
+    const first = this.dockP === null;
+    this.dockP = next;
+    const glide = eased && !first;
+    if (this.easeTimer) clearTimeout(this.easeTimer);
+    this.easeTimer = null;
+    for (const el of this.dockTargets) this.paint(el, next, glide);
+    this.paintChip(next);
+    if (next < 1) {
+      this.fullState.set(false);
+    } else if (glide) {
+      this.easeTimer = setTimeout(() => {
+        this.easeTimer = null;
+        for (const el of this.dockTargets) el.removeAttribute('data-ease');
+        this.fullState.set(this.dockP === 1);
+      }, DOCK_EASE_MS);
+    } else {
+      this.fullState.set(true);
+    }
+  }
+
+  /** Header / bar register their host to receive the progress; returns the unregister function. */
+  registerDockTarget(el: HTMLElement): () => void {
+    this.dockTargets.add(el);
+    if (this.dockP !== null) this.paint(el, this.dockP, false);
+    return () => this.dockTargets.delete(el);
+  }
+
+  private paint(el: HTMLElement, p: number, glide: boolean): void {
+    if (glide) el.setAttribute('data-ease', '');
+    else el.removeAttribute('data-ease');
+    el.style.setProperty('--sc-dock-p', String(p));
+  }
+
+  private paintChip(p: number): void {
+    if (typeof document === 'undefined') return;
+    const chip = document.querySelector<HTMLElement>('sc-beta-chip');
+    chip?.style.setProperty('--sc-dock-p', String(p));
   }
 
   /** The section in view on a long page (null = none). */

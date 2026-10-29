@@ -1,6 +1,9 @@
 @if (on()) {
   <div class="scene" [attr.data-scene]="scene()" [attr.data-mode]="mode()" [attr.data-from]="from()"
-       [attr.data-home]="home() ? '' : null" [attr.data-world]="world()" [attr.data-fade]="fadeTick() % 2">
+       [attr.data-home]="home() ? '' : null" [attr.data-world]="world()" [attr.data-fade]="fadeTick() % 2"
+       [style.--scene-move]="moveMs() ? moveMs() + 'ms' : null" [style.--pose-planet]="pose().planet" [style.--pose-sky]="pose().sky"
+       [style.--pose-sky-o]="pose().skyOpacity" [style.--pose-detail]="pose().detail" [style.--pose-ground]="pose().ground"
+       [style.--pose-plane]="pose().plane" [style.--pose-dim]="pose().dim">
     <div class="sky"><div class="neb"></div><div class="stars"></div><div class="stars near"></div></div>
     <!-- Verse subpage: the page's planet glows faintly where its emblem stands. -->
     <div class="halo"></div>
@@ -13,12 +16,9 @@
         <span class="pl-rim"></span>
       </div>
     </div>
+    <!-- HQ: the planet surface the camera has dived onto (faint lights and grid). -->
+    <div class="detail"><i class="grid"></i><i class="lights"></i></div>
     <div class="ground"></div>
-    <!-- HQ: the hangar on the planet; its doors open once the camera is down. -->
-    <div class="hangar">
-      <span class="hg-roof"></span>
-      <span class="hg-bay"><span class="hg-glow"></span><span class="door l"></span><span class="door r"></span></span>
-      <span class="hg-pad"></span>
-    </div>
+    <div class="dim"></div>
   </div>
 }
