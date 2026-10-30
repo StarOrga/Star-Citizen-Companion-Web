@@ -4,7 +4,7 @@
 // The routine used to post concepts as text into a feedback thread, or as a
 // local `docs/concepts/*.html` page that only works with a Python bridge on
 // the admin's own machine. The admin asked for a link on the website —
-// `https://sc-companion.vercel.app/konzept/<id>` — reachable only by admins
+// `https://sc-companion.vercel.app/concept/<id>` — reachable only by admins
 // and only through the link posted in the thread. That Angular route embeds
 // THIS function's document route in an iframe; the stored html is the very
 // same concept engine, and a small shim (shim.ts) redirects its bridge

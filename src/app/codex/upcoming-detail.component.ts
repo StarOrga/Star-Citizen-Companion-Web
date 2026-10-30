@@ -122,7 +122,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
 
             <p class="watch-hint">
               @if (watched()) {
-                <a class="hangar-link" routerLink="/hangar">{{ 'codex.upcomingDetail.watch.inHangar' | translate }}</a>
+                <a class="hangar-link" routerLink="/hq/hangar">{{ 'codex.upcomingDetail.watch.inHangar' | translate }}</a>
               } @else {
                 {{ 'codex.upcomingDetail.watch.hint' | translate }}
               }

@@ -16,7 +16,7 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
  * Desktop read-auth handoff — open to ANY signed-in user (no role gate).
  *
  * The SCC Electron app opens
- * `${webOrigin}/desktop/connect?cb=http://127.0.0.1:4682X/scc/callback&state=<csrf>`
+ * `${webOrigin}/apps/starscape/connect?cb=http://127.0.0.1:4682X/scc/callback&state=<csrf>`
  * in the user's default browser.  This component:
  *
  *  1. Validates the callback URL is a 127.0.0.1 HTTP loopback (any port — the
@@ -127,7 +127,7 @@ export class DesktopReadAuthComponent implements OnInit {
         const stash = sessionStorage.getItem('sc.oauth-redirect-qs');
         if (stash) {
           const parsed = JSON.parse(stash) as { path?: string; qs?: string };
-          if (parsed.path === '/desktop/connect' && parsed.qs) {
+          if ((parsed.path === '/apps/starscape/connect' || parsed.path === '/desktop/connect') && parsed.qs) {
             const params = new URLSearchParams(parsed.qs);
             this.cb = this.cb || params.get('cb') || '';
             this.state = this.state || params.get('state') || '';
@@ -148,7 +148,7 @@ export class DesktopReadAuthComponent implements OnInit {
       return;
     }
 
-    this.returnUrl = `/desktop/connect?cb=${encodeURIComponent(this.cb)}&state=${encodeURIComponent(this.state)}`;
+    this.returnUrl = `/apps/starscape/connect?cb=${encodeURIComponent(this.cb)}&state=${encodeURIComponent(this.state)}`;
 
     this.auth.init();
     await waitFor(() => this.auth.ready());

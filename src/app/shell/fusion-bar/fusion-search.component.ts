@@ -50,7 +50,6 @@ import {
   WeightedGroup,
   matchPlaces,
   neutralContext,
-  offersCompanion,
   searchContextOf,
   weightGroups,
 } from './search-context';
@@ -71,9 +70,6 @@ interface FusionSection {
   countIsFloor: boolean;
   options: FusionOption[];
 }
-
-/** Route of the "Companion fragen" stub (target not decided yet — spec §5). */
-export const COMPANION_ROUTE = '/companion';
 
 /**
  * The Fusion bar's search (beta `shell`) — the subheader IS the search.
@@ -192,17 +188,6 @@ export const COMPANION_ROUTE = '/companion';
 
     @if (open()) {
       <div class="panel" [class.has-term]="!!engine.input().trim()">
-        @if (companion(); as q) {
-          <a class="ask" [routerLink]="companionRoute" [queryParams]="{ q }" (click)="onCompanion($event)">
-            <span class="ask-mark" aria-hidden="true">✦</span>
-            <span class="ask-body">
-              <b>{{ 'fusionBar.search.ask' | translate }}</b>
-              <span class="ask-q">„{{ q }}“</span>
-            </span>
-            <kbd class="ask-kbd" aria-hidden="true">{{ 'fusionBar.search.askKey' | translate }}</kbd>
-          </a>
-        }
-
         @if (engine.input().trim() && engine.error(); as err) {
           <div class="state err" role="alert">
             <span>{{ 'codex.search.bar.failed' | translate }} — {{ err | translate }}</span>
@@ -460,18 +445,6 @@ export const COMPANION_ROUTE = '/companion';
       border-radius: 2px; background: linear-gradient(90deg, var(--sc-accent), color-mix(in oklab, var(--sc-accent) 35%, var(--sc-fg-0)), var(--sc-accent));
       flex: none;
     }
-    .ask {
-      display: flex; align-items: center; gap: var(--sc-space-3); min-height: 48px; padding: var(--sc-space-2) var(--sc-space-3);
-      border-radius: 14px; text-decoration: none; color: var(--sc-fg-1);
-      background: linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 16%, transparent), transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
-      animation: fs-row-in 0.24s ease both;
-    }
-    .ask:hover, .ask:focus-visible { outline: none; border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .ask-mark { color: var(--sc-accent); font-size: 1.1rem; }
-    .ask-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-    .ask-body b { font-family: var(--sc-font-display); letter-spacing: 0.06em; text-transform: uppercase; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); }
-    .ask-q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: max(0.82rem, var(--sc-fs-floor)); }
 
     .listbox { display: flex; flex-direction: column; gap: var(--sc-space-3); transition: opacity 0.15s ease; }
     .listbox.stale { opacity: 0.65; }
@@ -610,7 +583,7 @@ export const COMPANION_ROUTE = '/companion';
     @keyframes fs-row-in { from { opacity: 0; transform: translateY(4px); } }
     @keyframes fs-chip-in { from { opacity: 0; transform: scale(0.92); } }
     @media (prefers-reduced-motion: reduce) {
-      .panel, .group, .ask, .ctx-chip { animation-name: fs-fade; animation-delay: 0s; }
+      .panel, .group, .ctx-chip { animation-name: fs-fade; animation-delay: 0s; }
       .row::before { transform: none; transition: opacity 0.12s linear; }
       @keyframes fs-fade { from { opacity: 0; } }
     }
@@ -643,7 +616,6 @@ export class FusionSearchComponent {
   /** Open/closed — the bar widens the field and keeps itself shown while open. */
   readonly openChange = output<boolean>();
 
-  readonly companionRoute = [COMPANION_ROUTE];
   readonly listboxId = 'fs-results';
   private readonly fieldRef = viewChild<ElementRef<HTMLInputElement>>('field');
   private readonly magRef = viewChild<ElementRef<HTMLButtonElement>>('mag');
@@ -678,10 +650,6 @@ export class FusionSearchComponent {
   readonly places = computed(() =>
     matchPlaces(this.engine.input(), this.context(), (p) => this.t.instant(p.labelKey)),
   );
-  readonly companion = computed(() => {
-    const q = this.engine.input().trim();
-    return offersCompanion(q) ? q : null;
-  });
 
   readonly sections = computed<FusionSection[]>(() => {
     const term = this.engine.input().trim();
@@ -964,11 +932,6 @@ export class FusionSearchComponent {
         return;
       case 'Enter': {
         ev.preventDefault();
-        if (ev.shiftKey && this.companion()) {
-          void this.router.navigate(this.companionRoute, { queryParams: { q: this.companion() } });
-          this.close();
-          return;
-        }
         // From the subheader (not a cinematic hub stage), Enter without a picked
         // row opens the full result list (concept 2026-10-29, Codex subpages).
         if (!this.activeOption() && this.chrome.stageSearch() === 'none' && this.engine.input().trim()) {
@@ -1067,10 +1030,6 @@ export class FusionSearchComponent {
   }
 
   onActionClick(ev: MouseEvent): void {
-    if (isPlainLeftClick(ev)) this.close();
-  }
-
-  onCompanion(ev: MouseEvent): void {
     if (isPlainLeftClick(ev)) this.close();
   }
 

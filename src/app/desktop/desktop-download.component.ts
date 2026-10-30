@@ -20,7 +20,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
- * The Data Upload page (`/uploader`). Since admin feedback eb9c6ec3 it renders
+ * The Data Upload page (`/apps/uploader`). Since admin feedback eb9c6ec3 it renders
  * the SHARED `sc-app-download-panel` — the same minimal panel the Starscape
  * download uses — so the two desktop apps present themselves identically, and
  * the bundle history it used to stack underneath now opens as a popup instead

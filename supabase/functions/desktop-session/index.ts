@@ -5,7 +5,7 @@
 //
 // Why this exists
 // ---------------
-// Both desktop hand-offs (`/desktop/connect` → Starscape, `/uploader/auth` →
+// Both desktop hand-offs (`/apps/starscape/connect` → Starscape, `/apps/uploader/auth` →
 // data-uploader) used to hand the app the BROWSER'S OWN `refresh_token`, putting
 // two independent clients on one GoTrue session and therefore one rotation
 // chain. Whoever refreshes second is presenting an already-spent token.

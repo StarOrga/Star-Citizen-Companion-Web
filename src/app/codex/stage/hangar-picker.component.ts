@@ -31,7 +31,7 @@ const COLLAPSE_DELAY_MS = 150;
  * optics, same behaviour, same data source (the top 3 recently chosen).
  *
  * - Click on the button itself: `open` (the caller opens the hangar overlay
- *   or navigates to `/hangar`).
+ *   or navigates to `/hq/hangar`).
  * - Hover for 300 ms (N3): the chain of up to 3 names flies out to the right.
  *   Focus and touch/tap expand immediately — no hover-only path exists.
  * - Escape, or the pointer leaving the widget, collapses after 150 ms.
@@ -208,7 +208,7 @@ export class HangarPickerComponent {
 
   /** Switch the stage's subject to this item. */
   readonly pick = output<string>();
-  /** Open the full hangar (overlay if one exists, else `/hangar`) — the caller decides. */
+  /** Open the full hangar (overlay if one exists, else `/hq/hangar`) — the caller decides. */
   readonly open = output<void>();
 
   private readonly chainButtons = viewChildren<ElementRef<HTMLAnchorElement>>('chainBtn');
@@ -226,7 +226,7 @@ export class HangarPickerComponent {
    * expanded the chain behaves the same way: it opens the hangar.
    */
   onButtonClick(ev: MouseEvent): void {
-    if (!isPlainLeftClick(ev)) return; // modified click: let the anchor open `/hangar` itself
+    if (!isPlainLeftClick(ev)) return; // modified click: let the anchor open `/hq/hangar` itself
     ev.preventDefault();
     if (this.hasItems() && !this.expanded()) {
       this.clearTimers();

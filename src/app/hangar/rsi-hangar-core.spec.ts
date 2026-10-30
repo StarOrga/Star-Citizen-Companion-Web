@@ -249,7 +249,7 @@ describe('extension core — handover payload', () => {
   it('never points the handover at a foreign origin', () => {
     expect(companionImportUrl('https://evil.example')).toContain('sc-companion.vercel.app');
     expect(companionImportUrl('https://sc-companion.vercel.app')).toBe(
-      'https://sc-companion.vercel.app/hangar/import?src=extension',
+      'https://sc-companion.vercel.app/hq/hangar/import?src=extension',
     );
   });
 });

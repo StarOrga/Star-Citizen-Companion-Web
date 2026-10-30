@@ -152,11 +152,11 @@ export class AuthService {
     });
   }
 
-  async signInWithGoogle(returnPath = '/news') {
+  async signInWithGoogle(returnPath = '/verse/news') {
     return this.signInWithOAuthProvider('google', returnPath);
   }
 
-  async signInWithDiscord(returnPath = '/news') {
+  async signInWithDiscord(returnPath = '/verse/news') {
     return this.signInWithOAuthProvider('discord', returnPath);
   }
 

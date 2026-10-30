@@ -45,7 +45,7 @@ import { PasswordFormComponent } from './password-form.component';
 
           @if (saved()) {
             <div class="flash success" role="status">{{ 'auth.setPassword.savedLead' | translate }}</div>
-            <a routerLink="/news" class="sc-btn sc-btn-primary continue">
+            <a routerLink="/verse/news" class="sc-btn sc-btn-primary continue">
               {{ 'auth.setPassword.continue' | translate }}
             </a>
           } @else {

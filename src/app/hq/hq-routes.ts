@@ -11,8 +11,8 @@
 
 export const HQ_ROOT = '/hq';
 export const hqHangar = '/hq/hangar';
-export const hqLocker = '/hq/spind';
-export const hqOps = '/hq/einsaetze';
+export const hqLocker = '/hq/locker';
+export const hqOps = '/hq/ops';
 
 /** Query-param names of the HQ contract. */
 export const HQ_VARIANT_PARAM = 'v';

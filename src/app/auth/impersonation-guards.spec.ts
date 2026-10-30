@@ -108,8 +108,8 @@ describe('impersonation × guards (security invariants)', () => {
 
       const result = await TestBed.runInInjectionContext(() => roleGuard('admin')(route, state));
 
-      expect(router.createUrlTree).toHaveBeenCalledWith(['/news']);
-      expect((result as unknown as { __commands: unknown[] }).__commands).toEqual(['/news']);
+      expect(router.createUrlTree).toHaveBeenCalledWith(['/verse/news']);
+      expect((result as unknown as { __commands: unknown[] }).__commands).toEqual(['/verse/news']);
     });
 
     it("roleGuard('admin') with real role admin and no preview passes", async () => {

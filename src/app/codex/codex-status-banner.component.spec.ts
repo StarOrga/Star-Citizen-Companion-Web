@@ -71,7 +71,7 @@ describe('CodexStatusBannerComponent', () => {
     fixture.detectChanges();
     const link = el.querySelector('a.stale-link') as HTMLAnchorElement | null;
     expect(link).not.toBeNull();
-    expect(link!.getAttribute('href')).toBe('/uploader');
+    expect(link!.getAttribute('href')).toBe('/apps/uploader');
   });
 
   it('expands on click to show details and coverage', () => {

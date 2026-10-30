@@ -18,7 +18,7 @@ describe('HqShellComponent', () => {
   it('renders the category tabs as real anchors: Übersicht, Spind, Hangar, Einsätze', () => {
     const el: HTMLElement = setup().nativeElement;
     const hrefs = Array.from(el.querySelectorAll('nav.hq-tabs a')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['/hq', '/hq/spind', '/hq/hangar', '/hq/einsaetze']);
+    expect(hrefs).toEqual(['/hq', '/hq/locker', '/hq/hangar', '/hq/ops']);
     expect(HQ_TABS.length).toBe(4);
   });
 

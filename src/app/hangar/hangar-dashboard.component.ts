@@ -390,7 +390,7 @@ const SEARCH_DEBOUNCE_MS = 250;
             (admin feedback 34505d70, decision "2A" on issue #411 point 2 —
             "hangar nicht explizit, der ist schon auf der codex startseite
             implizit drin"). So the card opens the Codex set page for this set
-            (/codex/set/:id, the on-foot editor since the 2026-09-20 concept),
+            (/hq/locker/:id, the on-foot editor since the 2026-09-20 concept),
             and the standalone editor page is gone.
 
             The card is no longer one big <a>: the housekeeping controls are

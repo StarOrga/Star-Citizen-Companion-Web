@@ -207,7 +207,7 @@ let nextId = 0;
             }
 
             @if (product() === 'uploader') {
-              <a class="pop-link" routerLink="/uploader" (click)="onNavigate($event)">
+              <a class="pop-link" routerLink="/apps/uploader" (click)="onNavigate($event)">
                 {{ 'desktop.access.fullPage' | translate }}
               </a>
             }
@@ -439,7 +439,7 @@ export class AppDownloadMenuComponent {
    * line: this menu is a header chip whose ONLY purpose is to start a download.
    * There is nothing left of it once the download is off the table, and the
    * admin's complaint was precisely about seeing it on a phone. The information
-   * itself is not lost — `/download`, `/uploader` and the Codex Bridge line all
+   * itself is not lost — `/apps/starscape`, `/apps/uploader` and the Codex Bridge line all
    * render `sc-app-download-panel`, which explains the platform requirement
    * instead of hiding, so every deep link still lands somewhere meaningful.
    */

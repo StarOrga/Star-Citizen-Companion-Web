@@ -9,7 +9,7 @@ import { Wallpaper, mapWallpaperRow } from './starscape.service';
  *
  * The vote itself is a row in `wallpaper_votes`, keyed on
  * `(verse_wallpapers.image_id, auth.users.id)` — the gallery's own stable CDN
- * media id, the same one the share deep link (`/starscape?image=<id>`) hands
+ * media id, the same one the share deep link (`/verse/gallery?image=<id>`) hands
  * out. The primary key IS the "one vote per user per image" rule, so this
  * service never has to defend it in the client.
  *

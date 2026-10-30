@@ -108,7 +108,7 @@ const EXTENSION_ZIP_URL =
       <div class="sc-card">
         <h2>{{ 'extension.install.alt.title' | translate }}</h2>
         <p>{{ 'extension.install.alt.text' | translate }}</p>
-        <a class="sc-btn" routerLink="/hangar">{{ 'extension.install.alt.cta' | translate }}</a>
+        <a class="sc-btn" routerLink="/hq/hangar">{{ 'extension.install.alt.cta' | translate }}</a>
       </div>
 
       <p class="disclaimer">{{ 'extension.install.disclaimer' | translate }}</p>

@@ -99,7 +99,7 @@ export interface AppEntry {
                   <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
                 </a>
               } @else {
-                <a class="entry" [class.elevated]="app.elevated" routerLink="/uploader" (click)="onPick($event)">
+                <a class="entry" [class.elevated]="app.elevated" routerLink="/apps/uploader" (click)="onPick($event)">
                   <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
                 </a>
               }

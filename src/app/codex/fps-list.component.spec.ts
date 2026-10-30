@@ -156,7 +156,7 @@ describe('FpsListComponent (equip mode)', () => {
     // sticky bar confirms with the way back, instead of a hop to the set page.
     expect(hopSpy).not.toHaveBeenCalled();
     expect(el.querySelector('.equip-confirm')).not.toBeNull();
-    expect(el.querySelector('.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+    expect(el.querySelector('.equip-confirm-back')!.getAttribute('href')).toBe('/hq/locker/set-1');
   });
 
   it('reads the one equip param for armour too: equipSlot=helmet narrows to helmets (L20)', async () => {
@@ -205,7 +205,7 @@ describe('FpsListComponent (equip mode)', () => {
 
   it('leads "back to the set" to the set page, not the landing', async () => {
     const { el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET });
-    expect(el.querySelector('.equip-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+    expect(el.querySelector('.equip-back')!.getAttribute('href')).toBe('/hq/locker/set-1');
   });
 
   it('confirms a landed equip in a sticky, polite bar that links back to the set', async () => {
@@ -225,7 +225,7 @@ describe('FpsListComponent (equip mode)', () => {
     expect(bar).not.toBeNull();
     expect(bar.classList).not.toContain('removed');
     expect(bar.textContent).toContain('fps.equip.confirmEquipped');
-    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/hq/locker/set-1');
   });
 
   it('confirms a cleared slot as "removed" in the same bar', async () => {
@@ -240,7 +240,7 @@ describe('FpsListComponent (equip mode)', () => {
     const bar = el.querySelector('.equip-confirm')!;
     expect(bar.classList).toContain('removed');
     expect(bar.textContent).toContain('fps.equip.confirmRemoved');
-    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/hq/locker/set-1');
   });
 
   it('shows no confirmation when the write is refused', async () => {

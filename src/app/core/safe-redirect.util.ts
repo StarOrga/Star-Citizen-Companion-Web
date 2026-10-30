@@ -24,7 +24,7 @@
  */
 export function safeRedirectTarget(
   raw: string | null | undefined,
-  fallback = '/news',
+  fallback = '/verse/news',
 ): string {
   if (!raw) return fallback;
   if (raw.includes('\\')) return fallback;

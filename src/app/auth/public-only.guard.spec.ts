@@ -8,7 +8,7 @@ import { AuthService } from './auth.service';
  * including any `?redirect=…` authGuard attached when it bounced a shadowed
  * session to /login in the first place (see impersonation.service.ts's
  * exit()). This guard used to unconditionally send an already-authenticated
- * visitor to `/news`, silently discarding `redirect` and dropping the
+ * visitor to `/verse/news`, silently discarding `redirect` and dropping the
  * admin's place. These specs pin the fix and its open-redirect guard.
  */
 describe('publicOnlyGuard', () => {
@@ -42,7 +42,7 @@ describe('publicOnlyGuard', () => {
   it('passes through for a signed-out visitor regardless of redirect', async () => {
     configure(false);
     const result = await TestBed.runInInjectionContext(() =>
-      publicOnlyGuard(routeWithRedirect('/starscape'), {} as never),
+      publicOnlyGuard(routeWithRedirect('/verse/gallery'), {} as never),
     );
     expect(result).toBe(true);
   });
@@ -52,25 +52,25 @@ describe('publicOnlyGuard', () => {
     const result = await TestBed.runInInjectionContext(() =>
       publicOnlyGuard(routeWithRedirect(null), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/news');
-    expect((result as unknown as { __url: string }).__url).toBe('/news');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/news');
+    expect((result as unknown as { __url: string }).__url).toBe('/verse/news');
   });
 
   it('honors a same-origin ?redirect= for an authenticated visitor (the Defect B fix)', async () => {
     const { parseUrl } = configure(true);
     const result = await TestBed.runInInjectionContext(() =>
-      publicOnlyGuard(routeWithRedirect('/starscape'), {} as never),
+      publicOnlyGuard(routeWithRedirect('/verse/gallery'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/starscape');
-    expect((result as unknown as { __url: string }).__url).toBe('/starscape');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/gallery');
+    expect((result as unknown as { __url: string }).__url).toBe('/verse/gallery');
   });
 
   it('honors a same-origin ?redirect= that carries its own query string', async () => {
     const { parseUrl } = configure(true);
     await TestBed.runInInjectionContext(() =>
-      publicOnlyGuard(routeWithRedirect('/hangar/import?cb=1'), {} as never),
+      publicOnlyGuard(routeWithRedirect('/hq/hangar/import?cb=1'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/hangar/import?cb=1');
+    expect(parseUrl).toHaveBeenCalledWith('/hq/hangar/import?cb=1');
   });
 
   it('falls back to /news for a protocol-relative open-redirect payload (//evil.example)', async () => {
@@ -78,7 +78,7 @@ describe('publicOnlyGuard', () => {
     await TestBed.runInInjectionContext(() =>
       publicOnlyGuard(routeWithRedirect('//evil.example'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/news');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/news');
   });
 
   it('falls back to /news for a backslash open-redirect payload (/\evil.example)', async () => {
@@ -89,15 +89,15 @@ describe('publicOnlyGuard', () => {
     await TestBed.runInInjectionContext(() =>
       publicOnlyGuard(routeWithRedirect('/\\evil.example'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/news');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/news');
   });
 
   it('still honors an ordinary same-origin path (no over-blocking)', async () => {
     const { parseUrl } = configure(true);
     await TestBed.runInInjectionContext(() =>
-      publicOnlyGuard(routeWithRedirect('/starscape'), {} as never),
+      publicOnlyGuard(routeWithRedirect('/verse/gallery'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/starscape');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/gallery');
   });
 
   it('falls back to /news for an absolute-URL open-redirect payload (https://evil.example)', async () => {
@@ -105,7 +105,7 @@ describe('publicOnlyGuard', () => {
     await TestBed.runInInjectionContext(() =>
       publicOnlyGuard(routeWithRedirect('https://evil.example'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/news');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/news');
   });
 
   it('falls back to /news for a bare (non-absolute-path) payload', async () => {
@@ -113,6 +113,6 @@ describe('publicOnlyGuard', () => {
     await TestBed.runInInjectionContext(() =>
       publicOnlyGuard(routeWithRedirect('evil.example'), {} as never),
     );
-    expect(parseUrl).toHaveBeenCalledWith('/news');
+    expect(parseUrl).toHaveBeenCalledWith('/verse/news');
   });
 });
