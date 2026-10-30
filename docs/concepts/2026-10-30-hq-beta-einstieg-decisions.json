@@ -1,0 +1,151 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "general": "finde alle konzepte noch nichht umffassend und durchdacht genug und nciht prickelnd.",
+    "decisions": [
+      {
+        "id": "uc-jobs",
+        "value": [
+          "ready",
+          "loadout",
+          "patch",
+          "supply",
+          "import",
+          "ops",
+          "share",
+          "blueprints",
+          "where"
+        ],
+        "note": ""
+      },
+      {
+        "id": "uc-order",
+        "value": [
+          "patch",
+          "ship",
+          "gaps",
+          "op",
+          "log"
+        ],
+        "note": ""
+      },
+      {
+        "id": "uc-where",
+        "value": "none",
+        "note": "nbur wenn sccapp das erfassen kann live und immer live halten kann! check das und dann umsetzen hier und in scc app als issue anlegen!"
+      },
+      {
+        "id": "uc-supply",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": "nmatürlich alles auf dem server!"
+      },
+      {
+        "id": "uc-patch",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": ""
+      },
+      {
+        "id": "ac-quick",
+        "value": [
+          "active",
+          "set",
+          "add",
+          "import",
+          "variant",
+          "restock",
+          "patch",
+          "op",
+          "share"
+        ],
+        "note": "aus codex hinzufügen eeinfach über die suche schnellauswahl dort"
+      },
+      {
+        "id": "ac-bridge",
+        "value": "separate",
+        "note": "über die suche direktauswahl oder auf der codex seite im holotisch view! das wars der typ muss automatisch erkannt werden, das braucht man ja nicht manuell festlegfen!"
+      },
+      {
+        "id": "ac-detail",
+        "value": "codexmine",
+        "note": ""
+      },
+      {
+        "id": "ac-sets",
+        "value": [
+          "fps",
+          "shipvar",
+          "kit",
+          "refill",
+          "crew"
+        ],
+        "note": "beim abend kit auch gern einsatz optional auch mit drin"
+      },
+      {
+        "id": "ac-ops",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "d1-s1-a1",
+        "answer": "Medizin ja, rennen auch gern! Aber das als einsätze. \nGibt aber einsätze auch nach zweck, z. B. nachschub erspielen (ggf. erst ausrüsten, dann aufträge für blueprint, dann mining, dann craften, zwischendurch transportieren etc.) oder kaufen (ggf. vorher verkaufen). Also gameloops eher abbilden!"
+      },
+      {
+        "id": "d1-s1-a2",
+        "answer": "gern als abschluss eines overlay tutorials beim ersten mal, überspringbar! und sonst ok!"
+      },
+      {
+        "id": "d2-s3-a1",
+        "answer": "ne, auf jeden fall eine fvariantenseite von codex! die wir aber später bauen, aktuell einfach zur gegenstand!"
+      },
+      {
+        "id": "d3-s1-a1",
+        "answer": "auf jeden fall! das übernehmen von den anderneseiten, also titel hero inkl. patch news etc. und die suche auf jjeden fall auch - wiederkernnungswert von den verschiedenen hauptseiten!"
+      },
+      {
+        "id": "d3-s1-a2",
+        "answer": "also gern wenn man einen einsatz angeht, eine empfehlung!"
+      },
+      {
+        "id": "d3-s3-a1",
+        "answer": "ja mega, ganz genau! globale suche immer mit drin als möglichkeiten!!"
+      }
+    ],
+    "userPins": [
+      {
+        "target": "button.mock-btn.quiet \"Teilen\"",
+        "text": "teilen gern icon only !?"
+      },
+      {
+        "target": "button.mock-btn.ghost \"Variante kopieren\"",
+        "text": "Dsa finde cih super, gern auch ein duplicate icon!"
+      },
+      {
+        "target": "button.mock-btn.ghost \"Als Flaggschiff\"",
+        "text": "das kann gern ein favoriten icon sein, bis zu drei flagschiffe oder drei ausrüstungen etc. in fps!"
+      },
+      {
+        "target": "div.d2-note \"Patch 4.3.1: S3-Repeater −8 % Schaden. B\"",
+        "text": "Patch news nur die neusten und nur wenn vorhanden finde ich super!"
+      },
+      {
+        "target": "span.mock-dim \"2 Teile anders\"",
+        "text": "wie viel geändert wurde gern, aber nicht so eine bühne, ist nru eine rand rand info! die anderen von den drei infos hier sinsd unnöttig!"
+      }
+    ],
+    "designNotes": {
+      "deck": "wie soll das funktionieren mit fps ausrüstungen di eman ja auch hat, ggf. auch inventar (dinge died e man in hangarn hat) und co. und das thema einsätze machen um nachschub zu besorgen (kaufen vs craften usw...) oder einfach so einsätze machen nach einsatzart."
+    }
+  }
+]
