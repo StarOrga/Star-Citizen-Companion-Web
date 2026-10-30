@@ -152,6 +152,12 @@ export const routes: Routes = [
         path: 'verse',
         loadChildren: () => import('./verse/verse.routes').then((m) => m.VERSE_ROUTES),
       },
+      // The two bridges installed apps still open (concept 2026-10-30): the
+      // browser extension hands imports to /hangar/import and the Starscape
+      // tray opens /starscape. Both sources already call the new paths; drop
+      // these once those releases are out. Relative, so the query survives.
+      { path: 'hangar/import', pathMatch: 'full', redirectTo: 'hq/hangar/import' },
+      { path: 'starscape', pathMatch: 'full', redirectTo: 'verse/gallery' },
       {
         // Codex front door = "the composed depth-field landing": Archive
         // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.

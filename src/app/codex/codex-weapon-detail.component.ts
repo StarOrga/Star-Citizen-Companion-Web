@@ -128,7 +128,7 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
       background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
       -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
       display: flex; justify-content: center; align-items: flex-start; padding: 6vh 16px 16px; overflow-y: auto; }
-    .wd-panel { position: relative; width: 100%; max-width: var(--sc-ov-m); max-height: var(--sc-ov-max-h); display: flex; flex-direction: column;
+    .wd-panel { position: relative; width: 100%; max-width: var(--sc-ov-m); max-height: var(--sc-ov-max-h); overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column;
       gap: 12px; padding: 18px 20px 20px; border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .wd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .wd-head h2 { margin: 0; font-size: 1.05rem; }

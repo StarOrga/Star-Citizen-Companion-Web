@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { karmaChromeBin } from './run-karma.mjs';
+import { karmaChromeBin } from './lib/karma-chrome-bin.mjs';
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';

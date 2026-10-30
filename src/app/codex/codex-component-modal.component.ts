@@ -195,7 +195,7 @@ export interface ComponentInspectEntry {
       padding: 6vh 16px 16px; overflow-y: auto;
     }
     .cm-panel {
-      position: relative; width: 100%; max-width: var(--sc-ov-m); max-height: var(--sc-ov-max-h);
+      position: relative; width: 100%; max-width: var(--sc-ov-m); max-height: var(--sc-ov-max-h); overflow-y: auto; overscroll-behavior: contain;
       display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px;
       border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent);
       animation: cm-in .18s ease;

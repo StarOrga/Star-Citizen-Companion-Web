@@ -295,11 +295,10 @@ describe('FpsListComponent (equip mode)', () => {
     const links = Array.from(el.querySelectorAll('.equip-missing a')).map((a) => a.textContent!.trim());
     expect(links).toEqual(['fps.equip.mySets', 'fps.equip.browseWithout']);
 
-    const cmp = fixture.componentInstance;
-    cmp.dropEquipIntent(new MouseEvent('click', { button: 0, cancelable: true }));
-    fixture.detectChanges();
-    expect(el.querySelector('.equip-missing')).toBeNull();
-    expect(cmp.equipInto()).toBeNull();
+    // The archive without the set is the one Codex browse page, a real anchor.
+    const browse = el.querySelectorAll('.equip-missing a')[1] as HTMLAnchorElement;
+    expect(browse.getAttribute('href')).toContain('/codex/index');
+    expect(fixture.componentInstance.browseParams()['kind']).toBeTruthy();
   });
 
   it('shows the pressed equip button as saving while its write is in flight', async () => {

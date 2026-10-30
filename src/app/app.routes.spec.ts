@@ -46,7 +46,7 @@ describe('codex/fps equip flow (concept 2026-10-29, b3)', () => {
  */
 describe('retired route aliases', () => {
   const retired = [
-    'news', 'news/patches', 'news/patches/:line', 'starscape', 'hangar', 'hangar/import',
+    'news', 'news/patches', 'news/patches/:line', 'hangar',
     'hangar/ship/:id', 'hangar/loadout/:id', 'codex/set/:id', 'codex/blueprint', 'p4k', 'desktop',
     'desktop/auth', 'admin/integrations', 'konzept/:id', 'companion', 'uploader', 'download',
     'tools/extension',
@@ -56,6 +56,12 @@ describe('retired route aliases', () => {
       expect(allPaths()).not.toContain(path);
     });
   }
+
+  it('keeps the bridges installed apps still open until their next release', () => {
+    const paths = allPaths();
+    expect(paths).toContain('hangar/import');
+    expect(paths).toContain('starscape');
+  });
 
   it('keeps the concept route and the two live loopback entry points', () => {
     const paths = allPaths();
