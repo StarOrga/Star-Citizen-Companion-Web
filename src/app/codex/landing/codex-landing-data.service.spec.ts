@@ -1,6 +1,9 @@
 import { LandingPaint } from './codex-landing-data.types';
 import {
+  classCohort,
   dedupeByName,
+  factsFor,
+  withClassStats,
   isNewPaint,
   overviewFor,
   paintRecency,
@@ -90,5 +93,38 @@ describe('dedupeByName', () => {
   it('keeps distinct names and rows without a name', () => {
     const rows = [r('X', null), r('Y', null), r('Z', 'Zed')];
     expect(dedupeByName(rows).length).toBe(3);
+  });
+});
+
+describe('class comparison + size facts', () => {
+  const row = (role: string | null, size: number | null, payload: unknown) => ({ role, size, classNameSlug: 'x', payload });
+
+  it('classCohort: same role (ships) / same size (others), whole category when the group is small', () => {
+    const rows = [row('fighter', 1, {}), row('fighter', 1, {}), row('fighter', 2, {}), row('hauler', 2, {})];
+    expect(classCohort('ship', { role: 'fighter', size: null }, rows).length).toBe(3);
+    expect(classCohort('ship', { role: 'hauler', size: null }, rows).length).toBe(4);
+    expect(classCohort('component', { role: null, size: 2 }, rows).length).toBe(4);
+    expect(classCohort('component', { role: null, size: null }, rows).length).toBe(4);
+  });
+
+  it('withClassStats: mean + max over members that carry the value, direction per ship value', () => {
+    const cohort = [{ payload: { hull: { hp: 100 } } }, { payload: { hull: { hp: 300 } } }, { payload: { hull: {} } }];
+    const [hull, mass] = withClassStats('ship', [
+      { key: 'hull.hp', value: 300, unit: 'hp' },
+      { key: 'hull.mass', value: 5, unit: 'kg' },
+    ], cohort);
+    expect(hull.classAvg).toBe(200);
+    expect(hull.classMax).toBe(300);
+    expect(hull.higherIsBetter).toBeTrue();
+    expect(mass.classAvg).toBeNull();
+    expect(mass.higherIsBetter).toBeNull();
+    expect(withClassStats('tool', [{ key: 'weaponParams.a', value: 1, unit: null }], [])[0].higherIsBetter).toBeNull();
+  });
+
+  it('factsFor: L/W/H for ships, size class for the rest, unknown facts left out', () => {
+    expect(factsFor('ship', { dimensions: { length: 22.5, width: 16, height: 0 } }, null).map((f) => f.id)).toEqual(['length', 'width']);
+    expect(factsFor('ship', null, null)).toEqual([]);
+    expect(factsFor('component', null, 2)).toEqual([{ id: 'size', value: 'S2' }]);
+    expect(factsFor('tool', null, null)).toEqual([]);
   });
 });
