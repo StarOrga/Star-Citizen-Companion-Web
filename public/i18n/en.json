@@ -214,8 +214,9 @@
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
       "hero": {
-        "eyebrow": "Codex",
-        "title": "Everything about every ship."
+        "eyebrow": "{{category}} · new in {{patch}}",
+        "title": "Everything about every ship.",
+        "eyebrowIdle": "Codex"
       },
       "teaser": {
         "eyebrow": "On the drawing board",
@@ -321,7 +322,8 @@
         "hold": "Click: hold",
         "loading": "Holotable loading …",
         "empty": "No entries for this patch yet.",
-        "newIn": "New"
+        "newIn": "New",
+        "newest": "Newest"
       },
       "category": {
         "ship": "Ship",
@@ -329,23 +331,6 @@
         "armor": "Armour",
         "component": "Component",
         "tool": "Tool"
-      },
-      "card": {
-        "label": "Data card",
-        "grow": "Enlarge card",
-        "shrink": "Shrink card",
-        "flip": "Back",
-        "flipLabel": "Flip card: values and paints",
-        "front": "Front",
-        "frontLabel": "Flip card: image",
-        "render": "RSI render",
-        "standard": "Standard",
-        "paintOf": "{{index}} of {{count}} paints",
-        "paints": "Paints",
-        "morePaints": "Show all {{count}} paints",
-        "fewer": "Fewer",
-        "isNew": "new",
-        "values": "Values"
       },
       "value": {
         "flight": {
@@ -370,24 +355,102 @@
         "part": "Part",
         "class": "Class"
       },
-      "film": {
-        "label": "Ships",
-        "newReady": "New & flight-ready",
-        "announced": "Announced",
-        "more": "+ {{count}} more",
-        "moreReady": "flight-ready",
-        "moreAnnounced": "announced",
-        "isNew": "new",
-        "empty": "No ships in this list."
-      },
       "rail": {
-        "label": "Categories",
-        "ships": "Ships",
-        "components": "Components",
-        "weapons": "Weapons",
-        "armor": "Armour",
-        "tools": "Tools",
         "keybinds": "Keybindings"
+      },
+      "categories": {
+        "ship": "Ships",
+        "fpsWeapon": "FPS weapons",
+        "armor": "Armour",
+        "component": "Components",
+        "tool": "Tools"
+      },
+      "claims": {
+        "ship": {
+          "count": "{{count}} new ships in {{patch}}.",
+          "name": "{{name}} is flight-ready.",
+          "announced": "{{announced}} ships announced, {{count}} flight-ready.",
+          "s1": "Everything about every ship.",
+          "s2": "Which ship fits you?",
+          "s3": "Every hull, every value, every paint.",
+          "s4": "Compare first, then fly."
+        },
+        "fpsWeapon": {
+          "count": "{{count}} new FPS weapons in {{patch}}.",
+          "name": "{{name}} is new in {{patch}}.",
+          "announced": "{{announced}} weapons announced.",
+          "s1": "Every weapon, every value.",
+          "s2": "Find your next primary.",
+          "s3": "Damage, fire rate, range at a glance.",
+          "s4": "From sidearm to railgun."
+        },
+        "armor": {
+          "count": "{{count}} new armour pieces in {{patch}}.",
+          "name": "{{name}} is new in {{patch}}.",
+          "announced": "{{announced}} armour sets announced.",
+          "s1": "Armour for every mission.",
+          "s2": "Protection, weight, storage compared.",
+          "s3": "Put your loadout together.",
+          "s4": "From undersuit to helmet."
+        },
+        "component": {
+          "count": "{{count}} new components in {{patch}}.",
+          "name": "{{name}} is new in {{patch}}.",
+          "announced": "{{announced}} components announced.",
+          "s1": "Every component, every size.",
+          "s2": "Shields, coolers, power plants compared.",
+          "s3": "Find the better part.",
+          "s4": "Refit your ship with purpose."
+        },
+        "tool": {
+          "count": "{{count}} new tools in {{patch}}.",
+          "name": "{{name}} is new in {{patch}}.",
+          "announced": "{{announced}} tools announced.",
+          "s1": "Tools for every shift.",
+          "s2": "Tractor beam, salvage head, scraper.",
+          "s3": "Work smarter in the verse.",
+          "s4": "Every tool, every value."
+        }
+      },
+      "fact": {
+        "length": "Length",
+        "width": "Beam",
+        "height": "Height",
+        "size": "Size"
+      },
+      "paints": {
+        "label": "Paints",
+        "show": "Show paint {{name}}",
+        "all": "Show all {{count}} paints",
+        "fewer": "Fewer",
+        "isNew": "new",
+        "rsi": "In the RSI store",
+        "rsiRender": "RSI render",
+        "close": "Close preview"
+      },
+      "values": {
+        "key": "Key values",
+        "more": "More values",
+        "open": "{{label}} {{value}}: open {{name}}",
+        "legend": "Class average",
+        "toPage": "To the {{name}} page"
+      },
+      "compare": {
+        "delta": "{{delta}} % vs. class",
+        "top": "Top of its class",
+        "avg": "Class avg {{avg}}"
+      },
+      "codex": {
+        "label": "Codex: new in this patch",
+        "title": "Codex · new in {{patch}}",
+        "titleNoPatch": "Codex · new",
+        "count": "{{count}} new",
+        "announced": "announced",
+        "onTable": "on the table",
+        "noneNew": "Nothing new in this patch.",
+        "more": "+ {{count}} more in search",
+        "all": "All {{category}}",
+        "held": "held"
       }
     },
     "index": {
