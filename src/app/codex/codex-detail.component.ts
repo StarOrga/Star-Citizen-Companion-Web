@@ -2553,7 +2553,7 @@ export class CodexDetailComponent implements OnInit {
    * an overlay yet (same gap as the Codex landing, M3/M4 out of this scope);
    * both open the hangar page. */
   onHangarPickerOpen(): void {
-    void this.router.navigateByUrl('/hangar');
+    void this.router.navigateByUrl('/hq/hangar');
   }
 
   private readonly dimensions = computed<Dimensions | null>(() => {

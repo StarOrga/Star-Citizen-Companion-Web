@@ -8,14 +8,14 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /**
- * Minimal, viewer-accessible download surface (`/download`). Unlike `/uploader`
+ * Minimal, viewer-accessible download surface (`/apps/starscape`). Unlike `/apps/uploader`
  * (collaborator+, which also reaches the bundle history), this page shows ONLY
  * the desktop-tool download for the caller's allowed channel. Viewers get stable
  * with no picker; collaborators/admins get the role-gated picker. The
  * `desktop_release_for_channel` RPC clamps the channel server-side.
  *
  * Renders the shared `sc-app-download-panel` (admin feedback eb9c6ec3), so all
- * three download surfaces — this one, `/uploader` and Starscape — are the same
+ * three download surfaces — this one, `/apps/uploader` and Starscape — are the same
  * panel.
  */
 @Component({
@@ -48,7 +48,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
       @if (shell()) {
         <!-- Shell beta: the browser extension lives in the download area, not only behind a Codex promo. -->
-        <a class="sc-card ext" routerLink="/tools/extension">
+        <a class="sc-card ext" routerLink="/apps/extension">
           <span class="ext-txt">
             <strong>{{ 'download.extension.title' | translate }}</strong>
             <span>{{ 'download.extension.text' | translate }}</span>

@@ -48,7 +48,7 @@ interface CoverageRow {
             <span class="stale-dot" aria-hidden="true">●</span>
             <span class="stale-txt">{{ 'codex.status.stale' | translate }}</span>
             @if (roles.isCollaborator()) {
-              <a class="stale-link" routerLink="/uploader">{{ 'codex.status.staleUploadLink' | translate }} →</a>
+              <a class="stale-link" routerLink="/apps/uploader">{{ 'codex.status.staleUploadLink' | translate }} →</a>
             }
           </div>
         }

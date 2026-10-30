@@ -50,7 +50,7 @@ describe('ExtensionInstallComponent', () => {
   it('the in-app links are real router anchors', async () => {
     const f = await setup();
     const hrefs = (Array.from(f.nativeElement.querySelectorAll('a')) as HTMLAnchorElement[]).map((a) => a.getAttribute('href'));
-    expect(hrefs).toContain('/hangar');
+    expect(hrefs).toContain('/hq/hangar');
     expect(hrefs).toContain('/legal/privacy');
   });
 

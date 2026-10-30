@@ -9,7 +9,7 @@
  * and Web Animations all stop for the rest of the run. The damage lands
  * elsewhere and later — whichever frame-driven specs the random order puts
  * after the culprit time out, a different handful per run (2026-09-25: the
- * HangarPicker's two Ctrl+click specs, a Karma 404 for `/hangar` and
+ * HangarPicker's two Ctrl+click specs, a Karma 404 for `/hq/hangar` and
  * `/codex/ship/b` in the log, then the patch dossier's timeouts).
  *
  * These hooks sit at the top level, so they run around EVERY spec of a full

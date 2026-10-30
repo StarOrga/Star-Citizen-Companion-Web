@@ -126,6 +126,22 @@
                        between routes. Running text stays --sc-measure.
      --sc-content-narrow  a narrower column inside the frame (forms, detail
                        text) where --sc-measure is too tight.
+
+   BETA (shell β on: an element carries data-layout) — exactly TWO page
+   widths (concept 2026-10-30-beta-breiten-popups-seiten, rounds 1-2):
+     Rand  --sc-rand = clamp(16px, 2.5vw, 64px), the same margin on every
+           side of both widths; 16px on phones.
+     A     the stage: 100% − 2·Rand. Only a stage hub's first, unscrolled
+           view (/verse, /codex, /hq, /admin/hub, the auth stages).
+     B     the subheader width: --sc-b-w = min(100% − 2·Rand,
+           max(80rem, 67vw), 200vh). Every other page (content, tool,
+           plain, overlay) and every section below a stage. The docked
+           subheader (--sc-dock-w) IS B, so content stands exactly under it.
+           Phones: A = B = 100% − 2·16px.
+   Running text inside B caps at --sc-measure; there is no third width.
+   With the β on the root font size also grows with the window HEIGHT
+   above 1440 CSS px (16px → 32px), so 80rem and every rem token scale
+   with tall screens. The β off keeps every token above untouched.
    ============================================================ */
 :root {
   --sc-page-max: clamp(1280px, 50vw + 320px, 1600px);
@@ -133,6 +149,25 @@
   --sc-measure: 70ch;
   --sc-content-max: var(--sc-page-max);
   --sc-content-narrow: 56rem;
+}
+html:has([data-layout]) {
+  --sc-page-gutter: var(--sc-rand);
+  --sc-content-max: min(max(80rem, 67vw), 200vh);
+  /* B never runs under the β chip (it publishes --sc-chip-lane): the docked
+     subheader has always kept clear of it, and B must stay its width. */
+  --sc-b-gutter: max(var(--sc-rand), var(--sc-chip-lane, 0px));
+  --sc-b-w: min(100% - 2 * var(--sc-b-gutter), var(--sc-content-max));
+  --sc-dock-w: var(--sc-b-w);
+  /* 16px up to a 1440px-tall window, then 1/90 of the height, at most 32px.
+     vh, not dvh: a phone's URL bar would otherwise re-flow every rem on
+     scroll (the clamp holds phones at 16px anyway). */
+  font-size: clamp(16px, 100vh / 90, 32px);
+}
+/* Body text keeps today's 15px at the 16px root and scales with it. */
+html:has([data-layout]) body { font-size: 0.9375rem; }
+@media (max-width: 720px) {
+  /* Phones: the chip is not beside the subheader (that is the thumb bar). */
+  html:has([data-layout]) { --sc-b-gutter: var(--sc-rand); }
 }
 /* Scroll-linked condense of the main header into the subheader (0 = header
    expanded, 1 = docked): set per frame on the header, the bar and the β chip
@@ -187,11 +222,15 @@
   --sc-space-8: 64px;
 
   --sc-bar-h: 64px;
-  --sc-footer-h: 56px;
+  /* Desktop footer = the corner launchers' height plus their inset, so the
+     footer row (launcher-high) sits on their centre line (footer.component.ts). */
+  --sc-footer-h: calc(var(--sc-fab-size) + var(--sc-fab-inset));
   --sc-bar-hide-ms: 250ms;
 
-  /* Side gutter of the wide track (tools). */
-  --sc-wide-gutter: clamp(16px, 2.5vw, 64px);
+  /* Rand: the margin of both beta widths, on every side ("PAGE FRAME"). */
+  --sc-rand: clamp(16px, 2.5vw, 64px);
+  /* Older name of the same margin (auth stage, fusion search). */
+  --sc-wide-gutter: var(--sc-rand);
 
   /* SUBHEADER SKIN "Satinkante" (concept 2026-10-28 header/subheader, round 8 d2):
      the staged search and the docked subheader are one element in one skin. */
@@ -232,7 +271,7 @@
   :root {
     --sc-bar-h: 56px;
     --sc-footer-h: 48px;
-    --sc-wide-gutter: var(--sc-page-gutter);
+    --sc-rand: 16px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -258,17 +297,18 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   html:has([data-layout]) { scroll-padding-top: 0; scroll-padding-bottom: var(--sc-bar-h); }
 }
 
-/* The frame: one CSS grid with named lines, shared by the shell's <main> and
-   the public layout's. Lines, outside in:
-     full-start | wide-start | narrow-start | measure-start | measure-end
-                | narrow-end | wide-end | full-end
-   full    edge to edge (stages)
-   wide    fluid, side gutter --sc-wide-gutter (tools)
-   narrow  clamp(720px, 60%, 1040px), never wider (content)
-   measure <= 70ch prose, centred in narrow
-   Phone: every track but full keeps the page gutter, full width otherwise. */
+/* The frame (β only: the shell's <main> and the public layout's carry
+   .sc-frame only with the β on). One CSS grid, the two widths of "PAGE
+   FRAME" as named lines, outside in:
+     full-start | stage-start | narrow-start | measure-start | measure-end
+                | narrow-end | stage-end | full-end
+   full     edge to edge: a stage's backdrop (cinematic routes)
+   stage    A, 100% − 2·Rand: a stage hub's first view
+   narrow   B, --sc-b-w: content, tool, plain and overlay pages
+   measure  <= 70ch running text, centred in B (not a page width)
+   Phone: A = B = 100% − 2·16px. */
 .sc-frame {
-  --_n: min(clamp(720px, 60%, 1040px), 100% - 2 * var(--sc-wide-gutter));
+  --_n: var(--sc-b-w);
   --_m: min(var(--sc-measure), var(--_n));
   --_s: max(0px, calc((var(--_n) - var(--_m)) / 2));
   flex: 1;
@@ -276,37 +316,52 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   min-width: 0;
   display: grid;
   grid-template-columns:
-    [full-start] var(--sc-wide-gutter)
-    [wide-start] minmax(0, 1fr)
+    [full-start] var(--sc-rand)
+    [stage-start] minmax(0, 1fr)
     [narrow-start] minmax(0, var(--_s))
     [measure-start] minmax(0, var(--_m))
     [measure-end] minmax(0, var(--_s))
     [narrow-end] minmax(0, 1fr)
-    [wide-end] var(--sc-wide-gutter)
+    [stage-end] var(--sc-rand)
     [full-end];
-  /* the two 1fr tracks only centre the narrow block */
+  /* the two 1fr tracks only centre B (and absorb the chip lane) */
   align-content: start;
   padding-block: var(--sc-gap-head, 0px) var(--sc-space-6);
-}
-@media (max-width: 720px) {
-  .sc-frame { --_n: calc(100% - 2 * var(--sc-wide-gutter)); }
 }
 .sc-frame > * { min-width: 0; }
 .sc-frame > :where(*) { grid-column: narrow-start / narrow-end; }
 [data-layout='cinematic'] .sc-frame > :where(*) { grid-column: full-start / full-end; }
-[data-layout='tool'] .sc-frame > :where(*) { grid-column: wide-start / wide-end; }
 /* Utilities win over the layout default (same element, explicit choice). */
 .sc-frame > .sc-track-full { grid-column: full-start / full-end; }
-.sc-frame > .sc-track-wide { grid-column: wide-start / wide-end; }
+.sc-frame > .sc-track-stage { grid-column: stage-start / stage-end; }
 .sc-frame > .sc-track-narrow { grid-column: narrow-start / narrow-end; }
 .sc-frame > .sc-track-measure { grid-column: measure-start / measure-end; }
-/* The page frame inside a cinematic route: the stage (backdrop) stays edge to
-   edge, the page's content keeps the frame width and gutter (Verse subpages). */
+/* B inside a cinematic route: the stage (backdrop) stays edge to edge, the
+   page's content takes B (Verse subpages, explorer). */
 .sc-frame > .sc-track-page {
   grid-column: full-start / full-end;
   justify-self: center;
-  width: min(100% - 2 * var(--sc-page-gutter), var(--sc-content-max));
+  width: var(--sc-b-w);
 }
+/* Inside a stage hub (its component spans the full track): the first,
+   unscrolled view takes A (.sc-stage-a), every section below it takes B
+   (.sc-below-stage), centred. Both expect a parent as wide as the frame.
+   β only, so a legacy page never sees them. */
+[data-layout] .sc-stage-a {
+  box-sizing: border-box;
+  width: calc(100% - 2 * var(--sc-rand));
+  margin-inline: auto;
+}
+[data-layout] .sc-below-stage {
+  box-sizing: border-box;
+  width: var(--sc-b-w);
+  margin-inline: auto;
+}
+/* Running text inside B: the column caps, never the page. */
+[data-layout] .sc-measure { max-width: var(--sc-measure); }
+/* A text card on a card page (about, privacy, imprint) can outgrow 70ch in a
+   wide B: its paragraphs cap, the card keeps its column. */
+[data-layout] .sc-card-page > .sc-card :where(p, li) { max-width: var(--sc-measure); }
 
 /* ============================================================
    HOLODECK MOTION — one system for every holo surface
@@ -441,7 +496,28 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
      field at this size wherever it has more room (the /admin/feedback page,
      the maximized panel), so "large" never means "a search bar across the
      whole screen" (admin feedback a4f30011). */
-  --sc-feedback-dock-width: 480px;
+  --sc-feedback-dock-width: 30rem;
+  /* ---- OVERLAY SIZES (popups, menus, toasts) ----
+     Four tiers, no hard px widths in an overlay (scripts/check-overlay-sizes.mjs):
+       Menu  --sc-ov-menu  anchored at its trigger (apps / profile / admin / share / columns)
+       S     --sc-ov-s     a question or a sign-in card (confirm, login, set-password)
+       M     --sc-ov-m     a detail dialog (component, weapon, quick search, feedback sheet)
+       Area  --sc-ov-area  the subheader width B (overlay frame, dossier, swap picker, tray)
+     Toasts take --sc-toast-w, a tooltip --sc-tooltip-w, the feedback window
+     --sc-feedback-dock-width. Height: --sc-ov-max-h, inner scroll. ONE phone
+     breakpoint, 720px: Dialog M + Area become a full-screen sheet (100% x 100dvh,
+     radius 0, safe-area padding); Menu + S stay a card of min(token, 100vw - 32px).
+     An overlay whose size is driven from outside carries
+     `overlay-size: exception - <reason>` instead. Outside the beta B falls back
+     to the old 60rem frame. */
+  --sc-ov-menu: 20rem;
+  --sc-ov-s: 28rem;
+  --sc-ov-m: 48rem;
+  --sc-ov-area: var(--sc-b-w, min(100% - 2rem, 60rem));
+  --sc-toast-w: 24rem;
+  --sc-tooltip-w: 18rem;
+  --sc-ov-max-h: calc(100vh - 2 * var(--sc-rand, 16px));
+  --sc-ov-max-h: calc(100dvh - 2 * var(--sc-rand, 16px));
   /* What a floating bottom surface (a tray, a toast, a sticky composer, a
      confirmation bar) has to keep clear of. Derived from the launcher tokens
      above, so every surface follows when the disc or its inset changes:

@@ -86,7 +86,7 @@ describe('DesktopReadAuthComponent', () => {
     const { cmp } = setup({ cb: 'http://127.0.0.1:5000/x', state: 's' });
     await cmp.ngOnInit();
     expect(cmp.status()).toBe('login_required');
-    expect(cmp.returnUrl).toContain('/desktop/connect?cb=');
+    expect(cmp.returnUrl).toContain('/apps/starscape/connect?cb=');
     expect(submit).not.toHaveBeenCalled();
   });
 

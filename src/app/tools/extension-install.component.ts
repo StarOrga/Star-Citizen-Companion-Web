@@ -19,7 +19,7 @@ const EXTENSION_ZIP_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/browser-extension-latest/sc-hangar-extension.zip';
 
 /**
- * /tools/extension — install + privacy page for the hangar-import browser
+ * /apps/extension — install + privacy page for the hangar-import browser
  * extension (source: browser-extension/).
  *
  * Public on purpose: it is the page the codex promo points at, and the privacy
@@ -108,7 +108,7 @@ const EXTENSION_ZIP_URL =
       <div class="sc-card">
         <h2>{{ 'extension.install.alt.title' | translate }}</h2>
         <p>{{ 'extension.install.alt.text' | translate }}</p>
-        <a class="sc-btn" routerLink="/hangar">{{ 'extension.install.alt.cta' | translate }}</a>
+        <a class="sc-btn" routerLink="/hq/hangar">{{ 'extension.install.alt.cta' | translate }}</a>
       </div>
 
       <p class="disclaimer">{{ 'extension.install.disclaimer' | translate }}</p>

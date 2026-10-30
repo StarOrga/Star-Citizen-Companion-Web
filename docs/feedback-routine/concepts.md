@@ -13,7 +13,7 @@ through the concept exactly like the local `docs/concepts/*.html` pages
 (choices, notes, submit). The local pages need a Python bridge on his machine;
 the routine has none. So the page is **hosted**: the html lives in
 `public.concept_pages`, the `concept-page` edge function serves it and answers
-the engine's bridge protocol, and the Angular route `/konzept/<id>` frames it.
+the engine's bridge protocol, and the Angular route `/concept/<id>` frames it.
 
 ## The pieces
 
@@ -21,10 +21,10 @@ the engine's bridge protocol, and the Angular route `/konzept/<id>` frames it.
 |---|---|---|
 | Table `concept_pages` | `supabase/migrations/20260914160000_concept_pages.sql` | `html`, `decisions` (what the page submitted), `draft` (note mirror), `submitted_at`, `processed_at`, `reload_counter`. Admin-only SELECT, **no client write policy** — the routine and the function write with the service role |
 | Edge function `concept-page` | `supabase/functions/concept-page/` | `POST /ticket` (admin JWT → 12-h HMAC ticket + document URL), `GET /:id?t=` (the html with the shim injected), `/:id/decisions`, `/reload`, `/heartbeat`, `/draft`, `/attachments` (501) — the exact protocol the concept engine expects from the local bridge |
-| Angular route `/konzept/:id` (alias `/concept/:id`) | `src/app/admin/concepts/` | `roleGuard('admin')`; mints the ticket with the session and renders the document in an iframe. Back link to `/admin/feedback`, "open in new tab" |
+| Angular route `/concept/:id` | `src/app/admin/concepts/` | `roleGuard('admin')`; mints the ticket with the session and renders the document in an iframe. Back link to `/admin/feedback`, "open in new tab" |
 | Routine tooling | `scripts/routine-gate.mjs concept-publish` / `concept-read` | Publish/republish a page, read the submission back |
 
-The **link shape** the admin sees is always `https://sc-companion.vercel.app/konzept/<uuid>`.
+The **link shape** the admin sees is always `https://sc-companion.vercel.app/concept/<uuid>`.
 Never post the function URL (it carries the ticket) — the app mints a fresh one on
 every open.
 
@@ -47,7 +47,7 @@ every open.
      --feedback <admin_feedback.id>
    ```
 
-   prints `{"id":"<uuid>","url":"https://sc-companion.vercel.app/konzept/<uuid>"}`.
+   prints `{"id":"<uuid>","url":"https://sc-companion.vercel.app/concept/<uuid>"}`.
 3. Post the `url` as a SYSTEM reply in the topic's thread and park the topic
    `needs_input` (the admin has to act). Say in one line what the page asks.
 4. **Iteration:** edit the html, run `concept-publish --id <uuid> --file … --title …`.
@@ -121,7 +121,7 @@ echo that failed): a run has to look on its own —
 - The ticket is `base64url(<id>.<uid>.<exp>.<hmac-sha256(<id>.<uid>.<exp>, service-role key)>)`,
   12 h, bound to one id and to the minting admin (`uid`), constant-time compared. Whoever holds a ticketed URL
   can read and write **that** concept until it expires — which is why the
-  routine posts only the `/konzept/<id>` link.
+  routine posts only the `/concept/<id>` link.
 - The stored html is trusted (routine-written). Page POST bodies land in
   jsonb, capped at 1 MB, never rendered as markup.
 - Response headers on the document: `Cache-Control: no-store`,

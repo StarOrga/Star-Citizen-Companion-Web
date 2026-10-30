@@ -64,12 +64,12 @@ describe('AccessUnavailableComponent', () => {
   it('falls back to /news for a foreign or missing redirect', async () => {
     const evil = create('//evil.example');
     await evil.fixture.componentInstance.retry();
-    expect(evil.navigate).toHaveBeenCalledOnceWith('/news');
+    expect(evil.navigate).toHaveBeenCalledOnceWith('/verse/news');
 
     TestBed.resetTestingModule();
     const none = create(null);
     await none.fixture.componentInstance.retry();
-    expect(none.navigate).toHaveBeenCalledOnceWith('/news');
+    expect(none.navigate).toHaveBeenCalledOnceWith('/verse/news');
   });
 
   it('disables both buttons while a retry is running', async () => {

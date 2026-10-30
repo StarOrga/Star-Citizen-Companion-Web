@@ -38,7 +38,7 @@ export interface AppDownloadEntry {
  * On a device that cannot install a desktop application at all (admin feedback
  * dccdcc82), the download buttons and the channel picker are replaced by a
  * single line saying so. The panel — and the page around it — still renders:
- * somebody who followed a shared `/download` link from a chat must land on an
+ * somebody who followed a shared `/apps/starscape` link from a chat must land on an
  * explanation, not on a dead page or on buttons that hand them an unusable .exe.
  */
 @Component({
@@ -200,7 +200,7 @@ export class AppDownloadPanelComponent {
    * detection lives in `DesktopCapabilityService` — never a media query in a
    * template, and never a viewport width (a narrow desktop window still owns a
    * PC). All three download surfaces render this panel, so answering it here
-   * covers `/download`, `/uploader` and the Codex Bridge line at once.
+   * covers `/apps/starscape`, `/apps/uploader` and the Codex Bridge line at once.
    */
   readonly cannotInstall = this.device.isMobileDevice;
 

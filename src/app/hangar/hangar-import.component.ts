@@ -67,7 +67,7 @@ const MAX_ENTRIES = 200;
         <p class="hint">{{ 'hangar.import.hint' | translate }}</p>
         <!-- Discovery: the extension is the no-file path to the same screen -->
         <p class="hint">
-          <a routerLink="/tools/extension">{{ 'extension.hangarHint' | translate }}</a>
+          <a routerLink="/apps/extension">{{ 'extension.hangarHint' | translate }}</a>
         </p>
       }
 

@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.180.0] - 2026-10-30
+
+### Added
+- Beta: an Apps page lists the uploader, the Starscape app and the browser extension, each with its own address.
+
+### Changed
+- Beta: pages now use just two widths — the hub start screens (Verse, Codex, HQ, Admin) fill the window, everything else lines up exactly under the subheader. Wide and very large screens use the space instead of leaving empty margins, and text grows on big 4K screens.
+- Popups, dialogs and notifications come in a few fixed sizes; on phones larger ones open full screen, and several notifications stack instead of overlapping.
+- The footer sits on one line with the round buttons in the corners.
+- Addresses are English throughout (Locker, Ops, Concept); old addresses that only forwarded somewhere else were removed.
+
 ## [0.179.1] - 2026-10-29
 
 ### Fixed

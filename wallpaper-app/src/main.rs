@@ -107,7 +107,7 @@ const ID_SOURCE_MINE: usize = 25;
 const ID_ACCOUNT_SIGNIN: usize = 26;
 const ID_ACCOUNT_SIGNOUT: usize = 27;
 
-const STARSCAPE_URL: &str = "https://sc-companion.vercel.app/starscape";
+const STARSCAPE_URL: &str = "https://sc-companion.vercel.app/verse/gallery";
 /// Filename of the fetched weekly Verse-News summary image inside the cache dir.
 const SUMMARY_FILE: &str = "summary.png";
 

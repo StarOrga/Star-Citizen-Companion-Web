@@ -10,12 +10,12 @@ import { safeRedirectTarget } from '../core/safe-redirect.util';
  * incl. any `?redirect=…` query string authGuard attached when it originally
  * bounced a shadowed session to /login) — see `ImpersonationService.exit()`.
  * This guard used to unconditionally send an authenticated visitor to
- * `/news`, silently discarding that `redirect` and dropping the admin's
- * place (e.g. `/login?redirect=/starscape` → `/news` instead of back to
- * `/starscape`). Honoring `redirect` here — validated through the exact same
+ * `/verse/news`, silently discarding that `redirect` and dropping the admin's
+ * place (e.g. `/login?redirect=/starscape` → `/verse/news` instead of back to
+ * `/verse/gallery`). Honoring `redirect` here — validated through the exact same
  * `safeRedirectTarget()` used by `LoginComponent`'s post-sign-in navigation —
  * fixes both that case and the ordinary "already signed in, typed /login by
- * hand" case (no `redirect` param → falls back to `/news`, unchanged).
+ * hand" case (no `redirect` param → falls back to `/verse/news`, unchanged).
  *
  * The `redirect` value is untrusted input on this read-back, same as
  * anything read out of `sc.viewAs` storage — `safeRedirectTarget()` rejects

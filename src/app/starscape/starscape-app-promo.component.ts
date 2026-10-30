@@ -91,11 +91,11 @@ const ROTATE_MS = 2600;
       /* Bottom edges flush with the launcher, so the two read as one row. */
       bottom: var(--sc-fab-inset, 24px);
       z-index: 900;
-      /* 320px everywhere the pitch is actually shown (>= 901px, see below):
+      /* --sc-toast-w everywhere the pitch is actually shown (>= 901px, see below):
          the lane plus both gutters cost ~104px, leaving well over 700px. The
          clamp only bites if that stops being true, and it shrinks the card
          rather than letting it run off the left edge. */
-      width: min(320px, calc(100vw - var(--sc-fab-lane, 80px) - 2 * var(--sc-fab-gutter, 12px)));
+      width: min(var(--sc-toast-w, 24rem), calc(100vw - var(--sc-fab-lane, 80px) - 2 * var(--sc-fab-gutter, 12px)));
       display: flex; flex-direction: column; gap: 0;
       padding: 14px 16px 16px;
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));

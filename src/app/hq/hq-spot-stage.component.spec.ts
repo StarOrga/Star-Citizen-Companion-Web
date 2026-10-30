@@ -59,7 +59,7 @@ describe('HqSpotStageComponent', () => {
   it('shows empty-state CTAs as real anchors into hangar, locker and codex', async () => {
     const { el } = await setup();
     const hrefs = Array.from(el.querySelectorAll('a.stage-cta')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['/hq/hangar', '/codex', '/hq/spind']);
+    expect(hrefs).toEqual(['/hq/hangar', '/codex', '/hq/locker']);
   });
 
   it('keeps the archive quick-access links', async () => {

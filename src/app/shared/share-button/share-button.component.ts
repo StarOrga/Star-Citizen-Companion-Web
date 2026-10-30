@@ -63,7 +63,9 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
        above the bottom bar where the launcher's disc sits in the bar row. */
     .dock {
       position: fixed; z-index: 160; inset-inline-end: var(--sc-fab-clear-inline, 88px);
-      bottom: var(--sc-float-bottom, 16px); display: flex; align-items: center; gap: 10px;
+      /* Centred on the launcher's centre line, like the footer row. */
+      bottom: calc(var(--sc-float-bottom, 16px) + (var(--sc-fab-size, 56px) - max(44px, var(--sc-tap-min, 44px))) / 2);
+      display: flex; align-items: center; gap: 10px;
     }
     @media (max-width: 720px) {
       .dock {

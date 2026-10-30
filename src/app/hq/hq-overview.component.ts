@@ -31,7 +31,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
   template: `
     <!-- The main page hero (beta shell): eyebrow · title · stage slot, centred, the slot
          at the same spot as on every main page (StageHeroDirective). -->
-    <div class="sc-stage-hero" scStageHero>
+    <div class="sc-stage-hero sc-stage-a" scStageHero>
       <sc-page-header
         [eyebrow]="'hq.eyebrow' | translate"
         [title]="'hq.title' | translate"
@@ -40,15 +40,15 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
     </div>
 
     @if (loadError(); as err) {
-      <div class="sc-card err" role="alert">
+      <div class="sc-card err sc-below-stage" role="alert">
         <span>{{ 'hq.overview.loadFailed' | translate }}</span>
         <button type="button" class="sc-btn small" (click)="retry()">{{ 'errors.retry' | translate }}</button>
       </div>
     }
 
-    <sc-hq-spot-stage />
+    <sc-hq-spot-stage class="sc-stage-a" />
 
-    <div class="grid">
+    <div class="grid sc-below-stage">
       <section class="sc-card tile" aria-labelledby="hq-ov-ship">
         <h2 id="hq-ov-ship" class="tile-eyebrow">{{ 'hq.overview.activeShip' | translate }}</h2>
         @if (activeShip(); as s) {

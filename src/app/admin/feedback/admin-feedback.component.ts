@@ -1305,7 +1305,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       to   { opacity: 1; transform: none; }
     }
     .page.embedded .sheet { inset: 0; }
-    .page:not(.embedded) .sheet { position: fixed; z-index: 30; max-width: 860px; margin: 0 auto; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5); }
+    .page:not(.embedded) .sheet { position: fixed; z-index: 30; max-width: var(--sc-ov-m); margin: 0 auto; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5); }
     .sh-head { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; min-height: 52px; padding: 6px var(--sc-pad-2); border-bottom: 1px solid var(--sc-border); }
     .sh-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; background: transparent; border: 0; border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: 1.1rem; cursor: pointer; }
     .sh-btn:hover { background: var(--sc-bg-2); color: var(--sc-fg-0); }

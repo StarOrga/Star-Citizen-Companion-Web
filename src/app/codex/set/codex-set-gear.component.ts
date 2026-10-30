@@ -48,7 +48,7 @@ export interface GearSlotRow {
 }
 
 /**
- * The set's weapon/tool positions on /codex/set/:id (audit 2026-09-25): the
+ * The set's weapon/tool positions on /hq/locker/:id (audit 2026-09-25): the
  * board panel covers the six armour positions, this section the REST of the
  * role's positions (`ROLE_SLOT_SUGGESTIONS`, array order) — primary /
  * secondary / sidearm, multi-tool, tractor, medgun …

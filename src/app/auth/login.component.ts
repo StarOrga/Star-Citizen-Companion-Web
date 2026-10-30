@@ -258,11 +258,11 @@ type Panel = 'signIn' | 'apply' | 'reset';
     }
     .landing-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+      grid-template-columns: minmax(0, 1fr) minmax(0, var(--sc-ov-s));
       gap: clamp(24px, 5vw, 64px);
       align-items: center;
       width: 100%;
-      max-width: 1000px;
+      max-width: 1000px; /* overlay-size: exception — the landing layout, not an overlay */
     }
     .hero { min-width: 0; }
     .brand {
@@ -473,7 +473,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
        the sign-in form still lands above the fold on a phone. */
     @media (max-width: 860px) {
       .landing-grid {
-        grid-template-columns: minmax(0, 420px);
+        grid-template-columns: minmax(0, var(--sc-ov-s));
         justify-content: center;
         gap: 20px;
       }

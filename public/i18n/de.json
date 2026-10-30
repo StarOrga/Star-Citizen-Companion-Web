@@ -5474,8 +5474,6 @@
       "open": "Suche öffnen",
       "clear": "Eingabe löschen",
       "dropContext": "Kontext entfernen — überall suchen",
-      "ask": "Companion fragen",
-      "askKey": "Shift ↵",
       "places": "Seiten",
       "here": "Hier",
       "page": "Seite",
@@ -5511,12 +5509,6 @@
       "ops": "Einsätze",
       "extension": "Browser-Erweiterung",
       "download": "Downloads"
-    },
-    "companion": {
-      "title": "Companion fragen",
-      "subtitle": "Antworten mit Begründung — bald.",
-      "body": "Der Companion beantwortet solche Fragen noch nicht. Bis dahin findest du die Antwort am schnellsten über die Suche.",
-      "searchInstead": "Stattdessen im Codex suchen"
     }
   },
   "adminHub": {
@@ -5581,6 +5573,27 @@
     "starscape": {
       "line": "Starscape als Wallpaper-App",
       "desc": "Wechselt dein Hintergrundbild durch die Starscape-Galerie."
+    }
+  },
+  "apps": {
+    "hub": {
+      "eyebrow": "Apps",
+      "title": "Apps",
+      "subtitle": "Alles, was neben der Website läuft: Uploader, Starscape und die Browser-Erweiterung.",
+      "breadcrumbAria": "Apps",
+      "uploader": {
+        "name": "Data Uploader",
+        "desc": "Liest dein Star-Citizen-Spiel aus und lädt die Daten in den Codex. Nur für Collaborator."
+      },
+      "starscape": {
+        "name": "Starscape",
+        "desc": "Die Desktop-App: Verse-Galerie als lebendiger Wallpaper."
+      },
+      "extension": {
+        "name": "Browser-Erweiterung",
+        "desc": "Importiert deinen RSI-Hangar mit einem Klick in die Flotte."
+      },
+      "open": "Öffnen"
     }
   }
 }

@@ -1,13 +1,11 @@
 import { inject } from '@angular/core';
-import { Params, Router, Routes, UrlTree } from '@angular/router';
+import { Router, Routes } from '@angular/router';
 import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
 import { roleGuard } from './auth/role.guard';
 import { OVERLAY_ROUTE_DATA } from './core/overlay-route-scroll';
 import { shellBetaOn } from './core/layout/shell-beta.guard';
-import { hqSet } from './hq/hq-routes';
-import { fpsToBrowseParams } from './codex/codex-browse-params';
 
 // Guard policy (access-control design, 2026-08-05, supersedes #131): the app
 // is now a login wall by default — fail closed. `canActivateChild` on the
@@ -21,46 +19,8 @@ import { fpsToBrowseParams } from './codex/codex-browse-params';
 const PRIVATE = [authGuard, approvedGuard] as const;
 
 /**
- * Bridge for the retired role-loadout editor (admin feedback 34505d70,
- * decision "2A" on issue #411 point 2 — "hangar nicht explizit, der ist schon
- * auf der codex startseite implizit drin").
- *
- * `:id` is ALWAYS a `hangar_role_loadouts` id: ships live at `/hq/hangar/:id`
- * and `/codex/ship/:className`, and never reached this path. So the destination
- * is unambiguous — that set's page in the HQ locker (`/hq/spind/:id`, concept
- * 2026-10-08 codex/HQ split; before that `/codex/set/:id`).
- * Exported so the mapping has a test instead of only a comment.
- */
-export function hangarLoadoutRedirect({ params }: { params: Params }): UrlTree {
-  return inject(Router).createUrlTree(hqSet(params['id']));
-}
-
-/**
- * Bridge for the retired standalone blueprint list (AUD-061): it was a
- * second, weaker copy of the Codex index's blueprint category (missing the
- * group facet, German names and URL state), so `/codex/blueprint` now just
- * opens `/codex/index?kind=blueprint`. A functional `redirectTo` (Angular 22)
- * so an incoming `q` search param survives the hop — a plain string
- * `redirectTo` would drop it.
- */
-export function blueprintListRedirect({ queryParams }: { queryParams: Params }): UrlTree {
-  const params: Params = { kind: 'blueprint' };
-  if (queryParams['q']) params['q'] = queryParams['q'];
-  return inject(Router).createUrlTree(['/codex/index'], { queryParams: params });
-}
-
-/**
- * Bridge for the retired on-foot list (concept 2026-10-29, b3): /codex/fps is
- * a preset of the one Codex browse page now. Old links and bookmarks keep
- * working — `cat`, `slot` and the rest are translated (fpsToBrowseParams).
- */
-export function fpsListRedirect({ queryParams }: { queryParams: Params }): UrlTree {
-  return inject(Router).createUrlTree(['/codex/index'], { queryParams: fpsToBrowseParams(queryParams) });
-}
-
-/**
  * The set page's equip flow (`equipInto` + `equipSlot`) still needs the
- * on-foot list with its equip controls, so only a plain browse is redirected.
+ * on-foot list with its equip controls, so a plain browse is a preset of the Codex browse page (concept 2026-10-29, b3).
  */
 export function fpsEquipMode(): boolean {
   const nav = inject(Router).currentNavigation();
@@ -68,13 +28,12 @@ export function fpsEquipMode(): boolean {
 }
 
 /**
- * The string redirects below ('' → verse, news → verse/news, starscape →
- * verse/gallery, p4k / desktop → uploader, admin/integrations →
- * admin/api-tokens, '**' → verse) are RELATIVE on
- * purpose: Angular keeps the incoming query + fragment for a relative
- * `redirectTo` (`/?item=<id>` → `/news?item=<id>`). Never prefix the target
- * with `/` — an absolute string redirect drops the query (see
- * blueprintListRedirect). Pinned in app.routes.spec.ts (AUD-144).
+ * The '' → verse and '**' → verse string redirects are RELATIVE on purpose:
+ * Angular keeps the incoming query + fragment for a relative `redirectTo`.
+ * Never prefix the target with `/` — an absolute string redirect drops the
+ * query. Pinned in app.routes.spec.ts (AUD-144). Old aliases (news, hangar,
+ * codex/set, tools/extension, ...) are NOT bridged any more (alpha cleanup,
+ * concept 2026-10-30): they fall through to '**'.
  */
 export const routes: Routes = [
   {
@@ -193,13 +152,11 @@ export const routes: Routes = [
         path: 'verse',
         loadChildren: () => import('./verse/verse.routes').then((m) => m.VERSE_ROUTES),
       },
-      // Retired entry points of the merged pages. Relative string redirects
-      // keep the query (`/starscape?image=<id>` → `/verse/gallery?image=<id>`,
-      // `/news?item=<id>` → `/verse/news?item=<id>`), and the `:line` param
-      // is carried over — shared links from before the merge keep resolving.
-      { path: 'news', pathMatch: 'full', redirectTo: 'verse/news' },
-      { path: 'news/patches', pathMatch: 'full', redirectTo: 'verse/patches' },
-      { path: 'news/patches/:line', pathMatch: 'full', redirectTo: 'verse/patches/:line' },
+      // The two bridges installed apps still open (concept 2026-10-30): the
+      // browser extension hands imports to /hangar/import and the Starscape
+      // tray opens /starscape. Both sources already call the new paths; drop
+      // these once those releases are out. Relative, so the query survives.
+      { path: 'hangar/import', pathMatch: 'full', redirectTo: 'hq/hangar/import' },
       { path: 'starscape', pathMatch: 'full', redirectTo: 'verse/gallery' },
       {
         // Codex front door = "the composed depth-field landing": Archive
@@ -221,18 +178,6 @@ export const routes: Routes = [
           import('./codex/codex-browse.component').then((m) => m.CodexBrowseComponent),
       },
       {
-        // The standalone blueprint list is retired (AUD-061) — it duplicated
-        // the Codex index's blueprint category with weaker facets. Redirect
-        // instead of a page; must come BEFORE codex/:kind/:className so the
-        // static "blueprint" segment is not consumed by the :kind wildcard.
-        // No guards on the old list route to carry over — the shell's
-        // canActivateChild above already gates the redirect target the same
-        // way it gated this path.
-        path: 'codex/blueprint',
-        pathMatch: 'full',
-        redirectTo: blueprintListRedirect,
-      },
-      {
         path: 'codex/blueprint/:className',
         data: { layout: 'content' },
         loadComponent: () =>
@@ -248,12 +193,6 @@ export const routes: Routes = [
         data: { layout: 'tool' },
         loadComponent: () =>
           import('./codex/fps-list.component').then((m) => m.FpsListComponent),
-      },
-      {
-        // Plain browsing: a preset of the one Codex browse page (b3).
-        path: 'codex/fps',
-        pathMatch: 'full',
-        redirectTo: fpsListRedirect,
       },
       {
         // Keybindings reference — the complete default action profile for the
@@ -309,15 +248,6 @@ export const routes: Routes = [
           import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
       },
       {
-        // The set page moved into the HQ locker (concept 2026-10-08: the codex
-        // shows game knowledge only). Bridge for old links; relative so the
-        // query survives. Static segment BEFORE codex/:kind/:className so "set"
-        // is never consumed by the :kind wildcard.
-        path: 'codex/set/:id',
-        pathMatch: 'full',
-        redirectTo: 'hq/spind/:id',
-      },
-      {
         path: 'codex/:kind/:className',
         data: { layout: 'content' },
         loadComponent: () =>
@@ -362,7 +292,7 @@ export const routes: Routes = [
               import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
           },
           {
-            path: 'spind',
+            path: 'locker',
             data: { layout: 'tool', section: 'locker' },
             loadComponent: () =>
               import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
@@ -370,47 +300,38 @@ export const routes: Routes = [
           {
             // The on-foot set editor (T1). The component still lives under
             // codex/set/ — it renders codex data — but the set is personal.
-            path: 'spind/:id',
+            path: 'locker/:id',
             data: { layout: 'content' },
             loadComponent: () =>
               import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
           },
           {
-            path: 'einsaetze',
+            path: 'ops',
             data: { layout: 'tool' },
             loadComponent: () => import('./hq/hq-ops.component').then((m) => m.HqOpsComponent),
           },
         ],
       },
-      // Old /hangar urls → HQ. Relative string redirects keep the query
-      // (`/hangar/import?src=extension` — the browser extension still opens
-      // that path, browser-extension/src/lib/hangar-core.js). The public
-      // `hangar/shared/:token` page stays on the public layout above.
-      { path: 'hangar', pathMatch: 'full', redirectTo: 'hq/hangar' },
-      { path: 'hangar/import', pathMatch: 'full', redirectTo: 'hq/hangar/import' },
-      { path: 'hangar/ship/:id', pathMatch: 'full', redirectTo: 'hq/hangar/:id' },
       {
-        // BRIDGE, not a page — the standalone role-loadout editor is gone.
-        // Kept registered so links shared before the change keep resolving.
-        // See hangarLoadoutRedirect.
-        path: 'hangar/loadout/:id',
+        // Apps hub (concept 2026-10-30): one overview of the three companion
+        // apps; each lives under /apps/<name>.
+        path: 'apps',
         pathMatch: 'full',
-        redirectTo: hangarLoadoutRedirect,
+        data: { layout: 'content' },
+        loadComponent: () => import('./desktop/apps-hub.component').then((m) => m.AppsHubComponent),
       },
-      // Bundle History merged into the Data Upload page (/uploader). Keep the
-      // old /p4k URL working for bookmarks/muscle-memory via a redirect.
-      { path: 'p4k', pathMatch: 'full', redirectTo: 'uploader' },
       {
-        path: 'uploader',
+        // Data Upload page (collaborator-gated); bundle history is merged in.
+        path: 'apps/uploader',
         data: { layout: 'tool' },
         canActivate: [roleGuard('admin', 'collaborator')],
         loadComponent: () =>
           import('./desktop/desktop-download.component').then((m) => m.DesktopDownloadComponent),
       },
       {
-        // Minimal download surface for ANY invited user (viewer+). No bundle
-        // history; the channel picker self-hides for viewers → stable-only.
-        path: 'download',
+        // Starscape download surface for ANY invited user (viewer+): the
+        // channel picker self-hides for viewers -> stable-only.
+        path: 'apps/starscape',
         data: { layout: 'content' },
         loadComponent: () =>
           import('./desktop/download.component').then((m) => m.DownloadComponent),
@@ -420,33 +341,20 @@ export const routes: Routes = [
         // INSIDE the component (so unauthenticated users land on /login with a
         // redirect back here, instead of bouncing silently to /news) — the
         // blanket gate above already covers the auth+approval part.
-        path: 'uploader/auth',
+        path: 'apps/uploader/auth',
         data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
       },
       {
-        // Legacy OAuth-callback alias. Uploader binaries built BEFORE the
-        // /desktop→/uploader rename (#73) — e.g. the shipped v0.4.x–v0.6.x —
-        // open `/desktop/auth?cb=…&state=…`. The `pathMatch: 'full'` /desktop
-        // redirect below does NOT cover this sub-path, so without this entry
-        // the URL falls through to the '**' wildcard and silently lands on
-        // /news — observed as "connecting the uploader only opens the start
-        // page, not signed in". Render the SAME component so those binaries
-        // keep working without a reinstall.
-        //
-        // NOTE: binaries ≤ v0.4.5 also predate the form-POST / Private-Network
-        // handoff fix (their loopback only `JSON.parse`s a fetch() body), so
-        // they still fail at the token handoff even WITH this route — those
-        // genuinely need a reinstall of the current build.
-        path: 'desktop/auth',
+        // Legacy alias of apps/uploader/auth: installed uploader binaries call
+        // /uploader/auth until the next uploader release (only /desktop/auth
+        // was dropped).
+        path: 'uploader/auth',
         data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
       },
-      // Legacy redirect: the page lived at /desktop before the rename to
-      // /uploader. Keep bookmarks/muscle-memory working.
-      { path: 'desktop', pathMatch: 'full', redirectTo: 'uploader' },
       {
         path: 'admin',
         data: { layout: 'tool' },
@@ -472,7 +380,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./admin/api-tokens/api-tokens.component').then((m) => m.ApiTokensComponent),
       },
-      { path: 'admin/integrations', pathMatch: 'full', redirectTo: 'admin/api-tokens' },
       {
         path: 'admin/telemetry',
         data: { layout: 'content' },
@@ -495,20 +402,6 @@ export const routes: Routes = [
           import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
       },
       {
-        // A hosted concept page (admin feedback #224): the routine posts
-        // `/konzept/<id>` into a feedback thread, the admin opens it here and
-        // works through the interactive concept in an iframe served by the
-        // `concept-page` edge function. The German path is the link shape
-        // the admin asked for; `concept/:id` below is the alias. Admin-only
-        // on top of the blanket gate — and the function refuses to mint a
-        // ticket for anyone else, so the guard is not the only lock.
-        path: 'konzept/:id',
-        data: { layout: 'tool' },
-        canActivate: [roleGuard('admin')],
-        loadComponent: () =>
-          import('./admin/concepts/concept-page.component').then((m) => m.ConceptPageComponent),
-      },
-      {
         path: 'concept/:id',
         data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],
@@ -517,7 +410,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        data: { layout: 'cinematic' },
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
@@ -526,16 +419,13 @@ export const routes: Routes = [
         // /settings because that is where the account-scoped surfaces live and
         // where both entry points (account menu, settings card) point.
         path: 'friends',
-        data: { layout: 'cinematic' },
+        data: { layout: 'content' },
         loadComponent: () =>
           import('./social/friends.component').then((m) => m.FriendsComponent),
       },
       {
         // Install + privacy page for the hangar-import browser extension.
-        // Gated by the blanket rule now (access-control redesign): the
-        // install instructions reference an authenticated feature, so this no
-        // longer needs to be readable signed-out.
-        path: 'tools/extension',
+        path: 'apps/extension',
         data: { layout: 'content' },
         loadComponent: () =>
           import('./tools/extension-install.component').then((m) => m.ExtensionInstallComponent),
@@ -547,14 +437,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
       },
-      {
-        // "Companion fragen" (beta shell, Fusion search): a placeholder until
-        // the target is decided (concept 2026-10-25, spec §5).
-        path: 'companion',
-        data: { layout: 'content' },
-        loadComponent: () =>
-          import('./shell/fusion-bar/companion-stub.component').then((m) => m.CompanionStubComponent),
-      },
     ],
   },
   {
@@ -564,6 +446,15 @@ export const routes: Routes = [
     // Access-control redesign (2026-08-05): approvedGuard added alongside
     // authGuard — a self-registered-but-unapproved account must not reach a
     // desktop-app auth handoff any more than it can reach the rest of the app.
+    path: 'apps/starscape/connect',
+    data: { layout: 'cinematic' },
+    canActivate: [...PRIVATE],
+    loadComponent: () =>
+      import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
+  },
+  {
+    // Legacy alias of apps/starscape/connect: installed Starscape binaries
+    // call /desktop/connect until the next Starscape release.
     path: 'desktop/connect',
     data: { layout: 'cinematic' },
     canActivate: [...PRIVATE],

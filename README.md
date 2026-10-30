@@ -1,6 +1,6 @@
 # SC Companion
 
-**Version: 0.179.1**
+**Version: 0.180.0**
 
 > Star Citizen companion — Verse News, P4K analyzer, and more.
 > Built with Angular 22 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
@@ -77,7 +77,7 @@ the import only when the fleet's fingerprint changed (no daily nagging), and
 hands the list to `/hangar/import` through `chrome.storage.local` +
 `postMessage`. No new endpoint, no token, no RLS change — the confirmed ships
 are written by the user's own Supabase session. Install and privacy details
-live in-app at `/tools/extension`.
+live in-app at `/apps/extension`.
 
 ### Key rules
 

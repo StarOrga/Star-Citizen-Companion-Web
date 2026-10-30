@@ -24,7 +24,7 @@
 export const COMPANION_ORIGINS = Object.freeze(['https://sc-companion.vercel.app']);
 
 /** Route on the companion app that renders the review/confirm screen. */
-export const COMPANION_IMPORT_PATH = '/hangar/import';
+export const COMPANION_IMPORT_PATH = '/hq/hangar/import';
 
 /** A dismissal silences THIS exact fleet state for a week. */
 export const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;

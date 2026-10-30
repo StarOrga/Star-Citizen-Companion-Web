@@ -24,7 +24,7 @@ type AuthStatus =
  * Desktop-Tool OAuth callback endpoint.
  *
  * The Electron app's loopback OAuth flow opens
- * `${apiBase}/uploader/auth?cb=http://127.0.0.1:4682X/cb&state=<csrf>`
+ * `${apiBase}/apps/uploader/auth?cb=http://127.0.0.1:4682X/cb&state=<csrf>`
  * in the user's default browser. This component:
  *
  *  1. Validates the callback URL is a 127.0.0.1 loopback in the expected port range.
@@ -105,7 +105,7 @@ type AuthStatus =
   `,
   styles: [`
     .page { display: grid; place-items: center; min-height: 60vh; }
-    .sc-card { max-width: 480px; padding: 32px 36px; text-align: center; }
+    .sc-card { max-width: min(var(--sc-ov-s), 100%); padding: 32px 36px; text-align: center; }
     @media (max-width: 480px) { .sc-card { padding: 24px var(--sc-pad-1); } }
     h1 { font-size: 1.3rem; margin-bottom: 16px; }
     p { color: var(--sc-fg-1); margin: 0 0 12px; }
@@ -172,7 +172,7 @@ export class DesktopAuthComponent implements OnInit {
         const stash = sessionStorage.getItem('sc.oauth-redirect-qs');
         if (stash) {
           const parsed = JSON.parse(stash) as { path?: string; qs?: string };
-          if (parsed.path === '/uploader/auth' && parsed.qs) {
+          if ((parsed.path === '/apps/uploader/auth' || parsed.path === '/uploader/auth') && parsed.qs) {
             const params = new URLSearchParams(parsed.qs);
             this.cb = this.cb || params.get('cb') || '';
             this.state = this.state || params.get('state') || '';
@@ -193,7 +193,7 @@ export class DesktopAuthComponent implements OnInit {
       return;
     }
 
-    this.returnUrl = `/uploader/auth?cb=${encodeURIComponent(this.cb)}&state=${encodeURIComponent(this.state)}`;
+    this.returnUrl = `/apps/uploader/auth?cb=${encodeURIComponent(this.cb)}&state=${encodeURIComponent(this.state)}`;
 
     this.auth.init();
     await waitFor(() => this.auth.ready());

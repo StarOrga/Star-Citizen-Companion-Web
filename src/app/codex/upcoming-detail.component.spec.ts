@@ -171,7 +171,7 @@ describe('UpcomingDetailComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector<HTMLButtonElement>('button.watch')!.getAttribute('aria-pressed')).toBe('true');
     // Watched hulls get their route into the hangar, where the strip lives.
-    expect(el.querySelector<HTMLAnchorElement>('.hangar-link')?.getAttribute('href')).toBe('/hangar');
+    expect(el.querySelector<HTMLAnchorElement>('.hangar-link')?.getAttribute('href')).toBe('/hq/hangar');
   });
 
   it('says "in concept" for a hull RSI is still building and "flight-ready" for one we just have not ingested', async () => {

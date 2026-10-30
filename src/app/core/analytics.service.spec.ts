@@ -84,8 +84,8 @@ describe('pageviewUrl', () => {
   });
 
   it('drops the query string and fragment', () => {
-    expect(pageviewUrl('/news?channel=rsi#top', 'https://sc-companion.vercel.app')).toBe(
-      'https://sc-companion.vercel.app/news',
+    expect(pageviewUrl('/verse/news?channel=rsi#top', 'https://sc-companion.vercel.app')).toBe(
+      'https://sc-companion.vercel.app/verse/news',
     );
   });
 
@@ -108,7 +108,7 @@ describe('pageviewUrl', () => {
   });
 
   it('produces a URL whose parsed host is non-empty (the actual regression)', () => {
-    expect(new URL(pageviewUrl('/starscape', 'https://sc-companion.vercel.app')).host).toBe(
+    expect(new URL(pageviewUrl('/verse/gallery', 'https://sc-companion.vercel.app')).host).toBe(
       'sc-companion.vercel.app',
     );
   });

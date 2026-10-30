@@ -385,7 +385,7 @@ describe('RoleService failure paths (transient read errors)', () => {
     expect(roles.realRole()).toBe('admin');
 
     const route = {} as ActivatedRouteSnapshot;
-    const state = { url: '/news' } as RouterStateSnapshot;
+    const state = { url: '/verse/news' } as RouterStateSnapshot;
     const result = await TestBed.runInInjectionContext(() => approvedGuard(route, state));
     expect(result).toBe(true); // navigation goes through — no blank screen
   });

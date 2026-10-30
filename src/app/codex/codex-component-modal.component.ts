@@ -195,7 +195,7 @@ export interface ComponentInspectEntry {
       padding: 6vh 16px 16px; overflow-y: auto;
     }
     .cm-panel {
-      position: relative; width: 100%; max-width: 760px;
+      position: relative; width: 100%; max-width: var(--sc-ov-m); max-height: var(--sc-ov-max-h); overflow-y: auto; overscroll-behavior: contain;
       display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px;
       border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent);
       animation: cm-in .18s ease;
@@ -257,9 +257,9 @@ export interface ComponentInspectEntry {
     .cm-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace);
       overflow-wrap: anywhere; }
 
-    @media (max-width: 640px) {
+    @media (max-width: 720px) {
       .cm-backdrop { padding: 0; }
-      .cm-panel { max-width: none; min-height: 100%; border-radius: 0; }
+      .cm-panel { max-width: none; width: 100%; min-height: 100vh; min-height: 100dvh; border-radius: 0; padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); max-height: none; }
     }
   `],
 })
