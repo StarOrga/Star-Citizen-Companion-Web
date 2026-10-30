@@ -154,7 +154,7 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
     /* MEDIUM-5: positioned by the CDK overlay (flexibleConnectedTo the kebab
        button) rather than position: absolute inside .cm-pop — see the module
        doc comment above the imports. */
-    .cm-panel { width: 190px;
+    .cm-panel { width: min(var(--sc-ov-menu), calc(100vw - 32px));
       background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px);
       box-shadow: 0 10px 28px rgb(0 0 0 / .6); padding: 8px; display: flex; flex-direction: column; gap: 6px;
       text-transform: none; letter-spacing: normal; font-weight: 400; }

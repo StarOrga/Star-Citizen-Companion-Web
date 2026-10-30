@@ -494,7 +494,28 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
      field at this size wherever it has more room (the /admin/feedback page,
      the maximized panel), so "large" never means "a search bar across the
      whole screen" (admin feedback a4f30011). */
-  --sc-feedback-dock-width: 480px;
+  --sc-feedback-dock-width: 30rem;
+  /* ---- OVERLAY SIZES (popups, menus, toasts) ----
+     Four tiers, no hard px widths in an overlay (scripts/check-overlay-sizes.mjs):
+       Menu  --sc-ov-menu  anchored at its trigger (apps / profile / admin / share / columns)
+       S     --sc-ov-s     a question or a sign-in card (confirm, login, set-password)
+       M     --sc-ov-m     a detail dialog (component, weapon, quick search, feedback sheet)
+       Area  --sc-ov-area  the subheader width B (overlay frame, dossier, swap picker, tray)
+     Toasts take --sc-toast-w, a tooltip --sc-tooltip-w, the feedback window
+     --sc-feedback-dock-width. Height: --sc-ov-max-h, inner scroll. ONE phone
+     breakpoint, 720px: Dialog M + Area become a full-screen sheet (100% x 100dvh,
+     radius 0, safe-area padding); Menu + S stay a card of min(token, 100vw - 32px).
+     An overlay whose size is driven from outside carries
+     `overlay-size: exception - <reason>` instead. Outside the beta B falls back
+     to the old 60rem frame. */
+  --sc-ov-menu: 20rem;
+  --sc-ov-s: 28rem;
+  --sc-ov-m: 48rem;
+  --sc-ov-area: var(--sc-b-w, min(100% - 2rem, 60rem));
+  --sc-toast-w: 24rem;
+  --sc-tooltip-w: 18rem;
+  --sc-ov-max-h: calc(100vh - 2 * var(--sc-rand, 16px));
+  --sc-ov-max-h: calc(100dvh - 2 * var(--sc-rand, 16px));
   /* What a floating bottom surface (a tray, a toast, a sticky composer, a
      confirmation bar) has to keep clear of. Derived from the launcher tokens
      above, so every surface follows when the disc or its inset changes:

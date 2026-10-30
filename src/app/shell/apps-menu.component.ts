@@ -155,7 +155,7 @@ export interface AppEntry {
     .trigger:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .pop {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
-      width: min(340px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 2px;
+      width: min(var(--sc-ov-menu), calc(100vw - 32px)); display: flex; flex-direction: column; gap: 2px;
       padding: 6px; border-radius: 12px; border: 1px solid var(--sc-border);
       background: var(--sc-bg-1); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
     }

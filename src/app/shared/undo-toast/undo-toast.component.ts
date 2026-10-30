@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ToastSlotDirective } from '../toast-stack/toast-stack';
 import { TranslatePipe } from '@ngx-translate/core';
 import { UndoToastService } from './undo-toast.service';
 
@@ -12,11 +13,11 @@ import { UndoToastService } from './undo-toast.service';
 @Component({
   selector: 'sc-undo-toast',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [ToastSlotDirective, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (p of shown(); track p.id) {
-      <div class="toast" role="status" aria-live="polite" [class.paused]="svc.held()"
+      <div class="toast" scToastSlot role="status" aria-live="polite" [class.paused]="svc.held()"
            (mouseenter)="svc.hold('hover', true)" (mouseleave)="svc.hold('hover', false)"
            (focusin)="svc.hold('focus', true)" (focusout)="svc.hold('focus', false)">
         <span class="msg">{{ p.messageKey | translate: p.messageParams }}</span>
@@ -30,8 +31,8 @@ import { UndoToastService } from './undo-toast.service';
     .toast {
       position: fixed; z-index: 1450;
       inset-inline-end: var(--sc-fab-gutter, 16px);
-      bottom: var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px));
-      width: min(372px, calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
+      bottom: calc(var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px)) + var(--sc-toast-offset, 0px));
+      width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: flex; align-items: center; gap: 12px;
       padding: 10px 10px 12px 16px; border-radius: 14px; overflow: hidden;
       background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { ToastSlotDirective } from '../toast-stack/toast-stack';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
@@ -24,11 +25,11 @@ const UNLOCK_PRIORITY = [
 @Component({
   selector: 'sc-star-toast',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [ToastSlotDirective, RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (ev of shown(); track ev) {
-      <div class="toast" role="status" aria-live="polite" [class.paused]="held()"
+      <div class="toast" scToastSlot role="status" aria-live="polite" [class.paused]="held()"
            (mouseenter)="hold(true)" (mouseleave)="hold(false)" (focusin)="hold(true)" (focusout)="hold(false)">
         <i class="star" aria-hidden="true">★</i>
         <a class="body" routerLink="/verse/explorer">
@@ -48,8 +49,8 @@ const UNLOCK_PRIORITY = [
     .toast {
       position: fixed; z-index: 1450;
       inset-inline-end: var(--sc-fab-gutter, 16px);
-      bottom: var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px));
-      width: min(372px, calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
+      bottom: calc(var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px)) + var(--sc-toast-offset, 0px));
+      width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start;
       padding: 14px 14px 16px; border-radius: 14px; overflow: hidden;
       background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);

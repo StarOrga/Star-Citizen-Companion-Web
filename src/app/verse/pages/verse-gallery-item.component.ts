@@ -25,6 +25,7 @@ import { StarscapeService, Wallpaper } from '../../starscape/starscape.service';
       <p class="miss" role="status">{{ 'overlay.gallery.missing' | translate }}</p>
     }
   `,
+  // overlay-size: exception — the image drives the size (sc-lightbox, centred both ways)
   styles: [`
     :host { display: block; }
     .miss { color: var(--sc-fg-2); }

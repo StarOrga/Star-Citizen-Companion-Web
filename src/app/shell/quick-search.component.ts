@@ -121,7 +121,7 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
       padding: 12vh 16px 16px;
     }
     .panel {
-      width: 100%; max-width: 680px; max-height: 76dvh; overflow: hidden;
+      width: 100%; max-width: var(--sc-ov-m); max-height: min(76dvh, var(--sc-ov-max-h)); overflow: hidden;
       display: flex; flex-direction: column; gap: 10px; padding: 14px;
     }
     .field {
@@ -149,6 +149,9 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
 
     /* A narrow desktop header (the shell condenses it to one row): the
        button keeps its label, the Ctrl K hint goes — aria-keyshortcuts stays. */
+    @media (max-width: 720px) {
+      .panel { max-width: none; max-height: none; height: 100vh; height: 100dvh; border-radius: 0; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
+    }
     @media (min-width: 721px) and (max-width: 1179px) {
       .trigger kbd { display: none; }
     }

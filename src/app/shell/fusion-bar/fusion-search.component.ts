@@ -424,7 +424,7 @@ interface FusionSection {
     /* ---- the panel: grows out of the field ---- */
     .panel {
       position: absolute; top: calc(100% + var(--sc-space-2)); right: 0; z-index: 40;
-      width: max(100%, min(720px, calc(100vw - 2 * var(--sc-wide-gutter, 16px))));
+      width: max(100%, min(720px, calc(100vw - 2 * var(--sc-wide-gutter, 16px)))); /* overlay-size: exception — hangs off the subheader search field */
       /* --fs-panel-room: the space from the field down to the viewport edge
          (fitPanel), so a field placed low on a stage page never pushes the
          panel past the fold and scrolls the page. */

@@ -93,7 +93,7 @@ import { PasswordFormComponent } from './password-form.component';
   `,
   styles: [`
     .wrap { display: flex; justify-content: center; }
-    .card { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 14px; }
+    .card { width: 100%; max-width: var(--sc-ov-s); display: flex; flex-direction: column; gap: 14px; }
     h1 { margin: 0; font-family: var(--sc-font-display); font-size: 1.3rem; letter-spacing: 0.04em; }
     .lead { margin: 0; color: var(--sc-fg-1); font-size: 0.9rem; line-height: 1.5; }
     .who { margin: 0; color: var(--sc-fg-2); font-size: 0.85rem; overflow-wrap: anywhere; }

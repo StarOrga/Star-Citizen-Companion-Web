@@ -419,7 +419,7 @@ function scrollBehavior(): ScrollBehavior {
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); overflow: hidden;
     }
     .panel {
-      width: min(100%, 960px); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain;
+      width: min(100%, var(--sc-ov-area)); max-height: var(--sc-ov-max-h); overflow-y: auto; overscroll-behavior: contain;
       border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0);
       box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); scrollbar-width: thin;
     }
@@ -566,7 +566,7 @@ function scrollBehavior(): ScrollBehavior {
     details summary:hover { color: var(--sc-accent); }
     details[open] > summary { color: var(--sc-fg-0); margin-bottom: 6px; }
 
-    .s-field { position: relative; display: flex; max-width: 480px; }
+    .s-field { position: relative; display: flex; max-width: 480px; /* overlay-size: exception — a search field inside the sheet */ }
     .s-input {
       flex: 1 1 auto; min-height: var(--sc-tap-min); padding: 8px 40px 8px 12px; border: 1px solid var(--sc-border); border-radius: 8px;
       background: var(--sc-bg-0); color: var(--sc-fg-0); font: inherit; font-size: max(0.86rem, var(--sc-fs-input));
@@ -588,9 +588,9 @@ function scrollBehavior(): ScrollBehavior {
     .wave > details > summary { gap: 8px; }
     .wave time { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); }
 
-    @media (max-width: 760px) {
+    @media (max-width: 720px) {
       .scrim { padding: 0; align-items: flex-end; }
-      .panel { max-height: 100vh; height: 100vh; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
+      .panel { max-height: 100vh; height: 100vh; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
       .hero { padding: 14px 14px 10px; }
       .hero h2 { font-size: 1.3rem; }
       .body { grid-template-columns: minmax(0, 1fr); }

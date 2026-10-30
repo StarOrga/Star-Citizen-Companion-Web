@@ -105,7 +105,7 @@ type AuthStatus =
   `,
   styles: [`
     .page { display: grid; place-items: center; min-height: 60vh; }
-    .sc-card { max-width: 480px; padding: 32px 36px; text-align: center; }
+    .sc-card { max-width: min(var(--sc-ov-s), 100%); padding: 32px 36px; text-align: center; }
     @media (max-width: 480px) { .sc-card { padding: 24px var(--sc-pad-1); } }
     h1 { font-size: 1.3rem; margin-bottom: 16px; }
     p { color: var(--sc-fg-1); margin: 0 0 12px; }

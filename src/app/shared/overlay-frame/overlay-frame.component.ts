@@ -72,7 +72,7 @@ export interface OverlayNeighbour {
       display: flex; flex-direction: column; min-height: 0; background: var(--sc-bg-1);
       border: 1px solid var(--sc-border); border-radius: 16px; overflow: hidden;
     }
-    .scrim .sheet { width: min(100%, 960px); max-height: 100%; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
+    .scrim .sheet { width: min(100%, var(--sc-ov-area)); max-height: min(100%, var(--sc-ov-max-h)); box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
     .bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); flex: 0 0 auto; }
     .ttl { margin: 0; flex: 1 1 auto; min-width: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
     .nav { display: inline-flex; gap: 6px; flex: 0 0 auto; }
@@ -82,12 +82,13 @@ export interface OverlayNeighbour {
     }
     .nb:hover, .nb:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); text-decoration: none; }
     .content { padding: 14px; overflow: auto; min-height: 0; }
+    .content :where(p, li) { max-width: var(--sc-measure, 70ch); }
     .page .bar { border-bottom: 0; padding-inline: 0; }
     .page .content { overflow: visible; padding-inline: 0; }
-    @media (max-width: 1080px) { .scrim { padding: 16px; } .scrim .sheet { width: min(100%, 760px); } }
+    @media (max-width: 1080px) { .scrim { padding: 16px; } }
     @media (max-width: 720px) {
       .scrim { padding: 0; place-items: stretch; }
-      .scrim .sheet { width: 100%; max-height: none; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
+      .scrim .sheet { width: 100%; max-height: none; height: 100vh; height: 100dvh; border-radius: 0; border: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
     }
     @media (prefers-reduced-motion: no-preference) {
       .scrim .sheet { animation: sheet-in 160ms ease-out; }

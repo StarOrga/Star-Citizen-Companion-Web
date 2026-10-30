@@ -259,7 +259,7 @@ let nextId = 0;
     /* The overlay: overlaps whatever is below, never reflows the row. */
     .dlm-pop {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 80;
-      width: min(320px, calc(100vw - 32px));
+      width: min(var(--sc-ov-menu), calc(100vw - 32px));
       display: flex; flex-direction: column; gap: 10px;
       padding: 12px 14px; border-radius: 10px;
       background: var(--sc-bg-1);
@@ -363,7 +363,7 @@ let nextId = 0;
     /* Narrow viewports: pin the overlay inside the viewport instead of letting
        a right-aligned 320px box hang off the edge. */
     @media (max-width: 420px) {
-      .dlm-pop { right: auto; left: 0; width: min(320px, calc(100vw - 24px)); }
+      .dlm-pop { right: auto; left: 0; width: min(var(--sc-ov-menu), calc(100vw - 32px)); }
       .dlm-name { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
