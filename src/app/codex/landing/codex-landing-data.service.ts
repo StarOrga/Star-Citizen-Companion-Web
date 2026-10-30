@@ -17,11 +17,14 @@ import {
   toLang,
 } from '../codex.service';
 import { UpcomingShipsService, normalizeShipName } from '../upcoming-ships.service';
+import { formatNumber } from '../codex-format';
 import {
-  Filmstrip,
-  FilmstripTile,
   LANDING_CATEGORIES,
   LandingCategory,
+  LandingCodex,
+  LandingCodexCategory,
+  LandingCodexEntry,
+  LandingFact,
   LandingItem,
   LandingOverviewField,
   LandingPaint,
@@ -35,6 +38,8 @@ export const NEWS_SEEN_PREF_KEY = 'codex.newsSeen';
 /** A paint younger than this counts as "neu". */
 export const NEW_PAINT_DAYS = 30;
 export const MAX_TOP_VALUES = 7;
+/** Newly announced ships listed under the new flight-ready ones in the Codex list. */
+export const ANNOUNCED_IN_LIST = 2;
 /** Candidate rows read per category before "newest" is chosen. */
 const CANDIDATE_LIMIT = 200;
 /**
@@ -141,6 +146,62 @@ export function topValuesFor(category: LandingCategory, payload: unknown): Landi
   return out.slice(0, MAX_TOP_VALUES);
 }
 
+/** Ship values where more is better; every other ship value (crew, mass) is neutral. */
+const SHIP_HIGHER_IS_BETTER: ReadonlySet<string> = new Set(['flight.scmSpeed', 'flight.maxSpeed', 'hull.hp', 'armorHp', 'cargoScu']);
+/** A class needs at least this many members, else the whole category is the class. */
+export const MIN_CLASS_SIZE = 3;
+
+/**
+ * The item's class: ships of the same role, other items of the same size —
+ * the whole category when that group is smaller than {@link MIN_CLASS_SIZE}.
+ */
+export function classCohort<T extends Pick<CodexListRow, 'role' | 'size'>>(
+  category: LandingCategory,
+  target: Pick<CodexListRow, 'role' | 'size'>,
+  rows: readonly T[],
+): readonly T[] {
+  let same: T[] = [];
+  if (category === 'ship') {
+    if (target.role) same = rows.filter((r) => r.role === target.role);
+  } else if (target.size !== null && target.size !== undefined) {
+    same = rows.filter((r) => r.size === target.size);
+  }
+  return same.length >= MIN_CLASS_SIZE ? same : rows;
+}
+
+/**
+ * Adds the class mean, the class maximum and the direction to every value.
+ * Only members that carry the value count (a missing value is no zero); with
+ * fewer than two such members the value gets no comparison.
+ */
+export function withClassStats(
+  category: LandingCategory,
+  values: readonly LandingValue[],
+  cohort: readonly Pick<CodexListRow, 'payload'>[],
+): LandingValue[] {
+  return values.map((v) => {
+    const nums = cohort.map((r) => readPath(r.payload, v.key)).filter((n): n is number => isNum(n) && n !== 0);
+    const higherIsBetter = category === 'ship' && SHIP_HIGHER_IS_BETTER.has(v.key) ? true : null;
+    if (nums.length < 2) return { ...v, classAvg: null, classMax: null, higherIsBetter };
+    const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+    return { ...v, classAvg: avg, classMax: Math.max(...nums), higherIsBetter };
+  });
+}
+
+/** Size facts: L/W/H from the ship's bounding box, the size class for everything else. Unknown facts are left out. */
+export function factsFor(category: LandingCategory, payload: unknown, size: number | null | undefined): LandingFact[] {
+  if (category === 'ship') {
+    const dim = (payload as { dimensions?: { length?: number; width?: number; height?: number } | null } | null)?.dimensions;
+    const out: LandingFact[] = [];
+    for (const id of ['length', 'width', 'height'] as const) {
+      const v = dim?.[id];
+      if (isNum(v) && v > 0) out.push({ id, value: `${formatNumber(v, undefined, 1)} m` });
+    }
+    return out;
+  }
+  return size === null || size === undefined ? [] : [{ id: 'size', value: `S${size}` }];
+}
+
 /** Overview fields per category (brief A5). Values are display text; `type`-like ones are raw catalog tokens humanised by wave 2 if null-safe. */
 export function overviewFor(
   category: LandingCategory,
@@ -206,6 +267,12 @@ export function pickPatchThread(
   return live ? { url: live.item.url, exact: false } : null;
 }
 
+interface CategoryPool {
+  rows: CodexListRow[];
+  fresh: CodexListRow[];
+  previous: ReadonlySet<string> | null;
+}
+
 /**
  * Data contract of the new Codex landing (concept 2026-10-29-codex-landing-neu).
  * Components only render what this service returns; all queries, fallbacks and
@@ -242,6 +309,7 @@ export class CodexLandingDataService {
   });
 
   private newestCache = new Map<string, Promise<LandingItem | null>>();
+  private poolCache = new Map<string, Promise<CategoryPool>>();
 
   // ── newest item per category ───────────────────────────────────────────────
 
@@ -303,10 +371,31 @@ export class CodexLandingDataService {
     return new Set(((data ?? []) as { class_name: string }[]).map((r) => r.class_name));
   }
 
+  /** Candidates of a category (deduped, no variants) and the ones new in this patch — memoised per build. */
+  private pool(category: LandingCategory): Promise<CategoryPool> {
+    const key = `${this.codex.build()?.id ?? ''}:${category}`;
+    let hit = this.poolCache.get(key);
+    if (!hit) {
+      hit = this.loadPool(category);
+      hit.catch(() => this.poolCache.delete(key));
+      this.poolCache.set(key, hit);
+    }
+    return hit;
+  }
+
+  private async loadPool(category: LandingCategory): Promise<CategoryPool> {
+    const rows = dedupeByName((await this.candidates(category)).filter((r) => !r.isVariant));
+    if (category === 'ship') {
+      const added = new Set((await this.diff.addedShipsMemo()).map(nameKey));
+      return { rows, fresh: rows.filter((r) => added.has(nameKey(r))), previous: null };
+    }
+    const previous = await this.previousClassNames(KIND_OF[category]);
+    return { rows, fresh: previous ? rows.filter((r) => !previous.has(r.classNameSlug)) : [], previous };
+  }
+
   private async loadNewest(category: LandingCategory): Promise<LandingItem | null> {
     const kind = KIND_OF[category];
-    const rows = dedupeByName((await this.candidates(category)).filter((r) => !r.isVariant));
-    const previous = category === 'ship' ? null : await this.previousClassNames(kind);
+    const { rows, fresh, previous } = await this.pool(category);
     const className = pickNewest(rows.map((r) => r.classNameSlug), previous);
     if (!className) return null;
     const detail = await this.codex.getDetail(kind, className);
@@ -331,8 +420,56 @@ export class CodexLandingDataService {
       imageUrl: category === 'ship' ? await this.rsiShipImage(name) : null,
       previewUrl: this.codex.previewUrl(payload?.previewImage ?? null),
       overview,
-      topValues: topValuesFor(category, detail.payload),
+      topValues: withClassStats(category, topValuesFor(category, detail.payload), classCohort(category, row, rows)),
+      facts: factsFor(category, detail.payload, listRow.size),
+      fresh: fresh.some((r) => r.classNameSlug === className),
     };
+  }
+
+  // ── Codex list: new items per category ────────────────────────────────────
+
+  /**
+   * New items of the current patch per category (rotation order), at most
+   * `limit` flight-ready entries each plus the count beyond. Ships also list
+   * newly announced RSI ships (tagged, not counted as new). Never rejects: a
+   * category that fails comes back empty and sets {@link error}.
+   */
+  async codexNews(limit = 5): Promise<LandingCodex> {
+    const build = await this.codex.loadCurrentBuild().catch(() => null);
+    const patch = build?.patchVersion ?? null;
+    const categories = await Promise.all(
+      LANDING_CATEGORIES.map(async (category): Promise<LandingCodexCategory> => {
+        try {
+          const { fresh } = await this.pool(category);
+          const ready: LandingCodexEntry[] = fresh.slice(0, limit).map((r) => ({
+            id: r.classNameSlug,
+            name: r.nameLocalized ?? r.classNameSlug,
+            route: ['/codex', KIND_OF[category], r.classNameSlug],
+            announced: false,
+          }));
+          let announced: LandingCodexEntry[] = [];
+          if (category === 'ship') {
+            await this.upcoming.ensureLoaded().catch(() => undefined);
+            const ids = this.upcoming.newIds();
+            announced = this.upcoming
+              .concept()
+              .filter((s) => ids.has(s.id))
+              .map((s) => ({ id: s.id, name: s.name, route: ['/codex', 'upcoming', s.id], announced: true }));
+          }
+          return {
+            category,
+            count: fresh.length,
+            entries: [...ready, ...announced.slice(0, ANNOUNCED_IN_LIST)],
+            more: Math.max(0, fresh.length - ready.length),
+            announced: announced.length,
+          };
+        } catch (err) {
+          this.error.set(toErrorKey('codex-landing', `news ${category}`, err));
+          return { category, count: 0, entries: [], more: 0, announced: 0 };
+        }
+      }),
+    );
+    return { patch, categories };
   }
 
   private async rsiShipImage(name: string): Promise<string | null> {
@@ -380,60 +517,6 @@ export class CodexLandingDataService {
     } catch (err) {
       this.error.set(toErrorKey('codex-landing', 'paints', err));
       return [];
-    }
-  }
-
-  // ── filmstrip ──────────────────────────────────────────────────────────────
-
-  /** Newest flight-ready ships (new-this-patch first), at most `limit` tiles + the "+ N weitere" count. */
-  async flightReadyFilmstrip(limit = 12): Promise<Filmstrip> {
-    try {
-      const added = await this.diff.addedShipsMemo();
-      const rest = await this.codex.listByKind('ship', { limit: CANDIDATE_LIMIT });
-      const newNames = new Set(added.map(nameKey));
-      const ordered = dedupeByName([...added, ...rest.rows].filter((r) => !r.isVariant)).map((row) => ({
-        row,
-        isNew: newNames.has(nameKey(row)),
-      }));
-      const total = Math.max(rest.count, ordered.length);
-      const lang = toLang(this.translate.getCurrentLang() || this.translate.getFallbackLang());
-      await this.upcoming.ensureLoaded().catch(() => undefined);
-      const art = this.upcoming.feed()?.gameShipArt ?? {};
-      const tiles: FilmstripTile[] = ordered.slice(0, limit).map(({ row, isNew }) => {
-        const name = row.nameLocalized ?? row.classNameSlug;
-        return {
-          id: row.classNameSlug,
-          name,
-          manufacturer: manufacturerLabel(row, lang),
-          imageUrl: art[normalizeShipName(name)]?.thumbnails?.[0] ?? null,
-          route: ['/codex', 'ship', row.classNameSlug],
-          isNew,
-        };
-      });
-      return { tiles, more: Math.max(total - tiles.length, 0), total };
-    } catch (err) {
-      this.error.set(toErrorKey('codex-landing', 'filmstrip', err));
-      return { tiles: [], more: 0, total: 0 };
-    }
-  }
-
-  /** Announced (not yet flight-ready) ships from the RSI feed; feed order = RSI's own. */
-  async announcedFilmstrip(limit = 12): Promise<Filmstrip> {
-    try {
-      await this.upcoming.ensureLoaded();
-      const ships = this.upcoming.concept();
-      const tiles: FilmstripTile[] = ships.slice(0, limit).map((s) => ({
-        id: s.id,
-        name: s.name,
-        manufacturer: s.manufacturer,
-        imageUrl: s.thumbnails?.[0] ?? s.thumbnail,
-        route: ['/codex', 'upcoming', s.id],
-        isNew: this.upcoming.newIds().has(s.id),
-      }));
-      return { tiles, more: Math.max(ships.length - tiles.length, 0), total: ships.length };
-    } catch (err) {
-      this.error.set(toErrorKey('codex-landing', 'announced', err));
-      return { tiles: [], more: 0, total: 0 };
     }
   }
 

@@ -1,14 +1,17 @@
-// Codex landing (concept 2026-10-29-codex-landing-neu, round 6): one viewport.
-// The landing measures its own page offset (--cx-top) and takes the rest of
-// the viewport above the frame's bottom padding; the shell's stage footer is
-// drawn over its last strip, so the filmstrip keeps clear of it.
+// Codex landing (concept 2026-10-30-codex-holo-buehne, round 4 "Zugewandte
+// Kante"): one viewport on desktop. The landing measures its own page offset
+// (--cx-top) and takes the rest of the viewport above the frame's bottom
+// padding; the shell's stage footer is drawn over its last strip.
 :host {
-  --cx-side: clamp(250px, 21vw, 330px);
+  // Side columns in % of the page frame (1280 px up to full HD, wider beyond).
+  --cx-side: clamp(250px, 22%, 350px);
   --cx-gut: var(--sc-page-gutter);
-  --cx-film: 48px;
+  --cx-pane: calc(var(--cx-side) - var(--cx-gut) - 22px);
+  --cx-pb: max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1)));
   display: block;
   color: var(--sc-fg-0);
 }
+:host(:not(.shell)) { --cx-pb: 0px; }
 
 .landing {
   position: relative;
@@ -18,13 +21,10 @@
   height: calc(100dvh - var(--cx-top, 0px) - var(--sc-space-6));
   min-height: 560px;
   // The stage footer (cinematic layout) lies over the bottom of the page.
-  padding-bottom: max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1)));
+  padding-bottom: var(--cx-pb);
   box-sizing: border-box;
 }
-:host(:not(.shell)) .landing {
-  height: calc(100dvh - var(--cx-top, 0px) - 32px);
-  padding-bottom: 0;
-}
+:host(:not(.shell)) .landing { height: calc(100dvh - var(--cx-top, 0px) - 32px); }
 
 // ── Hero: Verse spacing; StageHeroDirective sets the height (CODEX_STAGE_TOP). ──
 .hero {
@@ -35,7 +35,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-inline: var(--cx-side);
+  // The panes stand low, so the hero may reach over them (the News chip keeps its corner).
+  padding-inline: max(130px, calc(var(--cx-side) * 0.5));
 }
 .eyebrow {
   margin: 0;
@@ -47,14 +48,21 @@
 }
 .title {
   margin: max(6px, 0.6vw) 0 0;
-  font: 500 clamp(26px, 3.2vw, 56px) / 1.1 var(--sc-font-display);
+  min-height: 1.1em;
+  font: 500 clamp(26px, 2.7vw, 50px) / 1.1 var(--sc-font-display);
   letter-spacing: 0.02em;
   color: var(--sc-fg-0);
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+  text-wrap: balance;
 }
+// Verse headline roll: the old line leaves upward, the new one rises in.
+.roll { display: grid; justify-items: center; }
+.slide { grid-area: 1 / 1; }
+.roll-in { animation: roll-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.roll-out { animation: roll-out 0.4s ease-in both; }
 .search { width: min(640px, 100%); margin-top: var(--sc-space-5); }
 
-// ── Stage: centred on the page axis, between the side columns. ──
+// ── Stage: centred on the page axis, between the side panes. ──
 .stage {
   position: relative;
   z-index: 2;
@@ -76,91 +84,96 @@
 }
 .err p { margin: 0 0 8px; }
 
-// ── Side columns: card left, News + rail right, all from the hero's top edge. ──
-.card {
+// ── Side panes: light, no box, the glowing edge faces the hologram. ──
+// Panes stand on the floor: their height is their content, the glowing edge
+// runs down into the floor light (max: up to the News chip).
+.values, .codex {
   position: absolute;
-  z-index: 7;
-  left: var(--cx-gut);
-  top: var(--cx-hero-top, 0px);
-  bottom: calc(var(--cx-film) + var(--sc-space-3) + max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1))));
-  width: min(248px, var(--cx-side) - var(--cx-gut) - var(--sc-space-4));
+  z-index: 5;
+  bottom: calc(var(--cx-pb) + var(--sc-space-2));
+  max-height: calc(100% - var(--cx-hero-top, 0px) - 56px - var(--cx-pb) - var(--sc-space-2));
+  width: var(--cx-pane);
+  display: flex;
+  flex-direction: column;
 }
-:host(:not(.shell)) .card { bottom: calc(var(--cx-film) + var(--sc-space-3)); }
+.values { left: var(--cx-gut); }
+.codex { right: var(--cx-gut); }
 .news {
   position: absolute;
   z-index: 8;
   right: var(--cx-gut);
   top: var(--cx-hero-top, 0px);
 }
-.rail {
-  position: absolute;
-  z-index: 3;
-  right: var(--cx-gut);
-  top: calc(var(--cx-hero-top, 0px) + 64px);
-  width: min(180px, var(--cx-side) - var(--cx-gut));
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+
+// ── Floor light: the table spills its light toward both panes ──
+// A pool under the table, two long reaches across the floor and a lit foot
+// where each pane's edge stands in it; every switch sends a wave out from the
+// emitter that runs under the panes before they re-scan.
+.floor {
+  position: absolute; left: 0; right: 0; z-index: 1; pointer-events: none;
+  bottom: calc(var(--cx-pb) - 46px); height: 150px;
+  opacity: 0; transition: opacity 1.4s ease 0.8s;
 }
-.rail a {
-  display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-height: 36px; padding: 0 8px;
-  border-radius: 4px; text-decoration: none;
-  font: 600 max(10px, 0.62rem) var(--sc-font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2);
+:host(.lit) .floor { opacity: 1; }
+.floor i { position: absolute; display: block; border-radius: 50%; }
+.pool {
+  left: 30%; right: 30%; top: 22%; height: 62%;
+  background: radial-gradient(ellipse at 50% 42%, rgba(120, 220, 255, 0.2), rgba(82, 193, 230, 0.07) 45%, transparent 70%);
 }
-.rail a i {
-  width: 28px; height: 28px; flex: 0 0 auto; border-radius: 50%; border: 1px solid var(--sc-border);
-  display: grid; place-items: center; font-style: normal; font-size: 13px; color: var(--sc-fg-1); background: rgba(13, 38, 53, 0.7);
+.reach {
+  top: 34%; height: 34%;
+  background: radial-gradient(ellipse at var(--rx) 50%, rgba(130, 222, 255, 0.13), rgba(82, 193, 230, 0.05) 38%, transparent 68%);
+  filter: blur(2px);
 }
-.rail a:hover, .rail a:focus-visible { color: var(--sc-fg-0); }
-.rail a:hover i, .rail a:focus-visible i { border-color: var(--sc-accent); color: var(--sc-accent); }
-.rail a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-.rail a.quiet {
-  margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--sc-border); border-radius: 0;
-  font: 11px var(--sc-font-body); letter-spacing: 0; text-transform: none; opacity: 0.85;
+.reach.l { --rx: 88%; left: calc(var(--cx-gut) + var(--cx-pane) - 40px); right: 46%; }
+.reach.r { --rx: 12%; right: calc(var(--cx-gut) + var(--cx-pane) - 40px); left: 46%; }
+// Where the pane edge meets the floor: a lit spot and the edge's reflection.
+.foot { top: 18%; width: 120px; height: 46px; margin-left: -60px; background: radial-gradient(ellipse, rgba(170, 238, 255, 0.32), rgba(82, 193, 230, 0.08) 45%, transparent 70%); }
+.foot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 1px; height: 64px;
+  background: linear-gradient(180deg, rgba(200, 245, 255, 0.55), transparent);
+  filter: blur(0.6px);
+}
+.foot.l { left: calc(var(--cx-gut) + var(--cx-pane)); }
+.foot.r { left: calc(100% - var(--cx-gut) - var(--cx-pane)); }
+.wave {
+  left: 50%; top: 40%; width: 8%; height: 16%; transform: translate(-50%, -50%);
+  border: 1px solid rgba(200, 245, 255, 0.55); box-shadow: 0 0 22px rgba(130, 220, 255, 0.35), inset 0 0 18px rgba(130, 220, 255, 0.18);
+  opacity: 0;
+  animation: wave 1.6s cubic-bezier(0.25, 0.6, 0.35, 1) 0.9s both;
+}
+.wave.boot { animation-delay: 0.3s; }
+
+@keyframes roll-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes roll-out { from { opacity: 1; transform: none; filter: none; } to { opacity: 0; transform: translateY(-14px); filter: blur(6px); } }
+@keyframes wave {
+  0% { width: 8%; height: 16%; opacity: 0; }
+  10% { opacity: 1; }
+  100% { width: calc(100% - 2 * var(--cx-gut) - 2 * var(--cx-pane) + 160px); height: 92%; opacity: 0; }
+}
+:host(.still) .wave { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .wave { display: none; }
+  .roll-in, .roll-out { animation: none; }
 }
 
-// ── Filmstrip row ──
-.film {
-  position: relative;
-  z-index: 4;
-  flex: 0 0 var(--cx-film);
-  padding-inline: var(--cx-gut);
-}
-
-// Below ~1100px the side columns no longer fit beside the stage: the card and
-// rail stay, the stage gets the middle, the rail labels fold to their glyphs.
+// Below ~1100px the stage gets the middle; the panes narrow, the callouts give
+// way to the bars pane (it then lists every value).
 @media (min-width: 721px) and (max-width: 1099px) {
-  :host { --cx-side: 210px; }
-  .rail { width: 44px; }
-  .rail a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .rail a.quiet { font-size: 0; }
-  .rail a.quiet span { position: static; width: auto; height: auto; clip: auto; font-size: 14px; }
+  :host { --cx-side: 220px; --cx-pane: 186px; }
 }
 
-// ── Phone: one column, still no page scroll. ──
+// ── Phone: one column, the page scrolls. ──
 @media (max-width: 720px) {
   :host { --cx-side: 0px; --cx-gut: 0px; }
-  // The bar sits at the thumb on phones: the landing ends above it and the stage
-  // takes whatever the column leaves (never a page scroll).
-  .landing {
-    height: calc(100vh - var(--cx-top, 0px) - var(--sc-bar-h) - var(--sc-space-3) - var(--sc-space-6));
-    height: calc(100dvh - var(--cx-top, 0px) - var(--sc-bar-h) - var(--sc-float-bottom, 0px) - var(--sc-space-3) - var(--sc-space-6));
-    min-height: 0;
-    padding-bottom: 0;
-    gap: var(--sc-space-2);
-  }
+  .landing { height: auto; min-height: 0; padding-bottom: calc(var(--sc-float-bottom, 0px) + var(--sc-space-4)); gap: var(--sc-space-3); }
   :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 1; padding-inline: 0; }
   .title { font-size: 24px; }
-  .news, .card, .rail { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
+  .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   .news { order: 0; align-self: flex-end; }
-  .stage { order: 2; flex: 1 1 auto; min-height: 150px; max-height: 260px; margin-top: 0; }
-  .card { order: 3; }
-  .rail {
-    order: 4; flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none;
-  }
-  .rail a { flex: 0 0 auto; min-height: 32px; padding: 0 10px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: 9px; }
-  .rail a i { display: none; }
-  .rail a.quiet { margin: 0; padding: 0 6px; border: 0; }
-  .film { order: 5; flex: 0 0 auto; }
+  .stage { order: 2; flex: 0 0 auto; height: 460px; margin-top: 0; }
+  .values { order: 3; }
+  .codex { order: 4; }
+  .floor { display: none; }
 }

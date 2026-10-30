@@ -214,8 +214,9 @@
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
       "hero": {
-        "eyebrow": "Codex",
-        "title": "Alles über jedes Schiff."
+        "eyebrow": "{{category}} · neu in {{patch}}",
+        "title": "Alles über jedes Schiff.",
+        "eyebrowIdle": "Codex"
       },
       "teaser": {
         "eyebrow": "Auf dem Reißbrett",
@@ -321,7 +322,8 @@
         "hold": "Klick: halten",
         "loading": "Holotisch lädt …",
         "empty": "Für diesen Patch liegen noch keine Einträge vor.",
-        "newIn": "Neu"
+        "newIn": "Neu",
+        "newest": "Neueste"
       },
       "category": {
         "ship": "Schiff",
@@ -329,23 +331,6 @@
         "armor": "Rüstung",
         "component": "Komponente",
         "tool": "Werkzeug"
-      },
-      "card": {
-        "label": "Datenkarte",
-        "grow": "Karte vergrößern",
-        "shrink": "Karte verkleinern",
-        "flip": "Rückseite",
-        "flipLabel": "Karte umdrehen: Werte und Lackierungen",
-        "front": "Vorderseite",
-        "frontLabel": "Karte umdrehen: Bild",
-        "render": "RSI-Render",
-        "standard": "Standard",
-        "paintOf": "{{index}} von {{count}} Lackierungen",
-        "paints": "Lackierungen",
-        "morePaints": "Alle {{count}} Lackierungen zeigen",
-        "fewer": "Weniger",
-        "isNew": "neu",
-        "values": "Werte"
       },
       "value": {
         "flight": {
@@ -370,24 +355,102 @@
         "part": "Teil",
         "class": "Klasse"
       },
-      "film": {
-        "label": "Schiffe",
-        "newReady": "Neu & flight-ready",
-        "announced": "Angekündigt",
-        "more": "+ {{count}} weitere",
-        "moreReady": "flight-ready",
-        "moreAnnounced": "angekündigt",
-        "isNew": "neu",
-        "empty": "Keine Schiffe in dieser Liste."
-      },
       "rail": {
-        "label": "Kategorien",
-        "ships": "Schiffe",
-        "components": "Komponenten",
-        "weapons": "Waffen",
-        "armor": "Rüstung",
-        "tools": "Werkzeuge",
         "keybinds": "Tastenbelegungen"
+      },
+      "categories": {
+        "ship": "Raumschiffe",
+        "fpsWeapon": "FPS-Waffen",
+        "armor": "Rüstung",
+        "component": "Komponenten",
+        "tool": "Werkzeuge"
+      },
+      "claims": {
+        "ship": {
+          "count": "{{count}} neue Schiffe in {{patch}}.",
+          "name": "{{name}} ist flugbereit.",
+          "announced": "{{announced}} Schiffe angekündigt, {{count}} flugbereit.",
+          "s1": "Alles über jedes Schiff.",
+          "s2": "Welches Schiff passt zu dir?",
+          "s3": "Jeder Rumpf, jeder Wert, jede Lackierung.",
+          "s4": "Erst vergleichen, dann fliegen."
+        },
+        "fpsWeapon": {
+          "count": "{{count}} neue FPS-Waffen in {{patch}}.",
+          "name": "{{name}} ist neu in {{patch}}.",
+          "announced": "{{announced}} Waffen angekündigt.",
+          "s1": "Jede Waffe, jeder Wert.",
+          "s2": "Finde deine nächste Primärwaffe.",
+          "s3": "Schaden, Kadenz, Reichweite auf einen Blick.",
+          "s4": "Von der Pistole bis zum Railgun."
+        },
+        "armor": {
+          "count": "{{count}} neue Rüstungsteile in {{patch}}.",
+          "name": "{{name}} ist neu in {{patch}}.",
+          "announced": "{{announced}} Rüstungen angekündigt.",
+          "s1": "Rüstung für jeden Einsatz.",
+          "s2": "Schutz, Gewicht, Stauraum im Vergleich.",
+          "s3": "Stell dein Loadout zusammen.",
+          "s4": "Vom Unteranzug bis zum Helm."
+        },
+        "component": {
+          "count": "{{count}} neue Komponenten in {{patch}}.",
+          "name": "{{name}} ist neu in {{patch}}.",
+          "announced": "{{announced}} Komponenten angekündigt.",
+          "s1": "Jede Komponente, jede Größe.",
+          "s2": "Schilde, Kühler, Kraftwerke im Vergleich.",
+          "s3": "Finde das bessere Bauteil.",
+          "s4": "Rüste dein Schiff gezielt um."
+        },
+        "tool": {
+          "count": "{{count}} neue Werkzeuge in {{patch}}.",
+          "name": "{{name}} ist neu in {{patch}}.",
+          "announced": "{{announced}} Werkzeuge angekündigt.",
+          "s1": "Werkzeuge für jede Schicht.",
+          "s2": "Traktorstrahl, Bergungskopf, Schleifkopf.",
+          "s3": "Arbeite effizienter im Vers.",
+          "s4": "Jedes Werkzeug, jeder Wert."
+        }
+      },
+      "fact": {
+        "length": "Länge",
+        "width": "Breite",
+        "height": "Höhe",
+        "size": "Größe"
+      },
+      "paints": {
+        "label": "Lackierungen",
+        "show": "Lackierung {{name}} zeigen",
+        "all": "Alle {{count}} Lackierungen zeigen",
+        "fewer": "Weniger",
+        "isNew": "neu",
+        "rsi": "Im RSI-Store",
+        "rsiRender": "RSI-Render",
+        "close": "Vorschau schließen"
+      },
+      "values": {
+        "key": "Kennwerte",
+        "more": "Weitere Werte",
+        "open": "{{label}} {{value}}: {{name}} öffnen",
+        "legend": "Klassenschnitt",
+        "toPage": "Zur {{name}}-Seite"
+      },
+      "compare": {
+        "delta": "{{delta}} % ggü. Klasse",
+        "top": "Spitze der Klasse",
+        "avg": "Klasse Ø {{avg}}"
+      },
+      "codex": {
+        "label": "Codex: neu in diesem Patch",
+        "title": "Codex · neu in {{patch}}",
+        "titleNoPatch": "Codex · neu",
+        "count": "{{count}} neu",
+        "announced": "angekündigt",
+        "onTable": "auf dem Tisch",
+        "noneNew": "Nichts Neues in diesem Patch.",
+        "more": "+ {{count}} weitere in der Suche",
+        "all": "Alle {{category}}",
+        "held": "gehalten"
       }
     },
     "index": {

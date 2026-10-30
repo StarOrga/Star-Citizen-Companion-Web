@@ -1,0 +1,318 @@
+// Holotable of the Codex landing (concept 2026-10-30-codex-holo-buehne, round 4).
+// Coordinates: the air is the space above the table; the hologram box, the
+// callout column and the Kennung are placed in % of it (the leader SVG uses
+// the same 0–100 frame). The table is sized from --tw (its width).
+:host {
+  --holo: #8fe3ff;
+  --holo-hi: #dff6ff;
+  --cx-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace;
+  --tw: min(620px, 94cqw);
+  --cy: calc(var(--tw) * 0.09);
+  --ry: calc(var(--tw) * 0.087);
+  --t0: 0s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.air { position: relative; z-index: 2; flex: 1 1 auto; min-height: 140px; }
+
+.halo {
+  position: absolute; left: 12%; right: 12%; top: -6%; bottom: 0;
+  background:
+    radial-gradient(ellipse 34% 46% at 50% 62%, rgba(110, 215, 250, 0.16), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 50% 100%, rgba(82, 193, 230, 0.12), transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease 0.6s;
+}
+:host(.lit) .halo { opacity: 1; }
+
+// ── Beam: volumetric trapezoid from the emitter up, rays + rising motes ──
+.beam {
+  position: absolute; left: 15%; right: 15%; top: 0; bottom: calc(-1 * var(--cy));
+  clip-path: polygon(47.4% 100%, 52.6% 100%, 100% 0, 0 0);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(0deg, #000 55%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(0deg, #000 55%, transparent);
+  mask-composite: intersect;
+  background: linear-gradient(0deg, rgba(175, 238, 255, 0.42), rgba(82, 193, 230, 0.12) 58%, transparent);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+  opacity: 0;
+}
+:host(.lit) .beam { animation: beam-extend 0.95s cubic-bezier(0.2, 0.7, 0.2, 1) 0.4s both, beam-breathe 3.6s ease-in-out 1.35s infinite; }
+.beam .rays {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 7%, rgba(200, 245, 255, 0.07) 7% 7.6%, transparent 7.6% 13%);
+  animation: rays 5s steps(1) infinite;
+}
+.beam .motes {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(1px 1px at 41% 12%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 57% 27%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 47% 44%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 63% 61%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 35% 74%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 52% 88%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 29% 36%, rgba(220, 250, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 70% 8%, rgba(220, 250, 255, 0.55), transparent);
+  background-size: 100% 50%;
+  animation: motes 9s linear infinite;
+}
+.beam .core {
+  position: absolute; left: 50%; top: 6%; bottom: 0; width: 4px; transform: translateX(-50%);
+  background: linear-gradient(0deg, #f4feff, rgba(170, 235, 255, 0.45) 50%, transparent);
+  filter: blur(1.4px);
+}
+
+// ── The piece: everything of ONE item; it is swapped per rotation step ──
+.piece { position: absolute; inset: 0; }
+.piece.leaving { animation: hold 0.95s linear both; pointer-events: none; }
+
+a.holo {
+  position: absolute; left: 24%; width: 44%; top: 5%; height: 84%; z-index: 2;
+  display: block; color: var(--holo); text-decoration: none;
+}
+.holo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; border-radius: 6px; }
+.form {
+  position: absolute; inset: 0; display: block;
+  clip-path: inset(100% -25% -6% -25%);
+  animation: build 1.5s cubic-bezier(0.42, 0.05, 0.58, 0.95) var(--t0) both, flicker 8s steps(1) calc(var(--t0) + 2s) infinite;
+}
+.leaving .form { animation: erase 0.9s cubic-bezier(0.42, 0.05, 0.58, 0.95) both; }
+.viewer { position: absolute; inset: 0; display: block; pointer-events: none; }
+.viewer ::ng-deep .stage { height: 100%; min-height: 0; background: transparent; }
+.viewer ::ng-deep model-viewer { width: 100%; height: 100%; }
+.sil {
+  position: absolute; inset: 6% 16%; display: grid; place-items: center;
+  color: var(--holo);
+  filter: drop-shadow(0 0 2px rgba(190, 240, 255, 0.95)) drop-shadow(0 0 14px rgba(82, 193, 230, 0.6));
+}
+.sil sc-codex-icon { width: 100%; height: 100%; }
+// A hologram is never tinted: the category colour of the icon gives way to holo light.
+.sil sc-codex-icon ::ng-deep svg {
+  color: var(--holo) !important; width: 100%; height: 100%; max-width: none; max-height: none; stroke-width: 0.55px;
+}
+.grain {
+  position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background: repeating-linear-gradient(180deg, rgba(160, 232, 255, 0.11) 0 1px, transparent 1px 3px);
+  -webkit-mask-image: radial-gradient(ellipse 50% 46% at 50% 52%, #000 35%, transparent 75%);
+  mask-image: radial-gradient(ellipse 50% 46% at 50% 52%, #000 35%, transparent 75%);
+}
+// Interference band drifting down the hologram, now and then.
+.band {
+  position: absolute; left: 6%; right: 6%; top: 0; height: 9%; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(180deg, transparent, rgba(190, 245, 255, 0.16) 45%, rgba(230, 252, 255, 0.24) 50%, rgba(190, 245, 255, 0.16) 55%, transparent);
+  opacity: 0;
+  animation: band 6.5s ease-in-out calc(var(--t0) + 3s) infinite;
+}
+
+// The scan disc: a light disc inside the beam — wider the higher it is.
+.disc {
+  position: absolute; left: 50%; top: 100%; width: 26%; height: 6.5%; z-index: 3;
+  transform: translate(-50%, -50%);
+  border-radius: 50%; opacity: 0; pointer-events: none;
+  border: 1px solid rgba(235, 252, 255, 0.95);
+  background: radial-gradient(ellipse at 50% 50%, rgba(250, 255, 255, 0.7), rgba(140, 225, 255, 0.32) 55%, rgba(82, 193, 230, 0.08) 72%, transparent 76%);
+  box-shadow: 0 0 18px 2px rgba(130, 220, 255, 0.85), 0 0 4px #fff, inset 0 0 12px rgba(200, 245, 255, 0.6);
+  animation: disc-up 1.5s cubic-bezier(0.42, 0.05, 0.58, 0.95) var(--t0) both;
+}
+// The just-built zone glows under the disc for a moment.
+.disc i {
+  position: absolute; left: 6%; right: 6%; top: 50%; height: 260%;
+  background: linear-gradient(180deg, rgba(160, 235, 255, 0.35), transparent);
+  -webkit-mask-image: radial-gradient(ellipse 50% 100% at 50% 0, #000, transparent);
+  mask-image: radial-gradient(ellipse 50% 100% at 50% 0, #000, transparent);
+}
+.leaving .disc { animation: disc-down 0.9s cubic-bezier(0.42, 0.05, 0.58, 0.95) both; }
+.leaving .disc i { top: auto; bottom: 50%; background: linear-gradient(0deg, rgba(160, 235, 255, 0.35), transparent); }
+
+.go { position: absolute; right: 4%; top: 2%; font-size: 15px; line-height: 1; color: var(--sc-accent); opacity: 0; transition: opacity 0.2s ease; }
+.holo:hover .go, .holo:focus-visible .go { opacity: 1; }
+
+// ── Callouts (round-1 look) ──
+.leaders { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
+.leaders path {
+  fill: none; stroke: rgba(160, 232, 255, 0.8); stroke-width: 1.1; vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 3px rgba(130, 220, 255, 0.7));
+  animation: draw 0.5s cubic-bezier(0.3, 0.6, 0.3, 1) var(--at) both;
+}
+.leaving .leaders path { animation: undraw 0.35s ease-in both; }
+.dot {
+  position: absolute; z-index: 4; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: var(--holo-hi); box-shadow: 0 0 0 3px rgba(130, 220, 255, 0.18), 0 0 10px rgba(143, 227, 255, 0.95);
+  pointer-events: none;
+  animation: dot-in 0.4s ease-out calc(var(--at) + 0.35s) both, dot-breathe 2.8s ease-in-out calc(var(--at) + 1s) infinite;
+}
+.leaving .dot { animation: fade-out 0.25s ease-in both; }
+.callouts { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; z-index: 4; }
+.call {
+  position: absolute; right: 79%; width: 21%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right;
+  pointer-events: auto;
+  animation: call-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--at) + 0.22s) both;
+}
+.leaving .call { animation: call-out 0.3s ease-in both; }
+.c-label {
+  font: 600 max(10px, 0.62rem) / 1.2 var(--sc-font-display); letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--sc-fg-2);
+}
+.c-value {
+  position: relative; display: inline-flex; align-items: baseline; gap: 6px;
+  font: 600 clamp(17px, 1.45vw, 26px) / 1.08 var(--cx-mono); font-variant-numeric: tabular-nums;
+  color: #eefbff; text-decoration: none; white-space: nowrap;
+  text-shadow: 0 0 12px rgba(130, 220, 255, 0.55);
+}
+.c-value i {
+  position: absolute; right: -16px; top: 0.1em; font-style: normal; font-size: 12px; color: var(--sc-accent);
+  opacity: 0; transform: translateX(-3px); transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.c-value:hover i, .c-value:focus-visible i { opacity: 1; transform: none; }
+.c-value:hover { color: #fff; }
+.c-value:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 2px; }
+.c-cmp {
+  font: 500 max(10px, 0.64rem) / 1.3 var(--sc-font-body); letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--sc-warning) 72%, var(--sc-fg-1));
+}
+.c-cmp.worse { color: var(--sc-warning); }
+
+// ── Kennung: top right of the object ──
+.kennung {
+  position: absolute; left: 69.5%; right: 0; top: 4%; z-index: 5;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+}
+.k-eye {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 7px; margin: 0 0 7px;
+  font: 600 max(10px, 0.6rem) / 1.5 var(--sc-font-display); letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--sc-fg-1);
+  animation: rise-in 0.45s ease-out var(--at) both;
+}
+.k-eye > span:nth-child(2) { color: var(--sc-accent); }
+// The maker gets its own line under "Neu · Kategorie", flush with the text after the tick.
+.k-maker { flex: 1 0 100%; padding-left: 21px; color: var(--sc-fg-2); letter-spacing: 0.18em; }
+.k-tick { width: 14px; height: 1px; background: var(--sc-accent); box-shadow: 0 0 6px var(--sc-accent); }
+.k-sep { color: rgba(159, 179, 200, 0.5); }
+.k-name {
+  position: relative; display: inline-block; max-width: 100%;
+  font: 500 clamp(20px, 1.65vw, 32px) / 1.06 var(--sc-font-display); letter-spacing: 0.012em;
+  color: #f2fcff; text-decoration: none; text-wrap: balance;
+  text-shadow: 0 0 18px rgba(130, 220, 255, 0.45), 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.k-type {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
+  animation: type 0.8s steps(var(--chars, 12)) calc(var(--at) + 0.12s) both;
+}
+.k-name i {
+  display: inline-block; margin-left: 6px; font-style: normal; font-size: 0.42em; vertical-align: 0.95em;
+  color: var(--sc-accent); opacity: 0.55; transition: opacity 0.18s ease;
+}
+.k-name:hover i, .k-name:focus-visible i { opacity: 1; }
+.k-name:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 2px; }
+.k-rule {
+  position: relative; display: block; width: min(100%, 220px); height: 1px; margin: 10px 0 9px;
+  background: linear-gradient(90deg, rgba(190, 240, 255, 0.85), rgba(82, 193, 230, 0.35) 60%, transparent);
+  transform-origin: 0 50%;
+  animation: rule-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--at) + 0.55s) both;
+}
+.k-rule::before {
+  content: ''; position: absolute; left: 0; top: -2px; width: 5px; height: 5px;
+  background: var(--holo-hi); box-shadow: 0 0 8px var(--holo);
+}
+.k-facts {
+  display: grid; grid-auto-flow: column; grid-auto-columns: max-content; margin: 0;
+  animation: rise-in 0.45s ease-out calc(var(--at) + 0.75s) both;
+}
+.k-facts div { display: flex; flex-direction: column; gap: 3px; padding: 0 12px; border-left: 1px solid rgba(143, 227, 255, 0.22); }
+.k-facts div:first-child { padding-left: 0; border-left: 0; }
+.k-facts dt { font: 600 max(9px, 0.56rem) / 1 var(--sc-font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--sc-fg-2); }
+.k-facts dd { margin: 0; font: 500 max(12px, 0.8rem) / 1 var(--cx-mono); font-variant-numeric: tabular-nums; color: var(--sc-fg-0); white-space: nowrap; }
+.k-paints {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
+  animation: rise-in 0.45s ease-out calc(var(--at) + 0.9s) both;
+}
+.k-plabel { font: 600 max(9px, 0.56rem) / 1 var(--sc-font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--sc-fg-2); }
+.k-plabel b { margin-left: 4px; color: var(--sc-accent); font-weight: 600; letter-spacing: 0.06em; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; max-width: 240px; max-height: 120px; overflow-y: auto; }
+.chip {
+  position: relative; width: 36px; height: 24px; padding: 0; border-radius: 3px; overflow: hidden; cursor: pointer;
+  border: 1px solid rgba(143, 227, 255, 0.35); background: rgba(8, 22, 32, 0.8);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.chip em { position: absolute; right: 2px; top: 2px; width: 5px; height: 5px; border-radius: 50%; background: var(--sc-accent); box-shadow: 0 0 4px var(--sc-accent); }
+.chip:hover, .chip:focus-visible { border-color: var(--holo-hi); }
+.chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+.chip.on { border-color: var(--holo-hi); box-shadow: 0 0 10px rgba(143, 227, 255, 0.7); }
+.chip.more {
+  width: auto; min-width: 36px; padding: 0 9px; overflow: visible; border-radius: 999px;
+  font: 600 11px / 1 var(--sc-font-body); color: var(--holo); background: rgba(13, 38, 53, 0.7);
+}
+.leaving .kennung { animation: blur-out 0.4s ease-in both; }
+.pv {
+  position: absolute; left: 0; top: calc(100% + 10px); z-index: 9; width: min(300px, 26cqw); min-width: 200px; margin: 0;
+  border: 1px solid rgba(143, 227, 255, 0.45); border-radius: 4px; overflow: hidden;
+  background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 22px rgba(82, 193, 230, 0.18);
+  animation: rise-in 0.25s ease-out both;
+}
+.pv img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.pv figcaption { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; font-size: 12px; color: var(--sc-fg-0); }
+.pv figcaption em { margin-left: 6px; font-style: normal; font-size: 10px; color: var(--sc-accent); text-transform: uppercase; letter-spacing: 0.12em; }
+.pv figcaption a, .pv-src { flex: 0 0 auto; font-size: 11px; color: var(--sc-accent); text-decoration: none; }
+.pv-src { color: var(--sc-fg-2); }
+.pv figcaption a:hover, .pv figcaption a:focus-visible { text-decoration: underline; }
+.pv-x {
+  position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; display: grid; place-items: center; cursor: pointer;
+  border: 1px solid rgba(143, 227, 255, 0.4); border-radius: 50%; background: rgba(4, 12, 20, 0.75); color: var(--sc-fg-0);
+}
+.pv-x svg { width: 14px; height: 14px; }
+.pv-x:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+
+.state { position: absolute; left: 0; right: 0; top: 40%; margin: 0; text-align: center; color: var(--sc-fg-2); font-size: 13px; }
+
+// A switch (not the first build): changed values flash once when they land.
+.piece:not(.boot) .flash { animation: flash 1.1s ease-out calc(var(--at) + 0.5s) both; }
+
+// Reduced motion: no scan, no draws — hard cuts, everything simply there.
+:host(.still) {
+  .beam { transform: none; opacity: 1; animation: none !important; }
+  .beam .rays, .beam .motes, .band, .disc, .shock, .sweep { animation: none !important; }
+  .disc, .band, .shock { display: none; }
+  .form, .leaders path, .dot, .call, .k-eye, .k-type, .k-rule, .k-facts, .k-paints, .flash, .emitter, .pool, .pv { animation: none !important; }
+  .form, .k-type { clip-path: none; }
+  .leaders path { stroke-dashoffset: 0; }
+  .prog .run { animation: none !important; stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beam { transform: none; opacity: 1; animation: none !important; }
+  .beam .rays, .beam .motes, .band, .sweep, .pool, .emitter, .dot { animation: none !important; }
+  .disc, .band, .shock { display: none; }
+}
+
+// Narrow stage: the callouts give way (their values go to the bars pane).
+@media (max-width: 1099px) {
+  .leaders, .dot, .callouts { display: none; }
+  a.holo { left: 6%; width: 62%; }
+  .kennung { left: 69%; }
+}
+@media (max-width: 720px) {
+  .air { min-height: 220px; }
+  a.holo { left: 10%; width: 80%; top: 55%; height: 44%; }
+  .beam { top: 52%; }
+  .kennung { left: 0; right: 0; top: 0; align-items: center; text-align: center; }
+  .k-eye { justify-content: center; }
+  .k-name { font-size: 22px; }
+  .k-rule { margin-inline: auto; }
+  .k-facts { justify-content: center; }
+  .k-paints { align-items: center; }
+  .chips { justify-content: center; }
+  .pv { left: 50%; transform: translateX(-50%); width: min(300px, 92vw); }
+}

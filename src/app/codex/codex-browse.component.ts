@@ -1,5 +1,5 @@
 import { rankBySearch } from './codex-search';
-import { CodexBuildDiffService } from './codex-build-diff.service';
+import { CodexBuildDiffService, NEW_SORT_KINDS } from './codex-build-diff.service';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -590,11 +590,12 @@ export class CodexBrowseComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly injector = inject(Injector);
   /**
-   * `?sort=new` (the Codex landing's "+ N weitere" tile): ships new in this
-   * patch first, newest first; the rest keeps the server's alphabetical order.
+   * `?sort=new` (the Codex landing's "+ N weitere" link): items new in this
+   * patch first, in diff order; the rest keeps the server's alphabetical order.
+   * Every kind the build diff covers ({@link NEW_SORT_KINDS}).
    */
   readonly sortNew = signal(false);
-  private readonly newShipOrder = signal<ReadonlyMap<string, number>>(new Map());
+  private readonly newOrder = signal<{ kind: CodexKind; order: ReadonlyMap<string, number> } | null>(null);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
 
@@ -832,7 +833,7 @@ export class CodexBrowseComponent implements OnInit {
 
   readonly sortSelect = computed<ScSelectOption[]>(() => [
     { value: 'name', labelKey: 'codex.browse.sort.name' },
-    ...(this.kind() === 'ship' ? [{ value: 'new', labelKey: 'codex.browse.sort.new' }] : []),
+    ...(NEW_SORT_KINDS.includes(this.kind()) ? [{ value: 'new', labelKey: 'codex.browse.sort.new' }] : []),
   ]);
 
   readonly sizeSegments = computed<ScSegmentOption[]>(() => [
@@ -841,9 +842,9 @@ export class CodexBrowseComponent implements OnInit {
   ]);
 
   setSort(v: string | null): void {
-    const on = v === 'new' && this.kind() === 'ship';
+    const on = v === 'new' && NEW_SORT_KINDS.includes(this.kind());
     this.sortNew.set(on);
-    if (on && !this.newShipOrder().size) this.loadNewShipOrder();
+    if (on) this.loadNewOrder();
     mirrorQueryParams(this.router, this.route, this.location, { sort: on ? 'new' : null });
   }
 
@@ -1046,8 +1047,8 @@ export class CodexBrowseComponent implements OnInit {
 
   /** Stable: new-this-patch ships move to the front in diff order, nothing else moves. */
   private newFirst<T extends CodexGridRow>(rows: T[]): T[] {
-    const order = this.newShipOrder();
-    if (!this.sortNew() || !order.size) return rows;
+    const order = this.newOrder()?.kind === this.kind() ? this.newOrder()!.order : null;
+    if (!this.sortNew() || !order?.size) return rows;
     const rank = (r: T) => order.get(r.classNameSlug) ?? Number.MAX_SAFE_INTEGER;
     return rows.map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map((e) => e.r);
   }
@@ -1587,8 +1588,8 @@ export class CodexBrowseComponent implements OnInit {
     if (this.category() === ARMOR_CATEGORY) take('slot', (v) => ARMOR_SLOT_IDS.includes(v) && this.armorSlot.set(v));
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
     if (q.get('v') === '1') this.includeVariants.set(true);
-    this.sortNew.set(this.kind() === 'ship' && q.get('sort') === 'new');
-    if (this.sortNew()) this.loadNewShipOrder();
+    this.sortNew.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('sort') === 'new');
+    if (this.sortNew()) this.loadNewOrder();
   }
 
   /** Armour records per slot for the tree. Advisory — a failure leaves the counts off. */
@@ -1600,13 +1601,16 @@ export class CodexBrowseComponent implements OnInit {
     }
   }
 
-  private loadNewShipOrder(): void {
+  private loadNewOrder(): void {
+    const kind = this.kind();
+    if (this.newOrder()?.kind === kind) return;
     void this.injector
       .get(CodexBuildDiffService)
-      .addedShipsMemo()
-      .then((added) => this.newShipOrder.set(new Map(added.map((r, i) => [r.classNameSlug, i]))))
-      .catch(() => this.newShipOrder.set(new Map()));
+      .addedClassNamesMemo(kind)
+      .then((added) => this.newOrder.set({ kind, order: new Map(added.map((cn, i) => [cn, i])) }))
+      .catch(() => this.newOrder.set({ kind, order: new Map() }));
   }
+
 
   /** Facet source for the blueprint kind. Advisory — a failure just hides it. */
   private async loadBlueprintCategories(): Promise<void> {

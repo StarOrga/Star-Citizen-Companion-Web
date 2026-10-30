@@ -1,0 +1,83 @@
+<section class="landing">
+  <ng-template #heroText>
+    <p class="eyebrow">
+      <span class="roll">
+        @for (c of [category() ?? '']; track c) {
+          <span class="slide" [animate.enter]="still() ? 'cut' : 'roll-in'" [animate.leave]="still() ? 'cut' : 'roll-out'">
+            @if (c) {
+              @if (codex()?.patch; as patch) {
+                {{ 'codex.landing.hero.eyebrow' | translate: { category: ('codex.landing.categories.' + c | translate), patch } }}
+              } @else {
+                {{ 'codex.landing.categories.' + c | translate }}
+              }
+            } @else {
+              {{ 'codex.landing.hero.eyebrowIdle' | translate }}
+            }
+          </span>
+        }
+      </span>
+    </p>
+    <h1 class="title">
+      <span class="roll">
+        @for (t of [claim() ?? '']; track t) {
+          <span class="slide" [animate.enter]="still() ? 'cut' : 'roll-in'" [animate.leave]="still() ? 'cut' : 'roll-out'">
+            {{ t || ('codex.landing.hero.title' | translate) }}
+          </span>
+        }
+      </span>
+    </h1>
+  </ng-template>
+
+  @if (shellOn()) {
+    <div class="hero" scStageHero [scStageHeroTop]="stageTop()"
+         (mouseenter)="heroHold.set(true)" (mouseleave)="onHeroLeave($event)"
+         (focusin)="heroHold.set(true)" (focusout)="onHeroLeave($event)">
+      <ng-container *ngTemplateOutlet="heroText" />
+      <div scStageSearch></div>
+    </div>
+  } @else {
+    <div class="hero"
+         (mouseenter)="heroHold.set(true)" (mouseleave)="onHeroLeave($event)"
+         (focusin)="heroHold.set(true)" (focusout)="onHeroLeave($event)">
+      <ng-container *ngTemplateOutlet="heroText" />
+      <sc-codex-search-bar class="search" variant="terminal" />
+    </div>
+  }
+
+  <sc-codex-landing-news class="news" [summary]="data.patchSummary()" [unread]="data.newsUnread()"
+                         (opened)="data.markNewsSeen()" />
+
+  <!-- The table's light on the floor: it reaches both panes (their edges stand in it). -->
+  <div class="floor" aria-hidden="true">
+    <i class="pool"></i>
+    <i class="reach l"></i>
+    <i class="reach r"></i>
+    <i class="foot l"></i>
+    <i class="foot r"></i>
+    @if (current()) {
+      @for (n of [switchNo()]; track n) {
+        <i class="wave" [class.boot]="n === 0"></i>
+      }
+    }
+  </div>
+
+  <sc-codex-landing-values-pane class="values" [item]="current()" [switchNo]="switchNo()" [still]="still()" />
+
+  <div class="stage">
+    @if (failed()) {
+      <div class="err" role="alert">
+        <p>{{ 'codex.error.title' | translate }} — {{ data.error()! | translate }}</p>
+        <button type="button" (click)="load()">{{ 'codex.error.retry' | translate }}</button>
+      </div>
+    } @else if (!loading() && !items().length) {
+      <p class="empty">{{ 'codex.landing.holo.empty' | translate }}</p>
+    }
+    <sc-codex-landing-holotable class="holotable" [item]="current()" [paints]="paints()" [paused]="paused()"
+                                [still]="still()" [loading]="loading()" [switchNo]="switchNo()" [cycle]="cycle()"
+                                [cycleMs]="rotationMs" [(paintOpen)]="paintOpen" />
+  </div>
+
+  <sc-codex-landing-codex-pane class="codex" [codex]="codex()" [items]="items()" [active]="category()"
+                               [current]="current()" [held]="held()" [paused]="paused()" [still]="still()"
+                               [cycle]="cycle()" [cycleMs]="rotationMs" [switchNo]="switchNo()" (pick)="pick($event)" />
+</section>

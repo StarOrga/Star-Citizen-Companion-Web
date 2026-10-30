@@ -18,6 +18,47 @@ export interface LandingValue {
   value: number;
   /** Unit hint for formatting, null when unitless/unknown. */
   unit: 'm/s' | 'hp' | 'scu' | 'kg' | null;
+  /** Mean of this value over the item's class (cohort); absent/null without a cohort of at least two. */
+  classAvg?: number | null;
+  /** Highest value in the class — the full length of the comparison bar. */
+  classMax?: number | null;
+  /** true = more is better, false = less is better, null = neutral (no judgement, e.g. mass, crew). */
+  higherIsBetter?: boolean | null;
+}
+
+/** One size fact of the Kennung ("Länge 22,5 m", "Größe S2"). `value` is display text. */
+export interface LandingFact {
+  id: 'length' | 'width' | 'height' | 'size';
+  value: string;
+}
+
+/** One entry of a category in the Codex list of the landing. */
+export interface LandingCodexEntry {
+  id: string;
+  name: string;
+  /** Real-anchor target: the detail page, `/codex/upcoming/:id` for announced ships. */
+  route: string[];
+  /** Announced (not yet flight-ready) — rendered with the "angekündigt" tag. */
+  announced: boolean;
+}
+
+/** One category row of the Codex list: its new items of the current patch. */
+export interface LandingCodexCategory {
+  category: LandingCategory;
+  /** New flight-ready items of the current patch (announced ones not counted). */
+  count: number;
+  /** Up to the requested limit, newest first; announced ships last. */
+  entries: LandingCodexEntry[];
+  /** New flight-ready items beyond `entries` (for "+ N weitere in der Suche"). */
+  more: number;
+  /** Announced ships of this category (ships only, else 0). */
+  announced: number;
+}
+
+export interface LandingCodex {
+  /** Patch version of the current LIVE build, null when unknown. */
+  patch: string | null;
+  categories: LandingCodexCategory[];
 }
 
 /** A paint that has an RSI image (paints without one never reach this type). */
@@ -50,25 +91,10 @@ export interface LandingItem {
   overview: LandingOverviewField[];
   /** Up to 7, most telling first. */
   topValues: LandingValue[];
-}
-
-/** One filmstrip tile. */
-export interface FilmstripTile {
-  id: string;
-  name: string;
-  manufacturer: string | null;
-  imageUrl: string | null;
-  /** Real-anchor target: codex detail for flight-ready game ships, `/codex/upcoming/:id` for announced. */
-  route: string[];
-  isNew: boolean;
-}
-
-export interface Filmstrip {
-  tiles: FilmstripTile[];
-  /** Entries beyond `tiles`, for the "+ N weitere" tile (0 = no such tile). */
-  more: number;
-  /** Total entries behind the list. */
-  total: number;
+  /** Size facts for the Kennung; a fact without data is left out. */
+  facts?: LandingFact[];
+  /** True when the item is new in the current patch (else it is only the newest known one). */
+  fresh?: boolean;
 }
 
 export interface PatchSummaryView {
@@ -84,9 +110,3 @@ export interface PatchSummaryView {
 
 export const RSI_PATCH_NOTES_OVERVIEW_URL = 'https://robertsspaceindustries.com/patch-notes';
 
-/** Facts to build the "+ N weitere" search link; wave 2 owns the query-param names. */
-export interface FilmstripMoreQuery {
-  kind: 'ship';
-  flightReady: true;
-  sort: 'new';
-}

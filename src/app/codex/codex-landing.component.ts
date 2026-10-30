@@ -10,23 +10,24 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 import { STAGE_SLOT_MOVED, StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
 import { CodexSearchBarComponent } from './search/codex-search-bar.component';
 import { CodexLandingDataService } from './landing/codex-landing-data.service';
-import { Filmstrip, LandingItem, LandingPaint } from './landing/codex-landing-data.types';
-import { CodexLandingHolotableComponent, CATEGORY_GLYPH } from './landing/codex-landing-holotable.component';
-import { CodexLandingCardComponent } from './landing/codex-landing-card.component';
-import { CodexLandingFilmstripComponent, FilmstripMode } from './landing/codex-landing-filmstrip.component';
+import { LandingCodex, LandingItem, LandingPaint } from './landing/codex-landing-data.types';
+import { CodexLandingHolotableComponent } from './landing/codex-landing-holotable.component';
+import { CodexLandingValuesPaneComponent } from './landing/codex-landing-values-pane.component';
+import { CodexLandingCodexPaneComponent } from './landing/codex-landing-codex-pane.component';
 import { CodexLandingNewsComponent } from './landing/codex-landing-news.component';
+import { CLAIM_MS, ClaimCursor, buildClaims } from './landing/codex-landing-claims';
 
-/** Filmstrip tiles before the "+ N weitere" tile (round 6: five + the rest). */
-export const FILM_TILES = 5;
 /** One rotation step (brief A4: ≈ 8 s per category). */
 export const ROTATION_MS = 8000;
+/** New items listed per category in the Codex list before "+ N weitere in der Suche". */
+export const CODEX_LIST_ITEMS = 5;
 /**
  * Where the staged search field stands on this page (fraction of the viewport).
  * Higher than the shell's 41 % so the hologram gets the room below it, with a
@@ -37,89 +38,41 @@ export const CODEX_STAGE_TOP = 0.3;
 export const CODEX_STAGE_TOP_PHONE = 0.3;
 const PHONE_QUERY = '(max-width: 720px)';
 
-/** Category side rail (brief A8): index links, keybindings as the quiet last entry. */
-export const LANDING_RAIL = [
-  { key: 'ships', glyph: CATEGORY_GLYPH.ship, link: '/codex/index', query: { kind: 'ship' } },
-  { key: 'components', glyph: CATEGORY_GLYPH.component, link: '/codex/index', query: { kind: 'component' } },
-  { key: 'weapons', glyph: CATEGORY_GLYPH.fpsWeapon, link: '/codex/index', query: { kind: 'weapon', weaponClass: 'Ship' } },
-  { key: 'armor', glyph: CATEGORY_GLYPH.armor, link: '/codex/index', query: { kind: 'armor' } },
-  { key: 'tools', glyph: CATEGORY_GLYPH.tool, link: '/codex/index', query: { kind: 'weapon', wg: 'ship', wsg: 'utility' } },
-] as const;
-
 /**
- * The Codex landing (concept 2026-10-29-codex-landing-neu, round 6): one
- * viewport, no page scroll. Hero with the staged search, the holotable with the
- * newest flight-ready item per category in rotation, the Datenkarte left, News
- * + category rail right, the filmstrip at the bottom. Nothing personal.
+ * The Codex landing (concept 2026-10-30-codex-holo-buehne, round 4 "Zugewandte
+ * Kante"): one viewport, no page scroll on desktop. Hero with the category's
+ * claims and the staged search; the holotable in the centre with the newest
+ * flight-ready item per category in rotation; "Weitere Werte" left and the
+ * Codex list right, both light panes whose glowing edges face the hologram and
+ * stand in the light the table spills across the floor. Nothing personal.
  *
- * The rotation advances every {@link ROTATION_MS}; it holds while a segment is
- * held, the card is enlarged, the tab is hidden, or the reader prefers reduced
- * motion.
+ * The rotation advances every {@link ROTATION_MS}; it holds while a category
+ * is held, a paint preview is open, the hero is hovered/focused, the tab is
+ * hidden, or the reader prefers reduced motion.
  */
 @Component({
   selector: 'sc-codex-landing',
   standalone: true,
   imports: [
-    RouterLink,
+    NgTemplateOutlet,
     TranslatePipe,
     StageSearchDirective,
     StageHeroDirective,
     CodexSearchBarComponent,
     CodexLandingHolotableComponent,
-    CodexLandingCardComponent,
-    CodexLandingFilmstripComponent,
+    CodexLandingValuesPaneComponent,
+    CodexLandingCodexPaneComponent,
     CodexLandingNewsComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[style.--cx-top.px]': 'top()', '[style.--cx-hero-top.px]': 'heroTop()', '[class.shell]': 'shellOn()' },
-  template: `
-    <section class="landing">
-      @if (shellOn()) {
-        <div class="hero" scStageHero [scStageHeroTop]="stageTop()">
-          <p class="eyebrow">{{ 'codex.landing.hero.eyebrow' | translate }}</p>
-          <h1 class="title">{{ 'codex.landing.hero.title' | translate }}</h1>
-          <div scStageSearch></div>
-        </div>
-      } @else {
-        <div class="hero">
-          <p class="eyebrow">{{ 'codex.landing.hero.eyebrow' | translate }}</p>
-          <h1 class="title">{{ 'codex.landing.hero.title' | translate }}</h1>
-          <sc-codex-search-bar class="search" variant="terminal" />
-        </div>
-      }
-
-      <sc-codex-landing-news class="news" [summary]="data.patchSummary()" [unread]="data.newsUnread()"
-                             (opened)="data.markNewsSeen()" />
-
-      @if (current(); as it) {
-        <sc-codex-landing-card class="card" [item]="it" [paints]="paints()" [(open)]="cardOpen" />
-      }
-
-      <div class="stage">
-        @if (failed()) {
-          <div class="err" role="alert">
-            <p>{{ 'codex.error.title' | translate }} — {{ data.error()! | translate }}</p>
-            <button type="button" (click)="load()">{{ 'codex.error.retry' | translate }}</button>
-          </div>
-        } @else if (!loading() && !items().length) {
-          <p class="empty">{{ 'codex.landing.holo.empty' | translate }}</p>
-        }
-        <sc-codex-landing-holotable class="holotable" [item]="current()" [categories]="categories()" [active]="active()"
-                                    [held]="held()" [paused]="paused()" [still]="still()" [loading]="loading()"
-                                    [cycle]="cycle()" [cycleMs]="rotationMs" (pick)="pick($event)" />
-      </div>
-
-      <nav class="rail" [attr.aria-label]="'codex.landing.rail.label' | translate">
-        @for (r of rail; track r.key) {
-          <a [routerLink]="r.link" [queryParams]="r.query"><span>{{ 'codex.landing.rail.' + r.key | translate }}</span><i aria-hidden="true">{{ r.glyph }}</i></a>
-        }
-        <a class="quiet" routerLink="/codex/keybinds"><span aria-hidden="true">⌨</span> {{ 'codex.landing.rail.keybinds' | translate }}</a>
-      </nav>
-
-      <sc-codex-landing-filmstrip class="film" [ready]="ready()" [announced]="announced()" [(mode)]="filmMode"
-                                  [activeId]="activeTileId()" />
-    </section>
-  `,
+  host: {
+    '[style.--cx-top.px]': 'top()',
+    '[style.--cx-hero-top.px]': 'heroTop()',
+    '[class.shell]': 'shellOn()',
+    '[class.still]': 'still()',
+    '[class.lit]': '!!current()',
+  },
+  templateUrl: './codex-landing.component.html',
   styleUrl: './codex-landing.component.scss',
 })
 export class CodexLandingComponent {
@@ -127,45 +80,67 @@ export class CodexLandingComponent {
   private readonly translate = inject(TranslateService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   readonly shellOn = inject(BetaService).isEnabled('shell');
-  protected readonly rail = LANDING_RAIL;
   private readonly phone = signal(typeof matchMedia === 'function' && matchMedia(PHONE_QUERY).matches);
   protected readonly stageTop = computed(() => (this.phone() ? CODEX_STAGE_TOP_PHONE : CODEX_STAGE_TOP));
   protected readonly rotationMs = ROTATION_MS;
+  private readonly lang = this.translate.currentLang;
 
   readonly items = signal<LandingItem[]>([]);
   readonly loading = signal(true);
   readonly active = signal(0);
   readonly held = signal(false);
-  readonly cardOpen = signal(false);
+  readonly paintOpen = signal(false);
+  /** Pointer over / focus inside the hero: claims and rotation stand still (WCAG 2.2.2). */
+  readonly heroHold = signal(false);
   readonly cycle = signal(0);
   readonly hidden = signal(typeof document !== 'undefined' && document.visibilityState === 'hidden');
   readonly still = signal(
     typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
   readonly paints = signal<LandingPaint[]>([]);
-  readonly ready = signal<Filmstrip | null>(null);
-  readonly announced = signal<Filmstrip | null>(null);
-  readonly filmMode = signal<FilmstripMode>('ready');
+  readonly codex = signal<LandingCodex | null>(null);
+  /** 0 until the first item stood on the table; +1 on every item change after it (a switch). */
+  readonly switchNo = signal(0);
+  readonly claimIndex = signal(0);
   /** Page offset of the landing (px) — sizes it to the rest of the viewport. */
   readonly top = signal(0);
-  /** Top of the hero block inside the landing (px): News and the card start on it. */
+  /** Top of the hero block inside the landing (px): News and the panes start on it. */
   readonly heroTop = signal(0);
 
   readonly current = computed(() => this.items()[this.active()] ?? null);
-  readonly categories = computed(() => this.items().map((i) => i.category));
+  readonly category = computed(() => this.current()?.category ?? null);
   readonly paused = computed(
-    () => this.held() || this.cardOpen() || this.hidden() || this.still() || this.items().length < 2,
+    () =>
+      this.held() || this.paintOpen() || this.heroHold() || this.hidden() || this.still() || this.items().length < 2,
+  );
+  /** Claims advance inside a category only while the rotation stands (else the category change rolls them). */
+  readonly claimsRun = computed(
+    () => !this.still() && !this.hidden() && !this.heroHold() && (this.held() || this.paintOpen() || this.items().length < 2),
   );
   readonly failed = computed(() => !this.loading() && !this.items().length && !!this.data.error());
-  readonly activeTileId = computed(() => {
-    const it = this.current();
-    return it?.category === 'ship' ? (it.detailRoute[2] ?? null) : null;
+
+  readonly claims = computed(() => {
+    this.lang();
+    const cat = this.category();
+    if (!cat) return [];
+    const codex = this.codex();
+    return buildClaims(this.translate, cat, {
+      patch: codex?.patch ?? null,
+      news: codex?.categories.find((c) => c.category === cat) ?? null,
+    });
+  });
+  readonly claim = computed(() => {
+    const list = this.claims();
+    return list.length ? list[this.claimIndex() % list.length] : null;
   });
 
+  private readonly claimCursor = new ClaimCursor();
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private claimTimer: ReturnType<typeof setTimeout> | null = null;
   private stepStart = 0;
   private remaining = ROTATION_MS;
   private paintsToken = 0;
+  private lastKey = '';
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -178,6 +153,33 @@ export class CodexLandingComponent {
       const paused = this.paused();
       this.cycle();
       untracked(() => (paused ? this.pauseClock() : this.runClock()));
+    });
+
+    // A new item on the table: count the switch, take the category's next claim.
+    effect(() => {
+      const it = this.current();
+      const key = it ? `${it.category}:${it.className}` : '';
+      untracked(() => {
+        if (!key) return;
+        if (this.lastKey && key !== this.lastKey) this.switchNo.update((n) => n + 1);
+        this.lastKey = key;
+        this.claimIndex.set(this.claimCursor.enter(it!.category));
+      });
+    });
+
+    // Claim dwell inside a held category (CLAIM_MS per line).
+    effect(() => {
+      const run = this.claimsRun();
+      this.claimIndex();
+      untracked(() => {
+        if (this.claimTimer) clearTimeout(this.claimTimer);
+        this.claimTimer = run
+          ? setTimeout(() => {
+              this.claimTimer = null;
+              this.claimIndex.set(this.claimCursor.step());
+            }, CLAIM_MS)
+          : null;
+      });
     });
 
     // Paints of the item on the table (ships only); a stale answer is dropped.
@@ -225,24 +227,20 @@ export class CodexLandingComponent {
       langSub.unsubscribe();
       document.removeEventListener('visibilitychange', onVisibility);
       this.clearTimer();
+      if (this.claimTimer) clearTimeout(this.claimTimer);
     });
   }
 
   async load(): Promise<void> {
     this.loading.set(true);
-    const [items, ready, announced] = await Promise.all([
-      this.data.rotationItems(),
-      this.data.flightReadyFilmstrip(FILM_TILES),
-      this.data.announcedFilmstrip(FILM_TILES),
-    ]);
+    const [items, codex] = await Promise.all([this.data.rotationItems(), this.data.codexNews(CODEX_LIST_ITEMS)]);
     this.items.set(items);
-    this.ready.set(ready);
-    this.announced.set(announced);
+    this.codex.set(codex);
     this.active.set(0);
     this.loading.set(false);
   }
 
-  /** Segment click: jump + hold; the held segment again resumes the rotation. */
+  /** Category click: jump + hold; the held category again resumes the rotation. */
   pick(i: number): void {
     if (this.held() && i === this.active()) {
       this.held.set(false);
@@ -253,6 +251,14 @@ export class CodexLandingComponent {
     this.held.set(true);
     this.remaining = ROTATION_MS;
     this.cycle.update((c) => c + 1);
+  }
+
+  onHeroLeave(ev: FocusEvent | MouseEvent): void {
+    const hero = ev.currentTarget as HTMLElement | null;
+    const next = (ev as FocusEvent).relatedTarget as Node | null;
+    if (ev.type === 'focusout' && hero && next && hero.contains(next)) return;
+    if (ev.type === 'mouseleave' && hero?.contains(document.activeElement)) return;
+    this.heroHold.set(false);
   }
 
   private advance(): void {

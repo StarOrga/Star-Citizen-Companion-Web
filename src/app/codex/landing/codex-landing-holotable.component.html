@@ -1,0 +1,152 @@
+<div class="air">
+  <span class="halo" aria-hidden="true"></span>
+  <span class="beam" aria-hidden="true"><i class="rays"></i><i class="motes"></i><i class="core"></i></span>
+
+  @if (item(); as it) {
+    @for (k of [key()]; track k) {
+      <div class="piece" [class.boot]="boot()" [animate.leave]="still() ? 'cut' : 'leaving'"
+           [style.--t0.s]="start()">
+        <a class="holo" [routerLink]="it.detailRoute"
+           [attr.aria-label]="'codex.landing.holo.open' | translate: { name: it.name }">
+          <span class="form">
+            @if (it.kind === 'ship' && !no3d().has(it.className)) {
+              @defer (on immediate) {
+                <sc-ship-skin-viewer class="viewer" [shipId]="it.className" [embedded]="true" [holo]="true"
+                                     [still]="still()" (available)="onAvailable(it.className, $event)" />
+              } @placeholder {
+                <span class="viewer" aria-hidden="true"></span>
+              }
+            } @else {
+              <span class="sil" aria-hidden="true"><sc-codex-icon [kind]="it.kind" /></span>
+            }
+            <span class="grain" aria-hidden="true"></span>
+            <span class="band" aria-hidden="true"></span>
+          </span>
+          <span class="disc" aria-hidden="true"><i></i></span>
+          <span class="go" aria-hidden="true">↗</span>
+        </a>
+
+        @if (callouts().length) {
+          <svg class="leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            @for (c of callouts(); track c.key) {
+              <path pathLength="1" [attr.d]="c.path" [style.--at.s]="c.at" />
+            }
+          </svg>
+          @for (c of callouts(); track c.key) {
+            <i class="dot" aria-hidden="true" [style.left.%]="c.ax" [style.top.%]="c.ay" [style.--at.s]="c.at"></i>
+          }
+          <ul class="callouts" [attr.aria-label]="'codex.landing.values.key' | translate">
+            @for (c of callouts(); track c.key) {
+              <li class="call" [style.top.%]="c.y" [style.--at.s]="c.at">
+                <span class="c-label">{{ c.label }}</span>
+                <a class="c-value flash" [routerLink]="it.detailRoute"
+                   [attr.aria-label]="'codex.landing.values.open' | translate: { label: c.label, value: c.text, name: it.name }">
+                  {{ c.text }}<i aria-hidden="true">↗</i>
+                </a>
+                @if (c.cmp; as cmp) {
+                  <small class="c-cmp" [class.worse]="cmp.worse">
+                    @switch (cmp.kind) {
+                      @case ('delta') { {{ 'codex.landing.compare.delta' | translate: { delta: cmp.delta } }} }
+                      @case ('top') { {{ 'codex.landing.compare.top' | translate }} }
+                      @default { {{ 'codex.landing.compare.avg' | translate: { avg: cmp.avg } }} }
+                    }
+                  </small>
+                }
+              </li>
+            }
+          </ul>
+        }
+
+        <div class="kennung" [style.--at.s]="idAt()" [style.--chars]="nameChars()">
+          <p class="k-eye">
+            <span class="k-tick" aria-hidden="true"></span>
+            <span>{{ (it.fresh === false ? 'codex.landing.holo.newest' : 'codex.landing.holo.newIn') | translate }}</span>
+            <span class="k-sep" aria-hidden="true">·</span>
+            <span>{{ label(it.category) | translate }}</span>
+            @if (it.eyebrow.manufacturer) {
+              <span class="sc-sr-only">·</span><span class="k-maker">{{ it.eyebrow.manufacturer }}</span>
+            }
+          </p>
+          <a class="k-name" [routerLink]="it.detailRoute"><span class="k-type">{{ it.name }}</span><i aria-hidden="true">↗</i></a>
+          <span class="k-rule" aria-hidden="true"></span>
+          @if (it.facts?.length) {
+            <dl class="k-facts">
+              @for (f of it.facts; track f.id) {
+                <div><dt>{{ 'codex.landing.fact.' + f.id | translate }}</dt><dd>{{ f.value }}</dd></div>
+              }
+            </dl>
+          }
+          @if (paints().length) {
+            <div class="k-paints" role="group" [attr.aria-label]="'codex.landing.paints.label' | translate">
+              <span class="k-plabel">{{ 'codex.landing.paints.label' | translate }} <b>{{ paints().length }}</b></span>
+              <div class="chips">
+                @for (p of visiblePaints(); track p.id) {
+                  <button type="button" class="chip" [class.on]="preview()?.id === p.id" [attr.aria-pressed]="preview()?.id === p.id"
+                          [attr.aria-label]="'codex.landing.paints.show' | translate: { name: p.name }"
+                          [scTooltip]="p.name" scTooltipTier="label" (click)="togglePaint(p)">
+                    <img [src]="p.imageUrl" alt="" loading="lazy" decoding="async" />
+                    @if (p.isNew) { <em aria-hidden="true"></em> }
+                  </button>
+                }
+                @if (hiddenPaints() > 0) {
+                  <button type="button" class="chip more" [attr.aria-expanded]="false"
+                          [attr.aria-label]="'codex.landing.paints.all' | translate: { count: paints().length }"
+                          (click)="allPaints.set(true)">+ {{ hiddenPaints() }}</button>
+                } @else if (allPaints() && paints().length > 4) {
+                  <button type="button" class="chip more" [attr.aria-expanded]="true" (click)="allPaints.set(false)">
+                    {{ 'codex.landing.paints.fewer' | translate }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+          @if (preview(); as p) {
+            <figure class="pv" scDialog [scDialogModal]="false" role="dialog" [attr.aria-label]="p.name"
+                    (scDialogEscape)="closePreview()">
+              <img [src]="p.imageUrl" alt="" decoding="async" />
+              <figcaption>
+                <span>{{ p.name }}@if (p.isNew) { <em>{{ 'codex.landing.paints.isNew' | translate }}</em> }</span>
+                @if (p.rsiUrl) {
+                  <a [href]="p.rsiUrl" target="_blank" rel="noopener noreferrer">{{ 'codex.landing.paints.rsi' | translate }} <i aria-hidden="true">↗</i></a>
+                } @else {
+                  <span class="pv-src">{{ 'codex.landing.paints.rsiRender' | translate }}</span>
+                }
+              </figcaption>
+              <button type="button" class="pv-x" [attr.aria-label]="'codex.landing.paints.close' | translate"
+                      [scTooltip]="'codex.landing.paints.close' | translate" scTooltipTier="label" (click)="closePreview()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </figure>
+          }
+        </div>
+      </div>
+    }
+  } @else if (loading()) {
+    <p class="state" role="status">{{ 'codex.landing.holo.loading' | translate }}</p>
+  }
+</div>
+
+<div class="table" aria-hidden="true">
+  <span class="floorshadow"></span>
+  <span class="skirt"><i class="band"></i></span>
+  <span class="top">
+    <i class="rim"></i>
+    <i class="glass"></i>
+    <i class="rings"></i>
+    <i class="ticks"></i>
+    <i class="sweep"></i>
+    <svg class="prog" viewBox="0 0 100 100">
+      <circle class="track" cx="50" cy="50" r="46.6" pathLength="1" />
+      @for (c of [cycle()]; track c) {
+        <circle class="run" cx="50" cy="50" r="46.6" pathLength="1" [style.animation-duration.ms]="cycleMs()" />
+      }
+    </svg>
+    <i class="pool"></i>
+    <i class="lens"></i>
+  </span>
+  <span class="spec"></span>
+  @for (n of [switchNo()]; track n) {
+    <span class="emitter" [class.boot]="n === 0"><i></i></span>
+    <span class="shock" [class.boot]="n === 0"></span>
+  }
+</div>
