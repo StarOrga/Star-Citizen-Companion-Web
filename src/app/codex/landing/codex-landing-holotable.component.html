@@ -64,7 +64,7 @@
             <span class="k-sep" aria-hidden="true">·</span>
             <span>{{ label(it.category) | translate }}</span>
             @if (it.eyebrow.manufacturer) {
-              <span class="k-sep" aria-hidden="true">·</span><span>{{ it.eyebrow.manufacturer }}</span>
+              <span class="sc-sr-only">·</span><span class="k-maker">{{ it.eyebrow.manufacturer }}</span>
             }
           </p>
           <a class="k-name" [routerLink]="it.detailRoute"><span class="k-type">{{ it.name }}</span><i aria-hidden="true">↗</i></a>

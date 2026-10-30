@@ -3,9 +3,10 @@
 // (--cx-top) and takes the rest of the viewport above the frame's bottom
 // padding; the shell's stage footer is drawn over its last strip.
 :host {
-  --cx-side: clamp(260px, 21vw, 350px);
+  // Side columns in % of the page frame (1280 px up to full HD, wider beyond).
+  --cx-side: clamp(250px, 22%, 350px);
   --cx-gut: var(--sc-page-gutter);
-  --cx-pane: calc(var(--cx-side) - var(--cx-gut) - 30px);
+  --cx-pane: calc(var(--cx-side) - var(--cx-gut) - 22px);
   --cx-pb: max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1)));
   display: block;
   color: var(--sc-fg-0);
@@ -34,7 +35,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-inline: var(--cx-side);
+  // The panes stand low, so the hero may reach over them (the News chip keeps its corner).
+  padding-inline: max(130px, calc(var(--cx-side) * 0.5));
 }
 .eyebrow {
   margin: 0;
@@ -47,7 +49,7 @@
 .title {
   margin: max(6px, 0.6vw) 0 0;
   min-height: 1.1em;
-  font: 500 clamp(26px, 3.1vw, 54px) / 1.1 var(--sc-font-display);
+  font: 500 clamp(26px, 2.7vw, 50px) / 1.1 var(--sc-font-display);
   letter-spacing: 0.02em;
   color: var(--sc-fg-0);
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
@@ -83,12 +85,16 @@
 .err p { margin: 0 0 8px; }
 
 // ── Side panes: light, no box, the glowing edge faces the hologram. ──
+// Panes stand on the floor: their height is their content, the glowing edge
+// runs down into the floor light (max: up to the News chip).
 .values, .codex {
   position: absolute;
   z-index: 5;
-  top: calc(var(--cx-hero-top, 0px) + 56px);
   bottom: calc(var(--cx-pb) + var(--sc-space-2));
+  max-height: calc(100% - var(--cx-hero-top, 0px) - 56px - var(--cx-pb) - var(--sc-space-2));
   width: var(--cx-pane);
+  display: flex;
+  flex-direction: column;
 }
 .values { left: var(--cx-gut); }
 .codex { right: var(--cx-gut); }
@@ -166,7 +172,7 @@
   .title { font-size: 24px; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   .news { order: 0; align-self: flex-end; }
-  .stage { order: 2; flex: 0 0 auto; height: 360px; margin-top: 0; }
+  .stage { order: 2; flex: 0 0 auto; height: 460px; margin-top: 0; }
   .values { order: 3; }
   .codex { order: 4; }
   .floor { display: none; }

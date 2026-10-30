@@ -24,7 +24,7 @@
 .row {
   display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: 34px;
   padding: 0 6px 0 2px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left;
-  font: 600 max(10px, 0.64rem) / 1.2 var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase;
+  font: 600 max(10px, 0.64rem) / 1.2 var(--sc-font-display); letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--sc-fg-2); transition: color 0.15s ease, background 0.15s ease;
 }
 .row.idle { cursor: default; }
@@ -48,14 +48,14 @@
 }
 :host(.paused) .prog { animation-play-state: paused; }
 .row.held ~ .prog { animation: none; transform: scaleX(1); }
-.open { margin: 4px 0 8px 32px; animation: open 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both; }
+.open { margin: 4px 0 8px 24px; animation: open 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
 .new { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
 .new a {
-  display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 2px; text-decoration: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 28px; padding: 4px 8px; border-radius: 2px; text-decoration: none;
   font: 400 max(11px, 0.74rem) / 1.2 var(--sc-font-body); color: var(--sc-fg-1);
   transition: background 0.15s ease, color 0.15s ease;
 }
-.new a .nm { flex: 1 1 auto; }
+.new a .nm { flex: 1 1 auto; overflow: visible; white-space: normal; text-overflow: clip; }
 .new a:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
 .new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 .new a.table { color: #fff; background: rgba(82, 193, 230, 0.14); box-shadow: inset 2px 0 0 #c8f2ff; }

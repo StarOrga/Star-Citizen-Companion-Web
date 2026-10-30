@@ -60,9 +60,9 @@ export function scanPassAt(start: number, y: number, build = HOLO_TIMING.build):
 }
 
 /** Hologram box inside the air (in % of the air): anchors convert through it. */
-const BOX = { left: 27, width: 46, top: 5, height: 84 } as const;
+const BOX = { left: 24, width: 44, top: 5, height: 84 } as const;
 /** Callout column: right edge of the text (in % of the air width). */
-const CALL_RIGHT = 23;
+const CALL_RIGHT = 21;
 
 interface CalloutView {
   key: string;
@@ -98,7 +98,7 @@ interface CalloutView {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.still]': 'still()', '[class.paused]': 'paused()', '[class.lit]': '!!item()' },
   templateUrl: './codex-landing-holotable.component.html',
-  styleUrl: './codex-landing-holotable.component.scss',
+  styleUrls: ['./codex-landing-holotable.component.scss', './codex-landing-holotable.table.scss'],
 })
 export class CodexLandingHolotableComponent {
   private readonly translate = inject(TranslateService);
