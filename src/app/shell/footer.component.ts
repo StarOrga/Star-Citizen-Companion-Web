@@ -121,17 +121,30 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        links right, same paddings. Hub stage: the footer sits on the stage's bottom
        edge (in flow, pulled up over the stage by its own height) and nothing else
        changes - no centring, no absolute badge. */
-    /* The bottom-right corner is the feedback launcher's, and beside it the share
-       button's lane: the footer's last link ends before both. */
+    /* Desktop: the footer row is one line with the corner launchers (hand-off
+       left, feedback right). Its centre sits on their centre line and both ends
+       keep the same --sc-space-4 from the launcher lanes, whether a launcher is
+       shown or not. --sc-footer-h is the launcher plus its inset (styles.scss),
+       so the row (the launcher's height) centres on it. The emblem button's own
+       start padding is taken off, so emblem and last link sit equally far out. */
     @media (min-width: 721px) {
-      .sf { padding-inline-end: max(var(--sc-page-gutter), calc(var(--sc-fab-clear-inline) + var(--sc-space-2) + 44px)); }
-      /* The left corner is the hand-off launcher's (same lane as the feedback one):
-         "Made by the Community" starts after it. */
-      .sf { padding-inline-start: max(var(--sc-page-gutter), var(--sc-fab-clear-inline)); }
+      .sf {
+        min-height: calc(var(--sc-footer-h) + var(--sc-safe-bottom, 0px));
+        padding-block: 0 calc(var(--sc-fab-inset) + var(--sc-safe-bottom, 0px));
+        padding-inline-start: calc(var(--sc-fab-lane) + var(--sc-space-4) - var(--sc-space-2));
+        padding-inline-end: calc(var(--sc-fab-lane) + var(--sc-space-4));
+      }
+      /* A detail page's share button sits beside the feedback launcher: the
+         links then end the same distance before it. */
+      :host-context(html:has(sc-share-button .dock)) .sf {
+        padding-inline-end: calc(var(--sc-fab-clear-inline) + max(44px, var(--sc-tap-min)) + var(--sc-space-4));
+      }
     }
     .sf-stage { margin-top: calc(-1 * var(--sc-footer-h)); pointer-events: none; z-index: 2; }
     .sf-stage > * { pointer-events: auto; }
-    .sf-badge { position: relative; }
+    /* Flex, not block: a block around the inline-flex button adds a line box
+       whose descender pushed the emblem ~3px off the row's centre line. */
+    .sf-badge { position: relative; display: flex; }
     /* The badge sits straight on the page background: no pill, no panel, no blur -
        only the emblem's glow (and a faint text shadow) keep it legible. */
     .sf-badge-btn {

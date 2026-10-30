@@ -222,7 +222,9 @@ html:has([data-layout]) body { font-size: 0.9375rem; }
   --sc-space-8: 64px;
 
   --sc-bar-h: 64px;
-  --sc-footer-h: 56px;
+  /* Desktop footer = the corner launchers' height plus their inset, so the
+     footer row (launcher-high) sits on their centre line (footer.component.ts). */
+  --sc-footer-h: calc(var(--sc-fab-size) + var(--sc-fab-inset));
   --sc-bar-hide-ms: 250ms;
 
   /* Rand: the margin of both beta widths, on every side ("PAGE FRAME"). */
