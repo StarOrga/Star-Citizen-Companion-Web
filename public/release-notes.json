@@ -1,7 +1,45 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.179.1",
+  "current": "0.180.0",
   "releases": [
+    {
+      "version": "0.180.0",
+      "date": "2026-10-30",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta: an Apps page lists the uploader, the Starscape app and the browser extension, each with its own address."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Beta: pages now use just two widths — the hub start screens (Verse, Codex, HQ, Admin) fill the window, everything else lines up exactly under the subheader. Wide and very large screens use the space instead of leaving empty margins, and text grows on big 4K screens."
+            },
+            {
+              "title": "",
+              "text": "Popups, dialogs and notifications come in a few fixed sizes; on phones larger ones open full screen, and several notifications stack instead of overlapping."
+            },
+            {
+              "title": "",
+              "text": "The footer sits on one line with the round buttons in the corners."
+            },
+            {
+              "title": "",
+              "text": "Addresses are English throughout (Locker, Ops, Concept); old addresses that only forwarded somewhere else were removed."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.179.1",
       "date": "2026-10-29",
