@@ -1,0 +1,950 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone">
+<style>
+/* Shared HQ mock — app tokens of SC Companion (StarUI): canvas #0d2635, panel #123246, accent #52c1e6. */
+.mock-app { --m-bg: #0a1c28; --m-panel: #123246; --m-panel-2: #164664; --m-line: rgba(82, 193, 230, 0.18); --m-acc: #52c1e6;
+  --m-fg: #e8ebed; --m-fg2: #9fb3c8; --m-fg3: #84a0b6; --m-ok: #5fd698; --m-warn: #f0c27b;
+  position: relative; width: 100%; min-height: 100%; box-sizing: border-box; overflow: hidden;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, #10324a 0%, #0a1c28 55%, #071520 100%);
+  color: var(--m-fg); font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; }
+.mock-app *, .mock-app *::before, .mock-app *::after { box-sizing: border-box; }
+.mock-bar { display: flex; align-items: center; gap: 18px; margin: 52px 16px 0; padding: 8px 14px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(10, 28, 40, 0.72); backdrop-filter: blur(6px); }
+.mock-logo { font: 700 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; color: var(--m-acc); }
+.mock-nav { display: flex; gap: 14px; color: var(--m-fg2); font-size: 13px; }
+.mock-nav b { color: var(--m-fg); font-weight: 600; border-bottom: 2px solid var(--m-acc); padding-bottom: 2px; }
+.mock-tabs { display: flex; gap: 4px; margin-left: auto; }
+.mock-tab { padding: 4px 10px; border-radius: 999px; color: var(--m-fg2); font-size: 12.5px; }
+.mock-tab.on { background: rgba(82, 193, 230, 0.14); color: var(--m-acc); }
+.mock-supply { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: transparent; color: var(--m-fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mock-supply i { font-style: normal; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--m-acc); color: #062030; font-weight: 700; text-align: center; }
+.mock-body { padding: 22px 28px 28px; }
+.mock-eyebrow { margin: 0; font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--m-acc); }
+.mock-h1 { margin: 8px 0 4px; font: 500 26px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; }
+.mock-sub { margin: 0; color: var(--m-fg2); }
+.mock-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--m-acc);
+  background: var(--m-acc); color: #062030; font: 600 13px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-btn.ghost { background: transparent; color: var(--m-acc); }
+.mock-btn.quiet { background: transparent; border-color: var(--m-line); color: var(--m-fg2); }
+.mock-card { border: 1px solid var(--m-line); border-radius: 12px; background: rgba(18, 50, 70, 0.55); padding: 14px 16px; }
+.mock-k { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); margin: 0 0 8px; }
+.mock-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(10, 28, 40, 0.6); color: var(--m-fg); font: inherit; font-size: 13px; cursor: pointer; }
+.mock-chip:hover, .mock-chip.on { border-color: var(--m-acc); color: var(--m-acc); }
+.mock-ship { position: relative; border-radius: 14px; border: 1px solid var(--m-line); overflow: hidden;
+  background: radial-gradient(ellipse 60% 45% at 50% 62%, rgba(82, 193, 230, 0.22), transparent 70%), linear-gradient(180deg, #0c2333, #081822); }
+.mock-ship svg { display: block; width: 100%; height: auto; }
+.mock-holo { fill: none; stroke: var(--m-acc); stroke-width: 1.2; opacity: 0.85; }
+.mock-holo-f { fill: rgba(82, 193, 230, 0.10); stroke: var(--m-acc); stroke-width: 1; }
+.mock-grid { stroke: rgba(82, 193, 230, 0.12); stroke-width: 1; }
+.mock-ok { color: var(--m-ok); } .mock-warn { color: var(--m-warn); } .mock-dim { color: var(--m-fg3); }
+.mock-row { display: flex; align-items: center; gap: 10px; }
+.mock-acc { color: var(--m-acc); }
+.mock-mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
+
+/* ── D1 Heute Abend: the session sentence + readiness checklist ── */
+.d1-hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; margin-top: 18px; }
+.d1-ask { font: 500 30px/1.25 Orbitron, system-ui, sans-serif; margin: 6px 0 16px; }
+.d1-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.d1-act { padding: 12px 16px; border-radius: 12px; border: 1px solid var(--m-line); background: rgba(18, 50, 70, 0.55); color: var(--m-fg);
+  font: inherit; text-align: left; cursor: pointer; min-width: 128px; }
+.d1-act b { display: block; font-size: 14px; } .d1-act span { font-size: 12px; color: var(--m-fg3); }
+.d1-act:hover { border-color: var(--m-acc); }
+.d1-or { margin: 18px 0 0; color: var(--m-fg2); font-size: 13px; }
+.d1-or a { color: var(--m-acc); text-decoration: none; }
+.d1-steps { display: flex; gap: 6px; margin: 0 0 10px; }
+.d1-steps i { width: 26px; height: 4px; border-radius: 2px; background: var(--m-line); }
+.d1-steps i.on { background: var(--m-acc); }
+.d1-sentence { font: 500 24px/1.6 Orbitron, system-ui, sans-serif; margin: 4px 0 14px; }
+.d1-pick { display: inline-block; padding: 0 10px; margin: 0 2px; border-bottom: 2px dashed var(--m-acc); color: var(--m-acc); cursor: pointer; }
+.d1-pick::after { content: " ▾"; font-size: 13px; color: var(--m-fg3); }
+.d1-check { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.d1-check li { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--m-line); border-radius: 10px; background: rgba(10, 28, 40, 0.55); }
+.d1-check em { font-style: normal; font-size: 12px; color: var(--m-fg3); }
+.d1-check a, .d1-check button { color: var(--m-acc); font: inherit; font-size: 12.5px; background: none; border: 0; cursor: pointer; text-decoration: none; padding: 0; }
+.d1-ico { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.d1-ico.ok { background: rgba(95, 214, 152, 0.16); color: var(--m-ok); }
+.d1-ico.warn { background: rgba(240, 194, 123, 0.16); color: var(--m-warn); }
+.d1-go { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.d1-meter { flex: 1; height: 6px; border-radius: 3px; background: var(--m-line); overflow: hidden; }
+.d1-meter i { display: block; height: 100%; width: 72%; background: linear-gradient(90deg, var(--m-acc), var(--m-ok)); }
+.d1-more { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
+.d1-more .mock-card { padding: 12px 14px; }
+.d1-more b { display: block; font-size: 13.5px; }
+.d1-more span { font-size: 12px; color: var(--m-fg3); }
+.d1-pop { position: absolute; right: 18px; top: 66px; width: 340px; z-index: 4; border: 1px solid var(--m-acc); border-radius: 14px; background: #0d2635;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); padding: 14px 16px; }
+.d1-pop h4 { margin: 0 0 4px; font: 600 14px/1.3 Orbitron, system-ui, sans-serif; }
+.d1-pop ul { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.d1-pop li { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 8px; background: rgba(18, 50, 70, 0.7); font-size: 13px; }
+.d1-pop li small { color: var(--m-fg3); display: block; font-size: 11.5px; }
+.d1-box { width: 16px; height: 16px; border: 1.5px solid var(--m-fg3); border-radius: 4px; }
+.d1-from { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--m-line); color: var(--m-fg2); }
+
+/* ── D2 Hangar-Deck: the stage IS the navigation ── */
+.d2-deck { position: relative; margin: 14px 16px 0; height: 520px; border-radius: 16px; overflow: hidden; border: 1px solid var(--m-line);
+  background: linear-gradient(180deg, #08161f 0%, #0b2231 46%, #0e2c3e 100%); }
+.d2-floor { position: absolute; left: -10%; right: -10%; bottom: -30%; height: 75%; transform: perspective(600px) rotateX(58deg);
+  background-image: linear-gradient(rgba(82, 193, 230, 0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 193, 230, 0.14) 1px, transparent 1px);
+  background-size: 48px 48px; }
+.d2-doors { position: absolute; left: 22%; right: 22%; top: 0; height: 30%; border: 1px solid rgba(82, 193, 230, 0.2); border-top: 0;
+  background: repeating-linear-gradient(90deg, rgba(82, 193, 230, 0.05) 0 2px, transparent 2px 40px); }
+.d2-pad { position: absolute; border-radius: 50%; border: 1.5px solid rgba(82, 193, 230, 0.45);
+  background: radial-gradient(circle, rgba(82, 193, 230, 0.22), rgba(82, 193, 230, 0.04) 60%, transparent 72%); }
+.d2-pad.main { left: 33%; width: 34%; bottom: 16%; aspect-ratio: 3 / 1; }
+.d2-pad.side1 { left: 6%; width: 22%; bottom: 22%; aspect-ratio: 3 / 1; opacity: 0.8; }
+.d2-pad.side2 { right: 6%; width: 22%; bottom: 22%; aspect-ratio: 3 / 1; opacity: 0.8; }
+.d2-ghost { position: absolute; left: 50%; bottom: 25%; translate: -50% 0; text-align: center; }
+.d2-ghost b { display: block; font: 500 20px/1.3 Orbitron, system-ui, sans-serif; margin-bottom: 4px; }
+.d2-ghost p { margin: 0 0 14px; color: var(--m-fg2); }
+.d2-shipsvg { position: absolute; bottom: 21%; translate: -50% 0; }
+.d2-hot { position: absolute; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border: 1px solid var(--m-acc); border-radius: 10px;
+  background: rgba(8, 22, 31, 0.82); font-size: 12px; color: var(--m-fg2); cursor: pointer; }
+.d2-hot b { color: var(--m-fg); font-size: 13.5px; }
+.d2-hot::after { content: ""; position: absolute; left: 50%; bottom: -18px; width: 1px; height: 18px; background: var(--m-acc); }
+.d2-locker { position: absolute; left: 2%; top: 14%; width: 15%; height: 44%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 8px;
+  border: 1px solid var(--m-line); border-radius: 8px; background: rgba(18, 50, 70, 0.5); }
+.d2-locker i { border-radius: 3px; background: rgba(82, 193, 230, 0.12); border: 1px solid rgba(82, 193, 230, 0.2); }
+.d2-locker i.on { background: rgba(82, 193, 230, 0.35); }
+.d2-crate { position: absolute; right: 3%; top: 38%; width: 11%; aspect-ratio: 1.3 / 1; border: 1px solid var(--m-warn); border-radius: 6px;
+  background: repeating-linear-gradient(45deg, rgba(240, 194, 123, 0.12) 0 8px, transparent 8px 16px); display: grid; place-items: center; color: var(--m-warn); font-weight: 700; }
+.d2-board { position: absolute; right: 2%; top: 6%; width: 18%; padding: 8px 10px; border: 1px solid var(--m-line); border-radius: 8px; background: rgba(8, 22, 31, 0.8); font-size: 11.5px; color: var(--m-fg2); }
+.d2-board b { display: block; color: var(--m-fg); font-size: 12px; }
+.d2-roles { position: absolute; left: 50%; top: 14px; translate: -50% 0; display: flex; gap: 6px; }
+.d2-mini { position: absolute; left: 16px; bottom: 14px; display: flex; gap: 4px; }
+.d2-mini i { width: 22px; height: 8px; border-radius: 2px; background: rgba(82, 193, 230, 0.2); }
+.d2-mini i.on { background: var(--m-acc); }
+.d2-panel { position: absolute; right: 14px; top: 14px; bottom: 14px; width: 330px; border: 1px solid var(--m-line); border-radius: 14px; background: rgba(13, 38, 53, 0.94); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.d2-panel h4 { margin: 0; font: 500 18px/1.2 Orbitron, system-ui, sans-serif; }
+.d2-var { display: grid; gap: 6px; }
+.d2-var div { display: flex; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--m-line); border-radius: 8px; font-size: 13px; }
+.d2-var div.on { border-color: var(--m-acc); }
+.d2-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: auto; }
+.d2-note { padding: 8px 10px; border-left: 3px solid var(--m-warn); background: rgba(240, 194, 123, 0.08); font-size: 12.5px; border-radius: 0 8px 8px 0; }
+
+/* ── D3 Konsole: command line + activity deck + log ── */
+.d3-cmd { display: flex; align-items: center; gap: 12px; margin: 18px auto 0; max-width: 760px; padding: 14px 18px; border: 1px solid var(--m-acc); border-radius: 14px;
+  background: rgba(8, 22, 31, 0.85); box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.08); }
+.d3-cmd span { flex: 1; color: var(--m-fg3); font-size: 16px; }
+.d3-cmd kbd { padding: 2px 7px; border: 1px solid var(--m-line); border-radius: 5px; font: 11.5px ui-monospace, Consolas, monospace; color: var(--m-fg2); }
+.d3-sugg { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px auto 0; max-width: 760px; }
+.d3-status { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 14px 0 0; padding: 8px 12px; border: 1px solid var(--m-line); border-radius: 8px; background: rgba(8, 22, 31, 0.6); }
+.d3-status span { font: 12px ui-monospace, Consolas, monospace; color: var(--m-fg3); }
+.d3-status b { color: var(--m-fg); font-weight: 600; }
+.d3-wrap { display: grid; grid-template-columns: 1fr 280px; gap: 18px; margin-top: 18px; }
+.d3-deck { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.d3-act { position: relative; padding: 14px; border: 1px solid var(--m-line); border-radius: 14px; background: linear-gradient(160deg, rgba(22, 70, 100, 0.55), rgba(10, 28, 40, 0.75)); display: flex; flex-direction: column; gap: 6px; min-height: 172px; }
+.d3-act h5 { margin: 0; font: 600 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--m-acc); }
+.d3-act b { font-size: 14.5px; }
+.d3-act small { color: var(--m-fg3); font-size: 12px; }
+.d3-ready { margin-top: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--m-fg2); }
+.d3-ready i { flex: 1; height: 5px; border-radius: 3px; background: var(--m-line); position: relative; overflow: hidden; }
+.d3-ready i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--r, 50%); background: var(--m-acc); }
+.d3-act.new { border-style: dashed; align-items: flex-start; justify-content: center; color: var(--m-fg2); }
+.d3-log { border-left: 1px solid var(--m-line); padding-left: 16px; display: grid; gap: 10px; align-content: start; }
+.d3-log div { font-size: 12.5px; color: var(--m-fg2); }
+.d3-log div b { display: block; color: var(--m-fg); font-weight: 500; }
+.d3-log time { font: 11px ui-monospace, Consolas, monospace; color: var(--m-fg3); }
+.d3-palette { margin: 18px auto 0; max-width: 760px; border: 1px solid var(--m-acc); border-radius: 14px; background: #0d2635; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55); overflow: hidden; }
+.d3-palette .d3-cmd { margin: 0; border: 0; border-bottom: 1px solid var(--m-line); border-radius: 0; box-shadow: none; max-width: none; }
+.d3-palette .d3-cmd span { color: var(--m-fg); }
+.d3-grp { padding: 10px 14px 4px; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.d3-res { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 9px 14px; font-size: 13.5px; }
+.d3-res.on { background: rgba(82, 193, 230, 0.10); box-shadow: inset 3px 0 0 var(--m-acc); }
+.d3-res small { display: block; color: var(--m-fg3); font-size: 12px; }
+.d3-verbs { display: flex; gap: 6px; }
+.d3-verb { padding: 4px 9px; border: 1px solid var(--m-line); border-radius: 6px; font-size: 12px; color: var(--m-acc); background: transparent; }
+.d3-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--m-line); font: 11.5px ui-monospace, Consolas, monospace; color: var(--m-fg3); }
+
+/* Phone frames: one column, tabs collapse, deck scrolls horizontally. */
+@container device (max-width: 520px) {
+  .mock-bar { gap: 10px; margin: 8px; padding: 6px 10px; }
+  .mock-nav, .mock-tabs { display: none; }
+  .mock-supply { margin-left: auto; }
+  .mock-body { padding: 16px; }
+  .mock-h1 { font-size: 20px; }
+  .d1-hero, .d3-wrap { grid-template-columns: 1fr; }
+  .d1-ask { font-size: 22px; }
+  .d1-sentence { font-size: 18px; }
+  .d1-more { grid-template-columns: 1fr 1fr; }
+  .d1-pop { left: 8px; right: 8px; width: auto; top: 56px; }
+  .d2-deck { height: 440px; margin: 8px; }
+  .d2-locker, .d2-board { display: none; }
+  .d2-panel { left: 8px; right: 8px; width: auto; top: auto; bottom: 8px; height: 62%; }
+  .d2-pad.side1, .d2-pad.side2 { display: none; }
+  .d3-deck { grid-template-columns: 1fr 1fr; }
+  .d3-log { border-left: 0; padding-left: 0; border-top: 1px solid var(--m-line); padding-top: 12px; }
+}
+</style>
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 1 · Drei Startseiten fürs HQ</h2>
+    <p><strong>Heute</strong> zeigt <code>/hq</code> (Beta-Shell): Bühnen-Hero, die Spot-Bühne (Flaggschiff links, aktives Set mit Rüstungsfigur rechts) und fünf gleich große Kacheln. Drei davon sind leer oder Attrappe: <em>Nächste Einsätze</em> (kein Datenmodell), <em>Nachschub</em> (liest den Nachschub-Dienst gar nicht) und <em>Deine Flotte im Patch</em> (statisches Mock). Echt sind Hangar (Schiffe, Varianten, RSI-Import per Erweiterung), Spind (FPS-Sets) und Nachschub als Liste im Browser-Speicher.</p>
+    <p><strong>Das ist in allen drei Entwürfen gleich:</strong> Reiter Übersicht · Spind · Hangar · Einsätze in der Fusion-Leiste, der Nachschub-Knopf mit Zähler oben rechts, nur echte Links für Wege, keine leeren Kacheln mehr. Der Codex bleibt unangetastet, er liefert nur über „Ins HQ“-Aktionen. Die Entwürfe unterscheiden sich in einer Sache: <strong>Woran hängt die Startseite?</strong> An deiner heutigen Sitzung (A), an deinem Hangar als Raum (B) oder an dem, was du tun willst (C).</p>
+    <p>Jeder Entwurf hat drei Zustände: <strong>Erster Besuch</strong> (null Daten), <strong>Alltag</strong> (ein Spieler mit 23 Schiffen und 9 Sets) und einen <strong>Aktionszustand</strong>. Die Knöpfe im Mock sind klickbar. Die Fragen, die für alle Entwürfe gelten (Use Cases, Aktionen, Codex-Brücke), stehen in den zwei Fragen-Seiten.</p>
+  </header>
+
+  <!-- ═══════════ D1 · Heute Abend ═══════════ -->
+  <section data-design="heute" data-nav-label="A · Heute Abend" data-design-active="true"
+           data-design-motto="Eine Sitzung, ein Satz" data-design-traits="Startet mit „Was spielst du heute?“|Bereitschafts-Checkliste statt Kacheln|Lücken gehen mit einem Klick in den Nachschub"
+           data-design-icon="moon" data-design-color="#f0c27b" data-design-overlay="br">
+    <section id="d1-s1" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>0</i></button></div>
+        <div class="mock-body">
+          <div class="d1-hero">
+            <div>
+              <div class="d1-steps"><i class="on"></i><i></i><i></i></div>
+              <p class="mock-eyebrow">Dein HQ · Schritt 1 von 3</p>
+              <p class="d1-ask">Was spielst du heute?</p>
+              <div class="d1-acts">
+                <button class="d1-act d1-a-bounty" type="button" data-screen-link="d1-s2"><b>Kopfgeld</b><span>Schiffskampf, VHRT</span></button>
+                <button class="d1-act" type="button" data-screen-link="d1-s2"><b>Bunker &amp; FPS</b><span>Rüstung, Waffen, Medpens</span></button>
+                <button class="d1-act" type="button" data-screen-link="d1-s2"><b>Bergbau</b><span>Schiff oder ROC</span></button>
+                <button class="d1-act" type="button" data-screen-link="d1-s2"><b>Fracht</b><span>Handel, Hauling</span></button>
+                <button class="d1-act" type="button" data-screen-link="d1-s2"><b>Bergung</b><span>Salvage</span></button>
+                <button class="d1-act" type="button" data-screen-link="d1-s2"><b>Erkunden</b><span>Pyro, Nyx</span></button>
+              </div>
+              <p class="d1-or">Schon Schiffe gekauft? <a href="#">RSI-Hangar importieren</a> · oder <a href="#">überspringen und umsehen</a></p>
+            </div>
+            <div class="mock-ship">
+              <svg viewBox="0 0 400 260" aria-hidden="true">
+                <path class="mock-grid" d="M0 210 H400 M0 230 H400 M60 260 L140 190 M340 260 L260 190 M200 260 V190"/>
+                <ellipse cx="200" cy="200" rx="120" ry="20" class="mock-holo" opacity="0.4"/>
+                <text x="200" y="130" text-anchor="middle" fill="#84a0b6" font-size="13" font-family="Orbitron, sans-serif" letter-spacing="3">BUCHT FREI</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d1-s1-a1" data-anno-side="right" data-anno-target=".d1-acts" style="--anno-x:30%;--anno-y:48%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s1-a1" data-anno-bubble="d1-s1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a1">
+            <span class="anno-bubble-question">Sechs Tätigkeiten zum Einstieg — fehlt eine, die du wirklich spielst (Rennen, Medizin, Org-Logistik)?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s1-a1" data-annotation="d1-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d1-s1-a2" data-anno-side="left" data-anno-target=".d1-or" style="--anno-x:22%;--anno-y:80%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s1-a2" data-anno-bubble="d1-s1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d1-s1-a2">
+            <span class="anno-bubble-question">RSI-Import nur als Nebenlink — oder sollte er für Backer der allererste Schritt sein?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s1-a2" data-annotation="d1-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s1-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section id="d1-s2" data-nav-label="Alltag · Sitzung steht" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button" data-screen-link="d1-s3">Nachschub <i>3</i></button></div>
+        <div class="mock-body">
+          <div class="d1-hero">
+            <div>
+              <p class="mock-eyebrow">Heute Abend</p>
+              <p class="d1-sentence">Ich fliege <span class="d1-pick">Kopfgeld</span> mit der <span class="d1-pick">Cutlass Black</span> in <span class="d1-pick">Pembroke Kalt</span>.</p>
+              <ul class="d1-check">
+                <li><span class="d1-ico ok">✓</span><span>Loadout <b>Bounty v3</b> ist aktiv <em>· 2× S3 Repeater, S2 Schild</em></span><a href="#">ändern</a></li>
+                <li><span class="d1-ico warn">!</span><span>Patch 4.3.1 hat deinen S3-Repeater geändert <em>· −8 % Schaden</em></span><a href="#">Details</a></li>
+                <li><span class="d1-ico warn">!</span><span>Set Pembroke Kalt: <b>Helm fehlt</b> <em>· 5 von 6 Teilen</em></span><a href="#">im Spind</a></li>
+                <li><span class="d1-ico warn">3</span><span>Fehlt noch: Medpens, Munition, Multitool</span><button type="button" data-screen-link="d1-s3">in den Nachschub</button></li>
+              </ul>
+              <div class="d1-go"><button class="mock-btn" type="button">Startklar</button><div class="d1-meter"><i></i></div><span class="mock-dim">3 von 4</span></div>
+            </div>
+            <div class="mock-ship">
+              <svg viewBox="0 0 400 260" aria-hidden="true">
+                <path class="mock-grid" d="M0 210 H400 M0 230 H400 M60 260 L140 190 M340 260 L260 190 M200 260 V190"/>
+                <ellipse cx="200" cy="200" rx="120" ry="20" class="mock-holo" opacity="0.45"/>
+                <path class="mock-holo-f" d="M200 70 L232 120 L300 140 L300 152 L236 150 L226 186 L200 196 L174 186 L164 150 L100 152 L100 140 L168 120 Z"/>
+                <path class="mock-holo" d="M200 70 V196 M168 120 L232 120 M164 150 H236"/>
+                <text x="18" y="30" fill="#e8ebed" font-size="15" font-family="Orbitron, sans-serif">CUTLASS BLACK</text>
+                <text x="18" y="48" fill="#84a0b6" font-size="11">Drake · Variante Bounty v3</text>
+              </svg>
+            </div>
+          </div>
+          <div class="d1-more">
+            <a class="mock-card" href="#" style="text-decoration:none;color:inherit"><b>Hangar</b><span>23 Schiffe · 4 angepinnt</span></a>
+            <a class="mock-card" href="#" style="text-decoration:none;color:inherit"><b>Spind</b><span>9 Sets</span></a>
+            <a class="mock-card" href="#" style="text-decoration:none;color:inherit"><b>Einsätze</b><span>Sa 20:00 · Bunker mit Freunden</span></a>
+            <a class="mock-card" href="#" style="text-decoration:none;color:inherit"><b>Gespeicherte Abende</b><span>Freitag Bounty · Sonntag Mining</span></a>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d1-s2-a1" data-anno-side="right" data-anno-target=".d1-sentence" style="--anno-x:30%;--anno-y:24%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s2-a1" data-anno-bubble="d1-s2-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a1">
+            <span class="anno-bubble-question">Der Satz mit drei Auswahlfeldern ersetzt Schiffs- und Set-Kachel. Liest sich das wie ein Spieler denkt, oder zu verspielt?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s2-a1" data-annotation="d1-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s2-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d1-s2-a2" data-anno-side="left" data-anno-target=".d1-check" style="--anno-x:44%;--anno-y:50%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s2-a2" data-anno-bubble="d1-s2-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a2">
+            <span class="anno-bubble-question">Die Checkliste prüft Loadout, Patch, Set-Vollständigkeit und Nachschub. Welcher Punkt fehlt dir vor dem Einloggen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s2-a2" data-annotation="d1-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s2-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d1-s2-a3" data-anno-side="left" data-anno-target=".d1-go" style="--anno-x:16%;--anno-y:72%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s2-a3" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s2-a3" data-anno-bubble="d1-s2-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s2-a3" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a3">
+            <span class="anno-bubble-question">Was soll „Startklar“ tun: Abend als Vorlage speichern, Karte für Discord teilen, oder die Liste aufs Handy schicken?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s2-a3" data-annotation="d1-s2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s2-a3"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d1-s2-a4" data-anno-side="left" data-anno-target=".d1-more" style="--anno-x:50%;--anno-y:90%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s2-a4" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a4" aria-label="{{anno.pin_label}}">4</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s2-a4" data-anno-bubble="d1-s2-a4" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s2-a4" aria-expanded="false" aria-controls="anno-bubble-d1-s2-a4">
+            <span class="anno-bubble-question">„Gespeicherte Abende“ (Schiff + Set + Nachschub als Vorlage) — ein Set-Typ, den du brauchst?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s2-a4" data-annotation="d1-s2-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s2-a4"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section id="d1-s3" data-nav-label="Lücken → Nachschub" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button" data-screen-link="d1-s2">Nachschub <i>4</i></button></div>
+        <div class="mock-body" style="opacity:0.35">
+          <p class="mock-eyebrow">Heute Abend</p>
+          <p class="d1-sentence">Ich fliege <span class="d1-pick">Kopfgeld</span> mit der <span class="d1-pick">Cutlass Black</span> in <span class="d1-pick">Pembroke Kalt</span>.</p>
+          <ul class="d1-check"><li><span class="d1-ico ok">✓</span><span>Loadout Bounty v3 ist aktiv</span><span></span></li><li><span class="d1-ico ok">✓</span><span>4 Teile im Nachschub</span><span></span></li></ul>
+        </div>
+        <div class="d1-pop">
+          <h4>Nachschub · für heute Abend</h4>
+          <p class="mock-dim" style="margin:0;font-size:12.5px">Abhaken, wenn gekauft oder gecraftet.</p>
+          <ul>
+            <li><span class="d1-box"></span><span>ParaMed-Medpen ×5<small>für Set Pembroke Kalt</small></span><span class="d1-from">Set</span></li>
+            <li><span class="d1-box"></span><span>P4-AR Magazin ×4<small>für Set Pembroke Kalt</small></span><span class="d1-from">Set</span></li>
+            <li><span class="d1-box"></span><span>Pembroke Helm<small>fehlendes Set-Teil</small></span><span class="d1-from">Set</span></li>
+            <li><span class="d1-box"></span><span>Multitool + Traktor-Aufsatz<small>von dir notiert</small></span><span class="d1-from">Notiz</span></li>
+          </ul>
+          <div class="mock-row"><button class="mock-btn ghost" type="button">Alles im Codex ansehen</button><button class="mock-btn quiet" type="button" data-screen-link="d1-s2">Schließen</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d1-s3-a1" data-anno-side="left" data-anno-target=".d1-pop" style="--anno-x:72%;--anno-y:40%">
+        <button class="anno-pin" type="button" data-anno-pin="d1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d1-s3-a1" data-anno-bubble="d1-s3-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d1-s3-a1">
+            <span class="anno-bubble-question">Jede Zeile sagt, woher sie kommt (Set, Einsatz, Notiz). Reicht das, oder brauchst du „wo kaufen / craften“ dazu?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d1-s3-a1" data-annotation="d1-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d1-s3-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <!-- ═══════════ D2 · Hangar-Deck ═══════════ -->
+  <section data-design="deck" data-nav-label="B · Hangar-Deck" hidden
+           data-design-motto="Dein Hangar ist die Startseite" data-design-traits="Die 3D-Bühne ist die Navigation|Spind, Nachschub, Einsätze als Objekte im Raum|Schiffe nach Rolle auf Decks sortiert"
+           data-design-icon="layers" data-design-color="#a48bff" data-design-overlay="tl">
+    <section id="d2-s1" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>0</i></button></div>
+        <div class="d2-deck">
+          <div class="d2-doors"></div><div class="d2-floor"></div>
+          <div class="d2-pad main"></div>
+          <div class="d2-ghost">
+            <b>Dein Hangar ist noch leer</b>
+            <p>Stell dein erstes Schiff ab, der Rest füllt sich von selbst.</p>
+            <div class="mock-row" style="justify-content:center"><button class="mock-btn" type="button" data-screen-link="d2-s2">RSI-Hangar importieren</button><button class="mock-btn ghost" type="button" data-screen-link="d2-s2">Schiff suchen</button></div>
+          </div>
+          <div class="d2-locker" style="opacity:0.5"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="d2-hot" style="left:3%;top:62%"><b>Spind</b>erstes Set anlegen</div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d2-s1-a1" data-anno-side="right" data-anno-target=".d2-ghost" style="--anno-x:50%;--anno-y:58%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s1-a1" data-anno-bubble="d2-s1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s1-a1">
+            <span class="anno-bubble-question">Ein leerer Hangar mit einer leuchtenden Bucht als einziger Einstieg — einladend oder zu wenig Orientierung?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s1-a1" data-annotation="d2-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s1-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section id="d2-s2" data-nav-label="Alltag · Dein Deck" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>3</i></button></div>
+        <div class="d2-deck">
+          <div class="d2-doors"></div><div class="d2-floor"></div>
+          <div class="d2-roles"><button class="mock-chip on" type="button">Kampf · 7</button><button class="mock-chip" type="button">Fracht · 5</button><button class="mock-chip" type="button">Bergbau · 3</button><button class="mock-chip" type="button">Alle · 23</button></div>
+          <div class="d2-pad side1"></div><div class="d2-pad main"></div><div class="d2-pad side2"></div>
+          <svg class="d2-shipsvg" style="left:50%;width:30%" viewBox="0 0 200 110" aria-hidden="true"><path class="mock-holo-f" d="M100 6 L118 40 L170 54 L170 62 L122 60 L114 86 L100 94 L86 86 L78 60 L30 62 L30 54 L82 40 Z"/><path class="mock-holo" d="M100 6 V94 M82 40 H118 M78 60 H122"/></svg>
+          <svg class="d2-shipsvg" style="left:17%;width:16%;opacity:0.7" viewBox="0 0 200 110" aria-hidden="true"><path class="mock-holo-f" d="M100 14 L140 50 L180 60 L120 70 L100 96 L80 70 L20 60 L60 50 Z"/></svg>
+          <svg class="d2-shipsvg" style="left:83%;width:16%;opacity:0.7" viewBox="0 0 200 110" aria-hidden="true"><path class="mock-holo-f" d="M100 10 L126 44 L150 80 L100 96 L50 80 L74 44 Z"/></svg>
+          <button class="d2-hot" type="button" style="left:41%;top:32%" data-screen-link="d2-s3"><b>Cutlass Black</b>Bounty v3 · aktiv</button>
+          <div class="d2-hot" style="left:10%;top:44%"><b>Gladius</b>Standard</div>
+          <div class="d2-hot" style="left:76%;top:44%"><b>Vanguard Harbinger</b>Torpedo v1</div>
+          <div class="d2-locker"><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i><i></i><i class="on"></i><i></i><i></i></div>
+          <div class="d2-hot" style="left:3%;top:62%"><b>Spind</b>9 Sets · Pembroke Kalt aktiv</div>
+          <div class="d2-crate">3</div>
+          <div class="d2-board"><b>Einsätze</b>Sa 20:00 · Bunker mit Freunden<br>So · Quantanium-Lauf</div>
+          <div class="d2-mini"><i></i><i class="on"></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d2-s2-a1" data-anno-side="right" data-anno-target=".d2-roles" style="--anno-x:50%;--anno-y:12%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s2-a1" data-anno-bubble="d2-s2-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s2-a1">
+            <span class="anno-bubble-question">Decks nach Rolle (Kampf, Fracht, Bergbau) statt einer Endlos-Reihe — passt das zu deinen 20+ Schiffen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s2-a1" data-annotation="d2-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s2-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d2-s2-a2" data-anno-side="right" data-anno-target=".d2-locker" style="--anno-x:9%;--anno-y:34%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d2-s2-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s2-a2" data-anno-bubble="d2-s2-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d2-s2-a2">
+            <span class="anno-bubble-question">Spind als Wand, Nachschub als Kiste, Einsätze als Tafel: hilft der Raum beim Finden, oder suchst du lieber in Listen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s2-a2" data-annotation="d2-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s2-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d2-s2-a3" data-anno-side="left" data-anno-target=".d2-crate" style="--anno-x:91%;--anno-y:52%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s2-a3" aria-expanded="false" aria-controls="anno-bubble-d2-s2-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s2-a3" data-anno-bubble="d2-s2-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s2-a3" aria-expanded="false" aria-controls="anno-bubble-d2-s2-a3">
+            <span class="anno-bubble-question">Auf dem Handy wird das Deck zu einem Karussell aus Buchten. Reicht dir das unterwegs?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s2-a3" data-annotation="d2-s2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s2-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section id="d2-s3" data-nav-label="Schiff im Fokus" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>3</i></button></div>
+        <div class="d2-deck">
+          <div class="d2-doors"></div><div class="d2-floor"></div>
+          <div class="d2-pad main" style="left:14%;width:46%"></div>
+          <svg class="d2-shipsvg" style="left:37%;width:44%;bottom:18%" viewBox="0 0 200 110" aria-hidden="true"><path class="mock-holo-f" d="M100 6 L118 40 L170 54 L170 62 L122 60 L114 86 L100 94 L86 86 L78 60 L30 62 L30 54 L82 40 Z"/><path class="mock-holo" d="M100 6 V94 M82 40 H118 M78 60 H122"/></svg>
+          <div class="d2-panel">
+            <p class="mock-k">Drake · Kampf</p>
+            <h4>Cutlass Black</h4>
+            <div class="d2-var"><div class="on"><span>Bounty v3</span><span class="mock-ok">aktiv</span></div><div><span>Fracht leicht</span><span class="mock-dim">2 Teile anders</span></div><div><span>Werk</span><span class="mock-dim">Serie</span></div></div>
+            <div class="d2-note">Patch 4.3.1: S3-Repeater −8 % Schaden. Betrifft Bounty v3.</div>
+            <div class="d2-acts"><button class="mock-btn" type="button">Loadout ändern</button><button class="mock-btn ghost" type="button">Variante kopieren</button><button class="mock-btn ghost" type="button">Als Flaggschiff</button><button class="mock-btn quiet" type="button">Teilen</button></div>
+            <button class="mock-btn quiet" type="button" data-screen-link="d2-s2">← zurück zum Deck</button>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d2-s3-a1" data-anno-side="left" data-anno-target=".d2-acts" style="--anno-x:80%;--anno-y:76%">
+        <button class="anno-pin" type="button" data-anno-pin="d2-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d2-s3-a1" data-anno-bubble="d2-s3-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d2-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d2-s3-a1">
+            <span class="anno-bubble-question">„Loadout ändern“ springt in den Codex (Modus „Meine Variante“). Willst du den Loadout lieber direkt hier im Panel tauschen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d2-s3-a1" data-annotation="d2-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d2-s3-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <!-- ═══════════ D3 · Konsole ═══════════ -->
+  <section data-design="konsole" data-nav-label="C · Konsole" hidden
+           data-design-motto="Tippen, was du willst" data-design-traits="Befehlszeile als Mittelpunkt, Codex und HQ in einer Suche|Aktivitäts-Deck mit Bereitschaft je Tätigkeit|Logbuch: was sich an deinem Zeug geändert hat"
+           data-design-icon="bolt" data-design-color="#5fd3a0" data-design-overlay="tr">
+    <section id="d3-s1" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>0</i></button></div>
+        <div class="mock-body" style="text-align:center">
+          <p class="mock-eyebrow">Dein HQ</p>
+          <p class="mock-h1">Was willst du tun?</p>
+          <button class="d3-cmd" type="button" data-screen-link="d3-s3" style="width:100%;text-align:left;font:inherit;color:inherit"><span>Schiff, Item oder Aufgabe …</span><kbd>Strg K</kbd></button>
+          <div class="d3-sugg">
+            <button class="mock-chip" type="button" data-screen-link="d3-s2">RSI-Hangar importieren</button>
+            <button class="mock-chip" type="button" data-screen-link="d3-s2">Mein erstes Schiff</button>
+            <button class="mock-chip" type="button" data-screen-link="d3-s2">FPS-Set zusammenstellen</button>
+            <button class="mock-chip" type="button" data-screen-link="d3-s2">Abend planen</button>
+          </div>
+          <div class="d3-deck" style="margin-top:26px;text-align:left">
+            <div class="d3-act"><h5>Kopfgeld</h5><b>Starter: Arrow + Pembroke</b><small>Vorschlag aus dem Codex</small><button class="mock-btn ghost" type="button" data-screen-link="d3-s2" style="margin-top:auto">Übernehmen</button></div>
+            <div class="d3-act"><h5>Bergbau</h5><b>Starter: Prospector</b><small>Vorschlag aus dem Codex</small><button class="mock-btn ghost" type="button" data-screen-link="d3-s2" style="margin-top:auto">Übernehmen</button></div>
+            <div class="d3-act"><h5>Bunker</h5><b>Starter: Leichte Rüstung + P4-AR</b><small>Vorschlag aus dem Codex</small><button class="mock-btn ghost" type="button" data-screen-link="d3-s2" style="margin-top:auto">Übernehmen</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d3-s1-a1" data-anno-side="right" data-anno-target=".d3-cmd" style="--anno-x:50%;--anno-y:30%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s1-a1" data-anno-bubble="d3-s1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a1">
+            <span class="anno-bubble-question">Eine Befehlszeile als Einstieg — für Neue zu technisch, oder genau richtig, weil die Chips darunter das Tippen ersparen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s1-a1" data-annotation="d3-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d3-s1-a2" data-anno-side="left" data-anno-target=".d3-deck" style="--anno-x:50%;--anno-y:78%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s1-a2" data-anno-bubble="d3-s1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s1-a2" aria-expanded="false" aria-controls="anno-bubble-d3-s1-a2">
+            <span class="anno-bubble-question">Starter-Kombis aus dem Codex brauchen eine gepflegte Empfehlung pro Tätigkeit. Lohnt sich die Pflege, oder lieber leer lassen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s1-a2" data-annotation="d3-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s1-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section id="d3-s2" data-nav-label="Alltag · Aktivitäts-Deck" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>3</i></button></div>
+        <div class="mock-body">
+          <button class="d3-cmd" type="button" data-screen-link="d3-s3" style="width:100%;text-align:left;font:inherit;color:inherit;margin-top:0"><span>Schiff, Item oder Aufgabe …</span><kbd>Strg K</kbd></button>
+          <div class="d3-status"><span>AKTIV <b>Cutlass Black · Bounty v3</b></span><span>SET <b>Pembroke Kalt</b></span><span>NACHSCHUB <b>3</b></span><span>EINSATZ <b>Sa 20:00</b></span><span>PATCH <b>4.3.1 · 2 deiner Schiffe betroffen</b></span></div>
+          <div class="d3-wrap">
+            <div class="d3-deck">
+              <div class="d3-act"><h5>Kopfgeld</h5><b>Cutlass Black</b><small>Bounty v3 · Pembroke Kalt</small><div class="d3-ready"><i style="--r:90%"></i>bereit</div></div>
+              <div class="d3-act"><h5>Bergbau</h5><b>Prospector</b><small>Helix II fehlt · 1 Teil im Nachschub</small><div class="d3-ready"><i style="--r:60%"></i><span class="mock-warn">60 %</span></div></div>
+              <div class="d3-act"><h5>Fracht</h5><b>C2 Hercules</b><small>Werk · Ladung 696 SCU</small><div class="d3-ready"><i style="--r:100%"></i>bereit</div></div>
+              <div class="d3-act"><h5>Bunker</h5><b>Set Pembroke Kalt</b><small>Helm fehlt · 3 im Nachschub</small><div class="d3-ready"><i style="--r:70%"></i><span class="mock-warn">70 %</span></div></div>
+              <div class="d3-act"><h5>Bergung</h5><b>Vulture</b><small>Werk</small><div class="d3-ready"><i style="--r:100%"></i>bereit</div></div>
+              <div class="d3-act new"><b>+ Tätigkeit</b><small>Rennen, Medizin, Erkunden …</small></div>
+            </div>
+            <div class="d3-log">
+              <p class="mock-k">Logbuch</p>
+              <div><time>heute</time><b>Patch 4.3.1 trifft 2 deiner Schiffe</b>S3-Repeater, Helix-Laser</div>
+              <div><time>gestern</time><b>Loadout Bounty v3 gespeichert</b>aus dem Codex übernommen</div>
+              <div><time>Mo</time><b>3 Teile in den Nachschub</b>aus Set Pembroke Kalt</div>
+              <div><time>Sa</time><b>RSI-Hangar neu eingelesen</b>+1 Schiff: Vulture</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d3-s2-a1" data-anno-side="right" data-anno-target=".d3-status" style="--anno-x:30%;--anno-y:24%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s2-a1" data-anno-bubble="d3-s2-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s2-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s2-a1">
+            <span class="anno-bubble-question">Die Statuszeile fasst alles in einer Zeile wie ein MFD. Zu nüchtern, oder genau das, was du vor dem Start sehen willst?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s2-a1" data-annotation="d3-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s2-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d3-s2-a2" data-anno-side="right" data-anno-target=".d3-deck" style="--anno-x:30%;--anno-y:56%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d3-s2-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s2-a2" data-anno-bubble="d3-s2-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s2-a2" aria-expanded="false" aria-controls="anno-bubble-d3-s2-a2">
+            <span class="anno-bubble-question">Eine Karte pro Tätigkeit mit Bereitschaft in %. Ordnest du deine Schiffe so ein, oder sind sie bei dir zu vielseitig dafür?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s2-a2" data-annotation="d3-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s2-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="d3-s2-a3" data-anno-side="left" data-anno-target=".d3-log" style="--anno-x:86%;--anno-y:56%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s2-a3" aria-expanded="false" aria-controls="anno-bubble-d3-s2-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s2-a3" data-anno-bubble="d3-s2-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s2-a3" aria-expanded="false" aria-controls="anno-bubble-d3-s2-a3">
+            <span class="anno-bubble-question">Das Logbuch zeigt Änderungen an deinem Zeug (Patch, Import, Loadouts). Nützlich, oder Rauschen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s2-a3" data-annotation="d3-s2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s2-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section id="d3-s3" data-nav-label="Befehl: „medpen“" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>3</i></button></div>
+        <div class="mock-body">
+          <div class="d3-palette">
+            <div class="d3-cmd"><span>medpen<span class="mock-acc">▍</span></span><kbd>Esc</kbd></div>
+            <div class="d3-grp">Dein HQ</div>
+            <div class="d3-res"><span>ParaMed-Medpen<small>in 2 Sets verbaut · 0 im Nachschub</small></span><span class="d3-verbs"><span class="d3-verb">Sets zeigen</span></span></div>
+            <div class="d3-grp">Codex</div>
+            <div class="d3-res on"><span>ParaMed Medical Device<small>Medizin · Gadget</small></span><span class="d3-verbs"><span class="d3-verb">→ Nachschub ×5</span><span class="d3-verb">→ Set …</span><span class="d3-verb">Öffnen</span></span></div>
+            <div class="d3-res"><span>CureLife Medpen<small>Medizin · Gadget</small></span><span class="d3-verbs"><span class="d3-verb">→ Nachschub</span><span class="d3-verb">Öffnen</span></span></div>
+            <div class="d3-grp">Aufgaben</div>
+            <div class="d3-res"><span>Medizin-Kit als Set anlegen</span><span class="d3-verbs"><span class="d3-verb">Anlegen</span></span></div>
+            <div class="d3-foot"><span>↑↓ wählen</span><span>⏎ Hauptaktion</span><span>Tab Aktion wechseln</span><button class="mock-btn quiet" type="button" data-screen-link="d3-s2" style="margin-left:auto;padding:4px 10px">Schließen</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="d3-s3-a1" data-anno-side="left" data-anno-target=".d3-res.on" style="--anno-x:76%;--anno-y:44%">
+        <button class="anno-pin" type="button" data-anno-pin="d3-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-d3-s3-a1" data-anno-bubble="d3-s3-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="d3-s3-a1" aria-expanded="false" aria-controls="anno-bubble-d3-s3-a1">
+            <span class="anno-bubble-question">Codex-Treffer mit HQ-Verben (→ Nachschub, → Set). Soll diese Suche die globale Suche der Fusion-Leiste ersetzen, wenn du im HQ bist?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-d3-s3-a1" data-annotation="d3-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-d3-s3-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <!-- ═══════════ View 1 · Use Cases ═══════════ -->
+  <section data-view="usecases" data-view-kind="analysis" data-analysis="lite" data-nav-label="Fragen · Use Cases" hidden>
+    <div data-alevel="1" data-title="Use Cases">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Fünf Fragen, was das HQ für einen Spieler lösen soll. Gilt für jeden Entwurf."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="text" data-viz-spec='{"text":"**Was das HQ heute weiß:** Schiffe (besessen, Wunsch, angepinnt, Notiz), Varianten mit Loadout, FPS-Sets mit Rolle, Flaggschiff, zuletzt benutzte Schiffe und Sets, Teilen-Links, Freunde. **Was es nicht weiß:** Standort, Versicherung, Preis, Stückzahl. RSI hat keine Inventar-Schnittstelle, LTI wird beim Import sogar abgeschnitten. **Darum:** Das HQ plant den Abend und zeigt Änderungen, es spiegelt nicht das Spiel."}'></div>
+      </div>
+    </div>
+
+    <section id="uc-jobs" data-nav-label="Aufgaben" data-decision="uc-jobs" data-decision-mode="multi" data-label="Spieler-Aufgaben der Startseite"
+             data-rec="ready loadout patch supply import ops share blueprints" data-rec-why="Diese acht gehen mit Daten, die das HQ hat oder günstig bekommt; Standort und Claim-Timer kann es ohne Spieldaten nicht wissen, Blueprints bleiben als einziges über Wipes erhalten."
+             data-applies-to="HQ-Startseite, alle Entwürfe" data-finding="f-uc-jobs">
+      <p data-applies>Gilt für: HQ-Startseite, alle Entwürfe</p>
+      <h3 data-question>Welche Spieler-Aufgaben soll die HQ-Startseite lösen?</h3>
+      <p data-context>Was nicht drin ist, bleibt in den Reitern Hangar, Spind und Einsätze erreichbar.</p>
+      <div data-options>
+        <label data-opt="ready" data-recommended><input type="checkbox" name="dm-uc-jobs.ready" checked><span data-opt-label>Vor dem Einloggen sehen, ob der Abend vorbereitet ist</span><span data-opt-consequence>Braucht die Verknüpfung Schiff, Variante, Set, Nachschub.</span></label>
+        <label data-opt="loadout" data-recommended><input type="checkbox" name="dm-uc-jobs.loadout" checked><span data-opt-label>Den passenden Loadout für eine Tätigkeit finden</span><span data-opt-consequence>Varianten bekommen eine Tätigkeit als Rolle, die es schon gibt.</span></label>
+        <label data-opt="patch" data-recommended><input type="checkbox" name="dm-uc-jobs.patch" checked><span data-opt-label>Sehen, was der Patch an meinem Zeug geändert hat</span><span data-opt-consequence>Die Kachel „Flotte im Patch“ wird echt (Frage 5).</span></label>
+        <label data-opt="supply" data-recommended><input type="checkbox" name="dm-uc-jobs.supply" checked><span data-opt-label>Wissen, was ich noch kaufen oder craften muss</span><span data-opt-consequence>Nachschub füllt sich aus Sets und Einsätzen, nicht nur per Hand.</span></label>
+        <label data-opt="import" data-recommended><input type="checkbox" name="dm-uc-jobs.import" checked><span data-opt-label>Den Hangar mit RSI aktuell halten</span><span data-opt-consequence>Import ist schon gebaut, er bekommt einen Platz auf der Startseite.</span></label>
+        <label data-opt="ops" data-recommended><input type="checkbox" name="dm-uc-jobs.ops" checked><span data-opt-label>Einen Abend mit Freunden planen</span><span data-opt-consequence>Einsätze brauchen ein erstes Datenmodell.</span></label>
+        <label data-opt="share" data-recommended><input type="checkbox" name="dm-uc-jobs.share" checked><span data-opt-label>Loadout oder Abend mit anderen teilen</span><span data-opt-consequence>Teilen-Links gibt es, die Startseite zeigt sie nur.</span></label>
+        <label data-opt="blueprints" data-recommended><input type="checkbox" name="dm-uc-jobs.blueprints" checked><span data-opt-label>Wissen, welche Blueprints ich habe und welche mir fehlen</span><span data-opt-consequence>Blueprints überleben Wipes (4.8); der Codex kennt sie schon.</span></label>
+        <label data-opt="where"><input type="checkbox" name="dm-uc-jobs.where"><span data-opt-label>Wissen, wo mein Zeug liegt</span><span data-opt-consequence>Nur mit eigener Pflege, veraltet nach jedem Wipe (Frage 3).</span></label>
+        <label data-opt="claim"><input type="checkbox" name="dm-uc-jobs.claim"><span data-opt-label>Versicherung und Claim-Timer im Blick behalten</span><span data-opt-consequence>Ohne Spieldaten nur Handeingabe, LTI wird beim Import heute entfernt.</span></label>
+        <label data-opt="wish"><input type="checkbox" name="dm-uc-jobs.wish"><span data-opt-label>Den nächsten Schiffskauf abwägen</span><span data-opt-consequence>Wunschliste und Concept-Schiffe rücken auf die Startseite.</span></label>
+      </div>
+      <textarea data-comment="uc-jobs-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-uc-jobs-touched" value="">
+      <input type="hidden" name="dm-uc-jobs-issue" value="">
+      <input type="hidden" name="dm-uc-jobs-epic" value="">
+      <div data-alevel="3" data-title="Aufgaben">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"8 von 11 Aufgaben gehen mit Daten, die das HQ hat oder günstig bekommt."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Daten vorhanden","value":4},{"label":"günstig zu bauen","value":4},{"label":"nur per Hand","value":3}],"unit":" Aufgaben","text":"Vier Aufgaben laufen mit vorhandenen Daten, vier brauchen kleine Bausteine, drei nur Handeingabe."}'></div>
+          <p>Vorhanden: Loadout, Import, Teilen, Bereitschaft. Kleine Bausteine: Patch-Abgleich, Nachschub aus Sets, Einsätze, Blueprint-Liste. Nur per Hand: Standort, Claim-Timer, Kaufabwägung. Es gibt keine öffentliche Inventar-Schnittstelle von RSI; andere Tools lesen den Pledge-Hangar per Browser-Erweiterung oder das Game.log (z. B. Kill-Tracker).</p>
+          <div data-evidence hidden>hangar.types.ts:141-151 (Schiff ohne Standort/Versicherung/Preis), rsi-hangar-core.spec.ts:88-91 (LTI abgeschnitten), hq-overview.component.ts:100-121 (drei Platzhalter-Kacheln), hq-supplies.service.ts:4-22 (Nachschub lokal). Wipe 4.8, Blueprints bleiben: scfocus.org/balance-item-rep-resets. Pledge-Recovery nur am Freight-Manager im Hangar: support.robertsspaceindustries.com 41746979742359. Game.log-Leser: github.com/Heavybob/AutoTrackR2. Hangar-JSON-Import: github.com/fleetyards/fleetyards/issues/5800.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="uc-order" data-nav-label="Reihenfolge" data-decision="uc-order" data-decision-mode="order" data-label="Was oben zuerst steht"
+             data-rec="ship,gaps,patch,op,log" data-rec-why="Vor dem Start zählt, womit du fliegst und was fehlt; der Verlauf ist Rückblick."
+             data-applies-to="Oberer Bereich der Startseite" data-finding="f-uc-order">
+      <p data-applies>Gilt für: oberer Bereich der Startseite, ohne Scrollen</p>
+      <h3 data-question>Was sieht ein Spieler oben zuerst?</h3>
+      <p data-context>Alles fünf kommt auf die Seite, die Reihenfolge entscheidet, was ohne Scrollen sichtbar ist.</p>
+      <div data-options>
+        <label data-opt="ship" data-recommended><span data-opt-label>Aktives Schiff mit Loadout</span><span data-opt-consequence>Der Anker jeder Sitzung.</span></label>
+        <label data-opt="gaps"><span data-opt-label>Was fehlt (Set-Lücken, Nachschub)</span><span data-opt-consequence>Der häufigste Grund, vor dem Einloggen nachzusehen.</span></label>
+        <label data-opt="patch"><span data-opt-label>Was der Patch an deinem Zeug geändert hat</span><span data-opt-consequence>Wichtig in Patch-Wochen, sonst still.</span></label>
+        <label data-opt="op"><span data-opt-label>Nächster Einsatz</span><span data-opt-consequence>Für Gruppenspieler oben, für Solospieler leer.</span></label>
+        <label data-opt="log"><span data-opt-label>Verlauf und Logbuch</span><span data-opt-consequence>Rückblick, unten am besten aufgehoben.</span></label>
+      </div>
+      <input type="hidden" name="dm-uc-order" value="ship,gaps,patch,op,log">
+      <textarea data-comment="uc-order-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-uc-order-touched" value="">
+      <input type="hidden" name="dm-uc-order-issue" value="">
+      <input type="hidden" name="dm-uc-order-epic" value="">
+      <div data-alevel="3" data-title="Reihenfolge">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Erst Schiff und Lücken, dann Patch und Einsatz, zuletzt der Verlauf."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"**Heute:** fünf gleich große Kacheln, drei davon leer. **Erster Blick vor dem Spielen:** Womit fliege ich, ist alles da? **Ein leerer Bereich** (kein Einsatz, kein Patch-Treffer) verschwindet, statt eine leere Kachel zu zeigen."}'></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="uc-where" data-nav-label="Standorte" data-decision="uc-where" data-decision-mode="single" data-label="Standorte im HQ"
+             data-rec="none" data-rec-why="Standorte ändern sich bei jedem Landen, jeder Recovery und jedem Wipe; ohne Spieldaten wären sie nach Tagen falsch."
+             data-applies-to="Datenmodell Hangar und Spind" data-finding="f-uc-where">
+      <p data-applies>Gilt für: Datenmodell von Hangar und Spind</p>
+      <h3 data-question>Wie weit pflegen wir Standorte („wo liegt mein Zeug“)?</h3>
+      <p data-context>Lokales Inventar pro Station ist ein echtes Ärgernis im Spiel, aber das HQ kennt deinen Spielstand nicht.</p>
+      <div data-options>
+        <label data-opt="none" data-recommended><input type="radio" name="dm-uc-where" value="none" checked><span data-opt-label>Keine Standorte im HQ</span><span data-opt-consequence>Nichts veraltet, der Einstieg bleibt schlank.</span></label>
+        <label data-opt="home"><input type="radio" name="dm-uc-where" value="home"><span data-opt-label>Eine Heimatstation pro Schiff und Set</span><span data-opt-consequence>Ein freiwilliges Feld, stimmt aber nur, solange du dort bleibst.</span></label>
+        <label data-opt="items"><input type="radio" name="dm-uc-where" value="items"><span data-opt-label>Standort pro Gegenstand pflegen</span><span data-opt-consequence>Inventar-Karte möglich, dafür viel Tipparbeit nach jeder Sitzung.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-uc-where" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="uc-where-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-uc-where-touched" value="">
+      <input type="hidden" name="dm-uc-where-issue" value="">
+      <input type="hidden" name="dm-uc-where-epic" value="">
+      <div data-alevel="3" data-title="Standorte">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Das Schiffsmodell hat kein Standortfeld; Spieldaten gibt es nur über das Game.log der Desktop-App."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"**Heute:** `hangar_ships` kennt Klasse, eigenen Namen, Status, Pin-Rang, Skin, Notiz. **Später möglich:** Die Desktop-App (Uploader/Starscape) liest schon Spieldateien; ein Game.log-Leser könnte Standorte automatisch melden. **Bis dahin** wäre jede Angabe Handarbeit."}'></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="uc-supply" data-nav-label="Nachschub speichern" data-decision="uc-supply" data-decision-mode="yesnoalt" data-label="Nachschub serverseitig"
+             data-rec="yes" data-rec-why="Wer am PC plant und am Handy im Spiel abhakt, braucht dieselbe Liste auf beiden Geräten."
+             data-applies-to="Nachschub (Popup und Startseite)" data-finding="f-uc-supply">
+      <p data-applies>Gilt für: Nachschub, Popup und Startseite</p>
+      <h3 data-question>Speichern wir den Nachschub auf dem Server, damit er auf PC und Handy gleich ist?</h3>
+      <p data-context>Die Frage ist seit dem Header-Konzept vom 25.10. offen und braucht eine Migration.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-uc-supply" value="yes" checked><span data-opt-label>Ja, als eigene Tabelle mit Herkunft</span><span data-opt-consequence>Eine Migration; jede Zeile weiß, ob sie aus Set, Einsatz oder Notiz kommt.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-uc-supply" value="no"><span data-opt-label>Nein, bleibt im Browser</span><span data-opt-consequence>Kein Abgleich zwischen Geräten, max. 100 Einträge.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-uc-supply" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Was stattdessen?</span></label>
+      </div>
+      <input type="text" name="dm-uc-supply-alt" placeholder="Was stattdessen?">
+      <textarea data-comment="uc-supply-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-uc-supply-touched" value="">
+      <input type="hidden" name="dm-uc-supply-issue" value="">
+      <input type="hidden" name="dm-uc-supply-epic" value="">
+      <div data-alevel="3" data-title="Nachschub speichern">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"100","unit":"Einträge","label":"Grenze im Browser-Speicher heute"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="kpi" data-viz-spec='{"value":"100","unit":"Einträge","label":"Grenze heute, nur in diesem Browser"}'></div>
+          <p>Der Nachschub liegt heute unter <code>sc.hq.supplies</code> im Browser, mit Name, Menge und Haken. Die Startseiten-Kachel liest ihn nicht einmal. Mit einer Tabelle kann die Checkliste aus Entwurf A und das Deck aus C „fehlt noch“ aus echten Daten zeigen.</p>
+          <div data-evidence hidden>hq-supplies.service.ts:4-22, hq-overview.component.ts:108-111, Header-Konzept 2026-10-25 briefs/06-final.md:87-91.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="uc-patch" data-nav-label="Flotte im Patch" data-decision="uc-patch" data-decision-mode="yesnoalt" data-label="Flotte im Patch echt bauen"
+             data-rec="yes" data-rec-why="Nach jedem Patch ist „was hat sich an meinem Zeug geändert“ die erste Frage, und der Codex hat die Werte pro Build."
+             data-applies-to="Startseite, Hangar, Codex-Builds" data-finding="f-uc-patch">
+      <p data-applies>Gilt für: Startseite, Hangar, Codex-Daten pro Build</p>
+      <h3 data-question>Bauen wir „Deine Flotte im Patch“ echt: Änderungen gegen deine Schiffe und Loadouts?</h3>
+      <p data-context>Heute ist die Kachel ein statisches Mock mit „bald“.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-uc-patch" value="yes" checked><span data-opt-label>Ja, Abgleich alter gegen neuer Build für deine Teile</span><span data-opt-consequence>Braucht einen Werte-Vergleich zwischen zwei Codex-Builds.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-uc-patch" value="no"><span data-opt-label>Nein, Kachel entfernen</span><span data-opt-consequence>Patch-Infos bleiben im Verse, ohne Bezug zu deinem Zeug.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-uc-patch" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Was stattdessen?</span></label>
+      </div>
+      <input type="text" name="dm-uc-patch-alt" placeholder="Was stattdessen?">
+      <textarea data-comment="uc-patch-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-uc-patch-touched" value="">
+      <input type="hidden" name="dm-uc-patch-issue" value="">
+      <input type="hidden" name="dm-uc-patch-epic" value="">
+      <div data-alevel="3" data-title="Flotte im Patch">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Kachel ist ein Mock; Patch-Stabilität und Codex-Builds gibt es schon."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"**Heute:** Mock-Kachel (hq-overview.component.ts:113-121). **Vorhanden:** Codex-Builds pro Patch, Patch-Stabilität im Verse. **Fehlt:** ein Diff pro Item zwischen zwei Builds. **Ergebnis:** Zeilen wie „S3-Repeater −8 % Schaden, betrifft Bounty v3“ in Checkliste, Panel oder Logbuch."}'></div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═══════════ View 2 · Aktionen & Codex-Brücke ═══════════ -->
+  <section data-view="aktionen" data-view-kind="analysis" data-analysis="lite" data-nav-label="Fragen · Aktionen &amp; Codex" hidden>
+    <div data-alevel="1" data-title="Aktionen und Codex">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Fünf Fragen zu Schnellaktionen, Codex-Brücke, Set-Arten und Einsätzen."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="text" data-viz-spec='{"text":"**Codex heute:** „In Hangar übernehmen“, „Zu Set hinzufügen“ (Hangar-Picker mit ⌂ und ⛨), Loadout speichern, Modus „Meine Variante“ (`?v=`) und „Meine“ (`?mine`). **Der Codex wird nicht umgebaut.** Gefragt ist nur, wie seine Gegenstände, Sets und Detailseiten ins HQ kommen."}'></div>
+      </div>
+    </div>
+
+    <section id="ac-quick" data-nav-label="Schnellaktionen" data-decision="ac-quick" data-decision-mode="multi" data-label="Schnellaktionen der Startseite"
+             data-rec="active set add import variant restock patch op" data-rec-why="Diese acht sind die Handgriffe vor einer Sitzung; Teilen und Vergleichen wohnen besser auf der Schiffs- bzw. Codex-Seite."
+             data-applies-to="HQ-Startseite, alle Entwürfe" data-finding="f-ac-quick">
+      <p data-applies>Gilt für: HQ-Startseite, alle Entwürfe</p>
+      <h3 data-question>Welche Schnellaktionen bekommt die HQ-Startseite?</h3>
+      <p data-context>Jede Aktion ist ein Handgriff ohne Seitenwechsel; alles Weitere bleibt in den Reitern.</p>
+      <div data-options>
+        <label data-opt="active" data-recommended><input type="checkbox" name="dm-ac-quick.active" checked><span data-opt-label>Aktives Schiff und Variante wechseln</span><span data-opt-consequence>Setzt das Flaggschiff, das es schon gibt.</span></label>
+        <label data-opt="set" data-recommended><input type="checkbox" name="dm-ac-quick.set" checked><span data-opt-label>Aktives Set wechseln</span><span data-opt-consequence>Heute nur über die „zuletzt“-Chips.</span></label>
+        <label data-opt="add" data-recommended><input type="checkbox" name="dm-ac-quick.add" checked><span data-opt-label>Aus dem Codex hinzufügen (Schiff, Teil, Set)</span><span data-opt-consequence>Suche mit HQ-Zielen, ohne in den Codex zu wechseln.</span></label>
+        <label data-opt="import" data-recommended><input type="checkbox" name="dm-ac-quick.import" checked><span data-opt-label>RSI-Hangar neu einlesen</span><span data-opt-consequence>Startet den vorhandenen Import über die Erweiterung.</span></label>
+        <label data-opt="variant" data-recommended><input type="checkbox" name="dm-ac-quick.variant" checked><span data-opt-label>Loadout als neue Variante kopieren</span><span data-opt-consequence>Neue Zeile in hangar_ship_configs.</span></label>
+        <label data-opt="restock" data-recommended><input type="checkbox" name="dm-ac-quick.restock" checked><span data-opt-label>Fehlende Set-Teile in den Nachschub legen</span><span data-opt-consequence>Braucht Set-Soll und den Server-Nachschub.</span></label>
+        <label data-opt="patch" data-recommended><input type="checkbox" name="dm-ac-quick.patch" checked><span data-opt-label>Patch-Auswirkung auf mein Zeug prüfen</span><span data-opt-consequence>Hängt an „Flotte im Patch“.</span></label>
+        <label data-opt="op" data-recommended><input type="checkbox" name="dm-ac-quick.op" checked><span data-opt-label>Einsatz aus Vorlage planen</span><span data-opt-consequence>Hängt am ersten Einsatz-Modell.</span></label>
+        <label data-opt="share"><input type="checkbox" name="dm-ac-quick.share"><span data-opt-label>Abend oder Loadout teilen</span><span data-opt-consequence>Teilen gibt es auf Schiffs- und Codex-Seite schon.</span></label>
+        <label data-opt="compare"><input type="checkbox" name="dm-ac-quick.compare"><span data-opt-label>Zwei eigene Schiffe vergleichen</span><span data-opt-consequence>Der Codex-Vergleich mit Filter „nur meine“ wäre billiger.</span></label>
+      </div>
+      <textarea data-comment="ac-quick-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-ac-quick-touched" value="">
+      <input type="hidden" name="dm-ac-quick-issue" value="">
+      <input type="hidden" name="dm-ac-quick-epic" value="">
+      <div data-alevel="3" data-title="Schnellaktionen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"5 der 8 empfohlenen Aktionen laufen mit dem, was heute gebaut ist."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="donut" data-viz-spec='{"parts":[{"label":"schon gebaut","value":5},{"label":"braucht neuen Baustein","value":3}],"text":"Fünf Aktionen nutzen vorhandene Dienste, drei brauchen Nachschub-Tabelle, Patch-Diff oder Einsatz-Modell."}'></div>
+          <p>Gebaut: Flaggschiff, „zuletzt“-Sets, Hangar-Picker, RSI-Import, Varianten. Neu: Nachschub aus Set-Lücken, Patch-Abgleich, Einsätze.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="ac-bridge" data-nav-label="Codex → HQ" data-decision="ac-bridge" data-decision-mode="single" data-label="Weg vom Codex ins HQ"
+             data-rec="one" data-rec-why="Ein Knopf mit Zielwahl ist leichter zu finden als drei verstreute, und der Hangar-Picker kann schon zwei der vier Ziele."
+             data-applies-to="Codex-Detailseiten (nur die Aktionsleiste)" data-finding="f-ac-bridge">
+      <p data-applies>Gilt für: Aktionsleiste der Codex-Detailseiten, sonst bleibt der Codex wie er ist</p>
+      <h3 data-question>Wie kommt ein Gegenstand aus dem Codex ins HQ?</h3>
+      <p data-context>Heute gibt es „In Hangar übernehmen“ und „Zu Set hinzufügen“ an verschiedenen Stellen, Nachschub und Einsatz fehlen.</p>
+      <div data-options>
+        <label data-opt="one" data-recommended><input type="radio" name="dm-ac-bridge" value="one" checked><span data-opt-label>Ein „Ins HQ“-Knopf mit Zielwahl: Hangar · Set · Nachschub · Einsatz</span><span data-opt-consequence>Der Hangar-Picker wächst um zwei Ziele, ein Ort für alles.</span></label>
+        <label data-opt="separate"><input type="radio" name="dm-ac-bridge" value="separate"><span data-opt-label>Getrennte Knöpfe wie heute, plus „→ Nachschub“</span><span data-opt-consequence>Kleinster Umbau, die Leiste wird voller.</span></label>
+        <label data-opt="search"><input type="radio" name="dm-ac-bridge" value="search"><span data-opt-label>Nur über die Suche mit HQ-Zielen</span><span data-opt-consequence>Detailseiten bleiben schlicht, wer nicht sucht, findet den Weg nicht.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-ac-bridge" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="ac-bridge-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-ac-bridge-touched" value="">
+      <input type="hidden" name="dm-ac-bridge-issue" value="">
+      <input type="hidden" name="dm-ac-bridge-epic" value="">
+      <div data-alevel="3" data-title="Codex → HQ">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Zwei von vier Zielen (Hangar, Set) gibt es schon im Hangar-Picker."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="donut" data-viz-spec='{"parts":[{"label":"vorhanden: Hangar, Set","value":2},{"label":"fehlt: Nachschub, Einsatz","value":2}],"text":"Zwei Ziele gibt es, zwei fehlen."}'></div>
+          <p>Vorhanden: <code>hangar-picker.component.ts</code> (⌂ Hangar, ⛨ Sets, die drei letzten), <code>add-to-set.component.ts</code>, <code>codex-ship-actions.component.ts</code> („In Hangar übernehmen“). Es fehlen „→ Nachschub mit Menge“ und „→ Einsatz“.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="ac-detail" data-nav-label="Detailseiten" data-decision="ac-detail" data-decision-mode="single" data-label="Detailseite eines eigenen Gegenstands"
+             data-rec="codexmine" data-rec-why="Der Codex hat den Modus „Meine“ schon, und der Brotkrumen führt über die Herkunft zurück ins HQ; eine zweite Detailseite würde alles doppelt bauen."
+             data-applies-to="Klick auf ein Schiff, Teil oder Set im HQ" data-finding="f-ac-detail">
+      <p data-applies>Gilt für: Klick auf ein Schiff, Teil oder Set im HQ</p>
+      <h3 data-question>Wo öffnet sich ein Gegenstand, den du im HQ anklickst?</h3>
+      <p data-context>Betrifft die Detailseiten, die du ins HQ holen willst, ohne den Codex umzubauen.</p>
+      <div data-options>
+        <label data-opt="codexmine" data-recommended><input type="radio" name="dm-ac-detail" value="codexmine" checked><span data-opt-label>Codex-Detailseite im Modus „Meine“, Rückweg ins HQ</span><span data-opt-consequence>Nichts doppelt; der Brotkrumen zeigt „HQ › Hangar“, wenn du von dort kommst.</span></label>
+        <label data-opt="hqpage"><input type="radio" name="dm-ac-detail" value="hqpage"><span data-opt-label>Eigene HQ-Detailseite</span><span data-opt-consequence>Volle Freiheit, aber zweite Seite für jede Gegenstandsart.</span></label>
+        <label data-opt="overlay"><input type="radio" name="dm-ac-detail" value="overlay"><span data-opt-label>Popup über dem HQ, Link „Im Codex öffnen“</span><span data-opt-consequence>Schnell zurück, das Popup zeigt nur die eigenen Werte.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-ac-detail" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="ac-detail-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-ac-detail-touched" value="">
+      <input type="hidden" name="dm-ac-detail-issue" value="">
+      <input type="hidden" name="dm-ac-detail-epic" value="">
+      <div data-alevel="3" data-title="Detailseiten">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"„Meine Variante“ (?v=) und „Meine“ (?mine) gibt es im Codex schon."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"**Vorhanden:** `codex-personal-mode.component.ts` schaltet Serie ⇄ Meine Variante, `originCrumb()` führt zur Herkunft zurück. **Hangar-Schiffsseite** (`/hq/hangar/:id`) existiert daneben. **Offen:** ob die Hangar-Schiffsseite in den Codex-Modus aufgeht oder als HQ-Seite bleibt."}'></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ac-sets" data-nav-label="Set-Arten" data-decision="ac-sets" data-decision-mode="multi" data-label="Set-Arten im HQ"
+             data-rec="fps shipvar kit" data-rec-why="FPS-Set und Schiffsvariante gibt es; das Abend-Kit bündelt beide und ist das, was ein Spieler vor dem Einloggen zusammensucht."
+             data-applies-to="Spind, Hangar, Nachschub" data-finding="f-ac-sets">
+      <p data-applies>Gilt für: Spind, Hangar und Nachschub</p>
+      <h3 data-question>Welche Set-Arten soll das HQ kennen?</h3>
+      <p data-context>Ein Set ist eine benannte Zusammenstellung, die du mit einem Klick aktivierst oder nachfüllst.</p>
+      <div data-options>
+        <label data-opt="fps" data-recommended><input type="checkbox" name="dm-ac-sets.fps" checked><span data-opt-label>FPS-Set: Rüstung, Waffen, Gadgets</span><span data-opt-consequence>Gibt es, 5 Rollen.</span></label>
+        <label data-opt="shipvar" data-recommended><input type="checkbox" name="dm-ac-sets.shipvar" checked><span data-opt-label>Schiffsvariante: ein Loadout pro Schiff</span><span data-opt-consequence>Gibt es, 8 Rollen.</span></label>
+        <label data-opt="kit" data-recommended><input type="checkbox" name="dm-ac-sets.kit" checked><span data-opt-label>Abend-Kit: Schiff + Variante + Set + Nachschub</span><span data-opt-consequence>Neu; trägt die Sitzung, das Deck und Einsatz-Vorlagen.</span></label>
+        <label data-opt="refill"><input type="checkbox" name="dm-ac-sets.refill"><span data-opt-label>Nachfüll-Liste, z. B. „nach jedem Bunker“</span><span data-opt-consequence>Eine wiederkehrende Einkaufsliste ohne Schiff.</span></label>
+        <label data-opt="crew"><input type="checkbox" name="dm-ac-sets.crew"><span data-opt-label>Crew-Kit für Mehrsitzer (ein Set je Platz)</span><span data-opt-consequence>Sinnvoll erst mit Einsätzen für Gruppen.</span></label>
+      </div>
+      <textarea data-comment="ac-sets-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-ac-sets-touched" value="">
+      <input type="hidden" name="dm-ac-sets-issue" value="">
+      <input type="hidden" name="dm-ac-sets-epic" value="">
+      <div data-alevel="3" data-title="Set-Arten">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Zwei Set-Arten gibt es (FPS-Set, Schiffsvariante); das Abend-Kit wäre die erste, die beide verbindet."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"**FPS-Set:** `hangar_role_loadouts`, Slots mit Teil und Art. **Variante:** `hangar_ship_configs` mit Loadout und `isActive`. **Abend-Kit:** eine kleine Tabelle mit Verweisen auf beide plus Nachschub-Zeilen; damit werden Checkliste (A), Deck-Karte (C) und Einsatz-Vorlage dasselbe Objekt."}'></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ac-ops" data-nav-label="Einsätze" data-decision="ac-ops" data-decision-mode="yesnoalt" data-label="Erste Ausbaustufe Einsätze"
+             data-rec="yes" data-rec-why="Ein Solo-Plan nutzt nur, was es gibt, und Freunde bekommen über einen Link Zugang; Rollen, Crew-Plätze und Org-Funktionen wären ein eigenes Projekt."
+             data-applies-to="Reiter Einsätze und Startseite" data-finding="f-ac-ops">
+      <p data-applies>Gilt für: Reiter Einsätze und Startseite</p>
+      <h3 data-question>Starten wir Einsätze als Solo-Plan (Termin, Tätigkeit, Abend-Kit), den du Freunden als Link schickst?</h3>
+      <p data-context>Einsätze haben heute kein Datenmodell, der Reiter zeigt „in Arbeit“.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-ac-ops" value="yes" checked><span data-opt-label>Ja, Solo-Plan mit Teilen-Link</span><span data-opt-consequence>Eine Tabelle; Freunde sehen den Plan, bearbeiten ihn nicht.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-ac-ops" value="no"><span data-opt-label>Nein, gleich mit Crew-Plätzen und Zusagen</span><span data-opt-consequence>Mehr Wert für Gruppen, mehrere Tabellen und Rechte.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-ac-ops" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Was stattdessen?</span></label>
+      </div>
+      <input type="text" name="dm-ac-ops-alt" placeholder="Was stattdessen?">
+      <textarea data-comment="ac-ops-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-ac-ops-touched" value="">
+      <input type="hidden" name="dm-ac-ops-issue" value="">
+      <input type="hidden" name="dm-ac-ops-epic" value="">
+      <div data-alevel="3" data-title="Einsätze">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Kein Datenmodell heute; Freundesliste und Teilen-Links gibt es."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"**Heute:** `hq-ops.component.ts` zeigt nur „in Arbeit“. **Vorhanden:** Freundesgraph (`list_my_friend_edges`), Teilen-Links für Hangar und Loadouts. **Solo-Plan:** Termin, Tätigkeit, Abend-Kit, Notiz, Link. **Gruppe** (Zusagen, Plätze) wäre die nächste Stufe."}'></div>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
