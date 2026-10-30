@@ -35,6 +35,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, SLOT_WEAPON_FACET, slotAccepts } from '../hangar/hangar.types';
 import { ARMOR_SLOT_SPECS, armorSlotsFromLoadout, roleSlotForAttachType } from './codex-landing-kpi';
+import { hqSet } from '../hq/hq-routes';
 import { fittingSlots, foldFpsCards, fpsCardName, isArmorRoleSlot } from './set/fps-set-fit';
 import { AddToSetComponent } from './set/add-to-set.component';
 import { mirrorQueryParams } from './codex-url-state';
@@ -152,7 +153,7 @@ interface FacetOption {
               </span>
             }
           </div>
-          <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
+          <a class="equip-back" [routerLink]="hqSet(set.id)">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
         </div>
@@ -441,7 +442,7 @@ interface FacetOption {
                 <span class="equip-confirm-mark" aria-hidden="true">{{ c.removed ? '–' : '✓' }}</span>
                 {{ (c.removed ? 'fps.equip.confirmRemoved' : 'fps.equip.confirmEquipped') | translate: { item: c.item, slot: c.slot } }}
               </span>
-              <a class="equip-confirm-back" [routerLink]="['/codex', 'set', set.id]">
+              <a class="equip-confirm-back" [routerLink]="hqSet(set.id)">
                 {{ 'fps.equip.backToSet' | translate }} <span aria-hidden="true">→</span>
               </a>
             </div>
@@ -732,6 +733,8 @@ interface FacetOption {
   `],
 })
 export class FpsListComponent {
+  /** Back-link target of the equip flow: the set's page in the HQ locker. */
+  protected readonly hqSet = hqSet;
   protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);

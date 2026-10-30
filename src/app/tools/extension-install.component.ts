@@ -19,7 +19,7 @@ const EXTENSION_ZIP_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/browser-extension-latest/sc-hangar-extension.zip';
 
 /**
- * /tools/extension — install + privacy page for the hangar-import browser
+ * /apps/extension — install + privacy page for the hangar-import browser
  * extension (source: browser-extension/).
  *
  * Public on purpose: it is the page the codex promo points at, and the privacy

@@ -83,7 +83,7 @@ interface FusionSection {
  *
  * Results: places (app pages the index does not hold) + Codex groups, top x
  * per group with "all N", up to three quick-action icons and one button per
- * row by type, "Companion fragen" from four words on. Every row is a real
+ * row by type Every row is a real
  * anchor; the field keeps focus and points at the active row
  * (aria-activedescendant).
  */

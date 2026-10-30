@@ -297,7 +297,7 @@ export const routes: Routes = [
             path: 'locker/:id',
             data: { layout: 'content' },
             loadComponent: () =>
-              import('./hq/locker/codex-set.component').then((m) => m.CodexSetComponent),
+              import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
           },
           {
             path: 'ops',
