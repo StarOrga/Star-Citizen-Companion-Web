@@ -453,6 +453,8 @@ function scrollBehavior(): ScrollBehavior {
     .body { display: grid; grid-template-columns: 180px minmax(0, 1fr); }
     .body.no-toc { grid-template-columns: minmax(0, 1fr); }
     .col { min-width: 0; }
+    /* β: running text caps at the measure; cards and grids in the column keep its width. */
+    :host-context([data-layout]) .col :where(p, li) { max-width: var(--sc-measure); }
     .sec { padding: 16px 20px 18px; border-bottom: 1px solid var(--sc-border); scroll-margin-top: 96px; }
     .sec:last-child { border-bottom: 0; }
     /* Sections fly in from the side as the dossier opens — the panel is a

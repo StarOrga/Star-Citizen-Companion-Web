@@ -29,8 +29,8 @@ export const HQ_TABS: readonly HqTab[] = [
  */
 @Component({
   selector: 'sc-hq-shell',
-  // The overview route is cinematic (full track); HQ content keeps the page frame.
-  host: { class: 'sc-track-wide' },
+  // No track class: the frame places it by layout — the cinematic overview spans the
+  // full track (its first view A, the rest B), the sub pages sit in B.
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, HqSuppliesPanelComponent, HqSuppliesPopupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +77,12 @@ export const HQ_TABS: readonly HqTab[] = [
   styles: [
     `
       :host { display: block; }
+      /* Overview (cinematic, full track): the bar belongs to the stage's first view, A. */
+      :host-context([data-layout='cinematic']) .hq-bar {
+        box-sizing: border-box;
+        width: calc(100% - 2 * var(--sc-rand));
+        margin-inline: auto;
+      }
       .hq-bar {
         display: flex;
         align-items: center;

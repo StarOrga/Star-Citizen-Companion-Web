@@ -26,15 +26,25 @@ export const LAYOUT_DATA = 'layout';
 
 /**
  * Width track of the shared page frame per layout (`.sc-track-*`, styles.scss
- * "PAGE FRAME TRACKS"): cinematic edge to edge, content narrow, tool wide,
- * plain narrow; an overlay page sits in the narrow track too.
+ * "PAGE FRAME"). The beta has exactly TWO page widths (concept
+ * 2026-10-30-beta-breiten-popups-seiten):
+ *
+ *  - A, the stage (`stage`, 100% − 2·Rand): only the first, unscrolled view
+ *    of a stage hub. A cinematic route spans `full` (its backdrop runs edge
+ *    to edge) and the hub places its first view in A (`.sc-stage-a`) and
+ *    every section below it in B (`.sc-below-stage`).
+ *  - B, the subheader width (`narrow`, `--sc-b-w`): every other layout —
+ *    content, tool, plain and overlay alike. The docked subheader has exactly
+ *    this width, so the content stands under it.
+ *
+ * `measure` caps running text inside B; it is a column, not a page width.
  */
-export type PageTrack = 'full' | 'wide' | 'narrow' | 'measure';
+export type PageTrack = 'full' | 'stage' | 'narrow' | 'measure';
 
 export const LAYOUT_TRACK: Readonly<Record<PageLayout, PageTrack>> = {
   cinematic: 'full',
   content: 'narrow',
-  tool: 'wide',
+  tool: 'narrow',
   overlay: 'narrow',
   plain: 'narrow',
 };

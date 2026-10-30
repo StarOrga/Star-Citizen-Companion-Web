@@ -78,7 +78,7 @@
       </div>
     </section>
 
-    <sc-briefing-hub id="verse-hub" class="hub"
+    <sc-briefing-hub id="verse-hub" class="hub sc-below-stage"
                      [news]="hubNews()" [newsLoading]="news.loading()" [newsError]="news.error()"
                      [live]="hubLive()" [liveDays]="liveDays()" [patchImage]="hubPatchImage()" [channels]="hubChannels()"
                      [gallery]="hubGallery()" [incoming]="dockFlying() && dock() !== 'docked'"
@@ -210,7 +210,8 @@
 
     </section>
   }
-  <sc-app-notice app="scc" />
+  <!-- sc-app-notice is display: contents; the wrapper carries the B width. -->
+  <div class="sc-below-stage"><sc-app-notice app="scc" /></div>
 } @else {
   <sc-news-list />
 }

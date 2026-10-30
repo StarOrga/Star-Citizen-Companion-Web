@@ -18,7 +18,7 @@ describe('AdminHubComponent', () => {
       '/admin/feedback',
       '/admin/translations',
       '/admin/api-tokens',
-      '/uploader',
+      '/apps/uploader',
     ]);
     expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
   });
