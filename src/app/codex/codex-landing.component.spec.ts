@@ -177,7 +177,7 @@ describe('CodexLandingComponent', () => {
     expect(entries[0].classList).toContain('table');
     expect(entries[0].querySelector('.here')).not.toBeNull();
     expect(entries[1].querySelector('.here')).toBeNull();
-    expect(open.querySelector<HTMLAnchorElement>('a.more')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS');
+    expect(open.querySelector<HTMLAnchorElement>('a.more')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS&sort=new');
     expect(open.querySelector<HTMLAnchorElement>('a.all')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS');
     flush();
   }));

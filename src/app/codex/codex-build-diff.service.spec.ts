@@ -43,6 +43,7 @@ describe('CodexBuildDiffService', () => {
         }),
     });
     const codex = {
+      build: () => CUR,
       recentLiveBuilds: jasmine.createSpy('recentLiveBuilds').and.resolveTo(opts.builds),
       getShipsByClassNames: jasmine
         .createSpy('getShipsByClassNames')
@@ -113,5 +114,44 @@ describe('CodexBuildDiffService', () => {
     });
     expect(await svc.addedShips()).toEqual([]);
     expect(codex.getShipsByClassNames).not.toHaveBeenCalled();
+  });
+
+  describe('addedClassNamesMemo', () => {
+    it('diffs class names of the kind table, unfiltered, in current order', async () => {
+      const { svc, sb } = setup({
+        builds: [CUR, PREV],
+        names: { 'b-cur': ['COMP_B', 'COMP_A', 'COMP_C'], 'b-prev': ['COMP_A'] },
+      });
+      expect(await svc.addedClassNamesMemo('component')).toEqual(['COMP_B', 'COMP_C']);
+      for (const call of sb.calls) {
+        expect(call.target).toBe('codex_components');
+        expect(chainArgs(call, 'select')).toEqual(['class_name']);
+        expect(call.chain.some(([m]) => m === 'not' || m === 'or')).toBeFalse();
+      }
+    });
+
+    it('reads each build once per kind', async () => {
+      const { svc, sb } = setup({ builds: [CUR, PREV], names: { 'b-cur': ['W_1'], 'b-prev': [] } });
+      await svc.addedClassNamesMemo('weapon');
+      await svc.addedClassNamesMemo('weapon');
+      expect(sb.calls.length).toBe(2);
+      expect(sb.calls.every((c) => c.target === 'codex_weapons')).toBeTrue();
+    });
+
+    it('answers ships from the ship diff', async () => {
+      const { svc } = setup({ builds: [CUR, PREV], names: { 'b-cur': ['AEGS_Gladius', 'RSI_Zeus'], 'b-prev': ['AEGS_Gladius'] } });
+      expect(await svc.addedClassNamesMemo('ship')).toEqual(['RSI_Zeus']);
+    });
+
+    it('returns [] for a kind without a diff table and reads nothing', async () => {
+      const { svc, sb } = setup({ builds: [CUR, PREV] });
+      expect(await svc.addedClassNamesMemo('blueprint')).toEqual([]);
+      expect(sb.calls.length).toBe(0);
+    });
+
+    it('returns [] when a read fails', async () => {
+      const { svc } = setup({ builds: [CUR, PREV], answer: () => ({ data: null, error: { message: 'boom' } }) });
+      expect(await svc.addedClassNamesMemo('item')).toEqual([]);
+    });
   });
 });

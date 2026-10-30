@@ -15,9 +15,9 @@ export const CATEGORY_INDEX_QUERY: Record<LandingCategory, Params> = {
   tool: { kind: 'weapon', wg: 'ship', wsg: 'utility' },
 };
 
-/** "+ N weitere in der Suche": ships pre-filtered to "new"; the rest to the matching index filter. */
+/** "+ N weitere in der Suche": the category's index filter, new-this-patch first. */
 export function searchQueryFor(category: LandingCategory): Params {
-  return category === 'ship' ? { kind: 'ship', sort: 'new' } : CATEGORY_INDEX_QUERY[category];
+  return { ...CATEGORY_INDEX_QUERY[category], sort: 'new' };
 }
 
 interface RowView {
