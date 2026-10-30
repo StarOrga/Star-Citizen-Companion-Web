@@ -383,12 +383,12 @@ describe('CodexSetComponent', () => {
     fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
     const link = () => (fixture.nativeElement as HTMLElement).querySelector('.hint a') as HTMLAnchorElement;
-    expect(link().getAttribute('href')).toContain('redirect=%2Fcodex%2Fset%2Fa');
+    expect(link().getAttribute('href')).toContain('redirect=%2Fhq%2Flocker%2Fa');
 
     url = '/hq/locker/b';
     fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
-    expect(link().getAttribute('href')).toContain('redirect=%2Fcodex%2Fset%2Fb');
+    expect(link().getAttribute('href')).toContain('redirect=%2Fhq%2Flocker%2Fb');
   });
 
   // REQ-19 (AUD-205): the stage eyebrow carries the "n / 6 armour" count on the page itself.
@@ -547,9 +547,9 @@ describe('CodexSetComponent — flow hint and back link', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
-          { path: 'hangar', component: Blank },
+          { path: 'hq/hangar', component: Blank },
           { path: 'codex', component: Blank },
-          { path: 'codex/set/:id', component: Probe },
+          { path: 'hq/locker/:id', component: Probe },
         ]),
         provideLocationMocks(),
       ],

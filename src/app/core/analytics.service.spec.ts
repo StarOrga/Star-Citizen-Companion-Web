@@ -85,7 +85,7 @@ describe('pageviewUrl', () => {
 
   it('drops the query string and fragment', () => {
     expect(pageviewUrl('/verse/news?channel=rsi#top', 'https://sc-companion.vercel.app')).toBe(
-      'https://sc-companion.vercel.app/news',
+      'https://sc-companion.vercel.app/verse/news',
     );
   });
 

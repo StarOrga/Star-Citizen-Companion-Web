@@ -60,7 +60,7 @@ export function asFeedbackArea(value: unknown): FeedbackArea | null {
  * being forced into the nearest section.
  *
  * Two groupings are not one-to-one with the router and are deliberate:
- * - `/hangar` is a subview of Codex in the navigation, but it is its own area
+ * - `/hq` (and the retired `/hangar`) is a subview of Codex in the navigation, but it is its own area
  *   to a sender ("my fleet" vs "the database").
  * - `/apps*` (and the retired `/download`, `/uploader`, `/p4k`, `/desktop*` kept for old feedback rows) all land on `desktop`:
  *   from the sender's side these are one thing, the apps outside the website.
@@ -75,6 +75,7 @@ export function areaForUrl(url: string): FeedbackArea {
       return path.split('/')[1] === 'gallery' ? 'starscape' : 'news';
     case 'codex':
       return 'codex';
+    case 'hq':
     case 'hangar':
       return 'hangar';
     case 'starscape':

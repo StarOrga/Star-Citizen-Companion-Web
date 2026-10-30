@@ -4,15 +4,17 @@ import { Router, provideRouter } from '@angular/router';
 import { fpsEquipMode, routes } from './app.routes';
 
 const shellOf = () => routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'hq'));
+/** Every route as its full path (children joined to their parent), so a child 'hangar' under 'hq' reads 'hq/hangar'. */
 const allPaths = (): string[] => {
   const out: string[] = [];
-  const walk = (list: typeof routes) => {
+  const walk = (list: typeof routes, prefix: string) => {
     for (const r of list) {
-      out.push(r.path ?? '');
-      if (r.children) walk(r.children);
+      const full = [prefix, r.path ?? ''].filter(Boolean).join('/');
+      out.push(full);
+      if (r.children) walk(r.children, full);
     }
   };
-  walk(routes);
+  walk(routes, '');
   return out;
 };
 
