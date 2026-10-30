@@ -50,7 +50,8 @@ describe('LayoutService', () => {
     expect(service.layout()).toBe('content');
     await router.navigateByUrl('/parent/inherit');
     expect(service.layout()).toBe('tool');
-    expect(service.track()).toBe('wide');
+    // Two widths only: a tool page sits in B like every non-stage page.
+    expect(service.track()).toBe('narrow');
   });
 
   it('ignores the layout of a routed overlay child', async () => {
@@ -60,5 +61,9 @@ describe('LayoutService', () => {
 
   it('maps every layout to a track', () => {
     for (const l of PAGE_LAYOUTS) expect(LAYOUT_TRACK[l]).toBeTruthy();
+  });
+
+  it('knows only the two beta widths: the stage spans full, everything else B', () => {
+    for (const l of PAGE_LAYOUTS) expect(LAYOUT_TRACK[l]).toBe(l === 'cinematic' ? 'full' : 'narrow');
   });
 });

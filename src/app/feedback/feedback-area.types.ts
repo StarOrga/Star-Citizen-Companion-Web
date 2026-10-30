@@ -56,13 +56,13 @@ export function asFeedbackArea(value: unknown): FeedbackArea | null {
  * Matches on the FIRST path segment only, so every sub-route travels with its
  * section (`/codex/blueprint/…` is Codex, `/admin/telemetry` is Admin) and a
  * new child route needs no change here. Anything unmapped (`/about`,
- * `/legal/…`, `/release-notes`, `/tools/…`) is honestly `other` rather than
+ * `/legal/…`, `/release-notes`) is honestly `other` rather than
  * being forced into the nearest section.
  *
  * Two groupings are not one-to-one with the router and are deliberate:
- * - `/hangar` is a subview of Codex in the navigation, but it is its own area
+ * - `/hq` (and the retired `/hangar`) is a subview of Codex in the navigation, but it is its own area
  *   to a sender ("my fleet" vs "the database").
- * - `/download`, `/uploader`, `/p4k` and `/desktop*` all land on `desktop`:
+ * - `/apps*` (and the retired `/download`, `/uploader`, `/p4k`, `/desktop*` kept for old feedback rows) all land on `desktop`:
  *   from the sender's side these are one thing, the apps outside the website.
  */
 export function areaForUrl(url: string): FeedbackArea {
@@ -75,10 +75,12 @@ export function areaForUrl(url: string): FeedbackArea {
       return path.split('/')[1] === 'gallery' ? 'starscape' : 'news';
     case 'codex':
       return 'codex';
+    case 'hq':
     case 'hangar':
       return 'hangar';
     case 'starscape':
       return 'starscape';
+    case 'apps':
     case 'download':
     case 'uploader':
     case 'p4k':
@@ -104,15 +106,15 @@ export function areaForUrl(url: string): FeedbackArea {
 export function areaRoute(area: FeedbackArea | null | undefined): string | null {
   switch (area) {
     case 'news':
-      return '/news';
+      return '/verse/news';
     case 'codex':
       return '/codex';
     case 'hangar':
-      return '/hangar';
+      return '/hq/hangar';
     case 'starscape':
-      return '/starscape';
+      return '/verse/gallery';
     case 'desktop':
-      return '/download';
+      return '/apps';
     case 'settings':
       return '/settings';
     case 'admin':

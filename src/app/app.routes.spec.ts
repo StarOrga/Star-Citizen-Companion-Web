@@ -1,104 +1,34 @@
 import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { blueprintListRedirect, fpsEquipMode, fpsListRedirect, hangarLoadoutRedirect, routes } from './app.routes';
+import { fpsEquipMode, routes } from './app.routes';
 
-/**
- * The retired hangar loadout editor (admin feedback 34505d70, decision "2A").
- * The route survives ONLY as a redirect, and a redirect nobody exercises is a
- * redirect that silently rots — so the mapping is pinned here.
- */
-describe('hangar/loadout/:id bridge', () => {
+const shellOf = () => routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'hq'));
+/** Every route as its full path (children joined to their parent), so a child 'hangar' under 'hq' reads 'hq/hangar'. */
+const allPaths = (): string[] => {
+  const out: string[] = [];
+  const walk = (list: typeof routes, prefix: string) => {
+    for (const r of list) {
+      const full = [prefix, r.path ?? ''].filter(Boolean).join('/');
+      out.push(full);
+      if (r.children) walk(r.children, full);
+    }
+  };
+  walk(routes, '');
+  return out;
+};
+
+describe('codex/fps equip flow (concept 2026-10-29, b3)', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
   });
 
-  it('sends an old editor link to the set page of that very set', () => {
-    const tree = TestBed.runInInjectionContext(() =>
-      hangarLoadoutRedirect({ params: { id: 'set-42' } }),
-    );
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/hq/spind/set-42');
-  });
-
-  it('escapes an id that would otherwise break out of its path segment', () => {
-    const tree = TestBed.runInInjectionContext(() =>
-      hangarLoadoutRedirect({ params: { id: 'a/b?c=d' } }),
-    );
-    const url = TestBed.inject(Router).serializeUrl(tree);
-    expect(url.startsWith('/hq/spind/')).toBeTrue();
-    expect(url).not.toContain('?');
-    expect(url.split('/').length).toBe(4);
-  });
-
-  it('still registers the path, so a shared link resolves instead of 404ing', () => {
-    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'hq'));
-    const bridge = (shell?.children ?? []).find((c) => c.path === 'hangar/loadout/:id');
-    expect(bridge).toBeDefined();
-    // A bridge, not a page: no component may hang off it any more.
-    expect(bridge?.loadComponent).toBeUndefined();
-    expect(bridge?.redirectTo).toBe(hangarLoadoutRedirect);
-  });
-});
-
-/**
- * The retired standalone blueprint list (AUD-061) — folded into the Codex
- * index's blueprint category. The detail route (`codex/blueprint/:className`)
- * is untouched; only the list moved.
- */
-describe('codex/blueprint bridge', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  });
-
-  it('sends the bare list to the index with the blueprint category', () => {
-    const tree = TestBed.runInInjectionContext(() =>
-      blueprintListRedirect({ queryParams: {} }),
-    );
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/index?kind=blueprint');
-  });
-
-  it('carries an incoming search term over', () => {
-    const tree = TestBed.runInInjectionContext(() =>
-      blueprintListRedirect({ queryParams: { q: 'gold' } }),
-    );
-    const url = TestBed.inject(Router).serializeUrl(tree);
-    expect(url).toContain('kind=blueprint');
-    expect(url).toContain('q=gold');
-  });
-
-  it('still registers the detail route unchanged', () => {
-    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'codex/blueprint'));
-    const list = (shell?.children ?? []).find((c) => c.path === 'codex/blueprint');
-    const detail = (shell?.children ?? []).find((c) => c.path === 'codex/blueprint/:className');
-    expect(list?.redirectTo).toBe(blueprintListRedirect);
-    expect(list?.loadComponent).toBeUndefined();
-    expect(detail).toBeDefined();
-    expect(detail?.loadComponent).toBeDefined();
-  });
-});
-
-describe('codex/fps bridge (concept 2026-10-29, b3)', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  });
-
-  it('sends a bare link to the on-foot weapons of the browse page', () => {
-    const tree = TestBed.runInInjectionContext(() => fpsListRedirect({ queryParams: {} }));
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/index?kind=weapon&wg=fps');
-  });
-
-  it('keeps an old armour bookmark working', () => {
-    const tree = TestBed.runInInjectionContext(() => fpsListRedirect({ queryParams: { cat: 'armor', slot: 'Helmet', q: 'x' } }));
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/index?kind=armor&slot=helmet&q=x');
-  });
-
-  it('keeps the equip flow on the on-foot list, redirects plain browsing', () => {
-    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'codex/fps'));
-    const fps = (shell?.children ?? []).filter((c) => c.path === 'codex/fps');
-    expect(fps.length).toBe(2);
+  it('keeps the on-foot list only for the equip flow (no plain-browse redirect any more)', () => {
+    const fps = (shellOf()?.children ?? []).filter((c) => c.path === 'codex/fps');
+    expect(fps.length).toBe(1);
     expect(fps[0].canMatch).toEqual([fpsEquipMode]);
     expect(fps[0].loadComponent).toBeDefined();
-    expect(fps[1].redirectTo).toBe(fpsListRedirect);
+    expect(fps[0].redirectTo).toBeUndefined();
   });
 
   it('matches the equip route only with equipInto in the url', () => {
@@ -111,48 +41,67 @@ describe('codex/fps bridge (concept 2026-10-29, b3)', () => {
 });
 
 /**
- * AUD-144 claimed the string redirects drop the query. They do not: every one
- * of them is RELATIVE, and Angular keeps the incoming query + fragment for a
- * relative redirectTo (only an absolute '/…' target drops them). Pinned here
- * with the real route entries so a later absolute rewrite fails at once.
+ * Alpha cleanup (concept 2026-10-30): the old aliases are gone and fall
+ * through to '**' -> verse. Pinned so none of them is quietly re-added.
+ */
+describe('retired route aliases', () => {
+  const retired = [
+    'news', 'news/patches', 'news/patches/:line', 'hangar',
+    'hangar/ship/:id', 'hangar/loadout/:id', 'codex/set/:id', 'codex/blueprint', 'p4k', 'desktop',
+    'desktop/auth', 'admin/integrations', 'konzept/:id', 'companion', 'uploader', 'download',
+    'tools/extension',
+  ];
+  for (const path of retired) {
+    it(`has no ${path} route`, () => {
+      expect(allPaths()).not.toContain(path);
+    });
+  }
+
+  it('keeps the bridges installed apps still open until their next release', () => {
+    const paths = allPaths();
+    expect(paths).toContain('hangar/import');
+    expect(paths).toContain('starscape');
+  });
+
+  it('keeps the concept route and the two live loopback entry points', () => {
+    const paths = allPaths();
+    expect(paths).toContain('concept/:id');
+    expect(paths).toContain('uploader/auth');
+    expect(paths).toContain('desktop/connect');
+  });
+});
+
+describe('apps hub routes (concept 2026-10-30)', () => {
+  const paths = () => allPaths();
+
+  it('registers the hub, the three apps and both loopbacks under /apps', () => {
+    for (const p of ['apps', 'apps/uploader', 'apps/uploader/auth', 'apps/starscape', 'apps/starscape/connect', 'apps/extension']) {
+      expect(paths()).toContain(p);
+    }
+  });
+
+  it('runs settings and friends in the content width', () => {
+    const data = (p: string) => shellOf()?.children?.find((c) => c.path === p)?.data;
+    expect(data('settings')).toEqual({ layout: 'content' });
+    expect(data('friends')).toEqual({ layout: 'content' });
+  });
+});
+
+/**
+ * The remaining string redirects ('' and '**') are RELATIVE, and Angular keeps
+ * the incoming query + fragment for a relative redirectTo (only an absolute
+ * '/…' target drops them; AUD-144). Pinned with the real route entries.
  */
 describe('string redirects keep the query (AUD-144)', () => {
-  const shell = routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'p4k'));
-  const child = (path: string) => shell?.children?.find((c) => c.path === path && c.redirectTo);
   const rootRedirect = routes.find((r) => r.path === '' && typeof r.redirectTo === 'string');
   const wildcard = routes.find((r) => r.path === '**');
-  const p4k = child('p4k');
-  const desktop = child('desktop');
-  const integrations = child('admin/integrations');
-  const news = child('news');
-  const newsPatches = child('news/patches');
-  const newsPatchLine = child('news/patches/:line');
-  const starscape = child('starscape');
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
           rootRedirect!,
-          {
-            path: '',
-            children: [
-              { path: 'verse', children: [] },
-              { path: 'verse/news', children: [] },
-              { path: 'verse/patches', children: [] },
-              { path: 'verse/patches/:line', children: [] },
-              { path: 'verse/gallery', children: [] },
-              news!,
-              newsPatches!,
-              newsPatchLine!,
-              starscape!,
-              { path: 'uploader', children: [] },
-              { path: 'admin/api-tokens', children: [] },
-              p4k!,
-              desktop!,
-              integrations!,
-            ],
-          },
+          { path: 'verse', children: [] },
           wildcard!,
         ]),
         provideLocationMocks(),
@@ -160,8 +109,8 @@ describe('string redirects keep the query (AUD-144)', () => {
     });
   });
 
-  it('finds all nine redirect entries, each a relative string', () => {
-    for (const r of [rootRedirect, p4k, desktop, integrations, wildcard, news, newsPatches, newsPatchLine, starscape]) {
+  it('finds both redirect entries, each a relative string', () => {
+    for (const r of [rootRedirect, wildcard]) {
       expect(r).toBeDefined();
       expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBeTrue();
     }
@@ -169,13 +118,7 @@ describe('string redirects keep the query (AUD-144)', () => {
 
   const cases: [string, string][] = [
     ['/?item=abc#x', '/verse?item=abc#x'],
-    ['/news?item=abc', '/verse/news?item=abc'],
-    ['/news/patches', '/verse/patches'],
-    ['/news/patches/4.3', '/verse/patches/4.3'],
-    ['/starscape?image=img1', '/verse/gallery?image=img1'],
-    ['/p4k?x=1', '/uploader?x=1'],
-    ['/desktop?x=1', '/uploader?x=1'],
-    ['/admin/integrations?y=2', '/admin/api-tokens?y=2'],
+    ['/news?item=abc', '/verse?item=abc'],
     ['/gibtsnicht?item=z', '/verse?item=z'],
   ];
   for (const [from, to] of cases) {
@@ -187,21 +130,14 @@ describe('string redirects keep the query (AUD-144)', () => {
   }
 });
 
-/**
- * HQ (concept 2026-10-08): the personal area moved under /hq. Every old url
- * still resolves — pinned with the real route entries, query included (the
- * browser extension opens /hangar/import?src=extension).
- */
-describe('HQ routes + old hangar urls', () => {
-  const shell = routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'hq'));
-  const hq = shell?.children?.find((c) => c.path === 'hq');
-  const redirect = (path: string) => shell?.children?.find((c) => c.path === path && c.redirectTo);
-  const leaf = { children: [] };
+/** HQ (concept 2026-10-08): the personal area lives under /hq, English paths since 2026-10-30. */
+describe('HQ routes', () => {
+  const hq = shellOf()?.children?.find((c) => c.path === 'hq');
 
   it('registers overview, hangar, import, ship, locker, set and ops under /hq', () => {
     expect(hq?.loadComponent).toBeDefined();
     const paths = (hq?.children ?? []).map((c) => c.path);
-    expect(paths).toEqual(['', 'hangar', 'hangar/import', 'hangar/:id', 'spind', 'spind/:id', 'einsaetze']);
+    expect(paths).toEqual(['', 'hangar', 'hangar/import', 'hangar/:id', 'locker', 'locker/:id', 'ops']);
     // import before :id, so "import" is never read as a ship id
     expect(paths.indexOf('hangar/import')).toBeLessThan(paths.indexOf('hangar/:id'));
   });
@@ -209,7 +145,7 @@ describe('HQ routes + old hangar urls', () => {
   it('hands the dashboard its section through route data', () => {
     const data = (p: string) => hq?.children?.find((c) => c.path === p)?.data;
     expect(data('hangar')).toEqual({ layout: 'tool', section: 'hangar' });
-    expect(data('spind')).toEqual({ layout: 'tool', section: 'locker' });
+    expect(data('locker')).toEqual({ layout: 'tool', section: 'locker' });
   });
 
   it('keeps the public shared-loadout pages off the gated shell', () => {
@@ -217,52 +153,5 @@ describe('HQ routes + old hangar urls', () => {
     const paths = (pub?.children ?? []).map((c) => c.path);
     expect(paths).toContain('hangar/shared/:token');
     expect(paths).toContain('shared/loadout/:token');
-  });
-
-  describe('redirects', () => {
-    beforeEach(() => {
-      TestBed.configureTestingModule({
-        providers: [
-          provideRouter([
-            {
-              path: '',
-              children: [
-                {
-                  path: 'hq',
-                  children: [
-                    { path: 'hangar', ...leaf },
-                    { path: 'hangar/import', ...leaf },
-                    { path: 'hangar/:id', ...leaf },
-                    { path: 'spind/:id', ...leaf },
-                  ],
-                },
-                redirect('hangar')!,
-                redirect('hangar/import')!,
-                redirect('hangar/ship/:id')!,
-                redirect('hangar/loadout/:id')!,
-                redirect('codex/set/:id')!,
-              ],
-            },
-          ]),
-          provideLocationMocks(),
-        ],
-      });
-    });
-
-    const cases: [string, string][] = [
-      ['/hangar', '/hq/hangar'],
-      ['/hangar?tab=x', '/hq/hangar?tab=x'],
-      ['/hangar/import?src=extension', '/hq/hangar/import?src=extension'],
-      ['/hangar/ship/abc', '/hq/hangar/abc'],
-      ['/hangar/loadout/set-1', '/hq/spind/set-1'],
-      ['/codex/set/set-2', '/hq/spind/set-2'],
-    ];
-    for (const [from, to] of cases) {
-      it(`${from} lands on ${to}`, async () => {
-        const router = TestBed.inject(Router);
-        await router.navigateByUrl(from);
-        expect(router.url).toBe(to);
-      });
-    }
   });
 });

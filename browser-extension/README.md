@@ -40,7 +40,7 @@ parse ship names  ──┐
 fingerprint         │
 nudge decision      │
 [user clicks Import]├──► pendingImport ─────────────────────► companion-bridge
-window.open(/hangar/import)                                        │ postMessage
+window.open(/hq/hangar/import)                                        │ postMessage
                                                                    ▼
                                                           Angular review screen
                                                           [user confirms]
@@ -82,7 +82,7 @@ Until the Chrome Web Store review is done:
    zip (see below).
 3. Open <https://robertsspaceindustries.com/en/account/pledges> while signed in.
 
-Also documented in-app at `/tools/extension`.
+Also documented in-app at `/apps/extension`.
 
 ## Release / packaging
 
@@ -94,7 +94,7 @@ publishes it to the public binaries-mirror repo behind a **moving tag**:
 ```
 https://github.com/StarOrga/Star-Citizen-Companion-Binaries
   └── releases/tag/browser-extension-latest
-        ├── sc-hangar-extension.zip            ← the fixed URL /tools/extension links
+        ├── sc-hangar-extension.zip            ← the fixed URL /apps/extension links
         └── sc-hangar-extension-<version>.zip  ← same build, version history
 ```
 

@@ -54,7 +54,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
                 </button>
               </div>
               @if (isOpen(r.version, i)) {
-                <div class="rel-body" [id]="'rel-' + r.version">
+                <div class="rel-body sc-measure" [id]="'rel-' + r.version">
                   @for (s of r.sections; track $index) {
                     <div class="section">
                       <div class="sec-head">

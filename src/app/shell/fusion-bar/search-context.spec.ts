@@ -5,7 +5,6 @@ import {
   CAP_PRIMARY,
   matchPlaces,
   neutralContext,
-  offersCompanion,
   searchContextOf,
   weightGroups,
   wordCount,
@@ -92,15 +91,6 @@ describe('search-context', () => {
     it('floats owned ships up in HQ', () => {
       const out = weightGroups([group('ship', 3)], searchContextOf('/hq'), (slug) => slug === 'ship-2');
       expect(out[0].shown[0].classNameSlug).toBe('ship-2');
-    });
-  });
-
-  describe('companion offer', () => {
-    it('starts at four words', () => {
-      expect(wordCount('  beste s3 kanone ')).toBe(3);
-      expect(offersCompanion('beste s3 kanone')).toBeFalse();
-      expect(offersCompanion('beste s3 kanone für stalker')).toBeTrue();
-      expect(offersCompanion('a - b - c')).toBeFalse();
     });
   });
 

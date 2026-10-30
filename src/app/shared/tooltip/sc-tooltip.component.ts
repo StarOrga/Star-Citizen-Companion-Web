@@ -30,7 +30,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         border-radius: 4px;
         padding: 5px 9px;
         font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem));
-        max-width: min(280px, 90vw);
+        max-width: min(var(--sc-tooltip-w, 18rem), 90vw);
         white-space: normal;
         line-height: 1.35;
         box-shadow: 0 6px 18px rgb(0 0 0 / 40%);

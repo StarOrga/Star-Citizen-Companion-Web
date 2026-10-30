@@ -119,7 +119,7 @@ export interface StarTask {
 const TASKS: Record<VerseStarKey, StarTask> = {
   notes: { key: 'notes', i18nKey: 'notes', target: { kind: 'patch' } },
   archive: { key: 'archive', i18nKey: 'archive', target: { kind: 'route', link: '/codex' } },
-  loadout: { key: 'loadout', i18nKey: 'loadout', target: { kind: 'route', link: '/hangar' } },
+  loadout: { key: 'loadout', i18nKey: 'loadout', target: { kind: 'route', link: '/hq/hangar' } },
   comet: { key: 'comet', i18nKey: 'comet', target: { kind: 'patch' } },
   'cx-newship': { key: 'cx-newship', i18nKey: 'cxNewship', target: { kind: 'newship', fallback: '/codex' } },
   'cx-keybinds': { key: 'cx-keybinds', i18nKey: 'cxKeybinds', target: { kind: 'route', link: '/codex/keybinds' } },

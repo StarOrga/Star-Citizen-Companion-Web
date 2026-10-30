@@ -207,7 +207,7 @@ let nextId = 0;
             }
 
             @if (product() === 'uploader') {
-              <a class="pop-link" routerLink="/uploader" (click)="onNavigate($event)">
+              <a class="pop-link" routerLink="/apps/uploader" (click)="onNavigate($event)">
                 {{ 'desktop.access.fullPage' | translate }}
               </a>
             }
@@ -259,7 +259,7 @@ let nextId = 0;
     /* The overlay: overlaps whatever is below, never reflows the row. */
     .dlm-pop {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 80;
-      width: min(320px, calc(100vw - 32px));
+      width: min(var(--sc-ov-menu), calc(100vw - 32px));
       display: flex; flex-direction: column; gap: 10px;
       padding: 12px 14px; border-radius: 10px;
       background: var(--sc-bg-1);
@@ -363,7 +363,7 @@ let nextId = 0;
     /* Narrow viewports: pin the overlay inside the viewport instead of letting
        a right-aligned 320px box hang off the edge. */
     @media (max-width: 420px) {
-      .dlm-pop { right: auto; left: 0; width: min(320px, calc(100vw - 24px)); }
+      .dlm-pop { right: auto; left: 0; width: min(var(--sc-ov-menu), calc(100vw - 32px)); }
       .dlm-name { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -439,7 +439,7 @@ export class AppDownloadMenuComponent {
    * line: this menu is a header chip whose ONLY purpose is to start a download.
    * There is nothing left of it once the download is off the table, and the
    * admin's complaint was precisely about seeing it on a phone. The information
-   * itself is not lost — `/download`, `/uploader` and the Codex Bridge line all
+   * itself is not lost — `/apps/starscape`, `/apps/uploader` and the Codex Bridge line all
    * render `sc-app-download-panel`, which explains the platform requirement
    * instead of hiding, so every deep link still lands somewhere meaningful.
    */

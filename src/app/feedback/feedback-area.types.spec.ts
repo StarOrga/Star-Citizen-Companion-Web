@@ -39,6 +39,8 @@ describe('areaForUrl', () => {
   });
 
   it('folds every app-outside-the-website route into one area', () => {
+    expect(areaForUrl('/apps/starscape')).toBe('desktop');
+    expect(areaForUrl('/apps/extension')).toBe('desktop');
     expect(areaForUrl('/download')).toBe('desktop');
     expect(areaForUrl('/uploader')).toBe('desktop');
     expect(areaForUrl('/p4k')).toBe('desktop');
@@ -56,7 +58,6 @@ describe('areaForUrl', () => {
     expect(areaForUrl('/about')).toBe('other');
     expect(areaForUrl('/legal/privacy')).toBe('other');
     expect(areaForUrl('/release-notes')).toBe('other');
-    expect(areaForUrl('/tools/extension')).toBe('other');
     expect(areaForUrl('/')).toBe('other');
     expect(areaForUrl('')).toBe('other');
   });
@@ -84,11 +85,11 @@ describe('feedback area narrowing', () => {
 
 describe('areaRoute (the "▸ Ansehen" deep link)', () => {
   it('sends every real section to its root', () => {
-    expect(areaRoute('news')).toBe('/news');
+    expect(areaRoute('news')).toBe('/verse/news');
     expect(areaRoute('codex')).toBe('/codex');
-    expect(areaRoute('hangar')).toBe('/hangar');
-    expect(areaRoute('starscape')).toBe('/starscape');
-    expect(areaRoute('desktop')).toBe('/download');
+    expect(areaRoute('hangar')).toBe('/hq/hangar');
+    expect(areaRoute('starscape')).toBe('/verse/gallery');
+    expect(areaRoute('desktop')).toBe('/apps');
     expect(areaRoute('settings')).toBe('/settings');
     expect(areaRoute('admin')).toBe('/admin');
   });

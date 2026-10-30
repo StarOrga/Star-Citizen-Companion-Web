@@ -54,7 +54,7 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
   },
   {
     id: 'uploader',
-    link: '/uploader',
+    link: '/apps/uploader',
     titleKey: 'adminHub.tiles.uploader.title',
     textKey: 'adminHub.tiles.uploader.text',
     icon: 'M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4',
@@ -69,22 +69,22 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
  */
 @Component({
   selector: 'sc-admin-hub',
-  // A cinematic route spans the full track; the hub's content keeps the page frame.
-  host: { class: 'sc-track-wide' },
+  // A cinematic route spans the full track: the head is the stage (A), the tiles
+  // below it take the subheader width B (styles.scss "PAGE FRAME").
   standalone: true,
   imports: [RouterLink, TranslatePipe, PageHeaderComponent, StageSearchDirective, StageHeroDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- The main page hero (beta shell): eyebrow · title · stage slot, centred, the slot
          at the same spot as on every main page (StageHeroDirective). -->
-    <div class="sc-stage-hero" scStageHero>
+    <div class="sc-stage-hero sc-stage-a" scStageHero>
       <sc-page-header
         [eyebrow]="'adminHub.eyebrow' | translate"
         [title]="'adminHub.title' | translate"
         [subtitle]="'adminHub.subtitle' | translate" />
       <div scStageSearch></div>
     </div>
-    <ul class="tiles" role="list">
+    <ul class="tiles sc-below-stage" role="list">
       @for (t of tiles; track t.id) {
         <li>
           <a class="tile" [routerLink]="t.link" [attr.data-tile]="t.id">

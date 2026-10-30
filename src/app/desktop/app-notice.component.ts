@@ -7,6 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { ToastSlotDirective } from '../shared/toast-stack/toast-stack';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { formatAppSize } from '../shell/apps-menu.component';
@@ -30,11 +31,11 @@ const STARSCAPE_FALLBACK_URL =
 @Component({
   selector: 'sc-app-notice',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective],
+  imports: [ToastSlotDirective, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <div class="toast" role="region" [attr.aria-label]="'appNotice.aria' | translate"
+      <div class="toast" scToastSlot role="region" [attr.aria-label]="'appNotice.aria' | translate"
            [class.open]="expanded()" (click)="expand()">
         <i class="ico" aria-hidden="true">
           @if (app() === 'scc') {
@@ -64,8 +65,8 @@ const STARSCAPE_FALLBACK_URL =
     .toast {
       position: fixed; z-index: 1440;
       inset-inline-end: var(--sc-fab-gutter, 16px);
-      bottom: var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px));
-      width: min(372px, calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
+      bottom: calc(var(--sc-toast-bottom, var(--sc-fab-clear-block, 80px)) + var(--sc-toast-offset, 0px));
+      width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: grid; grid-template-columns: auto 1fr auto; column-gap: 12px; align-items: center;
       padding: 10px 12px; border-radius: 14px; overflow: hidden; cursor: pointer;
       background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);

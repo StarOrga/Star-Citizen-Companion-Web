@@ -42,7 +42,6 @@ export interface SearchContext {
 export const CAP_PRIMARY = 5;
 export const CAP_OTHER = 3;
 /** "Companion fragen" is offered from this many words on (spec §5). */
-export const COMPANION_MIN_WORDS = 4;
 
 const NEUTRAL: SearchContext = {
   key: 'all',
@@ -156,11 +155,6 @@ export function wordCount(term: string): number {
     .filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
-/** True when the "Companion fragen" offer applies to `term`. */
-export function offersCompanion(term: string): boolean {
-  return wordCount(term) >= COMPANION_MIN_WORDS;
-}
-
 /** An app destination the search finds by name (pages the Codex index does not hold). */
 export interface SearchPlace {
   id: string;
@@ -178,17 +172,17 @@ export const SEARCH_PLACES: readonly SearchPlace[] = [
   { id: 'patches', labelKey: 'fusionBar.place.patches', link: ['/verse', 'patches'], queryParams: null, keywords: ['patch', 'patches', 'update', 'ptu', 'live', 'stabil'], boost: ['verse'] },
   { id: 'gallery', labelKey: 'fusionBar.place.gallery', link: ['/verse', 'gallery'], queryParams: null, keywords: ['galerie', 'gallery', 'bilder', 'images', 'starscape', 'wallpaper', 'screenshot'], boost: ['gallery', 'verse'] },
   { id: 'hangar', labelKey: 'fusionBar.place.hangar', link: ['/hq', 'hangar'], queryParams: null, keywords: ['hangar', 'flotte', 'fleet', 'meine schiffe', 'my ships'], boost: ['hq'] },
-  { id: 'spind', labelKey: 'fusionBar.place.spind', link: ['/hq', 'spind'], queryParams: null, keywords: ['spind', 'locker', 'rüstung', 'armor', 'loadout'], boost: ['hq', 'fps'] },
+  { id: 'spind', labelKey: 'fusionBar.place.spind', link: ['/hq', 'locker'], queryParams: null, keywords: ['spind', 'locker', 'rüstung', 'armor', 'loadout'], boost: ['hq', 'fps'] },
   { id: 'hq', labelKey: 'fusionBar.place.hq', link: ['/hq'], queryParams: null, keywords: ['hq', 'zuhause', 'home', 'übersicht'], boost: ['hq'] },
   { id: 'keybinds', labelKey: 'fusionBar.place.keybinds', link: ['/codex', 'keybinds'], queryParams: null, keywords: ['keybind', 'tasten', 'steuerung', 'controls', 'shortcut'], boost: ['codex'] },
   { id: 'upcoming', labelKey: 'fusionBar.place.upcoming', link: ['/codex', 'upcoming'], queryParams: null, keywords: ['upcoming', 'angekündigt', 'concept', 'reissbrett'], boost: ['codex', 'codexIndex'] },
-  { id: 'ops', labelKey: 'fusionBar.place.ops', link: ['/hq', 'einsaetze'], queryParams: null, keywords: ['einsätze', 'einsatz', 'ops', 'mission', 'missionen', 'planung'], boost: ['hq'] },
-  { id: 'extension', labelKey: 'fusionBar.place.extension', link: ['/tools', 'extension'], queryParams: null, keywords: ['erweiterung', 'extension', 'browser', 'chrome', 'edge', 'import'], boost: [] },
+  { id: 'ops', labelKey: 'fusionBar.place.ops', link: ['/hq', 'ops'], queryParams: null, keywords: ['einsätze', 'einsatz', 'ops', 'mission', 'missionen', 'planung'], boost: ['hq'] },
+  { id: 'extension', labelKey: 'fusionBar.place.extension', link: ['/apps', 'extension'], queryParams: null, keywords: ['erweiterung', 'extension', 'browser', 'chrome', 'edge', 'import'], boost: [] },
   { id: 'settings', labelKey: 'fusionBar.place.settings', link: ['/settings'], queryParams: null, keywords: ['einstellungen', 'settings', 'konto', 'account', 'sprache', 'language'], boost: [] },
   { id: 'friends', labelKey: 'fusionBar.place.friends', link: ['/friends'], queryParams: null, keywords: ['freunde', 'friends', 'org'], boost: [] },
   { id: 'releaseNotes', labelKey: 'fusionBar.place.releaseNotes', link: ['/release-notes'], queryParams: null, keywords: ['release', 'changelog', 'neu', 'version'], boost: [] },
   { id: 'badge', labelKey: 'fusionBar.place.badge', link: ['/badge', 'kartograph'], queryParams: null, keywords: ['badge', 'kartograph', 'abzeichen'], boost: [] },
-  { id: 'download', labelKey: 'fusionBar.place.download', link: ['/download'], queryParams: null, keywords: ['download', 'app', 'starscape', 'uploader', 'desktop'], boost: [] },
+  { id: 'download', labelKey: 'fusionBar.place.download', link: ['/apps', 'starscape'], queryParams: null, keywords: ['download', 'app', 'starscape', 'uploader', 'desktop'], boost: [] },
 ];
 
 /**

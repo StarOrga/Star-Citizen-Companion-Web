@@ -5537,8 +5537,6 @@
       "open": "Open search",
       "clear": "Clear input",
       "dropContext": "Remove context — search everywhere",
-      "ask": "Ask the Companion",
-      "askKey": "Shift ↵",
       "places": "Pages",
       "here": "Here",
       "page": "Page",
@@ -5574,12 +5572,6 @@
       "ops": "Ops",
       "extension": "Browser extension",
       "download": "Downloads"
-    },
-    "companion": {
-      "title": "Ask the Companion",
-      "subtitle": "Answers with reasoning — coming soon.",
-      "body": "The Companion cannot answer questions like this yet. Until then the search is the fastest way to the answer.",
-      "searchInstead": "Search the Codex instead"
     }
   },
   "adminHub": {
@@ -5644,6 +5636,27 @@
     "starscape": {
       "line": "Starscape as a wallpaper app",
       "desc": "Rotates your wallpaper through the Starscape gallery."
+    }
+  },
+  "apps": {
+    "hub": {
+      "eyebrow": "Apps",
+      "title": "Apps",
+      "subtitle": "Everything that runs next to the website: the uploader, Starscape and the browser extension.",
+      "breadcrumbAria": "Apps",
+      "uploader": {
+        "name": "Data Uploader",
+        "desc": "Reads your Star Citizen install and uploads the data to the Codex. Collaborators only."
+      },
+      "starscape": {
+        "name": "Starscape",
+        "desc": "The desktop app: the Verse gallery as a live wallpaper."
+      },
+      "extension": {
+        "name": "Browser extension",
+        "desc": "Imports your RSI hangar into your fleet in one click."
+      },
+      "open": "Open"
     }
   }
 }

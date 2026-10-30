@@ -81,7 +81,7 @@ describe('HqOverviewComponent', () => {
     const { el, hangar } = setup({});
     expect(hangar.loadAll).toHaveBeenCalled();
     const links = Array.from(el.querySelectorAll('a.tile-link')).map((a) => a.getAttribute('href'));
-    expect(links).toEqual(['/hq/hangar', '/hq/spind']);
+    expect(links).toEqual(['/hq/hangar', '/hq/locker']);
     expect(el.textContent).toContain('hq.overview.opsEmpty');
     expect(el.textContent).toContain('hq.overview.suppliesEmpty');
   });
@@ -120,6 +120,6 @@ describe('HqOverviewComponent', () => {
   it('links the active set into the locker', () => {
     const { el } = setup({ sets: [set('l1', 'Boarding Kit')] });
     const setLink = Array.from(el.querySelectorAll('a.tile-main')).find((a) => a.textContent?.includes('Boarding Kit'));
-    expect(setLink?.getAttribute('href')).toBe('/hq/spind/l1');
+    expect(setLink?.getAttribute('href')).toBe('/hq/locker/l1');
   });
 });

@@ -133,7 +133,7 @@ interface PinnedRef {
          tray keeps the launcher's lane free on both sides so it never slides
          under the disc on a mid-width window, and it stands above the safe area. */
       bottom: var(--sc-float-bottom); z-index: 40;
-      max-width: min(1100px, calc(100vw - 2 * var(--sc-fab-clear-inline)));
+      max-width: min(var(--sc-ov-area), calc(100vw - 2 * var(--sc-fab-clear-inline)));
       border-radius: 12px;
       background: color-mix(in srgb, var(--sc-bg-2) 94%, transparent);
       border: 1px solid var(--sc-accent);
@@ -151,7 +151,7 @@ interface PinnedRef {
       padding: 3px 4px 3px 10px; border-radius: 999px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border); font-size: max(0.76rem, var(--sc-fs-floor));
     }
-    .chip-link { color: var(--sc-fg-0); text-decoration: none; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-link { color: var(--sc-fg-0); text-decoration: none; max-width: 280px; /* overlay-size: exception — a chip label, not the tray box */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip-link:hover { color: var(--sc-accent); }
     .chip-x { border: none; background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 4px; border-radius: 50%; }
     .chip-x:hover { color: var(--sc-accent); }

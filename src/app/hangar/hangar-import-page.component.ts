@@ -48,7 +48,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
             <strong>{{ 'extension.importPage.empty.title' | translate }}</strong>
             <p>{{ 'extension.importPage.empty.text' | translate }}</p>
             <div class="row">
-              <a class="sc-btn" routerLink="/tools/extension">
+              <a class="sc-btn" routerLink="/apps/extension">
                 {{ 'extension.importPage.empty.installLink' | translate }}
               </a>
               <a class="sc-btn" [routerLink]="hangarLink">

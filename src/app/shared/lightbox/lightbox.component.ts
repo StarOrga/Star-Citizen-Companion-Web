@@ -115,7 +115,8 @@ const WIDE_RATIO = 1.5;
     }
     .stage {
       position: relative; overflow: hidden; cursor: default; isolation: isolate;
-      width: min(100%, 1480px, calc(88vh * 16 / 9)); width: min(100%, 1480px, calc(88dvh * 16 / 9));
+      /* overlay-size: exception — the image drives the size (16:9 stage, centred) */
+      width: min(100%, 1480px, calc(88vh * 16 / 9)); width: min(100%, 1480px, calc(88dvh * 16 / 9)); /* overlay-size: exception — the image drives the size */
       aspect-ratio: 16 / 9; border-radius: 12px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border);
     }

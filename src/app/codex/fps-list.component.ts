@@ -1,5 +1,6 @@
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { rankBySearch, searchMatcher } from './codex-search';
+import { fpsToBrowseParams } from './codex-browse-params';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -35,6 +36,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, SLOT_WEAPON_FACET, slotAccepts } from '../hangar/hangar.types';
 import { ARMOR_SLOT_SPECS, armorSlotsFromLoadout, roleSlotForAttachType } from './codex-landing-kpi';
+import { hqSet } from '../hq/hq-routes';
 import { fittingSlots, foldFpsCards, fpsCardName, isArmorRoleSlot } from './set/fps-set-fit';
 import { AddToSetComponent } from './set/add-to-set.component';
 import { mirrorQueryParams } from './codex-url-state';
@@ -152,7 +154,7 @@ interface FacetOption {
               </span>
             }
           </div>
-          <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
+          <a class="equip-back" [routerLink]="hqSet(set.id)">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
         </div>
@@ -167,8 +169,8 @@ interface FacetOption {
         <div class="sc-card equip-missing" role="status">
           <p>{{ 'fps.equip.setUnavailable' | translate }}</p>
           <p class="equip-next">
-            <a routerLink="/hangar">{{ 'fps.equip.mySets' | translate }}</a>
-            <a [attr.href]="browseHref()" (click)="dropEquipIntent($event)">{{ 'fps.equip.browseWithout' | translate }}</a>
+            <a routerLink="/hq/hangar">{{ 'fps.equip.mySets' | translate }}</a>
+            <a routerLink="/codex/index" [queryParams]="browseParams()">{{ 'fps.equip.browseWithout' | translate }}</a>
           </p>
         </div>
       }
@@ -441,7 +443,7 @@ interface FacetOption {
                 <span class="equip-confirm-mark" aria-hidden="true">{{ c.removed ? '–' : '✓' }}</span>
                 {{ (c.removed ? 'fps.equip.confirmRemoved' : 'fps.equip.confirmEquipped') | translate: { item: c.item, slot: c.slot } }}
               </span>
-              <a class="equip-confirm-back" [routerLink]="['/codex', 'set', set.id]">
+              <a class="equip-confirm-back" [routerLink]="hqSet(set.id)">
                 {{ 'fps.equip.backToSet' | translate }} <span aria-hidden="true">→</span>
               </a>
             </div>
@@ -732,6 +734,8 @@ interface FacetOption {
   `],
 })
 export class FpsListComponent {
+  /** Back-link target of the equip flow: the set's page in the HQ locker. */
+  protected readonly hqSet = hqSet;
   protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
@@ -1087,8 +1091,9 @@ export class FpsListComponent {
     return this.categoryHrefs().get(c) ?? null;
   }
 
-  /** The archive without the equip intent — the missing-set notice's way on. */
-  readonly browseHref = computed(() => this.hrefFor({ cat: this.category(), q: this.searchTerm() || null }));
+  /** The archive without the equip intent — the missing-set notice's way on: the one
+   *  Codex browse page (the plain /codex/fps list is retired, concept 2026-10-30). */
+  readonly browseParams = computed(() => fpsToBrowseParams({ cat: this.category(), q: this.searchTerm() || '' }));
 
   /** A plain left click switches in place; a modified one is the browser's (new tab, window …). */
   onCategoryClick(ev: MouseEvent, c: FpsCategory): void {
@@ -1102,16 +1107,6 @@ export class FpsListComponent {
     this.svc.selectBuild(null);
   }
 
-  /** "Keep browsing without a set": drop the stale equip intent in place, URL included. */
-  dropEquipIntent(ev: MouseEvent): void {
-    if (!isPlainLeftClick(ev)) return;
-    ev.preventDefault();
-    this.equipInto.set(null);
-    this.equipSlot.set(null);
-    this.equipTargetMissing.set(false);
-    this.equipTargetError.set(null);
-    this.writeUrl({ equipInto: null, equipSlot: null });
-  }
 
   /** Both display passes of `rows` — or neither, when the raw records are asked for. */
   private fold(rows: FpsRow[], raw: boolean): FpsGridRow[] {

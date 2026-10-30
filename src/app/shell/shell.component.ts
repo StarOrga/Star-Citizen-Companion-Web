@@ -637,7 +637,7 @@ import { avatarUrlOf } from './avatar-url';
     .admin-more-btn.active { box-shadow: inset 0 -2px 0 var(--sc-accent-hot); }
     .admin-more-btn .caret { width: 14px; height: 14px; transition: transform 0.16s; }
     .admin-more-btn[aria-expanded='true'] .caret { transform: rotate(180deg); }
-    .admin-dropdown { left: 0; right: auto; min-width: 200px; width: max-content; }
+    .admin-dropdown { left: 0; right: auto; width: min(var(--sc-ov-menu), calc(100vw - 32px)); }
     .actions {
       display: flex;
       gap: 8px;
@@ -678,7 +678,7 @@ import { avatarUrlOf } from './avatar-url';
       position: absolute;
       top: calc(100% + 8px);
       right: 0;
-      min-width: 180px;
+      width: min(var(--sc-ov-menu), calc(100vw - 32px));
       display: flex;
       flex-direction: column;
       padding: 6px;
@@ -1001,7 +1001,7 @@ import { avatarUrlOf } from './avatar-url';
          token, so the page bars that undo it follow it down automatically. */
       /* Anchor the dropdown to the viewport edges so a 180px menu can't push
          the page wider than the screen. */
-      .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }
+      .dropdown { right: 0; left: auto; }
     }
   `],
 })

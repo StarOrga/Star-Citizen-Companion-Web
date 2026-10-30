@@ -63,7 +63,7 @@ interface MonitorView {
  * short lines instead of ten.
  *
  * The DATE is not this panel's own arithmetic any more (feedback ae9f8cba):
- * it and the Build-Stand card on `/news` both render `computeNextPatch()`, and
+ * it and the Build-Stand card on `/verse/news` both render `computeNextPatch()`, and
  * both phrase the distance through `nextPatchDistance()`. Two surfaces that
  * answer the same question printed "in 20 Tagen" and "in ~6 Wochen" on the
  * same afternoon, because one was version-level and one line-level.
@@ -230,7 +230,7 @@ export class PatchMonitorComponent {
   readonly bare = input(false);
 
   /**
-   * THE estimate — the same function the Build-Stand card on `/news` renders
+   * THE estimate — the same function the Build-Stand card on `/verse/news` renders
    * (feedback ae9f8cba). The panel does not compute a date of its own any more.
    */
   private readonly estimate = computed(() => computeNextPatch(this.groups()));

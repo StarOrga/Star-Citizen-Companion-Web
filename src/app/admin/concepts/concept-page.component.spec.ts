@@ -6,7 +6,7 @@ import { ConceptPageComponent } from './concept-page.component';
 import { ConceptPageService, ConceptTicket, ConceptTicketFailure } from './concept-page.service';
 
 /**
- * `/konzept/:id` (admin feedback #224): the page mints a ticket for the
+ * `/concept/:id` (admin feedback #224): the page mints a ticket for the
  * concept id and frames the document the edge function serves. It never
  * renders concept content itself, so the assertions are about the frame
  * and the three failure copies.

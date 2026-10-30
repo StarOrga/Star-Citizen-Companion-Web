@@ -70,7 +70,7 @@ let uid = 0;
     `
       :host { display: block; }
       .sc-confirm {
-        inline-size: min(440px, calc(100vw - 32px));
+        inline-size: min(var(--sc-ov-s), calc(100vw - 32px));
         max-block-size: calc(100dvh - 32px);
         overflow: auto;
         display: flex;

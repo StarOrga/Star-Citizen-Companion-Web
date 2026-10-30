@@ -39,7 +39,7 @@ interface RingRpcRow {
 
 /**
  * Single read path for the Data-Uploader release, shared by every surface that
- * offers the download (`/uploader`, `/download`, and the collapsible Codex
+ * offers the download (`/apps/uploader`, `/apps/starscape`, and the collapsible Codex
  * access panel). The RPC clamps the channel server-side to the caller's role,
  * so a viewer always ends up on stable no matter what is requested.
  */

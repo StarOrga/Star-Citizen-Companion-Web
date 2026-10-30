@@ -26,6 +26,6 @@ export function roleGuard(...allowed: Role[]): CanActivateFn {
     await roles.waitReady();
     const r = roles.role();
     if (r && allowed.includes(r)) return true;
-    return router.createUrlTree(['/news']);
+    return router.createUrlTree(['/verse/news']);
   };
 }

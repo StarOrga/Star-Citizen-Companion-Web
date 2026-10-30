@@ -56,7 +56,7 @@ describe('route layout coverage (data.layout)', () => {
     expect(byUrl.get('/codex/:kind/:className')).toBe('content');
     expect(byUrl.get('/hq/hangar')).toBe('tool');
     expect(byUrl.get('/hq/hangar/:id')).toBe('content');
-    expect(byUrl.get('/settings')).toBe('cinematic');
+    expect(byUrl.get('/settings')).toBe('content');
     expect(byUrl.get('/legal/privacy')).toBe('plain');
     expect(byUrl.get('/admin/telemetry')).toBe('content');
   });

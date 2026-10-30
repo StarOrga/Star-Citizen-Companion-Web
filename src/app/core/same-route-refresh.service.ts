@@ -17,7 +17,7 @@ import { Observable, Subject, filter, map } from 'rxjs';
  * what "refresh" means for it — a data reload, not a `location.reload()`, so we
  * keep the SPA's warm state, the auth session and the bundle cache.
  *
- * Pages opt in with `onRefresh('/news')`; routes that don't subscribe simply
+ * Pages opt in with `onRefresh('/verse/news')`; routes that don't subscribe simply
  * keep today's no-op behaviour.
  */
 @Injectable({ providedIn: 'root' })
@@ -50,7 +50,7 @@ export class SameRouteRefreshService {
 
 /**
  * Compare on the path only: query string and fragment are page state
- * (`/news?article=…` is still the news page), and a trailing slash is the same
+ * (`/verse/news?article=…` is still the news page), and a trailing slash is the same
  * route as none.
  */
 export function normalizePath(url: string): string {

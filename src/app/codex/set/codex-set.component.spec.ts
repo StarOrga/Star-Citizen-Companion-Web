@@ -162,7 +162,7 @@ describe('CodexSetComponent', () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
     const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     fixture.componentInstance.onSetPick('set-b');
-    expect(navigate).toHaveBeenCalledWith(['/hq/spind', 'set-b']);
+    expect(navigate).toHaveBeenCalledWith(['/hq/locker', 'set-b']);
   });
 
   it('loads the rating of the equipped armour for the card and the lens', async () => {
@@ -305,7 +305,7 @@ describe('CodexSetComponent', () => {
   });
 
   it('follows an in-place navigation to another set instead of keeping the first one', async () => {
-    // The picker navigates /codex/set/A → /codex/set/B on the SAME component
+    // The picker navigates /hq/locker/A → /hq/locker/B on the SAME component
     // instance; a snapshot read in ngOnInit kept showing set A under B's URL.
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
     expect(fixture.componentInstance.activeSet()?.id).toBe('set-a');
@@ -364,7 +364,7 @@ describe('CodexSetComponent', () => {
   it('points a reader without sets to the hangar, where sets are created', async () => {
     const fixture = await setup({ id: null, loadouts: [] });
     const link = (fixture.nativeElement as HTMLElement).querySelector('.hint a');
-    expect(link?.getAttribute('href')).toBe('/hq/spind');
+    expect(link?.getAttribute('href')).toBe('/hq/locker');
   });
 
   it('shows a sign-in hint when the visitor is signed out', async () => {
@@ -378,17 +378,17 @@ describe('CodexSetComponent', () => {
   // the way back after signing in must be read at render time, not captured once.
   it('sends the sign-in hint back to the URL the page shows now', async () => {
     const fixture = await setup({ id: null, signedIn: false, loadouts: [] });
-    let url = '/codex/set/a';
+    let url = '/hq/locker/a';
     spyOnProperty(TestBed.inject(Router), 'url', 'get').and.callFake(() => url);
     fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
     const link = () => (fixture.nativeElement as HTMLElement).querySelector('.hint a') as HTMLAnchorElement;
-    expect(link().getAttribute('href')).toContain('redirect=%2Fcodex%2Fset%2Fa');
+    expect(link().getAttribute('href')).toContain('redirect=%2Fhq%2Flocker%2Fa');
 
-    url = '/codex/set/b';
+    url = '/hq/locker/b';
     fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
-    expect(link().getAttribute('href')).toContain('redirect=%2Fcodex%2Fset%2Fb');
+    expect(link().getAttribute('href')).toContain('redirect=%2Fhq%2Flocker%2Fb');
   });
 
   // REQ-19 (AUD-205): the stage eyebrow carries the "n / 6 armour" count on the page itself.
@@ -529,7 +529,7 @@ describe('CodexSetComponent — flow hint and back link', () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A] });
     const crumbs = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('nav.crumbs a');
     expect(crumbs.length).toBe(1);
-    expect(crumbs[0].getAttribute('href')).toBe('/hq/spind');
+    expect(crumbs[0].getAttribute('href')).toBe('/hq/locker');
     expect(crumbs[0].textContent?.trim()).toBe('hq.tabs.locker');
   });
 
@@ -547,20 +547,20 @@ describe('CodexSetComponent — flow hint and back link', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
-          { path: 'hangar', component: Blank },
+          { path: 'hq/hangar', component: Blank },
           { path: 'codex', component: Blank },
-          { path: 'codex/set/:id', component: Probe },
+          { path: 'hq/locker/:id', component: Probe },
         ]),
         provideLocationMocks(),
       ],
     });
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/hangar');
-    await harness.navigateByUrl('/codex/set/set-a');
-    expect(seen).toEqual(jasmine.objectContaining({ path: '/hq/spind', key: 'codex.set.backToHangar' }));
+    await harness.navigateByUrl('/hq/hangar');
+    await harness.navigateByUrl('/hq/locker/set-a');
+    expect(seen).toEqual(jasmine.objectContaining({ path: '/hq/locker', key: 'codex.set.backToHangar' }));
 
     await harness.navigateByUrl('/codex');
-    await harness.navigateByUrl('/codex/set/set-a');
+    await harness.navigateByUrl('/hq/locker/set-a');
     expect(seen).toEqual(jasmine.objectContaining({ path: '/codex', key: 'codex.set.back' }));
   });
 });

@@ -467,7 +467,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-hint.inferred { position: static; pointer-events: auto; text-align: left; margin: 0 18px;
       border-left: 2px solid color-mix(in srgb, var(--sc-warn) 55%, transparent); padding-left: 8px; }
 
-    .pick-win { position: relative; width: 100%; max-width: 1060px; max-height: 100%;
+    .pick-win { position: relative; width: 100%; max-width: var(--sc-ov-area); max-height: min(100%, var(--sc-ov-max-h));
       display: flex; flex-direction: column; background: var(--sc-bg-1);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
       border-radius: var(--radius-md, 4px); box-shadow: 0 24px 70px rgb(0 0 0 / .7);
@@ -638,9 +638,9 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 
     /* Tablet: a wide sheet with a little air; phone: full-screen takeover. */
     @media (max-width: 1080px) { .pick-veil { padding: 24px 16px; } }
-    @media (max-width: 640px) {
+    @media (max-width: 720px) {
       .pick-veil { padding: 0; }
-      .pick-win { max-width: none; border-radius: 0; height: 100vh; height: 100dvh; max-height: 100dvh; }
+      .pick-win { max-width: none; width: 100%; border-radius: 0; padding-bottom: env(safe-area-inset-bottom, 0px); height: 100vh; height: 100dvh; max-height: 100dvh; }
       .pick-scope { flex-direction: column; align-items: stretch; }
       .pick-count, .pick-cols { align-self: flex-start; }
       .pick-count { margin-left: 0; }
@@ -702,14 +702,14 @@ export class CodexSwapPickerComponent {
   ];
 
   private readonly isPhone = signal(
-    typeof globalThis.matchMedia === 'function' ? globalThis.matchMedia('(max-width: 640px)').matches : false,
+    typeof globalThis.matchMedia === 'function' ? globalThis.matchMedia('(max-width: 720px)').matches : false,
   );
 
   constructor() {
     this.i18n.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(e.lang));
 
     if (typeof globalThis.matchMedia === 'function') {
-      const mq = globalThis.matchMedia('(max-width: 640px)');
+      const mq = globalThis.matchMedia('(max-width: 720px)');
       fromEvent<MediaQueryListEvent>(mq, 'change')
         .pipe(takeUntilDestroyed())
         .subscribe((e) => this.isPhone.set(e.matches));

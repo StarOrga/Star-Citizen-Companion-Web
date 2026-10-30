@@ -5,7 +5,7 @@
 //! Flow (the JWT never appears in any URL, therefore never in browser history):
 //!   1. Bind an ephemeral HTTP server on `127.0.0.1:<port>` serving `/scc/callback`.
 //!   2. Open the default browser at
-//!      `<web>/desktop/connect?cb=<loopback>&state=<csrf>`.
+//!      `<web>/apps/starscape/connect?cb=<loopback>&state=<csrf>`.
 //!   3. The website authenticates the user and submits a TOP-LEVEL form-POST
 //!      navigation to the loopback with `{state, token, email, refresh_token,
 //!      expires_at}` in the request body. A navigation is used rather than a
@@ -14,7 +14,7 @@
 //!   4. We validate `state`, render the "you can close this window" page into
 //!      the navigated tab, and hand the session back.
 //!
-//! `/desktop/connect` is deliberately the route we use, not `/uploader/auth`:
+//! `/apps/starscape/connect` is deliberately the route we use, not `/apps/uploader/auth`:
 //! the latter is collaborator-gated, while Starscape must work for viewers too
 //! (they follow the stable ring). The route accepts any signed-in user and the
 //! release channel is clamped server-side by role anyway.
@@ -61,7 +61,7 @@ pub fn run_oauth_flow() -> Option<Session> {
     }
 
     let cb = format!("http://127.0.0.1:{port}{CALLBACK_PATH}");
-    let url = format!("{WEB_BASE}/desktop/connect?cb={}&state={}", percent_encode(&cb), state);
+    let url = format!("{WEB_BASE}/apps/starscape/connect?cb={}&state={}", percent_encode(&cb), state);
     log::line(&format!("auth: waiting for the website hand-off on 127.0.0.1:{port}"));
     util::open_url(&url);
 

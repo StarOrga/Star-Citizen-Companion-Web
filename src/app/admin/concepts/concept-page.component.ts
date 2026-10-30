@@ -7,7 +7,7 @@ import { ConceptPageService, ConceptTicketError, ConceptTicketFailure } from './
 type State = 'loading' | 'ready' | ConceptTicketError;
 
 /**
- * `/konzept/:id` — one hosted concept page, embedded (admin feedback #224).
+ * `/concept/:id` — one hosted concept page, embedded (admin feedback #224).
  *
  * The admin asked for a link on the website that only admins can open and
  * on which the interactive concept (choices, notes, submit) works exactly
