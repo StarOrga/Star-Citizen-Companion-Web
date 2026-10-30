@@ -6,7 +6,7 @@ updater and alpha/beta/stable rings — but they work differently from the
 data-uploader's, so do not assume the Electron flow applies
 (`data-uploader-release.md` is the electron-updater one).
 
-## What a release needs (all of these, or `/starscape` shows the old version)
+## What a release needs (all of these, or `/apps/starscape` shows the old version)
 
 1. **Bump `wallpaper-app/Cargo.toml` + `Cargo.lock`** (the `starscape-wallpaper`
    package version — grep `name = "starscape-wallpaper"` in the lock). The CI's
@@ -96,7 +96,7 @@ The differences that matter:
   non-revoked build plus the `token_revoked` kill switch — unlike the uploader's
   token path it is **never** a channel bypass. An unauthenticated app therefore
   silently self-updates on stable; beta/alpha need a website sign-in
-  (`/desktop/connect`, the loopback handshake, session DPAPI-sealed on disk).
+  (`/apps/starscape/connect`, formerly `/desktop/connect` — kept live for installed builds — the loopback handshake, session DPAPI-sealed on disk).
 - **The clamp costs the download, not the verdict.** Since
   `20260830120000_starscape_ring_version_hint` the resolver also returns
   `requested_version` — the version the caller's OWN ring is on, resolved
@@ -243,7 +243,7 @@ while the row is missing.
 ## Verify live before declaring done
 
 A green CI build ≠ a visible release — the `desktop_releases` row is the "make it
-live" switch. After registering, verify on the PUBLIC `/starscape` page (no auth):
+live" switch. After registering, verify on the `/apps/starscape` page (no auth):
 the download CTA reads **"↓ … v<X.Y.Z>"**. The app is a PWA, so an already-open
 visitor sees the new page only after a service-worker update (the in-app "new
 version" prompt) — a fresh load shows it immediately; both are expected.
