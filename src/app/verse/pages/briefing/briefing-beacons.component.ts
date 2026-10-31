@@ -5,6 +5,7 @@ import type { VersePoint } from '../../data/verse.models';
 import { BriefingSkyComponent } from './briefing-sky.component';
 import { TREND_GLYPH, StabilityTrend, stabilityWord } from '../../../news/patch-stability';
 import { splitChars } from './briefing.model';
+import { BodyCanvasDirective } from './bodies/body.directive';
 
 /** Quiet time (no scroll, no pointer movement, window focused) before the idle hint. */
 export const IDLE_HINT_MS = 8000;
@@ -16,9 +17,10 @@ export const IDLE_SHOW_MS = 5000;
  * patch's status) and the current patch's constellation below-left of it
  * (→ the star map). Hover: the sun's corona brightens and grows, a flare
  * streak crosses it (the sun itself: concept 2026-10-31 "Sonne & Planeten" —
- * a limb-darkened, boiling photosphere, small irregular storms — plasma loops
- * that rise and fade at the limb on their own clocks, now and then a flare —
- * a breathing two-layer corona with uneven streamers and a soft bloom), "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
+ * live in WebGL (bodies/body-shaders.ts): a boiling, limb-darkened photosphere
+ * with a turning spot group, flames streaming out of the chromosphere,
+ * prominences whose plasma flows along their loops — some erupt and tear off —
+ * and now and then a flare; the CSS sun below stays as the fallback), "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
  * letter by letter; the constellation redraws its lines and twinkles in the
  * star map's own white/blue and wording ("Sternkarte", "Sternbild von Patch …
  * · 3 von 5 Sternen"). Only the sun keeps its warm tone.
@@ -31,7 +33,7 @@ export const IDLE_SHOW_MS = 5000;
 @Component({
   selector: 'sc-briefing-beacons',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, BriefingSkyComponent],
+  imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-beacons.component.scss',
   template: `
@@ -52,6 +54,7 @@ export const IDLE_SHOW_MS = 5000;
           <b class="prom" [style.--a]="p.a" [style.--d]="p.d" [style.--w]="p.w" [style.--z]="p.z"><i></i></b>
         }
         <i class="disc"></i><i class="flash"></i>
+        <canvas class="sun-gl" scBody="sun"></canvas>
       </span>
       <span class="flare" aria-hidden="true"></span>
       <span class="lab warm" aria-hidden="true">

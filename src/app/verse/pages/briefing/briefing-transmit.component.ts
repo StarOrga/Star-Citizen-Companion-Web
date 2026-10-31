@@ -3,6 +3,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { VerseDoor } from '../../data/verse.models';
+import { BodyCanvasDirective } from './bodies/body.directive';
+import type { BodyKind } from './bodies/body-engine';
 
 /** Charge + light cone grow out of the sending planet. */
 export const TX_CHARGE_MS = 1000;
@@ -54,7 +56,7 @@ export interface TransmitItem {
 @Component({
   selector: 'sc-briefing-transmit',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, NgTemplateOutlet],
+  imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
   host: { '[class.away]': 'away()', '[class.docked]': 'docked()' },
@@ -64,6 +66,7 @@ export interface TransmitItem {
     @for (d of doors; track d) {
       <a class="pl" [attr.data-door]="d" [attr.data-verse-fly]="d" [class.send]="c?.door === d && (phase() === 'charge' || phase() === 'reveal')"
          [routerLink]="'/verse/' + d" (click)="door.emit(d)">
+        <canvas class="pl-gl" [scBody]="bodyOf[d]"></canvas>
         <span class="plab">{{ ('verse.gates.' + d + '.topic') | translate }}</span>
       </a>
     }
@@ -103,6 +106,8 @@ export class BriefingTransmitComponent {
   readonly opened = output<TransmitItem>();
 
   readonly doors = TX_DOORS;
+  /** The living planet behind each door (concept "Sonne & Planeten"). */
+  readonly bodyOf: Readonly<Record<VerseDoor, BodyKind>> = { news: 'crusader', patches: 'arccorp', gallery: 'microtech' };
   readonly index = signal(0);
   readonly phase = signal<TxPhase>('out');
   readonly typed = signal(0);

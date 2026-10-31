@@ -203,6 +203,25 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
   animation-play-state: var(--play);
 }
 
+.sun-gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+
+.sun-gl.on {
+  opacity: 1;
+}
+
+.sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+
 @keyframes corona {
   to {
     transform: rotate(360deg);
@@ -352,6 +371,15 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
 .scanline { overflow: hidden; }
 .scanline::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(var(--scan) - 2%); width: 4%; background: linear-gradient(90deg, transparent, rgba(159, 230, 255, 0.95), transparent); box-shadow: 0 0 18px rgba(82, 193, 230, 0.9); }
 @keyframes scan { 0%, 8% { --scan: -6%; } 62%, 78% { --scan: 106%; } 92%, 100% { --scan: -6%; } }
+/* ── Live bodies (WebGL, same engine as the app) ───────── */
+.pl > canvas.live, .sun > canvas.live { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 1s ease-out; }
+.sun > canvas.live { border-radius: 0; }
+canvas.live.on { opacity: 1; }
+.sun:has(> canvas.live.on) > :is(.corona, .streamers, .prom, .disc, .flash) { opacity: 0; }
+
+@media (max-width: 820px) { .idea-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .scan-demo { animation: none; --scan: 55%; } }
+
 @media (max-width: 820px) { .idea-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .scan-demo { animation: none; --scan: 55%; } }
 
@@ -383,7 +411,7 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
   <div class="title">
     <span class="eyebrow warm">Konzept · Verse-Stage</span>
     <h1>Sonne &amp; Planeten</h1>
-    <p>Vier Himmelskörper, ein Licht. Jetzt mit Sonnenstürmen und vier Ideen für ArcCorp.</p>
+    <p>Vier Himmelskörper, ein Licht. Die Planeten drehen sich, die Sonne stürmt.</p>
   </div>
 </section>
 
@@ -391,7 +419,7 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="weld" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></svg>
   <section class="intro">
     <span class="eyebrow">Worum es geht</span>
-    <p>Sonne, Crusader, ArcCorp und microTech stehen auf der Verse-Stage und fliegen beim Scrollen als Mini-Planeten in die Spaltenköpfe des Hubs. Bisher waren sie CSS-Verläufe mit einem gemeinsamen Schatten. Jetzt bekommt jeder Planet eine eigene, prozedural erzeugte Oberfläche (SVG mit <code>feTurbulence</code>, keine Spiel-Assets). Terminator, Randverdunkelung, Atmosphärensaum und Nachtlichter sind Teil jeder Textur. Licht kommt überall von oben rechts, wo die Sonne steht.</p>
+    <p>Die Sonne und die drei Planeten für News, Patches und Galerie stehen auf der Verse-Stage und fliegen beim Scrollen als Mini-Planeten in die Spaltenköpfe des Hubs. Jetzt leben sie: Die Planeten drehen sich langsam unter einem festen Sonnenlicht, die Sonne brodelt und wirft Protuberanzen. Alles läuft live in WebGL auf prozeduralen Texturen, ohne Spiel-Assets.</p>
   </section>
 
 
@@ -399,39 +427,38 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
     <span class="eyebrow">Großansicht</span>
     <h2>Jeder Körper in voller Größe</h2>
     <nav class="big-nav" aria-label="Zu einem Himmelskörper springen">
-      <a href="#v-sonne">Sonne</a><a href="#v-crusader">Crusader</a><a href="#v-arccorp">ArcCorp</a><a href="#v-microtech">microTech</a>
+      <a href="#v-sonne">Sonne</a><a href="#v-crusader">News</a><a href="#v-arccorp">Patches</a><a href="#v-microtech">Galerie</a>
     </nav>
     <div class="view" id="v-sonne">
       <span class="sun"><i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="streamers"></i><b class="prom" style="--a:-58deg;--d:7.9s;--w:-2.1s;--z:1"><i></i></b><b class="prom" style="--a:24deg;--d:11.3s;--w:-6.4s;--z:0.8"><i></i></b><b class="prom" style="--a:97deg;--d:13.7s;--w:-1.2s;--z:1.15"><i></i></b><b class="prom" style="--a:168deg;--d:9.1s;--w:-7.7s;--z:0.7"><i></i></b><b class="prom" style="--a:232deg;--d:16.9s;--w:-11.5s;--z:0.95"><i></i></b><b class="prom" style="--a:-12deg;--d:19.3s;--w:-15.8s;--z:0.6"><i></i></b><i class="disc"></i><i class="flash"></i></span>
-      <h3>Stanton</h3><p>Brodelnde Photosphäre, kleine Sonnenstürme am Rand, ab und zu ein Flare, atmende Korona.</p>
+      <h3>Sonne · Patch-Status</h3><p>Brodelnde Oberfläche mit Sonnenflecken, Flammen aus der Chromosphäre, Protuberanzen, in denen das Plasma entlang der Bögen fließt. Manche reißen ab und fliegen hinaus, ab und zu blitzt ein Flare.</p>
     </div>
     <div class="view" id="v-crusader">
       <span class="pl crusader"></span>
-      <h3>Crusader</h3><p>Verwirbelte Pastellbänder, zwei Sturmwirbel, Orisons Lichter auf der Nachtseite.</p>
+      <h3>News</h3><p>Gasriese Crusader: verwirbelte Pastellbänder und Sturmwirbel ziehen vorbei, eine Umdrehung in 70 s.</p>
     </div>
     <div class="view" id="v-arccorp">
       <span class="pl arccorp"></span>
-      <h3>ArcCorp</h3><p>Grundtextur: dichte Stadt bei Tag, Bernstein-Lichterteppich bei Nacht. Ideen dafür weiter unten.</p>
+      <h3>Patches</h3><p>Der Stadtplanet: Lichterteppich auf der Nachtseite, Verkehr auf den Megastraßen, Dunst, der gegen die Drehung zieht, Area18 als heller Fleck. Ideen für mehr weiter unten.</p>
     </div>
     <div class="view" id="v-microtech">
       <span class="pl microtech"></span>
-      <h3>microTech</h3><p>Schnee, Schiefergrate, Wolkenwirbel, New Babbage in Cyan.</p>
+      <h3>Galerie</h3><p>Eiswelt microTech: Schnee und Schiefergrate drehen sich, die Wolken ziehen schneller darüber, der Glanz der Sonne bleibt an seinem Platz.</p>
     </div>
   </section>
 
   <article class="plate" id="sonne">
     <div class="render"><span class="sun"><i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="streamers"></i><b class="prom" style="--a:-58deg;--d:7.9s;--w:-2.1s;--z:1"><i></i></b><b class="prom" style="--a:24deg;--d:11.3s;--w:-6.4s;--z:0.8"><i></i></b><b class="prom" style="--a:97deg;--d:13.7s;--w:-1.2s;--z:1.15"><i></i></b><b class="prom" style="--a:168deg;--d:9.1s;--w:-7.7s;--z:0.7"><i></i></b><b class="prom" style="--a:232deg;--d:16.9s;--w:-11.5s;--z:0.95"><i></i></b><b class="prom" style="--a:-12deg;--d:19.3s;--w:-15.8s;--z:0.6"><i></i></b><i class="disc"></i><i class="flash"></i></span></div>
     <div class="notes" style="--dot: var(--warm)">
-      <span class="eyebrow warm">Stanton · Beacon → Patch-Status</span>
+      <span class="eyebrow warm">Sonne · führt zum Patch-Status</span>
       <h2>Die Sonne</h2>
-      <p>Ein lebendiger Stern statt einer starren Glühscheibe: die Oberfläche brodelt, am Rand gehen kleine Stürme hoch.</p>
+      <p>Ein lebendiger Stern statt einer starren Glühscheibe. Alles wird live in WebGL gerechnet, nichts wiederholt sich sichtbar.</p>
       <ul>
-        <li><b>Photosphäre</b> mit Randverdunkelung: weißglühende Mitte, tiefgoldener Rand, darauf Granulation, helle Fackeln und eine kleine Fleckengruppe.</li>
-        <li><b>Chromosphäre</b> als heißer, dünner Saum um die Scheibe.</li>
-        <li><b>Sonnenstürme</b>: sechs Plasmabögen steigen am Rand auf, hängen kurz und verglühen, jeder mit eigenem Takt (7,9 bis 19,3 s), dadurch nie im Gleichschritt. Ab und zu blitzt ein Flare auf.</li>
-        <li><b>Brodeln</b>: zwei Körnungsebenen driften gegeneinander über die Scheibe. <b>Korona</b> in zwei Lagen plus lange, ungleichmäßige Streamer, die langsam drehen und atmen.</li>
-        <li><b>Bloom</b> als weiter, warmer Schein. Hover: heller, größer, der Flare-Streifen bleibt.</li>
-        <li>Pause-Knopf der Stage hält die Korona an, reduzierte Bewegung lässt sie stehen.</li>
+        <li><b>Photosphäre</b>: Randverdunkelung von weißgold zu tieforange, Granulation, die wirklich brodelt, helle Fackeln am Rand und eine Fleckengruppe, die mit der Sonne langsam mitdreht.</li>
+        <li><b>Flammen</b> strömen aus der Chromosphäre nach außen, die <b>Korona</b> flackert mit.</li>
+        <li><b>Protuberanzen</b>: sieben Plasmabögen mit eigenem Takt (8,5 bis 23 s). Sie wachsen aus dem Rand, das Plasma fließt sichtbar die Bögen entlang, die Bögen wabern. Zwei davon sind eruptiv: sie steigen weit auf, reißen oben ab und fliegen hinaus.</li>
+        <li><b>Flares</b>: alle ~17 s blitzt an einer zufälligen Stelle des Randes ein heller Flare auf.</li>
+        <li>Pause-Knopf der Stage friert alles ein, reduzierte Bewegung zeigt ein Standbild. Ohne WebGL bleibt die CSS-Sonne.</li>
       </ul>
       <div class="strip">
         <figure><span class="sun" style="width:92px"><i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="streamers"></i><b class="prom" style="--a:-58deg;--d:7.9s;--w:-2.1s;--z:1"><i></i></b><b class="prom" style="--a:24deg;--d:11.3s;--w:-6.4s;--z:0.8"><i></i></b><b class="prom" style="--a:97deg;--d:13.7s;--w:-1.2s;--z:1.15"><i></i></b><b class="prom" style="--a:168deg;--d:9.1s;--w:-7.7s;--z:0.7"><i></i></b><b class="prom" style="--a:232deg;--d:16.9s;--w:-11.5s;--z:0.95"><i></i></b><b class="prom" style="--a:-12deg;--d:19.3s;--w:-15.8s;--z:0.6"><i></i></b><i class="disc"></i><i class="flash"></i></span><figcaption>Neu · Stage</figcaption></figure>
@@ -445,14 +472,15 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
   <article class="plate" id="crusader">
     <div class="render"><span class="pl crusader"></span></div>
     <div class="notes" style="--dot: #f0c7b3">
-      <span class="eyebrow">Crusader · News</span>
-      <h2>Gasriese in Pastell</h2>
+      <span class="eyebrow">News</span>
+      <h2>Crusader, Gasriese in Pastell</h2>
       <p>Weiche Rosé-, Pfirsich- und Cremebänder, die wirklich strömen. Kein Ring, keine harten Streifen.</p>
       <ul>
         <li><b>Bänder</b> mit zwei Ebenen Verwirbelung (groß und fein), dadurch ausgefranste, wellige Bandkanten wie bei echten Gasriesen.</li>
         <li><b>Zwei Sturmwirbel</b>: ein großes ovales Auge im Pfirsichband, ein kleiner Bruder im Norden.</li>
         <li><b>Orison</b>: ein paar warme Lichtpunkte der schwebenden Plattformen auf der Nachtseite.</li>
         <li>Bläulich-weißer Atmosphärensaum zur Sonne, leichte Neigung der Bänder (−9°).</li>
+        <li><b>Dreht sich</b>: eine Umdrehung in 70 s, die Bänder und Stürme ziehen unter dem festen Sonnenlicht durch.</li>
       </ul>
       <div class="strip">
         <figure><span class="pl crusader" style="--s:88px"></span><figcaption>Stage · 88 px</figcaption></figure>
@@ -466,7 +494,7 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
   <article class="plate" id="arccorp">
     <div class="render"><span class="pl arccorp"></span></div>
     <div class="notes" style="--dot: #ffb45c">
-      <span class="eyebrow">ArcCorp · Patches</span>
+      <span class="eyebrow">Patches</span>
       <h2>Ein Planet aus Stadt</h2>
       <p>Bei Tag eine dichte grau-beige Stadt, bei Nacht ein Teppich aus Bernsteinlicht. Darüber kommt eine der Sci-Fi-Ideen weiter unten.</p>
       <ul>
@@ -474,6 +502,7 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
         <li><b>Nachtseite</b>: tausende Einzellichter mal Distrikt-Dichte, mit Bloom und orangem Himmelsglühen; die Megastraßen glühen als Lichtbänder.</li>
         <li>Dunkle Lücken zwischen den Lichtclustern lassen die Stadtgrenzen lesbar.</li>
         <li>Warmer, dunstiger Saum zur Sonne.</li>
+        <li><b>Lebt</b>: dreht sich in 110 s, Verkehr pulst über die Megastraßen, die Lichter flimmern leicht, eine Dunstschicht zieht gegen die Drehung, Area18 glüht als heller Fleck.</li>
       </ul>
       <div class="strip">
         <figure><span class="pl arccorp" style="--s:66px"></span><figcaption>Stage · 66 px</figcaption></figure>
@@ -487,14 +516,15 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
   <article class="plate" id="microtech">
     <div class="render"><span class="pl microtech"></span></div>
     <div class="notes" style="--dot: #9fe6ff">
-      <span class="eyebrow">microTech · Galerie</span>
-      <h2>Eiswelt</h2>
+      <span class="eyebrow">Galerie</span>
+      <h2>microTech, die Eiswelt</h2>
       <p>Schnee, Schiefer und Wolken, kalt und klar. Der einzige Planet mit Glanz.</p>
       <ul>
         <li><b>Gelände</b> aus Grat-Rauschen: schiefergraue Bergrücken und Fjorde, der Rest unter Schnee.</li>
         <li><b>Polkappe</b> strahlend weiß, darüber <b>Wolkenwirbel</b>, die mit einer zweiten Turbulenz verdreht werden.</li>
         <li><b>Spiegelglanz</b> auf der Sonnenseite (Eis reflektiert).</li>
         <li><b>New Babbage</b> leuchtet als kleiner cyanfarbener Punkt auf der Nachtseite, dazu ein paar verstreute Siedlungen. Scharfer, cyanfarbener Saum.</li>
+        <li><b>Dreht sich</b> in 130 s, die Wolken ziehen in 95 s schneller darüber. Der Glanzpunkt bleibt fest bei der Sonne.</li>
       </ul>
       <div class="strip">
         <figure><span class="pl microtech" style="--s:88px"></span><figcaption>Stage · 88 px</figcaption></figure>
@@ -508,8 +538,9 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
 
 
 
+
   <section class="ideas" id="arccorp-ideen">
-    <span class="eyebrow">ArcCorp · Ideen</span>
+    <span class="eyebrow">Patches · Ideen</span>
     <h2>Vier Sci-Fi-Richtungen für den Patch-Planeten</h2>
     <p>Alle vier nutzen die neue Grundtextur (Ingame-näher: grau-beige Stadt, Megastraßen entlang der Kugel, Nachtseite voller Bernsteinlicht) und legen eine eigene Ebene darüber. Die Ebenen sind kombinierbar, zum Beispiel A mit D.</p>
     <div class="idea-grid">
@@ -530,7 +561,7 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
 <circle r="1.6" fill="#9fe6ff"><animateMotion dur="13s" begin="-5s" repeatCount="indefinite" path="M290 150 A140 34 0 0 1 10 150"/></circle><circle cx="281.5" cy="161.7" r="1.6" fill="#ffcf6a" class="f"><animate attributeName="opacity" values="1;.15;1;1" dur="1.30s" repeatCount="indefinite"/></circle><circle cx="200.7" cy="181.7" r="1.6" fill="#ffcf6a" class="f"><animate attributeName="opacity" values="1;.15;1;1" dur="1.67s" repeatCount="indefinite"/></circle><circle cx="85.4" cy="180.2" r="1.6" fill="#ffcf6a" class="f"><animate attributeName="opacity" values="1;.15;1;1" dur="2.04s" repeatCount="indefinite"/></circle><circle cx="23.4" cy="164.5" r="1.6" fill="#ffcf6a" class="f"><animate attributeName="opacity" values="1;.15;1;1" dur="2.41s" repeatCount="indefinite"/></circle></g></svg></span>
 </div>
         <div class="idea-t"><span class="idea-k">A</span><h3>Orbitalring im Bau</h3><span class="chip rec">Empfehlung</span></div>
-        <p>Um ArcCorp wird ein Ring gebaut. Fertige Segmente aus Stahl, dazwischen Gerüst, blinkende Baulichter, ein Schweißfunke setzt das nächste Stück an, Drohnen fliegen die Strecke ab. Passt zu Patches: das Spiel wird Stück für Stück gebaut. Später könnten die Segmente den Fortschritt zum nächsten Patch zeigen.</p>
+        <p>Um den Patches-Planeten wird ein Ring gebaut. Fertige Segmente aus Stahl, dazwischen Gerüst, blinkende Baulichter, ein Schweißfunke setzt das nächste Stück an, Drohnen fliegen die Strecke ab. Passt zu Patches: das Spiel wird Stück für Stück gebaut. Später könnten die Segmente den Fortschritt zum nächsten Patch zeigen.</p>
       </article>
       <article class="idea" id="idee-b">
         <div class="demo scan-demo">
@@ -563,11 +594,187 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
 
   <section class="shared">
     <span class="eyebrow">Was alle vier teilen</span>
-    <h2>Ein Licht, eine Technik</h2>
+    <h2>Ein Licht, ein Renderer</h2>
     <div class="grid">
-      <div><h3>Ein Sonnenstand</h3><p>Licht von oben rechts, Terminator bei rund 60 % des Radius, Nachtseite unten links. Passt zum großen WebGL-Planeten und zur Sonne.</p></div>
-      <div><h3>Eine Datei pro Körper</h3><p><code>public/img/verse/*.svg</code>, je 3–4 KB, gecacht. Das CSS-Mixin setzt nur noch Textur, Atmosphärensaum und Halo.</p></div>
-      <div><h3>Jede Größe</h3><p>Vektor plus Filter: scharf auf 4K-Stage, lesbar als 22-px-Spaltenkopf und während des Scroll-Flugs.</p></div>
+      <div><h3>Ein Sonnenstand</h3><p>Licht von oben rechts, wo die Sonne steht. Nur die Oberflächen drehen sich darunter, Terminator, Glanz und Atmosphärensaum bleiben an ihrem Platz.</p></div>
+      <div><h3>Ein WebGL-Kontext</h3><p>Sonne und Planeten teilen sich einen Renderer, ~30 fps, nur solange sie sichtbar sind. Die Rundum-Texturen sind prozedurale SVGs in <code>public/img/verse/maps/</code>.</p></div>
+      <div><h3>Immer ein Fallback</h3><p>Ohne WebGL oder während die Texturen laden, steht das statische SVG-Design darunter. Reduzierte Bewegung zeigt ein Standbild.</p></div>
     </div>
   </section>
 </main>
+<script>var MAPS={"arccorp-haze": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz48ZmlsdGVyIGlkPSJoIiB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjAyIDAuMDM1IiBudW1PY3RhdmVzPSI0IiBzZWVkPSIyIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDEgIDAgMCAwIDAgMSAgMCAwIDAgMCAxICAyLjIgMCAwIDAgLTEiLz48L2ZpbHRlcj48L2RlZnM+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMDAwIi8+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbHRlcj0idXJsKCNoKSIvPjwvc3ZnPg==", "crusader-day": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNjNzljOTAiLz48c3RvcCBvZmZzZXQ9IjAuMDciIHN0b3AtY29sb3I9IiNlMGJjYWMiLz48c3RvcCBvZmZzZXQ9IjAuMTIiIHN0b3AtY29sb3I9IiNjZjlhODgiLz48c3RvcCBvZmZzZXQ9IjAuMTgiIHN0b3AtY29sb3I9IiNmMmRjY2IiLz48c3RvcCBvZmZzZXQ9IjAuMjUiIHN0b3AtY29sb3I9IiNmYmVlZTIiLz48c3RvcCBvZmZzZXQ9IjAuMyIgc3RvcC1jb2xvcj0iI2UyYWM5NCIvPjxzdG9wIG9mZnNldD0iMC4zMzUiIHN0b3AtY29sb3I9IiNjOThhNzYiLz48c3RvcCBvZmZzZXQ9IjAuMzciIHN0b3AtY29sb3I9IiNlZmQwYmMiLz48c3RvcCBvZmZzZXQ9IjAuNDMiIHN0b3AtY29sb3I9IiNmZGYzZTgiLz48c3RvcCBvZmZzZXQ9IjAuNDkiIHN0b3AtY29sb3I9IiNmNGRjYzgiLz48c3RvcCBvZmZzZXQ9IjAuNTMiIHN0b3AtY29sb3I9IiNlOGI3OWUiLz48c3RvcCBvZmZzZXQ9IjAuNTY1IiBzdG9wLWNvbG9yPSIjYjk3ODZhIi8+PHN0b3Agb2Zmc2V0PSIwLjYiIHN0b3AtY29sb3I9IiNlOWMwYTgiLz48c3RvcCBvZmZzZXQ9IjAuNjYiIHN0b3AtY29sb3I9IiNmYWU4ZDgiLz48c3RvcCBvZmZzZXQ9IjAuNzIiIHN0b3AtY29sb3I9IiNlYmMzYWQiLz48c3RvcCBvZmZzZXQ9IjAuNzciIHN0b3AtY29sb3I9IiNkNzljODgiLz48c3RvcCBvZmZzZXQ9IjAuODIiIHN0b3AtY29sb3I9IiNmMGQ0YzIiLz48c3RvcCBvZmZzZXQ9IjAuODkiIHN0b3AtY29sb3I9IiNkZGIwYTAiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNiZDhmODQiLz48L2xpbmVhckdyYWRpZW50Pgo8ZmlsdGVyIGlkPSJmbG93IiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9Ii0zMCIgeT0iLTMwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjI2MCIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wMTI1IDAuMDUiIG51bU9jdGF2ZXM9IjQiIHNlZWQ9IjciIHN0aXRjaFRpbGVzPSJzdGl0Y2giIHg9IjAiIHk9Ii0zMCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyNjAiIHJlc3VsdD0ibiIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJuIiBzY2FsZT0iMTYiIHhDaGFubmVsU2VsZWN0b3I9IlIiIHlDaGFubmVsU2VsZWN0b3I9IkciIHJlc3VsdD0iZCIvPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjA1IDAuMTEiIG51bU9jdGF2ZXM9IjIiIHNlZWQ9IjIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIiB4PSIwIiB5PSItMzAiIHdpZHRoPSI0MDAiIGhlaWdodD0iMjYwIiByZXN1bHQ9ImYiLz48ZmVEaXNwbGFjZW1lbnRNYXAgaW49ImQiIGluMj0iZiIgc2NhbGU9IjUiIHhDaGFubmVsU2VsZWN0b3I9IkciIHlDaGFubmVsU2VsZWN0b3I9IlIiLz48L2ZpbHRlcj4KPGZpbHRlciBpZD0ic3QiIHg9IjAiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuMDA3NSAwLjE0IiBudW1PY3RhdmVzPSIzIiBzZWVkPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIDEgIDAgMCAwIDAgLjk3ICAwIDAgMCAwIC45NCAgMCAwIDAgMi40IC0xLjA1Ii8+PC9maWx0ZXI+CjxmaWx0ZXIgaWQ9ImR1IiB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjAxIDAuMSIgbnVtT2N0YXZlcz0iMyIgc2VlZD0iMTkiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48ZmVDb2xvck1hdHJpeCB2YWx1ZXM9IjAgMCAwIDAgLjQyICAwIDAgMCAwIC4yICAwIDAgMCAwIC4xOCAgMCAwIDAgMi4yIC0xIi8+PC9maWx0ZXI+CjxyYWRpYWxHcmFkaWVudCBpZD0icyIgY3g9Ii41IiBjeT0iLjUiIHI9Ii41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmY2ZWMiLz48c3RvcCBvZmZzZXQ9Ii4zNSIgc3RvcC1jb2xvcj0iI2YzY2RiMiIvPjxzdG9wIG9mZnNldD0iLjYyIiBzdG9wLWNvbG9yPSIjYzQ3ZTY2Ii8+PHN0b3Agb2Zmc2V0PSIuOCIgc3RvcC1jb2xvcj0iI2U5YjlhMCIgc3RvcC1vcGFjaXR5PSIuNiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2U5YjlhMCIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD4KPGZpbHRlciBpZD0ic3ciIHg9Ii01MCUiIHk9Ii01MCUiIHdpZHRoPSIyMDAlIiBoZWlnaHQ9IjIwMCUiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuMDgiIG51bU9jdGF2ZXM9IjIiIHNlZWQ9IjUiIHN0aXRjaFRpbGVzPSJzdGl0Y2giIHJlc3VsdD0ibiIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJuIiBzY2FsZT0iNCIvPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249Ii40Ii8+PC9maWx0ZXI+CjwvZGVmcz4KPHJlY3QgeD0iLTMwIiB5PSItMzAiIHdpZHRoPSI0NjAiIGhlaWdodD0iMjYwIiBmaWxsPSJ1cmwoI2IpIiBmaWx0ZXI9InVybCgjZmxvdykiLz4KPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbHRlcj0idXJsKCNzdCkiIG9wYWNpdHk9Ii4zMiIvPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI2R1KSIgb3BhY2l0eT0iLjQ1Ii8+CjxnIGZpbHRlcj0idXJsKCNzdykiPjxlbGxpcHNlIGN4PSIxMzAiIGN5PSIxMjYiIHJ4PSIxNiIgcnk9IjYuNSIgZmlsbD0idXJsKCNzKSIvPjxlbGxpcHNlIGN4PSIyOTAiIGN5PSI2OCIgcng9IjgiIHJ5PSIzIiBmaWxsPSJ1cmwoI3MpIiBvcGFjaXR5PSIuOCIvPjxlbGxpcHNlIGN4PSI2MCIgY3k9IjE1MCIgcng9IjYiIHJ5PSIyLjQiIGZpbGw9InVybCgjcykiIG9wYWNpdHk9Ii43Ii8+PC9nPgo8L3N2Zz4=", "microtech-day": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZmIi8+PHN0b3Agb2Zmc2V0PSIuMTIiIHN0b3AtY29sb3I9IiNmNGY5ZmQiLz48c3RvcCBvZmZzZXQ9Ii4yNSIgc3RvcC1jb2xvcj0iI2Q5ZThmMiIvPjxzdG9wIG9mZnNldD0iLjUiIHN0b3AtY29sb3I9IiNiY2QyZTMiLz48c3RvcCBvZmZzZXQ9Ii43NSIgc3RvcC1jb2xvcj0iI2Q0ZTRlZiIvPjxzdG9wIG9mZnNldD0iLjg4IiBzdG9wLWNvbG9yPSIjZjRmOWZkIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZmIi8+PC9saW5lYXJHcmFkaWVudD4KPGZpbHRlciBpZD0idGVyIiB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZVR1cmJ1bGVuY2UgdHlwZT0idHVyYnVsZW5jZSIgYmFzZUZyZXF1ZW5jeT0iMC4wMyIgbnVtT2N0YXZlcz0iNSIgc2VlZD0iMTQiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48ZmVDb2xvck1hdHJpeCB2YWx1ZXM9IjAgMCAwIDAgLjMgIDAgMCAwIDAgLjQgIDAgMCAwIDAgLjUgIC0zLjQgMCAwIDAgMS41NSIvPjwvZmlsdGVyPgo8ZmlsdGVyIGlkPSJmaiIgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVUdXJidWxlbmNlIHR5cGU9InR1cmJ1bGVuY2UiIGJhc2VGcmVxdWVuY3k9IjAuMDgiIG51bU9jdGF2ZXM9IjMiIHNlZWQ9IjgiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48ZmVDb2xvck1hdHJpeCB2YWx1ZXM9IjAgMCAwIDAgLjIgIDAgMCAwIDAgLjMgIDAgMCAwIDAgLjQyICAtNCAwIDAgMCAxLjEiLz48L2ZpbHRlcj4KPGxpbmVhckdyYWRpZW50IGlkPSJjYXAiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmYiLz48c3RvcCBvZmZzZXQ9Ii4xNCIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuOSIvPjxzdG9wIG9mZnNldD0iLjI0IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48c3RvcCBvZmZzZXQ9Ii44IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48c3RvcCBvZmZzZXQ9Ii45IiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii44NSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmZiIvPjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9InVybCgjYikiLz4KPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbHRlcj0idXJsKCN0ZXIpIiBvcGFjaXR5PSIuNiIvPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI2ZqKSIgb3BhY2l0eT0iLjQ1Ii8+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ1cmwoI2NhcCkiLz4KPC9zdmc+", "microtech-night": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9ImciIGN4PSIuNSIgY3k9Ii41IiByPSIuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZTZmYmZmIi8+PHN0b3Agb2Zmc2V0PSIuMyIgc3RvcC1jb2xvcj0iIzlmZTZmZiIgc3RvcC1vcGFjaXR5PSIuOCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzQ4YmZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMDAwIi8+PGVsbGlwc2UgY3g9IjE1MCIgY3k9Ijc4LjUiIHJ4PSI2IiByeT0iNCIgZmlsbD0idXJsKCNnKSIgb3BhY2l0eT0iLjc1Ii8+PGNpcmNsZSBjeD0iMTUwIiBjeT0iNzgiIHI9IjAuNyIgZmlsbD0iI2Q5ZjZmZiIgb3BhY2l0eT0iMSIvPjxjaXJjbGUgY3g9IjE1MiIgY3k9Ijc5LjUiIHI9IjAuNDUiIGZpbGw9IiNkOWY2ZmYiIG9wYWNpdHk9IjAuOSIvPjxjaXJjbGUgY3g9IjE0OCIgY3k9IjgwIiByPSIwLjQiIGZpbGw9IiNkOWY2ZmYiIG9wYWNpdHk9IjAuODUiLz48Y2lyY2xlIGN4PSIxNTEuNSIgY3k9Ijc2LjUiIHI9IjAuMzUiIGZpbGw9IiNkOWY2ZmYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iOTYiIHI9IjAuMzUiIGZpbGw9IiNkOWY2ZmYiIG9wYWNpdHk9IjAuNiIvPjxjaXJjbGUgY3g9IjI1MCIgY3k9IjExMiIgcj0iMC4zNSIgZmlsbD0iI2Q5ZjZmZiIgb3BhY2l0eT0iMC41NSIvPjxjaXJjbGUgY3g9IjMzMCIgY3k9IjcwIiByPSIwLjMiIGZpbGw9IiNkOWY2ZmYiIG9wYWNpdHk9IjAuNSIvPjxjaXJjbGUgY3g9IjIwNSIgY3k9IjEzMCIgcj0iMC4zIiBmaWxsPSIjZDlmNmZmIiBvcGFjaXR5PSIwLjUiLz48L3N2Zz4=", "microtech-cloud": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz48ZmlsdGVyIGlkPSJjIiB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjAxNCAwLjA0NSIgbnVtT2N0YXZlcz0iNSIgc2VlZD0iMjciIHN0aXRjaFRpbGVzPSJzdGl0Y2giIHJlc3VsdD0ibiIvPjxmZUNvbG9yTWF0cml4IGluPSJuIiB2YWx1ZXM9IjAgMCAwIDAgMSAgMCAwIDAgMCAxICAwIDAgMCAwIDEgIDMuMiAwIDAgMCAtMS4zNSIgcmVzdWx0PSJjbCIvPjxmZUZsb29kIGZsb29kLWNvbG9yPSIjMDAwIi8+PGZlQ29tcG9zaXRlIGluPSJjbCIgb3BlcmF0b3I9Im92ZXIiLz48L2ZpbHRlcj48L2RlZnM+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWx0ZXI9InVybCgjYykiLz48L3N2Zz4=", "arccorp-day": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz4KPGZpbHRlciBpZD0iZ3JhaW4iIHg9IjAiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNTUiIG51bU9jdGF2ZXM9IjIiIHNlZWQ9IjE3IiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIC4yICAwIDAgMCAwIC4xNiAgMCAwIDAgMCAuMTEgIC0yLjYgMCAwIDAgMS41NSIvPjwvZmlsdGVyPgo8ZmlsdGVyIGlkPSJibG9ja3MiIHg9IjAiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuMTYgMC4yIiBudW1PY3RhdmVzPSIyIiBzZWVkPSI1IiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29tcG9uZW50VHJhbnNmZXI+PGZlRnVuY1IgdHlwZT0iZGlzY3JldGUiIHRhYmxlVmFsdWVzPSIwIC4zIC42IDEiLz48ZmVGdW5jQSB0eXBlPSJkaXNjcmV0ZSIgdGFibGVWYWx1ZXM9Ii4yIC41IC44IDEiLz48L2ZlQ29tcG9uZW50VHJhbnNmZXI+PGZlQ29sb3JNYXRyaXggdmFsdWVzPSIwIDAgMCAwIC45NiAgMCAwIDAgMCAuOSAgMCAwIDAgMCAuOCAgMiAwIDAgMCAtMS4yIi8+PC9maWx0ZXI+CjxmaWx0ZXIgaWQ9ImRpc3QiIHg9IjAiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuMDMiIG51bU9jdGF2ZXM9IjQiIHNlZWQ9IjkiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48ZmVDb2xvck1hdHJpeCB2YWx1ZXM9IjAgMCAwIDAgLjIyICAwIDAgMCAwIC4xNyAgMCAwIDAgMCAuMTEgIDAgMCAwIDIgLS45NSIvPjwvZmlsdGVyPgo8ZmlsdGVyIGlkPSJwbGF6YSIgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wNiIgbnVtT2N0YXZlcz0iMyIgc2VlZD0iNDQiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48ZmVDb2xvck1hdHJpeCB2YWx1ZXM9IjAgMCAwIDAgMSAgMCAwIDAgMCAuOTUgIDAgMCAwIDAgLjg2ICAwIDAgMCAyLjQgLTEuMyIvPjwvZmlsdGVyPgo8L2RlZnM+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjYWI5YTgwIi8+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWx0ZXI9InVybCgjYmxvY2tzKSIgb3BhY2l0eT0iLjM1Ii8+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjAwIiBmaWx0ZXI9InVybCgjZ3JhaW4pIiBvcGFjaXR5PSIuNTUiLz4KPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbHRlcj0idXJsKCNkaXN0KSIvPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI3BsYXphKSIgb3BhY2l0eT0iLjQiLz4KPGcgc3Ryb2tlPSIjMmUyNDE2IiBzdHJva2Utd2lkdGg9Ii42IiBvcGFjaXR5PSIuNDUiPjxsaW5lIHgxPSIwLjAwIiB4Mj0iMC4wMCIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMTcuNzgiIHgyPSIxNy43OCIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMzUuNTYiIHgyPSIzNS41NiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iNTMuMzMiIHgyPSI1My4zMyIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iNzEuMTEiIHgyPSI3MS4xMSIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iODguODkiIHgyPSI4OC44OSIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMTA2LjY3IiB4Mj0iMTA2LjY3IiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIxMjQuNDQiIHgyPSIxMjQuNDQiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjE0Mi4yMiIgeDI9IjE0Mi4yMiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMTYwLjAwIiB4Mj0iMTYwLjAwIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIxNzcuNzgiIHgyPSIxNzcuNzgiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjE5NS41NiIgeDI9IjE5NS41NiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMjEzLjMzIiB4Mj0iMjEzLjMzIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIyMzEuMTEiIHgyPSIyMzEuMTEiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjI0OC44OSIgeDI9IjI0OC44OSIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMjY2LjY3IiB4Mj0iMjY2LjY3IiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIyODQuNDQiIHgyPSIyODQuNDQiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjMwMi4yMiIgeDI9IjMwMi4yMiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMzIwLjAwIiB4Mj0iMzIwLjAwIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIzMzcuNzgiIHgyPSIzMzcuNzgiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjM1NS41NiIgeDI9IjM1NS41NiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMzczLjMzIiB4Mj0iMzczLjMzIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIzOTEuMTEiIHgyPSIzOTEuMTEiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIxNi42NyIgeTI9IjE2LjY3Ii8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIzMy4zMyIgeTI9IjMzLjMzIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSI1MC4wMCIgeTI9IjUwLjAwIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSI2Ni42NyIgeTI9IjY2LjY3Ii8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSI4My4zMyIgeTI9IjgzLjMzIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIxMDAuMDAiIHkyPSIxMDAuMDAiLz48bGluZSB4MT0iMCIgeDI9IjQwMCIgeTE9IjExNi42NyIgeTI9IjExNi42NyIvPjxsaW5lIHgxPSIwIiB4Mj0iNDAwIiB5MT0iMTMzLjMzIiB5Mj0iMTMzLjMzIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIxNTAuMDAiIHkyPSIxNTAuMDAiLz48bGluZSB4MT0iMCIgeDI9IjQwMCIgeTE9IjE2Ni42NyIgeTI9IjE2Ni42NyIvPjxsaW5lIHgxPSIwIiB4Mj0iNDAwIiB5MT0iMTgzLjMzIiB5Mj0iMTgzLjMzIi8+PC9nPgo8L3N2Zz4=", "arccorp-night": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8ZGVmcz4KPGZpbHRlciBpZD0iY2l0eSIgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC44NSIgbnVtT2N0YXZlcz0iMSIgc2VlZD0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIgcmVzdWx0PSJmIi8+PGZlQ29sb3JNYXRyaXggaW49ImYiIHZhbHVlcz0iMCAwIDAgMCAwICAwIDAgMCAwIDAgIDAgMCAwIDAgMCAgMTAgMCAwIDAgLTUuMyIgcmVzdWx0PSJkb3RzIi8+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuMDMiIG51bU9jdGF2ZXM9IjQiIHNlZWQ9IjMxIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIiByZXN1bHQ9ImQiLz48ZmVDb2xvck1hdHJpeCBpbj0iZCIgdmFsdWVzPSIwIDAgMCAwIDAgIDAgMCAwIDAgMCAgMCAwIDAgMCAwICAyLjYgMCAwIDAgLS43NSIgcmVzdWx0PSJkZW5zIi8+PGZlQ29tcG9zaXRlIGluPSJkb3RzIiBpbjI9ImRlbnMiIG9wZXJhdG9yPSJpbiIgcmVzdWx0PSJsaXQiLz48ZmVGbG9vZCBmbG9vZC1jb2xvcj0iI2ZmZDM4YSIvPjxmZUNvbXBvc2l0ZSBpbjI9ImxpdCIgb3BlcmF0b3I9ImluIiByZXN1bHQ9ImNvcmUiLz48ZmVHYXVzc2lhbkJsdXIgaW49ImNvcmUiIHN0ZERldmlhdGlvbj0iLjkiIHJlc3VsdD0iYiIvPjxmZUNvbG9yTWF0cml4IGluPSJiIiB2YWx1ZXM9IjAgMCAwIDAgMSAgMCAwIDAgMCAuNTUgIDAgMCAwIDAgLjE2ICAwIDAgMCAyLjQgMCIgcmVzdWx0PSJibG9vbSIvPjxmZUZsb29kIGZsb29kLWNvbG9yPSIjZmY3YTFlIiBmbG9vZC1vcGFjaXR5PSIuMyIvPjxmZUNvbXBvc2l0ZSBpbjI9ImRlbnMiIG9wZXJhdG9yPSJpbiIgcmVzdWx0PSJnbG93Ii8+PGZlTWVyZ2U+PGZlTWVyZ2VOb2RlIGluPSJnbG93Ii8+PGZlTWVyZ2VOb2RlIGluPSJibG9vbSIvPjxmZU1lcmdlTm9kZSBpbj0iY29yZSIvPjwvZmVNZXJnZT48L2ZpbHRlcj4KPGZpbHRlciBpZD0ic29mdCIgeD0iLTUlIiB5PSItNSUiIHdpZHRoPSIxMTAlIiBoZWlnaHQ9IjExMCUiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iLjciIHJlc3VsdD0iYiIvPjxmZU1lcmdlPjxmZU1lcmdlTm9kZSBpbj0iYiIvPjxmZU1lcmdlTm9kZSBpbj0iU291cmNlR3JhcGhpYyIvPjwvZmVNZXJnZT48L2ZpbHRlcj4KPHJhZGlhbEdyYWRpZW50IGlkPSJhMTgiIGN4PSIuNSIgY3k9Ii41IiByPSIuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZmMmQwIi8+PHN0b3Agb2Zmc2V0PSIuMyIgc3RvcC1jb2xvcj0iI2ZmYjA0YSIgc3RvcC1vcGFjaXR5PSIuOCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2ExZSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzAwMCIvPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI2NpdHkpIi8+CjxnIHN0cm9rZT0iI2ZmYjQ1YSIgc3Ryb2tlLXdpZHRoPSIuNCIgb3BhY2l0eT0iLjM1IiBmaWx0ZXI9InVybCgjc29mdCkiPjxsaW5lIHgxPSIwLjAwIiB4Mj0iMC4wMCIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMTcuNzgiIHgyPSIxNy43OCIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMzUuNTYiIHgyPSIzNS41NiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iNTMuMzMiIHgyPSI1My4zMyIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iNzEuMTEiIHgyPSI3MS4xMSIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iODguODkiIHgyPSI4OC44OSIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMTA2LjY3IiB4Mj0iMTA2LjY3IiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIxMjQuNDQiIHgyPSIxMjQuNDQiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjE0Mi4yMiIgeDI9IjE0Mi4yMiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMTYwLjAwIiB4Mj0iMTYwLjAwIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIxNzcuNzgiIHgyPSIxNzcuNzgiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjE5NS41NiIgeDI9IjE5NS41NiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMjEzLjMzIiB4Mj0iMjEzLjMzIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIyMzEuMTEiIHgyPSIyMzEuMTEiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjI0OC44OSIgeDI9IjI0OC44OSIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMjY2LjY3IiB4Mj0iMjY2LjY3IiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIyODQuNDQiIHgyPSIyODQuNDQiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjMwMi4yMiIgeDI9IjMwMi4yMiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMzIwLjAwIiB4Mj0iMzIwLjAwIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIzMzcuNzgiIHgyPSIzMzcuNzgiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjM1NS41NiIgeDI9IjM1NS41NiIgeTE9IjAiIHkyPSIyMDAiLz48bGluZSB4MT0iMzczLjMzIiB4Mj0iMzczLjMzIiB5MT0iMCIgeTI9IjIwMCIvPjxsaW5lIHgxPSIzOTEuMTEiIHgyPSIzOTEuMTEiIHkxPSIwIiB5Mj0iMjAwIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIxNi42NyIgeTI9IjE2LjY3Ii8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIzMy4zMyIgeTI9IjMzLjMzIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSI1MC4wMCIgeTI9IjUwLjAwIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSI2Ni42NyIgeTI9IjY2LjY3Ii8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSI4My4zMyIgeTI9IjgzLjMzIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIxMDAuMDAiIHkyPSIxMDAuMDAiLz48bGluZSB4MT0iMCIgeDI9IjQwMCIgeTE9IjExNi42NyIgeTI9IjExNi42NyIvPjxsaW5lIHgxPSIwIiB4Mj0iNDAwIiB5MT0iMTMzLjMzIiB5Mj0iMTMzLjMzIi8+PGxpbmUgeDE9IjAiIHgyPSI0MDAiIHkxPSIxNTAuMDAiIHkyPSIxNTAuMDAiLz48bGluZSB4MT0iMCIgeDI9IjQwMCIgeTE9IjE2Ni42NyIgeTI9IjE2Ni42NyIvPjxsaW5lIHgxPSIwIiB4Mj0iNDAwIiB5MT0iMTgzLjMzIiB5Mj0iMTgzLjMzIi8+PC9nPgo8ZWxsaXBzZSBjeD0iMjM2IiBjeT0iOTIiIHJ4PSI5IiByeT0iNiIgZmlsbD0idXJsKCNhMTgpIi8+Cjwvc3ZnPg==", "crusader-night": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDQwMCAyMDAiPgo8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzAwMCIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjExMCIgcj0iMC43IiBmaWxsPSIjZmZkNTk2IiBvcGFjaXR5PSIxIi8+PGNpcmNsZSBjeD0iMjA0IiBjeT0iMTEzIiByPSIwLjUiIGZpbGw9IiNmZmQ1OTYiIG9wYWNpdHk9IjAuODUiLz48Y2lyY2xlIGN4PSIxOTYiIGN5PSIxMTUiIHI9IjAuNDUiIGZpbGw9IiNmZmQ1OTYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjIwOSIgY3k9IjEwOCIgcj0iMC40IiBmaWxsPSIjZmZkNTk2IiBvcGFjaXR5PSIwLjciLz48Y2lyY2xlIGN4PSI5MCIgY3k9Ijk2IiByPSIwLjQiIGZpbGw9IiNmZmQ1OTYiIG9wYWNpdHk9IjAuNiIvPjxjaXJjbGUgY3g9IjMyMCIgY3k9IjEyMCIgcj0iMC40IiBmaWxsPSIjZmZkNTk2IiBvcGFjaXR5PSIwLjYiLz48L3N2Zz4="};</script>
+<script>(()=>{var v="attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }",g=`
+float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float noise(vec3 x){
+  vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+float fbm(vec3 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * noise(p); p = p * 2.03 + 11.7; a *= 0.5; } return s; }
+`,y=i=>`
+${i?`#extension GL_OES_standard_derivatives : enable
+#define DERIV 1`:""}
+precision highp float;
+uniform vec2 uRes; uniform vec3 uSun; uniform vec3 uAtm; uniform vec3 uCloudC;
+uniform float uRot, uCloudRot, uRoll, uSpec, uNight, uCloudK, uTraffic, uTime;
+uniform sampler2D tDay, tNight, tCloud;
+const float PI = 3.14159265;
+${g}
+float wrapU(float lon){
+  float u = fract(lon + 0.5);
+#ifdef DERIV
+  float u2 = fract(lon + 1.0) - 0.5;
+  u = fwidth(u) < fwidth(u2) - 0.001 ? u : u2;
+#endif
+  return u;
+}
+void main(){
+  vec2 d = gl_FragCoord.xy / uRes * 2.0 - 1.0;
+  float r = length(d);
+  float cover = clamp((1.0 - r) * uRes.x * 0.5 + 0.5, 0.0, 1.0);
+  if (cover <= 0.0) { gl_FragColor = vec4(0.0); return; }
+  d *= min(1.0, 0.9995 / max(r, 1e-4));
+  vec3 n = vec3(d, sqrt(max(0.0, 1.0 - dot(d, d))));
+  // View \u2192 body: undo the roll (axis tilt in the picture), lean the north pole
+  // a little towards the viewer, then the spin.
+  float co = cos(uRoll), so = sin(uRoll);
+  vec3 m = vec3(n.x * co + n.y * so, -n.x * so + n.y * co, n.z);
+  const float LEAN = 0.2;
+  vec3 q = vec3(m.x, m.y * cos(LEAN) - m.z * sin(LEAN), m.y * sin(LEAN) + m.z * cos(LEAN));
+  float lat = asin(clamp(q.y, -1.0, 1.0));
+  float lon = atan(q.x, q.z) / (2.0 * PI);
+  vec2 uv = vec2(wrapU(lon + uRot), 0.5 - lat / PI);
+  // Towards the poles the equirect maps pinch; sample them blurrier there
+  // (mip bias) so no fans or streaks show.
+  float pole = smoothstep(0.8, 0.98, abs(q.y));
+  float bias = pole * 5.0;
+  vec3 day = texture2D(tDay, uv, bias).rgb;
+  vec3 lights = texture2D(tNight, uv, bias).rgb * (1.0 - 0.7 * pole);
+  float cl = uCloudK > 0.0 ? texture2D(tCloud, vec2(wrapU(lon + uCloudRot), uv.y), bias).r * uCloudK : 0.0;
+
+  float ndl = dot(n, uSun);
+  float dayK = smoothstep(-0.16, 0.34, ndl);
+  float nightK = 1.0 - smoothstep(-0.14, 0.06, ndl);
+  float lit = dayK * (0.5 + 0.5 * clamp(ndl, 0.0, 1.0)) + 0.16 * pow(max(ndl, 0.0), 6.0);
+  float limb = mix(0.6, 1.0, pow(n.z, 0.45));
+  vec3 col = mix(day, uCloudC, cl) * lit * limb;
+  // Fixed glint (ice, sea): stays where the sun puts it while the world turns.
+  vec3 hv = normalize(uSun + vec3(0.0, 0.0, 1.0));
+  col += vec3(1.0) * pow(max(dot(n, hv), 0.0), 38.0) * uSpec * (1.0 - 0.6 * cl) * dayK;
+
+  // Night: city lights twinkle a little; on ArcCorp traffic runs the avenues.
+  float tw = 0.82 + 0.36 * noise(vec3(uv * vec2(1400.0, 700.0), uTime * 1.5));
+  vec3 night = lights * tw * uNight * (1.0 - 0.7 * cl);
+  if (uTraffic > 0.0) {
+    float mu = uv.x * 22.5, pv = uv.y * 12.0;
+    float onM = 1.0 - smoothstep(0.0, 0.045, abs(fract(mu + 0.5) - 0.5));
+    float onP = 1.0 - smoothstep(0.0, 0.07, abs(fract(pv + 0.5) - 0.5));
+    float laneM = floor(mu + 0.5), laneP = floor(pv + 0.5);
+    float pulseM = smoothstep(0.8, 1.0, fract(uv.y * 26.0 + uTime * (0.05 + 0.04 * hash(vec3(laneM, 1.0, 2.0))) * (mod(laneM, 2.0) * 2.0 - 1.0)));
+    float pulseP = smoothstep(0.8, 1.0, fract(uv.x * 70.0 + uTime * (0.03 + 0.03 * hash(vec3(laneP, 3.0, 4.0))) * (mod(laneP, 2.0) * 2.0 - 1.0)));
+    // No traffic near the poles, where the lanes would bunch into rings.
+    float tr = max(onM * pulseM, onP * pulseP) * uTraffic * (1.0 - smoothstep(0.55, 0.8, abs(q.y)));
+    night += vec3(1.0, 0.86, 0.62) * tr * 1.4;
+    col += vec3(1.0, 0.9, 0.75) * tr * 0.18 * dayK;
+  }
+  col += (night + day * 0.025) * nightK;
+
+  // Atmosphere: scattering towards the limb, brightest on the sun side.
+  vec2 nd = normalize(n.xy + 1e-5);
+  float sunSide = smoothstep(-0.35, 0.65, dot(nd, normalize(uSun.xy)));
+  float fr = pow(1.0 - n.z, 3.0);
+  col = mix(col, uAtm, fr * 0.6 * sunSide);
+  col += uAtm * pow(1.0 - n.z, 9.0) * 0.55 * sunSide;
+  gl_FragColor = vec4(col * cover, cover);
+}`,R=[[.55,11,.1,.34,0],[1.7,15.5,.55,.26,0],[2.65,9.5,.3,.22,0],[3.55,19,.8,.7,1],[4.4,13,.45,.3,0],[5.45,23,.05,.85,1],[6.05,8.5,.7,.18,0]],x=`
+precision highp float;
+uniform vec2 uRes; uniform float uTime; uniform float uR;
+const float PI = 3.14159265;
+${g}
+vec3 promColor(float a, float h, float t){
+  vec3 c = vec3(0.0);
+${R.map(([i,o,t,a,e],r)=>`  {
+    float ph = fract(t / ${o.toFixed(2)} + ${t.toFixed(2)});
+    float life = smoothstep(0.0, 0.12, ph) * (1.0 - smoothstep(${e?"0.55, 0.95":"0.7, 1.0"}, ph));
+    float da = a - ${i.toFixed(2)} - 0.04 * sin(t * 0.05 + ${r}.0);
+    da = mod(da + PI, 2.0 * PI) - PI;
+    float w = ${(.1+.035*(r*7%3)).toFixed(3)};
+    float H = mix(0.04, ${a.toFixed(2)}, smoothstep(0.0, ${e?"0.8":"0.45"}, ph));
+    float lift = ${e?"max(0.0, ph - 0.45) * 0.9":"0.0"};
+    float x = da + 0.035 * (noise(vec3(h * 9.0, ${r}.0, t * 0.35)) - 0.5);
+    float y = h - lift + 0.025 * (noise(vec3(da * 12.0, ${r}.0 + 5.0, t * 0.3)) - 0.5);
+    vec2 e = vec2(x / w, y / H);
+    float rr = length(e);
+    float dist = abs(rr - 1.0) * min(w, H);
+    float s = atan(e.y, e.x);
+    float flow = 0.45 + 0.55 * noise(vec3(s * 6.0 - t * 1.4, ${r}.0 * 3.1, t * 0.2));
+    float th = 0.010 + 0.012 * noise(vec3(s * 4.0, t * 0.5, ${r}.0));
+    float on = step(-0.02, y) * ${e?"(1.0 - smoothstep(0.0, 0.3, lift) * (1.0 - smoothstep(0.25, 0.9, e.y / max(rr, 1e-3))))":"1.0"};
+    float core = exp(-pow(dist / th, 2.0)) * flow;
+    float halo = exp(-dist / 0.045) * 0.22;
+    float inner = exp(-pow(abs(rr - 0.72) * min(w, H) / (th * 0.7), 2.0)) * 0.5 * flow;
+    c += (vec3(1.0, 0.36, 0.13) * (core + inner) * 1.7 + vec3(1.0, 0.55, 0.25) * halo) * life * on * step(-0.01, h);
+  }`).join(`
+`)}
+  return c;
+}
+void main(){
+  vec2 p = gl_FragCoord.xy / uRes * 2.0 - 1.0;
+  float pl = length(p);
+  float r = pl / uR;
+  float a = atan(p.y, p.x);
+  vec2 dir = p / max(pl, 1e-4);
+  float t = uTime;
+  float px = 2.0 / (uRes.x * uR);
+
+  // Photosphere.
+  vec3 disc = vec3(0.0);
+  float cover = clamp((1.0 - r) / px + 0.5, 0.0, 1.0);
+  if (cover > 0.0) {
+    vec2 q = p / uR * min(1.0, 0.9995 / max(r, 1e-4));
+    float mu = sqrt(max(0.0, 1.0 - dot(q, q)));
+    float rt = t * 0.012;
+    vec3 sp = vec3(q.x * cos(rt) - mu * sin(rt), q.y, q.x * sin(rt) + mu * cos(rt));
+    float gran = fbm(sp * 16.0 + vec3(0.0, 0.0, t * 0.09));
+    float lanes = 1.0 - abs(noise(sp * 34.0 + t * 0.12) * 2.0 - 1.0);
+    float fac = smoothstep(0.5, 0.78, fbm(sp * 5.0 + t * 0.015)) * pow(1.0 - mu, 1.5);
+    float spot = smoothstep(0.045, 0.02, length(sp - normalize(vec3(-0.38, -0.22, 0.9))))
+               + 0.8 * smoothstep(0.03, 0.012, length(sp - normalize(vec3(-0.31, -0.27, 0.91))))
+               + 0.6 * smoothstep(0.022, 0.008, length(sp - normalize(vec3(0.3, 0.18, 0.94))));
+    float pen = smoothstep(0.1, 0.045, length(sp - normalize(vec3(-0.35, -0.24, 0.9))))
+              + 0.6 * smoothstep(0.05, 0.022, length(sp - normalize(vec3(0.3, 0.18, 0.94))));
+    vec3 base = mix(vec3(1.0, 0.36, 0.04), vec3(1.0, 0.94, 0.76), pow(mu, 0.7));
+    float I = (0.36 + 0.64 * pow(mu, 0.5)) * (0.88 + 0.2 * gran - 0.1 * lanes) + 0.3 * fac;
+    I *= 1.0 - 0.3 * min(pen, 1.0) - 0.6 * min(spot, 1.0);
+    disc = base * I * 1.08;
+  }
+
+  // Above the limb: chromosphere, flames, corona, prominences, flares.
+  float h = r - 1.0;
+  vec3 out3 = vec3(0.0);
+  if (h > -0.03) {
+    float hh = max(h, 0.0);
+    float f1 = fbm(vec3(dir * 3.2, hh * 2.6 - t * 0.28));
+    float f2 = fbm(vec3(dir * 8.5, hh * 5.5 - t * 0.5) + 7.0);
+    float flames = pow(clamp(f1 * 0.7 + f2 * 0.55 - 0.2, 0.0, 1.0), 2.0) * exp(-hh * 5.0);
+    float corona = exp(-hh * 3.0) * 0.38 + exp(-hh * 11.0) * 0.55;
+    float chrom = exp(-pow(hh / 0.03, 2.0));
+    float streak = pow(fbm(vec3(dir * 6.0, t * 0.03)), 3.0) * exp(-hh * 1.6) * 0.9;
+    out3 = vec3(1.0, 0.84, 0.58) * corona * (0.7 + 0.5 * f1)
+         + vec3(1.0, 0.85, 0.65) * streak
+         + vec3(1.0, 0.52, 0.2) * flames * 1.6
+         + vec3(1.0, 0.42, 0.16) * chrom * 0.9;
+    out3 += promColor(a, h, t);
+    // Flare: a short white flash at a random spot on the limb every ~17 s.
+    float cyc = floor(t / 17.0);
+    float fa = hash(vec3(cyc, 1.7, 3.3)) * 2.0 * PI;
+    float fp = fract(t / 17.0);
+    float fl = exp(-pow((fp - 0.2) / 0.025, 2.0));
+    vec2 fpnt = vec2(cos(fa), sin(fa)) * uR;
+    out3 += vec3(1.0, 0.95, 0.85) * fl * exp(-length(p - fpnt) / (0.06 * uR)) * 1.6;
+  }
+  vec3 col = disc * cover + out3 * (1.0 - cover);
+  float alpha = clamp(max(cover, max(max(out3.r, out3.g), out3.b)), 0.0, 1.0);
+  gl_FragColor = vec4(min(col, vec3(1.0)), alpha);
+}`;var b={crusader:{layers:{day:"crusader-day",night:"crusader-night"},period:70,cloudPeriod:0,cloudK:0,cloudColor:[1,1,1],roll:-.157,atm:[.9,.9,1],spec:0,night:1.2,traffic:0},arccorp:{layers:{day:"arccorp-day",night:"arccorp-night",cloud:"arccorp-haze"},period:110,cloudPeriod:75,cloudK:.28,cloudColor:[.86,.8,.7],roll:-.244,atm:[1,.8,.56],spec:.05,night:1.15,traffic:1},microtech:{layers:{day:"microtech-day",night:"microtech-night",cloud:"microtech-cloud"},period:130,cloudPeriod:95,cloudK:.7,cloudColor:[.97,.99,1],roll:-.105,atm:[.62,.88,1],spec:.4,night:1.3,traffic:0}},f=(()=>{let i=[.6,.64,.42],o=Math.hypot(i[0],i[1],i[2]);return[i[0]/o,i[1]/o,i[2]/o]})(),T=.34;function E(i,o){return i>0?o/1e3%i/i:0}var P=1024,A=1e3/30,u=class i{constructor(o){this.opts=o;this.textures=new Map;this.loaded=new Map;this.entries=[];this.frame=0;this.last=0;this.clock=0;this.lastNow=0;this.pausedCheck=0;this.paused=!1;this.disposed=!1;this.uniforms=new Map;this.glCanvas=document.createElement("canvas");let t=this.glCanvas.getContext("webgl",{premultipliedAlpha:!0,antialias:!1,alpha:!0,preserveDrawingBuffer:!1});if(!t)throw new Error("webgl unavailable");this.gl=t;let a=!!t.getExtension("OES_standard_derivatives");this.mipmaps=a,this.planetProg=this.program(y(a)),this.sunProg=this.program(x);let e=t.createBuffer();t.bindBuffer(t.ARRAY_BUFFER,e),t.bufferData(t.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),t.STATIC_DRAW),this.blank=t.createTexture(),t.bindTexture(t.TEXTURE_2D,this.blank),t.texImage2D(t.TEXTURE_2D,0,t.RGBA,1,1,0,t.RGBA,t.UNSIGNED_BYTE,new Uint8Array([0,0,0,255])),this.clock=Date.now(),this.lastNow=performance.now()}static create(o={},t){try{return new i(o)}catch(a){return t?.(a),null}}attach(o,t,a){let e=o.getContext("2d");if(!e||this.disposed)return()=>{};let r={canvas:o,ctx:e,kind:t,onReady:a,ready:!1,visible:!0};return"IntersectionObserver"in window&&(r.io=new IntersectionObserver(n=>{r.visible=n.some(c=>c.isIntersecting),this.kick()}),r.io.observe(o)),this.entries.push(r),this.prepare(t).then(n=>{!n||this.disposed||!this.entries.includes(r)||(r.ready=!0,this.draw(r,this.clock),r.onReady?.(),this.kick())}),()=>{r.io?.disconnect();let n=this.entries.indexOf(r);n>=0&&this.entries.splice(n,1),this.entries.length||(cancelAnimationFrame(this.frame),this.frame=0)}}redraw(){for(let o of this.entries)o.ready&&this.draw(o,this.clock)}dispose(){this.disposed=!0,cancelAnimationFrame(this.frame);for(let o of this.entries)o.io?.disconnect();this.entries.length=0,this.gl.getExtension("WEBGL_lose_context")?.loseContext()}kick(){this.opts.still||this.frame||this.disposed||this.entries.some(o=>o.ready&&o.visible)&&(this.lastNow=performance.now(),this.frame=requestAnimationFrame(o=>this.tick(o)))}tick(o){this.frame=0;let t=this.entries.filter(e=>e.ready&&e.visible);if(!t.length)return;o-this.pausedCheck>500&&(this.pausedCheck=o,this.paused=t.some(e=>getComputedStyle(e.canvas).getPropertyValue("--sc-brief-play").trim()==="paused"));let a=Math.min(100,o-this.lastNow);if(this.lastNow=o,this.paused||(this.clock+=a),o-this.last>=A-2){this.last=o;for(let e of t)this.draw(e,this.clock)}this.frame=requestAnimationFrame(e=>this.tick(e))}async prepare(o){if(o==="sun")return!0;let t=Object.values(b[o].layers);return(await Promise.all(t.map(e=>this.texture(e)))).every(e=>!!e)}texture(o){let t=this.textures.get(o);return t||(t=this.rasterize(o).then(a=>{if(!a||this.disposed)return null;let e=this.gl,r=e.createTexture();e.bindTexture(e.TEXTURE_2D,r);try{e.texImage2D(e.TEXTURE_2D,0,e.RGBA,e.RGBA,e.UNSIGNED_BYTE,a)}catch{return e.deleteTexture(r),null}return this.mipmaps&&e.generateMipmap(e.TEXTURE_2D),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MIN_FILTER,this.mipmaps?e.LINEAR_MIPMAP_LINEAR:e.LINEAR),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MAG_FILTER,e.LINEAR),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_WRAP_S,e.REPEAT),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_WRAP_T,e.CLAMP_TO_EDGE),a.width=a.height=0,this.loaded.set(o,r),r}),this.textures.set(o,t)),t}async rasterize(o){let t=this.opts.mapWidth??1024,a=new Image;a.decoding="async",a.src=this.opts.mapUrl?this.opts.mapUrl(o):`/img/verse/maps/${o}.svg`;try{await a.decode()}catch{return null}await new Promise(r=>"requestIdleCallback"in window?requestIdleCallback(()=>r(),{timeout:300}):setTimeout(r,16));let e=document.createElement("canvas");return e.width=t,e.height=t/2,e.getContext("2d").drawImage(a,0,0,t,t/2),e}draw(o,t){let a=Math.min(2,window.devicePixelRatio||1),e=Math.min(P,Math.round(o.canvas.clientWidth*a));if(e<=0)return;o.canvas.width!==e&&(o.canvas.width=o.canvas.height=e);let r=this.gl,n=this.glCanvas;n.width<e&&(n.width=n.height=Math.max(e,256)),r.viewport(0,0,e,e),r.clearColor(0,0,0,0),r.clear(r.COLOR_BUFFER_BIT);let c=t/1e3%3600;if(o.kind==="sun"){let s=this.use(this.sunProg);r.uniform2f(s("uRes"),e,e),r.uniform1f(s("uTime"),c),r.uniform1f(s("uR"),T)}else{let s=b[o.kind],l=this.use(this.planetProg),d=(m,w,p)=>{r.activeTexture(r.TEXTURE0+m),r.bindTexture(r.TEXTURE_2D,p&&this.loaded.get(p)||this.blank),r.uniform1i(l(w),m)};d(0,"tDay",s.layers.day),d(1,"tNight",s.layers.night),d(2,"tCloud",s.layers.cloud),r.uniform2f(l("uRes"),e,e),r.uniform3f(l("uSun"),f[0],f[1],f[2]),r.uniform3f(l("uAtm"),s.atm[0],s.atm[1],s.atm[2]),r.uniform3f(l("uCloudC"),s.cloudColor[0],s.cloudColor[1],s.cloudColor[2]),r.uniform1f(l("uRot"),E(s.period,t)),r.uniform1f(l("uCloudRot"),E(s.cloudPeriod,t)),r.uniform1f(l("uRoll"),s.roll),r.uniform1f(l("uSpec"),s.spec),r.uniform1f(l("uNight"),s.night),r.uniform1f(l("uCloudK"),s.cloudK),r.uniform1f(l("uTraffic"),s.traffic),r.uniform1f(l("uTime"),c)}r.drawArrays(r.TRIANGLE_STRIP,0,4),o.ctx.clearRect(0,0,e,e),o.ctx.drawImage(n,0,n.height-e,e,e,0,0,e,e)}use(o){let t=this.gl;t.useProgram(o);let a=t.getAttribLocation(o,"p");t.enableVertexAttribArray(a),t.vertexAttribPointer(a,2,t.FLOAT,!1,0,0);let e=this.uniforms.get(o);e||this.uniforms.set(o,e=new Map);let r=e;return n=>(r.has(n)||r.set(n,t.getUniformLocation(o,n)),r.get(n)??null)}program(o){let t=this.gl,a=t.createProgram();for(let[e,r]of[[t.VERTEX_SHADER,v],[t.FRAGMENT_SHADER,o]]){let n=t.createShader(e);if(t.shaderSource(n,r),t.compileShader(n),!t.getShaderParameter(n,t.COMPILE_STATUS))throw new Error(t.getShaderInfoLog(n)??"compile failed");t.attachShader(a,n)}if(t.linkProgram(a),!t.getProgramParameter(a,t.LINK_STATUS))throw new Error(t.getProgramInfoLog(a)??"link failed");return a}};var C=matchMedia("(prefers-reduced-motion: reduce)").matches,h=u.create({still:C,mapUrl:i=>MAPS[i],mapWidth:2048});h&&(document.querySelectorAll(".pl, .sun").forEach(i=>{let o=["crusader","arccorp","microtech"].find(a=>i.classList.contains(a))??(i.classList.contains("sun")?"sun":null);if(!o)return;let t=document.createElement("canvas");t.className="live",t.setAttribute("aria-hidden","true"),i.prepend(t),o==="sun"&&i.append(t),h.attach(t,o,()=>t.classList.add("on"))}),addEventListener("resize",()=>h.redraw()));})();
+</script>

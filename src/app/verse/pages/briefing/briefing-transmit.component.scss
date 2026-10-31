@@ -45,6 +45,19 @@
 .pl[data-door='news'] { --s: var(--news-s); left: var(--news-x); top: var(--news-y); }
 .pl[data-door='patches'] { --s: var(--patches-s); left: var(--patches-x); top: var(--patches-y); }
 .pl[data-door='gallery'] { --s: var(--gallery-s); left: var(--gallery-x); top: var(--gallery-y); }
+// The living planet (WebGL, turning under a fixed sun) covers the static SVG
+// once its maps are ready; the atmosphere hairline (::after) stays on top.
+.pl-gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease-out;
+}
+.pl-gl.on { opacity: 1; }
 .pl:hover { scale: 1.06; }
 // Away from the top: the relay rests (no cone, no waves, no holo), the planets only fly.
 :host(.away) .pl:hover { scale: none; }
