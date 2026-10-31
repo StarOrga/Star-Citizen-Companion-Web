@@ -285,5 +285,161 @@
         "text": "Die mit Planen, jetzt machen und sheen wo man steht (also vergangenes, hauptsächlich sozusagen lagern und ggf. statsitik zum anklicken mit mini vorschau) finde ich eigentlich eine gute gruppierungsidee! Vielleicht könnte man das auf iver scrollable seiten machen ähnlich wie verse. Dabei erste seite die suche wieder in der mitte und news."
       }
     ]
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "general": "das scrollen sollte so funktionieren wie auf verse! dieser mechanismsu.\nIn der umsetzung bitte auch berücksichtigen ggf. das sc app projekt anzufassen und zu shippen wenn es um die live daten geht!",
+    "screens": {
+      "f1-s4": "überlege dir nochmal ganz genau farb und form codes. Denn das sollte super intuitiv sein. \nEins davon sollte für die aktion stehen (kaufen oder craften, linien für reisen vs transportieren etc.) und es je nachdem wie viel man dort macht die form größer sein. \nNebst den komponenten filter sollte es auch einen  schrittt modus geben, sozusagen wie wäre die optimale route wenn man alles was gerade in dem filter ausgewählt wird."
+    },
+    "decisions": [
+      {
+        "id": "r3-arten",
+        "value": [
+          "bounty",
+          "bunker",
+          "medic",
+          "race",
+          "mining",
+          "cargo",
+          "salvage",
+          "explore",
+          "piracy"
+        ],
+        "note": ""
+      },
+      {
+        "id": "r3-chain",
+        "value": "auto",
+        "note": "und ansonsten community overlay informationen nehmen! aber so gemittelt / geprüft, dass kein einzigert oder kleine gruppe das ergebnis zu sehr beeinflussen kan wegen bestimmten werten.."
+      },
+      {
+        "id": "r3-rec",
+        "value": "inventory",
+        "note": ""
+      },
+      {
+        "id": "r3-offline",
+        "value": {
+          "answer": "no",
+          "alt": ""
+        },
+        "note": ""
+      },
+      {
+        "id": "r3-word",
+        "value": "liegt bereit",
+        "note": ""
+      },
+      {
+        "id": "r3-inv-facts",
+        "value": "ok",
+        "note": "weiß ich nicht, das wirst du herausfinden, natrülcih ist overlay nur das letzte mittel! allerletzte!"
+      },
+      {
+        "id": "r3-inv-when",
+        "value": [
+          "inventory",
+          "asop",
+          "kiosk"
+        ],
+        "note": "da man ja interagieren muss mit i im inventar, mit f asop oder shop kioske, kann man danach immer überprüfen ob das jeweilige gerade geöffnet ist und nur dann auch weiterschauen"
+      },
+      {
+        "id": "r3-inv-manual",
+        "value": "search",
+        "note": ""
+      },
+      {
+        "id": "r3-inv-auto",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": ""
+      },
+      {
+        "id": "r3-inv-age",
+        "value": "margin",
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r3-f1-s1-a1",
+        "answer": "Ja sehr gut, sollte genaus sein wie auf den anderen seiten!"
+      },
+      {
+        "id": "r3-f1-s1-a2",
+        "answer": "Das finde ich super! Gern eins schon als fertig animiert, wenn man schon eins davon gemacht hat und aktuel!"
+      },
+      {
+        "id": "r3-f1-s2-a1",
+        "answer": "das muss in das titel hero darunter als informationen, denn dafür ist das titelhero da! \nwaffen (erste zeile) => S3 repeater machen weniger schaden (-8%) für Bounty (oder so... ) (zweite zeile)"
+      },
+      {
+        "id": "r3-f1-s2-a2",
+        "answer": "Finde ich gut!"
+      },
+      {
+        "id": "r3-f1-s3-a1",
+        "answer": "klingt gut!"
+      },
+      {
+        "id": "r3-f1-s4-a1",
+        "answer": "ja abe rvergiss nicht sind auch mehrere sternensyxsteme, ggf. übergreifend, aber genau das priinzip!"
+      },
+      {
+        "id": "r3-f1-s5-a1",
+        "answer": "passt"
+      },
+      {
+        "id": "r3-f1-s6-a2",
+        "answer": "FInde ikch super, gern dann beim scroll auf einer nächsten eseite dann dort nur statstiik anzeigen!"
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "f1-s2",
+        "text": "wir haben in verse und codex keine dritte zeile, bitte reuse den block und nimm die suche!"
+      },
+      {
+        "screen": "f1-s2",
+        "text": "generell schau diri die position in codex an, sollte die gleiche sein und gleicher block mit hier nur anderen inhalten! inkl. suche!"
+      },
+      {
+        "screen": "f1-s2",
+        "text": "Die zeile braucht es hier nicht und ist  auch nciht so schön wie in verse news!"
+      },
+      {
+        "screen": "f1-s2",
+        "text": "Dsa finde ich super, wiederkennbar!"
+      },
+      {
+        "screen": "f1-s4",
+        "text": "wir brauchen keine seiten zahlen!"
+      },
+      {
+        "screen": "f1-s4",
+        "text": "wo sehe ich hier den gleichen hinweis wie seite 1 zu 2, nur heir auf serite 3"
+      },
+      {
+        "screen": "f1-s4",
+        "text": "einsatz buttons w9irken hier sehr verloren :) \nUnd einsätze sind für mich zweiteilig, das eine ich mache genau eine sache und bekomme das was ich will andererseits ich muss mehrer espiel misssionen in einem einsatz machen. Das ganze einsatz und sets ist hier noch nicht klar."
+      },
+      {
+        "screen": "f1-s4",
+        "text": "Warum woher Sanitäter?! Verstehe nicht was sets mit woher zu tun haben... Oder geht es ums abholen, dann sollte man Einsatztyp (Abholug) da stehen. Und bei mehrteiligen ein anderer Typ."
+      },
+      {
+        "screen": "f1-s4",
+        "text": "ziemlich langweiliges inhaltsverzeichnis. Ich denke brauchen wir auch nicht so."
+      },
+      {
+        "screen": "f1-s6",
+        "text": "achtung hier unten muss platz sein fü+r mehr .... bzw. ganz auf der letzten seite ja auch der footer sein, das bitte berücksichtigen !"
+      }
+    ]
   }
 ]
