@@ -16,8 +16,9 @@ export const IDLE_SHOW_MS = 5000;
  * patch's status) and the current patch's constellation below-left of it
  * (→ the star map). Hover: the sun's corona brightens and grows, a flare
  * streak crosses it (the sun itself: concept 2026-10-31 "Sonne & Planeten" —
- * a limb-darkened photosphere with granulation, a two-layer corona that turns
- * slowly and a soft bloom), "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
+ * a limb-darkened, boiling photosphere, small irregular storms — plasma loops
+ * that rise and fade at the limb on their own clocks, now and then a flare —
+ * a breathing two-layer corona with uneven streamers and a soft bloom), "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
  * letter by letter; the constellation redraws its lines and twinkles in the
  * star map's own white/blue and wording ("Sternkarte", "Sternbild von Patch …
  * · 3 von 5 Sternen"). Only the sun keeps its warm tone.
@@ -46,7 +47,11 @@ export const IDLE_SHOW_MS = 5000;
         <span class="ring" aria-hidden="true"></span>
       }
       <span class="sun" aria-hidden="true">
-        <i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="disc"></i>
+        <i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="streamers"></i>
+        @for (p of proms; track p.a) {
+          <b class="prom" [style.--a]="p.a" [style.--d]="p.d" [style.--w]="p.w" [style.--z]="p.z"><i></i></b>
+        }
+        <i class="disc"></i><i class="flash"></i>
       </span>
       <span class="flare" aria-hidden="true"></span>
       <span class="lab warm" aria-hidden="true">
@@ -85,6 +90,19 @@ export class BriefingBeaconsComponent {
   readonly total = input(0);
   readonly litSet = input<ReadonlySet<number> | null>(null);
   readonly patchLine = input<string | null>(null);
+
+  /**
+   * The sun's prominences: angle on the limb, cycle length, delay into it and
+   * size. Cycles share no common beat, so the storms never fall into a pattern.
+   */
+  readonly proms = [
+    { a: '-58deg', d: '7.9s', w: '-2.1s', z: '1' },
+    { a: '24deg', d: '11.3s', w: '-6.4s', z: '0.8' },
+    { a: '97deg', d: '13.7s', w: '-1.2s', z: '1.15' },
+    { a: '168deg', d: '9.1s', w: '-7.7s', z: '0.7' },
+    { a: '232deg', d: '16.9s', w: '-11.5s', z: '0.95' },
+    { a: '-12deg', d: '19.3s', w: '-15.8s', z: '0.6' },
+  ] as const;
 
   /** The idle hint is showing. */
   readonly idle = signal(false);
