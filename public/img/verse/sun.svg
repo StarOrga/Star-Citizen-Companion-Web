@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Stanton's photosphere: white-hot core, limb darkening to deep gold,
+       granulation and a few faculae / one small spot group. -->
+  <defs>
+    <clipPath id="c"><circle cx="100" cy="100" r="100"/></clipPath>
+    <radialGradient id="limb" cx="100" cy="100" r="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffffa"/>
+      <stop offset=".5" stop-color="#fff8e0"/>
+      <stop offset=".75" stop-color="#ffe6a8"/>
+      <stop offset=".9" stop-color="#ffc062"/>
+      <stop offset="1" stop-color="#e88a2c"/>
+    </radialGradient>
+    <filter id="gran" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="2" seed="12"/>
+      <feColorMatrix values="0 0 0 0 .62  0 0 0 0 .32  0 0 0 0 .05  -2.4 0 0 0 1.3"/>
+    </filter>
+    <filter id="facu" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="5"/>
+      <feColorMatrix values="0 0 0 0 1  0 0 0 0 .98  0 0 0 0 .9  3 0 0 0 -1.65"/>
+    </filter>
+    <radialGradient id="mask" cx="100" cy="100" r="100" gradientUnits="userSpaceOnUse">
+      <stop offset=".55" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff"/>
+    </radialGradient>
+    <mask id="edge"><circle cx="100" cy="100" r="100" fill="url(#mask)"/></mask>
+    <radialGradient id="spot" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#3a1404"/>
+      <stop offset=".45" stop-color="#7a3610" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#c46a20" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g clip-path="url(#c)">
+    <circle cx="100" cy="100" r="100" fill="url(#limb)"/>
+    <rect width="200" height="200" filter="url(#gran)" opacity=".2"/>
+    <rect width="200" height="200" filter="url(#facu)" opacity=".7" mask="url(#edge)"/>
+    <ellipse cx="66" cy="122" rx="5" ry="3.6" fill="url(#spot)" opacity=".75"/>
+    <ellipse cx="75" cy="127" rx="2.6" ry="2" fill="url(#spot)" opacity=".6"/>
+  </g>
+</svg>

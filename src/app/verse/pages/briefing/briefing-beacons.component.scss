@@ -16,13 +16,50 @@
 .sun-l:focus-visible, .const-l:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 
 // ── Sun: warm, the one warm tone on the stage ───────────────────────────
+// Concept "Sonne & Planeten" (2026-10-31): a real star instead of a glow
+// disc. Inside out: the photosphere (/img/verse/sun.svg — limb darkening,
+// granulation, faculae, one small spot group) with a hot chromosphere rim;
+// two corona layers of fine streamers (conic gradients, radially faded) that
+// turn slowly against each other, so the corona shimmers instead of spinning;
+// a wide warm bloom. The disc is ~34 % of the beacon, the rest is light.
 .sun {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, #fffdf0 0 16%, #ffe8b0 28%, rgba(255, 196, 110, 0.42) 48%, rgba(255, 170, 80, 0.08) 64%, transparent 72%);
   transition: transform 0.35s ease, filter 0.35s ease;
 }
+.sun > i { position: absolute; border-radius: 50%; pointer-events: none; }
+.glow {
+  inset: -18%;
+  background: radial-gradient(circle, rgba(255, 238, 196, 0.55) 0 14%, rgba(255, 200, 120, 0.3) 24%, rgba(255, 170, 80, 0.1) 42%, transparent 66%);
+}
+.corona {
+  inset: 2%;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255, 238, 204, 0.3) 0deg 0.8deg, transparent 2.4deg 6.2deg, rgba(255, 220, 160, 0.16) 7deg 9.4deg, transparent 10.6deg 13.7deg),
+    repeating-conic-gradient(from 4deg, rgba(255, 244, 220, 0.2) 0deg 1.4deg, transparent 3deg 22.9deg),
+    radial-gradient(circle, rgba(255, 248, 228, 0.95) 0 30%, rgba(255, 220, 150, 0.4) 38%, rgba(255, 190, 110, 0.1) 52%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 30%, rgba(0, 0, 0, 0.45) 40%, rgba(0, 0, 0, 0.12) 55%, transparent 68%);
+  filter: blur(0.5px);
+  animation: corona 140s linear infinite;
+  animation-play-state: var(--sc-brief-play, running);
+}
+.corona.c2 {
+  inset: 10%;
+  opacity: 0.7;
+  rotate: 17deg;
+  animation-duration: 95s;
+  animation-direction: reverse;
+}
+.disc {
+  inset: 33%;
+  background: url('/img/verse/sun.svg') center / 100% 100% no-repeat;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 190, 110, 0.9),
+    0 0 6px 1px rgba(255, 236, 190, 0.95),
+    0 0 18px 4px rgba(255, 196, 110, 0.55);
+}
+@keyframes corona { to { transform: rotate(360deg); } }
 .sun-l:hover .sun, .sun-l:focus-visible .sun {
   transform: scale(1.1);
   filter: brightness(1.18) drop-shadow(0 0 14px rgba(255, 214, 140, 0.55));
@@ -117,5 +154,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sun, .flare, .lab { transition: none; }
+  .corona { animation: none; }
   .ring, .lab-n i, .lab-v { animation: none !important; }
 }

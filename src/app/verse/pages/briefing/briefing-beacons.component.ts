@@ -15,7 +15,9 @@ export const IDLE_SHOW_MS = 5000;
  * The stage's two beacons, top right, both real anchors: the sun (→ the LIVE
  * patch's status) and the current patch's constellation below-left of it
  * (→ the star map). Hover: the sun's corona brightens and grows, a flare
- * streak crosses it, "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
+ * streak crosses it (the sun itself: concept 2026-10-31 "Sonne & Planeten" —
+ * a limb-darkened photosphere with granulation, a two-layer corona that turns
+ * slowly and a soft bloom), "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
  * letter by letter; the constellation redraws its lines and twinkles in the
  * star map's own white/blue and wording ("Sternkarte", "Sternbild von Patch …
  * · 3 von 5 Sternen"). Only the sun keeps its warm tone.
@@ -43,7 +45,9 @@ export const IDLE_SHOW_MS = 5000;
       @if (idle()) {
         <span class="ring" aria-hidden="true"></span>
       }
-      <span class="sun" aria-hidden="true"></span>
+      <span class="sun" aria-hidden="true">
+        <i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="disc"></i>
+      </span>
       <span class="flare" aria-hidden="true"></span>
       <span class="lab warm" aria-hidden="true">
         <span class="lab-n">@for (ch of chars(sunName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>

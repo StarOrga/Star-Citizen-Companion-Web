@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- microTech: a frozen world. Slate-blue rock and glacier valleys under
+       snow, a bright polar cap, swirling cloud bands, a crisp cyan limb and
+       New Babbage glowing on the night side. Lit from the top right. -->
+  <defs>
+    <clipPath id="c"><circle cx="100" cy="100" r="100"/></clipPath>
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".18" stop-color="#e3eef6"/>
+      <stop offset=".5" stop-color="#c3d7e6"/>
+      <stop offset=".82" stop-color="#d8e6f0"/>
+      <stop offset="1" stop-color="#f6fbff"/>
+    </linearGradient>
+    <!-- Terrain: ridged noise, only the low ground shows as dark rock / ice. -->
+    <filter id="terrain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="turbulence" baseFrequency="0.022" numOctaves="5" seed="14" result="t"/>
+      <feColorMatrix in="t" values="0 0 0 0 .3  0 0 0 0 .4  0 0 0 0 .5  -3.4 0 0 0 1.55"/>
+    </filter>
+    <filter id="fjords" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="turbulence" baseFrequency="0.06" numOctaves="3" seed="8"/>
+      <feColorMatrix values="0 0 0 0 .2  0 0 0 0 .3  0 0 0 0 .42  -4 0 0 0 1.1"/>
+    </filter>
+    <filter id="clouds" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.035" numOctaves="5" seed="27" result="n"/>
+      <feColorMatrix in="n" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  3.2 0 0 0 -1.35" result="cl"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="4" result="w"/>
+      <feDisplacementMap in="cl" in2="w" scale="22" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <radialGradient id="cap" cx="100" cy="0" r="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="limb" cx="100" cy="100" r="100" gradientUnits="userSpaceOnUse">
+      <stop offset=".6" stop-color="#0d2238" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0d2238" stop-opacity=".5"/>
+    </radialGradient>
+    <radialGradient id="spec" cx="140" cy="58" r="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shade" cx="150" cy="46" r="205" gradientUnits="userSpaceOnUse">
+      <stop offset=".38" stop-color="#03070e" stop-opacity="0"/>
+      <stop offset=".53" stop-color="#03070e" stop-opacity=".6"/>
+      <stop offset=".64" stop-color="#02050b" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#010308" stop-opacity="1"/>
+    </radialGradient>
+    <radialGradient id="babbage" cx="56" cy="134" r="6" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e6fbff"/>
+      <stop offset=".25" stop-color="#9fe6ff" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#48bfff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="100" cy="100" r="100" gradientUnits="userSpaceOnUse">
+      <stop offset=".86" stop-color="#9adfff" stop-opacity="0"/>
+      <stop offset=".96" stop-color="#9adfff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#e8fbff" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="rimMask" x1="1" y1="0" x2="0" y2="1">
+      <stop offset=".1" stop-color="#fff"/>
+      <stop offset=".6" stop-color="#000"/>
+    </linearGradient>
+    <mask id="day"><rect width="200" height="200" fill="url(#rimMask)"/></mask>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="200" height="200" fill="url(#base)"/>
+    <rect width="200" height="200" filter="url(#terrain)" opacity=".6"/>
+    <rect width="200" height="200" filter="url(#fjords)" opacity=".45"/>
+    <rect width="200" height="200" fill="url(#cap)"/>
+    <rect x="-30" y="-30" width="260" height="260" filter="url(#clouds)" opacity="1" transform="rotate(-6 100 100)"/>
+    <circle cx="100" cy="100" r="100" fill="url(#spec)"/>
+    <circle cx="100" cy="100" r="100" fill="url(#limb)"/>
+    <circle cx="100" cy="100" r="100" fill="url(#shade)"/>
+    <circle cx="56" cy="134" r="6" fill="url(#babbage)" opacity=".8"/>
+    <g fill="#d9f6ff">
+      <circle cx="55" cy="133" r=".9"/><circle cx="58.5" cy="135.5" r=".6"/><circle cx="53" cy="136.5" r=".5"/>
+      <circle cx="44" cy="121" r=".45" opacity=".7"/><circle cx="70" cy="150" r=".45" opacity=".6"/><circle cx="38" cy="142" r=".4" opacity=".55"/>
+    </g>
+    <circle cx="100" cy="100" r="100" fill="url(#rim)" mask="url(#day)"/>
+  </g>
+</svg>
