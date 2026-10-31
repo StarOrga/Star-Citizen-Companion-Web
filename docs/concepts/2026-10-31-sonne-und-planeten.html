@@ -160,6 +160,22 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
 .shared .grid div { display: grid; gap: 6px; padding: 18px; border-top: 1px solid var(--line); }
 .shared h3 { margin: 0; font: 600 0.95rem var(--font-body); color: var(--ink); }
 
+
+/* ── Großansicht: each body as large as the screen allows ───────── */
+.big { display: grid; gap: 28px; }
+.big-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.big-nav a { font: 500 0.72rem var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; }
+.big-nav a:hover, .big-nav a:focus-visible { color: var(--ink); border-color: var(--accent); outline: none; }
+.view {
+  display: grid; justify-items: center; gap: 18px; padding: clamp(28px, 6vw, 72px) 0;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 16px;
+}
+.view .pl { --s: min(760px, calc(100vw - 64px)); }
+.view .sun { width: min(820px, calc(100vw - 32px)); }
+.view h3 { margin: 0; font: 700 1.1rem var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; }
+.view p { text-align: center; }
+
 @media (max-width: 820px) {
   .plate { grid-template-columns: minmax(0, 1fr); padding: 22px; gap: 24px; }
   .render { min-height: 0; }
@@ -190,6 +206,31 @@ code { font-size: 0.86em; color: var(--ink); background: var(--deep); padding: 1
   <section class="intro">
     <span class="eyebrow">Worum es geht</span>
     <p>Sonne, Crusader, ArcCorp und microTech stehen auf der Verse-Stage und fliegen beim Scrollen als Mini-Planeten in die Spaltenköpfe des Hubs. Bisher waren sie CSS-Verläufe mit einem gemeinsamen Schatten. Jetzt bekommt jeder Planet eine eigene, prozedural erzeugte Oberfläche (SVG mit <code>feTurbulence</code>, keine Spiel-Assets). Terminator, Randverdunkelung, Atmosphärensaum und Nachtlichter sind Teil jeder Textur. Licht kommt überall von oben rechts, wo die Sonne steht.</p>
+  </section>
+
+
+  <section class="big" id="gross">
+    <span class="eyebrow">Großansicht</span>
+    <h2>Jeder Körper in voller Größe</h2>
+    <nav class="big-nav" aria-label="Zu einem Himmelskörper springen">
+      <a href="#v-sonne">Sonne</a><a href="#v-crusader">Crusader</a><a href="#v-arccorp">ArcCorp</a><a href="#v-microtech">microTech</a>
+    </nav>
+    <div class="view" id="v-sonne">
+      <span class="sun"><i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="disc"></i></span>
+      <h3>Stanton</h3><p>Photosphäre mit Körnung und Fleckengruppe, heißer Saum, zwei Lagen Korona.</p>
+    </div>
+    <div class="view" id="v-crusader">
+      <span class="pl crusader"></span>
+      <h3>Crusader</h3><p>Verwirbelte Pastellbänder, zwei Sturmwirbel, Orisons Lichter auf der Nachtseite.</p>
+    </div>
+    <div class="view" id="v-arccorp">
+      <span class="pl arccorp"></span>
+      <h3>ArcCorp</h3><p>Block-Mosaik bei Tag, Bernstein-Lichterteppich bei Nacht.</p>
+    </div>
+    <div class="view" id="v-microtech">
+      <span class="pl microtech"></span>
+      <h3>microTech</h3><p>Schnee, Schiefergrate, Wolkenwirbel, New Babbage in Cyan.</p>
+    </div>
   </section>
 
   <article class="plate" id="sonne">
