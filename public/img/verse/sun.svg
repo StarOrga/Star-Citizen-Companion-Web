@@ -31,7 +31,7 @@
   </defs>
   <g clip-path="url(#c)">
     <circle cx="100" cy="100" r="100" fill="url(#limb)"/>
-    <rect width="200" height="200" filter="url(#gran)" opacity=".2"/>
+    <rect width="200" height="200" filter="url(#gran)" opacity=".12"/>
     <rect width="200" height="200" filter="url(#facu)" opacity=".7" mask="url(#edge)"/>
     <ellipse cx="66" cy="122" rx="5" ry="3.6" fill="url(#spot)" opacity=".75"/>
     <ellipse cx="75" cy="127" rx="2.6" ry="2" fill="url(#spot)" opacity=".6"/>

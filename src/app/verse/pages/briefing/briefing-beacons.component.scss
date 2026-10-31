@@ -16,22 +16,29 @@
 .sun-l:focus-visible, .const-l:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 
 // ── Sun: warm, the one warm tone on the stage ───────────────────────────
-// Concept "Sonne & Planeten" (2026-10-31): a real star instead of a glow
+// Concept "Sonne & Planeten" (2026-10-31): a living star instead of a glow
 // disc. Inside out: the photosphere (/img/verse/sun.svg — limb darkening,
-// granulation, faculae, one small spot group) with a hot chromosphere rim;
-// two corona layers of fine streamers (conic gradients, radially faded) that
-// turn slowly against each other, so the corona shimmers instead of spinning;
-// a wide warm bloom. The disc is ~34 % of the beacon, the rest is light.
+// granulation, faculae, a small spot group) whose granules drift against each
+// other (sun-gran.svg twice), so the surface boils; a hot chromosphere rim;
+// small storms — plasma loops (prominence.svg) that rise at the limb, hang and
+// fade, each on its own clock so they never form a beat — and now and then a
+// flare flash; two corona layers of fine streamers that turn slowly against
+// each other and breathe, plus a few long uneven streamers; a wide bloom.
+// Everything moves with transform/opacity only. The disc is ~34 % of the
+// beacon, the rest is light.
 .sun {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   transition: transform 0.35s ease, filter 0.35s ease;
+  --play: var(--sc-brief-play, running);
 }
 .sun > i { position: absolute; border-radius: 50%; pointer-events: none; }
 .glow {
   inset: -18%;
   background: radial-gradient(circle, rgba(255, 238, 196, 0.55) 0 14%, rgba(255, 200, 120, 0.3) 24%, rgba(255, 170, 80, 0.1) 42%, transparent 66%);
+  animation: breathe 11.3s ease-in-out infinite alternate;
+  animation-play-state: var(--play);
 }
 .corona {
   inset: 2%;
@@ -41,25 +48,94 @@
     radial-gradient(circle, rgba(255, 248, 228, 0.95) 0 30%, rgba(255, 220, 150, 0.4) 38%, rgba(255, 190, 110, 0.1) 52%, transparent 70%);
   mask-image: radial-gradient(circle, #000 30%, rgba(0, 0, 0, 0.45) 40%, rgba(0, 0, 0, 0.12) 55%, transparent 68%);
   filter: blur(0.5px);
-  animation: corona 140s linear infinite;
-  animation-play-state: var(--sc-brief-play, running);
+  animation: corona 140s linear infinite, breathe 9.7s ease-in-out infinite alternate;
+  animation-play-state: var(--play);
 }
 .corona.c2 {
   inset: 10%;
-  opacity: 0.7;
   rotate: 17deg;
-  animation-duration: 95s;
-  animation-direction: reverse;
+  animation: corona 95s linear infinite reverse, breathe 7.3s ease-in-out -3s infinite alternate;
+  animation-play-state: var(--play);
+}
+// A few long, uneven streamers (no repeat): they break the starburst.
+.streamers {
+  inset: -14%;
+  background: conic-gradient(from 8deg,
+    transparent 0deg 18deg, rgba(255, 230, 180, 0.34) 21deg, transparent 25deg 74deg,
+    rgba(255, 236, 196, 0.24) 77deg, transparent 82deg 141deg, rgba(255, 220, 160, 0.3) 143deg, transparent 146deg 205deg,
+    rgba(255, 236, 196, 0.2) 209deg, transparent 214deg 262deg, rgba(255, 230, 180, 0.36) 264deg, transparent 268deg 318deg,
+    rgba(255, 220, 160, 0.22) 322deg, transparent 327deg);
+  mask-image: radial-gradient(circle, transparent 18%, #000 24%, rgba(0, 0, 0, 0.35) 40%, transparent 62%);
+  filter: blur(0.8px);
+  animation: corona 230s linear infinite reverse, breathe 13.1s ease-in-out -5s infinite alternate;
+  animation-play-state: var(--play);
 }
 .disc {
   inset: 33%;
+  overflow: hidden;
   background: url('/img/verse/sun.svg') center / 100% 100% no-repeat;
   box-shadow:
     0 0 0 0.5px rgba(255, 190, 110, 0.9),
     0 0 6px 1px rgba(255, 236, 190, 0.95),
     0 0 18px 4px rgba(255, 196, 110, 0.55);
+  // Boiling: two granulation layers drift and fade against each other.
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    inset: -6%;
+    border-radius: 50%;
+    background: url('/img/verse/sun-gran.svg') center / 100% 100% no-repeat;
+    mix-blend-mode: soft-light;
+    opacity: 0.55;
+    animation: boil 6.1s ease-in-out infinite alternate;
+    animation-play-state: var(--play);
+  }
+  &::after { rotate: 140deg; animation-duration: 8.3s; animation-delay: -4s; }
+}
+// Prominences: a wrapper stands on the disc centre, turned to its angle and
+// pushed out to the limb; its child grows from the limb, hangs and fades.
+.prom {
+  position: absolute;
+  left: 41%;
+  top: 37%;
+  width: 18%;
+  height: 13%;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--a)) translateY(-118%) scale(var(--z, 1));
+  pointer-events: none;
+}
+.prom > i {
+  position: absolute;
+  inset: 0;
+  background: url('/img/verse/prominence.svg') center bottom / 100% 100% no-repeat;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: erupt var(--d, 10s) ease-out var(--w, 0s) infinite;
+  animation-play-state: var(--play);
+}
+// Flare: a short white flash on the limb, rare.
+.flash {
+  inset: 30%;
+  background: radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.95) 0 3%, rgba(255, 240, 200, 0.5) 7%, transparent 16%);
+  opacity: 0;
+  animation: flash 23.7s ease-out -9s infinite;
+  animation-play-state: var(--play);
 }
 @keyframes corona { to { transform: rotate(360deg); } }
+@keyframes breathe { from { opacity: 0.78; scale: 0.97; } to { opacity: 1; scale: 1.04; } }
+@keyframes boil { from { transform: rotate(-7deg) scale(1); opacity: 0.1; } to { transform: rotate(9deg) scale(1.06); opacity: 0.3; } }
+@keyframes erupt {
+  0% { opacity: 0; transform: scale(0.25, 0.1); }
+  8% { opacity: 1; }
+  30% { transform: scale(1, 1); }
+  48% { opacity: 0.85; transform: scale(1.08, 1.22); }
+  60%, 100% { opacity: 0; transform: scale(1.14, 1.45); }
+}
+@keyframes flash {
+  0%, 90%, 100% { opacity: 0; transform: scale(0.8); }
+  91.5% { opacity: 1; transform: scale(1.15); }
+  95% { opacity: 0.25; transform: scale(1); }
+}
 .sun-l:hover .sun, .sun-l:focus-visible .sun {
   transform: scale(1.1);
   filter: brightness(1.18) drop-shadow(0 0 14px rgba(255, 214, 140, 0.55));
@@ -154,6 +230,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sun, .flare, .lab { transition: none; }
-  .corona { animation: none; }
+  .glow, .corona, .streamers, .disc::before, .disc::after, .flash { animation: none; }
+  // Standing storms: the loops stay visible, mid-rise.
+  .prom > i { animation: none; opacity: 0.8; }
   .ring, .lab-n i, .lab-v { animation: none !important; }
 }

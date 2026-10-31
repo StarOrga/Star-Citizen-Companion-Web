@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80">
+  <!-- One solar prominence: a glowing plasma loop rooted at the limb (bottom
+       edge), frayed by turbulence, hot at the roots and cooler at the crest. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffd9a0"/>
+      <stop offset=".25" stop-color="#ff8a2c"/>
+      <stop offset=".7" stop-color="#f24a16"/>
+      <stop offset="1" stop-color="#c22a12" stop-opacity=".8"/>
+    </linearGradient>
+    <filter id="f" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="6"/>
+      <feDisplacementMap in="SourceGraphic" scale="9" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="d"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#f)" fill="none" stroke="url(#g)" stroke-linecap="round">
+    <path d="M24 80 C 18 40, 44 14, 56 22 S 78 56, 74 80" stroke-width="5"/>
+    <path d="M32 80 C 30 50, 46 30, 56 34 S 68 60, 66 80" stroke-width="2.4" opacity=".8"/>
+    <path d="M44 80 C 46 66, 40 52, 30 48" stroke-width="1.6" opacity=".6"/>
+  </g>
+</svg>
