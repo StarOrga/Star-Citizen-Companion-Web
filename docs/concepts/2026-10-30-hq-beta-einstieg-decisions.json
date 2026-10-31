@@ -441,5 +441,201 @@
         "text": "achtung hier unten muss platz sein fü+r mehr .... bzw. ganz auf der letzten seite ja auch der footer sein, das bitte berücksichtigen !"
       }
     ]
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "general": "Warum sind abgesehen der startseite von hq alle anderen seiten nicht auf der subheader breite und der subheader nicht der den wir heute haben, exakt!? Das verwirrt mich sehr. Bitte anpassen! Siehe verse als vorbild dazu header vs subheader auf folgeseiten!",
+    "screens": {
+      "g1-s6": "Also abgesehen von der nottificiaton oben der letzten die sich dann ins logbuch überführt! Animativ und visuell oder direkt im lgobuch agiert mit animation. \nSollte auf dem screen der absolute hauptweg sein: Du bist in => nächster schritt (inkl. folge schritte schon angezeigt aber weniger highlighted! \nNebenbei auf zweiten blick sichtbar die aktiven aufträge. Nebenbei auf dritten blick sichtbar das logbuch. \n\nich finde generell gut das die schritte wie im logbuch der kauf vs die aufgabe dsie uzu kaufen und so weiter egal wo den gleichen style haben, so sind sie wiedererkennbar, das ggf. noch etwsas vereinheitlichen. Ggf. in zwei varianten noch zu tun vs ausgefühht - weil das ja andere infos sind darin dann und ggf. andere aufmerksamkeit. aber sie sollten etwas gleicher sein."
+    },
+    "decisions": [
+      {
+        "id": "r4-src",
+        "value": [
+          "log",
+          "search",
+          "community",
+          "ocr"
+        ],
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-community",
+        "value": "median",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-minreports",
+        "value": 5,
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-model",
+        "value": "ok",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-noapp",
+        "value": "cta",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-order",
+        "value": [
+          "web-frame",
+          "web-supply",
+          "web-ops",
+          "scc-sync",
+          "web-map",
+          "web-stats",
+          "scc-inv",
+          "web-patch"
+        ],
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r4-first",
+        "value": [
+          "web-frame",
+          "web-supply",
+          "web-ops",
+          "scc-sync",
+          "web-map",
+          "web-stats",
+          "scc-inv",
+          "web-patch"
+        ],
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r4-ship-scc",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "untouched": false,
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r4-g1-s1-a1",
+        "answer": "sehr gut!"
+      },
+      {
+        "id": "r4-g1-s1-a2",
+        "answer": "ja genau, aber darunter immer die suche direkt auch hier im ersten Besuch!"
+      },
+      {
+        "id": "r4-g1-s2-a1",
+        "answer": "Das stimmt nicht, der blcok in codex sieht immmer so aus!"
+      },
+      {
+        "id": "r4-g1-s3-a1",
+        "answer": "ja, nicht nur wie, die suche soll technisch immer das exakt selbe elemnet im coding sein, nur in zwei visualsiierungen wenn eingeklappt für standalone und subheader! \nZudem soll dann nur je nach seite priorisiert werden, gruppierungen angezeigt oder nciht oder nur zum teil. usw. für jedes der elemente. Generell muss man aber sagen was man ausblendet, nicht was man einblendet auf der jeweiligen seite."
+      },
+      {
+        "id": "r4-g1-s5-a1",
+        "answer": "Finde ich richtig gut, aber dann sollten auch die sachen die nicht im filter angeklickt sind ausgeblendet sein!"
+      },
+      {
+        "id": "r4-g1-s5-a2",
+        "answer": "perfekt!\n\nLass uns eher Einsatz vs Einsatz 2x etablieren als wording, also ab 2 statt  operation oder weitere einzüfhren. Im tooltip darf gern von 2 schritten gesprochen werden. Achtung, ein iensatz kann ein e ortsaktivität sein, eine bewegung /transport die nicht teil der spielmission ist gilt auch direkt als einsatz zweiter!"
+      },
+      {
+        "id": "r4-g1-s8-a1",
+        "answer": "passt erstmal!"
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "g1-s1",
+        "text": "Das gern als Titel von den buttons darunter! Gern genauso dezent!"
+      },
+      {
+        "screen": "g1-s1",
+        "text": "wo ist das dreieck sollte exakt so aussehen wie auf verse dieser seitenübergang..."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "Gern der blcok hier inkl. buttons darutner noch etwas tiefer..."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "Diese bar ist unnötig, sieht man oben schon. Aber den Aufwand von 4 minuten zu beschreiben fädne ich super irgendwo dezent als hinwes."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "überspringen sollte unte rlos gehts sein! Das ist standard wie ich das kenne."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "Beim headquarter (siehe akteull) haben wir nicht den planeten unten im hintergrund sondern auf ihn gezooomed! was ich beibhalten will als background."
+      },
+      {
+        "screen": "g1-s2",
+        "text": "header weiterhin vollkommen falsch dargestellt, der soll so bleiben wie er ist!"
+      },
+      {
+        "screen": "g1-s2",
+        "text": "diese navigation nicht dort hin! sondern maximal links an den seitenrand um schnell dort hin scrollen zu lassen."
+      },
+      {
+        "screen": "g1-s4",
+        "text": "ich würde nie auftrag noch einführen, es gibt ja sfchon einsat z (scc alglgemeines wording) und missionen (ingame missionen), das macht es zu kompliziert. Gern mehr bennenn worum es dort geht, z. B. Einkauf oder Mission usw."
+      },
+      {
+        "screen": "g1-s4",
+        "text": "ich würde immer nur das hauptsternenssystem wo der anfang ist einblenden und die anderen dann aufklappbar machen wie ein akkordeon, sonst wird dasmit dem nächsten sternensystem viel zu viel..."
+      },
+      {
+        "screen": "g1-s4",
+        "text": "Finde ich richtig gut, aber dann sollten auch die sachen die nicht im filter angeklickt sind ausgeblendet sein!"
+      },
+      {
+        "screen": "g1-s4",
+        "text": "Default immer nur die top drei wichtigsten anklicken!"
+      },
+      {
+        "screen": "g1-s4",
+        "text": "wie könnten wir hier vorauswahlen propagieren - z. B. friedlich und oder kampf und oder zeitintensiv... Sodass man sagen kann nach vordefinierten feststehenden klassifikaitonen worauf man gerade bock hat und dann sind etwaige vorausgewählt (aber nebst dieser klaassfikation auch die dimension nur in system->planet->ort... gern als so ein mehrere checkable drop ddown verschachtelung inkl. mini suche. Gern auch eine weiter  dimension wenn du eine idee hast.). Alternativ kann man ja sagen ich brauch gerade nur die top drei angeklcikten nehme ich ( also wie vorausgewählt am anfang) oder alternativ ich will x y und z der rest interessiert mich gerade nicht...\nSo haben wir schöne drei use cases...\n\nVlltr. ist der dritte use case auch der einsatztyp der oben steht!\n\nDas ist das wie. Jetzt haben wir ja auch noch die Sets, also das was/wofür... hmmm das sollte irgendwie anders als filter dargestellt werden und ggf. je nachdem auch mehrfach markiert werden können bztw. eine info enthalten ob es vollständig erreicht werden kann mti der auswahl jeweils, teilweise oder sonst eifnach keinen hinweis.damit aufch so eine dreifach logik checkbox nicht angeklickt, teilweise angeklcikt voll angeklickt nur bitte kein excel style sondern modern, es geht nur um den dreier mechanismujs nicht um die darstellung als checkbox!"
+      },
+      {
+        "screen": "g1-s5",
+        "text": "Ich würde diese filter wirklich an die planen übersicht binden. Im schritt modus nicht ermöglichen erstmal."
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das ist doch das gleiche im prinzip wie links hier gibt es zwei dinge für dich zu tun?"
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das osllte weniger prominent sein!"
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Finde die wiederekennbarkeit der kästchen in dem kasten super, aber das sollte eher min. 3 einträge mit popup wenn man es gkomplett sehen will - dort mit lazy loading und mehr button - irgendwo weniger prominent stehen."
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das ist wichtig, sieht mir aber zu sehr aus nach dem gleichen anschein wie oben die nachricht. \nDas gern hier überarbeiten"
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das ist super"
+      },
+      {
+        "screen": "g1-s7",
+        "text": "Ich habe vetrstanden,  sets sind schiff-loadouts im hangar oder fps sets im spind. Achtung, die allgemeins uche sollte, wenn benutzt auf dieser seite gut anzeigen was man sucht worum es hier geht. \nDann gibt es für mich noch das virtuelle Lager / Erspieltes wie Blueprints (vllt. zukünftig ruf etc, rbauchst du aber noch 0 hier berücksichtigen) und physische lager (wie was ich dort habe wie gold, kupfer usw. oder andere gegenstände)."
+      }
+    ]
   }
 ]

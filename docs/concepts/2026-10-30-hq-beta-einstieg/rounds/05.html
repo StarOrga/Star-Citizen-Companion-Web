@@ -1,0 +1,1724 @@
+<section data-iteration="5" data-iteration-template="design" data-viewports="desktop phone">
+<style>
+/* Round 5 · HQ · finale Struktur. Shared mock foundation copied from round 4 unchanged; this round under .mock-app .h1-.
+   Chrome mirrors src/app/shell/main-header, shell/fusion-bar (+ fusion-search), styles.scss PAGE FRAME + SUBHEADER SKIN,
+   verse/shared/verse-header, verse-briefing-planet.scss (.more-cue) and shell/scene (HQ pose). */
+.mock-app { --m-bg: #0a1c28; --m-panel: #123246; --m-line: rgba(82, 193, 230, 0.18); --m-acc: #52c1e6;
+  --m-fg: #e8ebed; --m-fg2: #9fb3c8; --m-fg3: #84a0b6; --m-ok: #5fd698; --m-warn: #f0c27b;
+  --m-craft: #b49bff; --m-earn: #6fe0c8; --m-gold: #f5c94d;
+  position: relative; width: 100%; min-height: 100%; box-sizing: border-box; overflow: hidden;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, #10324a 0%, #0a1c28 55%, #071520 100%);
+  color: var(--m-fg); font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; }
+.mock-app *, .mock-app *::before, .mock-app *::after { box-sizing: border-box; }
+.mock-bar { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; margin: 52px 16px 0; padding: 8px 14px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(10, 28, 40, 0.72); }
+.mock-logo { font: 700 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; color: var(--m-acc); }
+.mock-nav { display: flex; gap: 14px; color: var(--m-fg2); font-size: 13px; }
+.mock-nav b { color: var(--m-fg); font-weight: 600; border-bottom: 2px solid var(--m-acc); padding-bottom: 2px; }
+.mock-tabs { display: flex; gap: 4px; margin-left: auto; }
+.mock-tab { padding: 4px 10px; border-radius: 999px; color: var(--m-fg2); font-size: 12.5px; }
+.mock-tab.on { background: rgba(82, 193, 230, 0.14); color: var(--m-acc); }
+.mock-supply { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: transparent; color: var(--m-fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mock-supply i { font-style: normal; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--m-acc); color: #062030; font-weight: 700; text-align: center; }
+.mock-search { position: relative; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--m-line); border-radius: 12px;
+  background: rgba(8, 22, 31, 0.82); color: var(--m-fg3); font-size: 14px; }
+.mock-search.on { border-color: var(--m-acc); box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.10); color: var(--m-fg); }
+.mock-search > svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.mock-search > span { flex: 1; }
+.mock-search kbd { padding: 2px 7px; border: 1px solid var(--m-line); border-radius: 5px; font: 11.5px ui-monospace, Consolas, monospace; color: var(--m-fg2); }
+.mock-caret { display: inline-block; width: 1.5px; height: 16px; margin-left: 1px; vertical-align: -3px; background: var(--m-acc); }
+.mock-drop-g { padding: 10px 14px 4px; font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-res { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 14px; font-size: 13.5px; }
+.mock-res.on { background: rgba(82, 193, 230, 0.10); box-shadow: inset 3px 0 0 var(--m-acc); }
+.mock-res small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-res-ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: rgba(82, 193, 230, 0.10); color: var(--m-acc); font: 700 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.06em; }
+.mock-verb { padding: 5px 10px; border: 1px solid var(--m-acc); border-radius: 7px; background: rgba(82, 193, 230, 0.12); color: var(--m-acc); font: 600 12px/1 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.mock-verb.alt { border-color: var(--m-line); background: transparent; color: var(--m-fg2); }
+.mock-drop-f { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 14px; border-top: 1px solid var(--m-line); font-size: 11.5px; color: var(--m-fg3); }
+.mock-drop-f b { color: var(--m-fg2); font-weight: 600; }
+.mock-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--m-acc);
+  background: var(--m-acc); color: #062030; font: 600 13px/1 Inter, system-ui, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.mock-btn.ghost { background: transparent; color: var(--m-acc); }
+.mock-btn.quiet { background: transparent; border-color: var(--m-line); color: var(--m-fg2); }
+.mock-btn.sm { padding: 6px 11px; font-size: 12px; }
+.mock-card { border: 1px solid var(--m-line); border-radius: 14px; background: rgba(18, 50, 70, 0.5); padding: 14px 16px; }
+.mock-k { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-k a { margin-left: auto; font: 500 12px/1 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--m-acc); text-decoration: none; }
+.mock-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(10, 28, 40, 0.6); color: var(--m-fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mock-chip:hover { border-color: var(--m-acc); color: var(--m-acc); }
+.mock-star { color: var(--m-gold); }
+.mock-way { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; border: 1px solid currentColor; background: transparent;
+  font: 600 11.5px/1.3 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.mock-way.buy { color: var(--m-acc); } .mock-way.craft { color: var(--m-craft); } .mock-way.earn { color: var(--m-earn); }
+.mock-live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--m-fg2); }
+.mock-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--m-ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+.mock-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--m-line); color: var(--m-fg2); font-size: 10.5px; white-space: nowrap; }
+.mock-tag.scc { border-color: rgba(95, 214, 152, 0.4); color: var(--m-ok); }
+.mock-tag.codex { border-color: rgba(82, 193, 230, 0.4); color: var(--m-acc); }
+.mock-ok { color: var(--m-ok); } .mock-warn { color: var(--m-warn); } .mock-dim { color: var(--m-fg3); } .mock-acc { color: var(--m-acc); }
+.mock-row { display: flex; align-items: center; gap: 8px; }
+.mock-grid { stroke: rgba(82, 193, 230, 0.12); stroke-width: 1; }
+
+/* Intro (engine page tokens, outside every mock). */
+.mock-r5-src { max-width: 980px; margin: 12px 0 6px; padding: 10px 14px; border: 1px solid var(--border-color); border-left: 3px solid var(--accent-color); border-radius: 10px; background: var(--panel-bg); font-size: 12.5px; color: var(--text-secondary); }
+.mock-r5-src b { color: var(--text-primary); }
+.mock-r5-src code { font-size: 11.5px; }
+.mock-r5-src ul { margin: 4px 0 0; padding-left: 18px; }
+.mock-r5-src li { margin: 2px 0; }
+.mock-r5-kept { max-width: 980px; margin: 8px 0 0; color: var(--text-secondary); font-size: 12.5px; }
+.mock-r5-kept ul { margin: 4px 0 0; padding-left: 18px; columns: 2; column-gap: 28px; }
+.mock-r5-kept li { margin: 2px 0; break-inside: avoid; }
+
+/* ── The app frame: Rand (A) and the subheader width (B), styles.scss PAGE FRAME ── */
+.mock-app.h1-app { --h1-rand: clamp(16px, 2.5%, 64px); --h1-b: min(100% - 2 * var(--h1-rand), max(1280px, 67%));
+  --h1-fill: linear-gradient(180deg, #0a1d2b, #061724);
+  --h1-edge: linear-gradient(160deg, rgba(200, 236, 250, 0.7) 0%, rgba(80, 125, 148, 0.45) 30%, rgba(30, 58, 74, 0.5) 60%, rgba(140, 200, 225, 0.55) 100%);
+  --h1-edge-f: linear-gradient(160deg, rgba(225, 248, 255, 0.95) 0%, rgba(130, 220, 255, 0.7) 35%, rgba(90, 170, 205, 0.6) 65%, rgba(200, 240, 255, 0.9) 100%);
+  --h1-shadow: 0 0 14px rgba(82, 193, 230, 0.08), 0 14px 34px rgba(0, 0, 0, 0.45);
+  --h1-panel: #123246; --h1-border: rgba(159, 179, 200, 0.22);
+  display: flex; flex-direction: column; min-height: 980px; overflow: clip; background: #02070d; }
+.mock-app.h1-app > :where(:not(.h1-hq)) { position: relative; z-index: 2; }
+.mock-app .h1-b { box-sizing: border-box; width: var(--h1-b); margin-inline: auto; }
+.mock-app .h1-a { box-sizing: border-box; width: calc(100% - 2 * var(--h1-rand)); margin-inline: auto; }
+
+/* ── HQ scene pose (shell-scene: deep zoom, scale 3.4, the disc fills the view; grid + city lights) ── */
+.mock-app .h1-hq { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none;
+  background: radial-gradient(ellipse 60% 34% at 80% 3%, rgba(120, 190, 220, 0.2), transparent 70%), radial-gradient(ellipse 34% 12% at 30% 26%, rgba(20, 40, 52, 0.7), transparent 70%),
+    radial-gradient(ellipse 26% 8% at 62% 40%, rgba(16, 34, 46, 0.6), transparent 70%), radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 34%, #040a11 64%, #02070d 100%); }
+.mock-app .h1-hq.sub { bottom: auto; height: 1000px; opacity: 0.8; }
+.mock-app .h1-hq::before { content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(82, 193, 230, 0.12) 0 1px, transparent 1px 96px), repeating-linear-gradient(0deg, rgba(82, 193, 230, 0.09) 0 1px, transparent 1px 96px);
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 30%, transparent 85%); mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 30%, transparent 85%); }
+.mock-app .h1-hq::after { content: ""; position: absolute; inset: 0; opacity: 0.8;
+  background-image: radial-gradient(circle at 9px 11px, #fff0c8 0 1.2px, transparent 2px), radial-gradient(circle at 41px 27px, #ffc878 0 1px, transparent 1.7px), radial-gradient(circle at 23px 52px, #ffb35a 0 0.9px, transparent 1.5px);
+  background-size: 71px 63px;
+  -webkit-mask-image: radial-gradient(ellipse 40% 30% at 30% 55%, #000 10%, transparent 75%), radial-gradient(ellipse 25% 20% at 72% 40%, #000 10%, transparent 75%);
+  mask-image: radial-gradient(ellipse 40% 30% at 30% 55%, #000 10%, transparent 75%), radial-gradient(ellipse 25% 20% at 72% 40%, #000 10%, transparent 75%); }
+.mock-app .h1-ground { position: absolute; inset: 55% 0 0 0; background: linear-gradient(180deg, transparent, #02070d 70%); }
+.mock-app .h1-hq.dive { animation: h1-dive 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both; }
+@keyframes h1-dive { from { opacity: 0; transform: scale(1.3); } to { opacity: 1; transform: none; } }
+
+/* ── Main header (main-header.component.ts): brand top-left at the launcher inset, nav centred, apps + profile top-right ── */
+.mock-app .h1-mh { z-index: 6; height: 88px; padding-top: 24px; flex: none; }
+.mock-app .h1-mh::before { content: ""; position: absolute; z-index: -1; inset: 0 0 auto 0; height: 150px; background: linear-gradient(180deg, rgba(10, 28, 40, 0.55), transparent); pointer-events: none; }
+.mock-app .h1-mh.intro { animation: h1-mhin 0.6s cubic-bezier(0.16, 1, 0.3, 1) 4.85s both; }
+@keyframes h1-mhin { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+.mock-app .h1-brand { position: absolute; left: 24px; top: 24px; display: flex; align-items: center; height: 40px; color: var(--m-fg); text-decoration: none; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85); }
+.mock-app .h1-mark { display: block; flex: none; width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle, #a0dcf0 0 9%, #7dd5f0 15%, rgba(82, 193, 230, 0.55) 30%, rgba(82, 193, 230, 0.14) 46%, #0d2635 58%, #0d2635 84%, rgba(13, 38, 53, 0) 100%);
+  box-shadow: inset 0 0 0 1.5px rgba(125, 213, 240, 0.35), inset 0 0 0 7px rgba(13, 38, 53, 0.9), inset 0 0 0 8px rgba(82, 193, 230, 0.3); filter: drop-shadow(0 0 8px rgba(82, 193, 230, 0.55)); }
+.mock-app .h1-wm { position: absolute; left: calc(100% + 12px); top: 50%; display: grid; transform: translateY(-50%); white-space: nowrap; }
+.mock-app .h1-wm-t { font: 700 15px/1.25 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.mock-app .h1-wm-a { font: 9px/1.4 Orbitron, system-ui, sans-serif; letter-spacing: 0.42em; text-transform: uppercase; color: var(--m-acc); }
+.mock-app .h1-row { display: flex; justify-content: center; align-items: center; height: 40px; }
+.mock-app .h1-nav { position: relative; display: flex; }
+.mock-app .h1-slot { display: flex; align-items: center; justify-content: center; width: 112px; height: 40px; text-indent: 0.22em; font: 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase;
+  text-decoration: none; color: rgba(232, 235, 237, 0.72); text-shadow: 0 1px 14px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8); border-radius: 8px; }
+.mock-app .h1-slot:hover { color: var(--m-fg); }
+.mock-app .h1-slot.on { color: var(--m-fg); text-shadow: 0 0 18px rgba(82, 193, 230, 0.55), 0 1px 14px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8); }
+.mock-app .h1-ind { position: absolute; bottom: 2px; left: calc(var(--i) * 112px + 36px); width: 40px; height: 2px; border-radius: 2px; background: var(--m-acc); box-shadow: 0 0 12px var(--m-acc); }
+.mock-app .h1-acc { position: absolute; right: 24px; top: 24px; display: flex; align-items: center; gap: 8px; height: 40px; }
+.mock-app .h1-apps { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--h1-border); background: var(--h1-panel); color: var(--m-fg2);
+  font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6); }
+.mock-app .h1-apps svg { width: 16px; height: 16px; fill: currentColor; }
+.mock-app .h1-apps:hover { border-color: var(--m-acc); color: var(--m-acc); }
+.mock-app .h1-av { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--h1-border); background: var(--h1-panel); color: var(--m-acc);
+  font: 700 16px/1 Orbitron, system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6); }
+
+/* ── Subheader "Satinkante" (fusion-bar.component.scss): ONE 60px bar at B, 5px radius, metal edge, satin sheen ── */
+.mock-app .h1-subw { z-index: 6; flex: none; padding-top: 24px; }
+.mock-app .h1-cap { position: relative; isolation: isolate; display: flex; align-items: center; box-sizing: border-box; width: var(--h1-b); height: 60px; margin-inline: auto; padding: 0 16px;
+  border: 1px solid transparent; border-radius: 5px; background: var(--h1-fill) padding-box, var(--h1-edge) border-box; box-shadow: var(--h1-shadow); }
+.mock-app .h1-cap::before { content: ""; position: absolute; z-index: 0; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(180deg, rgba(210, 242, 255, 0.07), transparent 55%); }
+.mock-app .h1-cap > * { position: relative; z-index: 2; }
+.mock-app .h1-cap > .h1-band { position: absolute; z-index: 1; left: 5px; right: 5px; bottom: 0; height: 3px; opacity: 0.55; pointer-events: none;
+  background: linear-gradient(90deg, transparent, #52c1e6, transparent) no-repeat; background-size: 50% 100%; animation: h1-band 3.2s ease-in-out infinite; }
+@keyframes h1-band { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+.mock-app .h1-cap.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: var(--h1-fill) padding-box, var(--h1-edge-f) border-box;
+  box-shadow: 0 0 0 1px rgba(130, 220, 255, 0.35), 0 0 22px rgba(82, 193, 230, 0.3), var(--h1-shadow); }
+.mock-app .h1-cap.open > .h1-band { display: none; }
+.mock-app .h1-blogo { flex: none; display: flex; align-items: center; width: 44px; height: 40px; }
+.mock-app .h1-blogo .h1-mark { width: 28px; height: 28px; filter: drop-shadow(0 0 6px rgba(82, 193, 230, 0.45)); }
+.mock-app .h1-plate { flex: 0 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; max-width: 260px; padding-right: 8px; }
+.mock-app .h1-cat { font: 700 11.5px/1.2 Orbitron, system-ui, sans-serif; font-variant-caps: all-small-caps; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg); white-space: nowrap; }
+.mock-app .h1-trail { display: flex; align-items: baseline; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; line-height: 1.2; white-space: nowrap; }
+.mock-app .h1-trail li + li::before { content: "›"; margin-right: 4px; color: var(--m-fg3); }
+.mock-app .h1-trail a { color: var(--m-fg3); text-decoration: none; }
+.mock-app .h1-trail a:hover { color: var(--m-acc); }
+.mock-app .h1-trail .here { color: var(--m-fg2); }
+.mock-app .h1-div { flex: none; width: 1px; height: 34px; margin: 0 16px 0 8px; background: linear-gradient(180deg, transparent, rgba(160, 230, 255, 0.8), transparent); }
+.mock-app .h1-field { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 520px; height: 44px; margin-right: auto; padding: 0 8px 0 4px; border-radius: 4px;
+  border: 0; background: transparent; color: var(--m-fg3); font: inherit; font-size: 14.7px; text-align: left; cursor: text; }
+.mock-app .h1-cap.stage .h1-field { max-width: none; margin-right: 0; }
+.mock-app .h1-glyph { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--m-acc); stroke-width: 1.8; stroke-linecap: round; }
+.mock-app .h1-ph { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mock-app .h1-typed { flex: 1 1 auto; color: var(--m-fg); white-space: nowrap; }
+.mock-app .h1-ctx { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 2px 0 12px; border-radius: 999px; background: rgba(82, 193, 230, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.4); color: var(--m-fg); font-size: 12.5px; white-space: nowrap; }
+.mock-app .h1-ctx i { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--m-fg3); font-style: normal; font-size: 13px; }
+.mock-app .h1-hint { flex: none; display: inline-flex; gap: 4px; }
+.mock-app .h1-kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em; padding: 0 6px; border-radius: 6px; border: 1px solid rgba(82, 193, 230, 0.35);
+  border-bottom-width: 2px; background: linear-gradient(180deg, #17384c, #0b2231); color: var(--m-fg2); font: 11.2px/1 ui-monospace, Consolas, monospace; white-space: nowrap; }
+.mock-app .h1-bacc { flex: none; display: flex; align-items: center; gap: 8px; margin-left: 16px; }
+.mock-app .h1-route { display: none; }
+/* staged: the same bar, only the field, standing in the scene under the hero */
+.mock-app .h1-cap.stage { width: min(640px, 100%); margin-top: 26px; }
+.mock-app .h1-bloom { position: absolute; z-index: -1; left: 10%; right: 10%; top: -40%; bottom: -40%; border-radius: 50%; opacity: 0.3; pointer-events: none; background: radial-gradient(closest-side, rgba(110, 210, 255, 0.4), transparent); }
+.mock-app .h1-cap.ignite { animation: h1-fi 0.75s cubic-bezier(0.65, 0, 0.25, 1) 3.4s both; }
+@keyframes h1-fi { from { clip-path: inset(0 50% 0 50%); opacity: 0.6; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+
+/* ── Results panel welded to the bar (fusion-bar: same width, same skin) ── */
+.mock-app .h1-res { position: absolute; z-index: 9; top: 100%; left: -1px; right: -1px; padding: 12px; border: 1px solid transparent; border-top: 0; border-radius: 0 0 5px 5px;
+  background: var(--h1-fill) padding-box, var(--h1-edge) border-box; box-shadow: var(--h1-shadow), 0 30px 70px rgba(0, 0, 0, 0.6); text-align: left; }
+.mock-app .h1-rg { display: flex; align-items: center; gap: 8px; padding: 6px 8px 4px; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-rg .h1-cnt { padding: 0 7px; border-radius: 999px; background: rgba(8, 22, 31, 0.9); color: var(--m-acc); font: 10.5px/1.6 ui-monospace, Consolas, monospace; letter-spacing: 0; }
+.mock-app .h1-rg.low { margin-top: 6px; padding-top: 10px; border-top: 1px solid rgba(159, 179, 200, 0.14); }
+.mock-app .h1-rh { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 6px; font-size: 13.5px; }
+.mock-app .h1-rh.on { background: rgba(82, 193, 230, 0.12); box-shadow: inset 2px 0 0 #c8f2ff; }
+.mock-app .h1-rh small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-rh mark { padding: 0 1px; border-radius: 2px; background: rgba(82, 193, 230, 0.28); color: #fff; }
+.mock-app .h1-rfoot { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; padding: 9px 8px 2px; border-top: 1px solid rgba(159, 179, 200, 0.14); font-size: 11.5px; color: var(--m-fg3); }
+.mock-app .h1-rfoot b { color: var(--m-fg2); font-weight: 600; }
+.mock-app .h1-rfoot a { margin-left: auto; color: var(--m-acc); text-decoration: none; }
+
+/* ── Left-edge quick-scroll rail (outside the content column) ── */
+.mock-app .h1-rail { position: absolute; z-index: 7; left: max(6px, calc(var(--h1-rand) / 2 - 8px)); top: 340px; display: flex; flex-direction: column; gap: 4px; padding: 6px 0; }
+.mock-app .h1-ri { display: flex; align-items: center; gap: 10px; height: 24px; padding: 0; border: 0; background: none; color: var(--m-fg3); font: 500 10.5px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.2em; text-transform: uppercase; text-decoration: none; cursor: pointer; }
+.mock-app .h1-ri i { flex: none; width: 12px; height: 2px; border-radius: 2px; background: rgba(159, 179, 200, 0.45); transition: width 0.2s, background 0.2s; }
+.mock-app .h1-ri span { padding: 4px 8px; border-radius: 4px; background: rgba(6, 23, 36, 0.92); box-shadow: 0 0 0 1px rgba(82, 193, 230, 0.18); white-space: nowrap; opacity: 0; translate: -4px 0; transition: opacity 0.2s, translate 0.2s; }
+.mock-app .h1-rail:hover .h1-ri span, .mock-app .h1-rail:focus-within .h1-ri span { opacity: 1; translate: 0 0; }
+.mock-app .h1-ri:hover i, .mock-app .h1-ri:focus-visible i { width: 18px; background: var(--m-fg); }
+.mock-app .h1-ri.on { color: var(--m-fg); }
+.mock-app .h1-ri.on i { width: 22px; background: var(--m-acc); box-shadow: 0 0 10px var(--m-acc); }
+
+/* ── The Verse page-transition cue (verse-briefing-planet.scss .more-cue + _briefing-worlds chevron) ── */
+.mock-app .h1-cue { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 44px; margin: 0 auto; padding: 4px 12px; border: 0; background: none;
+  font: 500 11px/1.3 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--m-fg2); cursor: pointer; }
+.mock-app .h1-cue.abs { position: absolute; z-index: 6; left: 50%; bottom: 16px; translate: -50% 0; }
+.mock-app .h1-chev { display: inline-block; flex: none; width: 9px; height: 9px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; color: var(--m-fg2); transform: rotate(45deg); transition: color 0.2s; }
+.mock-app .h1-chev.r { transform: rotate(-45deg); }
+.mock-app .h1-cue:hover .h1-chev, .mock-app .h1-cue:focus-visible .h1-chev { color: var(--m-acc); }
+.mock-app .h1-cue.intro { animation: h1-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 5s both; }
+
+/* ── Main page stage (Start + first visit): hero in the upper part, A width ── */
+.mock-app .h1-stage { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; min-height: 892px; padding-bottom: 84px; text-align: center; }
+.mock-app .h1-hx { position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; width: min(100% - 32px, 1280px); margin-top: 150px; }
+.mock-app .h1-hx::before { content: ""; position: absolute; z-index: -1; inset: -40% -18%; pointer-events: none; background: radial-gradient(closest-side, rgba(2, 6, 11, 0.6), rgba(2, 6, 11, 0.36) 55%, transparent); }
+.mock-app .h1-kick { margin: 0; min-height: 1.4em; font: 500 11px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--m-acc); }
+.mock-app .h1-kick em { font-style: normal; color: var(--m-fg2); }
+.mock-app .h1-title { margin: 6px 0 0; font: 500 50px/1.1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: #f2fbff; }
+.mock-app .h1-info { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-top: 14px; color: var(--m-fg); text-decoration: none; }
+.mock-app .h1-info-k { font: 600 11px/1.3 Inter, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--m-warn); }
+.mock-app .h1-info-k em { font-style: normal; color: var(--m-fg3); letter-spacing: 0.12em; }
+.mock-app .h1-info-t { font-size: 15.5px; color: #d7e6ef; }
+.mock-app .h1-info-t b { color: var(--m-warn); font-weight: 600; }
+.mock-app .h1-info-t span { color: var(--m-acc); }
+.mock-app .h1-nowk { margin: 34px 0 10px; font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.26em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-now { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 900px; }
+.mock-app .h1-nowc { padding: 7px 14px 7px 7px; background: rgba(6, 18, 27, 0.78); }
+.mock-app .h1-nowc i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(82, 193, 230, 0.1); font-style: normal; }
+.mock-app .h1-nowc i svg { width: 12px; height: 12px; fill: none; stroke: var(--c, var(--m-acc)); stroke-width: 1.8; stroke-linejoin: round; }
+.mock-app .h1-nowc small { color: var(--m-fg3); font-size: 11.5px; }
+
+/* first visit: the Verse entrance */
+.mock-app .h1-lb { position: absolute; z-index: 8; left: 0; right: 0; height: 0; background: #000; pointer-events: none; animation: h1-lb 0.8s cubic-bezier(0.65, 0, 0.25, 1) 0.8s both; }
+.mock-app .h1-lb.t { top: 0; }
+.mock-app .h1-lb.b { bottom: 0; }
+@keyframes h1-lb { from { height: 13%; } to { height: 0; } }
+.mock-app .h1-ltr { display: inline-block; white-space: pre; animation: h1-ltr 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(2s + var(--i) * 0.045s); }
+@keyframes h1-ltr { from { opacity: 0; filter: blur(12px); transform: scale(1.7); } to { opacity: 1; filter: none; transform: none; } }
+@keyframes h1-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+.mock-app .h1-intro { animation: h1-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 4.85s both; }
+.mock-app .h1-comet { position: absolute; z-index: 6; right: 18%; top: 22%; width: 140px; height: 3px; border-radius: 3px; opacity: 0; pointer-events: none; transform-origin: 0 50%;
+  background: linear-gradient(90deg, #fff, rgba(82, 193, 230, 0.6) 30%, transparent); box-shadow: 0 0 12px #52c1e6; animation: h1-comet 0.6s cubic-bezier(0.55, 0, 0.45, 1) 4.85s both; }
+@keyframes h1-comet { 0% { opacity: 0; transform: rotate(-30deg) translateX(520px) scaleX(0.4); } 15% { opacity: 1; } 85% { opacity: 1; transform: rotate(-30deg) translateX(0) scaleX(1); } 100% { opacity: 0; transform: rotate(-30deg) translateX(0) scaleX(0.2); } }
+.mock-app .h1-launch { position: relative; width: 100%; max-width: 920px; margin-top: 150px; }
+.mock-app .h1-lhead { display: flex; align-items: baseline; justify-content: center; gap: 14px; margin: 0 0 18px; }
+.mock-app .h1-promise { margin: 0; color: #cfe3ef; font-size: 17px; line-height: 1.5; }
+.mock-app .h1-mins { color: var(--m-fg3); font-size: 12px; white-space: nowrap; }
+.mock-app .h1-steps3 { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.mock-app .h1-steps3::before { content: ""; position: absolute; top: 38px; left: 17%; right: 17%; height: 2px; background: linear-gradient(90deg, var(--m-ok), var(--m-acc) 50%, rgba(82, 193, 230, 0.14)); box-shadow: 0 0 12px rgba(82, 193, 230, 0.5); }
+.mock-app .h1-ls { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 18px 16px; border: 1px solid rgba(82, 193, 230, 0.24); border-radius: 18px;
+  background: linear-gradient(180deg, rgba(16, 48, 68, 0.82), rgba(5, 15, 23, 0.88)); color: var(--m-fg); font: inherit; text-align: center; cursor: pointer; }
+.mock-app .h1-ls-n { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 6px; border-radius: 50%; border: 1.5px solid rgba(82, 193, 230, 0.5); background: #061420; color: var(--m-acc); font: 700 15px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-ls.next { border-color: var(--m-acc); box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.14), 0 0 46px rgba(82, 193, 230, 0.3); animation: h1-pulse 3.4s ease-in-out 6s infinite; }
+.mock-app .h1-ls.next .h1-ls-n { background: var(--m-acc); color: #062030; box-shadow: 0 0 22px rgba(82, 193, 230, 0.8); }
+@keyframes h1-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.14), 0 0 36px rgba(82, 193, 230, 0.22); } 50% { box-shadow: 0 0 0 5px rgba(82, 193, 230, 0.22), 0 0 64px rgba(82, 193, 230, 0.42); } }
+.mock-app .h1-ls.done { border-color: rgba(95, 214, 152, 0.55); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.12); animation: h1-done 0.6s ease 5.3s both; }
+@keyframes h1-done { from { border-color: #52c1e6; box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.14), 0 0 46px rgba(82, 193, 230, 0.3); } to { border-color: rgba(95, 214, 152, 0.55); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.12); } }
+.mock-app .h1-ls.done b { color: #c9f5de; }
+.mock-app .h1-chk { width: 40px; height: 40px; margin-bottom: 6px; }
+.mock-app .h1-chk circle { fill: rgba(95, 214, 152, 0.12); stroke: var(--m-ok); stroke-width: 2; stroke-dasharray: 114; stroke-dashoffset: 0; animation: h1-drawc 0.7s ease-out 5.1s both; }
+.mock-app .h1-chk path { fill: none; stroke: var(--m-ok); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 0; animation: h1-drawp 0.4s ease-out 5.7s both; }
+@keyframes h1-drawc { from { stroke-dashoffset: 114; } to { stroke-dashoffset: 0; } }
+@keyframes h1-drawp { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+.mock-app .h1-ls b { font: 500 16px/1.25 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-ls small { color: var(--m-fg2); font-size: 12.5px; }
+.mock-app .h1-ls-gain { margin-top: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(82, 193, 230, 0.1); color: var(--m-acc); font-size: 11.5px; }
+.mock-app .h1-ls-ok { margin-top: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(95, 214, 152, 0.14); color: #8ff0c4; font-size: 11.5px; animation: h1-in 0.5s ease 5.9s both; }
+.mock-app .h1-ls-t { color: var(--m-fg3); font-size: 11px; }
+.mock-app .h1-cta { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 28px; }
+.mock-app .h1-go { padding: 15px 42px; border-radius: 999px; font-size: 15.5px; letter-spacing: 0.02em; box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.16), 0 0 40px rgba(82, 193, 230, 0.55); }
+.mock-app .h1-skip { border: 0; background: transparent; color: var(--m-fg3); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Follow pages: the Verse subpage head (verse-header.component.scss), content at B ── */
+.mock-app .h1-page { flex: 1; display: flex; flex-direction: column; padding-top: 4px; }
+.mock-app .h1-vh { display: flex; align-items: center; gap: 12px 18px; min-height: 64px; padding: 20px 0 16px; margin-bottom: 24px; border-bottom: 1px solid rgba(82, 193, 230, 0.14); }
+.mock-app .h1-vh-l { display: flex; align-items: baseline; gap: 6px 18px; min-width: 0; flex-wrap: wrap; }
+.mock-app .h1-vh-t { margin: 0; font: 600 15px/1.3 Orbitron, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--m-fg); }
+.mock-app .h1-vh-s { margin: 0; font-size: 13px; color: var(--m-fg2); }
+.mock-app .h1-vh-a { flex: none; display: flex; align-items: center; flex-wrap: wrap; row-gap: 6px; margin-left: auto; }
+.mock-app .h1-vh-a > * { padding-inline: 14px; }
+.mock-app .h1-vh-a > :last-child { padding-inline-end: 0; }
+.mock-app .h1-vh-a > * + * { border-left: 1px solid rgba(82, 193, 230, 0.16); }
+.mock-app .h1-lnk { border: 0; background: none; color: var(--m-acc); font: 500 12.5px/1.4 Inter, system-ui, sans-serif; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.mock-app .h1-lnk.q { color: var(--m-fg2); }
+.mock-app .h1-endcue { margin-top: auto; padding: 36px 0 18px; }
+.mock-app .h1-k { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-k em { font: 400 11.5px/1 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; font-style: normal; color: var(--m-fg2); }
+.mock-app .h1-k a, .mock-app .h1-k .h1-lnk { margin-left: auto; letter-spacing: 0; text-transform: none; }
+.mock-app .h1-box { padding: 14px 16px; border: 1px solid var(--m-line); border-radius: 12px; background: rgba(10, 28, 40, 0.62); }
+
+/* toggle (Schritt-Modus) */
+.mock-app .h1-tog { display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: var(--m-fg2); font: 600 12.5px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-app .h1-knob { position: relative; width: 34px; height: 20px; border-radius: 999px; background: rgba(132, 160, 182, 0.25); }
+.mock-app .h1-knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--m-fg2); }
+.mock-app .h1-tog.on { color: var(--m-acc); }
+.mock-app .h1-tog.on .h1-knob { background: var(--m-acc); }
+.mock-app .h1-tog.on .h1-knob::after { left: 17px; background: #062030; }
+
+/* ── Planen: Wie (Auswahl) · Was/Wofür (Sets) ── */
+.mock-app .h1-ctl { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+.mock-app .h1-ctlp { padding: 14px 16px 16px; border: 1px solid var(--m-line); border-radius: 12px; background: rgba(8, 22, 31, 0.72); }
+.mock-app .h1-seg { display: inline-flex; padding: 3px; border: 1px solid var(--m-line); border-radius: 8px; background: rgba(6, 18, 27, 0.7); }
+.mock-app .h1-seg button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 7px 14px; border: 0; border-radius: 6px; background: transparent; color: var(--m-fg2);
+  font: 600 12.5px/1.2 Inter, system-ui, sans-serif; text-align: left; cursor: pointer; }
+.mock-app .h1-seg button small { font-weight: 400; font-size: 11px; color: var(--m-fg3); }
+.mock-app .h1-seg button.on { background: rgba(82, 193, 230, 0.16); color: var(--m-acc); box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.45); }
+.mock-app .h1-why { margin: 10px 0 0; color: var(--m-fg3); font-size: 12px; }
+.mock-app .h1-why b { color: var(--m-fg2); font-weight: 600; }
+.mock-app .h1-axes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(82, 193, 230, 0.1); }
+.mock-app .h1-al { font: 600 9.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-asep { width: 1px; height: 20px; background: var(--m-line); }
+.mock-app .h1-kc { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--m-line); border-radius: 999px; background: transparent; color: var(--m-fg3);
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.mock-app .h1-kc svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.mock-app .h1-kc em { font-style: normal; color: var(--m-fg3); font-size: 11px; }
+.mock-app .h1-kc.on { border-color: rgba(82, 193, 230, 0.55); background: rgba(82, 193, 230, 0.1); color: var(--m-fg); }
+.mock-app .h1-mood { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px; }
+.mock-app .h1-mc { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border: 1px solid var(--m-line); border-radius: 999px; background: rgba(6, 18, 27, 0.7); color: var(--m-fg2);
+  font: 500 12.5px/1 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.mock-app .h1-mc i { font-style: normal; font-size: 13px; }
+.mock-app .h1-mc.on { border-color: var(--m-acc); background: rgba(82, 193, 230, 0.16); color: var(--m-fg); box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.08); }
+.mock-app .h1-mg2 { display: inline-flex; align-items: center; gap: 6px; }
+/* Ort: nested multi-check dropdown with a mini search */
+.mock-app .h1-ortw { position: relative; }
+.mock-app .h1-ortb { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border: 1px solid var(--m-line); border-radius: 6px; background: rgba(6, 18, 27, 0.75); color: var(--m-fg);
+  font: 500 12.5px/1 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.mock-app .h1-ortb small { color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-ortb.open { border-color: var(--m-acc); box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.1); }
+.mock-app .h1-dd { position: absolute; z-index: 9; top: calc(100% + 6px); left: 0; width: 330px; padding: 10px; border: 1px solid rgba(82, 193, 230, 0.4); border-radius: 10px; background: #0c2433; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); text-align: left; }
+.mock-app .h1-ddq { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1px solid rgba(82, 193, 230, 0.45); border-radius: 6px; background: rgba(6, 18, 27, 0.8); color: var(--m-fg); font-size: 12.5px; }
+.mock-app .h1-ddq svg { width: 13px; height: 13px; fill: none; stroke: var(--m-acc); stroke-width: 2; stroke-linecap: round; }
+.mock-app .h1-caret { display: inline-block; width: 1.5px; height: 14px; margin-left: 1px; vertical-align: -2px; background: var(--m-acc); }
+.mock-app .h1-tree, .mock-app .h1-tree ul { margin: 0; padding: 0; list-style: none; }
+.mock-app .h1-tree { margin-top: 8px; font-size: 13px; }
+.mock-app .h1-tree ul { margin-left: 22px; }
+.mock-app .h1-tn { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+.mock-app .h1-tn:hover { background: rgba(82, 193, 230, 0.08); }
+.mock-app .h1-tn b { font-weight: 600; }
+.mock-app .h1-tn small { margin-left: auto; color: var(--m-fg3); font-size: 11px; }
+.mock-app .h1-tn mark { padding: 0 1px; border-radius: 2px; background: rgba(82, 193, 230, 0.28); color: #fff; }
+.mock-app .h1-tn .h1-tw { width: 8px; height: 8px; margin-right: -2px; border-right: 1px solid var(--m-fg3); border-bottom: 1px solid var(--m-fg3); transform: rotate(45deg) translate(-2px, -2px); }
+.mock-app .h1-tn .h1-tw.c { transform: rotate(-45deg); }
+.mock-app .h1-cb { display: grid; place-items: center; flex: none; width: 16px; height: 16px; border: 1.5px solid var(--m-fg3); border-radius: 4px; }
+.mock-app .h1-cb.on { border-color: var(--m-acc); background: var(--m-acc); }
+.mock-app .h1-cb.on::after { content: "✓"; color: #062030; font: 800 10px/1 Inter, system-ui, sans-serif; }
+.mock-app .h1-cb.part { border-color: var(--m-acc); }
+.mock-app .h1-cb.part::after { content: ""; width: 8px; height: 2px; border-radius: 1px; background: var(--m-acc); }
+.mock-app .h1-ddf { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--m-line); font-size: 11.5px; color: var(--m-fg3); }
+/* Sets: tri-state rings, not filter chips */
+.mock-app .h1-sets { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.mock-app .h1-set { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 1px 10px; align-items: center; min-width: 200px; padding: 7px 16px 7px 7px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(6, 18, 27, 0.75); color: var(--m-fg); font: inherit; text-align: left; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.mock-app .h1-set:hover { border-color: rgba(82, 193, 230, 0.55); }
+.mock-app .h1-ring { position: relative; grid-row: span 2; width: 40px; height: 40px; }
+.mock-app .h1-ring svg { display: block; width: 40px; height: 40px; transform: rotate(-90deg); }
+.mock-app .h1-ring .t { fill: none; stroke: rgba(132, 160, 182, 0.24); stroke-width: 3; }
+.mock-app .h1-ring .a { fill: none; stroke: var(--m-acc); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.4s ease; }
+.mock-app .h1-ring b { position: absolute; inset: 0; display: grid; place-items: center; color: var(--m-fg2); font: 700 10px/1 Inter, system-ui, sans-serif; }
+.mock-app .h1-set.full { border-color: rgba(82, 193, 230, 0.6); background: rgba(82, 193, 230, 0.1); box-shadow: 0 0 22px rgba(82, 193, 230, 0.14); }
+.mock-app .h1-set.full .h1-ring b { color: var(--m-acc); }
+.mock-app .h1-set.full .h1-ring::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: rgba(82, 193, 230, 0.16); }
+.mock-app .h1-set.part .h1-ring b { color: var(--m-fg); }
+.mock-app .h1-sn { font-weight: 600; font-size: 13px; line-height: 1.2; }
+.mock-app .h1-sn small { margin-left: 6px; color: var(--m-fg3); font-weight: 400; font-size: 11px; }
+.mock-app .h1-reach { font-size: 11px; line-height: 1.3; color: var(--m-fg3); }
+.mock-app .h1-reach.ok { color: var(--m-ok); }
+.mock-app .h1-reach.part { color: var(--m-warn); }
+/* needs + map */
+.mock-app .h1-plan { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 18px; }
+.mock-app .h1-plan.steps { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); }
+.mock-app .h1-lh { display: flex; align-items: flex-end; gap: 8px; padding: 0 2px 8px; margin-bottom: 10px; border-bottom: 1px solid var(--m-line); font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-lh b { font: 500 16px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; text-transform: none; color: var(--m-fg); }
+.mock-app .h1-lh em { margin-left: auto; font: 400 11.5px/1 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; font-style: normal; color: var(--m-fg2); }
+.mock-app .h1-list { display: grid; gap: 8px; }
+.mock-app .h1-hid { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; border: 1px dashed var(--m-line); border-radius: 10px; color: var(--m-fg3); font-size: 12px; }
+.mock-app .h1-hid b { color: var(--m-fg2); }
+.mock-app .h1-map { overflow: hidden; border: 1px solid var(--m-line); border-radius: 14px; background: rgba(6, 18, 27, 0.9); }
+.mock-app .h1-maph { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border-bottom: 1px solid rgba(82, 193, 230, 0.1); }
+.mock-app .h1-maph b { font: 500 14px/1.2 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-maph small { color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-maph .h1-tog { margin-left: auto; }
+.mock-app .h1-mapw { padding: 6px 8px 0; }
+.mock-app .h1-mapw svg { display: block; width: 100%; height: auto; }
+.mock-app .h1-ms { fill: rgba(8, 22, 31, 0.62); stroke: rgba(82, 193, 230, 0.18); }
+.mock-app .h1-msn { fill: #84a0b6; font-family: Orbitron, system-ui, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 2px; }
+.mock-app .h1-mo { fill: none; stroke: rgba(82, 193, 230, 0.11); }
+.mock-app .h1-mhalo { fill: rgba(255, 226, 160, 0.13); }
+.mock-app .h1-mstar { fill: #ffe2a0; }
+.mock-app .h1-mp { fill: #4f6b80; }
+.mock-app .h1-ml { fill: #e8ebed; font-family: Orbitron, system-ui, sans-serif; font-size: 10.5px; }
+.mock-app .h1-ml.d { fill: #6f8aa0; font-family: Inter, system-ui, sans-serif; font-size: 9.5px; }
+.mock-app .h1-mg { fill: #0a1c28; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; }
+.mock-app .h1-mg.f { fill: var(--c); }
+.mock-app .h1-mtr { fill: none; stroke: #d6e6f0; stroke-width: 1.4; stroke-dasharray: 4 4; opacity: 0.85; }
+.mock-app .h1-mtr.c { stroke: #a58bff; stroke-width: 3; stroke-dasharray: none; opacity: 0.8; }
+.mock-app .h1-mnext { fill: none; stroke: #52c1e6; stroke-width: 2; filter: drop-shadow(0 0 4px rgba(82, 193, 230, 0.9)); animation: h1-ring 2.4s ease-in-out infinite; }
+@keyframes h1-ring { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.mock-app .h1-myou { fill: none; stroke: #5fd698; stroke-width: 1.4; stroke-dasharray: 2 2; }
+.mock-app .h1-myoul { fill: #8ff0c4; font-family: Inter, system-ui, sans-serif; font-size: 9.5px; }
+.mock-app .h1-mtag rect { fill: #52c1e6; }
+.mock-app .h1-mtag text { fill: #062030; font-family: Inter, system-ui, sans-serif; font-size: 10px; font-weight: 700; text-anchor: middle; }
+.mock-app .h1-accs { display: grid; gap: 6px; padding: 8px 10px 10px; }
+.mock-app .h1-strip { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; border: 1px solid var(--m-line); border-radius: 8px; background: rgba(8, 22, 31, 0.6); color: var(--m-fg2);
+  font: 500 12.5px/1.2 Inter, system-ui, sans-serif; text-align: left; cursor: pointer; }
+.mock-app .h1-strip b { font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg); }
+.mock-app .h1-strip em { margin-left: auto; font-style: normal; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-strip:hover { border-color: rgba(82, 193, 230, 0.5); }
+.mock-app .h1-leg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 14px 12px; border-top: 1px solid rgba(82, 193, 230, 0.1); font-size: 11px; color: var(--m-fg2); }
+.mock-app .h1-leg > b { font: 600 9px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-leg span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.mock-app .h1-leg svg { width: 13px; height: 13px; flex: none; fill: none; stroke: var(--m-fg); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.mock-app .h1-leg svg.ln { width: 26px; height: 10px; }
+.mock-app .h1-sel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 14px; border: 1px solid var(--m-line); border-radius: 10px; background: rgba(8, 22, 31, 0.6); color: var(--m-fg2); font-size: 12.5px; }
+.mock-app .h1-sel b { color: var(--m-fg); }
+
+/* ── ONE step component (Planen list, Jetzt path, Logbuch): variants "zu tun" and "erledigt" ── */
+.mock-app .h1-st { --c: var(--m-acc); display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--m-line);
+  border-left: 3px solid var(--c); border-radius: 10px; background: rgba(10, 28, 40, 0.66); color: var(--m-fg); font-size: 13px; text-align: left; text-decoration: none; }
+.mock-app .h1-sti { position: relative; grid-row: span 2; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: rgba(8, 22, 31, 0.85); }
+.mock-app .h1-sti svg { width: 18px; height: 18px; fill: none; stroke: var(--c); stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.mock-app .h1-stk { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 600 9.5px/1.3 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-stk em { font: 500 11px/1.3 Inter, system-ui, sans-serif; font-style: normal; letter-spacing: 0; text-transform: none; color: var(--m-fg2); }
+.mock-app .h1-stt { font-weight: 600; line-height: 1.35; }
+.mock-app .h1-stt small { margin-left: 6px; color: var(--m-fg3); font-size: 11.5px; font-weight: 400; }
+.mock-app .h1-stm { grid-row: span 2; justify-self: end; color: var(--m-fg2); font-size: 11.5px; text-align: right; white-space: nowrap; }
+.mock-app .h1-stm b { display: block; color: var(--m-fg); font-weight: 600; }
+.mock-app .h1-sno { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border: 1px solid var(--m-acc); border-radius: 5px; color: var(--m-acc); font: 700 10px/1 Inter, system-ui, sans-serif; letter-spacing: 0; }
+.mock-app .h1-st.done { border-left-color: rgba(95, 214, 152, 0.6); background: rgba(8, 22, 31, 0.5); }
+.mock-app .h1-st.done .h1-sti { background: rgba(95, 214, 152, 0.08); }
+.mock-app .h1-st.done .h1-sti svg { fill: var(--c); fill-opacity: 0.4; }
+.mock-app .h1-st.done .h1-sti::after { content: "✓"; position: absolute; right: -4px; bottom: -4px; width: 15px; height: 15px; border-radius: 50%; background: var(--m-ok); color: #062030; font: 800 9px/15px Inter, system-ui, sans-serif; text-align: center; }
+.mock-app .h1-st.done .h1-stt { color: #cfe3ef; font-weight: 500; }
+.mock-app .h1-st.done .h1-stk { color: rgba(143, 240, 196, 0.8); }
+.mock-app .h1-st.next { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 16px; padding: 18px 20px; border-color: rgba(82, 193, 230, 0.7); border-left-width: 4px;
+  background: linear-gradient(180deg, rgba(16, 48, 68, 0.88), rgba(6, 18, 27, 0.92)); box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.12), 0 0 44px rgba(82, 193, 230, 0.22); font-size: 14px; }
+.mock-app .h1-st.next .h1-sti { width: 52px; height: 52px; border-radius: 12px; }
+.mock-app .h1-st.next .h1-sti svg { width: 26px; height: 26px; }
+.mock-app .h1-st.next .h1-stt { font: 500 21px/1.25 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-st.dim { opacity: 0.58; background: rgba(8, 22, 31, 0.35); border-left-color: rgba(132, 160, 182, 0.4); }
+.mock-app .h1-st.sm { grid-template-columns: 30px minmax(0, 1fr) auto; padding: 7px 10px; font-size: 12.5px; }
+.mock-app .h1-st.sm .h1-sti { width: 30px; height: 30px; border-radius: 8px; }
+.mock-app .h1-st.sm .h1-sti svg { width: 15px; height: 15px; }
+.mock-app .h1-st.fresh { animation: h1-fresh 7s ease 1s infinite; }
+@keyframes h1-fresh { 0%, 46% { opacity: 0.25; box-shadow: none; } 54% { opacity: 1; box-shadow: 0 0 0 2px rgba(95, 214, 152, 0.55), 0 0 24px rgba(95, 214, 152, 0.4); } 80%, 100% { opacity: 1; box-shadow: none; } }
+.mock-app .h1-ez { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid rgba(165, 139, 255, 0.5); border-radius: 999px; color: #d6ccff; font: 600 11.5px/1.3 Inter, system-ui, sans-serif; white-space: nowrap; }
+.mock-app .h1-ez b { padding: 0 5px; border-radius: 4px; background: rgba(165, 139, 255, 0.22); font: 700 10.5px/1.5 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-tipw { position: relative; display: inline-flex; }
+.mock-app .h1-tip { position: absolute; z-index: 4; bottom: calc(100% + 8px); left: 50%; translate: -50% 0; padding: 5px 9px; border-radius: 6px; background: #e8ebed; color: #062030; font: 600 11.5px/1.2 Inter, system-ui, sans-serif; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); }
+.mock-app .h1-tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: #e8ebed; }
+.mock-app .h1-route2 { display: flex; flex-direction: column; gap: 8px; }
+.mock-app .h1-legline { display: flex; align-items: center; gap: 8px; margin-left: 48px; color: var(--m-fg3); font-size: 11px; }
+.mock-app .h1-legline svg { width: 26px; height: 10px; flex: none; fill: none; stroke: #d6e6f0; stroke-width: 1.4; stroke-dasharray: 4 4; }
+.mock-app .h1-tot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0 10px; }
+.mock-app .h1-tot span { padding: 7px 8px; border-radius: 8px; background: rgba(8, 22, 31, 0.7); color: var(--m-fg3); font-size: 10.5px; }
+.mock-app .h1-tot b { display: block; color: var(--m-fg); font: 500 14px/1.2 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-save { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 12px; }
+.mock-app .h1-save .mock-btn { padding: 12px 16px; font-size: 14px; }
+.mock-app .h1-save small { color: var(--m-fg3); font-size: 11.5px; text-align: center; }
+.mock-app .h1-ops { margin-top: 20px; }
+.mock-app .h1-opsr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mock-app .h1-op { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--m-line); border-radius: 12px; background: rgba(10, 28, 40, 0.6); color: var(--m-fg); font-size: 13px; text-decoration: none; }
+.mock-app .h1-op b { font-weight: 600; }
+.mock-app .h1-op small { color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-op.new { border-style: dashed; border-color: rgba(82, 193, 230, 0.55); background: rgba(82, 193, 230, 0.05); box-shadow: 0 0 22px rgba(82, 193, 230, 0.12); }
+
+/* ── Jetzt: location anchor → main path; missions (2nd glance); log (3rd glance) ── */
+.mock-app .h1-live { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.mock-app .h1-here { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 4px 22px; align-items: center; padding: 4px 0 22px; margin-bottom: 22px; }
+.mock-app .h1-here::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, rgba(95, 214, 152, 0.65), rgba(82, 193, 230, 0.25) 40%, transparent); }
+.mock-app .h1-pin { position: relative; grid-row: span 3; display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; border: 1px solid rgba(95, 214, 152, 0.45); background: radial-gradient(circle, rgba(95, 214, 152, 0.14), transparent 70%); }
+.mock-app .h1-pin::before { content: ""; position: absolute; inset: -10px; border-radius: 50%; border: 1px solid rgba(95, 214, 152, 0.3); animation: h1-ping 2.8s ease-out infinite; }
+.mock-app .h1-pin i { width: 14px; height: 14px; border-radius: 50%; background: var(--m-ok); box-shadow: 0 0 0 6px rgba(95, 214, 152, 0.16), 0 0 24px rgba(95, 214, 152, 0.7); }
+@keyframes h1-ping { from { opacity: 0.9; transform: scale(0.85); } to { opacity: 0; transform: scale(1.35); } }
+.mock-app .h1-herek { display: flex; align-items: center; gap: 12px; font: 600 10.5px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: #8ff0c4; }
+.mock-app .h1-herek .mock-live { font: 500 11.5px/1 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+.mock-app .h1-herel { margin: 0; font: 500 48px/1.05 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: #f2fbff; text-shadow: 0 0 30px rgba(95, 214, 152, 0.18); }
+.mock-app .h1-herec { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; color: var(--m-fg2); font-size: 13.5px; }
+.mock-app .h1-herec b { color: var(--m-fg); font-weight: 600; }
+.mock-app .h1-herec .h1-trail { font-size: 13.5px; }
+.mock-app .h1-trailv { position: relative; display: grid; gap: 8px; margin: 12px 0 0 26px; padding-left: 22px; }
+.mock-app .h1-trailv::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 18px; width: 2px; border-radius: 2px; background: linear-gradient(180deg, rgba(82, 193, 230, 0.6), rgba(82, 193, 230, 0.06)); }
+.mock-app .h1-side { position: relative; display: grid; gap: 22px; padding-top: 62px; }
+.mock-app .h1-toast { position: absolute; z-index: 5; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid rgba(95, 214, 152, 0.5); border-radius: 12px;
+  background: rgba(8, 30, 28, 0.94); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45); font-size: 13px; transform-origin: 50% 0; animation: h1-tolog 7s cubic-bezier(0.65, 0, 0.25, 1) 1s infinite; }
+.mock-app .h1-toast > i { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: rgba(95, 214, 152, 0.18); color: var(--m-ok); font-style: normal; font-weight: 700; }
+.mock-app .h1-toast small { display: block; color: var(--m-fg3); font-size: 11px; }
+@keyframes h1-tolog { 0%, 34% { opacity: 1; transform: none; } 50% { opacity: 0.9; transform: translateY(190px) scale(0.86); } 54% { opacity: 0; transform: translateY(200px) scale(0.82); } 55%, 92% { opacity: 0; transform: translateY(-14px); } 100% { opacity: 1; transform: none; } }
+.mock-app .h1-undo { margin-left: auto; padding: 4px 9px; border: 1px solid var(--m-line); border-radius: 7px; background: transparent; color: var(--m-fg); font: 600 11.5px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-app .h1-quiet .h1-k { font-size: 9.5px; }
+.mock-app .h1-mi { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 2px; border-top: 1px solid rgba(82, 193, 230, 0.07); color: var(--m-fg2); font-size: 12.5px; }
+.mock-app .h1-mi svg { width: 12px; height: 12px; fill: none; stroke: var(--m-fg3); stroke-width: 1.6; }
+.mock-app .h1-mi small { color: var(--m-fg3); font-size: 11px; white-space: nowrap; }
+.mock-app .h1-logl { display: grid; gap: 6px; }
+
+/* ── Logbuch popup: the app's overlay frame (overlay-frame.component.ts) ── */
+.mock-app .h1-scrim { position: absolute; z-index: 20; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: 110px 32px 32px; background: rgba(10, 28, 40, 0.62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.mock-app .h1-sheet { display: flex; flex-direction: column; width: min(100%, 760px); border: 1px solid var(--h1-border); border-radius: 16px; overflow: hidden; background: var(--h1-panel); box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); text-align: left; }
+.mock-app .h1-sbar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--h1-border); }
+.mock-app .h1-sttl { flex: 1; margin: 0; font-size: 16.8px; font-weight: 600; }
+.mock-app .h1-nb { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; border-radius: 999px; border: 1px solid var(--h1-border); background: #0a1c28; color: var(--m-fg2); font: inherit; cursor: pointer; }
+.mock-app .h1-nb:hover { border-color: var(--m-acc); color: var(--m-acc); }
+.mock-app .h1-scont { padding: 14px; }
+.mock-app .h1-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.mock-app .h1-chips .mock-chip { padding: 5px 11px; font-size: 12px; }
+.mock-app .h1-chips .mock-chip.on { border-color: var(--m-acc); color: var(--m-acc); background: rgba(82, 193, 230, 0.1); }
+.mock-app .h1-day { margin: 14px 0 6px; font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-day:first-of-type { margin-top: 2px; }
+.mock-app .h1-skel { height: 46px; border-radius: 10px; background: linear-gradient(90deg, rgba(18, 50, 70, 0.4), rgba(40, 80, 104, 0.55), rgba(18, 50, 70, 0.4)); background-size: 200% 100%; animation: h1-shim 1.4s linear infinite; }
+@keyframes h1-shim { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.mock-app .h1-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--h1-border); background: #0a1c28; color: var(--m-fg2); font-size: 12.5px; }
+
+/* ── Bestand ── */
+.mock-app .h1-stock { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; }
+.mock-app .h1-ship { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; border-radius: 9px; background: rgba(10, 28, 40, 0.55); font-size: 13px; }
+.mock-app .h1-ship + .h1-ship { margin-top: 6px; }
+.mock-app .h1-ship small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-big { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.mock-app .h1-big b { font: 500 28px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-big span { color: var(--m-fg3); font-size: 12.5px; }
+.mock-app .h1-kitk { margin: 10px 0 6px; font: 600 9px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-kitk:first-of-type { margin-top: 0; }
+.mock-app .h1-kits { display: flex; flex-wrap: wrap; gap: 6px; }
+.mock-app .h1-kit { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--m-line); border-radius: 9px; background: rgba(10, 28, 40, 0.6); font-size: 12.5px; white-space: nowrap; }
+.mock-app .h1-kit small { color: var(--m-fg3); font-size: 11px; }
+.mock-app .h1-bar { height: 6px; overflow: hidden; border-radius: 3px; background: var(--m-line); }
+.mock-app .h1-bar i { display: block; height: 100%; background: var(--m-craft); }
+.mock-app .h1-lager { margin-top: 16px; }
+.mock-app .h1-lr { display: grid; grid-template-columns: 38px minmax(0, 200px) minmax(0, 1fr) 110px; gap: 14px; align-items: center; padding: 11px 6px; border-top: 1px solid rgba(82, 193, 230, 0.08); font-size: 13px; }
+.mock-app .h1-lr small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-loci { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: rgba(82, 193, 230, 0.1); color: var(--m-acc); font: 700 9.5px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-its { display: flex; flex-wrap: wrap; gap: 6px; }
+.mock-app .h1-its i { flex-basis: 100%; height: 0; }
+.mock-app .h1-it { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--m-line); border-radius: 6px; font-size: 12px; white-space: nowrap; }
+.mock-app .h1-it b { font-weight: 600; }
+.mock-app .h1-it.raw { border-color: rgba(245, 201, 77, 0.35); }
+.mock-app .h1-it.raw b { color: var(--m-gold); }
+.mock-app .h1-it.hl { border-color: var(--m-acc); background: rgba(82, 193, 230, 0.16); box-shadow: 0 0 0 2px rgba(82, 193, 230, 0.5), 0 0 22px rgba(82, 193, 230, 0.45); }
+.mock-app .h1-lr.hl { border-radius: 10px; background: rgba(82, 193, 230, 0.06); box-shadow: inset 3px 0 0 var(--m-acc); }
+.mock-app .h1-age { color: var(--m-fg3); font-size: 11.5px; text-align: right; white-space: nowrap; }
+.mock-app .h1-age.old { color: var(--m-warn); }
+.mock-app .h1-dimmed { opacity: 0.45; }
+
+/* ── Statistik + the real shell footer (footer.component.ts: no background, no line) ── */
+.mock-app .h1-seg2 { display: inline-flex; overflow: hidden; border: 1px solid var(--m-line); border-radius: 8px; }
+.mock-app .h1-seg2 button { padding: 6px 12px; border: 0; background: transparent; color: var(--m-fg3); font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-app .h1-seg2 button.on { background: rgba(82, 193, 230, 0.14); color: var(--m-acc); }
+.mock-app .h1-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.mock-app .h1-tile { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--m-line); border-radius: 14px; background: rgba(18, 50, 70, 0.5); color: var(--m-fg); text-decoration: none; }
+.mock-app .h1-tile:hover { border-color: var(--m-acc); }
+.mock-app .h1-tile-k { font: 600 10px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .h1-tile-v { font: 500 26px/1.1 Orbitron, system-ui, sans-serif; }
+.mock-app .h1-tile-v small { margin-left: 6px; color: var(--m-fg3); font: 400 12px/1 Inter, system-ui, sans-serif; }
+.mock-app .h1-tile svg { display: block; width: 100%; height: 58px; }
+.mock-app .h1-tile-f { display: flex; justify-content: space-between; gap: 8px; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-tile-f span:last-child { color: var(--m-acc); }
+.mock-app .h1-spark { fill: none; stroke: var(--m-acc); stroke-width: 1.8; stroke-linejoin: round; }
+.mock-app .h1-spark-a { fill: rgba(82, 193, 230, 0.12); stroke: none; }
+.mock-app .h1-mb { fill: rgba(82, 193, 230, 0.5); }
+.mock-app .h1-mb.hi { fill: var(--m-acc); }
+.mock-app .h1-mb.w { fill: rgba(240, 194, 123, 0.7); }
+.mock-app .h1-src { margin: 14px 2px 0; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .h1-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 80px; margin-top: auto; padding: 0 104px 24px 96px; }
+.mock-app .h1-fbadge { display: inline-flex; align-items: center; gap: 10px; padding: 4px 8px; border: 0; background: none; color: var(--m-fg2); font: 600 10.5px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+.mock-app .h1-fbadge i { width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle, #f5c94d 0 22%, #3a2f12 24% 40%, #f5c94d 42% 46%, #1a1508 48%); box-shadow: 0 0 0 1px rgba(245, 201, 77, 0.4); }
+.mock-app .h1-flinks { display: flex; flex-wrap: wrap; gap: 8px; color: var(--m-fg3); font-size: 12.5px; }
+.mock-app .h1-flinks a { color: var(--m-fg2); text-decoration: none; }
+.mock-app .h1-flinks a:hover { color: var(--m-acc); }
+.mock-app .h1-fab { position: absolute; z-index: 8; right: 24px; bottom: 24px; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 1px solid rgba(82, 193, 230, 0.4); background: var(--h1-panel); color: var(--m-acc); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5); cursor: pointer; }
+.mock-app .h1-fab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mock-app .h1-hq.dive, .mock-app .h1-mh.intro, .mock-app .h1-cap.ignite, .mock-app .h1-lb, .mock-app .h1-ltr, .mock-app .h1-comet, .mock-app .h1-intro, .mock-app .h1-cue.intro,
+  .mock-app .h1-ls.next, .mock-app .h1-ls.done, .mock-app .h1-chk circle, .mock-app .h1-chk path, .mock-app .h1-ls-ok, .mock-app .h1-mnext, .mock-app .h1-pin::before,
+  .mock-app .h1-toast, .mock-app .h1-st.fresh, .mock-app .h1-skel, .mock-app .h1-cap > .h1-band { animation: none; }
+}
+
+/* Phone frames: header brand + account on top, nav as a second row; the subheader docks at the bottom under the thumb, the route line sits alone at the top. */
+@container device (max-width: 520px) {
+  .mock-app.h1-app { --h1-rand: 16px; --h1-b: calc(100% - 32px); }
+  .mock-app .h1-mh { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; row-gap: 4px; height: auto; padding: 16px 16px 4px; }
+  .mock-app .h1-brand, .mock-app .h1-acc { position: static; }
+  .mock-app .h1-brand { gap: 8px; min-width: 0; }
+  .mock-app .h1-wm { position: static; transform: none; min-width: 0; }
+  .mock-app .h1-wm-t { overflow: hidden; font-size: 12px; letter-spacing: 0.1em; text-overflow: ellipsis; }
+  .mock-app .h1-apps span { display: none; }
+  .mock-app .h1-row { grid-column: 1 / -1; height: auto; }
+  .mock-app .h1-nav { width: 100%; }
+  .mock-app .h1-slot { flex: 1; width: auto; min-height: 44px; font-size: 12px; letter-spacing: 0.14em; text-indent: 0.14em; }
+  .mock-app .h1-ind { left: calc(var(--i) * 33.33% + 16.66% - 20px); }
+  .mock-app .h1-subw { order: 99; position: sticky; bottom: 10px; padding: 8px 0 10px; }
+  .mock-app .h1-cap { padding: 0 10px; }
+  .mock-app .h1-blogo { width: 36px; }
+  .mock-app .h1-plate, .mock-app .h1-div, .mock-app .h1-hint, .mock-app .h1-bacc .h1-apps { display: none; }
+  .mock-app .h1-bacc { margin-left: 8px; }
+  .mock-app .h1-route { display: block; padding: 16px 16px 0; font: 700 11.5px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg); }
+  .mock-app .h1-res { top: auto; bottom: 100%; border-top: 1px solid transparent; border-bottom: 0; border-radius: 5px 5px 0 0; }
+  .mock-app .h1-cap.open { border-radius: 0 0 5px 5px; }
+  .mock-app .h1-rail { top: 200px; left: 3px; gap: 2px; }
+  .mock-app .h1-ri i { width: 6px; }
+  .mock-app .h1-ri.on i { width: 9px; }
+  .mock-app .h1-stage { min-height: 760px; }
+  .mock-app .h1-hx { margin-top: 70px; }
+  .mock-app .h1-title { font-size: 28px; }
+  .mock-app .h1-info-t { font-size: 13.5px; }
+  .mock-app .h1-cue.abs, .mock-app .h1-comet { display: none; }
+  .mock-app .h1-launch { margin-top: 48px; }
+  .mock-app .h1-lhead { flex-direction: column; align-items: center; gap: 4px; }
+  .mock-app .h1-promise { font-size: 14.5px; }
+  .mock-app .h1-steps3 { grid-template-columns: 1fr; gap: 10px; }
+  .mock-app .h1-steps3::before { display: none; }
+  .mock-app .h1-ls { padding: 12px 14px; }
+  .mock-app .h1-vh { flex-wrap: wrap; padding-top: 12px; }
+  .mock-app .h1-vh-a { flex-basis: 100%; margin-left: 0; }
+  .mock-app .h1-vh-a > :first-child { padding-inline-start: 0; }
+  .mock-app .h1-ctl, .mock-app .h1-plan, .mock-app .h1-plan.steps, .mock-app .h1-live, .mock-app .h1-stock, .mock-app .h1-opsr, .mock-app .h1-stats { grid-template-columns: 1fr; }
+  .mock-app .h1-seg { display: flex; }
+  .mock-app .h1-seg button { flex: 1; padding: 7px 8px; }
+  .mock-app .h1-dd { width: 300px; }
+  .mock-app .h1-set { min-width: 0; flex: 1 1 100%; }
+  .mock-app .h1-mapw { overflow-x: auto; }
+  .mock-app .h1-mapw svg { width: 640px; max-width: none; }
+  .mock-app .h1-tot { grid-template-columns: 1fr 1fr; }
+  .mock-app .h1-here { grid-template-columns: 52px minmax(0, 1fr); gap: 4px 14px; }
+  .mock-app .h1-pin { width: 52px; height: 52px; }
+  .mock-app .h1-herel { font-size: 30px; }
+  .mock-app .h1-trailv { margin-left: 8px; padding-left: 14px; }
+  .mock-app .h1-st.next .h1-stt { font-size: 16px; }
+  .mock-app .h1-side { padding-top: 62px; }
+  .mock-app .h1-scrim { padding: 0; }
+  .mock-app .h1-sheet { width: 100%; min-height: 100%; border-radius: 0; border: 0; }
+  .mock-app .h1-lr { grid-template-columns: 38px minmax(0, 1fr); }
+  .mock-app .h1-lr .h1-its, .mock-app .h1-lr .h1-age { grid-column: 2; text-align: left; }
+  .mock-app .h1-foot { flex-direction: column; align-items: flex-start; padding: 16px 16px 90px; }
+  .mock-app .h1-fab { right: 16px; bottom: 16px; }
+}
+.mock-app .h1-ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 4px; background: rgba(82, 193, 230, 0.1); color: var(--m-acc); font: 700 9.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.06em; }
+</style>
+
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 5 · Echte Kopfzeile, klare Auswahl</h2>
+    <p>Diese Runde baut Kopfzeile und Unterkopfzeile genau nach dem heutigen Code nach. Auf Start und beim ersten Besuch steht der Hauptkopf: Logo und Schriftzug oben links, Verse · Codex · HQ in der Mitte, Apps und Profil oben rechts, dazu die Suche als 60-px-Leiste in der Szene. Jede Folgeseite zeigt wie Verse nur die angedockte Unterkopfzeile mit Logo, Pfad „HQ › …“, Suche und Konto, und ihr Inhalt steht genau in deren Breite. Die HQ-Seiten wechselst du nicht mehr über Reiter im Kopf, sondern über eine schmale Leiste am linken Rand. Neu sind außerdem ein echtes Auswahl-Modell in Planen (Wie und Was/Wofür), ein gemeinsamer Schritt-Baustein für Planen, Jetzt und Logbuch und ein Bestand mit Erspieltem und Lager.</p>
+    <div class="mock-r5-src"><b>Nachgebaut aus dem Code</b>
+      <ul>
+        <li><code>shell/main-header</code>: Ecken auf 24 px, feste 112-px-Slots, ein Leuchtstrich unter dem aktiven Bereich, Apps + Profil 40 px hoch.</li>
+        <li><code>shell/fusion-bar</code> + <code>fusion-search</code>: eine Leiste, 60 px, Radius 5 px, Satinkante (Metallrand, Glanz oben), Logo · „Star Citizen Companion“ mit Pfad · Trenner · Suche (höchstens 520 px) · Konto; Kontext-Chip im Feld.</li>
+        <li><code>styles.scss</code> PAGE FRAME: Rand = clamp(16 px, 2,5 %, 64 px); B = min(100 % − 2 · Rand, max(80 rem, 67 %)). B ist die Breite der Unterkopfzeile und jeder Folgeseite.</li>
+        <li><code>verse-header</code> (Seitenkopf der Folgeseiten), <code>verse-briefing-planet.scss</code> (Hinweis mit Winkel unten mittig), <code>shell-scene</code> (HQ-Pose: Kamera auf die Planetenoberfläche gezoomt).</li>
+      </ul>
+    </div>
+    <div class="mock-r5-kept"><strong>Übernommen aus Runde 4</strong>
+      <ul>
+        <li>Animation des erledigten Startschritts</li>
+        <li>Codex-Block auf Start: Kicker, Titel, zwei Patch-Zeilen, Suche, höchstens vier Chips</li>
+        <li>Suchergebnisse wie im Codex, Verben pro Treffer</li>
+        <li>Erkanntes gilt sofort, mit Rückgängig</li>
+        <li>Statistik mit sechs Kacheln, Footer am Ende</li>
+        <li>Datenquellen Log → Suche → Community → OCR, Median ab 5 Meldungen</li>
+        <li>Erste Version: alle acht Pakete, SCC-App im selben Zug</li>
+        <li>Ohne SCC-App ein klarer Aufruf zum Verbinden</li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ═══════════ hq5 · HQ · finale Struktur ═══════════ -->
+  <section data-design="hq5" data-nav-label="HQ · finale Struktur" data-design-active="true"
+           data-design-motto="Echter Kopf, Folgeseiten in Unterkopf-Breite" data-design-traits="Kopf und Unterkopfzeile 1:1 aus dem Code|Wie und Was/Wofür als zwei Auswahl-Ebenen|Ein Schritt-Baustein für Planen, Jetzt und Logbuch"
+           data-design-icon="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;4&quot; rx=&quot;1&quot;/&gt;&lt;rect x=&quot;5&quot; y=&quot;9&quot; width=&quot;14&quot; height=&quot;12&quot; rx=&quot;1&quot;/&gt;&lt;path d=&quot;M1.5 10v2M1.5 14v2M1.5 18v2&quot;/&gt;&lt;/svg&gt;"
+           data-design-color="#52c1e6">
+
+    <!-- h1-s1 · Erster Besuch -->
+    <section id="h1-s1" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq dive"><i class="h1-ground"></i></div>
+        <i class="h1-lb t"></i><i class="h1-lb b"></i><i class="h1-comet"></i>
+        <header class="h1-mh intro">
+          <a class="h1-brand" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span><span class="h1-wm"><span class="h1-wm-t">Star Citizen Companion</span><span class="h1-wm-a">Alpha</span></span></a>
+          <div class="h1-row"><nav class="h1-nav" aria-label="Hauptnavigation"><a class="h1-slot" href="#">Verse</a><a class="h1-slot" href="#">Codex</a><a class="h1-slot on" href="#" aria-current="page">HQ</a><span class="h1-ind" style="--i:2"></span></nav></div>
+          <div class="h1-acc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </header>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri on" href="#" data-screen-link="h1-s2" aria-current="page"><i></i><span>Start</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s3"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-stage">
+          <div class="h1-hx">
+            <p class="h1-kick h1-intro">Dein HQ</p>
+            <p class="h1-title" aria-label="Willkommen im HQ"><span class="h1-ltr" style="--i:0">W</span><span class="h1-ltr" style="--i:1">i</span><span class="h1-ltr" style="--i:2">l</span><span class="h1-ltr" style="--i:3">l</span><span class="h1-ltr" style="--i:4">k</span><span class="h1-ltr" style="--i:5">o</span><span class="h1-ltr" style="--i:6">m</span><span class="h1-ltr" style="--i:7">m</span><span class="h1-ltr" style="--i:8">e</span><span class="h1-ltr" style="--i:9">n</span><span class="h1-ltr" style="--i:10"> </span><span class="h1-ltr" style="--i:11">i</span><span class="h1-ltr" style="--i:12">m</span><span class="h1-ltr" style="--i:13"> </span><span class="h1-ltr" style="--i:14">H</span><span class="h1-ltr" style="--i:15">Q</span></p>
+            <div class="h1-cap stage ignite"><i class="h1-bloom"></i>
+              <button class="h1-field" type="button" data-screen-link="h1-s2"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ph">Hangar, Spind, Schiffe …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+            </div>
+          </div>
+          <div class="h1-launch h1-intro">
+            <div class="h1-lhead"><p class="h1-promise">Dein Hangar, deine Sets, deine nächsten Einsätze. Mit der SCC-App weiß das HQ, wo du gerade bist.</p><span class="h1-mins">≈ 4 Minuten</span></div>
+            <div class="h1-steps3">
+              <button class="h1-ls done" type="button">
+                <svg class="h1-chk" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18"/><path d="M12.5 20.5l5 5 10-11"/></svg>
+                <b>RSI-Hangar holen</b><small>Schiffe und Pakete über die Browser-Erweiterung</small>
+                <span class="h1-ls-ok">✓ Erledigt · 23 Schiffe, 4 Pakete</span></button>
+              <button class="h1-ls next" type="button" data-screen-link="h1-s6"><span class="h1-ls-n">2</span><b>SCC-App verbinden</b><small>Live-Ort, Käufe, Blueprints und Lager aus dem Spiel</small><span class="h1-ls-gain">Danach: das HQ hakt selbst ab</span><span class="h1-ls-t">Windows · ca. 2 Minuten</span></button>
+              <button class="h1-ls" type="button" data-screen-link="h1-s3"><span class="h1-ls-n">3</span><b>Ersten Einsatz planen</b><small>Auswahl treffen, Schritt-Modus an, speichern</small><span class="h1-ls-gain">Danach: eine Route für heute Abend</span><span class="h1-ls-t">ca. 2 Minuten</span></button>
+            </div>
+            <div class="h1-cta">
+              <button class="mock-btn h1-go" type="button" data-screen-link="h1-s2">Los geht's</button>
+              <button class="h1-skip" type="button" data-screen-link="h1-s2">Überspringen</button>
+            </div>
+          </div>
+          <button class="h1-cue abs intro" type="button" data-screen-link="h1-s3">Planen<span class="h1-chev"></span></button>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s1-a1" data-anno-side="right" data-anno-target=".h1-mh" style="--anno-x:60%;--anno-y:5%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s1-a1" data-anno-bubble="r5-h1-s1-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Der echte Hauptkopf, ohne HQ-Reiter</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s1-a1">
+      <span class="anno-bubble-question">So wie heute? Logo mit „Star Citizen Companion“ und „Alpha“ oben links in der Ecke, Verse · Codex · HQ mittig mit dem Leuchtstrich unter HQ, Apps und Profil oben rechts. Die HQ-Reiter sind raus. Beim ersten Besuch erscheint der Kopf wie in Verse erst nach der Titelsequenz (4,85 s). Stimmt er jetzt Pixel für Pixel mit der App überein?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s1-a1" data-annotation="r5-h1-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s1-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-h1-s1-a2" data-anno-side="left" data-anno-target=".h1-launch" style="--anno-x:30%;--anno-y:62%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s1-a2" data-anno-bubble="r5-h1-s1-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Gezoomter HQ-Planet, Suche unter dem Titel, Block tiefer</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s1-a2">
+      <span class="anno-bubble-question">Der Hintergrund ist die HQ-Pose von heute (Kamera auf die Oberfläche gezoomt, Raster und Stadtlichter). Die Suche zündet direkt unter dem Titel. Der Schritte-Block steht tiefer, „Dein Hangar …“ ist seine leise Überschrift, „≈ 4 Minuten“ steht klein daneben, Überspringen unter Los geht's, unten der Verse-Hinweis mit Winkel. Sitzt der Block so tief richtig, oder noch tiefer bis knapp über den Hinweis?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s1-a2" data-annotation="r5-h1-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s1-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s2 · Start -->
+    <section id="h1-s2" data-nav-label="Start" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq"><i class="h1-ground"></i></div>
+        <header class="h1-mh">
+          <a class="h1-brand" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span><span class="h1-wm"><span class="h1-wm-t">Star Citizen Companion</span><span class="h1-wm-a">Alpha</span></span></a>
+          <div class="h1-row"><nav class="h1-nav" aria-label="Hauptnavigation"><a class="h1-slot" href="#">Verse</a><a class="h1-slot" href="#">Codex</a><a class="h1-slot on" href="#" aria-current="page">HQ</a><span class="h1-ind" style="--i:2"></span></nav></div>
+          <div class="h1-acc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </header>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri on" href="#" data-screen-link="h1-s2" aria-current="page"><i></i><span>Start</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s3"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-stage">
+          <div class="h1-hx">
+            <p class="h1-kick">Dein HQ</p>
+            <p class="h1-title">Hauptquartier</p>
+            <a class="h1-info" href="#">
+              <span class="h1-info-k">Waffen <em>· Patch 4.3.1</em></span>
+              <span class="h1-info-t">S3-Repeater machen <b>8 % weniger Schaden</b> · betrifft <span>Bounty v3 ›</span></span>
+            </a>
+            <div class="h1-cap stage"><i class="h1-bloom"></i>
+              <button class="h1-field" type="button" data-screen-link="h1-s8"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ph">Hangar, Spind, Schiffe …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+            </div>
+          </div>
+          <p class="h1-nowk">Jetzt wichtig</p>
+          <div class="h1-now">
+            <button class="mock-chip h1-nowc" type="button" data-screen-link="h1-s6"><i style="--c:#5fd698"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5"/></svg></i>Du bist in Area18 · 2 Schritte gehen hier <small>MedPen, P4-AR Magazin</small></button>
+            <button class="mock-chip h1-nowc" type="button" data-screen-link="h1-s5"><i style="--c:#a58bff"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3.5"/><circle cx="8" cy="8" r="2.6" stroke-dasharray="1.3 1.1"/></svg></i>Einsatz ×5 · Route bereit <small>Kampf + Schnell, Stanton</small></button>
+            <button class="mock-chip h1-nowc" type="button" data-screen-link="h1-s5"><i style="--c:#8fb8ff"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></i>Einsatz ×3 · Sa 20:00 <small>Bunker-Lauf Kareah</small></button>
+            <button class="mock-chip h1-nowc" type="button" data-screen-link="h1-s3"><i style="--c:#8fb8ff"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></i>Blueprint P8-SC fehlt noch <small>Mission Bunker-Säuberung</small></button>
+          </div>
+          <button class="h1-cue abs" type="button" data-screen-link="h1-s3">Planen<span class="h1-chev"></span></button>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s2-a1" data-anno-side="right" data-anno-target=".h1-rail" style="--anno-x:5%;--anno-y:38%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s2-a1" data-anno-bubble="r5-h1-s2-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> HQ-Seiten als Schnellleiste am linken Rand</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s2-a1">
+      <span class="anno-bubble-question">Die HQ-Seiten stehen nicht mehr im Kopf, sondern als fünf stille Striche ganz links am Rand, außerhalb der Inhaltsspalte und auf jeder Seite gleich. Der aktuelle ist lang und leuchtet, die Namen erscheinen erst bei Hover oder Fokus, ein Klick scrollt zur Seite. Ruhig genug? Striche so, oder lieber Punkte?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s2-a1" data-annotation="r5-h1-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s2-a1"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s3 · Planen · Übersicht -->
+    <section id="h1-s3" data-nav-label="Planen · Übersicht" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap"><i class="h1-band"></i>
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Planen</span></li></ol></div>
+          <span class="h1-div"></span>
+          <button class="h1-field" type="button"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Planen<i>×</i></span><span class="h1-ph">Bedarf, Set, Ort oder Mission …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </div></div>
+        <p class="h1-route">Planen</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s3" aria-current="page"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Planen</p><p class="h1-vh-s">Was dir fehlt, wo du es bekommst, in welcher Reihenfolge</p></div>
+            <div class="h1-vh-a"><button class="h1-tog" type="button" data-screen-link="h1-s5"><span class="h1-knob"></span>Schritt-Modus</button><a class="h1-lnk" href="#" data-screen-link="h1-s5">Deine Einsätze · 2</a></div>
+          </div>
+          <div class="h1-ctl">
+            <div class="h1-ctlp">
+              <p class="h1-k">Wie · Auswahl der Bedarfe <em>3 von 9 gewählt</em></p>
+              <div class="h1-seg" role="group" aria-label="Auswahl">
+                <button class="on" type="button" aria-pressed="true">Top 3<small>die wichtigsten</small></button>
+                <button type="button" data-screen-link="h1-s4">Nach Lust<small>Voreinstellungen</small></button>
+                <button type="button">Gezielt<small>du wählst x, y, z</small></button>
+              </div>
+              <p class="h1-why">Wichtig heißt: <b>Set-Favorit</b>, <b>Einsatz bald</b>, <b>Blueprint-Lücke</b>. Ein Klick in der Liste nimmt einen Bedarf dazu oder raus.</p>
+              <div class="h1-axes">
+                <span class="h1-al">Einsatztyp</span>
+                <button class="h1-kc on" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg>Einkauf <em>1</em></button>
+                <button class="h1-kc on" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg>Mission <em>1</em></button>
+                <button class="h1-kc" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14.5,13.5 1.5,13.5"/></svg>Abbau <em>0</em></button>
+                <button class="h1-kc" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,1.5 13.6,4.75 13.6,11.25 8,14.5 2.4,11.25 2.4,4.75"/></svg>Raffinerie <em>0</em></button>
+                <button class="h1-kc on" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3.5"/><circle cx="8" cy="8" r="2.6" stroke-dasharray="1.3 1.1"/></svg>Herstellung <em>1</em></button>
+                <button class="h1-kc" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h11"/><path d="M9 4.5L12.5 8 9 11.5"/></svg>Transport <em>0</em></button>
+                <button class="h1-kc" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg>Abholung <em>0</em></button>
+                <span class="h1-asep"></span>
+                <div class="h1-ortw"><button class="h1-ortb" type="button" data-screen-link="h1-s4"><span class="h1-al">Ort</span>Alle Systeme <small>3 Systeme</small><span class="h1-chev"></span></button></div>
+              </div>
+            </div>
+            <div class="h1-ctlp">
+              <p class="h1-k">Was · wofür <em>Sets aus Hangar und Spind</em></p>
+              <div class="h1-sets">
+                <button class="h1-set full" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="100 0"/></svg><b>1/1</b></span><span class="h1-sn">Sanitäter <small>Spind</small></span><span class="h1-reach ok">vollständig erreichbar</span></button>
+                <button class="h1-set part" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="33 100"/></svg><b>1/3</b></span><span class="h1-sn">Bunker leicht <small>Spind</small></span><span class="h1-reach part">teilweise erreichbar</span></button>
+                <button class="h1-set part" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="25 100"/></svg><b>1/4</b></span><span class="h1-sn">Pembroke Kalt <small>Spind</small></span><span class="h1-reach part">teilweise erreichbar</span></button>
+                <button class="h1-set" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="0 100"/></svg><b>0/1</b></span><span class="h1-sn">Cutlass · Rettung <small>Hangar</small></span><span class="h1-reach">Schiff-Loadout</span></button>
+              </div>
+              <p class="h1-why">Ein Klick auf ein Set wählt alle seine Bedarfe, ein zweiter nimmt sie wieder raus.</p>
+            </div>
+          </div>
+          <div class="h1-plan">
+            <div>
+              <p class="h1-lh"><b>Bedarf</b> gewählt <em>3 von 9 · Top 3</em></p>
+              <div class="h1-list">
+                <div class="h1-st" style="--c:#ec8fd6"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk">Einkauf <em>für Set Sanitäter</em></span><span class="h1-stm"><b>≈ 5 min</b>1.140 aUEC</span><span class="h1-stt">MedPen ×6<small>Area18 · Cubby Blast</small></span></div>
+                <div class="h1-st" style="--c:#8fb8ff"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></span><span class="h1-stk">Mission <em>für Set Bunker leicht</em></span><span class="h1-stm"><b>≈ 35 min</b>Belohnung</span><span class="h1-stt">P8-SC Blueprint<small>Bunker-Säuberung · Kareah</small></span></div>
+                <div class="h1-st" style="--c:#a58bff"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3.5"/><circle cx="8" cy="8" r="2.6" stroke-dasharray="1.3 1.1"/></svg></span><span class="h1-stk">Herstellung <em>für Set Pembroke Kalt</em></span><span class="h1-stm"><b>Blueprint ✓</b>Hadanite fehlt</span><span class="h1-stt">Pembroke-Helm<small>Lorville · Fabrikator</small></span></div>
+              </div>
+              <p class="h1-hid">+6 ausgeblendet <b>· Hadanite abbauen, raffinieren, transportieren, P4-AR Magazin, Klecker-Granaten, ParaMed</b></p>
+            </div>
+            <div class="h1-map">
+              <div class="h1-maph"><b>Karte</b><small>nur Gewähltes · Stanton offen, weil du dort startest</small></div>
+              <div class="h1-mapw">
+                <svg viewBox="0 0 640 280" role="img" aria-label="Sternensystem Stanton mit drei gewählten Bedarfen">
+                  <rect class="h1-ms" x="8" y="8" width="624" height="264" rx="12"/>
+                  <text class="h1-msn" x="24" y="30">STANTON · HIER STARTEST DU</text>
+                  <ellipse class="h1-mo" cx="320" cy="146" rx="80" ry="36"/><ellipse class="h1-mo" cx="320" cy="146" rx="150" ry="66"/><ellipse class="h1-mo" cx="320" cy="146" rx="220" ry="92"/><ellipse class="h1-mo" cx="320" cy="146" rx="290" ry="112"/>
+                  <circle class="h1-mhalo" cx="320" cy="146" r="30"/><circle class="h1-mstar" cx="320" cy="146" r="12"/>
+                  <circle class="h1-mp" cx="240" cy="146" r="7"/><text class="h1-ml" x="214" y="172">Hurston</text><text class="h1-ml d" x="216" y="184">Lorville</text>
+                  <circle class="h1-mp" cx="416" cy="95" r="9"/><text class="h1-ml" x="398" y="122">Crusader</text><text class="h1-ml d" x="452" y="56">Kareah</text>
+                  <circle class="h1-mp" cx="113" cy="115" r="7"/><text class="h1-ml" x="84" y="141">ArcCorp</text><text class="h1-ml d" x="148" y="88">Area18</text>
+                  <circle class="h1-mp" cx="592" cy="184" r="7"/><text class="h1-ml" x="556" y="210">microTech</text>
+                  <circle class="h1-myou" cx="113" cy="115" r="15"/><text class="h1-myoul" x="72" y="160">du bist hier</text>
+                  <polygon class="h1-mg" style="--c:#ec8fd6" points="136,82 145,91 136,100 127,91"/><circle class="h1-mnext" cx="136" cy="91" r="15"/>
+                  <path class="h1-mg" style="--c:#8fb8ff" d="M440 82V60l15 5.5-15 6"/>
+                  <rect class="h1-mg" style="--c:#a58bff" x="252" y="120" width="18" height="18" rx="5"/><circle class="h1-mg" style="--c:#a58bff" cx="261" cy="129" r="3.6" stroke-dasharray="1.6 1.4"/>
+                </svg>
+              </div>
+              <div class="h1-accs">
+                <button class="h1-strip" type="button"><span class="h1-chev r"></span><b>Pyro</b>Hadanite abbauen und raffinieren<em>2 Schritte · keiner gewählt</em></button>
+                <button class="h1-strip" type="button"><span class="h1-chev r"></span><b>Nyx</b>nichts für deine Sets<em>0 Schritte</em></button>
+              </div>
+              <div class="h1-leg">
+                <b>Form = Art</b>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg>Einkauf</span>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg>Mission</span>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14.5,13.5 1.5,13.5"/></svg>Abbau</span>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,1.5 13.6,4.75 13.6,11.25 8,14.5 2.4,11.25 2.4,4.75"/></svg>Raffinerie</span>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3.5"/><circle cx="8" cy="8" r="2.6" stroke-dasharray="1.3 1.1"/></svg>Herstellung</span>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h11"/><path d="M9 4.5L12.5 8 9 11.5"/></svg>Transport</span>
+                <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg>Abholung</span>
+                <span>· Farbe = Bedarf · Umriss = offen, voll = erledigt, Ring = nächster Schritt ·</span>
+                <span><svg class="ln" viewBox="0 0 26 10" aria-hidden="true"><path d="M1 5H25" stroke-dasharray="3 3"/></svg>Reise</span>
+              </div>
+            </div>
+          </div>
+          <div class="h1-endcue"><button class="h1-cue" type="button" data-screen-link="h1-s6">Jetzt<span class="h1-chev"></span></button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s3-a1" data-anno-side="right" data-anno-target=".h1-cap" style="--anno-x:42%;--anno-y:5%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s3-a1" data-anno-bubble="r5-h1-s3-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Folgeseite wie Verse: nur die Unterkopfzeile, Inhalt in ihrer Breite</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s3-a1">
+      <span class="anno-bubble-question">So wie heute? Wie auf den Verse-Unterseiten ist der Hauptkopf eingefahren. In der 60-px-Leiste sitzen Logo, „Star Citizen Companion“ mit dem Pfad „HQ › Planen“, die Suche mit dem Chip „Planen“ und rechts Apps und Profil. Alles darunter, vom Seitenkopf bis zur Karte, endet links und rechts genau an der Leiste. Stimmt die Breite jetzt?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s3-a1" data-annotation="r5-h1-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s3-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-h1-s3-a2" data-anno-side="right" data-anno-target=".h1-seg" style="--anno-x:30%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s3-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s3-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s3-a2" data-anno-bubble="r5-h1-s3-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Drei Wege zur Auswahl statt einer Filterzeile</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s3-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s3-a2">
+      <span class="anno-bubble-question">„Wie“ hat drei Modi: Top 3 (Standard, die drei wichtigsten), Nach Lust (Voreinstellungen wie Kampf oder Schnell) und Gezielt (du klickst x, y, z an, der Rest ist weg). Darunter liegen zwei Achsen, die in jedem Modus gelten: Einsatztyp (Einkauf, Mission, Abbau …) und Ort (System › Planet › Ort). Was nicht gewählt ist, verschwindet auch von der Karte. Sind das die richtigen drei Modi?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s3-a2" data-annotation="r5-h1-s3-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s3-a2"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-h1-s3-a3" data-anno-side="left" data-anno-target=".h1-sets" style="--anno-x:72%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s3-a3" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s3-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s3-a3" data-anno-bubble="r5-h1-s3-a3" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Sets als Ringe mit drei Zuständen, nicht als Filter</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s3-a3" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s3-a3">
+      <span class="anno-bubble-question">„Was · wofür“ zeigt deine Sets als Ringe: leer = nichts gewählt, Bogen = ein Teil seiner Bedarfe gewählt (1/2, 1/4), voller Ring mit Glanz = alles gewählt. Darunter steht, ob die Auswahl das Set vollständig oder teilweise erreicht; ohne Treffer steht nichts. Ein Klick wählt alle Bedarfe des Sets. Liest sich der Dreier-Zustand ohne Erklärung?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s3-a3" data-annotation="r5-h1-s3-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s3-a3"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s4 · Planen · Auswahl öffnen -->
+    <section id="h1-s4" data-nav-label="Planen · Nach Lust + Ort" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap"><i class="h1-band"></i>
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Planen</span></li></ol></div>
+          <span class="h1-div"></span>
+          <button class="h1-field" type="button"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Planen<i>×</i></span><span class="h1-ph">Bedarf, Set, Ort oder Mission …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </div></div>
+        <p class="h1-route">Planen</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s3" aria-current="page"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Planen</p><p class="h1-vh-s">Was dir fehlt, wo du es bekommst, in welcher Reihenfolge</p></div>
+            <div class="h1-vh-a"><button class="h1-tog" type="button" data-screen-link="h1-s5"><span class="h1-knob"></span>Schritt-Modus</button><a class="h1-lnk" href="#" data-screen-link="h1-s5">Deine Einsätze · 2</a></div>
+          </div>
+          <div class="h1-ctl">
+            <div class="h1-ctlp">
+              <p class="h1-k">Wie · Auswahl der Bedarfe <em>4 von 9 gewählt</em></p>
+              <div class="h1-seg" role="group" aria-label="Auswahl">
+                <button type="button" data-screen-link="h1-s3">Top 3<small>die wichtigsten</small></button>
+                <button class="on" type="button" aria-pressed="true">Nach Lust<small>Voreinstellungen</small></button>
+                <button type="button">Gezielt<small>du wählst x, y, z</small></button>
+              </div>
+              <div class="h1-mood">
+                <span class="h1-al">Art</span>
+                <button class="h1-mc" type="button">Friedlich</button>
+                <button class="h1-mc on" type="button" aria-pressed="true">Kampf</button>
+                <span class="h1-asep"></span>
+                <span class="h1-al">Dauer</span>
+                <button class="h1-mc on" type="button" aria-pressed="true">Schnell <small class="mock-dim">&lt; 30 min</small></button>
+                <button class="h1-mc" type="button">Zeitintensiv</button>
+                <span class="h1-asep"></span>
+                <span class="h1-al">Runde</span>
+                <button class="h1-mc" type="button">Gruppe</button>
+              </div>
+              <p class="h1-why">Kampf <b>und</b> Schnell: Voreinstellungen einer Zeile ergänzen sich, Zeilen schränken sich ein. Vorgewählt sind <b>4 Bedarfe</b>, jeder lässt sich in der Liste wieder abwählen.</p>
+              <div class="h1-axes">
+                <span class="h1-al">Einsatztyp</span>
+                <button class="h1-kc on" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg>Einkauf <em>2</em></button>
+                <button class="h1-kc on" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg>Mission <em>1</em></button>
+                <button class="h1-kc on" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg>Abholung <em>1</em></button>
+                <button class="h1-kc" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14.5,13.5 1.5,13.5"/></svg>Abbau <em>0</em></button>
+                <span class="h1-asep"></span>
+                <div class="h1-ortw">
+                  <button class="h1-ortb open" type="button" aria-expanded="true" data-screen-link="h1-s3"><span class="h1-al">Ort</span>Stanton <small>ArcCorp, Crusader</small><span class="h1-chev"></span></button>
+                  <div class="h1-dd" role="group" aria-label="Ort wählen">
+                    <div class="h1-ddq"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>or<i class="h1-caret"></i></span></div>
+                    <ul class="h1-tree">
+                      <li><span class="h1-tn"><span class="h1-tw"></span><span class="h1-cb part"></span><b>Stanton</b><small>5 Schritte</small></span>
+                        <ul>
+                          <li><span class="h1-tn"><span class="h1-tw"></span><span class="h1-cb part"></span>ArcCorp<small>2</small></span>
+                            <ul>
+                              <li><span class="h1-tn"><span class="h1-cb on"></span>Area18<small>2 · du bist hier</small></span></li>
+                              <li><span class="h1-tn"><span class="h1-cb"></span>Baijini Point<small>0</small></span></li>
+                            </ul>
+                          </li>
+                          <li><span class="h1-tn"><span class="h1-tw"></span><span class="h1-cb on"></span>Crusader<small>2</small></span>
+                            <ul>
+                              <li><span class="h1-tn"><span class="h1-cb on"></span><mark>Or</mark>ison<small>1</small></span></li>
+                              <li><span class="h1-tn"><span class="h1-cb on"></span>Kareah<small>1</small></span></li>
+                            </ul>
+                          </li>
+                          <li><span class="h1-tn"><span class="h1-tw c"></span><span class="h1-cb"></span>Hurston<small>1 abgewählt</small></span></li>
+                          <li><span class="h1-tn"><span class="h1-tw c"></span><span class="h1-cb"></span>microTech<small>0</small></span></li>
+                        </ul>
+                      </li>
+                      <li><span class="h1-tn"><span class="h1-tw c"></span><span class="h1-cb"></span><b>Pyro</b><small>2</small></span></li>
+                      <li><span class="h1-tn"><span class="h1-tw c"></span><span class="h1-cb"></span><b>Nyx</b><small>0</small></span></li>
+                    </ul>
+                    <div class="h1-ddf"><span>3 Orte gewählt · „or“ findet Orison</span><button class="mock-btn sm" type="button" data-screen-link="h1-s3">Übernehmen</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="h1-ctlp">
+              <p class="h1-k">Was · wofür <em>Sets aus Hangar und Spind</em></p>
+              <div class="h1-sets">
+                <button class="h1-set full" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="100 0"/></svg><b>1/1</b></span><span class="h1-sn">Sanitäter <small>Spind</small></span><span class="h1-reach ok">vollständig erreichbar</span></button>
+                <button class="h1-set part" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="67 100"/></svg><b>2/3</b></span><span class="h1-sn">Bunker leicht <small>Spind</small></span><span class="h1-reach part">teilweise · Granaten nur in Lorville</span></button>
+                <button class="h1-set full" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="100 0"/></svg><b>1/1</b></span><span class="h1-sn">Cutlass · Rettung <small>Hangar</small></span><span class="h1-reach ok">vollständig erreichbar</span></button>
+                <button class="h1-set" type="button"><span class="h1-ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="t" cx="20" cy="20" r="16"/><circle class="a" cx="20" cy="20" r="16" pathLength="100" stroke-dasharray="0 100"/></svg><b>0/4</b></span><span class="h1-sn">Pembroke Kalt <small>Spind</small></span><span class="h1-reach">passt nicht zu Kampf + Schnell</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="h1-plan">
+            <div class="h1-dimmed">
+              <p class="h1-lh"><b>Bedarf</b> gewählt <em>4 von 9 · Nach Lust</em></p>
+              <div class="h1-list">
+                <div class="h1-st" style="--c:#ec8fd6"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk">Einkauf <em>für Set Sanitäter</em></span><span class="h1-stm"><b>≈ 5 min</b></span><span class="h1-stt">MedPen ×6<small>Area18</small></span></div>
+                <div class="h1-st" style="--c:#ffb380"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk">Einkauf <em>für Set Bunker leicht</em></span><span class="h1-stm"><b>≈ 3 min</b></span><span class="h1-stt">P4-AR Magazin ×4<small>Area18</small></span></div>
+                <div class="h1-st" style="--c:#8fb8ff"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></span><span class="h1-stk">Mission <em>für Set Bunker leicht</em></span><span class="h1-stm"><b>≈ 25 min</b></span><span class="h1-stt">P8-SC Blueprint<small>Kareah</small></span></div>
+                <div class="h1-st" style="--c:#9fe07f"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg></span><span class="h1-stk">Abholung <em>für Cutlass · Rettung</em></span><span class="h1-stm"><b>≈ 4 min</b></span><span class="h1-stt">ParaMed ×5<small>Orison · dein Lager</small></span></div>
+              </div>
+            </div>
+            <div class="h1-map h1-dimmed">
+              <div class="h1-maph"><b>Karte</b><small>nur Gewähltes · Stanton offen</small></div>
+              <div class="h1-mapw">
+                <svg viewBox="0 0 640 280" role="img" aria-label="Stanton mit vier gewählten Bedarfen">
+                  <rect class="h1-ms" x="8" y="8" width="624" height="264" rx="12"/>
+                  <text class="h1-msn" x="24" y="30">STANTON · HIER STARTEST DU</text>
+                  <ellipse class="h1-mo" cx="320" cy="146" rx="80" ry="36"/><ellipse class="h1-mo" cx="320" cy="146" rx="150" ry="66"/><ellipse class="h1-mo" cx="320" cy="146" rx="220" ry="92"/><ellipse class="h1-mo" cx="320" cy="146" rx="290" ry="112"/>
+                  <circle class="h1-mhalo" cx="320" cy="146" r="30"/><circle class="h1-mstar" cx="320" cy="146" r="12"/>
+                  <circle class="h1-mp" cx="240" cy="146" r="7"/><text class="h1-ml" x="214" y="172">Hurston</text>
+                  <circle class="h1-mp" cx="416" cy="95" r="9"/><text class="h1-ml" x="398" y="80">Crusader</text><text class="h1-ml d" x="452" y="56">Kareah</text><text class="h1-ml d" x="372" y="140">Orison</text>
+                  <circle class="h1-mp" cx="113" cy="115" r="7"/><text class="h1-ml" x="84" y="141">ArcCorp</text><text class="h1-ml d" x="160" y="88">Area18</text>
+                  <circle class="h1-mp" cx="592" cy="184" r="7"/><text class="h1-ml" x="556" y="210">microTech</text>
+                  <circle class="h1-myou" cx="113" cy="115" r="15"/>
+                  <polygon class="h1-mg" style="--c:#ec8fd6" points="136,82 145,91 136,100 127,91"/><polygon class="h1-mg" style="--c:#ffb380" points="152,96 159,103 152,110 145,103"/>
+                  <path class="h1-mg" style="--c:#8fb8ff" d="M440 82V60l15 5.5-15 6"/>
+                  <rect class="h1-mg" style="--c:#9fe07f" x="392" y="106" width="16" height="13" rx="2.5"/>
+                </svg>
+              </div>
+              <div class="h1-accs">
+                <button class="h1-strip" type="button"><span class="h1-chev r"></span><b>Pyro</b>Hadanite abbauen und raffinieren<em>2 Schritte · Ort abgewählt</em></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s4-a1" data-anno-side="right" data-anno-target=".h1-mood" style="--anno-x:44%;--anno-y:30%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s4-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s4-a1" data-anno-bubble="r5-h1-s4-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Feste Voreinstellungen nach Lust, mit Dauer und Runde als zweite Dimension</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s4-a1">
+      <span class="anno-bubble-question">Drei feste Zeilen: Art (Friedlich, Kampf), Dauer (Schnell unter 30 min, Zeitintensiv) und Runde (Gruppe). Innerhalb einer Zeile ergänzen sich die Knöpfe, zwischen den Zeilen schränken sie ein: Kampf + Schnell wählt hier 4 Bedarfe vor. Dauer und Runde sind mein Vorschlag für die weitere Dimension. Passt diese Logik, oder sollen sich alle Knöpfe einfach addieren?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s4-a1" data-annotation="r5-h1-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s4-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-h1-s4-a2" data-anno-side="right" data-anno-target=".h1-dd" style="--anno-x:52%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s4-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s4-a2" data-anno-bubble="r5-h1-s4-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ort als verschachtelte Mehrfachauswahl mit Mini-Suche</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s4-a2">
+      <span class="anno-bubble-question">System › Planet › Ort als aufklappbarer Baum. Ein Haken am System oder Planeten nimmt alles darunter mit, ein Strich heißt „teilweise“. Rechts steht, wie viele Schritte dort liegen. Die Mini-Suche („or“) markiert Treffer im Baum, statt ihn auszudünnen. Reicht diese Tiefe, oder brauchst du noch eine Ebene darunter (z. B. Station, Shop)?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s4-a2" data-annotation="r5-h1-s4-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s4-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s5 · Planen · Schritt-Modus -->
+    <section id="h1-s5" data-nav-label="Planen · Schritt-Modus" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap"><i class="h1-band"></i>
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Planen</span></li></ol></div>
+          <span class="h1-div"></span>
+          <button class="h1-field" type="button"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Planen<i>×</i></span><span class="h1-ph">Bedarf, Set, Ort oder Mission …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </div></div>
+        <p class="h1-route">Planen</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s3" aria-current="page"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Planen</p><p class="h1-vh-s">Beste Reihenfolge für deine Auswahl</p></div>
+            <div class="h1-vh-a"><button class="h1-tog on" type="button" aria-pressed="true" data-screen-link="h1-s4"><span class="h1-knob"></span>Schritt-Modus</button><a class="h1-lnk" href="#">Deine Einsätze · 3</a></div>
+          </div>
+          <div class="h1-sel"><span class="h1-al">Auswahl aus der Übersicht</span><span>Nach Lust · <b>Kampf + Schnell</b></span><span>Ort <b>Area18, Orison, Kareah</b></span><span><b>4 Bedarfe</b> → 5 Schritte</span><button class="h1-lnk" type="button" data-screen-link="h1-s4" style="margin-left:auto">Auswahl ändern</button></div>
+          <div class="h1-plan steps">
+            <div class="h1-map">
+              <div class="h1-maph"><b>Route</b><small>Stanton · 2 Sprünge</small></div>
+              <div class="h1-mapw">
+                <svg viewBox="0 0 640 280" role="img" aria-label="Route über Area18, Orison und Kareah">
+                  <rect class="h1-ms" x="8" y="8" width="624" height="264" rx="12"/>
+                  <text class="h1-msn" x="24" y="30">STANTON</text>
+                  <ellipse class="h1-mo" cx="320" cy="146" rx="80" ry="36"/><ellipse class="h1-mo" cx="320" cy="146" rx="150" ry="66"/><ellipse class="h1-mo" cx="320" cy="146" rx="220" ry="92"/><ellipse class="h1-mo" cx="320" cy="146" rx="290" ry="112"/>
+                  <circle class="h1-mhalo" cx="320" cy="146" r="30"/><circle class="h1-mstar" cx="320" cy="146" r="12"/>
+                  <circle class="h1-mp" cx="240" cy="146" r="7"/><circle class="h1-mp" cx="592" cy="184" r="7"/>
+                  <circle class="h1-mp" cx="416" cy="95" r="9"/><text class="h1-ml" x="398" y="80">Crusader</text><text class="h1-ml d" x="458" y="56">Kareah</text><text class="h1-ml d" x="372" y="140">Orison</text>
+                  <circle class="h1-mp" cx="113" cy="115" r="7"/><text class="h1-ml" x="84" y="141">ArcCorp</text><text class="h1-ml d" x="160" y="84">Area18</text>
+                  <circle class="h1-myou" cx="113" cy="115" r="15"/><text class="h1-myoul" x="72" y="160">du bist hier</text>
+                  <path class="h1-mtr" d="M150 100 Q 280 40 392 108"/><path class="h1-mtr" d="M408 104 Q 440 96 442 84"/>
+                  <polygon class="h1-mg" style="--c:#ec8fd6" points="136,82 145,91 136,100 127,91"/><polygon class="h1-mg" style="--c:#ffb380" points="152,96 159,103 152,110 145,103"/><circle class="h1-mnext" cx="136" cy="91" r="15"/>
+                  <path class="h1-mg" style="--c:#8fb8ff" d="M440 82V60l15 5.5-15 6"/>
+                  <rect class="h1-mg" style="--c:#9fe07f" x="392" y="106" width="16" height="13" rx="2.5"/>
+                  <g class="h1-mtag"><rect x="114" y="62" width="26" height="15" rx="4"/><text x="127" y="73">1·2</text></g>
+                  <g class="h1-mtag"><rect x="262" y="50" width="16" height="15" rx="4"/><text x="270" y="61">3</text></g>
+                  <g class="h1-mtag"><rect x="376" y="118" width="16" height="15" rx="4"/><text x="384" y="129">4</text></g>
+                  <g class="h1-mtag"><rect x="460" y="64" width="16" height="15" rx="4"/><text x="468" y="75">5</text></g>
+                </svg>
+              </div>
+              <div class="h1-leg"><b>Nur in der Übersicht</b><span>Filter und Voreinstellungen ändern sich nicht im Schritt-Modus; „Auswahl ändern“ führt zurück.</span></div>
+            </div>
+            <div class="h1-box">
+              <p class="h1-k">Deine Route <em>5 Schritte</em></p>
+              <div class="h1-route2">
+                <div class="h1-st" style="--c:#ec8fd6"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk"><span class="h1-sno">1</span>Einkauf <em>Area18 · Cubby Blast</em></span><span class="h1-stm"><b>≈ 5 min</b>1.140 aUEC</span><span class="h1-stt">MedPen ×6 kaufen</span></div>
+                <div class="h1-st" style="--c:#ffb380"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk"><span class="h1-sno">2</span>Einkauf <em>gleicher Shop</em></span><span class="h1-stm"><b>≈ 3 min</b>420 aUEC</span><span class="h1-stt">P4-AR Magazin ×4 kaufen</span></div>
+                <div class="h1-st" style="--c:#d6e6f0"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h11"/><path d="M9 4.5L12.5 8 9 11.5"/></svg></span><span class="h1-stk"><span class="h1-sno">3</span>Transport <em>kein Teil einer Mission</em></span><span class="h1-stm"><b>≈ 8 min</b>1 Sprung</span><span class="h1-stt">Area18 → Orison</span></div>
+                <div class="h1-st" style="--c:#9fe07f"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg></span><span class="h1-stk"><span class="h1-sno">4</span>Abholung <em>dein Lager Orison</em></span><span class="h1-stm"><b>≈ 4 min</b>liegt bereit</span><span class="h1-stt">ParaMed ×5 abholen</span></div>
+                <div class="h1-st" style="--c:#8fb8ff"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></span><span class="h1-stk"><span class="h1-sno">5</span>Mission <em>Kareah · Belohnung P8-SC</em></span><span class="h1-stm"><b>≈ 25 min</b>1 Sprung</span><span class="h1-stt">Bunker-Säuberung</span></div>
+              </div>
+              <div class="h1-tot"><span><b>≈ 45 min</b>Dauer</span><span><b>2</b>Sprünge</span><span><b>1.560</b>aUEC</span><span><b>3 / 4</b>Sets komplett</span></div>
+              <div class="h1-save">
+                <button class="mock-btn" type="button">Als Einsatz speichern</button>
+                <small>wird <span class="h1-tipw"><span class="h1-ez">Einsatz <b>×5</b></span><span class="h1-tip">5 Schritte</span></span> · ein Schritt allein bleibt „Einsatz“</small>
+              </div>
+            </div>
+          </div>
+          <div class="h1-ops">
+            <p class="h1-k">Deine Einsätze <a class="h1-lnk" href="#">Alle ›</a></p>
+            <div class="h1-opsr">
+              <a class="h1-op" href="#"><span class="h1-ez">Einsatz · Einkauf</span><b>Ersatz-Akku für die Cutlass</b><small>Area18 · 1 Schritt · heute</small></a>
+              <a class="h1-op" href="#"><span class="h1-ez">Einsatz <b>×3</b></span><b>Bunker-Lauf Kareah</b><small>Sa 20:00 · mit 3 Spielern</small></a>
+              <a class="h1-op new" href="#" data-screen-link="h1-s6"><span class="h1-ez">Einsatz <b>×5</b></span><b>Kampf + Schnell · Stanton</b><small>neu · gerade gespeichert · starten ›</small></a>
+            </div>
+          </div>
+          <div class="h1-endcue"><button class="h1-cue" type="button" data-screen-link="h1-s6">Jetzt<span class="h1-chev"></span></button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s5-a1" data-anno-side="left" data-anno-target=".h1-route2" style="--anno-x:70%;--anno-y:34%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s5-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s5-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s5-a1" data-anno-bubble="r5-h1-s5-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ein Schritt-Baustein überall, in „zu tun“ und „erledigt“</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s5-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s5-a1">
+      <span class="anno-bubble-question">Jeder Schritt ist derselbe Baustein, in Planen, auf Jetzt und im Logbuch: Form = Art (Einkauf, Mission, Transport …), Farbstreifen = Bedarf, darüber die Art, darunter der Titel, rechts Dauer und Kosten. „Zu tun“ hat ein Umriss-Symbol und den Farbstreifen, „erledigt“ ein gefülltes Symbol mit grünem Haken, den Streifen in Grün und den Titel in der Vergangenheit. Der Transport (3) zählt als eigener Schritt. Erkennst du die Bausteine überall wieder?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s5-a1" data-annotation="r5-h1-s5-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s5-a1"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s6 · Jetzt -->
+    <section id="h1-s6" data-nav-label="Jetzt" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap"><i class="h1-band"></i>
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Jetzt</span></li></ol></div>
+          <span class="h1-div"></span>
+          <button class="h1-field" type="button"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Jetzt<i>×</i></span><span class="h1-ph">Nächster Schritt, Mission oder Ort …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </div></div>
+        <p class="h1-route">Jetzt</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s3"><i></i><span>Planen</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s6" aria-current="page"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Jetzt</p><p class="h1-vh-s">Live aus der SCC-App</p></div>
+            <div class="h1-vh-a"><span class="mock-live"><i></i>SCC-App verbunden</span><a class="h1-lnk" href="#" data-screen-link="h1-s5">Einsatz ×5 · Schritt 2 von 5</a></div>
+          </div>
+          <div class="h1-live">
+            <div>
+              <div class="h1-here">
+                <span class="h1-pin"><i></i></span>
+                <span class="h1-herek">Du bist in <span class="mock-live"><i></i>live · vor 8 s</span></span>
+                <p class="h1-herel">Area18</p>
+                <span class="h1-herec"><ol class="h1-trail"><li><a href="#">Stanton</a></li><li><a href="#">ArcCorp</a></li><li><span class="here">Area18</span></li></ol><span>Plaza, Ebene 2</span><span>mit <b>Cutlass Black</b> im Hangar 03</span></span>
+              </div>
+              <p class="h1-k">Dein Weg <em>Einsatz ×5 · Kampf + Schnell</em><a class="h1-lnk" href="#" data-screen-link="h1-s5">Route ›</a></p>
+              <div class="h1-st next" style="--c:#ffb380"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk"><span class="h1-sno">2</span>Einkauf <em>jetzt, hier · 40 m bis zum Shop</em></span><span class="h1-stm"><b>≈ 3 min</b>420 aUEC</span><span class="h1-stt">P4-AR Magazin ×4 kaufen<small>Cubby Blast</small></span></div>
+              <div class="h1-trailv">
+                <div class="h1-st dim sm" style="--c:#d6e6f0"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h11"/><path d="M9 4.5L12.5 8 9 11.5"/></svg></span><span class="h1-stk"><span class="h1-sno">3</span>Transport</span><span class="h1-stm">≈ 8 min</span><span class="h1-stt">Area18 → Orison</span></div>
+                <div class="h1-st dim sm" style="--c:#9fe07f"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg></span><span class="h1-stk"><span class="h1-sno">4</span>Abholung</span><span class="h1-stm">≈ 4 min</span><span class="h1-stt">ParaMed ×5 · Lager Orison</span></div>
+                <div class="h1-st dim sm" style="--c:#8fb8ff"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></span><span class="h1-stk"><span class="h1-sno">5</span>Mission</span><span class="h1-stm">≈ 25 min</span><span class="h1-stt">Bunker-Säuberung · Kareah</span></div>
+              </div>
+            </div>
+            <div class="h1-side">
+              <div class="h1-toast"><i>✓</i><span>Kauf erkannt: <b>MedPen ×6</b><small>Schritt 1 erledigt · wandert ins Logbuch</small></span><button class="h1-undo" type="button">Rückgängig</button></div>
+              <div class="h1-quiet">
+                <p class="h1-k">Aktive Missionen <em>2</em></p>
+                <div class="h1-mi"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg><span>Bunker-Säuberung · Kareah</span><small>angenommen 20:58</small></div>
+                <div class="h1-mi"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg><span>Lieferung 4 SCU → Area18</span><small>noch 38 min</small></div>
+              </div>
+              <div class="h1-quiet">
+                <p class="h1-k">Logbuch <a class="h1-lnk q" href="#" data-screen-link="h1-s7">Alle anzeigen ›</a></p>
+                <div class="h1-logl">
+                  <div class="h1-st done sm fresh" style="--c:#ec8fd6"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk">Einkauf · 21:14</span><span class="h1-stm">Schritt 1</span><span class="h1-stt">MedPen ×6 gekauft</span></div>
+                  <div class="h1-st done sm" style="--c:#d6e6f0"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h11"/><path d="M9 4.5L12.5 8 9 11.5"/></svg></span><span class="h1-stk">Transport · 21:06</span><span class="h1-stm">automatisch</span><span class="h1-stt">In Area18 gelandet</span></div>
+                  <div class="h1-st done sm" style="--c:#9fe07f"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg></span><span class="h1-stk">Abholung · 20:41</span><span class="h1-stm">Lager Orison</span><span class="h1-stt">ParaMed ×5 eingelagert</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="h1-endcue"><button class="h1-cue" type="button" data-screen-link="h1-s8">Bestand<span class="h1-chev"></span></button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s6-a1" data-anno-side="right" data-anno-target=".h1-here" style="--anno-x:44%;--anno-y:22%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s6-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s6-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s6-a1" data-anno-bubble="r5-h1-s6-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ort als großer Anker, dann ein einziger Weg</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s6-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s6-a1">
+      <span class="anno-bubble-question">„Du bist in“ ist jetzt keine Karte mehr, die wie eine Nachricht aussieht, sondern ein großer Anker ohne Rahmen: Ortsname groß, darunter System › Planet › Ort und dein Schiff, links ein ruhig pulsierender Punkt. Direkt darunter folgt der einzige Weg: der nächste Schritt groß, die Folgeschritte blasser an einer Linie. Das frühere „Hier gibt es zwei Dinge“ ist in diesem Weg aufgegangen. Ist das jetzt der klare Hauptweg?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s6-a1" data-annotation="r5-h1-s6-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s6-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-h1-s6-a2" data-anno-side="left" data-anno-target=".h1-toast" style="--anno-x:88%;--anno-y:20%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s6-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s6-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s6-a2" data-anno-bubble="r5-h1-s6-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Die Meldung wandert sichtbar ins Logbuch</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s6-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s6-a2">
+      <span class="anno-bubble-question">Die Meldung „Kauf erkannt“ steht kurz oben rechts mit Rückgängig, gleitet dann nach unten und wird zum obersten Logbuch-Eintrag, der kurz grün aufleuchtet (im Mock läuft das in Schleife). Missionen stehen als zwei leise Zeilen dazwischen, das Logbuch zeigt drei Einträge. Gleitet sie richtig, oder soll sie direkt im Logbuch erscheinen?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s6-a2" data-annotation="r5-h1-s6-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s6-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s7 · Jetzt · Logbuch -->
+    <section id="h1-s7" data-nav-label="Jetzt · Logbuch" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap"><i class="h1-band"></i>
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Jetzt</span></li></ol></div>
+          <span class="h1-div"></span>
+          <button class="h1-field" type="button"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Jetzt<i>×</i></span><span class="h1-ph">Nächster Schritt, Mission oder Ort …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </div></div>
+        <p class="h1-route">Jetzt</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s3"><i></i><span>Planen</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s6" aria-current="page"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Jetzt</p><p class="h1-vh-s">Live aus der SCC-App</p></div>
+            <div class="h1-vh-a"><span class="mock-live"><i></i>SCC-App verbunden</span><a class="h1-lnk" href="#">Einsatz ×5 · Schritt 2 von 5</a></div>
+          </div>
+          <div class="h1-here">
+            <span class="h1-pin"><i></i></span>
+            <span class="h1-herek">Du bist in</span>
+            <p class="h1-herel">Area18</p>
+            <span class="h1-herec"><span>Stanton › ArcCorp › Area18</span><span>mit <b>Cutlass Black</b></span></span>
+          </div>
+        </div>
+        <div class="h1-scrim">
+          <div class="h1-sheet" role="dialog" aria-modal="true" aria-label="Logbuch">
+            <div class="h1-sbar"><p class="h1-sttl">Logbuch</p><button class="h1-nb" type="button" aria-label="Schließen" data-screen-link="h1-s6">✕</button></div>
+            <div class="h1-scont">
+              <div class="h1-chips"><button class="mock-chip on" type="button">Alle</button><button class="mock-chip" type="button">Schritte</button><button class="mock-chip" type="button">Käufe</button><button class="mock-chip" type="button">Missionen</button><button class="mock-chip" type="button">Reisen</button></div>
+              <p class="h1-day">Heute · Sa 31.10.</p>
+              <div class="h1-logl">
+                <div class="h1-st done sm" style="--c:#ec8fd6"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14,8 8,14 2,8"/></svg></span><span class="h1-stk">Einkauf · 21:14 <em>Einsatz ×5 · Schritt 1</em></span><span class="h1-stm"><button class="h1-undo" type="button">Rückgängig</button></span><span class="h1-stt">MedPen ×6 gekauft · Cubby Blast</span></div>
+                <div class="h1-st done sm" style="--c:#d6e6f0"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8h11"/><path d="M9 4.5L12.5 8 9 11.5"/></svg></span><span class="h1-stk">Transport · 21:06</span><span class="h1-stm">automatisch</span><span class="h1-stt">In Area18 gelandet</span></div>
+                <div class="h1-st done sm" style="--c:#8fb8ff"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></span><span class="h1-stk">Mission · 20:58</span><span class="h1-stm">aus dem Spiel</span><span class="h1-stt">Bunker-Säuberung angenommen</span></div>
+                <div class="h1-st done sm" style="--c:#9fe07f"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8.5" rx="1.5"/><path d="M2.5 8h11M8 1.5v4.5M6 4.5l2 1.8 2-1.8"/></svg></span><span class="h1-stk">Abholung · 20:41</span><span class="h1-stm">Lager Orison</span><span class="h1-stt">ParaMed ×5 eingelagert</span></div>
+              </div>
+              <p class="h1-day">Gestern · Fr 30.10.</p>
+              <div class="h1-logl">
+                <div class="h1-st done sm" style="--c:#6fe0c8"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,1.5 13.6,4.75 13.6,11.25 8,14.5 2.4,11.25 2.4,4.75"/></svg></span><span class="h1-stk">Raffinerie · 23:40 <em>Pyro Gateway</em></span><span class="h1-stm">8 SCU</span><span class="h1-stt">Hadanite raffiniert</span></div>
+                <div class="h1-st done sm" style="--c:#6fe0c8"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><polygon points="8,2 14.5,13.5 1.5,13.5"/></svg></span><span class="h1-stk">Abbau · 22:15 <em>Bloom</em></span><span class="h1-stm">11 SCU</span><span class="h1-stt">Hadanite abgebaut</span></div>
+                <div class="h1-st done sm" style="--c:#ffb380"><span class="h1-sti"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14.5V1.5"/><path d="M4 2l9.5 3L4 8z"/></svg></span><span class="h1-stk">Mission · 21:02</span><span class="h1-stm">Blueprint</span><span class="h1-stt">P4-AR Blueprint erhalten</span></div>
+              </div>
+              <p class="h1-day">Do 29.10.</p>
+              <div class="h1-logl"><div class="h1-skel"></div><div class="h1-skel"></div></div>
+              <div class="h1-more"><span>7 von 212 Einträgen · der Rest lädt beim Scrollen nach</span><button class="mock-btn sm ghost" type="button">Mehr laden</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s7-a1" data-anno-side="right" data-anno-target=".h1-sheet" style="--anno-x:74%;--anno-y:16%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s7-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s7-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s7-a1" data-anno-bubble="r5-h1-s7-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ganzes Logbuch im Popup der App, mit Nachladen</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s7-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s7-a1">
+      <span class="anno-bubble-question">„Alle anzeigen“ öffnet das Popup wie den Nachschub heute: dieselbe Fläche, Titelzeile mit ✕, Escape und Klick daneben schließen. Die Einträge sind nach Tagen gruppiert und nutzen den Schritt-Baustein in „erledigt“. Oben filtern Chips nach Art, unten lädt es beim Scrollen nach, „Mehr laden“ als Rückfall. Reichen diese Filter-Chips?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s7-a1" data-annotation="r5-h1-s7-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s7-a1"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s8 · Bestand -->
+    <section id="h1-s8" data-nav-label="Bestand · Suche aktiv" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap open">
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Bestand</span></li></ol></div>
+          <span class="h1-div"></span>
+          <div class="h1-field"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Bestand<i>×</i></span><span class="h1-typed">gold<i class="h1-caret"></i></span></div>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+          <div class="h1-res" role="listbox" aria-label="Suchergebnisse">
+            <p class="h1-rg">Bestand · Lager <span class="h1-cnt">2</span></p>
+            <div class="h1-rh on"><span class="h1-ico" style="color:#f5c94d;background:rgba(245,201,77,.12)">AU</span><span><mark>Gold</mark> · 12 SCU<small>Lager Area18 · Schnappschuss vor 2 Tagen</small></span><button class="mock-verb" type="button">Zeigen</button></div>
+            <div class="h1-rh"><span class="h1-ico" style="color:#f5c94d;background:rgba(245,201,77,.12)">AU</span><span><mark>Gold</mark> · 2 SCU<small>Lager Lorville · vor 5 Std</small></span><button class="mock-verb alt" type="button">Zeigen</button></div>
+            <p class="h1-rg low">Codex · weiter unten <span class="h1-cnt">1</span></p>
+            <div class="h1-rh"><span class="h1-ico">RS</span><span><mark>Gold</mark> (Rohstoff)<small>Preise und Fundorte aus Community-Daten</small></span><button class="mock-verb alt" type="button">Öffnen</button></div>
+            <div class="h1-rfoot"><span>Auf Bestand ausgeblendet: <b>News · Patches · Galerie</b></span><span><span class="h1-kbd">⌫</span> Kontext weg, überall suchen</span><a href="#">2 Treffer in der Seite markiert</a></div>
+          </div>
+        </div></div>
+        <p class="h1-route">Bestand</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s3"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s8" aria-current="page"><i></i><span>Bestand</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s9"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Bestand</p><p class="h1-vh-s">Was du hast und wo es liegt</p></div>
+            <div class="h1-vh-a"><span class="mock-dim">RSI-Import vor 2 Tagen</span><span class="mock-dim">Lager aus der SCC-App</span></div>
+          </div>
+          <div class="h1-stock">
+            <div class="h1-box">
+              <p class="h1-k">Schiffe <a class="h1-lnk" href="#">Hangar ›</a></p>
+              <div class="h1-big"><b>23</b><span>Schiffe · 4 Pakete</span></div>
+              <div class="h1-ship"><span class="mock-star">★</span><span>Cutlass Black<small>Flaggschiff · Rettung</small></span></div>
+              <div class="h1-ship"><span class="mock-star">★</span><span>Prospector<small>Abbau</small></span></div>
+              <div class="h1-ship"><span class="mock-star">★</span><span>Constellation Andromeda<small>Gruppe</small></span></div>
+            </div>
+            <div class="h1-box">
+              <p class="h1-k">Sets <em>was du mitnimmst</em></p>
+              <p class="h1-kitk">Schiff-Loadouts · Hangar</p>
+              <div class="h1-kits"><span class="h1-kit">Cutlass · Rettung <small>komplett</small></span><span class="h1-kit">Prospector · Abbau <small>komplett</small></span></div>
+              <p class="h1-kitk">FPS-Sets · Spind</p>
+              <div class="h1-kits"><span class="h1-kit">Sanitäter <small>5/6</small></span><span class="h1-kit">Bunker leicht <small>4/7</small></span><span class="h1-kit">Pembroke Kalt <small>5/6</small></span></div>
+            </div>
+            <div class="h1-box">
+              <p class="h1-k">Erspieltes <a class="h1-lnk" href="#">Alle ›</a></p>
+              <div class="h1-big"><b>37</b><span>von 212 Blueprints</span></div>
+              <div class="h1-bar"><i style="width:17%"></i></div>
+              <div class="h1-kits" style="margin-top:10px"><span class="h1-kit">P4-AR <small>gestern</small></span><span class="h1-kit">Pembroke-Helm <small>Do</small></span><span class="h1-kit">ParaMed <small>Mi</small></span></div>
+            </div>
+          </div>
+          <div class="h1-box h1-lager">
+            <p class="h1-k">Lager · pro Ort <em>Schnappschuss, sobald du dort das Inventar öffnest</em></p>
+            <div class="h1-lr hl"><span class="h1-loci">A18</span><span><b>Area18</b><small>ArcCorp · Stanton</small></span><span class="h1-its"><span class="h1-it raw hl"><b>Gold</b> 12 SCU</span><span class="h1-it raw"><b>Kupfer</b> 40 SCU</span><i></i><span class="h1-it">MedPen ×2</span><span class="h1-it">P4-AR Magazin ×6</span><span class="h1-it">Cutlass-Ersatzteil ×1</span></span><span class="h1-age">vor 2 Tagen</span></div>
+            <div class="h1-lr"><span class="h1-loci">LOR</span><span><b>Lorville</b><small>Hurston · Stanton</small></span><span class="h1-its"><span class="h1-it raw hl"><b>Gold</b> 2 SCU</span><span class="h1-it raw"><b>Hadanite</b> 3 SCU</span><i></i><span class="h1-it">Klecker-Granate ×1</span></span><span class="h1-age">vor 5 Std</span></div>
+            <div class="h1-lr"><span class="h1-loci">ORI</span><span><b>Orison</b><small>Crusader · Stanton</small></span><span class="h1-its"><span class="h1-it">ParaMed ×5</span><span class="h1-it">Pembroke-Rüstung ohne Helm</span></span><span class="h1-age old">vor 3 Wochen</span></div>
+            <div class="h1-lr"><span class="h1-loci">PYG</span><span><b>Pyro Gateway</b><small>Raffinerie · Pyro</small></span><span class="h1-its"><span class="h1-it raw"><b>Hadanite</b> 8 SCU, raffiniert</span></span><span class="h1-age">vor 1 Tag</span></div>
+          </div>
+          <div class="h1-endcue"><button class="h1-cue" type="button" data-screen-link="h1-s9">Statistik<span class="h1-chev"></span></button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-h1-s8-a1" data-anno-side="right" data-anno-target=".h1-res" style="--anno-x:50%;--anno-y:10%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s8-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s8-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s8-a1" data-anno-bubble="r5-h1-s8-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Eine Suche, angedockt; die Seite sagt nur, was sie ausblendet</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s8-a1" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s8-a1">
+      <span class="anno-bubble-question">Das ist dasselbe Such-Element wie im Start-Hero, nur angedockt: Die Liste hängt direkt an der Leiste, in derselben Satinkante. Der Chip „Bestand“ zeigt, worum es hier geht. Bestand-Treffer stehen oben, Codex weiter unten, News, Patches und Galerie sind ausgeblendet (die Seite nennt nur, was sie ausblendet). Treffer werden zusätzlich in der Seite markiert (Gold im Lager). Ist das die richtige Gewichtung?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s8-a1" data-annotation="r5-h1-s8-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s8-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-h1-s8-a2" data-anno-side="left" data-anno-target=".h1-lager" style="--anno-x:84%;--anno-y:70%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-h1-s8-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s8-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r5-h1-s8-a2" data-anno-bubble="r5-h1-s8-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Erspieltes und Lager pro Ort, Rohstoffe getrennt von Gegenständen</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-h1-s8-a2" aria-expanded="false" aria-controls="anno-bubble-r5-h1-s8-a2">
+      <span class="anno-bubble-question">Bestand hat jetzt vier Teile: Schiffe, Sets (Schiff-Loadouts aus dem Hangar, FPS-Sets aus dem Spind), Erspieltes (Blueprints 37 von 212) und das Lager pro Ort. Eine Lager-Zeile zeigt zuerst die Rohstoffe in SCU (golden umrandet), darunter die Gegenstände; rechts steht das Alter des Schnappschusses, ab zwei Wochen in Bernstein. Passt diese Trennung?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r5-h1-s8-a2" data-annotation="r5-h1-s8-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r5-h1-s8-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- h1-s9 · Statistik -->
+    <section id="h1-s9" data-nav-label="Statistik" data-screen hidden data-screen-fit="full">
+      <div class="mock-app h1-app">
+        <div class="h1-hq sub"><i class="h1-ground"></i></div>
+        <div class="h1-subw"><div class="h1-cap"><i class="h1-band"></i>
+          <a class="h1-blogo" href="#" aria-label="Star Citizen Companion"><span class="h1-mark"></span></a>
+          <div class="h1-plate"><span class="h1-cat">Star Citizen Companion</span><ol class="h1-trail"><li><a href="#" data-screen-link="h1-s2">HQ</a></li><li><span class="here">Statistik</span></li></ol></div>
+          <span class="h1-div"></span>
+          <button class="h1-field" type="button"><svg class="h1-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span class="h1-ctx">Statistik<i>×</i></span><span class="h1-ph">Zeitraum, Schiff oder Ereignis …</span><span class="h1-hint"><span class="h1-kbd">Strg K</span><span class="h1-kbd">/</span></span></button>
+          <div class="h1-bacc"><button class="h1-apps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg><span>Apps</span></button><button class="h1-av" type="button" aria-label="Konto">J</button></div>
+        </div></div>
+        <p class="h1-route">Statistik</p>
+        <nav class="h1-rail" aria-label="HQ-Seiten">
+          <a class="h1-ri" href="#" data-screen-link="h1-s2"><i></i><span>Start</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s3"><i></i><span>Planen</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s6"><i></i><span>Jetzt</span></a>
+          <a class="h1-ri" href="#" data-screen-link="h1-s8"><i></i><span>Bestand</span></a>
+          <a class="h1-ri on" href="#" data-screen-link="h1-s9" aria-current="page"><i></i><span>Statistik</span></a>
+        </nav>
+        <div class="h1-page h1-b">
+          <div class="h1-vh">
+            <div class="h1-vh-l"><p class="h1-vh-t">Statistik</p><p class="h1-vh-s">Aus den Ereignissen der SCC-App, nur für dich</p></div>
+            <div class="h1-vh-a"><span class="h1-seg2"><button type="button">Woche</button><button class="on" type="button">Monat</button><button type="button">Patch 4.3.1</button></span></div>
+          </div>
+          <div class="h1-stats">
+            <a class="h1-tile" href="#"><span class="h1-tile-k">Verdient</span><span class="h1-tile-v">412.300<small>aUEC</small></span>
+              <svg viewBox="0 0 120 58" preserveAspectRatio="none" aria-hidden="true"><polygon class="h1-spark-a" points="0,44 20,40 40,42 60,30 80,26 100,20 120,12 120,58 0,58"/><polyline class="h1-spark" points="0,44 20,40 40,42 60,30 80,26 100,20 120,12"/></svg>
+              <span class="h1-tile-f"><span>+18 % zum Vormonat</span><span>Details ›</span></span></a>
+            <a class="h1-tile" href="#"><span class="h1-tile-k">Ausgegeben</span><span class="h1-tile-v">198.050<small>aUEC</small></span>
+              <svg viewBox="0 0 120 58" preserveAspectRatio="none" aria-hidden="true"><rect class="h1-mb" x="4" y="30" width="14" height="28"/><rect class="h1-mb" x="24" y="22" width="14" height="36"/><rect class="h1-mb hi" x="44" y="10" width="14" height="48"/><rect class="h1-mb" x="64" y="34" width="14" height="24"/><rect class="h1-mb" x="84" y="26" width="14" height="32"/><rect class="h1-mb" x="104" y="38" width="14" height="20"/></svg>
+              <span class="h1-tile-f"><span>meist Munition und Medizin</span><span>Details ›</span></span></a>
+            <a class="h1-tile" href="#"><span class="h1-tile-k">Missionen</span><span class="h1-tile-v">31<small>abgeschlossen</small></span>
+              <svg viewBox="0 0 120 58" preserveAspectRatio="none" aria-hidden="true"><polyline class="h1-spark" points="0,40 20,34 40,38 60,28 80,30 100,22 120,24"/></svg>
+              <span class="h1-tile-f"><span>4 abgebrochen</span><span>Details ›</span></span></a>
+            <a class="h1-tile" href="#"><span class="h1-tile-k">Tode · CrimeStat</span><span class="h1-tile-v">9<small>· 1× CrimeStat</small></span>
+              <svg viewBox="0 0 120 58" preserveAspectRatio="none" aria-hidden="true"><rect class="h1-mb" x="4" y="40" width="14" height="18"/><rect class="h1-mb w" x="24" y="24" width="14" height="34"/><rect class="h1-mb" x="44" y="44" width="14" height="14"/><rect class="h1-mb" x="64" y="36" width="14" height="22"/><rect class="h1-mb" x="84" y="48" width="14" height="10"/><rect class="h1-mb" x="104" y="42" width="14" height="16"/></svg>
+              <span class="h1-tile-f"><span>meist in Bunkern</span><span>Details ›</span></span></a>
+            <a class="h1-tile" href="#"><span class="h1-tile-k">Raffinerie-Ausbeute</span><span class="h1-tile-v">71<small>% im Schnitt</small></span>
+              <svg viewBox="0 0 120 58" preserveAspectRatio="none" aria-hidden="true"><polygon class="h1-spark-a" points="0,30 30,28 60,22 90,26 120,18 120,58 0,58"/><polyline class="h1-spark" points="0,30 30,28 60,22 90,26 120,18"/></svg>
+              <span class="h1-tile-f"><span>bestes Verfahren: Dinyx</span><span>Details ›</span></span></a>
+            <a class="h1-tile" href="#"><span class="h1-tile-k">Quantum-Sprünge</span><span class="h1-tile-v">148</span>
+              <svg viewBox="0 0 120 58" preserveAspectRatio="none" aria-hidden="true"><polygon class="h1-spark-a" points="0,40 20,36 40,44 60,26 80,30 100,18 120,22 120,58 0,58"/><polyline class="h1-spark" points="0,40 20,36 40,44 60,26 80,30 100,18 120,22"/></svg>
+              <span class="h1-tile-f"><span>davon 6 durch Sprungpunkte</span><span>Details ›</span></span></a>
+          </div>
+          <p class="h1-src">Alles aus den Ereignissen der SCC-App (Käufe, Missionen, Tode, CrimeStat, Raffinerie, Quantum), nur für dich gespeichert.</p>
+        </div>
+        <footer class="h1-foot">
+          <button class="h1-fbadge" type="button"><i></i>Made by the Community</button>
+          <nav class="h1-flinks" aria-label="Rechtliches"><a href="#">Neuigkeiten</a><span>·</span><a href="#">Über</a><span>·</span><a href="#">Datenschutz</a><span>·</span><a href="#">Impressum</a></nav>
+        </footer>
+        <button class="h1-fab" type="button" aria-label="Feedback"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═══════════ View · Begriffe ═══════════ -->
+  <section data-view="r5-wording" data-view-kind="analysis" data-analysis="lite" data-nav-label="Fragen · Begriffe" hidden>
+    <div data-alevel="1" data-title="Begriffe">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Fünf Wörter und Voreinstellungen, die ab jetzt überall gleich heißen: Schritt-Arten, der Einsatz mit mehreren Schritten, die Lust-Voreinstellungen, die Startauswahl von Planen und was die linke Leiste zeigt."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Schritt-Art","value":"Einkauf, Mission …"},{"label":"Einsatz","value":"1 Schritt"},{"label":"Einsatz ×N","value":"ab 2 Schritten"},{"label":"Planen","value":"Top 3 · Nach Lust · Gezielt"}]}'></div>
+        <p>„Auftrag“ und „Operation“ fallen weg: „Einsatz“ ist das SCC-Wort, „Mission“ das Spiel-Wort. Jede Schritt-Art sagt, was dort passiert.</p>
+      </div>
+    </div>
+
+    <section id="r5-steps" data-nav-label="Schritt-Arten" data-decision="r5-steps" data-decision-mode="wording" data-label="Namen der Schritt-Arten"
+             data-rec="nouns" data-rec-why="Nomen passen zu „Einsatz“ und „Mission“, sind kurz genug für Chips und Legende und stehen gleich gut als Kopf über jedem Schritt."
+             data-applies-to="Planen (Einsatztyp-Chips, Legende), Schritt-Baustein, Logbuch, Suche" data-finding="f-r5-steps">
+      <p data-applies>Gilt für: Einsatztyp-Chips, Kartenlegende, den Kopf jedes Schritts und das Logbuch</p>
+      <h3 data-question>Wie heißen die Schritt-Arten?</h3>
+      <p data-context>Jede Art bekommt eine feste Form auf der Karte und im Schritt-Baustein.</p>
+      <div data-options>
+        <label data-opt="nouns" data-recommended><input type="radio" name="dm-r5-steps" value="nouns" data-text="Einkauf · Mission · Abbau · Raffinerie · Herstellung · Transport · Abholung" checked><span data-opt-label>„Einkauf · Mission · Abbau · Raffinerie · Herstellung · Transport · Abholung“</span><span data-opt-consequence>Kopf eines Schritts: „EINKAUF · für Set Sanitäter“.</span></label>
+        <label data-opt="verbs"><input type="radio" name="dm-r5-steps" value="verbs" data-text="Kaufen · Mission · Abbauen · Raffinieren · Craften · Transportieren · Abholen"><span data-opt-label>„Kaufen · Mission · Abbauen · Raffinieren · Craften · Transportieren · Abholen“</span><span data-opt-consequence>Liest sich wie eine Aufgabe, ist aber länger und mischt „Craften“ ein.</span></label>
+        <label data-opt="custom"><input type="radio" name="dm-r5-steps" value="custom" data-text=""><span data-opt-label>Eigene Formulierung</span><span data-opt-consequence>Deine sieben Wörter stehen dann überall, wo heute „Einkauf …“ steht.</span></label>
+      </div>
+      <input type="text" name="dm-r5-steps-text" placeholder="Eigene Formulierung" value="">
+      <textarea data-comment="r5-steps-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-steps-touched" value="">
+      <input type="hidden" name="dm-r5-steps-issue" value="">
+      <input type="hidden" name="dm-r5-steps-epic" value="">
+      <div data-alevel="3" data-title="Schritt-Arten">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Sieben Arten, sieben Formen: Raute, Fahne, Dreieck, Sechseck, Quadrat mit Zahnrad, Pfeil, Kiste."}'></div></div>
+        <div data-slot="long">
+          <p>Ein Transport, der nicht Teil einer Spiel-Mission ist, ist eine eigene Art und zählt als eigener Schritt. Abholung heißt: aus deinem Lager holen; Einkauf: im Shop kaufen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r5-multi" data-nav-label="Einsatz mit mehreren Schritten" data-decision="r5-multi" data-decision-mode="wording" data-label="Name eines Einsatzes mit mehreren Schritten"
+             data-rec="x" data-rec-why="Du hast „Einsatz vs Einsatz 2×“ vorgeschlagen; „Einsatz ×5“ ist kurz, gleich lang wie ein Abzeichen, und der Tooltip sagt „5 Schritte“."
+             data-applies-to="Einsatz-Abzeichen in Planen, Jetzt, Start-Chips, Suche" data-finding="f-r5-multi">
+      <p data-applies>Gilt für: das Abzeichen jedes gespeicherten Einsatzes</p>
+      <h3 data-question>Wie heißt ein Einsatz mit mehreren Schritten?</h3>
+      <p data-context>Ein Schritt allein bleibt „Einsatz“, mit seiner Art daneben („Einsatz · Einkauf“).</p>
+      <div data-options>
+        <label data-opt="x" data-recommended><input type="radio" name="dm-r5-multi" value="x" data-text="Einsatz ×N" checked><span data-opt-label>„Einsatz ×N“</span><span data-opt-consequence>„Einsatz ×5“, Tooltip „5 Schritte“.</span></label>
+        <label data-opt="steps"><input type="radio" name="dm-r5-multi" value="steps" data-text="Einsatz (N Schritte)"><span data-opt-label>„Einsatz (N Schritte)“</span><span data-opt-consequence>Selbsterklärend, aber doppelt so breit im Abzeichen.</span></label>
+        <label data-opt="mehrfach"><input type="radio" name="dm-r5-multi" value="mehrfach" data-text="Mehrfach-Einsatz"><span data-opt-label>„Mehrfach-Einsatz“</span><span data-opt-consequence>Ein eigenes Wort, die Zahl steht erst im Tooltip.</span></label>
+        <label data-opt="custom"><input type="radio" name="dm-r5-multi" value="custom" data-text=""><span data-opt-label>Eigene Formulierung</span><span data-opt-consequence>Dein Wort ersetzt „×N“ überall.</span></label>
+      </div>
+      <input type="text" name="dm-r5-multi-text" placeholder="Eigene Formulierung" value="">
+      <textarea data-comment="r5-multi-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-multi-touched" value="">
+      <input type="hidden" name="dm-r5-multi-issue" value="">
+      <input type="hidden" name="dm-r5-multi-epic" value="">
+      <div data-alevel="3" data-title="Einsatz mit mehreren Schritten">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"ab 2","unit":"Schritten","label":"zeigt das Abzeichen die Zahl"}'></div></div>
+        <div data-slot="long">
+          <p>Eine Ortsaktivität ist ein Schritt; eine Bewegung ohne Spiel-Mission ist auch ein Schritt. So wird „MedPen kaufen, fliegen, abholen“ zu „Einsatz ×3“.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r5-moods" data-nav-label="Lust-Voreinstellungen" data-decision="r5-moods" data-decision-mode="multi" data-label="Voreinstellungen für „Nach Lust“"
+             data-rec="friedlich kampf schnell zeit gruppe" data-rec-why="Diese fünf decken Art, Dauer und Runde ab; die anderen drei sind eher Sortierungen als Lust."
+             data-applies-to="Planen › Nach Lust" data-finding="f-r5-moods">
+      <p data-applies>Gilt für: die Knöpfe im Modus „Nach Lust“</p>
+      <h3 data-question>Welche Lust-Voreinstellungen gibt es?</h3>
+      <p data-context>Fest vorgegeben, nicht frei anlegbar. Innerhalb einer Zeile ergänzen sie sich, zwischen Zeilen schränken sie ein.</p>
+      <div data-options>
+        <label data-opt="friedlich" data-recommended><input type="checkbox" name="dm-r5-moods.friedlich" checked><span data-opt-label>Friedlich</span><span data-opt-consequence>Einkauf, Abbau, Raffinerie, Herstellung, Transport, Abholung.</span></label>
+        <label data-opt="kampf" data-recommended><input type="checkbox" name="dm-r5-moods.kampf" checked><span data-opt-label>Kampf</span><span data-opt-consequence>Kampf-Missionen und alles für Kampf-Sets.</span></label>
+        <label data-opt="schnell" data-recommended><input type="checkbox" name="dm-r5-moods.schnell" checked><span data-opt-label>Schnell (&lt; 30 min)</span><span data-opt-consequence>Nur Schritte mit geschätzt unter 30 Minuten.</span></label>
+        <label data-opt="zeit" data-recommended><input type="checkbox" name="dm-r5-moods.zeit" checked><span data-opt-label>Zeitintensiv</span><span data-opt-consequence>Lange Ketten wie Abbau → Raffinerie → Herstellung.</span></label>
+        <label data-opt="gruppe" data-recommended><input type="checkbox" name="dm-r5-moods.gruppe" checked><span data-opt-label>Gruppe</span><span data-opt-consequence>Missionen und Schiffe, die mehrere Spieler brauchen.</span></label>
+        <label data-opt="solo"><input type="checkbox" name="dm-r5-moods.solo"><span data-opt-label>Solo</span><span data-opt-consequence>Das Gegenstück zu Gruppe; meist schon durch „nicht Gruppe“ abgedeckt.</span></label>
+        <label data-opt="profit"><input type="checkbox" name="dm-r5-moods.profit"><span data-opt-label>Profitabel (aUEC)</span><span data-opt-consequence>Sortiert nach Ertrag; braucht Community-Preise.</span></label>
+        <label data-opt="neu"><input type="checkbox" name="dm-r5-moods.neu"><span data-opt-label>Neu für mich</span><span data-opt-consequence>Missionen und Orte, die du laut Logbuch noch nie hattest.</span></label>
+      </div>
+      <textarea data-comment="r5-moods-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-moods-touched" value="">
+      <input type="hidden" name="dm-r5-moods-issue" value="">
+      <input type="hidden" name="dm-r5-moods-epic" value="">
+      <div data-alevel="3" data-title="Lust-Voreinstellungen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Zeilen: Art (Friedlich, Kampf), Dauer (Schnell, Zeitintensiv), Runde (Gruppe). Dauer und Runde sind die vorgeschlagene weitere Dimension."}'></div></div>
+        <div data-slot="long">
+          <p>Die Dauer kommt aus der geschätzten Zeit pro Schritt (Reise plus Ortsaktivität), Gruppe aus Missions-Daten und Schiffsbesatzung. Ort und Einsatztyp gelten zusätzlich.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r5-default" data-nav-label="Startauswahl von Planen" data-decision="r5-default" data-decision-mode="single" data-label="Auswahl beim Öffnen von Planen"
+             data-rec="top3" data-rec-why="Du hast „Default immer nur die Top drei wichtigsten“ geschrieben; drei halten Karte und Liste ruhig."
+             data-applies-to="Planen › Wie" data-finding="f-r5-default">
+      <p data-applies>Gilt für: den Zustand von Planen beim Öffnen</p>
+      <h3 data-question>Was ist beim Öffnen von Planen ausgewählt?</h3>
+      <p data-context>Wichtigkeit = Set-Favorit, Einsatz bald, Blueprint-Lücke.</p>
+      <div data-options>
+        <label data-opt="top3" data-recommended><input type="radio" name="dm-r5-default" value="top3" checked><span data-opt-label>Die Top 3 nach Wichtigkeit</span><span data-opt-consequence>Karte und Liste zeigen drei Bedarfe; der Rest ist mit einem Klick da.</span></label>
+        <label data-opt="last"><input type="radio" name="dm-r5-default" value="last"><span data-opt-label>Die zuletzt genutzte Auswahl</span><span data-opt-consequence>Praktisch am selben Abend, verwirrend nach einer Woche.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-r5-default" value="all"><span data-opt-label>Alles</span><span data-opt-consequence>Vollständig, aber die Karte ist sofort voll.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r5-default" value="other"><span data-opt-label>Anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r5-default-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-default-touched" value="">
+      <input type="hidden" name="dm-r5-default-issue" value="">
+      <input type="hidden" name="dm-r5-default-epic" value="">
+      <div data-alevel="3" data-title="Startauswahl von Planen">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"3 von 9","unit":"Bedarfen","label":"im Beispiel beim Öffnen gewählt"}'></div></div>
+        <div data-slot="long">
+          <p>Die Reihenfolge der Wichtigkeit: erst der Favorit unter deinen Sets, dann was ein bald startender Einsatz braucht, dann fehlende Blueprints.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r5-rail" data-nav-label="Linke Schnellleiste" data-decision="r5-rail" data-decision-mode="single" data-label="Inhalt der linken Schnellleiste"
+             data-rec="pages" data-rec-why="Die Leiste scrollt zwischen den fünf HQ-Seiten; Spind, Hangar und Einsätze sind eigene Routen und tauchen in Bestand und Planen als Links auf."
+             data-applies-to="HQ, alle Seiten" data-finding="f-r5-rail">
+      <p data-applies>Gilt für: die Leiste am linken Rand auf jeder HQ-Seite</p>
+      <h3 data-question>Was zeigt die linke Schnellleiste?</h3>
+      <p data-context>Heute sind Spind, Hangar und Einsätze eigene Routen (<code>/hq/locker</code>, <code>/hq/hangar</code>, <code>/hq/ops</code>).</p>
+      <div data-options>
+        <label data-opt="pages" data-recommended><input type="radio" name="dm-r5-rail" value="pages" checked><span data-opt-label>Die HQ-Seiten: Start, Planen, Jetzt, Bestand, Statistik</span><span data-opt-consequence>Fünf Striche, ein Klick scrollt zur Seite.</span></label>
+        <label data-opt="areas"><input type="radio" name="dm-r5-rail" value="areas"><span data-opt-label>Die alten Bereiche als Sprungziele: Übersicht, Spind, Hangar, Einsätze</span><span data-opt-consequence>Bekannt, aber die Leiste wechselt dann die Route statt zu scrollen.</span></label>
+        <label data-opt="both"><input type="radio" name="dm-r5-rail" value="both"><span data-opt-label>Beides, durch einen Abstand getrennt</span><span data-opt-consequence>Neun Striche; ruhig bleibt es nur mit sichtbarem Abstand.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r5-rail" value="other"><span data-opt-label>Anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r5-rail-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-rail-touched" value="">
+      <input type="hidden" name="dm-r5-rail-issue" value="">
+      <input type="hidden" name="dm-r5-rail-epic" value="">
+      <div data-alevel="3" data-title="Linke Schnellleiste">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Fusion-Leiste trägt die HQ-Reiter heute als AREA_SECTIONS (Übersicht, Spind, Hangar, Einsätze); die fallen aus dem Kopf heraus."}'></div></div>
+        <div data-slot="long">
+          <p>Die Leiste steht außerhalb der Inhaltsspalte B im Rand, auf Telefonen als feine Punkte ohne Namen. Die Namen erscheinen bei Hover und Fokus, die aktuelle Seite ist markiert.</p>
+          <div data-evidence hidden>src/app/shell/fusion-bar/fusion-bar.model.ts AREA_SECTIONS.hq: overview (HQ_ROOT), locker (hqLocker), hangar (hqHangar), ops (hqOps).</div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═══════════ View · Technik ═══════════ -->
+  <section data-view="r5-tech" data-view-kind="analysis" data-analysis="lite" data-nav-label="Fragen · Technik" hidden>
+    <div data-alevel="1" data-title="Technik">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Fragen zum Bau: eine Suche für alles, wie die fünf HQ-Seiten an Routen hängen, und ob der Dreifach-Zustand der Sets ein eigenes Element wird."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"fusion-search","value":"eine Komponente"},{"label":"Hero","value":"staged"},{"label":"Unterkopfzeile","value":"docked"},{"label":"Seite","value":"blendet aus"}]}'></div>
+        <p>Die Suche ist heute schon eine Komponente: dieselbe Fusion-Leiste steht auf Hauptseiten in der Szene und dockt beim Scrollen und auf Unterseiten an.</p>
+      </div>
+    </div>
+
+    <section id="r5-search-one" data-nav-label="Eine Suche" data-decision="r5-search-one" data-decision-mode="verify" data-label="Eine Such-Komponente mit zwei Darstellungen"
+             data-rec="ok" data-rec-why="So steht es heute im Code (FusionBar mode stage/docked, ein FusionSearchComponent); nur die Ausblend-Liste pro Seite kommt neu dazu."
+             data-applies-to="fusion-search, search-context, alle HQ-Seiten" data-finding="f-r5-search-one">
+      <p data-applies>Gilt für: die Suche auf Start, Planen, Jetzt, Bestand und Statistik</p>
+      <h3 data-question>Die Suche ist eine Komponente (fusion-search) mit zwei Darstellungen (Hero, Unterkopfzeile); jede Seite blendet per Ausschluss aus, was dort nicht zählt.</h3>
+      <p data-context>Der Kontext-Chip im Feld trägt den Seitennamen („Bestand“); ⌫ am Feldanfang entfernt ihn und sucht überall.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-r5-search-one" value="ok" checked><span data-opt-label>Stimmt</span><span data-opt-consequence>Jede Seite liefert eine Ausblend-Liste und ihren Chip-Namen, sonst nichts.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-r5-search-one" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Ein Teil sitzt falsch; bitte unten nennen.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-r5-search-one" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Die Suche wird vor dem Bau neu geschnitten.</span></label>
+      </div>
+      <input type="text" name="dm-r5-search-one-fix" placeholder="Was stimmt nicht?" value="">
+      <textarea data-comment="r5-search-one-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-search-one-touched" value="">
+      <input type="hidden" name="dm-r5-search-one-issue" value="">
+      <input type="hidden" name="dm-r5-search-one-epic" value="">
+      <div data-alevel="3" data-title="Eine Suche">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"search-context.ts gewichtet heute schon nach Ort (prefer, placesFirst, ownedFirst). Neu: hide pro HQ-Seite statt prefer."}'></div></div>
+        <div data-slot="long">
+          <p>Heute blendet die Leiste den Chip auf Hauptseiten aus (<code>hideContext = mainPage</code>). Für die HQ-Seiten soll er beim Andocken den Seitennamen zeigen. Das ist die einzige Änderung an der Leiste selbst.</p>
+          <div data-evidence hidden>src/app/shell/fusion-bar/fusion-bar.component.ts: sc-fusion-search [hideContext]="mainPage() || !!segment()"; search-context.ts SearchContext { prefer, placesFirst, ownedFirst }.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="r5-routes" data-nav-label="Routen der HQ-Seiten" data-decision="r5-routes" data-decision-mode="single" data-label="Routen der fünf HQ-Seiten"
+             data-rec="anchor" data-rec-why="Eine Route hält das Verse-Scrollen zwischen den Seiten einfach, und die Unterkopfzeile dockt wie auf /verse beim Scrollen an; Spind und Hangar bleiben tiefe Links."
+             data-applies-to="hq-routes.ts, Shell (isMainHeaderPage), Schnellleiste" data-finding="f-r5-routes">
+      <p data-applies>Gilt für: hq-routes.ts, die Schnellleiste und geteilte Links</p>
+      <h3 data-question>Wie hängen die fünf HQ-Seiten an den Routen?</h3>
+      <p data-context>/hq ist heute eine Hauptseite (Hauptkopf); /hq/locker, /hq/hangar, /hq/ops sind Unterseiten mit angedockter Leiste.</p>
+      <div data-options>
+        <label data-opt="anchor" data-recommended><input type="radio" name="dm-r5-routes" value="anchor" checked><span data-opt-label>Eine Route /hq mit Anker je Seite (/hq#planen); Spind und Hangar bleiben eigene Unterseiten</span><span data-opt-consequence>Scrollen dockt den Kopf an wie auf /verse; ein Link auf #planen springt direkt hin.</span></label>
+        <label data-opt="routes"><input type="radio" name="dm-r5-routes" value="routes"><span data-opt-label>Fünf eigene Routen (/hq/planen …) mit Verse-Scrollen dazwischen</span><span data-opt-consequence>Saubere URLs, aber das Scrollen muss zwischen Routen wechseln.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r5-routes" value="other"><span data-opt-label>Anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r5-routes-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-routes-touched" value="">
+      <input type="hidden" name="dm-r5-routes-issue" value="">
+      <input type="hidden" name="dm-r5-routes-epic" value="">
+      <div data-alevel="3" data-title="Routen der HQ-Seiten">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Route","label":"für fünf Seiten, plus Spind und Hangar"}'></div></div>
+        <div data-slot="long">
+          <p>Mit einer Route bleibt <code>isMainHeaderPage('/hq')</code> wahr: oben der Hauptkopf, ab 160 px Scroll die angedockte Leiste, genau wie im Mock zwischen Start und den Folgeseiten.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r5-tristate" data-nav-label="Dreifach-Auswahl" data-decision="r5-tristate" data-decision-mode="yesnoalt" data-label="Dreifach-Auswahl als eigenes Element"
+             data-rec="yes" data-rec-why="Der Ring wird in Planen gebraucht und passt auch auf Hangar-Loadouts und den Ort-Baum; ein Element hält Zustand, Tastatur und Screenreader-Text an einer Stelle."
+             data-applies-to="src/app/shared, Planen-Sets, Ort-Baum" data-finding="f-r5-tristate">
+      <p data-applies>Gilt für: die Set-Ringe in Planen und künftige Teilauswahlen</p>
+      <h3 data-question>Bauen wir die Set-Auswahl als eigenes Dreifach-Element (leer · teilweise · voll) für die ganze App?</h3>
+      <p data-context>Leer = nichts gewählt, Bogen = teilweise, voller Ring = alles; dazu ein optionaler Erreichbarkeits-Hinweis.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-r5-tristate" value="yes" checked><span data-opt-label>Ja, ein geteiltes Element in src/app/shared</span><span data-opt-consequence>Mit aria-checked="mixed", Leertaste schaltet, Hinweis optional.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-r5-tristate" value="no"><span data-opt-label>Nein, nur lokal in Planen</span><span data-opt-consequence>Schneller gebaut, bei der zweiten Stelle doppelt.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-r5-tristate" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Was stattdessen?</span></label>
+      </div>
+      <input type="text" name="dm-r5-tristate-alt" placeholder="Was stattdessen?" value="">
+      <textarea data-comment="r5-tristate-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r5-tristate-touched" value="">
+      <input type="hidden" name="dm-r5-tristate-issue" value="">
+      <input type="hidden" name="dm-r5-tristate-epic" value="">
+      <div data-alevel="3" data-title="Dreifach-Auswahl">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Ein Element, drei Zustände, kein Kästchen: ein Ring, der sich füllt."}'></div></div>
+        <div data-slot="long">
+          <p>Der Ort-Baum nutzt dieselbe Logik (Strich = teilweise) mit kleinen Haken, weil er eine Liste ist; die Ringe bleiben den Sets.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
