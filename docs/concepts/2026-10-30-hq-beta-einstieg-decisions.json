@@ -147,5 +147,143 @@
     "designNotes": {
       "deck": "wie soll das funktionieren mit fps ausrüstungen di eman ja auch hat, ggf. auch inventar (dinge died e man in hangarn hat) und co. und das thema einsätze machen um nachschub zu besorgen (kaufen vs craften usw...) oder einfach so einsätze machen nach einsatzart."
     }
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": "bestand",
+    "decisions": [
+      {
+        "id": "r2-m-model",
+        "value": "ok",
+        "untouched": false,
+        "note": "",
+        "fix": ""
+      },
+      {
+        "id": "r2-m-arten",
+        "value": [
+          "bounty",
+          "bunker",
+          "medic",
+          "race",
+          "mining",
+          "cargo",
+          "salvage",
+          "explore"
+        ],
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-m-chain",
+        "value": "auto",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-m-rec",
+        "value": "inventory",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-m-offline",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-s-facts",
+        "value": "wrong",
+        "untouched": false,
+        "note": "",
+        "fix": "vielleicht ja doch! Ansonsten überlegen wir uns alternativ manuell was zu ermöglichen"
+      },
+      {
+        "id": "r2-s-where",
+        "value": "ocr",
+        "untouched": false,
+        "note": "und gern game log usw. das bekommt man ja vielleicht mit und raus!?"
+      },
+      {
+        "id": "r2-s-sync",
+        "value": "optin",
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r2-s-data",
+        "value": [
+          "location",
+          "ship",
+          "contracts",
+          "purchases",
+          "refinery",
+          "blueprints",
+          "claims",
+          "crimestat",
+          "deaths"
+        ],
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r2-s-autocheck",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "untouched": false,
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r2-e2-s1-a1",
+        "answer": "nope, ne das passt! Missionen die gefunden werden (bitte auch data uploader uploaden lassen) gern auch finden lassen und in einsätze übernehmen"
+      },
+      {
+        "id": "r2-e2-s2-a2",
+        "answer": "ES REICHEN DIE SETS"
+      },
+      {
+        "id": "r2-e2-s2-a3",
+        "answer": "finde ich eine gute idee!"
+      },
+      {
+        "id": "r2-e3-s3-a1",
+        "answer": "auto0matisch übernehmen, das macht ja gar keinen sinn so."
+      }
+    ],
+    "userPins": [
+      {
+        "design": "bestand",
+        "text": "Finde ich witzig, aber für einsätze und nachschub besorgen planung usw."
+      },
+      {
+        "design": "bestand",
+        "text": "gern noch motivierender!!!! Cineastischer vielmals!"
+      },
+      {
+        "design": "bestand",
+        "text": "GEDECKT IST EIN BLÖSDES WORT1"
+      },
+      {
+        "design": "bestand",
+        "text": "SUCHE SOLLTE WIE AUF DEN ANDEREN SEITEN MITTIG SEIN UND GENAUSO"
+      },
+      {
+        "design": "bestand",
+        "text": "dAS SOLLTE  AUCH MITTIG SEIN MIT DEN NEWS DRIN STATT DRUNTER ALS LABEL WAS SICH ÄNDERT"
+      },
+      {
+        "design": "zyklus",
+        "text": "Die mit Planen, jetzt machen und sheen wo man steht (also vergangenes, hauptsächlich sozusagen lagern und ggf. statsitik zum anklicken mit mini vorschau) finde ich eigentlich eine gute gruppierungsidee! Vielleicht könnte man das auf iver scrollable seiten machen ähnlich wie verse. Dabei erste seite die suche wieder in der mitte und news."
+      }
+    ]
   }
 ]

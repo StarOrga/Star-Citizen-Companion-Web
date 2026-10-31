@@ -1,0 +1,1276 @@
+<section data-iteration="3" data-iteration-template="design" data-viewports="desktop phone">
+<style>
+/* Round 3 · HQ in vier Seiten. Shared mock foundation (identical to round 2), design rules under .mock-app .f1-. */
+.mock-app { --m-bg: #0a1c28; --m-panel: #123246; --m-line: rgba(82, 193, 230, 0.18); --m-acc: #52c1e6;
+  --m-fg: #e8ebed; --m-fg2: #9fb3c8; --m-fg3: #84a0b6; --m-ok: #5fd698; --m-warn: #f0c27b;
+  --m-craft: #b49bff; --m-earn: #6fe0c8; --m-gold: #f5c94d;
+  position: relative; width: 100%; min-height: 100%; box-sizing: border-box; overflow: hidden;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, #10324a 0%, #0a1c28 55%, #071520 100%);
+  color: var(--m-fg); font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; }
+.mock-app *, .mock-app *::before, .mock-app *::after { box-sizing: border-box; }
+.mock-bar { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; margin: 52px 16px 0; padding: 8px 14px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(10, 28, 40, 0.72); }
+.mock-logo { font: 700 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; color: var(--m-acc); }
+.mock-nav { display: flex; gap: 14px; color: var(--m-fg2); font-size: 13px; }
+.mock-nav b { color: var(--m-fg); font-weight: 600; border-bottom: 2px solid var(--m-acc); padding-bottom: 2px; }
+.mock-tabs { display: flex; gap: 4px; margin-left: auto; }
+.mock-tab { padding: 4px 10px; border-radius: 999px; color: var(--m-fg2); font-size: 12.5px; }
+.mock-tab.on { background: rgba(82, 193, 230, 0.14); color: var(--m-acc); }
+.mock-supply { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: transparent; color: var(--m-fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mock-supply i { font-style: normal; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--m-acc); color: #062030; font-weight: 700; text-align: center; }
+.mock-search { position: relative; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--m-line); border-radius: 12px;
+  background: rgba(8, 22, 31, 0.82); color: var(--m-fg3); font-size: 14px; }
+.mock-search.on { border-color: var(--m-acc); box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.10); color: var(--m-fg); }
+.mock-search > svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.mock-search > span { flex: 1; }
+.mock-search kbd { padding: 2px 7px; border: 1px solid var(--m-line); border-radius: 5px; font: 11.5px ui-monospace, Consolas, monospace; color: var(--m-fg2); }
+.mock-caret { display: inline-block; width: 1.5px; height: 16px; margin-left: 1px; vertical-align: -3px; background: var(--m-acc); }
+.mock-drop-g { padding: 10px 14px 4px; font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-res { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 14px; font-size: 13.5px; }
+.mock-res.on { background: rgba(82, 193, 230, 0.10); box-shadow: inset 3px 0 0 var(--m-acc); }
+.mock-res small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-res-ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: rgba(82, 193, 230, 0.10); color: var(--m-acc); font: 700 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.06em; }
+.mock-verb { padding: 5px 10px; border: 1px solid var(--m-acc); border-radius: 7px; background: rgba(82, 193, 230, 0.12); color: var(--m-acc); font: 600 12px/1 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.mock-verb.alt { border-color: var(--m-line); background: transparent; color: var(--m-fg2); }
+.mock-drop-f { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 14px; border-top: 1px solid var(--m-line); font-size: 11.5px; color: var(--m-fg3); }
+.mock-drop-f b { color: var(--m-fg2); font-weight: 600; }
+.mock-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--m-acc);
+  background: var(--m-acc); color: #062030; font: 600 13px/1 Inter, system-ui, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.mock-btn.ghost { background: transparent; color: var(--m-acc); }
+.mock-btn.quiet { background: transparent; border-color: var(--m-line); color: var(--m-fg2); }
+.mock-btn.sm { padding: 6px 11px; font-size: 12px; }
+.mock-card { border: 1px solid var(--m-line); border-radius: 14px; background: rgba(18, 50, 70, 0.5); padding: 14px 16px; }
+.mock-k { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-k a { margin-left: auto; font: 500 12px/1 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--m-acc); text-decoration: none; }
+.mock-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--m-line); border-radius: 999px;
+  background: rgba(10, 28, 40, 0.6); color: var(--m-fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mock-chip:hover { border-color: var(--m-acc); color: var(--m-acc); }
+.mock-star { color: var(--m-gold); }
+.mock-way { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; border: 1px solid currentColor; background: transparent;
+  font: 600 11.5px/1.3 Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.mock-way.buy { color: var(--m-acc); } .mock-way.craft { color: var(--m-craft); } .mock-way.earn { color: var(--m-earn); }
+.mock-live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--m-fg2); }
+.mock-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--m-ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+.mock-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--m-line); color: var(--m-fg2); font-size: 10.5px; white-space: nowrap; }
+.mock-tag.scc { border-color: rgba(95, 214, 152, 0.4); color: var(--m-ok); }
+.mock-tag.codex { border-color: rgba(82, 193, 230, 0.4); color: var(--m-acc); }
+.mock-ok { color: var(--m-ok); } .mock-warn { color: var(--m-warn); } .mock-dim { color: var(--m-fg3); } .mock-acc { color: var(--m-acc); }
+.mock-row { display: flex; align-items: center; gap: 8px; }
+.mock-grid { stroke: rgba(82, 193, 230, 0.12); stroke-width: 1; }
+
+/* Intro (engine page tokens, outside every mock). */
+.mock-r3-pages { display: flex; flex-wrap: wrap; gap: 8px; max-width: 980px; margin: 12px 0 14px; }
+.mock-r3-pages span { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--panel-bg); color: var(--text-secondary); font-size: 12.5px; }
+.mock-r3-pages b { margin-right: 6px; color: var(--accent-color); }
+.mock-r3-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 980px; }
+.mock-r3-two ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+.mock-r3-two li { margin: 2px 0; }
+.mock-r3-find { max-width: 980px; margin: 14px 0 6px; padding: 10px 14px; border: 1px solid var(--border-color); border-left: 3px solid var(--accent-color); border-radius: 10px; background: var(--panel-bg); font-size: 13px; }
+.mock-r3-find b { display: block; margin-bottom: 4px; }
+.mock-r3-note { max-width: 980px; margin: 8px 0 0; color: var(--text-secondary); font-size: 12.5px; }
+
+/* ── Sky, motion ── */
+.mock-app .f1-sky { position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(1px 1px at 8% 22%, rgba(255, 255, 255, 0.7), transparent 60%), radial-gradient(1px 1px at 17% 64%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1.5px 1.5px at 26% 12%, rgba(170, 225, 255, 0.8), transparent 60%), radial-gradient(1px 1px at 34% 46%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 47% 8%, rgba(255, 255, 255, 0.6), transparent 60%), radial-gradient(1.5px 1.5px at 58% 30%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 66% 58%, rgba(170, 225, 255, 0.5), transparent 60%), radial-gradient(1px 1px at 74% 16%, rgba(255, 255, 255, 0.65), transparent 60%),
+    radial-gradient(1.5px 1.5px at 83% 40%, rgba(255, 255, 255, 0.5), transparent 60%), radial-gradient(1px 1px at 91% 70%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 96% 12%, rgba(170, 225, 255, 0.6), transparent 60%), radial-gradient(1px 1px at 4% 82%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1px 1px at 41% 74%, rgba(255, 255, 255, 0.3), transparent 60%), radial-gradient(1px 1px at 71% 84%, rgba(170, 225, 255, 0.35), transparent 60%);
+  animation: f1-twinkle 5s ease-in-out infinite; }
+@keyframes f1-twinkle { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes f1-streak { 0% { opacity: 0; translate: -90px 26px; } 12% { opacity: 0.9; } 55% { opacity: 0.5; } 70%, 100% { opacity: 0; translate: 420px -120px; } }
+@keyframes f1-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.14), 0 0 36px rgba(82, 193, 230, 0.22); } 50% { box-shadow: 0 0 0 5px rgba(82, 193, 230, 0.22), 0 0 64px rgba(82, 193, 230, 0.42); } }
+@keyframes f1-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 5px; } }
+
+/* ── Side index: the four pages ── */
+.mock-app .f1-idx { position: absolute; z-index: 5; top: 236px; right: 22px; display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
+.mock-app .f1-idx::before { content: ""; position: absolute; top: 6px; bottom: 6px; right: 4px; width: 1px; background: rgba(82, 193, 230, 0.22); }
+.mock-app .f1-idx button { position: relative; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; color: var(--m-fg3);
+  font: 600 9.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; }
+.mock-app .f1-idx i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--m-fg3); background: #071520; }
+.mock-app .f1-idx button.on { color: var(--m-acc); }
+.mock-app .f1-idx button.on i { border-color: var(--m-acc); background: var(--m-acc); box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.16), 0 0 12px rgba(82, 193, 230, 0.7); }
+.mock-app .f1-idx em { font-style: normal; color: var(--m-warn); letter-spacing: 0.04em; }
+.mock-app .f1-bars { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border: 1px solid var(--m-line); border-radius: 999px; background: rgba(8, 22, 31, 0.7);
+  color: var(--m-fg3); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mock-app .f1-bars svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.mock-app .f1-bars kbd { padding: 1px 6px; border: 1px solid var(--m-line); border-radius: 5px; font: 11px ui-monospace, Consolas, monospace; color: var(--m-fg2); }
+
+/* ── First visit: the hangar opens ── */
+.mock-app .f1-cine { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; min-height: 880px; margin-top: -92px; padding: 150px 40px 40px; overflow: hidden; text-align: center;
+  background: radial-gradient(ellipse 34% 60% at 50% 42%, rgba(82, 193, 230, 0.20), transparent 70%), linear-gradient(180deg, #03080d 0%, #061420 55%, #0a2233 100%); }
+.mock-app .f1-planet { position: absolute; left: 50%; bottom: -560px; width: 1300px; height: 760px; translate: -50% 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, #4fc3ea 0%, #1b6e94 18%, #0d3a52 42%, #061620 75%);
+  box-shadow: 0 -18px 90px rgba(82, 193, 230, 0.55), 0 -2px 0 rgba(180, 235, 255, 0.7); }
+.mock-app .f1-beam { position: absolute; top: 0; left: 50%; width: 80%; height: 100%; translate: -50% 0; pointer-events: none;
+  background: conic-gradient(from 180deg at 50% 0%, transparent 162deg, rgba(160, 230, 255, 0.08) 174deg, rgba(160, 230, 255, 0.15) 180deg, rgba(160, 230, 255, 0.08) 186deg, transparent 198deg); }
+.mock-app .f1-door { position: absolute; top: 0; bottom: 0; width: 50%; pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 46px), linear-gradient(90deg, #08151f, #0f2738 85%, #143347); }
+.mock-app .f1-door.l { left: 0; translate: -64% 0; border-right: 2px solid rgba(120, 215, 245, 0.75); box-shadow: 12px 0 60px rgba(82, 193, 230, 0.35); }
+.mock-app .f1-door.r { right: 0; translate: 64% 0; border-left: 2px solid rgba(120, 215, 245, 0.75); box-shadow: -12px 0 60px rgba(82, 193, 230, 0.35);
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 46px), linear-gradient(270deg, #08151f, #0f2738 85%, #143347); }
+.mock-app .f1-door::after { content: ""; position: absolute; top: 44%; width: 30px; height: 120px; border-radius: 4px;
+  background: repeating-linear-gradient(45deg, rgba(240, 194, 123, 0.55) 0 8px, rgba(8, 21, 31, 0.9) 8px 16px); }
+.mock-app .f1-door.l::after { right: 18px; }
+.mock-app .f1-door.r::after { left: 18px; }
+.mock-app .f1-streak { position: absolute; left: var(--x); top: var(--y); width: 180px; height: 1.5px; border-radius: 2px; pointer-events: none; rotate: -16deg; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(190, 240, 255, 0.95), transparent); animation: f1-streak 7s linear infinite; animation-delay: var(--d, 0s); }
+.mock-app .f1-cin { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; flex: 1; }
+.mock-app .f1-kick { display: inline-flex; align-items: center; gap: 14px; margin: 0; font: 600 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.42em; text-transform: uppercase; color: var(--m-acc); }
+.mock-app .f1-kick::before, .mock-app .f1-kick::after { content: ""; width: 46px; height: 1px; background: linear-gradient(90deg, transparent, var(--m-acc)); }
+.mock-app .f1-kick::after { background: linear-gradient(270deg, transparent, var(--m-acc)); }
+.mock-app .f1-mega { margin: 20px 0 12px; font: 600 58px/1.04 Orbitron, system-ui, sans-serif; letter-spacing: 0.03em; color: #f2fbff;
+  text-shadow: 0 0 28px rgba(82, 193, 230, 0.65), 0 0 2px rgba(255, 255, 255, 0.8); }
+.mock-app .f1-promise { margin: 0; max-width: 620px; color: #cfe3ef; font-size: 17px; line-height: 1.5; }
+.mock-app .f1-launch { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; width: 100%; max-width: 900px; margin-top: 44px; }
+.mock-app .f1-launch::before { content: ""; position: absolute; top: 38px; left: 17%; right: 17%; height: 2px;
+  background: linear-gradient(90deg, var(--m-acc), rgba(82, 193, 230, 0.25) 50%, rgba(82, 193, 230, 0.12)); box-shadow: 0 0 12px rgba(82, 193, 230, 0.6); }
+.mock-app .f1-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 18px 16px; border: 1px solid rgba(82, 193, 230, 0.24); border-radius: 18px;
+  background: linear-gradient(180deg, rgba(16, 48, 68, 0.82), rgba(5, 15, 23, 0.88)); color: var(--m-fg); font: inherit; text-align: center; cursor: pointer; }
+.mock-app .f1-step-n { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 6px; border-radius: 50%; border: 1.5px solid rgba(82, 193, 230, 0.5); background: #061420;
+  color: var(--m-acc); font: 700 15px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-step.next { border-color: var(--m-acc); box-shadow: 0 0 0 3px rgba(82, 193, 230, 0.14), 0 0 46px rgba(82, 193, 230, 0.30); animation: f1-pulse 3.4s ease-in-out infinite; }
+.mock-app .f1-step.next .f1-step-n { background: var(--m-acc); color: #062030; box-shadow: 0 0 22px rgba(82, 193, 230, 0.8); }
+.mock-app .f1-step b { font: 500 16px/1.25 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-step small { color: var(--m-fg2); font-size: 12.5px; }
+.mock-app .f1-step-gain { margin-top: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(82, 193, 230, 0.10); color: var(--m-acc); font-size: 11.5px; }
+.mock-app .f1-step-t { color: var(--m-fg3); font-size: 11px; }
+.mock-app .f1-prog { display: flex; align-items: center; gap: 14px; width: 100%; max-width: 900px; margin-top: 22px; color: var(--m-fg2); font-size: 12.5px; }
+.mock-app .f1-prog-bar { flex: 1; height: 4px; border-radius: 2px; background: rgba(82, 193, 230, 0.14); overflow: hidden; }
+.mock-app .f1-prog-bar i { display: block; width: 6%; height: 100%; background: var(--m-acc); box-shadow: 0 0 10px var(--m-acc); }
+.mock-app .f1-cta { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 30px; }
+.mock-app .f1-go { padding: 15px 42px; border-radius: 999px; font-size: 15.5px; letter-spacing: 0.02em; box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.16), 0 0 40px rgba(82, 193, 230, 0.55); }
+.mock-app .f1-skip { border: 0; background: transparent; color: var(--m-fg3); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.mock-app .f1-tourline { margin: 12px 0 0; color: var(--m-fg3); font-size: 12px; }
+.mock-app .f1-teaser { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: auto; padding-top: 40px; color: var(--m-fg3);
+  font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; }
+.mock-app .f1-teaser span { padding: 7px 12px; border: 1px solid rgba(82, 193, 230, 0.22); border-radius: 999px; background: rgba(5, 15, 23, 0.6); color: var(--m-fg2); }
+
+/* ── Page 1 hero: centred like Verse (instrument strip, kicker, title, search) ── */
+.mock-app .f1-hero { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; min-height: 700px; margin-top: -92px; padding: 128px 96px 0; overflow: hidden; text-align: center;
+  background: radial-gradient(ellipse 46% 42% at 50% 46%, rgba(82, 193, 230, 0.13), transparent 70%), linear-gradient(180deg, #040b11 0%, #071824 60%, #0a1c28 100%); }
+.mock-app .f1-hero.open { min-height: 960px; }
+.mock-app .f1-arc { position: absolute; left: 50%; bottom: -390px; width: 1500px; height: 520px; translate: -50% 0; border-radius: 50%; pointer-events: none;
+  border-top: 1px solid rgba(160, 230, 255, 0.55); background: radial-gradient(ellipse 50% 30% at 50% 0%, rgba(82, 193, 230, 0.32), transparent 70%); box-shadow: 0 -10px 60px rgba(82, 193, 230, 0.22); }
+.mock-app .f1-hin { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; flex: 1; }
+.mock-app .f1-instr { display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; margin-bottom: 40px; }
+.mock-app .f1-instr::before, .mock-app .f1-instr::after { content: ""; flex: 1; max-width: 200px; height: 9px; border-bottom: 1px solid rgba(240, 194, 123, 0.3);
+  background: repeating-linear-gradient(90deg, rgba(240, 194, 123, 0.35) 0 1px, transparent 1px 12px); }
+.mock-app .f1-patch { display: inline-flex; align-items: stretch; overflow: hidden; border: 1px solid rgba(240, 194, 123, 0.42); border-radius: 999px; background: rgba(8, 20, 28, 0.75);
+  color: var(--m-fg); font-size: 12.5px; text-decoration: none; box-shadow: 0 0 30px rgba(240, 194, 123, 0.12); }
+.mock-app .f1-patch > span { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; }
+.mock-app .f1-patch > span + span { border-left: 1px solid rgba(240, 194, 123, 0.22); }
+.mock-app .f1-patch b { font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.1em; color: var(--m-warn); }
+.mock-app .f1-patch em { font-style: normal; color: var(--m-warn); }
+.mock-app .f1-stab { display: inline-flex; gap: 2px; }
+.mock-app .f1-stab i { width: 5px; height: 10px; border-radius: 1px; background: rgba(240, 194, 123, 0.25); }
+.mock-app .f1-stab i.on { background: var(--m-ok); }
+.mock-app .f1-h1 { margin: 14px 0 8px; font: 600 46px/1.08 Orbitron, system-ui, sans-serif; letter-spacing: 0.03em; color: #f2fbff; text-shadow: 0 0 26px rgba(82, 193, 230, 0.5); }
+.mock-app .f1-stat { margin: 0; color: var(--m-fg2); font-size: 14px; }
+.mock-app .f1-stat b { color: var(--m-fg); font-weight: 600; }
+.mock-app .f1-sw { position: relative; z-index: 3; width: 100%; max-width: 640px; margin-top: 28px; text-align: left; }
+.mock-app .f1-search { width: 100%; padding: 15px 18px; border-radius: 14px; background: rgba(6, 18, 27, 0.88); font: inherit; font-size: 15px; text-align: left; cursor: pointer;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
+.mock-app .f1-search.on { cursor: text; box-shadow: 0 0 0 4px rgba(82, 193, 230, 0.12), 0 0 44px rgba(82, 193, 230, 0.25); }
+.mock-app .f1-kbd { padding: 2px 7px; border: 1px solid var(--m-line); border-radius: 5px; background: transparent; color: var(--m-fg2); font: 11.5px ui-monospace, Consolas, monospace; cursor: pointer; }
+.mock-app .f1-drop { position: absolute; z-index: 8; top: calc(100% + 10px); left: -40px; right: -40px; overflow: hidden; border: 1px solid var(--m-acc); border-radius: 16px;
+  background: #0d2635; box-shadow: 0 26px 70px rgba(0, 0, 0, 0.65); text-align: left; }
+.mock-app .f1-drop .mock-drop-g { display: flex; align-items: center; gap: 8px; margin: 0; }
+.mock-app .f1-drop .mock-drop-g .mock-tag { font: 500 10.5px/1.3 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+.mock-app .f1-types { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 14px; border-top: 1px solid var(--m-line); background: rgba(8, 22, 31, 0.55); font-size: 11.5px; color: var(--m-fg3); }
+.mock-app .f1-types b { color: var(--m-fg2); font-weight: 600; }
+.mock-app .f1-types span:first-child { font: 600 9.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.mock-app .f1-nowk { margin: 28px 0 10px; font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.26em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .f1-now { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 860px; }
+.mock-app .f1-nowc { padding: 7px 14px 7px 7px; background: rgba(6, 18, 27, 0.78); }
+.mock-app .f1-nowc i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(82, 193, 230, 0.12); color: var(--m-acc); font-style: normal; font-size: 12px; }
+.mock-app .f1-nowc i.ok { background: rgba(95, 214, 152, 0.16); color: var(--m-ok); }
+.mock-app .f1-nowc i.craft { background: rgba(180, 155, 255, 0.16); color: var(--m-craft); }
+.mock-app .f1-nowc small { color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-faded { opacity: 0.28; }
+.mock-app .f1-cue { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: auto; padding: 44px 0 20px; border: 0; background: transparent; color: var(--m-fg3);
+  font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.26em; text-transform: uppercase; cursor: pointer; }
+.mock-app .f1-cue i { width: 12px; height: 12px; border-right: 1.5px solid var(--m-acc); border-bottom: 1.5px solid var(--m-acc); rotate: 45deg; animation: f1-bob 2.4s ease-in-out infinite; }
+.mock-app .f1-peek { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 96px 0 28px; padding: 14px 18px; border: 1px solid var(--m-line); border-bottom: 0;
+  border-radius: 16px 16px 0 0; background: linear-gradient(180deg, rgba(18, 50, 70, 0.72), rgba(10, 28, 40, 0.35)); }
+.mock-app .f1-peek b { font: 500 15px/1.2 Orbitron, system-ui, sans-serif; }
+
+/* ── Pages 2–4: page head band + body ── */
+.mock-app .f1-phead { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin-top: -92px; padding: 124px 96px 22px 28px; overflow: hidden;
+  border-bottom: 1px solid var(--m-line); background: radial-gradient(ellipse 50% 120% at 85% 0%, rgba(82, 193, 230, 0.16), transparent 70%), linear-gradient(180deg, #040b11, #0a1c28); }
+.mock-app .f1-phead.live { background: radial-gradient(ellipse 50% 120% at 85% 0%, rgba(95, 214, 152, 0.18), transparent 70%), linear-gradient(180deg, #040b11, #0a1c28); }
+.mock-app .f1-phead.stock { background: radial-gradient(ellipse 50% 120% at 85% 0%, rgba(164, 139, 255, 0.18), transparent 70%), linear-gradient(180deg, #040b11, #0a1c28); }
+.mock-app .f1-phead > :not(.f1-sky) { position: relative; }
+.mock-app .f1-pnum { font: 700 64px/0.8 Orbitron, system-ui, sans-serif; color: transparent; -webkit-text-stroke: 1px rgba(82, 193, 230, 0.6); }
+.mock-app .f1-pk { margin: 0; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.26em; text-transform: uppercase; color: var(--m-acc); }
+.mock-app .f1-pt { margin: 8px 0 0; font: 500 28px/1.15 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-pside { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-left: auto; }
+.mock-app .f1-pbody { position: relative; padding: 20px 96px 32px 28px; }
+
+/* ── Page 2 · Planen ── */
+.mock-app .f1-plan { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.mock-app .f1-led { display: grid; grid-template-columns: 118px 36px minmax(0, 1fr) 36px 128px; grid-auto-rows: 46px; row-gap: 6px; }
+.mock-app .f1-lh { display: flex; align-items: flex-end; gap: 8px; padding: 0 2px 6px; border-bottom: 1px solid var(--m-line); font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .f1-lh b { font: 500 16px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; text-transform: none; color: var(--m-fg); }
+.mock-app .f1-lh em { margin-left: auto; font: 400 11.5px/1 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; font-style: normal; color: var(--m-fg2); }
+.mock-app .f1-o { grid-column: 1; display: flex; align-items: center; min-width: 0; padding: 0 9px; border: 1px dashed rgba(132, 160, 182, 0.45); border-radius: 10px; color: var(--m-fg2); font-size: 12px; line-height: 1.2; }
+.mock-app .f1-o small { display: block; color: var(--m-fg3); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+.mock-app .f1-o b { display: block; overflow: hidden; color: var(--m-fg); font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.mock-app .f1-o > span { min-width: 0; }
+.mock-app .f1-g { grid-column: 3 / span 3; display: flex; align-items: flex-end; gap: 8px; padding: 0 4px 6px; font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .f1-g b { font: 600 14px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; text-transform: none; color: var(--m-fg); }
+.mock-app .f1-g .mock-btn { margin-left: auto; }
+.mock-app .f1-n { grid-column: 3; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; padding: 0 12px; border: 1px solid var(--m-line); border-radius: 10px;
+  background: rgba(10, 28, 40, 0.62); font-size: 13px; }
+.mock-app .f1-n.on { border-color: var(--m-craft); background: rgba(40, 32, 80, 0.35); box-shadow: 0 0 0 3px rgba(180, 155, 255, 0.16); }
+.mock-app .f1-n > span:last-child { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mock-app .f1-n small, .mock-app .f1-b small { display: block; overflow: hidden; color: var(--m-fg3); font-size: 11.5px; font-weight: 400; white-space: nowrap; text-overflow: ellipsis; }
+.mock-app .f1-b { grid-column: 5; display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 0 10px; border: 1px solid rgba(95, 214, 152, 0.45); border-radius: 10px;
+  background: rgba(95, 214, 152, 0.07); color: var(--m-ok); font-size: 12px; font-weight: 600; }
+.mock-app .f1-w { width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.mock-app .f1-w path { fill: none; stroke-width: 1.6; }
+.mock-app .f1-w.org path { stroke: var(--m-fg3); stroke-dasharray: 4 4; }
+.mock-app .f1-w.cov path { stroke: var(--m-ok); }
+.mock-app .f1-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 11.5px; color: var(--m-fg3); }
+.mock-app .f1-legend i { display: inline-block; width: 18px; margin-right: 6px; vertical-align: middle; border-top: 1.5px dashed var(--m-fg3); }
+.mock-app .f1-legend i.cov { border-top: 1.5px solid var(--m-ok); }
+.mock-app .f1-map { overflow: hidden; border: 1px solid var(--m-line); border-radius: 16px; background: radial-gradient(circle at 50% 50%, rgba(240, 194, 123, 0.10), rgba(6, 18, 27, 0.92) 46%); }
+.mock-app .f1-maph { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px 0; }
+.mock-app .f1-maph b { font: 500 15px/1.2 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-seg { display: inline-flex; margin-left: auto; overflow: hidden; border: 1px solid var(--m-line); border-radius: 8px; }
+.mock-app .f1-seg button { padding: 5px 11px; border: 0; background: transparent; color: var(--m-fg3); font: 500 12px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-app .f1-seg button.on { background: rgba(82, 193, 230, 0.14); color: var(--m-acc); }
+.mock-app .f1-pick { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px 0; }
+.mock-app .f1-pick .mock-chip { padding: 4px 10px; font-size: 12px; }
+.mock-app .f1-pick .mock-chip.on { border-color: var(--m-craft); background: rgba(180, 155, 255, 0.14); color: #ddd2ff; }
+.mock-app .f1-map svg { display: block; width: 100%; height: auto; }
+.mock-app .f1-mapf { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0 14px 10px; font-size: 11.5px; color: var(--m-fg2); }
+.mock-app .f1-mapf i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; rotate: 45deg; }
+.mock-app .f1-mapf i.rt { width: 16px; height: 0; border-radius: 0; rotate: 0deg; border-top: 1.5px dashed var(--m-warn); vertical-align: middle; }
+.mock-app .f1-route { margin: 0 14px 14px; padding: 9px 12px; border: 1px dashed rgba(240, 194, 123, 0.45); border-radius: 10px; font-size: 12.5px; color: var(--m-fg2); }
+.mock-app .f1-route b { color: var(--m-fg); }
+.mock-app .f1-row2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; }
+.mock-app .f1-chain { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.mock-app .f1-cs { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px; border: 1px solid var(--m-line); border-radius: 12px; background: rgba(8, 22, 31, 0.7); font-size: 11.5px; color: var(--m-fg2); }
+.mock-app .f1-cs + .f1-cs::before { content: "›"; position: absolute; top: 50%; left: -7px; translate: -50% -50%; color: var(--m-fg3); }
+.mock-app .f1-cs i { font: 700 14px/1 Inter, system-ui, sans-serif; font-style: normal; color: var(--m-fg3); }
+.mock-app .f1-cs b { color: var(--m-fg); font-size: 13px; font-weight: 600; }
+.mock-app .f1-cs.done { border-color: rgba(95, 214, 152, 0.45); }
+.mock-app .f1-cs.done i { color: var(--m-ok); }
+.mock-app .f1-cs.run { border-color: var(--m-warn); box-shadow: 0 0 0 3px rgba(240, 194, 123, 0.12); }
+.mock-app .f1-cs.run i { color: var(--m-warn); }
+.mock-app .f1-reco { display: grid; gap: 6px; }
+.mock-app .f1-recr { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 9px; background: rgba(10, 28, 40, 0.55); font-size: 13px; }
+.mock-app .f1-recr small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+
+/* ── Page 3 · Jetzt ── */
+.mock-app .f1-auto { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border: 1px solid rgba(95, 214, 152, 0.5); border-radius: 12px; background: rgba(95, 214, 152, 0.08); font-size: 13.5px; }
+.mock-app .f1-auto > i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(95, 214, 152, 0.18); color: var(--m-ok); font-style: normal; font-weight: 700; }
+.mock-app .f1-auto small { color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-undo { margin-left: auto; padding: 5px 11px; border: 1px solid var(--m-line); border-radius: 7px; background: transparent; color: var(--m-fg); font: 600 12px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-app .f1-undo.sm { padding: 4px 9px; font-size: 11.5px; }
+.mock-app .f1-live { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; margin-top: 16px; }
+.mock-app .f1-col { display: grid; gap: 14px; align-content: start; }
+.mock-app .f1-here { position: relative; overflow: hidden; padding: 20px; border: 1px solid rgba(95, 214, 152, 0.5); border-radius: 18px;
+  background: radial-gradient(ellipse 70% 90% at 92% 0%, rgba(95, 214, 152, 0.18), transparent 60%), rgba(10, 28, 40, 0.72); }
+.mock-app .f1-here-k { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: #8ff0c4; }
+.mock-app .f1-here-loc { margin: 8px 0 2px; font: 500 30px/1.15 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-here-ship { margin: 0; color: var(--m-fg2); }
+.mock-app .f1-here-ship b { color: var(--m-fg); }
+.mock-app .f1-here-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.mock-app .f1-list { display: grid; gap: 6px; }
+.mock-app .f1-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 10px; background: rgba(8, 22, 31, 0.6); font-size: 13px; }
+.mock-app .f1-li small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-tick { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(95, 214, 152, 0.5); background: rgba(95, 214, 152, 0.10); color: #8ff0c4;
+  font: 600 12px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.mock-app .f1-next { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; border: 1px solid rgba(240, 194, 123, 0.45); border-radius: 12px; background: rgba(240, 194, 123, 0.06); font-size: 13px; }
+.mock-app .f1-next-i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: rgba(240, 194, 123, 0.16); color: var(--m-warn); font: 700 11px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-next small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-logr { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: rgba(8, 22, 31, 0.6); font-size: 12.5px; }
+.mock-app .f1-logr small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-ev { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: rgba(82, 193, 230, 0.14); color: var(--m-acc); font: 700 10px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-ev.ok { background: rgba(95, 214, 152, 0.14); color: var(--m-ok); }
+.mock-app .f1-ev.inv { background: rgba(180, 155, 255, 0.16); color: var(--m-craft); }
+.mock-app .f1-ev.ref { background: rgba(240, 194, 123, 0.16); color: var(--m-warn); }
+.mock-app .f1-off { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 34px 20px; border: 1px dashed rgba(132, 160, 182, 0.5); border-radius: 18px; background: rgba(8, 22, 31, 0.5); text-align: center; }
+.mock-app .f1-off b { font: 500 22px/1.25 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-off p { margin: 0; max-width: 540px; color: var(--m-fg2); }
+.mock-app .f1-off-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--m-fg3); }
+.mock-app .f1-offgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.mock-app .f1-plain { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--m-fg3); }
+.mock-app .f1-plain i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--m-fg3); }
+
+/* ── Page 4 · Bestand ── */
+.mock-app .f1-stock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.mock-app .f1-big { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.mock-app .f1-big b { font: 500 30px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-big span { color: var(--m-fg3); font-size: 12.5px; }
+.mock-app .f1-fav { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 10px; border-radius: 9px; background: rgba(10, 28, 40, 0.55); font-size: 13px; }
+.mock-app .f1-fav + .f1-fav { margin-top: 6px; }
+.mock-app .f1-fav small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-more { display: inline-block; margin-top: 10px; color: var(--m-acc); font-size: 12px; text-decoration: none; }
+.mock-app .f1-kits { display: flex; flex-wrap: wrap; gap: 6px; }
+.mock-app .f1-kit { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--m-line); background: rgba(10, 28, 40, 0.6); font-size: 12.5px; white-space: nowrap; }
+.mock-app .f1-kit small { color: var(--m-fg3); font-size: 11px; }
+.mock-app .f1-bar { height: 6px; border-radius: 3px; background: var(--m-line); overflow: hidden; }
+.mock-app .f1-bar i { display: block; height: 100%; background: var(--m-craft); }
+.mock-app .f1-store { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.mock-app .f1-loc { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 2px; border-top: 1px solid rgba(82, 193, 230, 0.08); font-size: 13px; }
+.mock-app .f1-loc small { display: block; color: var(--m-fg3); font-size: 11.5px; }
+.mock-app .f1-loci { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: rgba(82, 193, 230, 0.10); color: var(--m-acc); font: 700 9.5px/1 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-age { color: var(--m-fg3); font-size: 11.5px; white-space: nowrap; text-align: right; }
+.mock-app .f1-hint { margin-top: 10px; padding: 9px 12px; border: 1px dashed var(--m-line); border-radius: 10px; color: var(--m-fg3); font-size: 12px; }
+.mock-app .f1-hint a { color: var(--m-acc); text-decoration: none; }
+.mock-app .f1-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.mock-app .f1-tile { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--m-line); border-radius: 14px; background: rgba(18, 50, 70, 0.5); color: var(--m-fg); text-decoration: none; }
+.mock-app .f1-tile:hover { border-color: var(--m-acc); }
+.mock-app .f1-tile-k { font: 600 10px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--m-fg3); }
+.mock-app .f1-tile-v { font: 500 22px/1.1 Orbitron, system-ui, sans-serif; }
+.mock-app .f1-tile svg { display: block; width: 100%; height: 42px; }
+.mock-app .f1-tile-f { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--m-fg3); }
+.mock-app .f1-tile-f span:last-child { color: var(--m-acc); }
+.mock-app .f1-spark { fill: none; stroke: var(--m-acc); stroke-width: 1.8; stroke-linejoin: round; }
+.mock-app .f1-spark-a { fill: rgba(82, 193, 230, 0.12); stroke: none; }
+.mock-app .f1-mb { fill: rgba(82, 193, 230, 0.5); }
+.mock-app .f1-mb.hi { fill: var(--m-acc); }
+.mock-app .f1-mb.w { fill: rgba(240, 194, 123, 0.7); }
+.mock-app .f1-step-line { fill: none; stroke: var(--m-warn); stroke-width: 1.8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mock-app .f1-streak { animation: none; opacity: 0.4; }
+  .mock-app .f1-sky, .mock-app .f1-step.next, .mock-app .f1-cue i { animation: none; }
+}
+
+/* Phone frames: one column, the index becomes a row of dots on top. */
+@container device (max-width: 520px) {
+  .mock-bar { gap: 10px; margin: 8px; padding: 6px 10px; }
+  .mock-nav, .mock-tabs { display: none; }
+  .mock-supply { margin-left: auto; }
+  .mock-app .f1-bars { display: none; }
+  .mock-app .f1-idx { top: 58px; right: 50%; translate: 50% 0; flex-direction: row; gap: 14px; }
+  .mock-app .f1-idx::before { top: 50%; bottom: auto; left: 4px; right: 4px; width: auto; height: 1px; }
+  .mock-app .f1-idx span { display: none; }
+  .mock-app .f1-cine { min-height: 0; margin-top: -56px; padding: 92px 18px 28px; }
+  .mock-app .f1-door.l { translate: -84% 0; }
+  .mock-app .f1-door.r { translate: 84% 0; }
+  .mock-app .f1-mega { font-size: 32px; }
+  .mock-app .f1-promise { font-size: 14.5px; }
+  .mock-app .f1-launch { grid-template-columns: 1fr; gap: 10px; margin-top: 26px; }
+  .mock-app .f1-launch::before { display: none; }
+  .mock-app .f1-step { padding: 12px 14px; }
+  .mock-app .f1-cta { flex-direction: column; gap: 10px; }
+  .mock-app .f1-hero { min-height: 0; margin-top: 0; padding: 52px 16px 0; }
+  .mock-app .f1-hero.open { min-height: 900px; }
+  .mock-app .f1-instr { margin-bottom: 22px; }
+  .mock-app .f1-instr::before, .mock-app .f1-instr::after { display: none; }
+  .mock-app .f1-patch { flex-wrap: wrap; justify-content: center; border-radius: 14px; }
+  .mock-app .f1-h1 { font-size: 28px; }
+  .mock-app .f1-drop { left: 0; right: 0; }
+  .mock-app .f1-drop .mock-res { grid-template-columns: 34px minmax(0, 1fr); }
+  .mock-app .f1-drop .mock-res > .mock-row { grid-column: 2; flex-wrap: wrap; }
+  .mock-app .f1-peek { margin: 0 12px; }
+  .mock-app .f1-phead { margin-top: 0; padding: 52px 16px 16px; }
+  .mock-app .f1-pnum { font-size: 40px; }
+  .mock-app .f1-pt { font-size: 21px; }
+  .mock-app .f1-pside { margin-left: 0; }
+  .mock-app .f1-pbody { padding: 14px 16px 24px; }
+  .mock-app .f1-plan, .mock-app .f1-row2, .mock-app .f1-live, .mock-app .f1-stock, .mock-app .f1-store, .mock-app .f1-offgrid { grid-template-columns: 1fr; }
+  .mock-app .f1-stats { grid-template-columns: 1fr 1fr; }
+  .mock-app .f1-chain { grid-template-columns: 1fr; gap: 6px; }
+  .mock-app .f1-cs + .f1-cs::before { display: none; }
+  .mock-app .f1-led { display: flex; flex-direction: column; gap: 6px; }
+  .mock-app .f1-w, .mock-app .f1-lh.side { display: none; }
+  .mock-app .f1-o { align-self: flex-start; padding: 3px 8px; }
+  .mock-app .f1-n { min-height: 46px; }
+  .mock-app .f1-b { align-self: flex-end; padding: 6px 10px; }
+  .mock-app .f1-here-loc { font-size: 23px; }
+}
+</style>
+
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 3 · Ein HQ, vier Seiten</h2>
+    <p>Dein Favorit B „Bestand &amp; Bedarf“ bleibt die Grundlage. Dazu kommt die Gruppierung aus C: Planen, Jetzt und Bestand. Das HQ wird damit wie Verse eine Folge aus vier Seiten zum Scrollen. Seite 1 ist ein zentrierter Hero wie auf den anderen Hauptseiten: die Patch-Meldung im Instrumentenstreifen, Titel und Suche in der Mitte. Der erste Besuch ist jetzt eine Bühne statt einer Liste.</p>
+    <div class="mock-r3-pages"><span><b>1</b>Start · Suche, Patch, Jetzt wichtig</span><span><b>2</b>Planen · Bedarf, Karte, Einsatz-Kette</span><span><b>3</b>Jetzt · live mit der SCC-App</span><span><b>4</b>Bestand · Schiffe, Sets, Lager, Statistik</span></div>
+    <div class="mock-r3-two">
+      <div><strong>Übernommen aus Runde 2</strong>
+        <ul>
+          <li>Die Suche erkennt den Typ; gefundene Missionen (auch aus dem Data Uploader) übernimmst du mit „→ Einsatz“</li>
+          <li>FPS nur als Sets und Kits, keine Liste einzelner Teile</li>
+          <li>Linien zeigen, woher ein Bedarf kommt und was davon schon bereit liegt</li>
+          <li>Erkannte Ereignisse gelten sofort, Rückgängig im Logbuch</li>
+          <li>Die Karte plant Wege (kaufen, abbauen, raffinieren, Route), statt Spuren zu sammeln</li>
+          <li>„gedeckt“ fällt weg; der Entwurf sagt „liegt bereit“, das Wort entscheidest du unter Fragen</li>
+          <li>Opt-in-Sync in eigene Supabase-Tabellen; alle Live-Daten inklusive CrimeStat und Tode; Käufe haken automatisch ab</li>
+        </ul></div>
+      <div><strong>Gleich geblieben aus Runde 1</strong>
+        <ul>
+          <li>Nachschub liegt auf dem Server, „Flotte im Patch“ ist echt</li>
+          <li>Detailseite = Codex-Seite im Modus „Meine“</li>
+          <li>★ Favoriten: bis zu 3 Schiffe und 3 FPS-Kits</li>
+          <li>Teilen und Duplizieren nur als Icon</li>
+          <li>Tour am Anfang, der RSI-Import kommt zuletzt</li>
+          <li>Codex → HQ nur über die Suche und den Holotisch im Codex; Typ automatisch erkannt</li>
+        </ul></div>
+    </div>
+    <div class="mock-r3-find"><b>Neu geprüft: Das Inventar ist doch erfassbar</b>Das Game.log meldet, <em>wo</em> du ein Inventar öffnest (<code>RequestLocationInventory</code>, im Loadout-Editor <code>AsyncGetPersonalLocationInventoryId</code>), aber nicht, was darin liegt. Die OCR-Schleife der SCC-App liest alle 3 s, nur im Vollbild und nur wenn Star Citizen vorne ist, was auf dem Bildschirm steht. Zusammen: Das Log sagt wo, die OCR liest was. Daraus wird ein Schnappschuss pro Ort, jedes Mal wenn du das Inventar öffnest; Schiffs-Lagerorte liest sie am ASOP-Terminal. Die Fragen dazu stehen unter „Fragen · Inventar erfassen“.</div>
+    <p class="mock-r3-note">Beim Abschluss legen wir drei Issues an: den Sync im Web-Repo, den Sync in der SCC-App und das OCR-Inventar für die SCC-App.</p>
+  </header>
+
+  <!-- ═══════════ hq3 · HQ in vier Seiten ═══════════ -->
+  <section data-design="hq3" data-nav-label="HQ in vier Seiten" data-design-active="true"
+           data-design-motto="Planen · Jetzt · Bestand" data-design-traits="Vier Seiten zum Scrollen wie Verse: Start, Planen, Jetzt, Bestand|Zentrierter Hero mit Patch im Instrumentenstreifen und Suche in der Mitte|Karte plant Wege, Lager kommt als Schnappschuss pro Ort"
+           data-design-icon="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;rect x=&quot;4&quot; y=&quot;3&quot; width=&quot;16&quot; height=&quot;5&quot; rx=&quot;1&quot;/&gt;&lt;rect x=&quot;4&quot; y=&quot;10&quot; width=&quot;16&quot; height=&quot;3&quot; rx=&quot;1&quot;/&gt;&lt;rect x=&quot;4&quot; y=&quot;15&quot; width=&quot;16&quot; height=&quot;2.5&quot; rx=&quot;1&quot;/&gt;&lt;rect x=&quot;4&quot; y=&quot;19.5&quot; width=&quot;16&quot; height=&quot;1.5&quot; rx=&quot;0.75&quot;/&gt;&lt;/svg&gt;"
+           data-design-color="#a48bff">
+
+    <!-- f1-s1 · Erster Besuch -->
+    <section id="f1-s1" data-nav-label="Erster Besuch · cinematisch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>0</i></button></div>
+        <div class="f1-cine">
+          <div class="f1-sky"></div>
+          <div class="f1-beam"></div>
+          <div class="f1-planet"></div>
+          <div class="f1-door l"></div><div class="f1-door r"></div>
+          <i class="f1-streak" style="--x:22%;--y:30%;--d:0s"></i>
+          <i class="f1-streak" style="--x:58%;--y:18%;--d:2.4s"></i>
+          <i class="f1-streak" style="--x:36%;--y:62%;--d:4.1s"></i>
+          <i class="f1-streak" style="--x:70%;--y:48%;--d:5.6s"></i>
+          <div class="f1-cin">
+            <p class="f1-kick">Dein HQ</p>
+            <p class="f1-mega">Willkommen an Bord</p>
+            <p class="f1-promise">Dein Hangar, dein Spind, deine nächsten Einsätze. An einem Ort.</p>
+            <div class="f1-launch">
+              <button class="f1-step next" type="button" data-screen-link="f1-s2"><span class="f1-step-n">1</span><b>RSI-Hangar holen</b><small>Schiffe und Pakete über die Browser-Erweiterung</small><span class="f1-step-gain">Danach: deine Flotte im Hangar</span><span class="f1-step-t">ca. 1 Minute</span></button>
+              <button class="f1-step" type="button"><span class="f1-step-n">2</span><b>SCC-App verbinden</b><small>Live-Ort, Käufe, Blueprints und Lager aus dem Spiel</small><span class="f1-step-gain">Danach: das HQ hakt selbst ab</span><span class="f1-step-t">optional · Windows</span></button>
+              <button class="f1-step" type="button"><span class="f1-step-n">3</span><b>Ersten Einsatz planen</b><small>Ziel wählen, das HQ baut Kette und Route</small><span class="f1-step-gain">Danach: ein Plan für heute Abend</span><span class="f1-step-t">ca. 2 Minuten</span></button>
+            </div>
+            <div class="f1-prog"><span>0 von 3</span><span class="f1-prog-bar"><i></i></span><span>startklar in rund 3 Minuten</span></div>
+            <div class="f1-cta">
+              <button class="mock-btn f1-go" type="button" data-screen-link="f1-s2">Los geht's</button>
+              <button class="f1-skip" type="button" data-screen-link="f1-s2">Überspringen</button>
+            </div>
+            <p class="f1-tourline">Eine kurze Tour durch die vier Seiten; am Ende holst du deinen RSI-Hangar.</p>
+            <div class="f1-teaser"><span>1 · Start</span><span>2 · Planen</span><span>3 · Jetzt</span><span>4 · Bestand</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-f1-s1-a1" data-anno-side="right" data-anno-target=".f1-mega" style="--anno-x:72%;--anno-y:30%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s1-a1" data-anno-bubble="r3-f1-s1-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Bühne statt Quellen-Liste</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s1-a1">
+      <span class="anno-bubble-question">Hangartore öffnen sich auf den Planeten, Lichtstreifen, großer Titel. Motivierend und cineastisch genug, oder noch mehr (z. B. ein kurzer Anflug beim ersten Laden)?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s1-a1" data-annotation="r3-f1-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s1-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r3-f1-s1-a2" data-anno-side="right" data-anno-target=".f1-launch .f1-step:last-child" style="--anno-x:76%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s1-a2" data-anno-bubble="r3-f1-s1-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s1-a2">
+      <span class="anno-bubble-question">Drei Startschritte mit Fortschritt: RSI-Hangar, SCC-App, erster Einsatz. Stimmen Reihenfolge und die „Danach“-Versprechen, oder fehlt ein Schritt?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s1-a2" data-annotation="r3-f1-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s1-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- f1-s2 · Seite 1 · Start -->
+    <section id="f1-s2" data-nav-label="Seite 1 · Start" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>4</i></button></div>
+        <nav class="f1-idx" aria-label="Seiten">
+          <button type="button" class="on"><span>Start</span><i></i></button>
+          <button type="button" data-screen-link="f1-s4"><span>Planen <em>4</em></span><i></i></button>
+          <button type="button" data-screen-link="f1-s5"><span>Jetzt</span><i></i></button>
+          <button type="button" data-screen-link="f1-s6"><span>Bestand</span><i></i></button>
+        </nav>
+        <div class="f1-hero">
+          <div class="f1-sky"></div><div class="f1-arc"></div>
+          <div class="f1-hin">
+            <div class="f1-instr">
+              <a class="f1-patch" href="#">
+                <span><b>4.3.1</b><span class="f1-stab" aria-label="Stabilität 3 von 4"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></span>
+                <span>S3-Repeater <em>−8 %</em></span>
+                <span>betrifft <strong>Bounty v3</strong> ›</span>
+              </a>
+            </div>
+            <p class="f1-kick">Dein HQ</p>
+            <p class="f1-h1">Hauptquartier</p>
+            <p class="f1-stat"><b>23</b> Schiffe · <b>5</b> Sets · <b>37</b> Blueprints · <b>4</b> im Nachschub</p>
+            <div class="f1-sw">
+              <button class="mock-search f1-search" type="button" data-screen-link="f1-s3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Schiff, Set, Blueprint, Mission oder Einsatz suchen …</span><kbd>/</kbd></button>
+            </div>
+            <p class="f1-nowk">Jetzt wichtig</p>
+            <div class="f1-now">
+              <button class="mock-chip f1-nowc" type="button" data-screen-link="f1-s4"><i class="ok">◇</i>Raffinerie fertig in ARC-L1 <small>12 SCU Hadanite</small></button>
+              <button class="mock-chip f1-nowc" type="button" data-screen-link="f1-s4"><i>◷</i>Einsatz Sa 20:00 <small>Bunker-Lauf · Kit 5/6</small></button>
+              <button class="mock-chip f1-nowc" type="button" data-screen-link="f1-s5"><i>⌖</i>2 Dinge aus dem Nachschub gibt es in Area18 <small>MedPen, P4-AR Magazin</small></button>
+              <button class="mock-chip f1-nowc" type="button" data-screen-link="f1-s6"><i class="craft">BP</i>Blueprint P8-SC fehlt noch <small>Belohnung aus Bunker-Aufträgen</small></button>
+            </div>
+            <button class="f1-cue" type="button" data-screen-link="f1-s4"><span>Planen</span><i></i></button>
+          </div>
+        </div>
+        <div class="f1-peek"><span class="f1-pk">2 · Planen</span><b>4 offen im Nachschub</b><span class="mock-dim">1 Einsatz läuft · Pembroke-Helm craften, Schritt 3 von 5</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-f1-s2-a1" data-anno-side="right" data-anno-target=".f1-patch" style="--anno-x:62%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s2-a1" data-anno-bubble="r3-f1-s2-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Patch im Hero, Titel und Suche mittig</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s2-a1">
+      <span class="anno-bubble-question">Im Instrumentenstreifen steht nur der neueste Patch und nur, was dein Zeug trifft (eine Zeile). Reicht das, oder sollen bis zu drei Treffer durchlaufen wie die Meldungen bei Verse?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s2-a1" data-annotation="r3-f1-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s2-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r3-f1-s2-a2" data-anno-side="right" data-anno-target=".f1-now" style="--anno-x:70%;--anno-y:62%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s2-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s2-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s2-a2" data-anno-bubble="r3-f1-s2-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s2-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s2-a2">
+      <span class="anno-bubble-question">„Jetzt wichtig“: bis zu vier Chips unter der Suche, jeder springt auf seine Seite. Die richtigen Arten (Raffinerie, Termin, Laden hier, Blueprint), und höchstens vier?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s2-a2" data-annotation="r3-f1-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s2-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- f1-s3 · Suche offen -->
+    <section id="f1-s3" data-nav-label="Suche offen" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="mock-supply" type="button">Nachschub <i>4</i></button></div>
+        <nav class="f1-idx" aria-label="Seiten">
+          <button type="button" class="on" data-screen-link="f1-s2"><span>Start</span><i></i></button>
+          <button type="button" data-screen-link="f1-s4"><span>Planen <em>4</em></span><i></i></button>
+          <button type="button" data-screen-link="f1-s5"><span>Jetzt</span><i></i></button>
+          <button type="button" data-screen-link="f1-s6"><span>Bestand</span><i></i></button>
+        </nav>
+        <div class="f1-hero open">
+          <div class="f1-sky"></div><div class="f1-arc"></div>
+          <div class="f1-hin">
+            <div class="f1-instr f1-faded">
+              <a class="f1-patch" href="#">
+                <span><b>4.3.1</b><span class="f1-stab" aria-label="Stabilität 3 von 4"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></span>
+                <span>S3-Repeater <em>−8 %</em></span>
+                <span>betrifft <strong>Bounty v3</strong> ›</span>
+              </a>
+            </div>
+            <p class="f1-kick">Dein HQ</p>
+            <p class="f1-h1">Hauptquartier</p>
+            <p class="f1-stat"><b>23</b> Schiffe · <b>5</b> Sets · <b>37</b> Blueprints · <b>4</b> im Nachschub</p>
+            <div class="f1-sw">
+              <div class="mock-search f1-search on"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>pembroke<i class="mock-caret"></i></span><button class="f1-kbd" type="button" data-screen-link="f1-s2">Esc</button></div>
+              <div class="f1-drop">
+                <p class="mock-drop-g">Dein HQ</p>
+                <div class="mock-res on"><span class="mock-res-ico">SET</span><span>Pembroke Kalt <span class="mock-star">★</span><small>FPS-Set · 5 von 6 Teilen · Helm fehlt</small></span><span class="mock-row"><button class="mock-verb" type="button" data-screen-link="f1-s6">Öffnen</button></span></div>
+                <p class="mock-drop-g">Codex</p>
+                <div class="mock-res"><span class="mock-res-ico">FPS</span><span>Pembroke-Helm (Kalt)<small>Helm · Typ erkannt: Ausrüstung · fehlt in deinem Set</small></span><span class="mock-row"><button class="mock-verb" type="button" data-screen-link="f1-s4">→ Set Pembroke Kalt</button><button class="mock-verb alt" type="button" data-screen-link="f1-s4">→ Nachschub</button></span></div>
+                <div class="mock-res"><span class="mock-res-ico" style="color:#b49bff;background:rgba(180,155,255,.12)">BP</span><span>Pembroke-Helm · Blueprint<small>Typ erkannt: Blueprint · du hast ihn nicht</small></span><span class="mock-row"><button class="mock-verb" type="button" data-screen-link="f1-s4">→ Einsatz</button></span></div>
+                <p class="mock-drop-g f1-g-mis">Missionen <span class="mock-tag codex">aus Uploader-Daten · 4.3.1</span></p>
+                <div class="mock-res"><span class="mock-res-ico" style="color:#6fe0c8;background:rgba(111,224,200,.12)">MIS</span><span>Bunker-Säuberung · Kareah<small>Auftrag · Crusader · Belohnung u. a. Pembroke-Helm-Blueprint</small></span><span class="mock-row"><button class="mock-verb" type="button" data-screen-link="f1-s4">→ Einsatz</button></span></div>
+                <div class="mock-res"><span class="mock-res-ico" style="color:#6fe0c8;background:rgba(111,224,200,.12)">MIS</span><span>Lieferung: Pembroke-Teile nach Area18<small>Auftrag · ArcCorp · 4 SCU</small></span><span class="mock-row"><button class="mock-verb" type="button" data-screen-link="f1-s4">→ Einsatz</button></span></div>
+                <p class="mock-drop-g">Aufgaben</p>
+                <div class="mock-res"><span class="mock-res-ico" style="color:#f0c27b;background:rgba(240,194,123,.12)">3/5</span><span>Pembroke-Helm craften<small>Einsatz läuft · nächster Schritt: in ARC-L1 abholen</small></span><span class="mock-row"><button class="mock-verb alt" type="button" data-screen-link="f1-s4">Weiter ›</button></span></div>
+                <div class="f1-types"><span>Ziel nach Typ</span><span><b>Schiff</b> → Hangar</span><span><b>Ausrüstung</b> → Set Pembroke Kalt</span><span><b>Verbrauch</b> → Nachschub ×5</span><span><b>Mission</b> → Einsatz</span></div>
+                <div class="mock-drop-f"><span><b>↑↓</b> wählen</span><span><b>↵</b> Hauptaktion</span><span><b>Tab</b> zweite Aktion</span><span><b>Esc</b> schließen</span></div>
+              </div>
+            </div>
+            <p class="f1-nowk f1-faded">Jetzt wichtig</p>
+            <div class="f1-now f1-faded">
+              <span class="mock-chip f1-nowc"><i class="ok">◇</i>Raffinerie fertig in ARC-L1</span>
+              <span class="mock-chip f1-nowc"><i>◷</i>Einsatz Sa 20:00</span>
+              <span class="mock-chip f1-nowc"><i>⌖</i>2 Dinge aus dem Nachschub gibt es in Area18</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-f1-s3-a1" data-anno-side="left" data-anno-target=".f1-drop .f1-g-mis" style="--anno-x:30%;--anno-y:56%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s3-a1" data-anno-bubble="r3-f1-s3-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s3-a1">
+      <span class="anno-bubble-question">Treffer in der Reihenfolge Dein HQ → Codex → Missionen → Aufgaben, das Verb nennt das Ziel. Passt die Reihenfolge, oder sollen laufende Aufgaben ganz nach oben?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s3-a1" data-annotation="r3-f1-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s3-a1"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- f1-s4 · Seite 2 · Planen -->
+    <section id="f1-s4" data-nav-label="Seite 2 · Planen" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="f1-bars" type="button" data-screen-link="f1-s3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Suchen<kbd>/</kbd></button>
+          <button class="mock-supply" type="button">Nachschub <i>4</i></button></div>
+        <nav class="f1-idx" aria-label="Seiten">
+          <button type="button" data-screen-link="f1-s2"><span>Start</span><i></i></button>
+          <button type="button" class="on"><span>Planen <em>4</em></span><i></i></button>
+          <button type="button" data-screen-link="f1-s5"><span>Jetzt</span><i></i></button>
+          <button type="button" data-screen-link="f1-s6"><span>Bestand</span><i></i></button>
+        </nav>
+        <div class="f1-phead">
+          <div class="f1-sky"></div>
+          <span class="f1-pnum">02</span>
+          <div><p class="f1-pk">Seite 2 · Planen</p><p class="f1-pt">Was fehlt, woher es kommt, wo du es holst</p></div>
+          <div class="f1-pside"><button class="mock-btn ghost sm" type="button">Notiz als Bedarf</button><button class="mock-btn sm" type="button">Einsatz starten</button></div>
+        </div>
+        <div class="f1-pbody">
+          <div class="f1-plan">
+            <div>
+              <div class="f1-led">
+                <div class="f1-lh side" style="grid-column:1;grid-row:1">Woher</div>
+                <div class="f1-lh" style="grid-column:3;grid-row:1"><b>Nachschub</b>4 offen<em>auf dem Server</em></div>
+                <div class="f1-lh side" style="grid-column:5;grid-row:1">Liegt bereit</div>
+
+                <div class="f1-g" style="grid-row:2"><b>Kaufen</b> 2<button class="mock-btn ghost sm" type="button">→ Einsatz</button></div>
+                <div class="f1-o" style="grid-row:3"><span><small>Set</small><b>Sanitäter</b></span></div>
+                <div class="f1-n" style="grid-row:3"><span class="mock-way buy">K</span><span>MedPen ×6<small>Area18, Cubby Blast · ≈ 1.050 aUEC</small></span></div>
+                <div class="f1-o" style="grid-row:4"><span><small>Einsatz</small><b>Bunker-Lauf</b></span></div>
+                <div class="f1-n" style="grid-row:4"><span class="mock-way buy">K</span><span>P4-AR Magazin ×4<small>Area18, Cubby Blast · ≈ 640 aUEC</small></span></div>
+                <div class="f1-b" style="grid-row:4">2 von 4<small>Lager Area18</small></div>
+                <svg class="f1-w org" style="grid-column:2;grid-row:3 / span 2" viewBox="0 0 100 98" preserveAspectRatio="none" aria-hidden="true"><path d="M0 23 H100" vector-effect="non-scaling-stroke"/><path d="M0 75 C50 75 50 23 100 23" vector-effect="non-scaling-stroke"/><path d="M0 75 H100" vector-effect="non-scaling-stroke"/></svg>
+                <svg class="f1-w cov" style="grid-column:4;grid-row:4" viewBox="0 0 100 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 23 H100" vector-effect="non-scaling-stroke"/></svg>
+
+                <div class="f1-g" style="grid-row:5"><b>Craften</b> 1 · <span class="mock-ok">Blueprint ✓</span></div>
+                <div class="f1-o" style="grid-row:6"><span><small>Set ★</small><b>Pembroke Kalt</b></span></div>
+                <div class="f1-n on" style="grid-row:6"><span class="mock-way craft">C</span><span>Pembroke-Helm (Kalt)<small>Hadanite 12 von 24 SCU · Einsatz läuft</small></span></div>
+                <div class="f1-b" style="grid-row:6">12 SCU Hadanite<small>Raffinerie ARC-L1</small></div>
+                <svg class="f1-w org" style="grid-column:2;grid-row:6" viewBox="0 0 100 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 23 H100" vector-effect="non-scaling-stroke"/></svg>
+                <svg class="f1-w cov" style="grid-column:4;grid-row:6" viewBox="0 0 100 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 23 H100" vector-effect="non-scaling-stroke"/></svg>
+
+                <div class="f1-g" style="grid-row:7"><b>Erspielen</b> 1<button class="mock-btn ghost sm" type="button">→ Einsatz</button></div>
+                <div class="f1-o" style="grid-row:8"><span><small>Notiz</small><b>„P8 für Bunker“</b></span></div>
+                <div class="f1-n" style="grid-row:8"><span class="mock-way earn">E</span><span>P8-SC Blueprint<small>Belohnung aus Bunker-Aufträgen · 2 passende Missionen</small></span></div>
+                <svg class="f1-w org" style="grid-column:2;grid-row:8" viewBox="0 0 100 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 23 H100" vector-effect="non-scaling-stroke"/></svg>
+              </div>
+              <div class="f1-legend"><span><i></i>Herkunft: Set, Einsatz, Notiz</span><span><i class="cov"></i>liegt bereit in deinem Lager</span></div>
+            </div>
+
+            <div class="f1-map">
+              <div class="f1-maph"><b>Karte · Pembroke-Helm</b><span class="mock-tag">Kette mit 5 Schritten</span><span class="f1-seg"><button class="on" type="button">Stanton</button><button type="button">Pyro</button></span></div>
+              <div class="f1-pick"><button class="mock-chip" type="button">MedPen ×6</button><button class="mock-chip" type="button">P4-AR Magazin</button><button class="mock-chip on" type="button">Pembroke-Helm</button><button class="mock-chip" type="button">P8-SC</button></div>
+              <svg viewBox="0 0 460 300" aria-hidden="true">
+                <circle cx="230" cy="150" r="75" class="mock-grid" fill="none"/><circle cx="230" cy="150" r="100" class="mock-grid" fill="none"/>
+                <circle cx="230" cy="150" r="123" class="mock-grid" fill="none"/><circle cx="230" cy="150" r="140" class="mock-grid" fill="none"/>
+                <circle cx="230" cy="150" r="20" fill="rgba(240,194,123,.16)"/><circle cx="230" cy="150" r="9" fill="#f0c27b"/>
+                <circle cx="170" cy="105" r="7" fill="#b08a5a"/><text x="158" y="94" fill="#9fb3c8" font-size="11" text-anchor="end">Hurston</text>
+                <circle cx="310" cy="35" r="7" fill="#a9d2e6"/><text x="322" y="31" fill="#9fb3c8" font-size="11">microTech</text>
+                <circle cx="345" cy="195" r="8" fill="#6aa0b8"/><text x="336" y="178" fill="#9fb3c8" font-size="11" text-anchor="end">Crusader</text>
+                <circle cx="366" cy="218" r="4.5" fill="#c9b28a"/>
+                <circle cx="150" cy="210" r="7" fill="#c97f5f"/>
+                <circle cx="170" cy="194" r="4" fill="none" stroke="#52c1e6" stroke-width="1.2"/>
+                <path d="M150 210 Q258 292 366 218" fill="none" stroke="#f0c27b" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <path d="M366 218 Q272 168 170 194" fill="none" stroke="#f0c27b" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <path d="M170 194 L150 210" fill="none" stroke="#f0c27b" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <rect x="142" y="221" width="10" height="10" transform="rotate(45 147 226)" fill="#b49bff"/>
+                <circle cx="138" cy="200" r="4" fill="#52c1e6" opacity=".45"/>
+                <rect x="374" y="226" width="10" height="10" transform="rotate(45 379 231)" fill="#6fe0c8"/>
+                <rect x="172" y="176" width="10" height="10" transform="rotate(45 177 181)" fill="#f0c27b"/>
+                <circle cx="118" cy="232" r="10" fill="#f0c27b"/><text x="118" y="236" fill="#0a1c28" font-size="10" font-weight="700" text-anchor="middle">1·4</text>
+                <text x="100" y="258" fill="#e8ebed" font-size="11.5" font-family="Orbitron, sans-serif">Area18</text>
+                <text x="100" y="272" fill="#9fb3c8" font-size="10">Start · craften</text>
+                <circle cx="402" cy="244" r="9" fill="#f0c27b"/><text x="402" y="248" fill="#0a1c28" font-size="10" font-weight="700" text-anchor="middle">2</text>
+                <text x="392" y="268" fill="#e8ebed" font-size="11.5" font-family="Orbitron, sans-serif" text-anchor="middle">Daymar</text>
+                <text x="392" y="282" fill="#9fb3c8" font-size="10" text-anchor="middle">Hadanite abbauen</text>
+                <circle cx="196" cy="166" r="9" fill="#f0c27b"/><text x="196" y="170" fill="#0a1c28" font-size="10" font-weight="700" text-anchor="middle">3</text>
+                <text x="210" y="172" fill="#e8ebed" font-size="11.5" font-family="Orbitron, sans-serif">ARC-L1</text>
+                <text x="210" y="186" fill="#9fb3c8" font-size="10">raffinieren · fertig</text>
+                <text x="14" y="292" fill="#84a0b6" font-size="10" font-family="Orbitron, sans-serif" letter-spacing="2">STANTON · ROUTE FÜR DEN GEWÄHLTEN BEDARF</text>
+              </svg>
+              <div class="f1-mapf"><span><i style="background:#52c1e6"></i>kaufen</span><span><i style="background:#6fe0c8"></i>abbauen</span><span><i style="background:#f0c27b"></i>raffinieren</span><span><i style="background:#b49bff"></i>craften</span><span><i class="rt"></i>Route</span></div>
+              <div class="f1-route"><b>Route:</b> Area18 → Daymar → ARC-L1 → Area18 · 3 Quantum-Sprünge · ≈ 40 Min. · unterwegs MedPen bei Cubby Blast mitnehmen</div>
+            </div>
+          </div>
+
+          <div class="f1-row2">
+            <div class="mock-card">
+              <p class="mock-k">Einsatz läuft · Pembroke-Helm craften<a href="#">Kette ändern ›</a></p>
+              <div class="f1-chain">
+                <div class="f1-cs done"><i>✓</i><b>Blueprint</b>erhalten 21.10.</div>
+                <div class="f1-cs done"><i>✓</i><b>Abbauen</b>24 SCU Hadanite · Daymar</div>
+                <div class="f1-cs run"><i>◐</i><b>Raffinieren</b>12 von 24 fertig · ARC-L1</div>
+                <div class="f1-cs"><i>○</i><b>Abholen</b>ARC-L1 → Area18</div>
+                <div class="f1-cs"><i>○</i><b>Craften</b>Fabrikator Area18</div>
+              </div>
+            </div>
+            <div class="mock-card">
+              <p class="mock-k">Empfehlung zum Start · Bestand zuerst</p>
+              <div class="f1-reco">
+                <div class="f1-recr"><span class="mock-star">★</span><span>Prospector<small>dein Schiff · Bergbau · liegt in ARC-L1</small></span><span class="mock-tag">Bestand</span></div>
+                <div class="f1-recr"><span class="mock-star">★</span><span>Cutlass Black<small>dein Schiff · für den Transport der 12 SCU</small></span><span class="mock-tag">Bestand</span></div>
+                <div class="f1-recr"><span class="mock-dim">○</span><span>MOLE<small>Codex-Regel · mehr Ausbeute mit Crew</small></span><button class="mock-verb alt" type="button">→ Nachschub</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-f1-s4-a1" data-anno-side="left" data-anno-target=".f1-map svg" style="--anno-x:78%;--anno-y:40%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s4-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s4-a1" data-anno-bubble="r3-f1-s4-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Karte plant Wege statt Spuren</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s4-a1">
+      <span class="anno-bubble-question">Die Karte zeigt für den gewählten Bedarf, wo du kaufst, abbaust, raffinierst und craftest, plus die nummerierte Route des Einsatzes. Lesbar, oder zu viel auf einmal?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s4-a1" data-annotation="r3-f1-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s4-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r3-f1-s4-a2" data-anno-side="right" data-anno-target=".f1-led .f1-b" style="--anno-x:44%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s4-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s4-a2" data-anno-bubble="r3-f1-s4-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> „liegt bereit“ statt „gedeckt“</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s4-a2">
+      <span class="anno-bubble-question">Linien jetzt auf beiden Seiten: links gestrichelt, woher ein Bedarf kommt, rechts grün, was davon schon in deinem Lager liegt. Klarer als die Bilanz aus Runde 2?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s4-a2" data-annotation="r3-f1-s4-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s4-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- f1-s5 · Seite 3 · Jetzt (SCC-App verbunden) -->
+    <section id="f1-s5" data-nav-label="Seite 3 · Jetzt" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="f1-bars" type="button" data-screen-link="f1-s3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Suchen<kbd>/</kbd></button>
+          <button class="mock-supply" type="button">Nachschub <i>3</i></button></div>
+        <nav class="f1-idx" aria-label="Seiten">
+          <button type="button" data-screen-link="f1-s2"><span>Start</span><i></i></button>
+          <button type="button" data-screen-link="f1-s4"><span>Planen <em>3</em></span><i></i></button>
+          <button type="button" class="on"><span>Jetzt</span><i></i></button>
+          <button type="button" data-screen-link="f1-s6"><span>Bestand</span><i></i></button>
+        </nav>
+        <div class="f1-phead live">
+          <div class="f1-sky"></div>
+          <span class="f1-pnum">03</span>
+          <div><p class="f1-pk">Seite 3 · Jetzt</p><p class="f1-pt">Live aus dem Spiel</p></div>
+          <div class="f1-pside"><span class="mock-live"><i></i>SCC-App verbunden · Spiel läuft seit 20:02</span></div>
+        </div>
+        <div class="f1-pbody">
+          <div class="f1-auto"><i>✓</i><span><b>Kauf erkannt: ParaMed ×5 → Nachschub abgehakt</b><br><small>Cubby Blast, Area18 · 20:27 · automatisch übernommen</small></span><button class="f1-undo" type="button">Rückgängig</button></div>
+          <div class="f1-live">
+            <div class="f1-col">
+              <div class="f1-here">
+                <span class="f1-here-k">Du bist in</span>
+                <p class="f1-here-loc">Area18 · ArcCorp</p>
+                <p class="f1-here-ship">in der <b>Cutlass Black</b> <span class="mock-star">★</span> · Bounty v3</p>
+                <div class="f1-here-meta"><span class="mock-tag scc">Armistice-Zone</span><span class="mock-tag">CrimeStat 0</span><span class="mock-tag">Inventar hier zuletzt geöffnet 20:11</span></div>
+              </div>
+              <div class="mock-card">
+                <p class="mock-k">Hier gibt es 2 Dinge aus deinem Nachschub<a href="#" data-screen-link="f1-s4">Karte ›</a></p>
+                <div class="f1-list">
+                  <div class="f1-li"><span><b>MedPen ×6</b><small>Cubby Blast · ≈ 1.050 aUEC · hakt sich beim Kauf selbst ab</small></span><span class="mock-way buy">K</span></div>
+                  <div class="f1-li"><span><b>P4-AR Magazin ×2</b><small>Cubby Blast · 2 von 4 liegen bereit</small></span><span class="mock-way buy">K</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="f1-col">
+              <div class="mock-card">
+                <p class="mock-k">Aktive Aufträge · 2</p>
+                <div class="f1-list">
+                  <div class="f1-li"><span><b>Bunker-Säuberung · Lyria</b><small>Ziel: Außenposten sichern · angenommen 20:14</small></span><span class="mock-tag scc">läuft</span></div>
+                  <div class="f1-li"><span><b>Lieferung: 4 SCU nach Area18</b><small>Ziel: Fracht abgeben · angenommen 20:19</small></span><span class="mock-tag scc">läuft</span></div>
+                </div>
+              </div>
+              <div class="f1-next"><span class="f1-next-i">4/5</span><span><b>Nächster Ketten-Schritt: in ARC-L1 abholen</b><small>Pembroke-Helm craften · 12 SCU Hadanite fertig · 1 Quantum-Sprung</small></span></div>
+              <div class="mock-card">
+                <p class="mock-k">Logbuch · automatisch übernommen<a href="#">Ganzes Logbuch ›</a></p>
+                <div class="f1-list">
+                  <div class="f1-logr"><span class="f1-ev">$</span><span>Kauf ParaMed ×5 → Nachschub abgehakt<small>20:27 · Cubby Blast</small></span><button class="f1-undo sm" type="button">Rückgängig</button></div>
+                  <div class="f1-logr"><span class="f1-ev ok">✓</span><span>Auftrag erledigt → Bunker-Lauf 1 von 3<small>20:18 · Bunker-Säuberung Wala</small></span><button class="f1-undo sm" type="button">Rückgängig</button></div>
+                  <div class="f1-logr"><span class="f1-ev inv">INV</span><span>Inventar Area18 gelesen → 14 Teile<small>20:11 · Log + OCR · ersetzt Stand vom 28.10.</small></span><button class="f1-undo sm" type="button">Rückgängig</button></div>
+                  <div class="f1-logr"><span class="f1-ev ref">◇</span><span>Raffinerie fertig → Kette Schritt 3 ✓<small>19:05 · ARC-L1</small></span><button class="f1-undo sm" type="button">Rückgängig</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-f1-s5-a1" data-anno-side="left" data-anno-target=".f1-auto .f1-undo" style="--anno-x:88%;--anno-y:30%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s5-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s5-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s5-a1" data-anno-bubble="r3-f1-s5-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ereignisse gelten sofort</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s5-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s5-a1">
+      <span class="anno-bubble-question">Rückgängig steht zweimal: in der neuesten Meldung oben und an jeder Zeile im Logbuch. Richtig so, oder nur im Logbuch, damit oben Ruhe ist?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s5-a1" data-annotation="r3-f1-s5-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s5-a1"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- f1-s7 · Seite 3 · Jetzt ohne SCC-App -->
+    <section id="f1-s7" data-nav-label="Seite 3 · Jetzt ohne App" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="f1-bars" type="button" data-screen-link="f1-s3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Suchen<kbd>/</kbd></button>
+          <button class="mock-supply" type="button">Nachschub <i>4</i></button></div>
+        <nav class="f1-idx" aria-label="Seiten">
+          <button type="button" data-screen-link="f1-s2"><span>Start</span><i></i></button>
+          <button type="button" data-screen-link="f1-s4"><span>Planen <em>4</em></span><i></i></button>
+          <button type="button" class="on"><span>Jetzt</span><i></i></button>
+          <button type="button" data-screen-link="f1-s6"><span>Bestand</span><i></i></button>
+        </nav>
+        <div class="f1-phead">
+          <div class="f1-sky"></div>
+          <span class="f1-pnum">03</span>
+          <div><p class="f1-pk">Seite 3 · Jetzt</p><p class="f1-pt">Live aus dem Spiel</p></div>
+          <div class="f1-pside"><span class="f1-plain"><i></i>Spiel nicht erkannt</span></div>
+        </div>
+        <div class="f1-pbody">
+          <div class="f1-off">
+            <span class="f1-off-dot"></span>
+            <b>Spiel nicht erkannt — SCC-App verbinden</b>
+            <p>Mit der App siehst du hier, wo du gerade bist, was es dort aus deinem Nachschub gibt, und Käufe haken sich selbst ab.</p>
+            <div class="mock-row" style="margin-top:6px"><button class="mock-btn" type="button" data-screen-link="f1-s5">SCC-App verbinden</button><button class="mock-btn quiet" type="button" data-screen-link="f1-s4">Ohne App planen</button></div>
+          </div>
+          <div class="f1-offgrid">
+            <div class="mock-card">
+              <p class="mock-k">Laut Plan als Nächstes</p>
+              <div class="f1-next"><span class="f1-next-i">4/5</span><span><b>In ARC-L1 abholen</b><small>Pembroke-Helm craften · Schritt von Hand abhaken</small></span></div>
+              <div class="mock-row" style="margin-top:10px"><button class="f1-tick" type="button">✓ Erledigt</button></div>
+            </div>
+            <div class="mock-card">
+              <p class="mock-k">Laut Plan in Area18 zu kaufen</p>
+              <div class="f1-list">
+                <div class="f1-li"><span><b>MedPen ×6</b><small>Cubby Blast · ≈ 1.050 aUEC</small></span><button class="f1-tick" type="button">✓ Gekauft</button></div>
+                <div class="f1-li"><span><b>P4-AR Magazin ×2</b><small>Cubby Blast</small></span><button class="f1-tick" type="button">✓ Gekauft</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- f1-s6 · Seite 4 · Bestand -->
+    <section id="f1-s6" data-nav-label="Seite 4 · Bestand" data-screen hidden data-screen-fit="full">
+      <div class="mock-app">
+        <div class="mock-bar"><span class="mock-logo">SC·C</span><span class="mock-nav"><span>Verse</span><span>Codex</span><b>HQ</b></span>
+          <span class="mock-tabs"><span class="mock-tab on">Übersicht</span><span class="mock-tab">Spind</span><span class="mock-tab">Hangar</span><span class="mock-tab">Einsätze</span></span>
+          <button class="f1-bars" type="button" data-screen-link="f1-s3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Suchen<kbd>/</kbd></button>
+          <button class="mock-supply" type="button">Nachschub <i>4</i></button></div>
+        <nav class="f1-idx" aria-label="Seiten">
+          <button type="button" data-screen-link="f1-s2"><span>Start</span><i></i></button>
+          <button type="button" data-screen-link="f1-s4"><span>Planen <em>4</em></span><i></i></button>
+          <button type="button" data-screen-link="f1-s5"><span>Jetzt</span><i></i></button>
+          <button type="button" class="on"><span>Bestand</span><i></i></button>
+        </nav>
+        <div class="f1-phead stock">
+          <div class="f1-sky"></div>
+          <span class="f1-pnum">04</span>
+          <div><p class="f1-pk">Seite 4 · Bestand</p><p class="f1-pt">Wo du stehst</p></div>
+          <div class="f1-pside"><span class="mock-tag scc">Lager: Log + OCR</span><span class="mock-tag">Schiffe: RSI-Import + ASOP</span></div>
+        </div>
+        <div class="f1-pbody">
+          <div class="f1-stock">
+            <div class="mock-card">
+              <p class="mock-k">Schiffe<a href="#">Hangar ›</a></p>
+              <div class="f1-big"><b>23</b><span>Schiffe · <span class="mock-star">★</span> 3 Favoriten</span></div>
+              <div class="f1-fav"><span class="mock-star">★</span><span>Prospector<small>Bergbau · liegt in ARC-L1</small></span></div>
+              <div class="f1-fav"><span class="mock-star">★</span><span>Cutlass Black<small>Bounty v3 · liegt in Area18</small></span></div>
+              <div class="f1-fav"><span class="mock-star">★</span><span>C2 Hercules<small>Fracht · liegt in Lorville</small></span></div>
+              <a class="f1-more" href="#">+20 weitere im Hangar ›</a>
+            </div>
+            <div class="mock-card">
+              <p class="mock-k">FPS-Sets<a href="#">Spind ›</a></p>
+              <div class="f1-big"><b>5</b><span>Sets · <span class="mock-star">★</span> 3 Kits</span></div>
+              <div class="f1-kits">
+                <span class="f1-kit"><span class="mock-star">★</span>Pembroke Kalt <small>5/6</small></span>
+                <span class="f1-kit"><span class="mock-star">★</span>Bunker leicht <small>6/6</small></span>
+                <span class="f1-kit"><span class="mock-star">★</span>Sanitäter <small>4/5</small></span>
+                <span class="f1-kit">Rennen <small>3/3</small></span>
+                <span class="f1-kit">Erkunden <small>4/4</small></span>
+              </div>
+              <a class="f1-more" href="#">Fehlende Teile stehen im Nachschub ›</a>
+            </div>
+            <div class="mock-card">
+              <p class="mock-k">Blueprints<span class="mock-tag scc" style="margin-left:auto">SCC-App</span></p>
+              <div class="f1-big"><b>37</b><span>von 212</span></div>
+              <div class="f1-bar"><i style="width:17%"></i></div>
+              <div class="f1-fav" style="margin-top:10px"><span class="mock-ok">✓</span><span>Pembroke-Helm<small>zuletzt erhalten 21.10.</small></span></div>
+              <div class="f1-fav"><span class="mock-dim">○</span><span>P8-SC<small>Ziel im Nachschub · 2 passende Missionen</small></span></div>
+            </div>
+          </div>
+
+          <div class="f1-store">
+            <div class="mock-card">
+              <p class="mock-k">Lager pro Ort · Schnappschuss beim Öffnen</p>
+              <div class="f1-loc"><span class="f1-loci">A18</span><span>Area18 · ArcCorp<small>Lokales Inventar · 14 Teile · u. a. P4-AR Magazin ×2, Pembroke-Torso</small></span><span class="f1-age">zuletzt geöffnet 31.10.</span></div>
+              <div class="f1-loc"><span class="f1-loci">L1</span><span>ARC-L1 · Raffinerie<small>3 Teile · 12 SCU Hadanite</small></span><span class="f1-age">zuletzt geöffnet 30.10.</span></div>
+              <div class="f1-loc"><span class="f1-loci">LOR</span><span>Lorville · Hurston<small>6 Teile · u. a. Bunker-leicht-Helm</small></span><span class="f1-age">zuletzt geöffnet vor 10 Tagen</span></div>
+              <div class="f1-hint">Andere Orte kennt das HQ, sobald du dort das Inventar öffnest. Ohne App: <a href="#" data-screen-link="f1-s3">„liegt in …“ über die Suche</a></div>
+            </div>
+            <div class="mock-card">
+              <p class="mock-k">Schiffe nach Lagerort · ASOP</p>
+              <div class="f1-loc"><span class="f1-loci">A18</span><span>Area18<small>Cutlass Black ★, Pisces</small></span><span class="f1-age">ASOP 29.10.</span></div>
+              <div class="f1-loc"><span class="f1-loci">L1</span><span>ARC-L1<small>Prospector ★</small></span><span class="f1-age">ASOP 30.10.</span></div>
+              <div class="f1-loc"><span class="f1-loci">LOR</span><span>Lorville<small>C2 Hercules ★</small></span><span class="f1-age">ASOP 21.10.</span></div>
+              <div class="f1-hint">19 Schiffe ohne Lagerort. Öffne ein ASOP-Terminal, die App liest mit.</div>
+            </div>
+          </div>
+
+          <div class="f1-stats">
+            <a class="f1-tile" href="#"><span class="f1-tile-k">aUEC aus Käufen und Verkäufen</span><span class="f1-tile-v">+184.300</span>
+              <svg viewBox="0 0 120 42" preserveAspectRatio="none" aria-hidden="true"><polygon class="f1-spark-a" points="0,34 15,30 30,32 45,22 60,25 75,16 90,18 105,9 120,6 120,42 0,42"/><polyline class="f1-spark" points="0,34 15,30 30,32 45,22 60,25 75,16 90,18 105,9 120,6"/></svg>
+              <span class="f1-tile-f"><span>30 Tage</span><span>Details ›</span></span></a>
+            <a class="f1-tile" href="#"><span class="f1-tile-k">Aufträge pro Woche</span><span class="f1-tile-v">23</span>
+              <svg viewBox="0 0 120 42" preserveAspectRatio="none" aria-hidden="true"><rect class="f1-mb" x="2" y="28" width="14" height="14"/><rect class="f1-mb" x="22" y="20" width="14" height="22"/><rect class="f1-mb" x="42" y="24" width="14" height="18"/><rect class="f1-mb" x="62" y="14" width="14" height="28"/><rect class="f1-mb" x="82" y="18" width="14" height="24"/><rect class="f1-mb hi" x="102" y="8" width="14" height="34"/></svg>
+              <span class="f1-tile-f"><span>6 Wochen</span><span>Details ›</span></span></a>
+            <a class="f1-tile" href="#"><span class="f1-tile-k">Tode und Claims</span><span class="f1-tile-v">4 · 2</span>
+              <svg viewBox="0 0 120 42" preserveAspectRatio="none" aria-hidden="true"><rect class="f1-mb w" x="4" y="26" width="10" height="16"/><rect class="f1-mb" x="16" y="34" width="10" height="8"/><rect class="f1-mb w" x="34" y="34" width="10" height="8"/><rect class="f1-mb" x="46" y="42" width="10" height="0"/><rect class="f1-mb w" x="64" y="18" width="10" height="24"/><rect class="f1-mb" x="76" y="26" width="10" height="16"/><rect class="f1-mb w" x="94" y="34" width="10" height="8"/><rect class="f1-mb" x="106" y="34" width="10" height="8"/></svg>
+              <span class="f1-tile-f"><span>30 Tage</span><span>Details ›</span></span></a>
+            <a class="f1-tile" href="#"><span class="f1-tile-k">CrimeStat</span><span class="f1-tile-v">0</span>
+              <svg viewBox="0 0 120 42" preserveAspectRatio="none" aria-hidden="true"><polyline class="f1-step-line" points="0,38 34,38 34,22 52,22 52,38 120,38"/></svg>
+              <span class="f1-tile-f"><span>zuletzt 2 am 18.10.</span><span>Details ›</span></span></a>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-f1-s6-a1" data-anno-side="left" data-anno-target=".f1-store .f1-loc .f1-age" style="--anno-x:52%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s6-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s6-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s6-a1" data-anno-bubble="r3-f1-s6-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s6-a1" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s6-a1">
+      <span class="anno-bubble-question">Jeder Ort trägt rechts „zuletzt geöffnet …“. Steht das Alter dort richtig, oder gehört es unter den Ortsnamen, damit du es vor dem Inhalt liest?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s6-a1" data-annotation="r3-f1-s6-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s6-a1"></div>
+    </div>
+  </div>
+</div>
+<div class="anno" data-anno="r3-f1-s6-a2" data-anno-side="left" data-anno-target=".f1-stats" style="--anno-x:60%;--anno-y:84%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-f1-s6-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s6-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r3-f1-s6-a2" data-anno-bubble="r3-f1-s6-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-f1-s6-a2" aria-expanded="false" aria-controls="anno-bubble-r3-f1-s6-a2">
+      <span class="anno-bubble-question">Vier Statistik-Kacheln mit Mini-Vorschau, ein Klick öffnet die Details: aUEC, Aufträge pro Woche, Tode und Claims, CrimeStat. Die richtigen vier? Was fehlt, was kann weg?</span>
+    </button>
+    <div class="anno-bubble-body">
+      <textarea class="anno-answer" data-comment="anno-r3-f1-s6-a2" data-annotation="r3-f1-s6-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+      <div class="attach-slot" data-attach-slot="anno-r3-f1-s6-a2"></div>
+    </div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═══════════ View · Offene Punkte ═══════════ -->
+  <section data-view="r3-offen" data-view-kind="analysis" data-analysis="lite" data-nav-label="Fragen · Offene Punkte" hidden>
+    <div data-alevel="1" data-title="Offene Punkte">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vier Punkte aus Runde 2, die du noch nicht angefasst hast, und das neue Wort für „gedeckt“."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Einsatz-Arten","value":"8 vorausgewählt"},{"label":"Ketten","value":"aus Codex-Daten"},{"label":"Empfehlung","value":"Bestand zuerst"},{"label":"Ohne App","value":"voll nutzbar"},{"label":"Wort","value":"statt gedeckt"}]}'></div>
+        <p>Die ersten vier Fragen standen schon in Runde 2 und blieben unberührt. Die Vorauswahl ist unverändert; was du hier nicht anfasst, gilt als „nicht angesehen“, nicht als Zustimmung.</p>
+      </div>
+    </div>
+
+    <section id="r3-arten" data-nav-label="Einsatz-Arten" data-decision="r3-arten" data-decision-mode="multi" data-label="Einsatz-Arten nach Art"
+             data-rec="bounty bunker medic race mining cargo salvage explore" data-rec-why="Diese acht sind Schleifen, für die das HQ Schiff und Set aus deinem Bestand empfehlen kann; Medizin und Rennen hast du ausdrücklich genannt."
+             data-applies-to="Einsätze nach Art, Empfehlungen, Missionen aus der Suche" data-finding="f-r3-arten">
+      <p data-applies>Gilt für: Einsätze nach Art, ihre Empfehlungen und Missionen aus der Suche</p>
+      <h3 data-question>Welche Einsatz-Arten bietet das HQ zum Start an?</h3>
+      <p data-context>In Runde 2 nicht angefasst. Jede Art bekommt eine Empfehlungsregel (Rolle, Größe) und eine Vorlage; eine gefundene Mission landet in ihrer Art.</p>
+      <div data-options>
+        <label data-opt="bounty" data-recommended><input type="checkbox" name="dm-r3-arten.bounty" checked><span data-opt-label>Kopfgeld</span><span data-opt-consequence>Schiffskampf; Empfehlung über Kampfrolle und Loadout.</span></label>
+        <label data-opt="bunker" data-recommended><input type="checkbox" name="dm-r3-arten.bunker" checked><span data-opt-label>Bunker und FPS</span><span data-opt-consequence>Empfehlung vor allem aus FPS-Sets.</span></label>
+        <label data-opt="medic" data-recommended><input type="checkbox" name="dm-r3-arten.medic" checked><span data-opt-label>Medizin</span><span data-opt-consequence>Rettungs-Schleife; braucht Med-Schiff oder Sanitäter-Set.</span></label>
+        <label data-opt="race" data-recommended><input type="checkbox" name="dm-r3-arten.race" checked><span data-opt-label>Rennen</span><span data-opt-consequence>Empfehlung über Racer-Rolle und Größe.</span></label>
+        <label data-opt="mining" data-recommended><input type="checkbox" name="dm-r3-arten.mining" checked><span data-opt-label>Bergbau</span><span data-opt-consequence>Auch als Kettenschritt beim Craften.</span></label>
+        <label data-opt="cargo" data-recommended><input type="checkbox" name="dm-r3-arten.cargo" checked><span data-opt-label>Fracht und Handel</span><span data-opt-consequence>Auch als Schritt „vorher verkaufen“ beim Kaufen.</span></label>
+        <label data-opt="salvage" data-recommended><input type="checkbox" name="dm-r3-arten.salvage" checked><span data-opt-label>Bergung</span><span data-opt-consequence>Material-Quelle neben dem Bergbau.</span></label>
+        <label data-opt="explore" data-recommended><input type="checkbox" name="dm-r3-arten.explore" checked><span data-opt-label>Erkunden</span><span data-opt-consequence>Offene Schleife ohne festes Ziel.</span></label>
+        <label data-opt="piracy"><input type="checkbox" name="dm-r3-arten.piracy"><span data-opt-label>Piraterie</span><span data-opt-consequence>Eigene Regeln (CrimeStat); wenig Bezug zum Nachschub.</span></label>
+        <label data-opt="orglog"><input type="checkbox" name="dm-r3-arten.orglog"><span data-opt-label>Org-Logistik</span><span data-opt-consequence>Braucht Gruppen-Einsätze, nicht nur den Solo-Plan.</span></label>
+      </div>
+      <textarea data-comment="r3-arten-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-arten-touched" value="">
+      <input type="hidden" name="dm-r3-arten-issue" value="">
+      <input type="hidden" name="dm-r3-arten-epic" value="">
+      <div data-alevel="3" data-title="Einsatz-Arten">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"8 + 5","unit":"Rollen","label":"tragen Varianten und FPS-Sets heute schon"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Schiffsvarianten","value":8},{"label":"FPS-Sets","value":5}],"unit":" Rollen","text":"Varianten kennen 8 Rollen, FPS-Sets 5."}'></div>
+          <p>Eine Einsatz-Art braucht eine Rolle, über die das HQ Schiff oder Set aus deinem Bestand vorschlägt. Die acht empfohlenen Arten passen auf die Rollen, die es gibt. Piraterie und Org-Logistik bräuchten eigene Bausteine (CrimeStat-Regeln, Gruppen).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-chain" data-nav-label="Ketten" data-decision="r3-chain" data-decision-mode="single" data-label="Herkunft einer Beschaffungs-Kette"
+             data-rec="auto" data-rec-why="Der Codex kennt Blueprint-Rezepte schon; eine vorgeschlagene Kette spart das Zusammenbauen, und die Karte auf Seite 2 braucht genau diese Schritte."
+             data-applies-to="Einsätze nach Zweck, Karte auf Seite 2" data-finding="f-r3-chain">
+      <p data-applies>Gilt für: Einsätze nach Zweck (kaufen, craften) und die Route auf der Karte</p>
+      <h3 data-question>Wie entsteht eine Beschaffungs-Kette?</h3>
+      <p data-context>In Runde 2 nicht angefasst. Die Kette liefert die Schritte und Orte, die Seite 2 als Route zeigt.</p>
+      <div data-options>
+        <label data-opt="auto" data-recommended><input type="radio" name="dm-r3-chain" value="auto" checked><span data-opt-label>Automatisch aus Codex-Daten (Blueprint-Rezept, Shop-Orte), Schritte änderbar</span><span data-opt-consequence>Rezept und Orte ergeben Schritte und Route; du passt sie an.</span></label>
+        <label data-opt="templates"><input type="radio" name="dm-r3-chain" value="templates"><span data-opt-label>Nur Vorlagen, von Hand zusammengestellt</span><span data-opt-consequence>Kein Datenbedarf, aber jede Kette und Route ist Handarbeit.</span></label>
+        <label data-opt="buyonly"><input type="radio" name="dm-r3-chain" value="buyonly"><span data-opt-label>Nur Kaufen, kein Craften</span><span data-opt-consequence>Einfach; Blueprints, Bergbau und Raffinerie fallen aus der Karte.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r3-chain" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r3-chain-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-chain-touched" value="">
+      <input type="hidden" name="dm-r3-chain-issue" value="">
+      <input type="hidden" name="dm-r3-chain-epic" value="">
+      <div data-alevel="3" data-title="Ketten">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Rezepte liegen im Codex (codex_blueprints); Shop-Orte und Preise sind zu prüfen."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Blueprint","value":"codex_blueprints ✓"},{"label":"Material","value":"Rezept ✓"},{"label":"Raffinerie","value":"Orte prüfen"},{"label":"Shop / Preis","value":"prüfen, sonst UEX"},{"label":"Craften","value":"Rezept ✓"}]}'></div>
+          <p><strong>Vorhanden:</strong> Blueprints mit Rezept im Codex (<code>codex_blueprints</code>, die SCC-App liest denselben Katalog). <strong>Offen:</strong> Shop-Orte und Preise; prüfen, ob der Codex sie hat, sonst UEX-Daten über einen Edge-Proxy, der Schlüssel bleibt als Edge-Function-Secret.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-rec" data-nav-label="Empfehlungen" data-decision="r3-rec" data-decision-mode="single" data-label="Quelle der Empfehlung"
+             data-rec="inventory" data-rec-why="Eine Empfehlung, die du nicht besitzt, ist ein Einkaufszettel; erst dein Bestand, dann der Codex hält sie nützlich."
+             data-applies-to="Empfehlung beim Start eines Einsatzes" data-finding="f-r3-rec">
+      <p data-applies>Gilt für: Empfehlung beim Start eines Einsatzes und jedes Kettenschritts</p>
+      <h3 data-question>Woher kommt die Empfehlung, wenn du einen Einsatz startest?</h3>
+      <p data-context>In Runde 2 nicht angefasst. Seite 2 zeigt sie unter „Empfehlung zum Start“.</p>
+      <div data-options>
+        <label data-opt="inventory" data-recommended><input type="radio" name="dm-r3-rec" value="inventory" checked><span data-opt-label>Erst dein Bestand und deine ★ Favoriten, dann eine Codex-Regel</span><span data-opt-consequence>Rolle und Größe filtern; fehlt dir etwas, kommt der Codex-Vorschlag mit „→ Nachschub“.</span></label>
+        <label data-opt="community"><input type="radio" name="dm-r3-rec" value="community"><span data-opt-label>Community-Loadouts</span><span data-opt-consequence>Braucht geteilte Loadouts mit Bewertung, die es nicht gibt.</span></label>
+        <label data-opt="codexonly"><input type="radio" name="dm-r3-rec" value="codexonly"><span data-opt-label>Nur der Codex</span><span data-opt-consequence>Gleiche Empfehlung für alle, ohne Blick auf deinen Hangar.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r3-rec" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r3-rec-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-rec-touched" value="">
+      <input type="hidden" name="dm-r3-rec-issue" value="">
+      <input type="hidden" name="dm-r3-rec-epic" value="">
+      <div data-alevel="3" data-title="Empfehlungen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Reihenfolge: Favoriten ★ → übriger Bestand → Codex-Regel."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Favoriten ★","value":"bis zu 3 Schiffe, 3 FPS-Kits"},{"label":"Bestand","value":"Rolle passt"},{"label":"Codex-Regel","value":"Rolle + Größe"}]}'></div>
+          <p>Varianten und FPS-Sets tragen schon eine Rolle; die Codex-Regel nutzt Rolle und Größe aus den Codex-Daten. Mit dem Lager-Schnappschuss kann die Empfehlung zusätzlich sagen, wo das Schiff liegt.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-offline" data-nav-label="Ohne SCC-App" data-decision="r3-offline" data-decision-mode="yesnoalt" data-label="HQ ohne SCC-App voll nutzbar"
+             data-rec="yes" data-rec-why="Die App ist Windows-only und opt-in; wer sie nicht hat, muss das HQ trotzdem ganz nutzen können."
+             data-applies-to="Alle Seiten, Zustand ohne App" data-finding="f-r3-offline">
+      <p data-applies>Gilt für: alle vier Seiten und ihren Zustand ohne App</p>
+      <h3 data-question>Bleibt das HQ ohne SCC-App voll nutzbar, und die App bringt Live und Lager dazu?</h3>
+      <p data-context>In Runde 2 nicht angefasst. Der Screen „Seite 3 · Jetzt ohne App“ zeigt, wie das aussieht.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-r3-offline" value="yes" checked><span data-opt-label>Ja, die App ist ein Bonus</span><span data-opt-consequence>Ohne App: Blueprints und Abhaken von Hand, Lager über die Schnellerfassung, kein Live.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-r3-offline" value="no"><span data-opt-label>Nein, das HQ setzt die App voraus</span><span data-opt-consequence>Mehr Automatik, aber wer keine App hat, sieht ein halbes HQ.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-r3-offline" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Was stattdessen?</span></label>
+      </div>
+      <input type="text" name="dm-r3-offline-alt" placeholder="Was stattdessen?" value="">
+      <textarea data-comment="r3-offline-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-offline-touched" value="">
+      <input type="hidden" name="dm-r3-offline-issue" value="">
+      <input type="hidden" name="dm-r3-offline-epic" value="">
+      <div data-alevel="3" data-title="Ohne SCC-App">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"3 von 4","unit":"Seiten","label":"gehen ohne SCC-App voll"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Start","value":100},{"label":"Planen","value":100},{"label":"Bestand","value":80},{"label":"Jetzt","value":30}],"unit":" %","text":"Start und Planen gehen ganz, Bestand ohne automatisches Lager, Jetzt nur laut Plan."}'></div>
+          <p><strong>Ohne App:</strong> Suche, Patch, Planen mit Karte und Ketten, Schiffe aus dem RSI-Import, Sets. <strong>Nur mit App:</strong> Live-Ort, automatisches Abhaken, Blueprints automatisch, Lager-Schnappschüsse. Ersatz von Hand: „liegt in …“ über die Suche, Abhaken per Knopf.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-word" data-nav-label="Wort statt gedeckt" data-decision="r3-word" data-decision-mode="wording" data-label="Wort für einen Bedarf, der schon im Bestand ist"
+             data-rec="bereit" data-rec-why="„liegt bereit“ sagt zugleich, dass du es hast und dass es irgendwo liegt; das passt zum Lager pro Ort."
+             data-applies-to="Seite 2 Planen, Jetzt, Nachschub-Zeilen" data-finding="f-r3-word">
+      <p data-applies>Gilt für: die rechte Spalte auf Seite 2, die Jetzt-Seite und jede Nachschub-Zeile</p>
+      <h3 data-question>Wie heißt es, wenn ein Bedarf schon im Bestand ist?</h3>
+      <p data-context>„gedeckt“ fällt weg. Der Entwurf nutzt vorläufig „liegt bereit“, z. B. „2 von 4 liegen bereit“.</p>
+      <div data-options>
+        <label data-opt="bereit" data-recommended><input type="radio" name="dm-r3-word" value="bereit" data-text="liegt bereit" checked><span data-opt-label>„liegt bereit“</span><span data-opt-consequence>„2 von 4 liegen bereit · Lager Area18“</span></label>
+        <label data-opt="vorhanden"><input type="radio" name="dm-r3-word" value="vorhanden" data-text="vorhanden"><span data-opt-label>„vorhanden“</span><span data-opt-consequence>„2 von 4 vorhanden“; sachlich, sagt nichts zum Ort.</span></label>
+        <label data-opt="bestand"><input type="radio" name="dm-r3-word" value="bestand" data-text="im Bestand"><span data-opt-label>„im Bestand“</span><span data-opt-consequence>„2 von 4 im Bestand“; greift den Namen von Seite 4 auf.</span></label>
+        <label data-opt="hast"><input type="radio" name="dm-r3-word" value="hast" data-text="hast du"><span data-opt-label>„hast du“</span><span data-opt-consequence>„2 von 4 hast du“; persönlich, im Satz etwas holprig.</span></label>
+        <label data-opt="custom"><input type="radio" name="dm-r3-word" value="custom" data-text=""><span data-opt-label>Eigene Formulierung</span><span data-opt-consequence>Dein Wort steht dann überall, wo heute „liegt bereit“ steht.</span></label>
+      </div>
+      <input type="text" name="dm-r3-word-text" placeholder="Eigene Formulierung" value="">
+      <textarea data-comment="r3-word-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-word-touched" value="">
+      <input type="hidden" name="dm-r3-word-issue" value="">
+      <input type="hidden" name="dm-r3-word-epic" value="">
+      <div data-alevel="3" data-title="Wort statt gedeckt">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Das Wort steht an drei Stellen: Seite 2 (rechte Spalte), Jetzt (Laden hier) und jede Nachschub-Zeile."}'></div></div>
+        <div data-slot="long">
+          <p>Es beschreibt eine Teilmenge („2 von 4 …“) und muss mit einem Ort funktionieren („… in Area18“). Darum empfiehlt sich eine Form, die beides trägt.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ═══════════ View · Inventar erfassen ═══════════ -->
+  <section data-view="r3-inventar" data-view-kind="analysis" data-analysis="lite" data-nav-label="Fragen · Inventar erfassen" hidden>
+    <div data-alevel="1" data-title="Inventar erfassen">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Log sagt wo, OCR liest was: ein Inventar-Schnappschuss pro Ort, jedes Mal wenn du es öffnest. Fünf Fragen, wie das HQ damit umgeht."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Game.log","value":"RequestLocationInventory → Ort"},{"label":"OCR-Profil Inventar","value":"sichtbare Liste → Teile"},{"label":"Schnappschuss","value":"pro Ort, mit Datum"},{"label":"Sync","value":"opt-in, nur für dich"}]}'></div>
+        <p>Du hattest in Runde 2 „vielleicht ja doch“ geschrieben und OCR plus Game.log gewählt. Die SCC-App kann beides: Das Log nennt den Ort, an dem du ein Inventar öffnest, und die OCR-Schleife liest, was dabei auf dem Bildschirm steht. Nicht laufend, aber richtig zum Stand deines letzten Blicks. Ein Issue für die SCC-App legen wir beim Abschluss an.</p>
+      </div>
+    </div>
+
+    <section id="r3-inv-facts" data-nav-label="Befund" data-decision="r3-inv-facts" data-decision-mode="verify" data-label="Befund Inventar über Log und OCR"
+             data-rec="ok" data-rec-why="Beide Hälften stehen in den Feature-Dokumenten der SCC-App: die Log-Zeilen in mobiglas-hints.md, die OCR-Schleife in ocr-analysis-loop.md."
+             data-applies-to="SCC-App, Lager pro Ort, Schiffs-Lagerorte" data-finding="f-r3-inv-facts">
+      <p data-applies>Gilt für: Lager pro Ort und Schiffs-Lagerorte auf Seite 4</p>
+      <h3 data-question>Stimmt der Befund: Das Log sagt, wo du ein Inventar öffnest, die OCR liest, was darin steht; daraus wird ein Schnappschuss pro Ort, und Schiffs-Lagerorte kommen vom ASOP-Terminal?</h3>
+      <p data-context>Ein Schnappschuss ist so aktuell wie dein letzter Blick ins Inventar, nicht laufend.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-r3-inv-facts" value="ok" checked><span data-opt-label>Stimmt</span><span data-opt-consequence>Seite 4 zeigt Lager pro Ort und Schiffs-Lagerorte als Schnappschuss.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-r3-inv-facts" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Eine Hälfte trägt nicht; das Lager wird dort von Hand gepflegt.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-r3-inv-facts" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Lager nur von Hand über die Schnellerfassung.</span></label>
+      </div>
+      <input type="text" name="dm-r3-inv-facts-fix" placeholder="Was stimmt nicht?" value="">
+      <textarea data-comment="r3-inv-facts-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-inv-facts-touched" value="">
+      <input type="hidden" name="dm-r3-inv-facts-issue" value="">
+      <input type="hidden" name="dm-r3-inv-facts-epic" value="">
+      <div data-alevel="3" data-title="Befund">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Ort: RequestLocationInventory und AsyncGetPersonalLocationInventoryId im Game.log (docs/features/mobiglas-hints.md). Inhalt: OCR-Schleife alle 3 s, nur Vollbild und Spiel im Vordergrund, Regionsprofile mit Regex (docs/features/ocr-analysis-loop.md)."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Inventar öffnen","value":"Log: Ort"},{"label":"OCR Inventar","value":"Liste lesen"},{"label":"ASOP-Terminal","value":"OCR: Schiff + Lagerort"},{"label":"Schnappschuss","value":"Ort + Datum"}]}'></div>
+          <p><strong>Das Log</strong> kennt den Ort, an dem du das Inventar öffnest (<code>RequestLocationInventory</code>) und, aus dem Loadout-Editor, <code>&lt;UI - LoadoutEditor&gt; … AsyncGetPersonalLocationInventoryId</code>, aber keinen Inhalt. <strong>Die OCR</strong> läuft alle 3 s, nur wenn Star Citizen vorne und im Vollbild ist, und arbeitet mit Regionsprofilen samt Regex. Ein Profil „Inventar“ liest die sichtbare Teile-Liste, ein Profil „ASOP“ die Schiffsliste am Flottenterminal mit Lagerort. <strong>Grenze:</strong> nur, was auf dem Bildschirm stand; Teile unterhalb des sichtbaren Bereichs fehlen, bis du scrollst.</p>
+          <div data-evidence hidden>StarOrga/Star-Citizen-Companion-App docs/features/mobiglas-hints.md (RequestLocationInventory, &lt;UI - LoadoutEditor&gt; AsyncGetPersonalLocationInventoryId), docs/features/ocr-analysis-loop.md (3-s-Schleife, Vordergrund + Vollbild, Regionsprofile mit Regex).</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-inv-when" data-nav-label="Wann lesen" data-decision="r3-inv-when" data-decision-mode="multi" data-label="Wann die OCR mitliest"
+             data-rec="inventory asop" data-rec-why="Diese beiden Bildschirme liefern das Lager pro Ort und die Schiffs-Lagerorte; dauerhaftes Mitlesen kostet CPU ohne Mehrwert."
+             data-applies-to="OCR-Profile der SCC-App" data-finding="f-r3-inv-when">
+      <p data-applies>Gilt für: die OCR-Profile der SCC-App</p>
+      <h3 data-question>Wann liest die OCR mit?</h3>
+      <p data-context>Jeder Bildschirm ist ein eigenes Profil; die App liest nur, solange er offen ist.</p>
+      <div data-options>
+        <label data-opt="inventory" data-recommended><input type="checkbox" name="dm-r3-inv-when.inventory" checked><span data-opt-label>Lokales Inventar geöffnet</span><span data-opt-consequence>Lager pro Ort auf Seite 4.</span></label>
+        <label data-opt="asop" data-recommended><input type="checkbox" name="dm-r3-inv-when.asop" checked><span data-opt-label>ASOP- bzw. Flottenterminal</span><span data-opt-consequence>Schiffe nach Lagerort; Empfehlungen sagen, wo das Schiff liegt.</span></label>
+        <label data-opt="kiosk"><input type="checkbox" name="dm-r3-inv-when.kiosk"><span data-opt-label>Shop-Kiosk (Preise)</span><span data-opt-consequence>Echte Preise für den Nachschub; ein drittes Profil, Preise ändern sich oft.</span></label>
+        <label data-opt="always"><input type="checkbox" name="dm-r3-inv-when.always"><span data-opt-label>Immer im Vollbild</span><span data-opt-consequence>Liest alles, kostet aber dauerhaft CPU, während du spielst.</span></label>
+      </div>
+      <textarea data-comment="r3-inv-when-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-inv-when-touched" value="">
+      <input type="hidden" name="dm-r3-inv-when-issue" value="">
+      <input type="hidden" name="dm-r3-inv-when-epic" value="">
+      <div data-alevel="3" data-title="Wann lesen">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Profile","label":"reichen für Lager und Schiffs-Lagerorte"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Inventar","value":1},{"label":"ASOP","value":1},{"label":"Kiosk","value":1},{"label":"Immer","value":3}],"unit":" Last","text":"Profile laufen nur, solange ihr Bildschirm offen ist; Immer läuft die ganze Sitzung."}'></div>
+          <p>Ein Profil ist eine Bildschirmregion mit Regex. Das Kiosk-Profil wäre nützlich für Preise, ist aber für das Lager nicht nötig und kann später kommen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-inv-manual" data-nav-label="Ohne App" data-decision="r3-inv-manual" data-decision-mode="single" data-label="Lager-Fallback ohne App"
+             data-rec="search" data-rec-why="Die Suche ist ohnehin der Weg, Dinge ins HQ zu bringen; ein Verb „liegt in …“ braucht keine neue Oberfläche."
+             data-applies-to="Seite 4 Bestand, Suche" data-finding="f-r3-inv-manual">
+      <p data-applies>Gilt für: Lager pro Ort ohne SCC-App</p>
+      <h3 data-question>Wie erfasst du ohne App, wo etwas liegt?</h3>
+      <p data-context>Du hattest „ansonsten manuell etwas ermöglichen“ geschrieben.</p>
+      <div data-options>
+        <label data-opt="search" data-recommended><input type="radio" name="dm-r3-inv-manual" value="search" checked><span data-opt-label>Schnellerfassung über die Suche („liegt in …“)</span><span data-opt-consequence>Teil oder Schiff suchen, Verb „liegt in …“, Ort wählen; fertig.</span></label>
+        <label data-opt="field"><input type="radio" name="dm-r3-inv-manual" value="field"><span data-opt-label>Ort als Feld an jedem Set und Schiff</span><span data-opt-consequence>Genauer, aber ein Feld mehr in Hangar und Spind.</span></label>
+        <label data-opt="none"><input type="radio" name="dm-r3-inv-manual" value="none"><span data-opt-label>Gar keiner</span><span data-opt-consequence>Lager gibt es nur mit App.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r3-inv-manual" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r3-inv-manual-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-inv-manual-touched" value="">
+      <input type="hidden" name="dm-r3-inv-manual-issue" value="">
+      <input type="hidden" name="dm-r3-inv-manual-epic" value="">
+      <div data-alevel="3" data-title="Ohne App">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Ein zusätzliches Verb in der Suche: „liegt in …“."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Suchen","value":"Teil oder Schiff"},{"label":"Verb","value":"liegt in …"},{"label":"Ort","value":"aus Codex-Orten"},{"label":"Lager","value":"Eintrag von Hand"}]}'></div>
+          <p>Von Hand erfasste Orte tragen „von Hand“ statt „zuletzt geöffnet“; ein späterer Schnappschuss der App ersetzt sie.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-inv-auto" data-nav-label="Ersetzen" data-decision="r3-inv-auto" data-decision-mode="yesnoalt" data-label="Neuer Schnappschuss ersetzt den alten"
+             data-rec="yes" data-rec-why="Gleiche Regel wie bei den Ereignissen: Erkanntes gilt sofort, Rückgängig im Logbuch."
+             data-applies-to="Lager pro Ort, Logbuch" data-finding="f-r3-inv-auto">
+      <p data-applies>Gilt für: Lager pro Ort und das Logbuch</p>
+      <h3 data-question>Ersetzt ein neuer Schnappschuss den alten automatisch, mit Rückgängig im Logbuch?</h3>
+      <p data-context>Du wolltest erkannte Ereignisse automatisch übernehmen; das wäre dieselbe Regel fürs Lager.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-r3-inv-auto" value="yes" checked><span data-opt-label>Ja, automatisch ersetzen, Rückgängig im Logbuch</span><span data-opt-consequence>Das Lager stimmt nach jedem Blick ins Inventar von selbst.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-r3-inv-auto" value="no"><span data-opt-label>Nein, Änderungen erst bestätigen</span><span data-opt-consequence>Jeder Schnappschuss wartet auf dich, bevor er gilt.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-r3-inv-auto" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Was stattdessen?</span></label>
+      </div>
+      <input type="text" name="dm-r3-inv-auto-alt" placeholder="Was stattdessen?" value="">
+      <textarea data-comment="r3-inv-auto-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-inv-auto-touched" value="">
+      <input type="hidden" name="dm-r3-inv-auto-issue" value="">
+      <input type="hidden" name="dm-r3-inv-auto-epic" value="">
+      <div data-alevel="3" data-title="Ersetzen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Neuer Schnappschuss → alter wird ersetzt → Logbuch-Zeile mit Rückgängig."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Inventar geöffnet","value":"Area18, 20:11"},{"label":"Schnappschuss","value":"14 Teile"},{"label":"ersetzt","value":"Stand 28.10."},{"label":"Logbuch","value":"Rückgängig"}]}'></div>
+          <p>Ein halb gelesener Schnappschuss (du hast nicht gescrollt) ersetzt nur die Teile, die er sieht; was fehlt, bleibt mit altem Datum stehen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-inv-age" data-nav-label="Alter zeigen" data-decision="r3-inv-age" data-decision-mode="single" data-label="Alter eines Schnappschusses"
+             data-rec="margin" data-rec-why="Eine Randnotiz sagt ehrlich, wie alt der Stand ist, ohne die Seite mit Warnungen zu füllen."
+             data-applies-to="Seite 4 Bestand, Empfehlungen" data-finding="f-r3-inv-age">
+      <p data-applies>Gilt für: Lager pro Ort, Schiffs-Lagerorte und Empfehlungen mit Ort</p>
+      <h3 data-question>Wie zeigt das HQ das Alter eines Schnappschusses?</h3>
+      <p data-context>Seite 4 zeigt es heute als Randnotiz „zuletzt geöffnet …“.</p>
+      <div data-options>
+        <label data-opt="margin" data-recommended><input type="radio" name="dm-r3-inv-age" value="margin" checked><span data-opt-label>Randnotiz „zuletzt geöffnet vor 2 Tagen“</span><span data-opt-consequence>Immer da, immer leise; du entscheidest selbst, ob es zu alt ist.</span></label>
+        <label data-opt="color"><input type="radio" name="dm-r3-inv-age" value="color"><span data-opt-label>Randnotiz, ab 7 Tagen in der Warnfarbe</span><span data-opt-consequence>Alte Stände fallen auf (gelb, nie rot wie ein Fehler).</span></label>
+        <label data-opt="none"><input type="radio" name="dm-r3-inv-age" value="none"><span data-opt-label>Gar nicht</span><span data-opt-consequence>Ruhiger, aber ein alter Stand sieht aus wie ein neuer.</span></label>
+        <label data-opt="other"><input type="radio" name="dm-r3-inv-age" value="other"><span data-opt-label>Keine davon / anders …</span><span data-opt-consequence>Notiz ist dann Pflicht.</span></label>
+      </div>
+      <textarea data-comment="r3-inv-age-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-inv-age-touched" value="">
+      <input type="hidden" name="dm-r3-inv-age-issue" value="">
+      <input type="hidden" name="dm-r3-inv-age-epic" value="">
+      <div data-alevel="3" data-title="Alter zeigen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Beispiel auf Seite 4: Lorville, zuletzt geöffnet vor 10 Tagen."}'></div></div>
+        <div data-slot="long">
+          <p>Die Warnfarbe ist <code>--sc-warning</code>: ein älterer Stand ist ein Hinweis, kein Fehler; <code>--sc-danger</code> bleibt Fehlern und destruktiven Aktionen vorbehalten.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
