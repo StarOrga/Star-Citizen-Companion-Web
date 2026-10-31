@@ -637,5 +637,129 @@
         "text": "Ich habe vetrstanden,  sets sind schiff-loadouts im hangar oder fps sets im spind. Achtung, die allgemeins uche sollte, wenn benutzt auf dieser seite gut anzeigen was man sucht worum es hier geht. \nDann gibt es für mich noch das virtuelle Lager / Erspieltes wie Blueprints (vllt. zukünftig ruf etc, rbauchst du aber noch 0 hier berücksichtigen) und physische lager (wie was ich dort habe wie gold, kupfer usw. oder andere gegenstände)."
       }
     ]
+  },
+  {
+    "iteration": 5,
+    "action": "implement-deferred",
+    "general": "devops learn warum egal wohin ich in deisem devops concept in dieser runde (vorher war das nciht so) klicke, immedr die speech bubbnle am ende der seite entsteht und ich auch keine speech bubble z. B über dem interaktionselement des inhaltsverzeichnises machen kann... \nund devops learn warum custom notizen speechbubbbles obowhl ausgewfüllt  hier plötzlich verschienwwnden - das ist wirklich worst case sowas sollte nie passieren dürfen im devops concept!\n\nbzgl. inhaltlich das concept. lege als issue für scc web an, das thema explireren noch mehr im hq reinzubringen - das sollte dann mit devops concept erforschtwer den, machen wir aber später daher als issue ;) \n\n\nStatt jetzt umzusetzen weil ich umsetzen klicke, bitte alles gut und exakt in jedem deteail festhalten als extrem guter usmetzungsplan sehr ausführlich. und dann pausieren, weil wir es morgen umsetzen werden wegen des nutzungslimitsresets als nächstne schritt!",
+    "screens": {
+      "h1-s1": "perfekt!",
+      "h1-s2": "Dsa inhaltsgverziecvhnis ist super funktioniert aber mobile leider nicht weil es da zu sehr gequetscht ist, gern eine andere aber wiederkennbare darstellung nehmen, üblicherweise in daumen reichweite. Vllt. auch einfahc weglassen mobile, man kann ja easy scrollen!\noder unten eine leiste, was immer best practice ist und zu scc passt.",
+      "h1-s5": "schritt modus kling tmir zu unspektaulär, eher switchen wir ja von Planen was zu planen wie... nur bessere wordings dafür!"
+    },
+    "decisions": [
+      {
+        "id": "r5-steps",
+        "label": "Namen der Schritt-Arten",
+        "value": "Kaufen · Mission · Abbauen · Raffinieren · Craften · Transportieren · Abholen",
+        "rec": "nouns",
+        "deviates": true
+      },
+      {
+        "id": "r5-multi",
+        "label": "Name eines Einsatzes mit mehreren Schritten",
+        "value": "Einsatz ×N",
+        "rec": "x",
+        "deviates": false
+      },
+      {
+        "id": "r5-moods",
+        "label": "Voreinstellungen für „Nach Lust“",
+        "value": [
+          "friedlich",
+          "kampf",
+          "schnell",
+          "zeit",
+          "gruppe",
+          "solo"
+        ],
+        "rec": "friedlich kampf schnell zeit gruppe",
+        "deviates": true
+      },
+      {
+        "id": "r5-default",
+        "label": "Auswahl beim Öffnen von Planen",
+        "value": "last",
+        "rec": "top3",
+        "deviates": true,
+        "note": "totp 3 nur wenn während dieser tab session (also kein reload neuaufmachen)  noch nix geändert wurde sonst egal wohin man hin und her springt die zuletzt auswhal!"
+      },
+      {
+        "id": "r5-rail",
+        "label": "Inhalt der linken Schnellleiste",
+        "value": "pages",
+        "rec": "pages",
+        "deviates": false
+      },
+      {
+        "id": "r5-search-one",
+        "label": "Eine Such-Komponente mit zwei Darstellungen",
+        "value": "ok",
+        "rec": "ok",
+        "deviates": false
+      },
+      {
+        "id": "r5-routes",
+        "label": "Routen der fünf HQ-Seiten",
+        "value": "anchor",
+        "rec": "anchor",
+        "deviates": false
+      },
+      {
+        "id": "r5-tristate",
+        "label": "Dreifach-Auswahl als eigenes Element",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "rec": "yes",
+        "deviates": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r5-h1-s3-a1",
+        "screen": "h1-s3",
+        "answer": "ganz genau!"
+      },
+      {
+        "id": "r5-h1-s3-a2",
+        "screen": "h1-s3",
+        "answer": "Dafür braucht es kein extra toggle. Top 3 angeklickt ist standard, nach lust ist wenn ich auf diejeweiligen filter möglichkeiten klicke und gezielt,  naja immer wenn ich was ändere. Das brauchen wir hier nicht durch einen toggle toggle bar machen..."
+      },
+      {
+        "id": "r5-h1-s3-a3",
+        "screen": "h1-s3",
+        "answer": "ja finde ich super! wobei sich die werte daraus ableiten was ich sozusagen für den enachschub als  sinnvoll markeirt habe. Also 1/4 pembroke ist nicht automatisch sondern weil ich alle 4 teile bzw. ggf. noch 3 übrig markiert habe mir holen zu wollen!"
+      },
+      {
+        "id": "r5-h1-s4-a1",
+        "screen": "h1-s4",
+        "answer": "vllt. einfach alle drei als toggle? \nletzter dann solo vs gruppe"
+      },
+      {
+        "id": "r5-h1-s4-a2",
+        "screen": "h1-s4",
+        "answer": "ja sehr gut, wobei visuell noch kein highlight :D sieht noch etwas nach 2010 aus... \nreicht als tiefe! hier!"
+      },
+      {
+        "id": "r5-h1-s6-a2",
+        "screen": "h1-s6",
+        "answer": "sehr gut wobei ich das näher zum logbuch bringen würde animativ! \nDafür aber aktive missionen eher als icon oder so rechts oben"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mvw9q7qaikjj",
+        "screen": "h1-s1",
+        "text": "sehr gut, auch wenn es natürlich auf eine seite passen muss ;) Also das planen icon darf nciht abgeschnitten sein"
+      },
+      {
+        "id": "up-mvwa3v1xw13m",
+        "screen": "h1-s6",
+        "text": "was soll deine einsätze rechts oben machen!?",
+        "recovered": "from draft textarea; pin record lost by the engine"
+      }
+    ]
   }
 ]
