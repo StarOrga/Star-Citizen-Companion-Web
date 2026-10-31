@@ -412,7 +412,8 @@ Two writers never touch the same files: `src/app/shell/fusion-bar/*` belongs to 
 
 ## 10. Follow-ups (issues, not in this release)
 
-- Explore bringing more into HQ (reputation, org, trading, wishlists …) — via a devops concept later (issue created 2026-10-31).
-- SCC-App ↔ Web live-data sync (P4) and SCC-App inventory capture (P7) also tracked as issues in both repos.
+- Explore bringing more into HQ (reputation, org, trading, wishlists …) — via a devops concept later: StarOrga/Star-Citizen-Companion-Web#859.
+- Tracking issues for the release packages: web live data StarOrga/Star-Citizen-Companion-Web#860 · desktop live sync StarOrga/Star-Citizen-Companion-App#1484 · desktop inventory capture StarOrga/Star-Citizen-Companion-App#1485.
+- Concept-engine defects seen in round 5 (pins at page end, lost pin record): JerryT2T/dotclaude#992, JerryT2T/dotclaude#993.
 - Variant page for personal ship variants (D22 "later").
 - Missions ingest kind if not available (§6.3).
