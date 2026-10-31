@@ -121,6 +121,19 @@
   animation: flash 23.7s ease-out -9s infinite;
   animation-play-state: var(--play);
 }
+// The live sun (WebGL) takes over disc, corona and storms once it runs; the
+// warm bloom stays. Its disc radius is 34 % of the half size, like .disc.
+.sun-gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+.sun-gl.on { opacity: 1; }
+.sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { opacity: 0; transition: opacity 1s ease-out; }
 @keyframes corona { to { transform: rotate(360deg); } }
 @keyframes breathe { from { opacity: 0.78; scale: 0.97; } to { opacity: 1; scale: 1.04; } }
 @keyframes boil { from { transform: rotate(-7deg) scale(1); opacity: 0.1; } to { transform: rotate(9deg) scale(1.06); opacity: 0.3; } }
