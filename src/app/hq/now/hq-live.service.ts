@@ -1,10 +1,12 @@
-import { DestroyRef, Injectable, InjectionToken, effect, inject, signal, untracked } from '@angular/core';
+import { DestroyRef, Injectable, InjectionToken, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { StepKind } from '../../shared/step/sc-step.component';
 import { HqLiveEventRow } from '../data/hq-db.types';
+import { HqCommunityService } from '../data/hq-community.service';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { HqLiveStore } from './hq-live.store';
 
@@ -22,6 +24,12 @@ export interface HqLiveApplyTargets {
     location?: string;
   }): { einsatzId: string; ord: number } | null;
   unmarkStep(einsatzId: string, ord: number): void;
+  /** Puts a replaced inventory snapshot back (`inventory.snapshot` undo). */
+  restoreSnapshot?(previous: unknown): Promise<boolean>;
+  /** False until the supplies and Einsatz services finished their first pull (auto-apply waits). */
+  ready?: Signal<boolean>;
+  /** Pull the newest server state, right before a live tick is applied on top of it. */
+  pull?(): Promise<void>;
 }
 
 export const HQ_LIVE_APPLY_TARGETS = new InjectionToken<HqLiveApplyTargets>('HQ_LIVE_APPLY_TARGETS', {
@@ -29,21 +37,43 @@ export const HQ_LIVE_APPLY_TARGETS = new InjectionToken<HqLiveApplyTargets>('HQ_
   factory: () => {
     const supplies = inject(HqSuppliesService);
     const einsatz = inject(HqEinsatzService);
+    const inventory = inject(HqInventoryService);
+    const ready = computed(() => supplies.ready() && einsatz.ready());
     return {
       tickByClassName: (className, qty) => supplies.tickByClassName(className, qty),
       untick: (id, qty) => supplies.untick(id, qty),
       markStepDone: (match) => einsatz.markStepDone(match),
       unmarkStep: (einsatzId, ord) => einsatz.unmarkStep(einsatzId, ord),
+      restoreSnapshot: (previous) => inventory.restoreSnapshot(previous),
+      ready,
+      pull: async () => {
+        await Promise.all([supplies.sync(), einsatz.sync()]);
+      },
     };
   },
 });
 
-/** What an auto-apply did, stored in `applied` so undo reverts exactly that. */
+/**
+ * What an auto-apply did, stored in `applied` so undo reverts exactly that. A desktop-written
+ * `inventory.snapshot` event carries `{replaced, previous}` without a `kind`: it reads as `snapshot`.
+ */
 export type HqLiveApplied =
   | { kind: 'supply'; id: string; qty: number }
   | { kind: 'step'; einsatzId: string; ord: number }
+  | { kind: 'snapshot'; previous: unknown }
   | { kind: 'none' }
-  | { kind: 'pending' };
+  | { kind: 'pending'; at?: string };
+
+/** A claim left `pending` longer than this is a crashed tab's: it gets claimed again. */
+export const LIVE_PENDING_STALE_MS = 2 * 60 * 1000;
+
+/** The kind of an `applied` marker, mapping the kind-less desktop snapshot shape. */
+export function appliedKind(applied: Record<string, unknown> | null): HqLiveApplied['kind'] | null {
+  if (!applied) return null;
+  const k = applied['kind'];
+  if (k === 'supply' || k === 'step' || k === 'snapshot' || k === 'none' || k === 'pending') return k;
+  return 'previous' in applied ? 'snapshot' : null;
+}
 
 export const LIVE_POLL_MS = 30_000;
 export const LIVE_PAGE_SIZE = 30;
@@ -58,6 +88,7 @@ export class HqLiveService {
   private readonly auth = inject(AuthService);
   private readonly store = inject(HqLiveStore);
   private readonly targets = inject(HQ_LIVE_APPLY_TARGETS);
+  private readonly community = inject(HqCommunityService);
 
   readonly state = signal<Record<string, unknown> | null>(null);
   /** Newest first. */
@@ -78,6 +109,11 @@ export class HqLiveService {
     effect(() => {
       const id = this.auth.user()?.id ?? null;
       untracked(() => this.start(id));
+    });
+    // Events that arrived before the supplies / Einsatz first pull are applied once that is done.
+    effect(() => {
+      const ready = this.targets.ready?.() ?? true;
+      if (ready) untracked(() => this.scan(this.events()));
     });
     inject(DestroyRef).onDestroy(() => this.start(null));
   }
@@ -159,21 +195,44 @@ export class HqLiveService {
 
   private ingest(rows: readonly HqLiveEventRow[]): void {
     this.merge(rows);
+    this.scan(rows);
+  }
+
+  /** Auto-apply what is new. Waits (without marking anything handled) until the targets finished their first pull. */
+  private scan(rows: readonly HqLiveEventRow[]): void {
+    if (this.targets.ready && !this.targets.ready()) return;
     // Oldest first, so a burst applies in the order it happened.
     for (const row of [...rows].sort((a, b) => (a.at < b.at ? -1 : 1))) {
-      if (row.applied !== null || row.undone || this.handled.has(row.id)) continue;
+      if (row.undone || this.handled.has(row.id)) continue;
+      const stale = this.stalePending(row);
+      if (row.applied !== null && !stale) continue;
       this.handled.add(row.id);
       if (Date.now() - new Date(row.at).getTime() > LIVE_APPLY_WINDOW_MS) continue;
-      void this.apply(row);
+      void this.apply(row, stale);
     }
   }
 
-  private async apply(row: HqLiveEventRow): Promise<void> {
+  /** A claim a crashed tab left behind: `pending` for longer than {@link LIVE_PENDING_STALE_MS}. */
+  private stalePending(row: HqLiveEventRow): boolean {
+    if (!row.applied || appliedKind(row.applied) !== 'pending') return false;
+    const at = Date.parse(String(row.applied['at'] ?? ''));
+    return Number.isFinite(at) && Date.now() - at > LIVE_PENDING_STALE_MS;
+  }
+
+  private async apply(row: HqLiveEventRow, reclaim: boolean): Promise<void> {
     const uid = this.uid;
     if (!uid) return;
     try {
       // Claim first so a second tab or device never applies the same event twice.
-      if (!(await this.store.claim(uid, row.id, { kind: 'pending' } satisfies HqLiveApplied))) return;
+      const marker = { kind: 'pending', at: new Date().toISOString() } satisfies HqLiveApplied;
+      const claimed = reclaim
+        ? await this.store.reclaimPending(uid, row.id, marker, new Date(Date.now() - LIVE_PENDING_STALE_MS).toISOString())
+        : await this.store.claim(uid, row.id, marker);
+      if (!claimed) return;
+      // Apply on top of the newest server state, not on what this tab pulled minutes ago.
+      await this.targets.pull?.();
+      if (this.uid !== uid) return;
+      this.reportPrice(row);
       const applied = this.doApply(row);
       await this.store.patch(uid, row.id, { applied: applied as unknown as Record<string, unknown> });
       this.setLocal(row.id, { applied: applied as unknown as Record<string, unknown> });
@@ -210,28 +269,70 @@ export class HqLiveService {
     }
   }
 
-  /** Reverts exactly what the event applied and marks it `undone`. */
+  /**
+   * Reverts exactly what the event applied and marks it `undone`. The undo is a conditional claim
+   * (`undone = false`) first, so two tabs never revert twice; local state is reverted only once
+   * the server accepted it.
+   */
   async undo(eventId: string): Promise<void> {
     const uid = this.uid;
     const row = this.events().find((e) => e.id === eventId);
     if (!uid || !row || row.undone) return;
-    const a = row.applied as HqLiveApplied | null;
-    if (a?.kind === 'supply') this.targets.untick(a.id, a.qty);
-    else if (a?.kind === 'step') this.targets.unmarkStep(a.einsatzId, a.ord);
-    this.setLocal(eventId, { undone: true });
-    if (this.toast()?.id === eventId) this.toast.set(null);
+    const a = row.applied;
+    const kind = appliedKind(a);
     try {
-      await this.store.patch(uid, eventId, { undone: true });
+      if (!(await this.store.claimUndo(uid, eventId))) {
+        // Another tab or device undid it first: nothing to revert here.
+        this.setLocal(eventId, { undone: true });
+        return;
+      }
     } catch (err) {
       logWarn('hq-live', 'undo write failed', err);
       this.error.set(toErrorKey('hq-live', 'undo', err));
+      return;
     }
+    if (this.uid !== uid) return;
+    if (kind === 'snapshot') {
+      // The restore is itself a server write: when it fails, hand the claim back so the user can retry.
+      const ok = (await this.targets.restoreSnapshot?.(a?.['previous'])) ?? false;
+      if (!ok) {
+        try {
+          await this.store.patch(uid, eventId, { undone: false });
+        } catch (err) {
+          logWarn('hq-live', 'undo release failed', err);
+        }
+        this.error.set(toErrorKey('hq-live', 'undo', new Error('snapshot restore failed')));
+        return;
+      }
+    } else if (kind === 'supply') this.targets.untick(String(a?.['id']), Number(a?.['qty']));
+    else if (kind === 'step') this.targets.unmarkStep(String(a?.['einsatzId']), Number(a?.['ord']));
+    this.setLocal(eventId, { undone: true });
+    if (this.toast()?.id === eventId) this.toast.set(null);
   }
 
   /** True when an event changed something that can be taken back. */
   undoable(row: HqLiveEventRow): boolean {
-    const k = (row.applied as HqLiveApplied | null)?.kind;
-    return !row.undone && (k === 'supply' || k === 'step');
+    const k = appliedKind(row.applied);
+    return !row.undone && (k === 'supply' || k === 'step' || k === 'snapshot');
+  }
+
+  /** Opt-in community data: an applied buy is a price report (class, shop, unit price). */
+  private reportPrice(row: HqLiveEventRow): void {
+    if (row.type !== 'shop.purchase') return;
+    const d = row.data ?? {};
+    const kind = typeof d['kind'] === 'string' ? d['kind'] : 'buy';
+    const result = typeof d['result'] === 'string' ? d['result'] : '';
+    const item = typeof d['item'] === 'string' ? d['item'].trim() : '';
+    const shop = typeof d['shop'] === 'string' ? d['shop'].trim() : '';
+    if (kind !== 'buy' || !item || !shop || (result && !/^(ok|success|bought|purchased)/i.test(result))) return;
+    const qty = typeof d['quantity'] === 'number' && d['quantity'] > 0 ? d['quantity'] : 1;
+    const unit = Number(d['unitPrice']);
+    const total = Number(d['price']);
+    const value = Number.isFinite(unit) && d['unitPrice'] != null ? unit : total / qty;
+    if (!Number.isFinite(value) || value < 0) return;
+    void this.community
+      .report([{ kind: 'price', class_name: item, location: shop, value }])
+      .catch((err) => logWarn('hq-live', 'community report failed', err));
   }
 
   dismissToast(): void {

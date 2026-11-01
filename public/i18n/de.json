@@ -5079,7 +5079,11 @@
       "forSet": "für Set {{name}}",
       "setReady": "Set {{name}} liegt bereit",
       "wanted": "Will ich holen",
-      "wantedAria": "{{name}} als gewünscht markieren"
+      "wantedAria": "{{name}} als gewünscht markieren",
+      "importTitle": "Liste aus diesem Browser übernehmen?",
+      "importMessage": "In diesem Browser liegt eine Nachschubliste von vor deiner Anmeldung ({{count}} Zeilen). In dein Konto übernehmen? Auf einem geteilten Browser kann sie jemand anderem gehören.",
+      "importConfirm": "In mein Konto übernehmen",
+      "importCancel": "Jetzt nicht"
     },
     "einsatz": {
       "single": "Einsatz",

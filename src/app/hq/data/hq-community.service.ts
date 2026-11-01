@@ -1,4 +1,5 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal, untracked } from '@angular/core';
+import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import type { HqCommunityMedianRow, HqCommunityReportInsert } from './hq-db.types';
@@ -21,13 +22,25 @@ export type ReportResult = { ok: true } | { ok: false; skipped: true } | { ok: f
 export class HqCommunityService {
   private readonly sb = inject(SupabaseClientProvider);
 
-  readonly shareEnabled = signal<boolean>(readShare());
+  private readonly auth = inject(AuthService);
+
+  /** The opt-in of the signed-in account (stored per user: a shared browser must not carry it over). */
+  readonly shareEnabled = signal<boolean>(false);
+
+  constructor() {
+    effect(() => {
+      const id = this.auth.user()?.id ?? null;
+      untracked(() => this.shareEnabled.set(id ? readShare(id) : false));
+    });
+  }
 
   setShare(on: boolean): void {
+    const id = this.auth.user()?.id ?? null;
+    if (!id) return;
     this.shareEnabled.set(on);
     try {
-      if (on) localStorage.setItem(COMMUNITY_SHARE_KEY, '1');
-      else localStorage.removeItem(COMMUNITY_SHARE_KEY);
+      if (on) localStorage.setItem(communityShareKey(id), '1');
+      else localStorage.removeItem(communityShareKey(id));
     } catch {
       /* storage blocked: the choice holds for this session */
     }
@@ -69,9 +82,14 @@ export class HqCommunityService {
   }
 }
 
-function readShare(): boolean {
+/** Storage key of one account's opt-in: `sc.hq.community.share.<uid>`. */
+export function communityShareKey(uid: string): string {
+  return `${COMMUNITY_SHARE_KEY}.${uid}`;
+}
+
+function readShare(uid: string): boolean {
   try {
-    return localStorage.getItem(COMMUNITY_SHARE_KEY) === '1';
+    return localStorage.getItem(communityShareKey(uid)) === '1';
   } catch {
     return false;
   }

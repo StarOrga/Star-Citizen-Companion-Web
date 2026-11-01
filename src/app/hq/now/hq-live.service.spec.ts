@@ -1,4 +1,5 @@
-import { signal } from '@angular/core';
+import { WritableSignal, signal } from '@angular/core';
+import { HqCommunityService } from '../data/hq-community.service';
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { AuthService } from '../../auth/auth.service';
 import { HqLiveEventRow, HqLiveStateRow } from '../data/hq-db.types';
@@ -29,6 +30,23 @@ class FakeStore {
     r.applied = { kind: 'pending' };
     return true;
   };
+  reclaims: string[] = [];
+  failUndoClaim = false;
+  reclaimPending = async (_u: string, id: string): Promise<boolean> => {
+    const r = this.rows.find((x) => x.id === id);
+    if (!r || (r.applied as { kind?: string } | null)?.kind !== 'pending') return false;
+    this.reclaims.push(id);
+    r.applied = { kind: 'pending', at: new Date().toISOString() };
+    return true;
+  };
+  claimUndo = async (_u: string, id: string): Promise<boolean> => {
+    if (this.failUndoClaim) throw new Error('offline');
+    const r = this.rows.find((x) => x.id === id);
+    if (!r || r.undone) return false;
+    r.undone = true;
+    this.patches.push({ id, patch: { undone: true } });
+    return true;
+  };
   patch = async (_u: string, id: string, patch: Record<string, unknown>): Promise<void> => {
     this.patches.push({ id, patch });
   };
@@ -45,7 +63,12 @@ describe('HqLiveService', () => {
     untick: jasmine.createSpy('untick'),
     markStepDone: jasmine.createSpy('mark').and.returnValue({ einsatzId: 'e1', ord: 2 }),
     unmarkStep: jasmine.createSpy('unmark'),
+    restoreSnapshot: jasmine.createSpy('restore').and.resolveTo(true),
+    pull: jasmine.createSpy('pull').and.resolveTo(),
+    ready: undefined as unknown as WritableSignal<boolean>,
   };
+  const reports: unknown[] = [];
+  const community = { report: async (r: unknown) => (reports.push(r), { ok: true }) };
 
   function make(): HqLiveService {
     TestBed.configureTestingModule({
@@ -53,6 +76,7 @@ describe('HqLiveService', () => {
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
         { provide: HqLiveStore, useValue: store },
         { provide: HQ_LIVE_APPLY_TARGETS, useValue: targets },
+        { provide: HqCommunityService, useValue: community },
       ],
     });
     return TestBed.inject(HqLiveService);
@@ -60,7 +84,9 @@ describe('HqLiveService', () => {
 
   beforeEach(() => {
     store = new FakeStore();
-    Object.values(targets).forEach((s) => s.calls.reset());
+    targets.ready = signal(true);
+    reports.length = 0;
+    (['tickByClassName', 'untick', 'markStepDone', 'unmarkStep', 'restoreSnapshot', 'pull'] as const).forEach((k) => targets[k].calls.reset());
   });
 
   it('ticks a supply for a buy purchase and records exactly what it did', fakeAsync(() => {
@@ -116,6 +142,103 @@ describe('HqLiveService', () => {
     void s.undo('s');
     flushMicrotasks();
     expect(targets.unmarkStep).toHaveBeenCalledWith('e1', 2);
+  }));
+
+  function settle(): void {
+    TestBed.tick();
+    for (let i = 0; i < 6; i++) flushMicrotasks();
+  }
+
+  it('waits for the first supplies / Einsatz pull before auto-applying, then applies', fakeAsync(() => {
+    targets.ready = signal(false);
+    store.rows = [ev('a', 'shop.purchase', { item: 'ITEM_X', kind: 'buy' })];
+    make();
+    settle();
+    expect(targets.tickByClassName).not.toHaveBeenCalled();
+    (targets.ready as WritableSignal<boolean>).set(true);
+    settle();
+    expect(targets.tickByClassName).toHaveBeenCalledTimes(1);
+    expect(targets.pull).toHaveBeenCalled();
+    TestBed.resetTestingModule();
+  }));
+
+  it('reclaims a claim a crashed tab left pending for more than 2 minutes, not a fresh one', fakeAsync(() => {
+    const old = new Date(Date.now() - 3 * 60_000).toISOString();
+    store.rows = [
+      ev('stale', 'shop.purchase', { item: 'ITEM_X', kind: 'buy' }, { applied: { kind: 'pending', at: old } }),
+      ev('fresh', 'shop.purchase', { item: 'ITEM_Y', kind: 'buy' }, { applied: { kind: 'pending', at: new Date().toISOString() } }),
+    ];
+    make();
+    settle();
+    expect(store.reclaims).toEqual(['stale']);
+    expect(targets.tickByClassName).toHaveBeenCalledTimes(1);
+    expect(targets.tickByClassName).toHaveBeenCalledWith('ITEM_X', 1);
+    TestBed.resetTestingModule();
+  }));
+
+  it('undo is a conditional claim: when another tab already undid it nothing is reverted here', fakeAsync(() => {
+    store.rows = [ev('a', 'shop.purchase', { item: 'ITEM_X', kind: 'buy' })];
+    const s = make();
+    settle();
+    store.rows[0].undone = true; // the other tab won
+    void s.undo('a');
+    settle();
+    expect(targets.untick).not.toHaveBeenCalled();
+    expect(s.events()[0].undone).toBeTrue();
+    TestBed.resetTestingModule();
+  }));
+
+  it('does not revert local state when the undo write fails', fakeAsync(() => {
+    store.rows = [ev('a', 'shop.purchase', { item: 'ITEM_X', kind: 'buy' })];
+    const s = make();
+    settle();
+    store.failUndoClaim = true;
+    void s.undo('a');
+    settle();
+    expect(targets.untick).not.toHaveBeenCalled();
+    expect(s.events()[0].undone).toBeFalse();
+    expect(s.error()).toMatch(/^errors\./);
+    TestBed.resetTestingModule();
+  }));
+
+  it('treats a desktop inventory.snapshot ({replaced, previous}, no kind) as undoable and restores previous', fakeAsync(() => {
+    const previous = { location: 'Lorville', items: [{ name: 'Rifle', qty: 1, unit: 'pcs' }] };
+    store.rows = [ev('snap', 'inventory.snapshot', {}, { applied: { replaced: true, previous } })];
+    const s = make();
+    settle();
+    expect(s.undoable(s.events()[0])).toBeTrue();
+    void s.undo('snap');
+    settle();
+    expect(targets.restoreSnapshot).toHaveBeenCalledWith(previous);
+    expect(s.events()[0].undone).toBeTrue();
+    TestBed.resetTestingModule();
+  }));
+
+  it('hands the undo claim back when the snapshot restore fails', fakeAsync(() => {
+    targets.restoreSnapshot.and.resolveTo(false);
+    store.rows = [ev('snap', 'inventory.snapshot', {}, { applied: { replaced: true, previous: { location: 'X' } } })];
+    const s = make();
+    settle();
+    void s.undo('snap');
+    settle();
+    expect(store.patches.at(-1)).toEqual({ id: 'snap', patch: { undone: false } });
+    expect(s.events()[0].undone).toBeFalse();
+    targets.restoreSnapshot.and.resolveTo(true);
+    TestBed.resetTestingModule();
+  }));
+
+  it('reports an applied buy as a community price (unitPrice, else price / quantity) and ignores sells', fakeAsync(() => {
+    store.rows = [
+      ev('a', 'shop.purchase', { item: 'ITEM_X', kind: 'buy', shop: 'Lorville', price: 300, quantity: 3 }),
+      ev('b', 'shop.purchase', { item: 'ITEM_Y', kind: 'buy', shop: 'Area18', price: 300, quantity: 3, unitPrice: 90 }),
+      ev('c', 'shop.purchase', { item: 'ITEM_Z', kind: 'sell', shop: 'Area18', price: 10 }),
+    ];
+    make();
+    settle();
+    expect(reports).toContain(jasmine.arrayWithExactContents([{ kind: 'price', class_name: 'ITEM_X', location: 'Lorville', value: 100 }]));
+    expect(reports).toContain(jasmine.arrayWithExactContents([{ kind: 'price', class_name: 'ITEM_Y', location: 'Area18', value: 90 }]));
+    expect(reports.length).toBe(2);
+    TestBed.resetTestingModule();
   }));
 
   it('polls every 30 s while Realtime is not subscribed, and stops when it is', fakeAsync(() => {
