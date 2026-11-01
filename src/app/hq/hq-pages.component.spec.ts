@@ -115,9 +115,15 @@ describe('HqPagesComponent', () => {
     const location = TestBed.inject(Location);
     const go = spyOn(location, 'go').and.callThrough();
     const link = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('sc-hq-rail a[href="/hq#bestand"]')!;
-    const mod = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
-    link.dispatchEvent(mod);
-    expect(mod.defaultPrevented).toBeFalse();
+    // A listener registered after the component's own sees whether it already took the click;
+    // it then cancels the click so the browser never opens a real tab in the Karma page.
+    let preventedByComponent: boolean | null = null;
+    link.addEventListener('click', (e) => {
+      preventedByComponent = e.defaultPrevented;
+      e.preventDefault();
+    }, { once: true });
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    expect(preventedByComponent).toBeFalse();
     expect(go).not.toHaveBeenCalled();
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true });
     link.dispatchEvent(plain);

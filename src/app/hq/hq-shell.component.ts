@@ -37,8 +37,7 @@ export const HQ_TABS: readonly HqTab[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Beta "shell": the tabs live in the Fusion bar (header and subheader are one capsule). -->
-    @if (!onPages()) {
-    <div class="hq-bar" [class.fused]="shell()">
+    <div class="hq-bar" [class.fused]="shell()" [hidden]="onPages()">
       @if (!shell()) {
         <nav class="hq-tabs" [attr.aria-label]="'hq.tabsAria' | translate">
           @for (t of tabs; track t.link) {
@@ -65,7 +64,6 @@ export const HQ_TABS: readonly HqTab[] = [
         <b class="supplies-count mono">{{ suppliesCount() }}</b>
       </button>
     </div>
-    }
 
     <router-outlet />
 
@@ -94,6 +92,7 @@ export const HQ_TABS: readonly HqTab[] = [
         margin-bottom: var(--sc-space-4, 16px);
         border-bottom: 1px solid var(--sc-border);
       }
+      .hq-bar[hidden] { display: none; }
       .hq-bar.fused { justify-content: flex-end; border-bottom: 0; }
       .hq-tabs { display: flex; gap: var(--sc-space-1, 4px); overflow-x: auto; min-width: 0; }
       .hq-tab {

@@ -8,8 +8,8 @@ import { ScTristateComponent, clampFraction, tristateOf } from './sc-tristate.co
   template: `<sc-tristate [value]="v()" [variant]="variant()" label="Pembroke" (toggled)="last = $event" />`,
 })
 class HostComponent {
-  v = signal(0);
-  variant = signal<'ring' | 'checkbox'>('ring');
+  readonly v = signal(0);
+  readonly variant = signal<'ring' | 'checkbox'>('ring');
   last: number | null = null;
 }
 

@@ -9,8 +9,8 @@ import { STEP_KINDS, STEP_SHAPES, ScStepComponent, StepKind, StepState } from '.
   template: `<sc-step [kind]="kind()" [state]="state()" label="Gold" [qty]="3" location="Lorville" [undoable]="true" (undo)="undone = true" />`,
 })
 class HostComponent {
-  kind = signal<StepKind>('buy');
-  state = signal<StepState>('todo');
+  readonly kind = signal<StepKind>('buy');
+  readonly state = signal<StepState>('todo');
   undone = false;
 }
 

@@ -1,7 +1,9 @@
 import de from '../../../public/i18n/de.json';
 import en from '../../../public/i18n/en.json';
 
-type Tree = { [key: string]: string | Tree };
+interface Tree {
+  [key: string]: string | Tree;
+}
 
 /** Every string leaf under `node` as `[dotted.key, value]`. */
 function leaves(node: Tree, prefix: string): [string, string][] {
