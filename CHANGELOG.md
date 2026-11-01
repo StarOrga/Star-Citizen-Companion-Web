@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.185.0] - 2026-11-01
+
+### Added
+- **Living sun.** The sun on the Verse stage is now a real star: a boiling surface with sunspots, flames streaming from the edge, plasma loops whose material flows along them — some erupt and tear away — and now and then a flare.
+- **Rotating planets.** News (Crusader), Patches and Galerie (microTech) turn slowly under a fixed sun: the day/night line, the glint and the atmosphere stay in place, only the surface moves. microTech's clouds drift faster than the ground.
+
+### Changed
+- **Realistic planet surfaces.** All three stage planets got new, procedurally drawn surfaces instead of colour gradients: Crusader with turbulent pastel bands and storms, microTech with snow, slate ridges and New Babbage glowing at night.
+- **Patches planet as industrial zones.** The Patches planet is split into industrial zones like countries on a map — irregular areas with straight borders, each its own tone; at night the borders glow as transit lines with moving traffic.
+
 ## [0.184.0] - 2026-11-01
 
 ### Added
