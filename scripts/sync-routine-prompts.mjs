@@ -44,7 +44,7 @@ export function split(text) {
   return { frontmatter: s.slice(0, end + 5), body: s.slice(end + 5) };
 }
 
-const SNAPSHOT_HEADER = `<!-- SNAPSHOT of the scheduled-task prompt at C:\\Users\\Jerem\\.claude\\scheduled-tasks\\nightly-admin-feedback\\SKILL.md.
+const SNAPSHOT_HEADER = `<!-- SNAPSHOT of the scheduled-task prompt at ~/.claude/scheduled-tasks/nightly-admin-feedback/SKILL.md.
      The scheduler reads the file under ~/.claude, NOT this copy (concept 2026-09-13, E2a: the routine must never load
      its own prompt from a repo it merges into). This snapshot exists so drift between prompt and runbook shows up in a
      diff. Refresh it whenever the prompt changes: npm run sync:routine-prompts (keeps this header). -->
@@ -55,31 +55,34 @@ const JANITOR_HEADER = `<!-- Snapshot of ~/.claude/scheduled-tasks/routine-janit
 `;
 
 function toRepo() {
-  const missing = TASKS.filter((t) => !existsSync(livePath(t)));
+  // The janitor is optional: unregistered since 2026-10-14 (RESTORE.md), its repo copy then stays as is.
+  const missing = [EVENING, DAY].filter((t) => !existsSync(livePath(t)));
   if (missing.length) throw new Error(`live task file(s) missing: ${missing.join(', ')} — nothing synced`);
   const evening = lf(readFileSync(livePath(EVENING), 'utf8'));
   // Day file = its own frontmatter + the evening body (the shared-body rule).
   const dayLive = lf(readFileSync(livePath(DAY), 'utf8'));
   const day = split(dayLive).frontmatter + split(evening).body;
   if (day !== dayLive) { writeFileSync(livePath(DAY), day); console.log(`[sync-routine-prompts] day task body refreshed from the evening file`); }
-  const janitor = lf(readFileSync(livePath(JANITOR), 'utf8'));
-  for (const [t, text] of [[EVENING, evening], [DAY, day], [JANITOR, janitor]]) {
+  const janitor = existsSync(livePath(JANITOR)) ? lf(readFileSync(livePath(JANITOR), 'utf8')) : null;
+  const copies = [[EVENING, evening], [DAY, day]];
+  if (janitor) copies.push([JANITOR, janitor]);
+  for (const [t, text] of copies) {
     mkdirSync(dirname(repoPath(t)), { recursive: true });
     writeFileSync(repoPath(t), text);
   }
   writeFileSync(join(REPO, 'docs', 'routine', 'SKILL.snapshot.md'), SNAPSHOT_HEADER + evening);
-  writeFileSync(join(REPO, 'docs', 'routine', 'JANITOR.snapshot.md'), JANITOR_HEADER + janitor);
+  if (janitor) writeFileSync(join(REPO, 'docs', 'routine', 'JANITOR.snapshot.md'), JANITOR_HEADER + janitor);
   console.log(`[sync-routine-prompts] repo copies + snapshots refreshed from ${TASK_DIR}`);
 }
 
 function toLive() {
-  for (const t of TASKS) {
+  for (const t of [EVENING, DAY]) {
     if (!existsSync(repoPath(t))) throw new Error(`repo copy missing: ${repoPath(t)}`);
     mkdirSync(dirname(livePath(t)), { recursive: true });
     writeFileSync(livePath(t), lf(readFileSync(repoPath(t), 'utf8')));
     console.log(`[sync-routine-prompts] wrote ${livePath(t)}`);
   }
-  console.log('[sync-routine-prompts] now register the three tasks in the Desktop app (docs/routine/RESTORE.md, step 5)');
+  console.log('[sync-routine-prompts] now register the two feedback tasks in the Desktop app — from a session whose folder is the primary checkout, the app stores that folder as the run cwd (docs/routine/RESTORE.md, step 5)');
 }
 
 const isMain = process.argv[1] && import.meta.url === new URL(`file:///${process.argv[1].replace(/\\/g, '/')}`).href;
