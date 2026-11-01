@@ -316,6 +316,9 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--game-build", default="",
                     help="game build number, stamped into skins.json: --skip-existing "
                          "rebuilds a ship cached from another build of the same patch")
+    ap.add_argument("--recipe", default="",
+                    help="build recipe of the 3D output (model3d@N, build-recipes.ts): keys the "
+                         "cache instead of the module bytes, so only a bumped recipe rebuilds")
     ap.add_argument("--no-reuse", action="store_true",
                     help="do not take hulls/parts from an earlier patch's build")
     ap.add_argument("--workers", type=int, default=0,
@@ -666,7 +669,8 @@ def main() -> int:
         # build and this pipeline (see `_cached_catalog`).
         from .build_cache import pipeline_tag
         args.stamp = {"game_build": args.game_build,
-                      "pipeline": pipeline_tag(args.converter, args.cache_salt)}
+                      "pipeline": pipeline_tag(args.converter, args.cache_salt,
+                                               recipe=args.recipe)}
         jobs: List[Tuple[int, ShipRef]] = []
         for i, ref in enumerate(refs):
             entry = _fully_cached(args, ref)

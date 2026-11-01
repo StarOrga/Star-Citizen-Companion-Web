@@ -43,3 +43,28 @@ test('untouched sources and new subthemes need nothing', () => {
     0,
   );
 });
+
+test('build recipes use their own trailer', () => {
+  const keys = ['model3d', 'silhouette'];
+  const body = 'fix\n\nSubtheme-Unchanged: hulls\nRecipe-Unchanged: model3d\n';
+  assert.deepEqual([...parseAcks(body, keys, 'Recipe-Unchanged')], ['model3d']);
+  assert.equal(parseAcks('Subtheme-Unchanged: all', keys, 'Recipe-Unchanged').size, 0);
+});
+
+test('the real build-recipes.ts parses like subthemes.ts', async () => {
+  const { readFileSync } = await import('node:fs');
+  const revs = parseRevisions(readFileSync('data-uploader/src/lib/build-recipes.ts', 'utf8'));
+  assert.deepEqual(Object.keys(revs).sort(), ['model3d', 'silhouette']);
+});
+
+test('comment lines between key and revision are skipped', () => {
+  const src = "{\n    key: 'ships',\n    // 2: #643 — readable again.\n    // 3: decks\n    revision: 5,\n  }";
+  assert.deepEqual(parseRevisions(src), { ships: 5 });
+});
+
+test('the real subthemes.ts has a revision for every key', async () => {
+  const { readFileSync } = await import('node:fs');
+  const revs = parseRevisions(readFileSync('data-uploader/src/lib/subthemes.ts', 'utf8'));
+  assert.deepEqual(Object.keys(revs).sort(),
+    ['codex_extra', 'components', 'hulls', 'items', 'ships', 'silhouettes', 'strings', 'weapons']);
+});

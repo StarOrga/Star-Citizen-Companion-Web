@@ -257,3 +257,22 @@ def test_a_changed_rebuild_loses_the_upload_marker(tmp_path):
     exp._settle_previous(prev, out)
     assert not (out / ".uploaded").exists()
     assert not prev.exists()
+
+
+# ---- build recipes (data-uploader/src/lib/build-recipes.ts) -----------------
+def test_a_recipe_keys_the_pipeline_instead_of_the_module_bytes():
+    a = build_cache.pipeline_tag(salt="s", recipe="model3d@1")
+    # Other module bytes (a refactor, a log line) leave a recipe-keyed tag alone …
+    assert build_cache.pipeline_tag(salt="s", recipe="model3d@1", modules=("nope.py",)) == a
+    # … a bumped recipe or another tool version does not.
+    assert build_cache.pipeline_tag(salt="s", recipe="model3d@2") != a
+    assert build_cache.pipeline_tag(salt="t", recipe="model3d@1") != a
+    # Without a recipe (dev / CLI runs) the modules are hashed as before.
+    assert build_cache.pipeline_tag(salt="s") != build_cache.pipeline_tag(salt="s", modules=("nope.py",))
+
+
+def test_a_recipe_keys_the_silhouette_cache():
+    from sc_extract.silhouette_export import algo_tag
+    assert algo_tag("silhouette@1") == algo_tag("silhouette@1")
+    assert algo_tag("silhouette@1") != algo_tag("silhouette@2")
+    assert algo_tag("silhouette@1") != algo_tag()
