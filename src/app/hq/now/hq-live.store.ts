@@ -43,6 +43,36 @@ export class HqLiveStore {
     return (data?.length ?? 0) > 0;
   }
 
+  /**
+   * Re-claim an event a crashed tab left `{kind:'pending'}`: only when the marker is older than
+   * `olderThanIso` (its own `at`), so a claim that is still being worked on is never stolen.
+   */
+  async reclaimPending(uid: string, id: string, marker: Record<string, unknown>, olderThanIso: string): Promise<boolean> {
+    const { data, error } = await this.sb.client
+      .from('hq_live_events')
+      .update({ applied: marker })
+      .eq('user_id', uid)
+      .eq('id', id)
+      .eq('applied->>kind', 'pending')
+      .lt('applied->>at', olderThanIso)
+      .select('id');
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
+  }
+
+  /** Atomic undo claim: only one tab/device gets `true` for a not yet undone event. */
+  async claimUndo(uid: string, id: string): Promise<boolean> {
+    const { data, error } = await this.sb.client
+      .from('hq_live_events')
+      .update({ undone: true })
+      .eq('user_id', uid)
+      .eq('id', id)
+      .eq('undone', false)
+      .select('id');
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
+  }
+
   async patch(uid: string, id: string, patch: { applied?: Record<string, unknown>; undone?: boolean }): Promise<void> {
     const { error } = await this.sb.client.from('hq_live_events').update(patch).eq('user_id', uid).eq('id', id);
     if (error) throw error;
@@ -51,14 +81,19 @@ export class HqLiveStore {
   subscribe(uid: string, cb: LiveSubscription): () => void {
     const client = this.sb.client;
     const filter = `user_id=eq.${uid}`;
+    // INSERT and UPDATE only: a DELETE payload is not RLS-filtered and would carry other users' ids.
+    const onState = (p: { new: Record<string, unknown> }) => {
+      if (p.new && 'state' in p.new) cb.onState(p.new as unknown as HqLiveStateRow);
+    };
+    const onEvent = (p: { new: Record<string, unknown> }) => {
+      if (p.new && 'type' in p.new) cb.onEvent(p.new as unknown as HqLiveEventRow);
+    };
     const channel = client
       .channel(`hq-live-${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hq_live_state', filter }, (p) => {
-        if (p.new && 'state' in p.new) cb.onState(p.new as HqLiveStateRow);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hq_live_events', filter }, (p) => {
-        if (p.new && 'type' in p.new) cb.onEvent(p.new as HqLiveEventRow);
-      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hq_live_state', filter }, onState)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hq_live_state', filter }, onState)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hq_live_events', filter }, onEvent)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hq_live_events', filter }, onEvent)
       .subscribe((status) => cb.onStatus(status));
     return () => {
       void client.removeChannel(channel);
