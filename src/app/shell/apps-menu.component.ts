@@ -14,7 +14,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
-import { DesktopProduct, ReleaseRing, isAdminOnlyRing, ringsForRole } from '../desktop/desktop-access';
+import { DesktopProduct, ringsForRole } from '../desktop/desktop-access';
 import { DesktopReleaseService, RingRelease } from '../desktop/desktop-release.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 
@@ -38,12 +38,9 @@ export interface AppEntry {
   tagKey: string | null;
   /** Collaborator-gated app: head painted in the hot accent. */
   elevated: boolean;
-  /** Channel rows (role-filtered); two or more -> the picker, else a plain download. */
-  rows: readonly RingRelease[];
+  /** The stable download, or null when no release resolved (uploader -> its page). */
   href: string | null;
   meta: string;
-  soloRing: ReleaseRing | null;
-  adminOnly: (ring: ReleaseRing) => boolean;
 }
 
 /**
@@ -74,27 +71,7 @@ export interface AppEntry {
         @if (open()) {
           <div class="pop" [id]="panelId" role="group" [attr.aria-label]="'appsMenu.aria' | translate">
             @for (app of apps(); track app.id) {
-              @if (app.rows.length > 1) {
-                <!-- Several channels for this role: head + one real download anchor per channel. -->
-                <div class="app" [class.elevated]="app.elevated" role="group" [attr.aria-label]="app.nameKey | translate">
-                  <div class="entry head">
-                    <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
-                  </div>
-                  <div class="rings">
-                    @for (r of app.rows; track r.ring) {
-                      <a class="ring" [class.admin-only]="app.adminOnly(r.ring)" [href]="r.url" rel="noopener noreferrer" download (click)="onPick($event)">
-                        <span class="r-name">{{ 'desktop.channel.' + r.ring | translate }}</span>
-                        <span class="r-meta">{{ metaOf(r) }}</span>
-                        @if (app.adminOnly(r.ring)) {
-                          <span class="r-tag">{{ 'appMenu.adminOnly' | translate }}</span>
-                        } @else if (r.ring === 'stable') {
-                          <span class="r-tag">{{ 'appMenu.recommended' | translate }}</span>
-                        }
-                      </a>
-                    }
-                  </div>
-                </div>
-              } @else if (app.href) {
+              @if (app.href) {
                 <a class="entry" [class.elevated]="app.elevated" [href]="app.href" rel="noopener noreferrer" download (click)="onPick($event)">
                   <ng-container *ngTemplateOutlet="appBody; context: { $implicit: app }" />
                 </a>
@@ -104,6 +81,8 @@ export interface AppEntry {
                 </a>
               }
             }
+            <!-- Stable only: beta/alpha are picked inside each app after sign-in. -->
+            <p class="hint">{{ 'appMenu.prerelease' | translate }}</p>
           </div>
         }
       </div>
@@ -123,20 +102,13 @@ export interface AppEntry {
       <span class="txt">
         <strong>{{ app.nameKey | translate }}@if (app.tagKey) {<em>{{ app.tagKey | translate }}</em>}</strong>
         <span class="desc">{{ app.descKey | translate }}</span>
-        @if (app.rows.length > 1) {
-          <span class="meta">{{ 'appsMenu.pickChannel' | translate }}</span>
-        } @else {
-          <span class="meta">
-            @if (app.id === 'scc') {
-              {{ 'appsMenu.platform' | translate }}
-            } @else {
-              {{ app.meta }}
-              @if (app.soloRing && app.soloRing !== 'stable') {
-                · {{ 'desktop.channel.' + app.soloRing | translate }}
-              }
-            }
-          </span>
-        }
+        <span class="meta">
+          @if (app.id === 'scc') {
+            {{ 'appsMenu.platform' | translate }}
+          } @else {
+            {{ app.meta }}
+          }
+        </span>
       </span>
     </ng-template>
   `,
@@ -183,34 +155,12 @@ export interface AppEntry {
     .entry.elevated strong, .entry.elevated em { color: var(--sc-accent-hot); }
     .entry.elevated:hover, .entry.elevated:focus-visible { background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent); }
     .entry.elevated:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-hot); }
-    .app { display: flex; flex-direction: column; border-radius: 8px; }
-    .app.elevated { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--sc-accent-hot) 40%, transparent); }
-    .entry.head { cursor: default; padding-bottom: 4px; }
-    .app.elevated .entry.head { margin-top: 0; border-top: 0; }
-    .app.elevated .entry.head:hover { background: none; }
-    .entry.head:hover { background: none; }
-    .rings { display: flex; flex-direction: column; gap: 2px; padding: 0 6px 6px 58px; }
-    .ring {
-      display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 10px; border-radius: 6px;
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, var(--sc-border));
-      color: var(--sc-fg-1); text-decoration: none; font-size: 0.78rem;
+    .hint {
+      margin: 4px 0 0; padding: 8px 10px 4px; border-top: 1px solid var(--sc-border);
+      font-size: 0.72rem; line-height: 1.4; color: var(--sc-fg-2);
     }
-    .ring:hover, .ring:focus-visible {
-      outline: none; color: var(--sc-fg-0); border-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
-    }
-    .ring:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent); }
-    .r-name { font-family: var(--sc-font-display); letter-spacing: 0.05em; flex: 1 1 auto; }
-    .r-meta { font-variant-numeric: tabular-nums; color: var(--sc-fg-2); font-size: 0.72rem; }
-    .r-tag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
-    .ring.admin-only { border-color: color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border)); }
-    .ring.admin-only .r-name, .ring.admin-only .r-tag { color: var(--sc-accent-hot); }
-    .ring.admin-only:hover, .ring.admin-only:focus-visible {
-      border-color: var(--sc-accent-hot); background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent);
-    }
-    .ring.admin-only:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-hot); }
     @media (max-width: 720px) { .label { display: none; } .trigger { padding: 0 11px; } }
-    @media (pointer: coarse) { .trigger { min-height: 48px; } .entry { min-height: 48px; } .ring { min-height: 48px; } }
+    @media (pointer: coarse) { .trigger { min-height: 48px; } .entry { min-height: 48px; } }
   `],
 })
 export class AppsMenuComponent {
@@ -231,9 +181,10 @@ export class AppsMenuComponent {
   readonly offered = computed(() => this.device.canInstall());
 
   /**
-   * The apps this role sees, each with the channels its role may take. SCC App has
-   * no release channels (one never-stale installer alias), so it stays a single
-   * download. More than one resolved channel -> channel rows; otherwise a plain download.
+   * The apps this role sees, each as ONE stable download. SCC App points at its
+   * never-stale stable installer alias; Starscape and the uploader at their
+   * stable ring. Beta/alpha are not offered here — each app switches ring itself
+   * once the user has signed in (see `DOWNLOAD_RING`).
    */
   readonly apps = computed<AppEntry[]>(() => {
     const role = this.roles.role();
@@ -241,21 +192,13 @@ export class AppsMenuComponent {
     const list: AppEntry[] = [
       {
         id: 'scc', nameKey: 'appsMenu.scc.name', descKey: 'appsMenu.scc.desc', tagKey: null, elevated: false,
-        rows: [], href: SCC_INSTALLER_URL, meta: '', soloRing: null, adminOnly: () => false,
+        href: SCC_INSTALLER_URL, meta: '',
       },
     ];
-    const build = (product: DesktopProduct, base: Omit<AppEntry, 'rows' | 'href' | 'meta' | 'soloRing' | 'adminOnly'>, fallback: string | null) => {
+    const build = (product: DesktopProduct, base: Omit<AppEntry, 'href' | 'meta'>, fallback: string | null) => {
       const allowed = ringsForRole(product, role);
-      const rows = rel[product].filter((r) => allowed.includes(r.ring));
-      const solo = rows.length === 1 ? rows[0] : null;
-      list.push({
-        ...base,
-        rows,
-        href: solo?.url ?? fallback,
-        meta: this.metaOf(solo),
-        soloRing: solo?.ring ?? null,
-        adminOnly: (ring: ReleaseRing) => isAdminOnlyRing(product, ring),
-      });
+      const stable = rel[product].find((r) => allowed.includes(r.ring)) ?? null;
+      list.push({ ...base, href: stable?.url ?? fallback, meta: this.metaOf(stable) });
     };
     build('starscape', { id: 'starscape', nameKey: 'appsMenu.starscape.name', descKey: 'appsMenu.starscape.desc', tagKey: null, elevated: false }, STARSCAPE_FALLBACK_URL);
     if (this.roles.isCollaborator() && ringsForRole('uploader', role).length > 0) {

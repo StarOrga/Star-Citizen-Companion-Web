@@ -19,9 +19,7 @@ import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import {
   DesktopProduct,
-  ReleaseRing,
   daysSinceSeen,
-  isAdminOnlyRing,
   isRestrictedProduct,
   ringsForRole,
 } from './desktop-access';
@@ -56,11 +54,11 @@ let nextId = 0;
  *   · Codex landing, far right of the Archive-Terminal row → `uploader`
  *     (collaborator+ only; a viewer never sees it and the Verse-online pill
  *     simply becomes the row's last element).
- *   · Starscape header, top right → `starscape` (everyone; the ring list is
- *     what narrows by role).
+ *   · Starscape header, top right → `starscape` (everyone).
  *
  * A resting trigger, an OVERLAPPING popover (absolute, never pushes layout),
- * one anchor per release ring, and the account's desktop-connection state. It
+ * the stable download (beta and alpha are picked inside the app after sign-in,
+ * see `DOWNLOAD_RING`), and the account's desktop-connection state. It
  * collapses itself the moment a download is started, on Esc, and on any click
  * outside — Esc and the download return focus to the trigger.
  *
@@ -147,15 +145,8 @@ let nextId = 0;
             @if (releases().length > 0) {
               <div class="pop-list">
                 @for (r of releases(); track r.ring) {
-                  <!-- Per-entry accent: a ring nobody below admin is ever
-                       offered is red, every other ring stays in the normal
-                       accent — even inside a red (restricted) box. The colour
-                       never carries the meaning alone; the admin-only ring also
-                       says so in words. -->
                   <a
                     class="pop-dl"
-                    [class.secondary]="r.ring !== 'stable'"
-                    [class.admin-only]="adminOnlyRing(r.ring)"
                     [href]="r.url"
                     [scTooltip]="tooltip(r)"
                     target="_blank"
@@ -165,11 +156,6 @@ let nextId = 0;
                     <span class="dl-arrow" aria-hidden="true">↓</span>
                     <span class="dl-ring">{{ 'desktop.channel.' + r.ring | translate }}</span>
                     <span class="dl-ver">v{{ r.version }}</span>
-                    @if (r.ring === 'stable') {
-                      <span class="dl-tag">{{ 'appMenu.recommended' | translate }}</span>
-                    } @else if (adminOnlyRing(r.ring)) {
-                      <span class="dl-tag">{{ 'appMenu.adminOnly' | translate }}</span>
-                    }
                   </a>
                 }
               </div>
@@ -221,8 +207,7 @@ let nextId = 0;
     /* Colour semantics (admin feedback b8b31f24): the hot accent means "you are
        seeing this because of elevated access". The whole control paints from
        ONE variable so the meaning cannot drift between the trigger, the overlay
-       and the entries — the box sets it, and an admin-only entry overrides it
-       for itself. Everything public reads in the normal accent. */
+       and the entry. Everything public reads in the normal accent. */
     .dlm { position: relative; --dlm-accent: var(--sc-accent); }
     .dlm.restricted { --dlm-accent: var(--sc-accent-hot, #ff9f43); }
 
@@ -316,23 +301,8 @@ let nextId = 0;
       transition: filter 0.16s ease;
     }
     .pop-dl:hover, .pop-dl:focus-visible { filter: brightness(1.1); outline: none; }
-    .pop-dl.secondary {
-      color: var(--sc-fg-1); background: transparent;
-      border-color: color-mix(in srgb, var(--dlm-accent) 40%, var(--sc-border));
-    }
-    .pop-dl.secondary:hover, .pop-dl.secondary:focus-visible {
-      color: var(--sc-fg-0); border-color: var(--dlm-accent);
-      background: color-mix(in srgb, var(--dlm-accent) 10%, transparent);
-    }
-    /* The one sub-entry that is genuinely admin-only re-declares the variable
-       for itself, so it reads red inside an otherwise normal-accent box. */
-    .pop-dl.admin-only { --dlm-accent: var(--sc-accent-hot, #ff9f43); }
     .dl-ring { font-family: var(--sc-font-display); letter-spacing: 0.05em; flex: 1 1 auto; }
     .dl-ver { font-variant-numeric: tabular-nums; opacity: 0.85; }
-    .dl-tag {
-      font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase;
-      letter-spacing: 0.08em; opacity: 0.8;
-    }
 
     /* Host slot for caller-supplied context (the Codex landing puts its patch /
        archive provenance here — the data this very tool produces). */
@@ -416,17 +386,15 @@ export class AppDownloadMenuComponent {
 
   readonly chrome = computed(() => CHROME[this.product()]);
   /**
-   * Footnotes under the ring list. Starscape adds its auto-update note and, as
-   * soon as more than one ring is on offer, the ring-lock warning — the app
-   * derives its ring from the downloaded filename and cannot switch in-app.
+   * Footnotes under the download. Every product says where beta and alpha went
+   * (into the app, behind sign-in); Starscape adds its auto-update note.
    */
-  readonly notes = computed<readonly string[]>(() => {
-    if (this.product() !== 'starscape') return [this.chrome().note];
-    const notes = [this.chrome().note, 'starscape.appAutoUpdate'];
-    if (this.rings().length > 1) notes.push('starscape.appRingLock');
-    return notes;
-  });
-  /** Rings this visitor may take — empty means the control is not rendered. */
+  readonly notes = computed<readonly string[]>(() =>
+    this.product() === 'starscape'
+      ? [this.chrome().note, 'starscape.appAutoUpdate', 'appMenu.prerelease']
+      : [this.chrome().note, 'appMenu.prerelease'],
+  );
+  /** `[stable]`, or empty when this visitor may not download the product at all. */
   readonly rings = computed(() => ringsForRole(this.product(), this.roles.role()));
   /**
    * Is this control rendered at all?
@@ -504,15 +472,6 @@ export class AppDownloadMenuComponent {
   onNavigate(ev: MouseEvent): void {
     if (!isPlainLeftClick(ev)) return;
     this.close(false);
-  }
-
-  /**
-   * Is this ring offered to admins only? Drives both the red accent and the
-   * "Admin only" tag on the entry, so the colour is never the only carrier of
-   * the meaning (admin feedback b8b31f24).
-   */
-  adminOnlyRing(ring: ReleaseRing): boolean {
-    return isAdminOnlyRing(this.product(), ring);
   }
 
   /** Technical detail belongs in the tooltip, not on the button. */

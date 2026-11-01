@@ -76,35 +76,21 @@ describe('AppsMenuComponent', () => {
       expect(entries.some((a) => a.classList.contains('elevated'))).toBeFalse();
       expect(entries[1].getAttribute('href')).toBe('https://example.test/starscape-stable.exe');
       expect(entries[1].textContent).toContain('v1.2.0 · 5.0 MB');
-      expect(el().querySelector('.ring')).toBeNull();
       expect(ringsFor).toHaveBeenCalledTimes(1);
     });
   }
 
-  it('collaborator: Starscape and Data Uploader offer stable + beta, no admin-only entry', async () => {
-    setup('collaborator');
-    await openMenu();
-    expect(hrefs('.pop .app:not(.elevated) a.ring')).toEqual([
-      'https://example.test/starscape-stable.exe',
-      'https://example.test/starscape-beta.exe',
-    ]);
-    expect(hrefs('.pop .app.elevated a.ring')).toEqual([
-      'https://example.test/uploader-stable.exe',
-      'https://example.test/uploader-beta.exe',
-    ]);
-    expect(el().querySelector('.ring.admin-only')).toBeNull();
-  });
-
-  it('admin: all three channels per app, alpha in the hot accent and labelled admin only', async () => {
-    setup('admin');
-    await openMenu();
-    expect(hrefs('.pop .app.elevated a.ring').length).toBe(3);
-    const alphas = Array.from(el().querySelectorAll<HTMLAnchorElement>('.ring.admin-only'));
-    expect(alphas.length).toBe(2);
-    expect(alphas.every((a) => a.getAttribute('href')!.endsWith('-alpha.exe'))).toBeTrue();
-    expect(alphas.every((a) => !!a.querySelector('.r-tag')?.textContent?.trim())).toBeTrue();
-    expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable', 'beta', 'alpha']);
-  });
+  for (const r of ['collaborator', 'admin']) {
+    it(`${r}: stable only for every app, the uploader in the hot accent`, async () => {
+      setup(r);
+      await openMenu();
+      expect(hrefs('.pop a.entry:not(.elevated)')[1]).toBe('https://example.test/starscape-stable.exe');
+      expect(hrefs('.pop a.entry.elevated')).toEqual(['https://example.test/uploader-stable.exe']);
+      expect(ringsFor).toHaveBeenCalledWith('starscape', ['stable']);
+      expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable']);
+      expect(el().querySelector('.pop .hint')?.textContent).toContain('appMenu.prerelease');
+    });
+  }
 
   it('closes on Escape and returns focus to the trigger', async () => {
     setup('viewer');

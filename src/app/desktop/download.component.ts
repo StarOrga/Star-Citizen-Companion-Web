@@ -1,18 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
-import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
+import { DOWNLOAD_RING } from './desktop-access';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /**
  * Minimal, viewer-accessible download surface (`/apps/starscape`). Unlike `/apps/uploader`
  * (collaborator+, which also reaches the bundle history), this page shows ONLY
- * the desktop-tool download for the caller's allowed channel. Viewers get stable
- * with no picker; collaborators/admins get the role-gated picker. The
- * `desktop_release_for_channel` RPC clamps the channel server-side.
+ * the desktop-tool download — always the stable ring. Beta and alpha are picked
+ * inside the app after sign-in (`DOWNLOAD_RING`).
  *
  * Renders the shared `sc-app-download-panel` (admin feedback eb9c6ec3), so all
  * three download surfaces — this one, `/apps/uploader` and Starscape — are the same
@@ -21,7 +20,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 @Component({
   selector: 'sc-download',
   standalone: true,
-  imports: [RouterLink, ScDatePipe, TranslatePipe, AppDownloadPanelComponent, ChannelPickerComponent],
+  imports: [RouterLink, ScDatePipe, TranslatePipe, AppDownloadPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dl">
@@ -42,9 +41,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
         [entries]="entries()"
         [busy]="busy()"
         [notes]="notes"
-        [releaseNotes]="release()?.notes ?? null">
-        <sc-channel-picker panelActions [(channel)]="channel" />
-      </sc-app-download-panel>
+        [releaseNotes]="release()?.notes ?? null" />
 
       @if (shell()) {
         <!-- Shell beta: the browser extension lives in the download area, not only behind a Codex promo. -->
@@ -98,9 +95,7 @@ export class DownloadComponent {
   readonly busy = signal(false);
   /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
-  readonly channel = signal<ReleaseChannel>('stable');
-
-  readonly notes = ['desktop.access.note'] as const;
+  readonly notes = ['desktop.access.note', 'appMenu.prerelease'] as const;
 
   readonly entries = computed<AppDownloadEntry[]>(() =>
     Object.entries(this.release()?.platforms ?? {}).map(([key, value]) => ({
@@ -113,16 +108,13 @@ export class DownloadComponent {
   );
 
   constructor() {
-    effect(() => {
-      void this.load(this.channel());
-    });
+    void this.load();
   }
 
-  private async load(channel: ReleaseChannel): Promise<void> {
+  private async load(): Promise<void> {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { release, error } = await this.releases.forChannel(channel);
-    if (this.channel() !== channel) return;
+    const { release, error } = await this.releases.forChannel(DOWNLOAD_RING);
     if (error) this.errorMsg.set(error);
     else this.release.set(release);
     this.busy.set(false);

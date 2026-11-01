@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.185.1",
+  "current": "0.186.0",
   "releases": [
+    {
+      "version": "0.186.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Website downloads (Apps menu, Starscape menu, /apps/uploader, /download) always hand out the stable release. Beta and alpha are picked inside each app after signing in with your SC Companion account — which rings you get depends on your role."
+            },
+            {
+              "title": "",
+              "text": "The admin promote row on /apps/uploader now picks its own source ring."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The role-gated release-channel picker on the download pages."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.185.1",
       "date": "2026-11-01",

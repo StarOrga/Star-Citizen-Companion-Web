@@ -18,13 +18,20 @@ describe('DownloadComponent', () => {
   });
 
   let forChannel: jasmine.Spy;
+  let failNext = false;
   const role = signal<'viewer' | 'collaborator' | 'admin' | null>('viewer');
 
   function setup(r: 'viewer' | 'collaborator' | 'admin' = 'viewer') {
     role.set(r);
     forChannel = jasmine
       .createSpy('forChannel')
-      .and.callFake((ch: string) => Promise.resolve({ release: release(`1.0.0-${ch}`), error: null }));
+      .and.callFake((ch: string) =>
+        Promise.resolve(
+          failNext
+            ? { release: null, error: 'errors.desktop.release' }
+            : { release: release(`1.0.0-${ch}`), error: null },
+        ),
+      );
     const canInstall = signal(true);
     TestBed.configureTestingModule({
       imports: [DownloadComponent],
@@ -55,28 +62,19 @@ describe('DownloadComponent', () => {
     expect(f.componentInstance.release()?.version).toBe('1.0.0-stable');
   });
 
-  it('a viewer only ever asks for stable', async () => {
-    const f = setup('viewer');
-    await f.whenStable();
-    expect(forChannel.calls.allArgs()).toEqual([['stable']]);
-  });
+  afterEach(() => (failNext = false));
 
-  it('switching the channel reloads the release', async () => {
-    const f = setup('viewer');
-    await f.whenStable();
-    f.componentInstance.channel.set('beta');
-    f.detectChanges();
-    await f.whenStable();
-    f.detectChanges();
-    expect(forChannel).toHaveBeenCalledWith('beta');
-    expect(f.componentInstance.release()?.version).toBe('1.0.0-beta');
-    expect(f.nativeElement.querySelector('a.ap-btn').getAttribute('href')).toContain('1.0.0-beta');
-  });
+  for (const r of ['viewer', 'collaborator', 'admin'] as const) {
+    it(`${r}: only ever asks for stable — beta/alpha are picked in the app`, async () => {
+      const f = setup(r);
+      await f.whenStable();
+      expect(forChannel.calls.allArgs()).toEqual([['stable']]);
+    });
+  }
 
   it('a load error shows the error key and no download link', async () => {
+    failNext = true;
     const f = setup();
-    forChannel.and.resolveTo({ release: null, error: 'errors.desktop.release' });
-    f.componentInstance.channel.set('beta');
     f.detectChanges();
     await f.whenStable();
     f.detectChanges();

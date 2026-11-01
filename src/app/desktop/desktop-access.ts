@@ -2,7 +2,7 @@
  * Pure rules behind the desktop-app download menu (admin feedback 924bf1d8).
  *
  * Two questions live here, both unit-tested and free of Angular/Supabase:
- *   1. WHICH release rings may a given role even see per product?
+ *   1. MAY a given role download a product at all (and which ring — stable)?
  *   2. IS this account's desktop app still "connected"?
  *
  * Both are UI-side answers. The authoritative gate is server-side:
@@ -18,28 +18,27 @@ export type DesktopProduct = 'uploader' | 'starscape';
 export type ReleaseRing = 'alpha' | 'beta' | 'stable';
 
 /**
- * Rings per product and role, SAFEST FIRST (stable is always the recommended
- * download and therefore the first button).
- *
- * uploader — admin: everything, collaborator: beta + stable, viewer/anon:
- *   NOTHING. The Data Uploader writes the Codex; someone who may not upload has
- *   no business downloading it, so the whole control is not rendered for them.
- * starscape — the wallpaper app is a read-only consumer with public binaries,
- *   so every visitor may take stable; the ring set widens with the role.
+ * The ONE ring the website hands out. Every download surface offers stable and
+ * nothing else; beta and alpha are picked INSIDE each app (Starscape tray menu,
+ * Data Uploader connection bar, SCC App settings) after the user signs in with
+ * their SC Companion account, because only the signed-in role says whether a
+ * pre-release ring is reachable at all. Handing out a pre-release build here
+ * would pin an install to a ring before anybody knows the account behind it.
  */
-const RINGS: Record<DesktopProduct, Record<string, readonly ReleaseRing[]>> = {
-  uploader: {
-    admin: ['stable', 'beta', 'alpha'],
-    collaborator: ['stable', 'beta'],
-    viewer: [],
-    anon: [],
-  },
-  starscape: {
-    admin: ['stable', 'beta', 'alpha'],
-    collaborator: ['stable', 'beta'],
-    viewer: ['stable'],
-    anon: ['stable'],
-  },
+export const DOWNLOAD_RING: ReleaseRing = 'stable';
+
+/**
+ * Roles that may download each product at all.
+ *
+ * uploader — admin + collaborator. The Data Uploader writes the Codex; someone
+ *   who may not upload has no business downloading it, so the whole control is
+ *   not rendered for them.
+ * starscape — everybody. The wallpaper app is a read-only consumer with public
+ *   binaries.
+ */
+const MAY_DOWNLOAD: Record<DesktopProduct, readonly string[]> = {
+  uploader: ['admin', 'collaborator'],
+  starscape: ['admin', 'collaborator', 'viewer', 'anon'],
 };
 
 /** Rings this role may download for this product (empty = render nothing). */
@@ -47,8 +46,7 @@ export function ringsForRole(
   product: DesktopProduct,
   role: string | null | undefined,
 ): readonly ReleaseRing[] {
-  const table = RINGS[product];
-  return table[role ?? 'anon'] ?? table['anon'];
+  return MAY_DOWNLOAD[product].includes(role ?? 'anon') ? [DOWNLOAD_RING] : [];
 }
 
 /**
@@ -62,20 +60,6 @@ export function ringsForRole(
  */
 export function isRestrictedProduct(product: DesktopProduct): boolean {
   return ringsForRole(product, 'viewer').length === 0;
-}
-
-/**
- * Is this ring of this product offered to ADMINS ONLY?
- *
- * Derived from the same table rather than hard-coded, so widening a ring to
- * collaborators automatically stops marking it as admin-only. Today: `alpha`
- * for both products; `beta` is a collaborator ring and therefore not admin-only.
- */
-export function isAdminOnlyRing(product: DesktopProduct, ring: ReleaseRing): boolean {
-  const table = RINGS[product];
-  return Object.entries(table).every(
-    ([role, rings]) => role === 'admin' || !rings.includes(ring),
-  );
 }
 
 /** "Connected" means the desktop app checked in inside this window. */
