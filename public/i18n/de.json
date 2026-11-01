@@ -5031,6 +5031,77 @@
       "log": {
         "title": "Zuletzt"
       }
+    },
+    "plan": {
+      "switch": {
+        "label": "Ansicht",
+        "what": "Was brauche ich",
+        "how": "Wie komme ich hin"
+      },
+      "selection": "Auswahl",
+      "stepsAria": "Schritt-Arten",
+      "state": {
+        "top3": "Top 3",
+        "mood": "Nach Lust: {{moods}}",
+        "custom": "Eigene Auswahl"
+      },
+      "empty": "Nichts auszuwählen. Markiere in Nachschub, was du holen willst.",
+      "route": "Dein Weg",
+      "routeEmpty": "Noch kein Weg. Wähle unter „Was brauche ich“ aus, was du holen willst.",
+      "saveEinsatz": "Als Einsatz speichern",
+      "retry": "Erneut versuchen"
+    },
+    "mood": {
+      "peaceful": "Friedlich",
+      "combat": "Kampf",
+      "quick": "Schnell (< 30 min)",
+      "long": "Zeitintensiv",
+      "solo": "Solo",
+      "group": "Gruppe",
+      "pairAria": "{{left}} oder {{right}}"
+    },
+    "place": {
+      "search": "Ort suchen",
+      "any": "Alle Orte",
+      "count": "{{n}} Orte",
+      "empty": "Kein Ort gefunden.",
+      "label": "System, Planet, Ort"
+    },
+    "set": {
+      "none": "Noch kein Set mit Nachschub.",
+      "reach": {
+        "full": "vollständig erreichbar",
+        "partial": "teilweise"
+      }
+    },
+    "supply": {
+      "ready": "liegt bereit",
+      "forSet": "für Set {{name}}",
+      "setReady": "Set {{name}} liegt bereit",
+      "wanted": "Will ich holen",
+      "wantedAria": "{{name}} als gewünscht markieren"
+    },
+    "einsatz": {
+      "single": "Einsatz",
+      "multi": "Einsatz ×{{n}}",
+      "stepsTooltip": "{{n}} Schritte",
+      "title": "Deine Einsätze",
+      "empty": "Noch kein Einsatz gespeichert.",
+      "nameLabel": "Name des Einsatzes",
+      "remove": "{{name}} entfernen",
+      "removeTitle": "Einsatz entfernen?",
+      "removeMessage": "„{{name}}“ und seine Schritte werden gelöscht."
+    },
+    "activity": {
+      "kopfgeld": "Kopfgeld",
+      "bunker": "Bunker",
+      "medizin": "Medizin",
+      "rennen": "Rennen",
+      "bergbau": "Bergbau",
+      "fracht": "Fracht",
+      "bergung": "Bergung",
+      "erkunden": "Erkunden",
+      "piraterie": "Piraterie"
     }
   },
   "verse": {

@@ -1,13 +1,25 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { AuthService } from '../auth/auth.service';
+import { HangarService } from '../hangar/hangar.service';
+import { fakeSupabase } from '../testing/fake-supabase';
+import { HqOwnershipService } from './hq-ownership.service';
 import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
 import { HqSuppliesService, SUPPLIES_STORAGE_KEY } from './hq-supplies.service';
 
 describe('HqSuppliesPopupComponent', () => {
   beforeEach(() => {
     localStorage.removeItem(SUPPLIES_STORAGE_KEY);
-    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService()] });
+    TestBed.configureTestingModule({ providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        fakeSupabase().provider,
+        { provide: AuthService, useValue: { user: signal(null) } },
+        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
+        { provide: HqOwnershipService, useValue: { configs: signal([]) } },
+      ], });
   });
   afterEach(() => localStorage.removeItem(SUPPLIES_STORAGE_KEY));
 
