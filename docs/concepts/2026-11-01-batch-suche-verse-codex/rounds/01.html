@@ -1,0 +1,627 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"karte","userPins":[{"id":"up-mvxlhn1214s4","design":"karte","screen":"b3-s1","x":14.9,"y":6.3,"target":"div.mk-cat \"Star Citizen Companion\"","text":"inhalte alle perfekt, aber irgendwie sieht es so fisselig aus und generell hat der subheader so viele helligkeiten durch wörter und damit fokuspunkte...","attachments":[]},{"id":"up-mvxlimztoh9c","design":"karte","screen":"b3-s1","x":35.3,"y":13,"target":"div.mk-bar \"Star Citizen Companion Codex›…›RSI Const\"","text":"welches design element könnte es aber modern, spaceig, 2956 machen!? ggf. die Suche auch einen kleinen dezenten ticken hervorheben in einer interessante weise","attachments":[]}]}</script>
+
+<style>
+/* Batch concept mocks — namespaced mk-*, per-design rules b1-/b2-/b3-. */
+.mk-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 600px; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 70% 20%, #0c2232 0%, #07131d 55%, #040a10 100%); font-family: system-ui, "Segoe UI", sans-serif;
+  color: #e6f0f6; padding: 16px; box-sizing: border-box; isolation: isolate; }
+.mk-page { position: absolute; inset: 96px 16px 16px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; opacity: .9; }
+.mk-hero { border-radius: 12px; background: linear-gradient(160deg, #10283a, #0a1824 60%); border: 1px solid #16303f; position: relative; overflow: hidden; }
+.mk-hero::after { content: ''; position: absolute; left: 12%; right: 12%; top: 30%; height: 34%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(90, 200, 232, .25), transparent 70%); }
+.mk-hero b { position: absolute; left: 22px; bottom: 22px; font-size: 22px; font-weight: 700; }
+.mk-side { display: flex; flex-direction: column; gap: 12px; }
+.mk-side i { display: block; height: 64px; border-radius: 10px; background: #0d1f2c; border: 1px solid #16303f; }
+.mk-bar { position: relative; z-index: 3; display: flex; align-items: center; gap: 14px; height: 62px; padding: 0 12px; border-radius: 14px;
+  background: rgba(12, 28, 40, .92); border: 1px solid #1f3a4c; }
+.mk-brand { display: flex; gap: 10px; align-items: center; min-width: 0; flex: 0 1 auto; max-width: 300px; }
+.mk-logo { flex: none; width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #9be4f7 0 14%, #2a7ea0 30%, #0c2333 62%); box-shadow: 0 0 10px rgba(90, 200, 232, .35); }
+.mk-names { min-width: 0; }
+.mk-cat { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: #e6f0f6; }
+.mk-trail { display: flex; gap: 5px; font-size: 12px; color: #8aa3b3; white-space: nowrap; min-width: 0; }
+.mk-trail span:last-child { color: #c9dbe6; overflow: hidden; text-overflow: ellipsis; }
+.mk-sep { flex: none; width: 1px; height: 28px; background: #24445a; }
+.mk-search { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border-radius: 12px; cursor: text;
+  background: transparent; border: 1px solid transparent; color: inherit; font: inherit; text-align: left; }
+.mk-glass { flex: none; width: 15px; height: 15px; border: 2px solid #5ac8e8; border-radius: 50%; position: relative; box-sizing: border-box; }
+.mk-glass::after { content: ''; position: absolute; width: 6px; height: 2px; background: #5ac8e8; right: -5px; bottom: -3px; transform: rotate(45deg); }
+.mk-ctx { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 24ch; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.mk-ctx span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-ph { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #8aa3b3; font-size: 14px; }
+.mk-kbd { flex: none; font: 10px ui-monospace, monospace; padding: 1px 5px; border-radius: 4px; border: 1px solid #2c4a5e; color: #9fc0d2; }
+.mk-apps { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #24445a;
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #c9dbe6; background: #0d2130; }
+.mk-me { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 1px solid #24445a; background: #0d2130; }
+.mk-scrim { position: absolute; inset: 0; z-index: 2; }
+.mk-drop { position: absolute; z-index: 4; left: 340px; right: 160px; top: 86px; display: flex; flex-direction: column; gap: 12px; padding: 14px; box-sizing: border-box; }
+.mk-gh { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #7f98a8; margin: 0 0 6px 4px; }
+.mk-rows { display: flex; flex-direction: column; gap: 2px; }
+.mk-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 8px; border-radius: 10px; }
+.mk-ico { flex: none; width: 30px; height: 30px; display: grid; place-items: center; color: #5ac8e8; font-size: 13px; }
+.mk-row b { display: block; font-size: 14px; }
+.mk-row small { display: block; font-size: 11px; color: #7f98a8; }
+.mk-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.mk-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; font-size: 12.5px; color: #c9dbe6; }
+.mk-keys { display: flex; justify-content: center; gap: 18px; font-size: 11px; color: #7f98a8; padding-top: 8px; }
+.mk-close { position: absolute; right: 14px; top: 10px; z-index: 5; border: 0; background: transparent; color: #8aa3b3; font: inherit; font-size: 12px; cursor: pointer; }
+
+/* ── b1 · Glas & Naht: same anatomy, but the panel is lit, framed and lifted off a dimmed page ── */
+.b1 .mk-bar { background: rgba(12, 30, 44, .78); border-color: rgba(90, 200, 232, .22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.b1 .mk-search { background: rgba(255, 255, 255, .035); border-color: rgba(90, 200, 232, .18); }
+.b1 .mk-ctx { background: rgba(90, 200, 232, .16); color: #bfeaf7; }
+.b1 .mk-scrim { background: rgba(2, 6, 10, .55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.b1 .mk-drop { border-radius: 18px; background: linear-gradient(180deg, rgba(20, 44, 62, .97), rgba(12, 28, 40, .97));
+  border: 1px solid rgba(90, 200, 232, .5); box-shadow: 0 0 0 4px rgba(90, 200, 232, .07), 0 28px 80px rgba(0, 0, 0, .7); }
+.b1 .mk-drop::before { content: ''; position: absolute; left: 24px; right: 24px; top: -1px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #5ac8e8, #c8f1fb, #5ac8e8, transparent); }
+.b1 .mk-group + .mk-group { border-top: 1px solid rgba(90, 200, 232, .12); padding-top: 10px; }
+.b1 .mk-row.on { background: rgba(90, 200, 232, .1); }
+.b1 .mk-ico { border-radius: 9px; background: rgba(90, 200, 232, .12); }
+.b1 .mk-tag { border-radius: 999px; background: rgba(90, 200, 232, .1); }
+.b1 .mk-tag.on { background: rgba(90, 200, 232, .26); color: #fff; }
+
+/* ── b2 · HUD-Rahmen: sharp, cockpit-like — corner brackets, ticks, monospace labels ── */
+.b2 .mk-bar { border-radius: 4px; background: rgba(6, 16, 24, .94); border-color: #1b3546; }
+.b2 .mk-bar::before, .b2 .mk-bar::after, .b2 .mk-drop::after, .b2 .mk-drop::before { content: ''; position: absolute; width: 14px; height: 14px; border: 2px solid #5ac8e8; pointer-events: none; }
+.b2 .mk-bar::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+.b2 .mk-bar::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+.b2 .mk-search { border-radius: 2px; border-color: #1f3d50; background: repeating-linear-gradient(90deg, rgba(90, 200, 232, .04) 0 1px, transparent 1px 8px); }
+.b2 .mk-ctx { border-radius: 2px; border: 1px solid #5ac8e8; color: #9be4f7; font-family: ui-monospace, monospace; font-weight: 500; }
+.b2 .mk-apps, .b2 .mk-me { border-radius: 3px; }
+.b2 .mk-scrim { background: rgba(2, 6, 10, .35); }
+.b2 .mk-drop { border-radius: 3px; background: #07121b; border: 1px solid #23485e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .65); background-image: linear-gradient(rgba(90, 200, 232, .035) 1px, transparent 1px); background-size: 100% 22px; }
+.b2 .mk-drop::before { left: -2px; top: -2px; border-right: 0; border-bottom: 0; }
+.b2 .mk-drop::after { right: -2px; bottom: -2px; border-left: 0; border-top: 0; }
+.b2 .mk-gh { font-family: ui-monospace, monospace; color: #5ac8e8; display: flex; align-items: center; gap: 8px; }
+.b2 .mk-gh::before { content: '▸'; }
+.b2 .mk-gh::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, #23485e, transparent); }
+.b2 .mk-row { border-radius: 2px; border-left: 2px solid transparent; }
+.b2 .mk-row.on { border-left-color: #5ac8e8; background: linear-gradient(90deg, rgba(90, 200, 232, .12), transparent 70%); }
+.b2 .mk-ico { border: 1px solid #23485e; border-radius: 2px; }
+.b2 .mk-tag { font-family: ui-monospace, monospace; font-size: 12px; padding: 0 6px; }
+.b2 .mk-tag::before { content: '['; color: #5ac8e8; }
+.b2 .mk-tag::after { content: ']'; color: #5ac8e8; }
+.b2 .mk-tag.on { color: #fff; background: rgba(90, 200, 232, .14); }
+
+/* ── b3 · Schwebende Karte: brighter surface, generous radius, sections as inset tiles, no outlines ── */
+.b3 .mk-bar { border-radius: 20px; border-color: transparent; background: rgba(16, 36, 52, .9); box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+.b3 .mk-search { border-radius: 999px; background: #0a1a26; }
+.b3 .mk-ctx { background: #1d4258; color: #e6f7fd; }
+.b3 .mk-apps, .b3 .mk-me { border-color: transparent; background: #183447; }
+.b3 .mk-scrim { background: linear-gradient(180deg, rgba(2, 6, 10, .2), rgba(2, 6, 10, .5)); }
+.b3 .mk-drop { top: 96px; border-radius: 24px; background: #142d3e; border: 0; padding: 12px;
+  box-shadow: 0 2px 0 rgba(255, 255, 255, .04) inset, 0 36px 90px rgba(0, 0, 0, .75), 0 10px 24px rgba(0, 0, 0, .45); }
+.b3 .mk-group { background: #0f2433; border-radius: 16px; padding: 10px; }
+.b3 .mk-row.on { background: #1b3d52; }
+.b3 .mk-ico { border-radius: 50%; background: #1b3d52; }
+.b3 .mk-tag { border-radius: 10px; background: #1b3d52; }
+.b3 .mk-tag i { width: 8px; height: 8px; border-radius: 2px; background: #5ac8e8; display: inline-block; }
+.b3 .mk-tag.on { background: #2a5a74; color: #fff; }
+.b3 .mk-keys { background: transparent; }
+
+/* Settled points, shown the same in every design: the trail folds its middle, the field runs to "Apps", the hint ends in "…". */
+.mk-note { position: absolute; left: 16px; bottom: 12px; z-index: 1; font-size: 11.5px; color: #7f98a8; max-width: 640px; }
+@media (prefers-reduced-motion: reduce) { .mk-frame * { transition: none !important; animation: none !important; } }
+</style>
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 1 · Deine 8 Notizen als ein Plan</h2>
+    <p>Alle Notizen sind gegen den aktuellen Code geprüft. Fünf sind klar und laufen beim „Implementieren“ ohne weitere Rückfrage mit. Drei brauchen deine Entscheidung: der <strong>Look der Suche</strong> (die drei Designs hier), die <strong>Letterbox und das Intro beim Tab-Wechsel</strong> (zwei Fragen-Ansichten) und die <strong>Codex-Konzepttreue</strong> (Analyse + was nachgezogen wird).</p>
+    <ol>
+      <li><strong>#1 übernommen</strong> — „Mehr im Verse“ steht nur noch, solange keine News sichtbar sind (Animation läuft, Ticker leer).</li>
+      <li><strong>#2 Frage + übernommen</strong> — Codex-Konzepte nicht voll umgesetzt (Holodeck-Animationen u. a.) + Ursache für die letzten ~10 Konzepte → Ansicht „Codex-Konzepttreue“.</li>
+      <li><strong>#3 offen (Design)</strong> — Rahmen der Suche nicht ersichtlich, Umrandungen altbacken; Inhalte bleiben → drei Designs.</li>
+      <li><strong>#4 übernommen</strong> — PTU-Zeile „seit 7 Tagen · Welle 1“ wird einzeilig.</li>
+      <li><strong>#5 übernommen</strong> — Galerie-Mosaik wird immer auf 7 aufgefüllt (1 groß + 6), mit den nächsten aktuellen Bildern aus der Galerie, nicht nur aus dem Digest.</li>
+      <li><strong>#6 übernommen</strong> — Ohne Filter in der Leiste läuft die Suche bis vor „Apps“; ein abgeschnittener Hinweis endet in „…“.</li>
+      <li><strong>#7 mit #6 zusammengeführt</strong> — Breadcrumb: erstes und letztes Element immer, die Mitte wird „…“, sobald sie nicht ganz passt (nach Breite, nicht nur nach Anzahl).</li>
+      <li><strong>#8 teils offen</strong> — Planet direkt der neue und ab Frame 0 da; Reload = neuer Besuch; Erst- und Wechsel-Animation polishen; Balken polishen → zwei Fragen-Ansichten.</li>
+    </ol>
+    <p><strong>Bündel</strong> (laufen parallel, keine geteilte Datei): <em>B1 Verse-Seite</em> (#1, #4, #5, #8) · <em>B2 Fusion-Bar</em> (#3, #6, #7) · <em>B3 Codex + Prozess</em> (#2). Widersprüche zwischen Notizen gibt es keine, nichts ist unmachbar.</p>
+    <p>Die Mocks zeigen eine Codex-Schiffsseite ohne Filter. Klick ins Suchfeld öffnet das Panel, „Esc · schließen“ geht zurück.</p>
+  </header>
+
+  <section data-design="glas" data-nav-label="Glas & Naht" data-design-active="true"
+           data-design-motto="Heutiger Aufbau, klar gerahmt" data-design-traits="Leuchtende Akzentkante + Naht oben|Seite dahinter abgedunkelt und weich|Gefüllte Chips ohne Kontur" data-design-icon="layers" data-design-color="#5ac8e8" data-design-overlay="bl">
+    <section id="b1-s1" data-nav-label="Leiste" data-screen data-screen-active="true">
+      <div class="mk-frame b1">
+      <div class="mk-bar">
+        <div class="mk-brand"><span class="mk-logo"></span><div class="mk-names"><div class="mk-cat">Star Citizen Companion</div>
+          <div class="mk-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <span class="mk-sep"></span>
+        <button type="button" class="mk-search" data-screen-link="b1-s2"><span class="mk-glass"></span>
+          <span class="mk-ctx"><span>RSI Constellation Andromeda</span> ×</span>
+          <span class="mk-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-kbd">Strg K</span><span class="mk-kbd">/</span></button>
+        <span class="mk-apps">▦ Apps</span><span class="mk-me"></span>
+      </div>
+      <div class="mk-page"><div class="mk-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-side"><i></i><i></i><i></i><i></i></div></div>
+      <p class="mk-note">In allen drei Varianten gleich (#6, #7): Breadcrumb faltet die Mitte zu „…“, das Suchfeld läuft bis vor „Apps“, ein zu langer Hinweis endet in „…“.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="b1-a3" data-anno-side="right" data-anno-target=".mk-search" style="--anno-x:55%;--anno-y:8%">
+        <button class="anno-pin" type="button" data-anno-pin="b1-a3" aria-expanded="false" aria-controls="anno-bubble-b1-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-b1-a3" data-anno-bubble="b1-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b1-a3" aria-expanded="false" aria-controls="anno-bubble-b1-a3">
+            <span class="anno-bubble-question">Glasfeld mit feiner Kante in der Leiste: Soll das Suchfeld als Feld sichtbar sein, oder lieber randlos wie heute?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b1-a3" data-annotation="b1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-b1-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="b1-s2" data-nav-label="Suche offen" data-screen hidden>
+      <div class="mk-frame b1">
+      <div class="mk-bar">
+        <div class="mk-brand"><span class="mk-logo"></span><div class="mk-names"><div class="mk-cat">Star Citizen Companion</div>
+          <div class="mk-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <span class="mk-sep"></span>
+        <button type="button" class="mk-search" ><span class="mk-glass"></span>
+          <span class="mk-ctx"><span>RSI Constellation Andromeda</span> ×</span>
+          <span class="mk-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-kbd">Strg K</span><span class="mk-kbd">/</span></button>
+        <span class="mk-apps">▦ Apps</span><span class="mk-me"></span>
+      </div>
+      <div class="mk-page"><div class="mk-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-side"><i></i><i></i><i></i><i></i></div></div>
+      <div class="mk-scrim"></div>
+      <div class="mk-drop">
+        <div class="mk-group"><p class="mk-gh">Zuletzt gesucht</p><div class="mk-tags"><span class="mk-tag"><i></i>aegis</span><span class="mk-tag"><i></i>Quantum Drive</span></div></div>
+        <div class="mk-group"><p class="mk-gh">Hier</p><div class="mk-rows">
+          <div class="mk-row on"><span class="mk-ico">◈</span><span><b>Komponenten der Andromeda</b><small>Seite</small></span></div>
+          <div class="mk-row"><span class="mk-ico">◈</span><span><b>Bewaffnung</b><small>Seite</small></span></div>
+          <div class="mk-row"><span class="mk-ico">◈</span><span><b>Varianten</b><small>Seite</small></span></div></div></div>
+        <div class="mk-group"><p class="mk-gh">Bereiche</p><div class="mk-tags"><span class="mk-tag"><i></i>Schiffe</span><span class="mk-tag"><i></i>Komponenten</span><span class="mk-tag"><i></i>Schiffswaffen</span><span class="mk-tag"><i></i>FPS-Ausrüstung</span><span class="mk-tag on"><i></i>Tastenbelegungen</span></div></div>
+        <div class="mk-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>Strg + ↵ neuer Tab</span><span>Esc schließen</span></div>
+      </div>
+      <button type="button" class="mk-close" data-screen-link="b1-s1">Esc · schließen ✕</button>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="b1-a1" data-anno-side="right" data-anno-target=".mk-drop" style="--anno-x:62%;--anno-y:20%">
+        <button class="anno-pin" type="button" data-anno-pin="b1-a1" aria-expanded="false" aria-controls="anno-bubble-b1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-b1-a1" data-anno-bubble="b1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b1-a1" aria-expanded="false" aria-controls="anno-bubble-b1-a1">
+            <span class="anno-bubble-question">Hebt sich das Panel mit Akzentkante und abgedunkelter Seite jetzt deutlich genug ab?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b1-a1" data-annotation="b1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-b1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="b1-a2" data-anno-side="left" data-anno-target=".mk-tags" style="--anno-x:40%;--anno-y:78%">
+        <button class="anno-pin" type="button" data-anno-pin="b1-a2" aria-expanded="false" aria-controls="anno-bubble-b1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-b1-a2" data-anno-bubble="b1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b1-a2" aria-expanded="false" aria-controls="anno-bubble-b1-a2">
+            <span class="anno-bubble-question">Gefüllte Chips ohne Umrandung bei „Zuletzt gesucht“ und „Bereiche“: moderner, oder fehlt dir die Kontur?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b1-a2" data-annotation="b1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-b1-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-design="hud" data-nav-label="HUD-Rahmen" hidden
+           data-design-motto="Cockpit statt Webformular" data-design-traits="Eckklammern statt runder Rahmen|Mono-Labels mit Tick-Linien|Bereiche als [Klammer-Tags]" data-design-icon="grid" data-design-color="#e0a060" data-design-overlay="bl">
+    <section id="b2-s1" data-nav-label="Leiste" data-screen data-screen-active="true">
+      <div class="mk-frame b2">
+      <div class="mk-bar">
+        <div class="mk-brand"><span class="mk-logo"></span><div class="mk-names"><div class="mk-cat">Star Citizen Companion</div>
+          <div class="mk-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <span class="mk-sep"></span>
+        <button type="button" class="mk-search" data-screen-link="b2-s2"><span class="mk-glass"></span>
+          <span class="mk-ctx"><span>RSI Constellation Andromeda</span> ×</span>
+          <span class="mk-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-kbd">Strg K</span><span class="mk-kbd">/</span></button>
+        <span class="mk-apps">▦ Apps</span><span class="mk-me"></span>
+      </div>
+      <div class="mk-page"><div class="mk-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-side"><i></i><i></i><i></i><i></i></div></div>
+      <p class="mk-note">In allen drei Varianten gleich (#6, #7): Breadcrumb faltet die Mitte zu „…“, das Suchfeld läuft bis vor „Apps“, ein zu langer Hinweis endet in „…“.</p>
+      </div>
+      
+    </section>
+    <section id="b2-s2" data-nav-label="Suche offen" data-screen hidden>
+      <div class="mk-frame b2">
+      <div class="mk-bar">
+        <div class="mk-brand"><span class="mk-logo"></span><div class="mk-names"><div class="mk-cat">Star Citizen Companion</div>
+          <div class="mk-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <span class="mk-sep"></span>
+        <button type="button" class="mk-search" ><span class="mk-glass"></span>
+          <span class="mk-ctx"><span>RSI Constellation Andromeda</span> ×</span>
+          <span class="mk-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-kbd">Strg K</span><span class="mk-kbd">/</span></button>
+        <span class="mk-apps">▦ Apps</span><span class="mk-me"></span>
+      </div>
+      <div class="mk-page"><div class="mk-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-side"><i></i><i></i><i></i><i></i></div></div>
+      <div class="mk-scrim"></div>
+      <div class="mk-drop">
+        <div class="mk-group"><p class="mk-gh">Zuletzt gesucht</p><div class="mk-tags"><span class="mk-tag"><i></i>aegis</span><span class="mk-tag"><i></i>Quantum Drive</span></div></div>
+        <div class="mk-group"><p class="mk-gh">Hier</p><div class="mk-rows">
+          <div class="mk-row on"><span class="mk-ico">◈</span><span><b>Komponenten der Andromeda</b><small>Seite</small></span></div>
+          <div class="mk-row"><span class="mk-ico">◈</span><span><b>Bewaffnung</b><small>Seite</small></span></div>
+          <div class="mk-row"><span class="mk-ico">◈</span><span><b>Varianten</b><small>Seite</small></span></div></div></div>
+        <div class="mk-group"><p class="mk-gh">Bereiche</p><div class="mk-tags"><span class="mk-tag"><i></i>Schiffe</span><span class="mk-tag"><i></i>Komponenten</span><span class="mk-tag"><i></i>Schiffswaffen</span><span class="mk-tag"><i></i>FPS-Ausrüstung</span><span class="mk-tag on"><i></i>Tastenbelegungen</span></div></div>
+        <div class="mk-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>Strg + ↵ neuer Tab</span><span>Esc schließen</span></div>
+      </div>
+      <button type="button" class="mk-close" data-screen-link="b2-s1">Esc · schließen ✕</button>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="b2-a1" data-anno-side="left" data-anno-target=".mk-drop" style="--anno-x:6%;--anno-y:8%">
+        <button class="anno-pin" type="button" data-anno-pin="b2-a1" aria-expanded="false" aria-controls="anno-bubble-b2-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-b2-a1" data-anno-bubble="b2-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b2-a1" aria-expanded="false" aria-controls="anno-bubble-b2-a1">
+            <span class="anno-bubble-question">Eckklammern als Rahmen: passt der Sci-Fi-Charakter für jeden Tag, oder wird das schnell zu verspielt?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b2-a1" data-annotation="b2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-b2-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="b2-a2" data-anno-side="right" data-anno-target=".mk-gh" style="--anno-x:70%;--anno-y:30%">
+        <button class="anno-pin" type="button" data-anno-pin="b2-a2" aria-expanded="false" aria-controls="anno-bubble-b2-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-b2-a2" data-anno-bubble="b2-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b2-a2" aria-expanded="false" aria-controls="anno-bubble-b2-a2">
+            <span class="anno-bubble-question">Abschnitts-Titel in Monospace mit Tick-Linie: lesbar und passend, oder zu technisch?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b2-a2" data-annotation="b2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-b2-a2"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="b2-a3" data-anno-side="left" data-anno-target=".mk-tags" style="--anno-x:30%;--anno-y:80%">
+        <button class="anno-pin" type="button" data-anno-pin="b2-a3" aria-expanded="false" aria-controls="anno-bubble-b2-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-b2-a3" data-anno-bubble="b2-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b2-a3" aria-expanded="false" aria-controls="anno-bubble-b2-a3">
+            <span class="anno-bubble-question">Bereiche als [Klammer-Tags] statt Pillen: zieht das den Look zusammen?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b2-a3" data-annotation="b2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-b2-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-design="karte" data-nav-label="Schwebende Karte" hidden
+           data-design-motto="Weich, hell, ohne Linien" data-design-traits="Hellere Fläche statt Kante|Sektionen als eigene Kacheln|Abstand zur Leiste, starke Tiefe" data-design-icon="star" data-design-color="#a48bff" data-design-overlay="bl">
+    <section id="b3-s1" data-nav-label="Leiste" data-screen data-screen-active="true">
+      <div class="mk-frame b3">
+      <div class="mk-bar">
+        <div class="mk-brand"><span class="mk-logo"></span><div class="mk-names"><div class="mk-cat">Star Citizen Companion</div>
+          <div class="mk-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <span class="mk-sep"></span>
+        <button type="button" class="mk-search" data-screen-link="b3-s2"><span class="mk-glass"></span>
+          <span class="mk-ctx"><span>RSI Constellation Andromeda</span> ×</span>
+          <span class="mk-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-kbd">Strg K</span><span class="mk-kbd">/</span></button>
+        <span class="mk-apps">▦ Apps</span><span class="mk-me"></span>
+      </div>
+      <div class="mk-page"><div class="mk-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-side"><i></i><i></i><i></i><i></i></div></div>
+      <p class="mk-note">In allen drei Varianten gleich (#6, #7): Breadcrumb faltet die Mitte zu „…“, das Suchfeld läuft bis vor „Apps“, ein zu langer Hinweis endet in „…“.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="b3-a3" data-anno-side="right" data-anno-target=".mk-bar" style="--anno-x:50%;--anno-y:8%">
+        <button class="anno-pin" type="button" data-anno-pin="b3-a3" aria-expanded="false" aria-controls="anno-bubble-b3-a3" aria-label="{{anno.pin_label}}">3</button>
+        <div class="anno-bubble" id="anno-bubble-b3-a3" data-anno-bubble="b3-a3" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b3-a3" aria-expanded="false" aria-controls="anno-bubble-b3-a3">
+            <span class="anno-bubble-question">Leiste ohne Kontur, nur Tiefe und runde Felder: modern genug für den Subheader?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b3-a3" data-annotation="b3-a3" data-attachable placeholder="{{anno.answer_placeholder}}">super!</textarea>
+            <div class="attach-slot" data-attach-slot="anno-b3-a3"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="b3-s2" data-nav-label="Suche offen" data-screen hidden>
+      <div class="mk-frame b3">
+      <div class="mk-bar">
+        <div class="mk-brand"><span class="mk-logo"></span><div class="mk-names"><div class="mk-cat">Star Citizen Companion</div>
+          <div class="mk-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <span class="mk-sep"></span>
+        <button type="button" class="mk-search" ><span class="mk-glass"></span>
+          <span class="mk-ctx"><span>RSI Constellation Andromeda</span> ×</span>
+          <span class="mk-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-kbd">Strg K</span><span class="mk-kbd">/</span></button>
+        <span class="mk-apps">▦ Apps</span><span class="mk-me"></span>
+      </div>
+      <div class="mk-page"><div class="mk-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-side"><i></i><i></i><i></i><i></i></div></div>
+      <div class="mk-scrim"></div>
+      <div class="mk-drop">
+        <div class="mk-group"><p class="mk-gh">Zuletzt gesucht</p><div class="mk-tags"><span class="mk-tag"><i></i>aegis</span><span class="mk-tag"><i></i>Quantum Drive</span></div></div>
+        <div class="mk-group"><p class="mk-gh">Hier</p><div class="mk-rows">
+          <div class="mk-row on"><span class="mk-ico">◈</span><span><b>Komponenten der Andromeda</b><small>Seite</small></span></div>
+          <div class="mk-row"><span class="mk-ico">◈</span><span><b>Bewaffnung</b><small>Seite</small></span></div>
+          <div class="mk-row"><span class="mk-ico">◈</span><span><b>Varianten</b><small>Seite</small></span></div></div></div>
+        <div class="mk-group"><p class="mk-gh">Bereiche</p><div class="mk-tags"><span class="mk-tag"><i></i>Schiffe</span><span class="mk-tag"><i></i>Komponenten</span><span class="mk-tag"><i></i>Schiffswaffen</span><span class="mk-tag"><i></i>FPS-Ausrüstung</span><span class="mk-tag on"><i></i>Tastenbelegungen</span></div></div>
+        <div class="mk-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>Strg + ↵ neuer Tab</span><span>Esc schließen</span></div>
+      </div>
+      <button type="button" class="mk-close" data-screen-link="b3-s1">Esc · schließen ✕</button>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="b3-a1" data-anno-side="right" data-anno-target=".mk-drop" style="--anno-x:70%;--anno-y:14%">
+        <button class="anno-pin" type="button" data-anno-pin="b3-a1" aria-expanded="false" aria-controls="anno-bubble-b3-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-b3-a1" data-anno-bubble="b3-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b3-a1" aria-expanded="false" aria-controls="anno-bubble-b3-a1">
+            <span class="anno-bubble-question">Die Karte schwebt mit Abstand unter der Leiste: wirkt das hochwertig oder abgelöst?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b3-a1" data-annotation="b3-a1" data-attachable placeholder="{{anno.answer_placeholder}}">interessante idee können wir ausprobieren, woibei zeigen wir es ab dem ersten zeichen doer ab fokuss? Ich würde gern generell die suchleiste im fokus haben auf jeder seite mit subheader - damit der nutzer immer gleich los tippen kann und auf eigene entshceidung etwas anderes focussen kann. 
+Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es zum filtern auch nutzen, z. B. in den codex subseiten (weil man erst ein zeicehen eintippen müsste), puhhh exploriere hier nochmal varianten. schaue dir wirklcihd azu alle seiten an. </textarea>
+            <div class="attach-slot" data-attach-slot="anno-b3-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="b3-a2" data-anno-side="left" data-anno-target=".mk-group" style="--anno-x:22%;--anno-y:40%">
+        <button class="anno-pin" type="button" data-anno-pin="b3-a2" aria-expanded="false" aria-controls="anno-bubble-b3-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-b3-a2" data-anno-bubble="b3-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="b3-a2" aria-expanded="false" aria-controls="anno-bubble-b3-a2">
+            <span class="anno-bubble-question">Sektionen als eigene Kacheln statt Trennlinien: übersichtlicher oder zu viel Fläche?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-b3-a2" data-annotation="b3-a2" data-attachable placeholder="{{anno.answer_placeholder}}">ja sehr schön dezent und einfach anzusehen. </textarea>
+            <div class="attach-slot" data-attach-slot="anno-b3-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-view="v-letterbox" data-view-kind="decision" data-nav-label="Letterbox-Balken" hidden>
+  <div class="view-frame">
+    <h2>#8 · Wie sollen die Balken oben und unten im Verse-Intro aussehen?</h2>
+    <p>Heute öffnen sich zwei harte schwarze Balken (Timeline in <code>verse-briefing-planet.scss:270</code>, „0.8–1.6 letterbox opens“). Du findest sie hässlich. Fest steht schon: <strong>der neue Planet steht ab dem ersten Frame</strong> (kein Morph alt → neu), und <strong>Reload oder ein neuer Tab gilt als neuer Besuch</strong> mit voller Animation (heute zählt ein Reload als Wiederbesuch, weil <code>claimIntro()</code> nur sessionStorage prüft). Offen ist nur der Look der Balken — eine Antwort, die zu jeder Such-Variante passt.</p>
+    <div class="variant-evaluation" data-decision="lb-fade" data-label="Weicher Verlauf">
+      <h3>Weicher Verlauf statt Kante (Empfehlung)</h3>
+      <p>Oben und unten ein Verlauf von Hintergrundfarbe nach transparent (~18 % Höhe), der in 1,2 s wegatmet. Kinoeindruck bleibt, keine harte Kante, kein reines Schwarz.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lb-fade" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lb-fade" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lb-fade-note">{{decision.comment_label}}</label>
+        <textarea id="lb-fade-note" data-comment="lb-fade-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lb-vignette" data-label="Nur Vignette">
+      <h3>Keine Balken, nur Vignette</h3>
+      <p>Die Bühne startet mit einer dunklen Rand-Vignette, die sich öffnet. Am ruhigsten, aber das „Film beginnt“-Gefühl fällt weg.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lb-vignette" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lb-vignette" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lb-vignette-note">{{decision.comment_label}}</label>
+        <textarea id="lb-vignette-note" data-comment="lb-vignette-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lb-thin" data-label="Dünne Balken, getönt">
+      <h3>Dünne, getönte Balken, die wegfahren</h3>
+      <p>Balken bleiben als Motiv, aber halb so hoch, in der Nachthimmel-Farbe statt Schwarz, mit leuchtender Innenkante; sie fahren nach außen weg statt einfach zu öffnen.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lb-thin" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lb-thin" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lb-thin-note">{{decision.comment_label}}</label>
+        <textarea id="lb-thin-note" data-comment="lb-thin-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lb-blur" data-label="Unscharfe Kante">
+      <h3>Unscharfe Kante (Tiefenschärfe)</h3>
+      <p>Statt Balken liegt oben/unten eine Unschärfe-Zone (backdrop-filter), die scharf zieht. Wirkt wie ein Kamera-Fokus, kostet auf schwachen Geräten etwas Leistung.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lb-blur" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lb-blur" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lb-blur-note">{{decision.comment_label}}</label>
+        <textarea id="lb-blur-note" data-comment="lb-blur-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+  </section>
+
+  <section data-view="v-switch" data-view-kind="decision" data-nav-label="Intro beim Tab-Wechsel" hidden>
+  <div class="view-frame">
+    <h2>#8 · Was passiert, wenn man zwischen den Tabs hin- und herschaltet?</h2>
+    <p>Beim ersten Besuch (neuer Tab oder Reload) läuft die volle cinematische Fahrt — überarbeitet, mit dem neuen Planeten von Anfang an. Beim Zurückschalten innerhalb der Sitzung soll es kürzer sein. Wie kurz?</p>
+    <div class="variant-evaluation" data-decision="sw-short" data-label="Kurz-Auftakt 1 s">
+      <h3>Kurz-Auftakt, ~1 s (Empfehlung)</h3>
+      <p>Planet und Himmel stehen sofort; nur Titel, Suchfeld und Hub blenden gestaffelt ein (0–1 s). Keine Kamerafahrt, keine Balken.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-sw-short" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-sw-short" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="sw-short-note">{{decision.comment_label}}</label>
+        <textarea id="sw-short-note" data-comment="sw-short-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="sw-none" data-label="Ohne Animation">
+      <h3>Gar keine Animation</h3>
+      <p>Die Seite steht sofort im Endzustand. Am schnellsten, wirkt aber wie ein harter Schnitt.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-sw-none" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-sw-none" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="sw-none-note">{{decision.comment_label}}</label>
+        <textarea id="sw-none-note" data-comment="sw-none-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="sw-mid" data-label="Kurze Fahrt 2,5 s">
+      <h3>Verkürzte Fahrt, ~2,5 s</h3>
+      <p>Eine kleine Kamerabewegung auf den Planeten zu, ohne Balken, plus Einblenden der Inhalte. Mehr Atmosphäre, aber bei häufigem Wechseln spürbar.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-sw-mid" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-sw-mid" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="sw-mid-note">{{decision.comment_label}}</label>
+        <textarea id="sw-mid-note" data-comment="sw-mid-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+  </section>
+
+  <section data-view="v-codex" data-view-kind="decision" data-nav-label="Codex-Konzepttreue" hidden>
+  <style> [data-view="v-codex"] .cx-tab { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 18px; } [data-view="v-codex"] .cx-tab th, [data-view="v-codex"] .cx-tab td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border-color); vertical-align: top; } [data-view="v-codex"] .cx-tab th { color: var(--text-secondary); font-weight: 600; } [data-view="v-codex"] .cx-ok { color: var(--success-color); } [data-view="v-codex"] .cx-part { color: var(--warning-color); } [data-view="v-codex"] .cx-miss { color: var(--danger-color); }
+  </style>
+  <div class="view-frame">
+    <h2>#2 · Warum die Codex-Konzepte nicht voll umgesetzt wurden — und was jetzt nachgezogen wird</h2>
+    <p><strong>Kurz:</strong> Die Holo-Bühne der Codex-Startseite (Konzept vom 30.10., umgesetzt in #858) ist im Code <em>weitgehend</em> drin. Das <strong>Holodeck der Schiffsseite</strong> (Konzept vom 20.09.) hat zwei angenommene Effekte <strong>nie bekommen</strong>. Und niemand hat die Animationen mit echten Daten im Browser abgenommen. Dazu kommt: Die Startseite wurde in zwei Tagen dreimal neu entworfen, und jedes Mal fielen angenommene Teile des Vorgängers weg.</p>
+    <p>Die Konzeptseiten vom 29.10. und 30.10. samt Entscheidungen sind beim Abschluss <strong>gelöscht</strong> worden (Abschluss-Option „verwerfen“, bzw. nie committet). Die Analyse unten ist deshalb aus den Session-Protokollen rekonstruiert.</p>
+    <table class="cx-tab">
+      <thead><tr><th>Element</th><th>Quelle</th><th>Stand</th></tr></thead>
+      <tbody>
+        <tr><td>Scan-Scheibe, Emitter, Strahl, Ringwelle beim Wechsel</td><td>Holo-Bühne R1/R4</td><td class="cx-ok">umgesetzt</td></tr>
+        <tr><td>Werte-Update auffälliger, Codex-Zeile blitzt</td><td>R3/R4</td><td class="cx-ok">umgesetzt</td></tr>
+        <tr><td>Lackierungen 3 + „+N“, „Alle &lt;Kategorie&gt;“-Button, Tastenbelegungen dezent</td><td>R2/R3</td><td class="cx-ok">umgesetzt</td></tr>
+        <tr><td>Callouts mit Leitlinien am Objekt</td><td>R1</td><td class="cx-part">teilweise: Anker sind grobe Rumpfzonen, keine echten Hardpoints</td></tr>
+        <tr><td>Claims: 7 Varianten pro Thema, langsamer Wechsel</td><td>R2/R3</td><td class="cx-part">teilweise: Wechsel nur, solange die Rotation steht</td></tr>
+        <tr><td>Maße als Text statt Lineal</td><td>R3</td><td class="cx-part">teilweise: Größenklasse fehlt in den Daten</td></tr>
+        <tr><td>„Muss Spaß machen“, kinoreif, hochauflösend</td><td>R4</td><td class="cx-part">nicht belegt: nur mit Mock-Daten geprüft, Telefon gar nicht</td></tr>
+        <tr><td>Holodeck Schiffsseite: Parallax</td><td>20.09., angenommen</td><td class="cx-miss">fehlt</td></tr>
+        <tr><td>Holodeck Schiffsseite: Zahlen im Strip zählen hoch</td><td>20.09., angenommen</td><td class="cx-miss">fehlt (nur die vier Kacheln zählen)</td></tr>
+        <tr><td>Holodeck Schiffsseite: Sound</td><td>20.09.</td><td class="cx-part">Schalter da, Klänge ungeprüft</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Ursachen über die letzten ~10 Konzepte</strong> (wiederkehrende „Parity“-, „Fidelity“- und „Polish“-Nachbesserungen bei #634/#638, #834, #843, #848):</p>
+    <ol>
+      <li><strong>Keine visuelle Abnahme:</strong> Die umsetzenden Agents kamen nicht durch den Login und prüften mit Mock-Daten oder gar nicht im Browser.</li>
+      <li><strong>Selbstauskunft statt Abnahme:</strong> „Nothing in the brief was left out“, während derselbe Bericht Annahmen und Auslassungen auflistet.</li>
+      <li><strong>Die Quelle geht beim Abschluss verloren:</strong> Runden und Entscheidungen gelöscht, die nächste Session kennt die Absprachen nicht mehr.</li>
+      <li><strong>Der Brief ist eine Zusammenfassung aus dem Gedächtnis:</strong> Pins und Kommentare kommen verkürzt beim Agent an („7 Varianten, nicht langweilig“ → ein Zähler).</li>
+      <li><strong>Nachbessern statt beim ersten Mal abnehmen:</strong> kein Abgleich Screenshot gegen Mock vor dem Ship.</li>
+    </ol>
+    <h3>Nachziehen im Code (Bündel B3)</h3>
+    <p>Unabhängige Punkte, alle vorausgewählt. Verwirf, was du nicht willst.</p>
+    <div class="variant-evaluation" data-decision="cx-anchors" data-label="Echte Hardpoint-Anker">
+      <h3>Callouts an echten Hardpoints statt Rumpfzonen</h3>
+      <p>Die Leitlinien enden dort, wo die Waffe oder Komponente am 3D-Modell sitzt (Hardpoint-Positionen aus den Codex-Daten); ohne Position bleibt die Zone als Fallback.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-anchors" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-anchors" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-anchors-note">{{decision.comment_label}}</label>
+        <textarea id="cx-anchors-note" data-comment="cx-anchors-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="cx-claims" data-label="Claims auch bei Rotation">
+      <h3>Claim-Wechsel auch bei laufender Rotation</h3>
+      <p>Die 7 Claims pro Thema wechseln alle 7 s, unabhängig davon, ob sich das Hologramm dreht.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-claims" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-claims" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-claims-note">{{decision.comment_label}}</label>
+        <textarea id="cx-claims-note" data-comment="cx-claims-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="cx-parallax" data-label="Holodeck Parallax">
+      <h3>Holodeck der Schiffsseite: Parallax</h3>
+      <p>Angenommen am 20.09., nie gebaut: Ebenen des Holodecks verschieben sich leicht mit Maus/Scroll (aus bei reduzierter Bewegung).</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-parallax" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-parallax" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-parallax-note">{{decision.comment_label}}</label>
+        <textarea id="cx-parallax-note" data-comment="cx-parallax-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="cx-countup" data-label="Strip zählt hoch">
+      <h3>Holodeck der Schiffsseite: Zahlen im Strip zählen hoch</h3>
+      <p>Angenommen am 20.09., nie gebaut: alle Werte im Strip zählen beim Erscheinen hoch, nicht nur die vier Kacheln.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-countup" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-countup" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-countup-note">{{decision.comment_label}}</label>
+        <textarea id="cx-countup-note" data-comment="cx-countup-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="cx-sound" data-label="Holodeck-Sound prüfen">
+      <h3>Holodeck-Sound prüfen und vervollständigen</h3>
+      <p>Der Sound-Schalter existiert. Prüfen, ob wirklich Klänge hinterlegt sind, und fehlende ergänzen (leise, standardmäßig aus).</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-sound" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-sound" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-sound-note">{{decision.comment_label}}</label>
+        <textarea id="cx-sound-note" data-comment="cx-sound-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="cx-polish" data-label="Echte Abnahme + Polish">
+      <h3>Abnahme mit echten Daten und Animations-Polish</h3>
+      <p>Startseite und Holodeck mit dem Test-Account im echten Browser durchgehen (Desktop und Telefon), Screenshots gegen deine Runden-Wünsche abgleichen und nachpolieren, bis es „Spaß macht, es anzusehen“.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-polish" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-polish" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-polish-note">{{decision.comment_label}}</label>
+        <textarea id="cx-polish-note" data-comment="cx-polish-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="cx-dim" data-label="Text-Dimmung Verse">
+      <h3>Nebenbefund Verse-Planet: Dimmung auch für alle Texte</h3>
+      <p>Dein Wunsch aus dem Planeten-Konzept vom 29.10. wurde nur für Hero und Hub-Spalten umgesetzt. Läuft im Verse-Bündel B1 mit.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-cx-dim" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-cx-dim" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="cx-dim-note">{{decision.comment_label}}</label>
+        <textarea id="cx-dim-note" data-comment="cx-dim-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <h3>Prozess fürs Lernen (/do-learn)</h3>
+    <p>Diese Regeln landen als Projekt-Regeln (Konzept- und Ship-Erweiterung des Repos). Was nur im Plugin lösbar ist, wird zusätzlich als Issue im Plugin-Repo gemeldet.</p>
+    <div class="variant-evaluation" data-decision="pr-keep" data-label="Konzepte nie verwerfen">
+      <h3>Konzepte vor dem Abschluss sichern, nie „verwerfen“</h3>
+      <p>Abschluss erst, wenn Runden und Entscheidungen in <code>docs/concepts/</code> committet sind. Pro Seite eine lebende Spec (angenommen / verworfen / offen), die das nächste Konzept fortschreibt statt neu anzufangen.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-pr-keep" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pr-keep" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="pr-keep-note">{{decision.comment_label}}</label>
+        <textarea id="pr-keep-note" data-comment="pr-keep-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="pr-brief" data-label="Wörtlicher Brief">
+      <h3>Agent-Brief mit wörtlichen Pins und maschineller Checkliste</h3>
+      <p>Der Brief für die umsetzenden Agents verlinkt die Entscheidungen und übernimmt jeden Kommentar und Pin wörtlich; eine Checkliste aller angenommenen Punkte wird automatisch erzeugt, nicht aus dem Gedächtnis zusammengefasst.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-pr-brief" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pr-brief" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="pr-brief-note">{{decision.comment_label}}</label>
+        <textarea id="pr-brief-note" data-comment="pr-brief-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="pr-evidence" data-label="Unabhängige Abnahme">
+      <h3>Unabhängige Abnahme pro Punkt</h3>
+      <p>Jeder Checklisten-Punkt bekommt eine Abnahmezeile mit Beleg (Datei:Zeile oder Screenshot). Ein eigener Prüf-Agent, nicht der Bauer, gleicht Pins gegen das Ergebnis ab.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-pr-evidence" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pr-evidence" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="pr-evidence-note">{{decision.comment_label}}</label>
+        <textarea id="pr-evidence-note" data-comment="pr-evidence-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="pr-visual" data-label="Screenshot-Gate">
+      <h3>Screenshot-Gate vor dem Ship</h3>
+      <p>Mit dem Test-Account eingeloggt: Screenshot der Umsetzung gegen den gewählten Mock; jede Abweichung braucht eine begründete Zeile. Ohne Screenshot mit echten Daten gilt die Arbeit als nicht fertig.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-pr-visual" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pr-visual" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="pr-visual-note">{{decision.comment_label}}</label>
+        <textarea id="pr-visual-note" data-comment="pr-visual-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+  </div>
+  </section>
+
+</section>
