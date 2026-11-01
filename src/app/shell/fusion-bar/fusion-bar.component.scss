@@ -254,16 +254,18 @@
   border-radius: var(--sc-radius-sm, 4px);
 }
 .plate {
+  // Grows with the page frame (1280px → 1600px from full HD on), so a long trail folds only when it lacks room.
+  --_plate: clamp(310px, 25vw - 170px, 420px);
   position: relative;
   // Claims its full width (the trail measures its room against it) and gives way only
   // when the bar is narrow; the search starts at the same spot on every page.
-  flex: 0 1 310px;
+  flex: 0 1 var(--_plate, 310px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  max-width: 310px;
+  max-width: var(--_plate, 310px);
   padding-right: var(--sc-space-2);
 }
 // Brand name + logo: <sc-brand-name>/<sc-brand-logo> (shell/brand), the main header's own.
@@ -425,7 +427,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   width: calc(44px * var(--sc-dock-p, 1));
 }
 :host(.condensing) .plate {
-  max-width: calc(310px * var(--sc-dock-p, 1));
+  max-width: calc(var(--_plate, 310px) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
   overflow: hidden;
 }
