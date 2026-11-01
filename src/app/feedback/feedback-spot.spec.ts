@@ -6,6 +6,7 @@ import { FeedbackComposerSeedService } from './feedback-composer-seed.service';
 import { FeedbackDraftService } from './feedback-draft.service';
 import { FeedbackSpotDirective } from './feedback-spot.directive';
 import { FeedbackLineTarget, FeedbackSpotService, withReferenceLine } from './feedback-spot.service';
+import { SPOT_SIZE, placeSpots, referenceLine } from './feedback-spots.component';
 import { provideFakeAttachmentSigner } from './testing/fake-attachment-signer';
 
 /**
@@ -31,6 +32,80 @@ describe('withReferenceLine', () => {
   it('leaves a first line alone that the writer has since edited', () => {
     const r = withReferenceLine('Loadout ist kaputt\nmehr', 'Analyse', 'Loadout', 0);
     expect(r.text).toBe('Analyse\nLoadout ist kaputt\nmehr');
+  });
+});
+
+describe('referenceLine', () => {
+  const t = (key: string, params?: Record<string, string>) =>
+    params ? `${key}(${Object.values(params).join('|')})` : key;
+
+  it('names the section and its sub-part', () => {
+    expect(referenceLine({ key: 'L', subKey: 'W', text: null }, null, t)).toBe('L W');
+  });
+
+  it('puts the Codex view in front on a ship page', () => {
+    expect(referenceLine({ key: 'L', subKey: 'W', text: null }, 'classic', t)).toBe(
+      'codex.holo.toggle.classicHint: L W',
+    );
+  });
+
+  it('quotes a page title through its own key', () => {
+    expect(referenceLine({ key: 'H', subKey: null, text: 'Gladius' }, null, t)).toBe(
+      'feedbackSpot.titled(H|Gladius)',
+    );
+  });
+});
+
+describe('placeSpots', () => {
+  const vp = { width: 1200, height: 800, topClear: 60 };
+  const rect = (top: number, left: number, right: number, bottom: number) => ({ top, left, right, bottom });
+
+  it('sits in the section’s top-right corner', () => {
+    const [p] = placeSpots([{ spot: 'a', rect: rect(100, 0, 500, 400) }], [], vp);
+    expect(p).toEqual({ spot: 'a', top: 106, left: 500 - SPOT_SIZE - 6 });
+  });
+
+  it('pins below the sticky header while a tall section is still on screen', () => {
+    const [p] = placeSpots([{ spot: 'a', rect: rect(-300, 0, 500, 700) }], [], vp);
+    expect(p.top).toBe(66);
+  });
+
+  it('skips hidden, off-screen and almost scrolled-away sections', () => {
+    const placed = placeSpots(
+      [
+        { spot: 'hidden', rect: rect(0, 0, 0, 0) },
+        { spot: 'below', rect: rect(900, 0, 500, 1200) },
+        { spot: 'gone', rect: rect(-500, 0, 500, 70) },
+      ],
+      [],
+      vp,
+    );
+    expect(placed).toEqual([]);
+  });
+
+  it('never puts a spot under the open feedback panel', () => {
+    const panel = rect(300, 700, 1180, 780);
+    const placed = placeSpots(
+      [
+        { spot: 'under', rect: rect(300, 600, 1000, 600) },
+        { spot: 'free', rect: rect(100, 0, 500, 400) },
+      ],
+      [panel],
+      vp,
+    );
+    expect(placed.map((p) => p.spot)).toEqual(['free']);
+  });
+
+  it('draws one spot where a marked heading sits in a marked card', () => {
+    const placed = placeSpots(
+      [
+        { spot: 'card', rect: rect(100, 0, 500, 400) },
+        { spot: 'heading', rect: rect(102, 10, 498, 160) },
+      ],
+      [],
+      vp,
+    );
+    expect(placed.map((p) => p.spot)).toEqual(['card']);
   });
 });
 

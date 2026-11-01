@@ -237,9 +237,19 @@ number is assigned once, at insert, and never changes.
 
 ### Pointing at a part of the page (feedback #243)
 
-While a feedback panel is open (the admin board or a user's own panel), the
-page's main sections show a small round **reference spot** in their top-right
-corner. Clicking one puts a line naming that section as the first line of the
+**Admins point by clicking** (continuation of 2026-10-26): `<sc-feedback-capture>`
+in the shell catches an admin's **Alt+click** anywhere — and **Ctrl+click
+outside links and text fields**, so Ctrl+click on a link still opens a new tab
+(the "navigations are real anchors" rule); Ctrl+Alt is AltGr and is ignored. The
+click's own action is cancelled, the element flashes, and
+`<section label> › <role> „<name>“` becomes the first line of the draft — with
+the panel open, minimized or shut (a shut admin panel opens with the line seeded
+into its new-topic box). The admin composer shows the gesture as an "Admin-Tipp".
+Code: `src/app/feedback/feedback-capture.{component,util}.ts`.
+
+While a **user's own** feedback panel is open, the page's main sections show a
+small round **reference spot** in their top-right corner (admins no longer get
+spots — the click capture replaces them). Clicking one puts a line naming that section as the first line of the
 composer, e.g. `Klassische Ansicht: Loadout Bewaffnung` — the area chip already
 says *Codex*, the line names the part of the page. A second click replaces the
 line the spot inserted before (as long as it is still the untouched first line)

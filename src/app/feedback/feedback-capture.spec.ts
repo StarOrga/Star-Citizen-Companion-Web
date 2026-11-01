@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackCaptureComponent } from './feedback-capture.component';
 import { captureLine, isCaptureClick, nameOf, roleOf, spotFor } from './feedback-capture.util';
@@ -115,6 +115,9 @@ describe('FeedbackCaptureComponent', () => {
         { provide: RoleService, useValue: { isAdmin: signal(admin) } },
       ],
     });
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', { feedbackCapture: { element: '{{role}} “{{name}}”' } });
+    translate.use('en');
     const cap = TestBed.createComponent(FeedbackCaptureComponent);
     const page = TestBed.createComponent(PageComponent);
     document.body.append(page.nativeElement);

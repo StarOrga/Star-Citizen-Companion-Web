@@ -4342,6 +4342,7 @@
   "feedbackSpot": {
     "headline": "Headline",
     "titled": "{{label}} „{{text}}“",
+    "insert": "Bezug einfügen: {{line}}",
     "details": "Details"
   },
   "feedbackCapture": {

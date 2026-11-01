@@ -68,11 +68,14 @@ export class FeedbackSpotService {
   /** The admin click capture is armed (admin signed in) — the composer shows its hint. */
   readonly captureActive = signal(false);
 
-  private owner(): FeedbackPanelOwner | null {
+  /** Admin panel wins. */
+  readonly owner = computed<FeedbackPanelOwner | null>(() => {
     const panels = this._panels();
     if (panels.has('admin')) return 'admin';
     return panels.has('user') ? 'user' : null;
-  }
+  });
+  /** The launcher roots a spot must stay clear of. */
+  readonly occluders = computed(() => [...this._panels().values()].map((p) => p.el));
 
   /** Mark a section. Returns the unregister function. */
   register(spot: FeedbackSpot): () => void {
