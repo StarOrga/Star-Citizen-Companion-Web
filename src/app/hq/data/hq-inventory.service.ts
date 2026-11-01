@@ -17,7 +17,10 @@ export interface PreviousSnapshot {
 /** Defensive parse of the `previous` snapshot a desktop `inventory.snapshot` event carries. */
 export function parsePreviousSnapshot(raw: unknown): PreviousSnapshot | null {
   if (!raw || typeof raw !== 'object') return null;
-  const o = raw as Record<string, unknown>;
+  let o = raw as Record<string, unknown>;
+  // The desktop writes `{ snapshot: <snapshot row>, items: [<item rows>] }` (docs/contracts/hq-live.md).
+  const nested = o['snapshot'];
+  if (nested && typeof nested === 'object') o = { ...(nested as Record<string, unknown>), items: o['items'] };
   const location = typeof o['location'] === 'string' ? o['location'].trim().slice(0, 200) : '';
   if (!location) return null;
   const source = SNAPSHOT_SOURCES.find((s) => s === o['source']) ?? 'manual';

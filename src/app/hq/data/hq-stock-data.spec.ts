@@ -5,7 +5,7 @@ import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
 import type { HqFleetPatch, HqInventoryItemRow, HqInventorySnapshotRow } from './hq-db.types';
-import { HQ_STOCK_STALE_DAYS, groupLocations, snapshotAge } from './hq-inventory.service';
+import { HQ_STOCK_STALE_DAYS, groupLocations, parsePreviousSnapshot, snapshotAge } from './hq-inventory.service';
 import { HqPatchService, formatPct, mapPatchLines } from './hq-patch.service';
 import { HqStatsService, bucketKeys, normalizeStats, zeroFill } from './hq-stats.service';
 
@@ -154,5 +154,22 @@ describe('patch feed', () => {
     await svc.load();
     expect(feed.patchLines()).toEqual([]);
     expect(svc.error()).toBeTruthy();
+  });
+});
+
+describe('parsePreviousSnapshot', () => {
+  it('reads the desktop shape { snapshot, items } from docs/contracts/hq-live.md', () => {
+    const snap = parsePreviousSnapshot({
+      snapshot: { location: 'Area18', system: 'Stanton', source: 'ocr', taken_at: '2026-10-30T10:00:00Z' },
+      items: [{ name: 'Gold', class_name: null, qty: 4, unit: 'scu' }],
+    });
+    expect(snap?.location).toBe('Area18');
+    expect(snap?.source).toBe('ocr');
+    expect(snap?.items).toEqual([{ name: 'Gold', class_name: null, qty: 4, unit: 'scu' }]);
+  });
+
+  it('still reads the flat shape and rejects a snapshot without location', () => {
+    expect(parsePreviousSnapshot({ location: 'Lorville', items: [] })?.location).toBe('Lorville');
+    expect(parsePreviousSnapshot({ snapshot: {}, items: [] })).toBeNull();
   });
 });
