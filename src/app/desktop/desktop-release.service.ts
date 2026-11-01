@@ -1,7 +1,6 @@
 import { toErrorKey } from '../core/describe-error';
 import { Injectable, Injector, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { ReleaseChannel } from './channel-picker.component';
 import { DesktopProduct, ReleaseRing } from './desktop-access';
 
 /** One downloadable artifact inside `desktop_releases.platforms`. */
@@ -56,7 +55,7 @@ export class DesktopReleaseService {
   }
 
   async forChannel(
-    channel: ReleaseChannel,
+    channel: ReleaseRing,
   ): Promise<{ release: ReleaseInfo | null; error: string | null }> {
     const { data, error } = await this.sb.client.rpc('desktop_release_for_channel', {
       p_channel: channel,

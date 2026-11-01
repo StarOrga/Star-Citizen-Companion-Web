@@ -125,8 +125,10 @@ but two things are worth knowing:
   quiet "up to date" if your role does not reach that ring after all.
 - **Pinning is a one-click escape hatch.** Pick a specific ring under
   **Update channel** to stop following the highest one; the choice survives
-  restarts and self-updates. Downloading a `-beta` or `-alpha` build from the
-  website also pins that ring, but only on a brand-new install.
+  restarts and self-updates.
+- **The website download is always stable.** Beta and alpha are never handed
+  out as downloads — install stable, sign in, and the app moves up to the ring
+  your role reaches (or the one you pin).
 
 ### Diagnostics
 

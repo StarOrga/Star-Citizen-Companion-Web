@@ -57,23 +57,33 @@ describe('DesktopDownloadComponent', () => {
     expect(f.nativeElement.querySelector('h1').textContent).toContain('desktop.title');
   });
 
-  it('switching the channel reloads the release', async () => {
-    const f = setup('viewer');
-    await f.whenStable();
-    f.componentInstance.channel.set('beta');
-    f.detectChanges();
-    await f.whenStable();
-    f.detectChanges();
-    expect(forChannel).toHaveBeenCalledWith('beta');
-    expect(f.nativeElement.querySelector('a.ap-btn').getAttribute('href')).toContain('2.0.0-beta');
-  });
-
-  it('an admin lands on the top ring via the channel picker', async () => {
+  it('the download is stable for every role, an admin included', async () => {
     const f = setup('admin');
     await f.whenStable();
     f.detectChanges();
-    expect(f.componentInstance.channel()).toBe('alpha');
-    expect(f.componentInstance.release()?.version).toBe('2.0.0-alpha');
+    expect(f.componentInstance.release()?.version).toBe('2.0.0-stable');
+    expect(f.nativeElement.querySelector('a.ap-btn').getAttribute('href')).toContain('2.0.0-stable');
+  });
+
+  it('a viewer never asks for anything but stable', async () => {
+    const f = setup('viewer');
+    await f.whenStable();
+    expect(forChannel.calls.allArgs()).toEqual([['stable']]);
+  });
+
+  it('the admin promote row reads its own source ring and follows a switch', async () => {
+    const f = setup('admin');
+    await f.whenStable();
+    f.detectChanges();
+    expect(f.componentInstance.sourceRelease()?.version).toBe('2.0.0-alpha');
+    expect(f.nativeElement.querySelector('.promote .pver').textContent).toContain('2.0.0-alpha');
+    f.componentInstance.onPromoteSource('beta');
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    expect(f.componentInstance.sourceRelease()?.version).toBe('2.0.0-beta');
+    // The download itself stays stable.
+    expect(f.componentInstance.release()?.version).toBe('2.0.0-stable');
   });
 
   it('the promote row is admin-only', async () => {

@@ -14,7 +14,7 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
-import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
+import { DOWNLOAD_RING, ReleaseRing } from './desktop-access';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -36,7 +36,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     TranslatePipe,
     P4kHistoryComponent,
     AppDownloadPanelComponent,
-    ChannelPickerComponent,
     ScDialogDirective,
     ScSelectComponent,
     ScTooltipDirective,
@@ -61,9 +60,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         [entries]="entries()"
         [busy]="busy()"
         [notes]="notes"
-        [releaseNotes]="release()?.notes ?? null">
-        <sc-channel-picker panelActions [(channel)]="channel" />
-      </sc-app-download-panel>
+        [releaseNotes]="release()?.notes ?? null" />
 
       <div class="meta">
         @if (release(); as r) {
@@ -76,31 +73,43 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </button>
       </div>
 
-      <!-- Admin-only inline promotion (feedback 446c245e): promote the
-           currently-shown version forward to a ring, right where releases are
-           downloaded — no separate admin page. The server-side RPC also enforces
-           admin + monotonicity, so this is a convenience gate. -->
+      <!-- Admin-only inline promotion (feedback 446c245e): pick a ring, see its
+           version, roll it forward — no separate admin page. The download above
+           is always stable, so the promote row reads its source ring itself.
+           The server-side RPC also enforces admin + monotonicity, so this is a
+           convenience gate. -->
       @if (roles.isAdmin()) {
-        @if (release(); as r) {
         <div class="promote">
-          <span class="pl">{{ 'desktop.promote.label' | translate }}</span>
+          <span class="pl">{{ 'desktop.promote.from' | translate }}</span>
           <sc-select
             class="psel"
             [options]="promoteOptions"
             [allowEmpty]="false"
-            [value]="promoteTarget()"
+            [value]="promoteSource()"
             [disabled]="promoting()"
-            [ariaLabel]="'desktop.promote.label' | translate"
-            (valueChange)="onPromoteTarget($event)"
+            [ariaLabel]="'desktop.promote.from' | translate"
+            (valueChange)="onPromoteSource($event)"
           />
-          <button class="sc-btn micro" [disabled]="promoting()" (click)="promote(r.version)">
-            {{ 'desktop.promote.action' | translate }}
-          </button>
+          @if (sourceRelease(); as r) {
+            <span class="pver">v{{ r.version }}</span>
+            <span class="pl">{{ 'desktop.promote.label' | translate }}</span>
+            <sc-select
+              class="psel"
+              [options]="promoteOptions"
+              [allowEmpty]="false"
+              [value]="promoteTarget()"
+              [disabled]="promoting()"
+              [ariaLabel]="'desktop.promote.label' | translate"
+              (valueChange)="onPromoteTarget($event)"
+            />
+            <button class="sc-btn micro" [disabled]="promoting()" (click)="promote(r.version)">
+              {{ 'desktop.promote.action' | translate }}
+            </button>
+          }
           @if (promoteMsg(); as m) {
             <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text | translate }}</span>
           }
         </div>
-        }
       }
     </section>
 
@@ -160,6 +169,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       letter-spacing: 0.06em; text-transform: uppercase;
     }
     .promote .psel { min-inline-size: 9rem; }
+    .promote .pver { font-variant-numeric: tabular-nums; color: var(--sc-fg-1); }
     .promote .pmsg { font-size: 0.8rem; color: var(--sc-accent); }
     .promote .pmsg.err { color: var(--sc-danger); }
 
@@ -213,14 +223,16 @@ export class DesktopDownloadComponent {
   readonly busy = signal(false);
   /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
-  readonly channel = signal<ReleaseChannel>('stable');
   readonly historyOpen = signal(false);
 
-  /** Platform caveat, kept behind the panel's ⓘ toggle. */
-  readonly notes = ['desktop.access.note'] as const;
+  /** Platform caveat + where beta/alpha went, kept behind the panel's ⓘ toggle. */
+  readonly notes = ['desktop.access.note', 'appMenu.prerelease'] as const;
 
   // Admin-only inline release promotion (feedback 446c245e).
-  readonly promoteTarget = signal<ReleaseChannel>('beta');
+  /** Ring whose current version the admin is about to roll forward. */
+  readonly promoteSource = signal<ReleaseRing>('alpha');
+  readonly sourceRelease = signal<ReleaseInfo | null>(null);
+  readonly promoteTarget = signal<ReleaseRing>('beta');
   readonly promoting = signal(false);
   /** `text`: an i18n key on error, the plain `vX → ring` line on success (the pipe passes it through). */
   readonly promoteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
@@ -239,40 +251,48 @@ export class DesktopDownloadComponent {
   );
 
   constructor() {
-    // Re-resolve the download whenever the picked channel changes. The RPC
-    // clamps server-side to the caller's role, so a viewer always gets stable.
+    // The download is always the stable ring — beta/alpha are picked inside the
+    // app after sign-in (DOWNLOAD_RING). Only the admin promote row reads others.
+    void this.load();
     effect(() => {
-      void this.load(this.channel());
+      if (this.roles.isAdmin()) void this.loadSource(this.promoteSource());
     });
   }
 
-  private async load(channel: ReleaseChannel): Promise<void> {
+  private async load(): Promise<void> {
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { release, error } = await this.releases.forChannel(channel);
-    // Latest-wins guard: on first open the parent starts at 'stable' and the
-    // channel-picker then re-defaults to the role's top ring (alpha for admin),
-    // so two loads race. If a newer channel was picked while this request was in
-    // flight, drop this now-stale response — otherwise a late 'stable' reply
-    // clobbers the freshly-loaded 'alpha' release and blanks the shown version
-    // (feedback e892e715: "channel alpha, aber die Version wird nicht angezeigt").
-    if (this.channel() !== channel) return;
+    const { release, error } = await this.releases.forChannel(DOWNLOAD_RING);
     if (error) this.errorMsg.set(error);
     else this.release.set(release);
     this.busy.set(false);
   }
 
+  private async loadSource(ring: ReleaseRing): Promise<void> {
+    const { release } = await this.releases.forChannel(ring);
+    // Latest-wins: a slower reply for a ring the admin already left is dropped.
+    if (this.promoteSource() !== ring) return;
+    this.sourceRelease.set(release);
+  }
+
+  onPromoteSource(value: string | null): void {
+    if (value === null) return;
+    this.sourceRelease.set(null);
+    this.promoteSource.set(value as ReleaseRing);
+    this.promoteMsg.set(null);
+  }
+
   onPromoteTarget(value: string | null): void {
     if (value === null) return;
-    this.promoteTarget.set(value as ReleaseChannel);
+    this.promoteTarget.set(value as ReleaseRing);
     this.promoteMsg.set(null);
   }
 
   /**
-   * Roll the currently-shown version forward to the selected ring via
+   * Roll the source ring's version forward to the selected ring via
    * `promote_desktop_channel`. Admin + monotonicity are enforced server-side;
-   * any violation surfaces inline. The reference to the affected channel view
-   * is refreshed on success so the new pointer is reflected immediately.
+   * any violation surfaces inline. Both the stable download and the source row
+   * are re-read on success so the new pointers show immediately.
    */
   async promote(version: string): Promise<void> {
     this.promoting.set(true);
@@ -286,7 +306,7 @@ export class DesktopDownloadComponent {
       this.promoteMsg.set({ kind: 'error', text: toErrorKey('desktop', 'promote', error, { version, to }) });
     } else {
       this.promoteMsg.set({ kind: 'success', text: `v${version} → ${to}` });
-      await this.load(this.channel());
+      await Promise.all([this.load(), this.loadSource(this.promoteSource())]);
     }
     this.promoting.set(false);
   }

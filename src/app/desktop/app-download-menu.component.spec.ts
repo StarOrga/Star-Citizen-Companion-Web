@@ -125,16 +125,23 @@ describe('AppDownloadMenuComponent', () => {
     });
   });
 
-  it('asks the server only for the rings the role may take (admin: all three)', async () => {
+  it('asks the server for stable only as an admin — pre-release rings live in the app', async () => {
     const { fixture, el, ringsFor } = setup({ product: 'uploader', role: 'admin' });
     await open(fixture, el);
-    expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable', 'beta', 'alpha']);
+    expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable']);
   });
 
-  it('asks for beta + stable as a collaborator', async () => {
+  it('asks for stable only as a collaborator', async () => {
     const { fixture, el, ringsFor } = setup({ product: 'uploader', role: 'collaborator' });
     await open(fixture, el);
-    expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable', 'beta']);
+    expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable']);
+  });
+
+  it('tells the user where beta and alpha went', async () => {
+    const { fixture, el } = setup({ product: 'starscape', role: 'admin' });
+    await open(fixture, el);
+    const notes = Array.from(el.querySelectorAll('.pop-note')).map((n) => n.textContent ?? '');
+    expect(notes.some((n) => n.includes('appMenu.prerelease'))).toBeTrue();
   });
 
   it('offers Starscape stable to everyone, including a viewer', async () => {
@@ -158,35 +165,10 @@ describe('AppDownloadMenuComponent', () => {
       const { el } = setup({ product: 'uploader', role: 'collaborator' });
       expect(el.querySelector('.dlm.restricted')).not.toBeNull();
     });
-
-    it('leaves every non-admin-only ring in the normal accent, red box or not', async () => {
-      const { fixture, el } = setup({
-        product: 'uploader',
-        role: 'collaborator',
-        releases: [ring('stable', '1.2.0'), ring('beta', '1.3.0')],
-      });
-      await open(fixture, el);
-      expect(el.querySelectorAll('a.pop-dl').length).toBe(2);
-      expect(el.querySelector('a.pop-dl.admin-only')).toBeNull();
-    });
-
-    it('marks the admin-only alpha ring red AND says so in words', async () => {
-      const { fixture, el } = setup({
-        product: 'starscape',
-        role: 'admin',
-        releases: [ring('stable', '1.2.0'), ring('beta', '1.3.0'), ring('alpha', '1.4.0')],
-      });
-      await open(fixture, el);
-      const flagged = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pop-dl.admin-only'));
-      expect(flagged.length).toBe(1);
-      expect(flagged[0].getAttribute('href')).toBe('https://example.test/app-alpha.exe');
-      // The colour is never the only carrier of the meaning.
-      expect(flagged[0].querySelector('.dl-tag')?.textContent).toContain('appMenu.adminOnly');
-    });
   });
 
-  it('opens an overlapping panel and renders every version as a real download anchor', async () => {
-    const { fixture, el } = setup({ role: 'admin' });
+  it('opens an overlapping panel and renders the stable download as a real anchor', async () => {
+    const { fixture, el } = setup({ role: 'admin', releases: [ring('stable', '1.2.0')] });
     const trigger = el.querySelector('.dlm-trigger') as HTMLButtonElement;
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(el.querySelector('.dlm-pop')).toBeNull();
@@ -201,7 +183,7 @@ describe('AppDownloadMenuComponent', () => {
     expect(getComputedStyle(pop).position).toBe('absolute');
 
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pop-dl'));
-    expect(links.length).toBe(2);
+    expect(links.length).toBe(1);
     expect(links[0].getAttribute('href')).toBe('https://example.test/app-stable.exe');
     expect(links[0].hasAttribute('download')).toBeTrue();
     expect(links[0].getAttribute('target')).toBe('_blank');
