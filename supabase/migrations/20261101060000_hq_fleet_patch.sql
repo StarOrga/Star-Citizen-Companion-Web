@@ -78,10 +78,11 @@ begin
 
   select b.id, b.patch_version into prev
     from public.codex_builds b
-   where b.channel = cur.channel and b.id <> cur.id and b.created_at < cur.created_at
+   where b.channel = cur.channel and b.patch_version is distinct from cur.patch_version
+     and b.created_at < cur.created_at   -- skip re-ingests of the same patch
    order by b.created_at desc
    limit 1;
-  if prev.id is null or prev.patch_version = cur.patch_version then
+  if prev.id is null then
     return jsonb_build_object('build', cur.patch_version, 'previous', null, 'lines', '[]'::jsonb);
   end if;
 
@@ -90,17 +91,17 @@ begin
     select s.ship_class_name as class_name, 'ship'::text as entity_kind,
            null::text as set_kind, null::uuid as set_id, s.custom_name as set_name
       from public.hangar_ships s
-     where s.status = 'owned'
+     where s.status = 'owned' and s.deleted_at is null
     union all
     select e.value ->> 'className', 'part', 'ship', c.id, c.name
       from public.hangar_ship_configs c
       cross join lateral jsonb_array_elements(c.loadout) e
-     where e.value ->> 'className' is not null
+     where e.value ->> 'className' is not null and c.deleted_at is null
     union all
     select e.value ->> 'className', 'part', 'fps', l.id, l.name
       from public.hangar_role_loadouts l
       cross join lateral jsonb_array_elements(l.items) e
-     where e.value ->> 'className' is not null
+     where e.value ->> 'className' is not null and l.deleted_at is null
   ),
   wanted as materialized (
     select distinct o.class_name from owned o limit 60
