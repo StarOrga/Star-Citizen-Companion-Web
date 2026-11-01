@@ -239,7 +239,7 @@ over two days because every run stopped after one wave; it now drains in one.
 (the admin's rule: a running feedback finishes, whatever the clock says):
 
 - **Usage brake (6b).** Before claiming a wave, read the live usage
-  (`mcp__plugin_devops_dotclaude-completion__get_usage`). If the 5-hour window
+  (`mcp__plugin_devops_dotclaude__get_usage`). If the 5-hour window
   has less than 20 % left → do not claim; `end-run --state paused --note
   paused-usage-limit`; report; stop. The panel shows amber "pausiert" with the
   reason in the tooltip instead of a stale green. If the reader itself fails,
