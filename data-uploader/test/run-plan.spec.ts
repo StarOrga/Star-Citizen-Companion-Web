@@ -16,7 +16,8 @@ function baseSettings(overrides: Partial<Settings> = {}): Settings {
     pkgFps: false,
     pkgItems: false,
     pkgArmor: false,
-    updateChannel: 'stable',
+    updateChannel: 'auto',
+    autoRing: 'stable',
     ...overrides,
   };
 }

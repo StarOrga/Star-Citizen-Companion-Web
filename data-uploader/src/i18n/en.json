@@ -268,6 +268,8 @@
     "updateChannel": {
       "label": "Update ring",
       "hint": "Which release ring auto-updates follow.",
+      "auto": "Automatic (highest available)",
+      "autoShort": "Automatic ({{ring}})",
       "alpha": "Alpha",
       "beta": "Beta",
       "stable": "Stable"

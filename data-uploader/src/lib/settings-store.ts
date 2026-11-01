@@ -9,6 +9,8 @@
  * Pure logic + injected I/O so it is unit-testable without Electron.
  */
 
+import { isReleaseRing, isRingPref, type ReleaseRing, type RingPref } from './update-ring.js';
+
 export interface Settings {
   /** Crash telemetry is ON by default (opt-out). */
   telemetryEnabled: boolean;
@@ -74,11 +76,16 @@ export interface Settings {
    */
   useGpu: boolean;
   /**
-   * Auto-update ring the operator opted into (role-gated in the UI). Default
-   * 'stable'; only admins/collaborators ever see the picker to change it. The
-   * renderer maps it onto electron-updater's channel via the main process.
+   * Auto-update ring the operator follows. Default 'auto' — the highest ring
+   * the signed-in role reaches; only admins/collaborators ever see the picker
+   * to pin one. The main process maps it onto electron-updater's channel.
    */
-  updateChannel: 'alpha' | 'beta' | 'stable';
+  updateChannel: RingPref;
+  /**
+   * The ring 'auto' last resolved to (from the account's role), so a restart
+   * follows it before the role has been fetched again. Default 'stable'.
+   */
+  autoRing: ReleaseRing;
   /**
    * Persisted UI locale, set only when the renderer explicitly asks for it via
    * `patch()`. Undefined means "use the renderer's own detection/fallback".
@@ -134,9 +141,13 @@ export interface TextIO {
   write(text: string): void;
 }
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 /**
+ * v4 added 'auto' to `updateChannel` and made it the default. Every earlier
+ * version persisted the old default 'stable' for everyone, so a v1–v3 'stable'
+ * is read as 'auto'; a v1–v3 'alpha'/'beta' was a real pick and stays pinned.
+ *
  * v3 retired `autoRunOnNewVersion` (uploading a new patch is always on) and
  * `quitAfterAutoRun` (a fixed rule now) — both are simply not read, so they
  * vanish on the next save; `autoStart` keeps whatever a v1/v2 install stored.
@@ -153,7 +164,7 @@ const SCHEMA_VERSION = 3;
  * the same way. Any other
  * version is treated as unreadable and resets to defaults entirely.
  */
-const READABLE_VERSIONS = new Set([1, 2, SCHEMA_VERSION]);
+const READABLE_VERSIONS = new Set([1, 2, 3, SCHEMA_VERSION]);
 
 interface Envelope {
   v: number;
@@ -172,7 +183,9 @@ export class SettingsStore {
   /** Load settings, materialising defaults + a fresh installId on first run. */
   load(): Settings {
     if (this.cache) return this.cache;
-    const parsed = this.readEnvelope();
+    const envelope = this.readEnvelope();
+    const parsed = envelope?.settings ?? null;
+    const legacyRing = (envelope?.v ?? SCHEMA_VERSION) < 4;
     const settings: Settings = {
       telemetryEnabled:
         typeof parsed?.telemetryEnabled === 'boolean' ? parsed.telemetryEnabled : true,
@@ -211,9 +224,10 @@ export class SettingsStore {
       pkgItems: parsed?.pkgItems === true,
       pkgArmor: parsed?.pkgArmor === true,
       updateChannel:
-        parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
+        isRingPref(parsed?.updateChannel) && !(legacyRing && parsed.updateChannel === 'stable')
           ? parsed.updateChannel
-          : 'stable',
+          : 'auto',
+      autoRing: isReleaseRing(parsed?.autoRing) ? parsed.autoRing : 'stable',
       ...(typeof parsed?.language === 'string' && parsed.language.length > 0
         ? { language: parsed.language }
         : {}),
@@ -246,7 +260,7 @@ export class SettingsStore {
     return next;
   }
 
-  private readEnvelope(): Envelope['settings'] | null {
+  private readEnvelope(): Envelope | null {
     const raw = this.io.read();
     if (!raw) return null;
     try {
@@ -257,7 +271,7 @@ export class SettingsStore {
       // `shutdownAfterUpload` (v1 only) is never read into the typed Settings
       // shape below — dropping it here is enough to keep it from surviving a
       // load or influencing `afterAutoRun`.
-      return env.settings;
+      return { v: env.v, settings: env.settings };
     } catch {
       return null;
     }

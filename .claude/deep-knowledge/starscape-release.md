@@ -66,7 +66,12 @@ The differences that matter:
   to* (readout + launch telemetry), written back when the tray menu next opens.
 
 - **The tray picker** (`Update-Kanal ▸` / `Update channel ▸`, directly under the
-  version readout) offers *Automatisch (höchster verfügbarer)* plus all three
+  version readout) is shown only to a signed-in account that reaches a ring
+  above stable (collaborator, admin) — signed out or as a viewer every answer
+  would be stable, so the entry is left out (0.11.0, `update::ring_menu_visible`;
+  before the first check the persisted `channel=` stands in for the reach, and a
+  pin above stable keeps it visible so the way back to auto never vanishes). It
+  offers *Automatisch (höchster verfügbarer)* plus all three
   rings. Rings above the account's reach are shown **greyed, not hidden** — a ring
   should be a visible fact ("Alpha exists, my account isn't in it"), not a
   capability that silently differs per machine. Until a check has succeeded the
