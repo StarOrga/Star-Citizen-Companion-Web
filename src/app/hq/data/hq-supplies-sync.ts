@@ -49,6 +49,43 @@ export function nextWatermark(previous: string | null, syncedAt: readonly string
   return best;
 }
 
+/** A transaction may commit with a `synced_at` slightly older than one already pulled: look back this far. */
+export const PULL_LAG_MS = 5_000;
+
+/** Keyset position of a pull: rows strictly after `(at, id)`; `id` null = everything after `at`. */
+export interface PullCursor {
+  readonly at: string;
+  readonly id: string | null;
+}
+
+/** Where a pull starts: the watermark lagged by {@link PULL_LAG_MS}, or null for a full pull. */
+export function laggedCursor(watermark: string | null): PullCursor | null {
+  if (!watermark) return null;
+  const t = Date.parse(watermark);
+  return Number.isFinite(t) ? { at: new Date(t - PULL_LAG_MS).toISOString(), id: null } : null;
+}
+
+/** PostgREST `or` filter for "after the cursor" on `(synced_at, id)`. */
+export function afterCursorFilter(c: PullCursor): string {
+  return c.id === null
+    ? `synced_at.gt.${c.at}`
+    : `synced_at.gt.${c.at},and(synced_at.eq.${c.at},id.gt.${c.id})`;
+}
+
+/**
+ * Take the server's version for rows whose push the server rejected (a newer write won): the
+ * remote row replaces the local one unless the user has edited it again since (then it stays dirty).
+ */
+export function adoptRemote<T extends SyncRow>(local: readonly T[], remote: readonly T[]): T[] {
+  const byId = new Map(remote.map((r) => [r.id, r] as const));
+  return local
+    .map((l) => {
+      const r = byId.get(l.id);
+      return r && ms(r.updatedAt) >= ms(l.updatedAt) ? { ...r, dirty: false } : l;
+    })
+    .filter((r) => r.dirty || r.deletedAt === null);
+}
+
 export function newClientId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()

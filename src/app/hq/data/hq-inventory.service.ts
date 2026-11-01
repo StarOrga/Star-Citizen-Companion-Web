@@ -2,7 +2,43 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { SupabaseClientProvider } from '../../core/supabase.client';
-import type { HqInventoryItemRow, HqInventorySnapshotRow, HqShipStorageRow } from './hq-db.types';
+import type { HqInventoryItemRow, HqInventorySnapshotRow, HqInventorySource, HqShipStorageRow } from './hq-db.types';
+
+const SNAPSHOT_SOURCES: readonly HqInventorySource[] = ['log', 'search', 'community', 'ocr', 'manual'];
+
+export interface PreviousSnapshot {
+  location: string;
+  system: string | null;
+  source: HqInventorySource;
+  takenAt: string;
+  items: { name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' }[];
+}
+
+/** Defensive parse of the `previous` snapshot a desktop `inventory.snapshot` event carries. */
+export function parsePreviousSnapshot(raw: unknown): PreviousSnapshot | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const location = typeof o['location'] === 'string' ? o['location'].trim().slice(0, 200) : '';
+  if (!location) return null;
+  const source = SNAPSHOT_SOURCES.find((s) => s === o['source']) ?? 'manual';
+  const takenRaw = o['taken_at'] ?? o['takenAt'];
+  const takenAt = typeof takenRaw === 'string' && Number.isFinite(Date.parse(takenRaw)) ? takenRaw : new Date().toISOString();
+  const items: PreviousSnapshot['items'] = [];
+  for (const it of Array.isArray(o['items']) ? (o['items'] as unknown[]).slice(0, 400) : []) {
+    if (!it || typeof it !== 'object') continue;
+    const r = it as Record<string, unknown>;
+    const name = typeof r['name'] === 'string' ? r['name'].trim().slice(0, 160) : '';
+    const qty = Number(r['qty']);
+    if (!name || !Number.isFinite(qty) || qty <= 0 || qty > 1_000_000_000) continue;
+    items.push({
+      name,
+      class_name: typeof r['class_name'] === 'string' && r['class_name'] ? r['class_name'] : null,
+      qty,
+      unit: r['unit'] === 'scu' ? 'scu' : 'pcs',
+    });
+  }
+  return { location, system: typeof o['system'] === 'string' ? o['system'] : null, source, takenAt, items };
+}
 
 /** From this age (days) a snapshot's margin note turns `--sc-warning` (D39). */
 export const HQ_STOCK_STALE_DAYS = 7;
@@ -106,6 +142,45 @@ export class HqInventoryService {
       this.error.set(toErrorKey('hq', 'inventory.load', err));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /**
+   * Undo of a replaced snapshot (desktop `inventory.snapshot` event, `applied.previous`): puts the
+   * previous snapshot and its items back. False on an unusable `previous` or a failed write.
+   */
+  async restoreSnapshot(previous: unknown): Promise<boolean> {
+    const userId = this.auth.user()?.id;
+    const snap = parsePreviousSnapshot(previous);
+    if (!userId || !snap) return false;
+    this.error.set(null);
+    try {
+      const c = this.sb.client;
+      const s = await c.from('hq_inventory_snapshots' as never).upsert(
+        {
+          user_id: userId,
+          location: snap.location,
+          system: snap.system,
+          source: snap.source,
+          taken_at: snap.takenAt,
+          item_count: Math.min(400, snap.items.length),
+        } as never,
+        { onConflict: 'user_id,location' },
+      );
+      if (s.error) throw s.error;
+      const del = await c.from('hq_inventory_items' as never).delete().eq('user_id', userId).eq('location', snap.location);
+      if (del.error) throw del.error;
+      if (snap.items.length) {
+        const ins = await c
+          .from('hq_inventory_items' as never)
+          .insert(snap.items.map((i) => ({ user_id: userId, location: snap.location, ...i })) as never);
+        if (ins.error) throw ins.error;
+      }
+      await this.load();
+      return !this.error();
+    } catch (err) {
+      this.error.set(toErrorKey('hq', 'inventory.restore', err));
+      return false;
     }
   }
 

@@ -5,7 +5,17 @@ import { logWarn } from '../../core/log';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import type { StepKind } from '../../shared/step/sc-step.component';
 import type { HqActivity, HqEinsatzRow, HqEinsatzStepRow } from './hq-db.types';
-import { markPushed, mergePulled, ms, newClientId, nextWatermark } from './hq-supplies-sync';
+import {
+  PullCursor,
+  adoptRemote,
+  afterCursorFilter,
+  laggedCursor,
+  markPushed,
+  mergePulled,
+  ms,
+  newClientId,
+  nextWatermark,
+} from './hq-supplies-sync';
 
 export type EinsatzStatus = HqEinsatzRow['status'];
 
@@ -51,10 +61,18 @@ export interface StepMatch {
   location?: string;
 }
 
+/** Per-user offline cache lives under `<EINSATZ_CACHE_KEY>.<uid>`. */
 export const EINSATZ_CACHE_KEY = 'sc.hq.einsaetze.sync';
+export function einsatzCacheKey(uid: string): string {
+  return `${EINSATZ_CACHE_KEY}.${uid}`;
+}
 export const EINSATZ_STEPS_MAX = 40;
 const PUSH_DEBOUNCE_MS = 500;
 const PULL_PAGE = 200;
+const PUSH_BATCH = 50;
+/** Einsatz ids per steps request, and rows per steps page (PostgREST caps a response at 1000). */
+export const STEPS_ID_CHUNK = 50;
+export const STEPS_PAGE = 1000;
 
 /** "Einsatz" for one step, "Einsatz ×N" (tooltip "N Schritte") for two or more (D17). */
 export function einsatzBadge(e: Pick<Einsatz, 'steps'>): { multi: boolean; n: number } {
@@ -108,6 +126,8 @@ export class HqEinsatzService {
       .filter((e) => e.status === 'planned' || e.status === 'active')
       .sort((a, b) => (a.plannedAt ? ms(a.plannedAt) : Infinity) - (b.plannedAt ? ms(b.plannedAt) : Infinity)),
   );
+  /** True once the signed-in account's first pull finished (live auto-apply waits for it). */
+  readonly ready = signal(false);
   readonly syncError = signal<string | null>(null);
   readonly syncing = signal(false);
 
@@ -247,9 +267,15 @@ export class HqEinsatzService {
 
   private onUser(id: string | null): void {
     if (id === this.uid) return;
+    const prev = this.uid;
+    const prevRows = this.rows();
     this.uid = id;
     this.watermark = null;
+    this.ready.set(false);
     this.syncError.set(null);
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    if (prev) void this.finalPush(prev, prevRows);
     if (!id) {
       this.rows.set([]);
       return;
@@ -260,11 +286,49 @@ export class HqEinsatzService {
     void this.sync();
   }
 
+  /** Sign-out on a shared browser: one last push attempt, then the account's cache is gone. */
+  private async finalPush(prev: string, rows: readonly Einsatz[]): Promise<void> {
+    try {
+      await this.pushDirty(prev, rows.filter((r) => r.dirty).slice(0, PUSH_BATCH), () => true);
+    } catch (err) {
+      logWarn('hq', 'einsatz final push failed', err);
+    } finally {
+      if (this.uid !== prev) {
+        try {
+          localStorage.removeItem(einsatzCacheKey(prev));
+        } catch (err) {
+          logWarn('hq', 'einsatz cache removal failed', err);
+        }
+      }
+    }
+  }
+
+  /** Upsert the Einsaetze, rewrite the steps of the accepted ones; returns the ids the server did not accept. */
+  private async pushDirty(uid: string, dirty: readonly Einsatz[], stillCurrent: () => boolean): Promise<string[]> {
+    if (!dirty.length) return [];
+    const { data, error } = await this.sb.client
+      .from('hq_einsaetze')
+      .upsert(dirty.map((e) => toRow(e, uid)), { onConflict: 'id' })
+      .select('id');
+    if (error) throw error;
+    // The trigger skips a stale write: only Einsaetze it accepted may rewrite their steps.
+    const accepted = new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
+    for (const e of dirty) {
+      if (!accepted.has(e.id) || e.deletedAt || !stillCurrent()) continue;
+      const res = await this.sb.client.rpc('hq_replace_einsatz_steps', {
+        p_einsatz_id: e.id,
+        p_steps: e.steps.map(stepToJson),
+      });
+      if (res.error) throw res.error;
+    }
+    return dirty.filter((e) => !accepted.has(e.id)).map((e) => e.id);
+  }
+
   private persist(): void {
     if (!this.uid) return;
     try {
       const cache: CacheShape = { uid: this.uid, wm: this.watermark, rows: [...this.rows()] };
-      localStorage.setItem(EINSATZ_CACHE_KEY, JSON.stringify(cache));
+      localStorage.setItem(einsatzCacheKey(this.uid), JSON.stringify(cache));
     } catch (err) {
       logWarn('hq', 'einsatz storage write failed', err);
     }
@@ -273,48 +337,45 @@ export class HqEinsatzService {
   private async run(uid: string): Promise<void> {
     this.syncing.set(true);
     try {
-      const dirty = this.rows().filter((r) => r.dirty).slice(0, 50);
+      const dirty = this.rows().filter((r) => r.dirty).slice(0, PUSH_BATCH);
       if (dirty.length) {
-        const { data, error } = await this.sb.client
-          .from('hq_einsaetze')
-          .upsert(dirty.map((e) => toRow(e, uid)), { onConflict: 'id' })
-          .select('id');
-        if (error) throw error;
-        // The trigger skips a stale write: only Einsaetze it accepted may rewrite their steps.
-        const accepted = new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
-        for (const e of dirty) {
-          if (!accepted.has(e.id) || e.deletedAt) continue;
-          const stepsRes = await this.sb.client
-            .from('hq_einsatz_steps')
-            .upsert(e.steps.map((s) => stepToRow(e.id, s, uid)), { onConflict: 'einsatz_id,ord' });
-          if (stepsRes.error) throw stepsRes.error;
-          const trim = await this.sb.client.from('hq_einsatz_steps').delete().eq('einsatz_id', e.id).gte('ord', e.steps.length);
-          if (trim.error) throw trim.error;
-        }
+        const rejected = await this.pushDirty(uid, dirty, () => this.uid === uid);
         if (this.uid !== uid) return;
-        const pushed = new Map(dirty.map((e) => [e.id, e.updatedAt] as const));
+        const pushed = new Map(dirty.filter((e) => !rejected.includes(e.id)).map((e) => [e.id, e.updatedAt] as const));
         this.rows.update((rows) => markPushed(rows, pushed));
+        if (rejected.length) {
+          const res = await this.sb.client.from('hq_einsaetze').select('*').in('id', rejected);
+          if (res.error) throw res.error;
+          const batch = (res.data ?? []) as HqEinsatzRow[];
+          const steps = await this.fetchSteps(batch.filter((r) => !r.deleted_at).map((r) => r.id));
+          if (this.uid !== uid) return;
+          const remote = batch.map((r) => fromRow(r, steps.filter((s) => s.einsatz_id === r.id)));
+          this.rows.update((rows) => adoptRemote(rows, remote));
+        }
       }
+      let cursor: PullCursor | null = laggedCursor(this.watermark);
       for (let guard = 0; guard < 20; guard++) {
-        let q = this.sb.client.from('hq_einsaetze').select('*').order('synced_at', { ascending: true }).limit(PULL_PAGE);
-        if (this.watermark) q = q.gt('synced_at', this.watermark);
+        let q = this.sb.client
+          .from('hq_einsaetze')
+          .select('*')
+          .order('synced_at', { ascending: true })
+          .order('id', { ascending: true })
+          .limit(PULL_PAGE);
+        if (cursor) q = q.or(afterCursorFilter(cursor));
         const { data, error } = await q;
         if (error) throw error;
         if (this.uid !== uid) return;
         const batch = (data ?? []) as HqEinsatzRow[];
         if (!batch.length) break;
-        const live = batch.filter((r) => !r.deleted_at).map((r) => r.id);
-        const stepRows: HqEinsatzStepRow[] = [];
-        if (live.length) {
-          const res = await this.sb.client.from('hq_einsatz_steps').select('*').in('einsatz_id', live).order('ord', { ascending: true });
-          if (res.error) throw res.error;
-          stepRows.push(...((res.data ?? []) as HqEinsatzStepRow[]));
-        }
+        const stepRows = await this.fetchSteps(batch.filter((r) => !r.deleted_at).map((r) => r.id));
         if (this.uid !== uid) return;
         this.rows.update((rows) => mergePulled(rows, batch.map((r) => fromRow(r, stepRows.filter((s) => s.einsatz_id === r.id)))));
         this.watermark = nextWatermark(this.watermark, batch.map((r) => r.synced_at));
+        const last = batch[batch.length - 1];
+        cursor = { at: last.synced_at, id: last.id };
         if (batch.length < PULL_PAGE) break;
       }
+      this.ready.set(true);
       this.persist();
       this.syncError.set(null);
     } catch (err) {
@@ -323,6 +384,36 @@ export class HqEinsatzService {
     } finally {
       this.syncing.set(false);
     }
+  }
+
+  /**
+   * All steps of the given Einsaetze, in chunks of {@link STEPS_ID_CHUNK} ids and explicit pages
+   * with a row count. A list that came back short of its count throws: a truncated step list
+   * must never be merged (it would read as "the steps were removed").
+   */
+  private async fetchSteps(einsatzIds: readonly string[]): Promise<HqEinsatzStepRow[]> {
+    const out: HqEinsatzStepRow[] = [];
+    for (let i = 0; i < einsatzIds.length; i += STEPS_ID_CHUNK) {
+      const chunk = einsatzIds.slice(i, i + STEPS_ID_CHUNK);
+      let got = 0;
+      for (let guard = 0; guard < 50; guard++) {
+        const res = await this.sb.client
+          .from('hq_einsatz_steps')
+          .select('*', { count: 'exact' })
+          .in('einsatz_id', chunk)
+          .order('einsatz_id', { ascending: true })
+          .order('ord', { ascending: true })
+          .range(got, got + STEPS_PAGE - 1);
+        if (res.error) throw res.error;
+        const rows = (res.data ?? []) as HqEinsatzStepRow[];
+        out.push(...rows);
+        got += rows.length;
+        const total = res.count ?? got;
+        if (got >= total) break;
+        if (!rows.length) throw new Error('einsatz steps page came back empty before the count was reached');
+      }
+    }
+    return out;
   }
 }
 
@@ -344,10 +435,9 @@ function toRow(e: Einsatz, uid: string): Partial<HqEinsatzRow> {
   };
 }
 
-function stepToRow(einsatzId: string, s: EinsatzStep, uid: string): Partial<HqEinsatzStepRow> {
+/** A step as the `hq_replace_einsatz_steps` payload (the RPC supplies einsatz_id and user_id). */
+function stepToJson(s: EinsatzStep): Record<string, unknown> {
   return {
-    einsatz_id: einsatzId,
-    user_id: uid,
     ord: s.ord,
     kind: s.kind,
     label: s.label,
@@ -397,7 +487,15 @@ function stepFromRow(s: HqEinsatzStepRow): EinsatzStep {
 
 function readCache(uid: string): CacheShape | null {
   try {
-    const raw = localStorage.getItem(EINSATZ_CACHE_KEY);
+    let raw = localStorage.getItem(einsatzCacheKey(uid));
+    if (!raw) {
+      // Old shared key: adopt it only for the account it was written for, then drop it.
+      const old = localStorage.getItem(EINSATZ_CACHE_KEY);
+      if (old && (JSON.parse(old) as { uid?: unknown } | null)?.uid === uid) {
+        raw = old;
+        localStorage.removeItem(EINSATZ_CACHE_KEY);
+      }
+    }
     const parsed: unknown = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== 'object') return null;
     const o = parsed as Record<string, unknown>;

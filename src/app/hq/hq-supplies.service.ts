@@ -3,9 +3,19 @@ import { AuthService } from '../auth/auth.service';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import type { StepKind } from '../shared/step/sc-step.component';
 import type { HqSetKind, HqSupplyRow } from './data/hq-db.types';
-import { markPushed, mergePulled, newClientId, nextWatermark } from './data/hq-supplies-sync';
+import {
+  PullCursor,
+  adoptRemote,
+  afterCursorFilter,
+  laggedCursor,
+  markPushed,
+  mergePulled,
+  newClientId,
+  nextWatermark,
+} from './data/hq-supplies-sync';
 
 /** Where a line came from (`hq_supplies.source`). */
 export type SupplySource = HqSupplyRow['source'];
@@ -48,8 +58,11 @@ export interface SupplyMeta {
 
 /** Legacy local list (before the server table). Read once after sign-in, then removed. */
 export const SUPPLIES_STORAGE_KEY = 'sc.hq.supplies';
-/** Per-user offline cache: `{ uid, wm, rows }`. */
+/** Per-user offline cache `{ uid, wm, rows }` lives under `<SUPPLIES_CACHE_KEY>.<uid>` (a shared browser must not mix accounts). */
 export const SUPPLIES_CACHE_KEY = 'sc.hq.supplies.sync';
+export function suppliesCacheKey(uid: string): string {
+  return `${SUPPLIES_CACHE_KEY}.${uid}`;
+}
 export const SUPPLIES_MAX_ITEMS = 100;
 export const SUPPLY_NAME_MAX = 80;
 export const SUPPLY_QTY_MAX = 999;
@@ -77,6 +90,11 @@ export class HqSuppliesService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confirmDialog = inject(ScConfirmService);
+  private readonly legacyAsked = new Set<string>();
+
+  /** True once the signed-in account's first pull finished (live auto-apply waits for it). */
+  readonly ready = signal(false);
 
   /** Every row incl. tombstones (the sync state). */
   private readonly rows = signal<readonly SupplyItem[]>(readLegacy());
@@ -246,40 +264,78 @@ export class HqSuppliesService {
 
   private onUser(id: string | null): void {
     if (id === this.uid) return;
+    const prev = this.uid;
+    const prevRows = this.rows();
     this.uid = id;
     this.watermark = null;
+    this.ready.set(false);
     this.syncError.set(null);
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    if (prev) void this.finalPush(prev, prevRows);
     if (!id) {
       this.rows.set(readLegacy());
       return;
     }
     const cache = readCache(id);
     this.watermark = cache?.wm ?? null;
-    let rows: SupplyItem[] = cache?.rows ?? [];
-    // One-time import of the old local list: every line the account does not know yet.
-    const legacy = readLegacy();
-    if (legacy.length) {
-      const known = new Set(rows.map((r) => r.id));
-      const now = nowIso();
-      rows = [...rows, ...legacy.filter((l) => !known.has(l.id)).map((l) => ({ ...l, updatedAt: now, dirty: true }))];
-    }
-    this.rows.set(rows);
+    this.rows.set(cache?.rows ?? []);
     this.persist();
-    if (legacy.length) {
-      try {
-        localStorage.removeItem(SUPPLIES_STORAGE_KEY);
-      } catch (err) {
-        logWarn('hq', 'supplies legacy key removal failed', err);
+    void this.offerLegacyImport(id);
+    void this.sync();
+  }
+
+  /** Sign-out on a shared browser: one last push attempt, then the account's cache is gone. */
+  private async finalPush(prev: string, rows: readonly SupplyItem[]): Promise<void> {
+    try {
+      const dirty = rows.filter((r) => r.dirty).slice(0, PUSH_BATCH);
+      if (dirty.length) {
+        const { error } = await this.sb.client
+          .from('hq_supplies')
+          .upsert(dirty.map((r) => toRow(r, prev)), { onConflict: 'user_id,id' });
+        if (error) throw error;
+      }
+    } catch (err) {
+      logWarn('hq', 'supplies final push failed', err);
+    } finally {
+      if (this.uid !== prev) {
+        try {
+          localStorage.removeItem(suppliesCacheKey(prev));
+        } catch (err) {
+          logWarn('hq', 'supplies cache removal failed', err);
+        }
       }
     }
-    void this.sync();
+  }
+
+  /** The signed-out list is only taken into an account after the user says so (shared browsers). */
+  private async offerLegacyImport(uid: string): Promise<void> {
+    const legacy = readLegacy();
+    if (!legacy.length || this.legacyAsked.has(uid)) return;
+    this.legacyAsked.add(uid);
+    const ok = await this.confirmDialog.confirm({
+      titleKey: 'hq.supply.importTitle',
+      messageKey: 'hq.supply.importMessage',
+      params: { count: legacy.length },
+      confirmKey: 'hq.supply.importConfirm',
+      cancelKey: 'hq.supply.importCancel',
+    });
+    if (!ok || this.uid !== uid) return;
+    const known = new Set(this.rows().map((r) => r.id));
+    const now = nowIso();
+    this.commit([...this.rows(), ...legacy.filter((l) => !known.has(l.id)).map((l) => ({ ...l, updatedAt: now, dirty: true }))]);
+    try {
+      localStorage.removeItem(SUPPLIES_STORAGE_KEY);
+    } catch (err) {
+      logWarn('hq', 'supplies legacy key removal failed', err);
+    }
   }
 
   private persist(): void {
     try {
       if (this.uid) {
         const cache: CacheShape = { uid: this.uid, wm: this.watermark, rows: [...this.rows()] };
-        localStorage.setItem(SUPPLIES_CACHE_KEY, JSON.stringify(cache));
+        localStorage.setItem(suppliesCacheKey(this.uid), JSON.stringify(cache));
       } else {
         localStorage.setItem(SUPPLIES_STORAGE_KEY, JSON.stringify(this.rows().filter((i) => !i.deletedAt)));
       }
@@ -293,26 +349,28 @@ export class HqSuppliesService {
     try {
       const dirty = this.rows().filter((r) => r.dirty).slice(0, PUSH_BATCH);
       if (dirty.length) {
-        const { error } = await this.sb.client
+        const { data, error } = await this.sb.client
           .from('hq_supplies')
-          .upsert(dirty.map((r) => toRow(r, uid)), { onConflict: 'user_id,id' });
+          .upsert(dirty.map((r) => toRow(r, uid)), { onConflict: 'user_id,id' })
+          .select('id');
         if (error) throw error;
         if (this.uid !== uid) return;
-        const pushed = new Map(dirty.map((r) => [r.id, r.updatedAt] as const));
+        // The trigger skips a stale write and returns no row for it: only accepted rows are pushed.
+        const accepted = new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
+        const pushed = new Map(dirty.filter((r) => accepted.has(r.id)).map((r) => [r.id, r.updatedAt] as const));
         this.rows.update((rows) => markPushed(rows, pushed));
+        const rejected = dirty.filter((r) => !accepted.has(r.id)).map((r) => r.id);
+        if (rejected.length) {
+          const res = await this.sb.client.from('hq_supplies').select('*').in('id', rejected);
+          if (res.error) throw res.error;
+          if (this.uid !== uid) return;
+          const remote = ((res.data ?? []) as HqSupplyRow[]).map(fromRow);
+          this.rows.update((rows) => adoptRemote(rows, remote));
+        }
       }
-      for (let guard = 0; guard < 20; guard++) {
-        let q = this.sb.client.from('hq_supplies').select('*').order('synced_at', { ascending: true }).limit(PULL_PAGE);
-        if (this.watermark) q = q.gt('synced_at', this.watermark);
-        const { data, error } = await q;
-        if (error) throw error;
-        if (this.uid !== uid) return;
-        const batch = (data ?? []) as HqSupplyRow[];
-        if (!batch.length) break;
-        this.rows.update((rows) => mergePulled(rows, batch.map(fromRow)));
-        this.watermark = nextWatermark(this.watermark, batch.map((r) => r.synced_at));
-        if (batch.length < PULL_PAGE) break;
-      }
+      await this.pull(uid);
+      if (this.uid !== uid) return;
+      this.ready.set(true);
       this.persist();
       this.syncError.set(null);
       if (dirty.length === PUSH_BATCH) this.schedule();
@@ -321,6 +379,30 @@ export class HqSuppliesService {
       this.syncError.set(toErrorKey('hq', 'syncSupplies', err));
     } finally {
       this.syncing.set(false);
+    }
+  }
+
+  /** Keyset pull on `(synced_at, id)`, starting a few seconds before the watermark (late commits). */
+  private async pull(uid: string): Promise<void> {
+    let cursor: PullCursor | null = laggedCursor(this.watermark);
+    for (let guard = 0; guard < 20; guard++) {
+      let q = this.sb.client
+        .from('hq_supplies')
+        .select('*')
+        .order('synced_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(PULL_PAGE);
+      if (cursor) q = q.or(afterCursorFilter(cursor));
+      const { data, error } = await q;
+      if (error) throw error;
+      if (this.uid !== uid) return;
+      const batch = (data ?? []) as HqSupplyRow[];
+      if (!batch.length) break;
+      this.rows.update((rows) => mergePulled(rows, batch.map(fromRow)));
+      this.watermark = nextWatermark(this.watermark, batch.map((r) => r.synced_at));
+      const last = batch[batch.length - 1];
+      cursor = { at: last.synced_at, id: last.id };
+      if (batch.length < PULL_PAGE) break;
     }
   }
 }
@@ -377,7 +459,15 @@ function fromRow(r: HqSupplyRow): SupplyItem {
 
 function readCache(uid: string): CacheShape | null {
   try {
-    const raw = localStorage.getItem(SUPPLIES_CACHE_KEY);
+    let raw = localStorage.getItem(suppliesCacheKey(uid));
+    if (!raw) {
+      // Old shared key: adopt it only for the account it was written for, then drop it.
+      const old = localStorage.getItem(SUPPLIES_CACHE_KEY);
+      if (old && (JSON.parse(old) as { uid?: unknown } | null)?.uid === uid) {
+        raw = old;
+        localStorage.removeItem(SUPPLIES_CACHE_KEY);
+      }
+    }
     const parsed: unknown = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== 'object') return null;
     const o = parsed as Record<string, unknown>;
