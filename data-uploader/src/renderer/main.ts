@@ -100,7 +100,10 @@ export interface PublicSettings {
   autoRunPreset: 'gaming' | 'balanced' | 'full';
   /** Last remembered ⏻ choice on the operator's own runs (never 'shutdown'). */
   whenDoneLast: 'nothing' | 'quit';
-  updateChannel: 'alpha' | 'beta' | 'stable';
+  /** Update ring: 'auto' follows the role's highest ring, else a pin. */
+  updateChannel: 'auto' | 'alpha' | 'beta' | 'stable';
+  /** The ring 'auto' last resolved to. */
+  autoRing: 'alpha' | 'beta' | 'stable';
   /** Extra 3D asset packages the 3D-model step also builds (settings, 3D models). */
   pkgFps: boolean;
   pkgItems: boolean;
@@ -414,6 +417,7 @@ async function init(): Promise<void> {
   } catch {
     state.role = 'viewer';
   }
+  void refreshAutoRing();
 
   // The tray's Resume item can only signal intent — the renderer sequences the
   // upload stages, so it has to do the actual resuming.
@@ -720,6 +724,7 @@ async function refreshConnection(): Promise<void> {
         state.role = role;
         paintConnection(); // ring-picker visibility depends on role
       }
+      void refreshAutoRing();
     } catch {
       /* keep the last known role */
     }
@@ -1378,6 +1383,19 @@ export async function jumpToResumeUpload(): Promise<void> {
 }
 
 // ============= View: Configure =============
+
+/**
+ * Main resolves 'auto' to a ring whenever the role is fetched — re-read it so
+ * the ⚙ chip names the ring that is actually followed.
+ */
+async function refreshAutoRing(): Promise<void> {
+  try {
+    const next = await window.sc.settings.get();
+    if (state.settings && next) state.settings = { ...state.settings, autoRing: next.autoRing };
+  } catch {
+    /* keep the last known settings */
+  }
+}
 
 /** Channels the current role may pick (highest first). Empty = no picker. */
 export function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {

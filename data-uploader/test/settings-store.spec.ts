@@ -89,7 +89,7 @@ describe('SettingsStore', () => {
     expect(s.afterAutoRun).toBe('keep');
     store.patch({ minimizeToTray: false });
     const persisted = JSON.parse(io.data as string) as { v: number; settings: Record<string, unknown> };
-    expect(persisted.v).toBe(3);
+    expect(persisted.v).toBe(4);
     expect(persisted.settings.autoRunOnNewVersion).toBeUndefined();
     expect(persisted.settings.quitAfterAutoRun).toBeUndefined();
   });
@@ -114,14 +114,27 @@ describe('SettingsStore', () => {
     expect(new SettingsStore(io, seqIds()).load().whenDoneLast).toBe('nothing');
   });
 
-  it('defaults updateChannel to stable and round-trips a patch', () => {
+  it('defaults updateChannel to auto and round-trips a patch', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());
-    expect(store.load().updateChannel).toBe('stable');
-    store.patch({ updateChannel: 'beta' });
+    expect(store.load().updateChannel).toBe('auto');
+    expect(store.load().autoRing).toBe('stable');
+    store.patch({ updateChannel: 'beta', autoRing: 'alpha' });
     // Survives a reload from the same backing store.
     const reloaded = new SettingsStore(io, seqIds());
     expect(reloaded.load().updateChannel).toBe('beta');
+    expect(reloaded.load().autoRing).toBe('alpha');
+  });
+
+  it('reads a pre-v4 stable (the old default) as auto, keeps an old alpha/beta pick', () => {
+    const io = fakeIO();
+    io.data = JSON.stringify({ v: 3, settings: { installId: 'x', updateChannel: 'stable' } });
+    expect(new SettingsStore(io, seqIds()).load().updateChannel).toBe('auto');
+    io.data = JSON.stringify({ v: 3, settings: { installId: 'x', updateChannel: 'beta' } });
+    expect(new SettingsStore(io, seqIds()).load().updateChannel).toBe('beta');
+    // A v4 stable is an explicit pick and stays.
+    io.data = JSON.stringify({ v: 4, settings: { installId: 'x', updateChannel: 'stable' } });
+    expect(new SettingsStore(io, seqIds()).load().updateChannel).toBe('stable');
   });
 
   it('defaults afterAutoRun to quit and persists another choice', () => {
@@ -230,7 +243,8 @@ describe('SettingsStore', () => {
         autoRunOnNewVersion: false,
         shutdownAfterUpload: true,
         quitAfterAutoRun: true,
-        updateChannel: 'stable',
+        updateChannel: 'auto',
+        autoRing: 'stable',
       },
     });
     const s = new SettingsStore(io, seqIds()).load();
@@ -244,7 +258,7 @@ describe('SettingsStore', () => {
     expect(s.telemetryEnabled).toBe(false);
   });
 
-  it('upgrades a loaded v1 envelope to v3 on the next persist', () => {
+  it('upgrades a loaded v1 envelope to v4 on the next persist', () => {
     const io = fakeIO();
     io.data = JSON.stringify({
       v: 1,
@@ -254,7 +268,7 @@ describe('SettingsStore', () => {
     store.load();
     store.patch({ minimizeToTray: false });
     const persisted = JSON.parse(io.data as string) as { v: number; settings: Record<string, unknown> };
-    expect(persisted.v).toBe(3);
+    expect(persisted.v).toBe(4);
     expect(persisted.settings.shutdownAfterUpload).toBeUndefined();
   });
 });

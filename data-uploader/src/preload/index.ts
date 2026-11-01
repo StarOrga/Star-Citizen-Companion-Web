@@ -10,6 +10,7 @@ import type { AutoRunDecision } from '../lib/auto-run.js';
 import type { SubthemeKey, SubthemePlan } from '../lib/subthemes.js';
 import type { LedgerKey } from '../lib/subtheme-ledger.js';
 import type { SkinGateCode } from '../lib/skin-upload-summary.js';
+import type { ReleaseRing, RingPref } from '../lib/update-ring.js';
 
 /** The settings subset the UI is allowed to see (no installId). */
 export interface PublicSettings {
@@ -22,7 +23,10 @@ export interface PublicSettings {
   autoRunPreset: 'gaming' | 'balanced' | 'full';
   /** Last remembered ⏻ choice on the operator's own runs (never 'shutdown'). */
   whenDoneLast: 'nothing' | 'quit';
-  updateChannel: 'alpha' | 'beta' | 'stable';
+  /** Update ring: 'auto' follows the role's highest ring, else a pin. */
+  updateChannel: RingPref;
+  /** The ring 'auto' last resolved to. */
+  autoRing: ReleaseRing;
   /** Extra 3D asset packages the 3D-model step also builds (settings, 3D models). */
   pkgFps: boolean;
   pkgItems: boolean;

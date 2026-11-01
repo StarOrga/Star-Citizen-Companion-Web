@@ -19,6 +19,7 @@ import { settleInitialVisibility, shouldStartHidden } from '../lib/window-visibi
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
 import { createWatchdog } from '../lib/watchdog.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE, SUPABASE_ANON_KEY } from '../lib/release-token.js';
+import { effectiveRing, highestRingFor, isRingPref, type ReleaseRing, type RingPref } from '../lib/update-ring.js';
 import {
   initAutoUpdater,
   setUpdateChannel,
@@ -249,7 +250,8 @@ function publicSettings(): {
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
   autoRunPreset: 'gaming' | 'balanced' | 'full';
   whenDoneLast: 'nothing' | 'quit';
-  updateChannel: 'alpha' | 'beta' | 'stable';
+  updateChannel: RingPref;
+  autoRing: ReleaseRing;
   pkgFps: boolean;
   pkgItems: boolean;
   pkgArmor: boolean;
@@ -266,6 +268,7 @@ function publicSettings(): {
     autoRunPreset: s.autoRunPreset,
     whenDoneLast: s.whenDoneLast,
     updateChannel: s.updateChannel,
+    autoRing: s.autoRing,
     pkgFps: s.pkgFps,
     pkgItems: s.pkgItems,
     pkgArmor: s.pkgArmor,
@@ -274,6 +277,34 @@ function publicSettings(): {
 }
 
 ipcMain.handle('sc:settings:get', () => publicSettings());
+
+/** Ring the updater follows right now (see `followRing`). */
+let followedRing: ReleaseRing | null = null;
+
+/**
+ * Point the updater at the ring the settings resolve to — the pin, or under
+ * 'auto' the highest ring the account's role last reached. Only a real change
+ * re-checks the feed.
+ */
+function followRing(): void {
+  const s = getSettings();
+  const ring = effectiveRing(s.updateChannel, s.autoRing);
+  if (ring === followedRing) return;
+  followedRing = ring;
+  setUpdateChannel(ring);
+}
+
+/**
+ * Record the ring 'auto' resolves to for this account. A 'viewer' answer only
+ * counts without a session: fetchUserRole() collapses every transient failure
+ * to 'viewer', and that must not drop an admin back to stable mid-session.
+ */
+function noteRoleRing(role: 'admin' | 'collaborator' | 'viewer', signedIn: boolean): void {
+  if (role === 'viewer' && signedIn) return;
+  const ring = highestRingFor(role);
+  if (getSettings().autoRing !== ring) patchSettings({ autoRing: ring });
+  followRing();
+}
 
 ipcMain.handle('sc:settings:setTelemetry', (_e, enabled: boolean) => {
   setTelemetryEnabled(Boolean(enabled));
@@ -290,7 +321,7 @@ ipcMain.handle(
       afterAutoRun?: 'keep' | 'quit' | 'shutdown';
       autoRunPreset?: 'gaming' | 'balanced' | 'full';
       whenDoneLast?: 'nothing' | 'quit';
-      updateChannel?: 'alpha' | 'beta' | 'stable';
+      updateChannel?: RingPref;
       pkgFps?: boolean;
       pkgItems?: boolean;
       pkgArmor?: boolean;
@@ -319,13 +350,7 @@ ipcMain.handle(
     ) {
       clean.afterAutoRun = partial.afterAutoRun;
     }
-    if (
-      partial?.updateChannel === 'alpha' ||
-      partial?.updateChannel === 'beta' ||
-      partial?.updateChannel === 'stable'
-    ) {
-      clean.updateChannel = partial.updateChannel;
-    }
+    if (isRingPref(partial?.updateChannel)) clean.updateChannel = partial.updateChannel;
     if (typeof partial?.pkgFps === 'boolean') clean.pkgFps = partial.pkgFps;
     if (typeof partial?.pkgItems === 'boolean') clean.pkgItems = partial.pkgItems;
     if (typeof partial?.pkgArmor === 'boolean') clean.pkgArmor = partial.pkgArmor;
@@ -334,7 +359,7 @@ ipcMain.handle(
     }
     patchSettings(clean);
     // Re-point the auto-updater when the ring changed (re-checks the new feed).
-    if (clean.updateChannel) setUpdateChannel(clean.updateChannel);
+    if (clean.updateChannel) followRing();
     return publicSettings();
   },
 );
@@ -601,10 +626,16 @@ ipcMain.handle('sc:session:token', async () => {
 
 ipcMain.handle('sc:session:signOut', () => {
   clearSession();
+  noteRoleRing('viewer', false);
   return { ok: true };
 });
 
-ipcMain.handle('sc:session:role', async () => fetchUserRole());
+ipcMain.handle('sc:session:role', async () => {
+  const role = await fetchUserRole();
+  const { token } = await ensureAccessToken();
+  noteRoleRing(role, Boolean(token));
+  return role;
+});
 
 ipcMain.handle('sc:sync:cached', () => getCachedSnapshot());
 
@@ -1383,8 +1414,9 @@ app.whenReady().then(() => {
   // preference in case it was cleared by an uninstall/reinstall or by policy.
   syncAutoStartWithOs();
   // Schedules an update check 4 s after launch (skipped in dev builds); follows
-  // the operator's persisted release ring (default stable).
-  initAutoUpdater(getSettings().updateChannel);
+  // the operator's persisted release ring (default auto — the role's highest).
+  followedRing = effectiveRing(getSettings().updateChannel, getSettings().autoRing);
+  initAutoUpdater(followedRing);
   // Fire-and-forget: reclaim leftover extract dirs from prior failed/uploaded
   // runs. Non-blocking so it never delays window paint; errors are swallowed.
   // The extract a paused/interrupted upload still needs is exempt — the sweep

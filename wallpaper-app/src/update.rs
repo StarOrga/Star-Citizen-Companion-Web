@@ -339,6 +339,37 @@ fn ring_within(ring: Channel, max: Option<Channel>) -> bool {
     }
 }
 
+/// Whether the tray offers the ring submenu at all.
+///
+/// Only an account that reaches a ring above stable has anything to choose — a
+/// viewer or a signed-out install would see a picker whose every answer is
+/// "stable", so for them the entry is not shown. Until a check has answered,
+/// the last ring auto-resolution persisted stands in for the reach (under auto
+/// it IS the reach), so a collaborator does not lose the menu for the first
+/// seconds after every start.
+pub fn ring_menu_visible(signed_in: bool, last_effective: Channel) -> bool {
+    ring_menu_visible_for(signed_in, max_ring(), last_effective, preference())
+}
+
+/// The rule of [`ring_menu_visible`], separated from the globals so it can be
+/// tested.
+fn ring_menu_visible_for(
+    signed_in: bool,
+    max: Option<Channel>,
+    last_effective: Channel,
+    pref: RingPref,
+) -> bool {
+    if !signed_in {
+        return false;
+    }
+    // A pin above stable stays reachable in the menu, so the way back to auto
+    // never disappears — even after a demotion or while the feed is offline.
+    if matches!(pref, RingPref::Pinned(c) if c > Channel::Stable) {
+        return true;
+    }
+    max.unwrap_or(last_effective) > Channel::Stable
+}
+
 /// Tray label for the current state — the SCC "status readout" voice, and the
 /// only place the updater ever talks to the user.
 pub fn tray_label() -> String {
@@ -1331,6 +1362,25 @@ mod tests {
         for c in Channel::ALL_DESCENDING {
             assert!(ring_within(c, None));
         }
+    }
+
+    /// The ring picker is for accounts that reach above stable: signed out or a
+    /// stable-only viewer sees no entry, a collaborator or admin does — also
+    /// before the first check, from the persisted auto-resolution.
+    #[test]
+    fn the_ring_menu_shows_only_for_accounts_above_stable() {
+        let auto = RingPref::Auto;
+        assert!(!ring_menu_visible_for(false, Some(Channel::Alpha), Channel::Alpha, auto));
+        assert!(!ring_menu_visible_for(true, Some(Channel::Stable), Channel::Stable, auto));
+        assert!(!ring_menu_visible_for(true, None, Channel::Stable, auto));
+        assert!(ring_menu_visible_for(true, Some(Channel::Beta), Channel::Stable, auto));
+        assert!(ring_menu_visible_for(true, Some(Channel::Alpha), Channel::Alpha, auto));
+        assert!(ring_menu_visible_for(true, None, Channel::Beta, auto));
+        // A clamp to stable outranks a stale persisted ring.
+        assert!(!ring_menu_visible_for(true, Some(Channel::Stable), Channel::Alpha, auto));
+        // A pin above stable keeps the way back to auto open.
+        let pinned = RingPref::Pinned(Channel::Beta);
+        assert!(ring_menu_visible_for(true, Some(Channel::Stable), Channel::Stable, pinned));
     }
 
     /// Auto mode, signed out: stable is current, but the ring we asked for

@@ -7,7 +7,8 @@
  *   new patch has no switch: it always happens once the uploader runs and a
  *   session exists (`lib/auto-run.ts`).
  * - "App": chips for language, ✕-to-tray, error reports and — admins and
- *   collaborators only — the update ring.
+ *   collaborators only — the update ring ("Automatisch" by default: the
+ *   highest ring the role reaches; viewers never see it).
  *
  * Every slot and chip opens the same app-styled menu (`openSlotMenu`): arrow
  * keys, Home/End, Enter/Space, Esc closes it (and only it). A pick repaints the
@@ -94,11 +95,15 @@ function bodyHtml(s: PublicSettings, rings: Array<'alpha' | 'beta' | 'stable'>):
       ? t('settings.when.noteAutoKeep')
       : t('settings.when.noteAuto');
 
+  const ringName =
+    s.updateChannel === 'auto'
+      ? t('settings.updateChannel.autoShort', { ring: t('settings.updateChannel.' + s.autoRing) })
+      : t('settings.updateChannel.' + s.updateChannel);
   const ring =
     rings.length >= 2
       ? chip(
           'ring',
-          `◆ ${escapeHtml(t('settings.updateChannel.label'))}: ${escapeHtml(t('settings.updateChannel.' + s.updateChannel))} · ${escapeHtml(t('settings.adminBadge'))}`,
+          `◆ ${escapeHtml(t('settings.updateChannel.label'))}: ${escapeHtml(ringName)} · ${escapeHtml(t('settings.adminBadge'))}`,
           true,
         )
       : '';
@@ -311,7 +316,10 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
         return {
           label: t('settings.updateChannel.label'),
           current: s.updateChannel,
-          options: ctx.allowedChannels().map((c) => ({ value: c, label: t('settings.updateChannel.' + c) })),
+          options: [
+            { value: 'auto', label: t('settings.updateChannel.auto') },
+            ...ctx.allowedChannels().map((c) => ({ value: c, label: t('settings.updateChannel.' + c) })),
+          ],
           hint: `${t('settings.updateChannel.hint')} — ${t('settings.adminOnly')}`,
           onPick: (v) =>
             void apply(key, () => ctx.patch({ updateChannel: v as PublicSettings['updateChannel'] })),

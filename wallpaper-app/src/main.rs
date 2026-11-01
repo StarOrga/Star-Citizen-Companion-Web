@@ -658,7 +658,9 @@ unsafe fn show_menu(hwnd: HWND) {
 
     // ---- Update-ring submenu ----
     //
-    // The ring picker the app never had. "Automatisch" is first and is the
+    // Only shown to an account that reaches a ring above stable (collaborator,
+    // admin): signed out or as a viewer every answer would be "stable", so there
+    // is nothing to pick. "Automatisch" is first and is the
     // default: it follows the highest ring the account's role grants, re-resolved
     // on every check. The three pinned rings follow, widest first, each GREYED
     // when the last check showed this account cannot reach it — visible rather
@@ -807,7 +809,12 @@ unsafe fn show_menu(hwnd: HWND) {
     AppendMenuW(menu, update_flags, ID_UPDATE, l_update.as_ptr());
     // Directly under the readout it explains: "Aktuell · v0.6.0 · Alpha" is only
     // half an answer without "and Alpha is what I follow, automatically".
-    AppendMenuW(menu, MF_POPUP, ring_menu as usize, l_ring.as_ptr());
+    if update::ring_menu_visible(signed_in, resolved_ring) {
+        AppendMenuW(menu, MF_POPUP, ring_menu as usize, l_ring.as_ptr());
+    } else {
+        // Never attached, so DestroyMenu(menu) below would not reach it.
+        DestroyMenu(ring_menu);
+    }
     // …and the ring only makes sense next to the account it is resolved for.
     AppendMenuW(menu, MF_POPUP, account_menu as usize, l_account.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
