@@ -51,10 +51,11 @@
   background: radial-gradient(circle at 60% 3%, #2f6585 0, #143a52 7%, #0a2232 14%, #061722 22%, #040f17 40%, #030a10 70%);
   box-shadow: 0 -4px 24px rgba(82, 193, 230, 0.5), inset 0 7px 22px rgba(150, 225, 255, 0.35);
 }
-// The live planet runs: the CSS one only lends it its geometry. It stays
-// visible while the canvas fades in (1.6 s), then steps out of the way.
-.brief-world, .city { transition: opacity 0s 1.6s; }
-.brief-world.gl, .city.gl { opacity: 0; }
+// The live planet runs: the CSS one only lends it its geometry and is never
+// seen next to it (no old→new morph, #8a). It stands in only when no live planet
+// comes (no WebGL, or it took far too long: .css-planet).
+.brief-world, .city { opacity: 0; }
+.css-planet .brief-world, .css-planet .city { opacity: 1; }
 // Soft city glows near the rim on the night side (no dots).
 .brief-world::before {
   content: '';
@@ -157,7 +158,7 @@
   overflow: hidden;
 }
 .tl { color: inherit; text-decoration: none; transition: color 0.2s, text-shadow 0.2s; }
-a.tl:hover, a.tl:focus-visible { color: #fff; text-shadow: 0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+a.tl:hover, a.tl:focus-visible { color: #fff; }
 a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; border-radius: 4px; }
 .t-in { animation: t-in 0.45s ease-out both; }
 @keyframes t-in { from { opacity: 0; transform: translateY(6px); } }
@@ -245,8 +246,9 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   cursor: pointer;
 }
 // It fades with the scroll and is gone at the bottom (briefing-dock sets --dock).
-.more-cue { opacity: clamp(0, 1 - var(--dock, 0) * 2.5, 1); transition: visibility 0s; }
-.more-cue.gone { visibility: hidden; pointer-events: none; }
+.more-cue { opacity: clamp(0, 1 - var(--dock, 0) * 2.5, 1); transition: opacity 0.4s ease, visibility 0s; }
+// Gone while a news message stands in the holo (it would crowd it) and at the bottom of the page.
+.more-cue.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s ease, visibility 0s 0.4s; }
 .more-cue:hover .chev, .more-cue:focus-visible .chev { color: var(--sc-accent); }
 .more-cue:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 6px; }
 
@@ -254,6 +256,11 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 
 // Readability: every text block sits on a soft dark pool, so city lights and
 // stars step back behind it (concept 2026-10-29, round 1).
+// The same dimming for every text over the planet and the stars (cx-dim): a dark halo
+// behind the glyphs — children inherit the custom property, their stylesheets use it.
+:host { --vb-dim: 0 0 0.35em rgba(2, 6, 11, 0.95), 0 0 1.1em rgba(2, 6, 11, 0.8), 0 0 2.4em rgba(2, 6, 11, 0.55); }
+.kick, .more-cue, .tl, .step, .err, .hx .find { text-shadow: var(--vb-dim); }
+a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent); }
 .hx { position: relative; isolation: isolate; }
 .hx::before, .hub::before {
   content: '';
@@ -283,14 +290,14 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   position: absolute;
   left: calc(50% - 50vw);
   width: 100vw;
-  height: 13%;
+  height: 18%;
   z-index: 8;
-  background: #000;
+  // Weicher Verlauf (concept 2026-11-01): the page's own dark, fading to nothing — no hard edge, no pure black.
   pointer-events: none;
-  animation: lb-open calc(0.8s * var(--k)) cubic-bezier(0.65, 0, 0.25, 1) calc(0.8s * var(--k)) both;
+  animation: lb-open calc(1.2s * var(--k)) cubic-bezier(0.45, 0, 0.25, 1) calc(0.8s * var(--k)) both;
 }
-.lb-t { top: 0; }
-.lb-b { bottom: 0; }
+.lb-t { top: 0; transform-origin: 50% 0; background: linear-gradient(to bottom, color-mix(in srgb, var(--sc-bg-0) 94%, transparent), color-mix(in srgb, var(--sc-bg-0) 55%, transparent) 45%, transparent); }
+.lb-b { bottom: 0; transform-origin: 50% 100%; background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent), color-mix(in srgb, var(--sc-bg-0) 55%, transparent) 45%, transparent); }
 .bstage.intro .brief-world, .bstage.intro .city { animation: world-rise calc(1.6s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1s * var(--k)) both; }
 .bstage.intro .ltr {
   display: inline-block;
@@ -320,8 +327,9 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   pointer-events: none;
   animation: comet-fly calc(0.6s * var(--k)) cubic-bezier(0.55, 0, 0.45, 1) calc(4.85s * var(--k)) both;
 }
-@keyframes lb-open { from { height: 13%; } to { height: 0; } }
-@keyframes world-rise { from { opacity: 0; transform: translateY(14vh); } to { opacity: 1; transform: none; } }
+@keyframes lb-open { from { opacity: 1; transform: scaleY(1); } to { opacity: 0; transform: scaleY(0.6); } }
+// Transform only: the CSS planet is the live planet's anchor and moves it along (opacity is never animated here).
+@keyframes world-rise { from { transform: translateY(14vh); } to { transform: none; } }
 @keyframes ltr-in { from { opacity: 0; filter: blur(12px); transform: scale(1.7); } to { opacity: 1; filter: none; transform: none; } }
 @keyframes detail-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
 @keyframes comet-fly {
@@ -330,6 +338,16 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   85% { opacity: 1; transform: rotate(-30deg) translateX(0) scaleX(1); }
   100% { opacity: 0; transform: rotate(-30deg) translateX(0) scaleX(0.2); }
 }
+
+// ── Kurz-Auftakt (coming back within the session, ~1 s) ────────────────
+// Planet and sky stand at once, no camera move, no bars, no comet: only the title,
+// the search field (the shell, k 0.15) and the hub fade in, staggered over 0–1 s.
+@keyframes soft-in { from { opacity: 0; } to { opacity: 1; } }
+.bstage.short.intro .lb, .bstage.short.intro .comet { display: none; }
+.bstage.short.intro .brief-world, .bstage.short.intro .city { animation: none; }
+.bstage.short.intro .ltr { animation: soft-in 0.45s ease-out calc(0.05s + var(--i) * 0.008s) both; filter: none; }
+.bstage.short.intro .kick, .bstage.short.intro sc-briefing-transmit, .bstage.short.intro .more-cue { animation: soft-in 0.45s ease-out 0.4s both; }
+.bstage.short.intro ~ .hub { animation: soft-in 0.5s ease-out 0.5s both; }
 
 // Easter egg (sc-briefing-asteroid): the closest pass shakes stage and planet once.
 .bstage.quake, .world-clip.quake { animation: quake 0.6s cubic-bezier(0.3, 0.7, 0.4, 1); }

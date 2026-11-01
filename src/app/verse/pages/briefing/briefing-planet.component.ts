@@ -21,10 +21,11 @@ import { DAY_MS, PlanetWorld, Vec3, generateWorld, project, seeded } from './pla
   selector: 'sc-briefing-planet',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { 'aria-hidden': 'true', '[class.on]': 'ready()' },
+  host: { 'aria-hidden': 'true', '[class.on]': 'ready()', '[class.instant]': 'instant()' },
   template: '<canvas class="bp-gl"></canvas><canvas class="bp-trains"></canvas>',
   styles: [`
-    :host { position: sticky; top: 0; display: block; width: 100%; height: 100vh; height: 100dvh; pointer-events: none; opacity: 0; transition: opacity 1.6s ease-out; }
+    :host { position: sticky; top: 0; display: block; width: 100%; height: 100vh; height: 100dvh; pointer-events: none; opacity: 0; transition: opacity 0.9s ease-out; }
+    :host(.instant) { transition: none; }
     :host(.on) { opacity: 1; }
     canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     @media (prefers-reduced-motion: reduce) { :host { transition: none; } }
@@ -34,6 +35,10 @@ export class BriefingPlanetComponent {
   /** The CSS planet: the live one is drawn exactly over it. */
   readonly anchor = input.required<HTMLElement>();
   readonly ready = signal(false);
+  /** No live planet will come (no WebGL, generation aborted): the CSS planet stands in. */
+  readonly failed = signal(false);
+  /** The world was already built this session: the planet stands without fading in. */
+  readonly instant = signal(false);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
@@ -55,19 +60,27 @@ export class BriefingPlanetComponent {
       renderer = new PlanetRenderer(glCanvas, accentRgb());
     } catch (err) {
       logWarn('verse.planet', 'WebGL unavailable, keeping the CSS planet', err);
+      this.zone.run(() => this.failed.set(true));
       return;
     }
     this.cleanup.push(() => renderer.dispose());
 
-    const world = await this.slices(generateWorld());
-    if (!world) return;
-    const { day, cloud } = paintDay(world);
-    const night = await this.slices(paintNight(world, innerWidth >= 1000 ? 4096 : 2048));
-    if (!night) return;
+    // The generated world + textures live for the whole document: coming back to the Verse
+    // inside the session shows the planet at once (Kurz-Auftakt), not after a fresh generation.
+    let built = builtWorld;
+    this.instant.set(!!built);
+    if (!built) {
+      const world = await this.slices(generateWorld());
+      if (!world) return;
+      const { day, cloud } = paintDay(world);
+      const night = await this.slices(paintNight(world, innerWidth >= 1000 ? 4096 : 2048));
+      if (!night) return;
+      built = builtWorld = { world, day, night, cloud };
+    }
+    const { world, day, night, cloud } = built;
     renderer.setTextures(day, night, cloud);
-    // The GPU has its copies; free the big canvases.
-    for (const c of [day, night, cloud]) c.width = c.height = 0;
 
+    performance.mark?.('sc-verse-planet-ready');
     this.zone.run(() => this.ready.set(true));
     this.loop(world, renderer, glCanvas, trainCanvas);
   }
@@ -185,6 +198,9 @@ export class BriefingPlanetComponent {
     else frame = requestAnimationFrame(tick);
   }
 }
+
+/** The planet's generated world and its textures, kept for the session (see start()). */
+let builtWorld: { world: PlanetWorld; day: HTMLCanvasElement; night: HTMLCanvasElement; cloud: HTMLCanvasElement } | null = null;
 
 /** `--sc-accent` as 0..1 RGB for the atmosphere (falls back to the default cyan). */
 function accentRgb(): [number, number, number] {

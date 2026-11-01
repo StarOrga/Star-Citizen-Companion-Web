@@ -33,6 +33,7 @@ import { STARS_PER_PATCH, defaultPatch } from '../starmap/starmap.model';
 import { BriefingMoonComponent, MoonTiming, moonSchedule } from './briefing/briefing-moon.component';
 import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
+import { BriefingGalleryFillService } from './briefing/briefing-gallery-fill.service';
 import { BriefingHubComponent } from './briefing/briefing-hub.component';
 import { BriefingPlanetComponent } from './briefing/briefing-planet.component';
 import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
@@ -49,7 +50,7 @@ import {
   splitChars,
   uniqueStories,
 } from './briefing/briefing.model';
-import { HUB_NEWS, hubChannel, hubChannels, hubGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
+import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { DockState, wireDock } from './briefing/briefing-dock';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
@@ -70,10 +71,10 @@ export const HERO_MS = 7000;
 export const TITLE_MIN_SCALE = 0.55;
 
 /** Entrance length in seconds: the full "Anflug" once per session, a short one afterwards. */
-export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 0.6 };
+export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 1 };
 
 /** Hub title sequence (beta shell), seconds at --k 1: letterbox, title cascade, search, calm, details, comet. */
-export const HUB_INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 6.4, short: 6.4 * (0.6 / 3.4) };
+export const HUB_INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 6.4, short: 1.1 };
 
 interface Gate {
   door: VerseDoor;
@@ -366,7 +367,8 @@ export class VerseBriefingComponent {
     hubChannels(this.channelMap(), this.knownLines(), (l) => this.stability.verdictFor(l), this.api.digest()?.patch?.channelInfo ?? null),
   );
   readonly hubPatchImage = computed(() => patchImage(this.news.patchLines()));
-  readonly hubGallery = computed(() => hubGallery(this.api.digest()?.items ?? []));
+  private readonly galleryFill = inject(BriefingGalleryFillService);
+  readonly hubGallery = computed(() => fillGallery(this.api.digest()?.items ?? [], this.galleryFill.items()));
   readonly liveDays = computed(() => this.status()?.live.days ?? null);
   /** The sun leads to the LIVE patch's status. */
   readonly sunLink = computed<string | string[]>(() => {
@@ -412,6 +414,10 @@ export class VerseBriefingComponent {
 
   /** The scroll flight stage → hub (briefing-dock): where the page stands, and whether the planets fly. */
   readonly dock = signal<DockState>('top');
+  /** The live planet took far too long: the CSS planet stands in (otherwise it only lends geometry — #8a, no old→new morph). */
+  readonly cssFallback = signal(false);
+  /** A message stands in the holo: the "more" cue is hidden meanwhile (#1). */
+  readonly newsShown = signal(false);
   readonly dockFlying = signal(false);
 
   /** Pointer / focus on the hero title: the auto switch holds. */
@@ -434,6 +440,7 @@ export class VerseBriefingComponent {
   constructor() {
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
     void this.api.loadSeen();
+    if (this.shell()) void this.galleryFill.load();
     if (!this.news.feed() && !this.news.loading()) void this.news.refresh(true);
 
     effect(() => {
@@ -442,6 +449,10 @@ export class VerseBriefingComponent {
 
     if (this.shell()) this.wireStage();
     if (this.shell()) this.startTitleIntro();
+    if (this.shell()) {
+      const fb = setTimeout(() => this.cssFallback.set(true), 8000);
+      this.destroyRef.onDestroy(() => clearTimeout(fb));
+    }
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
     // focused time; the clock restarts with every switch.
@@ -575,7 +586,8 @@ export class VerseBriefingComponent {
     if (reduce || !this.enabled()) return;
     this.titleIntro.set(true);
     // The shell reveals its search field and (first visit) the main header in step with it.
-    this.chrome.startHeroIntro(this.intro === 'full' ? 1 : INTRO_SECONDS.short / INTRO_SECONDS.full, this.intro === 'full');
+    // Kurz-Auftakt: the shell's field ignites at ~0.5 s (3.4 s × 0.15), inside the 1 s.
+    this.chrome.startHeroIntro(this.intro === 'full' ? 1 : 0.15, this.intro === 'full');
     const id = setTimeout(() => {
       this.titleIntro.set(false);
       this.chrome.endHeroIntro();

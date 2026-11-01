@@ -119,3 +119,6 @@
   .sun, .flare, .lab { transition: none; }
   .ring, .lab-n i, .lab-v { animation: none !important; }
 }
+
+// cx-dim: every text over the planet and the stars gets the page's dark halo.
+.lab-n, .lab-v, .lab { text-shadow: var(--vb-dim, none); }
