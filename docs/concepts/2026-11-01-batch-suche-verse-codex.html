@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-11-01T08:48:50" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-11-01T08:48:50" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5167,7 +5167,7 @@ button.an-tr:hover { background: var(--an-s2); }
 .section-nav-state.state-issue { color: var(--accent-color, #58a6ff); font-weight: 600; }
 </style>
 </head>
-<body style="overflow: hidden">
+<body>
   <div class="concept-layout design fullscreen">
     <div class="concept-content">
       <header class="page-header" data-page-header>
@@ -5804,7 +5804,8 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
 
 </section>
 
-<section data-iteration="2" data-iteration-template="design" data-design-set="alternatives" id="iter-2" data-active>
+<section data-iteration="2" data-iteration-template="design" data-design-set="alternatives" data-baked id="iter-2" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"ruhig"}</script>
 
 <style>
 /* Round 2 mocks — namespaced mk-r2-*, per-design rules c1-/c2-/c3-. Base = "Schwebende Karte" (round 1 favourite). */
@@ -5921,7 +5922,8 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-c1-a1" data-annotation="c1-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-c1-a1" data-annotation="c1-a1" data-attachable placeholder="Deine Antwort…" readonly>Ne, das ist ok, aber die marke und icon sollten ja auch gleich sein wenn es den sub header nicht gibt sondern den header hmmm...
+Es stört micheher das wir hier gefühlt 10 schriftfarben im header haben und 1-2 zu viele fonts.... </textarea>
             <div class="attach-slot" data-attach-slot="anno-c1-a1"></div>
           </div>
         </div>
@@ -5934,7 +5936,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-c1-a2" data-annotation="c1-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-c1-a2" data-annotation="c1-a2" data-attachable placeholder="Deine Antwort…" readonly>sehr gut!</textarea>
             <div class="attach-slot" data-attach-slot="anno-c1-a2"></div>
           </div>
         </div>
@@ -5945,7 +5947,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
       <div class="mk-r2-bar">
         <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
           <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
-        <button type="button" class="mk-r2-search" ><span class="mk-r2-glass"></span>
+        <button type="button" class="mk-r2-search" disabled><span class="mk-r2-glass"></span>
           <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
           <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
           <span class="mk-r2-kbd">Strg K</span></button>
@@ -5990,7 +5992,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-c2-a1" data-annotation="c2-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-c2-a1" data-annotation="c2-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-c2-a1"></div>
           </div>
         </div>
@@ -6003,7 +6005,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-c2-a2" data-annotation="c2-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-c2-a2" data-annotation="c2-a2" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-c2-a2"></div>
           </div>
         </div>
@@ -6014,7 +6016,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
       <div class="mk-r2-bar">
         <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
           <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
-        <button type="button" class="mk-r2-search" ><span class="mk-r2-glass"></span>
+        <button type="button" class="mk-r2-search" disabled><span class="mk-r2-glass"></span>
           <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
           <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
           <span class="mk-r2-kbd">Strg K</span></button>
@@ -6059,7 +6061,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-c3-a1" data-annotation="c3-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-c3-a1" data-annotation="c3-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-c3-a1"></div>
           </div>
         </div>
@@ -6072,7 +6074,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-c3-a2" data-annotation="c3-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-c3-a2" data-annotation="c3-a2" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-c3-a2"></div>
           </div>
         </div>
@@ -6083,7 +6085,7 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
       <div class="mk-r2-bar">
         <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
           <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
-        <button type="button" class="mk-r2-search" ><span class="mk-r2-glass"></span>
+        <button type="button" class="mk-r2-search" disabled><span class="mk-r2-glass"></span>
           <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
           <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
           <span class="mk-r2-kbd">Strg K</span></button>
@@ -6130,52 +6132,197 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
       <h3>Leiser Fokus — auf Listen filtert Tippen, sonst öffnet das Panel (Empfehlung)</h3>
       <p>Nach dem Laden blinkt nur der Cursor. Klick, <kbd>↓</kbd> oder <kbd>Strg K</kbd> öffnet das Panel mit Vorschlägen (Zuletzt gesucht, Bereiche). Tippen auf einer Listen-Seite filtert die Liste sofort, das Panel bleibt zu, unter dem Feld steht nur „Im ganzen Codex: 23 Treffer ↓“ (mit <kbd>↓</kbd> aufklappbar). Auf allen anderen Seiten öffnet das erste Zeichen das Panel mit Treffern.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-op-hybrid" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-op-hybrid" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-hybrid" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-hybrid" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="op-hybrid-note">Notiz / Override (optional)</label>
-        <textarea id="op-hybrid-note" data-comment="op-hybrid-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="op-hybrid-note" data-comment="op-hybrid-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
     <div class="variant-evaluation" data-decision="op-char" data-label="Panel ab erstem Zeichen">
       <h3>Panel überall erst ab dem ersten Zeichen</h3>
       <p>Einfachste Regel: Fokus öffnet nichts, das erste Zeichen öffnet überall das Panel — auch auf Listen-Seiten, dort liegt es dann über der gefilterten Liste. Vorschläge ohne Tippen gibt es nur per <kbd>↓</kbd>.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-op-char" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-op-char" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-char" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-char" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="op-char-note">Notiz / Override (optional)</label>
-        <textarea id="op-char-note" data-comment="op-char-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="op-char-note" data-comment="op-char-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
     <div class="variant-evaluation" data-decision="op-mode" data-label="Filter-Modus mit Chip">
       <h3>Eigener Filter-Modus auf Listen-Seiten</h3>
       <p>Auf Listen-Seiten zeigt das Feld einen Chip „Filtert: Schiffe“ und ist reiner Filter, ganz ohne Panel. <kbd>Tab</kbd> oder Klick auf den Chip schaltet in die globale Suche mit Panel. Klar getrennt, aber ein Konzept mehr zu lernen.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-op-mode" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-op-mode" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-mode" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-mode" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="op-mode-note">Notiz / Override (optional)</label>
-        <textarea id="op-mode-note" data-comment="op-mode-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="op-mode-note" data-comment="op-mode-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
     <div class="variant-evaluation" data-decision="op-today" data-label="Panel beim Fokus">
       <h3>Panel beim Fokus wie heute, ohne Autofokus</h3>
       <p>Alles bleibt, wie es ist: kein Autofokus, Klick ins Feld öffnet das Panel sofort. Dein Autofokus-Wunsch fiele damit weg.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-op-today" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-op-today" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-today" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-today" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="op-today-note">Notiz / Override (optional)</label>
-        <textarea id="op-today-note" data-comment="op-today-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea>
+        <textarea id="op-today-note" data-comment="op-today-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea>
       </div>
     </div>
   </div>
   </section>
+</section>
+
+<section data-iteration="3" data-iteration-template="free" data-final-report id="iter-3" data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Batch: Suche, Verse-Stage, Codex-Konzepttreue</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="2026-11-01-batch-suche-verse-codex/shots/before.png" alt="Such-Panel vorher: Rahmen kaum sichtbar, Pillen mit Umrandung"><figcaption>Vorher</figcaption></figure>
+    <figure class="fr-shot"><img src="2026-11-01-batch-suche-verse-codex/shots/after.png" alt="Such-Panel nachher: ruhige Leiste, schwebende Karte mit Kacheln"><figcaption>Nachher</figcaption></figure>
+    <a class="fr-try" href="http://127.0.0.1:4200/codex/index?kind=ship" target="_blank" rel="noopener noreferrer">▶ Selbst ausprobieren</a>
+  </div>
+
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">Alle 8 Notizen und alle angenommenen Punkte aus beiden Runden sind gebaut, unabhängig gegengeprüft und nachgebessert — offen ist nur, die Holotisch-Animationen auf einem Produktions-Build anzusehen.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🔎</span><span><b>Ruhige Leiste</b> mit atmendem Suchfeld, Panel als schwebende Karte, Suche bis vor „Apps“, Breadcrumb faltet nur die Mitte.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🪐</span><span>Verse: <b>neuer Planet ab dem ersten Frame</b>, Reload = volles Intro, Kurz-Auftakt beim Zurückschalten, weicher Verlauf statt schwarzer Balken, Mosaik immer 7.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛰</span><span>Codex: Holotisch-Animationen <b>spielen jetzt überhaupt</b> (seit #858 tot), Callouts an echten Hardpoints, Holodeck mit Parallax und hochzählenden Werten.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 70%; --fr-target: 100%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">~2 s</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">bis der Planet beim ersten Besuch steht und das Intro startet, Obergrenze 3 s (geschätzt, gemessen im Dev-Server). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">4876 / 4876</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Karma-Specs der ganzen App grün, Produktions-Build ohne Warnung, Lint ohne Fehler. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 99%; --fr-target: 100%">
+          <span class="fr-meter-name">🛠 Wartbarkeit</span>
+          <b class="fr-meter-value">2 Schriften · 4 Textfarben</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">in Header und Subheader (vorher 3 und 10), Marke aus einer Komponente, Leisten-Styles 17,8 von 18 kB Budget. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Lokal durchgespielt<small>Stufe 4 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="done">Lokal durchgespielt</li>
+      <li data-level="5" data-state="open">Prod-Build geprüft</li>
+      <li data-level="6" data-state="open">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Eingeloggt mit echten Daten im Dev-Server geprüft, nicht auf dem Produktions-Build. Nicht umgesetzt bzw. nicht belegt: die Holotisch-Animationen im Detail (Scan-Scheibe, Strahl, Ringwelle, Typewriter) — im Dev-Server war der Holotisch nach 8 s noch beim Laden; die Holodeck-Töne hat niemand gehört. Beides steht unter 🧪.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 4 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-skeleton"
+          data-issue-title="[FEATURE] Show a skeleton stage while a codex ship page loads"
+          data-issue-type="feature"
+          data-issue-body="While checking the ship-page holodeck (batch concept 2026-11-01, cx-polish), the whole codex ship detail page stays empty for ~3 s: the route renders nothing until the ship data has loaded. The holodeck now shows a scanning placeholder once it mounts, but the page itself has no skeleton. Proposal: render the page frame + an empty holodeck stage (lock ring, scan line) immediately and fill it when the data arrives. Files: codex ship detail route component, codex-holo-stage.component.ts."
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="im Repo">
+        <span class="oq-label">Schiffsseite 3 s leer beim Laden</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Die Schiffs-Detailseite zeigt rund 3 s gar nichts, bis die Schiffsdaten da sind.</dd>
+          <dt>Wo</dt><dd>Codex → Schiff (Detailseite)</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt — Skelett-Bühne, im Repo.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-armour-timeout"
+          data-issue-title="[BUG] Codex landing armour news query hits the statement timeout"
+          data-issue-type="bug"
+          data-issue-body="On production data the codex landing's first item arrives only after 7–9 s and the armour news query fails with Postgres statement timeout 57014 (seen while checking the holotable with the test account, batch concept 2026-11-01). Ships on the holotable can rotate away before their hull has loaded. Needs a look at the query plan / index for the armour news RPC (codex-landing-data.service.ts) and the anon/authenticated statement timeouts (3 s / 8 s)."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="riskant">
+        <span class="oq-label">Codex-Start: Rüstungs-News-Abfrage timeoutet</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Erster Eintrag erst nach 7–9 s, Abfrage bricht mit Statement-Timeout ab.</dd>
+          <dt>Wo</dt><dd>Codex-Startseite, Datenbank</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — riskant, Datenbank-Abfrage.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-landing-callouts"
+          data-issue-title="[FEATURE] Component callouts on the codex landing holotable"
+          data-issue-type="feature"
+          data-issue-body="The landing holotable shows at most 3 callouts from curated ship values (speed, hull HP, armour, cargo); 3 of them now end at real hardpoints. Weapons, shields, quantum drive, power plant and coolers have real hardpoints but are not landing callouts (on the ship page they already sit as pins on their mounts). Showing them on the landing would replace speed/hull/armour and is a content decision. Found during batch concept 2026-11-01 (cx-anchors)."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht Concept">
+        <span class="oq-label">Komponenten-Callouts auf dem Holotisch?</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Waffen, Schilde, Quantum, Power, Kühler hätten echte Anker, sind aber keine Callouts.</dd>
+          <dt>Wo</dt><dd>Codex-Startseite, Holotisch</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — inhaltliche Entscheidung, braucht ein Concept.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-phone-chip"
+          data-issue-title="[BUG] Beta chip covers the account buttons on phones"
+          data-issue-type="bug"
+          data-issue-body="On the phone screenshots of batch concept 2026-11-01 the account buttons at the top look partly covered by the β (beta) chip. Not part of the batch scope; layout of the beta chip vs the top-right account controls under 720px."
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">β-Chip verdeckt Konto-Buttons am Handy</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Der β-Chip liegt am Telefon teilweise über den Konto-Buttons.</dd>
+          <dt>Wo</dt><dd>Kopfzeile, Telefon</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt — klein, im Repo.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-holo-prod" data-crit="high" data-guide="">Holotisch-Animationen auf Prod ansehen</li>
+      <li data-todo-id="t-holo-sound" data-crit="mid" data-guide="">Holodeck-Töne einschalten und anhören</li>
+      <li data-todo-id="t-phone-panel" data-crit="mid" data-guide="">Such-Panel am Handy öffnen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/batch-d577a4</code> · Commits e0bdc131, f5e88029, d32adff9, 48512109, 081a3e65, 82e45619 (+ Regeln b0f43169, main gemergt)</li>
+      <li><code>src/app/shell/fusion-bar/*</code>, <code>src/app/shell/brand/brand.component.ts</code>, <code>src/app/verse/pages/briefing/*</code>, <code>src/app/codex/landing/*</code>, <code>src/app/codex/holo/*</code></li>
+      <li>Karma 4876/4876 grün (Edge) · Build ohne Warnung · Lint 0 Fehler</li>
+      <li>Abnahme: Brief <code>briefs/implement.md</code>, unabhängige QA-Prüfung → 8 Lücken → nachgebessert</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -6390,7 +6537,8 @@ Wenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es 
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
-<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="3" aria-selected="true" aria-controls="iter-3">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
