@@ -9,7 +9,9 @@ import {
   SUPPLIES_MAX_ITEMS,
   SUPPLIES_STORAGE_KEY,
   SUPPLY_QTY_MAX,
+  suppliesCacheKey,
 } from './hq-supplies.service';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 
 function serverRow(id: string, patch: Partial<HqSupplyRow> = {}): HqSupplyRow {
   return {
@@ -26,43 +28,72 @@ describe('HqSuppliesService', () => {
   let fake: ReturnType<typeof fakeSupabase>;
   let failPush = false;
 
+  /** Ids whose upsert the (fake) server trigger rejects as stale: it keeps its row and returns nothing. */
+  let rejectIds: Set<string>;
+  let confirmAnswer = true;
+  let confirmCalls = 0;
+  const flush = () => new Promise<void>((r) => setTimeout(r, 0));
+
   const answer = (call: FakeCall): FakeResult => {
     if (call.target !== 'hq_supplies') return { data: null };
     const upsert = chainArgs(call, 'upsert');
     if (upsert) {
       if (failPush) return { error: { message: 'offline', status: 0 } };
+      const accepted: { id: string }[] = [];
       for (const r of upsert[0] as Partial<HqSupplyRow>[]) {
+        if (rejectIds.has(r.id!)) continue;
         const i = server.findIndex((s) => s.id === r.id);
         const row = { ...(i >= 0 ? server[i] : serverRow(r.id!)), ...r, synced_at: new Date().toISOString() } as HqSupplyRow;
         if (i >= 0) server[i] = row;
         else server.push(row);
+        accepted.push({ id: r.id! });
       }
-      return { data: null };
+      return { data: accepted };
     }
-    const gt = chainArgs(call, 'gt');
-    return { data: server.filter((s) => !gt || Date.parse(s.synced_at) > Date.parse(gt[1] as string)) };
+    const ids = chainArgs(call, 'in');
+    if (ids) return { data: server.filter((s) => (ids[1] as string[]).includes(s.id)) };
+    // Keyset filter `synced_at.gt.X[,and(synced_at.eq.X,id.gt.Y)]`
+    const or = chainArgs(call, 'or')?.[0] as string | undefined;
+    const gt = or?.match(/synced_at\.gt\.([^,]+)/)?.[1];
+    const tie = or?.match(/id\.gt\.([^)]+)\)/)?.[1];
+    const rows = server
+      .filter((s) => !gt || Date.parse(s.synced_at) > Date.parse(gt) || (tie !== undefined && s.synced_at === gt && s.id > tie))
+      .sort((a, b) => (a.synced_at === b.synced_at ? a.id.localeCompare(b.id) : a.synced_at.localeCompare(b.synced_at)));
+    return { data: rows };
   };
 
   function make(signedIn = true): HqSuppliesService {
     TestBed.resetTestingModule();
     user = signal<{ id: string } | null>(signedIn ? { id: 'u1' } : null);
     fake = fakeSupabase({ answer });
-    TestBed.configureTestingModule({ providers: [fake.provider, { provide: AuthService, useValue: { user } }] });
+    TestBed.configureTestingModule({
+      providers: [
+        fake.provider,
+        { provide: AuthService, useValue: { user } },
+        { provide: ScConfirmService, useValue: { confirm: async () => (confirmCalls++, confirmAnswer) } },
+      ],
+    });
     const s = TestBed.inject(HqSuppliesService);
     TestBed.flushEffects();
     return s;
   }
 
+  function clearStorage(): void {
+    localStorage.removeItem(SUPPLIES_STORAGE_KEY);
+    localStorage.removeItem(SUPPLIES_CACHE_KEY);
+    localStorage.removeItem(suppliesCacheKey('u1'));
+    localStorage.removeItem(suppliesCacheKey('u2'));
+  }
+
   beforeEach(() => {
     server = [];
     failPush = false;
-    localStorage.removeItem(SUPPLIES_STORAGE_KEY);
-    localStorage.removeItem(SUPPLIES_CACHE_KEY);
+    rejectIds = new Set();
+    confirmAnswer = true;
+    confirmCalls = 0;
+    clearStorage();
   });
-  afterEach(() => {
-    localStorage.removeItem(SUPPLIES_STORAGE_KEY);
-    localStorage.removeItem(SUPPLIES_CACHE_KEY);
-  });
+  afterEach(clearStorage);
 
   it('adds a line, merges the same open name like a cart', async () => {
     const s = make();
@@ -154,13 +185,87 @@ describe('HqSuppliesService', () => {
     expect(s.items().map((i) => i.id)).toEqual(['b']);
   });
 
-  it('imports the old local list once after sign-in and removes the key', async () => {
+  it('imports the old local list after sign-in only once the user confirms, then removes the key', async () => {
     localStorage.setItem(SUPPLIES_STORAGE_KEY, JSON.stringify([{ id: 'old1', name: 'Old shield', qty: 2, done: true }]));
     const s = make();
+    await flush();
     await s.sync();
+    expect(confirmCalls).toBe(1);
     expect(localStorage.getItem(SUPPLIES_STORAGE_KEY)).toBeNull();
     expect(server.map((r) => [r.id, r.name, r.qty, r.done])).toEqual([['old1', 'Old shield', 2, true]]);
     expect(s.items()[0].name).toBe('Old shield');
+  });
+
+  it('keeps the old local list out of the account when the user declines', async () => {
+    confirmAnswer = false;
+    localStorage.setItem(SUPPLIES_STORAGE_KEY, JSON.stringify([{ id: 'old1', name: 'Old shield', qty: 2, done: true }]));
+    const s = make();
+    await flush();
+    await s.sync();
+    expect(s.items()).toEqual([]);
+    expect(server).toEqual([]);
+    expect(localStorage.getItem(SUPPLIES_STORAGE_KEY)).not.toBeNull();
+  });
+
+  it('caches per user: a second account on the same browser never sees the first one\'s lines', async () => {
+    const s = make();
+    s.add('Mine', 1);
+    await s.sync();
+    expect(localStorage.getItem(suppliesCacheKey('u1'))).not.toBeNull();
+    expect(localStorage.getItem(SUPPLIES_CACHE_KEY)).toBeNull();
+    server = [];
+    user.set({ id: 'u2' });
+    TestBed.flushEffects();
+    await flush();
+    expect(s.items()).toEqual([]);
+  });
+
+  it('pushes once more on sign-out and then drops that account\'s cache', async () => {
+    failPush = false;
+    const s = make();
+    await s.sync();
+    s.add('Last second', 1);
+    user.set(null);
+    TestBed.flushEffects();
+    await flush();
+    await flush();
+    expect(server.map((r) => r.name)).toEqual(['Last second']);
+    expect(localStorage.getItem(suppliesCacheKey('u1'))).toBeNull();
+  });
+
+  it('keeps a row the server rejected as stale dirty, and takes the server version instead of marking it pushed', async () => {
+    server = [serverRow('a', { name: 'Server wins', updated_at: '2026-11-02T00:00:00.000Z', synced_at: '2026-11-02T00:00:00.000Z' })];
+    const s = make();
+    await s.sync();
+    rejectIds.add('a');
+    s.setQty('a', 5);
+    expect(s.items().find((i) => i.id === 'a')?.dirty).toBeTrue();
+    await s.sync();
+    const a = s.items().find((i) => i.id === 'a')!;
+    expect(a.name).toBe('Server wins');
+    expect(a.qty).toBe(1);
+    expect(a.dirty).toBeFalse();
+  });
+
+  it('is not ready before the first pull and ready after', async () => {
+    const s = make();
+    expect(s.ready()).toBeFalse();
+    await s.sync();
+    expect(s.ready()).toBeTrue();
+  });
+
+  it('pulls with a keyset on (synced_at, id) and re-reads a few seconds before the watermark', async () => {
+    server = [serverRow('a', { synced_at: '2026-11-01T10:00:10.000Z' })];
+    const s = make();
+    await s.sync();
+    fake.calls.length = 0;
+    server.push(serverRow('b', { synced_at: '2026-11-01T10:00:07.000Z' })); // committed late, older synced_at
+    await s.sync();
+    const pull = fake.calls.find((c) => c.target === 'hq_supplies' && chainArgs(c, 'or'))!;
+    expect(chainArgs(pull, 'order')).toBeDefined();
+    expect(pull.chain.filter(([m]) => m === 'order').map(([, a]) => a[0])).toEqual(['synced_at', 'id']);
+    expect(chainArgs(pull, 'or')![0]).toBe('synced_at.gt.2026-11-01T10:00:05.000Z');
+    expect(s.items().map((i) => i.id).sort()).toEqual(['a', 'b']);
   });
 
   it('signed out it still works from the old local key', () => {
