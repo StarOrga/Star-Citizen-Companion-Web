@@ -9,7 +9,7 @@ import {
   inject,
 } from '@angular/core';
 import { Location } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqNowComponent } from './now/hq-now.component';
@@ -91,6 +91,7 @@ export class HqPagesComponent {
   private readonly nav = inject(HqPageNavService);
   private readonly location = inject(Location);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
@@ -102,13 +103,21 @@ export class HqPagesComponent {
       if (page) this.syncUrl(page);
     });
     const detach = this.nav.attach((p) => this.goTo(p));
-    // Back / forward between fragments: the router does not scroll, so follow the history entry.
-    const pop = this.location.subscribe(() => {
-      const page = hqPageOfFragment(typeof window === 'undefined' ? null : window.location.hash.slice(1)) ?? 'start';
-      this.scrollTo(page, false);
-      this.chrome.setHqPage(page);
+    // Back / forward and fragment links run as router navigations; the app's scroll policy
+    // (OverlayRouteScrollService) answers their Scroll event with a jump to the top. Land on the
+    // page the fragment names afterwards, on the next frame.
+    const nav = this.router.events.subscribe((e) => {
+      if (!(e instanceof Scroll)) return;
+      const land = () => {
+        // The address bar, not the router URL: rail clicks move the fragment past the router.
+        const page = hqPageOfFragment(typeof window === 'undefined' ? null : window.location.hash.slice(1)) ?? 'start';
+        this.scrollTo(page, false);
+        this.chrome.setHqPage(page);
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(land);
+      else land();
     });
-    this.destroyRef.onDestroy(() => pop.unsubscribe());
+    this.destroyRef.onDestroy(() => nav.unsubscribe());
     if (typeof window !== 'undefined') {
       const onResize = () => this.measureStartTop();
       window.addEventListener('resize', onResize, { passive: true });
