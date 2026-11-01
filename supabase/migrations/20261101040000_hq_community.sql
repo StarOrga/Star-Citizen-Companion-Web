@@ -48,6 +48,9 @@ create index if not exists hq_community_reported_idx on public.hq_community_repo
 create or replace function public.hq_community_before_insert()
 returns trigger
 language plpgsql
+-- SECURITY DEFINER: users have INSERT only on this table (no select/delete grant), but the
+-- rate-limit count and the oldest-row prune need both. Everything is fully qualified.
+security definer
 set search_path = ''
 as $$
 begin
@@ -103,7 +106,9 @@ as $$
     select distinct on (r.location, r.user_id)
            r.location, r.user_id, r.value, r.reported_at
       from public.hq_community_reports r
-     where r.kind = p_kind
+      join auth.users u on u.id = r.user_id
+     where u.created_at < now() - interval '7 days'   -- fresh accounts cannot steer a median
+       and r.kind = p_kind
        and r.class_name = p_class_name
        and r.reported_at > now() - interval '90 days'
      order by r.location, r.user_id, r.reported_at desc
@@ -123,7 +128,7 @@ as $$
      group by l.location
   ),
   kept as (
-    select l.location, l.value, l.reported_at
+    select l.location, l.user_id, l.value, l.reported_at
       from latest l
       join fences f using (location)
      where l.value >= f.q1 - 1.5 * (f.q3 - f.q1)
@@ -132,9 +137,10 @@ as $$
   select k.location,
          (percentile_cont(0.5) within group (order by k.value))::numeric as median,
          count(*)::integer as n,
-         max(k.reported_at) as newest
+         date_trunc('day', max(k.reported_at)) as newest   -- day precision: no timing side channel
     from kept k
    group by k.location
+  having count(distinct k.user_id) >= 5   -- >= 5 distinct users AFTER outlier removal
    order by k.location
 $$;
 
@@ -142,8 +148,8 @@ revoke all on function public.hq_community_median(text, text) from public, anon;
 grant execute on function public.hq_community_median(text, text) to authenticated;
 
 comment on function public.hq_community_median(text, text) is
-  'Community median per location. Only locations with reports from >= 5 distinct users (latest per user, last 90 days); '
-  'IQR (1.5x) outliers removed; n = reports kept. SECURITY DEFINER, aggregates only.';
+  'Community median per location. Only locations with reports from >= 5 distinct users (latest per user, last 90 days, accounts > 7 days old); '
+  'IQR (1.5x) outliers removed and >= 5 distinct users must remain; newest rounded to the day; n = reports kept. SECURITY DEFINER, aggregates only.';
 
 -- Retention: nightly 03:40 UTC. ROLLBACK: select cron.unschedule('hq-community-retention');
 -- (pg_cron is already enabled - never repeat `create extension pg_cron`, 2BP01.)

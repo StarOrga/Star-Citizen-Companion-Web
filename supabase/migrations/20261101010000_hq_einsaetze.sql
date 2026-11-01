@@ -97,6 +97,10 @@ drop trigger if exists hq_einsatz_steps_updated_at on public.hq_einsatz_steps;
 create trigger hq_einsatz_steps_updated_at before update on public.hq_einsatz_steps
   for each row execute function public.set_updated_at();
 
+-- Cap: 40 steps per Einsatz, 4000 per user. Rows of tombstoned Einsaetze do not count
+-- towards the user total (hq_einsaetze_c_drop_steps deletes them anyway).
+-- `insert ... on conflict do update` fires BEFORE INSERT for the attempted row even when
+-- (einsatz_id, ord) exists - that is an UPDATE, so it must not trip the caps.
 create or replace function public.hq_einsatz_steps_enforce_cap()
 returns trigger
 language plpgsql
@@ -104,10 +108,17 @@ set search_path = ''
 as $$
 begin
   perform pg_advisory_xact_lock(hashtextextended('hq_einsatz_steps:' || new.user_id::text, 0));
+  if exists (select 1 from public.hq_einsatz_steps
+              where einsatz_id = new.einsatz_id and ord = new.ord) then
+    return new;
+  end if;
   if (select count(*) from public.hq_einsatz_steps where einsatz_id = new.einsatz_id) >= 40 then
     raise exception 'hq_einsatz_steps: at most 40 steps per Einsatz' using errcode = 'check_violation';
   end if;
-  if (select count(*) from public.hq_einsatz_steps where user_id = new.user_id) >= 4000 then
+  if (select count(*)
+        from public.hq_einsatz_steps st
+        join public.hq_einsaetze e on e.id = st.einsatz_id
+       where st.user_id = new.user_id and e.deleted_at is null) >= 4000 then
     raise exception 'hq_einsatz_steps: step limit reached (4000)' using errcode = 'check_violation';
   end if;
   return new;
@@ -119,6 +130,84 @@ drop trigger if exists hq_einsatz_steps_cap on public.hq_einsatz_steps;
 create trigger hq_einsatz_steps_cap
   before insert on public.hq_einsatz_steps
   for each row execute function public.hq_einsatz_steps_enforce_cap();
+
+-- A tombstoned Einsatz hides its steps by the join; drop them for good so they free their
+-- cap slots. SECURITY INVOKER is enough: the owner's own RLS allows the delete.
+create or replace function public.hq_einsaetze_drop_steps()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  delete from public.hq_einsatz_steps where einsatz_id = new.id;
+  return null;
+end;
+$$;
+revoke all on function public.hq_einsaetze_drop_steps() from public, anon, authenticated;
+
+drop trigger if exists hq_einsaetze_c_drop_steps on public.hq_einsaetze;
+create trigger hq_einsaetze_c_drop_steps
+  after insert or update of deleted_at on public.hq_einsaetze
+  for each row when (new.deleted_at is not null)
+  execute function public.hq_einsaetze_drop_steps();
+
+-- Atomic step replacement: one transaction = delete + insert, so a client never leaves
+-- an Einsatz half-written. SECURITY INVOKER: RLS limits it to the caller's own rows.
+-- p_steps = jsonb array (max 40) of {kind,label,location?,system?,class_name?,qty?,
+-- supply_id?,mission_ref?,state?,done_at?,done_by?}; `ord` is the array index.
+create or replace function public.hq_replace_einsatz_steps(p_einsatz_id uuid, p_steps jsonb)
+returns integer
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  n integer;
+begin
+  if p_steps is null or jsonb_typeof(p_steps) <> 'array' then
+    raise exception 'p_steps must be a jsonb array' using errcode = 'invalid_parameter_value';
+  end if;
+  n := jsonb_array_length(p_steps);
+  if n > 40 then
+    raise exception 'hq_einsatz_steps: at most 40 steps per Einsatz' using errcode = 'check_violation';
+  end if;
+  if not exists (select 1 from public.hq_einsaetze
+                  where id = p_einsatz_id and user_id = (select auth.uid()) and deleted_at is null) then
+    raise exception 'Einsatz not found' using errcode = 'no_data_found';
+  end if;
+
+  delete from public.hq_einsatz_steps where einsatz_id = p_einsatz_id;
+
+  insert into public.hq_einsatz_steps
+    (einsatz_id, user_id, ord, kind, label, location, system, class_name, qty,
+     supply_id, mission_ref, state, done_at, done_by)
+  select p_einsatz_id, (select auth.uid()), (t.ord - 1)::integer, s.kind, s.label, s.location, s.system,
+         s.class_name, s.qty, s.supply_id, s.mission_ref, coalesce(s.state, 'todo'), s.done_at, s.done_by
+    from jsonb_array_elements(p_steps) with ordinality as t(el, ord)
+    cross join lateral jsonb_to_record(t.el) as s(
+      kind text, label text, location text, system text, class_name text, qty integer,
+      supply_id text, mission_ref text, state text, done_at timestamptz, done_by text);
+  return n;
+end;
+$$;
+revoke all on function public.hq_replace_einsatz_steps(uuid, jsonb) from public, anon;
+grant execute on function public.hq_replace_einsatz_steps(uuid, jsonb) to authenticated;
+
+comment on function public.hq_replace_einsatz_steps(uuid, jsonb) is
+  'Atomically replaces all steps of one of the caller''s Einsaetze (max 40; ord = array index). Returns the step count.';
+
+-- Tombstone purge (180 days) now also covers Einsaetze; steps cascade. Replaces the
+-- supplies-only version from 20261101000000 (same cron job, hq-purge-tombstones).
+create or replace function public.hq_purge_tombstones()
+returns void
+language sql
+security definer
+set search_path = ''
+as $fn$
+  delete from public.hq_supplies  where deleted_at is not null and deleted_at < now() - interval '180 days';
+  delete from public.hq_einsaetze where deleted_at is not null and deleted_at < now() - interval '180 days';
+$fn$;
+revoke all on function public.hq_purge_tombstones() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- RLS: owner only (both tables)

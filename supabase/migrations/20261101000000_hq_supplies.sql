@@ -67,11 +67,22 @@ declare
   total_cap integer := tg_argv[1]::integer;
   live_count  integer;
   total_count integer;
+  row_exists  boolean;
 begin
   -- Serialize concurrent writes of the same user so the counts are exact.
   perform pg_advisory_xact_lock(hashtextextended(tg_table_name || ':' || new.user_id::text, 0));
 
+  -- `insert ... on conflict do update` fires the BEFORE INSERT trigger for the attempted
+  -- insert even when the row exists. Such an upsert is really an UPDATE: skip the caps
+  -- here (the BEFORE UPDATE pass re-checks a tombstone being revived), otherwise a user at
+  -- the cap could never push edits or deletions again.
   if tg_op = 'INSERT' then
+    execute format('select exists (select 1 from %I.%I where user_id = $1 and id = $2)', tg_table_schema, tg_table_name)
+      into row_exists using new.user_id, new.id;
+    if row_exists then
+      return new;
+    end if;
+
     execute format('select count(*) from %I.%I where user_id = $1', tg_table_schema, tg_table_name)
       into total_count using new.user_id;
     if total_count >= total_cap then
@@ -180,3 +191,25 @@ create policy hq_supplies_update_own on public.hq_supplies
 drop policy if exists hq_supplies_delete_own on public.hq_supplies;
 create policy hq_supplies_delete_own on public.hq_supplies
   for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- ---------------------------------------------------------------------------
+-- Tombstone purge: rows soft-deleted more than 180 days ago are removed for good
+-- (every device has long since pulled the deletion). Same schedule pattern as
+-- user_spots; pg_cron is already installed - never `create extension` it again (2BP01).
+-- hq_einsatz_steps cascade with their Einsatz.
+-- ---------------------------------------------------------------------------
+create or replace function public.hq_purge_tombstones()
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  delete from public.hq_supplies  where deleted_at is not null and deleted_at < now() - interval '180 days';
+$$;
+revoke all on function public.hq_purge_tombstones() from public, anon, authenticated;
+
+select cron.schedule(
+  'hq-purge-tombstones',
+  '17 3 * * *',
+  $cron$select public.hq_purge_tombstones()$cron$
+);

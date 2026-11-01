@@ -67,6 +67,25 @@ export interface HqEinsatzStepRow {
   updated_at: string;
 }
 
+/**
+ * rpc hq_replace_einsatz_steps(p_einsatz_id uuid, p_steps jsonb) -> integer (step count).
+ * SECURITY INVOKER, one transaction: deletes all steps of the caller's Einsatz and inserts
+ * `p_steps` (jsonb array, max 40; `ord` = array index). Errors: 23514 over 40 steps,
+ * P0002 Einsatz missing/tombstoned. Use this instead of upserting steps one by one.
+ * Tombstoning an Einsatz (deleted_at set) deletes its steps server-side.
+ */
+export type HqReplaceEinsatzStepsArgs = {
+  p_einsatz_id: string;
+  p_steps: HqEinsatzStepInput[];
+};
+export type HqEinsatzStepInput = Pick<HqEinsatzStepRow, 'kind' | 'label'> &
+  Partial<
+    Pick<
+      HqEinsatzStepRow,
+      'location' | 'system' | 'class_name' | 'qty' | 'supply_id' | 'mission_ref' | 'state' | 'done_at' | 'done_by'
+    >
+  >;
+
 /** hq_live_events - desktop-written, idempotent by id; `applied` / `undone` are owned by the web. */
 export interface HqLiveEventRow {
   user_id: string;
@@ -127,12 +146,13 @@ export interface HqCommunityReportInsert {
   value: number;
 }
 
-/** rpc hq_community_median(p_kind, p_class_name) -> rows; only locations with >= 5 distinct reporters. */
+/** rpc hq_community_median(p_kind, p_class_name) -> rows; only locations with >= 5 distinct reporters (accounts > 7 days old) AFTER outlier removal. */
 export interface HqCommunityMedianRow {
   location: string;
   median: number;
   /** Reports kept after IQR outlier removal. */
   n: number;
+  /** Day precision (midnight of the newest report's day). */
   newest: string;
 }
 
