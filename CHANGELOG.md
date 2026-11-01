@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.184.0] - 2026-11-01
+
+### Added
+- Subheader: the search opens as a floating card with a quiet autofocus and uses the free width up to "Apps"; a cut-off hint ends in "…".
+- Breadcrumb folds by width — first and last crumb always stay, the middle becomes "…".
+- Codex ship page: a holodeck skeleton stage while the ship loads; holodeck parallax, count-up values and sound tones.
+
+### Changed
+- Header and subheader share one brand mark and a calmer palette (fewer text colours and fonts).
+- Verse page: the new planet is there from the first frame, a reload plays the full intro again, a tab switch gets a ~1 s short intro, and the black letterbox bars became a soft gradient.
+- Verse page: "Mehr im Verse" only shows while no news is visible, the PTU wave row stays on one line, the gallery mosaic always shows 7 images.
+- Codex landing loads FPS/armour candidates lean — the armour page answers in milliseconds instead of ~2 s.
+- Touch screens: codex labels are readable and every holotable pin and pane link is at least 44 px tall.
+
+### Fixed
+- Codex holotable animations play again; callouts end at the real hardpoints.
+
+### Project
+- Concept fidelity rules: concepts are committed before close-out, implement briefs are generated verbatim with an acceptance check, UI from a concept passes a signed-in screenshot gate before ship.
+
 ## [0.183.0] - 2026-11-01
 
 ### Added
