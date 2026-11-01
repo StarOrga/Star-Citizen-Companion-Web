@@ -20,6 +20,10 @@ insert into auth.users (id, email, created_at) values
   ('00000000-0000-4000-a000-0000000f0008', 'pgtap-hq-h@example.test', now() - interval '30 days'),
   -- fresh account (< 7 days): its reports must not count
   ('00000000-0000-4000-a000-0000000f0009', 'pgtap-hq-i@example.test', now());
+-- Every fixture account is approved (the restrictive is_approved() gate, 20261101080000).
+insert into public.profiles (id, is_approved)
+select u.id, true from auth.users u where u.email like 'pgtap-hq-%@example.test'
+on conflict (id) do update set is_approved = true;
 
 -- Community fixtures: L1 has 6 distinct reporters incl. one outlier (5 remain after removal),
 -- L2 only 4 reporters, L3 4 old + 1 fresh account (only 4 count), L4 5 reporters but the
@@ -127,7 +131,7 @@ select throws_ok($$ insert into public.hangar_role_loadouts (user_id, name, role
 -- Community median: L1 passes the threshold and drops the 5000 outlier; L2 (4 users) stays hidden
 select is((select count(*)::int from public.hq_community_median('price', 'PGTAP_Item')), 1,
   'only L1 qualifies (L3: fresh account does not count, L4: < 5 users after outlier removal)');
-select is((select median from public.hq_community_median('price', 'PGTAP_Item') where location = 'L1'), 100,
+select is((select median from public.hq_community_median('price', 'PGTAP_Item') where location = 'L1'), 100::numeric,
   'the median ignores the IQR outlier');
 select is((select newest from public.hq_community_median('price', 'PGTAP_Item') where location = 'L1'),
   date_trunc('day', now()), 'newest is rounded to the day');
