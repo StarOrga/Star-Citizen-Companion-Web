@@ -239,3 +239,16 @@ below is canonical — external docs cite it.)
     interactive login, a missing secret, or a data-destroying migration the
     user has not approved. The order, commands and why this was manual until
     2026-10-03 are in `deep-knowledge/deploy-surfaces.md`.
+
+11. **UI from a concept ships only past the screenshot gate.** When the diff
+    implements a concept page (a `docs/concepts/{slug}/briefs/implement.md`
+    exists), Step 2 takes a screenshot of every changed screen in the real app,
+    signed in with the test account (`.claude/deep-knowledge/test-account.md`)
+    where the route needs auth, and sets it next to the chosen mock screen.
+    Every deviation gets a one-line reason in the PR body. A screen without a
+    real-data screenshot is not done — mock-data or "could not sign in" checks
+    block the ship instead of passing it.
+    *Why:* the Codex holo stage (#858) and the 09-20 holodeck shipped verified
+    only against mock data or not opened at all; follow-up "parity / fidelity /
+    polish" commits (#634/#638, #834, #843, #848) kept repairing what a first
+    visual acceptance would have caught (analysis 2026-11-01).

@@ -124,6 +124,11 @@ interface BarRow {
       :host(.still) .sweep { display: none; }
       @media (prefers-reduced-motion: reduce) { .body, .bar i, .sweep, .flash { animation: none !important; clip-path: none; } .sweep { display: none; } }
       @media (max-width: 1099px) { .row.callout { display: grid; } }
+      /* Touch screens: the dense holo labels stay readable and the link tappable (mobile gate). */
+      @media (pointer: coarse) {
+        .ph, .row dt, .legend { font-size: 12px; }
+        .go { min-height: 48px; font-size: 12px; }
+      }
       @media (max-width: 720px) {
         :host { justify-content: flex-start; }
         .edge { display: none; }

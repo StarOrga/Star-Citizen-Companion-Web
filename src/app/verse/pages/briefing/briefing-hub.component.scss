@@ -144,7 +144,8 @@
 
 .ch {
   display: grid;
-  grid-template-columns: minmax(64px, 7fr) minmax(0, 20fr);
+  // The id column never wraps ("seit 7 Tagen · Welle 1" stays one line): it takes its text's width, at least 12/27.
+  grid-template-columns: minmax(max-content, 12fr) minmax(0, 15fr);
   align-items: center;
   gap: max(6px, 0.6 * var(--u));
   height: var(--row);
@@ -157,7 +158,7 @@ a.ch:hover b { color: #fff; }
 .ch-id small { font-size: max(10px, calc(0.58 * var(--u))); letter-spacing: 0.2em; text-transform: uppercase; color: var(--sc-accent); }
 .ch-id small i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent); margin-right: 5px; vertical-align: 1px; box-sizing: border-box; }
 .ch-id b { font-family: var(--sc-font-display, Orbitron, sans-serif); font-weight: 500; font-size: max(13px, calc(0.82 * var(--u))); }
-.ch-id span { color: var(--sc-fg-2, var(--sc-fg-1)); font-size: max(11px, calc(0.56 * var(--u))); }
+.ch-id span { color: var(--sc-fg-2, var(--sc-fg-1)); font-size: max(11px, calc(0.56 * var(--u))); white-space: nowrap; }
 // Quiet slot: name, an empty dot, "gerade keiner im Lauf".
 .off .ch-id small { color: var(--sc-fg-2, var(--sc-fg-1)); }
 .off .ch-id small i { background: transparent; border: 1px solid var(--sc-fg-2, var(--sc-fg-1)); }
@@ -199,3 +200,5 @@ a.ch:hover b { color: #fff; }
   .acc-i, .acc-img, .acc-t, .acc-a::after, .shot img, .feat-img, .mini { transition: none; }
   .acc-i.open .acc-a:hover .acc-img, .feat:hover .feat-img, .shot:hover img { transform: none; }
 }
+
+// cx-dim: every text over the planet and the stars gets the page's dark halo.

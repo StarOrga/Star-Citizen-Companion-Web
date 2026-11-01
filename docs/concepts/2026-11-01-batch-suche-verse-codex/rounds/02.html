@@ -1,0 +1,375 @@
+<section data-iteration="2" data-iteration-template="design" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"ruhig"}</script>
+
+<style>
+/* Round 2 mocks — namespaced mk-r2-*, per-design rules c1-/c2-/c3-. Base = "Schwebende Karte" (round 1 favourite). */
+.mk-r2-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 600px; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 70% 20%, #0c2232 0%, #07131d 55%, #040a10 100%); font-family: system-ui, "Segoe UI", sans-serif;
+  color: #e6f0f6; padding: 16px; box-sizing: border-box; isolation: isolate; }
+.mk-r2-page { position: absolute; inset: 96px 16px 16px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; opacity: .9; }
+.mk-r2-hero { border-radius: 12px; background: linear-gradient(160deg, #10283a, #0a1824 60%); position: relative; overflow: hidden; }
+.mk-r2-hero b { position: absolute; left: 22px; bottom: 22px; font-size: 22px; font-weight: 700; }
+.mk-r2-side { display: flex; flex-direction: column; gap: 12px; }
+.mk-r2-side i { display: block; height: 64px; border-radius: 10px; background: #0d1f2c; }
+.mk-r2-bar { position: relative; z-index: 3; display: flex; align-items: center; gap: 14px; height: 62px; padding: 0 12px; border-radius: 20px;
+  background: rgba(16, 36, 52, .9); box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+.mk-r2-brand { display: flex; gap: 10px; align-items: center; min-width: 0; flex: 0 1 auto; max-width: 300px; }
+.mk-r2-logo { flex: none; width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #9be4f7 0 14%, #2a7ea0 30%, #0c2333 62%); }
+.mk-r2-names { min-width: 0; }
+.mk-r2-cat { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; }
+.mk-r2-trail { display: flex; gap: 5px; font-size: 12px; white-space: nowrap; min-width: 0; }
+.mk-r2-trail span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.mk-r2-search { position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border-radius: 999px;
+  background: #0a1a26; border: 0; color: inherit; font: inherit; text-align: left; cursor: text; }
+.mk-r2-glass { flex: none; width: 14px; height: 14px; border: 2px solid #5ac8e8; border-radius: 50%; position: relative; box-sizing: border-box; }
+.mk-r2-glass::after { content: ''; position: absolute; width: 6px; height: 2px; background: #5ac8e8; right: -5px; bottom: -3px; transform: rotate(45deg); }
+.mk-r2-ctx { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 24ch; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #1d4258; color: #e6f7fd; }
+.mk-r2-ctx span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-r2-caret { flex: none; width: 2px; height: 18px; background: #9be4f7; animation: mk-r2-blink 1.1s steps(1) infinite; }
+@keyframes mk-r2-blink { 50% { opacity: 0; } }
+.mk-r2-ph { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #7f98a8; font-size: 14px; }
+.mk-r2-kbd { flex: none; font: 10px ui-monospace, monospace; padding: 1px 5px; border-radius: 4px; color: #7f98a8; background: rgba(255, 255, 255, .04); }
+.mk-r2-apps { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 999px;
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase; background: #183447; }
+.mk-r2-me { flex: none; width: 38px; height: 38px; border-radius: 50%; background: #183447; }
+.mk-r2-scrim { position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(2, 6, 10, .2), rgba(2, 6, 10, .5)); }
+.mk-r2-drop { position: absolute; z-index: 4; left: 340px; right: 160px; top: 96px; display: flex; flex-direction: column; gap: 10px; padding: 12px; box-sizing: border-box;
+  border-radius: 24px; background: #142d3e; box-shadow: 0 2px 0 rgba(255, 255, 255, .04) inset, 0 36px 90px rgba(0, 0, 0, .75), 0 10px 24px rgba(0, 0, 0, .45); }
+.mk-r2-group { background: #0f2433; border-radius: 16px; padding: 10px; }
+.mk-r2-gh { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #7f98a8; margin: 0 0 6px 4px; }
+.mk-r2-row { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 4px 8px; border-radius: 10px; }
+.mk-r2-row.on { background: #1b3d52; }
+.mk-r2-ico { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #1b3d52; display: grid; place-items: center; color: #5ac8e8; font-size: 12px; }
+.mk-r2-row b { display: block; font-size: 14px; } .mk-r2-row small { display: block; font-size: 11px; color: #7f98a8; }
+.mk-r2-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.mk-r2-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 10px; background: #1b3d52; color: #c9dbe6; }
+.mk-r2-tag i { width: 8px; height: 8px; border-radius: 2px; background: #5ac8e8; display: inline-block; }
+.mk-r2-keys { display: flex; justify-content: center; gap: 18px; font-size: 11px; color: #7f98a8; padding-top: 4px; }
+.mk-r2-close { position: absolute; right: 14px; top: 10px; z-index: 5; border: 0; background: transparent; color: #8aa3b3; font: inherit; font-size: 12px; cursor: pointer; }
+.mk-r2-note { position: absolute; left: 16px; bottom: 12px; z-index: 1; font-size: 11.5px; color: #7f98a8; max-width: 700px; }
+
+/* ── c1 · Ruhige Leiste: one quiet tone everywhere, only the field glows — slowly breathing ── */
+.c1 .mk-r2-cat { color: rgba(230, 240, 246, .42); }
+.c1 .mk-r2-trail { color: rgba(138, 163, 179, .75); }
+.c1 .mk-r2-trail span:last-child { color: rgba(201, 219, 230, .8); }
+.c1 .mk-r2-apps { background: transparent; color: rgba(201, 219, 230, .6); }
+.c1 .mk-r2-me { background: rgba(24, 52, 71, .6); }
+.c1 .mk-r2-search { box-shadow: inset 0 0 0 1px rgba(90, 200, 232, .25), 0 0 18px rgba(90, 200, 232, .12); animation: c1-breathe 5s ease-in-out infinite; }
+@keyframes c1-breathe { 50% { box-shadow: inset 0 0 0 1px rgba(90, 200, 232, .45), 0 0 26px rgba(90, 200, 232, .22); } }
+
+/* ── c2 · Horizont-Linie: the bar almost dissolves; one light line carries it, brightest under the search, a pulse scans along on focus ── */
+.c2 .mk-r2-bar { background: rgba(10, 24, 36, .55); box-shadow: none; border-radius: 16px; }
+.c2 .mk-r2-bar::after { content: ''; position: absolute; left: 4%; right: 4%; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(90, 200, 232, .25) 20%, #9be4f7 50%, rgba(90, 200, 232, .25) 80%, transparent); }
+.c2 .mk-r2-bar::before { content: ''; position: absolute; bottom: -1px; height: 3px; width: 90px; left: 30%; border-radius: 3px; filter: blur(2px);
+  background: #c8f1fb; animation: c2-scan 4.5s ease-in-out infinite; }
+@keyframes c2-scan { 0% { left: 25%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 65%; opacity: 0; } }
+.c2 .mk-r2-cat { color: rgba(230, 240, 246, .5); }
+.c2 .mk-r2-trail { color: #7f98a8; }
+.c2 .mk-r2-search { background: transparent; border-radius: 0; }
+.c2 .mk-r2-apps, .c2 .mk-r2-me { background: transparent; color: rgba(201, 219, 230, .65); }
+
+/* ── c3 · Holo-Kapsel: the field becomes a recessed capsule with a slow holographic rim and star dust inside ── */
+.c3 .mk-r2-brand { max-width: 260px; }
+.c3 .mk-r2-cat { display: none; }
+.c3 .mk-r2-logo { background: radial-gradient(circle, #9be4f7 0 12%, #2a7ea0 28%, #0c2333 60%); box-shadow: 0 0 0 1px rgba(90, 200, 232, .3); }
+.c3 .mk-r2-trail { color: #7f98a8; font-size: 12.5px; }
+.c3 .mk-r2-trail span:last-child { color: #c9dbe6; }
+.c3 .mk-r2-search { background: radial-gradient(1px 1px at 20% 40%, rgba(255, 255, 255, .5), transparent), radial-gradient(1px 1px at 63% 70%, rgba(200, 240, 255, .5), transparent),
+  radial-gradient(1px 1px at 82% 30%, rgba(255, 255, 255, .4), transparent), #06121b; box-shadow: inset 0 2px 8px rgba(0, 0, 0, .6); }
+.c3 .mk-r2-search::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: conic-gradient(from var(--c3-a, 0deg), rgba(90, 200, 232, .1), rgba(155, 228, 247, .7), rgba(164, 139, 255, .5), rgba(90, 200, 232, .1) 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: c3-spin 9s linear infinite; }
+@property --c3-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes c3-spin { to { --c3-a: 360deg; } }
+.c3 .mk-r2-apps, .c3 .mk-r2-me { background: rgba(24, 52, 71, .55); color: rgba(201, 219, 230, .7); }
+@media (prefers-reduced-motion: reduce) { .mk-r2-frame *, .mk-r2-frame *::before, .mk-r2-frame *::after { animation: none !important; } }
+</style>
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 2 · Subheader ruhiger und „2956“, plus: wann öffnet die Suche?</h2>
+    <p><strong>Aus Runde 1 fest:</strong> „Schwebende Karte“ ist die Basis (Favorit; Kacheln „sehr schön dezent“, Leiste ohne Kontur „super“). Letterbox → weicher Verlauf; Tab-Wechsel → Kurz-Auftakt ~1 s; alle 7 Codex-Nachzieh-Punkte und alle 4 Prozessregeln sind angenommen. Die klaren Punkte #1, #4, #5, #6, #7 bleiben im Plan.</p>
+    <p><strong>Dein Feedback zur Leiste:</strong> „Inhalte alle perfekt, aber irgendwie sieht es so fisselig aus, und generell hat der Subheader so viele Helligkeiten durch Wörter und damit Fokuspunkte …“ und „welches Designelement könnte es modern, spacig, 2956 machen? Ggf. die Suche auch einen kleinen dezenten Ticken hervorheben“. Darum variieren die drei Designs jetzt <em>nur die Leiste</em>; das Panel ist in allen dreien die Karte aus Runde 1.</p>
+    <p><strong>Dein Feedback zum Öffnen:</strong> Autofokus auf jeder Seite, aber Filtern auf den Codex-Seiten darf nicht leiden — „exploriere hier nochmal Varianten, schaue dir wirklich dazu alle Seiten an“ → Fragen-Ansicht „Wann öffnet die Suche?“ mit allen Seiten.</p>
+  </header>
+
+  <section data-design="ruhig" data-nav-label="Ruhige Leiste" data-design-active="true"
+           data-design-motto="Ein Ton, ein Leuchten" data-design-traits="Marke und Pfad stark zurückgenommen|Suchfeld atmet langsam in Akzentfarbe|Apps nur noch als leiser Text" data-design-icon="moon" data-design-color="#5ac8e8" data-design-overlay="bl">
+    <section id="c1-s1" data-nav-label="Leiste mit Fokus" data-screen data-screen-active="true">
+      <div class="mk-r2-frame c1">
+      <div class="mk-r2-bar">
+        <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
+          <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <button type="button" class="mk-r2-search" data-screen-link="c1-s2"><span class="mk-r2-glass"></span>
+          <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
+          <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-r2-kbd">Strg K</span></button>
+        <span class="mk-r2-apps">▦ Apps</span><span class="mk-r2-me"></span>
+      </div>
+      <div class="mk-r2-page"><div class="mk-r2-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-r2-side"><i></i><i></i><i></i><i></i></div></div>
+      <p class="mk-r2-note">Zustand nach dem Seitenaufruf: Das Suchfeld hat schon den Fokus (Cursor blinkt), das Panel ist zu. Klick ins Feld öffnet die Vorschläge.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="c1-a1" data-anno-side="right" data-anno-target=".mk-r2-brand" style="--anno-x:18%;--anno-y:10%">
+        <button class="anno-pin" type="button" data-anno-pin="c1-a1" aria-expanded="false" aria-controls="anno-bubble-c1-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-c1-a1" data-anno-bubble="c1-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="c1-a1" aria-expanded="false" aria-controls="anno-bubble-c1-a1">
+            <span class="anno-bubble-question">Marke und Pfad so stark gedimmt: ruhig genug, oder verlierst du die Orientierung, wo du bist?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-c1-a1" data-annotation="c1-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Ne, das ist ok, aber die marke und icon sollten ja auch gleich sein wenn es den sub header nicht gibt sondern den header hmmm...
+Es stört micheher das wir hier gefühlt 10 schriftfarben im header haben und 1-2 zu viele fonts.... </textarea>
+            <div class="attach-slot" data-attach-slot="anno-c1-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="c1-a2" data-anno-side="left" data-anno-target=".mk-r2-search" style="--anno-x:55%;--anno-y:10%">
+        <button class="anno-pin" type="button" data-anno-pin="c1-a2" aria-expanded="false" aria-controls="anno-bubble-c1-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-c1-a2" data-anno-bubble="c1-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="c1-a2" aria-expanded="false" aria-controls="anno-bubble-c1-a2">
+            <span class="anno-bubble-question">Das Suchfeld „atmet“ alle 5 s ganz leicht: angenehm lebendig oder auf Dauer störend?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-c1-a2" data-annotation="c1-a2" data-attachable placeholder="{{anno.answer_placeholder}}">sehr gut!</textarea>
+            <div class="attach-slot" data-attach-slot="anno-c1-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="c1-s2" data-nav-label="Suche offen" data-screen hidden>
+      <div class="mk-r2-frame c1">
+      <div class="mk-r2-bar">
+        <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
+          <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <button type="button" class="mk-r2-search" ><span class="mk-r2-glass"></span>
+          <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
+          <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-r2-kbd">Strg K</span></button>
+        <span class="mk-r2-apps">▦ Apps</span><span class="mk-r2-me"></span>
+      </div>
+      <div class="mk-r2-page"><div class="mk-r2-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-r2-side"><i></i><i></i><i></i><i></i></div></div>
+      <div class="mk-r2-scrim"></div>
+      <div class="mk-r2-drop">
+        <div class="mk-r2-group"><p class="mk-r2-gh">Zuletzt gesucht</p><div class="mk-r2-tags"><span class="mk-r2-tag"><i></i>aegis</span><span class="mk-r2-tag"><i></i>Quantum Drive</span></div></div>
+        <div class="mk-r2-group"><p class="mk-r2-gh">Hier</p>
+          <div class="mk-r2-row on"><span class="mk-r2-ico">◈</span><span><b>Komponenten der Andromeda</b><small>Seite</small></span></div>
+          <div class="mk-r2-row"><span class="mk-r2-ico">◈</span><span><b>Bewaffnung</b><small>Seite</small></span></div></div>
+        <div class="mk-r2-group"><p class="mk-r2-gh">Bereiche</p><div class="mk-r2-tags"><span class="mk-r2-tag"><i></i>Schiffe</span><span class="mk-r2-tag"><i></i>Komponenten</span><span class="mk-r2-tag"><i></i>Schiffswaffen</span><span class="mk-r2-tag"><i></i>FPS-Ausrüstung</span></div></div>
+        <div class="mk-r2-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>Esc schließen</span></div>
+      </div>
+      <button type="button" class="mk-r2-close" data-screen-link="c1-s1">Esc · schließen ✕</button>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="horizont" data-nav-label="Horizont-Linie" hidden
+           data-design-motto="Eine Lichtlinie trägt alles" data-design-traits="Leiste fast transparent, kein Kasten|Leuchtlinie unten, hell unter der Suche|Lichtpuls läuft entlang der Linie" data-design-icon="grid" data-design-color="#e0a060" data-design-overlay="bl">
+    <section id="c2-s1" data-nav-label="Leiste mit Fokus" data-screen data-screen-active="true">
+      <div class="mk-r2-frame c2">
+      <div class="mk-r2-bar">
+        <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
+          <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <button type="button" class="mk-r2-search" data-screen-link="c2-s2"><span class="mk-r2-glass"></span>
+          <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
+          <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-r2-kbd">Strg K</span></button>
+        <span class="mk-r2-apps">▦ Apps</span><span class="mk-r2-me"></span>
+      </div>
+      <div class="mk-r2-page"><div class="mk-r2-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-r2-side"><i></i><i></i><i></i><i></i></div></div>
+      <p class="mk-r2-note">Zustand nach dem Seitenaufruf: Das Suchfeld hat schon den Fokus (Cursor blinkt), das Panel ist zu. Klick ins Feld öffnet die Vorschläge.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="c2-a1" data-anno-side="right" data-anno-target=".mk-r2-bar" style="--anno-x:45%;--anno-y:16%">
+        <button class="anno-pin" type="button" data-anno-pin="c2-a1" aria-expanded="false" aria-controls="anno-bubble-c2-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-c2-a1" data-anno-bubble="c2-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="c2-a1" aria-expanded="false" aria-controls="anno-bubble-c2-a1">
+            <span class="anno-bubble-question">Die Leiste als Glas fast ohne Fläche, getragen von einer Lichtlinie: spacig genug — oder zu wenig Halt über hellen Seiten?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-c2-a1" data-annotation="c2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-c2-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="c2-a2" data-anno-side="left" data-anno-target=".mk-r2-search" style="--anno-x:40%;--anno-y:10%">
+        <button class="anno-pin" type="button" data-anno-pin="c2-a2" aria-expanded="false" aria-controls="anno-bubble-c2-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-c2-a2" data-anno-bubble="c2-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="c2-a2" aria-expanded="false" aria-controls="anno-bubble-c2-a2">
+            <span class="anno-bubble-question">Der Lichtpuls läuft unter dem Suchfeld entlang: nur bei Fokus, dauerhaft, oder gar nicht?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-c2-a2" data-annotation="c2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-c2-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="c2-s2" data-nav-label="Suche offen" data-screen hidden>
+      <div class="mk-r2-frame c2">
+      <div class="mk-r2-bar">
+        <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
+          <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <button type="button" class="mk-r2-search" ><span class="mk-r2-glass"></span>
+          <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
+          <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-r2-kbd">Strg K</span></button>
+        <span class="mk-r2-apps">▦ Apps</span><span class="mk-r2-me"></span>
+      </div>
+      <div class="mk-r2-page"><div class="mk-r2-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-r2-side"><i></i><i></i><i></i><i></i></div></div>
+      <div class="mk-r2-scrim"></div>
+      <div class="mk-r2-drop">
+        <div class="mk-r2-group"><p class="mk-r2-gh">Zuletzt gesucht</p><div class="mk-r2-tags"><span class="mk-r2-tag"><i></i>aegis</span><span class="mk-r2-tag"><i></i>Quantum Drive</span></div></div>
+        <div class="mk-r2-group"><p class="mk-r2-gh">Hier</p>
+          <div class="mk-r2-row on"><span class="mk-r2-ico">◈</span><span><b>Komponenten der Andromeda</b><small>Seite</small></span></div>
+          <div class="mk-r2-row"><span class="mk-r2-ico">◈</span><span><b>Bewaffnung</b><small>Seite</small></span></div></div>
+        <div class="mk-r2-group"><p class="mk-r2-gh">Bereiche</p><div class="mk-r2-tags"><span class="mk-r2-tag"><i></i>Schiffe</span><span class="mk-r2-tag"><i></i>Komponenten</span><span class="mk-r2-tag"><i></i>Schiffswaffen</span><span class="mk-r2-tag"><i></i>FPS-Ausrüstung</span></div></div>
+        <div class="mk-r2-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>Esc schließen</span></div>
+      </div>
+      <button type="button" class="mk-r2-close" data-screen-link="c2-s1">Esc · schließen ✕</button>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="kapsel" data-nav-label="Holo-Kapsel" hidden
+           data-design-motto="Das Suchfeld als Instrument" data-design-traits="Vertiefte Kapsel mit Sternenstaub|Holografische Kante dreht langsam|Markenname weg, nur Logo + Pfad" data-design-icon="star" data-design-color="#a48bff" data-design-overlay="bl">
+    <section id="c3-s1" data-nav-label="Leiste mit Fokus" data-screen data-screen-active="true">
+      <div class="mk-r2-frame c3">
+      <div class="mk-r2-bar">
+        <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
+          <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <button type="button" class="mk-r2-search" data-screen-link="c3-s2"><span class="mk-r2-glass"></span>
+          <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
+          <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-r2-kbd">Strg K</span></button>
+        <span class="mk-r2-apps">▦ Apps</span><span class="mk-r2-me"></span>
+      </div>
+      <div class="mk-r2-page"><div class="mk-r2-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-r2-side"><i></i><i></i><i></i><i></i></div></div>
+      <p class="mk-r2-note">Zustand nach dem Seitenaufruf: Das Suchfeld hat schon den Fokus (Cursor blinkt), das Panel ist zu. Klick ins Feld öffnet die Vorschläge.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="c3-a1" data-anno-side="left" data-anno-target=".mk-r2-search" style="--anno-x:55%;--anno-y:10%">
+        <button class="anno-pin" type="button" data-anno-pin="c3-a1" aria-expanded="false" aria-controls="anno-bubble-c3-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-c3-a1" data-anno-bubble="c3-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="c3-a1" aria-expanded="false" aria-controls="anno-bubble-c3-a1">
+            <span class="anno-bubble-question">Holografische, langsam drehende Kante um das Suchfeld: das gewisse „2956“, oder zu viel Effekt?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-c3-a1" data-annotation="c3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-c3-a1"></div>
+          </div>
+        </div>
+      </div>
+<div class="anno" data-anno="c3-a2" data-anno-side="right" data-anno-target=".mk-r2-brand" style="--anno-x:14%;--anno-y:10%">
+        <button class="anno-pin" type="button" data-anno-pin="c3-a2" aria-expanded="false" aria-controls="anno-bubble-c3-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-c3-a2" data-anno-bubble="c3-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="c3-a2" aria-expanded="false" aria-controls="anno-bubble-c3-a2">
+            <span class="anno-bubble-question">Ohne den Schriftzug „Star Citizen Companion“, nur Logo + Pfad: fehlt dir der Name?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-c3-a2" data-annotation="c3-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-c3-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="c3-s2" data-nav-label="Suche offen" data-screen hidden>
+      <div class="mk-r2-frame c3">
+      <div class="mk-r2-bar">
+        <div class="mk-r2-brand"><span class="mk-r2-logo"></span><div class="mk-r2-names"><div class="mk-r2-cat">Star Citizen Companion</div>
+          <div class="mk-r2-trail"><span>Codex</span><span>›</span><span>…</span><span>›</span><span>RSI Constellation Andromeda</span></div></div></div>
+        <button type="button" class="mk-r2-search" ><span class="mk-r2-glass"></span>
+          <span class="mk-r2-ctx"><span>RSI Constellation Andromeda</span> ×</span><span class="mk-r2-caret"></span>
+          <span class="mk-r2-ph">Komponenten, Waffen, Schiffe, Hersteller, Händler …</span>
+          <span class="mk-r2-kbd">Strg K</span></button>
+        <span class="mk-r2-apps">▦ Apps</span><span class="mk-r2-me"></span>
+      </div>
+      <div class="mk-r2-page"><div class="mk-r2-hero"><b>RSI Constellation Andromeda</b></div><div class="mk-r2-side"><i></i><i></i><i></i><i></i></div></div>
+      <div class="mk-r2-scrim"></div>
+      <div class="mk-r2-drop">
+        <div class="mk-r2-group"><p class="mk-r2-gh">Zuletzt gesucht</p><div class="mk-r2-tags"><span class="mk-r2-tag"><i></i>aegis</span><span class="mk-r2-tag"><i></i>Quantum Drive</span></div></div>
+        <div class="mk-r2-group"><p class="mk-r2-gh">Hier</p>
+          <div class="mk-r2-row on"><span class="mk-r2-ico">◈</span><span><b>Komponenten der Andromeda</b><small>Seite</small></span></div>
+          <div class="mk-r2-row"><span class="mk-r2-ico">◈</span><span><b>Bewaffnung</b><small>Seite</small></span></div></div>
+        <div class="mk-r2-group"><p class="mk-r2-gh">Bereiche</p><div class="mk-r2-tags"><span class="mk-r2-tag"><i></i>Schiffe</span><span class="mk-r2-tag"><i></i>Komponenten</span><span class="mk-r2-tag"><i></i>Schiffswaffen</span><span class="mk-r2-tag"><i></i>FPS-Ausrüstung</span></div></div>
+        <div class="mk-r2-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>Esc schließen</span></div>
+      </div>
+      <button type="button" class="mk-r2-close" data-screen-link="c3-s1">Esc · schließen ✕</button>
+      </div>
+    </section>
+  </section>
+
+  <section data-view="v-open" data-view-kind="decision" data-nav-label="Wann öffnet die Suche?" hidden>
+  <style>
+  [data-view="v-open"] .mk-v2-tab { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 18px; }
+  [data-view="v-open"] .mk-v2-tab th, [data-view="v-open"] .mk-v2-tab td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+  [data-view="v-open"] .mk-v2-tab th { color: var(--text-secondary); font-weight: 600; }
+  </style>
+  <div class="view-frame">
+    <h2>Autofokus auf jeder Seite — wann öffnet sich dann das Panel?</h2>
+    <p>Dein Wunsch: Auf jeder Seite mit Subheader hat das Suchfeld sofort den Fokus, damit man gleich lostippen kann. Heute öffnet das Panel <strong>beim Fokus</strong> — mit Autofokus stünde es dann auf jeder Seite sofort offen. Auf Listen-Seiten ist das Feld außerdem der Filter der Liste; ein Panel ab dem ersten Zeichen würde genau die Liste verdecken, die gerade gefiltert wird. Ich habe alle Seiten mit Subheader durchgesehen:</p>
+
+    <table class="mk-v2-tab">
+      <thead><tr><th>Seite mit Subheader</th><th>Was das Feld heute tut</th><th>Vorschlag (Empfehlung unten)</th></tr></thead>
+      <tbody>
+        <tr><td>Codex-Listen: Schiffe, Komponenten, Waffen, Items, Munition, Hersteller, Blueprints</td><td>Tippen filtert die Liste (<code>registerPageSearch</code>) <em>und</em> öffnet das Panel über der Liste</td><td>Liste filtert live, Panel bleibt zu; schmale Zeile „Im ganzen Codex: N Treffer ↓“</td></tr>
+        <tr><td>FPS-Ausrüstung, Kommende Schiffe</td><td>wie Codex-Listen (Kommende: RSI-Suche)</td><td>wie Codex-Listen</td></tr>
+        <tr><td>News-Liste, Patch-Board</td><td>filtert die Liste, Panel geht ebenfalls auf</td><td>wie Codex-Listen</td></tr>
+        <tr><td>Codex-Detail (Schiff, Item), Tastenbelegungen</td><td>globale Suche, Kontext-Chip der Seite</td><td>erstes Zeichen öffnet das Panel mit Treffern</td></tr>
+        <tr><td>HQ (Hangar, Spind, Einsätze), Galerie, Admin</td><td>globale Suche, App-Orte zuerst</td><td>erstes Zeichen öffnet das Panel</td></tr>
+        <tr><td>Bühnen-Seiten (Verse-Start, Codex-Start)</td><td>Feld steht auf der Bühne, dockt beim Scrollen in die Leiste</td><td>kein Autofokus, solange die Bühne läuft; danach wie oben</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Fest, egal welche Variante:</strong> Auf Touch-Geräten kein Autofokus (sonst springt beim Öffnen jeder Seite die Tastatur auf); <kbd>Strg K</kbd> und <kbd>/</kbd> fokussieren wie bisher; ein Klick woandershin nimmt dem Feld den Fokus, wie du es willst.</p>
+    <div class="variant-evaluation" data-decision="op-hybrid" data-label="Leise Fokus, Liste filtert">
+      <h3>Leiser Fokus — auf Listen filtert Tippen, sonst öffnet das Panel (Empfehlung)</h3>
+      <p>Nach dem Laden blinkt nur der Cursor. Klick, <kbd>↓</kbd> oder <kbd>Strg K</kbd> öffnet das Panel mit Vorschlägen (Zuletzt gesucht, Bereiche). Tippen auf einer Listen-Seite filtert die Liste sofort, das Panel bleibt zu, unter dem Feld steht nur „Im ganzen Codex: 23 Treffer ↓“ (mit <kbd>↓</kbd> aufklappbar). Auf allen anderen Seiten öffnet das erste Zeichen das Panel mit Treffern.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-op-hybrid" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-hybrid" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="op-hybrid-note">{{decision.comment_label}}</label>
+        <textarea id="op-hybrid-note" data-comment="op-hybrid-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="op-char" data-label="Panel ab erstem Zeichen">
+      <h3>Panel überall erst ab dem ersten Zeichen</h3>
+      <p>Einfachste Regel: Fokus öffnet nichts, das erste Zeichen öffnet überall das Panel — auch auf Listen-Seiten, dort liegt es dann über der gefilterten Liste. Vorschläge ohne Tippen gibt es nur per <kbd>↓</kbd>.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-op-char" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-char" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="op-char-note">{{decision.comment_label}}</label>
+        <textarea id="op-char-note" data-comment="op-char-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="op-mode" data-label="Filter-Modus mit Chip">
+      <h3>Eigener Filter-Modus auf Listen-Seiten</h3>
+      <p>Auf Listen-Seiten zeigt das Feld einen Chip „Filtert: Schiffe“ und ist reiner Filter, ganz ohne Panel. <kbd>Tab</kbd> oder Klick auf den Chip schaltet in die globale Suche mit Panel. Klar getrennt, aber ein Konzept mehr zu lernen.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-op-mode" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-mode" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="op-mode-note">{{decision.comment_label}}</label>
+        <textarea id="op-mode-note" data-comment="op-mode-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="op-today" data-label="Panel beim Fokus">
+      <h3>Panel beim Fokus wie heute, ohne Autofokus</h3>
+      <p>Alles bleibt, wie es ist: kein Autofokus, Klick ins Feld öffnet das Panel sofort. Dein Autofokus-Wunsch fiele damit weg.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-op-today" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-op-today" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="op-today-note">{{decision.comment_label}}</label>
+        <textarea id="op-today-note" data-comment="op-today-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+  </section>
+</section>

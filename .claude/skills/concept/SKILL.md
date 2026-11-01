@@ -101,6 +101,36 @@ Plugin defaults still apply; only the rules below override or add.
    - browser verification covers the page chrome too: decision panel on the
      right, `#screen-nav` items, no full-width `aside` — not just the mock.
 
+5. **Never close a concept with `discard` before its source is committed.**
+   Rounds, `page.json` and `-decisions.json` go into `docs/concepts/` (git)
+   before any close-out; a `discard` disposition on an uncommitted concept is
+   refused — pick `keep`. Each page/area with concepts keeps ONE living spec
+   (accepted / rejected / open, pattern: `docs/concepts/codex-schiffsseite-ui-spec.md`)
+   that the next concept for that page reads first and continues, instead of
+   starting from scratch.
+
+6. **The implement brief is generated, never summarised.** Before the
+   implement click hands off, write `docs/concepts/{slug}/briefs/implement.md`:
+   a link to `-decisions.json`, every user comment, annotation answer and pin
+   of every round **verbatim**, and a checklist of every accepted item built
+   from the payload (`include` decisions, favourite, pins). Agents get this
+   file, not the orchestrator's memory of it. Each agent returns an acceptance
+   table: item → done / partial / not done → evidence (file:line, spec,
+   screenshot). Before the final report an independent check agent — not a
+   builder — compares the checklist and pins against the diff and the
+   screenshots; its gaps are shortfalls in the report, never silent.
+
+   *Why rules 5–6 exist (analysis 2026-11-01, concept
+   `2026-11-01-batch-suche-verse-codex`):* `codex-landing-neu` (6 rounds) was
+   closed with `discard`, `codex-holo-buehne` was never committed and the
+   09-20 cinematic concept was deleted in 1119d5a4 — later sessions lost the
+   agreements and the Codex landing was redesigned three times in two days,
+   each time dropping accepted parts. Briefs were summarised from memory
+   ("Claims 7 Varianten, nicht langweilig" became a counter), accepted
+   `cine-parallax` / `cine-countup` were "Not built", and builders reported
+   "nothing in the brief was left out" while listing their own assumptions.
+   Upstream candidate: these belong in the plugin's auto-concept defaults.
+
 ## Retired rules (absorbed upstream — do not re-add)
 
 The legacy `devops-concept` extension carried two more rules: "copy the

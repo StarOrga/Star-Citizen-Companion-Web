@@ -191,6 +191,12 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                        markers come out of the model's OWN locator nodes, so a
                        ship whose glb carries none simply shows no markers. -->
                   @for (h of hotspots(); track h.port) {
+                    @if (anchorsOnly()) {
+                    <!-- Anchor only (landing holotable, cx-anchors): an inert
+                         point that follows the hull; the callout's leader line ends on it. -->
+                    <i class="hp-anchor" aria-hidden="true" [attr.slot]="h.slot" [attr.data-position]="h.position"
+                       [attr.data-port]="h.port" data-normal="0 1 0" data-visibility-attribute="visible"></i>
+                    } @else {
                     <button
                       type="button"
                       class="hp-dot"
@@ -212,6 +218,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                         }
                       </span>
                     </button>
+                    }
                   }
                 </model-viewer>
               }
@@ -234,7 +241,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                   </div>
                 }
               }
-              @if (hotspots().length > 0) {
+              @if (hotspots().length > 0 && !anchorsOnly()) {
                 <p class="hp-hint">
                   {{ 'codex.skins.hardpointHint' | translate: { count: hotspots().length } }}
                 </p>
@@ -296,6 +303,13 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         </div>
         }
       </section>
+    } @else if (holo() && loading()) {
+      <!-- The hull catalog is still on its way: the projector already scans, so the
+           stage never stands empty while the 3D hull loads. -->
+      <div class="overlay holo-loading holo-pending" role="status" animate.leave="holo-loading-leave">
+        <span class="holo-reticle" aria-hidden="true"><i></i><i></i><b></b></span>
+        <span class="holo-loading-label">{{ 'codex.skins.loading' | translate }}</span>
+      </div>
     } @else if (catalogError()) {
       <section class="skins">
         <header class="skins-head">
@@ -609,6 +623,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
          which makes model-viewer add data-visible while the marker is
          unoccluded — so a marker on the far side of the hull fades
          instead of floating in front of it. */
+      .hp-anchor { display: block; width: 2px; height: 2px; pointer-events: none; }
       .hp-dot {
         position: relative; /* anchors .hp-tip */
         width: 14px;
@@ -739,6 +754,12 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         font-size: max(10px, var(--sc-fs-floor));
         animation: holo-fade-in var(--holo-t-base) var(--holo-e-out) 120ms backwards;
       }
+      :host(.holo) .holo-pending {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
       .holo-loading-leave {
         animation: holo-fade-out var(--holo-t-fast) var(--holo-e-io) forwards;
       }
@@ -854,6 +875,18 @@ export class ShipSkinViewerComponent {
    */
   readonly embedded = input(false);
   /**
+   * The located ports render as inert, invisible anchor points (`.hp-anchor`,
+   * `data-port`) instead of interactive markers — for a host that draws its
+   * own leader lines to them (the landing holotable).
+   */
+  readonly anchorsOnly = input(false);
+  /**
+   * Port positions from the codex data (glb space, metres) for ports the glb
+   * has no locator node for — the texture-free hulls carry none. A locator in
+   * the model always wins.
+   */
+  readonly fallbackPositions = input<Readonly<Record<string, readonly [number, number, number]>> | null>(null);
+  /**
    * Holotable treatment (the holo stage's 3D view): no ground shadow under a
    * projection, a slower turntable, softer camera damping, a scanline layer
    * and a materialise-in instead of a spinner. Off everywhere else.
@@ -897,7 +930,10 @@ export class ShipSkinViewerComponent {
 
   /** The markers to draw, in the order the detail view listed its ports. */
   readonly hotspots = computed<HotspotView[]>(() => {
-    const positions = this.nodePositions();
+    const positions = new Map(this.nodePositions());
+    for (const [port, pos] of Object.entries(this.fallbackPositions() ?? {})) {
+      if (!positions.has(port)) positions.set(port, pos);
+    }
     if (positions.size === 0) return [];
     return resolveAnchors(positions, this.hardpointPorts()).map((a, i) => ({
       port: a.port,

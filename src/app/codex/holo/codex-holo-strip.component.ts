@@ -65,6 +65,7 @@ import {
 import { RankResult } from '../codex-rank';
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { CountUp } from './count-up';
 
 const GROUP_ICON: Readonly<Record<PowerGroup, string>> = {
   weapons: 'weapon',
@@ -119,7 +120,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
           <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}</span>
           <span class="val">◈ {{ activeMissionLabel() | translate }}</span>
           @if (rankResult(); as r) {
-            <span class="sub">{{ 'codex.holo.strip.shipCount' | translate: { n: r.cohortSize } }}@if (r.overall != null) { · <span class="pct pulse">P{{ roundPct(r.overall) }}</span> }</span>
+            <span class="sub">{{ 'codex.holo.strip.shipCount' | translate: { n: upInt('cohort', r.cohortSize) } }}@if (r.overall != null) { · <span class="pct pulse">P{{ upInt('overall', r.overall) }}</span> }</span>
           } @else if (rankCohortLoading()) {
             <span class="sub gapv">{{ 'codex.kpi.gap' | translate }}</span>
           }
@@ -129,7 +130,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
 
         @for (tile of perspectiveTiles(); track tile.perspective) {
           <div class="seg tile" [attr.data-p]="tile.perspective">
-            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span>@if (tile.percentile != null) { <span class="pct">P{{ tile.percentile }}</span> }</span>
+            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span>@if (tile.percentile != null) { <span class="pct">P{{ upInt('pct.' + tile.perspective, tile.percentile) }}</span> }</span>
             <div class="tile-vals">
               @for (c of tile.cells; track c.key) {
                 <span class="tv" [class.flash]="flashKeys().has(c.key)">
@@ -153,7 +154,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         <span class="joint" aria-hidden="true"></span>
 
         <div class="seg sig" data-p="signature">
-          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span>@if (signaturePercentile(); as p) { <span class="pct">P{{ p }}</span> }</span>
+          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span>@if (signaturePercentile(); as p) { <span class="pct">P{{ upInt('pct.signature', p) }}</span> }</span>
           <!-- Class-rank pips only when the active profile ranks a signature
                axis at all — five empty pips read as "worst in class". -->
           @if (signatureRanked()) {
@@ -165,22 +166,22 @@ export function stripMiniKey(userId: string | null | undefined): string {
           }
           <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(irFact()?.value)) + '\u00a0m'" scTooltipTier="label">
             <span class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</span>
-            <span class="v pulse">{{ fmtKm($safeNavigationMigration(irFact()?.value)) }}<small>km</small></span>
+            <span class="v pulse">{{ fmtKm(up('ir', irFact()?.value)) }}<small>km</small></span>
           </span>
           <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(emFact()?.value)) + '\u00a0m'" scTooltipTier="label">
             <span class="tip-trigger">{{ 'codex.energy.fact.em' | translate }}</span>
-            <span class="v pulse">{{ fmtKm($safeNavigationMigration(emFact()?.value)) }}<small>km</small></span>
+            <span class="v pulse">{{ fmtKm(up('em', emFact()?.value)) }}<small>km</small></span>
           </span>
           <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(csFact()?.value)) + '\u00a0m'" scTooltipTier="label">
             <span class="tip-trigger">{{ 'codex.energy.fact.crossSection' | translate }}</span>
-            <span class="v pulse">{{ fmtKm($safeNavigationMigration(csFact()?.value)) }}<small>km</small></span>
+            <span class="v pulse">{{ fmtKm(up('cs', csFact()?.value)) }}<small>km</small></span>
           </span>
           <span class="fact">
             <span class="tip-trigger">{{ 'codex.holo.strip.cooling' | translate }}</span>
             <span class="v pulse">{{
               sheet().coolant.used == null
                 ? '—'
-                : ('codex.holo.strip.coolingValue' | translate: { used: sheet().coolant.used, total: sheet().coolant.total })
+                : ('codex.holo.strip.coolingValue' | translate: { used: upInt('coolUsed', sheet().coolant.used), total: upInt('coolTotal', sheet().coolant.total) })
             }}</span>
           </span>
         </div>
@@ -687,14 +688,17 @@ export class CodexHoloStripComponent {
       this.shown.set(c.key, c.value);
     }
     this.shownShip = ship;
-    if (first || this.still || changed.size === 0 || typeof requestAnimationFrame !== 'function') return;
+    // First appearance: every value counts up from zero (cx-countup) — no flash.
+    if (first) for (const c of cells) if (c.value != null && c.value !== 0) from.set(c.key, 0);
+    if (this.still || from.size === 0 || typeof requestAnimationFrame !== 'function') return;
     this.rollFrom = from;
-    const start = performance.now();
+    // Date.now, not the frame timestamp: fake clocks (and a throttled tab) advance it too.
+    const start = Date.now();
     const ms = 700;
     if (this.rollRaf) cancelAnimationFrame(this.rollRaf);
     this.rollProgress.set(0);
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / ms);
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / ms);
       this.rollProgress.set(1 - Math.pow(1 - t, 3));
       this.rollRaf = t < 1 ? requestAnimationFrame(tick) : null;
     };
@@ -773,6 +777,7 @@ export class CodexHoloStripComponent {
     this.destroyRef.onDestroy(() => {
       if (this.rollRaf) cancelAnimationFrame(this.rollRaf);
       if (this.flashTimer) clearTimeout(this.flashTimer);
+      this.counter.dispose();
     });
   }
 
@@ -864,6 +869,18 @@ export class CodexHoloStripComponent {
 
   protected roundPct(v: number): number {
     return Math.round(v);
+  }
+
+  /** Every other number of the strip counts up on appearance and rolls on change (cx-countup). */
+  protected readonly counter = new CountUp(this.still);
+
+  protected up(key: string, v: number | null | undefined): number | null {
+    return v === null || v === undefined ? null : this.counter.value(key, v);
+  }
+
+  protected upInt(key: string, v: number | null | undefined): number | null {
+    const n = this.up(key, v);
+    return n === null ? null : Math.round(n);
   }
 
   /** One decimal in the page's number locale ("14,5" in German — never a

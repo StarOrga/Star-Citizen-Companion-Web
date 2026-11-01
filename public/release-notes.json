@@ -1,7 +1,45 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.182.0",
+  "current": "0.183.0",
   "releases": [
+    {
+      "version": "0.183.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ beta: five pages (Start, Planen, Jetzt, Bestand, Statistik) with a left quick rail and a phone bottom bar"
+            },
+            {
+              "title": "",
+              "text": "Planen: Nachschub synced to your account, Einsätze with steps (Einsatz ×N), Top 3 / moods / custom selection, place tree, set rings and a planning map with route"
+            },
+            {
+              "title": "",
+              "text": "Jetzt: live game data from the SCC app (location, next step, missions, log) with automatic ticks and undo"
+            },
+            {
+              "title": "",
+              "text": "Bestand and Statistik pages, fleet patch lines on the HQ start page"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/hq/ops leads to Planen when the shell beta is on"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.182.0",
       "date": "2026-11-01",

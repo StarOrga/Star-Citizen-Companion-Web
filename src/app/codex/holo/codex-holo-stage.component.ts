@@ -104,6 +104,19 @@ interface TopCohortShip {
 type StaticKey = 'crew' | 'mass' | 'cargo';
 
 const SOUND_PREF_KEY = 'sc.codex.holo.sound';
+
+/** The holodeck's UI tones (cx-sound). */
+export type HoloTone = 'blip' | 'switch' | 'arrive';
+interface ToneNote { at: number; dur: number; from: number; to: number; gain: number; wave: OscillatorType }
+/** Every gain stays at or below 0.05 — UI sounds sit under speech and music. */
+export const HOLO_TONES: Readonly<Record<HoloTone, readonly ToneNote[]>> = {
+  blip: [{ at: 0, dur: 0.12, from: 880, to: 880, gain: 0.05, wave: 'sine' }],
+  switch: [{ at: 0, dur: 0.09, from: 520, to: 660, gain: 0.035, wave: 'triangle' }],
+  arrive: [
+    { at: 0, dur: 0.9, from: 220, to: 440, gain: 0.025, wave: 'sine' },
+    { at: 0.35, dur: 0.6, from: 660, to: 990, gain: 0.02, wave: 'sine' },
+  ],
+};
 const MOBILE_TABS_PREF_KEY = 'sc.codex.holo.mobileTabs';
 const UNDO_TOAST_MS = 6000;
 /** Arrival timing (concept hv3-s1: "keine 5 Sekunden"): how long the hero art
@@ -1050,6 +1063,15 @@ export class CodexHoloStageComponent {
   readonly staticKeys: readonly StaticKey[] = ['crew', 'mass', 'cargo'];
 
   constructor() {
+    // A changed Einsatz (bar click, hotkey or URL) ticks when sound is on (cx-sound).
+    let lastMission: MissionId | null = null;
+    effect(() => {
+      const m = this.activeMissionId();
+      untracked(() => {
+        if (lastMission !== null && m !== lastMission && this.soundOn()) this.tone('switch');
+        lastMission = m;
+      });
+    });
     void this.blueprints.load();
     // Letter hotkeys (#644) in the CAPTURE phase: they run before the Codex
     // type-to-search listener and claim their key with preventDefault(), which
@@ -1087,6 +1109,7 @@ export class CodexHoloStageComponent {
             this.phase.set('reveal');
             this.hadBody.set(true);
             this.startCountUp();
+            if (this.soundOn()) this.tone('arrive');
             timers.push(
               setTimeout(() => {
                 if (cancelled) return;
@@ -1436,6 +1459,7 @@ export class CodexHoloStageComponent {
   toggleViewMode(mode: '3d' | 'schema'): void {
     this.viewModeTouched = true;
     this.viewMode.set(this.viewMode() === mode ? 'holo' : mode);
+    if (this.soundOn()) this.tone('switch');
   }
 
   private readSoundPref(): boolean {
@@ -1454,7 +1478,7 @@ export class CodexHoloStageComponent {
     } catch {
       /* localStorage unavailable — the toggle still works for this session */
     }
-    if (next) this.blip();
+    if (next) this.tone('blip');
   }
 
   /** One lazily created context for the whole stage — browsers cap live
@@ -1462,22 +1486,33 @@ export class CodexHoloStageComponent {
    * handful of pins (wave 5 B1.5). Closed on destroy. */
   private audioCtx: AudioContext | null = null;
 
-  /** Opt-in-only UI sound: a short WebAudio oscillator blip, no audio asset. */
-  private blip(): void {
+  /**
+   * Opt-in-only UI sound (default off, concept cx-sound): short, quiet WebAudio
+   * tones, no audio asset. `blip` = a port picked / sound switched on,
+   * `switch` = Einsatz or view changed, `arrive` = the holotable materialises
+   * (a soft rising two-note shimmer under the reveal).
+   */
+  tone(kind: HoloTone): void {
     try {
       const Ctx = (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
         .AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return;
       const ctx = (this.audioCtx ??= new Ctx());
       if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.12);
+      for (const n of HOLO_TONES[kind]) {
+        const t0 = ctx.currentTime + n.at;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = n.wave;
+        osc.frequency.setValueAtTime(n.from, t0);
+        if (n.to !== n.from) osc.frequency.exponentialRampToValueAtTime(n.to, t0 + n.dur);
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(n.gain, t0 + Math.min(0.02, n.dur / 4));
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + n.dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + n.dur + 0.02);
+      }
     } catch {
       /* WebAudio unavailable — silently a no-op, this is cosmetic only */
     }
@@ -1780,7 +1815,7 @@ export class CodexHoloStageComponent {
     const next = this.inspectedPort() === port ? null : port;
     this.inspectedPort.set(next);
     if (next) {
-      if (this.soundOn()) this.blip();
+      if (this.soundOn()) this.tone('blip');
       // Pulse the perspective the selected port belongs to (concept pe4-pulse).
       const section = this.slotByRawPort().get(port)?.section ?? null;
       const tile: Perspective | null =

@@ -1,10 +1,11 @@
+@use './codex-landing-holotable.keyframes';
 // Holotable of the Codex landing (concept 2026-10-30-codex-holo-buehne, round 4).
 // Coordinates: the air is the space above the table; the hologram box, the
 // callout column and the Kennung are placed in % of it (the leader SVG uses
 // the same 0–100 frame). The table is sized from --tw (its width).
 :host {
-  --holo: #8fe3ff;
-  --holo-hi: #dff6ff;
+  --holo: var(--sc-holo);
+  --holo-hi: var(--sc-holo-hi);
   --cx-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace;
   --tw: min(620px, 94cqw);
   --cy: calc(var(--tw) * 0.09);
@@ -140,7 +141,6 @@ a.holo {
 .leaders { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
 .leaders path {
   fill: none; stroke: rgba(160, 232, 255, 0.8); stroke-width: 1.1; vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1; stroke-dashoffset: 1;
   filter: drop-shadow(0 0 3px rgba(130, 220, 255, 0.7));
   animation: draw 0.5s cubic-bezier(0.3, 0.6, 0.3, 1) var(--at) both;
 }
@@ -152,6 +152,14 @@ a.holo {
   animation: dot-in 0.4s ease-out calc(var(--at) + 0.35s) both, dot-breathe 2.8s ease-in-out calc(var(--at) + 1s) infinite;
 }
 .leaving .dot { animation: fade-out 0.25s ease-in both; }
+/* A dot on a real hardpoint (cx-anchors) locks on: a ring closes on it once,
+   then a thin reticle stays around the mount while the hull turns. */
+.dot.real::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--holo-hi) 55%, transparent);
+  animation: dot-lock 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--at) + 0.5s) both;
+}
+@keyframes dot-lock { from { transform: scale(2.6); opacity: 0; } 60% { opacity: 1; } }
 .callouts { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; z-index: 4; }
 .call {
   position: absolute; right: 79%; width: 21%; transform: translateY(-50%);
@@ -286,14 +294,14 @@ a.holo {
   .beam { transform: none; opacity: 1; animation: none !important; }
   .beam .rays, .beam .motes, .band, .disc, .shock, .sweep { animation: none !important; }
   .disc, .band, .shock { display: none; }
-  .form, .leaders path, .dot, .call, .k-eye, .k-type, .k-rule, .k-facts, .k-paints, .flash, .emitter, .pool, .pv { animation: none !important; }
+  .form, .leaders path, .dot, .dot.real::after, .call, .k-eye, .k-type, .k-rule, .k-facts, .k-paints, .flash, .emitter, .pool, .pv { animation: none !important; }
   .form, .k-type { clip-path: none; }
   .leaders path { stroke-dashoffset: 0; }
   .prog .run { animation: none !important; stroke-dashoffset: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .beam { transform: none; opacity: 1; animation: none !important; }
-  .beam .rays, .beam .motes, .band, .sweep, .pool, .emitter, .dot { animation: none !important; }
+  .beam .rays, .beam .motes, .band, .sweep, .pool, .emitter, .dot, .dot.real::after { animation: none !important; }
   .disc, .band, .shock { display: none; }
 }
 

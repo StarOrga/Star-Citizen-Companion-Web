@@ -79,10 +79,10 @@
   text-transform: uppercase;
   // The star map's white/blue …
   color: color-mix(in srgb, var(--sc-accent) 30%, #fff);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent);
+  text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent);
 }
 // … only the sun keeps its warm tone.
-.warm .lab-n { color: #ffe3a0; text-shadow: 0 0 8px rgba(255, 214, 140, 0.45); }
+.warm .lab-n { color: #ffe3a0; text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 8px rgba(255, 214, 140, 0.45); }
 .lab-n i { display: inline-block; font-style: normal; white-space: pre; }
 .lab-v { font-size: max(11px, 0.56cqw); letter-spacing: 0.04em; color: var(--sc-fg-0); opacity: 0.85; }
 
@@ -119,3 +119,5 @@
   .sun, .flare, .lab { transition: none; }
   .ring, .lab-n i, .lab-v { animation: none !important; }
 }
+
+// cx-dim: every text over the planet and the stars gets the page's dark halo.

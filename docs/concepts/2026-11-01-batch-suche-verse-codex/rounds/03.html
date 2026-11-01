@@ -1,0 +1,159 @@
+<section data-iteration="3" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Batch: Suche, Verse-Stage, Codex-Konzepttreue</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="2026-11-01-batch-suche-verse-codex/shots/before.png" alt="Such-Panel vorher: Rahmen kaum sichtbar, Pillen mit Umrandung"><figcaption>{{final.before}}</figcaption></figure>
+    <figure class="fr-shot"><img src="2026-11-01-batch-suche-verse-codex/shots/after.png" alt="Such-Panel nachher: ruhige Leiste, schwebende Karte mit Kacheln"><figcaption>{{final.after}}</figcaption></figure>
+    <a class="fr-try" href="http://127.0.0.1:4200/codex/index?kind=ship" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+  </div>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Alle 8 Notizen und alle angenommenen Punkte aus beiden Runden sind gebaut, unabhängig gegengeprüft und nachgebessert — offen ist nur, die Holotisch-Animationen auf einem Produktions-Build anzusehen.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🔎</span><span><b>Ruhige Leiste</b> mit atmendem Suchfeld, Panel als schwebende Karte, Suche bis vor „Apps“, Breadcrumb faltet nur die Mitte.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🪐</span><span>Verse: <b>neuer Planet ab dem ersten Frame</b>, Reload = volles Intro, Kurz-Auftakt beim Zurückschalten, weicher Verlauf statt schwarzer Balken, Mosaik immer 7.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛰</span><span>Codex: Holotisch-Animationen <b>spielen jetzt überhaupt</b> (seit #858 tot), Callouts an echten Hardpoints, Holodeck mit Parallax und hochzählenden Werten.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 70%; --fr-target: 100%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">~2 s</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">bis der Planet beim ersten Besuch steht und das Intro startet, Obergrenze 3 s (geschätzt, gemessen im Dev-Server). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">4879 / 4879</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Karma-Specs der ganzen App grün, Produktions-Build ohne Warnung, Lint ohne Fehler. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 99%; --fr-target: 100%">
+          <span class="fr-meter-name">🛠 Wartbarkeit</span>
+          <b class="fr-meter-value">2 Schriften · 4 Textfarben</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">in Header und Subheader (vorher 3 und 10), Marke aus einer Komponente, Leisten-Styles 17,8 von 18 kB Budget. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_local}}<small>Stufe 4 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="done">{{final.level_local}}</li>
+      <li data-level="5" data-state="open">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Eingeloggt mit echten Daten im Dev-Server geprüft, nicht auf dem Produktions-Build. Nicht umgesetzt bzw. nicht belegt: die Holotisch-Animationen im Detail (Scan-Scheibe, Strahl, Ringwelle, Typewriter) — im Dev-Server war der Holotisch nach 8 s noch beim Laden; die Holodeck-Töne hat niemand gehört. Beides steht unter 🧪.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 4 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-skeleton"
+          data-issue-title="[FEATURE] Show a skeleton stage while a codex ship page loads"
+          data-issue-type="feature"
+          data-issue-body="While checking the ship-page holodeck (batch concept 2026-11-01, cx-polish), the whole codex ship detail page stays empty for ~3 s: the route renders nothing until the ship data has loaded. The holodeck now shows a scanning placeholder once it mounts, but the page itself has no skeleton. Proposal: render the page frame + an empty holodeck stage (lock ring, scan line) immediately and fill it when the data arrives. Files: codex ship detail route component, codex-holo-stage.component.ts."
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="im Repo" data-routed>
+        <span class="oq-label">Schiffsseite 3 s leer beim Laden</span>
+        <span class="oq-done">✓ umgesetzt — <code>src/app/codex/codex-detail.component.ts</code> (3d638d08)</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Schiffs-Detailseite zeigt rund 3 s gar nichts, bis die Schiffsdaten da sind.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Codex → Schiff (Detailseite)</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt — Skelett-Bühne, im Repo.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-armour-timeout"
+          data-issue-title="[BUG] Codex landing armour news query hits the statement timeout"
+          data-issue-type="bug"
+          data-issue-body="On production data the codex landing's first item arrives only after 7–9 s and the armour news query fails with Postgres statement timeout 57014 (seen while checking the holotable with the test account, batch concept 2026-11-01). Ships on the holotable can rotate away before their hull has loaded. Needs a look at the query plan / index for the armour news RPC (codex-landing-data.service.ts) and the anon/authenticated statement timeouts (3 s / 8 s)."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="riskant" data-routed>
+        <span class="oq-label">Codex-Start: Rüstungs-News-Abfrage timeoutet</span>
+        <span class="oq-done">✓ umgesetzt — <code>codex.service.ts</code> lean read (341d4199)</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Erster Eintrag erst nach 7–9 s, Abfrage bricht mit Statement-Timeout ab.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Codex-Startseite, Datenbank</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — riskant, Datenbank-Abfrage.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-landing-callouts"
+          data-issue-title="[FEATURE] Component callouts on the codex landing holotable"
+          data-issue-type="feature"
+          data-issue-body="The landing holotable shows at most 3 callouts from curated ship values (speed, hull HP, armour, cargo); 3 of them now end at real hardpoints. Weapons, shields, quantum drive, power plant and coolers have real hardpoints but are not landing callouts (on the ship page they already sit as pins on their mounts). Showing them on the landing would replace speed/hull/armour and is a content decision. Found during batch concept 2026-11-01 (cx-anchors)."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht Concept" data-routed>
+        <span class="oq-label">Komponenten-Callouts auf dem Holotisch?</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/864" target="_blank" rel="noopener noreferrer">Issue #864</a>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Waffen, Schilde, Quantum, Power, Kühler hätten echte Anker, sind aber keine Callouts.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Codex-Startseite, Holotisch</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — inhaltliche Entscheidung, braucht ein Concept.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-phone-chip"
+          data-issue-title="[BUG] Beta chip covers the account buttons on phones"
+          data-issue-type="bug"
+          data-issue-body="On the phone screenshots of batch concept 2026-11-01 the account buttons at the top look partly covered by the β (beta) chip. Not part of the batch scope; layout of the beta chip vs the top-right account controls under 720px."
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein" data-routed>
+        <span class="oq-label">β-Chip verdeckt Konto-Buttons am Handy</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/864" target="_blank" rel="noopener noreferrer">Issue #864</a>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Der β-Chip liegt am Telefon teilweise über den Konto-Buttons.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Kopfzeile, Telefon</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt — klein, im Repo.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section id="nachtrag" data-nav-label="Nachtrag">
+    <p class="fr-label">Nachtrag</p>
+    <ul>
+      <li><b>Schiffsseite lädt nicht mehr leer:</b> Seitenrahmen, Kopf und eine Holodeck-Skelettbühne stehen sofort und füllen sich ohne Sprung (3d638d08).</li>
+      <li><b>Rüstungs-Timeout behoben:</b> Ursache war das Auspacken von ~10 kB Payload pro Rüstung, nicht ein fehlender Index — die Startseite liest jetzt schlank, 1951 ms → 9 ms pro Seite, keine Migration (341d4199).</li>
+      <li><b>Issue #864</b> sammelt die Komponenten-Callouts und den β-Chip am Handy.</li>
+      <li><b>Konzept behalten statt verworfen:</b> Regel 5 aus diesem Konzept — beim Squash-Merge käme es sonst nie auf main.</li>
+      <li>Nebenbefund ohne Änderung: der Zähler „neu in diesem Patch“ liest nur 1000 Namen des Vorgänger-Builds, bei Rüstung kann er zu hoch sein.</li>
+    </ul>
+  </section>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-holo-prod" data-crit="high" data-guide="">Holotisch-Animationen auf Prod ansehen</li>
+      <li data-todo-id="t-holo-sound" data-crit="mid" data-guide="">Holodeck-Töne einschalten und anhören</li>
+      <li data-todo-id="t-phone-panel" data-crit="mid" data-guide="">Such-Panel am Handy öffnen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/batch-d577a4</code> · Commits e0bdc131, f5e88029, d32adff9, 48512109, 081a3e65, 82e45619 (+ Regeln b0f43169, main gemergt)</li>
+      <li><code>src/app/shell/fusion-bar/*</code>, <code>src/app/shell/brand/brand.component.ts</code>, <code>src/app/verse/pages/briefing/*</code>, <code>src/app/codex/landing/*</code>, <code>src/app/codex/holo/*</code></li>
+      <li>Karma 4879/4879 grün (Edge) · Build ohne Warnung · Lint 0 Fehler</li>
+      <li>Abnahme: Brief <code>briefs/implement.md</code>, unabhängige QA-Prüfung → 8 Lücken → nachgebessert</li>
+    </ul>
+  </details>
+</section>

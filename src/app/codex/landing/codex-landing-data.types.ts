@@ -95,6 +95,13 @@ export interface LandingItem {
   facts?: LandingFact[];
   /** True when the item is new in the current patch (else it is only the newest known one). */
   fresh?: boolean;
+  /**
+   * Ships: candidate raw port names per callout value key (cx-anchors) — the
+   * holotable ends the leader line at the first one the 3D model can locate.
+   */
+  anchorPorts?: Record<string, string[]>;
+  /** Ships: codex-data position (glb space, metres) of those ports, for hulls whose glb has no locators. */
+  anchorPositions?: Record<string, [number, number, number]>;
 }
 
 export interface PatchSummaryView {

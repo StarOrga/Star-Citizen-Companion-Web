@@ -1241,17 +1241,29 @@ export class CodexService {
    * was also ~10 kB per armour row (~600 kB per 60-card page) for 3 % of it on
    * screen; slim, all 2.4k armour rows are ~1.3 MB before compression — about
    * two of the old pages. Same default filters as {@link listByKind}. Cached
-   * per build, category and variant switch.
+   * per build, category, variant switch and `lean`.
+   *
+   * `lean` drops the three payload fields: the row then carries the promoted
+   * columns only (`payload` is `{}`). Reading `payload->…` detoasts ~10 kB per
+   * armour row — the full 2 438-row armour catalog took ~1.95 s per 1 000-row
+   * page on LIVE 4.10.2 (26 k buffers) against 9 ms without, and three such
+   * pages side by side hit the 8 s authenticated statement timeout (57014).
+   * Callers that never render a card (the landing's newest-item pick) ask lean.
    */
-  async listFpsCatalog(category: 'weapon' | 'armor', includeVariants = false): Promise<CodexListRow[]> {
+  async listFpsCatalog(
+    category: 'weapon' | 'armor',
+    includeVariants = false,
+    lean = false,
+  ): Promise<CodexListRow[]> {
     const build = await this.buildOrThrow();
     if (!build) return [];
     const run = async (): Promise<CodexListRow[]> => {
       const kind: CodexKind = category === 'weapon' ? 'weapon' : 'item';
-      const select =
-        'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, ' +
-        (category === 'weapon' ? 'weapon_class, ' : '') +
-        'name:payload->name, previewImage:payload->previewImage, manufacturer:payload->manufacturer';
+      const select = [
+        'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant',
+        ...(category === 'weapon' ? ['weapon_class'] : []),
+        ...(lean ? [] : ['name:payload->name, previewImage:payload->previewImage, manufacturer:payload->manufacturer']),
+      ].join(', ');
       const page = 1000; // PostgREST caps a response at 1000 rows
       const pageAt = async (offset: number, withCount: boolean) => {
         let query = this.sb.client
@@ -1294,11 +1306,11 @@ export class CodexService {
       return pages.flat().map((r) =>
         mapListRow(kind, {
           ...r,
-          payload: { name: r['name'], previewImage: r['previewImage'], manufacturer: r['manufacturer'] },
+          payload: lean ? {} : { name: r['name'], previewImage: r['previewImage'], manufacturer: r['manufacturer'] },
         }),
       );
     };
-    const key = `${build.id}|${category}|${includeVariants}`;
+    const key = `${build.id}|${category}|${includeVariants}|${lean}`;
     let hit = this.fpsCatalogCache.get(key);
     if (!hit) {
       // Only the current build's catalogs stay: each is 1–5 MB, and every

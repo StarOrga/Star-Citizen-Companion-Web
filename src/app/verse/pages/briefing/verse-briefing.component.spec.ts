@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../../core/analytics.service';
@@ -9,14 +9,17 @@ import { NewsService } from '../../../news/news.service';
 import { VerseApiService } from '../../data/verse-api.service';
 import { VerseDigest, VerseDigestItem, VerseExplorerPatch } from '../../data/verse.models';
 import { FALLBACK_POINTS, buildTaskViews, nextTask, starSlots } from '../../starmap/starmap.model';
+import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
+import { fillGallery } from './briefing-hub';
 import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
-import { VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { INTRO_HOLD_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import {
   INTRO_FLAG,
   briefingStatus,
   claimIntro,
+  resetIntroDocument,
   explorerLit,
   followingLine,
   liveStatusKey,
@@ -131,12 +134,35 @@ describe('Verse briefing — model (more)', () => {
   it('claimIntro plays the full entrance once per session and survives blocked storage', () => {
     const store = new Map<string, string>();
     const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
-    expect(claimIntro(fake)).toBe('full');
+    resetIntroDocument();
+    expect(claimIntro(fake, () => false)).toBe('full');
     expect(store.get(INTRO_FLAG)).toBe('1');
-    expect(claimIntro(fake)).toBe('short');
+    expect(claimIntro(fake, () => false)).toBe('short');
     const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
     expect(claimIntro(broken)).toBe('full');
     expect(claimIntro(null)).toBe('full');
+  });
+
+  it('claimIntro: a reload is a new visit once per document, a later in-session return is short again', () => {
+    const store = new Map<string, string>([[INTRO_FLAG, '1']]);
+    const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+    resetIntroDocument();
+    expect(claimIntro(fake, () => true)).withContext('flag set, but the document was reloaded').toBe('full');
+    expect(claimIntro(fake, () => true)).withContext('the reload entry lives on: only the first claim counts').toBe('short');
+    resetIntroDocument();
+    expect(claimIntro(fake, () => false)).withContext('flag set, plain navigation').toBe('short');
+  });
+
+  it('fillGallery tops the digest up to the candidate count from the gallery source, without repeats', () => {
+    const g = (id: string, image = `${id}.jpg`) => ({ ...item(`gallery:${id}`, 1, `/verse/gallery?image=${id}`, 'gallery'), image });
+    const digest = [g('a'), g('b')];
+    const source = [g('a'), g('c'), g('d', 'b.jpg'), ...'efghijklmno'.split('').map((c) => g(c))];
+    const out = fillGallery(digest, source);
+    expect(out.length).toBe(14);
+    expect(out.slice(0, 2).map((i) => i.key)).toEqual(['gallery:a', 'gallery:b']);
+    expect(new Set(out.map((i) => i.key)).size).toBe(14);
+    expect(new Set(out.map((i) => i.image)).size).withContext('same picture never twice').toBe(14);
+    expect(fillGallery([], [], 14)).toEqual([]);
   });
 
   it('newestFor picks the first unseen item of the door kind; splitChars keeps spaces', () => {
@@ -183,6 +209,7 @@ describe('Verse briefing — component', () => {
         provideRouter([]),
         provideTranslateService({}),
         { provide: AnalyticsService, useValue: { captureVerse, flags: () => ({}) } },
+        { provide: BriefingGalleryFillService, useValue: { items: signal([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { state: beta, isEnabled: (a: string) => () => beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
         {
@@ -197,7 +224,7 @@ describe('Verse briefing — component', () => {
         {
           provide: NewsService,
           useValue: {
-            feed: signal(null), loading: signal(true), stream: signal([]), streamCount: signal(0),
+            feed: signal(null), loading: signal(true), stage: signal(null), error: signal(null), stream: signal([]), streamCount: signal(0),
             patchLines: signal([]), refresh: jasmine.createSpy(),
           },
         },
@@ -211,6 +238,7 @@ describe('Verse briefing — component', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
+    beta.set({ ...beta(), shell: false });
     sessionStorage.removeItem(INTRO_FLAG);
   });
 
@@ -361,5 +389,48 @@ describe('Verse briefing — component', () => {
     expect(sessionStorage.getItem(INTRO_FLAG)).toBeNull();
     expect(trackShown).not.toHaveBeenCalled();
     beta.set({ ...beta(), verse: true });
+  });
+
+  describe('first-visit intro hold (#8a)', () => {
+    const stage = (fx: { nativeElement: HTMLElement }) => fx.nativeElement.querySelector('section.bstage');
+
+    it('keeps the stage dark until the live planet is drawn, then starts the timeline', fakeAsync(() => {
+      beta.set({ ...beta(), shell: true });
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).withContext('held').toContain('hold');
+      expect(stage(fixture)?.classList).not.toContain('intro');
+      fixture.componentInstance.onPlanetReady();
+      tick(1);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('hold');
+      expect(stage(fixture)?.classList).toContain('intro');
+      tick(10_000);
+      beta.set({ ...beta(), shell: false });
+    }));
+
+    it('starts anyway with the CSS planet once the hold ran out', fakeAsync(() => {
+      beta.set({ ...beta(), shell: true });
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      tick(INTRO_HOLD_MS);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.cssFallback()).toBeTrue();
+      expect(stage(fixture)?.classList).toContain('intro');
+      expect(stage(fixture)?.classList).not.toContain('hold');
+      tick(10_000);
+      beta.set({ ...beta(), shell: false });
+    }));
+
+    it('never holds the Kurz-Auftakt: planet and sky stand from the start', fakeAsync(() => {
+      beta.set({ ...beta(), shell: true });
+      sessionStorage.setItem(INTRO_FLAG, '1');
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('hold');
+      expect(stage(fixture)?.classList).toContain('intro');
+      tick(10_000);
+      beta.set({ ...beta(), shell: false });
+    }));
   });
 });

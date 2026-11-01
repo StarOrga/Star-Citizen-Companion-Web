@@ -452,6 +452,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     /* One line for both quiet readouts, pinned to the field's right edge. */
     .capture-hint { margin: 0; font-size: 11px; line-height: 1.4; color: var(--sc-accent-hot); }
+    @media (pointer: coarse) { .capture-hint { font-size: 12px; } }
     .meta { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
 
     /* The auto-grow cell. Its ::after is an invisible replica of the text with
