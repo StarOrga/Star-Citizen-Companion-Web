@@ -14,6 +14,34 @@ export const hqHangar = '/hq/hangar';
 export const hqLocker = '/hq/locker';
 export const hqOps = '/hq/ops';
 
+/**
+ * The five HQ pages of the beta landing (`/hq`): one route, five scroll stages.
+ * Start is `/hq`, the others are fragments (`/hq#planen`). Order = scroll order.
+ */
+export const HQ_PAGES = ['start', 'planen', 'jetzt', 'bestand', 'statistik'] as const;
+export type HqPageId = (typeof HQ_PAGES)[number];
+
+/** A router link to one HQ page: `[routerLink]="l.commands" [fragment]="l.fragment"`. */
+export interface HqPageLink {
+  commands: string[];
+  fragment: string | undefined;
+}
+
+export function hqPage(page: HqPageId): HqPageLink {
+  return { commands: [HQ_ROOT], fragment: page === 'start' ? undefined : page };
+}
+
+/** The href of an HQ page (`/hq`, `/hq#planen`). */
+export function hqPageHref(page: HqPageId): string {
+  return page === 'start' ? HQ_ROOT : `${HQ_ROOT}#${page}`;
+}
+
+/** The page a URL fragment names; null for none / unknown (Start is "no fragment"). */
+export function hqPageOfFragment(fragment: string | null | undefined): HqPageId | null {
+  const f = (fragment ?? '').replace(/^#/, '');
+  return (HQ_PAGES as readonly string[]).includes(f) ? (f as HqPageId) : null;
+}
+
 /** Query-param names of the HQ contract. */
 export const HQ_VARIANT_PARAM = 'v';
 export const HQ_MINE_PARAM = 'mine';

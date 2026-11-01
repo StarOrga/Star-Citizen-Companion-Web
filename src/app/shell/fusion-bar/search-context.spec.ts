@@ -1,6 +1,7 @@
 import type { CodexSearchGroup } from '../../codex/search/codex-search-model';
 import type { PolySearchHit } from '../../codex/codex-poly-search';
 import {
+  CAP_EXCLUDED,
   CAP_OTHER,
   CAP_PRIMARY,
   matchPlaces,
@@ -102,5 +103,48 @@ describe('search-context', () => {
       expect(matchPlaces('', neutralContext(), label)).toEqual([]);
       expect(matchPlaces('hangar', searchContextOf('/hq'), label)[0].id).toBe('hangar');
     });
+  });
+});
+
+describe('search-context · HQ pages (exclusion)', () => {
+  it('keeps the plain HQ context for Start and the sub routes', () => {
+    expect(searchContextOf('/hq', null).key).toBe('hq');
+    expect(searchContextOf('/hq', 'start').key).toBe('hq');
+    expect(searchContextOf('/hq/hangar', 'bestand').key).toBe('hq');
+  });
+
+  it('derives one context per landing page, with a chip label each', () => {
+    const keys = (['planen', 'jetzt', 'bestand', 'statistik'] as const).map((p) => searchContextOf('/hq', p));
+    expect(keys.map((c) => c.key)).toEqual(['hqPlan', 'hqNow', 'hqStock', 'hqStats']);
+    expect(keys.map((c) => c.labelKey)).toEqual([
+      'fusionBar.ctx.hqPlan',
+      'fusionBar.ctx.hqNow',
+      'fusionBar.ctx.hqStock',
+      'fusionBar.ctx.hqStats',
+    ]);
+    expect(keys.every((c) => c.ownedFirst && c.placesFirst)).toBeTrue();
+  });
+
+  it('never hard-filters: an excluded group stays, collapsed to one row with its "all N" link', () => {
+    const ctx = searchContextOf('/hq', 'bestand');
+    expect(ctx.exclude).toContain('upcoming');
+    const groups = [group('upcoming', 4, 9), group('ship', 4, 4), group('weapon', 4, 4)];
+    const out = weightGroups(groups, ctx, () => false, () => ({ commands: ['/x'] }) as never);
+    expect(out.map((w) => w.group.kind)).toEqual(['ship', 'weapon', 'upcoming']);
+    const up = out.find((w) => w.group.kind === 'upcoming')!;
+    expect(up.collapsed).toBeTrue();
+    expect(up.shown.length).toBe(CAP_EXCLUDED);
+    expect(up.more).not.toBeNull();
+  });
+
+  it('ranks deprioritized kinds after neutral ones and before excluded ones', () => {
+    const ctx = searchContextOf('/hq', 'bestand');
+    const out = weightGroups([group('upcoming', 1), group('component', 1), group('blueprint', 1)], ctx);
+    expect(out.map((w) => w.group.kind)).toEqual(['blueprint', 'component', 'upcoming']);
+  });
+
+  it('the neutral context excludes nothing', () => {
+    expect(neutralContext().exclude).toEqual([]);
+    expect(neutralContext().deprioritize).toEqual([]);
   });
 });

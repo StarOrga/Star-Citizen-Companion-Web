@@ -11,6 +11,7 @@ import type { PolyHitKind } from '../../codex/codex-poly-search';
 import { KIND_PRIORITY } from '../../codex/codex-poly-search';
 import type { CodexSearchGroup, SearchTarget } from '../../codex/search/codex-search-model';
 import { normalizeSearch } from '../../codex/codex-search';
+import type { HqPageId } from '../../hq/hq-routes';
 
 /** Where the reader stands, as far as search weighting cares. */
 export type SearchContextKey =
@@ -22,7 +23,11 @@ export type SearchContextKey =
   | 'ship'
   | 'codexDetail'
   | 'fps'
-  | 'hq';
+  | 'hq'
+  | 'hqPlan'
+  | 'hqNow'
+  | 'hqStock'
+  | 'hqStats';
 
 export interface SearchContext {
   key: SearchContextKey;
@@ -36,11 +41,21 @@ export interface SearchContext {
   placesFirst: boolean;
   /** Put the reader's own ships first inside the ship group (HQ → own hangar). */
   ownedFirst: boolean;
+  /**
+   * Kinds this page is NOT about (HQ pages are configured by exclusion, concept D12). Never a
+   * hard filter: an excluded group sorts last and shows one row ({@link CAP_EXCLUDED}) with its
+   * "all N" link, so every group stays reachable.
+   */
+  exclude: readonly PolyHitKind[];
+  /** Kinds that rank after the neutral ones but before the excluded (still the normal row cap). */
+  deprioritize: readonly PolyHitKind[];
 }
 
 /** Rows a preferred group shows; every other group shows {@link CAP_OTHER}. */
 export const CAP_PRIMARY = 5;
 export const CAP_OTHER = 3;
+/** Rows an excluded group keeps (collapsed to its lead hit + the "all N" link). */
+export const CAP_EXCLUDED = 1;
 /** "Companion fragen" is offered from this many words on (spec §5). */
 
 const NEUTRAL: SearchContext = {
@@ -50,6 +65,8 @@ const NEUTRAL: SearchContext = {
   prefer: [],
   placesFirst: false,
   ownedFirst: false,
+  exclude: [],
+  deprioritize: [],
 };
 
 const INDEX_KINDS: readonly string[] = [
@@ -57,7 +74,7 @@ const INDEX_KINDS: readonly string[] = [
 ];
 
 /** The context of a router URL (`/codex/index?kind=weapon`, `/hq/hangar`, …). */
-export function searchContextOf(url: string): SearchContext {
+export function searchContextOf(url: string, hqPage: HqPageId | null = null): SearchContext {
   const [pathPart, query = ''] = url.split('#', 1)[0].split('?');
   const path = pathPart.replace(/\/+$/, '') || '/';
   const seg = path.split('/').filter(Boolean);
@@ -67,7 +84,7 @@ export function searchContextOf(url: string): SearchContext {
     if (seg[1] === 'gallery') return ctx('gallery', [], true);
     return ctx('verse', ['ship', 'upcoming'], false);
   }
-  if (seg[0] === 'hq') return { ...ctx('hq', ['ship'], true), ownedFirst: true };
+  if (seg[0] === 'hq') return hqContext(seg.length === 1 ? hqPage : null);
   if (seg[0] === 'codex') {
     if (seg.length === 1) return ctx('codex', ['ship'], false);
     if (seg[1] === 'index' || seg[1] === 'upcoming') {
@@ -87,21 +104,50 @@ export function searchContextOf(url: string): SearchContext {
   return NEUTRAL;
 }
 
+/**
+ * The context of an HQ page. Start and the sub routes (hangar, locker) keep the plain HQ
+ * context; each landing page is configured by what it is NOT about (exclusion, D12) and which
+ * kinds it leans towards. The mission and shop groups of the plan (§4.4) join these lists with
+ * their PolyHitKind once the Codex index holds them.
+ */
+export function hqContext(page: HqPageId | null): SearchContext {
+  const base: SearchContext = { ...ctx('hq', ['ship'], true), ownedFirst: true };
+  switch (page) {
+    case 'planen':
+      return { ...base, key: 'hqPlan', labelKey: 'fusionBar.ctx.hqPlan', prefer: ['item', 'blueprint', 'ship'], deprioritize: ['upcoming', 'manufacturer'] };
+    case 'jetzt':
+      return { ...base, key: 'hqNow', labelKey: 'fusionBar.ctx.hqNow', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition'] };
+    case 'bestand':
+      return { ...base, key: 'hqStock', labelKey: 'fusionBar.ctx.hqStock', prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
+    case 'statistik':
+      return { ...base, key: 'hqStats', labelKey: 'fusionBar.ctx.hqStats', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition', 'component', 'weapon', 'item', 'blueprint'] };
+    default:
+      return base;
+  }
+}
+
 /** The neutral context (chip removed). */
 export function neutralContext(): SearchContext {
   return NEUTRAL;
 }
 
 function ctx(key: SearchContextKey, prefer: readonly PolyHitKind[], placesFirst: boolean): SearchContext {
-  return { key, labelKey: `fusionBar.ctx.${key}`, labelParams: null, prefer, placesFirst, ownedFirst: false };
+  return { key, labelKey: `fusionBar.ctx.${key}`, labelParams: null, prefer, placesFirst, ownedFirst: false, exclude: [], deprioritize: [] };
 }
 
-/** Rank of a kind under a context: preferred kinds first, then KIND_PRIORITY. */
+/**
+ * Rank of a kind under a context: preferred kinds first, then KIND_PRIORITY; deprioritized kinds
+ * after all neutral ones, excluded kinds last.
+ */
 export function kindRank(kind: PolyHitKind, context: SearchContext): number {
   const p = context.prefer.indexOf(kind);
   if (p !== -1) return p;
   const k = KIND_PRIORITY.indexOf(kind);
-  return context.prefer.length + (k === -1 ? KIND_PRIORITY.length : k);
+  const base = context.prefer.length + (k === -1 ? KIND_PRIORITY.length : k);
+  const span = context.prefer.length + KIND_PRIORITY.length + 1;
+  if (context.exclude.includes(kind)) return base + 2 * span;
+  if (context.deprioritize.includes(kind)) return base + span;
+  return base;
 }
 
 /** One group as the bar shows it: capped per context, with its "all N" target. */
@@ -112,6 +158,8 @@ export interface WeightedGroup {
   /** "All N" target when the group holds more than it shows. */
   more: SearchTarget | null;
   primary: boolean;
+  /** Excluded by the page: one lead row, the rest behind "all N". */
+  collapsed: boolean;
 }
 
 /**
@@ -133,7 +181,8 @@ export function weightGroups(
     .map(({ g }) => g);
   return ordered.map((g) => {
     const primary = context.prefer.includes(g.kind);
-    const cap = primary || context.prefer.length === 0 ? CAP_PRIMARY : CAP_OTHER;
+    const collapsed = !primary && context.exclude.includes(g.kind);
+    const cap = collapsed ? CAP_EXCLUDED : primary || context.prefer.length === 0 ? CAP_PRIMARY : CAP_OTHER;
     let hits = g.hits;
     if (context.ownedFirst && g.kind === 'ship') {
       hits = hits
@@ -143,7 +192,7 @@ export function weightGroups(
     }
     const shown = hits.slice(0, cap);
     const more = g.total > shown.length ? (moreTarget(g) ?? null) : null;
-    return { group: g, shown, more, primary };
+    return { group: g, shown, more, primary, collapsed };
   });
 }
 
