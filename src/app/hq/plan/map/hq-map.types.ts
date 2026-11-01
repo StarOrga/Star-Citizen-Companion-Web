@@ -25,6 +25,8 @@ export interface MapNeed {
   status: 'open' | 'partial' | 'done';
   /** Groups needs by colour; the set id or `note`. */
   colorKey: string;
+  /** Optional legend name for `colorKey` (set or note name); the legend falls back to the key. */
+  colorLabel?: string;
   place: MapPlace | null;
 }
 
