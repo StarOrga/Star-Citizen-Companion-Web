@@ -21,7 +21,16 @@
 //         meta, generated_at} — Holotable outline contract, see wave0-research
 //         §C1. Pinned column set like PORT_COLUMNS.)
 //   POST { op: "clear_silhouettes",build_id }                          -> { ok }
-//        (mirror of clear_ports)
+//        (mirror of clear_ports; uploaders with `carry` use `prune` instead)
+//   POST { op: "carry",            build_id, table, rows: [{k, h}], set? } -> { kept, copied, missing: [i] }
+//        (per-object incremental upload, migration 20261102000000: rows whose
+//         content hash h is already in this build are kept, rows found with h
+//         in an earlier build are copied server-side, `missing` lists the row
+//         indexes the caller must send in full. `set` re-stamps the build
+//         stamp of a copy, e.g. {"payload.source": {...}}. Without the
+//         migration: { degraded: 'no_carry' } -> the caller sends full rows.)
+//   POST { op: "prune",            build_id, table, keys: [[...]] }    -> { deleted }
+//        (deletes the build's rows whose key is not listed; silhouettes only)
 //   POST { op: "constellation",    build_id, candidates: [...] }       -> { patch_line, class_name, kind }
 //        (candidates: {class_name, kind:'ship'|'ground', points:[[x,y]×7]} —
 //         the Verse-hub stars the uploader precomputed per ship silhouette;
@@ -83,6 +92,7 @@ import {
   sanitizeCandidates,
 } from './_constellation.ts';
 import { nullUndefinedPlaceholders } from './_placeholders.ts';
+import { isCarryUnavailable, parseCarry, parsePrune } from './_carry.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -125,7 +135,7 @@ const PORT_TRANSFORM_COLUMNS = ['helper_name', 'position', 'rotation'] as const;
 const SILHOUETTE_COLUMNS = [
   'build_id', 'channel', 'patch_version', 'build_number',
   'kind', 'class_name', 'view_box', 'path', 'bbox', 'anchors',
-  'unresolved', 'meta', 'generated_at',
+  'unresolved', 'meta', 'generated_at', 'content_sha',
 ] as const;
 const SILHOUETTE_CONFLICT = 'channel,patch_version,build_number,kind,class_name';
 
@@ -435,6 +445,38 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const { error } = await admin.from(table).upsert(clean, { onConflict: NAT_CONFLICT });
       if (error) throw error;
       return json({ ok: true, upserted: rows.length });
+    }
+
+    if (op === 'carry') {
+      const buildId = String(body.build_id ?? '');
+      if (!BUILD_ID_RE.test(buildId)) return json({ error: 'invalid_body', message: 'build_id (uuid) required' }, 400);
+      const parsed = parseCarry(body);
+      if (!parsed.ok) return json({ error: 'invalid_body', message: parsed.message }, 400);
+      const { table, rows, set } = parsed.value;
+      const { data, error } = await admin.rpc('codex_carry_over', {
+        p_table: table, p_build_id: buildId, p_rows: rows, p_set: set,
+      });
+      if (error) {
+        if (isCarryUnavailable(error)) return json({ ok: true, degraded: 'no_carry' });
+        throw error;
+      }
+      const r = (data ?? {}) as { kept?: number; copied?: number; missing?: number[]; invalid?: number };
+      return json({ ok: true, kept: r.kept ?? 0, copied: r.copied ?? 0, missing: r.missing ?? [], invalid: r.invalid ?? 0 });
+    }
+
+    if (op === 'prune') {
+      const buildId = String(body.build_id ?? '');
+      if (!BUILD_ID_RE.test(buildId)) return json({ error: 'invalid_body', message: 'build_id (uuid) required' }, 400);
+      const parsed = parsePrune(body);
+      if (!parsed.ok) return json({ error: 'invalid_body', message: parsed.message }, 400);
+      const { data, error } = await admin.rpc('codex_prune_build', {
+        p_table: parsed.value.table, p_build_id: buildId, p_keys: parsed.value.keys,
+      });
+      if (error) {
+        if (isCarryUnavailable(error)) return json({ ok: true, degraded: 'no_carry' });
+        throw error;
+      }
+      return json({ ok: true, deleted: Number(data ?? 0) });
     }
 
     if (op === 'keybinds') {
