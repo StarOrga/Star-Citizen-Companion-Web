@@ -252,7 +252,7 @@ describe('catalog upload — transient failures', () => {
     expect(res.ok).toBe(true);
     expect(failed).toBe(true);
     // The retried batch landed, and finalize was still reached.
-    expect(sent.filter((s) => s.table === 'codex_ships').reduce((a, b) => a + b.rows, 0)).toBe(3);
+    expect(sent.filter((s) => s.op === 'upsert' && s.table === 'codex_ships').reduce((a, b) => a + b.rows, 0)).toBe(3);
     expect(sent.some((s) => s.op === 'finalize')).toBe(true);
   });
 
