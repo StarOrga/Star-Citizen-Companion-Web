@@ -105,6 +105,11 @@
 @media (prefers-reduced-motion: reduce) {
   .prog, .open, .cat.flashing > .row, .new a.flash, .row.held { animation: none !important; }
 }
+// Touch screens: readable labels and 48px rows (mobile gate).
+@media (pointer: coarse) {
+  .ph, .keys, .here, .soon, .none, .more, .new a { font-size: 12px; }
+  .row, .new a, .more, .all, .keys { min-height: 48px; }
+}
 @media (max-width: 720px) {
   :host { justify-content: flex-start; }
   .edge { display: none; }

@@ -518,6 +518,13 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .pin.pos-b { flex-direction: column; transform: translateX(calc(-50% + 10px)); }
     .pin.pos-t { flex-direction: column-reverse; transform: translate(calc(-50% + 10px), calc(-100% + 20px)); }
     .pin:is(.sel, :hover, :focus-visible) { z-index: 4; }
+    /* Touch screens: a 44px hit box around the 20px dot, re-centred so the dot stays on its anchor. */
+    @media (pointer: coarse) {
+      .pin { padding: 12px; margin: -22px 0 0 -22px; }
+      .pin.rev { transform: translateX(calc(-100% + 44px)); }
+      .pin.pos-b { transform: translateX(calc(-50% + 22px)); }
+      .pin.pos-t { transform: translate(calc(-50% + 22px), calc(-100% + 44px)); }
+    }
     .pin i { position: relative; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--pc); background: var(--ink);
       color: var(--pc); font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 12%, transparent), 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent);

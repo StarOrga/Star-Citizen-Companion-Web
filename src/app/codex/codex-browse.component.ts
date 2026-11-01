@@ -543,6 +543,7 @@ export function blueprintCategoriesForGroup(
     .filter-fab, .sheet, .sheet-backdrop { display: none; }
     @media (pointer: coarse) {
       .acts { opacity: 1; }
+      .side-h, .node-ct { font-size: 12px; }
     }
     @media (max-width: 767px) {
       .layout { grid-template-columns: minmax(0, 1fr); }

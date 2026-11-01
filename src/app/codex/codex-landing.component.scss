@@ -152,6 +152,9 @@
   100% { width: calc(100% - 2 * var(--cx-gut) - 2 * var(--cx-pane) + 160px); height: 92%; opacity: 0; }
 }
 :host(.still) .wave { display: none; }
+@media (pointer: coarse) {
+  .eyebrow { font-size: max(12px, 0.72rem); letter-spacing: 0.16em; }
+}
 @media (prefers-reduced-motion: reduce) {
   .wave { display: none; }
   .roll-in, .roll-out { animation: none; }
