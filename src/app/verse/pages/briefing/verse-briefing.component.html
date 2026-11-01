@@ -8,11 +8,11 @@
     <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.css-planet]="planet.failed() || cssFallback()">
       <div class="brief-world" #world></div>
       <div class="city"></div>
-      <sc-briefing-planet #planet [anchor]="world" />
+      <sc-briefing-planet #planet [anchor]="world" [snap]="titleIntro() && !introGo()" (drawn)="onPlanetReady()" (unavailable)="releaseIntro()" />
     </div>
     <!-- Easter egg: a double click on the empty sky left of the hero (see the component). -->
     <sc-briefing-asteroid #egg [planet]="world" (passing)="shake()" />
-    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
+    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro() && introGo()" [class.hold]="titleIntro() && !introGo()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
       <div class="scn">
         <!-- Entrance only (CSS, gone after the sequence / under reduced motion): letterbox bars and the comet that lights the constellation. -->
         <i class="lb lb-t" aria-hidden="true"></i><i class="lb lb-b" aria-hidden="true"></i>

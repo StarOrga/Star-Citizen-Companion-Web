@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, output, signal } from '@angular/core';
 import { logWarn } from '../../../core/log';
 import { PlanetRenderer } from './planet/planet-gl';
 import { paintDay, paintNight } from './planet/planet-textures';
@@ -21,7 +21,7 @@ import { DAY_MS, PlanetWorld, Vec3, generateWorld, project, seeded } from './pla
   selector: 'sc-briefing-planet',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { 'aria-hidden': 'true', '[class.on]': 'ready()', '[class.instant]': 'instant()' },
+  host: { 'aria-hidden': 'true', '[class.on]': 'ready()', '[class.instant]': 'instant() || snap()' },
   template: '<canvas class="bp-gl"></canvas><canvas class="bp-trains"></canvas>',
   styles: [`
     :host { position: sticky; top: 0; display: block; width: 100%; height: 100vh; height: 100dvh; pointer-events: none; opacity: 0; transition: opacity 0.9s ease-out; }
@@ -34,6 +34,12 @@ import { DAY_MS, PlanetWorld, Vec3, generateWorld, project, seeded } from './pla
 export class BriefingPlanetComponent {
   /** The CSS planet: the live one is drawn exactly over it. */
   readonly anchor = input.required<HTMLElement>();
+  /** The page holds its intro for the planet: it appears at once instead of fading in (#8a). */
+  readonly snap = input(false);
+  /** Fires once the planet is drawn for the first time. */
+  readonly drawn = output<void>();
+  /** Fires when no live planet will come (no WebGL). */
+  readonly unavailable = output<void>();
   readonly ready = signal(false);
   /** No live planet will come (no WebGL, generation aborted): the CSS planet stands in. */
   readonly failed = signal(false);
@@ -60,7 +66,7 @@ export class BriefingPlanetComponent {
       renderer = new PlanetRenderer(glCanvas, accentRgb());
     } catch (err) {
       logWarn('verse.planet', 'WebGL unavailable, keeping the CSS planet', err);
-      this.zone.run(() => this.failed.set(true));
+      this.zone.run(() => { this.failed.set(true); this.unavailable.emit(); });
       return;
     }
     this.cleanup.push(() => renderer.dispose());
@@ -81,18 +87,21 @@ export class BriefingPlanetComponent {
     renderer.setTextures(day, night, cloud);
 
     performance.mark?.('sc-verse-planet-ready');
-    this.zone.run(() => this.ready.set(true));
+    this.zone.run(() => { this.ready.set(true); this.drawn.emit(); });
     this.loop(world, renderer, glCanvas, trainCanvas);
   }
 
   /** Drives a generator in idle slices; null when the page went away meanwhile. */
   private slices<T>(gen: Generator<void, T>): Promise<T | null> {
+    // First build: the page's intro waits for it, so slices are fat and follow each other at once;
+    // afterwards (nothing waits) it is the gentle idle kind.
+    const urgent = this.snap();
     const idle = (fn: () => void) =>
-      'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16);
+      urgent ? setTimeout(fn, 0) : 'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16);
     return new Promise((resolve) => {
       const step = () => {
         if (this.stopped) return resolve(null);
-        const until = performance.now() + 10;
+        const until = performance.now() + (urgent ? 28 : 10);
         for (;;) {
           const r = gen.next();
           if (r.done) return resolve(r.value);

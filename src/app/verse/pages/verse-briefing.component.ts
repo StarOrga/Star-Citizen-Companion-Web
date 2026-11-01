@@ -74,6 +74,8 @@ export const TITLE_MIN_SCALE = 0.55;
 export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 1 };
 
 /** Hub title sequence (beta shell), seconds at --k 1: letterbox, title cascade, search, calm, details, comet. */
+/** Longest the first-visit intro waits for the live planet before it starts with the CSS fallback. */
+export const INTRO_HOLD_MS = 3000;
 export const HUB_INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 6.4, short: 1.1 };
 
 interface Gate {
@@ -450,8 +452,15 @@ export class VerseBriefingComponent {
     if (this.shell()) this.wireStage();
     if (this.shell()) this.startTitleIntro();
     if (this.shell()) {
+      // The planet's own world is generated on the first visit; the intro waits for it (at most
+      // INTRO_HOLD_MS), so the slot is never empty while the camera moves (#8a). Past that, the
+      // CSS planet stands in and the sequence starts anyway.
+      const cap = setTimeout(() => {
+        this.cssFallback.set(true);
+        this.releaseIntro();
+      }, INTRO_HOLD_MS);
       const fb = setTimeout(() => this.cssFallback.set(true), 8000);
-      this.destroyRef.onDestroy(() => clearTimeout(fb));
+      this.destroyRef.onDestroy(() => { clearTimeout(cap); clearTimeout(fb); });
     }
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
@@ -577,6 +586,9 @@ export class VerseBriefingComponent {
 
   /** True while the title letters cascade in; afterwards the title renders as plain text again. */
   readonly titleIntro = signal(false);
+  /** The intro timeline may start: the live planet stands (or will not come), or the hold ran out. */
+  readonly introGo = signal(this.intro === 'short');
+  private introTimer: ReturnType<typeof setTimeout> | undefined;
   /** The hero title needed more than two lines even at the smallest size: it is cut with an ellipsis. */
   readonly titleClipped = signal(false);
 
@@ -585,17 +597,33 @@ export class VerseBriefingComponent {
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || !this.enabled()) return;
     this.titleIntro.set(true);
+    if (this.introGo()) this.beginIntro();
+    this.destroyRef.onDestroy(() => {
+      clearTimeout(this.introTimer);
+      this.chrome.endHeroIntro();
+    });
+  }
+
+  /** The live planet is drawn (or failed): lets the held intro start. */
+  releaseIntro(): void {
+    if (this.introGo() || !this.titleIntro()) return;
+    this.introGo.set(true);
+    this.beginIntro();
+  }
+
+  /** Planet output: one macrotask later, so the planet's own class flip (no fade-in) renders first. */
+  onPlanetReady(): void {
+    setTimeout(() => this.releaseIntro(), 0);
+  }
+
+  private beginIntro(): void {
     // The shell reveals its search field and (first visit) the main header in step with it.
     // Kurz-Auftakt: the shell's field ignites at ~0.5 s (3.4 s × 0.15), inside the 1 s.
     this.chrome.startHeroIntro(this.intro === 'full' ? 1 : 0.15, this.intro === 'full');
-    const id = setTimeout(() => {
+    this.introTimer = setTimeout(() => {
       this.titleIntro.set(false);
       this.chrome.endHeroIntro();
     }, (HUB_INTRO_SECONDS[this.intro] + 0.4) * 1000);
-    this.destroyRef.onDestroy(() => {
-      clearTimeout(id);
-      this.chrome.endHeroIntro();
-    });
   }
 
   /** Letters of a (translated) title for the cascade. */

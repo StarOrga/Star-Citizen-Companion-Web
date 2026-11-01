@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../../core/analytics.service';
@@ -14,7 +14,7 @@ import { fillGallery } from './briefing-hub';
 import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
-import { VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { INTRO_HOLD_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import {
   INTRO_FLAG,
   briefingStatus,
@@ -224,7 +224,7 @@ describe('Verse briefing — component', () => {
         {
           provide: NewsService,
           useValue: {
-            feed: signal(null), loading: signal(true), stream: signal([]), streamCount: signal(0),
+            feed: signal(null), loading: signal(true), stage: signal(null), error: signal(null), stream: signal([]), streamCount: signal(0),
             patchLines: signal([]), refresh: jasmine.createSpy(),
           },
         },
@@ -238,6 +238,7 @@ describe('Verse briefing — component', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
+    beta.set({ ...beta(), shell: false });
     sessionStorage.removeItem(INTRO_FLAG);
   });
 
@@ -388,5 +389,48 @@ describe('Verse briefing — component', () => {
     expect(sessionStorage.getItem(INTRO_FLAG)).toBeNull();
     expect(trackShown).not.toHaveBeenCalled();
     beta.set({ ...beta(), verse: true });
+  });
+
+  describe('first-visit intro hold (#8a)', () => {
+    const stage = (fx: { nativeElement: HTMLElement }) => fx.nativeElement.querySelector('section.bstage');
+
+    it('keeps the stage dark until the live planet is drawn, then starts the timeline', fakeAsync(() => {
+      beta.set({ ...beta(), shell: true });
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).withContext('held').toContain('hold');
+      expect(stage(fixture)?.classList).not.toContain('intro');
+      fixture.componentInstance.onPlanetReady();
+      tick(1);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('hold');
+      expect(stage(fixture)?.classList).toContain('intro');
+      tick(10_000);
+      beta.set({ ...beta(), shell: false });
+    }));
+
+    it('starts anyway with the CSS planet once the hold ran out', fakeAsync(() => {
+      beta.set({ ...beta(), shell: true });
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      tick(INTRO_HOLD_MS);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.cssFallback()).toBeTrue();
+      expect(stage(fixture)?.classList).toContain('intro');
+      expect(stage(fixture)?.classList).not.toContain('hold');
+      tick(10_000);
+      beta.set({ ...beta(), shell: false });
+    }));
+
+    it('never holds the Kurz-Auftakt: planet and sky stand from the start', fakeAsync(() => {
+      beta.set({ ...beta(), shell: true });
+      sessionStorage.setItem(INTRO_FLAG, '1');
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('hold');
+      expect(stage(fixture)?.classList).toContain('intro');
+      tick(10_000);
+      beta.set({ ...beta(), shell: false });
+    }));
   });
 });

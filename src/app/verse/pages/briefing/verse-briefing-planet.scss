@@ -257,9 +257,11 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 // Readability: every text block sits on a soft dark pool, so city lights and
 // stars step back behind it (concept 2026-10-29, round 1).
 // The same dimming for every text over the planet and the stars (cx-dim): a dark halo
-// behind the glyphs — children inherit the custom property, their stylesheets use it.
-:host { --vb-dim: 0 0 0.35em rgba(2, 6, 11, 0.95), 0 0 1.1em rgba(2, 6, 11, 0.8), 0 0 2.4em rgba(2, 6, 11, 0.55); }
-.kick, .more-cue, .tl, .step, .err, .hx .find { text-shadow: var(--vb-dim); }
+// behind the glyphs. Container-level, not a selector list: text-shadow inherits, so every
+// text in the stage and the hub (title letters, moon labels, comet, transmit, beacons, hub
+// columns, anything added later) carries it. A text with a glow of its own lists --vb-dim first.
+:host { --vb-dim: 0 0 0.35em color-mix(in srgb, var(--sc-bg-0) 95%, transparent), 0 0 1.1em color-mix(in srgb, var(--sc-bg-0) 80%, transparent), 0 0 2.4em color-mix(in srgb, var(--sc-bg-0) 55%, transparent); }
+.bstage, .hub { text-shadow: var(--vb-dim); }
 a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent); }
 .hx { position: relative; isolation: isolate; }
 .hx::before, .hub::before {
@@ -280,6 +282,8 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
 //   4.15–4.85 calm — nothing new
 //   4.85     details: eyebrow, news, "Mehr im Verse", sun (+ the main header)
 //   4.85–5.45 comet flies in, 5.3 constellation lights up (briefing-beacons / -sky)
+// First visit: the stage stays dark until the live planet stands (at most 3 s), then the timeline starts (.hold → .intro).
+.bstage.hold .scn { opacity: 0; }
 // Everything is keyed on .bstage.intro, which the component sets only while the
 // sequence plays and never under reduced motion: without it the final state shows.
 .bstage { --k: 1; }
@@ -296,8 +300,10 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
   pointer-events: none;
   animation: lb-open calc(1.2s * var(--k)) cubic-bezier(0.45, 0, 0.25, 1) calc(0.8s * var(--k)) both;
 }
-.lb-t { top: 0; transform-origin: 50% 0; background: linear-gradient(to bottom, color-mix(in srgb, var(--sc-bg-0) 94%, transparent), color-mix(in srgb, var(--sc-bg-0) 55%, transparent) 45%, transparent); }
-.lb-b { bottom: 0; transform-origin: 50% 100%; background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent), color-mix(in srgb, var(--sc-bg-0) 55%, transparent) 45%, transparent); }
+.lb { --lb: color-mix(in srgb, var(--sc-bg-0) 40%, #000); }
+// The top veil reaches up behind the (transparent) main header — the stage itself starts below it, and its edge would show as a line.
+.lb-t { top: calc(-1 * var(--brief-chrome, 0px)); height: calc(18% + var(--brief-chrome, 0px)); transform-origin: 50% 0; background: linear-gradient(to bottom, color-mix(in srgb, var(--lb) 94%, transparent), color-mix(in srgb, var(--lb) 55%, transparent) 55%, transparent); }
+.lb-b { bottom: 0; transform-origin: 50% 100%; background: linear-gradient(to top, color-mix(in srgb, var(--lb) 94%, transparent), color-mix(in srgb, var(--lb) 55%, transparent) 45%, transparent); }
 .bstage.intro .brief-world, .bstage.intro .city { animation: world-rise calc(1.6s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1s * var(--k)) both; }
 .bstage.intro .ltr {
   display: inline-block;
