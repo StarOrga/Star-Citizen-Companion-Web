@@ -31,7 +31,7 @@
 :host(.hidden) .fpanel {
   pointer-events: none;
 }
-:host(.hidden:focus-within) {
+:host(.hidden:focus-within:not(.autofocused)) {
   transform: none;
   opacity: 1;
 }
@@ -86,9 +86,27 @@
   background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
   box-shadow: var(--sc-sub-shadow);
 }
-.cap.open {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+// "Ruhige Leiste" (concept 2026-11-01, round 2 c1): docked, the bar has no outline —
+// depth only, round corners, round fields. The staged field keeps its satin edge.
+:host(:not([data-mode='stage'])) .cap {
+  border-color: transparent;
+  border-radius: 20px;
+  background: var(--sc-sub-fill);
+  box-shadow: var(--sc-lift-shadow);
+}
+// Open search: the page behind dims softly (gradient scrim), the card floats above it.
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--sc-scrim);
+  animation: fb-scrim-in 0.24s ease both;
+}
+@keyframes fb-scrim-in {
+  from {
+    opacity: 0;
+  }
 }
 // The satin sheen on top of the fill — no double edge, no corner marks, no grain.
 .skin {
@@ -99,18 +117,18 @@
   pointer-events: none;
   background: var(--sc-sub-sheen);
 }
-.cap > :not(.skin, .trace, .bloom, .head, .echo, .band) {
+.cap > :not(.skin, .trace, .bloom, .head, .echo) {
   position: relative;
   z-index: 2;
 }
 // The search's results panel hangs from the cap itself (welded, same width), so the
 // search host does not position it.
 .cap > .search {
-  position: static;
+  position: relative;
 }
-// Focus shows on the satin edge itself — no inner ring, no second edge (r7/r8):
-// the edge brightens and a soft outer glow lifts the bar.
-.cap:has(.input:focus) {
+// Staged: focus shows on the satin edge itself — the edge brightens and a soft outer
+// glow lifts the field. Docked, the field's own breathing rim carries it.
+:host([data-mode='stage']) .cap:has(.input:focus) {
   background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge-focus) border-box;
   box-shadow: var(--sc-sub-focus-glow), var(--sc-sub-shadow);
 }
@@ -192,23 +210,6 @@
 :host(.entering[data-mode='stage']) .echo.e3 {
   animation-delay: 0.3s;
 }
-// Deck glow (r1 d1-s4): a 3 px light band runs along the docked bar's bottom edge.
-.band {
-  position: absolute;
-  left: var(--sc-sub-radius);
-  right: var(--sc-sub-radius);
-  bottom: 0;
-  z-index: 1;
-  height: 3px;
-  pointer-events: none;
-  opacity: 0.55;
-  background: linear-gradient(90deg, transparent, var(--sc-accent), transparent) no-repeat;
-  background-size: 50% 100%;
-  animation: sub-band 3.2s ease-in-out infinite;
-}
-.cap.open .band {
-  display: none;
-}
 // Menu switch (r1 d1-s2): a white light head sweeps once along the bar.
 .head {
   position: absolute;
@@ -252,27 +253,27 @@
   height: 40px;
   border-radius: var(--sc-radius-sm, 4px);
 }
-.blogo img {
-  width: 28px;
-  height: 28px;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent));
-}
 .plate {
+  // Grows with the page frame (1280px → 1600px from full HD on), so a long trail folds only when it lacks room.
+  --_plate: clamp(310px, 25vw - 170px, 420px);
   position: relative;
-  flex: 0 1 auto;
+  // Claims its full width (the trail measures its room against it) and gives way only
+  // when the bar is narrow; the search starts at the same spot on every page.
+  flex: 0 1 var(--_plate, 310px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  max-width: 260px;
+  max-width: var(--_plate, 310px);
   padding-right: var(--sc-space-2);
 }
-.cat {
+// Brand name + logo: <sc-brand-name>/<sc-brand-logo> (shell/brand), the main header's own.
+// The phone route line names the page in the brand's type treatment.
+.route .cat {
   font-family: var(--sc-font-display);
   font-size: max(0.72rem, var(--sc-fs-floor));
   font-weight: 700;
-  font-variant-caps: all-small-caps;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sc-fg-0);
@@ -280,35 +281,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.back {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-  color: var(--sc-fg-2);
-  text-decoration: none;
-  font-size: max(0.8rem, var(--sc-fs-floor));
-  border-radius: 3px;
-}
-.back-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tri {
-  color: var(--sc-accent);
-  font-size: 0.8em;
-}
-.back:hover,
-.back:focus-visible {
-  color: var(--sc-fg-0);
-}
 // Brandcrumb: the path under the brand's name; a long one folds its middle to "…".
 .trail {
   min-width: 0;
 }
-.trail ol {
+.trail ol,
+.trail-measure {
   display: flex;
   align-items: baseline;
   gap: var(--sc-space-1);
@@ -327,7 +305,18 @@
 .trail li.fold {
   flex: none;
 }
-.trail li + li::before {
+// Invisible, unclipped copy of the whole path: its width against the trail's room
+// decides whether the middle folds to "…" (FusionBarComponent.measureTrail).
+.trail-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+.trail li + li::before,
+.trail-measure li + li::before {
   content: '›';
   margin-right: var(--sc-space-1);
   color: var(--sc-fg-2);
@@ -365,6 +354,10 @@
   margin: 0 var(--sc-space-4) 0 var(--sc-space-2);
   background: linear-gradient(180deg, transparent, var(--sc-sub-divider), transparent);
 }
+// Ruhige Leiste: no divider line between brand and search, only the gap.
+:host(:not([data-mode='stage'])) .div {
+  background: none;
+}
 
 // ---- docking grows the logo slot and the plate (concept r8 morph, 10 s loop) ----
 // Docking (22 % = 0 s): logo slot width 0 → 44 at 24–36 %, visible at 36–38 %;
@@ -380,7 +373,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   overflow-clip-margin: 12px;
   transition: width 1.2s $dock-ease 0.2s, opacity 0.2s linear 1.4s;
 }
-.blogo img {
+.blogo sc-brand-logo {
   flex: none;
 }
 .plate {
@@ -416,10 +409,10 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 :host(.condense) .div {
   transition: none;
 }
-:host(.condense:not(.settled)) .blogo img {
+:host(.condense:not(.settled)) .blogo sc-brand-logo {
   opacity: 0;
 }
-:host(.condense) .blogo img {
+:host(.condense) .blogo sc-brand-logo {
   transition: opacity 0.15s linear;
 }
 :host(.condensing) .cap {
@@ -434,7 +427,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   width: calc(44px * var(--sc-dock-p, 1));
 }
 :host(.condensing) .plate {
-  max-width: calc(260px * var(--sc-dock-p, 1));
+  max-width: calc(var(--_plate, 310px) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
   overflow: hidden;
 }
@@ -461,18 +454,23 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   flex: 1 1 auto;
   min-width: 0;
 }
-// Docked: the field is no wider than ~520px; what is left goes to the count and the account on the right.
+// Docked: with a toolbar (kind switch, filters) the field stops at ~520px so the count
+// and the Filter button keep their room; without one it uses the width up to Apps.
 :host(:not([data-mode='stage'])) .search {
-  max-width: 520px;
   margin-right: auto;
+}
+:host(.tools:not([data-mode='stage'])) .search {
+  max-width: 520px;
 }
 :host ::ng-deep .search .field {
   height: 44px;
   padding-left: var(--sc-space-1);
   border-radius: var(--sc-radius-sm, 4px);
 }
+// A small floor only: a wide one pushed the input under the key hint and the placeholder
+// was cut mid-letter (note #6) — now the text ellipsizes and the hint gives way first.
 :host ::ng-deep .search .input {
-  min-width: 12ch;
+  min-width: 6ch;
 }
 :host ::ng-deep .search .field::before {
   display: none;
@@ -480,30 +478,44 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 :host ::ng-deep .search .field.focused {
   box-shadow: none;
 }
-// The results panel welds to the bar (desktop/tablet): the cap's width, its skin,
-// square top corners where it joins, dropping out like the filter panel.
+// Ruhige Leiste: a round field, darker than the bar, with a faint accent rim and glow
+// that breathe every 5 s ("Das Suchfeld atmet alle 5 s ganz leicht"). Open, it holds
+// the brighter state.
+:host {
+  // The breathing field's bright state (peak of the breath, focused, open).
+  --_rim-hi: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent),
+    0 0 26px color-mix(in srgb, var(--sc-accent) 22%, transparent);
+}
+:host(:not([data-mode='stage'])) ::ng-deep .search:not(.bottom) .field,
+:host(:not([data-mode='stage'])) ::ng-deep .search.bottom.open .field {
+  padding-left: var(--sc-space-4);
+  border-radius: 999px;
+  background: var(--sc-well);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 25%, transparent),
+    0 0 18px color-mix(in srgb, var(--sc-accent) 12%, transparent);
+  animation: fb-breathe 5s ease-in-out infinite;
+}
+:host(:not([data-mode='stage'])) ::ng-deep .search .field.focused {
+  animation: none;
+  box-shadow: var(--_rim-hi);
+}
+@keyframes fb-breathe {
+  50% {
+    box-shadow: var(--_rim-hi);
+  }
+}
+// Schwebende Karte: the results card floats ~10px under the bar (the field sits
+// centred in the cap), right-aligned to the field; staged it takes the field's width.
 :host ::ng-deep .cap > .search:not(.bottom) .panel {
-  top: 100%;
-  left: -1px;
-  right: -1px;
+  top: calc(100% + (var(--_cap-h) - 44px) / 2 + 10px);
+}
+:host([data-mode='stage']) ::ng-deep .cap > .search:not(.bottom) .panel {
+  left: 0;
+  right: 0;
   width: auto;
-  border: 1px solid transparent;
-  border-top: 0;
-  border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
-  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
-  box-shadow: var(--sc-sub-shadow);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  transform-origin: 50% 0;
-  animation: sub-drop 0.5s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 }
-:host ::ng-deep .cap > .search:not(.bottom) .panel::before {
-  display: none;
-}
-:host ::ng-deep .search .hint kbd {
-  background: var(--sc-sub-kbd);
-  border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent);
-  color: var(--sc-fg-1);
+:host(:not(.tools):not([data-mode='stage'])) ::ng-deep .cap > .search:not(.bottom) .panel {
+  min-width: min(720px, calc(100vw - 2 * var(--sc-wide-gutter, 16px))); /* overlay-size: exception — hangs off the subheader search field */
 }
 
 // ---- Codex tool pages: kind switch, tokens, count, filter button ----
@@ -515,8 +527,10 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   gap: 6px;
   height: 34px;
   padding: 0 var(--sc-space-3);
-  border-radius: 3px;
-  border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent);
+  // Ruhige Leiste: round fields, no outlines.
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--sc-fg-0) 6%, transparent);
   font: 600 max(0.8rem, var(--sc-fs-floor)) / 1 var(--sc-font-body, inherit);
   color: var(--sc-fg-1);
   cursor: pointer;
@@ -547,7 +561,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 }
 .fbtn {
   margin-left: var(--sc-space-3);
-  background: transparent;
 }
 .fbtn i {
   display: inline-grid;
@@ -556,8 +569,8 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   height: 18px;
   border-radius: 9px;
   font-size: 0.8em;
-  color: var(--sc-bg-0);
-  background: var(--sc-accent);
+  color: var(--sc-fg-0);
+  background: color-mix(in srgb, var(--sc-accent) 45%, transparent);
 }
 .kindsw:hover,
 .fbtn:hover,
@@ -591,7 +604,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   gap: 6px;
   height: 26px;
   padding: 0 2px 0 var(--sc-space-2);
-  border-radius: 3px;
+  border-radius: 999px;
   border: 0;
   font-size: max(0.75rem, var(--sc-fs-floor));
   color: var(--sc-fg-0);
@@ -670,11 +683,12 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   max-height: min(70dvh, 640px);
   overflow-y: auto;
   padding: var(--sc-space-4) var(--sc-space-4) var(--sc-space-3);
-  border: 1px solid transparent;
-  border-top-color: transparent;
-  border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
-  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge) border-box;
-  box-shadow: var(--sc-sub-shadow);
+  // Floats under the bar like the search card: no outline, brighter surface, depth.
+  margin-top: 10px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--sc-bg-1);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--sc-fg-0) 4%, transparent), var(--sc-float-shadow);
   transform-origin: 50% 0;
   animation: sub-drop 0.5s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 }
@@ -828,17 +842,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   color: var(--sc-fg-0);
   text-decoration: none;
 }
-.brand .logo {
-  width: 28px;
-  height: 28px;
-}
-.title {
-  font-family: var(--sc-font-display);
-  font-size: max(0.85rem, var(--sc-fs-floor));
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
 .spacer {
   flex: 1 1 auto;
 }
@@ -855,7 +858,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 }
 
 .blogo:focus-visible,
-.back:focus-visible,
 .kindsw:focus-visible,
 .fbtn:focus-visible,
 .tok-x:focus-visible,
@@ -877,7 +879,8 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     display: none;
   }
   .plate {
-    max-width: 200px;
+    flex-basis: 230px;
+    max-width: 230px;
   }
 }
 
@@ -992,11 +995,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     // A satin backdrop: cards scrolling under the route line never show through it.
     background: var(--sc-sub-fill);
     border-bottom: 1px solid var(--sc-sub-rule);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-  }
-  .route .back {
-    min-height: 32px;
-    align-items: center;
+    box-shadow: var(--sc-lift-shadow);
   }
 }
 
@@ -1044,15 +1043,11 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   :host(.switching) .head {
     animation: none;
   }
-  // The deck band stands still, centred.
-  .band {
-    animation: none;
-    background-position: 50% 0;
-  }
-  :host ::ng-deep .cap > .search:not(.bottom) .panel {
-    animation: none;
-  }
   .trace {
     opacity: 0;
+  }
+  .scrim,
+  :host ::ng-deep .search .field {
+    animation: none !important;
   }
 }

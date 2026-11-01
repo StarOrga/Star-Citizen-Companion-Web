@@ -210,7 +210,7 @@
   font-size: max(0.94rem, var(--sc-fs-floor));
   font-weight: 500;
   color: var(--sc-fg-0);
-  text-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent) 45%, transparent);
+  text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 14px color-mix(in srgb, var(--sc-accent) 45%, transparent);
   opacity: 0;
   animation: hook var(--cycle) ease-out var(--start, 0s) infinite both;
 }
@@ -232,7 +232,7 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--sc-accent) 60%, #fff);
-  text-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent) 70%, transparent), 0 0 2px color-mix(in srgb, var(--sc-accent) 30%, #fff);
+  text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 10px color-mix(in srgb, var(--sc-accent) 70%, transparent), 0 0 2px color-mix(in srgb, var(--sc-accent) 30%, #fff);
 }
 // The item opens from zero width, so the centred NEU slides left as it grows.
 .item {
@@ -248,11 +248,11 @@
 }
 
 @keyframes topic {
-  0%, 26.667%, 100% { color: var(--sc-fg-0); letter-spacing: 0.14em; text-shadow: none; }
+  0%, 26.667%, 100% { color: var(--sc-fg-0); letter-spacing: 0.14em; text-shadow: var(--vb-dim, 0 0 0 transparent); }
   1.212%, 24.727% {
     color: color-mix(in srgb, var(--sc-accent) 30%, #fff);
     letter-spacing: 0.08em;
-    text-shadow: 0 0 16px var(--sc-accent);
+    text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 16px var(--sc-accent);
   }
 }
 @keyframes hook {

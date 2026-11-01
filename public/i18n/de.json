@@ -1293,6 +1293,7 @@
       "loadoutEmpty": "Leer (ab Werk)",
       "viewOnRsi": "Bei RSI ansehen",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
+      "loadingStage": "Schiffs-Holodeck wird geladen",
       "invalidRoute": "Diese Adresse führt zu keiner Codex-Kategorie.",
       "noArtwork": "Für dieses Schiff liegt in diesem Build noch kein Bild vor.",
       "showRaw": "Rohdaten anzeigen",
@@ -5879,6 +5880,8 @@
       "newTabShort": "In neuem Tab",
       "copyLink": "Link zu {{name}} kopieren",
       "copyLinkShort": "Link kopieren",
+      "strip": "Im ganzen Codex: {{n}} Treffer",
+      "stripBusy": "Im ganzen Codex: suche …",
       "copied": "Link kopiert",
       "keys": {
         "dropContext": "am Feldanfang: Kontext weg"

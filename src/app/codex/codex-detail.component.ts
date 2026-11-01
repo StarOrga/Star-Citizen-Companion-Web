@@ -302,7 +302,15 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         <sc-codex-personal-uses class="personal-uses" [ownership]="myOwnership()" [personal]="personalMode()" />
       }
 
-      @if (loading()) {
+      @if (loading() && skeletonStage()) {
+        <!-- Holodeck skeleton: the page frame + header are already up; the
+             stage's own lock ring and scan line run until the ship arrives and
+             the real stage replaces this box in place (same min-height). -->
+        <div class="sc-card skel-stage" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
+          <i class="skel-ring" aria-hidden="true"></i>
+          <i class="skel-scan" aria-hidden="true"></i>
+        </div>
+      } @else if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
         <div class="sc-card err" role="alert">
@@ -1322,6 +1330,19 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        sc-codex-spec-sheet. */
 
     .skel-card { height: 260px; }
+    .skel-stage { position: relative; min-height: 520px; overflow: hidden; }
+    .skel-stage > i { position: absolute; pointer-events: none; }
+    .skel-ring { left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 60%, transparent);
+      box-shadow: 0 0 22px color-mix(in srgb, var(--sc-accent) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--sc-accent) 20%, transparent);
+      animation: skel-lock 1.6s ease-in-out infinite; }
+    .skel-scan { left: 16%; right: 16%; bottom: 14%; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, var(--sc-accent), transparent); box-shadow: 0 0 14px var(--sc-accent);
+      animation: skel-scan 2.4s ease-in-out infinite; }
+    @keyframes skel-lock { 0%, 100% { transform: scale(0.82); opacity: 0.45; } 50% { transform: scale(1); opacity: 1; } }
+    @keyframes skel-scan { 0% { bottom: 14%; opacity: 0; } 15%, 85% { opacity: 1; } 100% { bottom: 86%; opacity: 0; } }
+    @media (max-width: 720px) { .skel-stage { min-height: 360px; } }
+    @media (prefers-reduced-motion: reduce) { .skel-ring, .skel-scan { animation: none; } }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
     .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
@@ -1478,6 +1499,10 @@ export class CodexDetailComponent implements OnInit {
    * stay byte-for-byte unaffected regardless of what is in storage.
    */
   readonly holoView = signal(true);
+  /** Kind of the request in flight, known from the route before any data arrives. */
+  private readonly requestKind = signal<CodexKind | null>(null);
+  /** Loading a ship in the Holotable view: the page shows the holodeck skeleton. */
+  readonly skeletonStage = computed(() => this.requestKind() === 'ship' && this.holoView());
   private static readonly HOLO_VIEW_STORAGE_KEY = 'sc.codex.holoView';
   /** Wave 2 arrival animation: cut to "already arrived" on a repeat visit
    * within the same tab session (concept: "repeat visit in the session =
@@ -2032,6 +2057,7 @@ export class CodexDetailComponent implements OnInit {
 
   private async load(kind: CodexKind, className: string): Promise<void> {
     const seq = ++this.loadSeq;
+    this.requestKind.set(kind);
     if (kind === 'ship') this.initHoloView(className);
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
     this.has3dView.set(false);

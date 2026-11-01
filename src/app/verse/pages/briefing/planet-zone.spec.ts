@@ -17,6 +17,7 @@ import { HERO_MS, VerseBriefingComponent } from '../verse-briefing.component';
 import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing-beacons.component';
 import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
 import { INTRO_FLAG } from './briefing.model';
+import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
 import {
   holoBody, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
@@ -140,6 +141,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         provideRouter([]),
         provideTranslateService({}),
         { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy(), flags: () => ({}) } },
+        { provide: BriefingGalleryFillService, useValue: { items: signal<VerseDigestItem[]>([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { isEnabled: (a: string) => () => !!beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
         { provide: PatchStabilityVotesService, useValue: { line: () => null, correctionFor: () => null, ensure: () => undefined } },
@@ -209,17 +211,28 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
       fixture.detectChanges();
       return holo().dataset['phase'];
     };
+    const cueGone = (): boolean => {
+      fixture.detectChanges();
+      fixture.detectChanges();
+      return el.querySelector('button.more-cue')!.classList.contains('gone');
+    };
     expect(phase()).toBe('charge');
+    expect(cueGone()).withContext('#1: no message on screen yet → the "more" cue stands').toBeFalse();
     expect(el.querySelector('a.pl[data-door="news"]')?.classList).toContain('send');
     tick(TX_CHARGE_MS);
     expect(phase()).toBe('reveal');
+    expect(cueGone()).withContext('#1: a news message is visible → the cue is gone').toBeTrue();
     tick(TX_REVEAL_MS);
     expect(phase()).toBe('type');
     const body = 'Short summary.';
     tick(Math.ceil((body.length * 1000) / TX_CHARS_PER_S) + 50);
     expect(phase()).toBe('hold');
     expect(holo().querySelector('.typed')?.textContent).toBe(body);
-    tick(TX_HOLD_MS + TX_OUT_MS);
+    expect(cueGone()).toBeTrue();
+    tick(TX_HOLD_MS);
+    expect(phase()).toBe('out');
+    expect(cueGone()).withContext('#1: faded out between two messages → the cue is back').toBeFalse();
+    tick(TX_OUT_MS);
     fixture.detectChanges();
     expect(holo().querySelector('.k')?.textContent).toContain('verse.gates.patches.topic');
     expect(holo().getAttribute('href')).toBe('/verse/patches/4.3');

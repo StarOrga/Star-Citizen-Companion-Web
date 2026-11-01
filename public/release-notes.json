@@ -1,7 +1,149 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.182.0",
+  "current": "0.185.0",
   "releases": [
+    {
+      "version": "0.185.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Living sun.",
+              "text": "The sun on the Verse stage is now a real star: a boiling surface with sunspots, flames streaming from the edge, plasma loops whose material flows along them — some erupt and tear away — and now and then a flare."
+            },
+            {
+              "title": "Rotating planets.",
+              "text": "News (Crusader), Patches and Galerie (microTech) turn slowly under a fixed sun: the day/night line, the glint and the atmosphere stay in place, only the surface moves. microTech's clouds drift faster than the ground."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Realistic planet surfaces.",
+              "text": "All three stage planets got new, procedurally drawn surfaces instead of colour gradients: Crusader with turbulent pastel bands and storms, microTech with snow, slate ridges and New Babbage glowing at night."
+            },
+            {
+              "title": "Patches planet as industrial zones.",
+              "text": "The Patches planet is split into industrial zones like countries on a map — irregular areas with straight borders, each its own tone; at night the borders glow as transit lines with moving traffic."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.184.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Subheader: the search opens as a floating card with a quiet autofocus and uses the free width up to \"Apps\"; a cut-off hint ends in \"…\"."
+            },
+            {
+              "title": "",
+              "text": "Breadcrumb folds by width — first and last crumb always stay, the middle becomes \"…\"."
+            },
+            {
+              "title": "",
+              "text": "Codex ship page: a holodeck skeleton stage while the ship loads; holodeck parallax, count-up values and sound tones."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Header and subheader share one brand mark and a calmer palette (fewer text colours and fonts)."
+            },
+            {
+              "title": "",
+              "text": "Verse page: the new planet is there from the first frame, a reload plays the full intro again, a tab switch gets a ~1 s short intro, and the black letterbox bars became a soft gradient."
+            },
+            {
+              "title": "",
+              "text": "Verse page: \"Mehr im Verse\" only shows while no news is visible, the PTU wave row stays on one line, the gallery mosaic always shows 7 images."
+            },
+            {
+              "title": "",
+              "text": "Codex landing loads FPS/armour candidates lean — the armour page answers in milliseconds instead of ~2 s."
+            },
+            {
+              "title": "",
+              "text": "Touch screens: codex labels are readable and every holotable pin and pane link is at least 44 px tall."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex holotable animations play again; callouts end at the real hardpoints."
+            }
+          ]
+        },
+        {
+          "category": "Project",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Concept fidelity rules: concepts are committed before close-out, implement briefs are generated verbatim with an acceptance check, UI from a concept passes a signed-in screenshot gate before ship."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.183.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ beta: five pages (Start, Planen, Jetzt, Bestand, Statistik) with a left quick rail and a phone bottom bar"
+            },
+            {
+              "title": "",
+              "text": "Planen: Nachschub synced to your account, Einsätze with steps (Einsatz ×N), Top 3 / moods / custom selection, place tree, set rings and a planning map with route"
+            },
+            {
+              "title": "",
+              "text": "Jetzt: live game data from the SCC app (location, next step, missions, log) with automatic ticks and undo"
+            },
+            {
+              "title": "",
+              "text": "Bestand and Statistik pages, fleet patch lines on the HQ start page"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/hq/ops leads to Planen when the shell beta is on"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.182.0",
       "date": "2026-11-01",

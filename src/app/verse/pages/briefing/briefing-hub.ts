@@ -151,6 +151,29 @@ export function hubGallery(items: readonly VerseDigestItem[], max = HUB_GALLERY)
     .slice(0, max);
 }
 
+/**
+ * The mosaic always shows 1 feature + 6 tiles (HUB_GALLERY candidates incl. spares):
+ * the digest's gallery items lead, the newest pictures of the gallery source fill up
+ * what is missing; a picture already in (same key or same image) never repeats.
+ */
+export function fillGallery(
+  digest: readonly VerseDigestItem[],
+  source: readonly VerseDigestItem[],
+  max = HUB_GALLERY,
+): VerseDigestItem[] {
+  const out = hubGallery(digest, max);
+  const keys = new Set(out.map((i) => i.key));
+  const images = new Set(out.map((i) => i.image));
+  for (const s of source) {
+    if (out.length >= max) break;
+    if (!s.image || keys.has(s.key) || images.has(s.image)) continue;
+    keys.add(s.key);
+    images.add(s.image);
+    out.push(s);
+  }
+  return out;
+}
+
 /** The full LIVE version where the digest knows it ("4.3.1"), else the line. */
 export function kickerVersion(channels: Readonly<Record<string, string>> | null | undefined, line: string | null): string | null {
   return channels?.['live'] || line;

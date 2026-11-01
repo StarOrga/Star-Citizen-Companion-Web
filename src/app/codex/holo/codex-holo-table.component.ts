@@ -45,6 +45,70 @@ const GENERIC_HULL_PATH =
 
 let hullFillSeq = 0;
 
+/** Clamp to [-1, 1]. */
+const unit = (v: number): number => Math.max(-1, Math.min(1, v));
+
+/**
+ * Parallax offset of the table (cx-parallax), both axes in [-1, 1]: the
+ * pointer's position over the frame, plus a third of how far the frame's
+ * centre sits from the viewport's centre (scrolling the page tilts it).
+ */
+export function parallaxOffset(
+  rect: { left: number; top: number; width: number; height: number },
+  viewportH: number,
+  pointer: { x: number; y: number } | null,
+): { x: number; y: number } {
+  if (!(rect.width > 0) || !(rect.height > 0)) return { x: 0, y: 0 };
+  const px = pointer ? unit(((pointer.x - rect.left) / rect.width) * 2 - 1) : 0;
+  const py = pointer ? unit(((pointer.y - rect.top) / rect.height) * 2 - 1) : 0;
+  const scroll = viewportH > 0 ? unit((rect.top + rect.height / 2 - viewportH / 2) / (viewportH / 2)) : 0;
+  return { x: Math.round(px * 1000) / 1000, y: Math.round(unit(py + scroll / 3) * 1000) / 1000 };
+}
+
+/**
+ * Drives `--px`/`--py` on the frame from pointer + scroll, at most once per
+ * frame and without change detection. Off under reduced motion (`still`).
+ * Returns the teardown.
+ */
+function bindParallax(frame: HTMLElement, still: () => boolean): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  let pointer: { x: number; y: number } | null = null;
+  let raf = 0;
+  const apply = () => {
+    raf = 0;
+    if (still()) {
+      frame.style.removeProperty('--px');
+      frame.style.removeProperty('--py');
+      return;
+    }
+    const o = parallaxOffset(frame.getBoundingClientRect(), window.innerHeight, pointer);
+    frame.style.setProperty('--px', String(o.x));
+    frame.style.setProperty('--py', String(o.y));
+  };
+  const queue = () => {
+    if (!raf) raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(apply) : (apply(), 0);
+  };
+  const onMove = (e: PointerEvent) => {
+    if (e.pointerType === 'touch') return;
+    pointer = { x: e.clientX, y: e.clientY };
+    queue();
+  };
+  const onLeave = () => {
+    pointer = null;
+    queue();
+  };
+  frame.addEventListener('pointermove', onMove, { passive: true });
+  frame.addEventListener('pointerleave', onLeave, { passive: true });
+  window.addEventListener('scroll', queue, { passive: true, capture: true });
+  queue();
+  return () => {
+    if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
+    frame.removeEventListener('pointermove', onMove);
+    frame.removeEventListener('pointerleave', onLeave);
+    window.removeEventListener('scroll', queue, { capture: true });
+  };
+}
+
 /** The outline's horizontal extent in % of the (square) hull box — what the
  * leader columns hug. Undefined for a viewBox that is not a plain square. */
 function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
@@ -301,6 +365,16 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; z-index: 1; display: flex; align-items: center;
       justify-content: center; overflow: hidden; container-type: size; --pin-inset: 56px; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
+    /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
+       depths and shift against each other with the pointer and the scroll —
+       rings far, hull + pins mid, the projection band near. --px/--py in
+       [-1, 1] come from the component; reduced motion leaves them at 0. */
+    .silhouette-frame { --px: 0; --py: 0; }
+    .rings, .shipwrap, .projection { transition: translate 520ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+    .rings { inset: -14px; translate: calc(var(--px) * -7px) calc(var(--py) * -7px); }
+    .shipwrap { translate: calc(var(--px) * 9px) calc(var(--py) * 9px); }
+    .projection { translate: calc(var(--px) * 15px) calc(var(--py) * 15px); }
+    :host(.still) .rings, :host(.still) .shipwrap, :host(.still) .projection { translate: none; transition: none; }
     /* Rings + grid + a slow sweep: the table is a live instrument even at rest. */
     .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0; transition: opacity 420ms ease;
       background:
@@ -317,6 +391,25 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
        one leaves while the next enters) instead of cutting to bare rings. */
     .mode-viewer { position: absolute; inset: 0; z-index: 1; animation: fade-in var(--holo-t-base) var(--holo-e-out) backwards; }
     .mode-viewer.is-placeholder { animation: none; }
+    /* While the viewer chunk / the hull's asset row resolves, the projector already
+       runs: a pulsing lock ring and a scan line rising through the air, so the stage
+       is never an empty box (cx-polish: it stood empty for seconds on a cold load). */
+    .mode-viewer.is-placeholder::before, .mode-viewer.is-placeholder::after { content: ''; position: absolute; pointer-events: none; }
+    .mode-viewer.is-placeholder::before {
+      left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 60%, transparent);
+      box-shadow: 0 0 22px color-mix(in srgb, var(--sc-accent) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--sc-accent) 20%, transparent);
+      animation: ph-lock 1.6s var(--holo-e-io) infinite;
+    }
+    .mode-viewer.is-placeholder::after {
+      left: 16%; right: 16%; bottom: 14%; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, var(--sc-accent), transparent);
+      box-shadow: 0 0 14px var(--sc-accent);
+      animation: ph-scan 2.4s var(--holo-e-io) infinite;
+    }
+    @keyframes ph-lock { 0%, 100% { transform: scale(0.82); opacity: 0.45; } 50% { transform: scale(1); opacity: 1; } }
+    @keyframes ph-scan { 0% { bottom: 14%; opacity: 0; } 15%, 85% { opacity: 1; } 100% { bottom: 86%; opacity: 0; } }
+    :host(.still) .mode-viewer.is-placeholder::before, :host(.still) .mode-viewer.is-placeholder::after { animation: none; }
     .mode-viewer.schema-sheet { padding: 14px 16px; overflow: auto; }
     .surface-leave { animation: surface-out var(--holo-t-fast) var(--holo-e-io) forwards; pointer-events: none; }
     @keyframes surface-out { to { opacity: 0; } }
@@ -425,6 +518,13 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .pin.pos-b { flex-direction: column; transform: translateX(calc(-50% + 10px)); }
     .pin.pos-t { flex-direction: column-reverse; transform: translate(calc(-50% + 10px), calc(-100% + 20px)); }
     .pin:is(.sel, :hover, :focus-visible) { z-index: 4; }
+    /* Touch screens: a 44px hit box around the 20px dot, re-centred so the dot stays on its anchor. */
+    @media (pointer: coarse) {
+      .pin { padding: 12px; margin: -22px 0 0 -22px; }
+      .pin.rev { transform: translateX(calc(-100% + 44px)); }
+      .pin.pos-b { transform: translateX(calc(-50% + 22px)); }
+      .pin.pos-t { transform: translate(calc(-50% + 22px), calc(-100% + 44px)); }
+    }
     .pin i { position: relative; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--pc); background: var(--ink);
       color: var(--pc); font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 12%, transparent), 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent);
@@ -642,6 +742,10 @@ export class CodexHoloTableComponent {
       const ro = new ResizeObserver(measure);
       ro.observe(frame);
       destroyRef.onDestroy(() => ro.disconnect());
+    });
+    afterNextRender(() => {
+      const frame = this.frameRef()?.nativeElement;
+      if (frame) destroyRef.onDestroy(bindParallax(frame, () => this.still()));
     });
     afterNextRender(() => {
       if (typeof IntersectionObserver !== 'function') return;

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -18,6 +19,7 @@ import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
 import { LandingCategory, LandingItem, LandingPaint } from './codex-landing-data.types';
 import { CalloutValue, ValueComparison, compareValue, splitCallouts, valueLabel, valueText } from './codex-landing-values';
+import type { HardpointPortRef } from '../hardpoint-port-ref';
 
 /** How long a "no hull" answer of the viewer is doubted: its first emit precedes the skin catalog read. */
 const NO_HULL_GRACE_MS = 3000;
@@ -149,7 +151,7 @@ export class CodexLandingHolotableComponent {
         ax,
         ay,
         at: scanPassAt(this.start(), c.anchor.y),
-        path: `M ${CALL_RIGHT + 0.8} ${y} H ${CALL_RIGHT + 3} L ${ax.toFixed(2)} ${ay.toFixed(2)}`,
+        path: leaderPath(y, ax, ay),
       };
     });
   });
@@ -161,13 +163,57 @@ export class CodexLandingHolotableComponent {
   readonly hiddenPaints = computed(() => this.paints().length - this.visiblePaints().length);
   readonly nameChars = computed(() => Math.max(4, this.item()?.name.length ?? 8));
 
+  /**
+   * Ship callouts end at real hardpoints (cx-anchors): every candidate port of
+   * the callout values goes to the viewer, which places the ones its glb has
+   * a locator for as inert anchors and reports them back.
+   */
+  readonly anchorRefs = computed<HardpointPortRef[]>(() => {
+    const it = this.item();
+    if (!it || it.category !== 'ship' || !it.anchorPorts) return [];
+    const keys = new Set(this.callouts().map((c) => c.key));
+    const out: HardpointPortRef[] = [];
+    for (const [key, ports] of Object.entries(it.anchorPorts)) {
+      if (keys.has(key)) for (const port of ports) out.push({ port, label: key, itemName: null });
+    }
+    return out;
+  });
+  /** Ports the viewer could place on the model. */
+  readonly located = signal<readonly string[]>([]);
+  /** Callout key -> the hardpoint its leader line ends at; a callout without one keeps its hull zone. */
+  readonly anchorPortOf = computed(() => {
+    const it = this.item();
+    const placed = new Set(this.located());
+    const out = new Map<string, string>();
+    for (const c of this.callouts()) {
+      const hit = it?.anchorPorts?.[c.key]?.find((p) => placed.has(p));
+      if (hit) out.set(c.key, hit);
+    }
+    return out;
+  });
+
   /** Hull parts of the Kennung, all after the scan has built the upper half. */
   readonly idAt = computed(() => scanPassAt(this.start(), 30));
 
 
   private readonly noHullTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private anchorRaf = 0;
 
   constructor() {
+    // A new item: the previous model's located ports no longer apply.
+    effect(() => {
+      this.key();
+      untracked(() => this.located.set([]));
+    });
+    // Leader lines follow their hardpoints while the hull turns: once per
+    // frame, straight into the DOM (no change detection per frame).
+    effect(() => {
+      const anchored = this.anchorPortOf();
+      const key = this.key();
+      untracked(() => this.trackAnchors(anchored, key));
+    });
+    inject(DestroyRef).onDestroy(() => this.stopAnchors());
     // A new item: compact chips, no preview open.
     effect(() => {
       this.key();
@@ -177,6 +223,38 @@ export class CodexLandingHolotableComponent {
       });
     });
     inject(DestroyRef).onDestroy(() => this.noHullTimers.forEach((t) => clearTimeout(t)));
+  }
+
+  private stopAnchors(): void {
+    if (this.anchorRaf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.anchorRaf);
+    this.anchorRaf = 0;
+  }
+
+  private trackAnchors(anchored: ReadonlyMap<string, string>, key: string): void {
+    this.stopAnchors();
+    if (!anchored.size || !key || typeof requestAnimationFrame !== 'function') return;
+    const slots = new Map(this.callouts().map((c) => [c.key, c.y]));
+    const step = () => {
+      this.anchorRaf = requestAnimationFrame(step);
+      const air = this.host.querySelector<HTMLElement>('.air');
+      const piece = air?.querySelector<HTMLElement>(`.piece[data-k="${cssEscape(key)}"]`);
+      const viewer = piece?.querySelector('model-viewer') as (HTMLElement & { loaded?: boolean }) | null | undefined;
+      if (!air || !piece || !viewer?.loaded) return;
+      const box = air.getBoundingClientRect();
+      for (const [callout, port] of anchored) {
+        const el = piece.querySelector<HTMLElement>(`.hp-anchor[data-port="${cssEscape(port)}"]`);
+        const pt = el ? anchorPoint(box, el.getBoundingClientRect()) : null;
+        if (!pt) continue;
+        const y = slots.get(callout) ?? pt.y;
+        piece.querySelector(`.leaders path[data-key="${cssEscape(callout)}"]`)?.setAttribute('d', leaderPath(y, pt.x, pt.y));
+        const dot = piece.querySelector<HTMLElement>(`.dot[data-key="${cssEscape(callout)}"]`);
+        if (dot) {
+          dot.style.left = `${pt.x}%`;
+          dot.style.top = `${pt.y}%`;
+        }
+      }
+    };
+    this.anchorRaf = requestAnimationFrame(step);
   }
 
   label(cat: LandingCategory): string {
@@ -217,6 +295,33 @@ export class CodexLandingHolotableComponent {
       }, NO_HULL_GRACE_MS),
     );
   }
+}
+
+/** Leader line from the callout column (slot `y`) to an anchor, all in air %. */
+export function leaderPath(y: number, ax: number, ay: number): string {
+  const x = Math.max(CALL_RIGHT + 4, ax);
+  return `M ${CALL_RIGHT + 0.8} ${y} H ${CALL_RIGHT + 3} L ${x.toFixed(2)} ${ay.toFixed(2)}`;
+}
+
+/**
+ * Centre of a projected hardpoint anchor in % of the air, or null while it is
+ * not laid out (model-viewer parks hotspots at 0x0 before the first frame) or
+ * outside the air.
+ */
+export function anchorPoint(
+  air: { left: number; top: number; width: number; height: number },
+  el: { left: number; top: number; width: number; height: number },
+): { x: number; y: number } | null {
+  if (!(air.width > 0) || !(air.height > 0)) return null;
+  if (el.left === 0 && el.top === 0 && el.width === 0 && el.height === 0) return null;
+  const x = ((el.left + el.width / 2 - air.left) / air.width) * 100;
+  const y = ((el.top + el.height / 2 - air.top) / air.height) * 100;
+  if (x < 0 || x > 100 || y < 0 || y > 100) return null;
+  return { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 };
+}
+
+function cssEscape(v: string): string {
+  return typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(v) : v.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
 /** Vertical callout slots (% of the air), evenly over the hologram's height. */

@@ -157,11 +157,12 @@ interface HangarStub {
  * its continuation running into the next spec's TestBed.
  */
 function settle(fixture: ComponentFixture<CodexDetailComponent>): void {
+  // 120 turns: the strip's numbers count up frame by frame on appearance (cx-countup, ~900 ms of 16 ms frames).
   for (let i = 0; i < 4; i++) {
-    flush();
+    flush(120);
     fixture.detectChanges();
   }
-  flush();
+  flush(120);
   discardPeriodicTasks();
 }
 

@@ -193,12 +193,43 @@ export const INTRO_FLAG = 'sc.verse.introPlayed';
 
 export type IntroMode = 'full' | 'short';
 
-export function claimIntro(storage: Pick<Storage, 'getItem' | 'setItem'> | null = safeSession()): IntroMode {
+/** True when this document was loaded by a reload (F5 / browser button) — a reload counts as a new visit. */
+export function isReloadNavigation(): boolean {
+  try {
+    const nav = typeof performance === 'undefined' ? [] : performance.getEntriesByType('navigation');
+    return (nav[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The document's navigation entry says "reload" for as long as the document
+ * lives, so only the FIRST claim of a document may use it: coming back to the
+ * Verse inside the same document is an in-session return (short).
+ */
+let documentClaimed = false;
+
+/** Test hook: a fresh document. */
+export function resetIntroDocument(): void {
+  documentClaimed = false;
+}
+
+/**
+ * First visit — new tab (empty session flag) or reload — plays the full
+ * cinematic entrance; coming back within the session plays the ~1 s Kurz-Auftakt.
+ */
+export function claimIntro(
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = safeSession(),
+  reloaded: () => boolean = isReloadNavigation,
+): IntroMode {
+  const first = !documentClaimed;
+  documentClaimed = true;
   try {
     if (!storage) return 'full';
-    if (storage.getItem(INTRO_FLAG)) return 'short';
+    const played = !!storage.getItem(INTRO_FLAG);
     storage.setItem(INTRO_FLAG, '1');
-    return 'full';
+    return played && !(first && reloaded()) ? 'short' : 'full';
   } catch {
     return 'full';
   }

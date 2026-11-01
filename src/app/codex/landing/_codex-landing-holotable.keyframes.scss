@@ -1,0 +1,43 @@
+// Keyframes of the holotable choreography (beam, scan build/erase, scan disc, callout draw,
+// typewriter Kennung, value flash). Angular scopes @keyframes per stylesheet, so a
+// stylesheet that references one must define it: every sheet that animates with these
+// @use this partial (concept 2026-11-01 cx-polish — split across two sheets they never played).
+@keyframes hold { from { opacity: 1; } to { opacity: 1; } }
+@keyframes build { from { clip-path: inset(100% -25% -6% -25%); } to { clip-path: inset(0 -25% -6% -25%); } }
+@keyframes erase { from { clip-path: inset(0 -25% -6% -25%); } to { clip-path: inset(100% -25% -6% -25%); } }
+@keyframes disc-up {
+  0% { top: 100%; width: 26%; opacity: 0; }
+  7% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 0; width: 86%; opacity: 0; }
+}
+@keyframes disc-down {
+  0% { top: 0; width: 86%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: 100%; width: 26%; opacity: 0; }
+}
+@keyframes flicker { 0%, 94%, 100% { opacity: 1; } 95% { opacity: 0.72; } 96% { opacity: 1; } 97.5% { opacity: 0.84; } }
+@keyframes band { 0% { top: -10%; opacity: 0; } 8% { opacity: 1; } 40% { opacity: 1; } 48% { top: 100%; opacity: 0; } 100% { top: 100%; opacity: 0; } }
+@keyframes beam-extend { 0% { transform: scaleY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
+@keyframes beam-breathe { 0%, 100% { opacity: 1; transform: scaleY(1); } 50% { opacity: 0.82; transform: scaleY(1); } }
+@keyframes rays { 0%, 100% { opacity: 1; } 33% { opacity: 0.6; } 66% { opacity: 0.85; } }
+@keyframes motes { from { background-position: 0 0; } to { background-position: 0 -100%; } }
+// Draw-in as a left-to-right reveal (callout -> hull): a dash pattern breaks under
+// vector-effect: non-scaling-stroke (the dashes stop honouring pathLength).
+@keyframes draw { from { clip-path: inset(-4px 100% -4px -4px); } to { clip-path: inset(-4px -4px -4px -4px); } }
+@keyframes undraw { from { clip-path: inset(-4px -4px -4px -4px); } to { clip-path: inset(-4px 100% -4px -4px); } }
+@keyframes dot-in { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.6); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes dot-breathe { 0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--holo) 18%, transparent), 0 0 10px color-mix(in srgb, var(--holo) 95%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--holo) 6%, transparent), 0 0 14px color-mix(in srgb, var(--holo) 80%, transparent); } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes call-in { from { opacity: 0; transform: translate(-8px, -50%); filter: blur(3px); } to { opacity: 1; transform: translate(0, -50%); filter: none; } }
+@keyframes call-out { from { opacity: 1; transform: translate(0, -50%); } to { opacity: 0; transform: translate(-6px, -50%); } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes blur-out { from { opacity: 1; filter: none; } to { opacity: 0; filter: blur(5px); } }
+@keyframes type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -4% 0 0); } }
+@keyframes rule-in { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes flash {
+  0% { color: inherit; }
+  22% { color: var(--holo-hi); text-shadow: 0 0 16px var(--holo), 0 0 4px var(--holo-hi); }
+  100% { text-shadow: 0 0 12px color-mix(in srgb, var(--holo) 55%, transparent); }
+}

@@ -5,14 +5,16 @@
   @if (item(); as it) {
     @for (k of [key()]; track k) {
       <div class="piece" [class.boot]="boot()" [animate.leave]="still() ? 'cut' : 'leaving'"
-           [style.--t0.s]="start()">
+           [style.--t0.s]="start()" [attr.data-k]="k">
         <a class="holo" [routerLink]="it.detailRoute"
            [attr.aria-label]="'codex.landing.holo.open' | translate: { name: it.name }">
           <span class="form">
             @if (it.kind === 'ship' && !no3d().has(it.className)) {
               @defer (on immediate) {
                 <sc-ship-skin-viewer class="viewer" [shipId]="it.className" [embedded]="true" [holo]="true"
-                                     [still]="still()" (available)="onAvailable(it.className, $event)" />
+                                     [still]="still()" [hardpointPorts]="anchorRefs()" [anchorsOnly]="true" [fallbackPositions]="it.anchorPositions ?? null"
+                                     (locatable)="located.set($event)"
+                                     (available)="onAvailable(it.className, $event)" />
               } @placeholder {
                 <span class="viewer" aria-hidden="true"></span>
               }
@@ -29,11 +31,12 @@
         @if (callouts().length) {
           <svg class="leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             @for (c of callouts(); track c.key) {
-              <path pathLength="1" [attr.d]="c.path" [style.--at.s]="c.at" />
+              <path pathLength="1" [attr.d]="c.path" [attr.data-key]="c.key" [class.real]="anchorPortOf().has(c.key)" [style.--at.s]="c.at" />
             }
           </svg>
           @for (c of callouts(); track c.key) {
-            <i class="dot" aria-hidden="true" [style.left.%]="c.ax" [style.top.%]="c.ay" [style.--at.s]="c.at"></i>
+            <i class="dot" aria-hidden="true" [attr.data-key]="c.key" [class.real]="anchorPortOf().has(c.key)"
+               [style.left.%]="c.ax" [style.top.%]="c.ay" [style.--at.s]="c.at"></i>
           }
           <ul class="callouts" [attr.aria-label]="'codex.landing.values.key' | translate">
             @for (c of callouts(); track c.key) {

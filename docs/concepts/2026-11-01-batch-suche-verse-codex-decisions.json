@@ -1,0 +1,234 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": "karte",
+    "decisions": [
+      {
+        "id": "lb-fade",
+        "label": "Weicher Verlauf",
+        "evaluation": "include",
+        "view": "v-letterbox",
+        "note": ""
+      },
+      {
+        "id": "lb-vignette",
+        "label": "Nur Vignette",
+        "evaluation": "discard",
+        "view": "v-letterbox",
+        "note": ""
+      },
+      {
+        "id": "lb-thin",
+        "label": "Dünne Balken, getönt",
+        "evaluation": "discard",
+        "view": "v-letterbox",
+        "note": ""
+      },
+      {
+        "id": "lb-blur",
+        "label": "Unscharfe Kante",
+        "evaluation": "discard",
+        "view": "v-letterbox",
+        "note": ""
+      },
+      {
+        "id": "sw-short",
+        "label": "Kurz-Auftakt 1 s",
+        "evaluation": "include",
+        "view": "v-switch",
+        "note": ""
+      },
+      {
+        "id": "sw-none",
+        "label": "Ohne Animation",
+        "evaluation": "discard",
+        "view": "v-switch",
+        "note": ""
+      },
+      {
+        "id": "sw-mid",
+        "label": "Kurze Fahrt 2,5 s",
+        "evaluation": "discard",
+        "view": "v-switch",
+        "note": ""
+      },
+      {
+        "id": "cx-anchors",
+        "label": "Echte Hardpoint-Anker",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "cx-claims",
+        "label": "Claims auch bei Rotation",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "cx-parallax",
+        "label": "Holodeck Parallax",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "cx-countup",
+        "label": "Strip zählt hoch",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "cx-sound",
+        "label": "Holodeck-Sound prüfen",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "cx-polish",
+        "label": "Echte Abnahme + Polish",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "cx-dim",
+        "label": "Text-Dimmung Verse",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "pr-keep",
+        "label": "Konzepte nie verwerfen",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "pr-brief",
+        "label": "Wörtlicher Brief",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "pr-evidence",
+        "label": "Unabhängige Abnahme",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      },
+      {
+        "id": "pr-visual",
+        "label": "Screenshot-Gate",
+        "evaluation": "include",
+        "view": "v-codex",
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "b3-a3",
+        "screen": "b3-s1",
+        "design": "karte",
+        "question": "Leiste ohne Kontur, nur Tiefe und runde Felder: modern genug für den Subheader?",
+        "answer": "super!"
+      },
+      {
+        "id": "b3-a1",
+        "screen": "b3-s2",
+        "design": "karte",
+        "question": "Die Karte schwebt mit Abstand unter der Leiste: wirkt das hochwertig oder abgelöst?",
+        "answer": "interessante idee können wir ausprobieren, woibei zeigen wir es ab dem ersten zeichen doer ab fokuss? Ich würde gern generell die suchleiste im fokus haben auf jeder seite mit subheader - damit der nutzer immer gleich los tippen kann und auf eigene entshceidung etwas anderes focussen kann. \nWenn wir es aber erst öffnen ab dem ersten zeichen,, dann kann man schlecht es zum filtern auch nutzen, z. B. in den codex subseiten (weil man erst ein zeicehen eintippen müsste), puhhh exploriere hier nochmal varianten. schaue dir wirklcihd azu alle seiten an."
+      },
+      {
+        "id": "b3-a2",
+        "screen": "b3-s2",
+        "design": "karte",
+        "question": "Sektionen als eigene Kacheln statt Trennlinien: übersichtlicher oder zu viel Fläche?",
+        "answer": "ja sehr schön dezent und einfach anzusehen."
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mvxlhn1214s4",
+        "design": "karte",
+        "screen": "b3-s1",
+        "x": 14.9,
+        "y": 6.3,
+        "target": "div.mk-cat \"Star Citizen Companion\"",
+        "text": "inhalte alle perfekt, aber irgendwie sieht es so fisselig aus und generell hat der subheader so viele helligkeiten durch wörter und damit fokuspunkte...",
+        "attachments": []
+      },
+      {
+        "id": "up-mvxlimztoh9c",
+        "design": "karte",
+        "screen": "b3-s1",
+        "x": 35.3,
+        "y": 13,
+        "target": "div.mk-bar \"Star Citizen Companion Codex›…›RSI Const\"",
+        "text": "welches design element könnte es aber modern, spaceig, 2956 machen!? ggf. die Suche auch einen kleinen dezenten ticken hervorheben in einer interessante weise",
+        "attachments": []
+      }
+    ],
+    "general": ""
+  },
+  {
+    "iteration": 2,
+    "action": "implement",
+    "favorite": "ruhig",
+    "decisions": [
+      {
+        "id": "op-hybrid",
+        "label": "Leise Fokus, Liste filtert",
+        "evaluation": "include",
+        "view": "v-open",
+        "note": ""
+      },
+      {
+        "id": "op-char",
+        "label": "Panel ab erstem Zeichen",
+        "evaluation": "discard",
+        "view": "v-open",
+        "note": ""
+      },
+      {
+        "id": "op-mode",
+        "label": "Filter-Modus mit Chip",
+        "evaluation": "discard",
+        "view": "v-open",
+        "note": ""
+      },
+      {
+        "id": "op-today",
+        "label": "Panel beim Fokus",
+        "evaluation": "discard",
+        "view": "v-open",
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "c1-a1",
+        "screen": "c1-s1",
+        "design": "ruhig",
+        "question": "Marke und Pfad so stark gedimmt: ruhig genug, oder verlierst du die Orientierung, wo du bist?",
+        "answer": "Ne, das ist ok, aber die marke und icon sollten ja auch gleich sein wenn es den sub header nicht gibt sondern den header hmmm...\nEs stört micheher das wir hier gefühlt 10 schriftfarben im header haben und 1-2 zu viele fonts...."
+      },
+      {
+        "id": "c1-a2",
+        "screen": "c1-s1",
+        "design": "ruhig",
+        "question": "Das Suchfeld „atmet“ alle 5 s ganz leicht: angenehm lebendig oder auf Dauer störend?",
+        "answer": "sehr gut!"
+      }
+    ],
+    "userPins": [],
+    "general": ""
+  }
+]

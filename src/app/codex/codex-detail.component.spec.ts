@@ -244,6 +244,41 @@ function configureSetup(
   });
 }
 
+describe('CodexDetailComponent — ship load skeleton', () => {
+  it('shows page header + holodeck skeleton while the ship loads, then replaces it with the stage', async () => {
+    let release!: () => void;
+    const stub = makeCodexServiceStub(NOMAD_PAYLOAD);
+    const getDetail: CodexService['getDetail'] = (kind, className) =>
+      new Promise((r) => { release = () => r(stub.getDetail!(kind, className)); });
+    configureSetup('ship', [], NOMAD_PAYLOAD, { getDetail });
+    await TestBed.compileComponents();
+    const fixture = TestBed.createComponent(CodexDetailComponent);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('sc-page-header')).not.toBeNull();
+    expect(el.querySelector('.skel-stage .skel-ring')).not.toBeNull();
+    expect(el.querySelector('.skel-stage .skel-scan')).not.toBeNull();
+    expect(el.querySelector('.skel-stage')?.getAttribute('role')).toBe('status');
+    expect(el.querySelector('.skel-card')).toBeNull();
+    release();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.skel-stage')).toBeNull();
+    expect(el.querySelector('sc-codex-holo-stage')).not.toBeNull();
+  });
+
+  it('keeps the plain skeleton card for non-ship kinds', async () => {
+    const stub = makeCodexServiceStub(NOMAD_PAYLOAD);
+    configureSetup('weapon', [], NOMAD_PAYLOAD, { getDetail: () => new Promise(() => undefined) });
+    await TestBed.compileComponents();
+    const fixture = TestBed.createComponent(CodexDetailComponent);
+    fixture.detectChanges();
+    expect(stub).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.skel-stage')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.skel-card')).not.toBeNull();
+  });
+});
+
 describe('CodexDetailComponent — ship deck list (#796)', () => {
   // The classic view's Analyse card (the Holotable gets the same groups).
   const classic = async (fixture: ComponentFixture<CodexDetailComponent>) => {

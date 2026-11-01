@@ -14,6 +14,7 @@ import {
   input,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
@@ -23,7 +24,9 @@ import { LayoutService } from '../../core/layout/layout.service';
 import { OverlayRouteScrollService } from '../../core/overlay-route-scroll';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
+import { isEditableTarget } from '../../codex/search/codex-search-hub.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
 import { STAGE_SLOT_MOVED } from './stage-hero.directive';
@@ -91,7 +94,7 @@ const MAX_TOKENS = 3;
 @Component({
   selector: 'sc-fusion-bar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchComponent],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchComponent, BrandLogoComponent, BrandNameComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-mode]': 'mode()',
@@ -109,10 +112,19 @@ const MAX_TOKENS = 3;
     '[class.phone]': 'phone()',
     '[class.snap]': 'chrome.snap()',
     '[class.switching]': 'switching()',
+    '[class.tools]': '!!toolbar() || !!segment()',
+    '[class.autofocused]': 'autofocused()',
     '(focusin)': 'reveal()',
+    '(focusout)': 'autofocused.set(false)',
+    '(keydown)': 'onBarInteract()',
+    '(pointerdown)': 'onBarInteract()',
   },
   template: `
-    <div class="cap" [class.open]="panelShown() || (searchOpen() && !phone())">
+    @if (searchOpen() && !phone()) {
+      <!-- Schwebende Karte: the page behind the open search dims softly. -->
+      <span class="scrim" aria-hidden="true"></span>
+    }
+    <div class="cap" [class.open]="panelShown()">
       <span class="skin" aria-hidden="true"></span>
       <span class="trace" aria-hidden="true"></span>
       <!-- Menu switch main → main: a white light head sweeps along the bar (concept r1 d1-s2). -->
@@ -125,15 +137,12 @@ const MAX_TOKENS = 3;
         }
         <!-- Stage entrance: three echo frames trail the depth fly-in (concept r8 secho). -->
         <span class="echo" aria-hidden="true"></span><span class="echo e2" aria-hidden="true"></span><span class="echo e3" aria-hidden="true"></span>
-      } @else if (variant() === 'app') {
-        <!-- Deck glow: a light band runs along the docked bar's bottom edge (concept r1 d1-s4). -->
-        <span class="band" aria-hidden="true"></span>
       }
 
       @if (variant() === 'public') {
         <a class="brand" routerLink="/" [attr.aria-label]="'nav.brandAria' | translate">
-          <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
-          <span class="title">Star Citizen Companion</span>
+          <sc-brand-logo />
+          <sc-brand-name class="title" channel="inline" />
         </a>
         <span class="spacer"></span>
         <a class="home-link" routerLink="/">{{ 'nav.backToHome' | translate }}</a>
@@ -144,13 +153,13 @@ const MAX_TOKENS = 3;
           <a class="blogo" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
              [attr.inert]="mode() === 'stage' ? '' : null"
              [scTooltip]="'nav.brandAria' | translate" scTooltipTier="label" (click)="onNav($event, '/verse')">
-            <img src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
+            <sc-brand-logo />
           </a>
           <div class="plate" [attr.inert]="mode() === 'stage' ? '' : null">
             <!-- Brandcrumb: the brand's name on line 1, the path below it. No second "Verse". -->
-            <span class="cat">Star Citizen Companion</span>
+            <sc-brand-name class="cat" channel="inline" />
             @if (trail().length) {
-              <nav class="trail" [attr.aria-label]="'pageHeader.crumbsAria' | translate"
+              <nav #trailNav class="trail" [attr.aria-label]="'pageHeader.crumbsAria' | translate"
                    [scTooltip]="trailFolded() ? trailText() : null" scTooltipTier="label">
                 <ol>
                   @for (c of trail(); track $index) {
@@ -166,6 +175,11 @@ const MAX_TOKENS = 3;
                   }
                 </ol>
               </nav>
+              <ol #trailMeasure class="trail-measure" aria-hidden="true">
+                @for (c of fullTrail(); track $index) {
+                  <li>{{ c.label ?? (c.labelKey! | translate: (c.labelParams ?? undefined)) }}</li>
+                }
+              </ol>
             }
           </div>
           <span class="div" aria-hidden="true"></span>
@@ -342,9 +356,20 @@ export class FusionBarComponent {
   readonly fullTrail = computed<readonly TrailPart[]>(() =>
     trailOf(this.crumbs()?.crumbs, this.crumbs()?.title, this.areaEntry()),
   );
-  /** What the second line shows: the path, its middle folded to "…" past three parts. */
-  readonly trail = computed(() => foldTrail(this.fullTrail()));
-  readonly trailFolded = computed(() => this.trail().length < this.fullTrail().length);
+  /**
+   * The whole path does not fit the plate (measured, {@link measureTrail}): the
+   * middle folds to "…" — always the first and the last part, never a cut-off middle.
+   */
+  readonly trailTight = signal(false);
+  /** What the second line shows: the whole path, or first · "…" · last when it does not fit. */
+  readonly trail = computed(() => (this.trailTight() ? foldTrail(this.fullTrail(), 2) : [...this.fullTrail()]));
+  private readonly trailNav = viewChild<ElementRef<HTMLElement>>('trailNav');
+  private readonly trailMeasure = viewChild<ElementRef<HTMLElement>>('trailMeasure');
+  private readonly searchCmp = viewChild(FusionSearchComponent);
+  /** The field got its focus from the load autofocus and was not touched since. */
+  readonly autofocused = signal(false);
+  // A 3-part path folds to 3 entries too (first · … · last): the fold marker decides, not the count.
+  readonly trailFolded = computed(() => this.trail().some((p) => p.fold));
   /** "Verse › Galerie › Bild", translated: the folded path's tooltip and screen-reader text. */
   readonly trailText = computed(() => {
     this.lang();
@@ -433,6 +458,7 @@ export class FusionBarComponent {
       // invisible until then), unless the bar travels down into the stage (undock).
       // The depth fly-in belongs to the arrival on the app's main pages, never to a switch.
       this.enterOnPlace = this.mainPage() && !wasMain && !travels;
+      afterNextRender(() => this.autofocusSearch(), { injector: this.injector });
       if (this.mainPage() && travels) this.pulse('morph');
       if ((morph === 'dock' || morph === 'undock') && first && first.width > 0) {
         // Main → subpage after docking: the header is already compressed, only the bar moves.
@@ -472,12 +498,26 @@ export class FusionBarComponent {
       });
     });
 
+    // The trail's room and the whole path's width: refold whenever either changes
+    // (bar resize, another page's path, a language switch).
+    effect((onCleanup) => {
+      const nav = this.trailNav()?.nativeElement;
+      const measure = this.trailMeasure()?.nativeElement;
+      if (!nav || !measure || typeof ResizeObserver === 'undefined') return;
+      const ro = new ResizeObserver(() => this.measureTrail());
+      ro.observe(nav);
+      ro.observe(measure);
+      untracked(() => this.measureTrail());
+      onCleanup(() => ro.disconnect());
+    });
+
     this.enterOnPlace = this.mainPage();
     afterNextRender(
       () => {
         const unregister = this.chrome.registerDockTarget(this.host.nativeElement as HTMLElement);
         this.injector.get(DestroyRef).onDestroy(unregister);
         this.zone.runOutsideAngular(() => this.listen());
+        this.autofocusSearch();
       },
       { injector: this.injector },
     );
@@ -832,6 +872,42 @@ export class FusionBarComponent {
   /** Focus inside the bar always brings it back (keyboard users never lose it). */
   reveal(): void {
     this.setHidden(false);
+  }
+
+  /** A key or press inside the bar: the field is in use now, the bar stays while focused. */
+  onBarInteract(): void {
+    if (!this.autofocused()) return;
+    this.autofocused.set(false);
+    this.setHidden(false);
+  }
+
+  /** Compare the whole path's width with the trail's room; fold the middle when it does not fit. */
+  measureTrail(): void {
+    const nav = this.trailNav()?.nativeElement;
+    const measure = this.trailMeasure()?.nativeElement;
+    if (!nav || !measure) return;
+    const room = nav.getBoundingClientRect().width;
+    // Collapsed (staged, mid-condense at 0): nothing to decide yet.
+    if (room <= 0) return;
+    const tight = measure.getBoundingClientRect().width > room + 0.5;
+    if (tight !== this.trailTight()) this.zone.run(() => this.trailTight.set(tight));
+  }
+
+  /**
+   * op-hybrid: on load (and on every page change) the subheader's field takes the
+   * caret — desktop pointers only (never touch / coarse), never while the field
+   * stands on a running stage, never over a field or dialog the reader is in. The
+   * panel stays shut; a press, ↓ or Ctrl+K opens it.
+   */
+  autofocusSearch(): void {
+    if (this.variant() !== 'app' || this.mode() === 'stage' || this.phone()) return;
+    if (!matches('(pointer: fine)') || matches('(pointer: coarse)')) return;
+    if (typeof document === 'undefined') return;
+    const active = document.activeElement;
+    if (active && active !== document.body) {
+      if (isEditableTarget(active) || active.closest('[role="dialog"], dialog[open], [aria-modal="true"]')) return;
+    }
+    if (this.searchCmp()?.autofocus()) this.autofocused.set(true);
   }
 
   onSearchOpen(open: boolean): void {

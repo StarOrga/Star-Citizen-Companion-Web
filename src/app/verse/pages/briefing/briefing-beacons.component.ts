@@ -5,6 +5,7 @@ import type { VersePoint } from '../../data/verse.models';
 import { BriefingSkyComponent } from './briefing-sky.component';
 import { TREND_GLYPH, StabilityTrend, stabilityWord } from '../../../news/patch-stability';
 import { splitChars } from './briefing.model';
+import { BodyCanvasDirective } from './bodies/body.directive';
 
 /** Quiet time (no scroll, no pointer movement, window focused) before the idle hint. */
 export const IDLE_HINT_MS = 8000;
@@ -15,7 +16,11 @@ export const IDLE_SHOW_MS = 5000;
  * The stage's two beacons, top right, both real anchors: the sun (→ the LIVE
  * patch's status) and the current patch's constellation below-left of it
  * (→ the star map). Hover: the sun's corona brightens and grows, a flare
- * streak crosses it, "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
+ * streak crosses it (the sun itself: concept 2026-10-31 "Sonne & Planeten" —
+ * live in WebGL (bodies/body-shaders.ts): a boiling, limb-darkened photosphere
+ * with a turning spot group, flames streaming out of the chromosphere,
+ * prominences whose plasma flows along their loops — some erupt and tear off —
+ * and now and then a flare; the CSS sun below stays as the fallback), "Patch-Status" + "LIVE 4.3.1 · Stabilität 50 %" rise
  * letter by letter; the constellation redraws its lines and twinkles in the
  * star map's own white/blue and wording ("Sternkarte", "Sternbild von Patch …
  * · 3 von 5 Sternen"). Only the sun keeps its warm tone.
@@ -28,7 +33,7 @@ export const IDLE_SHOW_MS = 5000;
 @Component({
   selector: 'sc-briefing-beacons',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, BriefingSkyComponent],
+  imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-beacons.component.scss',
   template: `
@@ -43,7 +48,14 @@ export const IDLE_SHOW_MS = 5000;
       @if (idle()) {
         <span class="ring" aria-hidden="true"></span>
       }
-      <span class="sun" aria-hidden="true"></span>
+      <span class="sun" aria-hidden="true">
+        <i class="glow"></i><i class="corona"></i><i class="corona c2"></i><i class="streamers"></i>
+        @for (p of proms; track p.a) {
+          <b class="prom" [style.--a]="p.a" [style.--d]="p.d" [style.--w]="p.w" [style.--z]="p.z"><i></i></b>
+        }
+        <i class="disc"></i><i class="flash"></i>
+        <canvas class="sun-gl" scBody="sun"></canvas>
+      </span>
       <span class="flare" aria-hidden="true"></span>
       <span class="lab warm" aria-hidden="true">
         <span class="lab-n">@for (ch of chars(sunName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>
@@ -81,6 +93,19 @@ export class BriefingBeaconsComponent {
   readonly total = input(0);
   readonly litSet = input<ReadonlySet<number> | null>(null);
   readonly patchLine = input<string | null>(null);
+
+  /**
+   * The sun's prominences: angle on the limb, cycle length, delay into it and
+   * size. Cycles share no common beat, so the storms never fall into a pattern.
+   */
+  readonly proms = [
+    { a: '-58deg', d: '7.9s', w: '-2.1s', z: '1' },
+    { a: '24deg', d: '11.3s', w: '-6.4s', z: '0.8' },
+    { a: '97deg', d: '13.7s', w: '-1.2s', z: '1.15' },
+    { a: '168deg', d: '9.1s', w: '-7.7s', z: '0.7' },
+    { a: '232deg', d: '16.9s', w: '-11.5s', z: '0.95' },
+    { a: '-12deg', d: '19.3s', w: '-15.8s', z: '0.6' },
+  ] as const;
 
   /** The idle hint is showing. */
   readonly idle = signal(false);

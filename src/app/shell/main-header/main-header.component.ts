@@ -6,6 +6,7 @@ import { RoleService } from '../../auth/role.service';
 import { BetaService } from '../../core/beta.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
+import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { AREA_ENTRIES, activeAreaOf } from '../fusion-bar/fusion-bar.model';
 import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
 
@@ -40,7 +41,7 @@ export const MAIN_NAV_SLOT_PX = 112;
 @Component({
   selector: 'sc-main-header',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, BrandLogoComponent, BrandNameComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'banner',
@@ -53,11 +54,8 @@ export const MAIN_NAV_SLOT_PX = 112;
   template: `
     <a class="brand" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
        (click)="onNav($event, '/verse')">
-      <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="34" height="34" />
-      <span class="wordmark">
-        <span class="title">Star Citizen Companion</span>
-        <span class="alpha">{{ 'nav.phaseBadge' | translate }}</span>
-      </span>
+      <sc-brand-logo class="logo" />
+      <sc-brand-name class="wordmark" channel="stack" />
     </a>
 
     <div class="row">
@@ -98,7 +96,7 @@ export const MAIN_NAV_SLOT_PX = 112;
     `
       :host {
         --mh-slot: ${MAIN_NAV_SLOT_PX}px;
-        --mh-shadow: 0 1px 14px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8);
+        --mh-shadow: 0 1px 14px color-mix(in srgb, var(--sc-depth) 90%, transparent), 0 0 2px color-mix(in srgb, var(--sc-depth) 80%, transparent);
         --mh-ease: cubic-bezier(0.55, 0, 0.2, 1);
         /* Where the corners stand: the feedback launcher's inset + the safe areas. */
         --_x: max(var(--sc-fab-inset), env(safe-area-inset-left, 0px));
@@ -162,15 +160,12 @@ export const MAIN_NAV_SLOT_PX = 112;
         height: var(--_item);
         color: var(--sc-fg-0);
         text-decoration: none;
-        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
+        text-shadow: 0 2px 14px color-mix(in srgb, var(--sc-depth) 85%, transparent);
         border-radius: 8px;
         pointer-events: auto;
       }
+      /* Logo + name come from shell/brand (one source with the subheader, same size and glow). */
       .logo {
-        display: block;
-        width: calc(34px - 6px * var(--_p));
-        height: calc(34px - 6px * var(--_p));
-        filter: drop-shadow(0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent));
         /* Gone the moment it has landed: the bar's own logo stands there. */
         opacity: clamp(0, calc((0.99 - var(--_p)) * 100), 1);
       }
@@ -179,23 +174,10 @@ export const MAIN_NAV_SLOT_PX = 112;
         left: calc(100% + var(--sc-space-3));
         top: 50%;
         display: grid;
+        /* Absolutely placed: without it the name shrinks to its min-content and ellipsises. */
+        width: max-content;
         transform: translateY(-50%);
-        white-space: nowrap;
         opacity: clamp(0, calc(1 - var(--_p) * 3), 1);
-      }
-      .title {
-        font-family: var(--sc-font-display);
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-      .alpha {
-        font-family: var(--sc-font-display);
-        font-size: 9px;
-        letter-spacing: 0.42em;
-        text-transform: uppercase;
-        color: var(--sc-accent);
       }
       .nav {
         position: relative;
@@ -246,9 +228,6 @@ export const MAIN_NAV_SLOT_PX = 112;
       }
       .admin:hover,
       .admin.active {
-        color: color-mix(in srgb, var(--sc-accent-hot) 70%, var(--sc-fg-0));
-      }
-      .admin.active {
         text-decoration: underline;
         text-underline-offset: 6px;
       }
@@ -281,7 +260,7 @@ export const MAIN_NAV_SLOT_PX = 112;
         letter-spacing: 0.22em;
         text-transform: uppercase;
         text-decoration: none;
-        color: color-mix(in srgb, var(--sc-fg-0) 72%, transparent);
+        color: var(--sc-fg-1);
         text-shadow: var(--mh-shadow);
         border-radius: 8px;
         transition: color 0.2s ease, text-shadow 0.2s ease;
@@ -303,7 +282,8 @@ export const MAIN_NAV_SLOT_PX = 112;
       }
       .slot.elevated:hover,
       .slot.elevated.active {
-        color: color-mix(in srgb, var(--sc-accent-hot) 70%, var(--sc-fg-0));
+        text-decoration: underline;
+        text-underline-offset: 6px;
       }
       .brand:focus-visible,
       .slot:focus-visible {

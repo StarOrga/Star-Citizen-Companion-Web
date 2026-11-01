@@ -18,6 +18,13 @@ import {
 } from '../codex.service';
 import { UpcomingShipsService, normalizeShipName } from '../upcoming-ships.service';
 import { formatNumber } from '../codex-format';
+import { shipAnchorPorts, shipAnchorPositions } from './codex-landing-values';
+
+/** Real hardpoint anchors of a ship's callouts (cx-anchors): candidate ports + their codex positions. */
+function shipAnchors(payload: unknown): Pick<LandingItem, 'anchorPorts' | 'anchorPositions'> {
+  const anchorPorts = shipAnchorPorts(payload);
+  return { anchorPorts, anchorPositions: shipAnchorPositions(payload, anchorPorts) };
+}
 import {
   LANDING_CATEGORIES,
   LandingCategory,
@@ -347,9 +354,12 @@ export class CodexLandingDataService {
         return added.length ? [...added, ...all] : all;
       }
       case 'fpsWeapon':
-        return this.codex.listFpsCatalog('weapon');
+        // Lean: the pick needs names and columns only; the payload (~10 kB per armour row
+        // to detoast) comes from getDetail for the one item shown. Full armour read: ~2 s
+        // per page, three side by side hit the 8 s timeout (57014).
+        return this.codex.listFpsCatalog('weapon', false, true);
       case 'armor':
-        return this.codex.listFpsCatalog('armor');
+        return this.codex.listFpsCatalog('armor', false, true);
       case 'component':
         return (await this.codex.listByKind('component', { limit: CANDIDATE_LIMIT })).rows;
       case 'tool':
@@ -423,6 +433,7 @@ export class CodexLandingDataService {
       topValues: withClassStats(category, topValuesFor(category, detail.payload), classCohort(category, row, rows)),
       facts: factsFor(category, detail.payload, listRow.size),
       fresh: fresh.some((r) => r.classNameSlug === className),
+      ...(category === 'ship' ? shipAnchors(detail.payload) : {}),
     };
   }
 

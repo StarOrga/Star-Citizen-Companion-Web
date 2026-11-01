@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="512" viewBox="0 0 400 200">
+<defs>
+<filter id="city" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" seed="3" stitchTiles="stitch" result="f"/><feColorMatrix in="f" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  10 0 0 0 -5.3" result="dots"/><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="4" seed="31" stitchTiles="stitch" result="d"/><feColorMatrix in="d" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  2.6 0 0 0 -.75" result="dens"/><feComposite in="dots" in2="dens" operator="in" result="lit"/><feFlood flood-color="#ffd38a"/><feComposite in2="lit" operator="in" result="core"/><feGaussianBlur in="core" stdDeviation=".9" result="b"/><feColorMatrix in="b" values="0 0 0 0 1  0 0 0 0 .55  0 0 0 0 .16  0 0 0 2.4 0" result="bloom"/><feFlood flood-color="#ff7a1e" flood-opacity=".3"/><feComposite in2="dens" operator="in" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="bloom"/><feMergeNode in="core"/></feMerge></filter>
+<filter id="soft" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation=".7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<radialGradient id="a18" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2d0"/><stop offset=".3" stop-color="#ffb04a" stop-opacity=".8"/><stop offset="1" stop-color="#ff7a1e" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="200" fill="#000"/>
+<rect width="400" height="200" filter="url(#city)"/>
+<ellipse cx="236" cy="92" rx="9" ry="6" fill="url(#a18)"/>
+</svg>
