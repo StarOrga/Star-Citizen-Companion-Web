@@ -2,7 +2,12 @@
  * The app-wide background scene (beta `shell`): one camera over one set of CSS
  * layers. Each main area is a fixed camera POSE on that one scene; a
  * navigation flies directly from the current pose to the target pose.
- * Every other page inherits the pose of the main page it lives under.
+ * Every other page inherits the sky of the main page it lives under, but
+ * shows none of its set pieces (see `isSubPage`).
+ *
+ * The scene draws no planet: the only planet is the Verse hub's own live one
+ * (`sc-briefing-planet`). An older CSS planet here used to flash before the
+ * hub mounted, fly along between the areas and stand behind every sub-page.
  */
 export type SceneKind = 'verse' | 'hq' | 'codex' | 'admin';
 
@@ -14,22 +19,18 @@ export type SceneMode = 'still' | 'move' | 'fade';
 export const SCENE_FADE_MS = 420;
 
 /**
- * A camera pose as data. The transforms are CSS strings because the planet
- * and the sky size themselves from viewport-relative custom properties
- * (`--sc-pl-*`); the component writes them as custom properties on the scene
- * and the stylesheet transitions `transform` / `opacity` towards them.
+ * A camera pose as data. The component writes it as custom properties on the
+ * scene and the stylesheet transitions `transform` / `opacity` towards them.
  */
 export interface ScenePose {
-  /** Transform of the planet (origin: top centre of the planet disc). */
-  planet: string;
   /** Transform of the sky layers. */
   sky: string;
   skyOpacity: number;
-  /** Opacity of the planet-surface detail layer (city lights / grid). */
+  /** Opacity of the night-surface layer (HQ: dark ground with faint city lights). */
   detail: number;
-  /** Opacity of the ground-shade (keeps the footer corner off lit surface). */
+  /** Opacity of the ground-shade (keeps the footer corner dark). */
   ground: number;
-  /** Opacity of the Codex data plane. */
+  /** Opacity of the Codex holo glow. */
   plane: number;
   /** Dimming veil over the whole scene, 0 = none. */
   dim: number;
@@ -38,25 +39,14 @@ export interface ScenePose {
 }
 
 export const POSES: Readonly<Record<SceneKind, ScenePose>> = {
-  // Planet on the horizon.
-  verse: { planet: 'none', sky: 'none', skyOpacity: 1, detail: 0, ground: 0, plane: 0, dim: 0, cam: [0, 0, 0] },
-  // Camera panned right: the planet shrinks towards the left edge, the data plane swings in.
-  codex: {
-    planet: 'translate(10%, 8%) scale(0.62)',
-    sky: 'translateX(-16vw)',
-    skyOpacity: 1, detail: 0, ground: 0, plane: 1, dim: 0,
-    cam: [1.1, 0.2, -0.2],
-  },
-  // Deep zoom onto the surface: the planet outline leaves the view (scale ~3.4 about the
-  // planet's top centre, then lifted so the disc fills the viewport edge to edge).
-  hq: {
-    planet: 'translateY(calc(var(--sc-pl-cap) - 100dvh - 14vw)) scale(3.4)',
-    sky: 'translateY(-10dvh) scale(1.08)',
-    skyOpacity: 0.45, detail: 1, ground: 1, plane: 0, dim: 0,
-    cam: [0, 1.8, 1.6],
-  },
-  // Admin hub: the Verse pose, slightly dimmed (a quieter stage for tables and forms).
-  admin: { planet: 'none', sky: 'none', skyOpacity: 1, detail: 0, ground: 0, plane: 0, dim: 0.28, cam: [0, 0, 0.1] },
+  // Open sky: the hub draws its own planet into the page.
+  verse: { sky: 'none', skyOpacity: 1, detail: 0, ground: 0, plane: 0, dim: 0, cam: [0, 0, 0] },
+  // Camera panned right: the sky slides left, the holo glow of the Codex swings in.
+  codex: { sky: 'translateX(-16vw)', skyOpacity: 1, detail: 0, ground: 0, plane: 1, dim: 0, cam: [1.1, 0.2, -0.2] },
+  // Dive towards the surface: the sky drops away and fades, the night side rises in.
+  hq: { sky: 'translateY(-10dvh) scale(1.08)', skyOpacity: 0.45, detail: 1, ground: 1, plane: 0, dim: 0, cam: [0, 1.8, 1.6] },
+  // Admin hub: the open sky, slightly dimmed (a quieter stage for tables and forms).
+  admin: { sky: 'none', skyOpacity: 1, detail: 0, ground: 0, plane: 0, dim: 0.28, cam: [0, 0, 0.1] },
 };
 
 /** Flight time: 0.9 s base plus a distance term, capped at 1.6 s. */
@@ -95,7 +85,16 @@ export function isMainPage(url: string): boolean {
   return p === '/verse' || p === '/hq' || p === '/codex' || p === '/admin' || p === '/admin/hub';
 }
 
-/** The Verse hub itself: the planet scrolls with its planet zone there. */
+/**
+ * Every page that is not a main page: deep space only — its area's sky,
+ * slightly dimmed, without the holo glow or the night surface, so lists,
+ * forms and detail pages stand on a calm, neutral backdrop.
+ */
+export function isSubPage(url: string): boolean {
+  return !isMainPage(url);
+}
+
+/** The Verse hub itself (the footer keeps its stage mode off there). */
 export function isVerseHome(url: string): boolean {
   return scenePath(url) === '/verse';
 }

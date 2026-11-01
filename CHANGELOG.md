@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.186.1] - 2026-11-01
+
+### Fixed
+- Background (new shell): the old planet no longer appears while pages build up or while the camera moves between Verse, Codex and HQ.
+- Background: no more grid patterns behind the cinematic pages — Codex shows a soft holo glow, HQ a dark night surface with soft city lights, and the stars no longer line up into a dot grid (also on the sign-in cards).
+- Sub-pages (lists, details, settings) now stand on a calm, neutral starry sky instead of their area's full stage.
+- Touch screens: the signature values in the Codex ship strip are wide enough to tap.
+
 ## [0.186.0] - 2026-11-01
 
 ### Changed
