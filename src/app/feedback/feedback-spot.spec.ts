@@ -6,12 +6,10 @@ import { FeedbackComposerSeedService } from './feedback-composer-seed.service';
 import { FeedbackDraftService } from './feedback-draft.service';
 import { FeedbackSpotDirective } from './feedback-spot.directive';
 import { FeedbackLineTarget, FeedbackSpotService, withReferenceLine } from './feedback-spot.service';
-import { SPOT_SIZE, placeSpots, referenceLine } from './feedback-spots.component';
 import { provideFakeAttachmentSigner } from './testing/fake-attachment-signer';
 
 /**
- * Feedback #243: while a feedback panel is open, small buttons on the page's
- * sections put "<where>" as the first line of the text being written.
+ * Feedback #243: where an admin's click-capture line goes.
  */
 describe('withReferenceLine', () => {
   it('fills an empty box with the line and puts the caret below it', () => {
@@ -36,80 +34,6 @@ describe('withReferenceLine', () => {
   });
 });
 
-describe('referenceLine', () => {
-  const t = (key: string, params?: Record<string, string>) =>
-    params ? `${key}(${Object.values(params).join('|')})` : key;
-
-  it('names the section and its sub-part', () => {
-    expect(referenceLine({ key: 'L', subKey: 'W', text: null }, null, t)).toBe('L W');
-  });
-
-  it('puts the Codex view in front on a ship page', () => {
-    expect(referenceLine({ key: 'L', subKey: 'W', text: null }, 'classic', t)).toBe(
-      'codex.holo.toggle.classicHint: L W',
-    );
-  });
-
-  it('quotes a page title through its own key', () => {
-    expect(referenceLine({ key: 'H', subKey: null, text: 'Gladius' }, null, t)).toBe(
-      'feedbackSpot.titled(H|Gladius)',
-    );
-  });
-});
-
-describe('placeSpots', () => {
-  const vp = { width: 1200, height: 800, topClear: 60 };
-  const rect = (top: number, left: number, right: number, bottom: number) => ({ top, left, right, bottom });
-
-  it('sits in the section’s top-right corner', () => {
-    const [p] = placeSpots([{ spot: 'a', rect: rect(100, 0, 500, 400) }], [], vp);
-    expect(p).toEqual({ spot: 'a', top: 106, left: 500 - SPOT_SIZE - 6 });
-  });
-
-  it('pins below the sticky header while a tall section is still on screen', () => {
-    const [p] = placeSpots([{ spot: 'a', rect: rect(-300, 0, 500, 700) }], [], vp);
-    expect(p.top).toBe(66);
-  });
-
-  it('skips hidden, off-screen and almost scrolled-away sections', () => {
-    const placed = placeSpots(
-      [
-        { spot: 'hidden', rect: rect(0, 0, 0, 0) },
-        { spot: 'below', rect: rect(900, 0, 500, 1200) },
-        { spot: 'gone', rect: rect(-500, 0, 500, 70) },
-      ],
-      [],
-      vp,
-    );
-    expect(placed).toEqual([]);
-  });
-
-  it('never puts a spot under the open feedback panel', () => {
-    const panel = rect(300, 700, 1180, 780);
-    const placed = placeSpots(
-      [
-        { spot: 'under', rect: rect(300, 600, 1000, 600) },
-        { spot: 'free', rect: rect(100, 0, 500, 400) },
-      ],
-      [panel],
-      vp,
-    );
-    expect(placed.map((p) => p.spot)).toEqual(['free']);
-  });
-
-  it('draws one spot where a marked heading sits in a marked card', () => {
-    const placed = placeSpots(
-      [
-        { spot: 'card', rect: rect(100, 0, 500, 400) },
-        { spot: 'heading', rect: rect(102, 10, 498, 160) },
-      ],
-      [],
-      vp,
-    );
-    expect(placed.map((p) => p.spot)).toEqual(['card']);
-  });
-});
-
 describe('FeedbackSpotService', () => {
   let svc: FeedbackSpotService;
   let seeds: FeedbackComposerSeedService;
@@ -125,14 +49,12 @@ describe('FeedbackSpotService', () => {
     return { lines, insertReferenceLine: (l: string) => lines.push(l) };
   }
 
-  it('is open while a launcher reports its panel, and admin wins the colour', () => {
+  it('is open while a launcher reports its panel', () => {
     expect(svc.open()).toBeFalse();
     const el = document.createElement('div');
     svc.setPanel('user', el, 'user:new');
     expect(svc.open()).toBeTrue();
-    expect(svc.owner()).toBe('user');
     svc.setPanel('admin', el, 'admin:new');
-    expect(svc.owner()).toBe('admin');
     svc.setPanel('admin', null, 'admin:new');
     svc.setPanel('user', null, 'user:new');
     expect(svc.open()).toBeFalse();
@@ -183,6 +105,22 @@ describe('FeedbackSpotService', () => {
     const before = seeds.openRequests();
     svc.insert('Headline');
     expect(seeds.take('admin:new')?.body).toBe('Headline');
+    expect(seeds.openRequests()).toBe(before + 1);
+  });
+
+  it('with the panel shut and no composer, seeds the admin new topic and asks the panel to open', () => {
+    const before = seeds.openRequests();
+    svc.insert('Headline');
+    expect(seeds.take('admin:new')?.body).toBe('Headline');
+    expect(seeds.openRequests()).toBe(before + 1);
+  });
+
+  it('asks a shut panel to open even when its composer stays mounted', () => {
+    const t = target();
+    svc.attachTarget(t);
+    const before = seeds.openRequests();
+    svc.insert('Headline');
+    expect(t.lines).toEqual(['Headline']);
     expect(seeds.openRequests()).toBe(before + 1);
   });
 

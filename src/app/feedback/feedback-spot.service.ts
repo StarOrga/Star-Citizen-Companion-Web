@@ -1,5 +1,6 @@
 import { Injectable, Signal, computed, inject, signal, untracked } from '@angular/core';
 import { FeedbackComposerSeedService } from './feedback-composer-seed.service';
+import { draftScopes } from './feedback-draft.types';
 
 /**
  * How a marked page section is named in a reference line.
@@ -27,18 +28,17 @@ export interface FeedbackLineTarget {
 export type FeedbackPanelOwner = 'admin' | 'user';
 
 interface OpenPanel {
-  /** The launcher's root — panel and button — i.e. what a spot must not sit under. */
+  /** The launcher's root — panel and button. */
   readonly el: HTMLElement;
   /** Draft scope of that panel's new-topic box, for when no composer is mounted. */
   readonly fallbackScope: string;
 }
 
 /**
- * Reference spots: small buttons on the page's main sections while a feedback
- * panel is open, each inserting "<where>" as the first line of the text being
- * written (feedback #243 — "was eindeutiges … Codex steht ja schon im
- * Bereich"). The area chip already names the section of the app; the line
- * names the part of the page.
+ * Reference lines (feedback #243): an admin's Alt+click anywhere on the page
+ * puts "<where> › <element>" as the first line of the text being written,
+ * with the panel open or shut. Pages name their sections with
+ * `[scFeedbackSpot]`; the click capture (`sc-feedback-capture`) reads them.
  *
  * Three parties that do not know each other meet here:
  *   - pages mark sections with `[scFeedbackSpot]` → `register`
@@ -63,16 +63,16 @@ export class FeedbackSpotService {
 
   /** Every marked section currently in the DOM, in registration order. */
   readonly spots = this._spots.asReadonly();
-  /** A feedback panel is open — the only time spots are drawn. */
+  /** A feedback panel is open. */
   readonly open = computed(() => this._panels().size > 0);
-  /** Admin panel wins: its spots carry the launcher's hot accent. */
-  readonly owner = computed<FeedbackPanelOwner | null>(() => {
+  /** The admin click capture is armed (admin signed in) — the composer shows its hint. */
+  readonly captureActive = signal(false);
+
+  private owner(): FeedbackPanelOwner | null {
     const panels = this._panels();
     if (panels.has('admin')) return 'admin';
     return panels.has('user') ? 'user' : null;
-  });
-  /** The launcher roots a spot must stay clear of. */
-  readonly occluders = computed(() => [...this._panels().values()].map((p) => p.el));
+  }
 
   /** Mark a section. Returns the unregister function. */
   register(spot: FeedbackSpot): () => void {
@@ -108,17 +108,23 @@ export class FeedbackSpotService {
     if (this.targets.includes(target)) this.lastTouched = target;
   }
 
-  /** Put `line` at the top of the composer the writer means. */
+  /**
+   * Put `line` at the top of the composer the writer means. A closed (or
+   * minimized) admin panel is asked to open — the capture works with the
+   * panel shut — and with no composer mounted the line travels as a seed for
+   * the admin new-topic box.
+   */
   insert(line: string): void {
+    const wasOpen = this.open();
     const target = this.lastTouched ?? this.targets[this.targets.length - 1] ?? null;
     if (target) {
       target.insertReferenceLine(line);
+      if (!wasOpen) this.seeds.requestOpen();
       return;
     }
     const owner = this.owner();
     const panel = owner ? this._panels().get(owner) : undefined;
-    if (!panel) return;
-    this.seeds.plant(panel.fallbackScope, { body: line });
+    this.seeds.plant(panel?.fallbackScope ?? draftScopes.adminNew, { body: line });
     this.seeds.requestOpen();
   }
 }

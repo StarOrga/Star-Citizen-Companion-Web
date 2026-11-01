@@ -49,7 +49,7 @@ import { UndoToastComponent } from '../shared/undo-toast/undo-toast.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 import { AccountNoticeComponent } from '../social/account-notice.component';
 import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.component';
-import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
+import { FeedbackCaptureComponent } from '../feedback/feedback-capture.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
 import { BetaDockComponent } from '../shared/beta/beta-dock.component';
 import { LayoutService } from '../core/layout/layout.service';
@@ -63,7 +63,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackCaptureComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -471,8 +471,8 @@ import { avatarUrlOf } from './avatar-url';
     <sc-user-feedback-fab />
     <sc-star-toast />
     <sc-undo-toast />
-    <!-- Reference spots on the page's sections while either panel is open (#243). -->
-    <sc-feedback-spots />
+    <!-- Admin Alt+click capture: points the feedback draft at the clicked element (#243). -->
+    <sc-feedback-capture />
   `,
   styles: [`
     :host { display: flex; flex-direction: column; min-height: 100dvh; --sc-verse-footer-h: 0px; }

@@ -4342,8 +4342,25 @@
   "feedbackSpot": {
     "headline": "Headline",
     "titled": "{{label}} „{{text}}“",
-    "insert": "Bezug einfügen: {{line}}",
     "details": "Details"
+  },
+  "feedbackCapture": {
+    "hint": "Admin-Tipp: Alt+Klick (oder Strg+Klick außerhalb von Links) übernimmt das angeklickte Element als Bezug – auch bei geschlossenem Panel.",
+    "element": "{{role}} „{{name}}“",
+    "role": {
+      "link": "Link",
+      "button": "Button",
+      "field": "Eingabefeld",
+      "select": "Auswahlfeld",
+      "checkbox": "Schalter",
+      "radio": "Auswahl",
+      "heading": "Überschrift",
+      "image": "Bild",
+      "tab": "Tab",
+      "section": "Abschnitt",
+      "label": "Beschriftung",
+      "element": "Element"
+    }
   },
   "releaseNotes": {
     "title": "Was ist neu",
