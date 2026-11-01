@@ -10,15 +10,15 @@ import type { HqFleetPatch } from './hq-db.types';
 
 export const HQ_PATCH_LINES_MAX = 2;
 
-/** "−8 %" / "+3,5 %": signed, real minus sign, decimal comma. */
+/** Signed percent: real minus sign, decimal comma, non-breaking space before the percent sign. */
 export function formatPct(pct: number): string {
   const abs = Math.abs(pct);
   const num = (Number.isInteger(abs) ? String(abs) : abs.toFixed(1)).replace('.', ',');
-  return `${pct < 0 ? '−' : '+'}${num} %`;
+  return `${pct < 0 ? '\u2212' : '+'}${num}\u00a0%`;
 }
 
 /**
- * Maps the RPC result to the Start lines: category "4.3.1 · S3-Repeater −8 %", effect
+ * Maps the RPC result to the Start lines: category "4.3.1 · S3-Repeater \u22128 %", effect
  * "betrifft {set} ›" (via `affects`) linked to the set (ship loadout → ship page, FPS set →
  * locker). A line without a set keeps only the category.
  */
