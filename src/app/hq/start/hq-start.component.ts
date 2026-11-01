@@ -91,7 +91,8 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
         flex-direction: column;
         align-items: center;
         box-sizing: border-box;
-        min-height: 100svh;
+        /* The page stage starts under the shell header: fill the rest of the viewport (D5). */
+        min-height: calc(100svh - var(--hq-start-top, 0px));
         padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-3, 12px));
       }
       .hero { padding-top: var(--sc-space-8, 64px); }

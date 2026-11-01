@@ -73,9 +73,13 @@ import { HqStockComponent } from './stock/hq-stock.component';
   styles: [
     `
       :host { display: block; }
-      .page { box-sizing: border-box; min-height: 100svh; scroll-margin-top: 0; }
+      .page { box-sizing: border-box; min-height: 100svh; }
+      /* Start begins under the shell header; with the cue it must fit the rest of the viewport (D5). */
+      .start { min-height: calc(100svh - var(--hq-start-top, 0px)); }
       /* A follow page stands under the docked subheader: its content starts below the bar. */
-      .follow { padding-top: calc(var(--sc-bar-h, 64px) + var(--sc-space-5, 24px)); padding-bottom: var(--sc-space-6, 32px); }
+      /* Its own padding already clears the bar, so it cancels the global scroll-padding: rail click,
+         deep link and back/forward all land the section at the viewport top. */
+      .follow { scroll-margin-top: calc(-1 * var(--sc-bar-h, 64px)); padding-top: calc(var(--sc-bar-h, 64px) + var(--sc-space-5, 24px)); padding-bottom: var(--sc-space-6, 32px); }
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
     `,
@@ -98,6 +102,18 @@ export class HqPagesComponent {
       if (page) this.syncUrl(page);
     });
     const detach = this.nav.attach((p) => this.goTo(p));
+    // Back / forward between fragments: the router does not scroll, so follow the history entry.
+    const pop = this.location.subscribe(() => {
+      const page = hqPageOfFragment(typeof window === 'undefined' ? null : window.location.hash.slice(1)) ?? 'start';
+      this.scrollTo(page, false);
+      this.chrome.setHqPage(page);
+    });
+    this.destroyRef.onDestroy(() => pop.unsubscribe());
+    if (typeof window !== 'undefined') {
+      const onResize = () => this.measureStartTop();
+      window.addEventListener('resize', onResize, { passive: true });
+      this.destroyRef.onDestroy(() => window.removeEventListener('resize', onResize));
+    }
     this.destroyRef.onDestroy(() => {
       detach();
       this.chrome.setHqPage(null);
@@ -107,7 +123,8 @@ export class HqPagesComponent {
       // Deep link: land on the page before the observer reports anything (else it would report
       // Start and rewrite the fragment away).
       const target = hqPageOfFragment(this.route.snapshot.fragment);
-      if (target && target !== 'start') this.section(target)?.scrollIntoView({ block: 'start' });
+      this.measureStartTop();
+      if (target && target !== 'start') this.scrollTo(target, false);
       this.observe();
     });
   }
@@ -119,10 +136,27 @@ export class HqPagesComponent {
   /** Plain left click on a rail / bar / cue anchor: scroll there and add ONE history entry. */
   private goTo(page: HqPageId): void {
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.section(page)?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+    this.scrollTo(page, !reduced);
     const url = this.urlFor(page);
     if (this.currentUrl() !== url) this.location.go(url);
     this.chrome.setHqPage(page);
+  }
+
+  /** One scroll path for rail / bar / cue clicks, deep links and back/forward. */
+  private scrollTo(page: HqPageId, smooth: boolean): void {
+    if (page === 'start' && typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+      return;
+    }
+    this.section(page)?.scrollIntoView({ block: 'start', behavior: smooth ? 'smooth' : 'auto' });
+  }
+
+  /** Where Start begins (under the shell header), so Start plus its cue fit one viewport. */
+  private measureStartTop(): void {
+    const start = this.section('start');
+    if (!start || typeof window === 'undefined') return;
+    const top = Math.max(0, Math.round(start.getBoundingClientRect().top + window.scrollY));
+    this.host.nativeElement.style.setProperty('--hq-start-top', `${top}px`);
   }
 
   private urlFor(page: HqPageId): string {
