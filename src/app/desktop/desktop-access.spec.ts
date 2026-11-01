@@ -1,8 +1,8 @@
 import {
   DESKTOP_CONNECTION_WINDOW_MS,
+  DOWNLOAD_RING,
   connectionState,
   daysSinceSeen,
-  isAdminOnlyRing,
   isRestrictedProduct,
   ringsForRole,
 } from './desktop-access';
@@ -11,12 +11,19 @@ const NOW = Date.parse('2026-08-23T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
 
 describe('ringsForRole', () => {
-  it('gives an admin every uploader ring, safest first', () => {
-    expect(ringsForRole('uploader', 'admin')).toEqual(['stable', 'beta', 'alpha']);
+  it('hands out stable and nothing else — pre-release rings are picked in the app', () => {
+    expect(DOWNLOAD_RING).toBe('stable');
+    for (const role of ['admin', 'collaborator', 'viewer', null]) {
+      for (const product of ['uploader', 'starscape'] as const) {
+        const rings = ringsForRole(product, role);
+        expect(rings.every((r) => r === 'stable')).toBeTrue();
+      }
+    }
   });
 
-  it('gives a collaborator only beta + stable for the uploader', () => {
-    expect(ringsForRole('uploader', 'collaborator')).toEqual(['stable', 'beta']);
+  it('lets admins and collaborators download the uploader', () => {
+    expect(ringsForRole('uploader', 'admin')).toEqual(['stable']);
+    expect(ringsForRole('uploader', 'collaborator')).toEqual(['stable']);
   });
 
   it('gives a viewer NOTHING for the uploader — the control must not render', () => {
@@ -29,19 +36,9 @@ describe('ringsForRole', () => {
     expect(ringsForRole('uploader', 'nonsense')).toEqual([]);
   });
 
-  it('lets every visitor take stable Starscape, widening by role', () => {
-    expect(ringsForRole('starscape', null)).toEqual(['stable']);
-    expect(ringsForRole('starscape', 'viewer')).toEqual(['stable']);
-    expect(ringsForRole('starscape', 'collaborator')).toEqual(['stable', 'beta']);
-    expect(ringsForRole('starscape', 'admin')).toEqual(['stable', 'beta', 'alpha']);
-  });
-
-  it('never puts a non-stable ring first — stable is the recommended download', () => {
-    for (const role of ['admin', 'collaborator', 'viewer', null]) {
-      for (const product of ['uploader', 'starscape'] as const) {
-        const rings = ringsForRole(product, role);
-        if (rings.length > 0) expect(rings[0]).toBe('stable');
-      }
+  it('lets every visitor take stable Starscape', () => {
+    for (const role of [null, 'viewer', 'collaborator', 'admin']) {
+      expect(ringsForRole('starscape', role)).toEqual(['stable']);
     }
   });
 });
@@ -53,38 +50,6 @@ describe('the red-accent rules (admin feedback b8b31f24)', () => {
 
   it('does NOT call Starscape restricted — every visitor may download it', () => {
     expect(isRestrictedProduct('starscape')).toBeFalse();
-  });
-
-  it('agrees with ringsForRole about who sees nothing', () => {
-    for (const product of ['uploader', 'starscape'] as const) {
-      expect(isRestrictedProduct(product)).toBe(ringsForRole(product, 'viewer').length === 0);
-    }
-  });
-
-  it('marks alpha as admin-only for both products', () => {
-    expect(isAdminOnlyRing('uploader', 'alpha')).toBeTrue();
-    expect(isAdminOnlyRing('starscape', 'alpha')).toBeTrue();
-  });
-
-  it('does not mark beta admin-only — a collaborator is offered it too', () => {
-    expect(isAdminOnlyRing('uploader', 'beta')).toBeFalse();
-    expect(isAdminOnlyRing('starscape', 'beta')).toBeFalse();
-  });
-
-  it('never marks stable admin-only', () => {
-    expect(isAdminOnlyRing('uploader', 'stable')).toBeFalse();
-    expect(isAdminOnlyRing('starscape', 'stable')).toBeFalse();
-  });
-
-  it('means: in the admin ring set, and in no other roles ring set', () => {
-    for (const product of ['uploader', 'starscape'] as const) {
-      for (const ring of ['stable', 'beta', 'alpha'] as const) {
-        const belowAdmin = (['collaborator', 'viewer', null] as const).some((role) =>
-          ringsForRole(product, role).includes(ring),
-        );
-        expect(isAdminOnlyRing(product, ring)).toBe(!belowAdmin);
-      }
-    }
   });
 });
 

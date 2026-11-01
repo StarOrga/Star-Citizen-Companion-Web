@@ -3467,12 +3467,12 @@
     "notes": "Release-Notes",
     "noRelease": "Noch kein veröffentlichter Release.",
     "channel": {
-      "label": "Channel",
       "alpha": "Alpha",
       "beta": "Beta",
       "stable": "Stabil"
     },
     "promote": {
+      "from": "Aus Kanal",
       "label": "Diese Version heben auf",
       "action": "Promoten"
     },
@@ -4567,7 +4567,6 @@
     "appTitle": "Starscape App",
     "appDesc": "Dein Desktop rotiert durch Starscape — winzige Tray-App mit Vorladen, Überblendung und Autostart per Klick.",
     "appNote": "Nur Windows · ~0,3 MB · unsigniert (SmartScreen: Weitere Infos → Trotzdem ausführen)",
-    "appRingLock": "Der Kanal wird mit dem Download festgelegt und lässt sich in der App nicht umstellen — für einen anderen Kanal einfach den passenden Download hier erneut holen.",
     "appAutoUpdate": "Aktualisiert sich still im Hintergrund; der Versionsstand steht im Tray-Menü.",
     "promo": {
       "eyebrow": "Starscape für den Desktop",
@@ -4666,8 +4665,6 @@
   "appMenu": {
     "trigger": "{{app}} herunterladen",
     "versions": "Versionen",
-    "recommended": "Empfohlen",
-    "adminOnly": "Nur Admin",
     "conn": {
       "connected": "Desktop-App verbunden",
       "expired": "Verbindung abgelaufen — seit über 30 Tagen kein Kontakt",
@@ -4675,7 +4672,8 @@
       "since": "· zuletzt vor {{days}} Tagen",
       "today": "· zuletzt heute"
     },
-    "fallback": "Herunterladen (aktuell)"
+    "fallback": "Herunterladen (aktuell)",
+    "prerelease": "Hier gibt es immer die stabile Version. Beta und Alpha wählst du in der App, sobald du dich mit deinem SC-Companion-Konto angemeldet hast — welche Kanäle du bekommst, hängt von deiner Rolle ab."
   },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
@@ -5945,7 +5943,6 @@
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Apps herunterladen",
-    "pickChannel": "Kanal wählen",
     "platform": "Windows · immer die neueste Version",
     "scc": {
       "name": "SCC App",
