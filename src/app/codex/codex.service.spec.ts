@@ -688,6 +688,22 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
     });
   });
 
+  it('lean reads no payload path at all and caches apart from the full read', async () => {
+    const cap = fresh();
+    const svc = make(fpsRows(2), cap);
+
+    const [row] = await svc.listFpsCatalog('weapon', false, true);
+    const select = cap.selects.find((s) => s.startsWith('codex_weapons:'))!;
+    expect(select).not.toContain('payload');
+    expect(select).toContain('weapon_class');
+    expect(row.classNameSlug).toBe('klwe_pistol_0000');
+    expect(row.nameLocalized).toBe('Pistol 0');
+    expect(row.payload).toEqual({});
+
+    await svc.listFpsCatalog('weapon');
+    expect(cap.ranges.length).toBe(2);
+  });
+
   it('serves repeat calls from the cache, per category and variant switch', async () => {
     const cap = fresh();
     const svc = make(fpsRows(3), cap);

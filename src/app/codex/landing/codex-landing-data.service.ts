@@ -354,9 +354,12 @@ export class CodexLandingDataService {
         return added.length ? [...added, ...all] : all;
       }
       case 'fpsWeapon':
-        return this.codex.listFpsCatalog('weapon');
+        // Lean: the pick needs names and columns only; the payload (~10 kB per armour row
+        // to detoast) comes from getDetail for the one item shown. Full armour read: ~2 s
+        // per page, three side by side hit the 8 s timeout (57014).
+        return this.codex.listFpsCatalog('weapon', false, true);
       case 'armor':
-        return this.codex.listFpsCatalog('armor');
+        return this.codex.listFpsCatalog('armor', false, true);
       case 'component':
         return (await this.codex.listByKind('component', { limit: CANDIDATE_LIMIT })).rows;
       case 'tool':
