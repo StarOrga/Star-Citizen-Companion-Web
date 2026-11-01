@@ -150,6 +150,7 @@ import {
 } from './codex-mission';
 import {
   KpiShipInput,
+  armorSignalMultipliers,
   buildDefensivePanel,
   buildOffensivePanel,
   computeKpiSheet,
@@ -3043,7 +3044,16 @@ export class CodexDetailComponent implements OnInit {
   readonly shipSignature = computed<ShipSignature>(() => {
     const facts = this.powerSheet()?.facts ?? [];
     const fact = (key: string): number | null => facts.find((f) => f.key === key)?.value ?? null;
-    return { ir: fact('ir'), em: fact('em'), crossSection: fact('crossSection') ?? this.crossSectionMax() };
+    const sheet = this.powerSheet();
+    const armorFactor = sheet ? (sheet.armorSignal ?? null) : armorSignalMultipliers(this.armorPayload());
+    const hullCs = this.crossSectionMax();
+    return {
+      ir: fact('ir'),
+      em: fact('em'),
+      crossSection:
+        fact('crossSection') ?? (hullCs != null ? Math.round(hullCs * (armorFactor?.crossSection ?? 1)) : null),
+      armorFactor,
+    };
   });
 
   /** The six KPI-band cells for the active mission, stock vs. current draft,

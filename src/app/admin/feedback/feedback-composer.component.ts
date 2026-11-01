@@ -253,6 +253,9 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
              links neben der zeichenzähleranzeige"). Both are the same kind of
              thing — a quiet status about the text above them — so they share
              one line instead of one sitting in the action row. -->
+        @if (spots.captureActive()) {
+          <p class="capture-hint">{{ 'feedbackCapture.hint' | translate }}</p>
+        }
         <div class="meta">
           @if (draftLabel(); as label) {
             <span class="draft-flag" [class.warn]="draftFailed()">{{ label | translate }}</span>
@@ -448,6 +451,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
        and no growth of the field can push it out of view. */
     .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     /* One line for both quiet readouts, pinned to the field's right edge. */
+    .capture-hint { margin: 0; font-size: 11px; line-height: 1.4; color: var(--sc-accent-hot); }
     .meta { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
 
     /* The auto-grow cell. Its ::after is an invisible replica of the text with

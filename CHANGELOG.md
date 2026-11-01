@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.182.0] - 2026-11-01
+
+### Changed
+- Feedback (admins): Alt+click anywhere — or Ctrl+click outside links — takes the clicked element as the reference line of the feedback draft, even with the panel closed; Ctrl+click on a link still opens a new tab. Users keep the reference buttons in their own panel (feedback #243).
+
+## [0.181.2] - 2026-11-01
+
+### Fixed
+- Codex ship page: the countermeasure sheet's ship signature now includes the hull armour's signal factor, so the recommended number of decoys is right for stealth and heavy hulls too (feedback #242).
+
+## [0.181.1] - 2026-11-01
+
+### Fixed
+- Feedback routine: both Desktop tasks run again — they were registered on a scratch folder that was cleaned up, so every tick was skipped since 2026-10-30. The prompt now `cd`s into the repo first, uses the current repo path and is about a third shorter.
+- `npm run sync:routine-prompts` no longer fails because the retired janitor task is missing.
+
 ## [0.181.0] - 2026-10-30
 
 ### Changed

@@ -40,6 +40,20 @@ that a cron job on a server would not.
   title table and the manual steps (plugin, PAT, gh, task creation) for a
   fresh machine. Memory and the user-level CLAUDE.md are deliberately not
   in the repo.
+- **The app stores a run folder (cwd) per task — and it can die.** The
+  registration (`%LOCALAPPDATA%/Claude-Data/<app>/claude-code-sessions/<org>/<acct>/scheduled-tasks.json`,
+  field `cwd`) is the folder of the session that called `create_scheduled_task`;
+  neither the tool nor the app UI can change it later. On 2026-10-27 all tasks
+  were re-registered from a scratch session (when `~/.claude/scheduled-tasks`
+  became a junction into `P:\Projects\new-windows-ai-configurator\routines`, the
+  machine backup repo); the app cleaned that scratch folder up and from
+  2026-10-30 `main.log` showed `Skipping scheduled task …: cwd no longer exists`
+  on every tick — zero runs, the panel just went quiet. Fix (2026-11-01):
+  delete + create both tasks from a session whose folder is the primary
+  checkout (`P:\Projects\Star-Citizen-Companion-Web`). Since then the prompt's
+  first command `cd`s into the repo anyway, so a wrong cwd costs nothing as long
+  as the folder exists. Diagnose a silent routine with
+  `grep "Skipping scheduled task" "$LOCALAPPDATA/Claude/logs/main.log"` first.
 - **Two files, one body — enforced.** `scripts/check-routine-prompts.mjs` runs
   in `prebuild` (every `npm run build`, so every ship and every routine
   worker) and fails when the two SKILL.md bodies differ or

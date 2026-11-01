@@ -10,8 +10,7 @@ import { SPOT_SIZE, placeSpots, referenceLine } from './feedback-spots.component
 import { provideFakeAttachmentSigner } from './testing/fake-attachment-signer';
 
 /**
- * Feedback #243: while a feedback panel is open, small buttons on the page's
- * sections put "<where>" as the first line of the text being written.
+ * Feedback #243: where an admin's click-capture line goes.
  */
 describe('withReferenceLine', () => {
   it('fills an empty box with the line and puts the caret below it', () => {
@@ -125,14 +124,12 @@ describe('FeedbackSpotService', () => {
     return { lines, insertReferenceLine: (l: string) => lines.push(l) };
   }
 
-  it('is open while a launcher reports its panel, and admin wins the colour', () => {
+  it('is open while a launcher reports its panel', () => {
     expect(svc.open()).toBeFalse();
     const el = document.createElement('div');
     svc.setPanel('user', el, 'user:new');
     expect(svc.open()).toBeTrue();
-    expect(svc.owner()).toBe('user');
     svc.setPanel('admin', el, 'admin:new');
-    expect(svc.owner()).toBe('admin');
     svc.setPanel('admin', null, 'admin:new');
     svc.setPanel('user', null, 'user:new');
     expect(svc.open()).toBeFalse();
@@ -183,6 +180,22 @@ describe('FeedbackSpotService', () => {
     const before = seeds.openRequests();
     svc.insert('Headline');
     expect(seeds.take('admin:new')?.body).toBe('Headline');
+    expect(seeds.openRequests()).toBe(before + 1);
+  });
+
+  it('with the panel shut and no composer, seeds the admin new topic and asks the panel to open', () => {
+    const before = seeds.openRequests();
+    svc.insert('Headline');
+    expect(seeds.take('admin:new')?.body).toBe('Headline');
+    expect(seeds.openRequests()).toBe(before + 1);
+  });
+
+  it('asks a shut panel to open even when its composer stays mounted', () => {
+    const t = target();
+    svc.attachTarget(t);
+    const before = seeds.openRequests();
+    svc.insert('Headline');
+    expect(t.lines).toEqual(['Headline']);
     expect(seeds.openRequests()).toBe(before + 1);
   });
 

@@ -40,12 +40,15 @@ export interface WeaponDetailEntry {
 /**
  * The ship's own signature under its current power setup (the energy dock's
  * IR / EM / cross-section facts) — what a countermeasure's round has to
- * outshine. Each `null` when the build carries no value for it.
+ * outshine. Each `null` when the build carries no value for it. The values
+ * already include the hull armor's signal factor, which `armorFactor`
+ * reports so the sheet can say so.
  */
 export interface ShipSignature {
   ir: number | null;
   em: number | null;
   crossSection: number | null;
+  armorFactor?: { ir: number; em: number; crossSection: number } | null;
 }
 
 interface DetailRow {
@@ -358,6 +361,19 @@ export class CodexWeaponDetailComponent {
           value: n != null ? (this.i18n.instant('codex.weaponDetail.value.cmCount', { n }) as string) : noData,
         },
       );
+    }
+
+    const factor = ship?.armorFactor;
+    if (factor && (factor.ir !== 1 || factor.em !== 1 || factor.crossSection !== 1)) {
+      const f = (v: number): string => num(Math.round(v * 100) / 100, 'dec') ?? '';
+      recommend.push({
+        labelKey: 'codex.weaponDetail.row.armorSignal',
+        value: this.i18n.instant('codex.weaponDetail.value.armorSignal', {
+          ir: f(factor.ir),
+          em: f(factor.em),
+          cs: f(factor.crossSection),
+        }) as string,
+      });
     }
 
     const kind = countermeasureKind(className, ammo);

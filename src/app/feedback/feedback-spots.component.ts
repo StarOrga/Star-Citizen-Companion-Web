@@ -191,7 +191,8 @@ export class FeedbackSpotsComponent {
 
   readonly placed = computed<PlacedSpot<FeedbackSpot>[]>(() => {
     this.tick();
-    if (!this.spots.open() || typeof window === 'undefined') return [];
+    // Admins point with Alt+click (sc-feedback-capture); the spots stay for the user panel.
+    if (this.spots.owner() !== 'user' || this.spots.captureActive() || typeof window === 'undefined') return [];
     if (window.matchMedia?.(PHONE_QUERY).matches) return [];
     const items = this.spots.spots().map((spot) => ({ spot, rect: spot.el.getBoundingClientRect() }));
     const occluders = this.spots.occluders().map((el) => el.getBoundingClientRect());
