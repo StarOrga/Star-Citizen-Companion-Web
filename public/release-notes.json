@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.185.0",
+  "current": "0.185.1",
   "releases": [
+    {
+      "version": "0.185.1",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Touch screens: codex landing, codex index, holotable plate and pins and the admin capture hint now have readable 12 px text and tap targets of at least 44 px."
+            },
+            {
+              "title": "",
+              "text": "Phones: the codex landing no longer scrolls sideways."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.185.0",
       "date": "2026-11-01",
