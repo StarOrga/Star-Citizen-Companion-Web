@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.181.1",
+  "current": "0.181.2",
   "releases": [
+    {
+      "version": "0.181.2",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex ship page: the countermeasure sheet's ship signature now includes the hull armour's signal factor, so the recommended number of decoys is right for stealth and heavy hulls too (feedback #242)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.181.1",
       "date": "2026-11-01",
