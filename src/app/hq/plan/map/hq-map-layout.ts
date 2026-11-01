@@ -141,6 +141,8 @@ function mostCommonSystem(places: MapPlace[]): string | null {
 }
 
 const GOLDEN = 137.508;
+/** Degrees (0 = right, 90 = below) for the 1st, 2nd … location around a planet. */
+const LOC_ANGLES = [90, 20, 160, -20, 200] as const;
 
 function placeNodes(sysPlaces: MapPlace[]): { planets: PlanetView[]; pos: Map<string, { x: number; y: number }> } {
   const known = sysPlaces.map((p) => p.planet).filter((p): p is string => !!p);
@@ -161,10 +163,11 @@ function placeNodes(sysPlaces: MapPlace[]): { planets: PlanetView[]; pos: Map<st
   const pos = new Map<string, { x: number; y: number }>();
   for (const pl of planets) {
     const locs = sysPlaces.filter((p) => p.planet && slug(p.planet) === pl.key).sort((a, b) => a.id.localeCompare(b.id));
+    // Locations hang below/beside their planet so the planet name above stays readable.
     locs.forEach((p, j) => {
-      const t = ((-90 + j * 70) * Math.PI) / 180;
-      const r = locs.length === 1 ? 0 : 34;
-      pos.set(p.id, clamp(pl.x + r * Math.cos(t), pl.y + r * 0.7 * Math.sin(t)));
+      const t = (LOC_ANGLES[j % LOC_ANGLES.length] * Math.PI) / 180;
+      const r = 30 + Math.floor(j / LOC_ANGLES.length) * 26;
+      pos.set(p.id, clamp(pl.x + r * 1.6 * Math.cos(t), pl.y + r * Math.sin(t)));
     });
   }
   const free = sysPlaces.filter((p) => !p.planet).sort((a, b) => a.id.localeCompare(b.id));
