@@ -63,7 +63,23 @@ describe('silhouettes as their own step', () => {
   it('silhouette mode sends only the outlines to the existing build', async () => {
     const r = await uploadCatalog('jwt', outDir, () => {}, { backoffMs: () => 0, mode: 'silhouettes', buildId: 'b-1' });
     expect(r).toMatchObject({ ok: true, buildId: 'b-1', counts: { silhouettes: 1 } });
-    expect(ops).toEqual(['clear_silhouettes', 'silhouettes']);
+    // Incremental: ask which outlines the server has, send the rest, then
+    // drop the build's rows this run no longer has (no wipe up front).
+    expect(ops).toEqual(['carry', 'silhouettes', 'prune']);
+  });
+
+  it('falls back to clear + full rows when the server has no carry op', async () => {
+    vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { op: string };
+      ops.push(body.op);
+      if (body.op === 'carry') {
+        return Promise.resolve({ ok: false, status: 400, json: async () => ({ error: 'invalid_body', message: "unknown op 'carry'" }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true }) });
+    });
+    const r = await uploadCatalog('jwt', outDir, () => {}, { backoffMs: () => 0, mode: 'silhouettes', buildId: 'b-1' });
+    expect(r).toMatchObject({ ok: true, counts: { silhouettes: 1 } });
+    expect(ops).toEqual(['carry', 'clear_silhouettes', 'silhouettes']);
   });
 
   it('silhouette mode refuses to run without the codex build id', async () => {

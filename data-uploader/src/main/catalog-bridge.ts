@@ -44,6 +44,7 @@ import {
   type PortRow,
   type KeybindData,
 } from '../lib/catalog-map.js';
+import { isCarryTable, planCarry, rowsToSend } from '../lib/catalog-carry.js';
 
 const CHUNK = 500; // entity/string rows per request
 const LOCALE_CHUNK = 1000; // locale rows per request (small rows)
@@ -166,6 +167,18 @@ export interface CatalogUploadResult {
   errorCode?: CatalogErrorCode;
   /** Publish phase that failed (`codex_ships`, `finalize`, …) — names WHERE it stopped. */
   errorPhase?: string;
+  /**
+   * Per-object incremental upload, per phase: rows sent in full, rows the
+   * server already had in this build (`kept`) and rows it copied from an
+   * earlier build (`copied`). Absent for phases outside the carry protocol.
+   */
+  transfer?: Record<string, CarryTransfer>;
+}
+
+export interface CarryTransfer {
+  sent: number;
+  kept: number;
+  copied: number;
 }
 
 /**
@@ -409,7 +422,7 @@ export async function uploadCatalog(
     rows: unknown[],
     chunkSize: number,
     send: (slice: unknown[]) => Promise<unknown>,
-    opts: { onFirstChunk?: () => Promise<void> } = {},
+    opts: { onFirstChunk?: () => Promise<void>; afterAll?: () => Promise<void> } = {},
   ): Promise<number> => {
     if (isPhaseDone(phase)) {
       progress({ phase, current: rows.length, total: rows.length });
@@ -439,12 +452,72 @@ export async function uploadCatalog(
       done += slice.length;
       progress({ phase, current: done, total: rows.length });
     }
+    // Before the phase counts as done, so a run killed in between redoes it.
+    await opts.afterAll?.();
     hooks.onPhaseDone?.(phase);
     return done;
   };
 
-  const sendEntity = async (table: string, rows: unknown[]): Promise<number> =>
-    sendChunks(table, rows, CHUNK, (slice) => post('upsert', { table, rows: slice }));
+  // ── per-object incremental upload (ingest-catalog op `carry`) ──────────────
+  // One switch for the whole run: an ingest-catalog without the op (400
+  // "unknown op") or a project without the migration (`degraded`) turns it off
+  // and every later chunk goes out in full, exactly as before.
+  let carryEnabled = true;
+  const transfer: Record<string, CarryTransfer> = {};
+  const tally = (phase: string): CarryTransfer => (transfer[phase] ??= { sent: 0, kept: 0, copied: 0 });
+  const isUnknownOp = (err: unknown): boolean =>
+    err instanceof IngestHttpError && err.status === 400 && /unknown op/i.test(err.serverMessage);
+
+  /**
+   * Asks the server which rows of `slice` it can keep or copy from an earlier
+   * build, then sends only the rest through `full` (with their content hash,
+   * so the next build can carry them in turn). Idempotent like every op here.
+   */
+  const sendIncremental = async (
+    table: string,
+    buildId: string,
+    slice: unknown[],
+    full: (rows: unknown[]) => Promise<unknown>,
+    /** Runs once when this call finds carry unavailable, before the full rows go out. */
+    onDegrade?: () => Promise<void>,
+  ): Promise<void> => {
+    if (!carryEnabled || !isCarryTable(table)) {
+      await full(slice);
+      tally(table).sent += slice.length;
+      return;
+    }
+    const rows = slice as Record<string, unknown>[];
+    const plan = planCarry(table, rows);
+    let missing: number[] = plan.carry.map((_, i) => i);
+    if (plan.carry.length > 0) {
+      let res: Record<string, unknown>;
+      try {
+        res = await post('carry', { build_id: buildId, table, rows: plan.carry, set: plan.set });
+      } catch (err) {
+        if (!isUnknownOp(err)) throw err;
+        res = { degraded: 'unknown_op' };
+      }
+      if (res.degraded) {
+        carryEnabled = false;
+        log.warn(`[catalog] incremental upload unavailable (${String(res.degraded)}) — sending full rows`);
+        await onDegrade?.();
+        await full(slice);
+        tally(table).sent += slice.length;
+        return;
+      }
+      missing = Array.isArray(res.missing) ? (res.missing as unknown[]).filter((n): n is number => typeof n === 'number') : missing;
+      tally(table).kept += Number(res.kept ?? 0);
+      tally(table).copied += Number(res.copied ?? 0);
+    }
+    const send = rowsToSend(plan, missing);
+    if (send.length > 0) await full(send.map((i) => ({ ...rows[i], content_sha: plan.shas[i] })));
+    tally(table).sent += send.length;
+  };
+
+  const sendEntity = async (table: string, rows: unknown[], buildId: string): Promise<number> =>
+    sendChunks(table, rows, CHUNK, (slice) =>
+      sendIncremental(table, buildId, slice, (r) => post('upsert', { table, rows: r })),
+    );
 
   try {
     const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as Record<string, unknown>;
@@ -505,21 +578,50 @@ export async function uploadCatalog(
     // (`mode: 'silhouettes'` is the only path that does).
     const sendSilhouettes = async (): Promise<void> => {
       // 10b. silhouettes (ships + weapons/components/armor tile art) ----------
-      // Same resumable clear+send shape as item ports: `clear_silhouettes` wipes
-      // this build's existing rows before the first chunk (never on a mid-phase
-      // resume, `onFirstChunk` only fires when `skip === 0`), then `silhouettes`
-      // upserts. Missing directory (an out_dir from before this phase existed,
-      // or a run where the silhouette build step did not execute) just sends
-      // nothing — never invents rows for entities without geometry.
+      // Incremental like the entity tables: unchanged outlines are kept or
+      // copied server-side, and once every chunk is through, `prune` drops the
+      // build's rows this run no longer has. `clear_silhouettes` (wipe before
+      // the first chunk, never on a mid-phase resume — `onFirstChunk` only
+      // fires when `skip === 0`) is only the path for a server without
+      // `carry`: wiping first would throw away the rows a re-upload keeps.
+      // Missing directory (an out_dir from before this phase existed, or a run
+      // where the silhouette build step did not execute) just sends nothing —
+      // never invents rows for entities without geometry.
       {
         const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
         const rows = mapSilhouettes(list, tag);
+        const keys = rows.map((r) => [r.kind, r.class_name]).filter((k) => k.every((v) => typeof v === 'string' && v));
+        // The clear skipped for carry is owed once carry turns out to be
+        // unavailable on the phase's first chunk — before any full row lands.
+        let clearOwed = false;
         counts.silhouettes = await sendChunks(
           'codex_silhouettes',
           rows,
           CHUNK,
-          (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
-          { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
+          (slice) =>
+            sendIncremental(
+              'codex_silhouettes',
+              buildId,
+              slice,
+              (r) => post('silhouettes', { build_id: buildId, rows: r }),
+              async () => {
+                if (!clearOwed) return;
+                clearOwed = false;
+                await post('clear_silhouettes', { build_id: buildId });
+              },
+            ),
+          {
+            onFirstChunk: async () => {
+              if (!carryEnabled) await post('clear_silhouettes', { build_id: buildId });
+              else clearOwed = true;
+            },
+            afterAll: async () => {
+              if (!carryEnabled || keys.length === 0) return;
+              const res = await post('prune', { build_id: buildId, table: 'codex_silhouettes', keys });
+              if (res.degraded) log.warn(`[catalog] silhouettes prune unavailable (${String(res.degraded)})`);
+              else log.info(`[catalog] silhouettes pruned: ${Number(res.deleted ?? 0)} stale row(s)`);
+            },
+          },
         );
       }
 
@@ -546,7 +648,7 @@ export async function uploadCatalog(
     if (mode === 'silhouettes') {
       await sendSilhouettes();
       log.info(`[catalog] silhouettes sent for build ${buildId}: ${counts.silhouettes ?? 0}`);
-      return { ok: true, buildId, counts };
+      return { ok: true, buildId, counts, transfer };
     }
 
     // 2. full localization tables ------------------------------------------
@@ -584,7 +686,7 @@ export async function uploadCatalog(
           { field: 'description', loc: m.description },
         ]);
       }
-      counts.manufacturers = await sendEntity('codex_manufacturers', mapManufacturers(list, tag));
+      counts.manufacturers = await sendEntity('codex_manufacturers', mapManufacturers(list, tag), buildId);
     }
 
     // 4. ships (always full) -----------------------------------------------
@@ -598,7 +700,7 @@ export async function uploadCatalog(
         ]);
         collectPorts(ports, buildId, nat, s.className as string, 'ship', (s as { itemPorts?: unknown }).itemPorts);
       }
-      counts.ships = await sendEntity('codex_ships', mapShips(list, tag));
+      counts.ships = await sendEntity('codex_ships', mapShips(list, tag), buildId);
     }
 
     // 5. components --------------------------------------------------------
@@ -617,7 +719,7 @@ export async function uploadCatalog(
         ]);
         collectPorts(componentPorts, buildId, nat, c.className as string, 'component', (c as { itemPorts?: unknown }).itemPorts);
       }
-      counts.components = await sendEntity('codex_components', mapComponents(list, tag));
+      counts.components = await sendEntity('codex_components', mapComponents(list, tag), buildId);
     }
 
     // 6. weapons -----------------------------------------------------------
@@ -630,7 +732,7 @@ export async function uploadCatalog(
         ]);
         collectPorts(ports, buildId, nat, w.className as string, 'weapon', (w as { itemPorts?: unknown }).itemPorts);
       }
-      counts.weapons = await sendEntity('codex_weapons', mapWeapons(list, tag));
+      counts.weapons = await sendEntity('codex_weapons', mapWeapons(list, tag), buildId);
     }
     for (const row of componentStrings) strings.push(row);
     for (const row of componentPorts) ports.push(row);
@@ -638,7 +740,7 @@ export async function uploadCatalog(
     // 7. ammunition (same "Waffen" bar as the guns) -------------------------
     {
       const list = await readJsonDir(outDir, 'ammunition');
-      counts.ammunition = await sendEntity('codex_ammunition', mapAmmunition(list, tag));
+      counts.ammunition = await sendEntity('codex_ammunition', mapAmmunition(list, tag), buildId);
     }
 
     // 8. items -------------------------------------------------------------
@@ -650,7 +752,7 @@ export async function uploadCatalog(
           { field: 'description', loc: it.description },
         ]);
       }
-      counts.items = await sendEntity('codex_items', mapItems(list, tag));
+      counts.items = await sendEntity('codex_items', mapItems(list, tag), buildId);
     }
 
     // 9. blueprints + ingredients -----------------------------------------
@@ -662,7 +764,7 @@ export async function uploadCatalog(
           { field: 'description', loc: bp.description },
         ]);
       }
-      counts.blueprints = await sendEntity('codex_blueprints', mapBlueprints(list, tag));
+      counts.blueprints = await sendEntity('codex_blueprints', mapBlueprints(list, tag), buildId);
 
       const ingredientRows = collectIngredients(buildId, nat, list);
       counts.blueprint_ingredients = await sendChunks(
@@ -678,7 +780,7 @@ export async function uploadCatalog(
     {
       const deduped = dedupeStrings(strings);
       counts.entity_strings = await sendChunks('codex_entity_strings', deduped, CHUNK, (slice) =>
-        post('strings', { rows: slice }),
+        sendIncremental('codex_entity_strings', buildId, slice, (r) => post('strings', { rows: r })),
       );
     }
     {
@@ -742,7 +844,8 @@ export async function uploadCatalog(
     progress({ phase: 'finalize', current: 1, total: 1 });
 
     log.info(`[catalog] promoted build ${buildId} (${nat.channel} ${nat.patch_version} ${nat.build_number})`);
-    return { ok: true, buildId, counts };
+    log.info(`[catalog] transfer ${JSON.stringify(transfer)}`);
+    return { ok: true, buildId, counts, transfer };
   } catch (err) {
     // A pause/cancel is control flow, not a failure: let it unwind to the
     // caller, which persists the cursor and reports `paused` rather than

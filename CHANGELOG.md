@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.189.0] - 2026-11-02
+
+### Changed
+- Data Uploader 0.66.0: a codex upload only sends the objects that changed since an earlier build. Unchanged ships, items, texts and outlines are taken over on the server, so a second upload of the same build sends nothing and a typical patch only a small part of the catalog.
+
 ## [0.188.0] - 2026-11-01
 
 ### Changed

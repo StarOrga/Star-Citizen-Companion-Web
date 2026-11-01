@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.187.0",
+  "current": "0.188.0",
   "releases": [
+    {
+      "version": "0.188.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex: the hologram on the landing stands centred over the table, a little smaller and with more room below the search. Name and key facts now sit on a dimension bracket along the hologram's right edge, and the side panels are exactly as tall as the hologram, with their light edge projected in from the screen edge."
+            },
+            {
+              "title": "",
+              "text": "Codex: the scan line that builds the hologram runs smoothly and stays centred in the light beam."
+            },
+            {
+              "title": "",
+              "text": "New shell: Verse, Codex, HQ and the admin hub open with the same hero — eyebrow, title and search field at the same height and in the same type."
+            },
+            {
+              "title": "",
+              "text": "New shell: the search field under the page title looks like the one in the subheader — round, with a softly breathing light rim."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.187.0",
       "date": "2026-11-01",
