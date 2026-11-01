@@ -84,7 +84,7 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('sc-hq-place-tree')).toBeNull();
     expect(text(el, '.route .save')).toBe('hq.plan.saveEinsatz');
     expect(el.querySelector<HTMLButtonElement>('.route .save')!.disabled).toBeTrue();
-    expect(el.querySelector('.hq-plan-map-slot')?.getAttribute('data-view')).toBe('how');
+    expect(el.querySelector('sc-hq-plan-map')).not.toBeNull();
   });
 
   it('lists the Nachschub lines as needs and opens the supplies popup from here', () => {
