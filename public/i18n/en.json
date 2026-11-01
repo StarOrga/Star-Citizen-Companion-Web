@@ -4990,7 +4990,47 @@
       }
     },
     "log": {
-      "undo": "Undo"
+      "undo": "Undo",
+      "title": "Log",
+      "close": "Close",
+      "empty": "No events yet.",
+      "showAll": "Show all",
+      "more": "Load more",
+      "undone": "Undone",
+      "event": {
+        "shop.purchase": "Bought {{quantity}}× {{item}} ({{shop}})",
+        "refinery.complete": "Refinery done: {{count}} orders ({{location}})",
+        "contract.completed": "Mission completed: {{name}}",
+        "qt.arrived": "Quantum jump finished",
+        "hangar.ready": "Hangar ready",
+        "inventory.opened": "Inventory opened ({{location}})",
+        "other": "Event: {{type}}"
+      }
+    },
+    "now": {
+      "loading": "Loading your game state …",
+      "retry": "Try again",
+      "connect": {
+        "title": "Game not detected — connect the SCC app",
+        "hint": "The SCC app reports your location and actions here, live."
+      },
+      "anchor": {
+        "label": "You are here",
+        "unknown": "Location unknown",
+        "ship": "Ship:"
+      },
+      "path": {
+        "title": "Your path",
+        "empty": "No active operation. Plan one under Plan."
+      },
+      "missions": {
+        "tooltip": "Active missions in game",
+        "title": "Active missions",
+        "none": "No active mission."
+      },
+      "log": {
+        "title": "Latest"
+      }
     }
   },
   "verse": {

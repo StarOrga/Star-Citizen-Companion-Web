@@ -4990,7 +4990,47 @@
       }
     },
     "log": {
-      "undo": "Rückgängig"
+      "undo": "Rückgängig",
+      "title": "Protokoll",
+      "close": "Schließen",
+      "empty": "Noch keine Ereignisse.",
+      "showAll": "Alle anzeigen",
+      "more": "Mehr laden",
+      "undone": "Rückgängig gemacht",
+      "event": {
+        "shop.purchase": "{{quantity}}× {{item}} gekauft ({{shop}})",
+        "refinery.complete": "Raffinerie fertig: {{count}} Aufträge ({{location}})",
+        "contract.completed": "Mission abgeschlossen: {{name}}",
+        "qt.arrived": "Quantum-Sprung beendet",
+        "hangar.ready": "Hangar bereit",
+        "inventory.opened": "Inventar geöffnet ({{location}})",
+        "other": "Ereignis: {{type}}"
+      }
+    },
+    "now": {
+      "loading": "Lade den Spielstand …",
+      "retry": "Erneut versuchen",
+      "connect": {
+        "title": "Spiel nicht erkannt — SCC-App verbinden",
+        "hint": "Die SCC-App meldet deinen Standort und deine Aktionen live hierher."
+      },
+      "anchor": {
+        "label": "Du bist hier",
+        "unknown": "Standort unbekannt",
+        "ship": "Schiff:"
+      },
+      "path": {
+        "title": "Dein Weg",
+        "empty": "Kein aktiver Einsatz. Plane einen unter Planen."
+      },
+      "missions": {
+        "tooltip": "Aktive Missionen im Spiel",
+        "title": "Aktive Missionen",
+        "none": "Keine aktive Mission."
+      },
+      "log": {
+        "title": "Zuletzt"
+      }
     }
   },
   "verse": {
