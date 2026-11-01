@@ -33,7 +33,7 @@
         </div>
         <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
           <span class="fr-meter-name">🧱 Stabilität</span>
-          <b class="fr-meter-value">4876 / 4876</b>
+          <b class="fr-meter-value">4879 / 4879</b>
           <div class="fr-meter-bar" aria-hidden="true"></div>
           <p class="fr-meter-context">Karma-Specs der ganzen App grün, Produktions-Build ohne Warnung, Lint ohne Fehler. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
         </div>
@@ -71,8 +71,9 @@
           data-issue-body="While checking the ship-page holodeck (batch concept 2026-11-01, cx-polish), the whole codex ship detail page stays empty for ~3 s: the route renders nothing until the ship data has loaded. The holodeck now shows a scanning placeholder once it mounts, but the page itself has no skeleton. Proposal: render the page frame + an empty holodeck stage (lock ring, scan line) immediately and fill it when the data arrives. Files: codex ship detail route component, codex-holo-stage.component.ts."
           data-oq-origin="found"
           data-route-default="now"
-          data-route-reason="im Repo">
+          data-route-reason="im Repo" data-routed>
         <span class="oq-label">Schiffsseite 3 s leer beim Laden</span>
+        <span class="oq-done">✓ umgesetzt — <code>src/app/codex/codex-detail.component.ts</code> (3d638d08)</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Die Schiffs-Detailseite zeigt rund 3 s gar nichts, bis die Schiffsdaten da sind.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex → Schiff (Detailseite)</dd>
@@ -85,8 +86,9 @@
           data-issue-body="On production data the codex landing's first item arrives only after 7–9 s and the armour news query fails with Postgres statement timeout 57014 (seen while checking the holotable with the test account, batch concept 2026-11-01). Ships on the holotable can rotate away before their hull has loaded. Needs a look at the query plan / index for the armour news RPC (codex-landing-data.service.ts) and the anon/authenticated statement timeouts (3 s / 8 s)."
           data-oq-origin="found"
           data-route-default="issue"
-          data-route-reason="riskant">
+          data-route-reason="riskant" data-routed>
         <span class="oq-label">Codex-Start: Rüstungs-News-Abfrage timeoutet</span>
+        <span class="oq-done">✓ umgesetzt — <code>codex.service.ts</code> lean read (341d4199)</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Erster Eintrag erst nach 7–9 s, Abfrage bricht mit Statement-Timeout ab.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex-Startseite, Datenbank</dd>
@@ -99,8 +101,9 @@
           data-issue-body="The landing holotable shows at most 3 callouts from curated ship values (speed, hull HP, armour, cargo); 3 of them now end at real hardpoints. Weapons, shields, quantum drive, power plant and coolers have real hardpoints but are not landing callouts (on the ship page they already sit as pins on their mounts). Showing them on the landing would replace speed/hull/armour and is a content decision. Found during batch concept 2026-11-01 (cx-anchors)."
           data-oq-origin="found"
           data-route-default="issue"
-          data-route-reason="braucht Concept">
+          data-route-reason="braucht Concept" data-routed>
         <span class="oq-label">Komponenten-Callouts auf dem Holotisch?</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/864" target="_blank" rel="noopener noreferrer">Issue #864</a>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Waffen, Schilde, Quantum, Power, Kühler hätten echte Anker, sind aber keine Callouts.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex-Startseite, Holotisch</dd>
@@ -113,8 +116,9 @@
           data-issue-body="On the phone screenshots of batch concept 2026-11-01 the account buttons at the top look partly covered by the β (beta) chip. Not part of the batch scope; layout of the beta chip vs the top-right account controls under 720px."
           data-oq-origin="found"
           data-route-default="now"
-          data-route-reason="klein">
+          data-route-reason="klein" data-routed>
         <span class="oq-label">β-Chip verdeckt Konto-Buttons am Handy</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/864" target="_blank" rel="noopener noreferrer">Issue #864</a>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Der β-Chip liegt am Telefon teilweise über den Konto-Buttons.</dd>
           <dt>{{final.fund_where}}</dt><dd>Kopfzeile, Telefon</dd>
@@ -123,6 +127,17 @@
       </li>
     </ul>
   </details>
+
+  <section id="nachtrag" data-nav-label="Nachtrag">
+    <p class="fr-label">Nachtrag</p>
+    <ul>
+      <li><b>Schiffsseite lädt nicht mehr leer:</b> Seitenrahmen, Kopf und eine Holodeck-Skelettbühne stehen sofort und füllen sich ohne Sprung (3d638d08).</li>
+      <li><b>Rüstungs-Timeout behoben:</b> Ursache war das Auspacken von ~10 kB Payload pro Rüstung, nicht ein fehlender Index — die Startseite liest jetzt schlank, 1951 ms → 9 ms pro Seite, keine Migration (341d4199).</li>
+      <li><b>Issue #864</b> sammelt die Komponenten-Callouts und den β-Chip am Handy.</li>
+      <li><b>Konzept behalten statt verworfen:</b> Regel 5 aus diesem Konzept — beim Squash-Merge käme es sonst nie auf main.</li>
+      <li>Nebenbefund ohne Änderung: der Zähler „neu in diesem Patch“ liest nur 1000 Namen des Vorgänger-Builds, bei Rüstung kann er zu hoch sein.</li>
+    </ul>
+  </section>
 
   <section data-tests hidden aria-label="{{final.group_tests}}">
     <ul>
@@ -137,7 +152,7 @@
     <ul class="fr-dev">
       <li>Branch <code>claude/batch-d577a4</code> · Commits e0bdc131, f5e88029, d32adff9, 48512109, 081a3e65, 82e45619 (+ Regeln b0f43169, main gemergt)</li>
       <li><code>src/app/shell/fusion-bar/*</code>, <code>src/app/shell/brand/brand.component.ts</code>, <code>src/app/verse/pages/briefing/*</code>, <code>src/app/codex/landing/*</code>, <code>src/app/codex/holo/*</code></li>
-      <li>Karma 4876/4876 grün (Edge) · Build ohne Warnung · Lint 0 Fehler</li>
+      <li>Karma 4879/4879 grün (Edge) · Build ohne Warnung · Lint 0 Fehler</li>
       <li>Abnahme: Brief <code>briefs/implement.md</code>, unabhängige QA-Prüfung → 8 Lücken → nachgebessert</li>
     </ul>
   </details>
