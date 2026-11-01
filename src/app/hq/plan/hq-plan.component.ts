@@ -90,7 +90,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
         </div>
         <sc-hq-set-rings [sets]="sets()" [needs]="needs()" [selection]="selection()" (setToggled)="onSet($event)" />
         <sc-hq-mood-toggles [moods]="selection().moods" (moodChange)="onMood($event.pair, $event.side)" />
-        <ul class="chips" [attr.aria-label]="'hq.plan.stepsAria' | translate">
+        <ul class="kinds" [attr.aria-label]="'hq.plan.stepsAria' | translate">
           @for (k of kinds; track k) {
             <li>
               <button type="button" class="kind" [attr.aria-pressed]="selection().steps.has(k)" (click)="commit(toggleStep(k))">
@@ -197,7 +197,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .sel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sc-space-3, 12px); }
       .sel-head h3, .route h3, .einsaetze h3 { margin: 0; font-size: 1rem; }
       .state { color: var(--sc-fg-2); font-size: max(0.85rem, var(--sc-fs-floor)); }
-      .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
+      .kinds { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
       .kind { display: inline-flex; align-items: center; gap: var(--sc-space-2, 8px); min-height: 36px; padding: 0 var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 999px; background: transparent; color: var(--sc-fg-2); font: inherit; cursor: pointer; }
       .kind svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
       .kind:hover { color: var(--sc-fg); border-color: var(--sc-fg-2); }

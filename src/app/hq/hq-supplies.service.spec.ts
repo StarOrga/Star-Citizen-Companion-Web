@@ -145,11 +145,11 @@ describe('HqSuppliesService', () => {
     await s.sync();
     expect(s.items().map((i) => i.name).sort()).toEqual(['Part b', 'Remote name']);
     // A newer edit on the other device arrives with a higher synced_at.
-    server[1] = serverRow('b', { name: 'Edited elsewhere', updated_at: new Date(Date.now() + 1000).toISOString(), synced_at: new Date(Date.now() + 1000).toISOString() });
+    server[1] = serverRow('b', { name: 'Edited elsewhere', updated_at: '2026-11-01T11:00:00.000Z', synced_at: '2026-11-01T11:00:00.000Z' });
     await s.sync();
     expect(s.items().find((i) => i.id === 'b')?.name).toBe('Edited elsewhere');
     // A remote tombstone removes the line here.
-    server[0] = serverRow('a', { deleted_at: '2026-11-01T13:00:00.000Z', updated_at: new Date(Date.now() + 2000).toISOString(), synced_at: new Date(Date.now() + 2000).toISOString() });
+    server[0] = serverRow('a', { deleted_at: '2026-11-01T13:00:00.000Z', updated_at: '2026-11-01T13:00:00.000Z', synced_at: '2026-11-01T13:00:00.000Z' });
     await s.sync();
     expect(s.items().map((i) => i.id)).toEqual(['b']);
   });
@@ -202,7 +202,8 @@ describe('HqSuppliesService', () => {
       const s = make();
       s.add('A', 1, { className: 'X', wanted: false });
       s.add('B', 1, { className: 'X', setKind: 'fps', setId: 'f1', wanted: true });
-      expect(s.items().find((i) => i.id === s.tickByClassName('x', 1))?.name).toBe('B');
+      const id = s.tickByClassName('x', 1);
+      expect(s.items().find((i) => i.id === id)?.name).toBe('B');
     });
   });
 });

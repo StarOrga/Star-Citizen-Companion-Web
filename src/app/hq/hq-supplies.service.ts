@@ -83,7 +83,6 @@ export class HqSuppliesService {
   private uid: string | null = null;
   private watermark: string | null = null;
   private inFlight: Promise<void> | null = null;
-  private again = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   readonly items = computed(() => this.rows().filter((i) => !i.deletedAt));
@@ -216,17 +215,11 @@ export class HqSuppliesService {
   /** Push dirty rows, then pull what changed on the server. Never throws; failures land in `syncError`. */
   sync(): Promise<void> {
     if (!this.uid) return Promise.resolve();
-    if (this.inFlight) {
-      this.again = true;
-      return this.inFlight;
-    }
+    // A caller that awaits sync() expects its own edits to be pushed: queue one more pass behind a running one.
+    if (this.inFlight) return this.inFlight.then(() => this.sync());
     const uid = this.uid;
     this.inFlight = this.run(uid).finally(() => {
       this.inFlight = null;
-      if (this.again) {
-        this.again = false;
-        this.schedule();
-      }
     });
     return this.inFlight;
   }
@@ -322,7 +315,7 @@ export class HqSuppliesService {
       }
       this.persist();
       this.syncError.set(null);
-      if (this.rows().some((r) => r.dirty) && dirty.length === PUSH_BATCH) this.again = true;
+      if (dirty.length === PUSH_BATCH) this.schedule();
     } catch (err) {
       logWarn('hq', 'supplies sync failed', err);
       this.syncError.set(toErrorKey('hq', 'syncSupplies', err));

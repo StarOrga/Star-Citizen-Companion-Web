@@ -55,14 +55,14 @@ describe('HqPlanComponent', () => {
     // The switch is Was / Wie only - nothing offers Top 3 / Nach Lust / Gezielt as a control.
     expect(el.querySelectorAll('.switch .seg').length).toBe(2);
     expect(el.querySelectorAll('sc-hq-mood-toggles .pair').length).toBe(3);
-    expect(el.querySelectorAll('.chips .kind').length).toBe(7);
+    expect(el.querySelectorAll('.kinds .kind').length).toBe(7);
   });
 
   it('a mood click is Nach Lust, a step chip Eigene Auswahl, and it survives a new component in the same tab', () => {
     const { f, el } = make();
     click(f, el.querySelector('sc-hq-mood-toggles .pair .side.right'));
     expect(text(el, '.state')).toBe('hq.plan.state.mood');
-    click(f, el.querySelectorAll('.chips .kind')[0]);
+    click(f, el.querySelectorAll('.kinds .kind')[0]);
     expect(text(el, '.state')).toBe('hq.plan.state.custom');
     expect(sessionStorage.getItem(PLAN_SELECTION_KEY)).toContain('"changed":true');
 
@@ -80,7 +80,7 @@ describe('HqPlanComponent', () => {
     const { f, el } = make();
     click(f, el.querySelectorAll('.switch .seg')[1]);
     expect(el.querySelector('.select')).toBeNull();
-    expect(el.querySelector('.chips')).toBeNull();
+    expect(el.querySelector('.kinds')).toBeNull();
     expect(el.querySelector('sc-hq-place-tree')).toBeNull();
     expect(text(el, '.route .save')).toBe('hq.plan.saveEinsatz');
     expect(el.querySelector<HTMLButtonElement>('.route .save')!.disabled).toBeTrue();

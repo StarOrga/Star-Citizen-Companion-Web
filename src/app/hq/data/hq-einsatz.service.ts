@@ -99,7 +99,6 @@ export class HqEinsatzService {
   private uid: string | null = null;
   private watermark: string | null = null;
   private inFlight: Promise<void> | null = null;
-  private again = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   readonly items = computed(() => this.rows().filter((e) => !e.deletedAt));
@@ -203,17 +202,11 @@ export class HqEinsatzService {
   /** Push dirty Einsaetze (with steps), then pull what changed. Never throws; failures land in `syncError`. */
   sync(): Promise<void> {
     if (!this.uid) return Promise.resolve();
-    if (this.inFlight) {
-      this.again = true;
-      return this.inFlight;
-    }
+    // A caller that awaits sync() expects its own edits to be pushed: queue one more pass behind a running one.
+    if (this.inFlight) return this.inFlight.then(() => this.sync());
     const uid = this.uid;
     this.inFlight = this.run(uid).finally(() => {
       this.inFlight = null;
-      if (this.again) {
-        this.again = false;
-        this.schedule();
-      }
     });
     return this.inFlight;
   }
