@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.186.1",
+  "current": "0.187.0",
   "releases": [
+    {
+      "version": "0.187.0",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Starscape 0.11.0: the \"Update-Kanal\" menu only shows for signed-in collaborators and admins — signed out or as a viewer there is nothing to choose, so it is gone."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader 0.65.0: the update ring now defaults to \"Automatisch (höchster verfügbarer)\" — it follows the highest ring your account reaches (admin: Alpha, collaborator: Beta, everyone else: Stable). A pinned ring can still be picked in ⚙ by collaborators and admins."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.186.1",
       "date": "2026-11-01",

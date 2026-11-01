@@ -24,7 +24,7 @@
             <span class="grain" aria-hidden="true"></span>
             <span class="band" aria-hidden="true"></span>
           </span>
-          <span class="disc" aria-hidden="true"><i></i></span>
+          <span class="scan" aria-hidden="true"><span class="disc"><i></i></span></span>
           <span class="go" aria-hidden="true">↗</span>
         </a>
 
@@ -61,66 +61,70 @@
         }
 
         <div class="kennung" [style.--at.s]="idAt()" [style.--chars]="nameChars()">
-          <p class="k-eye">
-            <span class="k-tick" aria-hidden="true"></span>
-            <span>{{ (it.fresh === false ? 'codex.landing.holo.newest' : 'codex.landing.holo.newIn') | translate }}</span>
-            <span class="k-sep" aria-hidden="true">·</span>
-            <span>{{ label(it.category) | translate }}</span>
-            @if (it.eyebrow.manufacturer) {
-              <span class="sc-sr-only">·</span><span class="k-maker">{{ it.eyebrow.manufacturer }}</span>
-            }
-          </p>
-          <a class="k-name" [routerLink]="it.detailRoute"><span class="k-type">{{ it.name }}</span><i aria-hidden="true">↗</i></a>
-          <span class="k-rule" aria-hidden="true"></span>
-          @if (it.facts?.length) {
-            <dl class="k-facts">
-              @for (f of it.facts; track f.id) {
-                <div><dt>{{ 'codex.landing.fact.' + f.id | translate }}</dt><dd>{{ f.value }}</dd></div>
+          <span class="k-dim" aria-hidden="true"></span>
+          <div class="k-head">
+            <p class="k-eye">
+              <span class="k-tick" aria-hidden="true"></span>
+              <span>{{ (it.fresh === false ? 'codex.landing.holo.newest' : 'codex.landing.holo.newIn') | translate }}</span>
+              <span class="k-sep" aria-hidden="true">·</span>
+              <span>{{ label(it.category) | translate }}</span>
+              @if (it.eyebrow.manufacturer) {
+                <span class="sc-sr-only">·</span><span class="k-maker">{{ it.eyebrow.manufacturer }}</span>
               }
-            </dl>
-          }
-          @if (paints().length) {
-            <div class="k-paints" role="group" [attr.aria-label]="'codex.landing.paints.label' | translate">
-              <span class="k-plabel">{{ 'codex.landing.paints.label' | translate }} <b>{{ paints().length }}</b></span>
-              <div class="chips">
-                @for (p of visiblePaints(); track p.id) {
-                  <button type="button" class="chip" [class.on]="preview()?.id === p.id" [attr.aria-pressed]="preview()?.id === p.id"
-                          [attr.aria-label]="'codex.landing.paints.show' | translate: { name: p.name }"
-                          [scTooltip]="p.name" scTooltipTier="label" (click)="togglePaint(p)">
-                    <img [src]="p.imageUrl" alt="" loading="lazy" decoding="async" />
-                    @if (p.isNew) { <em aria-hidden="true"></em> }
-                  </button>
+            </p>
+            <a class="k-name" [routerLink]="it.detailRoute"><span class="k-type">{{ it.name }}</span><i aria-hidden="true">↗</i></a>
+          </div>
+          <div class="k-foot">
+            @if (it.facts?.length) {
+              <dl class="k-facts">
+                @for (f of it.facts; track f.id) {
+                  <div><dt>{{ 'codex.landing.fact.' + f.id | translate }}</dt><dd>{{ f.value }}</dd></div>
                 }
-                @if (hiddenPaints() > 0) {
-                  <button type="button" class="chip more" [attr.aria-expanded]="false"
-                          [attr.aria-label]="'codex.landing.paints.all' | translate: { count: paints().length }"
-                          (click)="allPaints.set(true)">+ {{ hiddenPaints() }}</button>
-                } @else if (allPaints() && paints().length > 4) {
-                  <button type="button" class="chip more" [attr.aria-expanded]="true" (click)="allPaints.set(false)">
-                    {{ 'codex.landing.paints.fewer' | translate }}
-                  </button>
-                }
+              </dl>
+            }
+            @if (paints().length) {
+              <div class="k-paints" role="group" [attr.aria-label]="'codex.landing.paints.label' | translate">
+                <span class="k-plabel">{{ 'codex.landing.paints.label' | translate }} <b>{{ paints().length }}</b></span>
+                <div class="chips">
+                  @for (p of visiblePaints(); track p.id) {
+                    <button type="button" class="chip" [class.on]="preview()?.id === p.id" [attr.aria-pressed]="preview()?.id === p.id"
+                            [attr.aria-label]="'codex.landing.paints.show' | translate: { name: p.name }"
+                            [scTooltip]="p.name" scTooltipTier="label" (click)="togglePaint(p)">
+                      <img [src]="p.imageUrl" alt="" loading="lazy" decoding="async" />
+                      @if (p.isNew) { <em aria-hidden="true"></em> }
+                    </button>
+                  }
+                  @if (hiddenPaints() > 0) {
+                    <button type="button" class="chip more" [attr.aria-expanded]="false"
+                            [attr.aria-label]="'codex.landing.paints.all' | translate: { count: paints().length }"
+                            (click)="allPaints.set(true)">+ {{ hiddenPaints() }}</button>
+                  } @else if (allPaints() && paints().length > 4) {
+                    <button type="button" class="chip more" [attr.aria-expanded]="true" (click)="allPaints.set(false)">
+                      {{ 'codex.landing.paints.fewer' | translate }}
+                    </button>
+                  }
+                </div>
               </div>
-            </div>
-          }
-          @if (preview(); as p) {
-            <figure class="pv" scDialog [scDialogModal]="false" role="dialog" [attr.aria-label]="p.name"
-                    (scDialogEscape)="closePreview()">
-              <img [src]="p.imageUrl" alt="" decoding="async" />
-              <figcaption>
-                <span>{{ p.name }}@if (p.isNew) { <em>{{ 'codex.landing.paints.isNew' | translate }}</em> }</span>
-                @if (p.rsiUrl) {
-                  <a [href]="p.rsiUrl" target="_blank" rel="noopener noreferrer">{{ 'codex.landing.paints.rsi' | translate }} <i aria-hidden="true">↗</i></a>
-                } @else {
-                  <span class="pv-src">{{ 'codex.landing.paints.rsiRender' | translate }}</span>
-                }
-              </figcaption>
-              <button type="button" class="pv-x" [attr.aria-label]="'codex.landing.paints.close' | translate"
-                      [scTooltip]="'codex.landing.paints.close' | translate" scTooltipTier="label" (click)="closePreview()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-              </button>
-            </figure>
-          }
+            }
+            @if (preview(); as p) {
+              <figure class="pv" scDialog [scDialogModal]="false" role="dialog" [attr.aria-label]="p.name"
+                      (scDialogEscape)="closePreview()">
+                <img [src]="p.imageUrl" alt="" decoding="async" />
+                <figcaption>
+                  <span>{{ p.name }}@if (p.isNew) { <em>{{ 'codex.landing.paints.isNew' | translate }}</em> }</span>
+                  @if (p.rsiUrl) {
+                    <a [href]="p.rsiUrl" target="_blank" rel="noopener noreferrer">{{ 'codex.landing.paints.rsi' | translate }} <i aria-hidden="true">↗</i></a>
+                  } @else {
+                    <span class="pv-src">{{ 'codex.landing.paints.rsiRender' | translate }}</span>
+                  }
+                </figcaption>
+                <button type="button" class="pv-x" [attr.aria-label]="'codex.landing.paints.close' | translate"
+                        [scTooltip]="'codex.landing.paints.close' | translate" scTooltipTier="label" (click)="closePreview()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+              </figure>
+            }
+          </div>
         </div>
       </div>
     }

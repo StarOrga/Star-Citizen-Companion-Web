@@ -1725,6 +1725,25 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
 .sc-stage-hero[data-stage-hero] sc-page-header .ph-main { justify-content: center; }
 .sc-stage-hero[data-stage-hero] sc-page-header .ph-title { align-items: center; text-align: center; margin-inline: auto; }
 .sc-stage-hero[data-stage-hero] sc-page-header .ph-actions:empty { display: none; }
+/* One hero card on every main page (Verse, Codex, HQ, admin hub): the same eyebrow
+   and title type — only the words differ. Pages with their own hero markup use the
+   same two tokens. */
+:root {
+  --sc-hero-eyebrow: 500 max(11px, 0.72rem) / 1.4 var(--sc-font-body);
+  --sc-hero-title-size: clamp(26px, 2.7vw, 50px);
+}
+.sc-stage-hero[data-stage-hero] sc-page-header .eyebrow {
+  margin: 0;
+  font: var(--sc-hero-eyebrow);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--sc-accent);
+}
+.sc-stage-hero[data-stage-hero] sc-page-header h1 {
+  margin: max(6px, 0.6vw) 0 0;
+  font: 500 var(--sc-hero-title-size) / 1.1 var(--sc-font-display);
+  letter-spacing: 0.02em;
+}
 /* Docking lifts the whole hero head away — eyebrow, title, subtitle (concept r8
    x8-title: 22 → 30 % out by -40 px, 84 → 94 % back), so the field travels alone. */
 [data-stage-hero] > :not([data-stage-slot]) {

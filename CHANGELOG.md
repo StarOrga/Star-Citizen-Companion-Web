@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.188.0] - 2026-11-01
+
+### Changed
+- Codex: the hologram on the landing stands centred over the table, a little smaller and with more room below the search. Name and key facts now sit on a dimension bracket along the hologram's right edge, and the side panels are exactly as tall as the hologram, with their light edge projected in from the screen edge.
+- Codex: the scan line that builds the hologram runs smoothly and stays centred in the light beam.
+- New shell: Verse, Codex, HQ and the admin hub open with the same hero — eyebrow, title and search field at the same height and in the same type.
+- New shell: the search field under the page title looks like the one in the subheader — round, with a softly breathing light rim.
+
 ## [0.187.0] - 2026-11-01
 
 ### Changed

@@ -16,7 +16,7 @@ interface BarRow {
 
 /**
  * "Weitere Werte" (round 4, design "Zugewandte Kante"): a light pane with no
- * box, only a glowing edge on the side that faces the hologram. Bars for the
+ * box, only a glowing edge on its outer side, projected out of the screen edge. Bars for the
  * values that are not callouts (value vs. class mean, the mean as a yellow
  * tick), then the way to the detail page. Re-scans its content on every
  * rotation step.
@@ -62,17 +62,25 @@ interface BarRow {
     `
       :host { position: relative; display: flex; flex-direction: column; justify-content: flex-end; color: var(--sc-fg-1); --cx-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace; }
       .edge {
-        position: absolute; right: 0; top: 0; bottom: 0; width: 1px; pointer-events: none;
-        background: linear-gradient(180deg, transparent, rgba(143, 227, 255, 0.35) 30%, rgba(170, 238, 255, 0.9) 82%, rgba(220, 250, 255, 1));
+        position: absolute; left: 0; top: 0; bottom: 0; width: 1px; pointer-events: none;
+        background: linear-gradient(180deg, transparent, rgba(170, 238, 255, 0.85) 18%, rgba(220, 250, 255, 1) 50%, rgba(170, 238, 255, 0.85) 82%, transparent);
         box-shadow: 0 0 10px rgba(130, 220, 255, 0.55);
       }
+      /* The light fan from the screen edge: narrow at the edge, the full edge height at the line. */
+      .edge::before {
+        content: ''; position: absolute; right: 100%; top: 0; bottom: 0; width: var(--cx-bleed, 40px);
+        background: linear-gradient(270deg, rgba(130, 222, 255, 0.07), rgba(82, 193, 230, 0.015) 55%, rgba(170, 238, 255, 0.08));
+        clip-path: polygon(100% 0, 100% 100%, 0 58%, 0 42%);
+      }
+      /* The source slit where the fan leaves the screen edge. */
       .edge::after {
-        content: ''; position: absolute; right: -22px; bottom: -6px; width: 44px; height: 14px; border-radius: 50%;
-        background: radial-gradient(ellipse, rgba(170, 238, 255, 0.55), transparent 70%); filter: blur(2px);
+        content: ''; position: absolute; top: 42%; height: 16%; right: calc(100% + var(--cx-bleed, 40px) - 2px); width: 2px;
+        background: rgba(220, 250, 255, 0.85); box-shadow: 0 0 12px 2px rgba(130, 220, 255, 0.7); border-radius: 1px;
       }
       .body {
         position: relative; display: flex; flex-direction: column; align-items: flex-end; text-align: right;
-        padding: 16px 18px 16px 0;
+        min-height: 0; overflow-y: auto; scrollbar-width: thin;
+        padding: 16px 0 16px 18px;
         background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.035) 0 1px, transparent 1px 4px);
         clip-path: inset(0 0 100% 0);
         animation: pane-in 0.7s cubic-bezier(0.3, 0.6, 0.3, 1) var(--pane-at, 2.6s) both;
@@ -110,14 +118,18 @@ interface BarRow {
       }
       .go:hover, .go:focus-visible { border-color: var(--sc-accent); background: rgba(82, 193, 230, 0.1); color: var(--sc-fg-0); }
       .go:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      /* The re-scan line: a body-tall track slides its top edge down (transform only). */
       .sweep {
-        position: absolute; left: 0; right: 0; top: 0; height: 2px; pointer-events: none; opacity: 0;
-        background: linear-gradient(90deg, transparent, #eaffff 70%, transparent); box-shadow: 0 0 10px #8fe3ff;
+        position: absolute; left: 0; right: 0; top: 0; height: 100%; pointer-events: none; opacity: 0;
         animation: sweep 0.75s linear var(--pane-at, 2.6s) both;
+      }
+      .sweep::before {
+        content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, #eaffff 30%, transparent); box-shadow: 0 0 10px #8fe3ff;
       }
       .body:not(.boot) .flash { animation: flash 1.1s ease-out calc(var(--pane-at) + 0.45s) both; }
       @keyframes pane-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-      @keyframes sweep { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+      @keyframes sweep { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(100%); opacity: 0; } }
       @keyframes bar-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
       @keyframes flash { 0% { color: inherit; } 22% { color: #fff; text-shadow: 0 0 14px #8fe3ff, 0 0 3px #fff; } 100% { text-shadow: none; } }
       :host(.still) .body, :host(.still) .bar i, :host(.still) .sweep, :host(.still) .flash { animation: none; clip-path: none; }
