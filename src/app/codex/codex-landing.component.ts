@@ -113,10 +113,13 @@ export class CodexLandingComponent {
     () =>
       this.held() || this.paintOpen() || this.heroHold() || this.hidden() || this.still() || this.items().length < 2,
   );
-  /** Claims advance inside a category only while the rotation stands (else the category change rolls them). */
-  readonly claimsRun = computed(
-    () => !this.still() && !this.hidden() && !this.heroHold() && (this.held() || this.paintOpen() || this.items().length < 2),
-  );
+  /**
+   * Claims advance every {@link CLAIM_MS} whether the rotation runs or stands
+   * (concept 2026-11-01 cx-claims); a category change restarts the dwell with
+   * that category's next claim. Hover/focus on the hero, a hidden tab and
+   * reduced motion hold them (WCAG 2.2.2).
+   */
+  readonly claimsRun = computed(() => !this.still() && !this.hidden() && !this.heroHold() && !!this.current());
   readonly failed = computed(() => !this.loading() && !this.items().length && !!this.data.error());
 
   readonly claims = computed(() => {

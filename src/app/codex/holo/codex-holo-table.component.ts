@@ -45,6 +45,70 @@ const GENERIC_HULL_PATH =
 
 let hullFillSeq = 0;
 
+/** Clamp to [-1, 1]. */
+const unit = (v: number): number => Math.max(-1, Math.min(1, v));
+
+/**
+ * Parallax offset of the table (cx-parallax), both axes in [-1, 1]: the
+ * pointer's position over the frame, plus a third of how far the frame's
+ * centre sits from the viewport's centre (scrolling the page tilts it).
+ */
+export function parallaxOffset(
+  rect: { left: number; top: number; width: number; height: number },
+  viewportH: number,
+  pointer: { x: number; y: number } | null,
+): { x: number; y: number } {
+  if (!(rect.width > 0) || !(rect.height > 0)) return { x: 0, y: 0 };
+  const px = pointer ? unit(((pointer.x - rect.left) / rect.width) * 2 - 1) : 0;
+  const py = pointer ? unit(((pointer.y - rect.top) / rect.height) * 2 - 1) : 0;
+  const scroll = viewportH > 0 ? unit((rect.top + rect.height / 2 - viewportH / 2) / (viewportH / 2)) : 0;
+  return { x: Math.round(px * 1000) / 1000, y: Math.round(unit(py + scroll / 3) * 1000) / 1000 };
+}
+
+/**
+ * Drives `--px`/`--py` on the frame from pointer + scroll, at most once per
+ * frame and without change detection. Off under reduced motion (`still`).
+ * Returns the teardown.
+ */
+function bindParallax(frame: HTMLElement, still: () => boolean): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  let pointer: { x: number; y: number } | null = null;
+  let raf = 0;
+  const apply = () => {
+    raf = 0;
+    if (still()) {
+      frame.style.removeProperty('--px');
+      frame.style.removeProperty('--py');
+      return;
+    }
+    const o = parallaxOffset(frame.getBoundingClientRect(), window.innerHeight, pointer);
+    frame.style.setProperty('--px', String(o.x));
+    frame.style.setProperty('--py', String(o.y));
+  };
+  const queue = () => {
+    if (!raf) raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(apply) : (apply(), 0);
+  };
+  const onMove = (e: PointerEvent) => {
+    if (e.pointerType === 'touch') return;
+    pointer = { x: e.clientX, y: e.clientY };
+    queue();
+  };
+  const onLeave = () => {
+    pointer = null;
+    queue();
+  };
+  frame.addEventListener('pointermove', onMove, { passive: true });
+  frame.addEventListener('pointerleave', onLeave, { passive: true });
+  window.addEventListener('scroll', queue, { passive: true, capture: true });
+  queue();
+  return () => {
+    if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
+    frame.removeEventListener('pointermove', onMove);
+    frame.removeEventListener('pointerleave', onLeave);
+    window.removeEventListener('scroll', queue, { capture: true });
+  };
+}
+
 /** The outline's horizontal extent in % of the (square) hull box — what the
  * leader columns hug. Undefined for a viewBox that is not a plain square. */
 function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
@@ -301,6 +365,16 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; z-index: 1; display: flex; align-items: center;
       justify-content: center; overflow: hidden; container-type: size; --pin-inset: 56px; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
+    /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
+       depths and shift against each other with the pointer and the scroll —
+       rings far, hull + pins mid, the projection band near. --px/--py in
+       [-1, 1] come from the component; reduced motion leaves them at 0. */
+    .silhouette-frame { --px: 0; --py: 0; }
+    .rings, .shipwrap, .projection { transition: translate 520ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+    .rings { inset: -14px; translate: calc(var(--px) * -7px) calc(var(--py) * -7px); }
+    .shipwrap { translate: calc(var(--px) * 9px) calc(var(--py) * 9px); }
+    .projection { translate: calc(var(--px) * 15px) calc(var(--py) * 15px); }
+    :host(.still) .rings, :host(.still) .shipwrap, :host(.still) .projection { translate: none; transition: none; }
     /* Rings + grid + a slow sweep: the table is a live instrument even at rest. */
     .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0; transition: opacity 420ms ease;
       background:
@@ -642,6 +716,10 @@ export class CodexHoloTableComponent {
       const ro = new ResizeObserver(measure);
       ro.observe(frame);
       destroyRef.onDestroy(() => ro.disconnect());
+    });
+    afterNextRender(() => {
+      const frame = this.frameRef()?.nativeElement;
+      if (frame) destroyRef.onDestroy(bindParallax(frame, () => this.still()));
     });
     afterNextRender(() => {
       if (typeof IntersectionObserver !== 'function') return;

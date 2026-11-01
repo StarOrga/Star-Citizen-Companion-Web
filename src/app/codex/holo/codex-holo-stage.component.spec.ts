@@ -2,7 +2,7 @@ import { provideNoShipBlueprints } from '../ship-blueprint/ship-blueprint.testin
 import { ComponentFixture, TestBed, fakeAsync, flush, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { CodexHoloStageComponent } from './codex-holo-stage.component';
+import { CodexHoloStageComponent, HOLO_TONES } from './codex-holo-stage.component';
 import { CodexDetail } from '../codex.service';
 import { HoloSilhouette } from '../holo-silhouette';
 import { ShipCapabilities } from '../codex-mission';
@@ -462,5 +462,72 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     expect(c.staticChip('cargo')).toBe('—');
     expect(c.staticChipTitle('cargo')).toContain('Spieldaten');
     expect(c.staticChipTitle('crew')).toBeNull();
+  });
+});
+
+describe('CodexHoloStageComponent sound (cx-sound)', () => {
+  let started: { freq: number; gain: number }[];
+  let realCtx: unknown;
+
+  class FakeParam {
+    value = 0;
+    last = 0;
+    setValueAtTime(v: number) { this.value = v; this.last = Math.max(this.last, v); return this; }
+    exponentialRampToValueAtTime(v: number) { this.last = Math.max(this.last, v); return this; }
+  }
+  class FakeCtx {
+    state = 'running';
+    currentTime = 0;
+    destination = {};
+    createOscillator() {
+      const frequency = new FakeParam();
+      const node = {
+        type: 'sine',
+        frequency,
+        connect: (g: { gain: FakeParam }) => ({ connect: () => { node.gainNode = g; } }),
+        gainNode: null as { gain: FakeParam } | null,
+        start: () => started.push({ freq: frequency.value, gain: node.gainNode?.gain.last ?? 0 }),
+        stop: () => undefined,
+      };
+      return node;
+    }
+    createGain() { return { gain: new FakeParam() }; }
+    resume() { return Promise.resolve(); }
+    close() { return Promise.resolve(); }
+  }
+
+  beforeEach(() => {
+    started = [];
+    realCtx = (window as unknown as { AudioContext: unknown }).AudioContext;
+    (window as unknown as { AudioContext: unknown }).AudioContext = FakeCtx;
+    localStorage.removeItem('sc.codex.holo.sound');
+  });
+  afterEach(() => {
+    (window as unknown as { AudioContext: unknown }).AudioContext = realCtx;
+    localStorage.removeItem('sc.codex.holo.sound');
+  });
+
+  it('is off by default and silent until switched on', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    expect(c.soundOn()).toBeFalse();
+    c.toggleViewMode('3d');
+    expect(started.length).withContext('no sound while off').toBe(0);
+  });
+
+  it('plays quiet tones once on: toggle blip, view + Einsatz switch, every gain <= 0.05', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    c.toggleSound();
+    expect(started.length).withContext('confirmation blip').toBe(1);
+    c.toggleViewMode('3d');
+    expect(started.length).withContext('view switch tick').toBe(2);
+    fixture.componentRef.setInput('activeMissionId', 'combat');
+    fixture.detectChanges();
+    expect(started.length).withContext('Einsatz switch tick').toBe(3);
+    c.tone('arrive');
+    expect(started.length).withContext('arrival = two notes').toBe(5);
+    expect(started.every((s) => s.gain > 0 && s.gain <= 0.05)).toBeTrue();
+    expect(Object.values(HOLO_TONES).flat().every((n) => n.gain <= 0.05)).toBeTrue();
   });
 });

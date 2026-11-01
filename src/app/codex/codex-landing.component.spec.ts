@@ -274,6 +274,27 @@ describe('CodexLandingComponent', () => {
     discardPeriodicTasks();
     flush();
   }));
+
+  it('hero claims also roll every CLAIM_MS while the rotation runs (cx-claims)', fakeAsync(() => {
+    setup(three());
+    settle();
+    const cmp = fixture.componentInstance;
+    expect(cmp.paused()).withContext('rotation runs').toBeFalse();
+    expect(cmp.claimIndex()).toBe(0);
+    tick(CLAIM_MS);
+    fixture.detectChanges();
+    expect(cmp.active()).withContext('still the first category').toBe(0);
+    expect(cmp.claimIndex()).withContext('claim advanced during rotation').toBe(1);
+    tick(ROTATION_MS - CLAIM_MS);
+    fixture.detectChanges();
+    expect(cmp.active()).toBe(1);
+    expect(cmp.claimIndex()).withContext('next category starts on its own cursor').toBe(0);
+    tick(CLAIM_MS);
+    fixture.detectChanges();
+    expect(cmp.claimIndex()).toBe(1);
+    discardPeriodicTasks();
+    flush();
+  }));
   it('renders an error state with retry instead of the empty state', fakeAsync(() => {
     setup([]);
     data.error.set('errors.codex.load.network');

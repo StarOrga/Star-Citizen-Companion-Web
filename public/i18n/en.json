@@ -5879,6 +5879,8 @@
       "newTabShort": "In new tab",
       "copyLink": "Copy link to {{name}}",
       "copyLinkShort": "Copy link",
+      "strip": "Whole Codex: {{n}} results",
+      "stripBusy": "Whole Codex: searching …",
       "copied": "Link copied",
       "keys": {
         "dropContext": "at field start: drop context"

@@ -18,6 +18,13 @@ import {
 } from '../codex.service';
 import { UpcomingShipsService, normalizeShipName } from '../upcoming-ships.service';
 import { formatNumber } from '../codex-format';
+import { shipAnchorPorts, shipAnchorPositions } from './codex-landing-values';
+
+/** Real hardpoint anchors of a ship's callouts (cx-anchors): candidate ports + their codex positions. */
+function shipAnchors(payload: unknown): Pick<LandingItem, 'anchorPorts' | 'anchorPositions'> {
+  const anchorPorts = shipAnchorPorts(payload);
+  return { anchorPorts, anchorPositions: shipAnchorPositions(payload, anchorPorts) };
+}
 import {
   LANDING_CATEGORIES,
   LandingCategory,
@@ -423,6 +430,7 @@ export class CodexLandingDataService {
       topValues: withClassStats(category, topValuesFor(category, detail.payload), classCohort(category, row, rows)),
       facts: factsFor(category, detail.payload, listRow.size),
       fresh: fresh.some((r) => r.classNameSlug === className),
+      ...(category === 'ship' ? shipAnchors(detail.payload) : {}),
     };
   }
 

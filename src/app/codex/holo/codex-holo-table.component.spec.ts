@@ -1,7 +1,8 @@
 import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
-import { CodexHoloTableComponent } from './codex-holo-table.component';
+import { CodexHoloTableComponent, parallaxOffset } from './codex-holo-table.component';
+import { installFrameClock } from '../../testing/frames';
 import { HoloPhase, StagePin } from './codex-holo-model';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 import { fakeShipBlueprints } from '../ship-blueprint/ship-blueprint.testing';
@@ -321,6 +322,47 @@ describe('CodexHoloTableComponent', () => {
       const path = (fixture.nativeElement as HTMLElement).querySelector('svg.leaders path')!;
       expect(getComputedStyle(path).animationName).toBe('none');
       expect(getComputedStyle(path).strokeDashoffset).toMatch(/^0(px)?$/);
+    });
+  });
+
+  describe('parallax (cx-parallax)', () => {
+    const rect = { left: 100, top: 100, width: 400, height: 400 };
+
+    it('centres to zero and follows the pointer to the edges', () => {
+      expect(parallaxOffset(rect, 600, null)).toEqual({ x: 0, y: 0 });
+      expect(parallaxOffset(rect, 600, { x: 300, y: 300 })).toEqual({ x: 0, y: 0 });
+      expect(parallaxOffset(rect, 600, { x: 500, y: 300 }).x).toBe(1);
+      expect(parallaxOffset(rect, 600, { x: 100, y: 300 }).x).toBe(-1);
+      expect(parallaxOffset(rect, 600, { x: 900, y: 300 }).x).withContext('clamped').toBe(1);
+    });
+
+    it('scrolling tilts the vertical axis by a third', () => {
+      const below = parallaxOffset({ ...rect, top: 400 }, 600, null);
+      expect(below.y).toBeCloseTo(1 / 3, 2);
+      expect(parallaxOffset({ ...rect, width: 0 }, 600, { x: 1, y: 1 })).toEqual({ x: 0, y: 0 });
+    });
+
+    it('a pointer move sets --px/--py on the frame; reduced motion never does', () => {
+      const frames = installFrameClock();
+      const fixture = setup({ phase: 'done' });
+      TestBed.inject(ApplicationRef).tick();
+      const frame = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.silhouette-frame')!;
+      const r = frame.getBoundingClientRect();
+      frame.dispatchEvent(new PointerEvent('pointermove', { clientX: r.right - 1, clientY: r.top + r.height / 2, pointerType: 'mouse' }));
+      frames.runFrame();
+      expect(Number(frame.style.getPropertyValue('--px'))).toBeGreaterThan(0.9);
+      fixture.destroy();
+    });
+
+    it('reduced motion leaves the layers in place', () => {
+      const frames = installFrameClock();
+      const fixture = setup({ phase: 'done', still: true });
+      TestBed.inject(ApplicationRef).tick();
+      const frame = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.silhouette-frame')!;
+      frame.dispatchEvent(new PointerEvent('pointermove', { clientX: 0, clientY: 0, pointerType: 'mouse' }));
+      frames.runFrame();
+      expect(frame.style.getPropertyValue('--px')).toBe('');
+      fixture.destroy();
     });
   });
 });

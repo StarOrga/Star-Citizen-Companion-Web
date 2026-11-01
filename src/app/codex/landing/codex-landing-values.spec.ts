@@ -1,7 +1,7 @@
 import { LandingCodexCategory, LandingValue } from './codex-landing-data.types';
-import { MAX_CALLOUTS, barOf, compareValue, splitCallouts } from './codex-landing-values';
+import { MAX_CALLOUTS, barOf, compareValue, shipAnchorPorts, shipAnchorPositions, splitCallouts } from './codex-landing-values';
 import { CLAIMS_PER_CATEGORY, ClaimCursor, buildClaims } from './codex-landing-claims';
-import { HOLO_TIMING, scanPassAt } from './codex-landing-holotable.component';
+import { HOLO_TIMING, anchorPoint, leaderPath, scanPassAt } from './codex-landing-holotable.component';
 
 const v = (key: string, value: number, extra: Partial<LandingValue> = {}): LandingValue => ({ key, value, unit: null, ...extra });
 
@@ -107,5 +107,57 @@ describe('scan timing', () => {
     expect(scanPassAt(1, 100)).toBe(1);
     expect(scanPassAt(1, 0)).toBe(1 + HOLO_TIMING.build);
     expect(scanPassAt(0, 30)).toBeLessThan(scanPassAt(0, 10));
+  });
+});
+
+describe('real hardpoint anchors (cx-anchors)', () => {
+  const payload = {
+    itemPorts: [
+      { portName: 'hardpoint_weapon_left' },
+      { portName: 'hardpoint_thruster_main_left' },
+      { portName: 'hardpoint_thruster_main_right' },
+      { portName: 'hardpoint_armor' },
+    ],
+    defaultLoadout: [{ itemPortName: 'hardpoint_cargogrid_main' }, { itemPortName: 'hardpoint_thruster_main_left' }],
+    hardpointTransforms: { hardpoint_engine_main: { position: [0, 0, 0] } },
+  };
+
+  it('maps the callout values to the ports that carry them, in payload order', () => {
+    const out = shipAnchorPorts(payload);
+    expect(out['flight.maxSpeed']).toEqual([
+      'hardpoint_thruster_main_left',
+      'hardpoint_thruster_main_right',
+      'hardpoint_engine_main',
+    ]);
+    expect(out['cargoScu']).toEqual(['hardpoint_cargogrid_main']);
+    expect(out['armorHp']).toEqual(['hardpoint_armor']);
+    expect(out['hull.hp']).withContext('the hull has no mount: zone fallback').toBeUndefined();
+  });
+
+  it('codex positions convert from CryEngine space to the glb (x, z, -y); implausible ones drop', () => {
+    const pos = shipAnchorPositions(
+      { hardpointTransforms: { hardpoint_engine_attach: { position: [0, -11.5, -0.5] }, hardpoint_armor: { position: [0, 0, 1e9] } }, itemPorts: [{ portName: 'hardpoint_cargogrid', position: [1, 2, 3] }] },
+      { 'flight.maxSpeed': ['hardpoint_engine_attach'], armorHp: ['hardpoint_armor'], cargoScu: ['hardpoint_cargogrid'] },
+    );
+    expect(pos['hardpoint_engine_attach']).toEqual([0, -0.5, 11.5]);
+    expect(pos['hardpoint_cargogrid']).toEqual([1, 3, -2]);
+    expect(pos['hardpoint_armor']).toBeUndefined();
+  });
+
+  it('a payload without ports yields no candidates (the zones stay)', () => {
+    expect(shipAnchorPorts(null)).toEqual({});
+    expect(shipAnchorPorts({ itemPorts: 'x' })).toEqual({});
+  });
+
+  it('projects a laid-out anchor into air % and ignores one that is not laid out yet', () => {
+    const air = { left: 100, top: 50, width: 1000, height: 500 };
+    expect(anchorPoint(air, { left: 599, top: 299, width: 2, height: 2 })).toEqual({ x: 50, y: 50 });
+    expect(anchorPoint(air, { left: 0, top: 0, width: 0, height: 0 })).toBeNull();
+    expect(anchorPoint(air, { left: 5000, top: 299, width: 2, height: 2 })).toBeNull();
+  });
+
+  it('the leader line never bends back into the callout column', () => {
+    expect(leaderPath(48, 50, 40)).toBe('M 21.8 48 H 24 L 50.00 40.00');
+    expect(leaderPath(48, 10, 40)).toBe('M 21.8 48 H 24 L 25.00 40.00');
   });
 });
