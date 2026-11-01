@@ -299,6 +299,11 @@ a.holo {
   .leaders path { stroke-dashoffset: 0; }
   .prog .run { animation: none !important; stroke-dashoffset: 0; }
 }
+// Touch screens: the plate labels stay readable (mobile gate).
+@media (pointer: coarse) {
+  .k-eye { font-size: 12px; letter-spacing: 0.16em; }
+  .k-facts dt { font-size: 12px; letter-spacing: 0.12em; }
+}
 @media (prefers-reduced-motion: reduce) {
   .beam { transform: none; opacity: 1; animation: none !important; }
   .beam .rays, .beam .motes, .band, .sweep, .pool, .emitter, .dot, .dot.real::after { animation: none !important; }
@@ -319,7 +324,8 @@ a.holo {
   .k-eye { justify-content: center; }
   .k-name { font-size: 22px; }
   .k-rule { margin-inline: auto; }
-  .k-facts { justify-content: center; }
+  .k-facts { justify-content: center; grid-auto-columns: minmax(0, max-content); max-width: 100%; }
+  .k-facts div { padding: 0 8px; }
   .k-paints { align-items: center; }
   .chips { justify-content: center; }
   .pv { left: 50%; transform: translateX(-50%); width: min(300px, 92vw); }
