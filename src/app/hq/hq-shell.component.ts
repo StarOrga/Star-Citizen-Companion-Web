@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
+import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqSuppliesPanelComponent } from './hq-supplies-panel.component';
 import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
 import { HqSuppliesService } from './hq-supplies.service';
@@ -36,6 +37,7 @@ export const HQ_TABS: readonly HqTab[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Beta "shell": the tabs live in the Fusion bar (header and subheader are one capsule). -->
+    @if (!onPages()) {
     <div class="hq-bar" [class.fused]="shell()">
       @if (!shell()) {
         <nav class="hq-tabs" [attr.aria-label]="'hq.tabsAria' | translate">
@@ -63,10 +65,11 @@ export const HQ_TABS: readonly HqTab[] = [
         <b class="supplies-count mono">{{ suppliesCount() }}</b>
       </button>
     </div>
+    }
 
     <router-outlet />
 
-    @if (suppliesOpen()) {
+    @if (suppliesOpen() && !onPages()) {
       @if (shell()) {
         <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
       } @else {
@@ -126,6 +129,12 @@ export class HqShellComponent {
   readonly suppliesOpen = signal(false);
   readonly shell = inject(BetaService).isEnabled('shell');
   private readonly supplies = inject(HqSuppliesService);
+  private readonly chrome = inject(ShellChromeService);
+  /**
+   * The five-page landing is on screen (beta shell): it is the whole page — the bar with the
+   * Nachschub button leaves, supplies move into Planen (web-supply / web-ops packages).
+   */
+  readonly onPages = computed(() => this.chrome.hqPage() !== null);
   /** Beta off: the supplies list has no data source, so the counter is 0. Beta on: the open lines of the popup list. */
   readonly suppliesCount = computed(() => (this.shell() ? this.supplies.open().length : 0));
 }

@@ -4947,6 +4947,50 @@
       "subtitle": "Deine FPS-Sets für jede Rolle.",
       "details": "Details",
       "detailsAria": "Details zu {{name}} im Codex"
+    },
+    "pages": {
+      "start": "Start",
+      "planen": "Planen",
+      "jetzt": "Jetzt",
+      "bestand": "Bestand",
+      "statistik": "Statistik",
+      "empty": "{{page}}: Hier entsteht gerade etwas Neues."
+    },
+    "rail": {
+      "label": "HQ-Seiten",
+      "goto": "Zu {{page}}"
+    },
+    "start": {
+      "kicker": "Dein HQ",
+      "title": "Hauptquartier",
+      "important": "Jetzt wichtig"
+    },
+    "first": {
+      "promise": "Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.",
+      "step1": "RSI-Hangar holen",
+      "step2": "SCC-App verbinden",
+      "step3": "Ersten Einsatz planen",
+      "go": "Los geht's",
+      "skip": "Überspringen",
+      "duration": "≈ 4 Minuten"
+    },
+    "step": {
+      "kind": {
+        "buy": "Kaufen",
+        "mission": "Mission",
+        "mine": "Abbauen",
+        "refine": "Raffinieren",
+        "craft": "Craften",
+        "transport": "Transportieren",
+        "pickup": "Abholen"
+      },
+      "state": {
+        "todo": "zu tun",
+        "done": "erledigt"
+      }
+    },
+    "log": {
+      "undo": "Rückgängig"
     }
   },
   "verse": {
@@ -5519,7 +5563,11 @@
       "shipFallback": "Dieses Schiff",
       "codexDetail": "{{kind}}",
       "fps": "FPS",
-      "hq": "Mein HQ"
+      "hq": "Mein HQ",
+      "hqPlan": "Planen",
+      "hqNow": "Jetzt",
+      "hqStock": "Bestand",
+      "hqStats": "Statistik"
     },
     "placeholder": {
       "all": "Überall suchen …",
@@ -5530,7 +5578,11 @@
       "ship": "Komponenten, Waffen, Schiffe …",
       "codexDetail": "Im Codex suchen …",
       "fps": "Waffen, Rüstungen, Ausrüstung …",
-      "hq": "Hangar, Spind, Schiffe …"
+      "hq": "Hangar, Spind, Schiffe …",
+      "hqPlan": "Set, Teil oder Ort für deinen Einsatz …",
+      "hqNow": "Schiff, Ort oder Teil …",
+      "hqStock": "In deinem Bestand suchen …",
+      "hqStats": "Schiff oder Set …"
     },
     "search": {
       "label": "Suche",
