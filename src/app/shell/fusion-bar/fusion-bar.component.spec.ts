@@ -192,6 +192,93 @@ describe('FusionBarComponent', () => {
     expect(chrome.dockProgress).toBe(0);
   });
 
+  it('folds the trail by width: the whole path while it fits, first · … · last as soon as it does not', async () => {
+    layout.set('content');
+    const fixture = await setup('/codex/ship/RSI_Constellation_Andromeda');
+    document.body.appendChild(fixture.nativeElement);
+    const chrome = TestBed.inject(ShellChromeService);
+    const el = fixture.nativeElement as HTMLElement;
+    const parts = () => Array.from(el.querySelectorAll('.plate .trail > ol > li')).map((li) => li.textContent?.trim());
+    const settle = async () => {
+      fixture.detectChanges();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      fixture.componentInstance.measureTrail();
+      fixture.detectChanges();
+    };
+    // Three short parts: they fit, nothing folds (the old rule folded only past three).
+    const off = chrome.publishCrumbs({}, {
+      crumbs: [{ labelKey: 'nav.codex', link: ['/codex'] }, { label: 'Schiffe', link: ['/codex', 'index'] }],
+      title: 'Andromeda',
+    });
+    await settle();
+    expect(parts()).toEqual(['nav.codex', 'Schiffe', 'Andromeda']);
+    expect(fixture.componentInstance.trailFolded()).toBeFalse();
+    off();
+    // Same count, a title too long for the plate: the middle folds, first and last stay.
+    const off2 = chrome.publishCrumbs({}, {
+      crumbs: [{ labelKey: 'nav.codex', link: ['/codex'] }, { label: 'Schiffe', link: ['/codex', 'index'] }],
+      title: 'RSI Constellation Andromeda Best In Show Edition 2956',
+    });
+    await settle();
+    const w = (sel: string) => Math.round(el.querySelector(sel)?.getBoundingClientRect().width ?? -1);
+    const dims = `nav ${w('.plate .trail')} · whole path ${w('.trail-measure')} · cap ${w('.cap')} · plate ${w('.plate')}`;
+    expect(parts()[0]).withContext(dims).toBe('nav.codex');
+    expect(parts()[1]).withContext(dims).toContain('…');
+    expect(parts()[2]).toBe('RSI Constellation Andromeda Best In Show Edition 2956');
+    expect(fixture.componentInstance.trailFolded()).toBeTrue();
+    // The full path stays in the tooltip source and the screen-reader text.
+    expect(el.querySelector('.plate .trail .fold .sr-only')?.textContent).toContain('Schiffe');
+    off2();
+    el.remove();
+  });
+
+  it('without a toolbar the docked search has no width cap (it runs up to Apps); with one it keeps 520px', async () => {
+    layout.set('content');
+    const fixture = await setup('/verse/news');
+    // A fixture created later resets TestBed's root elements: build the toolbar host first.
+    const host = TestBed.createComponent(ToolbarHost);
+    host.detectChanges();
+    document.body.appendChild(fixture.nativeElement);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.classList).not.toContain('tools');
+    expect(getComputedStyle(el.querySelector('.search')!).maxWidth).toBe('none');
+    const off = TestBed.inject(ShellChromeService).registerToolbar(host.componentInstance.tb());
+    fixture.detectChanges();
+    expect(el.classList).toContain('tools');
+    expect(getComputedStyle(el.querySelector('.search')!).maxWidth).toBe('520px');
+    off();
+    el.remove();
+  });
+
+  it('autofocus: never while the field stands on a stage, never on a coarse pointer', async () => {
+    layout.set('cinematic');
+    const fixture = await setup('/verse');
+    const bar = fixture.componentInstance;
+    const spy = jasmine.createSpy('autofocus').and.returnValue(true);
+    (bar as unknown as { searchCmp: () => unknown }).searchCmp = () => ({ autofocus: spy });
+    expect(bar.mode()).toBe('stage');
+    bar.autofocusSearch();
+    expect(spy).not.toHaveBeenCalled();
+
+    TestBed.resetTestingModule();
+    layout.set('content');
+    const sub = await setup('/verse/news');
+    const subBar = sub.componentInstance;
+    const spy2 = jasmine.createSpy('autofocus').and.returnValue(true);
+    (subBar as unknown as { searchCmp: () => unknown }).searchCmp = () => ({ autofocus: spy2 });
+    const fine = matchMedia('(pointer: fine)').matches && !matchMedia('(pointer: coarse)').matches;
+    subBar.autofocusSearch();
+    if (fine) {
+      expect(spy2).toHaveBeenCalled();
+      expect(subBar.autofocused()).toBeTrue();
+      // The first key inside the bar ends the autofocus state (the bar may stay while in use).
+      subBar.onBarInteract();
+      expect(subBar.autofocused()).toBeFalse();
+    } else {
+      expect(spy2).not.toHaveBeenCalled();
+    }
+  });
+
   it('is docked from the start on a sub-page, its back link leading to the area root without crumbs', async () => {
     layout.set('cinematic');
     const fixture = await setup('/verse/news');

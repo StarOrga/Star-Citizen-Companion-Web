@@ -145,8 +145,16 @@ interface FusionSection {
              [attr.placeholder]="('fusionBar.placeholder.' + context().key) | translate"
              [value]="engine.input()"
              (input)="onInput($any($event.target).value)"
-             (focus)="openPanel()"
+             (focus)="focused.set(true)"
+             (blur)="focused.set(false)"
+             (click)="openPanel()"
              (keydown)="onKeydown($event)" />
+        @if (!engine.input() && !demoOn()) {
+          <!-- The visible placeholder: Chromium clips a focused input's native placeholder
+               mid-letter (text-overflow only applies unfocused), and the field is autofocused.
+               The input's placeholder attribute stays its accessible description. -->
+          <span class="ph" aria-hidden="true">{{ ('fusionBar.placeholder.' + context().key) | translate }}</span>
+        }
         @if (demoOn()) {
           <!-- Staged and idle: the placeholder fades, example searches type themselves
                (concept r8 sty1–3). Decoration only — the input's label stays its name. -->
@@ -184,6 +192,18 @@ interface FusionSection {
           </button>
         }
       </span>
+      @if (stripShown()) {
+        <!-- op-hybrid: on a page with its own list search the list filters live and the
+             panel stays shut; this slim line offers the whole Codex (click / ↓ expands). -->
+        <button type="button" class="strip" (click)="openPanel()" aria-live="polite">
+          @if (busy()) {
+            {{ 'fusionBar.search.stripBusy' | translate }}
+          } @else {
+            {{ 'fusionBar.search.strip' | translate: { n: stripTotal() } }}
+          }
+          <span class="strip-k" aria-hidden="true">↓</span>
+        </button>
+      }
     </div>
 
     @if (open()) {
@@ -345,6 +365,8 @@ interface FusionSection {
   styles: [`
     :host { position: relative; display: flex; min-width: 0; flex: 1 1 auto; }
     .field {
+      /* The field's own width decides when the key hint gives way (container query below). */
+      container-type: inline-size;
       position: relative; isolation: isolate; flex: 1 1 auto; min-width: 0;
       display: flex; align-items: center; gap: var(--sc-space-2);
       height: 44px; padding: 0 var(--sc-space-2) 0 var(--sc-space-4);
@@ -364,8 +386,16 @@ interface FusionSection {
     .input {
       flex: 1 1 auto; min-width: 4ch; height: 100%; padding: 0; border: 0; outline: none; background: transparent;
       color: var(--sc-fg-0); font-family: inherit; font-size: max(0.92rem, var(--sc-fs-input, 1rem));
+      text-overflow: ellipsis;
     }
-    .input::placeholder { color: var(--sc-fg-2); opacity: 1; }
+    /* A placeholder that does not fit ends in "…", never in a letter cut in half: the
+       native one is transparent, .ph draws it (ellipsis in every focus state). */
+    .input::placeholder { color: transparent; opacity: 1; }
+    .ph {
+      position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--sc-fg-2); font-size: max(0.92rem, var(--sc-fs-input, 1rem));
+    }
     .inwrap { position: relative; display: flex; align-items: center; flex: 1 1 auto; align-self: stretch; min-width: 0; }
     /* Basis 0: the input fills the field, never its intrinsic ~20ch past the field's edge. */
     .inwrap > .input { width: 0; }
@@ -409,10 +439,24 @@ interface FusionSection {
     .hint { display: inline-flex; gap: var(--sc-space-1); flex: none; }
     kbd {
       display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em;
-      padding: 0 6px; border-radius: 6px; border: 1px solid var(--sc-border); border-bottom-width: 2px;
-      background: var(--sc-bg-2); color: var(--sc-fg-1);
-      font-family: var(--sc-font-mono, monospace); font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1; white-space: nowrap;
+      padding: 0 6px; border-radius: 6px; border: 0;
+      background: color-mix(in srgb, var(--sc-fg-0) 7%, transparent); color: var(--sc-fg-1);
+      font-family: inherit; font-variant-numeric: tabular-nums; font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1; white-space: nowrap;
     }
+    /* op-hybrid strip: one slim line under the field, the whole Codex one press away. */
+    .strip {
+      position: absolute; top: calc(100% + 14px); left: var(--sc-space-3); z-index: 3;
+      display: inline-flex; align-items: center; gap: var(--sc-space-2);
+      min-height: 30px; padding: 0 var(--sc-space-3); border: 0; border-radius: 999px;
+      background: var(--sc-bg-1); color: var(--sc-fg-1); cursor: pointer; white-space: nowrap;
+      font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+      animation: fs-chip-in 0.2s ease both;
+    }
+    .strip:hover { color: var(--sc-fg-0); }
+    .strip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .strip-k { color: var(--sc-accent); }
+    :host(.bottom) .strip { display: none; }
     .xslot { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
     .close {
       flex: none; display: inline-flex; align-items: center; justify-content: center;
@@ -429,64 +473,58 @@ interface FusionSection {
          (fitPanel), so a field placed low on a stage page never pushes the
          panel past the fold and scrolls the page. */
       max-height: min(72dvh, 680px, var(--fs-panel-room, 680px)); overflow-y: auto; overscroll-behavior: contain;
-      display: flex; flex-direction: column; gap: var(--sc-space-3);
+      display: flex; flex-direction: column; gap: 10px;
       padding: var(--sc-space-3);
-      border-radius: 20px;
-      background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, var(--sc-border));
-      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), var(--sc-glow);
-      -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3);
-      transform-origin: top right;
+      /* "Schwebende Karte" (concept 2026-11-01, round 1): no outline, a brighter surface
+         than the page, depth from the shadow alone. */
+      border-radius: 24px;
+      background: var(--sc-bg-1);
+      border: 0;
+      box-shadow: inset 0 2px 0 color-mix(in srgb, var(--sc-fg-0) 4%, transparent),
+                  0 36px 90px rgba(0, 0, 0, 0.75), 0 10px 24px rgba(0, 0, 0, 0.45);
+      transform-origin: top center;
       animation: fs-panel-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
-    /* A light line across the panel's top edge: the "welded" seam of the mock. */
-    .panel::before {
-      content: ''; position: sticky; top: calc(-1 * var(--sc-space-3)); display: block; height: 2px; margin: calc(-1 * var(--sc-space-3)) var(--sc-space-5) 0;
-      border-radius: 2px; background: linear-gradient(90deg, var(--sc-accent), color-mix(in oklab, var(--sc-accent) 35%, var(--sc-fg-0)), var(--sc-accent));
-      flex: none;
-    }
 
-    .listbox { display: flex; flex-direction: column; gap: var(--sc-space-3); transition: opacity 0.15s ease; }
+    .listbox { display: flex; flex-direction: column; gap: 10px; transition: opacity 0.15s ease; }
     .listbox.stale { opacity: 0.65; }
-    .group { display: flex; flex-direction: column; gap: 2px; animation: fs-row-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
-    .group + .group { padding-top: var(--sc-space-2); border-top: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
+    /* Sections are inset tiles of their own, not divider lines. */
+    .group {
+      display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 16px; background: var(--sc-bg-0);
+      animation: fs-row-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 45ms);
+    }
     .group-head {
-      display: flex; align-items: center; gap: var(--sc-space-2); padding: 0 var(--sc-space-2) var(--sc-space-1);
+      display: flex; align-items: center; gap: var(--sc-space-2); padding: 0 var(--sc-space-1) 6px;
       font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.1em;
       text-transform: uppercase; color: var(--sc-fg-2);
     }
     .count {
-      padding: 0 7px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-accent);
-      font-family: var(--sc-font-mono, monospace); letter-spacing: 0; font-size: max(0.68rem, var(--sc-fs-floor));
+      padding: 0 7px; border-radius: 999px; background: var(--sc-bg-1); color: var(--sc-accent);
+      font-family: var(--sc-font-body); font-variant-numeric: tabular-nums; letter-spacing: 0; font-size: max(0.68rem, var(--sc-fs-floor));
     }
     .rows { display: flex; flex-direction: column; gap: 2px; }
-    .rows.chips { flex-direction: row; flex-wrap: wrap; gap: var(--sc-space-2); padding: 0 var(--sc-space-1); }
-    .row { position: relative; display: flex; align-items: center; gap: var(--sc-space-1); border-radius: 12px; }
-    /* The selection marker slides in instead of blinking on. */
+    .rows.chips { flex-direction: row; flex-wrap: wrap; gap: var(--sc-space-2); padding: 0; }
+    .row { position: relative; display: flex; align-items: center; gap: var(--sc-space-1); border-radius: 10px; }
+    /* The selection: a soft fill that fades in — no outline, no edge bar. */
     .row::before {
       content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-      background: color-mix(in srgb, var(--tone, var(--sc-accent)) 9%, transparent);
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone, var(--sc-accent)) 55%, transparent),
-                  inset 3px 0 0 var(--tone, var(--sc-accent));
-      opacity: 0; transform: scaleX(0.97); transform-origin: left center;
-      transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      background: color-mix(in srgb, var(--sc-accent) 15%, transparent);
+      opacity: 0; transition: opacity 0.16s ease;
     }
-    .row:hover::before, .row.active::before { opacity: 1; transform: none; }
-    .row.upcoming { --tone: var(--sc-warning); }
+    .row:hover::before, .row.active::before { opacity: 1; }
     .hit {
       position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--sc-space-3);
       min-height: 48px; padding: var(--sc-space-1) var(--sc-space-2); color: inherit; text-decoration: none; border-radius: inherit;
     }
     .hit:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .icon { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
-      border-radius: 10px; background: color-mix(in srgb, var(--tone, var(--sc-accent)) 10%, transparent); color: var(--tone, var(--sc-accent)); }
+      border-radius: 50%; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
     .icon svg { width: 18px; height: 18px; }
     .body { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
     .name { font-weight: 600; color: var(--sc-fg-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--sc-space-2); font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .badge { padding: 0 6px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); color: var(--sc-fg-1); }
-    .badge.soon { color: var(--sc-warning); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
-    .badge.own { color: var(--sc-accent); }
+    .badge { padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--sc-fg-0) 7%, transparent); color: var(--sc-fg-1); }
+    .badge.soon, .badge.own { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .qa { position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; padding-right: var(--sc-space-1); }
     .qi {
       display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
@@ -499,34 +537,36 @@ interface FusionSection {
     .qi svg { width: 17px; height: 17px; }
     .act {
       display: inline-flex; align-items: center; min-height: 34px; padding: 0 var(--sc-space-3); margin-left: var(--sc-space-1);
-      border-radius: 10px; border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1);
+      border-radius: 10px; border: 0; background: color-mix(in srgb, var(--sc-fg-0) 7%, transparent); color: var(--sc-fg-1);
       font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
       text-decoration: none; cursor: pointer; white-space: nowrap;
     }
-    .act:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .act.primary { border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent); color: var(--sc-accent); }
-    .act.primary:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .act:hover { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); }
+    .act.primary { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
+    .act.primary:hover { background: color-mix(in srgb, var(--sc-accent) 26%, transparent); }
     .act:disabled { opacity: 0.5; cursor: default; }
     .more {
       align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
       margin-left: 52px; padding: 0 var(--sc-space-3); border-radius: 10px; color: var(--sc-accent); text-decoration: none;
-      font-size: max(0.8rem, var(--sc-fs-floor)); border: 1px solid transparent;
+      font-size: max(0.8rem, var(--sc-fs-floor)); border: 0;
     }
-    .more:hover, .more.active { border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    .more:hover, .more.active { background: color-mix(in srgb, var(--sc-accent) 15%, transparent); }
+    /* Soft tags: filled, no outline, a small square accent marker. */
     .chip {
-      display: inline-flex; align-items: center; min-height: 34px; padding: 0 var(--sc-space-3); border-radius: 999px;
-      border: 1px solid var(--sc-border); background: var(--sc-bg-0); color: var(--sc-fg-1); text-decoration: none;
-      font-size: max(0.8rem, var(--sc-fs-floor)); transition: border-color 0.15s ease, background-color 0.15s ease;
+      display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 var(--sc-space-3); border-radius: 10px;
+      border: 0; background: var(--sc-bg-3); color: var(--sc-fg-1); text-decoration: none;
+      font-size: max(0.8rem, var(--sc-fs-floor)); transition: background-color 0.15s ease, color 0.15s ease;
     }
-    .chip:hover, .chip.active { border-color: var(--sc-accent); color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-0)); }
+    .chip::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--sc-accent); }
+    .chip:hover, .chip.active { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 30%, var(--sc-bg-3)); }
     .state { margin: 0; padding: var(--sc-space-1) var(--sc-space-2); color: var(--sc-fg-2); font-size: max(0.84rem, var(--sc-fs-floor)); }
     .state.err { color: var(--sc-danger); display: flex; flex-wrap: wrap; gap: var(--sc-space-2); align-items: center; }
     .retry { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--sc-danger); background: transparent; color: var(--sc-danger); cursor: pointer; font: inherit; }
     .keys {
       position: sticky; bottom: calc(-1 * var(--sc-space-3)); margin: 0 calc(-1 * var(--sc-space-3)) calc(-1 * var(--sc-space-3));
       display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sc-space-1) var(--sc-space-4);
-      padding: var(--sc-space-2); border-top: 1px solid var(--sc-border);
-      background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent); color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor));
+      padding: var(--sc-space-2); border-top: 0;
+      background: var(--sc-bg-1); color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor));
     }
     .keys span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: -1px; padding: 0; }
@@ -562,6 +602,10 @@ interface FusionSection {
       .xslot { width: 44px; height: 44px; }
       .close { width: 44px; height: 44px; }
       .ctx-x { width: 36px; height: 36px; }
+    }
+    /* A narrow field: the placeholder keeps its room, the key hint gives way first. */
+    @container (max-width: 440px) {
+      .hint { display: none; }
     }
     /* A narrow capsule: the field keeps its text, the key hint gives way (aria-keyshortcuts stays). */
     @media (max-width: 1023px) {
@@ -610,7 +654,11 @@ export class FusionSearchComponent {
   readonly demoKeys = ['fusionBar.demo.ship', 'fusionBar.demo.patch', 'fusionBar.demo.item'] as const;
   private readonly reducedMotion =
     typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  readonly demoOn = computed(() => this.demo() && !this.reducedMotion && !this.open() && !this.engine.input());
+  /** The caret sits in the field (autofocus, a click, Ctrl+K) — not the same as the panel being open. */
+  readonly focused = signal(false);
+  readonly demoOn = computed(
+    () => this.demo() && !this.reducedMotion && !this.open() && !this.focused() && !this.engine.input(),
+  );
   /** Tool pages: the slimmer field. */
   readonly compact = input(false);
   /** Open/closed — the bar widens the field and keeps itself shown while open. */
@@ -690,6 +738,14 @@ export class FusionSearchComponent {
     if (placeSection && !this.context().placesFirst) out.push(placeSection);
     return out;
   });
+
+  /** The page registered its own list search (Codex lists, news, patches): typing filters that list. */
+  readonly pageSearchOn = computed(() => !!this.chrome.pageSearch());
+  /** "Im ganzen Codex: N Treffer ↓" — while the page filters itself and the panel is shut. */
+  readonly stripShown = computed(
+    () => this.pageSearchOn() && !this.open() && !!this.engine.input().trim() && !this.engine.error(),
+  );
+  readonly stripTotal = computed(() => this.engine.groups().reduce((n, g) => n + g.total, 0));
 
   readonly options = computed<FusionOption[]>(() => this.sections().flatMap((s) => s.options));
   readonly activeOption = computed<FusionOption | null>(() => this.options()[this.activeIndex()] ?? null);
@@ -799,10 +855,14 @@ export class FusionSearchComponent {
 
   // ---- open / close / focus ----
 
-  /** Focus the field (Ctrl+K, "/", the hub); `seed` starts a search with it. */
+  /**
+   * Focus the field. Without `seed` (Ctrl+K, "/", a press on the field) the
+   * panel opens with suggestions; with `seed` (type-to-search) the typed
+   * character decides like typing in the field does ({@link onInput}).
+   */
   focus(seed?: string): void {
     if (seed != null) this.onInput(this.engine.input() + seed);
-    this.openPanel();
+    else this.openPanel();
     queueMicrotask(() => this.fieldRef()?.nativeElement.focus());
     // Collapsed (phone) the field is only shown after the next render: focus again then.
     if (this.placement() === 'bottom') setTimeout(() => this.fieldRef()?.nativeElement.focus());
@@ -843,11 +903,26 @@ export class FusionSearchComponent {
     this.focus();
   }
 
+  /**
+   * op-hybrid: on a page with its own list search the term filters that list
+   * and the panel stays shut (the strip offers the whole Codex); elsewhere the
+   * first character opens the panel with results.
+   */
   onInput(value: string): void {
     this.engine.setInput(value);
-    this.chrome.pageSearch()?.(value);
+    const page = this.chrome.pageSearch();
+    page?.(value);
     this.activeIndex.set(-1);
     this.addFailed.set(false);
+    if (!page && value.trim() && !this.open()) this.openPanel();
+  }
+
+  /** The bar's load autofocus: the caret in the field, the panel shut, the page not scrolled. */
+  autofocus(): boolean {
+    const field = this.fieldRef()?.nativeElement;
+    if (!field || this.placement() === 'bottom' || field.getClientRects().length === 0) return false;
+    field.focus({ preventScroll: true });
+    return document.activeElement === field;
   }
 
   /** The ✕ in the field: empties it and puts the caret back in, ready to type. */

@@ -84,8 +84,9 @@ describe('FusionBarComponent, wave B parity', () => {
     expect(fixture.nativeElement.getAttribute('data-mode')).toBe('docked');
     expect(search().hideContext()).withContext('docked: no chip').toBeTrue();
     expect(search().demo()).withContext('docked: no demo').toBeFalse();
-    // The deck glow band runs along the docked bar; the staged field has echo frames instead.
-    expect(fixture.nativeElement.querySelector('.cap .band')).not.toBeNull();
+    // Ruhige Leiste (concept 2026-11-01): no light line along the docked bar any more, depth only;
+    // the echo frames belong to the staged field.
+    expect(fixture.nativeElement.querySelector('.cap .band')).toBeNull();
     expect(fixture.nativeElement.querySelector('.cap .echo')).toBeNull();
   });
 

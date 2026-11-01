@@ -246,7 +246,8 @@ export const MAIN_NAV_SLOT_PX = 112;
       }
       .admin:hover,
       .admin.active {
-        color: color-mix(in srgb, var(--sc-accent-hot) 70%, var(--sc-fg-0));
+        color: var(--sc-accent-hot);
+        text-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent-hot) 50%, transparent), var(--mh-shadow);
       }
       .admin.active {
         text-decoration: underline;
@@ -281,7 +282,7 @@ export const MAIN_NAV_SLOT_PX = 112;
         letter-spacing: 0.22em;
         text-transform: uppercase;
         text-decoration: none;
-        color: color-mix(in srgb, var(--sc-fg-0) 72%, transparent);
+        color: var(--sc-fg-1);
         text-shadow: var(--mh-shadow);
         border-radius: 8px;
         transition: color 0.2s ease, text-shadow 0.2s ease;
@@ -303,7 +304,8 @@ export const MAIN_NAV_SLOT_PX = 112;
       }
       .slot.elevated:hover,
       .slot.elevated.active {
-        color: color-mix(in srgb, var(--sc-accent-hot) 70%, var(--sc-fg-0));
+        color: var(--sc-accent-hot);
+        text-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent-hot) 50%, transparent), var(--mh-shadow);
       }
       .brand:focus-visible,
       .slot:focus-visible {
