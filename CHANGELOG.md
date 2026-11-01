@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.181.2] - 2026-11-01
+
+### Fixed
+- Codex ship page: the countermeasure sheet's ship signature now includes the hull armour's signal factor, so the recommended number of decoys is right for stealth and heavy hulls too (feedback #242).
+
 ## [0.181.1] - 2026-11-01
 
 ### Fixed

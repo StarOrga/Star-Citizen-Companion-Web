@@ -640,6 +640,35 @@ export function buildDefensivePanel(
   };
 }
 
+/** The hull armor's signal multipliers — feedback #242 follow-up. */
+export interface ArmorSignalMultipliers {
+  ir: number;
+  em: number;
+  crossSection: number;
+}
+
+/**
+ * The ARMR_ item's `SCItemVehicleArmorParams.signal{Infrared,Electromagnetic,CrossSection}`
+ * — the factor the game applies to everything the fitted components emit
+ * (4.10: 75 of 199 armors differ from 1, e.g. Eclipse 0.6, Centurion IR 0.4 /
+ * EM 0.3, Vanguard 1.334). A channel the armor does not carry stays 1 — the
+ * neutral factor, not a guess. Null when there is no armor or no such field
+ * at all, so the caller can tell "unscaled" from "scaled by 1".
+ */
+export function armorSignalMultipliers(armorPayload: unknown): ArmorSignalMultipliers | null {
+  const stats = statsOf(armorPayload);
+  if (!stats) return null;
+  const read = (field: string): number | null => {
+    const v = findStat(stats, 'VehicleArmor', [field]);
+    return v !== null && v >= 0 ? v : null;
+  };
+  const ir = read('signalInfrared');
+  const em = read('signalElectromagnetic');
+  const cs = read('signalCrossSection');
+  if (ir === null && em === null && cs === null) return null;
+  return { ir: ir ?? 1, em: em ?? 1, crossSection: cs ?? 1 };
+}
+
 /** Finds the ship's own ARMR_ item payload among its resolved loadout occupants. */
 export function findArmorPayload(occupants: readonly SummaryOccupant[]): unknown | null {
   for (const o of occupants) {

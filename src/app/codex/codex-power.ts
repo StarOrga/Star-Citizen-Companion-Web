@@ -81,7 +81,7 @@
 // game rule, not a number — but we never invent per-mode magnitudes.
 
 import { findStat } from '../hangar/loadout-stats';
-import { crossSectionAxes } from './codex-loadout-stats';
+import { ArmorSignalMultipliers, armorSignalMultipliers, crossSectionAxes, findArmorPayload } from './codex-loadout-stats';
 import type { SummaryOccupant } from './ship-summary-panels';
 import {
   RESOURCE_STATS_GROUP,
@@ -469,6 +469,10 @@ export interface PowerSheet {
    * ballistic-only or resource-less weapons group legitimately allocates 0 and
    * must never zero the DPS (R3). */
   weaponsCut: boolean;
+  /** The hull armor's signal factors already folded into the IR / EM /
+   * cross-section facts (#242 follow-up); null when the loadout carries no
+   * armor with signal data — the facts are then the raw component sum. */
+  armorSignal?: ArmorSignalMultipliers | null;
 }
 
 export interface PowerSheetInput {
@@ -859,15 +863,20 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
       hasCoolantData && hasConsumeData && coolantTotalRaw > 0 ? Math.round((coolantUsedRaw / coolantTotalRaw) * 100) : null,
   };
 
-  const emRaw = round(powered.reduce((s, d) => s + d.emNominal, 0));
-  const irRaw = round(powered.reduce((s, d) => s + d.irNominal, 0));
+  // The ship's signature = what every POWERED component emits in its current
+  // state (cooler IR/EM, power plant / shield / quantum EM, …), scaled by the
+  // hull armor's signal factor — the same armor item the game multiplies the
+  // emissions by (#242 follow-up: Eclipse 0.6, Centurion IR 0.4, Vanguard 1.334).
+  const armorSignal = armorSignalMultipliers(findArmorPayload(input.occupants));
+  const emRaw = round(powered.reduce((s, d) => s + d.emNominal, 0) * (armorSignal?.em ?? 1));
+  const irRaw = round(powered.reduce((s, d) => s + d.irNominal, 0) * (armorSignal?.ir ?? 1));
   const hasSignature = draws.some((d) => d.emNominal > 0 || d.irNominal > 0);
   const cs = (() => {
     const axes = crossSectionAxes(
       input.shipStats as Record<string, Record<string, unknown>> | null | undefined,
     );
     const vals = [axes.x, axes.y, axes.z].filter((v): v is number => v !== null);
-    return vals.length > 0 ? Math.max(...vals) : null;
+    return vals.length > 0 ? round(Math.max(...vals) * (armorSignal?.crossSection ?? 1)) : null;
   })();
 
   const prevFact = (key: PowerFactKey): number | null =>
@@ -926,6 +935,7 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
     ready,
     readinessKey: ready ? 'codex.energy.readiness.ok' : 'codex.energy.readiness.no',
     weaponsCut: cutGroups.has('weapons'),
+    armorSignal,
   };
 }
 
