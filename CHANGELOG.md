@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.189.0] - 2026-11-02
+
+### Changed
+- Data Uploader 0.66.0: a new patch or hotfix only rebuilds the 3D models and silhouettes whose game files changed, and an uploader update only rebuilds the kinds whose build recipe changed — unchanged ones are taken over and not uploaded again. The first run after this update rebuilds the caches once.
+- Data Uploader 0.66.0: a hotfix build of the same patch no longer keeps outdated 3D models — changed ships are rebuilt and uploaded again.
+- Data Uploader 0.66.0: every performance dial (CPU, RAM, disk, GPU) goes up to 80 % of the machine and never beyond; the RAM dial no longer stops at what other programs leave free.
+
 ## [0.188.0] - 2026-11-01
 
 ### Changed
