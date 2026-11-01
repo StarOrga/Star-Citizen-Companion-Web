@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { BetaService } from '../core/beta.service';
+import { HqPatchService } from './data/hq-patch.service';
 import { HqOverviewComponent } from './hq-overview.component';
 import { HqPagesComponent } from './hq-pages.component';
 
@@ -23,4 +24,6 @@ import { HqPagesComponent } from './hq-pages.component';
 })
 export class HqLandingComponent {
   readonly shell = inject(BetaService).isEnabled('shell');
+  /** Loads the newest patch vs the reader's ships/sets and feeds the Start page's patch lines (P8). */
+  private readonly patch = inject(HqPatchService);
 }

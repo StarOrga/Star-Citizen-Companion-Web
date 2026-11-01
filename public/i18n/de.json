@@ -5148,6 +5148,107 @@
         "community": "Community",
         "ocr": "Aus einem Screenshot"
       }
+    },
+    "patch": {
+      "affects": "betrifft {{set}} ›"
+    },
+    "stats": {
+      "range": {
+        "label": "Zeitraum",
+        "7d": "7 Tage",
+        "30d": "30 Tage",
+        "90d": "90 Tage"
+      },
+      "retry": "Erneut versuchen",
+      "signedOut": "Melde dich an, um deine Statistik zu sehen.",
+      "loading": "Statistik wird geladen …",
+      "emptyAll": "Noch nichts erfasst. Sobald die SCC-App mitliest, füllen sich die Kacheln.",
+      "zero": "Im gewählten Zeitraum nichts erfasst.",
+      "details": "Details",
+      "close": "Schließen",
+      "day": "Tag",
+      "week": "Woche",
+      "tile": {
+        "auec": {
+          "name": "aUEC",
+          "sub": "{{earned}} verdient · {{spent}} ausgegeben",
+          "hint": "Aus Käufen und Verkäufen im Spiel.",
+          "col": "Saldo"
+        },
+        "missions": {
+          "name": "Missionen",
+          "sub": "{{n}} pro Woche",
+          "hint": "Abgeschlossene Missionen.",
+          "col": "Missionen"
+        },
+        "deaths": {
+          "name": "Tode / Claims",
+          "sub": "Tode / Claims",
+          "hint": "Gestrichelt: Claims, durchgezogen: Tode.",
+          "col": "Tode",
+          "col2": "Claims"
+        },
+        "crimestat": {
+          "name": "Crimestat",
+          "sub": "Anstiege",
+          "hint": "Wie oft dein Crimestat gestiegen ist.",
+          "col": "Anstiege"
+        },
+        "refinery": {
+          "name": "Raffinerie",
+          "sub": "Fertige Durchläufe",
+          "hint": "Fertiggestellte Raffinerie-Durchläufe.",
+          "col": "Durchläufe"
+        },
+        "blueprints": {
+          "name": "Blueprints",
+          "sub": "Neu erhalten",
+          "hint": "Neu erhaltene Blueprints.",
+          "col": "Blueprints"
+        }
+      }
+    },
+    "stock": {
+      "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
+      "retry": "Erneut versuchen",
+      "ships": {
+        "title": "Schiffe",
+        "count": "{{n}} im Hangar",
+        "noFavourites": "Noch keine Favoriten markiert.",
+        "open": "Zum Hangar"
+      },
+      "sets": {
+        "title": "Sets",
+        "ship": "{{n}} Schiff-Loadouts",
+        "fps": "{{n}} FPS-Sets"
+      },
+      "earned": {
+        "title": "Erspieltes",
+        "blueprints": "{{n}} Blueprints erhalten",
+        "open": "Blueprints im Codex"
+      },
+      "age": {
+        "minutes": "zuletzt geöffnet vor {{n}} Min.",
+        "hours": "zuletzt geöffnet vor {{n}} Std.",
+        "days": "zuletzt geöffnet vor {{n}} Tagen"
+      },
+      "lager": {
+        "title": "Lager per Ort",
+        "empty": "Noch nichts im Lager erfasst. Trag unten ein, was wo liegt.",
+        "materials": "Rohstoffe",
+        "pieces": "Gegenstände",
+        "placeEmpty": "Leer.",
+        "storage": "Schiffe im Hangar-Terminal"
+      },
+      "capture": {
+        "title": "Liegt in …",
+        "item": "Gegenstand oder Rohstoff",
+        "qty": "Menge",
+        "unit": "Einheit",
+        "pcs": "Stück",
+        "location": "Ort",
+        "save": "Eintragen"
+      }
     }
   },
   "verse": {

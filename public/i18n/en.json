@@ -5148,6 +5148,107 @@
         "community": "Community",
         "ocr": "From a screenshot"
       }
+    },
+    "patch": {
+      "affects": "affects {{set}} ›"
+    },
+    "stats": {
+      "range": {
+        "label": "Range",
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days"
+      },
+      "retry": "Try again",
+      "signedOut": "Sign in to see your statistics.",
+      "loading": "Loading statistics …",
+      "emptyAll": "Nothing recorded yet. The tiles fill up once the SCC app reads along.",
+      "zero": "Nothing recorded in this range.",
+      "details": "Details",
+      "close": "Close",
+      "day": "Day",
+      "week": "Week",
+      "tile": {
+        "auec": {
+          "name": "aUEC",
+          "sub": "{{earned}} earned · {{spent}} spent",
+          "hint": "From purchases and sales in the game.",
+          "col": "Net"
+        },
+        "missions": {
+          "name": "Missions",
+          "sub": "{{n}} per week",
+          "hint": "Completed missions.",
+          "col": "Missions"
+        },
+        "deaths": {
+          "name": "Deaths / claims",
+          "sub": "Deaths / claims",
+          "hint": "Dashed: claims, solid: deaths.",
+          "col": "Deaths",
+          "col2": "Claims"
+        },
+        "crimestat": {
+          "name": "Crimestat",
+          "sub": "Increases",
+          "hint": "How often your crimestat went up.",
+          "col": "Increases"
+        },
+        "refinery": {
+          "name": "Refinery",
+          "sub": "Finished runs",
+          "hint": "Finished refinery runs.",
+          "col": "Runs"
+        },
+        "blueprints": {
+          "name": "Blueprints",
+          "sub": "Newly received",
+          "hint": "Newly received blueprints.",
+          "col": "Blueprints"
+        }
+      }
+    },
+    "stock": {
+      "signedOut": "Sign in to see your holdings.",
+      "retry": "Try again",
+      "ships": {
+        "title": "Ships",
+        "count": "{{n}} in the hangar",
+        "noFavourites": "No favourites marked yet.",
+        "open": "Open hangar"
+      },
+      "sets": {
+        "title": "Sets",
+        "ship": "{{n}} ship loadouts",
+        "fps": "{{n}} FPS sets"
+      },
+      "earned": {
+        "title": "Earned",
+        "blueprints": "{{n}} blueprints received",
+        "open": "Blueprints in the codex"
+      },
+      "age": {
+        "minutes": "last opened {{n}} min ago",
+        "hours": "last opened {{n}} h ago",
+        "days": "last opened {{n}} days ago"
+      },
+      "lager": {
+        "title": "Storage by place",
+        "empty": "Nothing stored yet. Add below what lies where.",
+        "materials": "Raw materials",
+        "pieces": "Items",
+        "placeEmpty": "Empty.",
+        "storage": "Ships at the hangar terminal"
+      },
+      "capture": {
+        "title": "Lies in …",
+        "item": "Item or raw material",
+        "qty": "Quantity",
+        "unit": "Unit",
+        "pcs": "Pieces",
+        "location": "Place",
+        "save": "Add"
+      }
     }
   },
   "verse": {
