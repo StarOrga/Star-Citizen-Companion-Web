@@ -1293,6 +1293,7 @@
       "loadoutEmpty": "Empty (stock)",
       "viewOnRsi": "View on RSI",
       "notFound": "Entry not found in the current build.",
+      "loadingStage": "Loading the ship holodeck",
       "invalidRoute": "This address does not lead to a Codex category.",
       "noArtwork": "No artwork for this ship in this build yet.",
       "showRaw": "Show raw data",

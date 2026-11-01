@@ -1293,6 +1293,7 @@
       "loadoutEmpty": "Leer (ab Werk)",
       "viewOnRsi": "Bei RSI ansehen",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
+      "loadingStage": "Schiffs-Holodeck wird geladen",
       "invalidRoute": "Diese Adresse führt zu keiner Codex-Kategorie.",
       "noArtwork": "Für dieses Schiff liegt in diesem Build noch kein Bild vor.",
       "showRaw": "Rohdaten anzeigen",
