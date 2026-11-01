@@ -31,6 +31,8 @@ import {
 } from './hq-plan-selection';
 import { HqPlaceTreeComponent } from './hq-place-tree.component';
 import { HqSetRingsComponent } from './hq-set-rings.component';
+import { HqCommunityOptinComponent } from './hq-community-optin.component';
+import { HqPlanMapComponent } from './map/hq-plan-map.component';
 import { buildRoute } from './map/hq-route';
 import type { MapPlace, PlanView } from './map/hq-map.types';
 
@@ -57,6 +59,8 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     HqPlaceTreeComponent,
     HqSetRingsComponent,
     HqSuppliesPopupComponent,
+    HqPlanMapComponent,
+    HqCommunityOptinComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -106,8 +110,8 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       </section>
     }
 
-    <!-- TODO(map): <sc-hq-plan-map [needs]="mapNeeds()" [route]="route()" [view]="view()" /> is wired at merge. -->
-    <div class="hq-plan-map-slot" [attr.data-view]="view()" [attr.data-needs]="mapNeeds().length"></div>
+    <sc-hq-plan-map [needs]="mapNeeds()" [route]="route()" [view]="view()" />
+    <sc-hq-community-optin />
 
     @if (view() === 'what') {
       @if (listNeeds().length === 0) {
@@ -204,7 +208,6 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .kind[aria-pressed='true'] { color: var(--sc-fg); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
       .kind[aria-pressed='true'] svg { stroke: var(--sc-accent); }
       .kind:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .hq-plan-map-slot:empty { display: none; }
       .empty { margin: 0; color: var(--sc-fg-2); }
       .err { margin: 0; display: flex; align-items: center; gap: var(--sc-space-3, 12px); color: var(--sc-warning); }
       .needs, .ein-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); }

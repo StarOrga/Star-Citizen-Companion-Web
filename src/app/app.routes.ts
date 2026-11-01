@@ -5,6 +5,7 @@ import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
 import { roleGuard } from './auth/role.guard';
 import { OVERLAY_ROUTE_DATA } from './core/overlay-route-scroll';
+import { BetaService } from './core/beta.service';
 import { shellBetaOn } from './core/layout/shell-beta.guard';
 import { hqPageHref } from './hq/hq-routes';
 
@@ -308,16 +309,12 @@ export const routes: Routes = [
               import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
           },
           {
-            // Einsätze live in Planen + Jetzt of the beta landing: /hq/ops leads there
-            // (β off keeps the old page, the next entry).
-            path: 'ops',
-            pathMatch: 'full',
-            canMatch: [shellBetaOn],
-            redirectTo: () => inject(Router).parseUrl(hqPageHref('planen')),
-          },
-          {
+            // Einsätze live in Planen + Jetzt of the beta landing: with β on /hq/ops leads
+            // there, β off keeps the old page. One entry with a redirecting canMatch -
+            // canMatch next to redirectTo is rejected in dev mode (NG04014).
             path: 'ops',
             data: { layout: 'tool' },
+            canMatch: [() => (inject(BetaService).isEnabled('shell')() ? inject(Router).parseUrl(hqPageHref('planen')) : true)],
             loadComponent: () => import('./hq/hq-ops.component').then((m) => m.HqOpsComponent),
           },
         ],

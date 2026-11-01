@@ -4,12 +4,13 @@ import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { StepKind } from '../../shared/step/sc-step.component';
 import { HqLiveEventRow } from '../data/hq-db.types';
+import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { HqSuppliesService } from '../hq-supplies.service';
 import { HqLiveStore } from './hq-live.store';
 
 /**
- * The write side the live events apply to. The real implementation is the supplies / Einsatz
- * services (`tickByClassName`, `untick`, `markStepDone`, `unmarkStep`); the default is a no-op
- * so this page builds and runs before they are wired.
+ * The write side the live events apply to: the supplies / Einsatz services (`tickByClassName`,
+ * `untick`, `markStepDone`, `unmarkStep`). A token so specs can swap in a fake.
  */
 export interface HqLiveApplyTargets {
   tickByClassName(className: string, qty: number): string | null;
@@ -25,12 +26,16 @@ export interface HqLiveApplyTargets {
 
 export const HQ_LIVE_APPLY_TARGETS = new InjectionToken<HqLiveApplyTargets>('HQ_LIVE_APPLY_TARGETS', {
   providedIn: 'root',
-  factory: () => ({
-    tickByClassName: () => null,
-    untick: () => undefined,
-    markStepDone: () => null,
-    unmarkStep: () => undefined,
-  }),
+  factory: () => {
+    const supplies = inject(HqSuppliesService);
+    const einsatz = inject(HqEinsatzService);
+    return {
+      tickByClassName: (className, qty) => supplies.tickByClassName(className, qty),
+      untick: (id, qty) => supplies.untick(id, qty),
+      markStepDone: (match) => einsatz.markStepDone(match),
+      unmarkStep: (einsatzId, ord) => einsatz.unmarkStep(einsatzId, ord),
+    };
+  },
 });
 
 /** What an auto-apply did, stored in `applied` so undo reverts exactly that. */
