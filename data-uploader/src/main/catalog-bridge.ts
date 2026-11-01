@@ -478,6 +478,8 @@ export async function uploadCatalog(
     buildId: string,
     slice: unknown[],
     full: (rows: unknown[]) => Promise<unknown>,
+    /** Runs once when this call finds carry unavailable, before the full rows go out. */
+    onDegrade?: () => Promise<void>,
   ): Promise<void> => {
     if (!carryEnabled || !isCarryTable(table)) {
       await full(slice);
@@ -498,6 +500,7 @@ export async function uploadCatalog(
       if (res.degraded) {
         carryEnabled = false;
         log.warn(`[catalog] incremental upload unavailable (${String(res.degraded)}) — sending full rows`);
+        await onDegrade?.();
         await full(slice);
         tally(table).sent += slice.length;
         return;
@@ -588,17 +591,29 @@ export async function uploadCatalog(
         const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
         const rows = mapSilhouettes(list, tag);
         const keys = rows.map((r) => [r.kind, r.class_name]).filter((k) => k.every((v) => typeof v === 'string' && v));
+        // The clear skipped for carry is owed once carry turns out to be
+        // unavailable on the phase's first chunk — before any full row lands.
+        let clearOwed = false;
         counts.silhouettes = await sendChunks(
           'codex_silhouettes',
           rows,
           CHUNK,
           (slice) =>
-            sendIncremental('codex_silhouettes', buildId, slice, (r) =>
-              post('silhouettes', { build_id: buildId, rows: r }),
+            sendIncremental(
+              'codex_silhouettes',
+              buildId,
+              slice,
+              (r) => post('silhouettes', { build_id: buildId, rows: r }),
+              async () => {
+                if (!clearOwed) return;
+                clearOwed = false;
+                await post('clear_silhouettes', { build_id: buildId });
+              },
             ),
           {
             onFirstChunk: async () => {
               if (!carryEnabled) await post('clear_silhouettes', { build_id: buildId });
+              else clearOwed = true;
             },
             afterAll: async () => {
               if (!carryEnabled || keys.length === 0) return;

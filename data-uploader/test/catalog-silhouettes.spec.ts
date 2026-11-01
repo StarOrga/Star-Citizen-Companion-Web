@@ -79,7 +79,7 @@ describe('silhouettes as their own step', () => {
     });
     const r = await uploadCatalog('jwt', outDir, () => {}, { backoffMs: () => 0, mode: 'silhouettes', buildId: 'b-1' });
     expect(r).toMatchObject({ ok: true, counts: { silhouettes: 1 } });
-    expect(ops).toEqual(['carry', 'silhouettes']);
+    expect(ops).toEqual(['carry', 'clear_silhouettes', 'silhouettes']);
   });
 
   it('silhouette mode refuses to run without the codex build id', async () => {
