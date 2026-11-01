@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { OverlayFrameComponent } from '../shared/overlay-frame/overlay-frame.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
-import { HqSuppliesService, SUPPLY_NAME_MAX, SUPPLY_QTY_MAX } from './hq-supplies.service';
+import { HangarService } from '../hangar/hangar.service';
+import { HqOwnershipService } from './hq-ownership.service';
+import { HqSuppliesService, SUPPLY_NAME_MAX, SUPPLY_QTY_MAX, SupplyItem, setKey } from './hq-supplies.service';
+import { buildPlanSets } from './plan/hq-plan-needs';
 
 /**
  * "Nachschub" as a popup (shell beta, implement.md §12): a task list crossed with
@@ -41,6 +44,17 @@ import { HqSuppliesService, SUPPLY_NAME_MAX, SUPPLY_QTY_MAX } from './hq-supplie
                 <input type="checkbox" [checked]="i.done" (change)="svc.toggle(i.id)" />
                 <span class="name-txt">{{ i.name }}</span>
               </label>
+              <span class="meta">
+                @if (setName(i); as sn) { <span class="set">{{ 'hq.supply.forSet' | translate: { name: sn } }}</span> }
+                @if (i.stepKind) { <span class="chip">{{ 'hq.step.kind.' + i.stepKind | translate }}</span> }
+                @if (i.done) { <span class="chip ready">{{ 'hq.supply.ready' | translate }}</span> }
+              </span>
+              @if (i.setId) {
+                <label class="wanted" [scTooltip]="'hq.supply.wanted' | translate" scTooltipTier="label">
+                  <input type="checkbox" [checked]="i.wanted" [attr.aria-label]="'hq.supply.wantedAria' | translate: { name: i.name }"
+                         (change)="svc.setWanted(i.id, !i.wanted)" />
+                </label>
+              }
               <span class="stepper" role="group" [attr.aria-label]="'hq.supplies.qtyOf' | translate: { name: i.name }">
                 <button type="button" class="step" [disabled]="i.qty <= 1" [attr.aria-label]="'hq.supplies.less' | translate"
                         [scTooltip]="'hq.supplies.less' | translate" scTooltipTier="label" (click)="svc.setQty(i.id, i.qty - 1)">−</button>
@@ -79,6 +93,12 @@ import { HqSuppliesService, SUPPLY_NAME_MAX, SUPPLY_QTY_MAX } from './hq-supplie
       .check input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .name-txt { overflow-wrap: anywhere; color: var(--sc-fg-0); }
       .line.done .name-txt { color: var(--sc-fg-2); text-decoration: line-through; }
+      .meta { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 0 1 auto; }
+      .set { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .chip { padding: 0 8px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .chip.ready { color: var(--sc-accent); border-color: var(--sc-accent); }
+      .wanted { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; cursor: pointer; }
+      .wanted input { width: 18px; height: 18px; accent-color: var(--sc-accent); cursor: pointer; }
       .stepper { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
       .n { min-width: 2.2em; text-align: center; font-variant-numeric: tabular-nums; }
       .step { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; border-radius: 8px; border: 1px solid var(--sc-border);
@@ -97,7 +117,22 @@ import { HqSuppliesService, SUPPLY_NAME_MAX, SUPPLY_QTY_MAX } from './hq-supplie
 })
 export class HqSuppliesPopupComponent {
   protected readonly svc = inject(HqSuppliesService);
+  private readonly hangar = inject(HangarService);
+  private readonly ownership = inject(HqOwnershipService);
   readonly closed = output<void>();
+
+  private readonly setNames = computed(
+    () =>
+      new Map(
+        buildPlanSets(this.hangar.ships(), this.ownership.configs(), this.hangar.roleLoadouts(), this.svc.items()).map(
+          (s) => [s.key, s.name] as const,
+        ),
+      ),
+  );
+
+  protected setName(i: SupplyItem): string | null {
+    return i.setKind && i.setId ? (this.setNames().get(setKey(i.setKind, i.setId)) ?? null) : null;
+  }
 
   protected readonly name = signal('');
   protected readonly qty = signal(1);

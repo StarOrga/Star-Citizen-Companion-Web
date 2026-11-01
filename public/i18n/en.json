@@ -4991,6 +4991,77 @@
     },
     "log": {
       "undo": "Undo"
+    },
+    "plan": {
+      "switch": {
+        "label": "View",
+        "what": "What I need",
+        "how": "How to get there"
+      },
+      "selection": "Selection",
+      "stepsAria": "Step kinds",
+      "state": {
+        "top3": "Top 3",
+        "mood": "By mood: {{moods}}",
+        "custom": "Custom selection"
+      },
+      "empty": "Nothing to pick yet. Mark in Supplies what you want to get.",
+      "route": "Your route",
+      "routeEmpty": "No route yet. Pick under \"What I need\" what you want to get.",
+      "saveEinsatz": "Save as op",
+      "retry": "Try again"
+    },
+    "mood": {
+      "peaceful": "Peaceful",
+      "combat": "Combat",
+      "quick": "Quick (< 30 min)",
+      "long": "Time-intensive",
+      "solo": "Solo",
+      "group": "Group",
+      "pairAria": "{{left}} or {{right}}"
+    },
+    "place": {
+      "search": "Search places",
+      "any": "All places",
+      "count": "{{n}} places",
+      "empty": "No place found.",
+      "label": "System, planet, place"
+    },
+    "set": {
+      "none": "No set with supplies yet.",
+      "reach": {
+        "full": "fully reachable",
+        "partial": "partly"
+      }
+    },
+    "supply": {
+      "ready": "ready",
+      "forSet": "for set {{name}}",
+      "setReady": "Set {{name}} is ready",
+      "wanted": "Want to get",
+      "wantedAria": "Mark {{name}} as wanted"
+    },
+    "einsatz": {
+      "single": "Op",
+      "multi": "Op ×{{n}}",
+      "stepsTooltip": "{{n}} steps",
+      "title": "Your ops",
+      "empty": "No op saved yet.",
+      "nameLabel": "Name of the op",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove op?",
+      "removeMessage": "\"{{name}}\" and its steps will be deleted."
+    },
+    "activity": {
+      "kopfgeld": "Bounty",
+      "bunker": "Bunker",
+      "medizin": "Medical",
+      "rennen": "Racing",
+      "bergbau": "Mining",
+      "fracht": "Cargo",
+      "bergung": "Salvage",
+      "erkunden": "Exploring",
+      "piraterie": "Piracy"
     }
   },
   "verse": {

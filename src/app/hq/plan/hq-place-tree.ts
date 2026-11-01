@@ -14,9 +14,11 @@ const slug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-');
 
 /** Build the tree from the places of the needs; a place without a planet hangs directly under its system. */
 export function buildPlaceTree(places: readonly MapPlace[]): PlaceNode[] {
-  const systems = new Map<string, { label: string; planets: Map<string, { label: string; places: MapPlace[] }>; direct: MapPlace[] }>();
+  interface PlanetAcc { label: string; places: MapPlace[] }
+  interface SystemAcc { label: string; planets: Map<string, PlanetAcc>; direct: MapPlace[] }
+  const systems = new Map<string, SystemAcc>();
   for (const p of places) {
-    const s = systems.get(p.system) ?? { label: p.system, planets: new Map(), direct: [] };
+    const s: SystemAcc = systems.get(p.system) ?? { label: p.system, planets: new Map<string, PlanetAcc>(), direct: [] };
     systems.set(p.system, s);
     if (p.planet) {
       const pl = s.planets.get(p.planet) ?? { label: p.planet, places: [] };
