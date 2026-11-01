@@ -138,6 +138,7 @@ describe('HQ routes', () => {
     expect(hq?.loadComponent).toBeDefined();
     const paths = (hq?.children ?? []).map((c) => c.path);
     expect(paths).toEqual(['', 'hangar', 'hangar/import', 'hangar/:id', 'locker', 'locker/:id', 'ops']);
+    // ops: with the shell beta on its canMatch redirects to /hq#planen, else today's page
     // import before :id, so "import" is never read as a ship id
     expect(paths.indexOf('hangar/import')).toBeLessThan(paths.indexOf('hangar/:id'));
   });

@@ -4967,6 +4967,312 @@
       "subtitle": "Deine FPS-Sets für jede Rolle.",
       "details": "Details",
       "detailsAria": "Details zu {{name}} im Codex"
+    },
+    "pages": {
+      "start": "Start",
+      "planen": "Planen",
+      "jetzt": "Jetzt",
+      "bestand": "Bestand",
+      "statistik": "Statistik",
+      "empty": "{{page}}: Hier entsteht gerade etwas Neues."
+    },
+    "rail": {
+      "label": "HQ-Seiten",
+      "goto": "Zu {{page}}"
+    },
+    "start": {
+      "kicker": "Dein HQ",
+      "title": "Hauptquartier",
+      "important": "Jetzt wichtig"
+    },
+    "first": {
+      "promise": "Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.",
+      "step1": "RSI-Hangar holen",
+      "step2": "SCC-App verbinden",
+      "step3": "Ersten Einsatz planen",
+      "go": "Los geht's",
+      "skip": "Überspringen",
+      "duration": "≈ 4 Minuten"
+    },
+    "step": {
+      "kind": {
+        "buy": "Kaufen",
+        "mission": "Mission",
+        "mine": "Abbauen",
+        "refine": "Raffinieren",
+        "craft": "Craften",
+        "transport": "Transportieren",
+        "pickup": "Abholen"
+      },
+      "state": {
+        "todo": "zu tun",
+        "done": "erledigt"
+      }
+    },
+    "log": {
+      "undo": "Rückgängig",
+      "title": "Protokoll",
+      "close": "Schließen",
+      "empty": "Noch keine Ereignisse.",
+      "showAll": "Alle anzeigen",
+      "more": "Mehr laden",
+      "undone": "Rückgängig gemacht",
+      "event": {
+        "shop.purchase": "{{quantity}}× {{item}} gekauft ({{shop}})",
+        "refinery.complete": "Raffinerie fertig: {{count}} Aufträge ({{location}})",
+        "contract.completed": "Mission abgeschlossen: {{name}}",
+        "qt.arrived": "Quantum-Sprung beendet",
+        "hangar.ready": "Hangar bereit",
+        "inventory.opened": "Inventar geöffnet ({{location}})",
+        "other": "Ereignis: {{type}}"
+      }
+    },
+    "now": {
+      "loading": "Lade den Spielstand …",
+      "retry": "Erneut versuchen",
+      "connect": {
+        "title": "Spiel nicht erkannt — SCC-App verbinden",
+        "hint": "Die SCC-App meldet deinen Standort und deine Aktionen live hierher."
+      },
+      "anchor": {
+        "label": "Du bist hier",
+        "unknown": "Standort unbekannt",
+        "ship": "Schiff:"
+      },
+      "path": {
+        "title": "Dein Weg",
+        "empty": "Kein aktiver Einsatz. Plane einen unter Planen."
+      },
+      "missions": {
+        "tooltip": "Aktive Missionen im Spiel",
+        "title": "Aktive Missionen",
+        "none": "Keine aktive Mission."
+      },
+      "log": {
+        "title": "Zuletzt"
+      }
+    },
+    "plan": {
+      "switch": {
+        "label": "Ansicht",
+        "what": "Was brauche ich",
+        "how": "Wie komme ich hin"
+      },
+      "selection": "Auswahl",
+      "stepsAria": "Schritt-Arten",
+      "state": {
+        "top3": "Top 3",
+        "mood": "Nach Lust: {{moods}}",
+        "custom": "Eigene Auswahl"
+      },
+      "empty": "Nichts auszuwählen. Markiere in Nachschub, was du holen willst.",
+      "route": "Dein Weg",
+      "routeEmpty": "Noch kein Weg. Wähle unter „Was brauche ich“ aus, was du holen willst.",
+      "saveEinsatz": "Als Einsatz speichern",
+      "retry": "Erneut versuchen"
+    },
+    "mood": {
+      "peaceful": "Friedlich",
+      "combat": "Kampf",
+      "quick": "Schnell (< 30 min)",
+      "long": "Zeitintensiv",
+      "solo": "Solo",
+      "group": "Gruppe",
+      "pairAria": "{{left}} oder {{right}}"
+    },
+    "place": {
+      "search": "Ort suchen",
+      "any": "Alle Orte",
+      "count": "{{n}} Orte",
+      "empty": "Kein Ort gefunden.",
+      "label": "System, Planet, Ort"
+    },
+    "set": {
+      "none": "Noch kein Set mit Nachschub.",
+      "reach": {
+        "full": "vollständig erreichbar",
+        "partial": "teilweise"
+      }
+    },
+    "supply": {
+      "ready": "liegt bereit",
+      "forSet": "für Set {{name}}",
+      "setReady": "Set {{name}} liegt bereit",
+      "wanted": "Will ich holen",
+      "wantedAria": "{{name}} als gewünscht markieren",
+      "importTitle": "Liste aus diesem Browser übernehmen?",
+      "importMessage": "In diesem Browser liegt eine Nachschubliste von vor deiner Anmeldung ({{count}} Zeilen). In dein Konto übernehmen? Auf einem geteilten Browser kann sie jemand anderem gehören.",
+      "importConfirm": "In mein Konto übernehmen",
+      "importCancel": "Jetzt nicht"
+    },
+    "einsatz": {
+      "single": "Einsatz",
+      "multi": "Einsatz ×{{n}}",
+      "stepsTooltip": "{{n}} Schritte",
+      "title": "Deine Einsätze",
+      "empty": "Noch kein Einsatz gespeichert.",
+      "nameLabel": "Name des Einsatzes",
+      "remove": "{{name}} entfernen",
+      "removeTitle": "Einsatz entfernen?",
+      "removeMessage": "„{{name}}“ und seine Schritte werden gelöscht."
+    },
+    "activity": {
+      "kopfgeld": "Kopfgeld",
+      "bunker": "Bunker",
+      "medizin": "Medizin",
+      "rennen": "Rennen",
+      "bergbau": "Bergbau",
+      "fracht": "Fracht",
+      "bergung": "Bergung",
+      "erkunden": "Erkunden",
+      "piraterie": "Piraterie"
+    },
+    "map": {
+      "title": "Karte",
+      "routeTitle": "Route",
+      "empty": "Nichts gewählt. Wähle oben Bedarfe aus, dann erscheinen sie hier.",
+      "startHere": "Hier startest du",
+      "stepsOne": "1 Schritt",
+      "steps": "{{n}} Schritte",
+      "unplaced": "{{n}} ohne Ort, nur in der Liste",
+      "listTwin": "Als Liste",
+      "node": {
+        "needs": "{{place}} ({{path}}): {{needs}}",
+        "step": "Schritt {{ords}}: {{place}} ({{path}}): {{needs}}",
+        "start": "{{place}} ({{path}}): hier startest du"
+      },
+      "status": {
+        "open": "offen",
+        "partial": "teilweise",
+        "done": "erledigt"
+      },
+      "legend": {
+        "title": "Legende",
+        "shape": "Form = Tätigkeit",
+        "size": "Größe = Menge",
+        "size_s": "bis 5",
+        "size_m": "bis 25",
+        "size_l": "mehr",
+        "fill": "Füllung = Stand",
+        "line": "Linie",
+        "travel": "Flug",
+        "transport": "Transport",
+        "colour": "Farbe = Bedarf"
+      }
+    },
+    "community": {
+      "share": "Community-Daten teilen",
+      "shareOn": "Deine Käufe (Preis, Menge, Shop) gehen anonym in den Community-Median ein.",
+      "shareOff": "Aus: nichts wird geteilt. Den Community-Median siehst du trotzdem.",
+      "median": "Community-Median",
+      "reports": "{{n}} Meldungen",
+      "source": {
+        "log": "Aus deinem Log",
+        "search": "Aus der Codex-Suche",
+        "community": "Community",
+        "ocr": "Aus einem Screenshot"
+      }
+    },
+    "patch": {
+      "affects": "betrifft {{set}} ›"
+    },
+    "stats": {
+      "range": {
+        "label": "Zeitraum",
+        "7d": "7 Tage",
+        "30d": "30 Tage",
+        "90d": "90 Tage"
+      },
+      "retry": "Erneut versuchen",
+      "signedOut": "Melde dich an, um deine Statistik zu sehen.",
+      "loading": "Statistik wird geladen …",
+      "emptyAll": "Noch nichts erfasst. Sobald die SCC-App mitliest, füllen sich die Kacheln.",
+      "zero": "Im gewählten Zeitraum nichts erfasst.",
+      "details": "Details",
+      "close": "Schließen",
+      "day": "Tag",
+      "week": "Woche",
+      "tile": {
+        "auec": {
+          "name": "aUEC",
+          "sub": "{{earned}} verdient · {{spent}} ausgegeben",
+          "hint": "Aus Käufen und Verkäufen im Spiel.",
+          "col": "Saldo"
+        },
+        "missions": {
+          "name": "Missionen",
+          "sub": "{{n}} pro Woche",
+          "hint": "Abgeschlossene Missionen.",
+          "col": "Missionen"
+        },
+        "deaths": {
+          "name": "Tode / Claims",
+          "sub": "Tode / Claims",
+          "hint": "Gestrichelt: Claims, durchgezogen: Tode.",
+          "col": "Tode",
+          "col2": "Claims"
+        },
+        "crimestat": {
+          "name": "Crimestat",
+          "sub": "Anstiege",
+          "hint": "Wie oft dein Crimestat gestiegen ist.",
+          "col": "Anstiege"
+        },
+        "refinery": {
+          "name": "Raffinerie",
+          "sub": "Fertige Durchläufe",
+          "hint": "Fertiggestellte Raffinerie-Durchläufe.",
+          "col": "Durchläufe"
+        },
+        "blueprints": {
+          "name": "Blueprints",
+          "sub": "Neu erhalten",
+          "hint": "Neu erhaltene Blueprints.",
+          "col": "Blueprints"
+        }
+      }
+    },
+    "stock": {
+      "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
+      "retry": "Erneut versuchen",
+      "ships": {
+        "title": "Schiffe",
+        "count": "{{n}} im Hangar",
+        "noFavourites": "Noch keine Favoriten markiert.",
+        "open": "Zum Hangar"
+      },
+      "sets": {
+        "title": "Sets",
+        "ship": "{{n}} Schiff-Loadouts",
+        "fps": "{{n}} FPS-Sets"
+      },
+      "earned": {
+        "title": "Erspieltes",
+        "blueprints": "{{n}} Blueprints erhalten",
+        "open": "Blueprints im Codex"
+      },
+      "age": {
+        "minutes": "zuletzt geöffnet vor {{n}} Min.",
+        "hours": "zuletzt geöffnet vor {{n}} Std.",
+        "days": "zuletzt geöffnet vor {{n}} Tagen"
+      },
+      "lager": {
+        "title": "Lager per Ort",
+        "empty": "Noch nichts im Lager erfasst. Trag unten ein, was wo liegt.",
+        "materials": "Rohstoffe",
+        "pieces": "Gegenstände",
+        "placeEmpty": "Leer.",
+        "storage": "Schiffe im Hangar-Terminal"
+      },
+      "capture": {
+        "title": "Liegt in …",
+        "item": "Gegenstand oder Rohstoff",
+        "qty": "Menge",
+        "unit": "Einheit",
+        "pcs": "Stück",
+        "location": "Ort",
+        "save": "Eintragen"
+      }
     }
   },
   "verse": {
@@ -5539,7 +5845,11 @@
       "shipFallback": "Dieses Schiff",
       "codexDetail": "{{kind}}",
       "fps": "FPS",
-      "hq": "Mein HQ"
+      "hq": "Mein HQ",
+      "hqPlan": "Planen",
+      "hqNow": "Jetzt",
+      "hqStock": "Bestand",
+      "hqStats": "Statistik"
     },
     "placeholder": {
       "all": "Überall suchen …",
@@ -5550,7 +5860,11 @@
       "ship": "Komponenten, Waffen, Schiffe …",
       "codexDetail": "Im Codex suchen …",
       "fps": "Waffen, Rüstungen, Ausrüstung …",
-      "hq": "Hangar, Spind, Schiffe …"
+      "hq": "Hangar, Spind, Schiffe …",
+      "hqPlan": "Set, Teil oder Ort für deinen Einsatz …",
+      "hqNow": "Schiff, Ort oder Teil …",
+      "hqStock": "In deinem Bestand suchen …",
+      "hqStats": "Schiff oder Set …"
     },
     "search": {
       "label": "Suche",

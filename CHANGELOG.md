@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.183.0] - 2026-11-01
+
+### Added
+- HQ beta: five pages (Start, Planen, Jetzt, Bestand, Statistik) with a left quick rail and a phone bottom bar
+- Planen: Nachschub synced to your account, Einsätze with steps (Einsatz ×N), Top 3 / moods / custom selection, place tree, set rings and a planning map with route
+- Jetzt: live game data from the SCC app (location, next step, missions, log) with automatic ticks and undo
+- Bestand and Statistik pages, fleet patch lines on the HQ start page
+
+### Changed
+- /hq/ops leads to Planen when the shell beta is on
+
 ## [0.182.0] - 2026-11-01
 
 ### Changed

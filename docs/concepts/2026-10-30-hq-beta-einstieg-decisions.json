@@ -1,0 +1,765 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "general": "finde alle konzepte noch nichht umffassend und durchdacht genug und nciht prickelnd.",
+    "decisions": [
+      {
+        "id": "uc-jobs",
+        "value": [
+          "ready",
+          "loadout",
+          "patch",
+          "supply",
+          "import",
+          "ops",
+          "share",
+          "blueprints",
+          "where"
+        ],
+        "note": ""
+      },
+      {
+        "id": "uc-order",
+        "value": [
+          "patch",
+          "ship",
+          "gaps",
+          "op",
+          "log"
+        ],
+        "note": ""
+      },
+      {
+        "id": "uc-where",
+        "value": "none",
+        "note": "nbur wenn sccapp das erfassen kann live und immer live halten kann! check das und dann umsetzen hier und in scc app als issue anlegen!"
+      },
+      {
+        "id": "uc-supply",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": "nmatürlich alles auf dem server!"
+      },
+      {
+        "id": "uc-patch",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": ""
+      },
+      {
+        "id": "ac-quick",
+        "value": [
+          "active",
+          "set",
+          "add",
+          "import",
+          "variant",
+          "restock",
+          "patch",
+          "op",
+          "share"
+        ],
+        "note": "aus codex hinzufügen eeinfach über die suche schnellauswahl dort"
+      },
+      {
+        "id": "ac-bridge",
+        "value": "separate",
+        "note": "über die suche direktauswahl oder auf der codex seite im holotisch view! das wars der typ muss automatisch erkannt werden, das braucht man ja nicht manuell festlegfen!"
+      },
+      {
+        "id": "ac-detail",
+        "value": "codexmine",
+        "note": ""
+      },
+      {
+        "id": "ac-sets",
+        "value": [
+          "fps",
+          "shipvar",
+          "kit",
+          "refill",
+          "crew"
+        ],
+        "note": "beim abend kit auch gern einsatz optional auch mit drin"
+      },
+      {
+        "id": "ac-ops",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "d1-s1-a1",
+        "answer": "Medizin ja, rennen auch gern! Aber das als einsätze. \nGibt aber einsätze auch nach zweck, z. B. nachschub erspielen (ggf. erst ausrüsten, dann aufträge für blueprint, dann mining, dann craften, zwischendurch transportieren etc.) oder kaufen (ggf. vorher verkaufen). Also gameloops eher abbilden!"
+      },
+      {
+        "id": "d1-s1-a2",
+        "answer": "gern als abschluss eines overlay tutorials beim ersten mal, überspringbar! und sonst ok!"
+      },
+      {
+        "id": "d2-s3-a1",
+        "answer": "ne, auf jeden fall eine fvariantenseite von codex! die wir aber später bauen, aktuell einfach zur gegenstand!"
+      },
+      {
+        "id": "d3-s1-a1",
+        "answer": "auf jeden fall! das übernehmen von den anderneseiten, also titel hero inkl. patch news etc. und die suche auf jjeden fall auch - wiederkernnungswert von den verschiedenen hauptseiten!"
+      },
+      {
+        "id": "d3-s1-a2",
+        "answer": "also gern wenn man einen einsatz angeht, eine empfehlung!"
+      },
+      {
+        "id": "d3-s3-a1",
+        "answer": "ja mega, ganz genau! globale suche immer mit drin als möglichkeiten!!"
+      }
+    ],
+    "userPins": [
+      {
+        "target": "button.mock-btn.quiet \"Teilen\"",
+        "text": "teilen gern icon only !?"
+      },
+      {
+        "target": "button.mock-btn.ghost \"Variante kopieren\"",
+        "text": "Dsa finde cih super, gern auch ein duplicate icon!"
+      },
+      {
+        "target": "button.mock-btn.ghost \"Als Flaggschiff\"",
+        "text": "das kann gern ein favoriten icon sein, bis zu drei flagschiffe oder drei ausrüstungen etc. in fps!"
+      },
+      {
+        "target": "div.d2-note \"Patch 4.3.1: S3-Repeater −8 % Schaden. B\"",
+        "text": "Patch news nur die neusten und nur wenn vorhanden finde ich super!"
+      },
+      {
+        "target": "span.mock-dim \"2 Teile anders\"",
+        "text": "wie viel geändert wurde gern, aber nicht so eine bühne, ist nru eine rand rand info! die anderen von den drei infos hier sinsd unnöttig!"
+      }
+    ],
+    "designNotes": {
+      "deck": "wie soll das funktionieren mit fps ausrüstungen di eman ja auch hat, ggf. auch inventar (dinge died e man in hangarn hat) und co. und das thema einsätze machen um nachschub zu besorgen (kaufen vs craften usw...) oder einfach so einsätze machen nach einsatzart."
+    }
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": "bestand",
+    "decisions": [
+      {
+        "id": "r2-m-model",
+        "value": "ok",
+        "untouched": false,
+        "note": "",
+        "fix": ""
+      },
+      {
+        "id": "r2-m-arten",
+        "value": [
+          "bounty",
+          "bunker",
+          "medic",
+          "race",
+          "mining",
+          "cargo",
+          "salvage",
+          "explore"
+        ],
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-m-chain",
+        "value": "auto",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-m-rec",
+        "value": "inventory",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-m-offline",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r2-s-facts",
+        "value": "wrong",
+        "untouched": false,
+        "note": "",
+        "fix": "vielleicht ja doch! Ansonsten überlegen wir uns alternativ manuell was zu ermöglichen"
+      },
+      {
+        "id": "r2-s-where",
+        "value": "ocr",
+        "untouched": false,
+        "note": "und gern game log usw. das bekommt man ja vielleicht mit und raus!?"
+      },
+      {
+        "id": "r2-s-sync",
+        "value": "optin",
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r2-s-data",
+        "value": [
+          "location",
+          "ship",
+          "contracts",
+          "purchases",
+          "refinery",
+          "blueprints",
+          "claims",
+          "crimestat",
+          "deaths"
+        ],
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r2-s-autocheck",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "untouched": false,
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r2-e2-s1-a1",
+        "answer": "nope, ne das passt! Missionen die gefunden werden (bitte auch data uploader uploaden lassen) gern auch finden lassen und in einsätze übernehmen"
+      },
+      {
+        "id": "r2-e2-s2-a2",
+        "answer": "ES REICHEN DIE SETS"
+      },
+      {
+        "id": "r2-e2-s2-a3",
+        "answer": "finde ich eine gute idee!"
+      },
+      {
+        "id": "r2-e3-s3-a1",
+        "answer": "auto0matisch übernehmen, das macht ja gar keinen sinn so."
+      }
+    ],
+    "userPins": [
+      {
+        "design": "bestand",
+        "text": "Finde ich witzig, aber für einsätze und nachschub besorgen planung usw."
+      },
+      {
+        "design": "bestand",
+        "text": "gern noch motivierender!!!! Cineastischer vielmals!"
+      },
+      {
+        "design": "bestand",
+        "text": "GEDECKT IST EIN BLÖSDES WORT1"
+      },
+      {
+        "design": "bestand",
+        "text": "SUCHE SOLLTE WIE AUF DEN ANDEREN SEITEN MITTIG SEIN UND GENAUSO"
+      },
+      {
+        "design": "bestand",
+        "text": "dAS SOLLTE  AUCH MITTIG SEIN MIT DEN NEWS DRIN STATT DRUNTER ALS LABEL WAS SICH ÄNDERT"
+      },
+      {
+        "design": "zyklus",
+        "text": "Die mit Planen, jetzt machen und sheen wo man steht (also vergangenes, hauptsächlich sozusagen lagern und ggf. statsitik zum anklicken mit mini vorschau) finde ich eigentlich eine gute gruppierungsidee! Vielleicht könnte man das auf iver scrollable seiten machen ähnlich wie verse. Dabei erste seite die suche wieder in der mitte und news."
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "general": "das scrollen sollte so funktionieren wie auf verse! dieser mechanismsu.\nIn der umsetzung bitte auch berücksichtigen ggf. das sc app projekt anzufassen und zu shippen wenn es um die live daten geht!",
+    "screens": {
+      "f1-s4": "überlege dir nochmal ganz genau farb und form codes. Denn das sollte super intuitiv sein. \nEins davon sollte für die aktion stehen (kaufen oder craften, linien für reisen vs transportieren etc.) und es je nachdem wie viel man dort macht die form größer sein. \nNebst den komponenten filter sollte es auch einen  schrittt modus geben, sozusagen wie wäre die optimale route wenn man alles was gerade in dem filter ausgewählt wird."
+    },
+    "decisions": [
+      {
+        "id": "r3-arten",
+        "value": [
+          "bounty",
+          "bunker",
+          "medic",
+          "race",
+          "mining",
+          "cargo",
+          "salvage",
+          "explore",
+          "piracy"
+        ],
+        "note": ""
+      },
+      {
+        "id": "r3-chain",
+        "value": "auto",
+        "note": "und ansonsten community overlay informationen nehmen! aber so gemittelt / geprüft, dass kein einzigert oder kleine gruppe das ergebnis zu sehr beeinflussen kan wegen bestimmten werten.."
+      },
+      {
+        "id": "r3-rec",
+        "value": "inventory",
+        "note": ""
+      },
+      {
+        "id": "r3-offline",
+        "value": {
+          "answer": "no",
+          "alt": ""
+        },
+        "note": ""
+      },
+      {
+        "id": "r3-word",
+        "value": "liegt bereit",
+        "note": ""
+      },
+      {
+        "id": "r3-inv-facts",
+        "value": "ok",
+        "note": "weiß ich nicht, das wirst du herausfinden, natrülcih ist overlay nur das letzte mittel! allerletzte!"
+      },
+      {
+        "id": "r3-inv-when",
+        "value": [
+          "inventory",
+          "asop",
+          "kiosk"
+        ],
+        "note": "da man ja interagieren muss mit i im inventar, mit f asop oder shop kioske, kann man danach immer überprüfen ob das jeweilige gerade geöffnet ist und nur dann auch weiterschauen"
+      },
+      {
+        "id": "r3-inv-manual",
+        "value": "search",
+        "note": ""
+      },
+      {
+        "id": "r3-inv-auto",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": ""
+      },
+      {
+        "id": "r3-inv-age",
+        "value": "margin",
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r3-f1-s1-a1",
+        "answer": "Ja sehr gut, sollte genaus sein wie auf den anderen seiten!"
+      },
+      {
+        "id": "r3-f1-s1-a2",
+        "answer": "Das finde ich super! Gern eins schon als fertig animiert, wenn man schon eins davon gemacht hat und aktuel!"
+      },
+      {
+        "id": "r3-f1-s2-a1",
+        "answer": "das muss in das titel hero darunter als informationen, denn dafür ist das titelhero da! \nwaffen (erste zeile) => S3 repeater machen weniger schaden (-8%) für Bounty (oder so... ) (zweite zeile)"
+      },
+      {
+        "id": "r3-f1-s2-a2",
+        "answer": "Finde ich gut!"
+      },
+      {
+        "id": "r3-f1-s3-a1",
+        "answer": "klingt gut!"
+      },
+      {
+        "id": "r3-f1-s4-a1",
+        "answer": "ja abe rvergiss nicht sind auch mehrere sternensyxsteme, ggf. übergreifend, aber genau das priinzip!"
+      },
+      {
+        "id": "r3-f1-s5-a1",
+        "answer": "passt"
+      },
+      {
+        "id": "r3-f1-s6-a2",
+        "answer": "FInde ikch super, gern dann beim scroll auf einer nächsten eseite dann dort nur statstiik anzeigen!"
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "f1-s2",
+        "text": "wir haben in verse und codex keine dritte zeile, bitte reuse den block und nimm die suche!"
+      },
+      {
+        "screen": "f1-s2",
+        "text": "generell schau diri die position in codex an, sollte die gleiche sein und gleicher block mit hier nur anderen inhalten! inkl. suche!"
+      },
+      {
+        "screen": "f1-s2",
+        "text": "Die zeile braucht es hier nicht und ist  auch nciht so schön wie in verse news!"
+      },
+      {
+        "screen": "f1-s2",
+        "text": "Dsa finde ich super, wiederkennbar!"
+      },
+      {
+        "screen": "f1-s4",
+        "text": "wir brauchen keine seiten zahlen!"
+      },
+      {
+        "screen": "f1-s4",
+        "text": "wo sehe ich hier den gleichen hinweis wie seite 1 zu 2, nur heir auf serite 3"
+      },
+      {
+        "screen": "f1-s4",
+        "text": "einsatz buttons w9irken hier sehr verloren :) \nUnd einsätze sind für mich zweiteilig, das eine ich mache genau eine sache und bekomme das was ich will andererseits ich muss mehrer espiel misssionen in einem einsatz machen. Das ganze einsatz und sets ist hier noch nicht klar."
+      },
+      {
+        "screen": "f1-s4",
+        "text": "Warum woher Sanitäter?! Verstehe nicht was sets mit woher zu tun haben... Oder geht es ums abholen, dann sollte man Einsatztyp (Abholug) da stehen. Und bei mehrteiligen ein anderer Typ."
+      },
+      {
+        "screen": "f1-s4",
+        "text": "ziemlich langweiliges inhaltsverzeichnis. Ich denke brauchen wir auch nicht so."
+      },
+      {
+        "screen": "f1-s6",
+        "text": "achtung hier unten muss platz sein fü+r mehr .... bzw. ganz auf der letzten seite ja auch der footer sein, das bitte berücksichtigen !"
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "general": "Warum sind abgesehen der startseite von hq alle anderen seiten nicht auf der subheader breite und der subheader nicht der den wir heute haben, exakt!? Das verwirrt mich sehr. Bitte anpassen! Siehe verse als vorbild dazu header vs subheader auf folgeseiten!",
+    "screens": {
+      "g1-s6": "Also abgesehen von der nottificiaton oben der letzten die sich dann ins logbuch überführt! Animativ und visuell oder direkt im lgobuch agiert mit animation. \nSollte auf dem screen der absolute hauptweg sein: Du bist in => nächster schritt (inkl. folge schritte schon angezeigt aber weniger highlighted! \nNebenbei auf zweiten blick sichtbar die aktiven aufträge. Nebenbei auf dritten blick sichtbar das logbuch. \n\nich finde generell gut das die schritte wie im logbuch der kauf vs die aufgabe dsie uzu kaufen und so weiter egal wo den gleichen style haben, so sind sie wiedererkennbar, das ggf. noch etwsas vereinheitlichen. Ggf. in zwei varianten noch zu tun vs ausgefühht - weil das ja andere infos sind darin dann und ggf. andere aufmerksamkeit. aber sie sollten etwas gleicher sein."
+    },
+    "decisions": [
+      {
+        "id": "r4-src",
+        "value": [
+          "log",
+          "search",
+          "community",
+          "ocr"
+        ],
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-community",
+        "value": "median",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-minreports",
+        "value": 5,
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-model",
+        "value": "ok",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-noapp",
+        "value": "cta",
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "r4-order",
+        "value": [
+          "web-frame",
+          "web-supply",
+          "web-ops",
+          "scc-sync",
+          "web-map",
+          "web-stats",
+          "scc-inv",
+          "web-patch"
+        ],
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r4-first",
+        "value": [
+          "web-frame",
+          "web-supply",
+          "web-ops",
+          "scc-sync",
+          "web-map",
+          "web-stats",
+          "scc-inv",
+          "web-patch"
+        ],
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "r4-ship-scc",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "untouched": false,
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r4-g1-s1-a1",
+        "answer": "sehr gut!"
+      },
+      {
+        "id": "r4-g1-s1-a2",
+        "answer": "ja genau, aber darunter immer die suche direkt auch hier im ersten Besuch!"
+      },
+      {
+        "id": "r4-g1-s2-a1",
+        "answer": "Das stimmt nicht, der blcok in codex sieht immmer so aus!"
+      },
+      {
+        "id": "r4-g1-s3-a1",
+        "answer": "ja, nicht nur wie, die suche soll technisch immer das exakt selbe elemnet im coding sein, nur in zwei visualsiierungen wenn eingeklappt für standalone und subheader! \nZudem soll dann nur je nach seite priorisiert werden, gruppierungen angezeigt oder nciht oder nur zum teil. usw. für jedes der elemente. Generell muss man aber sagen was man ausblendet, nicht was man einblendet auf der jeweiligen seite."
+      },
+      {
+        "id": "r4-g1-s5-a1",
+        "answer": "Finde ich richtig gut, aber dann sollten auch die sachen die nicht im filter angeklickt sind ausgeblendet sein!"
+      },
+      {
+        "id": "r4-g1-s5-a2",
+        "answer": "perfekt!\n\nLass uns eher Einsatz vs Einsatz 2x etablieren als wording, also ab 2 statt  operation oder weitere einzüfhren. Im tooltip darf gern von 2 schritten gesprochen werden. Achtung, ein iensatz kann ein e ortsaktivität sein, eine bewegung /transport die nicht teil der spielmission ist gilt auch direkt als einsatz zweiter!"
+      },
+      {
+        "id": "r4-g1-s8-a1",
+        "answer": "passt erstmal!"
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "g1-s1",
+        "text": "Das gern als Titel von den buttons darunter! Gern genauso dezent!"
+      },
+      {
+        "screen": "g1-s1",
+        "text": "wo ist das dreieck sollte exakt so aussehen wie auf verse dieser seitenübergang..."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "Gern der blcok hier inkl. buttons darutner noch etwas tiefer..."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "Diese bar ist unnötig, sieht man oben schon. Aber den Aufwand von 4 minuten zu beschreiben fädne ich super irgendwo dezent als hinwes."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "überspringen sollte unte rlos gehts sein! Das ist standard wie ich das kenne."
+      },
+      {
+        "screen": "g1-s1",
+        "text": "Beim headquarter (siehe akteull) haben wir nicht den planeten unten im hintergrund sondern auf ihn gezooomed! was ich beibhalten will als background."
+      },
+      {
+        "screen": "g1-s2",
+        "text": "header weiterhin vollkommen falsch dargestellt, der soll so bleiben wie er ist!"
+      },
+      {
+        "screen": "g1-s2",
+        "text": "diese navigation nicht dort hin! sondern maximal links an den seitenrand um schnell dort hin scrollen zu lassen."
+      },
+      {
+        "screen": "g1-s4",
+        "text": "ich würde nie auftrag noch einführen, es gibt ja sfchon einsat z (scc alglgemeines wording) und missionen (ingame missionen), das macht es zu kompliziert. Gern mehr bennenn worum es dort geht, z. B. Einkauf oder Mission usw."
+      },
+      {
+        "screen": "g1-s4",
+        "text": "ich würde immer nur das hauptsternenssystem wo der anfang ist einblenden und die anderen dann aufklappbar machen wie ein akkordeon, sonst wird dasmit dem nächsten sternensystem viel zu viel..."
+      },
+      {
+        "screen": "g1-s4",
+        "text": "Finde ich richtig gut, aber dann sollten auch die sachen die nicht im filter angeklickt sind ausgeblendet sein!"
+      },
+      {
+        "screen": "g1-s4",
+        "text": "Default immer nur die top drei wichtigsten anklicken!"
+      },
+      {
+        "screen": "g1-s4",
+        "text": "wie könnten wir hier vorauswahlen propagieren - z. B. friedlich und oder kampf und oder zeitintensiv... Sodass man sagen kann nach vordefinierten feststehenden klassifikaitonen worauf man gerade bock hat und dann sind etwaige vorausgewählt (aber nebst dieser klaassfikation auch die dimension nur in system->planet->ort... gern als so ein mehrere checkable drop ddown verschachtelung inkl. mini suche. Gern auch eine weiter  dimension wenn du eine idee hast.). Alternativ kann man ja sagen ich brauch gerade nur die top drei angeklcikten nehme ich ( also wie vorausgewählt am anfang) oder alternativ ich will x y und z der rest interessiert mich gerade nicht...\nSo haben wir schöne drei use cases...\n\nVlltr. ist der dritte use case auch der einsatztyp der oben steht!\n\nDas ist das wie. Jetzt haben wir ja auch noch die Sets, also das was/wofür... hmmm das sollte irgendwie anders als filter dargestellt werden und ggf. je nachdem auch mehrfach markiert werden können bztw. eine info enthalten ob es vollständig erreicht werden kann mti der auswahl jeweils, teilweise oder sonst eifnach keinen hinweis.damit aufch so eine dreifach logik checkbox nicht angeklickt, teilweise angeklcikt voll angeklickt nur bitte kein excel style sondern modern, es geht nur um den dreier mechanismujs nicht um die darstellung als checkbox!"
+      },
+      {
+        "screen": "g1-s5",
+        "text": "Ich würde diese filter wirklich an die planen übersicht binden. Im schritt modus nicht ermöglichen erstmal."
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das ist doch das gleiche im prinzip wie links hier gibt es zwei dinge für dich zu tun?"
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das osllte weniger prominent sein!"
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Finde die wiederekennbarkeit der kästchen in dem kasten super, aber das sollte eher min. 3 einträge mit popup wenn man es gkomplett sehen will - dort mit lazy loading und mehr button - irgendwo weniger prominent stehen."
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das ist wichtig, sieht mir aber zu sehr aus nach dem gleichen anschein wie oben die nachricht. \nDas gern hier überarbeiten"
+      },
+      {
+        "screen": "g1-s6",
+        "text": "Das ist super"
+      },
+      {
+        "screen": "g1-s7",
+        "text": "Ich habe vetrstanden,  sets sind schiff-loadouts im hangar oder fps sets im spind. Achtung, die allgemeins uche sollte, wenn benutzt auf dieser seite gut anzeigen was man sucht worum es hier geht. \nDann gibt es für mich noch das virtuelle Lager / Erspieltes wie Blueprints (vllt. zukünftig ruf etc, rbauchst du aber noch 0 hier berücksichtigen) und physische lager (wie was ich dort habe wie gold, kupfer usw. oder andere gegenstände)."
+      }
+    ]
+  },
+  {
+    "iteration": 5,
+    "action": "implement-deferred",
+    "general": "devops learn warum egal wohin ich in deisem devops concept in dieser runde (vorher war das nciht so) klicke, immedr die speech bubbnle am ende der seite entsteht und ich auch keine speech bubble z. B über dem interaktionselement des inhaltsverzeichnises machen kann... \nund devops learn warum custom notizen speechbubbbles obowhl ausgewfüllt  hier plötzlich verschienwwnden - das ist wirklich worst case sowas sollte nie passieren dürfen im devops concept!\n\nbzgl. inhaltlich das concept. lege als issue für scc web an, das thema explireren noch mehr im hq reinzubringen - das sollte dann mit devops concept erforschtwer den, machen wir aber später daher als issue ;) \n\n\nStatt jetzt umzusetzen weil ich umsetzen klicke, bitte alles gut und exakt in jedem deteail festhalten als extrem guter usmetzungsplan sehr ausführlich. und dann pausieren, weil wir es morgen umsetzen werden wegen des nutzungslimitsresets als nächstne schritt!",
+    "screens": {
+      "h1-s1": "perfekt!",
+      "h1-s2": "Dsa inhaltsgverziecvhnis ist super funktioniert aber mobile leider nicht weil es da zu sehr gequetscht ist, gern eine andere aber wiederkennbare darstellung nehmen, üblicherweise in daumen reichweite. Vllt. auch einfahc weglassen mobile, man kann ja easy scrollen!\noder unten eine leiste, was immer best practice ist und zu scc passt.",
+      "h1-s5": "schritt modus kling tmir zu unspektaulär, eher switchen wir ja von Planen was zu planen wie... nur bessere wordings dafür!"
+    },
+    "decisions": [
+      {
+        "id": "r5-steps",
+        "label": "Namen der Schritt-Arten",
+        "value": "Kaufen · Mission · Abbauen · Raffinieren · Craften · Transportieren · Abholen",
+        "rec": "nouns",
+        "deviates": true
+      },
+      {
+        "id": "r5-multi",
+        "label": "Name eines Einsatzes mit mehreren Schritten",
+        "value": "Einsatz ×N",
+        "rec": "x",
+        "deviates": false
+      },
+      {
+        "id": "r5-moods",
+        "label": "Voreinstellungen für „Nach Lust“",
+        "value": [
+          "friedlich",
+          "kampf",
+          "schnell",
+          "zeit",
+          "gruppe",
+          "solo"
+        ],
+        "rec": "friedlich kampf schnell zeit gruppe",
+        "deviates": true
+      },
+      {
+        "id": "r5-default",
+        "label": "Auswahl beim Öffnen von Planen",
+        "value": "last",
+        "rec": "top3",
+        "deviates": true,
+        "note": "totp 3 nur wenn während dieser tab session (also kein reload neuaufmachen)  noch nix geändert wurde sonst egal wohin man hin und her springt die zuletzt auswhal!"
+      },
+      {
+        "id": "r5-rail",
+        "label": "Inhalt der linken Schnellleiste",
+        "value": "pages",
+        "rec": "pages",
+        "deviates": false
+      },
+      {
+        "id": "r5-search-one",
+        "label": "Eine Such-Komponente mit zwei Darstellungen",
+        "value": "ok",
+        "rec": "ok",
+        "deviates": false
+      },
+      {
+        "id": "r5-routes",
+        "label": "Routen der fünf HQ-Seiten",
+        "value": "anchor",
+        "rec": "anchor",
+        "deviates": false
+      },
+      {
+        "id": "r5-tristate",
+        "label": "Dreifach-Auswahl als eigenes Element",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "rec": "yes",
+        "deviates": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r5-h1-s3-a1",
+        "screen": "h1-s3",
+        "answer": "ganz genau!"
+      },
+      {
+        "id": "r5-h1-s3-a2",
+        "screen": "h1-s3",
+        "answer": "Dafür braucht es kein extra toggle. Top 3 angeklickt ist standard, nach lust ist wenn ich auf diejeweiligen filter möglichkeiten klicke und gezielt,  naja immer wenn ich was ändere. Das brauchen wir hier nicht durch einen toggle toggle bar machen..."
+      },
+      {
+        "id": "r5-h1-s3-a3",
+        "screen": "h1-s3",
+        "answer": "ja finde ich super! wobei sich die werte daraus ableiten was ich sozusagen für den enachschub als  sinnvoll markeirt habe. Also 1/4 pembroke ist nicht automatisch sondern weil ich alle 4 teile bzw. ggf. noch 3 übrig markiert habe mir holen zu wollen!"
+      },
+      {
+        "id": "r5-h1-s4-a1",
+        "screen": "h1-s4",
+        "answer": "vllt. einfach alle drei als toggle? \nletzter dann solo vs gruppe"
+      },
+      {
+        "id": "r5-h1-s4-a2",
+        "screen": "h1-s4",
+        "answer": "ja sehr gut, wobei visuell noch kein highlight :D sieht noch etwas nach 2010 aus... \nreicht als tiefe! hier!"
+      },
+      {
+        "id": "r5-h1-s6-a2",
+        "screen": "h1-s6",
+        "answer": "sehr gut wobei ich das näher zum logbuch bringen würde animativ! \nDafür aber aktive missionen eher als icon oder so rechts oben"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mvw9q7qaikjj",
+        "screen": "h1-s1",
+        "text": "sehr gut, auch wenn es natürlich auf eine seite passen muss ;) Also das planen icon darf nciht abgeschnitten sein"
+      },
+      {
+        "id": "up-mvwa3v1xw13m",
+        "screen": "h1-s6",
+        "text": "was soll deine einsätze rechts oben machen!?",
+        "recovered": "from draft textarea; pin record lost by the engine"
+      }
+    ]
+  }
+]

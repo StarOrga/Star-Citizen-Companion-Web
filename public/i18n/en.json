@@ -4967,6 +4967,312 @@
       "subtitle": "Your FPS sets for every role.",
       "details": "Details",
       "detailsAria": "{{name}} details in the codex"
+    },
+    "pages": {
+      "start": "Start",
+      "planen": "Plan",
+      "jetzt": "Now",
+      "bestand": "Holdings",
+      "statistik": "Stats",
+      "empty": "{{page}}: something new is being built here."
+    },
+    "rail": {
+      "label": "HQ pages",
+      "goto": "Go to {{page}}"
+    },
+    "start": {
+      "kicker": "Your HQ",
+      "title": "Headquarters",
+      "important": "Important now"
+    },
+    "first": {
+      "promise": "Your hangar, your sets, your next ops. In one place.",
+      "step1": "Fetch your RSI hangar",
+      "step2": "Connect the SCC app",
+      "step3": "Plan your first op",
+      "go": "Let's go",
+      "skip": "Skip",
+      "duration": "≈ 4 minutes"
+    },
+    "step": {
+      "kind": {
+        "buy": "Buy",
+        "mission": "Mission",
+        "mine": "Mine",
+        "refine": "Refine",
+        "craft": "Craft",
+        "transport": "Haul",
+        "pickup": "Pick up"
+      },
+      "state": {
+        "todo": "to do",
+        "done": "done"
+      }
+    },
+    "log": {
+      "undo": "Undo",
+      "title": "Log",
+      "close": "Close",
+      "empty": "No events yet.",
+      "showAll": "Show all",
+      "more": "Load more",
+      "undone": "Undone",
+      "event": {
+        "shop.purchase": "Bought {{quantity}}× {{item}} ({{shop}})",
+        "refinery.complete": "Refinery done: {{count}} orders ({{location}})",
+        "contract.completed": "Mission completed: {{name}}",
+        "qt.arrived": "Quantum jump finished",
+        "hangar.ready": "Hangar ready",
+        "inventory.opened": "Inventory opened ({{location}})",
+        "other": "Event: {{type}}"
+      }
+    },
+    "now": {
+      "loading": "Loading your game state …",
+      "retry": "Try again",
+      "connect": {
+        "title": "Game not detected — connect the SCC app",
+        "hint": "The SCC app reports your location and actions here, live."
+      },
+      "anchor": {
+        "label": "You are here",
+        "unknown": "Location unknown",
+        "ship": "Ship:"
+      },
+      "path": {
+        "title": "Your path",
+        "empty": "No active operation. Plan one under Plan."
+      },
+      "missions": {
+        "tooltip": "Active missions in game",
+        "title": "Active missions",
+        "none": "No active mission."
+      },
+      "log": {
+        "title": "Latest"
+      }
+    },
+    "plan": {
+      "switch": {
+        "label": "View",
+        "what": "What I need",
+        "how": "How to get there"
+      },
+      "selection": "Selection",
+      "stepsAria": "Step kinds",
+      "state": {
+        "top3": "Top 3",
+        "mood": "By mood: {{moods}}",
+        "custom": "Custom selection"
+      },
+      "empty": "Nothing to pick yet. Mark in Supplies what you want to get.",
+      "route": "Your route",
+      "routeEmpty": "No route yet. Pick under \"What I need\" what you want to get.",
+      "saveEinsatz": "Save as op",
+      "retry": "Try again"
+    },
+    "mood": {
+      "peaceful": "Peaceful",
+      "combat": "Combat",
+      "quick": "Quick (< 30 min)",
+      "long": "Time-intensive",
+      "solo": "Solo",
+      "group": "Group",
+      "pairAria": "{{left}} or {{right}}"
+    },
+    "place": {
+      "search": "Search places",
+      "any": "All places",
+      "count": "{{n}} places",
+      "empty": "No place found.",
+      "label": "System, planet, place"
+    },
+    "set": {
+      "none": "No set with supplies yet.",
+      "reach": {
+        "full": "fully reachable",
+        "partial": "partly"
+      }
+    },
+    "supply": {
+      "ready": "ready",
+      "forSet": "for set {{name}}",
+      "setReady": "Set {{name}} is ready",
+      "wanted": "Want to get",
+      "wantedAria": "Mark {{name}} as wanted",
+      "importTitle": "Add the list from this browser?",
+      "importMessage": "This browser holds a supplies list from before you signed in ({{count}} lines). Add it to your account? On a shared browser it may belong to someone else.",
+      "importConfirm": "Add to my account",
+      "importCancel": "Not now"
+    },
+    "einsatz": {
+      "single": "Op",
+      "multi": "Op ×{{n}}",
+      "stepsTooltip": "{{n}} steps",
+      "title": "Your ops",
+      "empty": "No op saved yet.",
+      "nameLabel": "Name of the op",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove op?",
+      "removeMessage": "\"{{name}}\" and its steps will be deleted."
+    },
+    "activity": {
+      "kopfgeld": "Bounty",
+      "bunker": "Bunker",
+      "medizin": "Medical",
+      "rennen": "Racing",
+      "bergbau": "Mining",
+      "fracht": "Cargo",
+      "bergung": "Salvage",
+      "erkunden": "Exploring",
+      "piraterie": "Piracy"
+    },
+    "map": {
+      "title": "Map",
+      "routeTitle": "Route",
+      "empty": "Nothing selected. Pick needs above and they show up here.",
+      "startHere": "You start here",
+      "stepsOne": "1 step",
+      "steps": "{{n}} steps",
+      "unplaced": "{{n}} without a place, list only",
+      "listTwin": "As a list",
+      "node": {
+        "needs": "{{place}} ({{path}}): {{needs}}",
+        "step": "Step {{ords}}: {{place}} ({{path}}): {{needs}}",
+        "start": "{{place}} ({{path}}): you start here"
+      },
+      "status": {
+        "open": "open",
+        "partial": "partly",
+        "done": "done"
+      },
+      "legend": {
+        "title": "Legend",
+        "shape": "Shape = activity",
+        "size": "Size = amount",
+        "size_s": "up to 5",
+        "size_m": "up to 25",
+        "size_l": "more",
+        "fill": "Fill = status",
+        "line": "Line",
+        "travel": "Flight",
+        "transport": "Transport",
+        "colour": "Colour = need"
+      }
+    },
+    "community": {
+      "share": "Share community data",
+      "shareOn": "Your purchases (price, amount, shop) feed the community median anonymously.",
+      "shareOff": "Off: nothing is shared. You still see the community median.",
+      "median": "Community median",
+      "reports": "{{n}} reports",
+      "source": {
+        "log": "From your log",
+        "search": "From the Codex search",
+        "community": "Community",
+        "ocr": "From a screenshot"
+      }
+    },
+    "patch": {
+      "affects": "affects {{set}} ›"
+    },
+    "stats": {
+      "range": {
+        "label": "Range",
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days"
+      },
+      "retry": "Try again",
+      "signedOut": "Sign in to see your statistics.",
+      "loading": "Loading statistics …",
+      "emptyAll": "Nothing recorded yet. The tiles fill up once the SCC app reads along.",
+      "zero": "Nothing recorded in this range.",
+      "details": "Details",
+      "close": "Close",
+      "day": "Day",
+      "week": "Week",
+      "tile": {
+        "auec": {
+          "name": "aUEC",
+          "sub": "{{earned}} earned · {{spent}} spent",
+          "hint": "From purchases and sales in the game.",
+          "col": "Net"
+        },
+        "missions": {
+          "name": "Missions",
+          "sub": "{{n}} per week",
+          "hint": "Completed missions.",
+          "col": "Missions"
+        },
+        "deaths": {
+          "name": "Deaths / claims",
+          "sub": "Deaths / claims",
+          "hint": "Dashed: claims, solid: deaths.",
+          "col": "Deaths",
+          "col2": "Claims"
+        },
+        "crimestat": {
+          "name": "Crimestat",
+          "sub": "Increases",
+          "hint": "How often your crimestat went up.",
+          "col": "Increases"
+        },
+        "refinery": {
+          "name": "Refinery",
+          "sub": "Finished runs",
+          "hint": "Finished refinery runs.",
+          "col": "Runs"
+        },
+        "blueprints": {
+          "name": "Blueprints",
+          "sub": "Newly received",
+          "hint": "Newly received blueprints.",
+          "col": "Blueprints"
+        }
+      }
+    },
+    "stock": {
+      "signedOut": "Sign in to see your holdings.",
+      "retry": "Try again",
+      "ships": {
+        "title": "Ships",
+        "count": "{{n}} in the hangar",
+        "noFavourites": "No favourites marked yet.",
+        "open": "Open hangar"
+      },
+      "sets": {
+        "title": "Sets",
+        "ship": "{{n}} ship loadouts",
+        "fps": "{{n}} FPS sets"
+      },
+      "earned": {
+        "title": "Earned",
+        "blueprints": "{{n}} blueprints received",
+        "open": "Blueprints in the codex"
+      },
+      "age": {
+        "minutes": "last opened {{n}} min ago",
+        "hours": "last opened {{n}} h ago",
+        "days": "last opened {{n}} days ago"
+      },
+      "lager": {
+        "title": "Storage by place",
+        "empty": "Nothing stored yet. Add below what lies where.",
+        "materials": "Raw materials",
+        "pieces": "Items",
+        "placeEmpty": "Empty.",
+        "storage": "Ships at the hangar terminal"
+      },
+      "capture": {
+        "title": "Lies in …",
+        "item": "Item or raw material",
+        "qty": "Quantity",
+        "unit": "Unit",
+        "pcs": "Pieces",
+        "location": "Place",
+        "save": "Add"
+      }
     }
   },
   "verse": {
@@ -5539,7 +5845,11 @@
       "shipFallback": "This ship",
       "codexDetail": "{{kind}}",
       "fps": "FPS",
-      "hq": "My HQ"
+      "hq": "My HQ",
+      "hqPlan": "Plan",
+      "hqNow": "Now",
+      "hqStock": "Holdings",
+      "hqStats": "Stats"
     },
     "placeholder": {
       "all": "Search everywhere …",
@@ -5550,7 +5860,11 @@
       "ship": "Components, weapons, ships …",
       "codexDetail": "Search the Codex …",
       "fps": "Weapons, armour, gear …",
-      "hq": "Hangar, locker, ships …"
+      "hq": "Hangar, locker, ships …",
+      "hqPlan": "A set, part or place for your op …",
+      "hqNow": "Ship, place or part …",
+      "hqStock": "Search your holdings …",
+      "hqStats": "Ship or set …"
     },
     "search": {
       "label": "Search",
