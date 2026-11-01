@@ -746,7 +746,8 @@
         "shipCs": "Ship: cross-section",
         "cmNeedIr": "Recommended vs IR",
         "cmNeedEm": "Recommended vs EM",
-        "cmNeedCs": "Recommended vs cross-section"
+        "cmNeedCs": "Recommended vs cross-section",
+        "armorSignal": "Armor signal factor"
       },
       "src": {
         "damage": "AmmoParams.impactDamage",
@@ -759,14 +760,15 @@
         "aiming": "SCItemAimableComponentParams",
         "missing": "overclock modifiers only, all of them 1.0",
         "countermeasure": "AmmoParams.projectileParams.typeParams · weaponParams.ammoCapacity",
-        "cmRecommend": "Rule of thumb: ship signature ÷ signature per launch, rounded down + 1 — only then do the launches clearly outshine the ship. Ship values follow the current power setup."
+        "cmRecommend": "Rule of thumb: ship signature ÷ signature per launch, rounded down + 1 — only then do the launches clearly outshine the ship. Ship values are computed live: the IR / EM emissions of every powered component in the current loadout and power setup (coolers, power plant, shields, quantum drive …), times the armor's signal factor."
       },
       "value": {
         "none": "0 = none",
         "dash": "—",
         "magazineEnergy": "— on energy weapons",
         "noData": "not in the data",
-        "cmCount": "≈ {{n}}×"
+        "cmCount": "≈ {{n}}×",
+        "armorSignal": "IR ×{{ir}} · EM ×{{em}} · cross-section ×{{cs}}"
       }
     },
     "countermeasure": {
