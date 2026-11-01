@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.186.0] - 2026-11-01
+
+### Changed
+- Website downloads (Apps menu, Starscape menu, `/apps/uploader`, `/download`) always hand out the stable release. Beta and alpha are picked inside each app after signing in with your SC Companion account — which rings you get depends on your role.
+- The admin promote row on `/apps/uploader` now picks its own source ring.
+
+### Removed
+- The role-gated release-channel picker on the download pages.
+
 ## [0.185.1] - 2026-11-01
 
 ### Fixed
