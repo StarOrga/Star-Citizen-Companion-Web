@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
 import { ShellSceneComponent } from './shell-scene.component';
-import { POSES, SCENES, SceneKind, flightMs, isMainPage, sceneOf, sceneStep } from './scene.model';
+import { POSES, SCENES, SceneKind, flightMs, isMainPage, isSubPage, sceneOf, sceneStep } from './scene.model';
 
 @Component({ standalone: true, template: '' })
 class BlankPage {}
@@ -20,6 +20,9 @@ describe('Shell scene — model', () => {
     expect(isMainPage('/hq/')).toBeTrue();
     expect(isMainPage('/codex?q=a')).toBeTrue();
     expect(isMainPage('/codex/index')).toBeFalse();
+    expect(isSubPage('/hq#planen')).toBeFalse();
+    expect(isSubPage('/hq/hangar')).toBeTrue();
+    expect(isSubPage('/settings')).toBeTrue();
   });
 
   it('moves the camera on all six directed main-page routes, cuts for sub-pages, dissolves under reduced motion', () => {
@@ -39,12 +42,14 @@ describe('Shell scene — model', () => {
 });
 
 describe('Shell scene — poses and flights', () => {
-  it('defines a pose per area: Verse neutral, Codex small and panned, HQ deep zoom with surface detail, admin dimmed', () => {
+  it('defines a pose per area: Verse open sky, Codex panned with its holo glow, HQ dived onto the night surface, admin dimmed', () => {
     expect(SCENES.length).toBe(4);
-    expect(POSES.verse.planet).toBe('none');
+    expect(POSES.verse.sky).toBe('none');
     expect(POSES.verse.detail).toBe(0);
-    expect(POSES.codex.planet).toBe('translate(10%, 8%) scale(0.62)');
-    expect(POSES.hq.planet).toContain('scale(3.4)');
+    expect(POSES.verse.plane).toBe(0);
+    expect(POSES.codex.sky).toBe('translateX(-16vw)');
+    expect(POSES.codex.plane).toBe(1);
+    expect(POSES.hq.sky).toContain('scale(1.08)');
     expect(POSES.hq.detail).toBe(1);
     expect(POSES.codex.detail).toBe(0);
     expect(POSES.admin.dim).toBeGreaterThan(0);
@@ -72,7 +77,7 @@ describe('Shell scene — component', () => {
   const shellOn = signal(true);
 
   const scene = (): HTMLElement => fixture.nativeElement.querySelector('.scene') as HTMLElement;
-  const planet = (): HTMLElement => fixture.nativeElement.querySelector('.planet') as HTMLElement;
+  const sky = (): HTMLElement => fixture.nativeElement.querySelector('.sky') as HTMLElement;
   const go = async (url: string): Promise<void> => {
     await router.navigateByUrl(url);
     fixture.detectChanges();
@@ -91,7 +96,7 @@ describe('Shell scene — component', () => {
     fixture = TestBed.createComponent(ShellSceneComponent);
     fixture.detectChanges();
     // Flush the first pose so later changes start from it.
-    void getComputedStyle(planet()).transform;
+    void getComputedStyle(sky()).transform;
   });
 
   afterEach(() => {
@@ -106,11 +111,12 @@ describe('Shell scene — component', () => {
     expect(scene()).toBeNull();
   });
 
-  it('starts still in the pose of the current page, the planet following the hub', () => {
+  it('starts still in the pose of the current page and draws no planet of its own', () => {
     expect(scene().dataset['scene']).toBe('verse');
     expect(scene().dataset['mode']).toBe('still');
-    expect(scene().hasAttribute('data-home')).toBeTrue();
-    expect(moving(planet())).toBeFalse();
+    expect(scene().hasAttribute('data-sub')).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.planet')).toBeNull();
+    expect(moving(sky())).toBeFalse();
   });
 
   it('plays a real camera transition for every directed route between the main pages (incl. HQ <-> Codex)', async () => {
@@ -121,7 +127,7 @@ describe('Shell scene — component', () => {
       expect(scene().dataset['scene']).withContext(`${from}→${to}`).toBe(to);
       expect(scene().dataset['mode']).withContext(`${from}→${to}`).toBe('move');
       expect(scene().dataset['from']).withContext(`${from}→${to}`).toBe(from);
-      expect(moving(planet())).withContext(`${from}→${to} transition`).toBeTrue();
+      expect(moving(sky())).withContext(`${from}→${to} transition`).toBeTrue();
       for (const a of document.getAnimations()) if (a instanceof CSSTransition) a.finish();
       from = to;
     }
@@ -136,33 +142,57 @@ describe('Shell scene — component', () => {
 
   it('an interrupted flight re-targets from the current position without a jump', async () => {
     await go('/hq');
-    for (const a of planet().getAnimations()) if (a instanceof CSSTransition) a.currentTime = 600;
-    const mid = getComputedStyle(planet()).transform;
+    for (const a of sky().getAnimations()) if (a instanceof CSSTransition) a.currentTime = 600;
+    const mid = getComputedStyle(sky()).transform;
     expect(mid).not.toBe('none');
     await go('/codex');
-    expect(getComputedStyle(planet()).transform).toBe(mid);
-    expect(moving(planet())).toBeTrue();
+    expect(getComputedStyle(sky()).transform).toBe(mid);
+    expect(moving(sky())).toBeTrue();
   });
 
   it('cuts without motion when the target is a sub-page, and stays static inside an area', async () => {
     await go('/codex/ships/x');
     expect(scene().dataset['scene']).toBe('codex');
     expect(scene().dataset['mode']).toBe('still');
-    expect(moving(planet())).toBeFalse();
+    expect(scene().hasAttribute('data-sub')).toBeTrue();
+    expect(moving(sky())).toBeFalse();
     await go('/codex');
     expect(scene().dataset['mode']).toBe('still');
-    expect(moving(planet())).toBeFalse();
+    expect(scene().hasAttribute('data-sub')).toBeFalse();
+    expect(moving(sky())).toBeFalse();
     await go('/verse/news');
     expect(scene().dataset['scene']).toBe('verse');
-    expect(scene().hasAttribute('data-home')).toBeFalse();
-    expect(moving(planet())).toBeFalse();
+    expect(scene().hasAttribute('data-sub')).toBeTrue();
+    expect(scene().dataset['world']).toBe('news');
+    expect(moving(sky())).toBeFalse();
+  });
+
+  it('shows a sub-page only the dimmed sky: no holo glow, no night surface', async () => {
+    const opacity = (sel: string): number => Number(getComputedStyle(fixture.nativeElement.querySelector(sel) as HTMLElement).opacity);
+    const settle = (): void => {
+      for (const a of document.getAnimations()) if (a instanceof CSSTransition) a.finish();
+    };
+    await go('/hq');
+    settle();
+    expect(opacity('.detail')).toBe(1);
+    await go('/hq/hangar');
+    settle();
+    expect(opacity('.detail')).toBe(0);
+    expect(opacity('.ground')).toBe(0);
+    expect(opacity('.dim')).toBeCloseTo(0.22, 2);
+    await go('/codex');
+    settle();
+    expect(opacity('.plane')).toBe(1);
+    await go('/codex/ships/x');
+    settle();
+    expect(opacity('.plane')).toBe(0);
   });
 
   it('dissolves instead of moving under reduced motion', async () => {
     fixture.componentInstance.reducedMotion = () => true;
     await go('/hq');
     expect(scene().dataset['mode']).toBe('fade');
-    expect(moving(planet())).toBeFalse();
+    expect(moving(sky())).toBeFalse();
     const names = scene().getAnimations().map((a) => (a as CSSAnimation).animationName);
     expect(names.some((n) => n.includes('fade-'))).toBeTrue();
     const tick = scene().dataset['fade'];

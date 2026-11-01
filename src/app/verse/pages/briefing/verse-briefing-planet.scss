@@ -55,6 +55,10 @@
 // visible while the canvas fades in (1.6 s), then steps out of the way.
 .brief-world, .city { transition: opacity 0s 1.6s; }
 .brief-world.gl, .city.gl { opacity: 0; }
+// While the live planet generates, the CSS one waits unseen (no planet swap
+// on the way in); it fades in only as the fallback (no WebGL, or too slow).
+.brief-world.wait, .city.wait { opacity: 0; transition: none; }
+.brief-world.late, .city.late { transition: opacity 0.8s ease-out; }
 // Soft city glows near the rim on the night side (no dots).
 .brief-world::before {
   content: '';

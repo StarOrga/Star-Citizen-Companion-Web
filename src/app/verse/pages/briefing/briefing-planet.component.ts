@@ -5,14 +5,19 @@ import { paintDay, paintNight } from './planet/planet-textures';
 import { AuroraClock, Train, TrainNetwork } from './planet/planet-trains';
 import { DAY_MS, PlanetWorld, Vec3, generateWorld, project, seeded } from './planet/planet-world';
 
+/** How long the hub waits for the live planet before it shows the CSS one. */
+export const FALLBACK_MS = 3000;
+
 /**
  * The hub's big planet, live (concept 2026-10-29 "Verse-Planet Nachtseite"):
  * a WebGL sphere that turns once in 30 minutes under a fixed sun, with city
  * lights on its night side, 2–5 trains on the rail network and an aurora now
  * and then. It draws into a sticky, viewport-tall canvas inside the stage's
  * `.world-clip` and takes its geometry from the CSS planet (`anchor`), which
- * stays in place as the fallback — no WebGL, or the world still generating,
- * and the reader simply sees the opaque CSS planet.
+ * stays in place as the fallback. While the world generates the CSS planet
+ * stays hidden, so the hub never shows one planet and swaps it for another;
+ * it only appears without WebGL or when the world takes longer than
+ * `FALLBACK_MS` (`fallback()`).
  *
  * The turn follows the wall clock, so every visit shows another part of the
  * world. Under reduced motion the planet is drawn once and stands still.
@@ -34,6 +39,8 @@ export class BriefingPlanetComponent {
   /** The CSS planet: the live one is drawn exactly over it. */
   readonly anchor = input.required<HTMLElement>();
   readonly ready = signal(false);
+  /** Show the CSS planet: no WebGL, or the live one is late. */
+  readonly fallback = signal(false);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
@@ -42,7 +49,12 @@ export class BriefingPlanetComponent {
 
   constructor() {
     afterNextRender(() => this.zone.runOutsideAngular(() => void this.start()));
+    // Outside the zone, so a pending timer never holds a fixture's whenStable().
+    const late = this.zone.runOutsideAngular(() =>
+      setTimeout(() => this.zone.run(() => this.fallback.set(!this.ready())), FALLBACK_MS),
+    );
     inject(DestroyRef).onDestroy(() => {
+      clearTimeout(late);
       this.stopped = true;
       for (const fn of this.cleanup) fn();
     });
@@ -55,6 +67,7 @@ export class BriefingPlanetComponent {
       renderer = new PlanetRenderer(glCanvas, accentRgb());
     } catch (err) {
       logWarn('verse.planet', 'WebGL unavailable, keeping the CSS planet', err);
+      this.zone.run(() => this.fallback.set(true));
       return;
     }
     this.cleanup.push(() => renderer.dispose());

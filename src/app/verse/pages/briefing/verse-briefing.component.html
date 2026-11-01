@@ -6,8 +6,8 @@
          WebGL planet draws over the CSS one once its world is generated; the
          CSS planet stays as the fallback and as its geometry. -->
     <div class="world-clip" aria-hidden="true" [class.quake]="quake()">
-      <div class="brief-world" #world [class.gl]="planet.ready()"></div>
-      <div class="city" [class.gl]="planet.ready()"></div>
+      <div class="brief-world" #world [class.gl]="planet.ready()" [class.wait]="!planet.ready() && !planet.fallback()" [class.late]="planet.fallback()"></div>
+      <div class="city" [class.gl]="planet.ready()" [class.wait]="!planet.ready() && !planet.fallback()" [class.late]="planet.fallback()"></div>
       <sc-briefing-planet #planet [anchor]="world" />
     </div>
     <!-- Easter egg: a double click on the empty sky left of the hero (see the component). -->

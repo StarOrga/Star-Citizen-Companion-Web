@@ -1,10 +1,13 @@
-@use './scene-geometry' as geo;
+@use './starfield' as stars;
 
 // The background scene: one fixed layer behind the page. Poses per main area
 // are plain CSS state on .scene[data-scene]; the camera moves through CSS
 // transitions, so any pose reaches any other (all six directed routes) from
 // wherever the camera currently stands. data-mode="still" cuts (sub-page
 // target, first paint), "fade" dissolves (reduced motion).
+//
+// No planet and no grid lines here: the Verse hub draws the one planet itself,
+// and a ruled plane read as a checkerboard behind the cinematic stages.
 //
 // Not encapsulated: the scene must clear the body's own background (html
 // keeps --sc-bg-0, the canvas), or the opaque body would paint over this
@@ -13,7 +16,6 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
 
 .sc-shell-scene {
   & {
-    @include geo.planet-geometry;
     --scene-move: 1100ms;
     --scene-ease: cubic-bezier(0.65, 0, 0.25, 1);
     position: fixed;
@@ -26,10 +28,11 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   &:empty { display: none; }
 
   .scene { position: absolute; inset: 0; background: #02070d; }
-  .sky, .plane, .follow { position: absolute; inset: 0; }
+  .sky, .plane { position: absolute; inset: 0; }
 
   // ── Sky ────────────────────────────────────────────────────────────────
-  .sky { inset: -8%; }
+  // Wide enough that the Codex pan (-16vw) never shows the sky's right edge.
+  .sky { inset: -8% -24% -8% -8%; }
   .neb {
     position: absolute;
     inset: 0;
@@ -42,132 +45,56 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
       radial-gradient(ellipse 40% 30% at 92% 70%, rgba(40, 110, 150, 0.22), transparent 75%),
       linear-gradient(180deg, #02070d 0%, #041320 60%, #061827 100%);
   }
+  // Irregular fields in large tiles (_starfield.scss): a small tile per star
+  // lined the stars up into a lattice.
   .stars {
     position: absolute;
     inset: 0;
     opacity: 0.55;
-    background-image:
-      radial-gradient(1px 1px at 12px 18px, #fff, transparent), radial-gradient(1px 1px at 84px 62px, #cfe8ff, transparent),
-      radial-gradient(1px 1px at 150px 120px, #fff, transparent), radial-gradient(1px 1px at 40px 150px, #9cc, transparent),
-      radial-gradient(1px 1px at 190px 30px, #fff, transparent), radial-gradient(1.4px 1.4px at 120px 80px, #fff, transparent);
-    background-size: 210px 170px;
+    @include stars.field(170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
   }
   .stars.near {
     opacity: 0.85;
     animation: sc-scene-twinkle 6s ease-in-out infinite;
-    background-image:
-      radial-gradient(1.6px 1.6px at 40px 60px, #fff, transparent), radial-gradient(1.3px 1.3px at 210px 140px, #ffe7c4, transparent),
-      radial-gradient(1.8px 1.8px at 300px 40px, #d9f2ff, transparent), radial-gradient(1.2px 1.2px at 120px 230px, #fff, transparent);
-    background-size: 340px 280px;
+    @include stars.field(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
   }
 
-  // ── Planet: dark, lit thinly from the top right; uneven city lights ────
-  .planet {
-    position: absolute;
-    left: calc(var(--sc-pl-x) - var(--sc-pl-d) / 2);
-    top: calc(100% - var(--sc-pl-cap) - var(--sc-pl-lift));
-    width: var(--sc-pl-d);
-    height: var(--sc-pl-d);
-    border-radius: 50%;
-    transform-origin: 50% 0;
-    box-shadow: 0 0 70px 8px rgba(76, 201, 240, 0.1), 0 -2px 24px rgba(120, 210, 255, 0.12);
-  }
-  .planet > span { position: absolute; inset: 0; border-radius: 50%; }
-  .pl-body {
-    background:
-      radial-gradient(circle at 74% 6%, rgba(120, 190, 220, 0.34) 0, rgba(40, 90, 120, 0.18) 9%, transparent 22%),
-      radial-gradient(ellipse 30% 9% at 34% 9%, rgba(20, 40, 52, 0.7), transparent 70%),
-      radial-gradient(ellipse 22% 6% at 58% 15%, rgba(16, 34, 46, 0.6), transparent 70%),
-      radial-gradient(circle at 60% 0%, #0d1d2a 0%, #07121b 16%, #040a11 32%, #020509 60%);
-  }
-  // Night side = everything left of the terminator; the lights live only there.
-  .pl-night {
-    overflow: hidden;
-    mask-image: linear-gradient(104deg, #000 0 52%, transparent 64%);
-  }
-  // Three light layers on unrelated tile sizes, each clipped to its own
-  // clusters, so the pattern never reads as a grid: a few bright cities,
-  // scattered towns, a faint web along the coasts.
-  .lt { position: absolute; inset: 0; }
-  .lt.a {
-    background-image:
-      radial-gradient(circle at 9px 11px, #fff0c8 0 1px, transparent 1.8px),
-      radial-gradient(circle at 15px 14px, #ffc878 0 0.8px, transparent 1.4px),
-      radial-gradient(circle at 31px 6px, #ffd890 0 0.9px, transparent 1.5px),
-      radial-gradient(circle at 24px 22px, #ffb35a 0 0.7px, transparent 1.3px),
-      radial-gradient(14px 6px at 13px 12px, rgba(255, 170, 80, 0.35), transparent);
-    background-size: 37px 27px;
-    mask-image:
-      radial-gradient(ellipse 9% 2.6% at 29% 6%, #000 20%, transparent 70%),
-      radial-gradient(ellipse 6% 2% at 43% 11.5%, #000 20%, transparent 70%),
-      radial-gradient(ellipse 5% 3% at 19% 14%, #000 20%, transparent 70%),
-      radial-gradient(ellipse 3% 1.4% at 52% 4.5%, #000 20%, transparent 70%);
-  }
-  .lt.b {
-    opacity: 0.85;
-    background-image:
-      radial-gradient(circle at 5px 4px, #ffcf8a 0 0.6px, transparent 1.2px),
-      radial-gradient(circle at 29px 19px, #ffb35a 0 0.6px, transparent 1.2px),
-      radial-gradient(circle at 42px 7px, #ffd890 0 0.7px, transparent 1.3px),
-      radial-gradient(circle at 17px 31px, #ffc878 0 0.6px, transparent 1.2px);
-    background-size: 53px 41px;
-    mask-image:
-      radial-gradient(ellipse 18% 5% at 34% 8%, #000 10%, transparent 72%),
-      radial-gradient(ellipse 10% 6% at 13% 19%, #000 10%, transparent 72%),
-      radial-gradient(ellipse 8% 3% at 50% 15%, #000 10%, transparent 72%),
-      radial-gradient(ellipse 6% 2% at 24% 3%, #000 10%, transparent 72%);
-  }
-  // A faint web of roads and coasts between the clusters, breathing slowly.
-  .lt.c {
-    opacity: 0.5;
-    background-image: radial-gradient(circle at 3px 4px, #ffd9a0 0 0.5px, transparent 1px), radial-gradient(circle at 14px 11px, #ffd9a0 0 0.5px, transparent 1px);
-    background-size: 19px 15px;
-    mask-image: radial-gradient(ellipse 30% 9% at 30% 9%, rgba(0, 0, 0, 0.8), transparent 75%);
-    animation: sc-scene-city 9s ease-in-out infinite;
-  }
-  // Atmosphere: a hairline rim, brightest towards the sun.
-  .pl-rim {
-    background: radial-gradient(closest-side, transparent 97.4%, rgba(150, 225, 255, 0.55) 99.2%, rgba(76, 201, 240, 0.12) 100%);
-    mask-image: linear-gradient(100deg, rgba(0, 0, 0, 0.25) 30%, #000 70%);
-  }
-
-  // ── Codex data plane (off to the right until the camera turns) ─────────
-  .plane {
-    left: 38%;
-    perspective: 900px;
-  }
+  // ── Codex holo glow (off to the right until the camera turns) ──────────
+  // Soft light only, the colour of the holotable — the Codex stage draws its
+  // own hologram, the backdrop just carries its glow out to the edges.
+  .plane { left: 30%; }
   .plane > i {
     position: absolute;
-    inset: 8% 0 8% 0;
-    transform: rotateY(-28deg);
-    transform-origin: 100% 50%;
+    inset: 0;
     background:
-      repeating-linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 20%, transparent) 0 1px, transparent 1px 64px),
-      repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 14%, transparent) 0 1px, transparent 1px 64px);
-    mask-image: radial-gradient(ellipse 70% 60% at 60% 50%, #000, transparent 75%);
+      radial-gradient(ellipse 42% 36% at 58% 48%, color-mix(in srgb, var(--sc-accent) 13%, transparent), transparent 72%),
+      radial-gradient(ellipse 26% 52% at 74% 56%, color-mix(in srgb, var(--sc-accent) 7%, transparent), transparent 74%),
+      radial-gradient(ellipse 60% 18% at 50% 92%, color-mix(in srgb, var(--sc-accent) 6%, transparent), transparent 75%);
   }
 
-  // ── Surface detail (HQ): faint city lights and a survey grid, only when the camera is down ──
+  // ── Night surface (HQ): the camera has dived towards the ground ────────
+  // A dark ground rising from below with faint, clustered city lights; no
+  // planet outline and no survey grid.
   .detail {
     position: absolute;
     inset: 0;
     opacity: var(--pose-detail, 0);
-    mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, #000 30%, transparent 85%);
+    background:
+      radial-gradient(ellipse 120% 26% at 50% 34%, rgba(76, 201, 240, 0.05), transparent 72%),
+      linear-gradient(180deg, transparent 0%, rgba(4, 11, 18, 0.72) 36%, #040b12 72%);
   }
   .detail > i { position: absolute; inset: 0; }
-  .detail .grid {
-    background:
-      repeating-linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 12%, transparent) 0 1px, transparent 1px 96px),
-      repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 9%, transparent) 0 1px, transparent 1px 96px);
-  }
+  // Soft glows like the hub's night side — no tiled dots, which read as a grid.
   .detail .lights {
-    opacity: 0.8;
-    background-image:
-      radial-gradient(circle at 9px 11px, #fff0c8 0 1.2px, transparent 2px),
-      radial-gradient(circle at 41px 27px, #ffc878 0 1px, transparent 1.7px),
-      radial-gradient(circle at 23px 52px, #ffb35a 0 0.9px, transparent 1.5px);
-    background-size: 71px 63px;
-    mask-image: radial-gradient(ellipse 40% 30% at 30% 55%, #000 10%, transparent 75%), radial-gradient(ellipse 25% 20% at 72% 40%, #000 10%, transparent 75%);
+    background:
+      radial-gradient(7vw 2vw at 18% 62%, rgba(255, 184, 107, 0.13), transparent 70%),
+      radial-gradient(1.6vw 0.6vw at 19% 62%, rgba(255, 206, 150, 0.22), transparent 70%),
+      radial-gradient(9vw 2.4vw at 38% 78%, rgba(255, 184, 107, 0.1), transparent 70%),
+      radial-gradient(6vw 1.8vw at 61% 68%, rgba(255, 184, 107, 0.12), transparent 70%),
+      radial-gradient(1.4vw 0.5vw at 62% 68%, rgba(255, 206, 150, 0.2), transparent 70%),
+      radial-gradient(8vw 2.2vw at 84% 82%, rgba(255, 184, 107, 0.1), transparent 70%),
+      radial-gradient(5vw 1.5vw at 80% 58%, rgba(255, 184, 107, 0.09), transparent 70%);
+    animation: sc-scene-city 9s ease-in-out infinite;
   }
   .dim { position: absolute; inset: 0; background: #02070d; opacity: var(--pose-dim, 0); }
   .ground {
@@ -175,16 +102,6 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     inset: 55% 0 0 0;
     opacity: var(--pose-ground, 0);
     background: linear-gradient(180deg, transparent, #02070d 70%);
-    transition: opacity var(--scene-move) var(--scene-ease);
-  }
-  .hg-pad {
-    left: -10%;
-    right: -10%;
-    bottom: -10px;
-    height: 4px;
-    background:
-      radial-gradient(circle, var(--sc-accent) 0 1.5px, transparent 2px) 0 50% / 28px 4px repeat-x;
-    opacity: 0.7;
   }
 
   // ── Motion: every pose change is a transition from the current visual state ──
@@ -192,28 +109,23 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   // flight length as --scene-move. A new pose mid-flight restarts the transition
   // from the computed (current) value, so an interrupted flight never jumps.
   .sky { transform: var(--pose-sky, none); opacity: var(--pose-sky-o, 1); }
-  .planet { transform: var(--pose-planet, none); }
   .plane { transform: translateX(calc((1 - var(--pose-plane, 0)) * 24vw)); opacity: var(--pose-plane, 0); }
-  .sky, .planet, .plane, .detail, .ground, .dim {
+  .sky, .plane, .detail, .ground, .dim, .halo {
     transition: transform var(--scene-move) var(--scene-ease), opacity var(--scene-move) var(--scene-ease);
   }
 
-  // The hub: the planet scrolls with the page (compositor scroll timeline).
-  .scene[data-home] .follow {
-    animation: sc-scene-follow linear both;
-    animation-timeline: scroll(root block);
-    animation-range: 0px 4000px;
-  }
-  @supports not (animation-timeline: scroll()) {
-    .scene[data-home] .follow { animation: none; transform: translateY(calc(var(--scene-scroll, 0px) * -1)); }
+  // ── Sub-pages: neutral deep space ──────────────────────────────────────
+  // Lists, forms and detail pages keep their area's sky (no jump when they
+  // open) but none of its set pieces, under a light veil, so every sub-page
+  // stands on the same calm backdrop.
+  .scene[data-sub] {
+    .sky { opacity: 1; }
+    .plane, .detail, .ground { opacity: 0; }
+    .dim { opacity: max(var(--pose-dim, 0), 0.22); }
   }
 
-  // ── Verse subpages: deep space around the page's planet ─────────────────
-  // No hub horizon or ground behind a subpage: the home planet sinks out of
-  // view, a faint halo in the planet's colour stands behind the head's emblem
-  // (top left of the page frame).
-  .scene[data-world] .planet { opacity: 0; transform: translateY(40dvh); }
-  .scene[data-world] .ground { opacity: 0; }
+  // ── Verse subpages: a faint halo in the page's planet colour ───────────
+  // It stands behind the head's emblem (top left of the page frame).
   .halo {
     position: absolute;
     left: calc(max(0px, (100vw - var(--sc-page-max, 1280px)) / 2) + var(--sc-page-gutter, 28px) + 32px);
@@ -221,7 +133,6 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     width: 0;
     height: 0;
     opacity: 0;
-    transition: opacity var(--scene-move) var(--scene-ease);
   }
   .halo::before {
     content: '';
@@ -246,20 +157,16 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   .scene[data-mode='fade'][data-fade='1'] { animation: sc-scene-fade-b 420ms ease-out both; }
 
   @media (prefers-reduced-motion: reduce) {
-    .scene *:not(.follow) { transition: none !important; animation: none !important; }
+    .scene * { transition: none !important; animation: none !important; }
   }
 }
 
-// The Verse hub ("Funkfeuer 2") draws its own, larger planet in the page;
-// the scene's planet steps aside while it is there and comes back with the camera.
-body:has(.brief-world) .sc-shell-scene .planet { opacity: 0; }
-// Its planet runs on under the footer and past the page end; the body clips it
-// there, so the overshoot never lengthens the page (clip, not hidden: no scroll
-// container, sticky and the viewport scroll stay as they are).
+// The Verse hub's planet runs on under the footer and past the page end; the
+// body clips it there, so the overshoot never lengthens the page (clip, not
+// hidden: no scroll container, sticky and the viewport scroll stay as they are).
 body:has(.brief-world) { overflow-y: clip; }
 
-@keyframes sc-scene-follow { to { transform: translateY(-4000px); } }
 @keyframes sc-scene-twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
-@keyframes sc-scene-city { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.65; } }
+@keyframes sc-scene-city { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
 @keyframes sc-scene-fade-a { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sc-scene-fade-b { from { opacity: 0; } to { opacity: 1; } }

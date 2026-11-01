@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, ViewEncapsulation, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ViewEncapsulation, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
-import { POSES, SceneKind, SceneMode, flightMs, isVerseHome, sceneOf, sceneStep } from './scene.model';
+import { POSES, SceneKind, SceneMode, flightMs, isSubPage, sceneOf, sceneStep } from './scene.model';
 import { VerseWorld, verseWorldOf } from '../../verse/shared/verse-world';
 
 /** Reduced-motion check; a field so specs can swap it. */
@@ -9,20 +9,15 @@ export function sceneReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** Scroll-driven animations run on the compositor; without them a passive listener feeds the offset. */
-function supportsScrollTimeline(): boolean {
-  return typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('animation-timeline: scroll()');
-}
-
 /**
  * `<sc-shell-scene>` — the app's background, one fixed layer behind the page
- * (beta `shell` only; renders nothing otherwise). One camera over sky,
- * planet, hangar and the Codex data plane: a navigation to a main page
+ * (beta `shell` only; renders nothing otherwise). One camera over the sky,
+ * the Codex holo glow and the HQ night surface: a navigation to a main page
  * (`/verse`, `/hq`, `/codex`) moves the camera into that area's pose with CSS
  * transitions (duration from the pose distance), so every route flies directly
  * from wherever the camera stands, an interrupted flight re-targets without a jump; a sub-page target cuts to its main page's pose and
- * stays static; reduced motion dissolves instead of moving. On `/verse` the
- * planet scrolls with the page so the hub's planet zone stays on it.
+ * stays static; reduced motion dissolves instead of moving. A sub-page
+ * (`data-sub`) shows only the dimmed sky of its area.
  *
  * No View Transitions: the pose is plain state on one element, the
  * transitions run in a hidden tab and in a spec alike.
@@ -44,8 +39,9 @@ export class ShellSceneComponent {
   readonly scene = signal<SceneKind>(sceneOf(this.router.url));
   readonly mode = signal<SceneMode>('still');
   readonly from = signal<SceneKind | null>(null);
-  readonly home = signal(isVerseHome(this.router.url));
-  /** A Verse subpage: deep space around its planet, no hub horizon (concept 2026-10-28 §3). */
+  /** Not a main page: deep space without the area's set pieces. */
+  readonly sub = signal(isSubPage(this.router.url));
+  /** A Verse subpage: a faint halo in its planet's colour (concept 2026-10-28 §3). */
   readonly world = signal<VerseWorld | null>(verseWorldOf(this.router.url));
   /** Flips per dissolve so the fade animation restarts. */
   readonly fadeTick = signal(0);
@@ -57,42 +53,15 @@ export class ShellSceneComponent {
   reducedMotion: () => boolean = sceneReducedMotion;
 
   constructor() {
-    const destroyRef = inject(DestroyRef);
     const sub = this.router.events.subscribe((e) => {
       if (e instanceof NavigationEnd) this.apply(e.urlAfterRedirects);
     });
-    destroyRef.onDestroy(() => sub.unsubscribe());
-
-    // Fallback for browsers without scroll-driven animations: the planet
-    // follows the page through one custom property.
-    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-    if (!supportsScrollTimeline() && typeof window !== 'undefined') {
-      effect((onCleanup) => {
-        if (!this.on() || !this.home()) {
-          host.style.removeProperty('--scene-scroll');
-          return;
-        }
-        let frame = 0;
-        const write = (): void => {
-          frame = 0;
-          host.style.setProperty('--scene-scroll', `${Math.round(window.scrollY)}px`);
-        };
-        const onScroll = (): void => {
-          if (!frame) frame = requestAnimationFrame(write);
-        };
-        write();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onCleanup(() => {
-          window.removeEventListener('scroll', onScroll);
-          if (frame) cancelAnimationFrame(frame);
-        });
-      });
-    }
+    inject(DestroyRef).onDestroy(() => sub.unsubscribe());
   }
 
   /** One navigation: decide the step, set the pose. Exposed for the spec. */
   apply(url: string): void {
-    this.home.set(isVerseHome(url));
+    this.sub.set(isSubPage(url));
     this.world.set(verseWorldOf(url));
     const step = sceneStep(this.scene(), url, this.reducedMotion());
     if (!step) {

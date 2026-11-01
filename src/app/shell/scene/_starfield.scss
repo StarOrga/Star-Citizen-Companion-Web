@@ -1,0 +1,30 @@
+@use 'sass:list';
+@use 'sass:string';
+
+// An irregular star field as one background tile. A tile with one star per
+// layer repeats every few hundred pixels, and the eye lines those repeats up
+// into a lattice (it read as a checkerboard behind the stages). Here every
+// star of a layer sits in ONE large tile at a pseudo-random spot, so the
+// field repeats only beyond a desktop screen. Deterministic (fixed seed): the
+// same CSS on every build.
+
+@function -next($seed) {
+  @return ($seed * 16807) % 2147483647;
+}
+
+/// `$count` stars in a `$w` × `$h` tile; sizes and colours cycle through the lists.
+@mixin field($count, $w, $h, $seed, $sizes, $colors) {
+  $layers: ();
+  $s: $seed;
+  @for $i from 1 through $count {
+    $s: -next($s);
+    $x: $s % $w;
+    $s: -next($s);
+    $y: $s % $h;
+    $size: list.nth($sizes, ($i % list.length($sizes)) + 1);
+    $color: list.nth($colors, ($i % list.length($colors)) + 1);
+    $layers: list.append($layers, string.unquote("radial-gradient(#{$size} #{$size} at #{$x}px #{$y}px,#{$color},#0000)"), $separator: comma);
+  }
+  background-image: $layers;
+  background-size: #{$w}px #{$h}px;
+}
