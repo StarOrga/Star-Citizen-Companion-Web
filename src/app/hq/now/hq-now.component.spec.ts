@@ -60,7 +60,7 @@ describe('HqNowComponent', () => {
     const el = f.nativeElement as HTMLElement;
     expect(el.querySelector('.sys')?.textContent).toBe('Stanton');
     expect(el.querySelector('.place')?.textContent).toBe('Lorville');
-    expect(el.querySelector('.ship')?.textContent).toContain('Cutlass Black');
+    expect(el.querySelector('.ship-name')?.textContent).toBe('Cutlass Black');
     expect(el.querySelector('.count')?.textContent).toBe('2');
     expect(el.querySelector('.toast')).toBeNull();
   });

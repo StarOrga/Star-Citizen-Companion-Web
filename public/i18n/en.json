@@ -5017,7 +5017,7 @@
       "anchor": {
         "label": "You are here",
         "unknown": "Location unknown",
-        "ship": "Ship: {{ship}}"
+        "ship": "Ship:"
       },
       "path": {
         "title": "Your path",

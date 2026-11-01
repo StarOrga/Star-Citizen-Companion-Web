@@ -59,7 +59,7 @@ const PREVIEW = 3;
             <p class="where unknown">{{ 'hq.now.anchor.unknown' | translate }}</p>
           }
           @if (ship(); as s) {
-            <p class="ship">{{ 'hq.now.anchor.ship' | translate: { ship: s } }}</p>
+            <p class="ship">{{ 'hq.now.anchor.ship' | translate }} <b class="ship-name">{{ s }}</b></p>
           }
         </section>
         <sc-hq-missions-popover [contracts]="contracts()" />
