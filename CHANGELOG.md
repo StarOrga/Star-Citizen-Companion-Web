@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.187.0] - 2026-11-01
+
+### Changed
+- Starscape 0.11.0: the "Update-Kanal" menu only shows for signed-in collaborators and admins — signed out or as a viewer there is nothing to choose, so it is gone.
+- Data Uploader 0.65.0: the update ring now defaults to "Automatisch (höchster verfügbarer)" — it follows the highest ring your account reaches (admin: Alpha, collaborator: Beta, everyone else: Stable). A pinned ring can still be picked in ⚙ by collaborators and admins.
+
 ## [0.186.1] - 2026-11-01
 
 ### Fixed

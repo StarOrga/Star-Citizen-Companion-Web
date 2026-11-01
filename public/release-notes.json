@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.186.0",
+  "current": "0.186.1",
   "releases": [
+    {
+      "version": "0.186.1",
+      "date": "2026-11-01",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Background (new shell): the old planet no longer appears while pages build up or while the camera moves between Verse, Codex and HQ."
+            },
+            {
+              "title": "",
+              "text": "Background: no more grid patterns behind the cinematic pages — Codex shows a soft holo glow, HQ a dark night surface with soft city lights, and the stars no longer line up into a dot grid (also on the sign-in cards)."
+            },
+            {
+              "title": "",
+              "text": "Sub-pages (lists, details, settings) now stand on a calm, neutral starry sky instead of their area's full stage."
+            },
+            {
+              "title": "",
+              "text": "Touch screens: the signature values in the Codex ship strip are wide enough to tap."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.186.0",
       "date": "2026-11-01",
