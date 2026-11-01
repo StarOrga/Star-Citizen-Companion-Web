@@ -74,10 +74,10 @@ export interface HqEinsatzStepRow {
  * P0002 Einsatz missing/tombstoned. Use this instead of upserting steps one by one.
  * Tombstoning an Einsatz (deleted_at set) deletes its steps server-side.
  */
-export type HqReplaceEinsatzStepsArgs = {
+export interface HqReplaceEinsatzStepsArgs {
   p_einsatz_id: string;
   p_steps: HqEinsatzStepInput[];
-};
+}
 export type HqEinsatzStepInput = Pick<HqEinsatzStepRow, 'kind' | 'label'> &
   Partial<
     Pick<
