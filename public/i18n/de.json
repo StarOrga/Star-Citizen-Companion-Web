@@ -5102,6 +5102,52 @@
       "bergung": "Bergung",
       "erkunden": "Erkunden",
       "piraterie": "Piraterie"
+    },
+    "map": {
+      "title": "Karte",
+      "routeTitle": "Route",
+      "empty": "Nichts gewählt. Wähle oben Bedarfe aus, dann erscheinen sie hier.",
+      "startHere": "Hier startest du",
+      "stepsOne": "1 Schritt",
+      "steps": "{{n}} Schritte",
+      "unplaced": "{{n}} ohne Ort, nur in der Liste",
+      "listTwin": "Als Liste",
+      "node": {
+        "needs": "{{place}} ({{path}}): {{needs}}",
+        "step": "Schritt {{ords}}: {{place}} ({{path}}): {{needs}}",
+        "start": "{{place}} ({{path}}): hier startest du"
+      },
+      "status": {
+        "open": "offen",
+        "partial": "teilweise",
+        "done": "erledigt"
+      },
+      "legend": {
+        "title": "Legende",
+        "shape": "Form = Tätigkeit",
+        "size": "Größe = Menge",
+        "size_s": "bis 5",
+        "size_m": "bis 25",
+        "size_l": "mehr",
+        "fill": "Füllung = Stand",
+        "line": "Linie",
+        "travel": "Flug",
+        "transport": "Transport",
+        "colour": "Farbe = Bedarf"
+      }
+    },
+    "community": {
+      "share": "Community-Daten teilen",
+      "shareOn": "Deine Käufe (Preis, Menge, Shop) gehen anonym in den Community-Median ein.",
+      "shareOff": "Aus: nichts wird geteilt. Den Community-Median siehst du trotzdem.",
+      "median": "Community-Median",
+      "reports": "{{n}} Meldungen",
+      "source": {
+        "log": "Aus deinem Log",
+        "search": "Aus der Codex-Suche",
+        "community": "Community",
+        "ocr": "Aus einem Screenshot"
+      }
     }
   },
   "verse": {

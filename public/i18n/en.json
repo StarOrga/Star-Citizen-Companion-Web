@@ -5102,6 +5102,52 @@
       "bergung": "Salvage",
       "erkunden": "Exploring",
       "piraterie": "Piracy"
+    },
+    "map": {
+      "title": "Map",
+      "routeTitle": "Route",
+      "empty": "Nothing selected. Pick needs above and they show up here.",
+      "startHere": "You start here",
+      "stepsOne": "1 step",
+      "steps": "{{n}} steps",
+      "unplaced": "{{n}} without a place, list only",
+      "listTwin": "As a list",
+      "node": {
+        "needs": "{{place}} ({{path}}): {{needs}}",
+        "step": "Step {{ords}}: {{place}} ({{path}}): {{needs}}",
+        "start": "{{place}} ({{path}}): you start here"
+      },
+      "status": {
+        "open": "open",
+        "partial": "partly",
+        "done": "done"
+      },
+      "legend": {
+        "title": "Legend",
+        "shape": "Shape = activity",
+        "size": "Size = amount",
+        "size_s": "up to 5",
+        "size_m": "up to 25",
+        "size_l": "more",
+        "fill": "Fill = status",
+        "line": "Line",
+        "travel": "Flight",
+        "transport": "Transport",
+        "colour": "Colour = need"
+      }
+    },
+    "community": {
+      "share": "Share community data",
+      "shareOn": "Your purchases (price, amount, shop) feed the community median anonymously.",
+      "shareOff": "Off: nothing is shared. You still see the community median.",
+      "median": "Community median",
+      "reports": "{{n}} reports",
+      "source": {
+        "log": "From your log",
+        "search": "From the Codex search",
+        "community": "Community",
+        "ocr": "From a screenshot"
+      }
     }
   },
   "verse": {
