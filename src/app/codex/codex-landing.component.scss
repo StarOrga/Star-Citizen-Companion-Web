@@ -35,7 +35,7 @@
 }
 :host(:not(.shell)) .landing { height: calc(100dvh - var(--cx-top, 0px) - 32px); }
 
-// ── Hero: Verse spacing; StageHeroDirective sets the height (CODEX_STAGE_TOP). ──
+// ── Hero: Verse spacing; StageHeroDirective sets the height (STAGE_FIELD_TOP). ──
 .hero {
   position: relative;
   z-index: 6;
@@ -50,7 +50,7 @@
 .eyebrow {
   margin: 0;
   min-height: 1.4em;
-  font: 500 max(11px, 0.72rem) / 1.4 var(--sc-font-body);
+  font: var(--sc-hero-eyebrow);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--sc-accent);
@@ -58,7 +58,7 @@
 .title {
   margin: max(6px, 0.6vw) 0 0;
   min-height: 1.1em;
-  font: 500 clamp(26px, 2.7vw, 50px) / 1.1 var(--sc-font-display);
+  font: 500 var(--sc-hero-title-size) / 1.1 var(--sc-font-display);
   letter-spacing: 0.02em;
   color: var(--sc-fg-0);
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);

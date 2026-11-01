@@ -29,7 +29,7 @@
   </ng-template>
 
   @if (shellOn()) {
-    <div class="hero" scStageHero [scStageHeroTop]="stageTop()"
+    <div class="hero" scStageHero
          (mouseenter)="heroHold.set(true)" (mouseleave)="onHeroLeave($event)"
          (focusin)="heroHold.set(true)" (focusout)="onHeroLeave($event)">
       <ng-container *ngTemplateOutlet="heroText" />

@@ -96,8 +96,8 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
         padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-3, 12px));
       }
       .hero { padding-top: var(--sc-space-8, 64px); }
-      .kicker { margin: 0; letter-spacing: 0.24em; text-transform: uppercase; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); }
-      .title { margin: var(--sc-space-1, 4px) 0 0; font: 600 clamp(2rem, 4.2vw, 3.4rem) / 1.1 var(--sc-font-display); letter-spacing: 0.04em; }
+      .kicker { margin: 0; font: var(--sc-hero-eyebrow); letter-spacing: 0.24em; text-transform: uppercase; color: var(--sc-accent); }
+      .title { margin: max(6px, 0.6vw) 0 0; font: 500 var(--sc-hero-title-size) / 1.1 var(--sc-font-display); letter-spacing: 0.02em; }
       .patch { display: flex; flex-direction: column; gap: 2px; margin: var(--sc-space-3, 12px) 0 0; padding: 0; list-style: none; color: var(--sc-fg-1); }
       .cat { margin-inline-end: var(--sc-space-2, 8px); color: var(--sc-fg-2); }
       .effect { color: var(--sc-fg); text-decoration: none; }

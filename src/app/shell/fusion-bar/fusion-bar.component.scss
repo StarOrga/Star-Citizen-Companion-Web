@@ -128,9 +128,22 @@
 }
 // Staged: focus shows on the satin edge itself — the edge brightens and a soft outer
 // glow lifts the field. Docked, the field's own breathing rim carries it.
+// Staged, the cap IS the subheader's field (one search field on every surface): the
+// same round well with the faint accent rim that breathes every 5 s, only taller.
+:host([data-mode='stage']) .cap {
+  border-color: transparent;
+  border-radius: 999px;
+  background: var(--sc-well);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 25%, transparent),
+    0 0 18px color-mix(in srgb, var(--sc-accent) 12%, transparent);
+  animation: fb-breathe 5s ease-in-out infinite;
+}
+:host([data-mode='stage']) .skin {
+  display: none;
+}
 :host([data-mode='stage']) .cap:has(.input:focus) {
-  background: var(--sc-sub-fill) padding-box, var(--sc-sub-edge-focus) border-box;
-  box-shadow: var(--sc-sub-focus-glow), var(--sc-sub-shadow);
+  animation: none;
+  box-shadow: var(--_rim-hi);
 }
 // One light trace around the frame: on docking and on the stage entrance, then gone.
 .trace {
@@ -477,6 +490,10 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 }
 :host ::ng-deep .search .field.focused {
   box-shadow: none;
+}
+:host([data-mode='stage']) ::ng-deep .search .field {
+  background: transparent;
+  padding-left: var(--sc-space-1);
 }
 // Ruhige Leiste: a round field, darker than the bar, with a faint accent rim and glow
 // that breathe every 5 s ("Das Suchfeld atmet alle 5 s ganz leicht"). Open, it holds
@@ -1047,6 +1064,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     opacity: 0;
   }
   .scrim,
+  :host([data-mode='stage']) .cap,
   :host ::ng-deep .search .field {
     animation: none !important;
   }

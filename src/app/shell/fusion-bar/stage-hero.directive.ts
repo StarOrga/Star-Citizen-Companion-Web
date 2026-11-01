@@ -3,10 +3,18 @@ import { BetaService } from '../../core/beta.service';
 
 /** Fired on window when a hero moved its slot: the bar re-places its staged field. */
 export const STAGE_SLOT_MOVED = 'sc-stage-slot-moved';
-/** Share of the viewport height where the staged field's top stands (concept r8 `dockmove`: top 41 %). */
-export const STAGE_FIELD_TOP = 0.41;
-/** The hero never climbs more than this over its natural place (short viewports). */
-const MAX_LIFT_PX = 200;
+/**
+ * Share of the viewport height where the staged field's top stands — one height for
+ * every main page (Verse, Codex, HQ, admin hub). Was 41 % (concept r8 `dockmove`);
+ * raised to the Codex landing's 30 % so the hologram gets its room and every hero
+ * stands at the same spot.
+ */
+export const STAGE_FIELD_TOP = 0.3;
+/**
+ * The hero never climbs more than this over its natural place (short viewports).
+ * 280 since the slot moved up to 30 %: the Verse hero needs ~210 px on full HD.
+ */
+const MAX_LIFT_PX = 280;
 /** Settling passes per change: a hero centred by its parent moves by a fraction of its margin. */
 const MAX_PASSES = 6;
 
@@ -32,9 +40,8 @@ export class StageHeroDirective {
   readonly on = inject(BetaService).isEnabled('shell');
   /**
    * Per-page slot height as a fraction of the viewport (default
-   * {@link STAGE_FIELD_TOP}). Only for a page whose stage needs the room below
-   * the field — the Codex landing lifts it for its holotable (concept
-   * 2026-10-29-codex-landing-neu, round 6 feedback).
+   * {@link STAGE_FIELD_TOP}). Every main page uses the default today; an override
+   * would break "the same spot on every main page".
    */
   readonly top = input<number | null>(null, { alias: 'scStageHeroTop' });
 

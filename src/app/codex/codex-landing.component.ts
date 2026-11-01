@@ -28,15 +28,6 @@ import { CLAIM_MS, ClaimCursor, buildClaims } from './landing/codex-landing-clai
 export const ROTATION_MS = 8000;
 /** New items listed per category in the Codex list before "+ N weitere in der Suche". */
 export const CODEX_LIST_ITEMS = 5;
-/**
- * Where the staged search field stands on this page (fraction of the viewport).
- * Higher than the shell's 41 % so the hologram gets the room below it, with a
- * healthy gap to the header above (round 6 feedback).
- */
-export const CODEX_STAGE_TOP = 0.3;
-/** Phones stack everything under the hero (News chip above it): the field stays below the two-row header. */
-export const CODEX_STAGE_TOP_PHONE = 0.3;
-const PHONE_QUERY = '(max-width: 720px)';
 
 /**
  * The Codex landing (concept 2026-10-30-codex-holo-buehne, round 4 "Zugewandte
@@ -80,8 +71,6 @@ export class CodexLandingComponent {
   private readonly translate = inject(TranslateService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   readonly shellOn = inject(BetaService).isEnabled('shell');
-  private readonly phone = signal(typeof matchMedia === 'function' && matchMedia(PHONE_QUERY).matches);
-  protected readonly stageTop = computed(() => (this.phone() ? CODEX_STAGE_TOP_PHONE : CODEX_STAGE_TOP));
   protected readonly rotationMs = ROTATION_MS;
   private readonly lang = this.translate.currentLang;
 
@@ -196,10 +185,6 @@ export class CodexLandingComponent {
       });
     });
 
-    const phoneMq = typeof matchMedia === 'function' ? matchMedia(PHONE_QUERY) : null;
-    const onPhone = (e: MediaQueryListEvent) => this.phone.set(e.matches);
-    phoneMq?.addEventListener('change', onPhone);
-    destroyRef.onDestroy(() => phoneMq?.removeEventListener('change', onPhone));
 
     const onVisibility = () => this.hidden.set(document.visibilityState === 'hidden');
     document.addEventListener('visibilitychange', onVisibility);
