@@ -16,7 +16,8 @@ interface PlanetSpec {
   readonly atm: readonly [number, number, number];
   readonly spec: number;
   readonly night: number;
-  readonly traffic: number;
+  /** Industrial zones (ArcCorp): Voronoi cells with straight borders, lit transit lines at night. */
+  readonly zones: number;
 }
 
 /**
@@ -28,17 +29,17 @@ export const PLANETS: Readonly<Record<Exclude<BodyKind, 'sun'>, PlanetSpec>> = {
   crusader: {
     layers: { day: 'crusader-day', night: 'crusader-night' },
     period: 70, cloudPeriod: 0, cloudK: 0, cloudColor: [1, 1, 1],
-    roll: -0.157, atm: [0.9, 0.9, 1.0], spec: 0, night: 1.2, traffic: 0,
+    roll: -0.157, atm: [0.9, 0.9, 1.0], spec: 0, night: 1.2, zones: 0,
   },
   arccorp: {
     layers: { day: 'arccorp-day', night: 'arccorp-night', cloud: 'arccorp-haze' },
     period: 110, cloudPeriod: 75, cloudK: 0.28, cloudColor: [0.86, 0.8, 0.7],
-    roll: -0.244, atm: [1.0, 0.8, 0.56], spec: 0.05, night: 1.15, traffic: 1,
+    roll: -0.244, atm: [1.0, 0.8, 0.56], spec: 0.05, night: 1.15, zones: 1,
   },
   microtech: {
     layers: { day: 'microtech-day', night: 'microtech-night', cloud: 'microtech-cloud' },
     period: 130, cloudPeriod: 95, cloudK: 0.7, cloudColor: [0.97, 0.99, 1.0],
-    roll: -0.105, atm: [0.62, 0.88, 1.0], spec: 0.4, night: 1.3, traffic: 0,
+    roll: -0.105, atm: [0.62, 0.88, 1.0], spec: 0.4, night: 1.3, zones: 0,
   },
 };
 
@@ -299,7 +300,7 @@ export class BodyEngine {
       gl.uniform1f(p('uSpec'), s.spec);
       gl.uniform1f(p('uNight'), s.night);
       gl.uniform1f(p('uCloudK'), s.cloudK);
-      gl.uniform1f(p('uTraffic'), s.traffic);
+      gl.uniform1f(p('uZones'), s.zones);
       gl.uniform1f(p('uTime'), t);
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

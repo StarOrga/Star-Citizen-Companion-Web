@@ -29,10 +29,34 @@ export const PLANET_FS = (deriv: boolean) => `
 ${deriv ? '#extension GL_OES_standard_derivatives : enable\n#define DERIV 1' : ''}
 precision highp float;
 uniform vec2 uRes; uniform vec3 uSun; uniform vec3 uAtm; uniform vec3 uCloudC;
-uniform float uRot, uCloudRot, uRoll, uSpec, uNight, uCloudK, uTraffic, uTime;
+uniform float uRot, uCloudRot, uRoll, uSpec, uNight, uCloudK, uZones, uTime;
 uniform sampler2D tDay, tNight, tCloud;
 const float PI = 3.14159265;
 ${NOISE}
+vec3 hash3(vec3 p){
+  p = vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)));
+  return fract(sin(p) * 43758.5453);
+}
+// Voronoi cells on the sphere: distance to the nearest cell border (straight
+// edges — the bisector planes, not F2−F1) and the cell's id.
+vec2 cells(vec3 x){
+  vec3 n = floor(x), f = fract(x), mg = vec3(0.0), mr = vec3(0.0);
+  float md = 8.0;
+  for (int k = -1; k <= 1; k++) for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec3 g = vec3(float(i), float(j), float(k));
+    vec3 r = g + hash3(n + g) - f;
+    float d = dot(r, r);
+    if (d < md) { md = d; mr = r; mg = g; }
+  }
+  md = 8.0;
+  for (int k = -1; k <= 1; k++) for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec3 g = mg + vec3(float(i), float(j), float(k));
+    vec3 r = g + hash3(n + g) - f;
+    vec3 dr = r - mr;
+    if (dot(dr, dr) > 1e-5) md = min(md, dot(0.5 * (mr + r), normalize(dr)));
+  }
+  return vec2(md, hash(n + mg));
+}
 float wrapU(float lon){
   float u = fract(lon + 0.5);
 #ifdef DERIV
@@ -75,20 +99,36 @@ void main(){
   vec3 hv = normalize(uSun + vec3(0.0, 0.0, 1.0));
   col += vec3(1.0) * pow(max(dot(n, hv), 0.0), 38.0) * uSpec * (1.0 - 0.6 * cl) * dayK;
 
-  // Night: city lights twinkle a little; on ArcCorp traffic runs the avenues.
+  // Night: city lights twinkle a little.
   float tw = 0.82 + 0.36 * noise(vec3(uv * vec2(1400.0, 700.0), uTime * 1.5));
   vec3 night = lights * tw * uNight * (1.0 - 0.7 * cl);
-  if (uTraffic > 0.0) {
-    float mu = uv.x * 22.5, pv = uv.y * 12.0;
-    float onM = 1.0 - smoothstep(0.0, 0.045, abs(fract(mu + 0.5) - 0.5));
-    float onP = 1.0 - smoothstep(0.0, 0.07, abs(fract(pv + 0.5) - 0.5));
-    float laneM = floor(mu + 0.5), laneP = floor(pv + 0.5);
-    float pulseM = smoothstep(0.8, 1.0, fract(uv.y * 26.0 + uTime * (0.05 + 0.04 * hash(vec3(laneM, 1.0, 2.0))) * (mod(laneM, 2.0) * 2.0 - 1.0)));
-    float pulseP = smoothstep(0.8, 1.0, fract(uv.x * 70.0 + uTime * (0.03 + 0.03 * hash(vec3(laneP, 3.0, 4.0))) * (mod(laneP, 2.0) * 2.0 - 1.0)));
-    // No traffic near the poles, where the lanes would bunch into rings.
-    float tr = max(onM * pulseM, onP * pulseP) * uTraffic * (1.0 - smoothstep(0.55, 0.8, abs(q.y)));
-    night += vec3(1.0, 0.86, 0.62) * tr * 1.4;
-    col += vec3(1.0, 0.9, 0.75) * tr * 0.18 * dayK;
+  if (uZones > 0.0) {
+    // Industrial zones like countries on a map: irregular cells with straight
+    // borders, each its own industry tone by day and light density by night;
+    // the borders are the transit lines — dark by day, glowing with moving
+    // traffic by night. Smaller districts subdivide them faintly.
+    float th = 2.0 * PI * uRot;
+    vec3 pb = vec3(q.x * cos(th) + q.z * sin(th), q.y, q.z * cos(th) - q.x * sin(th));
+    vec2 big = cells(pb * 2.8 + 17.0);
+    vec2 small = cells(pb * 8.5 + 3.0);
+#ifdef DERIV
+    float bw = 1.4 * fwidth(big.x) + 0.012, sw = 1.2 * fwidth(small.x) + 0.01;
+#else
+    float bw = 0.035, sw = 0.03;
+#endif
+    float lineB = 1.0 - smoothstep(0.0, bw, big.x);
+    // Districts only where the body is large enough to show them.
+    float lineS = (1.0 - smoothstep(0.0, sw, small.x)) * 0.45 * smoothstep(160.0, 420.0, uRes.x);
+    float z = big.y;
+    vec3 tone = z < 0.2 ? vec3(0.62, 0.6, 0.57) : z < 0.4 ? vec3(0.66, 0.46, 0.33) : z < 0.6 ? vec3(0.42, 0.4, 0.38)
+              : z < 0.8 ? vec3(0.76, 0.67, 0.52) : vec3(0.68, 0.56, 0.4);
+    float dz = 0.85 + 0.3 * hash(vec3(small.y * 91.0, z, 2.0));
+    col *= mix(vec3(1.0), tone * 1.45 * dz, 0.42);
+    col = mix(col, vec3(0.2, 0.16, 0.12) * lit * limb, (lineB * 0.55 + lineS * 0.3) * dayK);
+    night *= (0.3 + 1.1 * hash(vec3(z * 37.0, 1.0, 5.0))) * (0.8 + 0.4 * dz);
+    float move = smoothstep(0.7, 1.0, noise(pb * 70.0 + vec3(uTime * 0.9, -uTime * 0.6, uTime * 0.4)));
+    night += vec3(1.0, 0.72, 0.38) * lineB * (0.55 + 1.2 * move) * uZones * (1.0 - 0.6 * pole);
+    night += vec3(1.0, 0.7, 0.4) * lineS * 0.25 * uZones;
   }
   col += (night + day * 0.025) * nightK;
 
