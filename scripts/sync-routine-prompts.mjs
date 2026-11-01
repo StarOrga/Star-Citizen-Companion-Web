@@ -55,20 +55,24 @@ const JANITOR_HEADER = `<!-- Snapshot of ~/.claude/scheduled-tasks/routine-janit
 `;
 
 function toRepo() {
-  const missing = TASKS.filter((t) => !existsSync(livePath(t)));
+  // The janitor task was deleted on 2026-10-14 (RESTORE.md) — its repo copy stays as it is.
+  const missing = TASKS.filter((t) => t !== JANITOR && !existsSync(livePath(t)));
   if (missing.length) throw new Error(`live task file(s) missing: ${missing.join(', ')} — nothing synced`);
+  const hasJanitor = existsSync(livePath(JANITOR));
   const evening = lf(readFileSync(livePath(EVENING), 'utf8'));
   // Day file = its own frontmatter + the evening body (the shared-body rule).
   const dayLive = lf(readFileSync(livePath(DAY), 'utf8'));
   const day = split(dayLive).frontmatter + split(evening).body;
   if (day !== dayLive) { writeFileSync(livePath(DAY), day); console.log(`[sync-routine-prompts] day task body refreshed from the evening file`); }
-  const janitor = lf(readFileSync(livePath(JANITOR), 'utf8'));
-  for (const [t, text] of [[EVENING, evening], [DAY, day], [JANITOR, janitor]]) {
+  const janitor = hasJanitor ? lf(readFileSync(livePath(JANITOR), 'utf8')) : null;
+  const copies = [[EVENING, evening], [DAY, day], ...(hasJanitor ? [[JANITOR, janitor]] : [])];
+  for (const [t, text] of copies) {
     mkdirSync(dirname(repoPath(t)), { recursive: true });
     writeFileSync(repoPath(t), text);
   }
   writeFileSync(join(REPO, 'docs', 'routine', 'SKILL.snapshot.md'), SNAPSHOT_HEADER + evening);
-  writeFileSync(join(REPO, 'docs', 'routine', 'JANITOR.snapshot.md'), JANITOR_HEADER + janitor);
+  if (hasJanitor) writeFileSync(join(REPO, 'docs', 'routine', 'JANITOR.snapshot.md'), JANITOR_HEADER + janitor);
+  else console.log(`[sync-routine-prompts] janitor task not registered — its repo copy left untouched`);
   console.log(`[sync-routine-prompts] repo copies + snapshots refreshed from ${TASK_DIR}`);
 }
 
