@@ -92,7 +92,7 @@
   border-color: transparent;
   border-radius: 20px;
   background: var(--sc-sub-fill);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--sc-lift-shadow);
 }
 // Open search: the page behind dims softly (gradient scrim), the card floats above it.
 .scrim {
@@ -100,7 +100,7 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5));
+  background: var(--sc-scrim);
   animation: fb-scrim-in 0.24s ease both;
 }
 @keyframes fb-scrim-in {
@@ -117,7 +117,7 @@
   pointer-events: none;
   background: var(--sc-sub-sheen);
 }
-.cap > :not(.skin, .trace, .bloom, .head, .echo, .band) {
+.cap > :not(.skin, .trace, .bloom, .head, .echo) {
   position: relative;
   z-index: 2;
 }
@@ -210,23 +210,6 @@
 :host(.entering[data-mode='stage']) .echo.e3 {
   animation-delay: 0.3s;
 }
-// Deck glow (r1 d1-s4): a 3 px light band runs along the docked bar's bottom edge.
-.band {
-  position: absolute;
-  left: var(--sc-sub-radius);
-  right: var(--sc-sub-radius);
-  bottom: 0;
-  z-index: 1;
-  height: 3px;
-  pointer-events: none;
-  opacity: 0.55;
-  background: linear-gradient(90deg, transparent, var(--sc-accent), transparent) no-repeat;
-  background-size: 50% 100%;
-  animation: sub-band 3.2s ease-in-out infinite;
-}
-.cap.open .band {
-  display: none;
-}
 // Menu switch (r1 d1-s2): a white light head sweeps once along the bar.
 .head {
   position: absolute;
@@ -270,28 +253,22 @@
   height: 40px;
   border-radius: var(--sc-radius-sm, 4px);
 }
-.blogo img {
-  width: 28px;
-  height: 28px;
-  // The main header's logo treatment (main-header .logo), at its docked size.
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent));
-}
 .plate {
   position: relative;
   // Claims its full width (the trail measures its room against it) and gives way only
   // when the bar is narrow; the search starts at the same spot on every page.
-  flex: 0 1 260px;
+  flex: 0 1 310px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  max-width: 260px;
+  max-width: 310px;
   padding-right: var(--sc-space-2);
 }
-// The brand's name in the main header's type treatment (main-header .title): display
-// font, 700, 0.16em, uppercase, primary text colour — only smaller, it shares 60px with the path.
-.cat {
+// Brand name + logo: <sc-brand-name>/<sc-brand-logo> (shell/brand), the main header's own.
+// The phone route line names the page in the brand's type treatment.
+.route .cat {
   font-family: var(--sc-font-display);
   font-size: max(0.72rem, var(--sc-fs-floor));
   font-weight: 700;
@@ -301,30 +278,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.back {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-  color: var(--sc-fg-2);
-  text-decoration: none;
-  font-size: max(0.8rem, var(--sc-fs-floor));
-  border-radius: 3px;
-}
-.back-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tri {
-  color: var(--sc-accent);
-  font-size: 0.8em;
-}
-.back:hover,
-.back:focus-visible {
-  color: var(--sc-fg-0);
 }
 // Brandcrumb: the path under the brand's name; a long one folds its middle to "…".
 .trail {
@@ -418,7 +371,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   overflow-clip-margin: 12px;
   transition: width 1.2s $dock-ease 0.2s, opacity 0.2s linear 1.4s;
 }
-.blogo img {
+.blogo sc-brand-logo {
   flex: none;
 }
 .plate {
@@ -454,10 +407,10 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 :host(.condense) .div {
   transition: none;
 }
-:host(.condense:not(.settled)) .blogo img {
+:host(.condense:not(.settled)) .blogo sc-brand-logo {
   opacity: 0;
 }
-:host(.condense) .blogo img {
+:host(.condense) .blogo sc-brand-logo {
   transition: opacity 0.15s linear;
 }
 :host(.condensing) .cap {
@@ -472,7 +425,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   width: calc(44px * var(--sc-dock-p, 1));
 }
 :host(.condensing) .plate {
-  max-width: calc(260px * var(--sc-dock-p, 1));
+  max-width: calc(310px * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
   overflow: hidden;
 }
@@ -526,24 +479,27 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 // Ruhige Leiste: a round field, darker than the bar, with a faint accent rim and glow
 // that breathe every 5 s ("Das Suchfeld atmet alle 5 s ganz leicht"). Open, it holds
 // the brighter state.
+:host {
+  // The breathing field's bright state (peak of the breath, focused, open).
+  --_rim-hi: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent),
+    0 0 26px color-mix(in srgb, var(--sc-accent) 22%, transparent);
+}
 :host(:not([data-mode='stage'])) ::ng-deep .search:not(.bottom) .field,
 :host(:not([data-mode='stage'])) ::ng-deep .search.bottom.open .field {
   padding-left: var(--sc-space-4);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--sc-well);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 25%, transparent),
     0 0 18px color-mix(in srgb, var(--sc-accent) 12%, transparent);
   animation: fb-breathe 5s ease-in-out infinite;
 }
 :host(:not([data-mode='stage'])) ::ng-deep .search .field.focused {
   animation: none;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent),
-    0 0 26px color-mix(in srgb, var(--sc-accent) 22%, transparent);
+  box-shadow: var(--_rim-hi);
 }
 @keyframes fb-breathe {
   50% {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent),
-      0 0 26px color-mix(in srgb, var(--sc-accent) 22%, transparent);
+    box-shadow: var(--_rim-hi);
   }
 }
 // Schwebende Karte: the results card floats ~10px under the bar (the field sits
@@ -730,8 +686,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   border: 0;
   border-radius: 24px;
   background: var(--sc-bg-1);
-  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--sc-fg-0) 4%, transparent), 0 36px 90px rgba(0, 0, 0, 0.75),
-    0 10px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--sc-fg-0) 4%, transparent), var(--sc-float-shadow);
   transform-origin: 50% 0;
   animation: sub-drop 0.5s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 }
@@ -885,17 +840,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   color: var(--sc-fg-0);
   text-decoration: none;
 }
-.brand .logo {
-  width: 28px;
-  height: 28px;
-}
-.title {
-  font-family: var(--sc-font-display);
-  font-size: max(0.85rem, var(--sc-fs-floor));
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
 .spacer {
   flex: 1 1 auto;
 }
@@ -912,7 +856,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 }
 
 .blogo:focus-visible,
-.back:focus-visible,
 .kindsw:focus-visible,
 .fbtn:focus-visible,
 .tok-x:focus-visible,
@@ -1050,11 +993,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     // A satin backdrop: cards scrolling under the route line never show through it.
     background: var(--sc-sub-fill);
     border-bottom: 1px solid var(--sc-sub-rule);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-  }
-  .route .back {
-    min-height: 32px;
-    align-items: center;
+    box-shadow: var(--sc-lift-shadow);
   }
 }
 
@@ -1101,11 +1040,6 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   :host(.entering[data-mode='stage']) .echo,
   :host(.switching) .head {
     animation: none;
-  }
-  // The deck band stands still, centred.
-  .band {
-    animation: none;
-    background-position: 50% 0;
   }
   .trace {
     opacity: 0;

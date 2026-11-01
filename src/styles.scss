@@ -244,6 +244,16 @@ html:has([data-layout]) body { font-size: 0.9375rem; }
   --sc-sub-fill: linear-gradient(180deg, #0a1d2b, #061724);
   --sc-sub-edge: linear-gradient(160deg, rgba(200, 236, 250, 0.7) 0%, rgba(80, 125, 148, 0.45) 30%, rgba(30, 58, 74, 0.5) 60%, rgba(140, 200, 225, 0.55) 100%);
   --sc-sub-sheen: linear-gradient(180deg, rgba(210, 242, 255, 0.07), transparent 55%);
+  /* Depth ink: the black of shadows and scrims — mix it (color-mix with transparent), never write rgba(0, 0, 0, …). */
+  --sc-depth: #000;
+  /* Floating surfaces (search card, dropdown panel): deep drop + near contact shadow. */
+  --sc-float-shadow: 0 36px 90px color-mix(in srgb, var(--sc-depth) 75%, transparent), 0 10px 24px color-mix(in srgb, var(--sc-depth) 45%, transparent);
+  /* A docked bar lifted off the page by depth only (no outline). */
+  --sc-lift-shadow: 0 8px 24px color-mix(in srgb, var(--sc-depth) 35%, transparent);
+  /* The page behind an open floating card dims softly from top to bottom. */
+  --sc-scrim: linear-gradient(180deg, color-mix(in srgb, var(--sc-depth) 20%, transparent), color-mix(in srgb, var(--sc-depth) 50%, transparent));
+  /* A recessed field inside a bar (darker than the bar). */
+  --sc-well: color-mix(in srgb, var(--sc-depth) 28%, transparent);
   --sc-sub-shadow: 0 0 14px rgba(82, 193, 230, 0.08), 0 14px 34px rgba(0, 0, 0, 0.45);
   --sc-sub-trace-hi: rgba(220, 250, 255, 1);
   --sc-sub-trace-lo: rgba(130, 220, 255, 0.35);
@@ -373,6 +383,9 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
    states and every leave. One entrance distance.
    ============================================================ */
 :root {
+  /* The hologram cyan and its hot core (codex holotable, holodeck). */
+  --sc-holo: #8fe3ff;
+  --sc-holo-hi: #dff6ff;
   --holo-t-fast: 160ms;
   --holo-t-base: 280ms;
   --holo-t-slow: 900ms;

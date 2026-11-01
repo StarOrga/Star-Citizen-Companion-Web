@@ -303,6 +303,13 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         </div>
         }
       </section>
+    } @else if (holo() && loading()) {
+      <!-- The hull catalog is still on its way: the projector already scans, so the
+           stage never stands empty while the 3D hull loads. -->
+      <div class="overlay holo-loading holo-pending" role="status" animate.leave="holo-loading-leave">
+        <span class="holo-reticle" aria-hidden="true"><i></i><i></i><b></b></span>
+        <span class="holo-loading-label">{{ 'codex.skins.loading' | translate }}</span>
+      </div>
     } @else if (catalogError()) {
       <section class="skins">
         <header class="skins-head">
@@ -746,6 +753,12 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         letter-spacing: 0.18em;
         font-size: max(10px, var(--sc-fs-floor));
         animation: holo-fade-in var(--holo-t-base) var(--holo-e-out) 120ms backwards;
+      }
+      :host(.holo) .holo-pending {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
       }
       .holo-loading-leave {
         animation: holo-fade-out var(--holo-t-fast) var(--holo-e-io) forwards;

@@ -26,6 +26,7 @@ import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { isEditableTarget } from '../../codex/search/codex-search-hub.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
 import { STAGE_SLOT_MOVED } from './stage-hero.directive';
@@ -93,7 +94,7 @@ const MAX_TOKENS = 3;
 @Component({
   selector: 'sc-fusion-bar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchComponent],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchComponent, BrandLogoComponent, BrandNameComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-mode]': 'mode()',
@@ -140,8 +141,8 @@ const MAX_TOKENS = 3;
 
       @if (variant() === 'public') {
         <a class="brand" routerLink="/" [attr.aria-label]="'nav.brandAria' | translate">
-          <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
-          <span class="title">Star Citizen Companion</span>
+          <sc-brand-logo />
+          <sc-brand-name class="title" channel="inline" />
         </a>
         <span class="spacer"></span>
         <a class="home-link" routerLink="/">{{ 'nav.backToHome' | translate }}</a>
@@ -152,11 +153,11 @@ const MAX_TOKENS = 3;
           <a class="blogo" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
              [attr.inert]="mode() === 'stage' ? '' : null"
              [scTooltip]="'nav.brandAria' | translate" scTooltipTier="label" (click)="onNav($event, '/verse')">
-            <img src="icons/brand/scc-mark.svg" alt="" width="28" height="28" />
+            <sc-brand-logo />
           </a>
           <div class="plate" [attr.inert]="mode() === 'stage' ? '' : null">
             <!-- Brandcrumb: the brand's name on line 1, the path below it. No second "Verse". -->
-            <span class="cat">Star Citizen Companion</span>
+            <sc-brand-name class="cat" channel="inline" />
             @if (trail().length) {
               <nav #trailNav class="trail" [attr.aria-label]="'pageHeader.crumbsAria' | translate"
                    [scTooltip]="trailFolded() ? trailText() : null" scTooltipTier="label">

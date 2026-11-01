@@ -28,7 +28,7 @@
 @keyframes draw { from { clip-path: inset(-4px 100% -4px -4px); } to { clip-path: inset(-4px -4px -4px -4px); } }
 @keyframes undraw { from { clip-path: inset(-4px -4px -4px -4px); } to { clip-path: inset(-4px 100% -4px -4px); } }
 @keyframes dot-in { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.6); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes dot-breathe { 0%, 100% { box-shadow: 0 0 0 3px rgba(130, 220, 255, 0.18), 0 0 10px rgba(143, 227, 255, 0.95); } 50% { box-shadow: 0 0 0 6px rgba(130, 220, 255, 0.06), 0 0 14px rgba(143, 227, 255, 0.8); } }
+@keyframes dot-breathe { 0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--holo) 18%, transparent), 0 0 10px color-mix(in srgb, var(--holo) 95%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--holo) 6%, transparent), 0 0 14px color-mix(in srgb, var(--holo) 80%, transparent); } }
 @keyframes fade-out { to { opacity: 0; } }
 @keyframes call-in { from { opacity: 0; transform: translate(-8px, -50%); filter: blur(3px); } to { opacity: 1; transform: translate(0, -50%); filter: none; } }
 @keyframes call-out { from { opacity: 1; transform: translate(0, -50%); } to { opacity: 0; transform: translate(-6px, -50%); } }
@@ -38,6 +38,6 @@
 @keyframes rule-in { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
 @keyframes flash {
   0% { color: inherit; }
-  22% { color: #fff; text-shadow: 0 0 16px #8fe3ff, 0 0 4px #fff; }
-  100% { text-shadow: 0 0 12px rgba(130, 220, 255, 0.55); }
+  22% { color: var(--holo-hi); text-shadow: 0 0 16px var(--holo), 0 0 4px var(--holo-hi); }
+  100% { text-shadow: 0 0 12px color-mix(in srgb, var(--holo) 55%, transparent); }
 }

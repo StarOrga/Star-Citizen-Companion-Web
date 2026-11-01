@@ -4,8 +4,8 @@
 // callout column and the Kennung are placed in % of it (the leader SVG uses
 // the same 0–100 frame). The table is sized from --tw (its width).
 :host {
-  --holo: #8fe3ff;
-  --holo-hi: #dff6ff;
+  --holo: var(--sc-holo);
+  --holo-hi: var(--sc-holo-hi);
   --cx-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace;
   --tw: min(620px, 94cqw);
   --cy: calc(var(--tw) * 0.09);
@@ -156,7 +156,7 @@ a.holo {
    then a thin reticle stays around the mount while the hull turns. */
 .dot.real::after {
   content: ''; position: absolute; inset: -6px; border-radius: 50%;
-  border: 1px solid rgba(160, 232, 255, 0.55);
+  border: 1px solid color-mix(in srgb, var(--holo-hi) 55%, transparent);
   animation: dot-lock 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--at) + 0.5s) both;
 }
 @keyframes dot-lock { from { transform: scale(2.6); opacity: 0; } 60% { opacity: 1; } }

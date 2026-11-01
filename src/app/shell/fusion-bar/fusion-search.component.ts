@@ -450,7 +450,7 @@ interface FusionSection {
       min-height: 30px; padding: 0 var(--sc-space-3); border: 0; border-radius: 999px;
       background: var(--sc-bg-1); color: var(--sc-fg-1); cursor: pointer; white-space: nowrap;
       font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 28px color-mix(in srgb, var(--sc-depth) 50%, transparent);
       animation: fs-chip-in 0.2s ease both;
     }
     .strip:hover { color: var(--sc-fg-0); }
@@ -481,7 +481,7 @@ interface FusionSection {
       background: var(--sc-bg-1);
       border: 0;
       box-shadow: inset 0 2px 0 color-mix(in srgb, var(--sc-fg-0) 4%, transparent),
-                  0 36px 90px rgba(0, 0, 0, 0.75), 0 10px 24px rgba(0, 0, 0, 0.45);
+                  var(--sc-float-shadow);
       transform-origin: top center;
       animation: fs-panel-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }

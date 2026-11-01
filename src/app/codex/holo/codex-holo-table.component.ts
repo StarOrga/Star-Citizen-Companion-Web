@@ -391,6 +391,25 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
        one leaves while the next enters) instead of cutting to bare rings. */
     .mode-viewer { position: absolute; inset: 0; z-index: 1; animation: fade-in var(--holo-t-base) var(--holo-e-out) backwards; }
     .mode-viewer.is-placeholder { animation: none; }
+    /* While the viewer chunk / the hull's asset row resolves, the projector already
+       runs: a pulsing lock ring and a scan line rising through the air, so the stage
+       is never an empty box (cx-polish: it stood empty for seconds on a cold load). */
+    .mode-viewer.is-placeholder::before, .mode-viewer.is-placeholder::after { content: ''; position: absolute; pointer-events: none; }
+    .mode-viewer.is-placeholder::before {
+      left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 60%, transparent);
+      box-shadow: 0 0 22px color-mix(in srgb, var(--sc-accent) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--sc-accent) 20%, transparent);
+      animation: ph-lock 1.6s var(--holo-e-io) infinite;
+    }
+    .mode-viewer.is-placeholder::after {
+      left: 16%; right: 16%; bottom: 14%; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, var(--sc-accent), transparent);
+      box-shadow: 0 0 14px var(--sc-accent);
+      animation: ph-scan 2.4s var(--holo-e-io) infinite;
+    }
+    @keyframes ph-lock { 0%, 100% { transform: scale(0.82); opacity: 0.45; } 50% { transform: scale(1); opacity: 1; } }
+    @keyframes ph-scan { 0% { bottom: 14%; opacity: 0; } 15%, 85% { opacity: 1; } 100% { bottom: 86%; opacity: 0; } }
+    :host(.still) .mode-viewer.is-placeholder::before, :host(.still) .mode-viewer.is-placeholder::after { animation: none; }
     .mode-viewer.schema-sheet { padding: 14px 16px; overflow: auto; }
     .surface-leave { animation: surface-out var(--holo-t-fast) var(--holo-e-io) forwards; pointer-events: none; }
     @keyframes surface-out { to { opacity: 0; } }
