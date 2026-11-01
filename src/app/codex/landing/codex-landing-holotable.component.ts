@@ -61,8 +61,8 @@ export function scanPassAt(start: number, y: number, build = HOLO_TIMING.build):
   return Math.round((start + build * t) * 100) / 100;
 }
 
-/** Hologram box inside the air (in % of the air): anchors convert through it. */
-const BOX = { left: 24, width: 44, top: 5, height: 84 } as const;
+/** Hologram box inside the air (in % of the air, centred on the emitter): anchors convert through it. Mirrors --hx/--hw/--ht/--hh. */
+const BOX = { left: 30, width: 40, top: 14, height: 72 } as const;
 /** Callout column: right edge of the text (in % of the air width). */
 const CALL_RIGHT = 21;
 
@@ -326,7 +326,7 @@ function cssEscape(v: string): string {
 
 /** Vertical callout slots (% of the air), evenly over the hologram's height. */
 function slotsFor(n: number): number[] {
-  if (n <= 1) return [48];
-  if (n === 2) return [36, 62];
-  return [26, 48, 70];
+  if (n <= 1) return [50];
+  if (n === 2) return [38, 62];
+  return [30, 50, 70];
 }

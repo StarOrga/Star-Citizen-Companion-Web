@@ -47,13 +47,9 @@
   <sc-codex-landing-news class="news" [summary]="data.patchSummary()" [unread]="data.newsUnread()"
                          (opened)="data.markNewsSeen()" />
 
-  <!-- The table's light on the floor: it reaches both panes (their edges stand in it). -->
+  <!-- The table's light on the floor. -->
   <div class="floor" aria-hidden="true">
     <i class="pool"></i>
-    <i class="reach l"></i>
-    <i class="reach r"></i>
-    <i class="foot l"></i>
-    <i class="foot r"></i>
     @if (current()) {
       @for (n of [switchNo()]; track n) {
         <i class="wave" [class.boot]="n === 0"></i>
@@ -61,9 +57,9 @@
     }
   </div>
 
-  <sc-codex-landing-values-pane class="values" [item]="current()" [switchNo]="switchNo()" [still]="still()" />
-
+  <!-- The panes stand in the stage, exactly as tall as the hologram box. -->
   <div class="stage">
+    <sc-codex-landing-values-pane class="values" [item]="current()" [switchNo]="switchNo()" [still]="still()" />
     @if (failed()) {
       <div class="err" role="alert">
         <p>{{ 'codex.error.title' | translate }} — {{ data.error()! | translate }}</p>
@@ -75,9 +71,8 @@
     <sc-codex-landing-holotable class="holotable" [item]="current()" [paints]="paints()" [paused]="paused()"
                                 [still]="still()" [loading]="loading()" [switchNo]="switchNo()" [cycle]="cycle()"
                                 [cycleMs]="rotationMs" [(paintOpen)]="paintOpen" />
+    <sc-codex-landing-codex-pane class="codex" [codex]="codex()" [items]="items()" [active]="category()"
+                                 [current]="current()" [held]="held()" [paused]="paused()" [still]="still()"
+                                 [cycle]="cycle()" [cycleMs]="rotationMs" [switchNo]="switchNo()" (pick)="pick($event)" />
   </div>
-
-  <sc-codex-landing-codex-pane class="codex" [codex]="codex()" [items]="items()" [active]="category()"
-                               [current]="current()" [held]="held()" [paused]="paused()" [still]="still()"
-                               [cycle]="cycle()" [cycleMs]="rotationMs" [switchNo]="switchNo()" (pick)="pick($event)" />
 </section>
