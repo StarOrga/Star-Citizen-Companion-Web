@@ -160,7 +160,9 @@
 // ── Phone: one column, the page scrolls. ──
 @media (max-width: 720px) {
   :host { --cx-side: 0px; --cx-gut: 0px; }
-  .landing { height: auto; min-height: 0; padding-bottom: calc(var(--sc-float-bottom, 0px) + var(--sc-space-4)); gap: var(--sc-space-3); }
+  // The table's floor shadow and radar sweep reach past a phone's width: clip them here,
+  // never let the page scroll sideways (mobile gate).
+  .landing { height: auto; min-height: 0; padding-bottom: calc(var(--sc-float-bottom, 0px) + var(--sc-space-4)); gap: var(--sc-space-3); overflow-x: clip; }
   :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 1; padding-inline: 0; }
   .title { font-size: 24px; }
