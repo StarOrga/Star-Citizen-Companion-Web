@@ -390,7 +390,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .fact[tabindex] { cursor: help; border-radius: var(--holo-r-xs); }
       .fact[tabindex]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       /* Touch: a focusable fact (tooltip in metres) reaches the tap minimum. */
-      @media (pointer: coarse) { .fact[tabindex] { min-block-size: var(--sc-tap-min); justify-content: center; } }
+      @media (pointer: coarse) { .fact[tabindex] { min-block-size: var(--sc-tap-min); min-inline-size: var(--sc-tap-min); justify-content: center; } }
       .tip-trigger { font-family: var(--sc-font-display);
         font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.14em; }
       .hs-toggle {
