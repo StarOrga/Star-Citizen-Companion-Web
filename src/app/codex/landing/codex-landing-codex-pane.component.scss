@@ -107,7 +107,7 @@
 }
 // Touch screens: readable labels and 48px rows (mobile gate).
 @media (pointer: coarse) {
-  .ph, .keys, .here, .soon, .none, .more, .new a { font-size: 12px; }
+  .ph, .keys, .here, .soon, .none, .more, .new a, .row, .cnt, .all { font-size: 12px; }
   .row, .new a, .more, .all, .keys { min-height: 48px; }
 }
 @media (max-width: 720px) {
