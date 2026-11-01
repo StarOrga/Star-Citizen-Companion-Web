@@ -176,6 +176,7 @@ interface SkinExportRequest {
   ships?: string[];
   manifest?: string;
   skipExisting?: boolean;
+  gameBuild?: string;
   textureSize?: number;
   maxModelMb?: number;
   limitSkins?: number;

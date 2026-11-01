@@ -181,3 +181,79 @@ def test_content_key_distinguishes_absent_from_empty():
     k2 = build_cache.content_key(lambda p: files[p], lambda p: p in files, ["b"], "t")
     k3 = build_cache.content_key(lambda p: files[p], lambda p: p in files, ["a"], "u")
     assert len({k1, k2, k3}) == 3
+
+
+# ---- same patch dir, another game build / pipeline -------------------------
+def _cached_ship(out: Path, stamp: dict) -> None:
+    (out / "S").mkdir(parents=True)
+    (out / "S" / "skins.json").write_text(json.dumps(
+        {"ship": "S", "format": EXPORT_FORMAT, "stamp": stamp, "skins": []}))
+
+
+def test_a_cached_ship_counts_only_for_the_same_build_and_pipeline(tmp_path):
+    from sc_extract.skin_export_app import _cached_catalog
+    stamp = {"game_build": "100", "pipeline": "p1"}
+    _cached_ship(tmp_path, stamp)
+    assert _cached_catalog(tmp_path, "S", stamp) is not None
+    assert _cached_catalog(tmp_path, "S", {"game_build": "101", "pipeline": "p1"}) is None
+    assert _cached_catalog(tmp_path, "S", {"game_build": "100", "pipeline": "p2"}) is None
+    assert _cached_catalog(tmp_path, "S") is not None  # no stamp given = format only
+
+
+def test_an_unstamped_cache_is_rebuilt(tmp_path):
+    from sc_extract.skin_export_app import _cached_catalog
+    (tmp_path / "S").mkdir()
+    (tmp_path / "S" / "skins.json").write_text(json.dumps({"format": EXPORT_FORMAT, "skins": []}))
+    assert _cached_catalog(tmp_path, "S", {"game_build": "100", "pipeline": "p1"}) is None
+
+
+def _built_ship(exp, spec, out: Path, src: str, stamp: dict, glb: bytes = b"glb") -> None:
+    (out / "models").mkdir(parents=True)
+    (out / "models" / "S_standard.glb").write_bytes(glb)
+    (out / "skins.json").write_text(json.dumps({
+        "ship": "S", "format": EXPORT_FORMAT, "stamp": stamp,
+        "skins": [{"id": "standard", "model": "models/S_standard.glb",
+                   "model_mb": 0.5, "hull_src": src}]}))
+
+
+def _same_dir_exporter(tmp_path, files):
+    cfg = HullExportConfig(cgf_converter=Path("c.exe"), out_dir=tmp_path / "skins-4.3",
+                           work_dir=tmp_path / "w", pipeline="p1",
+                           stamp={"game_build": "101", "pipeline": "p1"})
+    exp = Hull3DExporter(_P4K(files), cfg)
+    spec = ShipSpec("S", "Data/Ships/h.cga", "Data", [Paint("Data/Ships/p.mtl", "standard")])
+    return exp, spec, cfg.out_dir / "S"
+
+
+def test_a_hotfix_build_takes_the_unchanged_hull_back_and_keeps_the_upload(tmp_path):
+    files = {"Data/Ships/h.cga": b"hull", "Data/Ships/p.mtl": b"paint"}
+    exp, spec, out = _same_dir_exporter(tmp_path, files)
+    src = exp.hull_src(spec, spec.paints[0])
+    _built_ship(exp, spec, out, src, {"game_build": "100", "pipeline": "p1"})
+    (out / ".uploaded").write_text("S 1 rows")
+    (out / ".package-uploaded").write_text("abc")
+
+    prev = exp._park_previous(out)
+    assert prev is not None and not out.exists()
+    (out / "models").mkdir(parents=True)
+    got = exp._export_hull(spec, spec.paints[0], out)
+    assert got["reused"] and (out / "models" / "S_standard.glb").read_bytes() == b"glb"
+    (out / "skins.json").write_text(json.dumps({
+        "ship": "S", "format": EXPORT_FORMAT, "stamp": exp.cfg.stamp,
+        "skins": [{"id": "standard", **got}]}))
+    exp._settle_previous(prev, out)
+    assert (out / ".uploaded").is_file() and (out / ".package-uploaded").read_text() == "abc"
+    assert not prev.exists()
+
+
+def test_a_changed_rebuild_loses_the_upload_marker(tmp_path):
+    files = {"Data/Ships/h.cga": b"hull v2", "Data/Ships/p.mtl": b"paint"}
+    exp, spec, out = _same_dir_exporter(tmp_path, files)
+    _built_ship(exp, spec, out, "stale", {"game_build": "100", "pipeline": "p1"})
+    (out / ".uploaded").write_text("S 1 rows")
+    prev = exp._park_previous(out)
+    assert exp._reuse_hull(spec, spec.paints[0], out, exp.hull_src(spec, spec.paints[0])) is None
+    _built_ship(exp, spec, out, exp.hull_src(spec, spec.paints[0]), exp.cfg.stamp, glb=b"new glb")
+    exp._settle_previous(prev, out)
+    assert not (out / ".uploaded").exists()
+    assert not prev.exists()
