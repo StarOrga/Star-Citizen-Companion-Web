@@ -630,7 +630,7 @@ export class FusionSearchComponent {
   readonly copied = signal<string | null>(null);
 
   readonly context = computed<SearchContext>(() =>
-    this.contextDropped() ? neutralContext() : searchContextOf(this.url()),
+    this.contextDropped() ? neutralContext() : searchContextOf(this.url(), this.chrome.hqPage()),
   );
   readonly contextLabelKey = computed(() => this.context().labelKey);
   /** i18n key of the Codex kind the chip names (index / detail contexts). */

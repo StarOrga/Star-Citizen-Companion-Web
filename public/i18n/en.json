@@ -4947,6 +4947,50 @@
       "subtitle": "Your FPS sets for every role.",
       "details": "Details",
       "detailsAria": "{{name}} details in the codex"
+    },
+    "pages": {
+      "start": "Start",
+      "planen": "Plan",
+      "jetzt": "Now",
+      "bestand": "Holdings",
+      "statistik": "Stats",
+      "empty": "{{page}}: something new is being built here."
+    },
+    "rail": {
+      "label": "HQ pages",
+      "goto": "Go to {{page}}"
+    },
+    "start": {
+      "kicker": "Your HQ",
+      "title": "Headquarters",
+      "important": "Important now"
+    },
+    "first": {
+      "promise": "Your hangar, your sets, your next ops. In one place.",
+      "step1": "Fetch your RSI hangar",
+      "step2": "Connect the SCC app",
+      "step3": "Plan your first op",
+      "go": "Let's go",
+      "skip": "Skip",
+      "duration": "≈ 4 minutes"
+    },
+    "step": {
+      "kind": {
+        "buy": "Buy",
+        "mission": "Mission",
+        "mine": "Mine",
+        "refine": "Refine",
+        "craft": "Craft",
+        "transport": "Haul",
+        "pickup": "Pick up"
+      },
+      "state": {
+        "todo": "to do",
+        "done": "done"
+      }
+    },
+    "log": {
+      "undo": "Undo"
     }
   },
   "verse": {
@@ -5519,7 +5563,11 @@
       "shipFallback": "This ship",
       "codexDetail": "{{kind}}",
       "fps": "FPS",
-      "hq": "My HQ"
+      "hq": "My HQ",
+      "hqPlan": "Plan",
+      "hqNow": "Now",
+      "hqStock": "Holdings",
+      "hqStats": "Stats"
     },
     "placeholder": {
       "all": "Search everywhere …",
@@ -5530,7 +5578,11 @@
       "ship": "Components, weapons, ships …",
       "codexDetail": "Search the Codex …",
       "fps": "Weapons, armour, gear …",
-      "hq": "Hangar, locker, ships …"
+      "hq": "Hangar, locker, ships …",
+      "hqPlan": "A set, part or place for your op …",
+      "hqNow": "Ship, place or part …",
+      "hqStock": "Search your holdings …",
+      "hqStats": "Ship or set …"
     },
     "search": {
       "label": "Search",

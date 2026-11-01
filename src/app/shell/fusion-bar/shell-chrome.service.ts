@@ -1,4 +1,5 @@
 import { Injectable, TemplateRef, computed, signal } from '@angular/core';
+import type { HqPageId } from '../../hq/hq-routes';
 import type { PageCrumb } from '../../shared/page-header/nav-origin.service';
 
 /**
@@ -94,10 +95,20 @@ export class ShellChromeService {
   private readonly introState = signal<HeroIntro | null>(null);
   private readonly anchors = signal<readonly HTMLElement[]>([]);
   private readonly filterOwners = signal<readonly { owner: object; read: () => BarFilters }[]>([]);
+  private readonly hqPageState = signal<HqPageId | null>(null);
   private readonly pageSearchOwners = signal<readonly { owner: object; apply: (term: string) => void }[]>([]);
 
   /** The newest page that filters itself by the bar's typed term, or null (the bar then only searches the Codex). */
   readonly pageSearch = computed<((term: string) => void) | null>(() => this.pageSearchOwners().at(-1)?.apply ?? null);
+
+  /**
+   * The HQ page in view on the beta landing (`/hq`: start · planen · jetzt · bestand · statistik),
+   * or null off the landing. Published by `HqPagesComponent` from its visible section. The bar
+   * condenses by scroll depth as on every main page (each page is a full viewport, so a follow
+   * page always stands under the docked subheader); this signal drives what depends on the PAGE:
+   * the search context (exclusion per page) and the chip label.
+   */
+  readonly hqPage = this.hqPageState.asReadonly();
 
   /** The hub's running title sequence, or null (set by the hub, read by the bar and the main header). */
   readonly heroIntro = this.introState.asReadonly();
@@ -140,6 +151,11 @@ export class ShellChromeService {
   readonly dockFull = this.fullState.asReadonly();
   /** True while the bar is slid away (content pages, scrolling down). */
   readonly barHidden = this.hiddenState.asReadonly();
+
+  /** The HQ landing reports the page in view (null when it leaves). */
+  setHqPage(page: HqPageId | null): void {
+    this.hqPageState.set(page);
+  }
 
   /** The hub's title sequence starts (never call it under reduced motion). */
   startHeroIntro(k: number, full: boolean): void {
