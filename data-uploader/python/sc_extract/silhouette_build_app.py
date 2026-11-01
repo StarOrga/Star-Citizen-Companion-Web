@@ -42,6 +42,9 @@ def main() -> int:
     ap.add_argument("--manifest", type=Path, default=None,
                     help="defaults to <out>/silhouettes/_build_manifest.json")
     ap.add_argument("--tolerance-m", type=float, default=0.15)
+    ap.add_argument("--recipe", default="",
+                    help="build recipe of the silhouette output (silhouette@N, build-recipes.ts): "
+                         "keys the cache instead of the code, so only a bumped recipe recomputes")
     ap.add_argument("--workers", type=int, default=1,
                     help="meshes converted at once (threads; the host sizes it from the resource limits)")
     args = ap.parse_args()
@@ -76,6 +79,7 @@ def main() -> int:
         cfg = SilhouetteExportConfig(
             cgf_converter=args.converter, work_dir=args.out / "_silhouette_work",
             cache_dir=cache_dir_for(args.out), tool_version=args.tool_version, on_log=on_log,
+            recipe=args.recipe,
         )
         exporter = SilhouetteExporter(p4k, cfg)
         pruned = exporter.prune_cache()

@@ -148,6 +148,41 @@ class HullExportConfig:
     # identical hull from, and the pipeline tag folded into its content key.
     reuse_dirs: List[Path] = field(default_factory=list)
     pipeline: str = ""
+    # Written into skins.json as "stamp": the game build and the pipeline it was
+    # built from. `skin_export_app --skip-existing` only trusts a cached ship
+    # whose stamp matches the current run — `skins-<patch>` is per PATCH, so a
+    # hotfix build or a pipeline change lands in the same dir.
+    stamp: Dict[str, str] = field(default_factory=dict)
+
+
+# A ship's previous build while it is rebuilt in the same dir: its hull is a
+# reuse candidate (content-keyed like any other) and its upload markers are
+# carried over when the rebuild came out byte-identical. Not a ship folder.
+PREV_DIR = "_prev"
+# Self-validating markers (they name the sha they vouch for) — always carried.
+_CHECKED_MARKERS = (".package-uploaded", ".blueprint-uploaded")
+# Vouches for the ship's files as a whole — carried only when they are unchanged.
+_UPLOAD_MARKER = ".uploaded"
+_MARKERS = (_UPLOAD_MARKER,) + _CHECKED_MARKERS
+
+
+def _tree_bytes(root: Path) -> Dict[str, bytes]:
+    """Every file below ``root`` except the upload markers, by relative path.
+    skins.json is compared without what the server never sees: the build
+    stamp and whether a hull was reused or converted."""
+    out: Dict[str, bytes] = {}
+    for p in root.rglob("*"):
+        if not p.is_file() or p.name in _MARKERS:
+            continue
+        data = p.read_bytes()
+        if p.relative_to(root).as_posix() == "skins.json":
+            cat = json.loads(data)
+            cat.pop("stamp", None)
+            for s in cat.get("skins", []):
+                s.pop("reused", None)
+            data = json.dumps(cat, sort_keys=True).encode("utf-8")
+        out[p.relative_to(root).as_posix()] = data
+    return out
 
 
 # Written into skins.json. A cached ship built by an older pipeline carries no or
@@ -451,6 +486,8 @@ class Hull3DExporter:
         ship_out = self.cfg.out_dir / spec.ship_id
         # A rebuild replaces the ship wholesale: textured glbs of an older export
         # and its `.uploaded` marker must not survive next to the new catalog.
+        # The old build is parked in `_prev/` meanwhile (see `_park_previous`).
+        prev = self._park_previous(ship_out)
         shutil.rmtree(ship_out, ignore_errors=True)
         (ship_out / "models").mkdir(parents=True, exist_ok=True)
         (ship_out / "icons").mkdir(parents=True, exist_ok=True)
@@ -482,12 +519,49 @@ class Hull3DExporter:
 
         cat_path = ship_out / "skins.json"
         cat_path.write_text(json.dumps({"ship": spec.ship_id, "format": EXPORT_FORMAT,
-                                        "skins": catalog},
+                                        "stamp": self.cfg.stamp, "skins": catalog},
                                        indent=2, ensure_ascii=False), encoding="utf-8")
+        self._settle_previous(prev, ship_out)
         self.log("info", f"{spec.ship_id}: hull {'ok' if hull.get('model') else 'missing'}, "
                          f"{sum(1 for c in catalog if c.get('icon'))}/{len(catalog)} "
                          f"paint icons in {time.time()-t0:.0f}s")
         return {"ship": spec.ship_id, "skins": catalog, "catalog_path": str(cat_path)}
+
+    def _park_previous(self, ship_out: Path) -> Optional[Path]:
+        """Move an existing build of this ship to ``_prev/<ship>`` so the rebuild
+        can take its hull (same content key) instead of converting it again."""
+        if not (ship_out / "skins.json").is_file():
+            return None
+        prev = self.cfg.out_dir / PREV_DIR / ship_out.name
+        shutil.rmtree(prev, ignore_errors=True)
+        try:
+            prev.parent.mkdir(parents=True, exist_ok=True)
+            ship_out.rename(prev)
+        except OSError as exc:
+            self.log("warn", f"{ship_out.name}: previous build not kept ({exc}) — full rebuild")
+            return None
+        return prev
+
+    def _settle_previous(self, prev: Optional[Path], ship_out: Path) -> None:
+        """Carry the upload markers over from the parked build and drop it. The
+        `.uploaded` marker only when the rebuild is byte-identical — then the
+        server already holds exactly these files and the upload can skip them."""
+        if prev is None:
+            return
+        try:
+            for name in _CHECKED_MARKERS:
+                if (prev / name).is_file():
+                    shutil.copyfile(prev / name, ship_out / name)
+            if (prev / _UPLOAD_MARKER).is_file():
+                if _tree_bytes(prev) == _tree_bytes(ship_out):
+                    shutil.copyfile(prev / _UPLOAD_MARKER, ship_out / _UPLOAD_MARKER)
+                    self.log("info", f"{ship_out.name}: rebuild identical to the uploaded one")
+                else:
+                    self.log("info", f"{ship_out.name}: rebuild differs — will be uploaded again")
+        except OSError as exc:
+            self.log("warn", f"{ship_out.name}: upload markers not carried over ({exc})")
+        finally:
+            shutil.rmtree(prev, ignore_errors=True)
 
     def hull_src(self, spec: ShipSpec, paint: Paint) -> str:
         """Content key of one hull build: the P4K files it reads, the pipeline
@@ -504,7 +578,9 @@ class Hull3DExporter:
         """Take the hull from an earlier patch's build when its inputs and the
         pipeline are byte-identical — the same glb, without converting,
         optimizing and hole-checking it again."""
-        for d in self.cfg.reuse_dirs:
+        # The ship's own previous build in this dir first (hotfix build, pipeline
+        # change), then the earlier patches.
+        for d in [self.cfg.out_dir / PREV_DIR, *self.cfg.reuse_dirs]:
             cat_path = Path(d) / spec.ship_id / "skins.json"
             try:
                 cat = json.loads(cat_path.read_text(encoding="utf-8"))

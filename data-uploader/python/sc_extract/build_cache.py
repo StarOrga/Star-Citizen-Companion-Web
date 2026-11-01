@@ -47,14 +47,23 @@ def file_digest(path: Path) -> str:
 
 
 def pipeline_tag(converter: Optional[Path] = None, salt: str = "",
-                 modules: Iterable[str] = PIPELINE_MODULES) -> str:
-    """Short hash of everything besides the P4K inputs that shapes the output."""
+                 modules: Iterable[str] = PIPELINE_MODULES, recipe: str = "") -> str:
+    """Short hash of everything besides the P4K inputs that shapes the output.
+
+    ``recipe`` (``model3d@3``, from the host's `build-recipes.ts`) stands in
+    for the module bytes: it is bumped by hand only when the output changes,
+    so an uploader update that leaves the 3D code's output alone keeps every
+    cached model. Without it (dev / CLI runs) the modules themselves are hashed.
+    """
     h = hashlib.sha256()
-    for name in modules:
-        try:
-            h.update((_HERE / name).read_bytes())
-        except OSError:
-            h.update(f"missing:{name}".encode())
+    if recipe:
+        h.update(f"recipe:{recipe}".encode())
+    else:
+        for name in modules:
+            try:
+                h.update((_HERE / name).read_bytes())
+            except OSError:
+                h.update(f"missing:{name}".encode())
     if converter is not None:
         try:
             h.update(file_digest(converter).encode())

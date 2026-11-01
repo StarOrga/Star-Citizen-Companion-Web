@@ -7,6 +7,8 @@
  * its own for the same reason — see `test/silhouette-bridge-args.spec.ts`).
  */
 
+import { recipeTag } from './build-recipes.js';
+
 export interface SilhouetteBuildNat {
   channel: string;
   patchVersion: string;
@@ -49,6 +51,7 @@ export function silhouetteBuildArgs(req: SilhouetteBuildRequest): string[] {
     '--converter', req.converterPath,
     '--tool-version', req.toolVersion,
     '--build-json', buildJson,
+    '--recipe', recipeTag('silhouette'),
   ];
   if (req.manifestPath) args.push('--manifest', req.manifestPath);
   if (req.toleranceM != null) args.push('--tolerance-m', String(req.toleranceM));

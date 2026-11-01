@@ -22,16 +22,20 @@ const pc: MachineInfo = { cores: 16, totalRamMb: 32768, disk: DISK_CAPS.nvme };
 const hddBox: MachineInfo = { cores: 4, totalRamMb: 8192, disk: DISK_CAPS.hdd };
 
 describe('resource limits', () => {
-  it('never lets the CPU scale reach the whole machine', () => {
+  it('never lets any scale go above 80 % of the machine', () => {
     expect(rangesFor(pc).cpuPct.max).toBe(CPU_MAX_PCT);
-    expect(presetLimits('full', pc).cpuPct).toBeLessThanOrEqual(90);
-    expect(clampLimits({ cpuPct: 100 }, pc).cpuPct).toBe(90);
+    expect(CPU_MAX_PCT).toBe(80);
+    expect(presetLimits('full', pc).cpuPct).toBeLessThanOrEqual(80);
+    expect(clampLimits({ cpuPct: 100 }, pc).cpuPct).toBe(80);
+    expect(clampLimits({ ramMb: 1e9 }, pc).ramMb).toBeLessThanOrEqual(32768 * 0.8);
   });
 
   it('derives the scales from the machine', () => {
-    expect(rangesFor(pc).ramMb.max).toBe(32768 - 2048);
-    expect(rangesFor(pc).readMBs.max).toBe(2000);
-    expect(rangesFor(hddBox).iops.max).toBe(150);
+    expect(rangesFor(pc).ramMb.max).toBe(Math.floor(32768 * 0.8));
+    // A small machine keeps Windows' 2 GB reserve, which is more than 20 % there.
+    expect(rangesFor(hddBox).ramMb.max).toBe(8192 - 2048);
+    expect(rangesFor(pc).readMBs.max).toBe(1600);
+    expect(rangesFor(hddBox).iops.max).toBe(120);
   });
 
   it('orders the presets from gentle to full', () => {
@@ -58,7 +62,7 @@ describe('resource limits', () => {
     const l = clampLimits({ cpuPct: 'x', ramMb: -1, readMBs: 1e9, iops: Number.NaN }, pc);
     expect(l.cpuPct).toBe(presetLimits('balanced', pc).cpuPct);
     expect(l.ramMb).toBe(1024);
-    expect(l.readMBs).toBe(2000);
+    expect(l.readMBs).toBe(1600);
   });
 
   it('sizes workers by CPU share and RAM', () => {

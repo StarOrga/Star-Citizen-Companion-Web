@@ -19,9 +19,9 @@ const pc: MachineInfo = { cores: 16, totalRamMb: 32768, disk: DISK_CAPS.nvme };
 const MB = 1024 * 1024;
 
 describe('GPU limit gpuPct', () => {
-  it('has a 0..100 range and clamps into it (0 = GPU off is valid)', () => {
-    expect(rangesFor(pc).gpuPct).toEqual({ min: 0, max: 100, step: 1 });
-    expect(clampLimits({ gpuPct: 150 }, pc).gpuPct).toBe(100);
+  it('has a 0..80 range and clamps into it (0 = GPU off is valid)', () => {
+    expect(rangesFor(pc).gpuPct).toEqual({ min: 0, max: 80, step: 1 });
+    expect(clampLimits({ gpuPct: 150 }, pc).gpuPct).toBe(80);
     expect(clampLimits({ gpuPct: -5 }, pc).gpuPct).toBe(0);
     expect(clampLimits({ gpuPct: 0 }, pc).gpuPct).toBe(0);
     expect(clampLimits({ gpuPct: 42.4 }, pc).gpuPct).toBe(42);
@@ -29,10 +29,10 @@ describe('GPU limit gpuPct', () => {
     expect(clampLimits({ gpuPct: 'x' }, pc).gpuPct).toBe(80);
   });
 
-  it('presets carry their GPU share: gaming off, balanced 80, full 100', () => {
+  it('presets carry their GPU share: gaming off, balanced and full 80', () => {
     expect(presetLimits('gaming', pc).gpuPct).toBe(0);
     expect(presetLimits('balanced', pc).gpuPct).toBe(80);
-    expect(presetLimits('full', pc).gpuPct).toBe(100);
+    expect(presetLimits('full', pc).gpuPct).toBe(80);
     expect(presetGpuPct('balanced')).toBe(80);
   });
 

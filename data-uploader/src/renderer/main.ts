@@ -3216,7 +3216,7 @@ async function buildAndUploadSkins(
     }
   });
   const built = await window.sc.skin
-    .start({ p4kPath: ch.dataP4kPath, outDir: skinsOut, manifest, skipExisting: true })
+    .start({ p4kPath: ch.dataP4kPath, outDir: skinsOut, manifest, skipExisting: true, gameBuild: result.build_number })
     .finally(unsub);
   // `paused` / `cancelled` come back when the operator stopped the build (main
   // kills the Python child on pause — see `interruptLocalSkinBuild`). That is

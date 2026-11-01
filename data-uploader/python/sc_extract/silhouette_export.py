@@ -191,14 +191,18 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
     return triangles
 
 
-def algo_tag() -> str:
+def algo_tag(recipe: str = "") -> str:
     """Short hash of the code that turns a mesh into a silhouette blob.
 
-    Part of every cache key: a change to the raster/trace/simplify code (or to
-    this wiring) invalidates the cache by itself — no hand-maintained version
-    constant to forget — while a release that left them alone keeps every
-    cached mesh."""
+    Part of every cache key. With ``recipe`` (``silhouette@2``, from the host's
+    `build-recipes.ts`, bumped by hand when the output changes — a CI guard
+    holds it to that) only a bumped recipe invalidates the cache. Without it
+    (dev / CLI runs) the code itself is hashed: any change to the
+    raster/trace/simplify code invalidates the cache by itself."""
     h = hashlib.sha256()
+    if recipe:
+        h.update(f"recipe:{recipe}".encode())
+        return h.hexdigest()[:12]
     here = Path(__file__).resolve().parent
     for name in ("silhouette.py", "silhouette_export.py", "silhouette_gpu.py"):
         try:
@@ -225,6 +229,8 @@ class SilhouetteExportConfig:
     tool_version: str
     on_log: LogFn = _noop
     keep_work: bool = False
+    # Build recipe (`silhouette@N`) keying the cache; "" = hash the code.
+    recipe: str = ""
 
 
 class SilhouetteExporter:
@@ -250,7 +256,7 @@ class SilhouetteExporter:
         # linear scan of every archive entry (1.37M on LIVE) per miss — and a
         # mesh without a `.cgam` (most items) missed three times per entity.
         self._lower: Optional[Dict[str, Any]] = None
-        self.algo = algo_tag()
+        self.algo = algo_tag(cfg.recipe)
 
     # ---- P4K (single thread) ------------------------------------------------
     def _info(self, p4k_path: str):

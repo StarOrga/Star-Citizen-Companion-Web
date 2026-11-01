@@ -10,6 +10,11 @@
 //
 //   Subtheme-Unchanged: ships, items      (or: Subtheme-Unchanged: all)
 //
+// The same holds for the build recipes (data-uploader/src/lib/build-recipes.ts):
+// a generated artifact (3D model, silhouette) is cached by its P4K bytes and its
+// recipe, so a change that alters the artifacts without a recipe bump keeps
+// serving the old ones. Acknowledged with `Recipe-Unchanged: model3d`.
+//
 // Usage: node scripts/check-subtheme-revisions.mjs [--base <ref>]
 // Default base: origin/$GITHUB_BASE_REF, else origin/main. Needs full history
 // (actions/checkout fetch-depth: 0). Node >= 22.18 (imports the .ts directly).
@@ -18,19 +23,28 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
-const SUBTHEMES_PATH = 'data-uploader/src/lib/subthemes.ts';
+const REGISTRIES = [
+  { label: 'subtheme', path: 'data-uploader/src/lib/subthemes.ts', exportName: 'SUBTHEMES', trailer: 'Subtheme-Unchanged' },
+  { label: 'build recipe', path: 'data-uploader/src/lib/build-recipes.ts', exportName: 'BUILD_RECIPES', trailer: 'Recipe-Unchanged' },
+];
 
-/** `{ key: revision }` from a subthemes.ts source text — works on any revision of the file. */
+/**
+ * `{ key: revision }` from a subthemes.ts / build-recipes.ts source text —
+ * works on any revision of the file. `//` comment lines between `key` and
+ * `revision` (the bump history) are skipped: without that, every commented
+ * entry read as "new on this branch" and was never checked.
+ */
 export function parseRevisions(source) {
   const out = {};
-  for (const m of source.matchAll(/key:\s*'([a-z_]+)',\s*revision:\s*(\d+)/g)) out[m[1]] = Number(m[2]);
+  const re = /key:\s*'([a-z0-9_]+)',(?:\s*\/\/[^\n]*)*\s*revision:\s*(\d+)/g;
+  for (const m of source.matchAll(re)) out[m[1]] = Number(m[2]);
   return out;
 }
 
-/** Subtheme keys acknowledged as unchanged by `Subtheme-Unchanged:` trailers; `all` = every key. */
-export function parseAcks(commitBodies, allKeys) {
+/** Keys acknowledged as unchanged by `<trailer>:` lines (default `Subtheme-Unchanged`); `all` = every key. */
+export function parseAcks(commitBodies, allKeys, trailer = 'Subtheme-Unchanged') {
   const acked = new Set();
-  for (const m of commitBodies.matchAll(/^Subtheme-Unchanged:\s*(.+)$/gim)) {
+  for (const m of commitBodies.matchAll(new RegExp(`^${trailer}:\\s*(.+)$`, 'gim'))) {
     for (const raw of m[1].split(',')) {
       const k = raw.trim().toLowerCase();
       if (k === 'all') allKeys.forEach((x) => acked.add(x));
@@ -68,33 +82,33 @@ async function main() {
     i > -1 ? process.argv[i + 1] : process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main';
   const mergeBase = git(['merge-base', base, 'HEAD']);
   const changed = git(['diff', '--name-only', `${mergeBase}...HEAD`]).split('\n').filter(Boolean);
+  const bodies = git(['log', '--format=%B', `${mergeBase}..HEAD`]);
 
-  let oldSource = '';
-  try {
-    oldSource = git(['show', `${mergeBase}:${SUBTHEMES_PATH}`]);
-  } catch {
-    console.log('subtheme revisions: subthemes.ts is new on this branch — nothing to compare.');
-    return;
+  for (const reg of REGISTRIES) {
+    let oldSource = '';
+    try {
+      oldSource = git(['show', `${mergeBase}:${reg.path}`]);
+    } catch {
+      console.log(`${reg.label} revisions: ${reg.path} is new on this branch — nothing to compare.`);
+      continue;
+    }
+    const entries = (await import(pathToFileURL(resolve(reg.path)).href))[reg.exportName];
+    const acks = parseAcks(bodies, entries.map((s) => s.key), reg.trailer);
+    const unbumped = findUnbumped({ changed, subthemes: entries, oldRevs: parseRevisions(oldSource), acks });
+    if (!unbumped.length) {
+      console.log(`${reg.label} revisions: ok`);
+      continue;
+    }
+    console.error(`${reg.label} revision guard: these have changed sources but an unchanged revision.`);
+    for (const u of unbumped) {
+      console.error(`  - ${u.key} (revision ${u.revision}): ${u.files.slice(0, 5).join(', ')}${u.files.length > 5 ? ', …' : ''}`);
+    }
+    console.error(
+      `\nBump its revision in ${reg.path} when the change alters what it produces,\n` +
+        `or add a commit trailer when it does not:\n\n  ${reg.trailer}: ${unbumped.map((u) => u.key).join(', ')}\n`,
+    );
+    process.exitCode = 1;
   }
-  const { SUBTHEMES } = await import(pathToFileURL(resolve(SUBTHEMES_PATH)).href);
-  const acks = parseAcks(
-    git(['log', '--format=%B', `${mergeBase}..HEAD`]),
-    SUBTHEMES.map((s) => s.key),
-  );
-  const unbumped = findUnbumped({ changed, subthemes: SUBTHEMES, oldRevs: parseRevisions(oldSource), acks });
-  if (!unbumped.length) {
-    console.log('subtheme revisions: ok');
-    return;
-  }
-  console.error('Subtheme revision guard: these subthemes have changed sources but an unchanged revision.');
-  for (const u of unbumped) {
-    console.error(`  - ${u.key} (revision ${u.revision}): ${u.files.slice(0, 5).join(', ')}${u.files.length > 5 ? ', …' : ''}`);
-  }
-  console.error(
-    `\nBump its revision in ${SUBTHEMES_PATH} when the change alters what the subtheme uploads,\n` +
-      `or add a commit trailer when it does not:\n\n  Subtheme-Unchanged: ${unbumped.map((u) => u.key).join(', ')}\n`,
-  );
-  process.exitCode = 1;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
