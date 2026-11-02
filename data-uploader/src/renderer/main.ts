@@ -1658,7 +1658,7 @@ async function cancelExtract(btn: HTMLButtonElement): Promise<void> {
   render();
 }
 
-/** Codex step, first row: read the game data out of the Data.p4k. Returns true on success. */
+/** Metadaten step, first row: read the game data out of the Data.p4k. Returns true on success. */
 async function runRealExtract(): Promise<boolean> {
   const progress = uploadProgress;
   if (!progress) return false;
