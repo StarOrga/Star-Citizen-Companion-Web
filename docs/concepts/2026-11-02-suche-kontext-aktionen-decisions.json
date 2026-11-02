@@ -708,5 +708,160 @@
    "screens": {},
    "views": {}
   }
+ },
+ {
+  "iteration": 3,
+  "action": "implement",
+  "decisions": [
+   {
+    "id": "q3-third",
+    "label": "Drittes Icon",
+    "mode": "single",
+    "value": "nachschub",
+    "rec": "nachschub",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "drei Icons jeder Spielinhalt-Zeile",
+    "finding": "f3-third",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 10561,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v3-fine"
+   },
+   {
+    "id": "q3-hints",
+    "label": "70 Hinweise",
+    "mode": "verify",
+    "value": "ok",
+    "fix": "",
+    "rec": "ok",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "leeres Feld",
+    "finding": "f3-hints",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 8419,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v3-fine"
+   },
+   {
+    "id": "q3-matrix",
+    "label": "Matrix nach Gegenprüfung",
+    "mode": "verify",
+    "value": "ok",
+    "fix": "",
+    "rec": "ok",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Hauptaktion jeder Zeile",
+    "finding": "f3-matrix",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 7943,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v3-fine"
+   },
+   {
+    "id": "q3-shipicon",
+    "label": "Lager-Icon bei Schiffen",
+    "mode": "single",
+    "value": "hangar",
+    "rec": "hangar",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Icon Ins Lager",
+    "finding": "f3-shipicon",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 24101,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v3-fine"
+   }
+  ],
+  "annotations": [
+   {
+    "id": "ub-s1-a1",
+    "screen": "ub-s1",
+    "design": "rand",
+    "question": "Der Streifen kostet ~180 px Panelbreite. Lohnt sich das für ein reines Erkennungsbild?",
+    "answer": "JA SCHON; ABER BITTE NICHT selbst das icon mit einem weiteren kasten..."
+   },
+   {
+    "id": "ub-s1-a2",
+    "screen": "ub-s1",
+    "design": "rand",
+    "question": "Unter dem Umriss nur das Modell in Kleinbuchstaben: hilfreich, oder doppelt zur Zeile?",
+    "answer": "ne, wir machen die silhouette nur im icon inline, nicht hier nochmall extra!"
+   }
+  ],
+  "userPins": [
+   {
+    "id": "up-mvzskkof4sl3",
+    "design": "rand",
+    "screen": "ub-s3",
+    "x": 37.5,
+    "y": 9.1,
+    "target": "span.mk-u-chip.hov \"Größe 4 ▾×Größe 1 2Größe 2 3Größe 3 4Grö\"",
+    "text": "sehr gut aber bitte keinen helligkeitsunterschied zwischen chip und drop down, ansonsten gut!",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzsl30mxu1n",
+    "design": "rand",
+    "screen": "ub-s3",
+    "x": 35.1,
+    "y": 38.6,
+    "target": "span \"Größe 6 0\"",
+    "text": "zeige sizes mit 0 ausgegraut aber anklickbar an!",
+    "attachments": []
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "",
+    "attachments": []
+   },
+   "items": [
+    {
+     "id": "anno-ub-s1-a1",
+     "text": "JA SCHON; ABER BITTE NICHT selbst das icon mit einem weiteren kasten...",
+     "attachments": []
+    },
+    {
+     "id": "anno-ub-s1-a2",
+     "text": "ne, wir machen die silhouette nur im icon inline, nicht hier nochmall extra!",
+     "attachments": []
+    }
+   ],
+   "designs": {},
+   "screens": {},
+   "views": {}
+  }
  }
 ]

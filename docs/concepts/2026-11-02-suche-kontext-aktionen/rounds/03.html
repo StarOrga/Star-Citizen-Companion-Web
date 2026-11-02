@@ -1,4 +1,5 @@
-<section data-iteration="3" data-iteration-template="design" data-design-set="alternatives">
+<section data-iteration="3" data-iteration-template="design" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mvzskkof4sl3","design":"rand","screen":"ub-s3","x":37.5,"y":9.1,"target":"span.mk-u-chip.hov \"Größe 4 ▾×Größe 1 2Größe 2 3Größe 3 4Grö\"","text":"sehr gut aber bitte keinen helligkeitsunterschied zwischen chip und drop down, ansonsten gut!","attachments":[]},{"id":"up-mvzsl30mxu1n","design":"rand","screen":"ub-s3","x":35.1,"y":38.6,"target":"span \"Größe 6 0\"","text":"zeige sizes mit 0 ausgegraut aber anklickbar an!","attachments":[]}]}</script>
 <style>
 .mk-u-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 660px; border-radius: 14px; overflow: hidden;
   background: radial-gradient(ellipse 80% 60% at 70% 20%, #0c2232 0%, #07131d 55%, #040a10 100%); font-family: system-ui, "Segoe UI", sans-serif;
@@ -243,14 +244,14 @@
           <button class="anno-pin" type="button" data-anno-pin="ub-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a1" aria-label="{{anno.pin_label}}">1</button>
           <div class="anno-bubble" id="anno-bubble-ub-s1-a1" data-anno-bubble="ub-s1-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="ub-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a1"><span class="anno-bubble-question">Der Streifen kostet ~180 px Panelbreite. Lohnt sich das für ein reines Erkennungsbild?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a1" data-annotation="ub-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a1" data-annotation="ub-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}">JA SCHON; ABER BITTE NICHT selbst das icon mit einem weiteren kasten... </textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="ub-s1-a2" data-anno-side="left" data-anno-target=".mk-u-edgelbl" style="--anno-x:82%;--anno-y:66%">
           <button class="anno-pin" type="button" data-anno-pin="ub-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a2" aria-label="{{anno.pin_label}}">2</button>
           <div class="anno-bubble" id="anno-bubble-ub-s1-a2" data-anno-bubble="ub-s1-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="ub-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a2"><span class="anno-bubble-question">Unter dem Umriss nur das Modell in Kleinbuchstaben: hilfreich, oder doppelt zur Zeile?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a2" data-annotation="ub-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a2" data-annotation="ub-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}">ne, wir machen die silhouette nur im icon inline, nicht hier nochmall extra!</textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a2"></div></div>
           </div>
         </div></div>
     </section>
@@ -403,7 +404,7 @@
         <label data-opt="menu"><input type="radio" name="dm-q3-third" value="menu"><span data-opt-label>Ein Planen-Icon mit Mini-Menü: Nachschub oder Einsatz</span><span data-opt-consequence>Beides erreichbar, aber ein Klick mehr.</span></label>
       </div>
       <textarea data-comment="q3-third-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-third-none" value=""><input type="hidden" name="dm-q3-third-hes" value=""><input type="hidden" name="dm-q3-third-touched" value=""><input type="hidden" name="dm-q3-third-issue" value=""><input type="hidden" name="dm-q3-third-epic" value="">
+      <input type="hidden" name="dm-q3-third-none" value=""><input type="hidden" name="dm-q3-third-hes" value="{&quot;ms&quot;:10561,&quot;revisits&quot;:0,&quot;median&quot;:9490}"><input type="hidden" name="dm-q3-third-touched" value=""><input type="hidden" name="dm-q3-third-issue" value=""><input type="hidden" name="dm-q3-third-epic" value="">
       <div data-alevel="3" data-title="Drittes Icon">
         <div data-slot="short"><p>Nachschub und Einsatzplanung gibt es im HQ schon.</p></div>
         <div data-slot="long"><p>Nachschub: <code>hq-supplies.service.ts</code>, Popup <code>hq-supplies-popup.component.ts</code>; im Plan gibt es schon „Fehlendes in Nachschub (n)“. Einsatz: Planung unter <code>src/app/hq/plan/</code>. Die Wunschliste existiert nur für Schiffe (Hangar-Status) und wird für alle Spielinhalte erweitert.</p></div>
@@ -422,7 +423,7 @@
       </div>
       <input type="text" name="dm-q3-hints-fix" value="" placeholder="Was soll anders sein?">
       <textarea data-comment="q3-hints-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-hints-none" value=""><input type="hidden" name="dm-q3-hints-hes" value=""><input type="hidden" name="dm-q3-hints-touched" value=""><input type="hidden" name="dm-q3-hints-issue" value=""><input type="hidden" name="dm-q3-hints-epic" value="">
+      <input type="hidden" name="dm-q3-hints-none" value=""><input type="hidden" name="dm-q3-hints-hes" value="{&quot;ms&quot;:8419,&quot;revisits&quot;:0,&quot;median&quot;:9490}"><input type="hidden" name="dm-q3-hints-touched" value=""><input type="hidden" name="dm-q3-hints-issue" value=""><input type="hidden" name="dm-q3-hints-epic" value="">
       <div data-alevel="3" data-title="70 Hinweise">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"70","unit":"Hinweise","label":"einzeilig, wechseln alle 6 s"}'>70</div></div>
         <div data-slot="long"><p>Gruppen: Abkürzungen und Spitznamen (1–16), Werte und Größen (17–28), eigene Daten (29–40), Kontext und Chips (41–50), Spielinhalte wie Missionen, Blaupausen, Orte (51–62), Tastatur (63–70). Jeder Hinweis setzt per Klick sein Beispiel ins Feld.</p></div>
@@ -476,7 +477,7 @@
       </div>
       <input type="text" name="dm-q3-matrix-fix" value="" placeholder="Welche Zelle soll anders sein?">
       <textarea data-comment="q3-matrix-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-matrix-none" value=""><input type="hidden" name="dm-q3-matrix-hes" value=""><input type="hidden" name="dm-q3-matrix-touched" value=""><input type="hidden" name="dm-q3-matrix-issue" value=""><input type="hidden" name="dm-q3-matrix-epic" value="">
+      <input type="hidden" name="dm-q3-matrix-none" value=""><input type="hidden" name="dm-q3-matrix-hes" value="{&quot;ms&quot;:7943,&quot;revisits&quot;:0,&quot;median&quot;:9490}"><input type="hidden" name="dm-q3-matrix-touched" value="1"><input type="hidden" name="dm-q3-matrix-issue" value=""><input type="hidden" name="dm-q3-matrix-epic" value="">
       <div data-alevel="3" data-title="Matrix nach Gegenprüfung">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"5 + 9","unit":"Funde","label":"Icon-Doppelungen + Aktionen ohne Ziel in der App"}'>5 + 9</div></div>
         <div data-slot="long"><p>Die wichtigsten Änderungen:</p><ul><li>„Mein Loadout“ ersetzt drei Namen und führt direkt zum Schiff im HQ statt zur Hangar-Liste.</li><li>„Wo gelagert?“ ersetzt „Ins Lager“, „Bei RSI“ ersetzt „Merken“ bei angekündigten Schiffen.</li><li>„Tauschen“ geht in „Montieren“ auf, „Damit planen“ in „Einsatz planen“.</li><li>Vergleichen nimmt nur gleiche Arten an (höchstens 4); angekündigte Schiffe lassen sich gar nicht vergleichen.</li></ul></div>
@@ -508,7 +509,7 @@ Missionen stehen noch gar nicht im Index: das ist ein Daten-Feature, keine Frage
         <label data-opt="hide"><input type="radio" name="dm-q3-shipicon" value="hide"><span data-opt-label>Bei Schiffen kein Lager-Icon, Hauptaktion „Hinzufügen“ bleibt</span><span data-opt-consequence>Schiffszeilen haben dann nur zwei Icons.</span></label>
       </div>
       <textarea data-comment="q3-shipicon-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-shipicon-none" value=""><input type="hidden" name="dm-q3-shipicon-hes" value=""><input type="hidden" name="dm-q3-shipicon-touched" value=""><input type="hidden" name="dm-q3-shipicon-issue" value=""><input type="hidden" name="dm-q3-shipicon-epic" value="">
+      <input type="hidden" name="dm-q3-shipicon-none" value=""><input type="hidden" name="dm-q3-shipicon-hes" value="{&quot;ms&quot;:24101,&quot;revisits&quot;:0,&quot;median&quot;:9490}"><input type="hidden" name="dm-q3-shipicon-touched" value="1"><input type="hidden" name="dm-q3-shipicon-issue" value=""><input type="hidden" name="dm-q3-shipicon-epic" value="">
       <div data-alevel="3" data-title="Lager-Icon bei Schiffen">
         <div data-slot="short"><p>Schiffe gehören in den Hangar, Ausrüstung ins Lager. Der Rest bekommt keines von beiden.</p></div>
         <div data-slot="long"><p><code>hangar.addShip(slug, 'owned')</code> legt Schiffe an. Das Lager (<code>HqInventoryService</code>) speichert Gegenstände nach ihrem Namen, nicht nach ihrer Codex-Klasse. „Wo gelagert?“ gleicht deshalb nur unscharf ab.</p></div>
