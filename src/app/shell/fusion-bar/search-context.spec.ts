@@ -8,7 +8,6 @@ import {
   neutralContext,
   searchContextOf,
   weightGroups,
-  wordCount,
 } from './search-context';
 
 function hit(kind: string, slug: string): PolySearchHit {
