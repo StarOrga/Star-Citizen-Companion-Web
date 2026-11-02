@@ -253,7 +253,7 @@ export class CodexSearchEngine {
 
   /** Remove a chip (x, or Backspace at the start of the field for the last one). */
   removeChip(id: string): void {
-    this.dismissedChips.set(new Set([...this.dismissedChips(), id]));
+    this.dismissedChips.set(new Set([...this.dismissedChips(), this.originalChipId(id)]));
     if (this.hasTerm()) void this.run();
   }
 
@@ -267,12 +267,19 @@ export class CodexSearchEngine {
 
   /** Pick another value from a chip's menu (S1 to S3). */
   setChipValue(id: string, value: string): void {
+    id = this.originalChipId(id);
     const original = [...this.context().chips, ...parseQuery(this.term()).chips].find((c) => c.id === id);
     if (!original) return;
     const next = switchChip(original, value);
     if (next === original) return;
     this.chipOverrides.set(new Map(this.chipOverrides()).set(id, { from: JSON.stringify(original.filter), chip: next }));
     if (this.hasTerm()) void this.run();
+  }
+
+  /** A chip switched from its menu carries a new id; menus and x act on the chip it came from. */
+  private originalChipId(id: string): string {
+    for (const [orig, o] of this.chipOverrides()) if (o.chip.id === id) return orig;
+    return id;
   }
 
   /** Load what the extra sources need (own HQ data, news for patches). Safe to call on every open. */
