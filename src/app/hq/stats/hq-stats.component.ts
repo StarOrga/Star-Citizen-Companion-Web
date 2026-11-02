@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import type { HqStats, HqStatsRange } from '../data/hq-db.types';
 import { HQ_STATS_RANGES, HqStatsService } from '../data/hq-stats.service';
+import { HqAppDownloadComponent } from '../hq-app-download.component';
 import { HqSparkComponent } from './hq-spark.component';
 
 export type HqTileId = 'auec' | 'missions' | 'deaths' | 'crimestat' | 'refinery' | 'blueprints';
@@ -24,13 +26,14 @@ export interface HqTile {
 
 /**
  * HQ page "Statistik" (D40): six tiles with a mini preview each, a 7/30/90 day switch and a
- * detail dialog per tile. Zero data is zeros ("noch nichts erfasst"), a failed load is an error
- * state with retry. Last page: the footer follows it.
+ * detail dialog per tile. Nothing recorded in the range shows PREVIEW tiles (sample curves, marked
+ * as such) under an overlay that leads to the SCC-App - never a wall of zeros (feedback
+ * 2026-11-02). A failed load is an error state with retry. Last page: the footer follows it.
  */
 @Component({
   selector: 'sc-hq-stats',
   standalone: true,
-  imports: [TranslatePipe, ScSegmentedComponent, HqSparkComponent, ScDialogDirective],
+  imports: [RouterLink, TranslatePipe, ScSegmentedComponent, HqSparkComponent, ScDialogDirective, HqAppDownloadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="head">
@@ -53,21 +56,45 @@ export interface HqTile {
       <p class="state muted" role="status" aria-busy="true">{{ 'hq.stats.loading' | translate }}</p>
     } @else {
       @if (allEmpty()) {
-        <p class="note" role="status">{{ 'hq.stats.emptyAll' | translate }}</p>
+        <div class="preview">
+          <ul class="tiles ghost" inert aria-hidden="true">
+            @for (t of previewTiles(); track t.id) {
+              <li>
+                <div class="tile">
+                  <span class="t-name">{{ 'hq.stats.tile.' + t.id + '.name' | translate }}</span>
+                  <span class="t-value">{{ t.value }}</span>
+                  <span class="t-sub">{{ t.sub }}</span>
+                  <sc-hq-spark class="t-spark" [values]="t.series" [values2]="t.series2" [kind]="t.kind" />
+                  <span class="stamp">{{ 'hq.stats.preview.stamp' | translate }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+          <section class="overlay" aria-labelledby="hq-stats-preview">
+            <span class="o-tag">{{ 'hq.stats.preview.stamp' | translate }}</span>
+            <h3 id="hq-stats-preview" class="o-title">{{ 'hq.stats.preview.title' | translate }}</h3>
+            <p class="o-text">{{ 'hq.stats.preview.text' | translate }}</p>
+            <div class="o-actions">
+              <a class="sc-btn sc-btn-primary" routerLink="/apps">{{ 'hq.stats.preview.connect' | translate }}</a>
+              <sc-hq-app-download />
+            </div>
+          </section>
+        </div>
+      } @else {
+        <ul class="tiles" [attr.aria-busy]="svc.loading()">
+          @for (t of tiles(); track t.id) {
+            <li>
+              <button type="button" class="tile" [class.zero]="t.empty" (click)="open(t.id, $event)">
+                <span class="t-name">{{ 'hq.stats.tile.' + t.id + '.name' | translate }}</span>
+                <span class="t-value">{{ t.value }}</span>
+                <span class="t-sub">{{ t.sub }}</span>
+                <sc-hq-spark class="t-spark" [values]="t.series" [values2]="t.series2" [kind]="t.kind" />
+                <span class="t-more">{{ 'hq.stats.details' | translate }} ›</span>
+              </button>
+            </li>
+          }
+        </ul>
       }
-      <ul class="tiles" [attr.aria-busy]="svc.loading()">
-        @for (t of tiles(); track t.id) {
-          <li>
-            <button type="button" class="tile" [class.zero]="t.empty" (click)="open(t.id, $event)">
-              <span class="t-name">{{ 'hq.stats.tile.' + t.id + '.name' | translate }}</span>
-              <span class="t-value">{{ t.value }}</span>
-              <span class="t-sub">{{ t.sub }}</span>
-              <sc-hq-spark class="t-spark" [values]="t.series" [values2]="t.series2" [kind]="t.kind" />
-              <span class="t-more">{{ 'hq.stats.details' | translate }} ›</span>
-            </button>
-          </li>
-        }
-      </ul>
       @if (svc.error()) {
         <p class="note warn" role="status">{{ svc.error()! | translate }}</p>
       }
@@ -146,6 +173,31 @@ export interface HqTile {
       .t-spark { height: 2.4rem; margin-top: var(--sc-space-2, 8px); }
       .tile.zero .t-value { color: var(--sc-fg-2); }
       .t-more { color: var(--sc-accent); font-size: var(--sc-fs-floor, 0.8rem); }
+      /* Preview: sample tiles, plainly marked, under the overlay that says how they fill. */
+      .preview { position: relative; display: grid; }
+      .preview > * { grid-area: 1 / 1; }
+      .ghost { opacity: 0.38; filter: saturate(0.4); pointer-events: none; user-select: none; }
+      .ghost .tile { position: relative; cursor: default; border-style: dashed; }
+      .stamp {
+        position: absolute; top: var(--sc-space-2, 8px); right: var(--sc-space-2, 8px);
+        padding: 1px 8px; border: 1px solid var(--sc-fg-2); border-radius: 999px;
+        font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-fg-2);
+      }
+      .overlay {
+        align-self: center; justify-self: center; z-index: 1; box-sizing: border-box;
+        width: min(100% - 2 * var(--sc-space-3, 12px), 30rem); margin-block: var(--sc-space-4, 16px);
+        display: flex; flex-direction: column; align-items: flex-start; gap: var(--sc-space-3, 12px);
+        padding: var(--sc-space-5, 24px); border: 1px solid var(--sc-accent); border-radius: var(--sc-radius);
+        background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent); box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+      }
+      .o-tag {
+        padding: 1px 10px; border: 1px solid var(--sc-accent); border-radius: 999px; color: var(--sc-accent);
+        font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase;
+      }
+      .o-title { margin: 0; font: 600 1.2rem / 1.3 var(--sc-font-display); }
+      .o-text { margin: 0; color: var(--sc-fg-1); }
+      .o-actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
+      .o-actions .sc-btn { min-height: var(--sc-tap-min, 44px); }
       .backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / 0.55); z-index: 40; }
       .dialog {
         position: fixed; z-index: 41; inset-inline: var(--sc-space-3, 12px); top: 50%; transform: translateY(-50%);
@@ -179,6 +231,8 @@ export class HqStatsComponent implements OnInit {
 
   readonly tiles = computed<HqTile[]>(() => this.buildTiles(this.svc.stats()));
   readonly allEmpty = computed(() => this.tiles().every((t) => t.empty));
+  /** Sample tiles for the preview (fixed numbers, plainly marked "Vorschau"). */
+  readonly previewTiles = computed<HqTile[]>(() => (this.allEmpty() ? this.buildPreview() : []));
   readonly detail = computed(() => this.tiles().find((t) => t.id === this.detailId()) ?? null);
 
   ngOnInit(): void {
@@ -201,6 +255,22 @@ export class HqStatsComponent implements OnInit {
 
   fmt(n: number): string {
     return new Intl.NumberFormat(this.i18n.currentLang() || 'de').format(n);
+  }
+
+  private buildPreview(): HqTile[] {
+    const wave = (n: number, base: number, amp: number, phase = 0) =>
+      Array.from({ length: n }, (_, i) => Math.max(0, Math.round(base + amp * Math.sin((i + phase) / 2.2))));
+    const t = (id: HqTileId, value: string, sub: string, series: number[], extra: Partial<HqTile> = {}): HqTile => ({
+      id, value, sub, series, series2: null, kind: 'bars', buckets: [], empty: false, ...extra,
+    });
+    return [
+      t('auec', '+' + this.fmt(184250), this.i18n.instant('hq.stats.tile.auec.sub', { earned: this.fmt(412000), spent: this.fmt(227750) }), wave(14, 40, 30), { kind: 'line' }),
+      t('missions', this.fmt(23), this.i18n.instant('hq.stats.tile.missions.sub', { n: this.fmt(5.4) }), wave(14, 2, 2, 1)),
+      t('deaths', `${this.fmt(4)} / ${this.fmt(2)}`, this.i18n.instant('hq.stats.tile.deaths.sub'), wave(14, 1, 1, 3), { series2: wave(14, 1, 1, 6), kind: 'line' }),
+      t('crimestat', this.fmt(1), this.i18n.instant('hq.stats.tile.crimestat.sub'), wave(14, 0, 1, 4)),
+      t('refinery', this.fmt(3), this.i18n.instant('hq.stats.tile.refinery.sub'), wave(14, 1, 1, 2)),
+      t('blueprints', this.fmt(7), this.i18n.instant('hq.stats.tile.blueprints.sub'), wave(14, 1, 1.5, 5)),
+    ];
   }
 
   private buildTiles(s: HqStats | null): HqTile[] {
