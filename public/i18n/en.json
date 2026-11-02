@@ -2612,6 +2612,7 @@
         "unknown": "No patch data for Alpha {{line}}.",
         "section": {
           "stabilitaet": "Stability",
+          "builds": "Running test builds",
           "prep": "How do I prepare?",
           "prepPast": "What you needed to know",
           "contents": "What's in it?",
@@ -2810,7 +2811,8 @@
       "same": "about the same as {{prev}} ({{p}} %)",
       "community": "of which {{c}} from the community verdict",
       "early": "still provisional",
-      "open": "click to open the calculation"
+      "open": "click to open the calculation",
+      "communityMark": "community-corrected"
     },
     "long": {
       "ghost": "{{prev}}: {{p}} %",
@@ -2871,7 +2873,10 @@
       "tooSoon": "You can change it {{h}} h after your last vote at the earliest.",
       "rules": "Only accounts at least {{days}} days old count. Changeable {{h}} h after your last vote at the earliest. Your verdict is never shown with your name.",
       "signedOut": "Sign in to add your verdict.",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "dailyCap": "You already cast or changed {{n}} build verdicts today – try again tomorrow.",
+      "buildClosed": "This build is no longer running – only the running build can be judged.",
+      "rulesBuild": "Only accounts at least {{days}} days old count. Changeable at the earliest {{h}} h after you voted, at most {{n}} build verdicts per day, only while the build runs. Your verdict is never shown with your name."
     }
   },
   "p4k": {

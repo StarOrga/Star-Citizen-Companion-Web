@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Signal, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { LocaleService } from '../core/locale/locale.service';
-import { MIN_EFFECTIVE_VOTES, StabilityWord, VOTE_CHANGE_HOURS, VOTE_MIN_ACCOUNT_DAYS } from './patch-stability';
-import { PatchStabilityVotesService } from './patch-stability-votes.service';
+import {
+  BUILD_VOTE_DAILY_CAP, CommunityCorrection, MIN_EFFECTIVE_VOTES, StabilityWord, VOTE_CHANGE_HOURS, VOTE_MIN_ACCOUNT_DAYS, VoteAggregate,
+} from './patch-stability';
+import { CastResult, PatchStabilityVotesService } from './patch-stability-votes.service';
 
 const WORDS: readonly StabilityWord[] = ['stabil', 'wackelig', 'instabil'];
 
@@ -23,7 +25,20 @@ export function voteOrder(userId: string | null): StabilityWord[] {
   return [...PERMUTATIONS[h % PERMUTATIONS.length]];
 }
 
-type VoteNotice = 'too-soon' | 'error' | null;
+type VoteNotice = 'too-soon' | 'daily-cap' | 'closed' | 'error' | null;
+
+/** What the card reads — the LIVE votes service and one build's votes share this shape. */
+export interface VoteSource {
+  readonly aggregate: Signal<VoteAggregate | null>;
+  readonly error: Signal<string | null>;
+  readonly saving: Signal<boolean>;
+  readonly blind: Signal<boolean>;
+  own(): { verdict: StabilityWord | null; nextChangeAt: string | null };
+  correctionFor(S: number): CommunityCorrection | null;
+  reveal(): void;
+  retry(): void;
+  cast(word: StabilityWord): Promise<CastResult>;
+}
 
 /**
  * The Community-Urteil card of the stability long form: signed-in users judge
@@ -32,7 +47,7 @@ type VoteNotice = 'too-soon' | 'error' | null;
  *
  * BLIND: until the user voted, abstained ("Kann ich nicht beurteilen") or asked
  * for the number ("Zahl ohne Urteil anzeigen"), only the vote entry shows —
- * the parent hides the number the same way (`votes.blind()`). Signed-out users
+ * the parent hides the number the same way (`src().blind()`). Signed-out users
  * see the result and a sign-in hint instead of the buttons. A load failure is
  * an error state with retry, never "no votes".
  */
@@ -43,17 +58,17 @@ type VoteNotice = 'too-soon' | 'error' | null;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="cv" [attr.aria-label]="'stability.vote.title' | translate">
-      @if (votes.error() && !votes.aggregate()) {
+      @if (src().error() && !src().aggregate()) {
         <div class="state" role="alert">
-          <p>{{ votes.error() ?? 'errors.generic' | translate }}</p>
+          <p>{{ src().error() ?? 'errors.generic' | translate }}</p>
           <button type="button" class="sc-btn" (click)="retry()">{{ 'errors.retry' | translate }}</button>
         </div>
-      } @else if (!votes.aggregate()) {
+      } @else if (!src().aggregate()) {
         <p class="state muted">{{ 'stability.vote.loading' | translate }}</p>
       } @else {
         <h4>{{ 'stability.vote.title' | translate }}</h4>
 
-        @if (!votes.blind()) {
+        @if (!src().blind()) {
           @let c = correction();
           @if (c) {
             @if (c.state === 'too-few') {
@@ -92,7 +107,7 @@ type VoteNotice = 'too-soon' | 'error' | null;
         }
 
         @if (user()) {
-          @if (votes.blind()) {
+          @if (src().blind()) {
             <p class="line">{{ 'stability.vote.blindTitle' | translate }}</p>
           }
           @if (own(); as mine) {
@@ -106,24 +121,28 @@ type VoteNotice = 'too-soon' | 'error' | null;
           <div class="choices" role="group" [attr.aria-label]="'stability.vote.ask' | translate: { line: line() }">
             @for (w of voteWords(); track w) {
               <button type="button" class="vb" [attr.data-word]="w" [attr.aria-pressed]="own() === w"
-                      [disabled]="votes.saving() || (locked() && own() !== w) || own() === w" (click)="vote(w)">
+                      [disabled]="src().saving() || (locked() && own() !== w) || own() === w" (click)="vote(w)">
                 <b>{{ ('stability.word.' + w) | translate }}</b>
                 <small>{{ ('stability.vote.hint.' + w) | translate }}</small>
               </button>
             }
           </div>
-          @if (votes.blind()) {
+          @if (src().blind()) {
             <div class="alt">
-              <button type="button" class="lnk" (click)="votes.reveal()">{{ 'stability.vote.cannotJudge' | translate }}</button>
-              <button type="button" class="lnk" (click)="votes.reveal()">{{ 'stability.vote.showNumber' | translate }}</button>
+              <button type="button" class="lnk" (click)="src().reveal()">{{ 'stability.vote.cannotJudge' | translate }}</button>
+              <button type="button" class="lnk" (click)="src().reveal()">{{ 'stability.vote.showNumber' | translate }}</button>
             </div>
           }
           @if (notice() === 'too-soon') {
             <p class="notice" role="status">{{ 'stability.vote.tooSoon' | translate: { h: changeHours } }}</p>
+          } @else if (notice() === 'daily-cap') {
+            <p class="notice" role="status">{{ 'stability.vote.dailyCap' | translate: { n: dailyCap } }}</p>
+          } @else if (notice() === 'closed') {
+            <p class="notice" role="status">{{ 'stability.vote.buildClosed' | translate }}</p>
           } @else if (notice() === 'error') {
-            <p class="notice" role="alert">{{ votes.error() ?? 'errors.generic' | translate }}</p>
+            <p class="notice" role="alert">{{ src().error() ?? 'errors.generic' | translate }}</p>
           }
-          <p class="sub">{{ 'stability.vote.rules' | translate: { days: minDays, h: changeHours } }}</p>
+          <p class="sub">{{ (isBuild() ? 'stability.vote.rulesBuild' : 'stability.vote.rules') | translate: { days: minDays, h: changeHours, n: dailyCap } }}</p>
         } @else {
           <p class="signin">
             {{ 'stability.vote.signedOut' | translate }}
@@ -190,45 +209,63 @@ export class CommunityVerdictComponent {
   private readonly locale = inject(LocaleService);
   private readonly auth = inject(AuthService);
 
-  /** The LIVE line being judged. */
+  /** The line being judged — or, with `source`, the build's label ("4.4.0 PTU") for the question. */
   readonly line = input.required<string>();
   /** The computed stability S (before the correction); null when the patch has no number yet. */
   readonly stability = input<number | null>(null);
+  /** Votes of a Hotfix / PTU build (`ChannelBuildVotesService.source`); without it the card judges the LIVE `line`. */
+  readonly source = input<VoteSource | null>(null);
 
   readonly words = WORDS;
   readonly min = MIN_EFFECTIVE_VOTES;
   readonly minDays = VOTE_MIN_ACCOUNT_DAYS;
   readonly changeHours = VOTE_CHANGE_HOURS;
+  readonly dailyCap = BUILD_VOTE_DAILY_CAP;
+
+  private readonly liveSource: VoteSource = {
+    aggregate: this.votes.aggregate,
+    error: this.votes.error,
+    saving: this.votes.saving,
+    blind: this.votes.blind,
+    own: () => this.votes.own(),
+    correctionFor: (S) => this.votes.correctionFor(S),
+    reveal: () => this.votes.reveal(),
+    retry: () => void this.votes.load(this.line()),
+    cast: (w) => this.votes.castVote(this.line(), w),
+  };
+  readonly src = computed<VoteSource>(() => this.source() ?? this.liveSource);
+  readonly isBuild = computed(() => this.source() !== null);
 
   readonly user = this.auth.user;
   readonly voteWords = computed(() => voteOrder(this.user()?.id ?? null));
-  readonly own = computed(() => this.votes.own().verdict);
+  readonly own = computed(() => this.src().own().verdict);
   readonly notice = signal<VoteNotice>(null);
   private readonly now = signal(Date.now());
 
-  readonly correction = computed(() => this.votes.correctionFor(this.stability() ?? 0));
+  readonly correction = computed(() => this.src().correctionFor(this.stability() ?? 0));
   readonly locked = computed(() => {
-    const at = this.votes.own().nextChangeAt;
+    const at = this.src().own().nextChangeAt;
     return !!at && Date.parse(at) > this.now();
   });
-  readonly lockedUntil = computed(() => this.fmt(this.votes.own().nextChangeAt));
+  readonly lockedUntil = computed(() => this.fmt(this.src().own().nextChangeAt));
 
   private readonly ensure = effect(() => {
     const line = this.line();
+    if (this.source()) return;
     untracked(() => this.votes.ensure(line));
   });
 
   retry(): void {
-    void this.votes.load(this.line());
+    this.src().retry();
   }
 
   async vote(word: StabilityWord): Promise<void> {
     this.notice.set(null);
-    const res = await this.votes.castVote(this.line(), word);
+    const src = this.src();
+    const res = await src.cast(word);
     this.now.set(Date.now());
-    if (res === 'ok') this.votes.reveal();
-    else if (res === 'too-soon') this.notice.set('too-soon');
-    else if (res === 'error') this.notice.set('error');
+    if (res === 'ok') src.reveal();
+    else if (res === 'too-soon' || res === 'daily-cap' || res === 'closed' || res === 'error') this.notice.set(res);
   }
 
   pct(share: number): number {

@@ -4,7 +4,8 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PatchStabilityService } from './patch-stability.service';
 import { PatchStabilityVotesService } from './patch-stability-votes.service';
-import { TREND_GLYPH, StabilityVerdict, TREND_THRESHOLD, stabilityTrend, stabilityWord } from './patch-stability';
+import { ChannelBuildVotesService, type VotableChannel } from './channel-build-votes.service';
+import { TREND_GLYPH, StabilityVerdict, TREND_THRESHOLD, stabilityTrend, stabilityWord, type CommunityCorrection } from './patch-stability';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** Everything a chip needs to say, independent of where the number came from (LIVE verdict or test-channel build). */
@@ -20,6 +21,8 @@ export interface StabilityChipData {
   /** The previous comparable value and its label ("4.3.1", "4.3 PTU"); either null = no comparison. */
   previous: number | null;
   previousLabel: string | null;
+  /** A running Hotfix / PTU build: the chip adds that build's community correction (like `live` does for the LIVE line). */
+  build?: { channel: VotableChannel; version: string } | null;
 }
 
 export function chipFromVerdict(
@@ -48,6 +51,11 @@ export function chipFromVerdict(
  * correction from {@link PatchStabilityVotesService} and asks it to load that
  * line. Without votes (RPC unreachable, too few) it just shows the computed number.
  *
+ * A chip with `data.build` does the same with that build's votes
+ * ({@link ChannelBuildVotesService}). Once the votes reach the minimum
+ * effective count, the chip carries the community mark (two small figures) —
+ * also when the votes confirmed the number and moved nothing.
+ *
  * `linked=false` renders a span for places that already sit inside an anchor.
  */
 @Component({
@@ -61,6 +69,7 @@ export function chipFromVerdict(
       @let text = (tip.word ? ((('stability.word.' + tip.word) | translate) + ' · ' + tip.n + ' %') : ('stability.tip.noData' | translate))
         + (tip.compareKey ? ' — ' + (tip.compareKey | translate: tip.compareParams) : '')
         + (tip.communityParams ? ' · ' + ('stability.tip.community' | translate: tip.communityParams) : '')
+        + (tip.corrected ? ' · ' + ('stability.tip.communityMark' | translate) : '')
         + (tip.early ? ' · ' + ('stability.tip.early' | translate) : '')
         + (v.link ? ' · ' + ('stability.tip.open' | translate) : '');
       @if (v.link) {
@@ -84,6 +93,12 @@ export function chipFromVerdict(
         @if (v.glyph) { <span class="ind" aria-hidden="true">{{ v.glyph }}</span> }
         <span class="w">{{ ('stability.word.' + v.word) | translate }}</span>
         <span class="pct">{{ v.percent }} %</span>
+        @if (v.corrected) {
+          <svg class="cc" data-community-mark viewBox="0 0 16 12" aria-hidden="true">
+            <circle cx="5" cy="3" r="2.2" /><path d="M1 11c0-2.4 1.8-4 4-4s4 1.6 4 4z" />
+            <circle cx="11.5" cy="3.6" r="1.9" /><path d="M8.6 11c.2-1.4.1-2.6-.7-3.5.9-.6 2.1-.8 3.6-.5 1.8.4 3 1.9 3 4z" />
+          </svg>
+        }
       }
     </ng-template>
   `,
@@ -103,6 +118,7 @@ export function chipFromVerdict(
     .chip.early { border-style: dashed; }
     .pct { font-variant-numeric: tabular-nums; }
     .ind { font-size: 0.82em; line-height: 1; }
+    .cc { width: 1.05em; height: 0.8em; fill: currentColor; flex: none; }
     a.chip:hover { background: color-mix(in srgb, var(--c) 14%, transparent); }
     a.chip[data-word='instabil']:hover { background: color-mix(in srgb, var(--sc-warning) 82%, var(--sc-fg-0)); }
     .chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
@@ -114,6 +130,7 @@ export function chipFromVerdict(
 })
 export class StabilityChipComponent {
   private readonly votes = inject(PatchStabilityVotesService);
+  private readonly buildVotes = inject(ChannelBuildVotesService);
   private readonly stability = inject(PatchStabilityService);
 
   readonly data = input<StabilityChipData | null>(null);
@@ -124,14 +141,25 @@ export class StabilityChipComponent {
 
   private readonly loadVotes = effect(() => {
     const d = this.data();
-    if (this.live() && d?.line && d.percent !== null) untracked(() => this.votes.ensure(d.line as string));
+    if (d?.build && d.percent !== null) untracked(() => this.buildVotes.ensure());
+    else if (this.live() && d?.line && d.percent !== null) untracked(() => this.votes.ensure(d.line as string));
   });
 
-  /** Points the community verdict added (0 when none / not live / not loaded). */
-  readonly community = computed(() => {
+  /** The community verdict for this chip's number; null when none applies or the votes are not loaded. */
+  private readonly correction = computed<CommunityCorrection | null>(() => {
     const d = this.data();
-    if (!this.live() || !d || d.percent === null || d.line === null || this.votes.line() !== d.line) return 0;
-    return this.votes.correctionFor(d.percent)?.correction ?? 0;
+    if (!d || d.percent === null) return null;
+    if (d.build) return this.buildVotes.correctionFor(d.build.channel, d.build.version, d.percent);
+    if (!this.live() || d.line === null || this.votes.line() !== d.line) return null;
+    return this.votes.correctionFor(d.percent);
+  });
+
+  /** Points the community verdict added (0 when none / not loaded / too few votes). */
+  readonly community = computed(() => this.correction()?.correction ?? 0);
+  /** Enough effective votes: the number is community-corrected (or community-confirmed). */
+  readonly corrected = computed(() => {
+    const c = this.correction();
+    return !!c && c.state !== 'too-few';
   });
 
   /** The shown number: S + community correction, clamped to 0…100. */
@@ -154,6 +182,7 @@ export class StabilityChipComponent {
       early: d.early && word !== null,
       finished: d.finished && word !== null,
       glyph: trend ? TREND_GLYPH[trend] : null,
+      corrected: this.corrected() && word !== null,
       link: this.linked() && d.line !== null,
     };
   });
@@ -162,7 +191,7 @@ export class StabilityChipComponent {
     const d = this.data();
     const n = this.shown();
     const word = stabilityWord(n, this.stability.thresholds());
-    if (!d || word === null) return { word: null, n: 0, compareKey: null, compareParams: {}, communityParams: null, early: false };
+    if (!d || word === null) return { word: null, n: 0, compareKey: null, compareParams: {}, communityParams: null, corrected: false, early: false };
     const diff = d.previous !== null && n !== null ? Math.round(n - d.previous) : null;
     const compareKey = diff === null || d.previousLabel === null ? null
       : Math.abs(diff) < TREND_THRESHOLD ? 'stability.tip.same' : diff > 0 ? 'stability.tip.better' : 'stability.tip.worse';
@@ -173,6 +202,7 @@ export class StabilityChipComponent {
       compareKey,
       compareParams: { d: diff === null ? 0 : Math.abs(diff), prev: d.previousLabel, p: d.previous === null ? 0 : Math.round(d.previous) },
       communityParams: c === 0 ? null : { c: (c > 0 ? '+' : '−') + Math.abs(c) },
+      corrected: this.corrected(),
       early: d.early,
     };
   });

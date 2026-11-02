@@ -22,7 +22,7 @@ const EN = {
       applied: 'Applied {{c}} ({{n}} votes, range {{hw}})', split: 'Split', splitSub: 'differs', confirmed: 'Confirmed', confirmedSub: 'in range',
       sum: '{{n}} votes, {{c}}', yours: 'your verdict', blindTitle: 'Your verdict first', ask: 'How stable is {{line}}?', mine: 'Your verdict:',
       changeFrom: 'changeable from {{time}}', hint: { stabil: 'a', wackelig: 'b', instabil: 'c' }, cannotJudge: 'Cannot judge', showNumber: 'Show number',
-      tooSoon: 'Wait {{h}} h', rules: 'rules', signedOut: 'Sign in to vote.', signIn: 'Sign in',
+      tooSoon: 'Wait {{h}} h', rules: 'rules', rulesBuild: 'build rules {{n}}', dailyCap: 'Cap {{n}} reached', buildClosed: 'Build closed', signedOut: 'Sign in to vote.', signIn: 'Sign in',
     },
   },
 };
@@ -156,5 +156,61 @@ describe('CommunityVerdictComponent', () => {
     expect(el.querySelector('[role="alert"]')).not.toBeNull();
     el.querySelector<HTMLButtonElement>('.state button')!.click();
     expect(calls.load).toBe(1);
+  });
+
+  describe('with a build source (#885)', () => {
+    const buildAgg = signal<VoteAggregate | null>(FEW);
+    const buildCasts: string[] = [];
+    let buildResult: CastResult = 'ok';
+    const source = {
+      aggregate: buildAgg.asReadonly(),
+      error: signal<string | null>(null).asReadonly(),
+      saving: signal(false).asReadonly(),
+      blind: signal(false).asReadonly(),
+      own: () => ({ verdict: buildAgg()?.ownVerdict ?? null, nextChangeAt: buildAgg()?.ownNextChangeAt ?? null }),
+      correctionFor: (s: number) => (buildAgg() ? communityCorrection(s, buildAgg() as VoteAggregate) : null),
+      reveal: () => undefined,
+      retry: () => undefined,
+      cast: async (w: string) => { buildCasts.push(w); return buildResult; },
+    };
+
+    function renderBuild() {
+      const fixture = TestBed.createComponent(CommunityVerdictComponent);
+      fixture.componentRef.setInput('line', '4.4.0 PTU');
+      fixture.componentRef.setInput('stability', 70);
+      fixture.componentRef.setInput('source', source);
+      fixture.detectChanges();
+      return { el: fixture.nativeElement as HTMLElement, fixture };
+    }
+
+    beforeEach(() => {
+      buildAgg.set(FEW);
+      buildCasts.length = 0;
+      buildResult = 'ok';
+    });
+
+    it('reads and writes the build, never the LIVE line', async () => {
+      const { el, fixture } = renderBuild();
+      expect(el.textContent).toContain('How stable is 4.4.0 PTU?');
+      expect(el.textContent).toContain('build rules 3');
+      buttons(el)[2].click();
+      await fixture.whenStable();
+      expect(buildCasts).toEqual(['instabil']);
+      expect(calls.cast).toEqual([]);
+    });
+
+    it('the daily cap and a closed build show their notice', async () => {
+      buildResult = 'daily-cap';
+      const { el, fixture } = renderBuild();
+      buttons(el)[0].click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('.notice')!.textContent).toContain('Cap 3 reached');
+      buildResult = 'closed';
+      buttons(el)[1].click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('.notice')!.textContent).toContain('Build closed');
+    });
   });
 });

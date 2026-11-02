@@ -2612,6 +2612,7 @@
         "unknown": "Zu Alpha {{line}} liegen keine Patch-Daten vor.",
         "section": {
           "stabilitaet": "Stabilität",
+          "builds": "Laufende Test-Builds",
           "prep": "Wie bereite ich mich vor?",
           "prepPast": "Was war zu beachten?",
           "contents": "Was steckt drin?",
@@ -2810,7 +2811,8 @@
       "same": "etwa gleich wie {{prev}} ({{p}} %)",
       "community": "davon {{c}} durch das Community-Urteil",
       "early": "noch vorläufig",
-      "open": "Klick öffnet die Berechnung"
+      "open": "Klick öffnet die Berechnung",
+      "communityMark": "von der Community korrigiert"
     },
     "long": {
       "ghost": "{{prev}}: {{p}} %",
@@ -2871,7 +2873,10 @@
       "tooSoon": "Änderbar frühestens {{h}} h nach deiner Abgabe.",
       "rules": "Gezählt werden Accounts, die mindestens {{days}} Tage alt sind. Änderbar frühestens {{h}} h nach deiner Abgabe. Dein Urteil wird nie mit deinem Namen gezeigt.",
       "signedOut": "Melde dich an, um mitzuurteilen.",
-      "signIn": "Anmelden"
+      "signIn": "Anmelden",
+      "dailyCap": "Du hast heute schon {{n}} Build-Urteile abgegeben oder geändert – morgen wieder.",
+      "buildClosed": "Dieser Build läuft nicht mehr – abstimmen geht nur für den laufenden Build.",
+      "rulesBuild": "Gezählt werden Accounts, die mindestens {{days}} Tage alt sind. Änderbar frühestens {{h}} h nach deiner Abgabe, höchstens {{n}} Build-Urteile pro Tag, nur solange der Build läuft. Dein Urteil wird nie mit deinem Namen gezeigt."
     }
   },
   "p4k": {
