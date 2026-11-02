@@ -128,6 +128,7 @@ function stabilityStub() {
   return {
     loaded: () => true,
     unavailable: () => false,
+    thresholds: () => ({ stabilMin: 75, wackeligMin: 45, rolling: false }),
     allTime: () => [...map.values()],
     load: () => Promise.resolve(),
     verdictFor: (line: string) => map.get(line) ?? null,

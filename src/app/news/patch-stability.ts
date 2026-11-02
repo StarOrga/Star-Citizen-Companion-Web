@@ -449,12 +449,52 @@ export type StabilityWord = 'stabil' | 'wackelig' | 'instabil';
 export const STABIL_MIN = 75;
 export const WACKELIG_MIN = 45;
 
+export interface StabilityThresholds { stabilMin: number; wackeligMin: number }
+
+const FIXED_THRESHOLDS: StabilityThresholds = { stabilMin: STABIL_MIN, wackeligMin: WACKELIG_MIN };
+
 /** Word for a percentage; null when there is no number. Fractions floor into the lower word (74.9 → wackelig). */
-export function stabilityWord(percent: number | null): StabilityWord | null {
+export function stabilityWord(percent: number | null, t: StabilityThresholds = FIXED_THRESHOLDS): StabilityWord | null {
   if (percent === null || !Number.isFinite(percent)) return null;
-  if (percent >= STABIL_MIN) return 'stabil';
-  if (percent >= WACKELIG_MIN) return 'wackelig';
+  if (percent >= t.stabilMin) return 'stabil';
+  if (percent >= t.wackeligMin) return 'wackelig';
   return 'instabil';
+}
+
+/** Finished lines needed before the cut-offs follow the history, and how many of the newest finished lines feed them. */
+export const ROLLING_MIN_LINES = 5;
+export const ROLLING_WINDOW = 7;
+
+/** Percentile `p` (0…1) of an ascending list by linear interpolation: position p·(n−1) between neighbours. */
+function percentileOf(sortedAsc: readonly number[], p: number): number {
+  const pos = p * (sortedAsc.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sortedAsc[lo] + (sortedAsc[hi] - sortedAsc[lo]) * (pos - lo);
+}
+
+/**
+ * Cut-offs derived from the last finished LIVE lines: stabil from the upper
+ * tercile (66.7th percentile), wackelig from the lower tercile (33.3rd) of the
+ * stability values of the newest <= 7 finished lines, rounded to integers.
+ * `verdicts` is oldest first; its newest entry is the LIVE line and is not
+ * finished. Lines without a number (insufficient) are skipped. With fewer than
+ * 5 usable lines, or when the terciles do not give wackeligMin < stabilMin,
+ * the fixed 75/45 apply and `rolling` is false.
+ */
+export function rollingThresholds(verdicts: readonly StabilityVerdict[]): StabilityThresholds & { rolling: boolean } {
+  const fallback = { ...FIXED_THRESHOLDS, rolling: false };
+  const values = verdicts
+    .slice(0, -1)
+    .filter((v) => !v.insufficient && v.stability !== null && Number.isFinite(v.stability))
+    .slice(-ROLLING_WINDOW)
+    .map((v) => v.stability as number)
+    .sort((a, b) => a - b);
+  if (values.length < ROLLING_MIN_LINES) return fallback;
+  const stabilMin = Math.round(percentileOf(values, 2 / 3));
+  const wackeligMin = Math.round(percentileOf(values, 1 / 3));
+  if (!(wackeligMin < stabilMin) || wackeligMin < 1 || stabilMin > 100) return fallback;
+  return { stabilMin, wackeligMin, rolling: true };
 }
 
 // ---------------------------------------------------------------------------

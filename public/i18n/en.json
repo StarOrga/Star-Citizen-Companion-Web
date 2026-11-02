@@ -2814,6 +2814,7 @@
     },
     "long": {
       "ghost": "{{prev}}: {{p}} %",
+      "bandsRolling": "Cut-offs derived from the last finished patches",
       "bandInstabil": "Unstable · below {{n}}",
       "bandWackelig": "Shaky · {{a}}–{{b}}",
       "bandStabil": "Stable · from {{n}}",

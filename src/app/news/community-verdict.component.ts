@@ -8,6 +8,21 @@ import { PatchStabilityVotesService } from './patch-stability-votes.service';
 
 const WORDS: readonly StabilityWord[] = ['stabil', 'wackelig', 'instabil'];
 
+/** The three words in all six orders; one is picked per account so no button is always first. */
+const PERMUTATIONS: readonly (readonly StabilityWord[])[] = [
+  ['stabil', 'wackelig', 'instabil'], ['stabil', 'instabil', 'wackelig'],
+  ['wackelig', 'stabil', 'instabil'], ['wackelig', 'instabil', 'stabil'],
+  ['instabil', 'stabil', 'wackelig'], ['instabil', 'wackelig', 'stabil'],
+];
+
+/** Vote-button order for an account: a string hash of the id picks one permutation (stable, no storage). Anonymous: scale order. */
+export function voteOrder(userId: string | null): StabilityWord[] {
+  if (!userId) return [...WORDS];
+  let h = 0;
+  for (let i = 0; i < userId.length; i++) h = (Math.imul(h, 31) + userId.charCodeAt(i)) >>> 0;
+  return [...PERMUTATIONS[h % PERMUTATIONS.length]];
+}
+
 type VoteNotice = 'too-soon' | 'error' | null;
 
 /**
@@ -89,7 +104,7 @@ type VoteNotice = 'too-soon' | 'error' | null;
             <p class="ask">{{ 'stability.vote.ask' | translate: { line: line() } }}</p>
           }
           <div class="choices" role="group" [attr.aria-label]="'stability.vote.ask' | translate: { line: line() }">
-            @for (w of words; track w) {
+            @for (w of voteWords(); track w) {
               <button type="button" class="vb" [attr.data-word]="w" [attr.aria-pressed]="own() === w"
                       [disabled]="votes.saving() || (locked() && own() !== w) || own() === w" (click)="vote(w)">
                 <b>{{ ('stability.word.' + w) | translate }}</b>
@@ -186,6 +201,7 @@ export class CommunityVerdictComponent {
   readonly changeHours = VOTE_CHANGE_HOURS;
 
   readonly user = this.auth.user;
+  readonly voteWords = computed(() => voteOrder(this.user()?.id ?? null));
   readonly own = computed(() => this.votes.own().verdict);
   readonly notice = signal<VoteNotice>(null);
   private readonly now = signal(Date.now());

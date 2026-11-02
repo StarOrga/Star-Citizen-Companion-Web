@@ -81,7 +81,10 @@ describe('CommunityVerdictComponent', () => {
     return { el: fixture.nativeElement as HTMLElement, fixture };
   }
 
-  const buttons = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('.vb'));
+  // Button order is per account; the specs address them in scale order (stabil, wackelig, instabil).
+  const SCALE = ['stabil', 'wackelig', 'instabil'];
+  const buttons = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLButtonElement>('.vb'))
+    .sort((x, y) => SCALE.indexOf(x.dataset['word']!) - SCALE.indexOf(y.dataset['word']!));
 
   it('blind: only the vote entry shows, with the escape hatches, and the distribution stays hidden', () => {
     blind.set(true);

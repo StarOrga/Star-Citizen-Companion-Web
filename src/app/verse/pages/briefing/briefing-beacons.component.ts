@@ -4,6 +4,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { VersePoint } from '../../data/verse.models';
 import { BriefingSkyComponent } from './briefing-sky.component';
 import { TREND_GLYPH, StabilityTrend, stabilityWord } from '../../../news/patch-stability';
+import { PatchStabilityService } from '../../../news/patch-stability.service';
 import { splitChars } from './briefing.model';
 import { BodyCanvasDirective } from './bodies/body.directive';
 
@@ -85,7 +86,8 @@ export class BriefingBeaconsComponent {
   readonly stability = input<number | null>(null);
   /** Trend against the previous patch (▲/▼/≈); null while provisional or without a comparison. */
   readonly trend = input<StabilityTrend | null>(null);
-  readonly word = computed(() => stabilityWord(this.stability()) ?? 'wackelig');
+  private readonly stabilityData = inject(PatchStabilityService);
+  readonly word = computed(() => stabilityWord(this.stability(), this.stabilityData.thresholds()) ?? 'wackelig');
   readonly trendGlyph = computed(() => { const t = this.trend(); return t ? TREND_GLYPH[t] : ''; });
   readonly skyReady = input(false);
   readonly points = input<readonly VersePoint[] | null>(null);
