@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.194.0] - 2026-11-02
+
+### Changed
+- Patch stability: the stabil / wackelig / instabil cut-offs follow the last finished patches (upper and lower third of their stability) once at least five are finished; before that the fixed 75 / 45 stay. Chip, long form and briefing use the same cut-offs, and the long form says when they are derived.
+- Community vote: the three buttons appear in an order of their own per account, so no answer is always first.
+
 ## [0.193.4] - 2026-11-02
 
 ### Fixed
