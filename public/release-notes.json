@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.190.0",
+  "current": "0.191.0",
   "releases": [
+    {
+      "version": "0.191.0",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex payloads are stored once instead of once per game build: unchanged items, ships, components, weapons, blueprints, manufacturers, ammunition and silhouettes of a new build only point at the stored body. Localized entity names are derived from the payloads instead of a second copy."
+            },
+            {
+              "title": "",
+              "text": "The Codex keeps the last 3 builds per channel (was 2); bodies no build uses any more are cleaned up nightly."
+            },
+            {
+              "title": "",
+              "text": "Codex search reads a stored search column with its own index."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.190.0",
       "date": "2026-11-02",

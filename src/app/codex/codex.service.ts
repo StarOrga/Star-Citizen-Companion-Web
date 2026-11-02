@@ -1383,6 +1383,25 @@ export class CodexService {
     return ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
   }
 
+  /**
+   * One entity's localized strings. The strings are derived from the payloads
+   * (a view since 20261102100000) and only readable through this RPC, which
+   * insists on a build and a class. Until the migration is live the RPC is
+   * missing and the view still answers.
+   */
+  private async entityStrings(buildId: string, classNameSlug: string) {
+    const res = await this.sb.client.rpc('codex_entity_strings_for', {
+      p_build_id: buildId,
+      p_class_name: classNameSlug,
+    });
+    if (res.error?.code !== 'PGRST202') return res;
+    return this.sb.client
+      .from('codex_entity_strings')
+      .select('entity_class_name, entity_kind, lang, field, value, loc_key')
+      .eq('build_id', buildId)
+      .eq('entity_class_name', classNameSlug);
+  }
+
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
   async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
     const build = await this.buildOrThrow();
@@ -1420,11 +1439,7 @@ export class CodexService {
         .eq('build_id', buildId)
         .eq('parent_class_name', classNameSlug)
         .order('port_index', { ascending: true }),
-      this.sb.client
-        .from('codex_entity_strings')
-        .select('entity_class_name, entity_kind, lang, field, value, loc_key')
-        .eq('build_id', buildId)
-        .eq('entity_class_name', classNameSlug),
+      this.entityStrings(buildId, classNameSlug),
     ]);
 
     if (rowRes.error) throw rowRes.error;
