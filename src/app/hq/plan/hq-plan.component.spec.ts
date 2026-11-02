@@ -5,7 +5,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { fakeSupabase } from '../../testing/fake-supabase';
-import { EINSATZ_CACHE_KEY } from '../data/hq-einsatz.service';
+import { EINSATZ_CACHE_KEY, HqEinsatzService as EinsatzServiceToken } from '../data/hq-einsatz.service';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { SUPPLIES_CACHE_KEY, SUPPLIES_STORAGE_KEY, HqSuppliesService } from '../hq-supplies.service';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
@@ -20,7 +20,7 @@ describe('HqPlanComponent', () => {
   beforeEach(clean);
   afterEach(clean);
 
-  function make() {
+  function make(withSupplies = true) {
     TestBed.resetTestingModule();
     const fake = fakeSupabase();
     TestBed.configureTestingModule({
@@ -34,8 +34,10 @@ describe('HqPlanComponent', () => {
       ],
     });
     const supplies = TestBed.inject(HqSuppliesService);
-    supplies.add('S3 Repeater', 2);
-    supplies.add('Core', 1);
+    if (withSupplies) {
+      supplies.add('S3 Repeater', 2);
+      supplies.add('Core', 1);
+    }
     const f = TestBed.createComponent(HqPlanComponent);
     f.detectChanges();
     return { f, el: f.nativeElement as HTMLElement };
@@ -46,6 +48,21 @@ describe('HqPlanComponent', () => {
     (el as HTMLElement).click();
     f.detectChanges();
   };
+
+  it('a fresh account (both lists in, nothing in them) gets the explaining empty state instead of empty filters', () => {
+    const { f, el } = make(false);
+    // Before the first pull nothing is decided: no empty state flashes up.
+    expect(el.querySelector('.fresh')).toBeNull();
+    TestBed.inject(HqSuppliesService).ready.set(true);
+    TestBed.inject(EinsatzServiceToken).ready.set(true);
+    f.detectChanges();
+    expect(el.querySelector('.fresh')).not.toBeNull();
+    expect(el.querySelector('.select')).toBeNull();
+    expect(el.querySelector('sc-hq-plan-map')).toBeNull();
+    expect(el.querySelector('.switch')).toBeNull();
+    click(f, el.querySelector('.fresh-actions button'));
+    expect(el.querySelector('sc-hq-supplies-popup')).not.toBeNull();
+  });
 
   it('keeps the section heading and shows Was with the Auswahl; Top 3 is the default (no mode toggle)', () => {
     const { el } = make();

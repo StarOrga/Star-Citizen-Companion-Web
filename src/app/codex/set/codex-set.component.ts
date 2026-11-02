@@ -23,6 +23,7 @@ import { CodexSetGearComponent } from './codex-set-gear.component';
 import { CodexSetStageComponent } from './codex-set-stage.component';
 import { CodexSetRankCardComponent } from './codex-set-rank-card.component';
 import { CodexSetMissionBarComponent } from './codex-set-mission-bar.component';
+import { SetSuppliesComponent } from './set-supplies.component';
 import { ArmorRatingRow, SET_LENSES, SetLensId, setLensStorageKey } from './set-rating';
 import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -69,6 +70,7 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
     CodexSetRankCardComponent,
     CodexSetMissionBarComponent,
     CodexSetGearComponent,
+    SetSuppliesComponent,
     LoadoutSharePanelComponent,
     ScTooltipDirective,
   ],
@@ -152,6 +154,8 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
         </div>
 
         <sc-codex-set-mission-bar [lens]="lens()" (lensChange)="setLens($event)" />
+
+        <sc-set-supplies [setId]="activeSet()!.id" [items]="activeSet()!.items" [resolved]="resolvedArmor()" />
 
         <sc-codex-set-gear
           class="set-gear"

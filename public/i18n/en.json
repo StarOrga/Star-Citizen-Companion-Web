@@ -2039,6 +2039,12 @@
         "slotsAria": "Armour pieces",
         "readinessAria": "Readiness",
         "lensLimits": "limits the set for this mission"
+      },
+      "supplies": {
+        "add": "Add missing to supplies ({{n}})",
+        "none": "Everything owned or already in supplies.",
+        "added": "{{n}} parts added to supplies.",
+        "toPlan": "Go to Plan"
       }
     },
     "stat": {
@@ -5068,7 +5074,15 @@
       "route": "Your route",
       "routeEmpty": "No route yet. Pick under \"What I need\" what you want to get.",
       "saveEinsatz": "Save as op",
-      "retry": "Try again"
+      "retry": "Try again",
+      "fresh": {
+        "title": "Nothing to plan yet",
+        "text": "Plan turns your supplies into a route: what you still need, where to get it and in which order.",
+        "step1": "Add what you are missing to Supplies.",
+        "step2": "Pick here what comes next.",
+        "step3": "Under “How do I get there” the route appears – save it as an op.",
+        "addSupply": "Add supplies"
+      }
     },
     "mood": {
       "peaceful": "Peaceful",
@@ -5185,7 +5199,6 @@
       "retry": "Try again",
       "signedOut": "Sign in to see your statistics.",
       "loading": "Loading statistics …",
-      "emptyAll": "Nothing recorded yet. The tiles fill up once the SCC app reads along.",
       "zero": "Nothing recorded in this range.",
       "details": "Details",
       "close": "Close",
@@ -5229,6 +5242,12 @@
           "hint": "Newly received blueprints.",
           "col": "Blueprints"
         }
+      },
+      "preview": {
+        "stamp": "Preview",
+        "title": "Your stats grow here",
+        "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
+        "connect": "Connect SCC app"
       }
     },
     "stock": {
@@ -5272,6 +5291,9 @@
         "location": "Place",
         "save": "Add"
       }
+    },
+    "app": {
+      "download": "Download SCC app"
     }
   },
   "verse": {
