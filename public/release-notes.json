@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.191.1",
+  "current": "0.192.0",
   "releases": [
+    {
+      "version": "0.192.0",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Start: the setup steps (RSI hangar · SCC app · first op) stay until all three are done; done steps get a tick, and the third ticks with the first saved op."
+            },
+            {
+              "title": "",
+              "text": "HQ Plan: a fresh account sees what Plan does and an \"Add supplies\" button instead of empty filters and an empty map."
+            },
+            {
+              "title": "",
+              "text": "HQ Now: the SCC app can be downloaded right under the \"connect\" hint."
+            },
+            {
+              "title": "",
+              "text": "HQ Stats: before anything is recorded, clearly marked preview tiles with sample curves sit under an overlay that leads to the SCC app (connect + download) instead of six zero tiles."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.191.1",
       "date": "2026-11-02",

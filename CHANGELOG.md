@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.193.0] - 2026-11-02
+
+### Added
+- Set editor: "Add missing to supplies" puts every part of the set you don't own yet into Supplies in one click, ready for Plan.
+
+### Changed
+- HQ Start: "Connect the SCC app" only ticks once the SCC app itself reports game data; an uploader or Starscape check-in no longer counts.
+
+### Fixed
+- 3D ship viewer: hotspots are large enough to tap on phones and tablets.
+
 ## [0.192.0] - 2026-11-02
 
 ### Changed

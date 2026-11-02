@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, i
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
-import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { HqLiveService } from '../now/hq-live.service';
 import { StageHeroDirective } from '../../shell/fusion-bar/stage-hero.directive';
 import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
 import { HqCueComponent } from '../hq-cue.component';
@@ -125,7 +125,7 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
 export class HqStartComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly hangar = inject(HangarService);
-  private readonly desktop = inject(DesktopConnectionService);
+  private readonly live = inject(HqLiveService);
   private readonly einsatz = inject(HqEinsatzService);
 
   readonly patchLines = input<readonly HqPatchLine[]>([]);
@@ -135,16 +135,20 @@ export class HqStartComponent implements OnInit {
   readonly shownChips = computed(() => this.chips().slice(0, HQ_CHIP_MAX));
 
   readonly hasShips = computed(() => this.hangar.ships().length > 0);
-  readonly hasApp = computed(() => this.desktop.connections().length > 0);
+  /**
+   * "SCC-App verbinden" is done once the SCC app itself reported game data (a live state or any
+   * live event) - an uploader or Starscape check-in does not count.
+   */
+  readonly hasApp = computed(() => this.live.state() !== null || this.live.events().length > 0);
   readonly hasEinsatz = computed(() => this.einsatz.items().length > 0);
 
   private readonly skippedState = signal(readSkipped());
-  /** Hangar + app state are in (set by {@link load}). */
+  /** The hangar is in (set by {@link load}). */
   private readonly loaded = signal(false);
   /**
    * The launch steps stay until all three are done (feedback 2026-11-02: the block vanished as
-   * soon as ONE step was done). Decided once the data is in - hangar, app connections and the
-   * first Einsatz pull - and latched, so a step turning done while the block is open plays its
+   * soon as ONE step was done). Decided once the data is in - hangar, the SCC app's live feed and
+   * the first Einsatz pull - and latched, so a step turning done while the block is open plays its
    * tick instead of the block vanishing under it.
    */
   private readonly latched = signal(false);
@@ -155,6 +159,7 @@ export class HqStartComponent implements OnInit {
     effect(() => {
       if (this.decided || !this.loaded()) return;
       if (!this.einsatz.ready() && !this.einsatz.syncError()) return;
+      if (!this.live.loaded()) return;
       this.decided = true;
       this.latched.set(!this.hasShips() || !this.hasApp() || !this.hasEinsatz());
     });
@@ -166,10 +171,7 @@ export class HqStartComponent implements OnInit {
 
   private async load(): Promise<void> {
     if (!this.auth.user()) return;
-    await Promise.all([
-      this.hangar.ships().length === 0 && this.hangar.roleLoadouts().length === 0 ? this.hangar.loadAll() : Promise.resolve(),
-      this.desktop.refresh(),
-    ]);
+    if (this.hangar.ships().length === 0 && this.hangar.roleLoadouts().length === 0) await this.hangar.loadAll();
     this.loaded.set(true);
   }
 

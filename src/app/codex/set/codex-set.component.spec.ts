@@ -14,6 +14,8 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
 import { ArmorRatingRow, setLensStorageKey } from './set-rating';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { HqInventoryService } from '../../hq/data/hq-inventory.service';
+import { HqSuppliesService } from '../../hq/hq-supplies.service';
 
 /** Stands in for the real share panel, which pulls friends + share RPCs. */
 @Component({ selector: 'sc-loadout-share-panel', standalone: true, template: '<p class="share-stub">{{ loadoutId() }}</p>' })
@@ -83,6 +85,9 @@ async function setup(opts: {
       provideLocationMocks(),
       provideTranslateService({}),
       { provide: CodexService, useValue: opts.codex ?? makeCodexServiceStub() },
+      // The "Fehlendes in Nachschub" row: no server behind it here.
+      { provide: HqSuppliesService, useValue: { items: signal([]), add: () => true } },
+      { provide: HqInventoryService, useValue: { items: signal([]), loaded: signal(true), load: () => Promise.resolve() } },
       {
         provide: ActivatedRoute,
         // The subject itself, so both navigateTo() here and a spec that reaches
