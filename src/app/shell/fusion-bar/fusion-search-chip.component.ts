@@ -30,6 +30,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
   host: {
     '[class.open]': 'menuOpen()',
     '(focusout)': 'onFocusOut($event)',
+    '(keydown)': 'onHostKey($event)',
   },
   template: `
     <span class="chip" [class.open]="menuOpen()">
@@ -50,7 +51,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
         </svg>
       </button>
       @if (menuOpen()) {
-        <span class="menu" (keydown)="onMenuKey($event)">
+        <span class="menu">
           @if (mini()) {
             <input #mini type="text" class="mini" autocomplete="off" spellcheck="false"
                    [attr.aria-label]="'search.chip.miniSearch' | translate: { name: label() }"
@@ -201,6 +202,10 @@ export class FusionSearchChipComponent {
       ev.preventDefault();
       this.openMenu();
     }
+  }
+
+  onHostKey(ev: KeyboardEvent): void {
+    if (this.menuOpen() && ev.target instanceof Element && ev.target.closest('.menu')) this.onMenuKey(ev);
   }
 
   onMenuKey(ev: KeyboardEvent): void {

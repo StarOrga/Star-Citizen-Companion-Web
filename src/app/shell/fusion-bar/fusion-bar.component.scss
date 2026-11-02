@@ -94,8 +94,7 @@
   background: var(--sc-sub-fill);
   box-shadow: var(--sc-lift-shadow);
 }
-// Open search: the page behind is darkened strongly (concept 2026-11-02 A8, scrim ~ .82),
-// nothing else is shown there; the card floats above it.
+// Open search: the page behind darkens strongly (search concept A8), the card floats above it.
 .scrim {
   position: fixed;
   inset: 0;

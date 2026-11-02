@@ -331,7 +331,7 @@ function storage(): Storage | null {
                             @if (hasIcons(r)) {
                               @if (r.cta) { <span class="sep" aria-hidden="true"></span> }
                               @if (r.icons.wishlist) {
-                                @let on = actions.isWished(r);
+                                @let on = wished(r);
                                 <button type="button" class="ib" [class.on]="on" [attr.aria-pressed]="on"
                                         [attr.aria-label]="(on ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: nm.title }"
                                         [scTooltip]="(on ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: nm.title }" scTooltipTier="label"
@@ -1038,6 +1038,10 @@ export class FusionSearchComponent {
 
   isShipRow(r: ViewRow): boolean {
     return r.type === 'hit' && r.hit.kind === 'ship';
+  }
+
+  wished(r: ViewRow): boolean {
+    return r.type !== 'place' && this.actions.isWished(r);
   }
 
   hasIcons(r: ViewRow): boolean {
