@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.193.4] - 2026-11-02
+
+### Fixed
+- Phones: the β chip stays below the status bar on notched phones and below the impersonation banner, level with the account buttons.
+
 ## [0.193.3] - 2026-11-02
 
 ### Removed

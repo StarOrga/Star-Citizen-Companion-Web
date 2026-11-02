@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.193.2",
+  "current": "0.193.3",
   "releases": [
+    {
+      "version": "0.193.3",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Search: the leftover code of the removed \"Companion fragen\" offer."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.193.2",
       "date": "2026-11-02",
