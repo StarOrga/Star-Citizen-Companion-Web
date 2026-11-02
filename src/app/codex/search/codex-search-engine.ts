@@ -240,9 +240,10 @@ export class CodexSearchEngine {
 
   /** The host reports where the reader stands. Resets removed chips when the page's chips changed. */
   setContext(ctx: SearchContext): void {
-    const was = this.context().chips.map((c) => c.id).join();
+    const sig = (c: SearchChip): string => c.id + JSON.stringify(c.filter);
+    const was = this.context().chips.map(sig).join();
     this.context.set(ctx);
-    if (ctx.chips.map((c) => c.id).join() !== was) {
+    if (ctx.chips.map(sig).join() !== was) {
       this.dismissedChips.set(new Set());
       this.chipOverrides.set(new Map());
     }

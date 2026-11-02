@@ -119,7 +119,7 @@ export const SEARCH_ALIASES: readonly AliasEntry[] = [
   e('krig', 'kruger'),
   e('kw,klaus', 'klaus'),
   e('ar,amon', 'amon'),
-  e('aegs,aegis', 'aegis'),
+  e('aegis', 'aegis'),
   e('anvl,anvil', 'anvil'),
   e('drak,drake', 'drake'),
   e('orig,origin', 'origin'),

@@ -1805,8 +1805,8 @@ export class CodexService {
         // Rank first, then keep the top `perKindLimit` of each kind.
         const res = await this.listByKind(kind, {
           search: q || undefined,
-          size: attrs.size,
-          grade: attrs.grade,
+          ...(attrs.size != null ? { size: attrs.size } : {}),
+          ...(attrs.grade ? { grade: attrs.grade } : {}),
           limit: perKindLimit * SEARCH_OVERFETCH,
         });
         for (const r of res.rows) {
