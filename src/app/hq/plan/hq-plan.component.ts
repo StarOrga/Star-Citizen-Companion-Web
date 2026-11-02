@@ -66,17 +66,19 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   template: `
     <header class="head">
       <h2 class="page-title" id="hq-plan-title">{{ 'hq.pages.planen' | translate }}</h2>
-      <div class="switch" role="group" [attr.aria-label]="'hq.plan.switch.label' | translate">
-        <button type="button" class="seg" [attr.aria-pressed]="view() === 'what'" (click)="view.set('what')">
-          {{ 'hq.plan.switch.what' | translate }}
+      @if (!fresh()) {
+        <div class="switch" role="group" [attr.aria-label]="'hq.plan.switch.label' | translate">
+          <button type="button" class="seg" [attr.aria-pressed]="view() === 'what'" (click)="view.set('what')">
+            {{ 'hq.plan.switch.what' | translate }}
+          </button>
+          <button type="button" class="seg" [attr.aria-pressed]="view() === 'how'" (click)="view.set('how')">
+            {{ 'hq.plan.switch.how' | translate }}
+          </button>
+        </div>
+        <button type="button" class="sc-btn nach" aria-haspopup="dialog" (click)="suppliesOpen.set(true)">
+          {{ 'hq.supplies.button' | translate }} <b class="mono">{{ supplies.open().length }}</b>
         </button>
-        <button type="button" class="seg" [attr.aria-pressed]="view() === 'how'" (click)="view.set('how')">
-          {{ 'hq.plan.switch.how' | translate }}
-        </button>
-      </div>
-      <button type="button" class="sc-btn nach" aria-haspopup="dialog" (click)="suppliesOpen.set(true)">
-        {{ 'hq.supplies.button' | translate }} <b class="mono">{{ supplies.open().length }}</b>
-      </button>
+      }
     </header>
 
     @if (syncError(); as key) {
@@ -86,100 +88,117 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       </p>
     }
 
-    @if (view() === 'what') {
-      <section class="select" aria-labelledby="hq-plan-sel">
-        <div class="sel-head">
-          <h3 id="hq-plan-sel">{{ 'hq.plan.selection' | translate }}</h3>
-          <span class="state" role="status">{{ stateLabel() }}</span>
+    @if (fresh()) {
+      <section class="fresh" aria-labelledby="hq-plan-fresh">
+        <h3 id="hq-plan-fresh" class="fresh-title">{{ 'hq.plan.fresh.title' | translate }}</h3>
+        <p class="fresh-text">{{ 'hq.plan.fresh.text' | translate }}</p>
+        <ol class="fresh-steps">
+          <li>{{ 'hq.plan.fresh.step1' | translate }}</li>
+          <li>{{ 'hq.plan.fresh.step2' | translate }}</li>
+          <li>{{ 'hq.plan.fresh.step3' | translate }}</li>
+        </ol>
+        <div class="fresh-actions">
+          <button type="button" class="sc-btn sc-btn-primary" aria-haspopup="dialog" (click)="suppliesOpen.set(true)">
+            {{ 'hq.plan.fresh.addSupply' | translate }}
+          </button>
         </div>
-        <sc-hq-set-rings [sets]="sets()" [needs]="needs()" [selection]="selection()" (setToggled)="onSet($event)" />
-        <sc-hq-mood-toggles [moods]="selection().moods" (moodChange)="onMood($event.pair, $event.side)" />
-        <ul class="kinds" [attr.aria-label]="'hq.plan.stepsAria' | translate">
-          @for (k of kinds; track k) {
-            <li>
-              <button type="button" class="kind" [attr.aria-pressed]="selection().steps.has(k)" (click)="commit(toggleStep(k))">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  @if (shapes[k] === 'circle') { <circle cx="12" cy="12" r="9.5" /> } @else { <polygon [attr.points]="shapes[k]" /> }
-                </svg>
-                {{ 'hq.step.kind.' + k | translate }}
-              </button>
-            </li>
-          }
-        </ul>
-        <sc-hq-place-tree [places]="allPlaces()" [selected]="selection().places" (selectedChange)="commit(placesSel($event))" />
       </section>
-    }
-
-    <sc-hq-plan-map [needs]="mapNeeds()" [route]="route()" [view]="view()" />
-    <sc-hq-community-optin />
-
-    @if (view() === 'what') {
-      @if (listNeeds().length === 0) {
-        <p class="empty" role="status">{{ 'hq.plan.empty' | translate }}</p>
-      } @else {
-        <ul class="needs" [attr.aria-label]="'hq.supplies.title' | translate">
-          @for (n of listNeeds(); track n.id) {
-            <li class="need" [class.sel]="selection().supplyIds.has(n.id)" [class.ready]="n.status === 'done'">
-              <sc-tristate variant="checkbox" [label]="n.label" [value]="selection().supplyIds.has(n.id) ? 1 : 0" (toggled)="commit(toggleOne(n.id))" />
-              <span class="n-body">
-                <span class="n-name">{{ n.label }}<b class="mono qty"> ×{{ n.qty }}</b></span>
-                <span class="n-meta">
-                  @if (n.setName) { {{ 'hq.supply.forSet' | translate: { name: n.setName } }} }
-                </span>
-              </span>
-              <span class="kind-tag">{{ 'hq.step.kind.' + n.kind | translate }}</span>
-              @if (n.status === 'done') { <span class="ready-tag">{{ 'hq.supply.ready' | translate }}</span> }
-            </li>
-          }
-        </ul>
-      }
     } @else {
-      <section class="route" aria-labelledby="hq-plan-route">
-        <h3 id="hq-plan-route">{{ 'hq.plan.route' | translate }}</h3>
-        @if (route().length === 0) {
-          <p class="empty" role="status">{{ 'hq.plan.routeEmpty' | translate }}</p>
-        } @else {
-          <div class="steps" role="list">
-            @for (s of route(); track s.ord) {
-              <sc-step [kind]="s.kind" [label]="s.label" [location]="s.place.location" />
-            }
+      @if (view() === 'what') {
+        <section class="select" aria-labelledby="hq-plan-sel">
+          <div class="sel-head">
+            <h3 id="hq-plan-sel">{{ 'hq.plan.selection' | translate }}</h3>
+            <span class="state" role="status">{{ stateLabel() }}</span>
           </div>
-        }
-        <button type="button" class="sc-btn sc-btn-primary save" [disabled]="route().length === 0" (click)="saveEinsatz()">
-          {{ 'hq.plan.saveEinsatz' | translate }}
-        </button>
-      </section>
+          <sc-hq-set-rings [sets]="sets()" [needs]="needs()" [selection]="selection()" (setToggled)="onSet($event)" />
+          <sc-hq-mood-toggles [moods]="selection().moods" (moodChange)="onMood($event.pair, $event.side)" />
+          <ul class="kinds" [attr.aria-label]="'hq.plan.stepsAria' | translate">
+            @for (k of kinds; track k) {
+              <li>
+                <button type="button" class="kind" [attr.aria-pressed]="selection().steps.has(k)" (click)="commit(toggleStep(k))">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    @if (shapes[k] === 'circle') { <circle cx="12" cy="12" r="9.5" /> } @else { <polygon [attr.points]="shapes[k]" /> }
+                  </svg>
+                  {{ 'hq.step.kind.' + k | translate }}
+                </button>
+              </li>
+            }
+          </ul>
+          <sc-hq-place-tree [places]="allPlaces()" [selected]="selection().places" (selectedChange)="commit(placesSel($event))" />
+        </section>
+      }
 
-      <section class="einsaetze" aria-labelledby="hq-plan-ein">
-        <h3 id="hq-plan-ein">{{ 'hq.einsatz.title' | translate }}</h3>
-        @if (einsatz.items().length === 0) {
-          <p class="empty">{{ 'hq.einsatz.empty' | translate }}</p>
+      <sc-hq-plan-map [needs]="mapNeeds()" [route]="route()" [view]="view()" />
+      <sc-hq-community-optin />
+
+      @if (view() === 'what') {
+        @if (listNeeds().length === 0) {
+          <p class="empty" role="status">{{ 'hq.plan.empty' | translate }}</p>
         } @else {
-          <ul class="ein-list">
-            @for (e of einsatz.items(); track e.id) {
-              <li class="ein">
-                <div class="ein-head">
-                  <strong class="ein-title">{{ e.title }}</strong>
-                  <span class="badge" [scTooltip]="badge(e).multi ? ('hq.einsatz.stepsTooltip' | translate: { n: badge(e).n }) : null">
-                    {{ badge(e).multi ? ('hq.einsatz.multi' | translate: { n: badge(e).n }) : ('hq.einsatz.single' | translate) }}
+          <ul class="needs" [attr.aria-label]="'hq.supplies.title' | translate">
+            @for (n of listNeeds(); track n.id) {
+              <li class="need" [class.sel]="selection().supplyIds.has(n.id)" [class.ready]="n.status === 'done'">
+                <sc-tristate variant="checkbox" [label]="n.label" [value]="selection().supplyIds.has(n.id) ? 1 : 0" (toggled)="commit(toggleOne(n.id))" />
+                <span class="n-body">
+                  <span class="n-name">{{ n.label }}<b class="mono qty"> ×{{ n.qty }}</b></span>
+                  <span class="n-meta">
+                    @if (n.setName) { {{ 'hq.supply.forSet' | translate: { name: n.setName } }} }
                   </span>
-                  <button type="button" class="sc-btn tiny ghost rm" [attr.aria-label]="'hq.einsatz.remove' | translate: { name: e.title }"
-                          [scTooltip]="'hq.einsatz.remove' | translate: { name: e.title }" scTooltipTier="label" (click)="removeEinsatz(e.id, e.title)">✕</button>
-                </div>
-                <div class="steps" role="list">
-                  @for (s of e.steps; track s.ord) {
-                    <div class="ein-step">
-                      <sc-tristate variant="checkbox" [label]="s.label" [value]="s.state === 'done' ? 1 : 0" (toggled)="einsatz.toggleStep(e.id, s.ord)" />
-                      <sc-step [kind]="s.kind" [state]="s.state" [label]="s.label" [qty]="s.qty" [location]="s.location"
-                               [undoable]="s.doneBy === 'live'" (undo)="einsatz.unmarkStep(e.id, s.ord)" />
-                    </div>
-                  }
-                </div>
+                </span>
+                <span class="kind-tag">{{ 'hq.step.kind.' + n.kind | translate }}</span>
+                @if (n.status === 'done') { <span class="ready-tag">{{ 'hq.supply.ready' | translate }}</span> }
               </li>
             }
           </ul>
         }
-      </section>
+      } @else {
+        <section class="route" aria-labelledby="hq-plan-route">
+          <h3 id="hq-plan-route">{{ 'hq.plan.route' | translate }}</h3>
+          @if (route().length === 0) {
+            <p class="empty" role="status">{{ 'hq.plan.routeEmpty' | translate }}</p>
+          } @else {
+            <div class="steps" role="list">
+              @for (s of route(); track s.ord) {
+                <sc-step [kind]="s.kind" [label]="s.label" [location]="s.place.location" />
+              }
+            </div>
+          }
+          <button type="button" class="sc-btn sc-btn-primary save" [disabled]="route().length === 0" (click)="saveEinsatz()">
+            {{ 'hq.plan.saveEinsatz' | translate }}
+          </button>
+        </section>
+
+        <section class="einsaetze" aria-labelledby="hq-plan-ein">
+          <h3 id="hq-plan-ein">{{ 'hq.einsatz.title' | translate }}</h3>
+          @if (einsatz.items().length === 0) {
+            <p class="empty">{{ 'hq.einsatz.empty' | translate }}</p>
+          } @else {
+            <ul class="ein-list">
+              @for (e of einsatz.items(); track e.id) {
+                <li class="ein">
+                  <div class="ein-head">
+                    <strong class="ein-title">{{ e.title }}</strong>
+                    <span class="badge" [scTooltip]="badge(e).multi ? ('hq.einsatz.stepsTooltip' | translate: { n: badge(e).n }) : null">
+                      {{ badge(e).multi ? ('hq.einsatz.multi' | translate: { n: badge(e).n }) : ('hq.einsatz.single' | translate) }}
+                    </span>
+                    <button type="button" class="sc-btn tiny ghost rm" [attr.aria-label]="'hq.einsatz.remove' | translate: { name: e.title }"
+                            [scTooltip]="'hq.einsatz.remove' | translate: { name: e.title }" scTooltipTier="label" (click)="removeEinsatz(e.id, e.title)">✕</button>
+                  </div>
+                  <div class="steps" role="list">
+                    @for (s of e.steps; track s.ord) {
+                      <div class="ein-step">
+                        <sc-tristate variant="checkbox" [label]="s.label" [value]="s.state === 'done' ? 1 : 0" (toggled)="einsatz.toggleStep(e.id, s.ord)" />
+                        <sc-step [kind]="s.kind" [state]="s.state" [label]="s.label" [qty]="s.qty" [location]="s.location"
+                                 [undoable]="s.doneBy === 'live'" (undo)="einsatz.unmarkStep(e.id, s.ord)" />
+                      </div>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
     }
 
     @if (suppliesOpen()) {
@@ -209,6 +228,12 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .kind[aria-pressed='true'] svg { stroke: var(--sc-accent); }
       .kind:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .empty { margin: 0; color: var(--sc-fg-2); }
+      .fresh { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); padding: var(--sc-space-5, 24px); border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0); }
+      .fresh-title { margin: 0; font: 600 1.15rem / 1.3 var(--sc-font-display); }
+      .fresh-text { margin: 0; max-width: var(--sc-measure, 70ch); color: var(--sc-fg-1); }
+      .fresh-steps { margin: 0; padding-inline-start: 1.4em; display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); color: var(--sc-fg-2); }
+      .fresh-actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
+      .fresh-actions .sc-btn { min-height: var(--sc-tap-min, 44px); }
       .err { margin: 0; display: flex; align-items: center; gap: var(--sc-space-3, 12px); color: var(--sc-warning); }
       .needs, .ein-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); }
       .need { display: flex; align-items: center; gap: var(--sc-space-3, 12px); padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 10px; }
@@ -250,6 +275,14 @@ export class HqPlanComponent {
 
   protected readonly sets = computed(() =>
     buildPlanSets(this.hangar.ships(), this.ownership.configs(), this.hangar.roleLoadouts(), this.supplies.items()),
+  );
+  /**
+   * A fresh account: nothing to plan from (no Nachschub lines, no saved Einsatz) once both lists
+   * are in. The filters and the map would all be empty, so the page explains itself and opens
+   * Nachschub - the one place needs come from - instead (feedback 2026-11-02).
+   */
+  protected readonly fresh = computed(
+    () => this.supplies.ready() && this.einsatz.ready() && this.needs().length === 0 && this.einsatz.items().length === 0,
   );
   private readonly placeMap = computed(() => placesFromEinsaetze(this.einsatz.items()));
   protected readonly needs = computed(() => buildPlanNeeds(this.supplies.items(), this.sets(), this.placeMap()));

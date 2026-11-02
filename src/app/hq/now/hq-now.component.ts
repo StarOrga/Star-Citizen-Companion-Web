@@ -14,6 +14,7 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScStepComponent } from '../../shared/step/sc-step.component';
+import { HqAppDownloadComponent } from '../hq-app-download.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqLiveService } from './hq-live.service';
 import { eventLabel, readContracts, readLocation, readShip } from './hq-live.util';
@@ -31,7 +32,7 @@ const PREVIEW = 3;
 @Component({
   selector: 'sc-hq-now',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent],
+  imports: [TranslatePipe, DatePipe, RouterLink, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent, HqAppDownloadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 class="page-title" id="hq-now-title">{{ 'hq.pages.jetzt' | translate }}</h2>
@@ -46,6 +47,7 @@ const PREVIEW = 3;
         <span class="connect-title">{{ 'hq.now.connect.title' | translate }}</span>
         <span class="muted">{{ 'hq.now.connect.hint' | translate }}</span>
       </a>
+      <sc-hq-app-download class="connect-dl" />
     } @else {
       <div class="top">
         <section class="anchor" aria-labelledby="hq-now-anchor">
@@ -162,6 +164,7 @@ const PREVIEW = 3;
       }
       .connect:hover { background: var(--sc-surface-2, transparent); }
       .connect-title { font-weight: 600; font-size: 1.15rem; color: var(--sc-accent); }
+      .connect-dl { margin-top: var(--sc-space-3, 12px); }
       .toast {
         position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px);
         display: flex; align-items: center; gap: var(--sc-space-3, 12px); max-width: min(480px, calc(100vw - 2 * var(--sc-space-3, 12px)));

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
@@ -10,6 +11,7 @@ describe('HqStatsComponent', () => {
     TestBed.configureTestingModule({
       imports: [HqStatsComponent],
       providers: [
+        provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: SupabaseClientProvider, useValue: { client: { rpc } } },
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
@@ -20,12 +22,19 @@ describe('HqStatsComponent', () => {
     return fixture;
   }
 
-  it('renders six zero tiles for empty data without an error', async () => {
+  it('shows marked, inert preview tiles under an app overlay for empty data - no wall of zeros, no error', async () => {
     const fixture = mount(jasmine.createSpy('rpc').and.resolveTo({ data: {}, error: null }));
     await fixture.whenStable();
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelectorAll('.tile').length).toBe(6);
+    const ghost = el.querySelector('.tiles.ghost') as HTMLElement;
+    expect(ghost).toBeTruthy();
+    expect(ghost.hasAttribute('inert')).toBeTrue();
+    expect(ghost.getAttribute('aria-hidden')).toBe('true');
+    expect(ghost.querySelectorAll('.tile').length).toBe(6);
+    expect(ghost.querySelectorAll('.stamp').length).toBe(6);
+    expect(el.querySelectorAll('button.tile').length).toBe(0);
+    expect(el.querySelector('.overlay a[href="/apps"]')).toBeTruthy();
     expect(el.querySelector('[role="alert"]')).toBeNull();
     expect(el.querySelector('#hq-stats-title')).toBeTruthy();
   });
@@ -46,6 +55,7 @@ describe('HqStatsComponent', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).toContain('600');
+    expect(el.querySelector('.overlay')).toBeNull();
     (el.querySelector('.tile') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('[role="dialog"]')).toBeTruthy();

@@ -5068,7 +5068,15 @@
       "route": "Dein Weg",
       "routeEmpty": "Noch kein Weg. Wähle unter „Was brauche ich“ aus, was du holen willst.",
       "saveEinsatz": "Als Einsatz speichern",
-      "retry": "Erneut versuchen"
+      "retry": "Erneut versuchen",
+      "fresh": {
+        "title": "Noch nichts zu planen",
+        "text": "Planen macht aus deinem Nachschub einen Weg: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
+        "step1": "Trag in Nachschub ein, was dir fehlt.",
+        "step2": "Wähle hier, was davon als Nächstes dran ist.",
+        "step3": "Unter „Wie komme ich hin“ entsteht der Weg – speicher ihn als Einsatz.",
+        "addSupply": "Nachschub eintragen"
+      }
     },
     "mood": {
       "peaceful": "Friedlich",
@@ -5185,7 +5193,6 @@
       "retry": "Erneut versuchen",
       "signedOut": "Melde dich an, um deine Statistik zu sehen.",
       "loading": "Statistik wird geladen …",
-      "emptyAll": "Noch nichts erfasst. Sobald die SCC-App mitliest, füllen sich die Kacheln.",
       "zero": "Im gewählten Zeitraum nichts erfasst.",
       "details": "Details",
       "close": "Schließen",
@@ -5229,6 +5236,12 @@
           "hint": "Neu erhaltene Blueprints.",
           "col": "Blueprints"
         }
+      },
+      "preview": {
+        "stamp": "Vorschau",
+        "title": "Hier wächst deine Statistik",
+        "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
+        "connect": "SCC-App verbinden"
       }
     },
     "stock": {
@@ -5272,6 +5285,9 @@
         "location": "Ort",
         "save": "Eintragen"
       }
+    },
+    "app": {
+      "download": "SCC-App herunterladen"
     }
   },
   "verse": {
