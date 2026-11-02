@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.197.0] - 2026-11-03
+
+### Added
+- Ship radars are listed as components with their aim-assist range, signature sensitivity and ping cooldown; their power draw still shows in the energy views (Data Uploader 0.70.0, #842).
+
 ## [0.196.0] - 2026-11-03
 
 ### Fixed
