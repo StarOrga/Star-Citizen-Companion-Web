@@ -16,6 +16,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { FusionBarComponent } from './fusion-bar.component';
 import { FusionSearchComponent } from './fusion-search.component';
+import { fakeEngine, setupFusionSearch } from './fusion-search.testing';
 import { ShellChromeService } from './shell-chrome.service';
 
 @Component({ selector: 'sc-fusion-search', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '<ng-content />' })
@@ -146,38 +147,8 @@ describe('FusionBarComponent, wave B parity', () => {
 
 describe('FusionSearchComponent typed demo', () => {
   function setup() {
-    const input = signal('');
-    const engine = {
-      input,
-      term: signal(''),
-      loading: signal(false),
-      error: signal<string | null>(null),
-      groups: signal([]),
-      recent: signal<string[]>([]),
-      opening: signal(false),
-      setInput: (v: string) => input.set(v),
-      ensureSuggestions: () => undefined,
-      clear: () => input.set(''),
-      retry: () => undefined,
-      commit: () => undefined,
-      searchFor: () => undefined,
-      href: () => '',
-    };
-    TestBed.configureTestingModule({
-      imports: [FusionSearchComponent],
-      providers: [
-        ...baseProviders(),
-        { provide: AuthService, useValue: { user: signal(null) } },
-        { provide: CodexService, useValue: {} },
-        { provide: HangarService, useValue: {} },
-        { provide: HqOwnershipService, useValue: { ensureLoaded: async () => undefined, owns: () => false } },
-        { provide: CodexSearchHub, useValue: { register: () => () => undefined } },
-      ],
-    });
-    TestBed.overrideComponent(FusionSearchComponent, {
-      set: { providers: [{ provide: CodexSearchEngine, useValue: engine }] },
-    });
-    const fixture = TestBed.createComponent(FusionSearchComponent);
+    const engine = fakeEngine();
+    const { fixture } = setupFusionSearch(engine);
     fixture.componentRef.setInput('demo', true);
     fixture.detectChanges();
     return { fixture, engine };

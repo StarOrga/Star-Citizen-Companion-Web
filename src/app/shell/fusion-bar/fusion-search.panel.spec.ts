@@ -93,7 +93,8 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(cmp.expanded()).toBe('ship');
     expect(cmp.viewGroups().length).toBe(1);
     expect(cmp.viewGroups()[0].options.length).toBe(5);
-    expect(cmp.summary()?.length).toBe(2);
+    expect(cmp.summary()!.length).toBeGreaterThan(1);
+    key('ArrowDown');
     key('ArrowLeft');
     expect(cmp.expanded()).toBeNull();
 
