@@ -141,7 +141,7 @@ function storage(): Storage | null {
         <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
       </svg>
     </button>
-    <div class="field" [class.focused]="open()" (pointerdown)="onFieldPointer($event)">
+    <div class="field" [class.focused]="open()" [class.menu-open]="chipMenu()" (pointerdown)="onFieldPointer($event)">
       <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
            stroke-linecap="round" aria-hidden="true">
         <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
@@ -244,6 +244,13 @@ function storage(): Storage | null {
             @for (d of didYouMean(); track d) {
               <button type="button" class="dym-b" (click)="searchSuggestion(d)">{{ d }}</button>
             }
+          </p>
+        }
+        @if (outsideOnly(); as oc) {
+          <!-- Nothing inside the chip: say so, and offer the search without it (r2 t-s5). -->
+          <p class="dym" role="status">
+            <span>{{ 'search.outside.none' | translate: { chip: chipLabel(oc), term: engine.term().trim() } }}</span>
+            <button type="button" class="sum-b" (click)="removeChip(oc)">{{ 'search.outside.drop' | translate: { chip: chipLabel(oc) } }}</button>
           </p>
         }
         @if (summary(); as sum) {
@@ -430,6 +437,8 @@ function storage(): Storage | null {
         linear-gradient(color-mix(in srgb, var(--sc-bg-0) 88%, transparent), color-mix(in srgb, var(--sc-bg-0) 88%, transparent)) padding-box,
         linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 70%, transparent), color-mix(in oklab, var(--sc-accent) 40%, var(--sc-bg-3)), color-mix(in srgb, var(--sc-accent) 70%, transparent)) border-box;
     }
+    /* A chip menu grows out of the field over the panel. */
+    .field.menu-open { z-index: 45; }
     .field.focused { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc-accent) 22%, transparent), 0 12px 40px rgba(0, 0, 0, 0.45); }
     .glyph { width: 18px; height: 18px; flex: none; color: var(--sc-accent); }
     .input {
@@ -556,7 +565,8 @@ function storage(): Storage | null {
     /* Leading icon: line art inline, no box, no background (r3 owner call). */
     .ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 28px; color: color-mix(in oklab, var(--sc-accent) 70%, var(--sc-fg-1)); }
     .ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-    .ico svg.sil { width: 40px; height: 20px; stroke-width: 1.4; }
+    /* Uploader outlines are top views, nose up: turned to read nose right, like the r3 mock. */
+    .ico svg.sil { width: 22px; height: 40px; stroke-width: 1.4; transform: rotate(90deg); }
     .body { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
     .name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; color: var(--sc-fg-0); }
     .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -801,6 +811,14 @@ export class FusionSearchComponent {
     return all.some((g) => g.id === ex) ? all : null;
   });
 
+  /** Only the dashed outside group answered: the chip that kept everything out. */
+  readonly outsideOnly = computed<SearchChip | null>(() => {
+    const res = this.result();
+    if (!this.hasText() || this.busy() || res.groups.length > 0 || !res.outside) return null;
+    const key = res.outside.reason?.params?.['chip'];
+    return this.chips().find((c) => c.labelKey === key) ?? this.chips().at(-1) ?? null;
+  });
+
   /** The page registered its own list search (Codex lists, news, patches): typing filters that list. */
   readonly pageSearchOn = computed(() => !!this.chrome.pageSearch());
   readonly stripShown = computed(
@@ -941,7 +959,12 @@ export class FusionSearchComponent {
     const out: Record<string, string | number> = {};
     for (const [k, v] of Object.entries(params ?? {})) {
       if (k === 'kind' && typeof v === 'string') out[k] = this.t.instant(`codex.kinds.${v}`);
-      else if (typeof v === 'string' && /^[a-z]+(\.[a-zA-Z0-9]+)+$/.test(v)) out[k] = this.t.instant(v, this.labelParams(params ? { ...params, [k]: '' } : null));
+      else if ((k === 'ctx' || k === 'chip') && typeof v === 'string') {
+        // A context / chip label key: its own params (kind, name) come along.
+        const rest: Record<string, string | number> = { name: this.compatName(), ...(params ?? {}) };
+        delete rest[k];
+        out[k] = this.t.instant(v, this.labelParams(rest));
+      }
       else out[k] = v;
     }
     return out;

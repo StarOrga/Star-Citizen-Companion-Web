@@ -6405,6 +6405,10 @@
       {
         "t": "Tippfehler? Die Suche fragt „Meintest du …“"
       }
-    ]
+    ],
+    "outside": {
+      "none": "In „{{chip}}“ gibt es nichts, das „{{term}}“ heißt.",
+      "drop": "Ohne „{{chip}}“ überall suchen (⌫)"
+    }
   }
 }

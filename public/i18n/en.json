@@ -6405,6 +6405,10 @@
       {
         "t": "Typo? The search asks \"Did you mean …\""
       }
-    ]
+    ],
+    "outside": {
+      "none": "Nothing in \"{{chip}}\" is called \"{{term}}\".",
+      "drop": "Search everywhere without \"{{chip}}\" (⌫)"
+    }
   }
 }
