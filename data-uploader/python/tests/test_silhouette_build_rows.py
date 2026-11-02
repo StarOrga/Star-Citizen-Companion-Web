@@ -151,7 +151,7 @@ def test_cache_key_covers_cgam_and_is_reused_across_code_versions_only_when_equa
 def test_every_skipped_entity_is_recorded_with_its_reason(tmp_path):
     class Failing(FakeExporter):
         def compute(self, src, mesh_id, tolerance_m):
-            if src.path.endswith("broken.cgf"):
+            if "broken" in src.path:  # its LOD1 breaks too
                 raise silhouette_export.SilhouetteSkip("convert_failed", "RuntimeError: no glb")
             return super().compute(src, mesh_id, tolerance_m)
 
@@ -188,3 +188,36 @@ def test_compute_names_a_converter_failure_and_an_empty_mesh(tmp_path, monkeypat
         raise AssertionError("expected SilhouetteSkip")
     except silhouette_export.SilhouetteSkip as skip:
         assert skip.reason == "empty"
+
+
+def test_a_hull_whose_lod0_fails_to_convert_falls_back_to_its_lod1(tmp_path):
+    class Lod0Breaks(FakeExporter):
+        def source(self, mesh, tolerance_m):
+            if mesh == "s/gone.cga" or mesh == "s/gone_lod1.cga":
+                if mesh.endswith("_lod1.cga"):
+                    raise FileNotFoundError(mesh)
+            return super().source(mesh, tolerance_m)
+
+        def compute(self, src, mesh_id, tolerance_m):
+            if src.path in ("s/big.cga", "s/gone.cga"):
+                raise silhouette_export.SilhouetteSkip("convert_failed", "OverflowException")
+            return super().compute(src, mesh_id, tolerance_m)
+
+    ents = [{"kind": "ship", "class_name": "BIG", "mesh": "s/big.cga"},
+            {"kind": "ship", "class_name": "GONE", "mesh": "s/gone.cga"}]
+    stats = build_rows(Lod0Breaks(), ents, out_dir=tmp_path, build={}, workers=2)
+    row = json.loads((tmp_path / "silhouettes" / "rows" / "ship__BIG.json").read_text())
+    assert row["source"]["hullCga"] == "s/big_lod1.cga"
+    assert row["source"]["lodFallback"] == 1
+    skips = json.loads((tmp_path / "silhouettes" / "skips.json").read_text())["skips"]
+    assert [(s["className"], s["reason"]) for s in skips] == [("GONE", "convert_failed")]
+    assert "no _lod1 sibling" in skips[0]["detail"]
+    assert stats["written"] == 1
+
+
+def test_lod1_sibling_naming():
+    from sc_extract.silhouette_build import lod1_sibling
+    assert lod1_sibling("Data/Ships/RSI_Polaris.cga") == "Data/Ships/RSI_Polaris_lod1.cga"
+    assert lod1_sibling("x/gun.cgf") == "x/gun_lod1.cgf"
+    assert lod1_sibling("x/hull_lod1.cga") is None
+    assert lod1_sibling("x/hull.skin") is None

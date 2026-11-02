@@ -83,6 +83,19 @@ def write_skips(out_dir: Path, skips: List[Dict[str, Any]]) -> Path:
     return path
 
 
+def lod1_sibling(mesh: str) -> Optional[str]:
+    """``…/hull.cga`` -> ``…/hull_lod1.cga`` (None for a mesh that already is a LOD).
+
+    cgf-converter 2.0.0 dies with an int overflow while writing the glb of a
+    dozen large LIVE 4.10 hulls (Polaris, Perseus, Ironclad, Hull B, the
+    Constellations, San'tok.yāi …, #842). Their LOD1 converts fine, and a
+    1024 px top-down outline cannot tell the two apart."""
+    stem, dot, ext = mesh.rpartition(".")
+    if not dot or ext.lower() not in ("cga", "cgf") or stem.lower().rsplit("_", 1)[-1].startswith("lod"):
+        return None
+    return f"{stem}_lod1.{ext}"
+
+
 def _skip_entry(kind: str, class_name: str, reason: str, detail: str) -> Dict[str, Any]:
     # Detail is a log line, not a document: keep it short for the admin tile.
     return {"kind": kind, "className": class_name, "reason": reason, "detail": (detail or "")[:300]}
@@ -135,7 +148,7 @@ def build_rows(
     per_kind: Dict[str, int] = {}
 
     def finish(mesh: str, silhouette: Optional[Dict[str, Any]], from_cache: bool,
-               skip: Optional[Tuple[str, str]] = None) -> None:
+               skip: Optional[Tuple[str, str]] = None, used_mesh: Optional[str] = None) -> None:
         nonlocal done_entities
         for e in by_mesh[mesh]:
             kind, class_name = e["kind"], e["class_name"]
@@ -151,7 +164,7 @@ def build_rows(
                          if kind == "ship" else {"frame": None, "transforms": {}, "port_names": ()})
             try:
                 row = exporter.row(
-                    kind=kind, class_name=class_name, mesh_path=mesh, build=build,
+                    kind=kind, class_name=class_name, mesh_path=used_mesh or mesh, build=build,
                     generated_at=generated_at, silhouette=silhouette,
                     frame=anchor_in["frame"], hardpoint_transforms=anchor_in["transforms"],
                     all_port_names=anchor_in["port_names"],
@@ -162,6 +175,8 @@ def build_rows(
                 skips.append(_skip_entry(kind, class_name, SKIP_CONVERT_FAILED,
                                          f"row: {type(exc).__name__}: {exc}"))
                 continue
+            if used_mesh:
+                row["source"]["lodFallback"] = 1
             if kind == "ship":
                 # Verse-hub constellation: 7 stars from this hull's top view,
                 # precomputed here so the website never runs geometry. The
@@ -183,6 +198,17 @@ def build_rows(
                 if not row.get("anchors"):
                     stats["shipsWithoutAnchors"] += 1
                     no_anchor.append(class_name)
+
+    # A failed conversion gets one more try on the hull's LOD1 (see
+    # `lod1_sibling`), after the main pass so the P4K stays single-threaded.
+    retry: List[Tuple[str, Tuple[str, str]]] = []
+
+    def settle(mesh: str, silhouette: Optional[Dict[str, Any]], from_cache: bool,
+               skip: Optional[Tuple[str, str]] = None) -> None:
+        if silhouette is None and skip and skip[0] == SKIP_CONVERT_FAILED and lod1_sibling(mesh):
+            retry.append((mesh, skip))
+            return
+        finish(mesh, silhouette, from_cache, skip)
 
     workers = max(1, int(workers))
     pending: Dict[Any, str] = {}
@@ -208,11 +234,44 @@ def build_rows(
             while len(pending) >= workers * 2:
                 done_set, _ = wait(list(pending), return_when=FIRST_COMPLETED)
                 for fut in done_set:
-                    _collect(fut, pending, finish, log, SilhouetteSkip)
+                    _collect(fut, pending, settle, log, SilhouetteSkip)
         while pending:
             done_set, _ = wait(list(pending), return_when=FIRST_COMPLETED)
             for fut in done_set:
-                _collect(fut, pending, finish, log, SilhouetteSkip)
+                _collect(fut, pending, settle, log, SilhouetteSkip)
+
+        # LOD1 retries: read on this thread, convert on the pool.
+        lod_jobs: Dict[Any, Tuple[str, str, Tuple[str, str]]] = {}
+        for mesh, skip in retry:
+            lod = lod1_sibling(mesh) or ""
+            try:
+                src = exporter.source(lod, tolerance_m)
+            except FileNotFoundError:
+                finish(mesh, None, False, (skip[0], f"{skip[1]}; no _lod1 sibling"))
+                continue
+            except Exception as exc:  # noqa: BLE001
+                finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1 unreadable: {type(exc).__name__}"))
+                continue
+            hit = exporter.cached(src)
+            if hit is not None:
+                finish(mesh, hit, True, used_mesh=lod)
+                continue
+            mesh_id = _safe_filename(Path(lod).stem)
+            lod_jobs[pool.submit(exporter.compute, src, mesh_id, tolerance_m)] = (mesh, lod, skip)
+        for fut, (mesh, lod, skip) in lod_jobs.items():
+            try:
+                sil = fut.result()
+            except SilhouetteSkip as exc:
+                finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1: {exc.reason}: {exc.detail}"))
+                continue
+            except Exception as exc:  # noqa: BLE001
+                finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1: {type(exc).__name__}: {exc}"))
+                continue
+            if sil is None:
+                finish(mesh, None, False, (SKIP_EMPTY, f"{skip[1]}; lod1 traced no outline"))
+                continue
+            log("info", f"silhouette {Path(mesh).stem}: LOD0 failed to convert, used {Path(lod).name}")
+            finish(mesh, sil, False, used_mesh=lod)
 
     write_skips(out_dir, skips)
     reasons: Dict[str, int] = {}
