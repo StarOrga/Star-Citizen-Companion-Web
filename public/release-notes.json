@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.193.4",
+  "current": "0.194.0",
   "releases": [
+    {
+      "version": "0.194.0",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Patch stability: the stabil / wackelig / instabil cut-offs follow the last finished patches (upper and lower third of their stability) once at least five are finished; before that the fixed 75 / 45 stay. Chip, long form and briefing use the same cut-offs, and the long form says when they are derived."
+            },
+            {
+              "title": "",
+              "text": "Community vote: the three buttons appear in an order of their own per account, so no answer is always first."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.193.4",
       "date": "2026-11-02",
