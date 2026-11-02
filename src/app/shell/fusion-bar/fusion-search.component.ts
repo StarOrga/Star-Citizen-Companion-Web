@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   HostListener,
+  Injector,
   computed,
   effect,
   inject,
@@ -20,8 +21,10 @@ import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { CodexService } from '../../codex/codex.service';
-import { CodexCategoryIconComponent } from '../../codex/codex-category-icon.component';
-import { PolySearchHit, isUpcomingHit, polyHitIconKind } from '../../codex/codex-poly-search';
+import { CodexBuildDiffService } from '../../codex/codex-build-diff.service';
+import { humanizeClassName } from '../../codex/codex-format';
+import { PolyHitKind, PolySearchHit, isUpcomingHit } from '../../codex/codex-poly-search';
+import type { CodexKind } from '../../codex/codex.service';
 import { CodexSearchEngine } from '../../codex/search/codex-search-engine';
 import {
   CodexSearchHub,
@@ -29,68 +32,97 @@ import {
   isEditableTarget,
   isTypeToSearchKey,
 } from '../../codex/search/codex-search-hub.service';
+import { SearchTarget, hitManufacturer, hitTitle, targetUrl } from '../../codex/search/codex-search-model';
+import { resolveCta, resolveIcons } from '../../codex/search/search-cta';
 import {
-  SEARCH_CATEGORY_SHORTCUTS,
-  SearchTarget,
-  hitManufacturer,
-  hitTarget,
-  hitTitle,
-  indexTarget,
-  pinKindOf,
-  targetUrl,
-} from '../../codex/search/codex-search-model';
+  SEARCH_ROWS_SHOWN,
+  SearchChip,
+  SearchChipOption,
+  SearchCta,
+  SearchResultGroup,
+  SearchResultRow,
+  SearchRowIcons,
+} from '../../codex/search/search-result-model';
+import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
-import { logWarn } from '../../core/log';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { FusionSearchChipComponent } from './fusion-search-chip.component';
+import { FusionSearchHintComponent, SearchHint } from './fusion-search-hint.component';
+import { SEARCH_ACTION_ICONS, SEARCH_KIND_ICONS, SearchIconKind } from './search-icons';
+import { RECENT_ROWS_SHOWN, StoredRow, pushRecentRow, readRecentRows } from './search-recent-rows';
+import { RowActionResult, RowIconAction, SearchRowActionsService } from './search-row-actions.service';
 import { ShellChromeService } from './shell-chrome.service';
-import {
-  SEARCH_PLACES,
-  SearchContext,
-  SearchPlace,
-  WeightedGroup,
-  matchPlaces,
-  neutralContext,
-  searchContextOf,
-  weightGroups,
-} from './search-context';
+import { SearchContext, SearchPlace, matchPlaces, searchContextOf } from './search-context';
 
-/** One row of the bar's result listbox — what the arrow keys walk over. */
+/** Recent searches the empty field offers (A6: the 7 newest). */
+export const RECENT_TERMS_SHOWN = 7;
+/** App pages matched by name: a quiet group at the end, never a CTA or icons. */
+const PLACES_SHOWN = 3;
+
+const NO_ICONS: SearchRowIcons = { wishlist: false, lager: false, nachschub: false };
+
+/** An app page found by name — a row without CTA or icons (B10). */
+interface PlaceRow {
+  type: 'place';
+  id: string;
+  place: SearchPlace;
+  target: SearchTarget;
+  cta: null;
+  icons: SearchRowIcons;
+}
+
+export type ViewRow = SearchResultRow | PlaceRow;
+
+/** One stop of the arrow keys. */
 export type FusionOption =
-  | { type: 'hit'; id: string; hit: PolySearchHit; target: SearchTarget }
-  | { type: 'more'; id: string; kind: string; total: number; target: SearchTarget }
-  | { type: 'place'; id: string; place: SearchPlace; target: SearchTarget }
-  | { type: 'recent'; id: string; term: string; target: SearchTarget }
-  | { type: 'category'; id: string; labelKey: string; target: SearchTarget };
+  | { type: 'row'; id: string; row: ViewRow; group: string }
+  | { type: 'more'; id: string; group: string; total: number; target: SearchTarget; own: boolean }
+  | { type: 'recent'; id: string; term: string; target: SearchTarget };
 
-/** A rendered section of the panel. */
-interface FusionSection {
+/** A group tile as the panel draws it. */
+export interface ViewGroup {
   id: string;
   labelKey: string;
+  labelParams: Record<string, string | number> | null;
   count: number | null;
-  countIsFloor: boolean;
+  /** Translated "steht oben, weil …", or null. */
+  reason: string | null;
+  own: boolean;
+  outside: boolean;
+  /** Rows shown now (3, or all while the group is expanded). */
   options: FusionOption[];
+  /** Rows beyond the first three: "▾ N weitere hier zeigen". 0 when expanded or none. */
+  expandable: number;
+  expanded: boolean;
+  /** "Alle N im Index/HQ öffnen →". */
+  more: Extract<FusionOption, { type: 'more' }> | null;
+}
+
+function storage(): Storage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * The Fusion bar's search (beta `shell`) — the subheader IS the search.
+ * The Fusion bar's search (concept 2026-11-02 "Suche: Kontext & Aktionen").
  *
- * Runs the ONE Codex search (`CodexSearchEngine`, no second index) and
- * re-weights it by the reader's context (`search-context.ts`): the context is
- * a chip inside the field, ✕ or Backspace at the start of the field drops it.
- * Ctrl+K and "/" focus it from anywhere; on a Codex page it registers with
- * `CodexSearchHub`, so the page header's search trigger and type-to-search
- * land here too.
- *
- * Results: places (app pages the index does not hold) + Codex groups, top x
- * per group with "all N", up to three quick-action icons and one button per
- * row by type Every row is a real
- * anchor; the field keeps focus and points at the active row
- * (aria-activedescendant).
+ * Runs the ONE Codex search (`CodexSearchEngine`) and renders its composed
+ * `result()`: chips in the field (route, page section, typed values — one
+ * colour, ▾/× on hover, a menu that grows out of the chip), group tiles with
+ * "Aus deinem Bestand" first (green outline), three rows per group, an
+ * in-panel accordion (→ / ←), a real "Alle N" anchor, a dashed group for fast
+ * exact hits outside the chips, and per row: icon or silhouette, name (ship
+ * type first), meta, Neu glyph, passt-auf badge, ONE quiet CTA and the three
+ * standard icons (Wunschliste · Ins Lager / In den Hangar · Nachschub).
+ * Every row is a real anchor; the field keeps focus (aria-activedescendant).
  */
 @Component({
   selector: 'sc-fusion-search',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, CodexCategoryIconComponent, ScTooltipDirective],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchChipComponent, FusionSearchHintComponent],
   providers: [CodexSearchEngine],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -114,17 +146,10 @@ interface FusionSection {
            stroke-linecap="round" aria-hidden="true">
         <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
       </svg>
-      @if (context().key !== 'all' && !hideContext()) {
-        <span class="ctx-chip">
-          <span class="ctx-label">{{ contextLabelKey() | translate: { kind: (kindKey() | translate), name: chipName() ?? ('fusionBar.ctx.shipFallback' | translate) } }}</span>
-          <button type="button" class="ctx-x" (click)="dropContext()"
-                  [attr.aria-label]="'fusionBar.search.dropContext' | translate"
-                  [scTooltip]="'fusionBar.search.dropContext' | translate" scTooltipTier="label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <line x1="7" y1="7" x2="17" y2="17" /><line x1="17" y1="7" x2="7" y2="17" />
-            </svg>
-          </button>
-        </span>
+      <!-- Chips: only automatic (route, page section, typed values), always visible (C2/C3). -->
+      @for (c of chips(); track c.id) {
+        <sc-fusion-search-chip class="fchip" [chip]="c" [label]="chipLabel(c)" [optionLabel]="optionLabelFn"
+                               (remove)="removeChip(c)" (pick)="pickChipValue(c, $event)" (menuChange)="chipMenu.set($event)" />
       }
       <ng-content select="[fsLeading]" />
       <span class="inwrap">
@@ -171,8 +196,7 @@ interface FusionSection {
         <span class="hint" aria-hidden="true"><kbd>{{ 'codex.search.bar.keys.ctrl' | translate }} K</kbd><kbd>/</kbd></span>
       }
       <ng-content select="[fsTrailing]" />
-      <!-- One slot, always reserved: the clear ✕ from the first character (click clears AND
-           refocuses), else the close ✕ while open. The field never gives it up to text. -->
+      <!-- The ✕ only clears the text (A9). Under the thumb an empty open sheet keeps a close ✕. -->
       <span class="xslot">
         @if (engine.input()) {
           <button type="button" class="close clear" (click)="clearInput()"
@@ -182,7 +206,7 @@ interface FusionSection {
               <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
             </svg>
           </button>
-        } @else if (open()) {
+        } @else if (open() && placement() === 'bottom') {
           <button type="button" class="close" (click)="close(true)"
                   [attr.aria-label]="'codex.search.bar.close' | translate"
                   [scTooltip]="'codex.search.bar.close' | translate" scTooltipTier="label">
@@ -207,156 +231,181 @@ interface FusionSection {
     </div>
 
     @if (open()) {
-      <div class="panel" [class.has-term]="!!engine.input().trim()">
-        @if (engine.input().trim() && engine.error(); as err) {
+      <div class="panel" [class.has-term]="hasText()">
+        @if (hasText() && engine.error(); as err) {
           <div class="state err" role="alert">
             <span>{{ 'codex.search.bar.failed' | translate }} — {{ err | translate }}</span>
             <button type="button" class="retry" (click)="engine.retry()">{{ 'codex.error.retry' | translate }}</button>
           </div>
         }
+        @if (hasText() && didYouMean().length) {
+          <p class="dym" role="status">
+            <span>{{ 'search.dym.lead' | translate }}</span>
+            @for (d of didYouMean(); track d) {
+              <button type="button" class="dym-b" (click)="searchSuggestion(d)">{{ d }}</button>
+            }
+          </p>
+        }
+        @if (summary(); as sum) {
+          <!-- Accordion: the other groups collapse to one line on top (r1 sa-s3). -->
+          <p class="summary">
+            @for (s of sum; track s.id) {
+              @if (s.expanded) {
+                <b>{{ 'search.group.expanded' | translate: { name: (s.labelKey | translate: s.labelParams) } }}</b>
+              } @else {
+                <button type="button" class="sum-b" (click)="expand(s.id)">{{ s.labelKey | translate: s.labelParams }} <span class="n">{{ s.count }}</span></button>
+              }
+            }
+            <span class="sum-k">{{ 'search.group.collapseKey' | translate }}</span>
+          </p>
+        }
 
         <div class="listbox" role="listbox" [id]="listboxId"
-             [attr.aria-label]="(engine.input().trim() ? 'codex.search.bar.resultsAria' : 'codex.search.bar.suggestionsAria') | translate"
+             [attr.aria-label]="(hasText() ? 'codex.search.bar.resultsAria' : 'codex.search.bar.suggestionsAria') | translate"
              [attr.aria-busy]="busy()" [class.stale]="busy()">
-          @for (s of sections(); track s.id; let si = $index) {
-            <div class="group" role="group" [style.--i]="si" [attr.aria-labelledby]="listboxId + '-h-' + s.id">
+          @for (g of viewGroups(); track g.id; let gi = $index) {
+            <div class="group" role="group" [class.own]="g.own" [class.outside]="g.outside" [class.expanded]="g.expanded"
+                 [style.--i]="gi" [attr.aria-labelledby]="listboxId + '-h-' + g.id">
               <div class="group-head" role="presentation">
-                <span [id]="listboxId + '-h-' + s.id">{{ s.labelKey | translate }}</span>
-                @if (s.count !== null) { <span class="count">{{ s.count }}{{ s.countIsFloor ? '+' : '' }}</span> }
+                <span [id]="listboxId + '-h-' + g.id">{{ g.labelKey | translate: g.labelParams }}</span>
+                @if (g.count !== null) { <span class="count">{{ g.count }}</span> }
+                @if (g.expanded) {
+                  <button type="button" class="why collapse" (click)="collapse()">{{ 'search.group.collapse' | translate }}</button>
+                } @else if (g.reason) {
+                  <span class="why">{{ g.reason }}</span>
+                }
               </div>
-              <div class="rows" [class.chips]="s.id === 'recent' || s.id === 'areas'">
-                @for (o of s.options; track o.id) {
+              <div class="rows" [class.terms]="g.id === 'recent'">
+                @for (o of g.options; track o.id) {
                   @switch (o.type) {
-                    @case ('hit') {
-                      <div class="row" role="presentation" [class.active]="isActive(o)" [class.upcoming]="upcoming(o.hit)">
+                    @case ('row') {
+                      @let r = o.row;
+                      @let nm = rowName(r);
+                      <div class="row" role="presentation" [class.active]="isActive(o)" [class.soon]="isSoon(r)">
                         <a class="hit" role="option" tabindex="-1" [id]="optId(o)" [attr.aria-selected]="isActive(o)"
-                           [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
+                           [routerLink]="r.target.link" [queryParams]="r.target.queryParams" [fragment]="r.target.fragment ?? undefined"
                            (click)="onRowClick($event, o)" (mouseenter)="hover(o)">
-                          <span class="icon" aria-hidden="true"><sc-codex-icon [kind]="iconKind(o.hit)" /></span>
+                          <span class="ico" aria-hidden="true">
+                            @if (silhouetteOf(r); as sil) {
+                              <svg class="sil" [attr.viewBox]="sil.viewBox" preserveAspectRatio="xMidYMid meet"><path [attr.d]="sil.path" vector-effect="non-scaling-stroke" /></svg>
+                            } @else {
+                              <svg viewBox="0 0 24 24">@for (d of kindIcon(r); track $index) { <path [attr.d]="d" /> }</svg>
+                            }
+                          </span>
                           <span class="body">
-                            <span class="name">{{ title(o.hit) }}</span>
+                            <span class="name">
+                              <span class="nm">{{ nm.title }}@if (nm.own) { <span class="ownname"> · „{{ nm.own }}“</span> }</span>
+                              @if (newIn(r); as v) {
+                                <span class="new" [scTooltip]="'search.newInPatch' | translate: { version: v }" scTooltipTier="label">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="actionIcons.fresh[0]" /></svg>
+                                  <span class="sr-only">{{ 'search.newInPatch' | translate: { version: v } }}</span>
+                                </span>
+                              }
+                            </span>
                             <span class="meta">
-                              @if (mfr(o.hit); as m) { <span>{{ m }}</span> }
-                              @if (o.hit.size !== null && o.hit.size !== undefined) { <span class="badge">{{ 'codex.card.size' | translate: { size: o.hit.size } }}</span> }
-                              @if (o.hit.grade) { <span class="badge">{{ 'codex.search.bar.grade' | translate: { grade: o.hit.grade } }}</span> }
-                              @if (upcoming(o.hit)) { <span class="badge soon">{{ 'codex.search.bar.upcomingBadge' | translate }}</span> }
-                              @if (o.hit.kind === 'ship' && owns(o.hit.classNameSlug)) { <span class="badge own">{{ 'fusionBar.search.owned' | translate }}</span> }
+                              @for (m of metaOf(r); track $index) {
+                                <span [class.mine]="m.mine">{{ m.key ? (m.key | translate: m.params) : m.text }}</span>
+                              }
+                              @if (fitOf(r); as fit) {
+                                <span class="fit" [class.ok]="fit.verdict === 'fits'" [class.no]="fit.verdict === 'noFit'" [class.unk]="fit.verdict === 'unknown'">
+                                  @switch (fit.verdict) {
+                                    @case ('fits') { ✓ {{ 'search.fit.fits' | translate: { name: compatName() } }} }
+                                    @case ('noFit') { ⚠ {{ 'search.fit.noFit' | translate }}@if (fit.reasonKey) { · {{ fit.reasonKey | translate: fit.reasonParams }} } }
+                                    @default { ? {{ 'search.fit.unknown' | translate }} }
+                                  }
+                                </span>
+                              }
                             </span>
                           </span>
                         </a>
-                        <span class="qa">
-                          @if (pinKind(o.hit); as pk) {
-                            <button type="button" class="qi" [class.on]="codex.isPinned(pk, o.hit.classNameSlug)"
-                                    [attr.aria-pressed]="codex.isPinned(pk, o.hit.classNameSlug)"
-                                    [attr.aria-label]="'codex.search.bar.pinAria' | translate: { name: title(o.hit) }"
-                                    [scTooltip]="(codex.isPinned(pk, o.hit.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                                    scTooltipTier="label"
-                                    (click)="codex.togglePin(pk, o.hit.classNameSlug)">
-                              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"
-                                   [attr.fill]="codex.isPinned(pk, o.hit.classNameSlug) ? 'currentColor' : 'none'">
-                                <path d="M12 3 L14.7 9.2 L21.5 9.9 L16.4 14.3 L17.9 21 L12 17.4 L6.1 21 L7.6 14.3 L2.5 9.9 L9.3 9.2 Z" />
-                              </svg>
-                            </button>
-                          }
-                          <a class="qi" [href]="href(o.target)" target="_blank" rel="noopener noreferrer"
-                             [attr.aria-label]="'fusionBar.search.newTab' | translate: { name: title(o.hit) }"
-                             [scTooltip]="'fusionBar.search.newTabShort' | translate" scTooltipTier="label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-                            </svg>
-                          </a>
-                          <button type="button" class="qi" (click)="copyLink(o)"
-                                  [attr.aria-label]="'fusionBar.search.copyLink' | translate: { name: title(o.hit) }"
-                                  [scTooltip]="(copied() === o.id ? 'fusionBar.search.copied' : 'fusionBar.search.copyLinkShort') | translate"
-                                  scTooltipTier="label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
-                            </svg>
-                          </button>
-                          @switch (buttonAction(o.hit)) {
-                            @case ('add') {
-                              <button type="button" class="act primary" (click)="addToHangar(o.hit.classNameSlug)"
-                                      [disabled]="adding().has(o.hit.classNameSlug)"
-                                      [attr.aria-label]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }">
-                                {{ 'fusionBar.search.action.add' | translate }}
-                              </button>
+                        @if (r.cta || hasIcons(r)) {
+                          <span class="rt">
+                            @if (r.cta; as c) {
+                              @if (c.type === 'link' && c.target) {
+                                <a class="cta" [routerLink]="c.target.link" [queryParams]="c.target.queryParams" [fragment]="c.target.fragment ?? undefined"
+                                   (click)="onCtaLinkClick($event, o)">{{ c.labelKey | translate }}</a>
+                              } @else {
+                                <button type="button" class="cta" [disabled]="busyRow() === r.id" (click)="runCta($event, c, r)">{{ c.labelKey | translate }}</button>
+                              }
                             }
-                            @case ('hangar') {
-                              <a class="act" [routerLink]="['/hq', 'hangar']" (click)="onActionClick($event)">{{ 'fusionBar.search.action.hangar' | translate }}</a>
+                            @if (hasIcons(r)) {
+                              @if (r.cta) { <span class="sep" aria-hidden="true"></span> }
+                              @if (r.icons.wishlist) {
+                                @let on = actions.isWished(r);
+                                <button type="button" class="ib" [class.on]="on" [attr.aria-pressed]="on"
+                                        [attr.aria-label]="(on ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: nm.title }"
+                                        [scTooltip]="(on ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: nm.title }" scTooltipTier="label"
+                                        (click)="runIcon($event, 'wishlist', r)">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="actionIcons.wishlist[0]" [attr.fill]="on ? 'currentColor' : 'none'" /></svg>
+                                </button>
+                              }
+                              @if (r.icons.lager) {
+                                @let ship = isShipRow(r);
+                                <button type="button" class="ib"
+                                        [attr.aria-label]="(ship ? 'search.icon.hangar' : 'search.icon.lager') | translate: { name: nm.title }"
+                                        [scTooltip]="(ship ? 'search.icon.hangar' : 'search.icon.lager') | translate: { name: nm.title }" scTooltipTier="label"
+                                        (click)="runIcon($event, 'lager', r)">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of (ship ? actionIcons.hangar : actionIcons.lager); track $index) { <path [attr.d]="d" /> }</svg>
+                                </button>
+                              }
+                              @if (r.icons.nachschub) {
+                                <button type="button" class="ib"
+                                        [attr.aria-label]="'search.icon.nachschub' | translate: { name: nm.title }"
+                                        [scTooltip]="'search.icon.nachschub' | translate: { name: nm.title }" scTooltipTier="label"
+                                        (click)="runIcon($event, 'nachschub', r)">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of actionIcons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
+                                </button>
+                              }
                             }
-                            @case ('index') {
-                              <a class="act" [routerLink]="indexOf(o.hit).link" [queryParams]="indexOf(o.hit).queryParams"
-                                 (click)="onActionClick($event)">{{ 'fusionBar.search.action.index' | translate }}</a>
-                            }
-                            @default {
-                              <a class="act" [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
-                                 (click)="onRowClick($event, o)">{{ 'fusionBar.search.action.open' | translate }}</a>
-                            }
-                          }
-                        </span>
-                      </div>
-                    }
-                    @case ('place') {
-                      <div class="row" role="presentation" [class.active]="isActive(o)">
-                        <a class="hit" role="option" tabindex="-1" [id]="optId(o)" [attr.aria-selected]="isActive(o)"
-                           [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
-                           (click)="onRowClick($event, o)" (mouseenter)="hover(o)">
-                          <span class="icon place" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M12 2.5 21 12l-9 9.5L3 12Z" /><path d="M12 8v8M8 12h8" />
-                            </svg>
                           </span>
-                          <span class="body"><span class="name">{{ o.place.labelKey | translate }}</span>
-                            <span class="meta">{{ 'fusionBar.search.page' | translate }}</span></span>
-                        </a>
-                        <span class="qa">
-                          <a class="qi" [href]="href(o.target)" target="_blank" rel="noopener noreferrer"
-                             [attr.aria-label]="'fusionBar.search.newTab' | translate: { name: (o.place.labelKey | translate) }"
-                             [scTooltip]="'fusionBar.search.newTabShort' | translate" scTooltipTier="label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                              <path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-                            </svg>
-                          </a>
-                        </span>
+                        }
                       </div>
                     }
-                    @case ('more') {
-                      <a class="more" role="option" tabindex="-1" [id]="optId(o)" [class.active]="isActive(o)" [attr.aria-selected]="isActive(o)"
+                    @case ('recent') {
+                      <a class="term" role="option" tabindex="-1" [id]="optId(o)" [class.active]="isActive(o)" [attr.aria-selected]="isActive(o)"
                          [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
-                         (click)="onRowClick($event, o)" (mouseenter)="hover(o)">
-                        {{ (o.kind === 'upcoming' ? 'codex.search.bar.allUpcoming' : 'codex.search.bar.allInIndex') | translate: { n: o.total } }}
-                        <span aria-hidden="true">→</span>
-                      </a>
+                         (click)="onTermClick($event, o.term)" (mouseenter)="hover(o)">{{ o.term }}</a>
                     }
-                    @default {
-                      <a class="chip" role="option" tabindex="-1" [id]="optId(o)" [class.active]="isActive(o)" [attr.aria-selected]="isActive(o)"
-                         [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
-                         (click)="onRowClick($event, o)" (mouseenter)="hover(o)">
-                        @if (o.type === 'recent') { {{ o.term }} } @else if (o.type === 'category') { {{ o.labelKey | translate }} }
-                      </a>
-                    }
+                    @default {}
                   }
                 }
               </div>
+              @if (g.expandable > 0 || g.more) {
+                <div class="more-line">
+                  @if (g.expandable > 0) {
+                    <button type="button" class="expand" (click)="expand(g.id)">{{ 'search.group.expand' | translate: { n: g.expandable } }}</button>
+                  } @else { <span></span> }
+                  @if (g.more; as m) {
+                    <a class="more" role="option" tabindex="-1" [id]="optId(m)" [class.active]="isActive(m)" [attr.aria-selected]="isActive(m)"
+                       [routerLink]="m.target.link" [queryParams]="m.target.queryParams" [fragment]="m.target.fragment ?? undefined"
+                       (click)="onMoreClick($event)" (mouseenter)="hover(m)">
+                      {{ (m.own ? 'search.group.allInHq' : 'search.group.allInIndex') | translate: { n: m.total } }} <span aria-hidden="true">→</span>
+                    </a>
+                  }
+                </div>
+              }
             </div>
           }
         </div>
 
-        @if (engine.input().trim() && !engine.error() && !busy() && codexGroups().length === 0) {
+        @if (hasText() && !engine.error() && !busy() && viewGroups().length === 0) {
           <p class="state" role="status">{{ 'codex.search.bar.empty' | translate: { term: engine.term().trim() } }}</p>
-        } @else if (busy() && codexGroups().length === 0) {
+        } @else if (busy() && viewGroups().length === 0) {
           <p class="state" role="status">{{ 'codex.search.bar.searching' | translate }}</p>
         }
-        @if (addFailed()) {
-          <p class="state err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
+        @if (!hasText()) {
+          <sc-fusion-search-hint class="teaser" [hints]="hints()" (pick)="tryHint($event)" />
         }
-        <p class="sr-only" role="status" aria-live="polite">{{ copied() ? ('fusionBar.search.copied' | translate) : '' }}</p>
+        @if (status(); as s) {
+          <p class="state" [class.err]="s.error" [attr.role]="s.error ? 'alert' : 'status'">{{ s.key | translate: s.params }}</p>
+        }
 
         <p class="keys" aria-hidden="true">
           <span><kbd>↑</kbd><kbd>↓</kbd> {{ 'codex.search.bar.keys.navigate' | translate }}</span>
+          @if (hasText()) { <span><kbd>→</kbd> {{ 'search.keys.expand' | translate }}</span> }
           <span><kbd>↵</kbd> {{ 'codex.search.bar.keys.open' | translate }}</span>
           <span><kbd>{{ 'codex.search.bar.keys.ctrl' | translate }}</kbd>+<kbd>↵</kbd> {{ 'codex.search.bar.keys.newTab' | translate }}</span>
-          @if (context().key !== 'all') { <span><kbd>⌫</kbd> {{ 'fusionBar.search.keys.dropContext' | translate }}</span> }
+          @if (chips().length) { <span><kbd>⌫</kbd> {{ 'search.keys.dropChip' | translate }}</span> }
           <span><kbd>Esc</kbd> {{ 'codex.search.bar.keys.close' | translate }}</span>
         </p>
       </div>
@@ -388,8 +437,6 @@ interface FusionSection {
       color: var(--sc-fg-0); font-family: inherit; font-size: max(0.92rem, var(--sc-fs-input, 1rem));
       text-overflow: ellipsis;
     }
-    /* A placeholder that does not fit ends in "…", never in a letter cut in half: the
-       native one is transparent, .ph draws it (ellipsis in every focus state). */
     .input::placeholder { color: transparent; opacity: 1; }
     .ph {
       position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none;
@@ -397,11 +444,7 @@ interface FusionSection {
       color: var(--sc-fg-2); font-size: max(0.92rem, var(--sc-fs-input, 1rem));
     }
     .inwrap { position: relative; display: flex; align-items: center; flex: 1 1 auto; align-self: stretch; min-width: 0; }
-    /* Basis 0: the input fills the field, never its intrinsic ~20ch past the field's edge. */
     .inwrap > .input { width: 0; }
-    /* The typed demo (concept r8, 8 s loop): placeholder out at 18–22 %, back at 94–98 %;
-       "Gladius" types 22–30 %, holds to 42 %; "Patch 4.10.2" 44–54 % / 66 %;
-       "Laser-Repeater" 68–80 % / 95 % — steps(characters), like the mock's sty1–3. */
     .input.demoing::placeholder { color: transparent; }
     .demo {
       position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden; pointer-events: none;
@@ -418,22 +461,8 @@ interface FusionSection {
     @keyframes fs-demo-2 { 0%, 44% { clip-path: inset(0 100% 0 0); } 54%, 66% { clip-path: inset(0 0 0 0); } 67%, 100% { clip-path: inset(0 100% 0 0); } }
     @keyframes fs-demo-3 { 0%, 68% { clip-path: inset(0 100% 0 0); } 80%, 95% { clip-path: inset(0 0 0 0); } 96%, 100% { clip-path: inset(0 100% 0 0); } }
     .input::-webkit-search-cancel-button { display: none; }
-    .ctx-chip {
-      flex: none; display: inline-flex; align-items: center; gap: 2px;
-      height: 28px; padding: 0 2px 0 var(--sc-space-3); border-radius: 999px;
-      background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 40%, transparent);
-      color: var(--sc-fg-0); font-size: max(0.78rem, var(--sc-fs-floor)); white-space: nowrap;
-      animation: fs-chip-in 0.22s ease both;
-    }
-    .ctx-label { overflow: hidden; text-overflow: ellipsis; max-width: 18ch; }
-    .ctx-x {
-      display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
-      border: 0; border-radius: 50%; background: transparent; color: var(--sc-fg-2); cursor: pointer; padding: 0;
-    }
-    .ctx-x svg { width: 14px; height: 14px; }
-    .ctx-x:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
-    .ctx-x:focus-visible, .close:focus-visible, .qi:focus-visible, .act:focus-visible, .retry:focus-visible {
+    .close:focus-visible, .ib:focus-visible, .cta:focus-visible, .retry:focus-visible, .expand:focus-visible,
+    .collapse:focus-visible, .sum-b:focus-visible, .dym-b:focus-visible {
       outline: 2px solid var(--sc-accent); outline-offset: 1px;
     }
     .hint { display: inline-flex; gap: var(--sc-space-1); flex: none; }
@@ -443,7 +472,6 @@ interface FusionSection {
       background: color-mix(in srgb, var(--sc-fg-0) 7%, transparent); color: var(--sc-fg-1);
       font-family: inherit; font-variant-numeric: tabular-nums; font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1; white-space: nowrap;
     }
-    /* op-hybrid strip: one slim line under the field, the whole Codex one press away. */
     .strip {
       position: absolute; top: calc(100% + 14px); left: var(--sc-space-3); z-index: 3;
       display: inline-flex; align-items: center; gap: var(--sc-space-2);
@@ -465,18 +493,13 @@ interface FusionSection {
     .close svg { width: 18px; height: 18px; }
     .close:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
 
-    /* ---- the panel: grows out of the field ---- */
+    /* ---- the panel: a floating card of group tiles (A1) ---- */
     .panel {
       position: absolute; top: calc(100% + var(--sc-space-2)); right: 0; z-index: 40;
-      width: max(100%, min(720px, calc(100vw - 2 * var(--sc-wide-gutter, 16px)))); /* overlay-size: exception — hangs off the subheader search field */
-      /* --fs-panel-room: the space from the field down to the viewport edge
-         (fitPanel), so a field placed low on a stage page never pushes the
-         panel past the fold and scrolls the page. */
-      max-height: min(72dvh, 680px, var(--fs-panel-room, 680px)); overflow-y: auto; overscroll-behavior: contain;
+      width: max(100%, min(860px, calc(100vw - 2 * var(--sc-wide-gutter, 16px)))); /* overlay-size: exception — hangs off the subheader search field */
+      max-height: min(78dvh, 760px, var(--fs-panel-room, 760px)); overflow-y: auto; overscroll-behavior: contain;
       display: flex; flex-direction: column; gap: 10px;
       padding: var(--sc-space-3);
-      /* "Schwebende Karte" (concept 2026-11-01, round 1): no outline, a brighter surface
-         than the page, depth from the shadow alone. */
       border-radius: 24px;
       background: var(--sc-bg-1);
       border: 0;
@@ -485,80 +508,118 @@ interface FusionSection {
       transform-origin: top center;
       animation: fs-panel-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
-
     .listbox { display: flex; flex-direction: column; gap: 10px; transition: opacity 0.15s ease; }
     .listbox.stale { opacity: 0.65; }
-    /* Sections are inset tiles of their own, not divider lines. */
     .group {
-      display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 16px; background: var(--sc-bg-0);
+      display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 16px; background: var(--sc-bg-0);
       animation: fs-row-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 45ms);
     }
+    /* Aus deinem Bestand: green outline (r1 sa-s2-a1, r3 mk-u-own). */
+    .group.own { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-success) 30%, transparent); }
+    .group.own .group-head { color: color-mix(in oklab, var(--sc-success) 75%, var(--sc-fg-0)); }
+    /* Fast genau, aber außerhalb: dashed (r2 t-s3/t-s5). */
+    .group.outside { outline: 1px dashed color-mix(in srgb, var(--sc-accent) 45%, transparent); outline-offset: -1px; }
     .group-head {
-      display: flex; align-items: center; gap: var(--sc-space-2); padding: 0 var(--sc-space-1) 6px;
-      font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.1em;
+      display: flex; align-items: center; gap: var(--sc-space-2); padding: 0 var(--sc-space-1) 4px;
+      font-family: var(--sc-font-display); font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.12em;
       text-transform: uppercase; color: var(--sc-fg-2);
     }
     .count {
-      padding: 0 7px; border-radius: 999px; background: var(--sc-bg-1); color: var(--sc-accent);
-      font-family: var(--sc-font-body); font-variant-numeric: tabular-nums; letter-spacing: 0; font-size: max(0.68rem, var(--sc-fs-floor));
+      padding: 0 7px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-1);
+      font-family: var(--sc-font-body); font-variant-numeric: tabular-nums; letter-spacing: 0; font-size: max(0.7rem, var(--sc-fs-floor));
     }
+    .why {
+      margin-left: auto; font-family: var(--sc-font-body); letter-spacing: 0; text-transform: none;
+      font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+    }
+    button.why { border: 0; background: transparent; color: var(--sc-accent); cursor: pointer; padding: 2px 6px; border-radius: 6px; font-family: var(--sc-font-body); }
+    button.why:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
     .rows { display: flex; flex-direction: column; gap: 2px; }
-    .rows.chips { flex-direction: row; flex-wrap: wrap; gap: var(--sc-space-2); padding: 0; }
-    .row { position: relative; display: flex; align-items: center; gap: var(--sc-space-1); border-radius: 10px; }
-    /* The selection: a soft fill that fades in — no outline, no edge bar. */
+    .rows.terms { flex-direction: row; flex-wrap: wrap; gap: var(--sc-space-2); padding: 2px 2px 4px; }
+
+    /* ---- a row: icon · name/meta · CTA | three icons (r3 mk-u-row) ---- */
+    .row { position: relative; display: flex; align-items: center; gap: var(--sc-space-2); min-height: 44px; border-radius: 10px; }
     .row::before {
       content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-      background: color-mix(in srgb, var(--sc-accent) 15%, transparent);
+      background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
       opacity: 0; transition: opacity 0.16s ease;
     }
     .row:hover::before, .row.active::before { opacity: 1; }
     .hit {
-      position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--sc-space-3);
-      min-height: 48px; padding: var(--sc-space-1) var(--sc-space-2); color: inherit; text-decoration: none; border-radius: inherit;
+      position: static; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--sc-space-3);
+      min-height: 44px; padding: 3px 8px; color: inherit; text-decoration: none; border-radius: inherit;
     }
-    .hit:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-    .icon { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
-      border-radius: 50%; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
-    .icon svg { width: 18px; height: 18px; }
+    /* The whole row is the anchor: its hit area stretches under the CTA and icons, which sit above. */
+    .hit::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+    .hit:focus-visible { outline: none; }
+    .hit:focus-visible::after { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+    /* Leading icon: line art inline, no box, no background (r3 owner call). */
+    .ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 28px; color: color-mix(in oklab, var(--sc-accent) 70%, var(--sc-fg-1)); }
+    .ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .ico svg.sil { width: 40px; height: 20px; stroke-width: 1.4; }
     .body { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
-    .name { font-weight: 600; color: var(--sc-fg-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--sc-space-2); font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .badge { padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--sc-fg-0) 7%, transparent); color: var(--sc-fg-1); }
-    .badge.soon, .badge.own { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
-    .qa { position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; padding-right: var(--sc-space-1); }
-    .qi {
-      display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-      border: 0; border-radius: 10px; background: transparent; color: var(--sc-fg-2); cursor: pointer; padding: 0;
-      opacity: 0.55; transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+    .name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; color: var(--sc-fg-0); }
+    .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ownname { font-weight: 500; color: var(--sc-fg-1); }
+    .new {
+      position: relative; flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+      background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent);
     }
-    .row:hover .qi, .row.active .qi, .qi:focus-visible, .qi.on { opacity: 1; }
-    .qi:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
-    .qi.on { color: var(--sc-accent); }
-    .qi svg { width: 17px; height: 17px; }
-    .act {
-      display: inline-flex; align-items: center; min-height: 34px; padding: 0 var(--sc-space-3); margin-left: var(--sc-space-1);
-      border-radius: 10px; border: 0; background: color-mix(in srgb, var(--sc-fg-0) 7%, transparent); color: var(--sc-fg-1);
-      font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
-      text-decoration: none; cursor: pointer; white-space: nowrap;
+    .new svg { width: 11px; height: 11px; fill: currentColor; stroke: none; }
+    .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .meta > span + span::before { content: '·'; margin-right: 6px; color: var(--sc-fg-2); }
+    .meta .mine { color: color-mix(in oklab, var(--sc-success) 70%, var(--sc-fg-0)); }
+    .fit { padding: 0 8px; border-radius: 999px; white-space: nowrap; }
+    .meta > .fit::before { content: none; }
+    .fit.ok { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-accent); }
+    .fit.no { background: color-mix(in srgb, var(--sc-warning) 14%, transparent); color: var(--sc-warning); }
+    .fit.unk { background: color-mix(in srgb, var(--sc-fg-0) 5%, transparent); color: var(--sc-fg-2); }
+    .row.soon .ico { opacity: 0.75; }
+    .rt { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; gap: 4px; padding-right: 4px; }
+    /* ONE quiet CTA: outlined, the same for every row, filled only on the focused row (B6). */
+    .cta {
+      display: inline-flex; align-items: center; height: 26px; padding: 0 10px; margin: 0; border: 0; border-radius: 7px;
+      background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 32%, transparent);
+      color: color-mix(in oklab, var(--sc-accent) 80%, var(--sc-fg-0)); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600;
+      letter-spacing: 0.01em; text-decoration: none; white-space: nowrap; cursor: pointer;
     }
-    .act:hover { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); }
-    .act.primary { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
-    .act.primary:hover { background: color-mix(in srgb, var(--sc-accent) 26%, transparent); }
-    .act:disabled { opacity: 0.5; cursor: default; }
-    .more {
-      align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
-      margin-left: 52px; padding: 0 var(--sc-space-3); border-radius: 10px; color: var(--sc-accent); text-decoration: none;
-      font-size: max(0.8rem, var(--sc-fs-floor)); border: 0;
+    .cta:hover, .row.active .cta {
+      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 55%, transparent); color: var(--sc-fg-0);
     }
-    .more:hover, .more.active { background: color-mix(in srgb, var(--sc-accent) 15%, transparent); }
-    /* Soft tags: filled, no outline, a small square accent marker. */
-    .chip {
-      display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 var(--sc-space-3); border-radius: 10px;
-      border: 0; background: var(--sc-bg-3); color: var(--sc-fg-1); text-decoration: none;
-      font-size: max(0.8rem, var(--sc-fs-floor)); transition: background-color 0.15s ease, color 0.15s ease;
+    .cta:disabled { opacity: 0.6; cursor: default; }
+    .sep { width: 1px; height: 20px; margin: 0 4px; background: var(--sc-border); }
+    /* Three standard icons, 32 px, one line style (B8). */
+    .ib {
+      display: grid; place-items: center; width: 32px; height: 32px; padding: 0; margin: 0; border: 0; border-radius: 8px;
+      background: transparent; color: var(--sc-fg-2); cursor: pointer;
     }
-    .chip::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--sc-accent); }
-    .chip:hover, .chip.active { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 30%, var(--sc-bg-3)); }
+    .row.active .ib { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-0) 5%, transparent); }
+    .ib:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
+    .ib.on { color: var(--sc-accent); }
+    .ib svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .more-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .expand { border: 0; background: transparent; color: var(--sc-accent); font: inherit; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+    .expand:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    .more { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 6px; border-radius: 6px; color: var(--sc-fg-2); text-decoration: none; }
+    .more:hover, .more.active { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    /* Recent searches: soft tags, the r1 mock's square marker. */
+    .term {
+      display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 12px; border-radius: 10px;
+      background: var(--sc-bg-2); color: var(--sc-fg-1); text-decoration: none; font-size: max(0.8rem, var(--sc-fs-floor));
+    }
+    .term::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--sc-accent); }
+    .term:hover, .term.active { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 26%, var(--sc-bg-2)); }
+    .summary, .dym {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0; padding: 2px 6px;
+      font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+    }
+    .summary b { color: var(--sc-fg-1); font-weight: 600; }
+    .sum-b, .dym-b { border: 0; background: transparent; color: var(--sc-fg-1); font: inherit; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+    .sum-b:hover, .dym-b:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    .sum-b .n { color: var(--sc-fg-2); }
+    .dym-b { color: var(--sc-accent); font-weight: 600; }
+    .sum-k { margin-left: auto; opacity: 0.8; }
     .state { margin: 0; padding: var(--sc-space-1) var(--sc-space-2); color: var(--sc-fg-2); font-size: max(0.84rem, var(--sc-fs-floor)); }
     .state.err { color: var(--sc-danger); display: flex; flex-wrap: wrap; gap: var(--sc-space-2); align-items: center; }
     .retry { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--sc-danger); background: transparent; color: var(--sc-danger); cursor: pointer; font: inherit; }
@@ -571,11 +632,9 @@ interface FusionSection {
     .keys span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: -1px; padding: 0; }
 
-    /* Compact (tool pages): a slimmer field, same panel. */
     :host(.compact) .field { height: 40px; }
 
-    /* Phones: the bar sits at the bottom, under the thumb. The panel becomes
-       a sheet above it, from the top safe area down to the bar. */
+    /* Phones: the bar sits at the bottom, under the thumb; the panel is a sheet above it. */
     :host(.bottom) .panel {
       position: fixed; top: max(var(--sc-space-3), env(safe-area-inset-top, 0px)); right: var(--sc-page-gutter, 12px); left: var(--sc-page-gutter, 12px);
       bottom: calc(var(--sc-float-bottom) + var(--sc-bar-h) + var(--sc-space-2));
@@ -593,33 +652,27 @@ interface FusionSection {
     .mag svg { width: 22px; height: 22px; color: var(--sc-accent); }
     .mag:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
     .mag:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-    /* Under the thumb the field needs its width: the context chip shows once the search is open. */
-    :host(.bottom:not(.open)) .ctx-chip { display: none; }
+    :host(.bottom:not(.open)) .fchip { display: none; }
     @media (pointer: coarse) {
       .hint, .keys { display: none; }
-      .qi { width: 44px; height: 44px; opacity: 1; }
-      .act, .more, .chip { min-height: 44px; }
-      .xslot { width: 44px; height: 44px; }
-      .close { width: 44px; height: 44px; }
-      .ctx-x { width: 36px; height: 36px; }
+      .ib { width: 48px; height: 48px; }
+      .cta { height: 44px; }
+      .more, .expand, .term, .sum-b, .dym-b, button.why { min-height: 44px; }
+      .xslot, .close { width: 44px; height: 44px; }
     }
-    /* A narrow field: the placeholder keeps its room, the key hint gives way first. */
     @container (max-width: 440px) {
       .hint { display: none; }
     }
-    /* A narrow capsule: the field keeps its text, the key hint gives way (aria-keyshortcuts stays). */
     @media (max-width: 1023px) {
       .hint { display: none; }
-      :host(:not(.open)) .ctx-chip { display: none; }
-      .ctx-label { max-width: 12ch; }
+      :host(:not(.open)) .fchip { display: none; }
     }
-    @media (max-width: 480px) {
-      /* The name needs the width: the actions move under it, the copy icon goes. */
+    @media (max-width: 640px) {
+      /* The name needs the width: CTA and icons move under it. */
       .row { flex-wrap: wrap; }
       .hit { flex-basis: 100%; }
-      .qa { margin: -4px 0 var(--sc-space-1) auto; }
-      .qa .qi:nth-last-child(2) { display: none; }
-      .ctx-label { max-width: 10ch; }
+      .rt { margin: -4px 0 4px auto; }
+      .sum-k { display: none; }
     }
 
     @keyframes fs-panel-in { from { opacity: 0; transform: translateY(-6px) scale(0.985); } }
@@ -627,8 +680,8 @@ interface FusionSection {
     @keyframes fs-row-in { from { opacity: 0; transform: translateY(4px); } }
     @keyframes fs-chip-in { from { opacity: 0; transform: scale(0.92); } }
     @media (prefers-reduced-motion: reduce) {
-      .panel, .group, .ctx-chip { animation-name: fs-fade; animation-delay: 0s; }
-      .row::before { transform: none; transition: opacity 0.12s linear; }
+      .panel, .group { animation-name: fs-fade; animation-delay: 0s; }
+      .row::before { transition: opacity 0.12s linear; }
       @keyframes fs-fade { from { opacity: 0; } }
     }
   `],
@@ -637,18 +690,21 @@ export class FusionSearchComponent {
   readonly engine = inject(CodexSearchEngine);
   readonly codex = inject(CodexService);
   readonly auth = inject(AuthService);
+  readonly actions = inject(SearchRowActionsService);
   private readonly hangar = inject(HangarService);
   private readonly ownership = inject(HqOwnershipService);
+  private readonly wishlist = inject(SearchWishlistService);
   private readonly hub = inject(CodexSearchHub);
   private readonly chrome = inject(ShellChromeService);
   private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
+  private readonly injector = inject(Injector);
   private readonly host = inject(ElementRef<HTMLElement>);
+
+  readonly actionIcons = SEARCH_ACTION_ICONS;
 
   /** `top` (desktop/tablet capsule) or `bottom` (phone thumb bar). */
   readonly placement = input<'top' | 'bottom'>('top');
-  /** Hide the scope chip: the staged field is the search alone, and the kind switch already names the scope. */
-  readonly hideContext = input(false);
   /** Staged search: while idle and unfocused, example searches type themselves. */
   readonly demo = input(false);
   readonly demoKeys = ['fusionBar.demo.ship', 'fusionBar.demo.patch', 'fusionBar.demo.item'] as const;
@@ -657,7 +713,7 @@ export class FusionSearchComponent {
   /** The caret sits in the field (autofocus, a click, Ctrl+K) — not the same as the panel being open. */
   readonly focused = signal(false);
   readonly demoOn = computed(
-    () => this.demo() && !this.reducedMotion && !this.open() && !this.focused() && !this.engine.input(),
+    () => this.demo() && !this.reducedMotion && !this.open() && !this.focused() && !this.engine.input() && this.chips().length === 0,
   );
   /** Tool pages: the slimmer field. */
   readonly compact = input(false);
@@ -670,108 +726,121 @@ export class FusionSearchComponent {
 
   readonly open = signal(false);
   private readonly url = signal(this.router.url);
-  /** The reader dropped the context chip — neutral until the next navigation. */
-  private readonly contextDropped = signal(false);
   readonly activeIndex = signal(-1);
-  readonly adding = signal<ReadonlySet<string>>(new Set());
-  readonly addFailed = signal(false);
-  readonly copied = signal<string | null>(null);
+  /** The accordion: the group shown in full, or null. */
+  readonly expanded = signal<string | null>(null);
+  /** A chip menu is open: the panel stays, outside presses belong to the menu. */
+  readonly chipMenu = signal(false);
+  readonly busyRow = signal<string | null>(null);
+  readonly status = signal<RowActionResult | null>(null);
+  readonly recentRows = signal<StoredRow[]>(readRecentRows(storage()));
+  private readonly silhouettes = signal<ReadonlyMap<string, { viewBox: string; path: string }>>(new Map());
+  private readonly freshByKind = signal<ReadonlyMap<string, ReadonlySet<string>>>(new Map());
+  private readonly silRequested = new Set<string>();
+  private readonly freshRequested = new Set<string>();
 
-  readonly context = computed<SearchContext>(() =>
-    this.contextDropped() ? neutralContext() : searchContextOf(this.url(), this.chrome.hqPage()),
-  );
-  readonly contextLabelKey = computed(() => this.context().labelKey);
-  /** i18n key of the Codex kind the chip names (index / detail contexts). */
-  readonly kindKey = computed(() => {
-    const kind = this.context().labelParams?.['kind'];
-    return kind ? `codex.kinds.${kind}` : 'fusionBar.ctx.codex';
+  readonly context = computed<SearchContext>(() => this.engine.context());
+  readonly hasText = computed(() => !!this.engine.input().trim());
+  readonly result = computed(() => this.engine.result());
+  readonly chips = computed<SearchChip[]>(() => this.result().chips);
+  readonly didYouMean = computed(() => (this.busy() ? [] : this.result().didYouMean));
+  /** The ship / item name the "passt auf" chip names (the page title when on that page). */
+  readonly compatName = computed(() => {
+    const c = this.chips().find((x) => x.filter.compatWith);
+    return c ? this.chipLabel(c) : '';
   });
-  /** The page title the chip names on a ship page (published by the page header). */
-  readonly chipName = computed(() => this.chrome.crumbs()?.title ?? null);
 
   readonly busy = computed(() => this.engine.loading() || this.engine.input().trim() !== this.engine.term().trim());
-  readonly codexGroups = computed<WeightedGroup[]>(() =>
-    weightGroups(this.engine.groups(), this.context(), (slug) => this.ownership.ownsShip(slug), (g) =>
-      indexTarget(g.kind, this.engine.term()),
-    ),
-  );
-  readonly places = computed(() =>
-    matchPlaces(this.engine.input(), this.context(), (p) => this.t.instant(p.labelKey)),
+
+  /** The 70 hints of the empty field (i18n array, current language). */
+  readonly hints = signal<SearchHint[]>([]);
+
+  private readonly places = computed(() =>
+    this.hasText() ? matchPlaces(this.engine.input(), this.context(), (p) => this.t.instant(p.labelKey)).slice(0, PLACES_SHOWN) : [],
   );
 
-  readonly sections = computed<FusionSection[]>(() => {
-    const term = this.engine.input().trim();
-    if (!term) return this.suggestionSections();
-    const out: FusionSection[] = [];
+  /** The groups as drawn: own first, the outside group after the catalog, patches / gallery / pages last. */
+  readonly allGroups = computed<ViewGroup[]>(() => {
+    if (!this.hasText()) return this.emptyGroups();
+    const res = this.result();
+    const expanded = this.expanded();
+    const groups = [...res.groups];
+    const ownAt = groups.findIndex((g) => g.id === 'own');
+    if (ownAt > 0) groups.unshift(...groups.splice(ownAt, 1));
+    const out: ViewGroup[] = groups.map((g) => this.viewGroup(g, expanded === g.id));
+    if (res.outside) {
+      const tailAt = out.findIndex((g) => g.id === 'patch' || g.id === 'gallery');
+      out.splice(tailAt === -1 ? out.length : tailAt, 0, this.viewGroup(res.outside, false));
+    }
     const places = this.places();
-    const placeSection: FusionSection | null = places.length
-      ? {
-          id: 'places',
-          labelKey: 'fusionBar.search.places',
-          count: null,
-          countIsFloor: false,
-          options: places.map((p) => ({
-            type: 'place' as const,
-            id: `place-${p.id}`,
-            place: p,
-            target: { link: p.link, queryParams: p.queryParams },
-          })),
-        }
-      : null;
-    if (placeSection && this.context().placesFirst) out.push(placeSection);
-    for (const w of this.codexGroups()) {
-      const options: FusionOption[] = w.shown.map((hit, i) => ({
-        type: 'hit' as const,
-        id: `${w.group.kind}-${i}`,
-        hit,
-        target: hitTarget(hit),
-      }));
-      if (w.more) options.push({ type: 'more', id: `${w.group.kind}-more`, kind: w.group.kind, total: w.group.total, target: w.more });
+    if (places.length) {
       out.push({
-        id: w.group.kind,
-        labelKey: `codex.kinds.${w.group.kind}`,
-        count: w.group.count,
-        countIsFloor: w.group.countIsFloor,
-        options,
+        id: 'places', labelKey: 'fusionBar.search.places', labelParams: null, count: null, reason: null, own: false, outside: false,
+        options: places.map((p) => ({
+          type: 'row' as const, id: `places-${p.id}`, group: 'places',
+          row: { type: 'place', id: `place-${p.id}`, place: p, target: { link: p.link, queryParams: p.queryParams }, cta: null, icons: NO_ICONS },
+        })),
+        expandable: 0, expanded: false, more: null,
       });
     }
-    if (placeSection && !this.context().placesFirst) out.push(placeSection);
     return out;
+  });
+
+  /** The accordion shows the expanded group alone; the others become the summary line. */
+  readonly viewGroups = computed<ViewGroup[]>(() => {
+    const all = this.allGroups();
+    const ex = this.expanded();
+    if (!ex) return all;
+    const one = all.find((g) => g.id === ex);
+    return one ? [one] : all;
+  });
+  readonly summary = computed<ViewGroup[] | null>(() => {
+    const ex = this.expanded();
+    if (!ex || !this.hasText()) return null;
+    const all = this.allGroups();
+    return all.some((g) => g.id === ex) ? all : null;
   });
 
   /** The page registered its own list search (Codex lists, news, patches): typing filters that list. */
   readonly pageSearchOn = computed(() => !!this.chrome.pageSearch());
-  /** "Im ganzen Codex: N Treffer ↓" — while the page filters itself and the panel is shut. */
   readonly stripShown = computed(
     () => this.pageSearchOn() && !this.open() && !!this.engine.input().trim() && !this.engine.error(),
   );
   readonly stripTotal = computed(() => this.engine.groups().reduce((n, g) => n + g.total, 0));
 
-  readonly options = computed<FusionOption[]>(() => this.sections().flatMap((s) => s.options));
+  readonly options = computed<FusionOption[]>(() =>
+    this.viewGroups().flatMap((g) => (g.more ? [...g.options, g.more] : g.options)),
+  );
   readonly activeOption = computed<FusionOption | null>(() => this.options()[this.activeIndex()] ?? null);
   readonly activeDescendant = computed(() => {
     const o = this.activeOption();
-    return o ? `${this.listboxId}-${o.id}` : null;
+    return o ? this.optId(o) : null;
   });
+
+  readonly optionLabelFn = (o: SearchChipOption): string => this.t.instant(o.labelKey, this.labelParams(o.labelParams ?? null));
 
   private readonly hubHandle: CodexSearchBarHandle = {
     activate: (seed?: string) => this.focus(seed),
     active: this.open.asReadonly(),
   };
   private unregisterHub: (() => void) | null = null;
-  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  private statusTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
         this.url.set(e.urlAfterRedirects);
-        this.contextDropped.set(false);
+        this.expanded.set(null);
         // A search that led somewhere is done; a still-open one (new tab) keeps its term.
         if (!this.open()) this.engine.clear();
       }
     });
-    // On a Codex page the bar IS the page's Codex search: the page header's
-    // trigger and type-to-search reach it through the hub.
+    // Where the reader stands: route + HQ page + the section anchor in the URL (C1/C2).
+    effect(() => {
+      const ctx = searchContextOf(this.url(), this.chrome.hqPage());
+      untracked(() => this.engine.setContext(ctx));
+    });
+    // On a Codex page the bar IS the page's Codex search.
     effect(() => {
       const onCodex = this.url().startsWith('/codex');
       untracked(() => {
@@ -792,10 +861,32 @@ export class FusionSearchComponent {
         if (this.activeIndex() >= n) this.activeIndex.set(n ? n - 1 : -1);
       });
     });
+    // The expanded group vanished (new term): back to the tiles.
+    effect(() => {
+      const ex = this.expanded();
+      const ids = this.allGroups().map((g) => g.id);
+      if (ex && !ids.includes(ex)) untracked(() => this.expanded.set(null));
+    });
+    // Silhouettes and "Neu in Patch" for what is on screen: one batch per new set.
+    effect(() => {
+      const rows = this.viewGroups().flatMap((g) => g.options).filter((o) => o.type === 'row').map((o) => (o as { row: ViewRow }).row);
+      untracked(() => this.loadDecorations(rows));
+    });
+    // The hint list follows the language.
+    this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => this.loadHints());
+    this.loadHints();
     inject(DestroyRef).onDestroy(() => {
       this.unregisterHub?.();
-      if (this.copiedTimer) clearTimeout(this.copiedTimer);
+      if (this.statusTimer) clearTimeout(this.statusTimer);
     });
+  }
+
+  private loadHints(): void {
+    try {
+      this.t.get('search.hints').subscribe((v: unknown) => this.hints.set(Array.isArray(v) ? (v as SearchHint[]).filter((h) => h && typeof h.t === 'string') : []));
+    } catch {
+      this.hints.set([]);
+    }
   }
 
   /** Caps the dropdown panel at the room left below the field. */
@@ -805,66 +896,229 @@ export class FusionSearchComponent {
     el.style.setProperty('--fs-panel-room', `${Math.max(240, Math.round(room))}px`);
   }
 
-  private suggestionSections(): FusionSection[] {
-    const out: FusionSection[] = [];
-    const recent = this.engine.recent();
+  // ---- view model ----
+
+  private viewGroup(g: SearchResultGroup, expanded: boolean): ViewGroup {
+    const rows = expanded ? g.rows : g.rows.slice(0, SEARCH_ROWS_SHOWN);
+    const own = g.id === 'own';
+    const label = this.groupLabel(g);
+    return {
+      id: g.id,
+      labelKey: label.key,
+      labelParams: label.params,
+      count: g.total,
+      reason: g.outside ? null : this.reasonText(g),
+      own,
+      outside: g.outside,
+      options: rows.map((row) => ({ type: 'row' as const, id: `${g.id}-${row.id}`, group: g.id, row })),
+      expandable: expanded ? 0 : g.expandable,
+      expanded,
+      more: g.moreTarget ? { type: 'more', id: `${g.id}-more`, group: g.id, total: g.total, target: g.moreTarget, own } : null,
+    };
+  }
+
+  private groupLabel(g: SearchResultGroup): { key: string; params: Record<string, string | number> | null } {
+    if (g.outside) {
+      const chip = g.reason?.params?.['chip'];
+      const params = { ...(g.reason?.params ?? {}) };
+      delete params['chip'];
+      return { key: 'search.why.outside', params: { chip: typeof chip === 'string' ? this.t.instant(chip, this.labelParams(params)) : '' } };
+    }
+    if (g.id === 'own') return { key: 'search.group.own', params: null };
+    if (g.id === 'patch') return { key: 'search.group.patch', params: null };
+    if (g.id === 'gallery') return { key: 'search.group.gallery', params: null };
+    return { key: `codex.kinds.${g.kind ?? g.id}`, params: null };
+  }
+
+  private reasonText(g: SearchResultGroup): string | null {
+    const r = g.reason;
+    if (!r) return null;
+    return this.t.instant(r.key, this.labelParams(r.params));
+  }
+
+  /** Params whose values are i18n keys (a context label) or a kind id get translated first. */
+  labelParams(params: Record<string, string | number> | null): Record<string, string | number> {
+    const out: Record<string, string | number> = {};
+    for (const [k, v] of Object.entries(params ?? {})) {
+      if (k === 'kind' && typeof v === 'string') out[k] = this.t.instant(`codex.kinds.${v}`);
+      else if (typeof v === 'string' && /^[a-z]+(\.[a-zA-Z0-9]+)+$/.test(v)) out[k] = this.t.instant(v, this.labelParams(params ? { ...params, [k]: '' } : null));
+      else out[k] = v;
+    }
+    return out;
+  }
+
+  private emptyGroups(): ViewGroup[] {
+    const out: ViewGroup[] = [];
+    const recent = this.engine.recent().slice(0, RECENT_TERMS_SHOWN);
     if (recent.length) {
       out.push({
-        id: 'recent',
-        labelKey: 'codex.search.bar.recent',
-        count: null,
-        countIsFloor: false,
-        options: recent.map((term, i) => ({
-          type: 'recent' as const,
-          id: `recent-${i}`,
-          term,
-          target: { link: ['/codex'], queryParams: { q: term } },
-        })),
+        id: 'recent', labelKey: 'codex.search.bar.recent', labelParams: null, count: null, reason: null, own: false, outside: false,
+        options: recent.map((term, i) => ({ type: 'recent' as const, id: `recent-${i}`, term, target: { link: ['/codex'], queryParams: { q: term } } })),
+        expandable: 0, expanded: false, more: null,
       });
     }
-    const ctx = this.context();
-    const boosted = placesFor(ctx);
-    if (boosted.length) {
+    const opened = this.recentRows().slice(0, RECENT_ROWS_SHOWN);
+    if (opened.length) {
+      const ctx = this.context();
+      const signedIn = !!this.auth.user();
       out.push({
-        id: 'here',
-        labelKey: 'fusionBar.search.here',
-        count: null,
-        countIsFloor: false,
-        options: boosted.map((p) => ({
-          type: 'place' as const,
-          id: `place-${p.id}`,
-          place: p,
-          target: { link: p.link, queryParams: p.queryParams },
-        })),
+        id: 'opened', labelKey: 'search.group.opened', labelParams: null, count: null, reason: null, own: false, outside: false,
+        options: opened.map((s) => ({ type: 'row' as const, id: `opened-${s.id}`, group: 'opened', row: this.revive(s, ctx, signedIn) })),
+        expandable: 0, expanded: false, more: null,
       });
     }
-    out.push({
-      id: 'areas',
-      labelKey: 'codex.search.bar.areas',
-      count: null,
-      countIsFloor: false,
-      options: SEARCH_CATEGORY_SHORTCUTS.map((c, i) => ({
-        type: 'category' as const,
-        id: `cat-${i}`,
-        labelKey: c.labelKey,
-        target: c.target,
-      })),
-    });
     return out;
+  }
+
+  /** A stored row with the CTA and icons of the page the reader stands on now. */
+  private revive(s: StoredRow, ctx: SearchContext, signedIn: boolean): SearchResultRow {
+    if (s.type === 'hit') {
+      const cta = resolveCta(ctx, { type: 'hit', kind: s.hit.kind, classNameSlug: s.hit.classNameSlug, manufacturerCode: s.hit.manufacturerCode, ownership: null, target: s.target }, signedIn);
+      return { ...s, cta, icons: resolveIcons({ type: 'hit', kind: s.hit.kind }) };
+    }
+    const ref = s.ownKind === 'item' ? null : (s.target.link[s.target.link.length - 1] ?? null);
+    return { ...s, cta: resolveCta(ctx, { type: 'own', ownKind: s.ownKind, ownRefId: ref, kind: null }, signedIn), icons: NO_ICONS };
+  }
+
+  // ---- rows ----
+
+  rowName(r: ViewRow): { title: string; own: string | null } {
+    switch (r.type) {
+      case 'hit': return { title: hitTitle(r.hit, this.engine.lang()), own: null };
+      case 'own': return { title: r.title, own: r.ownName };
+      case 'patch': return { title: this.t.instant('search.row.patch', { line: r.title }), own: null };
+      case 'gallery': return { title: r.title, own: null };
+      case 'place': return { title: this.t.instant(r.place.labelKey), own: null };
+    }
+  }
+
+  /** The second line: maker · kind · size/class · concrete ownership (B3). */
+  metaOf(r: ViewRow): { key?: string; params?: Record<string, string | number>; text?: string; mine?: boolean }[] {
+    const out: { key?: string; params?: Record<string, string | number>; text?: string; mine?: boolean }[] = [];
+    switch (r.type) {
+      case 'hit': {
+        const h = r.hit;
+        const m = hitManufacturer(h, this.engine.lang());
+        if (m) out.push({ text: m });
+        out.push({ key: `codex.kinds.${h.kind}` });
+        if (h.size !== null && h.size !== undefined) out.push({ key: 'codex.card.size', params: { size: h.size } });
+        if (h.grade) out.push({ key: 'codex.search.bar.grade', params: { grade: h.grade } });
+        const o = r.owned;
+        if (o?.shipId) out.push({ key: 'search.own.ship', mine: true });
+        else if (o?.equippedOnShipId) out.push({ key: 'search.own.fitted', mine: true });
+        if (o?.inLager) out.push({ key: 'search.own.lager', mine: true });
+        if (o?.inSetIds.length) out.push({ key: 'search.own.sets', params: { n: o.inSetIds.length }, mine: true });
+        return out;
+      }
+      case 'own':
+        switch (r.ownKind) {
+          case 'ship': return [{ key: 'search.own.ship', mine: true }];
+          case 'config': return [{ key: 'search.own.config', params: { ship: r.subtitle ?? r.title }, mine: true }];
+          case 'set': return [{ key: 'search.own.set', mine: true }];
+          case 'item':
+            return [
+              { key: 'search.own.qty', params: { n: r.qty ?? 1 }, mine: true },
+              ...(r.subtitle ? [{ text: r.subtitle }] : []),
+            ];
+        }
+        return out;
+      case 'patch': return [{ key: 'search.row.patchMeta', params: { version: r.version } }];
+      case 'gallery': return [{ key: 'search.row.galleryMeta' }, ...(r.series ? [{ text: r.series }] : [])];
+      case 'place': return [{ key: 'fusionBar.search.page' }];
+    }
+  }
+
+  fitOf(r: ViewRow) {
+    return r.type === 'hit' ? r.fit : null;
+  }
+
+  isSoon(r: ViewRow): boolean {
+    return r.type === 'hit' && isUpcomingHit(r.hit);
+  }
+
+  isShipRow(r: ViewRow): boolean {
+    return r.type === 'hit' && r.hit.kind === 'ship';
+  }
+
+  hasIcons(r: ViewRow): boolean {
+    return r.icons.wishlist || r.icons.lager || r.icons.nachschub;
+  }
+
+  kindIcon(r: ViewRow): readonly string[] {
+    return SEARCH_KIND_ICONS[iconKindOf(r)];
+  }
+
+  silhouetteOf(r: ViewRow): { viewBox: string; path: string } | null {
+    const slug = shipSlugOf(r);
+    return slug ? (this.silhouettes().get(slug.toLowerCase()) ?? null) : null;
+  }
+
+  /** The patch version a hit is new in, or null. */
+  newIn(r: ViewRow): string | null {
+    if (r.type !== 'hit') return null;
+    const set = this.freshByKind().get(r.hit.kind);
+    if (!set?.has(r.hit.classNameSlug.toLowerCase())) return null;
+    return this.codex.build()?.patchVersion ?? null;
+  }
+
+  private loadDecorations(rows: readonly ViewRow[]): void {
+    const ships = [...new Set(rows.map(shipSlugOf).filter((s): s is string => !!s))].filter((s) => !this.silRequested.has(s.toLowerCase()));
+    if (ships.length) {
+      ships.forEach((s) => this.silRequested.add(s.toLowerCase()));
+      void (async () => {
+        try {
+          const map = await this.codex.silhouettes('ship', ships);
+          if (!map.size) return;
+          const next = new Map(this.silhouettes());
+          for (const [cls, sil] of map) next.set(cls.toLowerCase(), { viewBox: sil.viewBox, path: sil.path });
+          this.silhouettes.set(next);
+        } catch {
+          /* the kind icon stays */
+        }
+      })();
+    }
+    const kinds = [...new Set(rows.filter((r) => r.type === 'hit').map((r) => (r as Extract<ViewRow, { type: 'hit' }>).hit.kind))]
+      .filter((k) => k !== 'upcoming' && !this.freshRequested.has(k));
+    for (const kind of kinds) {
+      this.freshRequested.add(kind);
+      void (async () => {
+        try {
+          const names = await this.injector.get(CodexBuildDiffService).addedClassNamesMemo(kind as CodexKind);
+          if (!names.length) return;
+          this.freshByKind.set(new Map(this.freshByKind()).set(kind, new Set(names.map((n) => n.toLowerCase()))));
+        } catch {
+          /* no Neu glyph */
+        }
+      })();
+    }
+  }
+
+  // ---- chips ----
+
+  chipLabel(c: SearchChip): string {
+    if (c.filter.compatWith) {
+      const page = c.source === 'route' ? this.chrome.crumbs()?.title : null;
+      return page || humanizeClassName(c.filter.compatWith.className);
+    }
+    return this.t.instant(c.labelKey, this.labelParams(c.labelParams));
+  }
+
+  removeChip(c: SearchChip): void {
+    this.engine.removeChip(c.id);
+    this.fieldRef()?.nativeElement.focus();
+  }
+
+  pickChipValue(c: SearchChip, value: string): void {
+    this.engine.setChipValue(c.id, value);
+    this.fieldRef()?.nativeElement.focus();
   }
 
   // ---- open / close / focus ----
 
-  /**
-   * Focus the field. Without `seed` (Ctrl+K, "/", a press on the field) the
-   * panel opens with suggestions; with `seed` (type-to-search) the typed
-   * character decides like typing in the field does ({@link onInput}).
-   */
   focus(seed?: string): void {
     if (seed != null) this.onInput(this.engine.input() + seed);
     else this.openPanel();
     queueMicrotask(() => this.fieldRef()?.nativeElement.focus());
-    // Collapsed (phone) the field is only shown after the next render: focus again then.
     if (this.placement() === 'bottom') setTimeout(() => this.fieldRef()?.nativeElement.focus());
   }
 
@@ -873,51 +1127,49 @@ export class FusionSearchComponent {
     this.open.set(true);
     this.openChange.emit(true);
     this.engine.ensureSuggestions();
-    if (this.auth.user()) void this.ownership.ensureLoaded();
+    this.engine.ensureSources();
+    if (this.auth.user()) {
+      void this.ownership.ensureLoaded();
+      this.wishlist.ensureLoaded();
+    }
   }
 
   close(returnFocus = false): void {
     if (!this.open()) return;
     this.open.set(false);
     this.activeIndex.set(-1);
+    this.expanded.set(null);
+    this.chipMenu.set(false);
     this.openChange.emit(false);
     const field = this.fieldRef()?.nativeElement;
     if (returnFocus && this.placement() === 'bottom') {
-      // Collapsed to the magnifier: focus goes back to it once it is shown.
       setTimeout(() => this.magRef()?.nativeElement.focus({ preventScroll: true }));
     } else if (returnFocus) field?.focus({ preventScroll: true });
     else field?.blur();
   }
 
-  /** Phone: the magnifier opens the field and puts the caret in it (after the field is shown). */
   openFromButton(): void {
     this.openPanel();
     setTimeout(() => this.fieldRef()?.nativeElement.focus());
   }
 
   onFieldPointer(ev: PointerEvent): void {
-    // A press anywhere on the capsule field (glyph, chip gap) focuses the input.
     const target = ev.target as HTMLElement;
-    if (target.closest('button, a, input')) return;
+    if (target.closest('button, a, input, sc-fusion-search-chip')) return;
     ev.preventDefault();
     this.focus();
   }
 
-  /**
-   * op-hybrid: on a page with its own list search the term filters that list
-   * and the panel stays shut (the strip offers the whole Codex); elsewhere the
-   * first character opens the panel with results.
-   */
   onInput(value: string): void {
     this.engine.setInput(value);
     const page = this.chrome.pageSearch();
     page?.(value);
     this.activeIndex.set(-1);
-    this.addFailed.set(false);
+    this.expanded.set(null);
+    this.status.set(null);
     if (!page && value.trim() && !this.open()) this.openPanel();
   }
 
-  /** The bar's load autofocus: the caret in the field, the panel shut, the page not scrolled. */
   autofocus(): boolean {
     const field = this.fieldRef()?.nativeElement;
     if (!field || this.placement() === 'bottom' || field.getClientRects().length === 0) return false;
@@ -931,9 +1183,35 @@ export class FusionSearchComponent {
     this.focus();
   }
 
-  dropContext(): void {
-    this.contextDropped.set(true);
+  /** A hint's example goes into the field and is searched. */
+  tryHint(q: string): void {
+    this.onInput(q);
+    this.engine.searchFor(q);
     this.fieldRef()?.nativeElement.focus();
+  }
+
+  searchSuggestion(term: string): void {
+    this.onInput(term);
+    this.engine.searchFor(term);
+    this.fieldRef()?.nativeElement.focus();
+  }
+
+  // ---- accordion ----
+
+  expand(id: string): void {
+    this.expanded.set(id);
+    this.activeIndex.set(-1);
+    queueMicrotask(() => this.fieldRef()?.nativeElement.focus());
+  }
+
+  collapse(): void {
+    const was = this.expanded();
+    this.expanded.set(null);
+    if (was) {
+      const i = this.options().findIndex((o) => o.type !== 'recent' && o.group === was);
+      this.activeIndex.set(i);
+    }
+    queueMicrotask(() => this.fieldRef()?.nativeElement.focus());
   }
 
   // ---- keyboard ----
@@ -946,14 +1224,19 @@ export class FusionSearchComponent {
         this.close();
         return;
       }
-      // A page with its own search field (admin feedback) takes the chord while it is on screen.
       if (this.chrome.focusPageSearch()) return;
-      // A hub stage with its own search line on screen keeps it (landing terminal).
       if (this.chrome.stageSearch() === 'stage' && this.hub.activate()) return;
       this.focus();
       return;
     }
-    if (this.open()) return;
+    if (this.open()) {
+      // Esc from anywhere inside the panel (a CTA, an icon) closes it at once; the text stays (A9).
+      if (ev.key === 'Escape' && !this.chipMenu() && (this.host.nativeElement as HTMLElement).contains(ev.target as Node) && ev.target !== this.fieldRef()?.nativeElement) {
+        ev.preventDefault();
+        this.close(true);
+      }
+      return;
+    }
     if (ev.key === '/' && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !isEditableTarget(ev.target)) {
       ev.preventDefault();
       if (this.chrome.stageSearch() === 'stage' && this.hub.activate()) return;
@@ -991,30 +1274,53 @@ export class FusionSearchComponent {
         this.activeIndex.set(this.activeIndex() <= 0 ? n - 1 : this.activeIndex() - 1);
         this.scrollActive();
         return;
-      case 'Backspace': {
+      case 'ArrowRight': {
+        // → expands the active row's group in the panel (A4); in the text it moves the caret.
+        const o = this.activeOption();
+        if (!o || o.type === 'recent' || this.expanded()) return;
+        const g = this.allGroups().find((x) => x.id === o.group);
+        if (!g || g.expandable === 0) return;
+        ev.preventDefault();
+        const keep = o.id;
+        this.expanded.set(g.id);
+        this.activeIndex.set(this.options().findIndex((x) => x.id === keep));
+        this.scrollActive();
+        return;
+      }
+      case 'ArrowLeft': {
         const el = ev.target as HTMLInputElement;
-        if (this.context().key !== 'all' && el.selectionStart === 0 && el.selectionEnd === 0) {
+        if (!this.expanded() || (this.activeIndex() < 0 && el.selectionStart !== 0)) return;
+        ev.preventDefault();
+        this.collapse();
+        return;
+      }
+      case 'Backspace': {
+        // ⌫ at the start of the field removes the last chip (C5).
+        const el = ev.target as HTMLInputElement;
+        if (this.chips().length && el.selectionStart === 0 && el.selectionEnd === 0) {
           ev.preventDefault();
-          this.dropContext();
+          this.engine.removeLastChip();
         }
         return;
       }
       case 'Escape':
+        // Esc closes at once; the typed text stays for the next open (A9).
         ev.preventDefault();
         ev.stopPropagation();
-        if (this.engine.input()) this.onInput('');
-        else this.close(true);
+        if (this.expanded()) {
+          this.collapse();
+          return;
+        }
+        this.close(true);
         return;
       case 'Enter': {
         ev.preventDefault();
-        // From the subheader (not a cinematic hub stage), Enter without a picked
-        // row opens the full result list (concept 2026-10-29, Codex subpages).
         if (!this.activeOption() && this.chrome.stageSearch() === 'none' && this.engine.input().trim()) {
           this.openResultsPage(this.engine.input().trim(), ev.ctrlKey || ev.metaKey);
           return;
         }
-        if (this.engine.commit()) return; // results are on their way
-        const opt = this.activeOption() ?? (this.engine.input().trim() ? (this.options()[0] ?? null) : null);
+        if (this.engine.commit()) return;
+        const opt = this.activeOption() ?? (this.hasText() ? (this.options()[0] ?? null) : null);
         if (!opt) return;
         this.openOption(opt, ev.ctrlKey || ev.metaKey);
         return;
@@ -1024,12 +1330,6 @@ export class FusionSearchComponent {
     }
   }
 
-  /**
-   * The Codex browse page for `term`. On that page already, its list follows
-   * the typed term live — Enter only commits it and closes the dropdown.
-   * Elsewhere it opens /codex/index in the reader's area (the context's kind),
-   * else in the kind with the best hits.
-   */
   private openResultsPage(term: string, newTab: boolean): void {
     this.engine.remember(term);
     const onBrowse = /^\/codex\/(index|upcoming)(\?|$)/.test(this.url());
@@ -1058,25 +1358,31 @@ export class FusionSearchComponent {
       return;
     }
     this.noteOpening(opt);
+    const target = opt.type === 'row' ? opt.row.target : opt.target;
     if (newTab) {
-      window.open(this.href(opt.target), '_blank', 'noopener');
+      window.open(this.href(target), '_blank', 'noopener');
       return;
     }
-    void this.router.navigate(opt.target.link, { queryParams: opt.target.queryParams ?? undefined });
+    void this.router.navigate(target.link, { queryParams: target.queryParams ?? undefined, ...(target.fragment ? { fragment: target.fragment } : {}) });
     this.close();
   }
 
   private noteOpening(opt: FusionOption): void {
-    if (opt.type === 'hit') this.engine.opening({ type: 'hit', id: opt.id, hit: opt.hit, target: opt.target });
-    else if (opt.type === 'more') this.engine.remember();
+    if (opt.type === 'row') {
+      const r = opt.row;
+      if (r.type === 'place') {
+        this.engine.remember();
+        return;
+      }
+      this.engine.noteOpened(r);
+      if (r.type === 'hit' || r.type === 'own') this.recentRows.set(pushRecentRow(storage(), this.recentRows(), r));
+    } else if (opt.type === 'more') this.engine.remember();
   }
 
   private scrollActive(): void {
     const id = this.activeDescendant();
     if (id) queueMicrotask(() => document.getElementById(id)?.scrollIntoView({ block: 'nearest' }));
   }
-
-  // ---- rows ----
 
   optId(o: FusionOption): string {
     return `${this.listboxId}-${o.id}`;
@@ -1094,98 +1400,82 @@ export class FusionSearchComponent {
   /** Plain left click navigates through the anchor and closes; modified clicks stay the browser's. */
   onRowClick(ev: MouseEvent, o: FusionOption): void {
     this.noteOpening(o);
-    if (!isPlainLeftClick(ev)) return;
-    if (o.type === 'recent') {
-      ev.preventDefault();
-      this.engine.searchFor(o.term);
-      this.fieldRef()?.nativeElement.focus();
-      return;
-    }
-    this.close();
-  }
-
-  onActionClick(ev: MouseEvent): void {
     if (isPlainLeftClick(ev)) this.close();
   }
 
-  title(hit: PolySearchHit): string {
-    return hitTitle(hit, this.engine.lang());
+  onTermClick(ev: MouseEvent, term: string): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.engine.searchFor(term);
+    this.fieldRef()?.nativeElement.focus();
   }
 
-  mfr(hit: PolySearchHit): string | null {
-    return hitManufacturer(hit, this.engine.lang());
+  onMoreClick(ev: MouseEvent): void {
+    this.engine.remember();
+    if (isPlainLeftClick(ev)) this.close();
   }
 
-  iconKind(hit: PolySearchHit) {
-    return polyHitIconKind(hit);
+  onCtaLinkClick(ev: MouseEvent, o: FusionOption): void {
+    ev.stopPropagation();
+    this.noteOpening(o);
+    if (isPlainLeftClick(ev)) this.close();
   }
 
-  upcoming(hit: PolySearchHit): boolean {
-    return isUpcomingHit(hit);
-  }
-
-  pinKind(hit: PolySearchHit) {
-    return pinKindOf(hit);
-  }
-
-  owns(slug: string): boolean {
-    return this.ownership.ownsShip(slug);
-  }
-
-  indexOf(hit: PolySearchHit): SearchTarget {
-    return indexTarget(hit.kind, this.title(hit));
-  }
-
-  /** The one button action of a row, by type. */
-  buttonAction(hit: PolySearchHit): 'add' | 'hangar' | 'index' | 'open' {
-    if (hit.kind === 'ship') {
-      if (!this.auth.user()) return 'open';
-      return this.owns(hit.classNameSlug) ? 'hangar' : 'add';
+  async runCta(ev: MouseEvent, cta: SearchCta, r: ViewRow): Promise<void> {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (r.type === 'place') return;
+    this.busyRow.set(r.id);
+    try {
+      const res = await this.actions.cta(cta, r, this.rowName(r).title, this.chips(), this.auth.user() ? this.hangar.flagshipClassName() : null);
+      if (cta.id === 'inSet') this.close();
+      this.showStatus(res);
+    } finally {
+      this.busyRow.set(null);
     }
-    if (hit.kind === 'weapon' || hit.kind === 'component' || hit.kind === 'item' || hit.kind === 'ammunition') return 'index';
-    return 'open';
+  }
+
+  async runIcon(ev: MouseEvent, action: RowIconAction, r: ViewRow): Promise<void> {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (r.type === 'place') return;
+    this.showStatus(await this.actions.icon(action, r, this.rowName(r).title));
+  }
+
+  private showStatus(res: RowActionResult | null): void {
+    this.status.set(res);
+    if (this.statusTimer) clearTimeout(this.statusTimer);
+    if (res) this.statusTimer = setTimeout(() => this.status.set(null), 3200);
   }
 
   href(target: SearchTarget): string {
     return this.engine.href(target);
   }
 
-  async copyLink(o: FusionOption): Promise<void> {
-    const url = `${location.origin}${this.href(o.target)}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      this.copied.set(o.id);
-      if (this.copiedTimer) clearTimeout(this.copiedTimer);
-      this.copiedTimer = setTimeout(() => this.copied.set(null), 1800);
-    } catch (err) {
-      logWarn('fusion-search', 'clipboard write failed', err);
-    }
-  }
-
-  async addToHangar(slug: string): Promise<void> {
-    if (this.adding().has(slug)) return;
-    this.adding.update((s) => new Set(s).add(slug));
-    this.addFailed.set(false);
-    try {
-      if (!(await this.hangar.addShip(slug, 'owned'))) this.addFailed.set(true);
-    } catch {
-      this.addFailed.set(true);
-    } finally {
-      this.adding.update((s) => {
-        const next = new Set(s);
-        next.delete(slug);
-        return next;
-      });
-    }
-  }
-
   /** For specs and the bar: the target URL of an option. */
   urlOf(o: FusionOption): string {
-    return targetUrl(o.target);
+    return targetUrl(o.type === 'row' ? o.row.target : o.target);
   }
 }
 
-/** The places a context offers on an empty field ("Hier"). */
-function placesFor(ctx: SearchContext): SearchPlace[] {
-  return SEARCH_PLACES.filter((p) => p.boost.includes(ctx.key)).slice(0, 4);
+/** The ship class whose silhouette a row can show (catalog ships and the reader's ships). */
+function shipSlugOf(r: ViewRow): string | null {
+  if (r.type === 'hit') return r.hit.kind === 'ship' ? r.hit.classNameSlug : null;
+  if (r.type === 'own' && (r.ownKind === 'ship' || r.ownKind === 'config')) return r.classNameSlug;
+  return null;
+}
+
+function iconKindOf(r: ViewRow): SearchIconKind {
+  switch (r.type) {
+    case 'hit': return hitIconKind(r.hit);
+    case 'own': return r.ownKind === 'item' ? 'stock' : r.ownKind === 'set' ? 'set' : r.ownKind === 'config' ? 'config' : 'ship';
+    case 'patch': return 'patch';
+    case 'gallery': return 'gallery';
+    case 'place': return 'page';
+  }
+}
+
+function hitIconKind(h: PolySearchHit): SearchIconKind {
+  const k: PolyHitKind = h.kind;
+  return k in SEARCH_KIND_ICONS ? (k as SearchIconKind) : 'item';
 }

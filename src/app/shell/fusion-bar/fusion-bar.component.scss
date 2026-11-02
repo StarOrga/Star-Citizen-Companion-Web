@@ -94,13 +94,14 @@
   background: var(--sc-sub-fill);
   box-shadow: var(--sc-lift-shadow);
 }
-// Open search: the page behind dims softly (gradient scrim), the card floats above it.
+// Open search: the page behind is darkened strongly (concept 2026-11-02 A8, scrim ~ .82),
+// nothing else is shown there; the card floats above it.
 .scrim {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: var(--sc-scrim);
+  background: color-mix(in srgb, var(--sc-depth) 82%, transparent);
   animation: fb-scrim-in 0.24s ease both;
 }
 @keyframes fb-scrim-in {

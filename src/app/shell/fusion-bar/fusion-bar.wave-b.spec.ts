@@ -21,7 +21,6 @@ import { ShellChromeService } from './shell-chrome.service';
 @Component({ selector: 'sc-fusion-search', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '<ng-content />' })
 class FusionSearchStub {
   readonly placement = input<'top' | 'bottom'>('top');
-  readonly hideContext = input(false);
   readonly compact = input(false);
   readonly demo = input(false);
   readonly openChange = output<boolean>();
@@ -73,16 +72,14 @@ describe('FusionBarComponent, wave B parity', () => {
 
   afterEach(() => document.querySelectorAll('sc-fusion-bar').forEach((n) => n.remove()));
 
-  it('docked on a main page: no context chip in the field (the plate names the area), the demo only while staged', async () => {
+  it('docked on a main page: the demo only while staged (chips are always shown, concept 2026-11-02 C3)', async () => {
     layout.set('cinematic');
     const fixture = await setup('/verse');
     const search = () => fixture.debugElement.query(By.directive(FusionSearchStub)).componentInstance as FusionSearchStub;
     expect(search().demo()).toBeTrue();
-    expect(search().hideContext()).toBeTrue();
     fixture.componentInstance.onScroll(200);
     fixture.detectChanges();
     expect(fixture.nativeElement.getAttribute('data-mode')).toBe('docked');
-    expect(search().hideContext()).withContext('docked: no chip').toBeTrue();
     expect(search().demo()).withContext('docked: no demo').toBeFalse();
     // Ruhige Leiste (concept 2026-11-01): no light line along the docked bar any more, depth only;
     // the echo frames belong to the staged field.
