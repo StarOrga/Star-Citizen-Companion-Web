@@ -376,6 +376,23 @@ def _loadout_pairs(entries: Any, _depth: int = 0) -> List[Tuple[str, str]]:
     return out
 
 
+def _scu_of(node: Any) -> Optional[float]:
+    """SCU off a cargo-unit struct: `SStandardCargoUnit{standardCargoUnits}`,
+    `SCentiCargoUnit{centiSCU}` or `SMicroCargoUnit{microSCU}`."""
+    if not isinstance(node, dict):
+        return None
+    scu = _to_float(node.get("standardCargoUnits"))
+    if scu is not None:
+        return scu
+    centi = _to_float(node.get("centiSCU"))
+    if centi is not None:
+        return centi / 100.0
+    micro = _to_float(node.get("microSCU"))
+    if micro is not None:
+        return micro / 1_000_000.0
+    return None
+
+
 def _default_loadout_of(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The stock fit of an entity, from its components. Empty when it has none."""
     dl = _find_component(comps, "SEntityComponentDefaultLoadoutParams")
@@ -1907,43 +1924,121 @@ class CodexExtractor:
 
     def _cargo_scu(self, loadout: List[Dict[str, Any]]) -> Optional[float]:
         """Total stock cargo capacity in SCU, or ``None`` when the ship has no
-        cargo grid at all (a fighter must read as "no cargo hold", not 0 SCU)."""
-        total = 0.0
-        found = False
-        for port, cls in _loadout_pairs(loadout):
-            if "cargo" not in f"{port} {cls}".lower():
-                continue  # cheap gate: never resolve a ship's whole loadout
-            volume = self._container_volume(self._entity_class_comps(cls))
-            if volume is None:
-                continue
-            found = True
-            total += volume / (self._SCU_EDGE_M ** 3)
-        if not found:
-            return None
-        return round(total, 2)
+        sized hold at all (a fighter must read as "no cargo hold", not 0 SCU)."""
+        return self._cargo_measure(loadout)[0]
 
-    # Names that mark a cargo-carrying feature which is NOT an inventory
-    # container: the Nomad's open bed is a door entity, and every cargo-capable
-    # hull carries a cargo controller. Neither states a capacity.
+    # Names that mark a cargo-carrying entry. A cheap gate, so a ship's whole
+    # loadout is never resolved: only these entries are looked up.
     _CARGO_EVIDENCE = ("cargo", "freight")
 
     def _cargo_status(self, loadout: List[Dict[str, Any]]) -> str:
         """Why `cargoScu` is what it is — `"measured"`, `"unmeasured"` or
         `"none"`.
 
-        `cargoScu` alone cannot carry this: a Gladius (no hold at all) and a
-        Nomad (an open bed the client files never size) are both null. The UI
-        must say "Kein Laderaum" only for the first, and disclose a gap for the
-        second — see `_cargo_scu` and the `cargoScu` note in
-        docs/concepts/codex-extraction-output.md.
+        `measured`: at least one cargo entry carries a sized container (an
+        inventory container with interior dimensions, or a resource container
+        with an SCU capacity — the ore pods of a Prospector / MOLE / Golem).
+        `none`: no such container — no hold at all, or only things that are
+        named after cargo but hold nothing in the game files (a door like the
+        Nomad's bed, a lift, a grid whose `containerParams` is null).
+        `unmeasured`: a container IS referenced but its record could not be
+        resolved — the one case where the files do say "there is a hold" and
+        we cannot size it. Never filled with an invented SCU (#842).
         """
-        if self._cargo_scu(loadout) is not None:
+        total, unresolved = self._cargo_measure(loadout)
+        if total is not None:
             return "measured"
-        for port, cls in _loadout_pairs(loadout):
-            haystack = f"{port} {cls}".lower()
-            if any(word in haystack for word in self._CARGO_EVIDENCE):
-                return "unmeasured"
-        return "none"
+        return "unmeasured" if unresolved else "none"
+
+    def _cargo_measure(self, loadout: List[Dict[str, Any]]) -> Tuple[Optional[float], bool]:
+        """``(total SCU or None, any container unresolvable)`` over every cargo
+        entry of a stock loadout — memoised per loadout, since `_cargo_scu` and
+        `_cargo_status` both ask."""
+        memo = getattr(self, "_cargo_memo", None)
+        if memo is None:
+            memo = self._cargo_memo = {}
+        key = id(loadout)
+        hit = memo.get(key)
+        if hit is not None and hit[0] is loadout:
+            return hit[1]
+        total = 0.0
+        found = False
+        unresolved = False
+        for _port, cls in self._cargo_entries(loadout):
+            comps = self._entity_class_comps(cls)
+            scu = self._hold_scu(comps)
+            if scu is None:
+                unresolved = unresolved or self._container_unresolved(comps)
+                continue
+            found = True
+            total += scu
+        result = (round(total, 2) if found else None, unresolved)
+        memo[key] = (loadout, result)
+        return result
+
+    def _cargo_entries(self, loadout: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
+        """``(port, class)`` of every cargo entry of a stock loadout.
+
+        Nested entries are walked as listed. VERIFIED LIVE 4.10 (#842): many
+        hulls do not list their grid at all — it hangs in the OWN default
+        loadout of the item they install: the Mustang's `Cargo_Rack`, the
+        Constellation's cargo-bay door, the 400i / SRV / Perseus / Fortune
+        lifts, the Aurora GS rack, the Cyclone module, the F7C cargo mod. So a
+        cargo entry whose ship loadout lists no sub-items is expanded one hop
+        into its own stock fit (recursively, depth-capped, never twice)."""
+        out: List[Tuple[str, str]] = []
+
+        def walk(entries: Any, depth: int, seen: frozenset) -> None:
+            if not isinstance(entries, list) or depth > _LOADOUT_MAX_DEPTH:
+                return
+            for e in entries:
+                if not isinstance(e, dict):
+                    continue
+                cls = e.get("entityClassName")
+                if not isinstance(cls, str) or not cls:
+                    continue
+                port = str(e.get("itemPortName") or "")
+                evident = any(w in f"{port} {cls}".lower() for w in self._CARGO_EVIDENCE)
+                if evident:
+                    out.append((port, cls))
+                children = e.get("entries")
+                if children:
+                    walk(children, depth + 1, seen)
+                elif evident and cls not in seen:
+                    walk(_default_loadout_of(self._entity_class_comps(cls)), depth + 1, seen | {cls})
+
+        walk(loadout, 0, frozenset())
+        return out
+
+    def _hold_scu(self, comps: List[Dict[str, Any]]) -> Optional[float]:
+        """SCU of one cargo item: its inventory container's interior volume
+        ÷ 1.25³, else a resource container's own SCU capacity (ore pods;
+        VERIFIED LIVE 4.10: `Cargo_ShipMining_Pod_Mole` 12, `_Prospector` 8,
+        `_Golem` 16, a collapsed pod 0). None when it states no size."""
+        volume = self._container_volume(comps)
+        if volume is not None:
+            return volume / (self._SCU_EDGE_M ** 3)
+        for c in comps:
+            if isinstance(c, dict) and c.get("_Type_") == "ResourceContainer":
+                scu = _scu_of(c.get("capacity"))
+                if scu is not None:
+                    return scu
+        return None
+
+    def _container_unresolved(self, comps: List[Dict[str, Any]]) -> bool:
+        """True when an item references a container record (`containerParams`
+        with a record id) that yields no interior dimensions — a hold the files
+        name but we could not size. A null `containerParams` is NOT this: such
+        a grid has no container in the game files and holds nothing."""
+        for c in comps:
+            if not isinstance(c, dict):
+                continue
+            for field in self._CARGO_CONTAINER_FIELDS:
+                params = c.get(field)
+                if isinstance(params, dict) and params.get("_RecordId_") \
+                        and self._interior_dimensions(params) is None:
+                    return True
+        return False
 
     def _container_volume(self, comps: List[Dict[str, Any]]) -> Optional[float]:
         """Interior volume (m³) of the first inventory container on an item."""

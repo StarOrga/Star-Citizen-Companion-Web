@@ -226,14 +226,26 @@ interface Ship extends BaseEntity {
                            // resolved: without that gate a Gladius' seat-access
                            // locker (8 m3 = 4.1 SCU) would read as cargo hold.
   cargoStatus: 'measured' | 'unmeasured' | 'none';
-                           // WHY cargoScu is what it is. A fighter and a Nomad
-                           // are both `cargoScu: null`, and the UI must not say
-                           // the same thing about them: "none" earns the ghost
-                           // chip "Kein Laderaum", "unmeasured" earns a GAP.
-                           // Re-verified independently 2026-09-05 against LIVE
-                           // 4.9.0: of the Nomad's 87 stock loadout pairs, ZERO
-                           // carry SCItemInventoryContainerComponentParams,
-                           // while the Cutlass Black carries two (46 SCU).
+                           // WHY cargoScu is what it is (rules since #842,
+                           // uploader 0.69.0, verified LIVE 4.10.2):
+                           // "measured" = a cargo entry carries a sized container
+                           // — an inventory container's interior volume, or a
+                           // ResourceContainer's SCU capacity (ore pods). A cargo
+                           // entry the ship lists WITHOUT sub-items is expanded
+                           // into its own stock fit: the Mustang rack, the
+                           // Constellation bay door, the 400i/SRV/Perseus/Fortune
+                           // lifts hold their grid there (69 → 0 unmeasured;
+                           // Taurus 6 → 174, Starlancer Max 96 → 224 SCU).
+                           // "none" = no sized container: no hold at all, or
+                           // only cargo-NAMED things that hold nothing in the
+                           // files (the Nomad's bed door, a grid whose
+                           // containerParams is null — Ursa, Javelin, F7C).
+                           // Owner decision 2026-11-02: no invented SCU, so the
+                           // Nomad reads "none" although RSI quotes 24 SCU.
+                           // "unmeasured" = a container record IS referenced but
+                           // could not be resolved — rare, a real gap.
+                           // Before #842 every cargo-named entry without a sized
+                           // grid was "unmeasured" (69 hulls on LIVE 4.10.2).
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[]; // stock hardpoint → item className map
   // WHERE each hardpoint sits on the hull, parsed from the ship's .cga helper
