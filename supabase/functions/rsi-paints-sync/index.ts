@@ -59,13 +59,24 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey, { auth: { persistSession: false } });
   try {
     // Known ships of the LIVE build: norm -> display name / class_name.
-    const { data: ships, error } = await admin
-      .from('codex_ships')
-      .select('class_name, name_localized, codex_builds!inner(is_current, channel)')
-      .eq('codex_builds.is_current', true)
-      .eq('codex_builds.channel', 'LIVE')
-      .eq('is_variant', false)
-      .limit(2000);
+    // Two plain reads: codex_ships is a view since 20261102100000, and an
+    // embed through a view depends on PostgREST inferring the FK.
+    const { data: live, error: buildError } = await admin
+      .from('codex_builds')
+      .select('id')
+      .eq('is_current', true)
+      .eq('channel', 'LIVE')
+      .limit(1)
+      .maybeSingle();
+    if (buildError) throw buildError;
+    const { data: ships, error } = live
+      ? await admin
+        .from('codex_ships')
+        .select('class_name, name_localized')
+        .eq('build_id', live.id)
+        .eq('is_variant', false)
+        .limit(2000)
+      : { data: [], error: null };
     if (error) throw error;
     const classByNorm = new Map<string, string>();
     const knownShips = new Map<string, string>();

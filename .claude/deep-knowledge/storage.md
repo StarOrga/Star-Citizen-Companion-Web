@@ -71,8 +71,10 @@ copies the existing objects (dry run unless `--apply`); a change to
   ~10 % of the catalog adds only those bodies. `codex_entity_strings` is a view
   derived from the payloads (no table). Retention is therefore **3** builds
   (`prune_codex_builds(3)`, same cron job, followed by `codex_gc_payloads()`
-  for unreferenced bodies). The reclaim jobs vacuum the `*_rows` tables and
-  `codex_payloads`; the `codex_entity_strings` job is gone. Measured before:
+  for unreferenced bodies). The reclaim jobs vacuum the `*_rows` tables; `codex_payloads` gets **no**
+  nightly VACUUM FULL (every codex read joins it — its lock would stall the
+  whole Codex), GC + autovacuum reuse the space. The `codex_entity_strings`
+  job is gone. Measured before:
   259 MB with 2 builds (105 MB payload, 75 MB of it distinct; strings 47 MB).
 - `codex_locale_strings` moved to R2 (2026-10-03, § Localization strings).
   The table is now only an ingest's staging area.

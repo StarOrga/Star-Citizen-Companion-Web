@@ -202,15 +202,8 @@ on conflict (channel, patch_version, build_number) do update
     const hdr = `insert into public.codex_ammunition (build_id, channel, patch_version, build_number, class_name, guid, speed, lifetime, size, payload) values`;
     files.push(...emit('60_ammunition', batched(rows, hdr).stmts, DEST));
   }
-  // strings
-  {
-    const rows = [...strings.values()];
-    const hdr = `insert into public.codex_entity_strings (build_id, channel, patch_version, build_number, entity_class_name, entity_kind, lang, field, value, loc_key) values`;
-    const tail = ` on conflict (build_id, entity_class_name, lang, field) do nothing`;
-    const stmts = [];
-    for (let i = 0; i < rows.length; i += BATCH) stmts.push(`${hdr}\n${rows.slice(i, i + BATCH).join(',\n')}${tail};`);
-    files.push(...emit('70_strings', stmts, DEST));
-  }
+  // strings: codex_entity_strings is a view derived from the payloads since
+  // 20261102100000 — the collected `strings` are no longer emitted.
   // ports
   {
     const hdr = `insert into public.codex_item_ports (build_id, channel, patch_version, build_number, parent_class_name, parent_kind, port_name, min_size, max_size, types, flags, port_index, helper_name, position, rotation) values`;

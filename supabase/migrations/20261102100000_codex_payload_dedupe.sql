@@ -16,9 +16,13 @@
 --     _manufacturers / _ammunition: the table becomes <name>_rows (promoted
 --     columns + payload_sha + search_text, every index, policy and FK kept)
 --     and <name> becomes a security_invoker VIEW with the old columns.
---     `payload` comes from the blob; the build stamp `source`
---     ({channel, patch, build}) is not stored — it equalled the row's build
---     columns on all 54 820 rows — and the view adds it back.
+--     `payload` is the blob as stored. The build stamp `source`
+--     ({channel, patch, build}) is dropped from it — it equalled the row's
+--     build columns on all 54 820 rows, which carry it from now on. The view
+--     does NOT add it back: rebuilding the document on every `payload` read
+--     would cost a full jsonb rebuild per reference on the hot RPC paths.
+--   * Every *_rows table references codex_payloads by FK, so the blob GC can
+--     never delete a body a concurrent ingest or carry is about to point at.
 --   * codex_silhouettes: the shape (view_box, path, bbox, anchors,
 --     unresolved) is the blob, codex_silhouettes_rows keeps the rest.
 --   * codex_entity_strings: DROPPED as a table (alpha data policy) and
@@ -38,12 +42,23 @@
 --   * Retention 3 builds (was 2): a further build now costs only its changed
 --     payloads. codex_gc_payloads() deletes unreferenced blobs after the prune.
 --
+-- ROLLOUT (red-team review 2026-11-02)
+--   Deploy ingest-catalog first (its fallback still works on the old
+--   layout), take a data dump of the codex tables, then push; VACUUM FULL by
+--   hand right after, before the next ingest. Reverse path, if ever needed:
+--   create table <t> as select * from <t> (the view), then indexes/policies.
+--   Writes on the views stay closed to anon/authenticated (revokes below):
+--   the INSTEAD OF trigger runs as definer and would bypass RLS otherwise.
+--
 -- DATA
 --   No payload is lost: every body moves into codex_payloads before the
 --   column is dropped. The dropped codex_entity_strings rows are derivable
 --   1:1 from the payloads (see above). Space comes back with the nightly
 --   VACUUM FULL jobs (retargeted below).
 -- ============================================================
+
+set lock_timeout = '15s';
+set statement_timeout = 0;
 
 -- ── blobs ───────────────────────────────────────────────────────────────────
 create table public.codex_payloads (
@@ -55,6 +70,7 @@ alter table public.codex_payloads enable row level security;
 create policy codex_payloads_anon_read on public.codex_payloads for select to anon using (true);
 create policy codex_payloads_authenticated_read on public.codex_payloads for select to authenticated using (true);
 grant select on public.codex_payloads to anon, authenticated;
+revoke insert, update, delete, truncate, references, trigger on public.codex_payloads from anon, authenticated;
 grant all on public.codex_payloads to service_role;
 
 create or replace function public.codex_blob_sha(p_body jsonb)
@@ -62,17 +78,10 @@ returns text language sql immutable parallel safe set search_path = '' as $$
   select encode(pg_catalog.sha256(pg_catalog.convert_to(p_body::text, 'UTF8')), 'hex')
 $$;
 
--- The payload without its build stamp — only when the stamp is exactly the
--- row's build; anything else stays in the body and the view leaves it alone.
-create or replace function public.codex_payload_body(p_payload jsonb, p_channel text, p_patch text, p_build text)
+-- The payload without its build stamp (the row's build columns carry it).
+create or replace function public.codex_payload_body(p_payload jsonb)
 returns jsonb language sql immutable parallel safe set search_path = '' as $$
-  select case
-    when p_payload is null then null
-    when p_payload ? 'source'
-     and p_payload -> 'source' = jsonb_build_object('channel', p_channel, 'patch', p_patch, 'build', p_build)
-    then p_payload - 'source'
-    else p_payload
-  end
+  select p_payload - 'source'
 $$;
 
 -- ── catalog tables → *_rows + view ──────────────────────────────────────────
@@ -80,9 +89,7 @@ do $m$
 declare
   t text;
   sel text;
-  payload_expr constant text :=
-    'case when p.body is null then null when p.body ? ''source'' then p.body '
-    'else p.body || jsonb_build_object(''source'', jsonb_build_object(''channel'', r.channel, ''patch'', r.patch_version, ''build'', r.build_number)) end as payload';
+  payload_expr constant text := 'p.body as payload';
 begin
   foreach t in array array['codex_manufacturers', 'codex_ships', 'codex_weapons', 'codex_components',
                            'codex_items', 'codex_ammunition', 'codex_blueprints'] loop
@@ -94,22 +101,26 @@ begin
      where table_schema = 'public' and table_name = t;
 
     execute format('alter table public.%I add column payload_sha text, add column search_text text', t);
+    -- One pass per table: the update computes the sha, its RETURNING feeds
+    -- the blobs (ON CONFLICT DO NOTHING absorbs duplicates without a sort).
     execute format($q$
+      with u as (
+        update public.%I
+           set payload_sha = public.codex_blob_sha(public.codex_payload_body(payload)),
+               search_text = public.codex_search_text(name_localized, payload)
+        returning payload_sha, public.codex_payload_body(payload) as body
+      )
       insert into public.codex_payloads (sha, body)
-      select distinct on (s) s, b
-        from (select public.codex_payload_body(payload, channel, patch_version, build_number) as b from public.%I) x
-        cross join lateral (select public.codex_blob_sha(x.b) as s) y
-       where x.b is not null
+      select payload_sha, body from u
       on conflict (sha) do nothing$q$, t);
-    execute format($q$
-      update public.%I
-         set payload_sha = public.codex_blob_sha(public.codex_payload_body(payload, channel, patch_version, build_number)),
-             search_text = public.codex_search_text(name_localized, payload)$q$, t);
+    execute format('alter table public.%I alter column payload_sha set not null', t);
 
     execute format('drop index if exists public.%I', t || '_search_trgm');
     execute format('alter table public.%I drop column payload', t);
     execute format('alter table public.%I rename to %I', t, t || '_rows');
     execute format('create index %I on public.%I (payload_sha)', t || '_payload_sha_idx', t || '_rows');
+    execute format('alter table public.%I add constraint %I foreign key (payload_sha) references public.codex_payloads (sha)',
+                   t || '_rows', t || '_payload_sha_fkey');
     if t <> 'codex_ammunition' then
       execute format('create index %I on public.%I using gin (search_text extensions.gin_trgm_ops)',
                      t || '_search_trgm', t || '_rows');
@@ -119,6 +130,9 @@ begin
       'create view public.%I with (security_invoker = true) as select %s from public.%I r left join public.codex_payloads p on p.sha = r.payload_sha',
       t, sel, t || '_rows');
     execute format('grant select on public.%I to anon, authenticated', t);
+    -- Default privileges grant ALL on a new view; the definer trigger below
+    -- would turn an anon INSERT into a write past RLS.
+    execute format('revoke insert, update, delete, truncate, references, trigger on public.%I from anon, authenticated', t);
     execute format('grant all on public.%I to service_role', t);
   end loop;
 end
@@ -126,20 +140,23 @@ $m$;
 
 -- ── silhouettes → codex_silhouettes_rows + view ─────────────────────────────
 alter table public.codex_silhouettes add column shape_sha text;
+with u as (
+  update public.codex_silhouettes
+     set shape_sha = public.codex_blob_sha(jsonb_build_object('view_box', view_box, 'path', path, 'bbox', bbox,
+                                                              'anchors', anchors, 'unresolved', unresolved))
+  returning shape_sha, jsonb_build_object('view_box', view_box, 'path', path, 'bbox', bbox,
+                                          'anchors', anchors, 'unresolved', unresolved) as body
+)
 insert into public.codex_payloads (sha, body)
-select distinct on (s) s, b
-  from (select jsonb_build_object('view_box', view_box, 'path', path, 'bbox', bbox,
-                                  'anchors', anchors, 'unresolved', unresolved) as b
-          from public.codex_silhouettes) x
-  cross join lateral (select public.codex_blob_sha(x.b) as s) y
+select shape_sha, body from u
 on conflict (sha) do nothing;
-update public.codex_silhouettes
-   set shape_sha = public.codex_blob_sha(jsonb_build_object('view_box', view_box, 'path', path, 'bbox', bbox,
-                                                            'anchors', anchors, 'unresolved', unresolved));
+alter table public.codex_silhouettes alter column shape_sha set not null;
 alter table public.codex_silhouettes
   drop column view_box, drop column path, drop column bbox, drop column anchors, drop column unresolved;
 alter table public.codex_silhouettes rename to codex_silhouettes_rows;
 create index codex_silhouettes_shape_sha_idx on public.codex_silhouettes_rows (shape_sha);
+alter table public.codex_silhouettes_rows
+  add constraint codex_silhouettes_shape_sha_fkey foreign key (shape_sha) references public.codex_payloads (sha);
 
 create view public.codex_silhouettes with (security_invoker = true) as
 select r.id, r.build_id, r.channel, r.patch_version, r.build_number, r.kind, r.class_name,
@@ -152,6 +169,7 @@ select r.id, r.build_id, r.channel, r.patch_version, r.build_number, r.kind, r.c
   from public.codex_silhouettes_rows r
   left join public.codex_payloads p on p.sha = r.shape_sha;
 grant select on public.codex_silhouettes to anon, authenticated;
+revoke insert, update, delete, truncate, references, trigger on public.codex_silhouettes from anon, authenticated;
 grant all on public.codex_silhouettes to service_role;
 
 -- ── entity strings: derived from the payloads ───────────────────────────────
@@ -184,6 +202,7 @@ select distinct on (s.build_id, s.class_name, l.lang, f.field)
    and (f.field <> 'vehicleName' or s.kind = 'ship')
  order by s.build_id, s.class_name, l.lang, f.field, s.prec desc;
 grant select on public.codex_entity_strings to anon, authenticated;
+revoke insert, update, delete, truncate, references, trigger on public.codex_entity_strings from anon, authenticated;
 grant all on public.codex_entity_strings to service_role;
 
 -- ── carry spec: base tables, no stored payload stamp any more ───────────────
@@ -345,7 +364,9 @@ end $$;
 -- ── writes ──────────────────────────────────────────────────────────────────
 -- Rows in the shape of the views (with `payload`, or the silhouette shape
 -- columns) → blob + *_rows upsert on the natural key. Entity strings are
--- derived: accepted and dropped.
+-- derived: accepted and dropped. Like a PostgREST upsert, only the columns
+-- the batch names are written: an absent column keeps its default on insert
+-- and its value on conflict.
 create or replace function public.codex_upsert_rows(p_table text, p_rows jsonb)
 returns integer
 language plpgsql security definer set search_path = '' as $$
@@ -367,12 +388,20 @@ begin
   select * into v_spec from public.codex_carry_spec(p_table);
 
   if p_table = 'codex_silhouettes' then
+    if exists (select 1 from jsonb_array_elements(p_rows) r
+                where coalesce(r ->> 'view_box', '') = '' or coalesce(r ->> 'path', '') = ''
+                   or jsonb_typeof(r -> 'bbox') is distinct from 'object') then
+      raise exception 'codex_upsert_rows: silhouette rows need view_box, path and bbox' using errcode = '23502';
+    end if;
     v_body := $b$jsonb_build_object('view_box', r -> 'view_box', 'path', r -> 'path', 'bbox', r -> 'bbox',
                                     'anchors', coalesce(r -> 'anchors', '[]'::jsonb),
                                     'unresolved', coalesce(r -> 'unresolved', '[]'::jsonb))$b$;
     v_extra := $e$jsonb_build_object('shape_sha', public.codex_blob_sha(body))$e$;
   else
-    v_body := $b$public.codex_payload_body(r -> 'payload', r ->> 'channel', r ->> 'patch_version', r ->> 'build_number')$b$;
+    if exists (select 1 from jsonb_array_elements(p_rows) r where jsonb_typeof(r -> 'payload') is distinct from 'object') then
+      raise exception 'codex_upsert_rows: every row needs a payload object' using errcode = '23502';
+    end if;
+    v_body := $b$public.codex_payload_body(r -> 'payload')$b$;
     v_extra := $e$jsonb_build_object('payload_sha', public.codex_blob_sha(body),
                                      'search_text', public.codex_search_text(r ->> 'name_localized', r -> 'payload'))$e$;
   end if;
@@ -380,7 +409,9 @@ begin
   select array_agg(column_name::text order by ordinal_position) into v_cols
   from information_schema.columns
   where table_schema = 'public' and table_name = v_spec.base
-    and column_name not in ('id', 'created_at');
+    and column_name not in ('id', 'created_at')
+    and (column_name in ('payload_sha', 'search_text', 'shape_sha')
+         or column_name in (select distinct k from jsonb_array_elements(p_rows) r, jsonb_object_keys(r) k));
   select string_agg(format('%I', c), ', '), string_agg(format('%I = excluded.%I', c, c), ', ')
     into v_list, v_upd from unnest(v_cols) c;
 
@@ -390,8 +421,7 @@ begin
     ),
     blobs as (
       insert into public.codex_payloads (sha, body)
-      select distinct on (s) s, body
-        from (select body, public.codex_blob_sha(body) as s from src where body is not null) x
+      select public.codex_blob_sha(body), body from src
       on conflict (sha) do nothing
       returning 1
     ),
@@ -414,10 +444,14 @@ create or replace function public.codex_view_insert()
 returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  perform public.codex_upsert_rows(tg_table_name, jsonb_build_array(to_jsonb(new)));
+  -- NEW carries every view column; the unset ones (null) stay out, so the
+  -- base table's defaults apply as they did for a plain INSERT.
+  perform public.codex_upsert_rows(tg_table_name, jsonb_build_array(
+    (select jsonb_object_agg(e.key, e.value) from jsonb_each(to_jsonb(new)) e where e.value <> 'null'::jsonb)));
   return new;
 end $$;
 revoke all on function public.codex_view_insert() from public, anon, authenticated;
+revoke all on function public.codex_payload_body(jsonb) from public, anon, authenticated;
 
 do $t$
 declare t text;
@@ -550,14 +584,18 @@ end
 $function$;
 
 -- Blobs no row references any more (pruned builds). The hour of grace keeps
--- a blob an ingest just wrote even if its row lands in a later batch.
+-- a blob an ingest just wrote even if its row lands in a later batch. A
+-- concurrent ingest pointing at a blob holds a key-share lock on it (FK), so
+-- SKIP LOCKED leaves that blob alone instead of failing the whole sweep.
 create or replace function public.codex_gc_payloads()
 returns integer
 language plpgsql security definer set search_path = '' as $$
 declare v_n integer;
 begin
-  delete from public.codex_payloads p
-   where p.created_at < now() - interval '1 hour'
+  delete from public.codex_payloads d
+   where d.sha in (
+    select p.sha from public.codex_payloads p
+     where p.created_at < now() - interval '1 hour'
      and not exists (select 1 from public.codex_items_rows r where r.payload_sha = p.sha)
      and not exists (select 1 from public.codex_components_rows r where r.payload_sha = p.sha)
      and not exists (select 1 from public.codex_weapons_rows r where r.payload_sha = p.sha)
@@ -565,7 +603,8 @@ begin
      and not exists (select 1 from public.codex_blueprints_rows r where r.payload_sha = p.sha)
      and not exists (select 1 from public.codex_manufacturers_rows r where r.payload_sha = p.sha)
      and not exists (select 1 from public.codex_ammunition_rows r where r.payload_sha = p.sha)
-     and not exists (select 1 from public.codex_silhouettes_rows r where r.shape_sha = p.sha);
+     and not exists (select 1 from public.codex_silhouettes_rows r where r.shape_sha = p.sha)
+     for update skip locked);
   get diagnostics v_n = row_count;
   return v_n;
 end $$;
@@ -573,12 +612,14 @@ revoke all on function public.codex_gc_payloads() from public, anon, authenticat
 grant execute on function public.codex_gc_payloads() to service_role;
 
 -- ── cron: retention 3 + GC, VACUUM FULL on the new names ────────────────────
+-- codex_payloads gets no nightly VACUUM FULL: every codex read joins it, so
+-- its exclusive lock would stall the whole Codex; GC + autovacuum reuse the
+-- space instead.
 select cron.schedule('codex-build-retention', '30 3 * * *',
   $$ select count(*) from public.prune_codex_builds(3); select public.codex_gc_payloads(); $$);
 select cron.unschedule('codex-storage-reclaim-codex_entity_strings')
  where exists (select 1 from cron.job where jobname = 'codex-storage-reclaim-codex_entity_strings');
 select cron.schedule('codex-storage-reclaim-codex_items', '45 4 * * *', 'vacuum full public.codex_items_rows');
-select cron.schedule('codex-storage-reclaim-codex_payloads', '46 4 * * *', 'vacuum full public.codex_payloads');
 select cron.schedule('codex-storage-reclaim-codex_components', '48 4 * * *', 'vacuum full public.codex_components_rows');
 select cron.schedule('codex-storage-reclaim-codex_blueprints', '49 4 * * *', 'vacuum full public.codex_blueprints_rows');
 select cron.schedule('codex-storage-reclaim-codex_weapons', '50 4 * * *', 'vacuum full public.codex_weapons_rows');
