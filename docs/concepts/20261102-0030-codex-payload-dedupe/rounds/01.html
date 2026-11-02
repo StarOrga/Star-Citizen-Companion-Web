@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="decision">
+<section data-iteration="1" data-iteration-template="decision" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <style>
     .d1-cpd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
     .d1-cpd-grid .variant-card h3 { margin: 0 0 .35rem; font-size: 1.05rem; }
@@ -71,7 +72,7 @@
     <section id="d-weg" data-nav-label="Speicherweg" data-decision="d-weg" data-decision-mode="single"
              data-label="Speicherweg" data-rec="views"
              data-rec-why="Spart ~70 MB, ohne dass App-Code oder Tabellennamen sich ändern; nur Suche und RPC-Zeiten müssen neu geprüft werden."
-             data-applies-to="Codex-Datenbank · alle Leser" data-finding="f-weg">
+             data-applies-to="Codex-Datenbank · alle Leser" data-finding="f-weg"><input type="hidden" name="dm-d-weg-hes" value="{&quot;ms&quot;:19522,&quot;revisits&quot;:0,&quot;median&quot;:22966}">
       <p data-applies>Gilt für: Codex-Datenbank und alle Leser</p>
       <p data-situation>Heute speichert jeder Build alle ~27k Payloads neu; ~96 % davon gleichen dem Vorgänger. Die DB steht bei 259 von 500 MB.</p>
       <h3 data-question>Wie speichern wir Codex-Payloads künftig?</h3>
@@ -111,7 +112,7 @@
     <section id="d-umfang" data-nav-label="Umfang" data-decision="d-umfang" data-decision-mode="multi"
              data-label="Umfang" data-rec="items components weapons ships blueprints strings"
              data-rec-why="Diese sechs tragen ~97 % des doppelten Speichers; Hersteller, Munition und Silhouetten sind zusammen unter 10 MB."
-             data-applies-to="Weg B · welche Tabellen" data-finding="f-umfang">
+             data-applies-to="Weg B · welche Tabellen" data-finding="f-umfang"><input type="hidden" name="dm-d-umfang-hes" value="{&quot;ms&quot;:26410,&quot;revisits&quot;:0,&quot;median&quot;:22966}">
       <p data-applies>Gilt für: welche Tabellen dedupliziert werden</p>
       <p data-situation>Items-Payload (51 MB) und Entity-Strings (47 MB) machen fast drei Viertel aus. Hersteller, Munition und Silhouetten sind jeweils unter 8 MB.</p>
       <h3 data-question>Welche Tabellen speichern ihre Inhalte nur noch einmal?</h3>
@@ -122,7 +123,7 @@
         <label data-opt="ships" data-recommended><input type="checkbox" name="dm-d-umfang.ships" checked><span data-opt-label>Schiffe</span><span data-opt-consequence>8 MB; ändern sich oft mit dem Extraktor.</span></label>
         <label data-opt="blueprints" data-recommended><input type="checkbox" name="dm-d-umfang.blueprints" checked><span data-opt-label>Blueprints</span><span data-opt-consequence>10 MB.</span></label>
         <label data-opt="strings" data-recommended><input type="checkbox" name="dm-d-umfang.strings" checked><span data-opt-label>Entity-Strings</span><span data-opt-consequence>47 MB, eine eigene Wert-Tabelle nach Hash.</span></label>
-        <label data-opt="small"><input type="checkbox" name="dm-d-umfang.small"><span data-opt-label>Hersteller, Munition, Silhouetten</span><span data-opt-consequence>Zusammen unter 10 MB, aber dreimal mehr Umbau.</span></label>
+        <label data-opt="small"><input type="checkbox" name="dm-d-umfang.small" checked><span data-opt-label>Hersteller, Munition, Silhouetten</span><span data-opt-consequence>Zusammen unter 10 MB, aber dreimal mehr Umbau.</span></label>
       </div>
       <textarea data-comment="d-umfang-note" placeholder="Notiz (optional)"></textarea>
       <div data-alevel="3" data-title="Umfang">
@@ -137,7 +138,7 @@
     <section id="d-suche" data-nav-label="Suchindex" data-decision="d-suche" data-decision-mode="single"
              data-label="Suchindex" data-rec="column"
              data-rec-why="Eine gespeicherte Spalte hält den Index auf der Zeilentabelle; codex_search bleibt eine reine Index-Abfrage ohne Join."
-             data-applies-to="codex_search · Trigram-Indizes" data-finding="f-suche">
+             data-applies-to="codex_search · Trigram-Indizes" data-finding="f-suche"><input type="hidden" name="dm-d-suche-hes" value="{&quot;ms&quot;:8978,&quot;revisits&quot;:0,&quot;median&quot;:22966}">
       <p data-applies>Gilt für: die Codex-Suche über deutsche Namen</p>
       <p data-situation>Die Suche nutzt heute einen Index auf <code>codex_search_text(name_localized, payload)</code>. Über eine View lässt sich dieser Ausdrucksindex nicht anlegen.</p>
       <h3 data-question>Wo liegt der Suchtext, wenn der Payload in eine eigene Tabelle wandert?</h3>
@@ -166,7 +167,7 @@
     <section id="d-retention" data-nav-label="Retention" data-decision="d-retention" data-decision-mode="slider"
              data-label="Retention" data-rec="3" data-unit="Builds"
              data-rec-why="Mit Dedup kostet ein dritter Build nur seine geänderten Zeilen (~10–20 MB); Patch-Auswahl und Diff reichen dann einen Patch weiter zurück."
-             data-applies-to="prune_codex_builds · nächtlicher Job" data-finding="f-retention">
+             data-applies-to="prune_codex_builds · nächtlicher Job" data-finding="f-retention"><input type="hidden" name="dm-d-retention-hes" value="{&quot;ms&quot;:32190,&quot;revisits&quot;:1,&quot;median&quot;:22966}">
       <p data-applies>Gilt für: den nächtlichen Job prune_codex_builds</p>
       <p data-situation>Heute bleiben 2 Builds, weil jeder weitere ~120 MB kostet. Nach dem Umbau kostet ein Build nur noch seine geänderten Zeilen.</p>
       <h3 data-question>Wie viele Builds je Kanal hält die Datenbank danach?</h3>

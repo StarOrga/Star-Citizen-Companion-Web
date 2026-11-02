@@ -3,7 +3,7 @@
      It MUST be written at generation time with the active iteration's
      data-iteration-template value (normalised), otherwise the page paints the
      wrong layout for one frame before showIteration() runs. -->
-<html lang="de" data-theme="dark" data-page-version="2026-11-02T07:40:40" data-template="decision">
+<html lang="de" data-theme="dark" data-page-version="2026-11-02T07:40:40" data-template="free">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5539,7 +5539,8 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       </header>
 
       <main>
-<section data-iteration="1" data-iteration-template="decision" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <style>
     .d1-cpd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
     .d1-cpd-grid .variant-card h3 { margin: 0 0 .35rem; font-size: 1.05rem; }
@@ -5612,34 +5613,34 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <section id="d-weg" data-nav-label="Speicherweg" data-decision="d-weg" data-decision-mode="single"
              data-label="Speicherweg" data-rec="views"
              data-rec-why="Spart ~70 MB, ohne dass App-Code oder Tabellennamen sich ändern; nur Suche und RPC-Zeiten müssen neu geprüft werden."
-             data-applies-to="Codex-Datenbank · alle Leser" data-finding="f-weg">
+             data-applies-to="Codex-Datenbank · alle Leser" data-finding="f-weg"><input type="hidden" name="dm-d-weg-hes" value="{&quot;ms&quot;:19522,&quot;revisits&quot;:0,&quot;median&quot;:22966}" disabled>
       <p data-applies>Gilt für: Codex-Datenbank und alle Leser</p>
       <p data-situation>Heute speichert jeder Build alle ~27k Payloads neu; ~96 % davon gleichen dem Vorgänger. Die DB steht bei 259 von 500 MB.</p>
       <h3 data-question>Wie speichern wir Codex-Payloads künftig?</h3>
       <p data-stakes>Wie viele Builds wir halten können und wie viele Leser umgebaut werden.</p>
       <div data-options>
         <label data-opt="views" data-recommended>
-          <input type="radio" name="dm-d-weg" value="views" checked>
+          <input type="radio" name="dm-d-weg" value="views" checked disabled>
           <span data-opt-label>Payload-Tabelle hinter gleichnamigen Views</span>
           <span data-opt-consequence>~70 MB frei, die App merkt nichts; Suchindex und RPC-Zeiten werden nachgezogen.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-weg" value="keep">
+          <input type="radio" name="dm-d-weg" value="keep" disabled>
           <span data-opt-label>Bei Kopien pro Build bleiben</span>
           <span data-opt-consequence>Kein Umbau; jeder weitere Build kostet ~120 MB.</span>
         </label>
         <label data-opt="versioned">
-          <input type="radio" name="dm-d-weg" value="versioned">
+          <input type="radio" name="dm-d-weg" value="versioned" disabled>
           <span data-opt-label>Auf versionierte Zeilen umbauen</span>
           <span data-opt-consequence>~110 MB frei, aber jeder Leser und jede RPC wird umgeschrieben.</span>
         </label>
         <label data-opt="r2">
-          <input type="radio" name="dm-d-weg" value="r2">
+          <input type="radio" name="dm-d-weg" value="r2" disabled>
           <span data-opt-label>Payloads nach R2 auslagern</span>
           <span data-opt-consequence>~105 MB frei; Payload-Suchen in RPCs brauchen neue Spalten.</span>
         </label>
       </div>
-      <textarea data-comment="d-weg-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-weg-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Speicherweg">
         <div data-slot="short"><p>Weg B halbiert den Payload-Speicher, ohne die Leser anzufassen.</p></div>
         <div data-slot="long">
@@ -5652,20 +5653,20 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <section id="d-umfang" data-nav-label="Umfang" data-decision="d-umfang" data-decision-mode="multi"
              data-label="Umfang" data-rec="items components weapons ships blueprints strings"
              data-rec-why="Diese sechs tragen ~97 % des doppelten Speichers; Hersteller, Munition und Silhouetten sind zusammen unter 10 MB."
-             data-applies-to="Weg B · welche Tabellen" data-finding="f-umfang">
+             data-applies-to="Weg B · welche Tabellen" data-finding="f-umfang"><input type="hidden" name="dm-d-umfang-hes" value="{&quot;ms&quot;:26410,&quot;revisits&quot;:0,&quot;median&quot;:22966}" disabled>
       <p data-applies>Gilt für: welche Tabellen dedupliziert werden</p>
       <p data-situation>Items-Payload (51 MB) und Entity-Strings (47 MB) machen fast drei Viertel aus. Hersteller, Munition und Silhouetten sind jeweils unter 8 MB.</p>
       <h3 data-question>Welche Tabellen speichern ihre Inhalte nur noch einmal?</h3>
       <div data-options>
-        <label data-opt="items" data-recommended><input type="checkbox" name="dm-d-umfang.items" checked><span data-opt-label>Items</span><span data-opt-consequence>51 MB Payload, der größte Posten.</span></label>
-        <label data-opt="components" data-recommended><input type="checkbox" name="dm-d-umfang.components" checked><span data-opt-label>Komponenten</span><span data-opt-consequence>14 MB, zu 100 % gleich im Rebuild.</span></label>
-        <label data-opt="weapons" data-recommended><input type="checkbox" name="dm-d-umfang.weapons" checked><span data-opt-label>Waffen</span><span data-opt-consequence>8 MB.</span></label>
-        <label data-opt="ships" data-recommended><input type="checkbox" name="dm-d-umfang.ships" checked><span data-opt-label>Schiffe</span><span data-opt-consequence>8 MB; ändern sich oft mit dem Extraktor.</span></label>
-        <label data-opt="blueprints" data-recommended><input type="checkbox" name="dm-d-umfang.blueprints" checked><span data-opt-label>Blueprints</span><span data-opt-consequence>10 MB.</span></label>
-        <label data-opt="strings" data-recommended><input type="checkbox" name="dm-d-umfang.strings" checked><span data-opt-label>Entity-Strings</span><span data-opt-consequence>47 MB, eine eigene Wert-Tabelle nach Hash.</span></label>
-        <label data-opt="small"><input type="checkbox" name="dm-d-umfang.small"><span data-opt-label>Hersteller, Munition, Silhouetten</span><span data-opt-consequence>Zusammen unter 10 MB, aber dreimal mehr Umbau.</span></label>
+        <label data-opt="items" data-recommended><input type="checkbox" name="dm-d-umfang.items" checked disabled><span data-opt-label>Items</span><span data-opt-consequence>51 MB Payload, der größte Posten.</span></label>
+        <label data-opt="components" data-recommended><input type="checkbox" name="dm-d-umfang.components" checked disabled><span data-opt-label>Komponenten</span><span data-opt-consequence>14 MB, zu 100 % gleich im Rebuild.</span></label>
+        <label data-opt="weapons" data-recommended><input type="checkbox" name="dm-d-umfang.weapons" checked disabled><span data-opt-label>Waffen</span><span data-opt-consequence>8 MB.</span></label>
+        <label data-opt="ships" data-recommended><input type="checkbox" name="dm-d-umfang.ships" checked disabled><span data-opt-label>Schiffe</span><span data-opt-consequence>8 MB; ändern sich oft mit dem Extraktor.</span></label>
+        <label data-opt="blueprints" data-recommended><input type="checkbox" name="dm-d-umfang.blueprints" checked disabled><span data-opt-label>Blueprints</span><span data-opt-consequence>10 MB.</span></label>
+        <label data-opt="strings" data-recommended><input type="checkbox" name="dm-d-umfang.strings" checked disabled><span data-opt-label>Entity-Strings</span><span data-opt-consequence>47 MB, eine eigene Wert-Tabelle nach Hash.</span></label>
+        <label data-opt="small"><input type="checkbox" name="dm-d-umfang.small" checked disabled><span data-opt-label>Hersteller, Munition, Silhouetten</span><span data-opt-consequence>Zusammen unter 10 MB, aber dreimal mehr Umbau.</span></label>
       </div>
-      <textarea data-comment="d-umfang-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-umfang-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Umfang">
         <div data-slot="short"><p>Sechs Tabellen tragen fast den ganzen doppelten Speicher.</p></div>
         <div data-slot="long">
@@ -5678,23 +5679,23 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <section id="d-suche" data-nav-label="Suchindex" data-decision="d-suche" data-decision-mode="single"
              data-label="Suchindex" data-rec="column"
              data-rec-why="Eine gespeicherte Spalte hält den Index auf der Zeilentabelle; codex_search bleibt eine reine Index-Abfrage ohne Join."
-             data-applies-to="codex_search · Trigram-Indizes" data-finding="f-suche">
+             data-applies-to="codex_search · Trigram-Indizes" data-finding="f-suche"><input type="hidden" name="dm-d-suche-hes" value="{&quot;ms&quot;:8978,&quot;revisits&quot;:0,&quot;median&quot;:22966}" disabled>
       <p data-applies>Gilt für: die Codex-Suche über deutsche Namen</p>
       <p data-situation>Die Suche nutzt heute einen Index auf <code>codex_search_text(name_localized, payload)</code>. Über eine View lässt sich dieser Ausdrucksindex nicht anlegen.</p>
       <h3 data-question>Wo liegt der Suchtext, wenn der Payload in eine eigene Tabelle wandert?</h3>
       <div data-options>
         <label data-opt="column" data-recommended>
-          <input type="radio" name="dm-d-suche" value="column" checked>
+          <input type="radio" name="dm-d-suche" value="column" checked disabled>
           <span data-opt-label>Gespeicherte Suchspalte auf der Zeilentabelle</span>
           <span data-opt-consequence>Der Ingest füllt <code>search_text</code>; der Index und die Suche bleiben schnell.</span>
         </label>
         <label data-opt="payloadidx">
-          <input type="radio" name="dm-d-suche" value="payloadidx">
+          <input type="radio" name="dm-d-suche" value="payloadidx" disabled>
           <span data-opt-label>Index auf der Payload-Tabelle</span>
           <span data-opt-consequence>Kein Platz pro Zeile, aber jede Suche braucht einen Join auf die Treffer.</span>
         </label>
       </div>
-      <textarea data-comment="d-suche-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-suche-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Suchindex">
         <div data-slot="short"><p>Die Suchspalte kostet ~2–3 MB und hält die Suche ohne Join.</p></div>
         <div data-slot="long">
@@ -5707,12 +5708,12 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <section id="d-retention" data-nav-label="Retention" data-decision="d-retention" data-decision-mode="slider"
              data-label="Retention" data-rec="3" data-unit="Builds"
              data-rec-why="Mit Dedup kostet ein dritter Build nur seine geänderten Zeilen (~10–20 MB); Patch-Auswahl und Diff reichen dann einen Patch weiter zurück."
-             data-applies-to="prune_codex_builds · nächtlicher Job" data-finding="f-retention">
+             data-applies-to="prune_codex_builds · nächtlicher Job" data-finding="f-retention"><input type="hidden" name="dm-d-retention-hes" value="{&quot;ms&quot;:32190,&quot;revisits&quot;:1,&quot;median&quot;:22966}" disabled>
       <p data-applies>Gilt für: den nächtlichen Job prune_codex_builds</p>
       <p data-situation>Heute bleiben 2 Builds, weil jeder weitere ~120 MB kostet. Nach dem Umbau kostet ein Build nur noch seine geänderten Zeilen.</p>
       <h3 data-question>Wie viele Builds je Kanal hält die Datenbank danach?</h3>
-      <input type="range" name="dm-d-retention" min="2" max="6" step="1" value="3">
-      <textarea data-comment="d-retention-note" placeholder="Notiz (optional)"></textarea>
+      <input type="range" name="dm-d-retention" min="2" max="6" step="1" value="3" disabled>
+      <textarea data-comment="d-retention-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Retention">
         <div data-slot="short"><p>Ein Build mehr kostet nach dem Umbau ~10–20 MB statt ~120 MB.</p></div>
         <div data-slot="long">
@@ -5722,6 +5723,110 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       </div>
     </section>
   </section>
+</section>
+
+<section id="iter-2" data-iteration="2" data-iteration-template="free" data-final-report data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Codex-Payloads nur einmal speichern</h2>
+  </div>
+
+  <ol class="fr-flow">
+    <li>Uploader schickt einen neuen Build</li>
+    <li>Unveränderte Objekte zeigen auf den schon gespeicherten Inhalt</li>
+    <li>Nur geänderte Inhalte kommen neu dazu</li>
+    <li>Der Nachtjob räumt Inhalte ohne Build weg</li>
+  </ol>
+
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">Jeder Codex-Inhalt liegt jetzt genau einmal in der Datenbank, die Codex-Seiten lesen ihn unverändert über gleichnamige Views, und es bleiben 3 Builds statt 2.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">📦</span><span>Datenbank <b>259 → 185 MB</b>, obwohl jetzt mehr Builds bleiben.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🔁</span><span>Ein neuer Build kostet <b>nur seine Änderungen</b>.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🔎</span><span>Die Codex-Suche ist <b>rund 7× schneller</b>.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 92%; --fr-target: 70%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">72 ms</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">für eine Item-Suche auf Prod, vorher 547 ms; Ziel höchstens so schnell wie vorher (geschätzt). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧮 Datenintegrität</span>
+          <b class="fr-meter-value">57 153 / 57 153</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Namen und Beschreibungen des LIVE-Builds kommen nach der Umstellung identisch heraus, kein Verweis zeigt ins Leere. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🛡 Sicherheit</span>
+          <b class="fr-meter-value">0 Schreibzugriffe</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Ein Schreibversuch mit dem öffentlichen Schlüssel wird auf Prod abgelehnt, Lesen geht weiter. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Live vertestet<small>Stufe {n} von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="na">Lokal durchgespielt</li>
+      <li data-level="5" data-state="done">Prod-Build geprüft</li>
+      <li data-level="6" data-state="done">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Die Codex-Seiten selbst habe ich nicht im Browser angesehen, weil sie eine Anmeldung brauchen. Geprüft habe ich stattdessen die Datenschnittstelle auf Prod. Ein echter Upload über das neue Speicherformat steht noch aus.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 Fund unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-strings-filter"
+          data-issue-title="[CHORE] Guard codex_entity_strings reads without a build filter"
+          data-issue-type="chore"
+          data-issue-body="Since 20261102100000 codex_entity_strings is a view that derives strings from codex_payloads (DISTINCT ON over a UNION ALL of the six *_rows tables). The app always filters build_id + entity_class_name (eq), which pushes down to the (build_id, class_name) indexes (~2 ms on prod). An anon PostgREST read filtered only on value / loc_key / channel, or without filters, derives every string of every build (~100k payload decompressions, several seconds of CPU on Free compute) — a cheap amplifier. Red-team finding R10 of the dedupe review, accepted for the alpha. Fix shape: expose the strings through an RPC that requires build_id (and revoke direct select on the view from anon), or monitor PostgREST logs for such reads first."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="riskant">
+        <span class="oq-label">Strings-View ohne Build-Filter teuer</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Wer die Namensliste ohne Build-Filter abfragt, lässt die Datenbank alle Builds neu ableiten.</dd>
+          <dt>Wo</dt><dd>Öffentliche Datenschnittstelle des Codex</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — riskant, ändert einen öffentlichen Zugriff, die App selbst ist nicht betroffen.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-upload" data-crit="mid" data-guide="">Nächsten Codex-Upload kurz ansehen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>v0.191.0 · <a href="https://github.com/StarOrga/Star-Citizen-Companion-Web/pull/879">PR #879</a> · Merge <code>8f3d2c58</code> · Migration <code>20261102100000</code> auf Prod (1:39 min)</li>
+      <li><code>supabase/migrations/20261102100000_codex_payload_dedupe.sql</code>, <code>supabase/functions/ingest-catalog/index.ts</code>, <code>karma.conf.cjs</code></li>
+      <li>Tests: PGlite 30/30, Karma 5046/5046, Functions 324/324; Red-Team R1–R9 eingearbeitet, R10 als Fund</li>
+      <li>Prod: Facetten warm 0,37–0,79 s (kalt 2,3–3,5 s wie vorher), Suggest 571 ms (vorher 795), Strings 2 ms</li>
+      <li>Nebenbei: CI-Karma brach seit 01.11. mit Ping-Timeout ab (Software-WebGL), jetzt geduldigere Socket-Timeouts</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -5811,7 +5916,8 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
              <section data-iteration="N">, appended by string edit
              (iteration-rules.md § Iteration append checklist). -->
         <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="2" aria-selected="true" aria-controls="iter-2">Abschlussbericht</button>
 </nav>
 
         <!-- Section TOC — auto-populated from EVERY top-level <section id="..."
