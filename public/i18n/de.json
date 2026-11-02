@@ -2814,6 +2814,7 @@
     },
     "long": {
       "ghost": "{{prev}}: {{p}} %",
+      "bandsRolling": "Grenzen aus den letzten fertigen Patches berechnet",
       "bandInstabil": "Instabil · unter {{n}}",
       "bandWackelig": "Wackelig · {{a}}–{{b}}",
       "bandStabil": "Stabil · ab {{n}}",

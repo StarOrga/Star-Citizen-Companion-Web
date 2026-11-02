@@ -45,7 +45,7 @@ describe('PatchEntryRowComponent', () => {
       providers: [
         provideTranslateService({}),
         { provide: RoadmapService, useValue: roadmap },
-        { provide: PatchStabilityService, useValue: { patchRowFor: () => null, verdictFor: () => null, previousOf: () => null, isLiveLine: () => false } },
+        { provide: PatchStabilityService, useValue: { thresholds: () => ({ stabilMin: 75, wackeligMin: 45, rolling: false }), patchRowFor: () => null, verdictFor: () => null, previousOf: () => null, isLiveLine: () => false } },
       ],
     });
   });

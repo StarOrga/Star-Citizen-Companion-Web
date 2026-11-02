@@ -4,9 +4,10 @@ import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CommunityVerdictComponent } from './community-verdict.component';
 import {
-  EARLY_DAYS, STABIL_MIN, TREND_GLYPH, TREND_THRESHOLD, WACKELIG_MIN, StabilityDay, StabilityVerdict,
+  EARLY_DAYS, TREND_GLYPH, TREND_THRESHOLD, StabilityDay, StabilityVerdict,
   componentDeductions, stabilityPercent, stabilityTrend, stabilityWord,
 } from './patch-stability';
+import { PatchStabilityService } from './patch-stability.service';
 import { PatchStabilityVotesService } from './patch-stability-votes.service';
 
 const ISSUE_URL = 'https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues/';
@@ -61,6 +62,9 @@ const DAY_MS = 86_400_000;
               <span>{{ 'stability.long.bandWackelig' | translate: { a: wackeligMin, b: stabilMin - 1 } }}</span>
               <span>{{ 'stability.long.bandStabil' | translate: { n: stabilMin } }}</span>
             </div>
+            @if (rolling()) {
+              <p class="ghost-note">{{ 'stability.long.bandsRolling' | translate }}</p>
+            }
             @if (previousPct() !== null) {
               <p class="ghost-note"><i aria-hidden="true"></i> {{ prevLabel() }}</p>
             }
@@ -240,6 +244,7 @@ export class StabilityLongComponent {
   private readonly t = inject(TranslateService);
   private readonly locale = inject(LocaleService);
   private readonly votes = inject(PatchStabilityVotesService);
+  private readonly stability = inject(PatchStabilityService);
 
   readonly verdict = input<StabilityVerdict | null>(null);
   /** True for the LIVE line: the community may judge it and its correction applies. */
@@ -249,8 +254,10 @@ export class StabilityLongComponent {
 
   readonly keys = DEDUCTION_KEYS;
   readonly threshold = EARLY_DAYS;
-  readonly stabilMin = STABIL_MIN;
-  readonly wackeligMin = WACKELIG_MIN;
+  private readonly cuts = this.stability.thresholds;
+  get stabilMin(): number { return this.cuts().stabilMin; }
+  get wackeligMin(): number { return this.cuts().wackeligMin; }
+  readonly rolling = computed(() => this.cuts().rolling);
   readonly issueUrl = ISSUE_URL;
   readonly min = Math.min;
 
@@ -272,7 +279,7 @@ export class StabilityLongComponent {
     const s = this.verdict()?.stability ?? null;
     return s === null ? 0 : Math.min(100, Math.max(0, Math.round(s + (this.correction()?.correction ?? 0))));
   });
-  readonly word = computed(() => stabilityWord(this.shown()) ?? 'wackelig');
+  readonly word = computed(() => stabilityWord(this.shown(), this.cuts()) ?? 'wackelig');
   readonly deductions = computed(() => {
     const v = this.verdict();
     return v && v.stability !== null ? componentDeductions(v.components, v.stability) : { community: null, service: null, cig: null };
@@ -333,7 +340,7 @@ export class StabilityLongComponent {
   dayTitle(d: StabilityDay): string {
     const base = this.t.instant('stability.long.dayTitle', {
       date: d.date,
-      word: this.t.instant('stability.word.' + (stabilityWord(this.dayPct(d)) ?? 'wackelig')),
+      word: this.t.instant('stability.word.' + (stabilityWord(this.dayPct(d), this.cuts()) ?? 'wackelig')),
       score: this.dayPct(d),
       velocity: Math.round(d.velocity),
     });

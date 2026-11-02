@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.193.3",
+  "current": "0.193.4",
   "releases": [
+    {
+      "version": "0.193.4",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Phones: the β chip stays below the status bar on notched phones and below the impersonation banner, level with the account buttons."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.193.3",
       "date": "2026-11-02",

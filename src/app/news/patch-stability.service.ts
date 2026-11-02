@@ -1,7 +1,7 @@
 import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { StabilityPatchRow, StabilitySampleRow, StabilityVerdict, computeVerdict } from './patch-stability';
+import { StabilityPatchRow, StabilitySampleRow, StabilityVerdict, computeVerdict, rollingThresholds } from './patch-stability';
 
 /** How many days of samples the board loads per line — the timeline never needs more. */
 const SAMPLE_DAYS = 120;
@@ -59,6 +59,9 @@ export class PatchStabilityService {
   readonly allTime = computed<StabilityVerdict[]>(() =>
     [...this.verdicts().values()].sort((a, b) => Date.parse(a.liveAt) - Date.parse(b.liveAt)),
   );
+
+  /** Verdict cut-offs: rolling terciles of the last finished lines, fixed 75/45 while history is short. */
+  readonly thresholds = computed(() => rollingThresholds(this.allTime()));
 
   verdictFor(line: string): StabilityVerdict | null {
     return this.verdicts().get(line) ?? null;
