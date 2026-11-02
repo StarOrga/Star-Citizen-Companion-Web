@@ -467,6 +467,10 @@ class CodexExtractor:
         # components / armor items (every catalog entity with a mesh), since
         # the silhouette also becomes those kinds' tile-view image.
         self._silhouette_candidates: List[Dict[str, str]] = []
+        # Ships the silhouette build can never trace — no geometry path on the
+        # record at all. Listed in the manifest as `skips` (#842) so the admin
+        # coverage tile names the reason instead of a bare gap.
+        self._silhouette_skips: List[Dict[str, str]] = []
         # Classification pre-pass verdict per EntityClassDefinition record (see
         # plan_entity_totals); drives the category-ordered projection loop.
         self._planned_kinds: List[Optional[str]] = []
@@ -1394,6 +1398,11 @@ class CodexExtractor:
             if ground:
                 entry["ground"] = True
             self._silhouette_candidates.append(entry)
+        elif kind == "ship":
+            self._silhouette_skips.append({
+                "kind": kind, "className": class_name, "reason": "no_mesh",
+                "detail": "no .cga/.cgf geometry path on the entity record",
+            })
 
     def _write_silhouette_manifest(self) -> None:
         """Drop silhouettes/_build_manifest.json listing every ship / weapon /
@@ -1403,7 +1412,8 @@ class CodexExtractor:
         d = self.out / "silhouettes"
         d.mkdir(parents=True, exist_ok=True)
         (d / "_build_manifest.json").write_text(
-            json.dumps({"entities": self._silhouette_candidates}, ensure_ascii=False, indent=2),
+            json.dumps({"entities": self._silhouette_candidates,
+                        "skips": self._silhouette_skips}, ensure_ascii=False, indent=2),
             encoding="utf-8")
         by_kind: Dict[str, int] = {}
         for e in self._silhouette_candidates:

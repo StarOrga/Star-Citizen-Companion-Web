@@ -1,16 +1,24 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { toErrorKey } from '../core/describe-error';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
+/** Why the uploader's silhouette build skipped a hull (#842). */
+export type SilhouetteSkipReason = 'no_mesh' | 'convert_failed' | 'empty';
+const SKIP_REASONS: readonly SilhouetteSkipReason[] = ['no_mesh', 'convert_failed', 'empty'];
+
 /** One hull of the build without a silhouette row. */
 export interface SilhouetteMissingShip {
   class_name: string;
   name: string | null;
+  /** Null: the uploader recorded no reason (older uploader, or the step did not run). */
+  reason: SilhouetteSkipReason | null;
+  /** The uploader's own log detail (converter error, missing path), English. */
+  detail: string | null;
 }
 
 /** Shape of `public.silhouette_coverage(p_build_id)` (migration 20261008193000). */
@@ -24,6 +32,10 @@ export interface SilhouetteCoverage {
   fallback_icon: number;
   /** Without silhouette and without preview: RSI art or the glyph (decided in the browser). */
   fallback_none: number;
+  /** Hulls without a silhouette, per recorded skip reason. */
+  reasons: Record<SilhouetteSkipReason, number>;
+  /** Hulls without a silhouette and without a recorded reason. */
+  unexplained: number;
   missing: SilhouetteMissingShip[];
 }
 
@@ -97,13 +109,24 @@ const REFRESH_MS = 5 * 60_000;
             · {{ 'admin.silhouettes.fallbackSplit' | translate: { icon: d.fallback_icon, none: d.fallback_none } }}
           }
         </p>
+        @if (d.without_silhouette > 0) {
+          <p class="bar-caption">
+            {{ 'admin.silhouettes.reasonSplit' | translate: {
+              no_mesh: d.reasons.no_mesh, convert_failed: d.reasons.convert_failed,
+              empty: d.reasons.empty, unexplained: d.unexplained } }}
+          </p>
+        }
 
         @if (d.missing.length > 0) {
           <details class="missing">
             <summary>{{ 'admin.silhouettes.missingToggle' | translate: { count: d.without_silhouette } }}</summary>
             <ul>
               @for (m of d.missing; track m.class_name) {
-                <li><a [routerLink]="['/codex', 'ship', m.class_name]">{{ m.name || m.class_name }}</a></li>
+                <li>
+                  <a [routerLink]="['/codex', 'ship', m.class_name]">{{ m.name || m.class_name }}</a>
+                  <span class="reason" [class.unknown]="!m.reason" tabindex="0"
+                        [scTooltip]="reasonTip(m)">{{ 'admin.silhouettes.reason.' + (m.reason ?? 'none') | translate }}</span>
+                </li>
               }
             </ul>
           </details>
@@ -143,7 +166,15 @@ const REFRESH_MS = 5 * 60_000;
       list-style: none; margin: 8px 0 0; padding: 0;
       display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px 16px;
     }
+    .missing li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
     .missing a { color: var(--sc-fg-0); display: inline-flex; align-items: center; }
+    .reason {
+      color: var(--sc-fg-2);
+      font-size: max(0.72rem, var(--sc-fs-floor));
+      border: 1px solid color-mix(in srgb, var(--sc-fg-2) 35%, transparent);
+      border-radius: 3px; padding: 0 5px;
+    }
+    .reason.unknown { color: var(--sc-warning); border-color: color-mix(in srgb, var(--sc-warning) 45%, transparent); }
     .missing a:hover, .missing a:focus-visible { color: var(--sc-accent); }
     @media (max-width: 640px) {
       .nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -152,6 +183,7 @@ const REFRESH_MS = 5 * 60_000;
 })
 export class SilhouetteCoverageComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly translate = inject(TranslateService);
 
   readonly data = signal<SilhouetteCoverage | null>(null);
   readonly loading = signal(false);
@@ -166,6 +198,12 @@ export class SilhouetteCoverageComponent implements OnInit {
 
   constructor() {
     useAutoRefresh(() => this.load(), { intervalMs: REFRESH_MS, enabled: () => !this.loading() });
+  }
+
+  /** The reason's explanation, plus the uploader's own detail line when it sent one. */
+  reasonTip(m: SilhouetteMissingShip): string {
+    const text = this.translate.instant(`admin.silhouettes.reasonTip.${m.reason ?? 'none'}`) as string;
+    return m.detail ? `${text} — ${m.detail}` : text;
   }
 
   ngOnInit(): void {
@@ -201,6 +239,20 @@ function normalize(raw: unknown): SilhouetteCoverage | null {
     without_silhouette: n(r.without_silhouette),
     fallback_icon: n(r.fallback_icon),
     fallback_none: n(r.fallback_none),
-    missing: Array.isArray(r.missing) ? r.missing.filter((m) => !!m?.class_name) : [],
+    reasons: {
+      no_mesh: n(r.reasons?.no_mesh),
+      convert_failed: n(r.reasons?.convert_failed),
+      empty: n(r.reasons?.empty),
+    },
+    // An RPC from before #842 has no reasons at all: every gap is unexplained.
+    unexplained: r.unexplained === undefined ? n(r.without_silhouette) : n(r.unexplained),
+    missing: Array.isArray(r.missing)
+      ? r.missing.filter((m) => !!m?.class_name).map((m) => ({
+          class_name: m.class_name,
+          name: m.name ?? null,
+          reason: (SKIP_REASONS as readonly string[]).includes(m.reason as string) ? m.reason : null,
+          detail: typeof m.detail === 'string' && m.detail ? m.detail : null,
+        }))
+      : [],
   };
 }

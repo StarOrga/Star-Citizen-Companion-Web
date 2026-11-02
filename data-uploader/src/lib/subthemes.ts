@@ -136,7 +136,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 5: #795/#794 — anchors come from the corrected hardpointTransforms (turret
     //    ports from the vehicle XML, helper offsets, no origin anchors).
     // 6: silhouettes for every item (not only armor) and for ammunition.
-    revision: 6,
+    // 7: #842 — hulls whose LOD0 breaks cgf-converter get their LOD1 outline,
+    //    and every skipped entity's reason goes up (silhouette_skips).
+    revision: 7,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',
