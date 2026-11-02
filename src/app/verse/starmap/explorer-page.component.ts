@@ -233,7 +233,7 @@ const LADDER_SPAN = 3;
       .act.help { min-width: 36px; justify-content: center; padding: 0; font-weight: 600; }
       /* Constellations toggle (shell beta): the dome dissolves, the list builds up in its place. */
       .mine { grid-row: 2 / -1; min-height: 0; overflow-y: auto; padding-right: 4px; }
-      @media (pointer: coarse) { .act, .x { min-height: 44px; min-width: 44px; } }
+      @media (pointer: coarse) { .act, .x { min-height: var(--sc-tap-min, 48px); min-width: var(--sc-tap-min, 48px); } }
 
       /* Phones / narrow: the page may scroll, the dome keeps a square stage. */
       @media (max-width: 900px), (max-height: 700px) {
