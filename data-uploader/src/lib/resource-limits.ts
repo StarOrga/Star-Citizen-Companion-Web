@@ -102,19 +102,23 @@ export type PresetId = 'gaming' | 'balanced' | 'full';
 export const PRESET_IDS: readonly PresetId[] = ['gaming', 'balanced', 'full'];
 export const DEFAULT_PRESET: PresetId = 'balanced';
 
-/** "Maximum" may take 80-90 % of the machine — never all of it. */
-export const CPU_MAX_PCT = 90;
+/**
+ * No limit may hand a run more than this share of the machine — CPU, RAM,
+ * disk and GPU alike. "Maximum" leaves the desktop a fifth of everything.
+ */
+export const PERF_MAX_SHARE = 0.8;
+export const CPU_MAX_PCT = PERF_MAX_SHARE * 100;
 export const CPU_MIN_PCT = 5;
 /** Below this a stage cannot even hold the parsed DataCore. */
 export const RAM_MIN_MB = 1024;
-/** Kept free for Windows itself when the scale is derived from total RAM. */
+/** Kept free for Windows itself at the least (it decides on small machines, where 20 % is less). */
 export const RAM_OS_RESERVE_MB = 2048;
 export const READ_MIN_MBS = 5;
 export const WRITE_MIN_MBS = 5;
 export const IOPS_MIN = 20;
 /** 0 is a valid limit: the GPU is not used at all. */
 export const GPU_MIN_PCT = 0;
-export const GPU_MAX_PCT = 100;
+export const GPU_MAX_PCT = PERF_MAX_SHARE * 100;
 
 /** Per-preset share of each scale (CPU in percent points, the rest as a fraction of the top). */
 const PRESET_SHARE: Record<PresetId, { cpuPct: number; ram: number; disk: number; gpuPct: number }> = {
@@ -122,10 +126,10 @@ const PRESET_SHARE: Record<PresetId, { cpuPct: number; ram: number; disk: number
   // the GPU stays the game's alone.
   gaming: { cpuPct: 15, ram: 0.15, disk: 0.15, gpuPct: 0 },
   balanced: { cpuPct: 45, ram: 0.3, disk: 0.4, gpuPct: 80 },
-  full: { cpuPct: 85, ram: 0.6, disk: 0.85, gpuPct: 100 },
+  full: { cpuPct: 80, ram: 0.6, disk: 0.85, gpuPct: 80 },
 };
 
-/** The GPU share a preset carries (gaming 0 = off, balanced 80, full 100). */
+/** The GPU share a preset carries (gaming 0 = off, balanced and full 80). */
 export function presetGpuPct(id: PresetId): number {
   return PRESET_SHARE[id].gpuPct;
 }
@@ -136,20 +140,22 @@ export interface Range {
   step: number;
 }
 
-/** Top of the RAM scale: everything but what Windows needs for itself. */
+/** Top of the RAM scale: 80 % of the machine, and never Windows' own reserve. */
 export function ramScaleMb(machine: MachineInfo): number {
-  return Math.max(RAM_MIN_MB, machine.totalRamMb - RAM_OS_RESERVE_MB);
+  const top = Math.min(machine.totalRamMb * PERF_MAX_SHARE, machine.totalRamMb - RAM_OS_RESERVE_MB);
+  return Math.max(RAM_MIN_MB, Math.floor(top));
 }
 
-/** The slider range of every resource on this machine. */
+/** The slider range of every resource on this machine — each topping out at 80 % of it. */
 export function rangesFor(machine: MachineInfo): Record<LimitKey, Range> {
   const d = machine.disk;
+  const top = (cap: number, min: number): number => Math.max(min, Math.floor(cap * PERF_MAX_SHARE));
   return {
     cpuPct: { min: CPU_MIN_PCT, max: CPU_MAX_PCT, step: 1 },
     ramMb: { min: RAM_MIN_MB, max: ramScaleMb(machine), step: 256 },
-    readMBs: { min: READ_MIN_MBS, max: Math.max(READ_MIN_MBS, d.readMBs), step: 5 },
-    writeMBs: { min: WRITE_MIN_MBS, max: Math.max(WRITE_MIN_MBS, d.writeMBs), step: 5 },
-    iops: { min: IOPS_MIN, max: Math.max(IOPS_MIN, d.iops), step: d.iops > 1000 ? 100 : 5 },
+    readMBs: { min: READ_MIN_MBS, max: top(d.readMBs, READ_MIN_MBS), step: 5 },
+    writeMBs: { min: WRITE_MIN_MBS, max: top(d.writeMBs, WRITE_MIN_MBS), step: 5 },
+    iops: { min: IOPS_MIN, max: top(d.iops, IOPS_MIN), step: d.iops > 1000 ? 100 : 5 },
     gpuPct: { min: GPU_MIN_PCT, max: GPU_MAX_PCT, step: 1 },
   };
 }

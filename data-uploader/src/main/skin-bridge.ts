@@ -22,6 +22,7 @@ import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-l
 import { sidecarEnv } from './sidecar-env.js';
 import { readWithStallTimeout } from '../lib/fetch-timeout.js';
 import { packageExportArgs } from '../lib/asset-package.js';
+import { recipeTag } from '../lib/build-recipes.js';
 
 const CGF_CONVERTER_URL =
   'https://github.com/Markemp/Cryengine-Converter/releases/download/v2.0.0/cgf-converter.exe';
@@ -38,6 +39,9 @@ export interface SkinExportRequest {
   manifest?: string;
   /** Patch-version cache: skip ships already built into `outDir`. */
   skipExisting?: boolean;
+  /** Game build number. `outDir` is per patch, so a cached ship from another
+   *  build of the same patch is rebuilt (its unchanged hull is still reused). */
+  gameBuild?: string;
   textureSize?: number;
   /** Per-skin glb size budget in MB (default 1). Over-budget skins are
    *  re-optimized at a lower texture size so the catalog stays within the
@@ -228,9 +232,11 @@ export function startSkinExport(
   if (req.manifest) args.push('--manifest', req.manifest);
   for (const s of req.ships ?? []) args.push('--ship', s);
   if (req.skipExisting) args.push('--skip-existing');
+  if (req.gameBuild) args.push('--game-build', req.gameBuild);
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
   if (req.workers) args.push('--workers', String(req.workers));
   args.push('--cache-salt', toolSalt());
+  args.push('--recipe', recipeTag('model3d'));
   args.push(...packageExportArgs(req));
 
   let child: ChildProcessWithoutNullStreams;

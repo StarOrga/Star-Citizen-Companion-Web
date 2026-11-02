@@ -60,7 +60,6 @@ import {
   diskScaleTop,
   dumpWorkers,
   presetLimits,
-  ramOthersMb,
   type LimitKey,
   type PresetId,
   type Range,
@@ -348,11 +347,6 @@ function cpuUploader(s: ResourceSample | null): number {
   return s ? s.cpuRunPct + (s.cpuAppPct ?? 0) : 0;
 }
 
-/** RAM others hold right now cannot be handed to the run. */
-function ramTaken(v: ResourceViewLike, s: ResourceSample | null): number {
-  return s ? ramOthersMb(s) + s.ramAppMb : v.machine.totalRamMb - v.ranges.ramMb.max;
-}
-
 function gpuSample(): SampleGpu | null {
   return sample?.gpu ?? null;
 }
@@ -581,10 +575,14 @@ function dialValueAt(svg: SVGSVGElement, clientX: number, clientY: number, max: 
   return ((a - START) / SWEEP) * max;
 }
 
-function snapTo(value: number, r: Range, ceiling: number): number {
-  const top = Math.max(r.min, Math.min(r.max, ceiling));
-  const v = Math.min(top, Math.max(r.min, value));
-  return Math.min(top, Math.max(r.min, Math.round(v / r.step) * r.step));
+/**
+ * The range's own top is the only ceiling. The RAM dial used to stop at what
+ * other programs left free at that moment, so a busy desktop kept it far below
+ * its top; the range itself already stops at 80 % of the machine (`PERF_MAX_SHARE`).
+ */
+function snapTo(value: number, r: Range): number {
+  const v = Math.min(r.max, Math.max(r.min, value));
+  return Math.min(r.max, Math.max(r.min, Math.round(v / r.step) * r.step));
 }
 
 // ── markup ──────────────────────────────────────────────────────────────────
@@ -1267,12 +1265,6 @@ async function commit(): Promise<void> {
   }
 }
 
-function ceilingFor(key: LimitKey): number {
-  if (!view) return Infinity;
-  if (key === 'ramMb') return view.machine.totalRamMb - ramTaken(view, sample);
-  return Infinity;
-}
-
 function wirePresets(): void {
   dock()
     ?.querySelectorAll<HTMLButtonElement>('button.res-preset')
@@ -1300,7 +1292,7 @@ function onTempoKey(key: LimitKey, e: KeyboardEvent): void {
   // The Tempomat owns the arrows while focused — not the step chevrons.
   e.preventDefault();
   e.stopPropagation();
-  queue(key, snapTo(next, r, ceilingFor(key)));
+  queue(key, snapTo(next, r));
   paintTips();
   glide();
 }
@@ -1310,7 +1302,7 @@ function wireDrag(el: Element, key: LimitKey, grab: string, valueAt: (e: Pointer
   const move = (e: PointerEvent): void => {
     if (!view) return;
     const max = dragging?.key === key ? dragging.max : scaleMax(key, view);
-    dragging = { key, value: snapTo(valueAt(e, max), view.ranges[key], ceilingFor(key)), max };
+    dragging = { key, value: snapTo(valueAt(e, max), view.ranges[key]), max };
     paintFrame();
   };
   target.addEventListener('pointerdown', (e) => {

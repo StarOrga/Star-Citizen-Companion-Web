@@ -313,6 +313,12 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--cache-salt", default="",
                     help="host tool versions (gltf-transform, meshoptimizer) folded into the "
                          "cross-patch reuse key, so a tool upgrade rebuilds instead of reusing")
+    ap.add_argument("--game-build", default="",
+                    help="game build number, stamped into skins.json: --skip-existing "
+                         "rebuilds a ship cached from another build of the same patch")
+    ap.add_argument("--recipe", default="",
+                    help="build recipe of the 3D output (model3d@N, build-recipes.ts): keys the "
+                         "cache instead of the module bytes, so only a bumped recipe rebuilds")
     ap.add_argument("--no-reuse", action="store_true",
                     help="do not take hulls/parts from an earlier patch's build")
     ap.add_argument("--workers", type=int, default=0,
@@ -390,6 +396,7 @@ class _ShipRun:
             on_log=_on_log,
             reuse_dirs=[args.reuse_dir] if getattr(args, "reuse_dir", None) else [],
             pipeline=getattr(args, "pipeline_tag", "") or "",
+            stamp=getattr(args, "stamp", None) or {},
         )
         self.exporter = Hull3DExporter(self.p4k, self.cfg)
         # Whole-catalog builds go through many ships — pre-bucket icons/materials
@@ -404,7 +411,7 @@ class _ShipRun:
         args, cfg, pkg = self.args, self.cfg, self.pkg
         t0, before = time.perf_counter(), stage_timing.snapshot()
         if args.skip_existing:
-            prev = _cached_catalog(args.out, ref.ship_id)
+            prev = _cached_catalog(args.out, ref.ship_id, getattr(args, "stamp", None))
             if prev is not None:
                 log("info", f"{ref.ship_id}: cached — skipping build")
                 count(ref.ship_id, _cached_model_count(prev))
@@ -468,15 +475,23 @@ class _ShipRun:
         return entry, barren
 
 
-def _cached_catalog(out: Path, ship_id: str) -> Optional[dict]:
+def _cached_catalog(out: Path, ship_id: str,
+                    stamp: Optional[Dict[str, str]] = None) -> Optional[dict]:
     """The ship's skins.json if it is a build of the CURRENT format — a cache
     from the textured per-skin export must be rebuilt, or its textured glbs
-    would be uploaded again."""
+    would be uploaded again — and, given a ``stamp``, of the same game build
+    and pipeline. ``skins-<patch>`` is per patch: a hotfix build or a pipeline
+    change reuses the dir, and a stale ship must go back through the build
+    (which still takes its hull back when the content key matches)."""
     try:
         prev = json.loads((out / ship_id / "skins.json").read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001 — missing/unreadable = not cached
         return None
-    return prev if isinstance(prev, dict) and prev.get("format") == EXPORT_FORMAT else None
+    if not isinstance(prev, dict) or prev.get("format") != EXPORT_FORMAT:
+        return None
+    if stamp is not None and prev.get("stamp") != stamp:
+        return None
+    return prev
 
 
 def _cached_model_count(prev: dict) -> int:
@@ -492,7 +507,7 @@ def _fully_cached(args, ref: ShipRef) -> Optional[dict]:
     """Entry for a ship the parent can answer without a worker (no P4K)."""
     if not args.skip_existing:
         return None
-    prev = _cached_catalog(args.out, ref.ship_id)
+    prev = _cached_catalog(args.out, ref.ship_id, getattr(args, "stamp", None))
     if prev is None:
         return None
     if args.package and not (args.out / ref.ship_id / "package.json").exists():
@@ -650,6 +665,12 @@ def main() -> int:
         results: Dict[int, Tuple[Optional[dict], Optional[dict]]] = {}
         # Patch-version cache: a ship already built into --out is answered
         # without opening the P4K; only the rest needs a worker.
+        # Build stamp: a cached ship only counts when it came from this game
+        # build and this pipeline (see `_cached_catalog`).
+        from .build_cache import pipeline_tag
+        args.stamp = {"game_build": args.game_build,
+                      "pipeline": pipeline_tag(args.converter, args.cache_salt,
+                                               recipe=args.recipe)}
         jobs: List[Tuple[int, ShipRef]] = []
         for i, ref in enumerate(refs):
             entry = _fully_cached(args, ref)
@@ -665,8 +686,8 @@ def main() -> int:
         args.pipeline_tag = ""
         args.reuse_dir = None
         if jobs and not args.no_reuse:
-            from .build_cache import pipeline_tag, seed_from_previous
-            args.pipeline_tag = pipeline_tag(args.converter, args.cache_salt)
+            from .build_cache import seed_from_previous
+            args.pipeline_tag = args.stamp["pipeline"]
             prev = seed_from_previous(args.out, log=_on_log)
             args.reuse_dir = prev
         if args.workers > 0:
