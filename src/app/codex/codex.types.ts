@@ -245,12 +245,13 @@ export interface ShipPayload extends BaseEntityPayload {
   /**
    * Why `cargoScu` is what it is — `cargoScu` alone cannot say it, because a
    * fighter and a Nomad are both `null`:
-   * - `measured`   — a grid was found and sized; `cargoScu` carries it.
-   * - `unmeasured` — the hull hauls (the Nomad's open bed is a door entity,
-   *   verified against LIVE 4.9.0) but the client files never size it, so the
-   *   chip must disclose a GAP, not claim "Kein Laderaum".
-   * - `none`       — no cargo feature at all; the ghost chip "Kein Laderaum"
-   *   is the truthful statement (a Gladius).
+   * - `measured`   — a grid or ore pod was found and sized; `cargoScu` carries it.
+   * - `unmeasured` — a container record is referenced but could not be
+   *   resolved, so the chip must disclose a GAP, not claim "Kein Laderaum".
+   *   Since uploader 0.69.0 (#842) only that case; older builds also used it
+   *   for every cargo-named entry without a sized grid (the Nomad's bed door).
+   * - `none`       — no sized hold in the game files; the ghost chip
+   *   "Kein Laderaum" (a Gladius — and, owner decision #842, the Nomad).
    * Absent on pre-schema-3 extracts — treat a missing value as `unmeasured`
    * only when `cargoScu` is null AND the ship is known to haul, else `none`.
    */

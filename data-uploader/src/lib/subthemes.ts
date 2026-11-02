@@ -87,7 +87,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // interiorMapSection (Prospector).
     // 9: #797 — rooms no deck takes land on one extra `fallback` deck
     // ("All rooms" / "Other rooms"); ships without decks get just that one.
-    revision: 9,
+    // 10: #842 — cargoScu / cargoStatus follow a cargo item's own stock fit
+    // and count ore pods; no hull is "unmeasured" for a missing grid anymore.
+    revision: 10,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,

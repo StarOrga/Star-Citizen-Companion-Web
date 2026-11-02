@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.194.0",
+  "current": "0.195.0",
   "releases": [
+    {
+      "version": "0.195.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin silhouette tile names why a hull has no Holotable silhouette (no mesh / conversion failed / empty), recorded per entity by the Data Uploader (#842)."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Large hulls whose full-detail mesh breaks the converter (Polaris, Perseus, Ironclad, Hull B, Vulture, Constellations …) get their silhouette from the next detail level — Data Uploader 0.68.0 (#842)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.194.0",
       "date": "2026-11-02",

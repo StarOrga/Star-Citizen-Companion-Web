@@ -185,17 +185,17 @@ def test_cargo_status_measured_when_a_grid_yields_a_volume() -> None:
     assert ex._cargo_status(loadout) == "measured"
 
 
-def test_cargo_status_unmeasured_for_the_nomads_open_bed() -> None:
-    """VERIFIED LIVE 4.9.0: the Nomad's 87-entry stock loadout carries NO
-    inventory container — its bed is a `Door_..._Cargo_Bed`. `cargoScu` is
-    rightly null, but the hull DOES haul, so the page must disclose a gap
-    instead of claiming "Kein Laderaum"."""
+def test_cargo_status_none_for_the_nomads_open_bed() -> None:
+    """VERIFIED LIVE 4.9.0 / 4.10.2: the Nomad's stock loadout carries NO
+    inventory container — its bed is a `Door_..._Cargo_Bed` with no stock fit
+    of its own, and its interior containers place no grid either. The files
+    define no hold, so the status is `none`; an SCU is never invented (#842)."""
     ex = _extractor()
     ex._entity_class_comps = lambda class_name: []
     loadout = [{"itemPortName": "hardpoint_cargo_bed",
                 "entityClassName": "Door_Ship_Exterior_CNOU_Nomad_Cargo_Bed"}]
     assert ex._cargo_scu(loadout) is None
-    assert ex._cargo_status(loadout) == "unmeasured"
+    assert ex._cargo_status(loadout) == "none"
 
 
 def test_cargo_status_none_for_a_fighter() -> None:
@@ -216,3 +216,84 @@ def test_cargo_scu_walks_nested_loadout_entries() -> None:
         "entries": [{"itemPortName": "cargo_grid", "entityClassName": "Pod_CargoGrid"}],
     }]
     assert ex._cargo_scu(loadout) == 8.0
+
+
+def _own_loadout(*entries) -> list:
+    return [{"_Type_": "SEntityComponentDefaultLoadoutParams", "loadout": {"entries": [
+        {"itemPortName": port, "entityClassName": cls} for port, cls in entries]}}]
+
+
+def test_cargo_follows_the_installed_items_own_stock_fit() -> None:
+    """VERIFIED LIVE 4.10.2 (#842): the Mustang Alpha lists only its
+    `CNOU_Mustang_Cargo_Rack`; the grid hangs in the RACK's own default loadout
+    (4 SCU), like the Constellation's bay door and the 400i lift."""
+    ex = _extractor()
+    comps = {
+        "CNOU_Mustang_Cargo_Rack": _own_loadout(("hardpoint_cargo_grid", "CNOU_Mustang_CargoGrid_Main"),
+                                                ("hardpoint_cargo_box_01", "CNOU_Mustang_Cargo_Box_Fake")),
+        "CNOU_Mustang_CargoGrid_Main": _grid_comps(1.25, 2.5, 2.5),
+    }
+    ex._entity_class_comps = lambda c: comps.get(c, [])
+    loadout = [{"itemPortName": "hardpoint_cargo_module", "entityClassName": "CNOU_Mustang_Cargo_Rack"}]
+    assert ex._cargo_scu(loadout) == 4.0
+    assert ex._cargo_status(loadout) == "measured"
+
+
+def test_a_listed_sub_item_is_not_counted_twice() -> None:
+    """When the ship's loadout already lists the item's sub-items, its own
+    stock fit is NOT walked as well — the grid would count twice."""
+    ex = _extractor()
+    comps = {
+        "Pod": _own_loadout(("cargo_grid", "Pod_CargoGrid")),
+        "Pod_CargoGrid": _grid_comps(2.5, 2.5, 2.5),
+    }
+    ex._entity_class_comps = lambda c: comps.get(c, [])
+    loadout = [{"itemPortName": "hardpoint_cargo_pod", "entityClassName": "Pod",
+                "entries": [{"itemPortName": "cargo_grid", "entityClassName": "Pod_CargoGrid"}]}]
+    assert ex._cargo_scu(loadout) == 8.0
+
+
+def test_ore_pods_count_by_their_resource_container_capacity() -> None:
+    """VERIFIED LIVE 4.10.2: a Prospector carries four 8-SCU ore pods and four
+    collapsed 0-SCU ones — 32 SCU, read from `ResourceContainer.capacity`."""
+    ex = _extractor()
+
+    def pod(scu: float) -> list:
+        return [{"_Type_": "ResourceContainer",
+                 "capacity": {"_Type_": "SStandardCargoUnit", "standardCargoUnits": scu}}]
+    comps = {"Cargo_ShipMining_Pod_Prospector": pod(8.0),
+             "Cargo_ShipMining_Pod_Prospector_Collapsed": pod(0.0),
+             "HTNK_Prospector": pod(999.0)}
+    ex._entity_class_comps = lambda c: comps.get(c, [])
+    loadout = (
+        [{"itemPortName": f"hardpoint_mining_pod_{i}", "entityClassName": "Cargo_ShipMining_Pod_Prospector"}
+         for i in range(4)]
+        + [{"itemPortName": f"hardpoint_stored_pod_{i}", "entityClassName": "Cargo_ShipMining_Pod_Prospector_Collapsed"}
+           for i in range(4)]
+        # A fuel tank is a resource container too, but no cargo entry.
+        + [{"itemPortName": "hardpoint_fuel_tank", "entityClassName": "HTNK_Prospector"}]
+    )
+    assert ex._cargo_scu(loadout) == 32.0
+
+
+def test_a_grid_without_a_container_holds_nothing() -> None:
+    """VERIFIED LIVE 4.10.2: the Ursa Rover's and Javelin's grids carry
+    `containerParams: null` — no container in the game files, so no hold."""
+    ex = _extractor()
+    ex._entity_class_comps = lambda c: [{"_Type_": "SCItemInventoryContainerComponentParams",
+                                         "containerParams": None}]
+    loadout = [{"itemPortName": "hardpoint_cargogrid", "entityClassName": "RSI_Ursa_CargoGrid_Rear"}]
+    assert ex._cargo_status(loadout) == "none"
+
+
+def test_cargo_status_unmeasured_only_for_an_unresolvable_container_record() -> None:
+    class _NoRecords:
+        def record_by_id(self, guid):
+            return None
+    ex = _extractor()
+    ex.df = _NoRecords()
+    ex._entity_class_comps = lambda c: [{"_Type_": "SCItemInventoryContainerComponentParams",
+                                         "containerParams": {"_RecordId_": "x-1", "_RecordName_": "InventoryContainer.X"}}]
+    loadout = [{"itemPortName": "hardpoint_cargo_grid", "entityClassName": "X_CargoGrid"}]
+    assert ex._cargo_scu(loadout) is None
+    assert ex._cargo_status(loadout) == "unmeasured"
