@@ -88,6 +88,15 @@ export function parsePrune(body: Record<string, unknown>): Parsed<{ table: strin
   return { ok: true, value: { table, keys: keys as string[][] } };
 }
 
+/** True when PostgREST says the RPC `name` does not exist (migration not applied). */
+export function isRpcMissing(error: unknown, name: string): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  const code = e?.code ?? '';
+  const msg = (e?.message ?? '').toLowerCase();
+  if (code !== 'PGRST202' && code !== '42883') return false;
+  return msg.includes(name.toLowerCase());
+}
+
 /**
  * True when the project lacks the migration (RPC or content_sha column not
  * there yet): the op degrades and the uploader falls back to full rows.

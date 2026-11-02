@@ -1,0 +1,51 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "d-weg",
+        "mode": "single",
+        "value": "views",
+        "rec": "views",
+        "deviates": false
+      },
+      {
+        "id": "d-umfang",
+        "mode": "multi",
+        "value": [
+          "items",
+          "components",
+          "weapons",
+          "ships",
+          "blueprints",
+          "strings",
+          "small"
+        ],
+        "rec": "items components weapons ships blueprints strings",
+        "deviates": true
+      },
+      {
+        "id": "d-suche",
+        "mode": "single",
+        "value": "column",
+        "rec": "column",
+        "deviates": false
+      },
+      {
+        "id": "d-retention",
+        "mode": "slider",
+        "value": 3,
+        "rec": "3",
+        "deviates": false
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": []
+    }
+  }
+]

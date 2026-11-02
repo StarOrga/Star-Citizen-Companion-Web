@@ -64,6 +64,16 @@ copies the existing objects (dry run unless `--apply`); a change to
   `build_id` needs its own line in a new migration. Check the first night with
   `cron.job_run_details` (query in the migration header); it is not verified
   live yet.
+- **Payloads stored once (migration `20261102100000`, 2026-11-02).** The
+  catalog names (`codex_items`, `_components`, `_weapons`, `_ships`,
+  `_blueprints`, `_manufacturers`, `_ammunition`, `codex_silhouettes`) are
+  views over `<name>_rows` + `codex_payloads(sha, body)`; a build that changes
+  ~10 % of the catalog adds only those bodies. `codex_entity_strings` is a view
+  derived from the payloads (no table). Retention is therefore **3** builds
+  (`prune_codex_builds(3)`, same cron job, followed by `codex_gc_payloads()`
+  for unreferenced bodies). The reclaim jobs vacuum the `*_rows` tables and
+  `codex_payloads`; the `codex_entity_strings` job is gone. Measured before:
+  259 MB with 2 builds (105 MB payload, 75 MB of it distinct; strings 47 MB).
 - `codex_locale_strings` moved to R2 (2026-10-03, § Localization strings).
   The table is now only an ingest's staging area.
 
