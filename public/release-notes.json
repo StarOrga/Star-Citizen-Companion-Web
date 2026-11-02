@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.193.1",
+  "current": "0.193.2",
   "releases": [
+    {
+      "version": "0.193.2",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Phones and tablets: the star map's buttons, stars and tour controls and the holotable pins on ship pages have 48px touch targets, so they are hit reliably."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.193.1",
       "date": "2026-11-02",
