@@ -1091,7 +1091,7 @@ describe('CodexService.getDetail', () => {
    * Every query is a chain that ends in a thenable; `maybeSingle()` answers the
    * build lookup and the entity row, the chosen side read answers with an error.
    */
-  function provider(failing: 'codex_item_ports' | 'codex_entity_strings'): SupabaseClientProvider {
+  function provider(failing: 'codex_item_ports' | 'codex_entity_strings' | null, rpcMissing = false): SupabaseClientProvider {
     const from = (table: string) => {
       const result = () =>
         table === failing
@@ -1122,12 +1122,21 @@ describe('CodexService.getDetail', () => {
       );
       return chain;
     };
-    return { client: { from } } as unknown as SupabaseClientProvider;
+    // The strings come from the codex_entity_strings_for RPC.
+    const rpc = () =>
+      Promise.resolve(
+        rpcMissing
+          ? { data: null, error: { code: 'PGRST202', message: 'missing', details: '', hint: '' } }
+          : failing === 'codex_entity_strings'
+          ? { data: null, error: { code: 'XX000', message: 'boom', details: '', hint: '' } }
+          : { data: [], error: null },
+      );
+    return { client: { from, rpc } } as unknown as SupabaseClientProvider;
   }
 
-  function make(failing: 'codex_item_ports' | 'codex_entity_strings'): CodexService {
+  function make(failing: 'codex_item_ports' | 'codex_entity_strings' | null, rpcMissing = false): CodexService {
     TestBed.configureTestingModule({
-      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(failing) }],
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(failing, rpcMissing) }],
     });
     return TestBed.inject(CodexService);
   }
@@ -1142,6 +1151,11 @@ describe('CodexService.getDetail', () => {
   it('throws when the strings read fails', async () => {
     const svc = make('codex_entity_strings');
     await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeRejected();
+  });
+
+  it('reads the strings view while the strings RPC is not deployed yet', async () => {
+    const svc = make(null, true);
+    await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeResolved();
   });
 });
 
