@@ -220,6 +220,22 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       .hs::after { content: ''; position: absolute; inset: -0.75rem; border-radius: 50%; }
       .hs:hover, .hs:focus-visible, .hs.on { background: var(--sc-accent); transform: scale(1.35); outline: none; }
       .hs:focus-visible { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--sc-accent); }
+      /* Touch: the hotspot itself is a 48px hit box (a pseudo-element extends the hit area but not
+         the measured target), the 12px dot is drawn inside it. */
+      @media (pointer: coarse) {
+        .hs, .hs:hover, .hs:focus-visible, .hs.on {
+          width: 48px; height: 48px; margin: -24px 0 0 -24px;
+          border: 0; background: none; box-shadow: none; transform: none;
+        }
+        .hs::after { display: none; }
+        .hs::before {
+          content: ''; position: absolute; left: 50%; top: 50%; width: 0.75rem; height: 0.75rem; margin: -0.375rem 0 0 -0.375rem;
+          box-sizing: border-box; border-radius: 50%; border: 1px solid var(--sc-accent); background: rgb(from var(--sc-accent) r g b / 0.25);
+          transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .hs:focus-visible::before, .hs.on::before { background: var(--sc-accent); transform: scale(1.35); }
+        .hs:focus-visible::before { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--sc-accent); }
+      }
       .leader { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
       .leader line { stroke: var(--holo-mfr); stroke-width: 1.25; stroke-dasharray: 4 3; opacity: 0.9; }
       .leader .tip { fill: var(--holo-mfr); }
@@ -274,7 +290,7 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       a.name:hover { color: var(--sc-accent); }
       .meta { flex: none; color: var(--sc-fg-2); font-size: 0.75rem; }
       .free { color: var(--sc-fg-2); font-style: italic; padding-left: 2.5rem; }
-      @media (prefers-reduced-motion: reduce) { .hs { transition: none; } }
+      @media (prefers-reduced-motion: reduce) { .hs, .hs::before { transition: none; } }
     `,
   ],
 })

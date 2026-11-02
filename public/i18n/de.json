@@ -2039,6 +2039,12 @@
         "slotsAria": "Rüstungsteile",
         "readinessAria": "Einsatzbereitschaft",
         "lensLimits": "begrenzt das Set in diesem Einsatz"
+      },
+      "supplies": {
+        "add": "Fehlendes in Nachschub ({{n}})",
+        "none": "Alles da oder schon im Nachschub.",
+        "added": "{{n}} Teile im Nachschub.",
+        "toPlan": "Zum Planen"
       }
     },
     "stat": {

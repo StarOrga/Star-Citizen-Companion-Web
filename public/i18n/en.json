@@ -2039,6 +2039,12 @@
         "slotsAria": "Armour pieces",
         "readinessAria": "Readiness",
         "lensLimits": "limits the set for this mission"
+      },
+      "supplies": {
+        "add": "Add missing to supplies ({{n}})",
+        "none": "Everything owned or already in supplies.",
+        "added": "{{n}} parts added to supplies.",
+        "toPlan": "Go to Plan"
       }
     },
     "stat": {

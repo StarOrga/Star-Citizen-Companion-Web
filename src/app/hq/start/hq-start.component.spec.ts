@@ -3,9 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
-import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { HqLiveService } from '../now/hq-live.service';
 import { HQ_FIRST_SKIPPED_KEY, HqStartComponent } from './hq-start.component';
 
 describe('HqStartComponent first-visit block', () => {
@@ -33,8 +33,8 @@ describe('HqStartComponent first-visit block', () => {
           },
         },
         {
-          provide: DesktopConnectionService,
-          useValue: { connections: signal(opts.app ? [{ product: 'uploader' }] : []), refresh: () => Promise.resolve() },
+          provide: HqLiveService,
+          useValue: { state: signal(opts.app ? { location: 'Area18' } : null), events: signal([]), loaded: signal(true) },
         },
         { provide: HqEinsatzService, useValue: einsatz },
       ],
