@@ -1,8 +1,0 @@
-{
-  "title": "Codex-Payloads nur einmal speichern",
-  "subtitle": "Speicher-Deduplizierung nach PR #877 (carry)",
-  "locale": "de",
-  "mode": "decision",
-  "pageVersion": "2026-11-02T07:40:40",
-  "lastBuild": "67393be315f11e4785c5d84c6e9f7b218396bec273a89c0dc37ed046828a58a8"
-}
