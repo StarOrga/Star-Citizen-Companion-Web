@@ -6105,12 +6105,20 @@
       "sets": "in {{n}} Sets",
       "config": "dein Loadout auf „{{ship}}“",
       "set": "dein Set",
-      "qty": "{{n}}× im Lager"
+      "qty": "{{n}}× im Lager",
+      "fittedOn": "{{n}} auf „{{name}}“",
+      "fittedMoreOne": "+1 weiteres Schiff",
+      "fittedMore": "+{{n}} weitere Schiffe",
+      "setsOne": "in 1 Set"
     },
     "row": {
       "patch": "Patch {{line}}",
       "patchMeta": "Patch-Notiz · {{version}}",
       "galleryMeta": "Galerie"
+    },
+    "abbr": {
+      "alias": "„{{word}}“ gelesen als",
+      "chip": "„{{word}}“ wurde zum Chip"
     },
     "newInPatch": "Neu in Patch {{version}}",
     "dym": {

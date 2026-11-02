@@ -6105,12 +6105,20 @@
       "sets": "in {{n}} sets",
       "config": "your loadout on \"{{ship}}\"",
       "set": "your set",
-      "qty": "{{n}}× in stock"
+      "qty": "{{n}}× in stock",
+      "fittedOn": "{{n}} on \"{{name}}\"",
+      "fittedMoreOne": "+1 more ship",
+      "fittedMore": "+{{n}} more ships",
+      "setsOne": "in 1 set"
     },
     "row": {
       "patch": "Patch {{line}}",
       "patchMeta": "Patch note · {{version}}",
       "galleryMeta": "Gallery"
+    },
+    "abbr": {
+      "alias": "\"{{word}}\" read as",
+      "chip": "\"{{word}}\" became the chip"
     },
     "newInPatch": "New in patch {{version}}",
     "dym": {

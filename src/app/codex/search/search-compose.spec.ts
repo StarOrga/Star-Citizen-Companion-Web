@@ -2,7 +2,7 @@ import type { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../../hang
 import { searchContextOf } from '../../shell/fusion-bar/search-context';
 import type { PolyHitKind, PolySearchHit } from '../codex-poly-search';
 import { CodexSearchGroup } from './codex-search-model';
-import { fitVerdict } from './search-compat';
+import { buildFitPorts, fitVerdict } from './search-compat';
 import { composeSearchResult } from './search-compose';
 import { searchOwn } from './search-own';
 import { parseQuery, sizeChip } from './search-query-parse';
@@ -107,12 +107,32 @@ describe('composeSearchResult', () => {
     expect((r.groups[0].rows[0] as { hit: PolySearchHit }).hit.classNameSlug).toBe('P2');
   });
 
-  it('the ownedOnly chip keeps the owned ship out of the catalog group when the own group has it', () => {
+  it('the Hangar chip keeps the owned ship out of the catalog group when the own group has it', () => {
     const own = searchOwn('stalker', { ships: [{ id: 'h1', shipClassName: 'A1', customName: null, status: 'owned' } as HangarShip], configs: [], sets: [], items: [] }, { nameOf: () => 'Stalker I' });
     const ctx = searchContextOf('/hq/hangar');
     const r = composeSearchResult({ ...base, groups: [ships], context: ctx, chips: ctx.chips, own, signals: { ...NO_SIGNALS, owns: (c) => c === 'A1' } });
     const shipGroup = r.groups.find((g) => g.id === 'ship');
     expect(shipGroup?.rows.some((x) => x.type === 'hit' && x.hit.classNameSlug === 'A1')).toBeFalsy();
+  });
+
+  it('HQ ownership chips order, they do not filter: own group first, catalog below with HQ CTAs (A2, A3, B7, C1)', () => {
+    const own = searchOwn('laser', { ships: [], configs: [], sets: [], items: [{ name: 'Laser Repeater S3', class_name: 'KLWE_LaserRepeater_S3', location: 'Lager A', qty: 3 }] });
+    const lasers = group('weapon', [hit('weapon', 'KLWE_LaserRepeater_S3', 'Laser Repeater S3', { attachType: 'WeaponGun', size: 3 }), hit('weapon', 'W9', 'Laser Beam S1')]);
+    const ctx = searchContextOf('/hq', 'bestand');
+    const r = composeSearchResult({ ...base, term: 'laser', groups: [lasers], context: ctx, chips: ctx.chips, own });
+    expect(r.groups.map((g) => g.id)).toEqual(['own', 'weapon']);
+    expect(r.outside).toBeNull();
+    expect(r.groups[1].rows.length).toBe(2);
+    const cta = r.groups[1].rows[0];
+    expect(cta.type === 'hit' && cta.cta?.id).toBe('whereStored');
+    expect(r.groups[0].reason?.key).toBe('search.why.ownHq');
+  });
+
+  it('a kind chip still filters and keeps the outside group', () => {
+    const ctx = searchContextOf('/codex/index?kind=weapon');
+    const r = composeSearchResult({ ...base, term: 'stalker ii', groups: [ships, weapons], context: ctx, chips: ctx.chips });
+    expect(r.groups.map((g) => g.id)).toEqual(['weapon']);
+    expect(r.outside).not.toBeNull();
   });
 
   it('every hit row carries its CTA and icons', () => {
@@ -234,5 +254,37 @@ describe('search signals storage', () => {
   it('a chip made from parsed text is a stable "parsed" chip', () => {
     const chip: SearchChip = parseQuery('s3').chips[0];
     expect(chip.id).toBe('parsed:size');
+  });
+});
+
+describe('nested ports (B5)', () => {
+  // Idris-like: a size-10 turret that seats a gimbal with an S3 gun seat.
+  const top = [{ portName: 'hardpoint_turret_front', types: ['Turret'], minSize: 10, maxSize: 10 }];
+  const loadout = [{ itemPortName: 'hardpoint_turret_front', entityClassName: 'TURRET_S10', entries: [{ itemPortName: 'gimbal_a', entityClassName: 'GIMBAL_S3' }] }];
+  const items: Record<string, { portName: string; types: string[]; minSize: number; maxSize: number }[]> = {
+    TURRET_S10: [{ portName: 'gimbal_a', types: ['Turret'], minSize: 3, maxSize: 3 }],
+    GIMBAL_S3: [{ portName: 'gun', types: ['WeaponGun'], minSize: 3, maxSize: 3 }],
+  };
+  const ports = buildFitPorts(top, loadout, (c) => items[c]);
+
+  it('walks turret → sub-port and fits a weapon at the deepest level', () => {
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, ports).verdict).toBe('fits');
+  });
+
+  it('a wrong size at the deepest level is a real no-fit with the sub-port range', () => {
+    const v = fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 6 }, ports);
+    expect(v).toEqual(jasmine.objectContaining({ verdict: 'noFit', reasonKey: 'search.fit.noSize', reasonParams: { size: 6, min: 3, max: 3 } }));
+  });
+
+  it('a mount whose sub-ports are unknown is ?, never a false warning', () => {
+    const blind = buildFitPorts(top, loadout, () => undefined);
+    expect(blind[0].opaque).toBeTrue();
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, blind).verdict).toBe('unknown');
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 6 }, blind).verdict).toBe('unknown');
+  });
+
+  it('a plain ship without mounts still reports a type mismatch', () => {
+    const plain = buildFitPorts([{ portName: 'sh', types: ['Shield'], minSize: 1, maxSize: 1 }], [], () => undefined);
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, plain).reasonKey).toBe('search.fit.noType');
   });
 });

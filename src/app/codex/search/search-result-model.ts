@@ -21,8 +21,11 @@ export interface SearchChipFilter {
   ownKinds?: OwnRowType[];
   size?: number;
   grade?: string;
-  /** Only things the reader owns. */
-  ownedOnly?: boolean;
+  /**
+   * HQ ownership section (Bestand / Hangar / Sets): the reader's own group stands FIRST and the
+   * catalog groups still follow with their HQ CTAs. Orders, never filters (concept t-s2).
+   */
+  ownFirst?: boolean;
   /** "Passt auf X": the page names a ship / weapon / item the rows are checked against (B5). */
   compatWith?: { kind: 'ship' | 'weapon' | 'component' | 'item'; className: string };
 }
@@ -67,6 +70,10 @@ export interface RowOwnership {
   inSetIds: string[];
   /** The entry is in the Lager/Spind. */
   inLager: boolean;
+  /** Units in the Lager/Spind (sum over the inventory rows); 0 when none. */
+  lagerQty: number;
+  /** Where it is fitted: per hangar ship (own name first), pieces per ship — "2 auf „Nachtfalke“". */
+  fittedOn: { shipId: string; name: string; count: number }[];
 }
 
 /** The three standard icons (B8/B9). `lager` on a ship means "In den Hangar". */

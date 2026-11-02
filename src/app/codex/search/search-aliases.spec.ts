@@ -1,5 +1,5 @@
 import { ilikeTokenGroups, searchMatcher } from '../codex-search';
-import { SEARCH_ALIASES, aliasExpansions, aliasKeyCount, setAliasLanguage } from './search-aliases';
+import { SEARCH_ALIASES, aliasExpansions, aliasKeyCount, aliasReadings, setAliasLanguage } from './search-aliases';
 import { GRADE_VALUES, needsMiniSearch, parseQuery, sizeChip, switchChip, withOptionCounts } from './search-query-parse';
 
 describe('search aliases (C6)', () => {
@@ -48,6 +48,20 @@ describe('search aliases (C6)', () => {
     setAliasLanguage('de');
     const group = ilikeTokenGroups('connie')[0];
     expect(group.some((p) => p.includes('constellation'))).toBeTrue();
+  });
+});
+
+describe('alias readings (C6)', () => {
+  it('names the alias even when the matcher needs no expansion, skips words that read as themselves', () => {
+    expect(aliasReadings('rep laser', 'de')).toEqual([{ word: 'rep', to: 'repeater' }]);
+    expect(aliasReadings('mole connie', 'en')).toEqual([{ word: 'connie', to: 'constellation' }]);
+  });
+  it('reads German words only in German', () => {
+    expect(aliasReadings('reaktor', 'de').length).toBe(1);
+    expect(aliasReadings('reaktor', 'en')).toEqual([]);
+  });
+  it('parseQuery remembers the words a chip came from', () => {
+    expect(parseQuery('größe 3 klasse a cooler').words).toEqual({ 'parsed:size': 'größe 3', 'parsed:grade': 'klasse a' });
   });
 });
 

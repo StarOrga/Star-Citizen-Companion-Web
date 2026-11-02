@@ -151,6 +151,40 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(el.textContent).not.toContain('codex.search.bar.areas');
     expect(el.textContent).not.toContain('fusionBar.search.here');
   });
+
+  it('the abbreviation line names the alias and the chip the text produced (C6)', () => {
+    const engine = fakeEngine({ groups: [weapons] });
+    engine.readings.set({ aliases: [{ word: 'rep', to: 'repeater' }], chips: [{ word: 's4', chip: sizeChip(4) }] });
+    const { el, type } = setupFusionSearch(engine);
+    type('rep s4');
+    const line = el.querySelector('.abbr') as HTMLElement;
+    expect(line).not.toBeNull();
+    expect(line.textContent).toContain('search.abbr.alias');
+    expect(line.querySelector('b')!.textContent).toBe('Repeater');
+    expect(line.textContent).toContain('search.abbr.chip');
+  });
+
+  it('no abbreviation line when nothing was read', () => {
+    const { el, type } = setupFusionSearch(fakeEngine({ groups: [weapons] }));
+    type('rhino');
+    expect(el.querySelector('.abbr')).toBeNull();
+  });
+
+  it('the meta line carries concrete ownership: quantity in stock and pieces per ship name (B3)', () => {
+    const engine = fakeEngine({
+      groups: [weapons],
+      compose: {
+        ownership: () => ({
+          shipId: null, equippedOnShipId: 'h1', inSetIds: [], inLager: true, lagerQty: 3,
+          fittedOn: [{ shipId: 'h1', name: 'Nachtfalke', count: 2 }],
+        }),
+      },
+    });
+    const { el, type } = setupFusionSearch(engine);
+    type('rhino');
+    const mine = [...el.querySelectorAll<HTMLElement>('.row .meta .mine')].map((n) => n.textContent!.trim());
+    expect(mine).toEqual(['search.own.qty', 'search.own.fittedOn']);
+  });
 });
 
 describe('FusionSearchChipComponent (C4)', () => {

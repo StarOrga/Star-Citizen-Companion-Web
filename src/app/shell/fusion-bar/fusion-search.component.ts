@@ -106,6 +106,9 @@ function storage(): Storage | null {
   }
 }
 
+/** Ships a fitted-on meta line names before it counts the rest. */
+const FITTED_SHOWN = 2;
+
 /**
  * The Fusion bar's search (concept 2026-11-02 "Suche: Kontext & Aktionen").
  *
@@ -238,6 +241,19 @@ function storage(): Storage | null {
             <button type="button" class="retry" (click)="engine.retry()">{{ 'codex.error.retry' | translate }}</button>
           </div>
         }
+        @if (readingsShown(); as rd) {
+          <!-- What the search understood: aliases that fired, words that became chips (C6, r2 t-s3 .mk-t-abbr). -->
+          <p class="abbr" role="status">
+            @for (a of rd.aliases; track a.word) {
+              @if (!$first) { <span class="sepdot" aria-hidden="true">·</span> }
+              <span>{{ 'search.abbr.alias' | translate: { word: a.word } }} <b>{{ aliasLabel(a.to) }}</b></span>
+            }
+            @for (c of rd.chips; track c.word) {
+              @if (!$first || rd.aliases.length) { <span class="sepdot" aria-hidden="true">·</span> }
+              <span>{{ 'search.abbr.chip' | translate: { word: c.word } }} <b>{{ chipLabel(c.chip) }}</b></span>
+            }
+          </p>
+        }
         @if (hasText() && didYouMean().length) {
           <p class="dym" role="status">
             <span>{{ 'search.dym.lead' | translate }}</span>
@@ -303,9 +319,9 @@ function storage(): Storage | null {
                             <span class="name">
                               <span class="nm">{{ nm.title }}@if (nm.own) { <span class="ownname"> · „{{ nm.own }}“</span> }</span>
                               @if (newIn(r); as v) {
-                                <span class="new" [scTooltip]="'search.newInPatch' | translate: { version: v }" scTooltipTier="label">
+                                <span class="new" tabindex="0" role="img" [attr.aria-label]="'search.newInPatch' | translate: { version: v }"
+                                      [scTooltip]="'search.newInPatch' | translate: { version: v }" scTooltipTier="label">
                                   <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="actionIcons.fresh[0]" /></svg>
-                                  <span class="sr-only">{{ 'search.newInPatch' | translate: { version: v } }}</span>
                                 </span>
                               }
                             </span>
@@ -576,6 +592,9 @@ function storage(): Storage | null {
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent);
     }
     .new svg { width: 11px; height: 11px; fill: currentColor; stroke: none; }
+    .new:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
+    .abbr { margin: 0; padding: 4px 12px 0; font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); display: flex; flex-wrap: wrap; gap: 0 6px; }
+    .abbr b { color: var(--sc-fg-1); font-weight: 600; }
     .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .meta > span + span::before { content: '·'; margin-right: 6px; color: var(--sc-fg-2); }
     .meta .mine { color: color-mix(in oklab, var(--sc-success) 70%, var(--sc-fg-0)); }
@@ -753,6 +772,12 @@ export class FusionSearchComponent {
   readonly hasText = computed(() => !!this.engine.input().trim());
   readonly result = computed(() => this.engine.result());
   readonly chips = computed<SearchChip[]>(() => this.result().chips);
+  /** The "gelesen als" line: only for a settled search that read something (C6). */
+  readonly readingsShown = computed(() => {
+    if (!this.hasText() || this.busy()) return null;
+    const rd = this.engine.readings();
+    return rd.aliases.length || rd.chips.length ? rd : null;
+  });
   readonly didYouMean = computed(() => (this.busy() ? [] : this.result().didYouMean));
   /** The ship / item name the "passt auf" chip names (the page title when on that page). */
   readonly compatName = computed(() => {
@@ -1028,9 +1053,17 @@ export class FusionSearchComponent {
         if (h.grade) out.push({ key: 'codex.search.bar.grade', params: { grade: h.grade } });
         const o = r.owned;
         if (o?.shipId) out.push({ key: 'search.own.ship', mine: true });
-        else if (o?.equippedOnShipId) out.push({ key: 'search.own.fitted', mine: true });
-        if (o?.inLager) out.push({ key: 'search.own.lager', mine: true });
-        if (o?.inSetIds.length) out.push({ key: 'search.own.sets', params: { n: o.inSetIds.length }, mine: true });
+        if (o?.inLager) {
+          out.push(o.lagerQty > 0 ? { key: 'search.own.qty', params: { n: o.lagerQty }, mine: true } : { key: 'search.own.lager', mine: true });
+        }
+        // "2 auf „Nachtfalke“" — pieces per ship with the reader's own ship name; two ships, the rest counted.
+        const fitted = o?.fittedOn ?? [];
+        for (const f of fitted.slice(0, FITTED_SHOWN)) out.push({ key: 'search.own.fittedOn', params: { n: f.count, name: f.name }, mine: true });
+        if (fitted.length > FITTED_SHOWN) {
+          const more = fitted.length - FITTED_SHOWN;
+          out.push({ key: more === 1 ? 'search.own.fittedMoreOne' : 'search.own.fittedMore', params: { n: more }, mine: true });
+        } else if (!fitted.length && !o?.shipId && o?.equippedOnShipId) out.push({ key: 'search.own.fitted', mine: true });
+        if (o?.inSetIds.length) out.push({ key: o.inSetIds.length === 1 ? 'search.own.setsOne' : 'search.own.sets', params: { n: o.inSetIds.length }, mine: true });
         return out;
       }
       case 'own':
@@ -1049,6 +1082,11 @@ export class FusionSearchComponent {
       case 'gallery': return [{ key: 'search.row.galleryMeta' }, ...(r.series ? [{ text: r.series }] : [])];
       case 'place': return [{ key: 'fusionBar.search.page' }];
     }
+  }
+
+  /** An alias target as the line shows it: "repeater" → "Repeater". */
+  aliasLabel(to: string): string {
+    return to.replace(/(^|[\s-])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
   }
 
   fitOf(r: ViewRow) {

@@ -252,3 +252,29 @@ export function aliasExpansions(token: string, lang: Lang = aliasLang): readonly
   if (!hit) return [];
   return hit.filter((t) => !fold(t).includes(k));
 }
+
+/** One alias that fired: the typed word and what it was read as (English, as the data has it). */
+export interface AliasReading {
+  word: string;
+  to: string;
+}
+
+/**
+ * The aliases a query used, for the quiet line above the results ("rep" gelesen als Repeater).
+ * Unlike {@link aliasExpansions} it keeps readings the matcher needs no expansion for ("rep" is
+ * inside "repeater"): the reader still wants to know the word was understood. A word that
+ * already IS its own reading (mole → mole) is not an abbreviation and is skipped.
+ */
+export function aliasReadings(text: string, lang: Lang = aliasLang): AliasReading[] {
+  const idx = lang === 'en' ? INDEX_EN : INDEX_DE;
+  const out: AliasReading[] = [];
+  const seen = new Set<string>();
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const k = fold(word);
+    const to = idx.get(k)?.find((t) => fold(t) !== k);
+    if (!to || seen.has(k)) continue;
+    seen.add(k);
+    out.push({ word, to });
+  }
+  return out;
+}

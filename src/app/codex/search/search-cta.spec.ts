@@ -4,7 +4,7 @@ import type { PolyHitKind } from '../codex-poly-search';
 import type { SearchCtaId } from './search-result-model';
 import { CtaRow, CTA_COLUMNS, CTA_MATRIX, CtaRowKey, resolveCta, resolveIcons } from './search-cta';
 
-const OWN = { shipId: 'h1', equippedOnShipId: null, inSetIds: [], inLager: false };
+const OWN = { shipId: 'h1', equippedOnShipId: null, inSetIds: [], inLager: false, lagerQty: 0, fittedOn: [] };
 
 function ctxFor(key: CtaRowKey): SearchContext {
   switch (key) {

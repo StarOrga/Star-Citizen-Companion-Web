@@ -10,6 +10,8 @@
 //    (name score >= prefix) outside the chips is kept in a dashed `outside`
 //    group with a reason; the rest is only counted (`filteredOut`).
 //  - The CONTEXT only ORDERS the groups (invisible) and says why in `reason`.
+//    The HQ ownership chips (Bestand / Hangar / Sets, `ownFirst`) are ordering too:
+//    the own group stands first, the catalog groups follow with the HQ CTAs.
 //  - Every group lists up to `perGroup` rows; the UI shows the first three
 //    (SEARCH_ROWS_SHOWN) on every page.
 //  - Among hits with an equal name score: recently opened by the reader, then
@@ -67,13 +69,12 @@ export interface ComposeInput {
 }
 
 /** The chip a hit fails, or null when it is inside every chip. */
-export function failingChip(hit: PolySearchHit, chips: readonly SearchChip[], owns: (cls: string) => boolean): SearchChip | null {
+export function failingChip(hit: PolySearchHit, chips: readonly SearchChip[]): SearchChip | null {
   for (const chip of chips) {
     const f = chip.filter;
     if (f.groups && !f.groups.includes(hit.kind)) return chip;
     if (f.size !== undefined && hit.size !== f.size) return chip;
     if (f.grade && (hit.grade ?? '').toUpperCase() !== f.grade) return chip;
-    if (f.ownedOnly && !owns(hit.classNameSlug)) return chip;
   }
   return null;
 }
@@ -89,7 +90,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
   const { context: ctx, chips, term, signedIn } = input;
   const signals = input.signals ?? NO_SIGNALS;
   const flagship = input.flagshipClassName ?? null;
-  const ownedOnly = chips.some((c) => c.filter.ownedOnly);
+  const ownFirst = chips.some((c) => c.filter.ownFirst);
   const ownSlugs = new Set(
     (input.own?.rows ?? []).filter((r) => r.ownKind === 'ship' && r.classNameSlug).map((r) => r.classNameSlug!.toLowerCase()),
   );
@@ -123,8 +124,8 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
     const inside: PolySearchHit[] = [];
     let dropped = 0;
     for (const hit of g.hits) {
-      const chip = failingChip(hit, chips, signals.owns);
-      const duplicateOfOwn = !chip && ownedOnly && hit.kind === 'ship' && ownSlugs.has(hit.classNameSlug.toLowerCase());
+      const chip = failingChip(hit, chips);
+      const duplicateOfOwn = !chip && ownFirst && hit.kind === 'ship' && ownSlugs.has(hit.classNameSlug.toLowerCase());
       if (duplicateOfOwn) {
         dropped++;
         continue;
@@ -199,7 +200,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
 
   // ── order (invisible) ─────────────────────────────────────────────────────
   const groups: SearchResultGroup[] = [...catalog];
-  const inHq = ctx.key.startsWith('hq') || ctx.ownedFirst;
+  const inHq = ctx.key.startsWith('hq') || ctx.ownedFirst || ownFirst;
   if (ownGroup) groups.splice(inHq ? 0 : Math.min(1, groups.length), 0, ownGroup);
   if (galleryGroup) {
     if (ctx.key === 'gallery') groups.unshift(galleryGroup);

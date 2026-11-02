@@ -13,8 +13,8 @@ import { HqInventoryService } from '../../hq/data/hq-inventory.service';
 import { NewsService } from '../../news/news.service';
 import { SearchContext, neutralContext } from '../../shell/fusion-bar/search-context';
 import { composeSearchResult } from './search-compose';
-import { FitPort, fitVerdict } from './search-compat';
-import { setAliasLanguage } from './search-aliases';
+import { FitItemPort, FitLoadoutEntry, FitPort, buildFitPorts, fitVerdict } from './search-compat';
+import { AliasReading, aliasReadings, setAliasLanguage } from './search-aliases';
 import { OwnSources, searchOwn } from './search-own';
 import { parseQuery, switchChip } from './search-query-parse';
 import { RowOwnership, SearchChip, SearchResult, SearchResultRow } from './search-result-model';
@@ -23,7 +23,9 @@ import { GalleryMatch, GalleryRpcRow, SourceResult, mapGalleryRows, searchPatche
 import { CodexBuildDiffService } from '../codex-build-diff.service';
 import { PolyHitKind, PolySearchHit, toPolyHit } from '../codex-poly-search';
 import { mergeSuggestions } from '../codex-did-you-mean.component';
-import { Lang } from '../codex.types';
+import { humanizeClassName } from '../codex-format';
+import { Lang, LoadoutEntry } from '../codex.types';
+import { stockLoadoutClassNames } from '../stock-loadout';
 import {
   CodexSearchGroup,
   GroupCounts,
@@ -41,6 +43,15 @@ import {
 export const SEARCH_DEBOUNCE_MS = 220;
 /** How many of the patch's new ships an empty field offers. */
 const FRESH_SHIPS_SHOWN = 4;
+
+/** Aliases / chips named in the "gelesen als" line at most. */
+const READINGS_SHOWN = 3;
+
+/** What the search understood from the typed words (C6). */
+export interface SearchReadings {
+  aliases: AliasReading[];
+  chips: { word: string; chip: SearchChip }[];
+}
 
 /** What a key press in the search field asks the host to do. */
 export type SearchKeyAction = 'open' | 'open-new-tab' | 'escape' | null;
@@ -139,6 +150,21 @@ export class CodexSearchEngine {
         const o = overrides.get(c.id);
         return o && o.from === JSON.stringify(c.filter) ? o.chip : c;
       });
+  });
+  /**
+   * What the search read for the reader: aliases that fired ("rep" → Repeater) and words that
+   * became chips ("s4" → Größe 4). Drives the quiet line at the top of the panel (C6).
+   */
+  readonly readings = computed<SearchReadings>(() => {
+    const parsed = parseQuery(this.term());
+    const active = new Set(this.activeChips().map((c) => c.id));
+    return {
+      aliases: aliasReadings(parsed.rest, this.lang()).slice(0, READINGS_SHOWN),
+      chips: parsed.chips
+        .filter((c) => active.has(c.id) && parsed.words[c.id])
+        .map((c) => ({ word: parsed.words[c.id], chip: this.activeChips().find((a) => a.id === c.id) ?? c }))
+        .slice(0, READINGS_SHOWN),
+    };
   });
   /** The unfiltered hits beside a size/grade-filtered search: outside group and menu counts. */
   private readonly baseResult = signal<PolySearchResult | null>(null);
@@ -526,12 +552,25 @@ export class CodexSearchEngine {
     this.compatRequested = compat.className;
     void this.codex
       .getDetail('ship', compat.className)
-      .then((d) => {
+      .then(async (d) => {
         if (this.compatRequested !== compat.className) return;
-        this.compatPorts.set({
-          key: compat.className,
-          ports: (d?.ports ?? []).map((p) => ({ types: p.types, minSize: p.minSize, maxSize: p.maxSize })),
-        });
+        const top = d?.ports ?? [];
+        // The sub-ports of what the stock loadout seats (turret → gimbal → gun seat): one batched read per chip.
+        const loadout = (d?.payload as { defaultLoadout?: FitLoadoutEntry[] } | null)?.defaultLoadout ?? [];
+        const names = stockLoadoutClassNames(loadout as LoadoutEntry[]);
+        let seats = new Map<string, FitItemPort[]>();
+        if (names.length && top.length) {
+          try {
+            const payloads = await this.codex.getEntityPayloads(names);
+            seats = new Map(
+              [...payloads].map(([cls, v]) => [cls, ((v.payload as { itemPorts?: FitItemPort[] } | null)?.itemPorts ?? [])]),
+            );
+          } catch {
+            /* sub-ports unknown: mounts stay opaque, the badge says ? */
+          }
+        }
+        if (this.compatRequested !== compat.className) return;
+        this.compatPorts.set({ key: compat.className, ports: buildFitPorts(top, loadout, (cls) => seats.get(cls)) });
       })
       .catch(() => this.compatPorts.set(null));
   }
@@ -571,18 +610,31 @@ export class CodexSearchEngine {
   private readonly ownershipFn = (): ((hit: PolySearchHit) => RowOwnership | null) => {
     if (!this.signedIn()) return () => null;
     const index = this.ownership().index();
-    const stock = new Set(
-      this.inventory().items().map((i) => (i.class_name ?? '').toLowerCase()).filter(Boolean),
-    );
+    const stock = new Map<string, number>();
+    for (const i of this.inventory().items()) {
+      const cls = (i.class_name ?? '').toLowerCase();
+      if (cls) stock.set(cls, (stock.get(cls) ?? 0) + (i.qty > 0 ? i.qty : 1));
+    }
+    const catalogNames = this.shipNames();
     return (hit) => {
       const slug = hit.classNameSlug.toLowerCase();
       const e = index.get(slug);
       const shipId = e?.ship && e.ship.status === 'owned' ? e.ship.id : null;
       const equippedOnShipId = e?.equippedOn[0]?.hangarShipId ?? null;
       const inSetIds = e?.inSets.map((s) => s.setId) ?? [];
-      const inLager = stock.has(slug);
+      const lagerQty = stock.get(slug) ?? 0;
+      const inLager = lagerQty > 0;
+      const fitted = new Map<string, { shipId: string; name: string; count: number }>();
+      for (const ref of e?.equippedOn ?? []) {
+        const have = fitted.get(ref.hangarShipId);
+        if (have) have.count++;
+        else {
+          const name = ref.shipName?.trim() || catalogNames.get(ref.shipClassName.toLowerCase()) || humanizeClassName(ref.shipClassName);
+          fitted.set(ref.hangarShipId, { shipId: ref.hangarShipId, name, count: 1 });
+        }
+      }
       return shipId || equippedOnShipId || inSetIds.length || inLager
-        ? { shipId, equippedOnShipId, inSetIds, inLager }
+        ? { shipId, equippedOnShipId, inSetIds, inLager, lagerQty, fittedOn: [...fitted.values()] }
         : null;
     };
   };

@@ -63,6 +63,7 @@ export function fakeEngine(init: FakeEngineInit = {}) {
     calls,
     extraChips,
     compose,
+    readings: signal<{ aliases: { word: string; to: string }[]; chips: { word: string; chip: SearchChip }[] }>({ aliases: [], chips: [] }),
     lang: () => 'de' as const,
     setInput: (v: string) => input.set(v),
     setContext: (c: SearchContext) => {

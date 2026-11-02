@@ -77,6 +77,19 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
     tick(2000);
   }));
 
+  it('exposes what it read: the alias that fired and the word that became a chip (C6)', fakeAsync(() => {
+    searchAll.and.callFake(() => Promise.resolve({ hits: [hit('weapon', 'R4', { size: 4, nameLocalized: 'Repeater' })], totals: { weapon: 1 } } as PolySearchResult));
+    engine.searchFor('rep s4');
+    tick();
+    const rd = engine.readings();
+    expect(rd.aliases).toEqual([{ word: 'rep', to: 'repeater' }]);
+    expect(rd.chips.map((c) => [c.word, c.chip.id])).toEqual([['s4', 'parsed:size']]);
+    engine.removeChip('parsed:size');
+    tick();
+    expect(engine.readings().chips).toEqual([]);
+    tick(2000);
+  }));
+
   it('switching the chip value re-searches with the new size (S3 to S5)', fakeAsync(() => {
     engine.searchFor('s3 cooler');
     tick();

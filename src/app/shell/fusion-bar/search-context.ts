@@ -198,9 +198,10 @@ function compatChip(kind: 'ship' | 'weapon' | 'component' | 'item', className: s
 interface SectionDef {
   /** Ids / URL anchors that name this section (normalized, German and English). */
   ids: readonly string[];
-  groups: SearchGroupId[];
+  /** Hard group filter; absent for the HQ ownership sections, which only put the own group first. */
+  groups?: SearchGroupId[];
   ownKinds?: SearchChip['filter']['ownKinds'];
-  ownedOnly?: boolean;
+  ownFirst?: boolean;
 }
 
 /**
@@ -210,9 +211,9 @@ interface SectionDef {
 const SECTIONS: Readonly<Record<string, SectionDef>> = {
   weapons: { ids: ['bewaffnung', 'weapons', 'waffen', 'hardpoints'], groups: ['weapon'] },
   components: { ids: ['komponenten', 'components'], groups: ['component'] },
-  stock: { ids: ['bestand', 'stock', 'lager', 'inventory'], groups: ['own'], ownKinds: ['item'], ownedOnly: true },
-  hangar: { ids: ['hangar', 'flotte', 'fleet'], groups: ['own', 'ship'], ownKinds: ['ship', 'config'], ownedOnly: true },
-  sets: { ids: ['sets', 'spind', 'locker', 'loadouts'], groups: ['own'], ownKinds: ['set'], ownedOnly: true },
+  stock: { ids: ['bestand', 'stock', 'lager', 'inventory'], ownKinds: ['item'], ownFirst: true },
+  hangar: { ids: ['hangar', 'flotte', 'fleet'], ownKinds: ['ship', 'config'], ownFirst: true },
+  sets: { ids: ['sets', 'spind', 'locker', 'loadouts'], ownKinds: ['set'], ownFirst: true },
 };
 
 function sectionChipById(id: string, source: 'route' | 'section'): SearchChip | null {
@@ -223,7 +224,7 @@ function sectionChipById(id: string, source: 'route' | 'section'): SearchChip | 
     source,
     labelKey: `search.chip.section.${id}`,
     labelParams: null,
-    filter: { groups: d.groups, ownKinds: d.ownKinds, ownedOnly: d.ownedOnly },
+    filter: { ...(d.groups ? { groups: d.groups } : {}), ...(d.ownKinds ? { ownKinds: d.ownKinds } : {}), ...(d.ownFirst ? { ownFirst: true } : {}) },
     switchable: false,
   };
 }

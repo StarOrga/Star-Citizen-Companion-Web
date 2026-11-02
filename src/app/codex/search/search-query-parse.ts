@@ -21,6 +21,8 @@ export interface ParsedQuery {
   chips: SearchChip[];
   /** The text without the words that became chips, single-spaced. */
   rest: string;
+  /** Per chip id: the words it was read from ("größe 3", "s4") — for the "gelesen als" line. */
+  words: Record<string, string>;
 }
 
 const SIZE_WORDS = new Set(['groesse', 'grosse', 'gross', 'size', 'gr', 'sz']);
@@ -70,10 +72,13 @@ export function parseQuery(text: string): ParsedQuery {
   const keep: string[] = [];
   let size: number | null = null;
   let grade: string | null = null;
+  const words2: Record<string, string> = {};
   for (let i = 0; i < words.length; i++) {
     const w = fold(words[i]);
     const next = i + 1 < words.length ? fold(words[i + 1]) : '';
     let m: RegExpMatchArray | null;
+    const start = i;
+    const before: { size: number | null; grade: string | null } = { size, grade };
     if (size === null && (m = w.match(/^s(\d{1,2})$/)) && SIZE_VALUES.includes(+m[1])) {
       size = +m[1];
     } else if (size === null && (m = w.match(/^(groesse|grosse|size|gr|sz)(\d{1,2})$/)) && SIZE_VALUES.includes(+m[2])) {
@@ -89,11 +94,13 @@ export function parseQuery(text: string): ParsedQuery {
     } else {
       keep.push(words[i]);
     }
+    if (size !== before.size) words2['parsed:size'] = words.slice(start, i + 1).join(' ');
+    if (grade !== before.grade) words2['parsed:grade'] = words.slice(start, i + 1).join(' ');
   }
   const chips: SearchChip[] = [];
   if (size !== null) chips.push(sizeChip(size));
   if (grade !== null) chips.push(gradeChip(grade));
-  return { chips, rest: keep.join(' ') };
+  return { chips, rest: keep.join(' '), words: words2 };
 }
 
 /**
