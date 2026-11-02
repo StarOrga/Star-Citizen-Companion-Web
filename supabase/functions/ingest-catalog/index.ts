@@ -92,7 +92,7 @@ import {
   sanitizeCandidates,
 } from './_constellation.ts';
 import { nullUndefinedPlaceholders } from './_placeholders.ts';
-import { isCarryUnavailable, parseCarry, parsePrune } from './_carry.ts';
+import { isCarryUnavailable, isRpcMissing, parseCarry, parsePrune } from './_carry.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -169,6 +169,24 @@ function isMissingTransformColumn(error: unknown): boolean {
     msg.includes('could not find') || msg.includes('does not exist') ||
     msg.includes('column');
   return missingColumn && PORT_TRANSFORM_COLUMNS.some((c) => msg.includes(c));
+}
+
+// ── catalog writes (payloads stored once, migration 20261102100000) ──────────
+// The codex_* names are views over <name>_rows + codex_payloads since that
+// migration, so rows go through codex_upsert_rows(), which stores each payload
+// once. A project without the migration still takes the plain table upsert.
+async function writeRows(
+  admin: Admin,
+  table: string,
+  rows: unknown[],
+  onConflict: string,
+): Promise<number> {
+  const { data, error } = await admin.rpc('codex_upsert_rows', { p_table: table, p_rows: rows });
+  if (!error) return Number(data ?? 0);
+  if (!isRpcMissing(error, 'codex_upsert_rows')) throw error;
+  const legacy = await admin.from(table).upsert(rows, { onConflict });
+  if (legacy.error) throw legacy.error;
+  return rows.length;
 }
 
 // ── localization strings → R2 ────────────────────────────────────────────────
@@ -442,9 +460,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
       // CIG's literal "UNDEFINED" type / sub_type is no value -> null.
       const clean = rows.map(nullUndefinedPlaceholders);
-      const { error } = await admin.from(table).upsert(clean, { onConflict: NAT_CONFLICT });
-      if (error) throw error;
-      return json({ ok: true, upserted: rows.length });
+      const upserted = await writeRows(admin, table, clean, NAT_CONFLICT);
+      return json({ ok: true, upserted });
     }
 
     if (op === 'carry') {
@@ -492,11 +509,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'strings') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      const { error } = await admin
-        .from('codex_entity_strings')
-        .upsert(rows, { onConflict: 'build_id,entity_class_name,lang,field' });
-      if (error) throw error;
-      return json({ ok: true, upserted: rows.length });
+      // Derived from the payloads since 20261102100000: accepted, nothing stored.
+      const upserted = await writeRows(admin, 'codex_entity_strings', rows, 'build_id,entity_class_name,lang,field');
+      return json({ ok: true, upserted, ...(upserted === 0 ? { derived: true } : {}) });
     }
 
     if (op === 'ports') {
@@ -561,8 +576,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // additive codex_silhouettes migration applied yet must not fail the
       // whole catalog run — the caller's finalize still succeeds, just
       // without Holotable art for this build.
-      const { error } = await admin.from('codex_silhouettes').upsert(clean, { onConflict: SILHOUETTE_CONFLICT });
-      if (!error) return json({ ok: true, upserted: clean.length });
+      let error: unknown = null;
+      try {
+        const upserted = await writeRows(admin, 'codex_silhouettes', clean, SILHOUETTE_CONFLICT);
+        return json({ ok: true, upserted });
+      } catch (e) {
+        error = e;
+      }
       const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
       const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||
         (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
@@ -573,7 +593,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'clear_silhouettes') {
       const buildId = String(body.build_id ?? '');
       if (!buildId) return json({ error: 'invalid_body' }, 400);
-      const { error } = await admin.from('codex_silhouettes').delete().eq('build_id', buildId);
+      // The base table since 20261102100000 (the view cannot be deleted from).
+      let { error } = await admin.from('codex_silhouettes_rows').delete().eq('build_id', buildId);
+      if (error && ((error as { code?: string }).code === 'PGRST205' || (error as { code?: string }).code === '42P01')) {
+        ({ error } = await admin.from('codex_silhouettes').delete().eq('build_id', buildId));
+      }
       if (!error) return json({ ok: true });
       const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
       const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||

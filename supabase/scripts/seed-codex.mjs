@@ -136,7 +136,9 @@ async function sendEntity(table, rows) {
     const slice = rows.slice(i, i + CHUNK);
     if (VIA) await postFn('upsert', { table, rows: slice });
     else {
-      const { error } = await sb.from(table).upsert(slice, { onConflict: NAT_CONFLICT });
+      // The codex_* names are views since 20261102100000; codex_upsert_rows
+      // stores each payload once (the same path ingest-catalog takes).
+      const { error } = await sb.rpc('codex_upsert_rows', { p_table: table, p_rows: slice });
       if (error) throw error;
     }
     done += slice.length;
@@ -152,10 +154,8 @@ async function sendStrings(rows) {
     const slice = rows.slice(i, i + CHUNK);
     if (VIA) await postFn('strings', { rows: slice });
     else {
-      const { error } = await sb
-        .from('codex_entity_strings')
-        .upsert(slice, { onConflict: 'build_id,entity_class_name,lang,field' });
-      if (error) throw error;
+      // Entity strings are derived from the payloads since 20261102100000.
+      void slice;
     }
     done += slice.length;
     process.stdout.write(`\r  codex_entity_strings: ${done}/${rows.length}`);

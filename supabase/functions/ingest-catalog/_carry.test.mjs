@@ -1,7 +1,7 @@
 // node --test supabase/functions/ingest-catalog/_carry.test.mjs
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { isCarryUnavailable, MAX_CARRY_ROWS, parseCarry, parsePrune } from './_carry.ts';
+import { isCarryUnavailable, isRpcMissing, MAX_CARRY_ROWS, parseCarry, parsePrune } from './_carry.ts';
 
 const H = 'a'.repeat(64);
 
@@ -61,5 +61,13 @@ describe('isCarryUnavailable', () => {
     assert.equal(isCarryUnavailable({ code: '57014', message: 'canceling statement due to statement timeout' }), false);
     assert.equal(isCarryUnavailable({ code: '22023', message: 'codex_carry_over: unknown build x' }), false);
     assert.equal(isCarryUnavailable(null), false);
+  });
+});
+
+describe('isRpcMissing', () => {
+  it('names the missing function only', () => {
+    assert.equal(isRpcMissing({ code: 'PGRST202', message: 'Could not find the function public.codex_upsert_rows(p_rows, p_table)' }, 'codex_upsert_rows'), true);
+    assert.equal(isRpcMissing({ code: 'PGRST202', message: 'Could not find the function public.other' }, 'codex_upsert_rows'), false);
+    assert.equal(isRpcMissing({ code: '23505', message: 'codex_upsert_rows duplicate key' }, 'codex_upsert_rows'), false);
   });
 });

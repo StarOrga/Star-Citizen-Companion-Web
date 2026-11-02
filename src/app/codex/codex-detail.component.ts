@@ -2474,8 +2474,12 @@ export class CodexDetailComponent implements OnInit {
   readonly provenance = computed(() => {
     const d = this.detail();
     if (!d) return null;
+    // Payloads are stored once across builds without their build stamp
+    // (20261102100000); the row's build columns carry it.
     const p = d.payload as { source?: { channel: string; patch: string; build: string } } | undefined;
-    return p?.source ?? null;
+    if (p?.source) return p.source;
+    const { channel, patch_version, build_number } = d.row as { channel?: string; patch_version?: string; build_number?: string };
+    return channel && patch_version && build_number ? { channel, patch: patch_version, build: build_number } : null;
   });
 
   /**

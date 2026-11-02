@@ -234,7 +234,9 @@ describe('HqSuppliesService', () => {
   });
 
   it('keeps a row the server rejected as stale dirty, and takes the server version instead of marking it pushed', async () => {
-    server = [serverRow('a', { name: 'Server wins', updated_at: '2026-11-02T00:00:00.000Z', synced_at: '2026-11-02T00:00:00.000Z' })];
+    // Far in the future: the server's copy must stay newer than the local
+    // edit's clock (a fixed "today" turned into the past and broke this).
+    server = [serverRow('a', { name: 'Server wins', updated_at: '2099-01-01T00:00:00.000Z', synced_at: '2099-01-01T00:00:00.000Z' })];
     const s = make();
     await s.sync();
     rejectIds.add('a');

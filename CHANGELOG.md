@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.191.0] - 2026-11-02
+
+### Changed
+- Codex payloads are stored once instead of once per game build: unchanged items, ships, components, weapons, blueprints, manufacturers, ammunition and silhouettes of a new build only point at the stored body. Localized entity names are derived from the payloads instead of a second copy.
+- The Codex keeps the last 3 builds per channel (was 2); bodies no build uses any more are cleaned up nightly.
+- Codex search reads a stored search column with its own index.
+
 ## [0.190.0] - 2026-11-02
 
 ### Changed
