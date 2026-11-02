@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.193.0",
+  "current": "0.193.1",
   "releases": [
+    {
+      "version": "0.193.1",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.67.1: the first pipeline step is called \"Metadaten\" / \"Metadata\" instead of \"Codex\" — the Codex is the whole published dataset (metadata, silhouettes, 3D models), the step only uploads its metadata."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.193.0",
       "date": "2026-11-02",
