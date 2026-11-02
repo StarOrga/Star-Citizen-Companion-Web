@@ -211,7 +211,7 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
         background: radial-gradient(circle, #fff 0 25%, color-mix(in srgb, var(--sc-accent) 70%, #fff) 40%, transparent 72%);
         box-shadow: 0 0 8px color-mix(in srgb, var(--sc-accent) 70%, #fff); }
       @keyframes sd-tail { 0%, 100% { transform: scaleX(0.82); opacity: 0.8; } 50% { transform: scaleX(1.12); opacity: 1; } }
-      @media (pointer: coarse) { .star { min-width: 44px; min-height: 44px; } }
+      @media (pointer: coarse) { .star { min-width: var(--sc-tap-min, 48px); min-height: var(--sc-tap-min, 48px); } }
       @media (max-width: 640px) {
         .card { position: absolute; left: 4% !important; right: 4% !important; width: auto; margin: 0; translate: 0 18px; }
         .sun-sky { left: 90%; top: 3%; }
