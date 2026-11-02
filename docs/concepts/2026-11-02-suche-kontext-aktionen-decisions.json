@@ -1,0 +1,390 @@
+[
+ {
+  "iteration": 1,
+  "action": "iterate",
+  "favorite": "kacheln",
+  "decisions": [
+   {
+    "id": "q-own",
+    "label": "Eigener Bestand",
+    "mode": "single",
+    "value": "section",
+    "rec": "section",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "alle Seiten, angemeldet",
+    "finding": "f-own",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 33558,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-smart"
+   },
+   {
+    "id": "q-ctx",
+    "label": "Kontext-Regel",
+    "mode": "single",
+    "value": "order",
+    "rec": "order",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "[Frage 2]  und kontext filtert! Einmal sichtbar mit den labels (sollten nie bereiche sein! weil das ja unsinnig wäre wenn ich das schon mit der reihenfolge mache) und einmal unsichtbar die reihenfolge der bereiche!",
+    "appliesTo": "alle Seiten mit Kontext",
+    "finding": "f-ctx",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 137871,
+     "noteWords": 32,
+     "revisits": 2,
+     "flagged": true
+    },
+    "view": "v-smart"
+   },
+   {
+    "id": "q-understand",
+    "label": "Was sie versteht",
+    "mode": "multi",
+    "value": [
+     "dym",
+     "abbr",
+     "attr"
+    ],
+    "rec": "dym abbr attr",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "Abkürzungen bitte in der community nochmal intensiv recherchcieren und weitere aufnehmen! Reddit und spectrum sind dein freund ;) \nAUßerdem immer die aktuelle sprache + englisch! Wenn englisch die sprache gerade ist, dann nur diese!\nchips sollten auch die möglichkeit haben umschaltbar zu sein wenn man drüber hovered ein kleines aufklapp dreieck und man kann z. B. S1 in S3 ändern - nur wenn das sinn macht! und bei mehr als 7 Einträgern inkl. kleiner mini suche darin!",
+    "appliesTo": "Suchlogik",
+    "finding": "f-understand",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 150436,
+     "noteWords": 77,
+     "revisits": 5,
+     "flagged": true
+    },
+    "view": "v-smart"
+   },
+   {
+    "id": "q-sources",
+    "label": "Was sie durchsucht",
+    "mode": "multi",
+    "value": [
+     "loadouts",
+     "patches"
+    ],
+    "rec": "loadouts patches",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "außerdem check bitte, dass man schiffen nebst dem schiffsnamen auch eigene namen geben kann im hangar und auch deren loadout varianten ;) gleiches wie die fps sets ;)",
+    "appliesTo": "Suchquellen",
+    "finding": "f-sources",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 64297,
+     "noteWords": 28,
+     "revisits": 1,
+     "flagged": false
+    },
+    "view": "v-smart"
+   },
+   {
+    "id": "q-signals",
+    "label": "Was nach oben kommt",
+    "mode": "multi",
+    "value": [
+     "recent",
+     "own"
+    ],
+    "rec": "recent own",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "was andere oft öffnen gern bei der sortierung",
+    "appliesTo": "Ranking",
+    "finding": "f-signals",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 65539,
+     "noteWords": 8,
+     "revisits": 6,
+     "flagged": false
+    },
+    "view": "v-smart"
+   },
+   {
+    "id": "q-primary",
+    "label": "Hauptaktion",
+    "mode": "single",
+    "value": "ctx",
+    "rec": "ctx",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "jede Trefferzeile",
+    "finding": "f-primary",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 34618,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-actions"
+   },
+   {
+    "id": "q-more",
+    "label": "Weitere Aktionen",
+    "mode": "multi",
+    "value": [
+     "compare",
+     "newtab",
+     "copy"
+    ],
+    "rec": "compare newtab copy",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "[Frage 2] passt auf ist ander sinteressant, wenn ich gerade einen chp habe zum derzeitig ausgewählten schiff (aus der schiffsdetailssitete3) oder auch waffe etc. dann sollte mir angezeigt werden ob das element gesuchte auf darauf passt oder nicht! \nGenau auf die WUnschliste! Oder auch in das lager übernehmen! Beides valide optionen.\nLink kopieren sollte ich eh auf jeder detailseite haben, gehen wir aber später an. \nIn neuem tab öffnen geht, aber das müssen die user selbst wissen. Vergleichen nur auf der fullscreen suchergebnis seite (wenn man raumschiffe oder waffen anklickt in codex und dort dann alle findet), das brauchen wir aber nicht in der kleinen suche, außer wenn  man auf diesen listen seiten ist, darf das ruhig die cta sein!",
+    "appliesTo": "aktive Zeile",
+    "finding": "f-more",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 301657,
+     "noteWords": 118,
+     "revisits": 3,
+     "flagged": true
+    },
+    "view": "v-actions"
+   },
+   {
+    "id": "q-info",
+    "label": "Infos pro Zeile",
+    "mode": "multi",
+    "value": [
+     "maker",
+     "size",
+     "own",
+     "patchnew"
+    ],
+    "rec": "maker size own stat",
+    "deviates": true,
+    "none": false,
+    "untouched": false,
+    "note": "Immer Icon, für die wiederkennbarkeit und schnelle einordnung. Lass uns die icons nochmal refinen bitte! Außer wenn sie aus data  uploader mitkommen (können).\nNeu Icon gern aber nur mit hover over das es neu im patch xyz ist.",
+    "appliesTo": "zweite Zeile jedes Treffers",
+    "finding": "f-info",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 151316,
+     "noteWords": 38,
+     "revisits": 1,
+     "flagged": false
+    },
+    "view": "v-actions"
+   },
+   {
+    "id": "q-esc",
+    "label": "Esc und ✕",
+    "mode": "single",
+    "value": "close",
+    "rec": "close",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Tastatur und ✕",
+    "finding": "f-esc",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 18460,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-actions"
+   }
+  ],
+  "annotations": [
+   {
+    "id": "sa-s2-a1",
+    "screen": "sa-s2",
+    "design": "kacheln",
+    "question": "„Aus deinem Bestand“ als eigener, grün umrandeter Bereich ganz oben: so erkennbar, oder reicht ein Badge an der Zeile?",
+    "answer": "ne, das ist schon wichtig, maximal 3 angezeigt!\ngleiches pattern wie danach +... weitere hier anzeiegne, falls verfügbar und ... Alle x im hq öffnen.."
+   },
+   {
+    "id": "sa-s2-a2",
+    "screen": "sa-s2",
+    "design": "kacheln",
+    "question": "Zwei Wege pro Bereich: „11 weitere hier zeigen“ (bleibt im Panel) und „Alle 14 im Index öffnen“ (verlässt es). Klar getrennt oder einer zu viel?",
+    "answer": "Finde ich sehr gut!"
+   },
+   {
+    "id": "sa-s2-a3",
+    "screen": "sa-s2",
+    "design": "kacheln",
+    "question": "Rechts sichtbar nur EINE Aktion (hier „Im Bestand zeigen“), Vergleichen / neuer Tab / Link kopieren erst auf der aktiven Zeile. Fehlt dir so etwas?",
+    "answer": "Ja, lass uns immer eine haupt cta machen! Das ist wichtig für die ux!"
+   }
+  ],
+  "userPins": [
+   {
+    "id": "up-mvzkb9uqbfp5",
+    "design": "kacheln",
+    "screen": "sa-s1",
+    "x": 37.8,
+    "y": 70.6,
+    "target": "div.mk-s-tags \"SchiffeKomponentenSchiffswaffenFPS-Ausrü\"",
+    "text": "Bereiche brauchen wir hier gar nicht, die existieren gern als tag, aber nur automatisiert eingetragen 9in die suchleiste wie bestand oben weil ich die suche aus der seite bzw. anchor aufgemacht habe (stelle sicher dass alle anchor scrollables auch so ein label erzuegen wenn man von dort aus die suche aufmacht!)",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzkcgh99vgy",
+    "design": "kacheln",
+    "screen": "sa-s1",
+    "x": 47,
+    "y": 55.2,
+    "target": "div.mk-s-tags \"SpindHangarEinsätzeStatistik\"",
+    "text": "siehe unten bereiche, benötigen wir nicht, wir haben schon implizites in dne suchergebnissen oder ggf. oben getaggt ihn der suchleiste automatisch.",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzkdq2gb28k",
+    "design": "kacheln",
+    "screen": "sa-s1",
+    "x": 40.8,
+    "y": 32.7,
+    "target": "b \"Aegis Gladius\"",
+    "text": "immer wenn möglich 3 Stück einträge (bzw. wenn darunter dann weniger als 3)",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzke8qntvor",
+    "design": "kacheln",
+    "screen": "sa-s1",
+    "x": 33.8,
+    "y": 16.1,
+    "target": "div.mk-s-group \"Zuletzt gesuchtlaserquantumgladius\"",
+    "text": "max. 7 neuste!",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzknolyitpd",
+    "design": "kacheln",
+    "screen": "sa-s1",
+    "x": 59.7,
+    "y": 59.2,
+    "target": "div.mk-s-group \"Hier im HQSpindHangarEinsätzeStatistik\"",
+    "text": "stattdessen hier unten eher einen dezneten teaser weas man alles suchen kann!",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzl77sbpcg5",
+    "design": "kacheln",
+    "screen": "sa-s3",
+    "x": 29.4,
+    "y": 6.4,
+    "target": "span.mk-s-ctx \"Bestand ×\"",
+    "text": "es sooltte auch wenn man z. B. in der idris ist und das getaggt wird, dann aber stalker sucht - wenn es dann einen almost exact match gibt, dann sollte dieser trotzdem angezeigt werden auch wenn nicht indem bereich! gern irgendwie als solches markieren!",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzlc9678nhs",
+    "design": "kacheln",
+    "screen": "sa-s3",
+    "x": 73.4,
+    "y": 51.4,
+    "target": "span.mk-s-rt \"☆↗⧉Öffnen\"",
+    "text": "lass uns die one action + die drei icons daneben bitte nochmal refinen was die machen, außerdem kann man ja auch immer auf den eintrag klicken selber um dort rein zu gelangen, daher wäre für mich die action etwas spezielleres kontextabhängig wo ich die suche aufrufe? und die drei icons, gern etwas größer sonst verklickt man sich, standardaktionen die ich immer wiederfinde und machen kann und bei allem gefunden gleich!",
+    "attachments": []
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "Lass uns im nächsten schritt die cta refinen und die drei icons, lass die devops agents nochmal brainstormen was die drei icons sein können / müssen! 1 davon haben wir ja schon definiert!\n\nAußerdem zeig mir eine geöffnete suche die alle möglichen maximal variante elemente hat und eine normale sozusagen!",
+    "attachments": []
+   },
+   "items": [
+    {
+     "id": "anno-sa-s2-a1",
+     "text": "ne, das ist schon wichtig, maximal 3 angezeigt!\ngleiches pattern wie danach +... weitere hier anzeiegne, falls verfügbar und ... Alle x im hq öffnen..",
+     "attachments": []
+    },
+    {
+     "id": "anno-sa-s2-a2",
+     "text": "Finde ich sehr gut!",
+     "attachments": []
+    },
+    {
+     "id": "anno-sa-s2-a3",
+     "text": "Ja, lass uns immer eine haupt cta machen! Das ist wichtig für die ux!",
+     "attachments": []
+    },
+    {
+     "id": "q-ctx-note",
+     "text": "[Frage 2]  und kontext filtert! Einmal sichtbar mit den labels (sollten nie bereiche sein! weil das ja unsinnig wäre wenn ich das schon mit der reihenfolge mache) und einmal unsichtbar die reihenfolge der bereiche!",
+     "attachments": []
+    },
+    {
+     "id": "q-understand-note",
+     "text": "Abkürzungen bitte in der community nochmal intensiv recherchcieren und weitere aufnehmen! Reddit und spectrum sind dein freund ;) \nAUßerdem immer die aktuelle sprache + englisch! Wenn englisch die sprache gerade ist, dann nur diese!\nchips sollten auch die möglichkeit haben umschaltbar zu sein wenn man drüber hovered ein kleines aufklapp dreieck und man kann z. B. S1 in S3 ändern - nur wenn das sinn macht! und bei mehr als 7 Einträgern inkl. kleiner mini suche darin!",
+     "attachments": []
+    },
+    {
+     "id": "q-sources-note",
+     "text": "außerdem check bitte, dass man schiffen nebst dem schiffsnamen auch eigene namen geben kann im hangar und auch deren loadout varianten ;) gleiches wie die fps sets ;)",
+     "attachments": []
+    },
+    {
+     "id": "q-signals-note",
+     "text": "was andere oft öffnen gern bei der sortierung",
+     "attachments": []
+    },
+    {
+     "id": "q-more-note",
+     "text": "[Frage 2] passt auf ist ander sinteressant, wenn ich gerade einen chp habe zum derzeitig ausgewählten schiff (aus der schiffsdetailssitete3) oder auch waffe etc. dann sollte mir angezeigt werden ob das element gesuchte auf darauf passt oder nicht! \nGenau auf die WUnschliste! Oder auch in das lager übernehmen! Beides valide optionen.\nLink kopieren sollte ich eh auf jeder detailseite haben, gehen wir aber später an. \nIn neuem tab öffnen geht, aber das müssen die user selbst wissen. Vergleichen nur auf der fullscreen suchergebnis seite (wenn man raumschiffe oder waffen anklickt in codex und dort dann alle findet), das brauchen wir aber nicht in der kleinen suche, außer wenn  man auf diesen listen seiten ist, darf das ruhig die cta sein!",
+     "attachments": []
+    },
+    {
+     "id": "q-info-note",
+     "text": "Immer Icon, für die wiederkennbarkeit und schnelle einordnung. Lass uns die icons nochmal refinen bitte! Außer wenn sie aus data  uploader mitkommen (können).\nNeu Icon gern aber nur mit hover over das es neu im patch xyz ist.",
+     "attachments": []
+    },
+    {
+     "id": "design-vorschau",
+     "text": "vorschau ist zuuu viel, macht es nicht mehr genügend leichtgewichtig, obwohl eine vorschau bildlich wenn man es focussed hat / hovered und noch nicht geklickt ganz cool wäre, sehr gedämpft aber im background, dann kann man es ggf. auch visuell identifizieren, z. B. verwechsel ich immer reclaimer mit redeemer mit re... und die sind ganz klar visuelle ifnach zu untersceiden!",
+     "attachments": []
+    },
+    {
+     "id": "design-reiter",
+     "text": "ne, die suche mu7ss intelligenter sein! integrierter, dass wir das bereiche als reiter nicht brauchen!",
+     "attachments": []
+    }
+   ],
+   "designs": {
+    "vorschau": "vorschau ist zuuu viel, macht es nicht mehr genügend leichtgewichtig, obwohl eine vorschau bildlich wenn man es focussed hat / hovered und noch nicht geklickt ganz cool wäre, sehr gedämpft aber im background, dann kann man es ggf. auch visuell identifizieren, z. B. verwechsel ich immer reclaimer mit redeemer mit re... und die sind ganz klar visuelle ifnach zu untersceiden!",
+    "reiter": "ne, die suche mu7ss intelligenter sein! integrierter, dass wir das bereiche als reiter nicht brauchen!"
+   },
+   "screens": {},
+   "views": {}
+  }
+ }
+]

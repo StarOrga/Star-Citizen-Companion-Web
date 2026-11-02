@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives">
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Lass uns im nächsten schritt die cta refinen und die drei icons, lass die devops agents nochmal brainstormen was die drei icons sein können / müssen! 1 davon haben wir ja schon definiert!\n\nAußerdem zeig mir eine geöffnete suche die alle möglichen maximal variante elemente hat und eine normale sozusagen!","attachments":[]},"designs":{"vorschau":"vorschau ist zuuu viel, macht es nicht mehr genügend leichtgewichtig, obwohl eine vorschau bildlich wenn man es focussed hat / hovered und noch nicht geklickt ganz cool wäre, sehr gedämpft aber im background, dann kann man es ggf. auch visuell identifizieren, z. B. verwechsel ich immer reclaimer mit redeemer mit re... und die sind ganz klar visuelle ifnach zu untersceiden!","reiter":"ne, die suche mu7ss intelligenter sein! integrierter, dass wir das bereiche als reiter nicht brauchen!"},"screens":{},"views":{},"favorite":"kacheln","userPins":[{"id":"up-mvzkb9uqbfp5","design":"kacheln","screen":"sa-s1","x":37.8,"y":70.6,"target":"div.mk-s-tags \"SchiffeKomponentenSchiffswaffenFPS-Ausrü\"","text":"Bereiche brauchen wir hier gar nicht, die existieren gern als tag, aber nur automatisiert eingetragen 9in die suchleiste wie bestand oben weil ich die suche aus der seite bzw. anchor aufgemacht habe (stelle sicher dass alle anchor scrollables auch so ein label erzuegen wenn man von dort aus die suche aufmacht!)","attachments":[]},{"id":"up-mvzkcgh99vgy","design":"kacheln","screen":"sa-s1","x":47,"y":55.2,"target":"div.mk-s-tags \"SpindHangarEinsätzeStatistik\"","text":"siehe unten bereiche, benötigen wir nicht, wir haben schon implizites in dne suchergebnissen oder ggf. oben getaggt ihn der suchleiste automatisch.","attachments":[]},{"id":"up-mvzkdq2gb28k","design":"kacheln","screen":"sa-s1","x":40.8,"y":32.7,"target":"b \"Aegis Gladius\"","text":"immer wenn möglich 3 Stück einträge (bzw. wenn darunter dann weniger als 3)","attachments":[]},{"id":"up-mvzke8qntvor","design":"kacheln","screen":"sa-s1","x":33.8,"y":16.1,"target":"div.mk-s-group \"Zuletzt gesuchtlaserquantumgladius\"","text":"max. 7 neuste!","attachments":[]},{"id":"up-mvzknolyitpd","design":"kacheln","screen":"sa-s1","x":59.7,"y":59.2,"target":"div.mk-s-group \"Hier im HQSpindHangarEinsätzeStatistik\"","text":"stattdessen hier unten eher einen dezneten teaser weas man alles suchen kann!","attachments":[]},{"id":"up-mvzl77sbpcg5","design":"kacheln","screen":"sa-s3","x":29.4,"y":6.4,"target":"span.mk-s-ctx \"Bestand ×\"","text":"es sooltte auch wenn man z. B. in der idris ist und das getaggt wird, dann aber stalker sucht - wenn es dann einen almost exact match gibt, dann sollte dieser trotzdem angezeigt werden auch wenn nicht indem bereich! gern irgendwie als solches markieren!","attachments":[]},{"id":"up-mvzlc9678nhs","design":"kacheln","screen":"sa-s3","x":73.4,"y":51.4,"target":"span.mk-s-rt \"☆↗⧉Öffnen\"","text":"lass uns die one action + die drei icons daneben bitte nochmal refinen was die machen, außerdem kann man ja auch immer auf den eintrag klicken selber um dort rein zu gelangen, daher wäre für mich die action etwas spezielleres kontextabhängig wo ich die suche aufrufe? und die drei icons, gern etwas größer sonst verklickt man sich, standardaktionen die ich immer wiederfinde und machen kann und bei allem gefunden gleich!","attachments":[]}]}</script>
 <style>
 /* Round 1 mocks — namespaced mk-s-*, per-design rules sa-/sb-/sc-. Bar = the shipped "Ruhige Leiste" (concept 2026-11-01). */
 .mk-s-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 660px; border-radius: 14px; overflow: hidden;
@@ -172,21 +173,23 @@
           <button class="anno-pin" type="button" data-anno-pin="sa-s2-a1" aria-expanded="false" aria-controls="anno-bubble-sa-s2-a1" aria-label="{{anno.pin_label}}">1</button>
           <div class="anno-bubble" id="anno-bubble-sa-s2-a1" data-anno-bubble="sa-s2-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="sa-s2-a1" aria-expanded="false" aria-controls="anno-bubble-sa-s2-a1"><span class="anno-bubble-question">„Aus deinem Bestand“ als eigener, grün umrandeter Bereich ganz oben: so erkennbar, oder reicht ein Badge an der Zeile?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-sa-s2-a1" data-annotation="sa-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-sa-s2-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-sa-s2-a1" data-annotation="sa-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}">ne, das ist schon wichtig, maximal 3 angezeigt!
+gleiches pattern wie danach +... weitere hier anzeiegne, falls verfügbar und ... Alle x im hq öffnen.. </textarea><div class="attach-slot" data-attach-slot="anno-sa-s2-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="sa-s2-a2" data-anno-side="left" data-anno-target=".mk-s-more" style="--anno-x:44%;--anno-y:62%">
           <button class="anno-pin" type="button" data-anno-pin="sa-s2-a2" aria-expanded="false" aria-controls="anno-bubble-sa-s2-a2" aria-label="{{anno.pin_label}}">2</button>
           <div class="anno-bubble" id="anno-bubble-sa-s2-a2" data-anno-bubble="sa-s2-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="sa-s2-a2" aria-expanded="false" aria-controls="anno-bubble-sa-s2-a2"><span class="anno-bubble-question">Zwei Wege pro Bereich: „11 weitere hier zeigen“ (bleibt im Panel) und „Alle 14 im Index öffnen“ (verlässt es). Klar getrennt oder einer zu viel?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-sa-s2-a2" data-annotation="sa-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-sa-s2-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-sa-s2-a2" data-annotation="sa-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Finde ich sehr gut!
+</textarea><div class="attach-slot" data-attach-slot="anno-sa-s2-a2"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="sa-s2-a3" data-anno-side="left" data-anno-target=".mk-s-row.on .mk-s-rt" style="--anno-x:66%;--anno-y:23%">
           <button class="anno-pin" type="button" data-anno-pin="sa-s2-a3" aria-expanded="false" aria-controls="anno-bubble-sa-s2-a3" aria-label="{{anno.pin_label}}">3</button>
           <div class="anno-bubble" id="anno-bubble-sa-s2-a3" data-anno-bubble="sa-s2-a3" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="sa-s2-a3" aria-expanded="false" aria-controls="anno-bubble-sa-s2-a3"><span class="anno-bubble-question">Rechts sichtbar nur EINE Aktion (hier „Im Bestand zeigen“), Vergleichen / neuer Tab / Link kopieren erst auf der aktiven Zeile. Fehlt dir so etwas?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-sa-s2-a3" data-annotation="sa-s2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-sa-s2-a3"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-sa-s2-a3" data-annotation="sa-s2-a3" data-attachable placeholder="{{anno.answer_placeholder}}">Ja, lass uns immer eine haupt cta machen! Das ist wichtig für die ux! </textarea><div class="attach-slot" data-attach-slot="anno-sa-s2-a3"></div></div>
           </div>
         </div>
       </div>
@@ -477,7 +480,7 @@
         <label data-opt="hqonly"><input type="radio" name="dm-q-own" value="hqonly"><span data-opt-label>Bereich nur auf HQ-Seiten</span><span data-opt-consequence>Im Codex und Verse bleibt es wie heute beim Badge.</span></label>
       </div>
       <textarea data-comment="q-own-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-own-none" value=""><input type="hidden" name="dm-q-own-hes" value=""><input type="hidden" name="dm-q-own-touched" value=""><input type="hidden" name="dm-q-own-issue" value=""><input type="hidden" name="dm-q-own-epic" value="">
+      <input type="hidden" name="dm-q-own-none" value=""><input type="hidden" name="dm-q-own-hes" value="{&quot;ms&quot;:33558,&quot;revisits&quot;:0,&quot;median&quot;:65539}"><input type="hidden" name="dm-q-own-touched" value=""><input type="hidden" name="dm-q-own-issue" value=""><input type="hidden" name="dm-q-own-epic" value="">
       <div data-alevel="3" data-title="Eigener Bestand">
         <div data-slot="short"><p>Besitz-Boost: nur HQ, nur Schiffe, nur innerhalb der Top 5.</p></div>
         <div data-slot="long"><p><code>search-context.ts:187</code> sortiert eigene Schiffe nur, wenn der Kontext <code>ownedFirst</code> hat (nur HQ), und nur innerhalb der schon gekappten 5 Treffer. Ein eigenes Schiff auf Platz 6 taucht nie auf. Die Daten für Komponenten, Sets und Loadouts liegen schon im <code>HqOwnershipService</code> (<code>configs</code>, <code>equippedOn</code>, <code>inSets</code>), werden aber nicht durchsucht.</p></div>
@@ -498,8 +501,8 @@ Seiten            → Spind</pre></div>
         <label data-opt="today"><input type="radio" name="dm-q-ctx" value="today"><span data-opt-label>Reihenfolge und Zeilenzahl wie heute</span><span data-opt-consequence>5 / 3 / 1 Zeilen je nach Seite bleiben, nur erklärt.</span></label>
         <label data-opt="filter"><input type="radio" name="dm-q-ctx" value="filter"><span data-opt-label>Kontext filtert, Chip hebt den Filter auf</span><span data-opt-consequence>Im Bestand nur Bestand; ✕ am Chip sucht überall.</span></label>
       </div>
-      <textarea data-comment="q-ctx-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-ctx-none" value=""><input type="hidden" name="dm-q-ctx-hes" value=""><input type="hidden" name="dm-q-ctx-touched" value=""><input type="hidden" name="dm-q-ctx-issue" value=""><input type="hidden" name="dm-q-ctx-epic" value="">
+      <textarea data-comment="q-ctx-note" placeholder="Notiz (optional)">[Frage 2]  und kontext filtert! Einmal sichtbar mit den labels (sollten nie bereiche sein! weil das ja unsinnig wäre wenn ich das schon mit der reihenfolge mache) und einmal unsichtbar die reihenfolge der bereiche!</textarea>
+      <input type="hidden" name="dm-q-ctx-none" value=""><input type="hidden" name="dm-q-ctx-hes" value="{&quot;ms&quot;:137871,&quot;revisits&quot;:2,&quot;median&quot;:65539}"><input type="hidden" name="dm-q-ctx-touched" value="1"><input type="hidden" name="dm-q-ctx-issue" value=""><input type="hidden" name="dm-q-ctx-epic" value="">
       <div data-alevel="3" data-title="Kontext-Regel">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"5 / 3 / 1","unit":"Zeilen","label":"je nach Seite, unerklärt"}'>5 / 3 / 1 Zeilen</div></div>
         <div data-slot="long"><p><code>search-context.ts:55-58</code>: bevorzugte Art 5 Zeilen, andere 3, ausgeschlossene 1. 12 Kontexte (Verse, Galerie, Codex, Codex-Index, FPS, Schiff, Codex-Detail, HQ, Planen, Jetzt, Bestand, Statistik). Der Kontext-Chip ist auf Hauptseiten und Codex-Segmenten ausgeblendet, die Gewichtung wirkt trotzdem.</p></div>
@@ -517,8 +520,10 @@ Seiten            → Spind</pre></div>
         <label data-opt="attr" data-recommended><input type="checkbox" name="dm-q-understand.attr" checked><span data-opt-label>Werte im Suchtext: „Größe 3“, „Klasse A“</span><span data-opt-consequence>Wird zum Filter-Chip im Feld; braucht Suche auf Größe/Klasse.</span></label>
         <label data-opt="en"><input type="checkbox" name="dm-q-understand.en"><span data-opt-label>Englisch → Deutsch in beide Richtungen</span><span data-opt-consequence>Heute nur DE → EN, rund 36 Wörter.</span></label>
       </div>
-      <textarea data-comment="q-understand-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-understand-none" value=""><input type="hidden" name="dm-q-understand-hes" value=""><input type="hidden" name="dm-q-understand-touched" value=""><input type="hidden" name="dm-q-understand-issue" value=""><input type="hidden" name="dm-q-understand-epic" value="">
+      <textarea data-comment="q-understand-note" placeholder="Notiz (optional)">Abkürzungen bitte in der community nochmal intensiv recherchcieren und weitere aufnehmen! Reddit und spectrum sind dein freund ;) 
+AUßerdem immer die aktuelle sprache + englisch! Wenn englisch die sprache gerade ist, dann nur diese!
+chips sollten auch die möglichkeit haben umschaltbar zu sein wenn man drüber hovered ein kleines aufklapp dreieck und man kann z. B. S1 in S3 ändern - nur wenn das sinn macht! und bei mehr als 7 Einträgern inkl. kleiner mini suche darin!</textarea>
+      <input type="hidden" name="dm-q-understand-none" value=""><input type="hidden" name="dm-q-understand-hes" value="{&quot;ms&quot;:150436,&quot;revisits&quot;:5,&quot;median&quot;:65539}"><input type="hidden" name="dm-q-understand-touched" value="1"><input type="hidden" name="dm-q-understand-issue" value=""><input type="hidden" name="dm-q-understand-epic" value="">
       <div data-alevel="3" data-title="Was sie versteht">
         <div data-slot="short"><p>Kein Tippfehler-Ausgleich auf dem Hauptweg, keine Attribute.</p></div>
         <div data-slot="long"><p>Gesucht wird nur in <code>name_localized</code> und <code>class_name</code> (<code>codex.service.ts:2549</code>). <code>codex_search_suggest</code> (pg_trgm) läuft nur bei null Treffern, und <code>didYouMean</code> wird nur von der alten Ergebnisliste gezeigt. <code>SEARCH_SYNONYMS</code> kennt rund 36 deutsche Wörter (gewehr → rifle), keine Abkürzungen.</p></div>
@@ -536,8 +541,8 @@ Seiten            → Spind</pre></div>
         <label data-opt="news"><input type="checkbox" name="dm-q-sources.news"><span data-opt-label>News und Comm-Links</span><span data-opt-consequence>Großer Bestand, braucht eigene Abfrage.</span></label>
         <label data-opt="keys"><input type="checkbox" name="dm-q-sources.keys"><span data-opt-label>Tastenbelegungen nach Aktion</span><span data-opt-consequence>„Quantum aktivieren“ → Taste B.</span></label>
       </div>
-      <textarea data-comment="q-sources-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-sources-none" value=""><input type="hidden" name="dm-q-sources-hes" value=""><input type="hidden" name="dm-q-sources-touched" value=""><input type="hidden" name="dm-q-sources-issue" value=""><input type="hidden" name="dm-q-sources-epic" value="">
+      <textarea data-comment="q-sources-note" placeholder="Notiz (optional)">außerdem check bitte, dass man schiffen nebst dem schiffsnamen auch eigene namen geben kann im hangar und auch deren loadout varianten ;) gleiches wie die fps sets ;)</textarea>
+      <input type="hidden" name="dm-q-sources-none" value=""><input type="hidden" name="dm-q-sources-hes" value="{&quot;ms&quot;:64297,&quot;revisits&quot;:1,&quot;median&quot;:65539}"><input type="hidden" name="dm-q-sources-touched" value="1"><input type="hidden" name="dm-q-sources-issue" value=""><input type="hidden" name="dm-q-sources-epic" value="">
       <div data-alevel="3" data-title="Was sie durchsucht">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"8","unit":"Anfragen","label":"pro Suchwort (7 Codex-Arten + RSI-Feed)"}'>8 Anfragen</div></div>
         <div data-slot="long"><p><code>CodexService.searchAll</code> fragt 7 Arten parallel bei Supabase ab, dazu den RSI-Feed. Jede neue Quelle kostet entweder eine weitere Anfrage oder einen Index im Client. Loadouts und Sets sind schon geladen und kosten keine Anfrage.</p></div>
@@ -555,8 +560,8 @@ Seiten            → Spind</pre></div>
         <label data-opt="patch"><input type="checkbox" name="dm-q-signals.patch"><span data-opt-label>Neu im aktuellen Patch</span><span data-opt-consequence>Plus Badge „Neu in 4.x“ an der Zeile.</span></label>
         <label data-opt="popular"><input type="checkbox" name="dm-q-signals.popular"><span data-opt-label>Was andere oft öffnen</span><span data-opt-consequence>Braucht Zählung auf dem Server.</span></label>
       </div>
-      <textarea data-comment="q-signals-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-signals-none" value=""><input type="hidden" name="dm-q-signals-hes" value=""><input type="hidden" name="dm-q-signals-touched" value=""><input type="hidden" name="dm-q-signals-issue" value=""><input type="hidden" name="dm-q-signals-epic" value="">
+      <textarea data-comment="q-signals-note" placeholder="Notiz (optional)">was andere oft öffnen gern bei der sortierung</textarea>
+      <input type="hidden" name="dm-q-signals-none" value=""><input type="hidden" name="dm-q-signals-hes" value="{&quot;ms&quot;:65539,&quot;revisits&quot;:6,&quot;median&quot;:65539}"><input type="hidden" name="dm-q-signals-touched" value="1"><input type="hidden" name="dm-q-signals-issue" value=""><input type="hidden" name="dm-q-signals-epic" value="">
       <div data-alevel="3" data-title="Was nach oben kommt">
         <div data-slot="short"><p>Ranking = Namens-Treffer › Art › Namenslänge › Alphabet.</p></div>
         <div data-slot="long"><p><code>rankPolyHits</code> (<code>codex-poly-search.ts:220</code>) sortiert nach Score (exakt 4, Anfang 3, sonst 2), dann <code>KIND_PRIORITY</code>, dann kürzerer Name. Der heutige Besitz-Boost auf HQ-Seiten ignoriert die Trefferqualität: ein schwacher eigener Treffer springt über einen exakten fremden.</p></div>
@@ -582,7 +587,7 @@ Seiten            → Spind</pre></div>
         <label data-opt="none"><input type="radio" name="dm-q-primary" value="none"><span data-opt-label>Kein Knopf, nur Icons beim Überfahren</span><span data-opt-consequence>Ruhigste Liste, Aktionen schwerer zu finden.</span></label>
       </div>
       <textarea data-comment="q-primary-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-primary-none" value=""><input type="hidden" name="dm-q-primary-hes" value=""><input type="hidden" name="dm-q-primary-touched" value=""><input type="hidden" name="dm-q-primary-issue" value=""><input type="hidden" name="dm-q-primary-epic" value="">
+      <input type="hidden" name="dm-q-primary-none" value=""><input type="hidden" name="dm-q-primary-hes" value="{&quot;ms&quot;:34618,&quot;revisits&quot;:0,&quot;median&quot;:92967}"><input type="hidden" name="dm-q-primary-touched" value="1"><input type="hidden" name="dm-q-primary-issue" value=""><input type="hidden" name="dm-q-primary-epic" value="">
       <div data-alevel="3" data-title="Hauptaktion">
         <div data-slot="short"><p>4 Knopf-Namen für 4 verschiedene Dinge, einer davon irreführend.</p></div>
         <div data-slot="long"><p><code>buttonAction</code> (<code>fusion-search.component.ts:1140</code>): „Hangar +“ (fremdes Schiff), „Im Hangar“ (eigenes Schiff → /hq/hangar), „Im Index“ (Waffe, Komponente, Item, Munition → /codex/index?q=Name), sonst „Öffnen“. Das Badge sagt „In deinem Hangar“, der Knopf „Im Hangar“: zwei Namen für eine Sache.</p></div>
@@ -601,8 +606,11 @@ Seiten            → Spind</pre></div>
         <label data-opt="fit"><input type="checkbox" name="dm-q-more.fit"><span data-opt-label>„Passt auf …“ für Waffen und Komponenten</span><span data-opt-consequence>Zeigt, auf welche deiner Schiffe es passt.</span></label>
         <label data-opt="wish"><input type="checkbox" name="dm-q-more.wish"><span data-opt-label>Auf die Wunschliste</span><span data-opt-consequence>Braucht eine neue Liste im HQ.</span></label>
       </div>
-      <textarea data-comment="q-more-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-more-none" value=""><input type="hidden" name="dm-q-more-hes" value=""><input type="hidden" name="dm-q-more-touched" value=""><input type="hidden" name="dm-q-more-issue" value=""><input type="hidden" name="dm-q-more-epic" value="">
+      <textarea data-comment="q-more-note" placeholder="Notiz (optional)">[Frage 2] passt auf ist ander sinteressant, wenn ich gerade einen chp habe zum derzeitig ausgewählten schiff (aus der schiffsdetailssitete3) oder auch waffe etc. dann sollte mir angezeigt werden ob das element gesuchte auf darauf passt oder nicht! 
+Genau auf die WUnschliste! Oder auch in das lager übernehmen! Beides valide optionen.
+Link kopieren sollte ich eh auf jeder detailseite haben, gehen wir aber später an. 
+In neuem tab öffnen geht, aber das müssen die user selbst wissen. Vergleichen nur auf der fullscreen suchergebnis seite (wenn man raumschiffe oder waffen anklickt in codex und dort dann alle findet), das brauchen wir aber nicht in der kleinen suche, außer wenn  man auf diesen listen seiten ist, darf das ruhig die cta sein!</textarea>
+      <input type="hidden" name="dm-q-more-none" value=""><input type="hidden" name="dm-q-more-hes" value="{&quot;ms&quot;:301657,&quot;revisits&quot;:3,&quot;median&quot;:92967}"><input type="hidden" name="dm-q-more-touched" value="1"><input type="hidden" name="dm-q-more-issue" value=""><input type="hidden" name="dm-q-more-epic" value="">
       <div data-alevel="3" data-title="Weitere Aktionen">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"55 %","unit":"Deckkraft","label":"drei Icons auf jeder Zeile, bis man darüberfährt"}'>55 % Deckkraft</div></div>
         <div data-slot="long"><p><code>fusion-search.component.ts:532-534</code> setzt die Schnellaktionen auf 55 % Deckkraft. Der Stern heißt im Tooltip „Vergleichen“ und danach „Angepinnt“; die Vergleichsleiste selbst ist in der Suche nicht zu sehen.</p></div>
@@ -618,12 +626,13 @@ Seiten            → Spind</pre></div>
         <label data-opt="maker" data-recommended><input type="checkbox" name="dm-q-info.maker" checked><span data-opt-label>Hersteller und Art</span><span data-opt-consequence>„Klaus &amp; Werner · Laser-Repeater“.</span></label>
         <label data-opt="size" data-recommended><input type="checkbox" name="dm-q-info.size" checked><span data-opt-label>Größe und Klasse</span><span data-opt-consequence>Wie heute.</span></label>
         <label data-opt="own" data-recommended><input type="checkbox" name="dm-q-info.own" checked><span data-opt-label>Besitz konkret: Anzahl, wo, worauf montiert</span><span data-opt-consequence>„3× im Lager · 2 montiert auf Gladius“ statt nur „im Hangar“.</span></label>
-        <label data-opt="stat" data-recommended><input type="checkbox" name="dm-q-info.stat" checked><span data-opt-label>Ein Kernwert je Art</span><span data-opt-consequence>Waffe DPS, Schild HP, Quantum Reichweite, Schiff Rolle.</span></label>
+        <label data-opt="stat" data-recommended><input type="checkbox" name="dm-q-info.stat"><span data-opt-label>Ein Kernwert je Art</span><span data-opt-consequence>Waffe DPS, Schild HP, Quantum Reichweite, Schiff Rolle.</span></label>
         <label data-opt="thumb"><input type="checkbox" name="dm-q-info.thumb"><span data-opt-label>Kleines Bild statt Icon</span><span data-opt-consequence>Nur wo ein Bild existiert, sonst Icon.</span></label>
-        <label data-opt="patchnew"><input type="checkbox" name="dm-q-info.patchnew"><span data-opt-label>Badge „Neu in 4.x“</span><span data-opt-consequence>Die alte Ergebnisliste hatte das schon.</span></label>
+        <label data-opt="patchnew"><input type="checkbox" name="dm-q-info.patchnew" checked><span data-opt-label>Badge „Neu in 4.x“</span><span data-opt-consequence>Die alte Ergebnisliste hatte das schon.</span></label>
       </div>
-      <textarea data-comment="q-info-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-info-none" value=""><input type="hidden" name="dm-q-info-hes" value=""><input type="hidden" name="dm-q-info-touched" value=""><input type="hidden" name="dm-q-info-issue" value=""><input type="hidden" name="dm-q-info-epic" value="">
+      <textarea data-comment="q-info-note" placeholder="Notiz (optional)">Immer Icon, für die wiederkennbarkeit und schnelle einordnung. Lass uns die icons nochmal refinen bitte! Außer wenn sie aus data  uploader mitkommen (können).
+Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
+      <input type="hidden" name="dm-q-info-none" value=""><input type="hidden" name="dm-q-info-hes" value="{&quot;ms&quot;:151316,&quot;revisits&quot;:1,&quot;median&quot;:92967}"><input type="hidden" name="dm-q-info-touched" value="1"><input type="hidden" name="dm-q-info-issue" value=""><input type="hidden" name="dm-q-info-epic" value="">
       <div data-alevel="3" data-title="Infos pro Zeile">
         <div data-slot="short"><p>Name + Hersteller + Größe/Klasse, sonst nichts.</p></div>
         <div data-slot="long"><p>Die Zeile (<code>fusion-search.component.ts:237</code>) zeigt Hersteller und Badges. Schiffe bekommen ein generisches Icon, die alte Liste hatte ein Blueprint-Icon und das Badge „Neu in diesem Patch“.</p></div>
@@ -640,7 +649,7 @@ Seiten            → Spind</pre></div>
         <label data-opt="today"><input type="radio" name="dm-q-esc" value="today"><span data-opt-label>Wie heute: erst löschen, dann schließen</span><span data-opt-consequence>Bekanntes Muster aus Suchfeldern im Browser.</span></label>
       </div>
       <textarea data-comment="q-esc-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q-esc-none" value=""><input type="hidden" name="dm-q-esc-hes" value=""><input type="hidden" name="dm-q-esc-touched" value=""><input type="hidden" name="dm-q-esc-issue" value=""><input type="hidden" name="dm-q-esc-epic" value="">
+      <input type="hidden" name="dm-q-esc-none" value=""><input type="hidden" name="dm-q-esc-hes" value="{&quot;ms&quot;:18460,&quot;revisits&quot;:0,&quot;median&quot;:92967}"><input type="hidden" name="dm-q-esc-touched" value="1"><input type="hidden" name="dm-q-esc-issue" value=""><input type="hidden" name="dm-q-esc-epic" value="">
       <div data-alevel="3" data-title="Esc und ✕">
         <div data-slot="short"><p>Esc braucht heute zwei Drücke zum Schließen.</p></div>
         <div data-slot="long"><p><code>onKeydown</code> (<code>fusion-search.component.ts:1005</code>) leert zuerst den Text; das ✕ (<code>:176</code>) wechselt seine Bedeutung je nach Inhalt. Auf Listen-Seiten filtert Tippen die Liste und das Panel bleibt zu, nur der Streifen „Im ganzen Codex: N Treffer ↓“ verrät die globale Suche.</p></div>
