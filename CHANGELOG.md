@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.194.0] - 2026-11-02
+
+### Changed
+- Patch stability: the stabil / wackelig / instabil cut-offs follow the last finished patches (upper and lower third of their stability) once at least five are finished; before that the fixed 75 / 45 stay. Chip, long form and briefing use the same cut-offs, and the long form says when they are derived.
+- Community vote: the three buttons appear in an order of their own per account, so no answer is always first.
+
+## [0.193.4] - 2026-11-02
+
+### Fixed
+- Phones: the β chip stays below the status bar on notched phones and below the impersonation banner, level with the account buttons.
+
+## [0.193.3] - 2026-11-02
+
+### Removed
+- Search: the leftover code of the removed "Companion fragen" offer.
+
+## [0.193.2] - 2026-11-02
+
+### Fixed
+- Phones and tablets: the star map's buttons, stars and tour controls and the holotable pins on ship pages have 48px touch targets, so they are hit reliably.
+
+## [0.193.1] - 2026-11-02
+
+### Changed
+- Data Uploader 0.67.1: the first pipeline step is called "Metadaten" / "Metadata" instead of "Codex" — the Codex is the whole published dataset (metadata, silhouettes, 3D models), the step only uploads its metadata.
+
 ## [0.193.0] - 2026-11-02
 
 ### Added

@@ -18,7 +18,7 @@
   },
   "steprail": {
     "install": "Installation",
-    "codex": "Codex",
+    "codex": "Metadaten",
     "silhouettes": "Silhouetten",
     "models": "3D-Modelle",
     "done": "Fertig",
@@ -146,7 +146,7 @@
     "connectionRetry": "Gerade keine Verbindung zum Web — du bleibst angemeldet. Versuch es gleich noch einmal.",
     "uploading": "Upload läuft…",
     "uploadOk": "Upload OK",
-    "bundleAlreadyThere": "Bundle ist bereits auf dem Server — Codex und 3D-Daten werden aktualisiert.",
+    "bundleAlreadyThere": "Bundle ist bereits auf dem Server — Metadaten und 3D-Daten werden aktualisiert.",
     "installMissing": "Keine {{channel}}-Installation gefunden — die lokalen 3D-Daten konnten nicht gebaut werden.",
     "uploadFailed": "Upload-Fehler",
     "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)",
@@ -160,7 +160,7 @@
     "shutdownAbortFailed": "Abbruch fehlgeschlagen — bitte manuell abbrechen.",
     "steps": {
       "bundle": "Bundle",
-      "codex": "Codex",
+      "codex": "Metadaten",
       "skins": "3D-Modelle"
     },
     "err": {
@@ -442,7 +442,7 @@
       "components": "Komponenten",
       "weapons": "Waffen",
       "items": "Gegenstände",
-      "codex_extra": "Weitere Codex-Daten",
+      "codex_extra": "Weitere Metadaten",
       "silhouettes": "Silhouetten",
       "hulls": "3D-Hüllen"
     }
@@ -531,18 +531,18 @@
       "unknown": "Typ unbekannt"
     },
     "phase": {
-      "codex": "Codex",
+      "codex": "Metadaten",
       "silhouettes": "Silhouetten",
       "models": "3D"
     },
     "boostAria": "Wofür",
     "boost": {
-      "cpu": "Wofür braucht der Uploader CPU? Codex: DataCore einlesen (wenig, meist ein Kern). Silhouetten: Meshes umrechnen und Umrisse rastern (viel, alle Worker). 3D: Meshes konvertieren und komprimieren (viel). ●●● = mehr CPU macht diesen Schritt spürbar schneller.",
-      "ram": "Wofür braucht der Uploader Arbeitsspeicher? Codex: die DataCore liegt komplett im Speicher (viel). Silhouetten und 3D: ein Puffer pro Worker (mittel) — die Grenze legt fest, wie viele Worker starten. ●●● = mehr Arbeitsspeicher macht diesen Schritt spürbar schneller.",
-      "game": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k: Codex liest am meisten (viel), Silhouetten und 3D lesen Modelle nach (mittel). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
-      "work": "Wofür braucht der Uploader dieses Laufwerk? Er schreibt Ergebnisse und Zwischenspeicher: Codex wenig, Silhouetten mittel, 3D am meisten (Modelle und Pakete). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
-      "both": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k (Codex am meisten) und schreibt Ergebnisse und Zwischenspeicher (3D am meisten). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
-      "gpu": "Wofür braucht der Uploader die Grafikkarte? Codex: gar nicht. Silhouetten: Umrisse rastern (viel). 3D: Modelle umrechnen (viel). ●●● = mehr GPU macht diesen Schritt spürbar schneller."
+      "cpu": "Wofür braucht der Uploader CPU? Metadaten: DataCore einlesen (wenig, meist ein Kern). Silhouetten: Meshes umrechnen und Umrisse rastern (viel, alle Worker). 3D: Meshes konvertieren und komprimieren (viel). ●●● = mehr CPU macht diesen Schritt spürbar schneller.",
+      "ram": "Wofür braucht der Uploader Arbeitsspeicher? Metadaten: die DataCore liegt komplett im Speicher (viel). Silhouetten und 3D: ein Puffer pro Worker (mittel) — die Grenze legt fest, wie viele Worker starten. ●●● = mehr Arbeitsspeicher macht diesen Schritt spürbar schneller.",
+      "game": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k: Metadaten lesen am meisten (viel), Silhouetten und 3D lesen Modelle nach (mittel). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
+      "work": "Wofür braucht der Uploader dieses Laufwerk? Er schreibt Ergebnisse und Zwischenspeicher: Metadaten wenig, Silhouetten mittel, 3D am meisten (Modelle und Pakete). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
+      "both": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k (Metadaten am meisten) und schreibt Ergebnisse und Zwischenspeicher (3D am meisten). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
+      "gpu": "Wofür braucht der Uploader die Grafikkarte? Metadaten: gar nicht. Silhouetten: Umrisse rastern (viel). 3D: Modelle umrechnen (viel). ●●● = mehr GPU macht diesen Schritt spürbar schneller."
     },
     "gpu": "GPU",
     "presetsAria": "Voreinstellungen",
@@ -590,12 +590,12 @@
   "pipeline": {
     "stepOf": "Schritt {{n}} von {{total}}",
     "step": {
-      "codex": "Codex",
+      "codex": "Metadaten",
       "silhouettes": "Silhouetten",
       "models": "3D-Modelle"
     },
     "intro": {
-      "codex": "Spieldaten aus der Data.p4k lesen und als Codex hochladen — danach ist der neue Datenstand auf der Website.",
+      "codex": "Metadaten aus der Data.p4k lesen und in den Codex hochladen — danach ist der neue Datenstand auf der Website.",
       "silhouettes": "Aus den Schiffs- und Item-Modellen die Umrisse bauen und an denselben Codex-Stand hängen.",
       "models": "Die 3D-Modelle der Schiffe samt Lackierungen bauen und hochladen."
     },

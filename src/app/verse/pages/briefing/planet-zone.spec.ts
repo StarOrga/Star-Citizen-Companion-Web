@@ -148,7 +148,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         {
           provide: PatchStabilityService,
           useValue: {
-            load: jasmine.createSpy().and.resolveTo(), allTime: () => [], previousOf: () => null,
+            load: jasmine.createSpy().and.resolveTo(), allTime: () => [], thresholds: () => ({ stabilMin: 75, wackeligMin: 45, rolling: false }), previousOf: () => null,
             verdictFor: (l: string) => (l === '4.3' ? verdict('4.3', 3, 50, 30) : l === '4.2' ? verdict('4.2', 2, 79, 16) : null),
           },
         },

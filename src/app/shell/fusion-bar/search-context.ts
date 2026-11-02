@@ -56,7 +56,6 @@ export const CAP_PRIMARY = 5;
 export const CAP_OTHER = 3;
 /** Rows an excluded group keeps (collapsed to its lead hit + the "all N" link). */
 export const CAP_EXCLUDED = 1;
-/** "Companion fragen" is offered from this many words on (spec §5). */
 
 const NEUTRAL: SearchContext = {
   key: 'all',
@@ -194,14 +193,6 @@ export function weightGroups(
     const more = g.total > shown.length ? (moreTarget(g) ?? null) : null;
     return { group: g, shown, more, primary, collapsed };
   });
-}
-
-/** Words in a term (whitespace-separated, punctuation-only tokens ignored). */
-export function wordCount(term: string): number {
-  return term
-    .trim()
-    .split(/\s+/)
-    .filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
 /** An app destination the search finds by name (pages the Codex index does not hold). */

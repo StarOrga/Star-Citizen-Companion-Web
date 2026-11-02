@@ -1,7 +1,107 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.192.0",
+  "current": "0.193.4",
   "releases": [
+    {
+      "version": "0.193.4",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Phones: the β chip stays below the status bar on notched phones and below the impersonation banner, level with the account buttons."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.193.3",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Search: the leftover code of the removed \"Companion fragen\" offer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.193.2",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Phones and tablets: the star map's buttons, stars and tour controls and the holotable pins on ship pages have 48px touch targets, so they are hit reliably."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.193.1",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.67.1: the first pipeline step is called \"Metadaten\" / \"Metadata\" instead of \"Codex\" — the Codex is the whole published dataset (metadata, silhouettes, 3D models), the step only uploads its metadata."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.193.0",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Set editor: \"Add missing to supplies\" puts every part of the set you don't own yet into Supplies in one click, ready for Plan."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Start: \"Connect the SCC app\" only ticks once the SCC app itself reports game data; an uploader or Starscape check-in no longer counts."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "3D ship viewer: hotspots are large enough to tap on phones and tablets."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.192.0",
       "date": "2026-11-02",

@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { PatchStabilityService } from './patch-stability.service';
 import { PatchStabilityVotesService } from './patch-stability-votes.service';
 import { TREND_GLYPH, StabilityVerdict, TREND_THRESHOLD, stabilityTrend, stabilityWord } from './patch-stability';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -113,6 +114,7 @@ export function chipFromVerdict(
 })
 export class StabilityChipComponent {
   private readonly votes = inject(PatchStabilityVotesService);
+  private readonly stability = inject(PatchStabilityService);
 
   readonly data = input<StabilityChipData | null>(null);
   readonly size = input<'sm' | 'lg'>('sm');
@@ -143,7 +145,7 @@ export class StabilityChipComponent {
     const d = this.data();
     if (!d) return null;
     const percent = this.shown();
-    const word = stabilityWord(percent);
+    const word = stabilityWord(percent, this.stability.thresholds());
     const trend = d.early || d.finished ? null : stabilityTrend(percent, d.previous);
     return {
       line: d.line,
@@ -159,7 +161,7 @@ export class StabilityChipComponent {
   readonly tipParts = computed(() => {
     const d = this.data();
     const n = this.shown();
-    const word = stabilityWord(n);
+    const word = stabilityWord(n, this.stability.thresholds());
     if (!d || word === null) return { word: null, n: 0, compareKey: null, compareParams: {}, communityParams: null, early: false };
     const diff = d.previous !== null && n !== null ? Math.round(n - d.previous) : null;
     const compareKey = diff === null || d.previousLabel === null ? null

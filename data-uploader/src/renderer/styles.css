@@ -486,7 +486,7 @@ kbd.sc-kbd {
   flex: none;
 }
 .bottom-strip[hidden] { display: none; }
-/* ------- pipeline step head (Codex · Silhouetten · 3D-Modelle) ------- */
+/* ------- pipeline step head (Metadaten · Silhouetten · 3D-Modelle) ------- */
 .pipeline-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pipeline-eyebrow {
   font-family: var(--sc-font-label); font-weight: 600; font-size: var(--fs-xs);

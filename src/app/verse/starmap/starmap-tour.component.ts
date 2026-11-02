@@ -89,7 +89,7 @@ interface Box {
       .btn:hover:not(:disabled), .btn:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); outline: none; }
       .btn:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
       .btn:disabled { opacity: 0.45; cursor: default; }
-      @media (pointer: coarse) { .btn { min-height: 44px; min-width: 44px; } }
+      @media (pointer: coarse) { .btn { min-height: var(--sc-tap-min, 48px); min-width: var(--sc-tap-min, 48px); } }
       @keyframes tour-in { from { opacity: 0; } to { opacity: 1; } }
       @media (max-width: 900px), (max-height: 700px) {
         .card { position: fixed; inset: auto 8px var(--sc-float-bottom, 8px) 8px; width: auto; }

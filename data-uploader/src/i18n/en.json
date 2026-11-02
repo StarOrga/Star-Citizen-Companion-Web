@@ -18,7 +18,7 @@
   },
   "steprail": {
     "install": "Install",
-    "codex": "Codex",
+    "codex": "Metadata",
     "silhouettes": "Silhouettes",
     "models": "3D models",
     "done": "Done",
@@ -146,7 +146,7 @@
     "connectionRetry": "No connection to the web right now — you are still signed in. Try again in a moment.",
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
-    "bundleAlreadyThere": "Bundle is already on the server — updating the Codex and 3D data.",
+    "bundleAlreadyThere": "Bundle is already on the server — updating the metadata and 3D data.",
     "installMissing": "No {{channel}} install found — the local 3D data could not be built.",
     "uploadFailed": "Upload failed",
     "cleaned": "Extracted files cleaned up (upload confirmed)",
@@ -160,7 +160,7 @@
     "shutdownAbortFailed": "Couldn't cancel — please abort manually.",
     "steps": {
       "bundle": "Bundle",
-      "codex": "Codex",
+      "codex": "Metadata",
       "skins": "3D models"
     },
     "err": {
@@ -442,7 +442,7 @@
       "components": "Components",
       "weapons": "Weapons",
       "items": "Items",
-      "codex_extra": "Other Codex data",
+      "codex_extra": "Other metadata",
       "silhouettes": "Silhouettes",
       "hulls": "3D hulls"
     }
@@ -531,18 +531,18 @@
       "unknown": "type unknown"
     },
     "phase": {
-      "codex": "Codex",
+      "codex": "Metadata",
       "silhouettes": "Silhouettes",
       "models": "3D"
     },
     "boostAria": "What it speeds up",
     "boost": {
-      "cpu": "What does the uploader need CPU for? Codex: reading the DataCore (little, mostly one core). Silhouettes: converting meshes and rasterising outlines (a lot, every worker). 3D: converting and compressing meshes (a lot). ●●● = more CPU makes this step noticeably faster.",
-      "ram": "What does the uploader need memory for? Codex: the whole DataCore is held in memory (a lot). Silhouettes and 3D: one buffer per worker (medium) — the limit sets how many workers start. ●●● = more memory makes this step noticeably faster.",
-      "game": "What does the uploader need this drive for? It reads the Data.p4k: the codex reads the most (a lot), silhouettes and 3D read models on demand (medium). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
-      "work": "What does the uploader need this drive for? It writes results and its cache: codex little, silhouettes medium, 3D the most (models and packages). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
-      "both": "What does the uploader need this drive for? It reads the Data.p4k (codex the most) and writes results and its cache (3D the most). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
-      "gpu": "What does the uploader need the graphics card for? Codex: not at all. Silhouettes: rasterising outlines (a lot). 3D: converting models (a lot). ●●● = more GPU makes this step noticeably faster."
+      "cpu": "What does the uploader need CPU for? Metadata: reading the DataCore (little, mostly one core). Silhouettes: converting meshes and rasterising outlines (a lot, every worker). 3D: converting and compressing meshes (a lot). ●●● = more CPU makes this step noticeably faster.",
+      "ram": "What does the uploader need memory for? Metadata: the whole DataCore is held in memory (a lot). Silhouettes and 3D: one buffer per worker (medium) — the limit sets how many workers start. ●●● = more memory makes this step noticeably faster.",
+      "game": "What does the uploader need this drive for? It reads the Data.p4k: metadata reads the most (a lot), silhouettes and 3D read models on demand (medium). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
+      "work": "What does the uploader need this drive for? It writes results and its cache: metadata little, silhouettes medium, 3D the most (models and packages). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
+      "both": "What does the uploader need this drive for? It reads the Data.p4k (metadata the most) and writes results and its cache (3D the most). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
+      "gpu": "What does the uploader need the graphics card for? Metadata: not at all. Silhouettes: rasterising outlines (a lot). 3D: converting models (a lot). ●●● = more GPU makes this step noticeably faster."
     },
     "gpu": "GPU",
     "presetsAria": "Presets",
@@ -590,12 +590,12 @@
   "pipeline": {
     "stepOf": "Step {{n}} of {{total}}",
     "step": {
-      "codex": "Codex",
+      "codex": "Metadata",
       "silhouettes": "Silhouettes",
       "models": "3D models"
     },
     "intro": {
-      "codex": "Read the game data from Data.p4k and upload it as the Codex — after this the new data is on the website.",
+      "codex": "Read the metadata from Data.p4k and upload it to the Codex — after this the new data is on the website.",
       "silhouettes": "Build the outlines from the ship and item models and attach them to the same Codex build.",
       "models": "Build the ships' 3D models with their liveries and upload them."
     },

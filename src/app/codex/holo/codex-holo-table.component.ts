@@ -518,12 +518,13 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .pin.pos-b { flex-direction: column; transform: translateX(calc(-50% + 10px)); }
     .pin.pos-t { flex-direction: column-reverse; transform: translate(calc(-50% + 10px), calc(-100% + 20px)); }
     .pin:is(.sel, :hover, :focus-visible) { z-index: 4; }
-    /* Touch screens: a 44px hit box around the 20px dot, re-centred so the dot stays on its anchor. */
+    /* Touch screens: a 48px hit box (the --sc-tap-min floor) around the 20px dot, re-centred so the dot stays on its anchor.
+       44px measured 43px mid-reveal in the mobile gate, right on its rounding edge. */
     @media (pointer: coarse) {
-      .pin { padding: 12px; margin: -22px 0 0 -22px; }
-      .pin.rev { transform: translateX(calc(-100% + 44px)); }
-      .pin.pos-b { transform: translateX(calc(-50% + 22px)); }
-      .pin.pos-t { transform: translate(calc(-50% + 22px), calc(-100% + 44px)); }
+      .pin { padding: 14px; margin: -24px 0 0 -24px; }
+      .pin.rev { transform: translateX(calc(-100% + 48px)); }
+      .pin.pos-b { transform: translateX(calc(-50% + 24px)); }
+      .pin.pos-t { transform: translate(calc(-50% + 24px), calc(-100% + 48px)); }
     }
     .pin i { position: relative; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--pc); background: var(--ink);
       color: var(--pc); font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
