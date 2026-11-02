@@ -17,6 +17,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -33,6 +36,7 @@ import { ICON_PATHS } from './codex-category-icon.component';
 import { formatNumber } from './codex-format';
 import { kpiLowerIsBetter } from './codex-loadout-stats';
 import {
+  DOCK_POSITIONS,
   DockPosition,
   FlightMode,
   PowerFact,
@@ -56,11 +60,13 @@ import {
 } from './codex-power';
 import {
   DEFAULT_POWER_DRAFT,
+  DOCK_SLOT_MAX,
   PowerDraftState,
   decodePowerParam,
   dockPositionStorageKey,
   encodePowerParam,
   parseDockPosition,
+  parseDockSlot,
   parseLocalPowerDraft,
   powerStorageKey,
   serializeDockPosition,
@@ -115,7 +121,9 @@ let uidSeq = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   // The HOST is what sticks, so the chosen position has to live here and not
   // only on the inner .mini-dock — see the :host rules below for why.
-  host: { '[attr.data-pos]': 'position()' },
+  // `data-pos` is the position the dock actually takes: an edge position
+  // without room in the margin falls back to its side (see `effectivePosition`).
+  host: { '[attr.data-pos]': 'effectivePosition()', '[style.--_edge-w.px]': 'edgeWidth()' },
   template: `
     <div
       class="mini-dock"
@@ -123,7 +131,7 @@ let uidSeq = 0;
       [class.gap]="!sheet().available"
       [class.tips-hidden]="tipsHidden()"
       [attr.data-min]="minimised()"
-      [attr.data-pos]="position()"
+      [attr.data-pos]="effectivePosition()"
       (keydown.escape)="dismissTooltips()"
       (focusin)="reopenTooltips()"
       (pointerenter)="reopenTooltips()"
@@ -162,6 +170,20 @@ let uidSeq = 0;
               </button>
             }
           </div>
+          <!-- In the Analyse column the pilot moves the dock between the
+               panels — above the first, between two, below the last. -->
+          @if (position() === 'analysis') {
+            <div class="slot-move" role="group" [attr.aria-label]="'codex.energy.position.slotGroup' | translate">
+              <button type="button" [disabled]="slot() === 0"
+                [scTooltip]="'codex.energy.position.slotUp' | translate" scTooltipTier="label"
+                [attr.aria-label]="'codex.energy.position.slotUp' | translate"
+                (click)="moveSlot(-1)"><span aria-hidden="true">▲</span></button>
+              <button type="button" [disabled]="slot() === slotMax"
+                [scTooltip]="'codex.energy.position.slotDown' | translate" scTooltipTier="label"
+                [attr.aria-label]="'codex.energy.position.slotDown' | translate"
+                (click)="moveSlot(1)"><span aria-hidden="true">▼</span></button>
+            </div>
+          }
           <button
             type="button"
             class="md-min"
@@ -370,10 +392,20 @@ let uidSeq = 0;
         inset-block-end: 12px;
         z-index: 14;
       }
-      /* inline (PO request, 2026-09-06): stop floating, ride the flow. */
-      :host([data-pos='inline']) {
+      /* inline (PO request, 2026-09-06): stop floating, ride the flow.
+         analysis: a panel in the Analyse column, which itself scrolls along. */
+      :host([data-pos='inline']),
+      :host([data-pos='analysis']) {
         position: static;
         inset-block-end: auto;
+      }
+      /* Screen edge: the dock leaves the page frame and rides FIXED in the free
+         margin beside it, parked where the KPI strip parks, so it is on screen
+         wherever you scroll. The host stays in the flow with no height. */
+      :host([data-pos='edgeLeft']),
+      :host([data-pos='edgeRight']) {
+        position: static;
+        block-size: 0;
       }
       .mini-dock {
         inline-size: fit-content;
@@ -394,10 +426,65 @@ let uidSeq = 0;
       }
       /* In the flow it is a panel like any other: full column width, and no
          drop shadow, because nothing is floating above anything any more. */
-      .mini-dock[data-pos='inline'] {
+      .mini-dock[data-pos='inline'],
+      .mini-dock[data-pos='analysis'] {
         inline-size: 100%;
         margin-inline: 0;
         box-shadow: none;
+      }
+      .mini-dock[data-pos='edgeLeft'],
+      .mini-dock[data-pos='edgeRight'] {
+        position: fixed;
+        inset-block-start: max(var(--sc-chrome-top, 24px), calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 8px));
+        inline-size: var(--_edge-w, 280px);
+        max-block-size: calc(100dvh - max(var(--sc-chrome-top, 24px), calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 8px)) - var(--sc-fab-lane, 80px) - 12px);
+        overflow-y: auto;
+        margin: 0;
+        border-radius: 12px;
+      }
+      .mini-dock[data-pos='edgeLeft'] {
+        inset-inline-start: 12px;
+      }
+      .mini-dock[data-pos='edgeRight'] {
+        inset-inline-end: 12px;
+      }
+      /* A narrow column: everything stacks, the head may wrap. */
+      .mini-dock[data-pos='edgeLeft'] .md-head,
+      .mini-dock[data-pos='edgeRight'] .md-head,
+      .mini-dock[data-pos='analysis'] .md-head {
+        flex-wrap: wrap;
+      }
+      .mini-dock[data-pos='edgeLeft'] .md-body,
+      .mini-dock[data-pos='edgeRight'] .md-body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .mini-dock[data-pos='edgeLeft'] .vr,
+      .mini-dock[data-pos='edgeRight'] .vr {
+        display: none;
+      }
+      .slot-move {
+        display: inline-flex;
+        border: 1px solid var(--sc-border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .slot-move button {
+        min-inline-size: max(28px, var(--sc-tap-min));
+        min-block-size: max(24px, var(--sc-tap-min));
+        border: none;
+        background: transparent;
+        color: var(--sc-fg-2);
+        cursor: pointer;
+      }
+      .slot-move button + button {
+        border-inline-start: 1px solid var(--sc-border);
+      }
+      .slot-move button:not(:disabled):hover {
+        color: var(--sc-accent);
+      }
+      .slot-move button:disabled {
+        opacity: 0.35;
+        cursor: default;
       }
       .md-head {
         display: flex;
@@ -895,7 +982,8 @@ let uidSeq = 0;
              become 5 + 4 on a 390px phone instead of a third row of one. */
           grid-template-columns: repeat(auto-fill, minmax(max(56px, var(--sc-tap-min)), 1fr));
         }
-        .pos-pick {
+        .pos-pick,
+        .slot-move {
           display: none;
         }
       }
@@ -915,18 +1003,28 @@ export class CodexEnergyDockComponent {
   readonly userId = input<string | null>(null);
   readonly crossSection = input<number | null>(null);
   readonly sheetChange = output<PowerSheet>();
+  /** Where the page should render the dock: the Analyse column needs it in its
+   * own template slot, every other position keeps it at the end of the page. */
+  readonly placementChange = output<{ position: DockPosition; slot: number }>();
 
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
 
-  protected readonly positions: readonly DockPosition[] = ['left', 'center', 'right', 'inline'];
+  protected readonly positions: readonly DockPosition[] = DOCK_POSITIONS;
+  protected readonly slotMax = DOCK_SLOT_MAX;
   protected readonly modes: readonly FlightMode[] = ['scm', 'nav'];
   protected readonly posGlyph: Readonly<Record<DockPosition, string>> = {
+    edgeLeft: '⇤',
     left: '◧',
     center: '▣',
     right: '◨',
+    edgeRight: '⇥',
+    analysis: '◫',
     inline: '≡',
   };
+  /** Narrowest free margin the edge dock is drawn in; below it, it sits at its side. */
+  private static readonly EDGE_MIN_PX = 240;
+  private static readonly EDGE_MAX_PX = 360;
 
   private readonly uid = `energy-dock-${++uidSeq}`;
   protected readonly bodyId = `${this.uid}-body`;
@@ -941,6 +1039,26 @@ export class CodexEnergyDockComponent {
   protected readonly mode = signal<FlightMode>('scm');
   protected readonly preset = signal<PowerPreset>('auto');
   protected readonly position = signal<DockPosition>('center');
+  /** The Analyse column slot (0 = above the first panel … DOCK_SLOT_MAX = below the last). */
+  protected readonly slot = signal<number>(DOCK_SLOT_MAX);
+  /** Free px between the page frame and the screen edge on the dock's side (null = not measured). */
+  private readonly edgeRoom = signal<number | null>(null);
+  /** The edge dock's width: what the margin holds, capped. Null outside the edge positions. */
+  protected readonly edgeWidth = computed(() => {
+    const pos = this.position();
+    const room = this.edgeRoom();
+    if ((pos !== 'edgeLeft' && pos !== 'edgeRight') || room === null) return null;
+    const w = room - 24;
+    return w >= CodexEnergyDockComponent.EDGE_MIN_PX ? Math.min(w, CodexEnergyDockComponent.EDGE_MAX_PX) : null;
+  });
+  /** The chosen position, with an edge position that has no room falling back to its side. */
+  protected readonly effectivePosition = computed<DockPosition>(() => {
+    const pos = this.position();
+    if (pos === 'edgeLeft') return this.edgeWidth() === null ? 'left' : pos;
+    if (pos === 'edgeRight') return this.edgeWidth() === null ? 'right' : pos;
+    return pos;
+  });
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
   protected readonly minimised = signal<boolean>(false);
 
   /** Carries the last emitted sheet across recomputes for the fact deltas (R-B7).
@@ -1033,6 +1151,35 @@ export class CodexEnergyDockComponent {
     effect(() => {
       this.sheetChange.emit(this.sheet());
     });
+    effect(() => {
+      this.placementChange.emit({ position: this.position(), slot: this.slot() });
+    });
+
+    // The edge positions need the free margin beside the page frame — measured
+    // from the host, which spans the frame's full width.
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (typeof window === 'undefined') return;
+      const measure = () => this.measureEdgeRoom();
+      window.addEventListener('resize', measure, { passive: true });
+      destroyRef.onDestroy(() => window.removeEventListener('resize', measure));
+      measure();
+    });
+    effect(() => {
+      this.position();
+      untracked(() => this.measureEdgeRoom());
+    });
+  }
+
+  private measureEdgeRoom(): void {
+    const pos = this.position();
+    if (pos !== 'edgeLeft' && pos !== 'edgeRight') return;
+    const el = this.hostEl.nativeElement as HTMLElement;
+    if (typeof window === 'undefined' || typeof el.getBoundingClientRect !== 'function') return;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0) return;
+    const viewport = document.documentElement.clientWidth || window.innerWidth;
+    this.edgeRoom.set(Math.max(0, Math.floor(pos === 'edgeLeft' ? r.left : viewport - r.right)));
   }
 
   private matchesNarrowViewport(): boolean {
@@ -1087,6 +1234,7 @@ export class CodexEnergyDockComponent {
     const savedPos = parseDockPosition(this.storageGet(posKey));
     const pos = savedPos ?? (isDockPosition(draft.dock) ? draft.dock : null) ?? DEFAULT_POWER_DRAFT.dock;
     this.position.set(pos);
+    this.slot.set(parseDockSlot(this.storageGet(`${posKey}:slot`)));
 
     const savedMin = this.storageGet(`${posKey}:min`);
     // Phone default (UI spec §13 / MASTER §13): the bottom-sheet dock starts
@@ -1249,6 +1397,13 @@ export class CodexEnergyDockComponent {
     this.position.set(pos);
     this.storageSet(dockPositionStorageKey(this.userId()), serializeDockPosition(pos));
     this.persistDraft();
+  }
+
+  protected moveSlot(step: -1 | 1): void {
+    const next = Math.min(DOCK_SLOT_MAX, Math.max(0, this.slot() + step));
+    if (next === this.slot()) return;
+    this.slot.set(next);
+    this.storageSet(`${dockPositionStorageKey(this.userId())}:slot`, String(next));
   }
 
   protected toggleMinimised(): void {

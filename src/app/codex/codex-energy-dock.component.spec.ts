@@ -155,7 +155,7 @@ describe('CodexEnergyDockComponent', () => {
     expect(fixture2.componentInstance['position']()).toBe('right');
   });
 
-  it('offers four placements and puts the chosen one on the HOST, which is what sticks', async () => {
+  it('offers seven placements and puts the chosen one on the HOST, which is what sticks', async () => {
     // The host is the sticky element: its box is what has travel inside
     // .detail-page. Sticking the inner .mini-dock instead gave it a zero-pixel
     // range and it never stuck at all — so the attribute has to reach the host.
@@ -163,14 +163,64 @@ describe('CodexEnergyDockComponent', () => {
     const c = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
 
-    expect(c['positions']).toEqual(['left', 'center', 'right', 'inline']);
-    expect(host.querySelectorAll('.pos-pick button').length).toBe(4);
+    expect(c['positions']).toEqual(['edgeLeft', 'left', 'center', 'right', 'edgeRight', 'analysis', 'inline']);
+    expect(host.querySelectorAll('.pos-pick button').length).toBe(7);
 
-    for (const pos of ['left', 'center', 'right', 'inline'] as const) {
+    for (const pos of ['left', 'center', 'right', 'analysis', 'inline'] as const) {
       c['setPosition'](pos);
       fixture.detectChanges();
       expect(host.getAttribute('data-pos')).toBe(pos);
     }
+  });
+
+  it('falls back from a screen-edge position to its side while the margin has no room', async () => {
+    const fixture = await setup({ userId: 'user-edge' });
+    const c = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+    // The real measurement runs when the position changes; the room is set after it.
+    c['setPosition']('edgeLeft');
+    fixture.detectChanges();
+    c['edgeRoom'].set(100);
+    fixture.detectChanges();
+    expect(host.getAttribute('data-pos')).toBe('left');
+
+    c['edgeRoom'].set(400);
+    fixture.detectChanges();
+    expect(host.getAttribute('data-pos')).toBe('edgeLeft');
+    expect(c['edgeWidth']()).toBe(360);
+
+    c['setPosition']('edgeRight');
+    fixture.detectChanges();
+    c['edgeRoom'].set(300);
+    fixture.detectChanges();
+    expect(host.getAttribute('data-pos')).toBe('edgeRight');
+    expect(c['edgeWidth']()).toBe(276);
+  });
+
+  it('moves between the Analyse slots, persists the slot and reports the placement', async () => {
+    const fixture = await setup({ userId: 'user-slot' });
+    const c = fixture.componentInstance;
+    const seen: { position: string; slot: number }[] = [];
+    c.placementChange.subscribe((p) => seen.push(p));
+    c['setPosition']('analysis');
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelectorAll('.slot-move button').length).toBe(2);
+    expect(c['slot']()).toBe(3);
+
+    c['moveSlot'](-1);
+    c['moveSlot'](-1);
+    fixture.detectChanges();
+    expect(c['slot']()).toBe(1);
+    expect(localStorage.getItem(`${dockPositionStorageKey('user-slot')}:slot`)).toBe('1');
+    expect(seen[seen.length - 1]).toEqual({ position: 'analysis', slot: 1 });
+
+    c['moveSlot'](-1);
+    c['moveSlot'](-1);
+    expect(c['slot']()).toBe(0);
+
+    const fixture2 = await setup({ userId: 'user-slot' });
+    expect(fixture2.componentInstance['slot']()).toBe(0);
   });
 
   it('keeps a stored position from before inline existed', async () => {

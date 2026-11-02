@@ -311,10 +311,25 @@ export function serializeDockPosition(dock: PowerDraftState['dock']): string {
   return dock;
 }
 
-/** Tolerant read — anything but the four known positions yields `null`. */
+const DOCK_VALUES: readonly PowerDraftState['dock'][] = ['left', 'center', 'right', 'edgeLeft', 'edgeRight', 'analysis', 'inline'];
+
+function isDockValue(v: string): v is PowerDraftState['dock'] {
+  return (DOCK_VALUES as readonly string[]).includes(v);
+}
+
+/** Tolerant read — anything but the known positions yields `null`. */
 export function parseDockPosition(raw: string | null | undefined): PowerDraftState['dock'] | null {
   const v = (raw ?? '').trim();
-  return v === 'left' || v === 'center' || v === 'right' || v === 'inline' ? v : null;
+  return isDockValue(v) ? v : null;
+}
+
+/** Where the dock sits inside the Analyse column: 0 = above the first panel … 3 = below the last. */
+export const DOCK_SLOT_MAX = 3;
+
+/** Tolerant read of the stored Analyse slot — default: below the last panel. */
+export function parseDockSlot(raw: string | null | undefined): number {
+  const n = Number((raw ?? '').trim());
+  return raw != null && raw.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= DOCK_SLOT_MAX ? n : DOCK_SLOT_MAX;
 }
 
 export interface PowerDraftState {
@@ -326,7 +341,7 @@ export interface PowerDraftState {
   mode: 'scm' | 'nav';
   preset: 'auto' | 'stealth';
   /** Mirrors `DockPosition` in codex-power.ts — keep the two in step. */
-  dock: 'left' | 'center' | 'right' | 'inline';
+  dock: 'left' | 'center' | 'right' | 'edgeLeft' | 'edgeRight' | 'analysis' | 'inline';
 }
 
 export const DEFAULT_POWER_DRAFT: PowerDraftState = {
@@ -380,7 +395,7 @@ export function decodePowerParam(raw: string | null | undefined): PowerDraftStat
   const [, mode, preset, dock, groups = '', pins = ''] = parts;
   if (mode !== 'scm' && mode !== 'nav') return null;
   if (preset !== 'auto' && preset !== 'stealth') return null;
-  if (dock !== 'left' && dock !== 'center' && dock !== 'right' && dock !== 'inline') return null;
+  if (!isDockValue(dock)) return null;
   const levels: Record<string, number> = {};
   for (const pin of pins.split(POWER_GROUP_SEPARATOR)) {
     const [g, n] = pin.split(POWER_LEVEL_SEPARATOR);

@@ -191,6 +191,22 @@ describe('FusionBarComponent', () => {
     expect(chrome.dockProgress).toBe(0);
   });
 
+  it('a page that pins the bar keeps it on a content page while scrolling down, and lets it slide once released', async () => {
+    layout.set('content');
+    const fixture = await setup('/codex/ship/RSI_Constellation_Andromeda');
+    const chrome = TestBed.inject(ShellChromeService);
+    const bar = fixture.componentInstance;
+    const release = chrome.pinBar();
+    fixture.detectChanges();
+    for (let y = 0; y <= 2000; y += 100) bar.onScroll(y);
+    expect(bar.hidden()).toBeFalse();
+    release();
+    release(); // idempotent: a second call never drops someone else's pin
+    expect(chrome.barPinned()).toBeFalse();
+    for (let y = 2000; y <= 4000; y += 100) bar.onScroll(y);
+    expect(bar.hidden()).toBeTrue();
+  });
+
   it('folds the trail by width: the whole path while it fits, first · … · last as soon as it does not', async () => {
     layout.set('content');
     const fixture = await setup('/codex/ship/RSI_Constellation_Andromeda');

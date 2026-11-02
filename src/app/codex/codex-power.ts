@@ -174,7 +174,17 @@ export type PowerPreset = 'auto' | 'stealth';
  * `inline` is the PO's addition on 2026-09-06 — the dock stops sticking and
  * rides in the page flow for anyone who does not want a floating panel.
  */
-export type DockPosition = 'left' | 'center' | 'right' | 'inline';
+/**
+ * Where the energy dock sits. `left`/`center`/`right` float at the bottom of
+ * the page frame; `edgeLeft`/`edgeRight` ride fixed in the free screen margin
+ * beside the frame (falling back to `left`/`right` where that margin is too
+ * narrow); `analysis` puts it into the Analyse column at a slot the pilot
+ * picks; `inline` lets it ride the flow at the end of the page.
+ */
+export type DockPosition = 'left' | 'center' | 'right' | 'edgeLeft' | 'edgeRight' | 'analysis' | 'inline';
+
+/** Every dock position, in the order the picker shows them. */
+export const DOCK_POSITIONS: readonly DockPosition[] = ['edgeLeft', 'left', 'center', 'right', 'edgeRight', 'analysis', 'inline'];
 
 /**
  * Occupant → power group. Three ordered signals, most reliable first:
@@ -1053,5 +1063,5 @@ export function isFlightMode(v: unknown): v is FlightMode {
 }
 
 export function isDockPosition(v: unknown): v is DockPosition {
-  return v === 'left' || v === 'center' || v === 'right' || v === 'inline';
+  return typeof v === 'string' && (DOCK_POSITIONS as readonly string[]).includes(v);
 }

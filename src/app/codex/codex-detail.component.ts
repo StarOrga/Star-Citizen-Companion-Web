@@ -159,6 +159,9 @@ import {
   findArmorPayload,
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
+import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+import { HeightVarDirective } from '../shared/height-var.directive';
+import type { DockPosition } from './codex-power';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { buildKpiStrip, buildKpiStripForKeys, KpiStripCell } from './codex-kpi-sets';
 import { isPassiveShield } from './codex-power';
@@ -206,7 +209,6 @@ import {
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexWeaponDetailComponent, ShipSignature, WeaponDetailEntry } from './codex-weapon-detail.component';
 import { borrowedCountermeasureNameKey } from './codex-countermeasure';
-import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import { ShipDeckPlanComponent } from './ship-deck-plan.component';
 import {
   HardpointFrame,
@@ -258,7 +260,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent],
+  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent, HeightVarDirective],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -515,7 +517,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              new analysis column says the same things without duplicating
              the page. ───────────────────────────────────────────── -->
         @if (kind() === 'ship') {
-          <sc-codex-kpi-band [cells]="kpiCells()" [scFeedbackSpot]="'codex.kpi.bandLabel'" />
+          <sc-codex-kpi-band [cells]="kpiCells()" [scFeedbackSpot]="'codex.kpi.bandLabel'" scHeightVar="--_kpi-h" scHeightVarOn="parent" />
           <div class="mission-draft-bar" [scFeedbackSpot]="'codex.mission.label'">
             <sc-codex-mission-bar
               [active]="activeMissionId()"
@@ -547,7 +549,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <!-- ── Ship modules, configurable blocks first (461288f9), now
                mission-ordered/folded (PR C) ── -->
           @if (primaryModuleSections().length > 0) {
-            <section class="sc-card block col-loadout" [scFeedbackSpot]="'codex.detail.columnLoadout'">
+            <section class="sc-card block col-loadout col-stick" scHeightVar="--_h" [scFeedbackSpot]="'codex.detail.columnLoadout'">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
                 <span class="n">{{ moduleCount() }}</span>
@@ -568,16 +570,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               <!-- The "no stock guns in this extract" disclosure used to sit here,
                    far above the block it is about. It now rides on the Weapons
                    section itself (1add86a4) — see moduleSections below. -->
-              <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
-                   only when this ship's extract carries coordinates; every ship
-                   without them keeps exactly the previous list-only layout. -->
-              @if (hardpointFrame(); as frame) {
-                <sc-ship-hardpoint-map
-                  [markers]="hardpointMarkers()"
-                  [frame]="frame"
-                  [activePorts]="activePorts()"
-                  (hovered)="setActivePorts($event)" />
-              }
+              <!-- The "Position an der Hülle" map (#137 part 3) used to stand
+                   here and is gone from the classic view: two silhouettes ate
+                   most of the card's first screen for something the 3D viewer
+                   and the Holotable already show. The Holotable keeps it. -->
               <sc-codex-hardpoint-layout
                 [sections]="primaryModuleSections()"
                 [sectionOrder]="moduleSectionOrder()"
@@ -595,15 +591,25 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
           <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
           @if (kind() === 'ship') {
-            <div class="analysis-col col-analyse" [scFeedbackSpot]="'codex.detail.columnAnalysis'">
+            <!-- col-stick (both columns): whichever column is SHORTER stays
+                 on screen while the longer one scrolls on — it parks under
+                 the KPI strip, or, when taller than the viewport, with its
+                 bottom at the viewport edge, so it never runs out to an
+                 empty column. The energy dock can sit in here at a slot the
+                 pilot picks (position "Analyse"). -->
+            <div class="analysis-col col-analyse col-stick" scHeightVar="--_h" [scFeedbackSpot]="'codex.detail.columnAnalysis'">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnAnalysis' | translate }}</span>
                 <span class="n">3</span>
                 <span class="rule" aria-hidden="true"></span>
               </h2>
+              @if (dockInAnalysis(0)) { <ng-container [ngTemplateOutlet]="energyDock" /> }
               <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="offensiveStartsCollapsed()" />
+              @if (dockInAnalysis(1)) { <ng-container [ngTemplateOutlet]="energyDock" /> }
               <sc-codex-defensive-panel [panel]="defensivePanel()" />
+              @if (dockInAnalysis(2)) { <ng-container [ngTemplateOutlet]="energyDock" /> }
               <sc-codex-ship-panel [groups]="shipFactGroups()" />
+              @if (dockInAnalysis(3)) { <ng-container [ngTemplateOutlet]="energyDock" /> }
             </div>
           }
         </div>
@@ -982,16 +988,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              so wherever it sits it keeps that much space in the flow —
              placed early that space is a hole between the mission bar
              and the columns; placed last there is nothing to hollow. -->
-        @if (kind() === 'ship' && !holoView()) {
-            <sc-codex-energy-dock
-              [scFeedbackSpot]="'codex.energy.title'"
-              [occupants]="draftSummaryOccupants()"
-              [shipStats]="shipPayload()?.stats ?? null"
-              [shipClassName]="shipClassName()"
-              [schemaVersion]="build()?.schemaVersion ?? null"
-              [userId]="currentUserId()"
-              [crossSection]="crossSectionMax()"
-              (sheetChange)="powerSheet.set($event)" />
+        @if (kind() === 'ship' && !holoView() && !dockInAnalysis()) {
+          <ng-container [ngTemplateOutlet]="energyDock" />
         }
       }
 
@@ -1039,6 +1037,20 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (swapRequested)="openSwapPicker($event)" />
           </section>
         }
+      </ng-template>
+      <!-- One dock, rendered where its position puts it: the end of the page,
+           or a slot in the Analyse column. -->
+      <ng-template #energyDock>
+        <sc-codex-energy-dock
+          [scFeedbackSpot]="'codex.energy.title'"
+          [occupants]="draftSummaryOccupants()"
+          [shipStats]="shipPayload()?.stats ?? null"
+          [shipClassName]="shipClassName()"
+          [schemaVersion]="build()?.schemaVersion ?? null"
+          [userId]="currentUserId()"
+          [crossSection]="crossSectionMax()"
+          (sheetChange)="powerSheet.set($event)"
+          (placementChange)="dockPlacement.set($event)" />
       </ng-template>
       <ng-template #descriptionCard>
         @if (description(); as d) {
@@ -1105,10 +1117,22 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .col-head .head-note p { margin: 0 0 6px; }
     .col-head .head-note p:last-child { margin-bottom: 0; }
     .col-analyse { display: flex; flex-direction: column; gap: 12px; }
+    /* The shorter column stays on screen (the longer one fills the grid row,
+       so it has no sticky travel at all). It parks under the sticky KPI strip
+       (same top as the strip + its height + a gap); a column taller than the
+       viewport parks with its bottom 16px above the viewport edge instead, so
+       its end is reachable and it never scrolls away into an empty column.
+       --_h / --_kpi-h are published by [scHeightVar]. */
+    .m-cols:not(.single) > .col-stick {
+      --_stick-top: calc(max(var(--sc-chrome-top, 24px), calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 8px)) + var(--_kpi-h, 0px) + 12px);
+      position: sticky;
+      top: min(var(--_stick-top), calc(100dvh - var(--_h, 0px) - 16px));
+    }
 
     @media (max-width: 1100px) {
       .m-top.ship-mode { grid-template-columns: 1fr; }
       .m-cols { grid-template-columns: 1fr; }
+      .m-cols > .col-stick { position: static; }
     }
 
     /* Mission + draft bar (MASTER §5): the lens chips share their row with the
@@ -1501,6 +1525,13 @@ export class CodexDetailComponent implements OnInit {
    * stay byte-for-byte unaffected regardless of what is in storage.
    */
   readonly holoView = signal(true);
+  /** Where the energy dock says it sits (null until it restored its state). */
+  readonly dockPlacement = signal<{ position: DockPosition; slot: number } | null>(null);
+  /** The dock lives in the Analyse column — at `slot`, or at any slot when omitted. */
+  dockInAnalysis(slot?: number): boolean {
+    const p = this.dockPlacement();
+    return !!p && p.position === 'analysis' && !this.holoView() && (slot === undefined || p.slot === slot);
+  }
   /** Kind of the request in flight, known from the route before any data arrives. */
   private readonly requestKind = signal<CodexKind | null>(null);
   /** Loading a ship in the Holotable view: the page shows the holodeck skeleton. */
@@ -1979,6 +2010,14 @@ export class CodexDetailComponent implements OnInit {
   private readonly lang = signal<Lang>(toLang(this.t.getCurrentLang() || this.t.getFallbackLang()));
 
   constructor() {
+    // Classic ship view: the search bar stays put on scroll so the sticky KPI
+    // strip can hang under it (instead of the bar sliding away, the strip
+    // jumping to the very top).
+    const chrome = inject(ShellChromeService);
+    effect((onCleanup) => {
+      if (this.kind() !== 'ship' || this.holoView()) return;
+      onCleanup(untracked(() => chrome.pinBar()));
+    });
     this.draftStore.connect({
       detail: this.detail,
       loadoutEntities: this.loadoutEntities,

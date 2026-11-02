@@ -1395,7 +1395,13 @@
         "left": "unten links",
         "center": "unten mittig",
         "right": "unten rechts",
-        "inline": "im Seitenfluss"
+        "inline": "im Seitenfluss",
+        "edgeLeft": "am linken Bildschirmrand, scrollt mit",
+        "edgeRight": "am rechten Bildschirmrand, scrollt mit",
+        "analysis": "in der Analyse-Spalte",
+        "slotGroup": "Platz in der Analyse-Spalte",
+        "slotUp": "In der Analyse nach oben schieben",
+        "slotDown": "In der Analyse nach unten schieben"
       },
       "group": {
         "weapons": "Waffen",
