@@ -2,7 +2,7 @@
  * The stage list of a run step. A run is cut vertically — every step takes ONE
  * topic all the way from the game files to the server before the next starts:
  *
- *   1 · Codex        ○ Daten extrahieren   ○ Bundle hochladen   ○ Einträge hochladen
+ *   1 · Metadaten    ○ Daten extrahieren   ○ Bundle hochladen   ○ Einträge hochladen
  *   2 · Silhouetten  ○ Silhouetten bauen   ○ Silhouetten hochladen
  *   3 · 3D-Modelle   ○ Modelle bauen       ○ Modelle hochladen
  *

@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.193.1] - 2026-11-02
+
+### Changed
+- Data Uploader 0.67.1: the first pipeline step is called "Metadaten" / "Metadata" instead of "Codex" — the Codex is the whole published dataset (metadata, silhouettes, 3D models), the step only uploads its metadata.
+
 ## [0.193.0] - 2026-11-02
 
 ### Added

@@ -1,7 +1,43 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.192.0",
+  "current": "0.193.0",
   "releases": [
+    {
+      "version": "0.193.0",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Set editor: \"Add missing to supplies\" puts every part of the set you don't own yet into Supplies in one click, ready for Plan."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Start: \"Connect the SCC app\" only ticks once the SCC app itself reports game data; an uploader or Starscape check-in no longer counts."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "3D ship viewer: hotspots are large enough to tap on phones and tablets."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.192.0",
       "date": "2026-11-02",

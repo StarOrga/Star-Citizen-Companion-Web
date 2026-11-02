@@ -152,7 +152,7 @@ function installRendererCrashCapture(): void {
 }
 installRendererCrashCapture();
 
-// One view per step-rail node. A run is cut vertically: Codex, Silhouetten
+// One view per step-rail node. A run is cut vertically: Metadaten, Silhouetten
 // and 3D-Modelle are each a screen that takes its topic from the game files
 // all the way onto the server (build, then upload) before the next starts.
 type ViewName = 'discover' | PipelineStep | 'done';
@@ -1467,7 +1467,7 @@ export function openAppSettingsDialog(): void {
   });
 }
 
-// ============= Pipeline views: Codex · Silhouetten · 3D-Modelle =============
+// ============= Pipeline views: Metadaten · Silhouetten · 3D-Modelle =============
 //
 // A run is cut vertically. Each step is one screen that takes ONE topic from
 // the game files all the way onto the server before the next one starts:
@@ -1658,7 +1658,7 @@ async function cancelExtract(btn: HTMLButtonElement): Promise<void> {
   render();
 }
 
-/** Codex step, first row: read the game data out of the Data.p4k. Returns true on success. */
+/** Metadaten step, first row: read the game data out of the Data.p4k. Returns true on success. */
 async function runRealExtract(): Promise<boolean> {
   const progress = uploadProgress;
   if (!progress) return false;
@@ -1934,7 +1934,7 @@ function formatResumeBanner(sum: ResumeSummaryLike): string {
     st === 'bundle'
       ? tOr('upload.steps.bundle', 'Bundle')
       : st === 'catalog'
-        ? tOr('upload.steps.codex', 'Codex')
+        ? tOr('upload.steps.codex', 'Metadaten')
         : st === 'silhouettes'
           ? t('pipeline.step.silhouettes')
           : tOr('upload.steps.skins', '3D-Skins');
@@ -2386,7 +2386,7 @@ async function doUploadAfterAuth(): Promise<void> {
     buildNumber: result.build_number,
   };
 
-  // ── Step 1 · Codex: bundle → entries (the build goes live) ───────────────
+  // ── Step 1 · Metadaten: bundle → entries (the build goes live) ───────────────
   // On a resume whose bundle already landed, the bundle POST returns instantly
   // from the main process — so skip the bundle spinner and open the card
   // straight on the entries row.

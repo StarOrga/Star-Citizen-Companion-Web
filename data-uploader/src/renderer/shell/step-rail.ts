@@ -1,6 +1,6 @@
 /**
  * Step rail — the position indicator for the whole one-screen flow
- * (Install · Codex · Silhouetten · 3D-Modelle · Done). A run is cut
+ * (Install · Metadaten · Silhouetten · 3D-Modelle · Done). A run is cut
  * vertically: each middle node is one topic taken from the game files all the
  * way onto the server (build, then upload) before the next starts. Paints into `#step-rail`
  * (see index.html). The active run node's incoming line segment
