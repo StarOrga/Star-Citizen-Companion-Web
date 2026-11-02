@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.191.0",
+  "current": "0.191.1",
   "releases": [
+    {
+      "version": "0.191.1",
+      "date": "2026-11-02",
+      "sections": [
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex entity names can only be read per build and object; an unfiltered read of all strings is no longer possible with the public key."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.191.0",
       "date": "2026-11-02",
