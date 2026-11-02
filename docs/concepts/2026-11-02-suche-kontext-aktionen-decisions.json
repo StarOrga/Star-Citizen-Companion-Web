@@ -386,5 +386,327 @@
    "screens": {},
    "views": {}
   }
+ },
+ {
+  "iteration": 2,
+  "action": "iterate",
+  "decisions": [
+   {
+    "id": "q2-icons",
+    "label": "Die drei Icons",
+    "mode": "single",
+    "value": "",
+    "rec": "mlt",
+    "deviates": true,
+    "none": false,
+    "untouched": false,
+    "note": "[Befund · Frage 1]  Gern eher auf die Wunschliste, in das Lager und \nAußerdem schaue das die icons den gleichen style haben! und das der cta zwar sichtbar aber nicht zuu bullig daneben ist!",
+    "appliesTo": "jede Trefferzeile",
+    "finding": "f2-icons",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 166932,
+     "noteWords": 30,
+     "revisits": 5,
+     "flagged": true
+    },
+    "view": "v2-actions"
+   },
+   {
+    "id": "q2-mark",
+    "label": "Was Merken ist",
+    "mode": "yesnoalt",
+    "value": {
+     "answer": "yes",
+     "alt": ""
+    },
+    "rec": "yes",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "In der suche merken als standard icon immer! aber bitte daraus folgen entweder in den nachschub übernehmen oder zum ieinsatz hinzufügen. Btw, missiionen, blueprints und co. sollte amn auch alles suchen sollen was spielinhalte sind. Aber für news, patches und galerie bitte keine standard icons machen!",
+    "appliesTo": "Icon Merken",
+    "finding": "f2-mark",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 378278,
+     "noteWords": 46,
+     "revisits": 0,
+     "flagged": true
+    },
+    "view": "v2-actions"
+   },
+   {
+    "id": "q2-matrix",
+    "label": "Hauptaktion je Kontext",
+    "mode": "verify",
+    "value": "ok",
+    "fix": "",
+    "rec": "ok",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "[Befund · Frage 3] nochmal kritisch mit den agenten prüfen aber sonst machen wir das erstmal so!",
+    "appliesTo": "Hauptaktion",
+    "finding": "f2-matrix",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 171035,
+     "noteWords": 13,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v2-actions"
+   },
+   {
+    "id": "q2-off",
+    "label": "Icon ohne Sinn",
+    "mode": "single",
+    "value": "hide",
+    "rec": "dim",
+    "deviates": true,
+    "none": false,
+    "untouched": false,
+    "note": "Lieber einfach keine standardaktionen bei denjenigen! und keine cta aktion",
+    "appliesTo": "drei Icons",
+    "finding": "f2-off",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 70994,
+     "noteWords": 10,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v2-actions"
+   },
+   {
+    "id": "q2-rowicon",
+    "label": "Icon vorn in der Zeile",
+    "mode": "single",
+    "value": "sil",
+    "rec": "sil",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "stimmt, das reicht! gute idee,",
+    "appliesTo": "jede Trefferzeile",
+    "finding": "f2-rowicon",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 28718,
+     "noteWords": 5,
+     "revisits": 1,
+     "flagged": false
+    },
+    "view": "v2-actions"
+   },
+   {
+    "id": "q2-abbr",
+    "label": "Abkürzungsliste",
+    "mode": "verify",
+    "value": "ok",
+    "fix": "",
+    "rec": "ok",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Suchlogik",
+    "finding": "f2-abbr",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 0,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v2-smart"
+   },
+   {
+    "id": "q2-misses",
+    "label": "Suchen ohne Treffer",
+    "mode": "yesnoalt",
+    "value": {
+     "answer": "yes",
+     "alt": ""
+    },
+    "rec": "yes",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Pflege der Abkürzungen",
+    "finding": "f2-misses",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 0,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v2-smart"
+   },
+   {
+    "id": "q2-anchor",
+    "label": "Welche Abschnitte einen Chip setzen",
+    "mode": "single",
+    "value": "data",
+    "rec": "data",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Kontext-Chips",
+    "finding": "f2-anchor",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 0,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v2-smart"
+   }
+  ],
+  "annotations": [
+   {
+    "id": "t-s1-a1",
+    "screen": "t-s1",
+    "design": "kacheln2",
+    "question": "Der Hinweis unten: als ein Satz mit drei Beispielen klickbar — oder lieber ein Beispiel, das alle paar Sekunden wechselt?",
+    "answer": "lieber ein beipsieel was immer wechselt, aber inhaltlich schon sehr gut, gern 70 beispiele oder hinweise zur suche generieren. außerdem immer einzeilig!"
+   },
+   {
+    "id": "t-s1-a2",
+    "screen": "t-s1",
+    "design": "kacheln2",
+    "question": "Dein eigener Schiffsname steht vorn, der Typ dahinter („Nachtfalke“ · Aegis Gladius). So herum, oder Typ zuerst?",
+    "answer": "lieber zuerst das schiff, weil ich ja es mehrmals habnen kann aber dann mit verschiedneen namen."
+   },
+   {
+    "id": "t-s2-a1",
+    "screen": "t-s2",
+    "design": "kacheln2",
+    "question": "Hauptaktion links, Trennstrich, dann die drei Icons in 32 px: groß genug, und ist die Trennung zwischen „speziell“ und „immer gleich“ klar?",
+    "answer": "ja gut"
+   },
+   {
+    "id": "t-s2-a2",
+    "screen": "t-s2",
+    "design": "kacheln2",
+    "question": "Eigenes hat eine gefüllte Hauptaktion, Fremdes eine umrandete. Hilft das beim Überfliegen, oder sollen alle gleich aussehen?",
+    "answer": "alle gleich aussehen..."
+   },
+   {
+    "id": "t-s3-a1",
+    "screen": "t-s3",
+    "design": "kacheln2",
+    "question": "Drei Chips im Feld (Seite, Abschnitt, aus dem Text): der aus dem Text erkannte ist blau-violett. Reicht die Farbe zur Unterscheidung?",
+    "answer": "keine andere farbe, einfach nur bei hover over der drop down button einblenden und auch das x - das braucht man auch nicht die ganze zeit dort!"
+   },
+   {
+    "id": "t-s3-a2",
+    "screen": "t-s3",
+    "design": "kacheln2",
+    "question": "Gedämpftes Bild der fokussierten Zeile hinter dem Panel (16 % Deckkraft): erkennbar genug, um Reclaimer und Redeemer zu trennen?",
+    "answer": "hmmm ne, maximal abdunkeln aber nicht dann irgendwa s anderes als die aktuelle seite dahinter! denk dir varianten aus wie wir das bild anders vorschauen können gedämpft / die silhouette!"
+   }
+  ],
+  "userPins": [
+   {
+    "id": "up-mvzpgsuediv8",
+    "design": "kacheln2",
+    "screen": "t-s2",
+    "x": 68.8,
+    "y": 46.4,
+    "target": "span.mk-t-cta.ghost \"Ins Lager\"",
+    "text": "die cta buttons sollten irgendwie stylistschi besser sein!",
+    "attachments": []
+   },
+   {
+    "id": "up-mvzpnys6wosu",
+    "design": "kacheln2",
+    "screen": "t-s4",
+    "x": 54.2,
+    "y": 23,
+    "target": "div \"Größe 23\"",
+    "text": "sehr gut, wobei noch lieber gern aus dem chip direkt rauskommennd visuell!",
+    "attachments": []
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "",
+    "attachments": []
+   },
+   "items": [
+    {
+     "id": "anno-t-s1-a1",
+     "text": "lieber ein beipsieel was immer wechselt, aber inhaltlich schon sehr gut, gern 70 beispiele oder hinweise zur suche generieren. außerdem immer einzeilig!",
+     "attachments": []
+    },
+    {
+     "id": "anno-t-s1-a2",
+     "text": "lieber zuerst das schiff, weil ich ja es mehrmals habnen kann aber dann mit verschiedneen namen.",
+     "attachments": []
+    },
+    {
+     "id": "anno-t-s2-a1",
+     "text": "ja gut",
+     "attachments": []
+    },
+    {
+     "id": "anno-t-s2-a2",
+     "text": "alle gleich aussehen...",
+     "attachments": []
+    },
+    {
+     "id": "anno-t-s3-a1",
+     "text": "keine andere farbe, einfach nur bei hover over der drop down button einblenden und auch das x - das braucht man auch nicht die ganze zeit dort!",
+     "attachments": []
+    },
+    {
+     "id": "anno-t-s3-a2",
+     "text": "hmmm ne, maximal abdunkeln aber nicht dann irgendwa s anderes als die aktuelle seite dahinter! denk dir varianten aus wie wir das bild anders vorschauen können gedämpft / die silhouette!",
+     "attachments": []
+    },
+    {
+     "id": "q2-icons-note",
+     "text": "[Befund · Frage 1]  Gern eher auf die Wunschliste, in das Lager und \nAußerdem schaue das die icons den gleichen style haben! und das der cta zwar sichtbar aber nicht zuu bullig daneben ist!",
+     "attachments": []
+    },
+    {
+     "id": "q2-mark-note",
+     "text": "In der suche merken als standard icon immer! aber bitte daraus folgen entweder in den nachschub übernehmen oder zum ieinsatz hinzufügen. Btw, missiionen, blueprints und co. sollte amn auch alles suchen sollen was spielinhalte sind. Aber für news, patches und galerie bitte keine standard icons machen!",
+     "attachments": []
+    },
+    {
+     "id": "q2-matrix-note",
+     "text": "[Befund · Frage 3] nochmal kritisch mit den agenten prüfen aber sonst machen wir das erstmal so!",
+     "attachments": []
+    },
+    {
+     "id": "q2-off-note",
+     "text": "Lieber einfach keine standardaktionen bei denjenigen! und keine cta aktion",
+     "attachments": []
+    },
+    {
+     "id": "q2-rowicon-note",
+     "text": "stimmt, das reicht! gute idee,",
+     "attachments": []
+    }
+   ],
+   "designs": {},
+   "screens": {},
+   "views": {}
+  }
  }
 ]

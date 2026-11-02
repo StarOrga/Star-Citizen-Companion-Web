@@ -6190,7 +6190,8 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
   </section>
 </section>
 
-<section data-iteration="2" data-iteration-template="design" id="iter-2" data-active>
+<section data-iteration="2" data-iteration-template="design" data-baked id="iter-2" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mvzpgsuediv8","design":"kacheln2","screen":"t-s2","x":68.8,"y":46.4,"target":"span.mk-t-cta.ghost \"Ins Lager\"","text":"die cta buttons sollten irgendwie stylistschi besser sein!","attachments":[]},{"id":"up-mvzpnys6wosu","design":"kacheln2","screen":"t-s4","x":54.2,"y":23,"target":"div \"Größe 23\"","text":"sehr gut, wobei noch lieber gern aus dem chip direkt rauskommennd visuell!","attachments":[]}]}</script>
 <style>
 /* Round 2 mocks — namespaced mk-t-*. Base = round 1 favourite "Kacheln, die aufklappen". */
 .mk-t-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 660px; border-radius: 14px; overflow: hidden;
@@ -6328,14 +6329,14 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
           <button class="anno-pin" type="button" data-anno-pin="t-s1-a1" aria-expanded="false" aria-controls="anno-bubble-t-s1-a1" aria-label="Frage {n}">1</button>
           <div class="anno-bubble" id="anno-bubble-t-s1-a1" data-anno-bubble="t-s1-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s1-a1" aria-expanded="false" aria-controls="anno-bubble-t-s1-a1"><span class="anno-bubble-question">Der Hinweis unten: als ein Satz mit drei Beispielen klickbar — oder lieber ein Beispiel, das alle paar Sekunden wechselt?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s1-a1" data-annotation="t-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s1-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s1-a1" data-annotation="t-s1-a1" data-attachable placeholder="Deine Antwort…" readonly>lieber ein beipsieel was immer wechselt, aber inhaltlich schon sehr gut, gern 70 beispiele oder hinweise zur suche generieren. außerdem immer einzeilig!</textarea><div class="attach-slot" data-attach-slot="anno-t-s1-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="t-s1-a2" data-anno-side="right" data-anno-target=".mk-t-row.on .mk-t-nm" style="--anno-x:36%;--anno-y:38%">
           <button class="anno-pin" type="button" data-anno-pin="t-s1-a2" aria-expanded="false" aria-controls="anno-bubble-t-s1-a2" aria-label="Frage {n}">2</button>
           <div class="anno-bubble" id="anno-bubble-t-s1-a2" data-anno-bubble="t-s1-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s1-a2" aria-expanded="false" aria-controls="anno-bubble-t-s1-a2"><span class="anno-bubble-question">Dein eigener Schiffsname steht vorn, der Typ dahinter („Nachtfalke“ · Aegis Gladius). So herum, oder Typ zuerst?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s1-a2" data-annotation="t-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s1-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s1-a2" data-annotation="t-s1-a2" data-attachable placeholder="Deine Antwort…" readonly>lieber zuerst das schiff, weil ich ja es mehrmals habnen kann aber dann mit verschiedneen namen. </textarea><div class="attach-slot" data-attach-slot="anno-t-s1-a2"></div></div>
           </div>
         </div>
       </div>
@@ -6359,10 +6360,10 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib set">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
-            <div class="mk-t-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div></div>
+            <div class="mk-t-more"><button type="button" disabled>▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div></div>
           <div class="mk-t-group"><p class="mk-t-gh">FPS-Waffen <span class="mk-t-n">6</span></p>
             <div class="mk-t-row"><span class="mk-t-ico">⌖</span><span class="mk-t-nm"><b>Gallant</b><small>Klaus &amp; Werner · Laser-Gewehr</small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
-            <div class="mk-t-more"><button type="button">▾ 5 weitere hier zeigen</button><a>Alle 6 im Index öffnen →</a></div></div>
+            <div class="mk-t-more"><button type="button" disabled>▾ 5 weitere hier zeigen</button><a>Alle 6 im Index öffnen →</a></div></div>
           <div class="mk-t-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Esc schließen</span></div>
         </div>
         <button type="button" class="mk-t-close" data-screen-link="t-s1">Esc · schließen ✕</button>
@@ -6373,14 +6374,15 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
           <button class="anno-pin" type="button" data-anno-pin="t-s2-a1" aria-expanded="false" aria-controls="anno-bubble-t-s2-a1" aria-label="Frage {n}">1</button>
           <div class="anno-bubble" id="anno-bubble-t-s2-a1" data-anno-bubble="t-s2-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s2-a1" aria-expanded="false" aria-controls="anno-bubble-t-s2-a1"><span class="anno-bubble-question">Hauptaktion links, Trennstrich, dann die drei Icons in 32 px: groß genug, und ist die Trennung zwischen „speziell“ und „immer gleich“ klar?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s2-a1" data-annotation="t-s2-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s2-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s2-a1" data-annotation="t-s2-a1" data-attachable placeholder="Deine Antwort…" readonly>ja gut</textarea><div class="attach-slot" data-attach-slot="anno-t-s2-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="t-s2-a2" data-anno-side="right" data-anno-target=".mk-t-cta.ghost" style="--anno-x:58%;--anno-y:44%">
           <button class="anno-pin" type="button" data-anno-pin="t-s2-a2" aria-expanded="false" aria-controls="anno-bubble-t-s2-a2" aria-label="Frage {n}">2</button>
           <div class="anno-bubble" id="anno-bubble-t-s2-a2" data-anno-bubble="t-s2-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s2-a2" aria-expanded="false" aria-controls="anno-bubble-t-s2-a2"><span class="anno-bubble-question">Eigenes hat eine gefüllte Hauptaktion, Fremdes eine umrandete. Hilft das beim Überfliegen, oder sollen alle gleich aussehen?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s2-a2" data-annotation="t-s2-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s2-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s2-a2" data-annotation="t-s2-a2" data-attachable placeholder="Deine Antwort…" readonly>alle gleich aussehen...
+</textarea><div class="attach-slot" data-attach-slot="anno-t-s2-a2"></div></div>
           </div>
         </div>
       </div>
@@ -6403,12 +6405,12 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>CF-447 Rhino</b><small>Laser-Repeater · Größe 4 · <em>2× im Lager</em> · <span class="mk-t-fit ok">✓ passt auf Idris-M · S4 Turm</span></small></span><span class="mk-t-rt"><span class="mk-t-cta">Montieren</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">⧉</span><span class="mk-t-nm"><b>Loadout „Rep-Wall“</b><small>dein Loadout auf <em>„Bastion“ · Idris-M</em> · 6 Repeater</small></span><span class="mk-t-rt"><span class="mk-t-cta">Anwenden</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>CF-337 Panther</b><small>Laser-Repeater · Größe 3 · <em>3× im Lager</em> · <span class="mk-t-fit ok">✓ passt (S4 → S3 Gimbal)</span></small></span><span class="mk-t-rt"><span class="mk-t-cta">Montieren</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
-            <div class="mk-t-more"><button type="button">▾ 1 weiteres hier zeigen</button><a>Alle 4 im HQ öffnen →</a></div></div>
+            <div class="mk-t-more"><button type="button" disabled>▾ 1 weiteres hier zeigen</button><a>Alle 4 im HQ öffnen →</a></div></div>
           <div class="mk-t-group"><p class="mk-t-gh">Schiffswaffen <span class="mk-t-n">9</span></p>
             <div class="mk-t-row on"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>CF-447 Rhino</b> <span class="mk-t-new">✦<span class="mk-t-tip">Neu in Patch 4.3.2</span></span><small>Klaus &amp; Werner · Laser-Repeater · Größe 4 · <span class="mk-t-fit ok">✓ passt auf Idris-M</span></small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Montieren</span><span class="mk-t-sep"></span><span class="mk-t-ib set">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>Attrition-4 Repeater</b><small>Hurston Dynamics · Laser-Repeater · Größe 4 · <span class="mk-t-fit unk">? keine Hardpoint-Daten</span></small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">✦</span><span class="mk-t-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5 · <span class="mk-t-fit no">⚠ passt nicht · Größe 5 &gt; Slot 4</span></small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
-            <div class="mk-t-more"><button type="button">▾ 6 weitere hier zeigen</button><a>Alle 9 im Index öffnen →</a></div></div>
+            <div class="mk-t-more"><button type="button" disabled>▾ 6 weitere hier zeigen</button><a>Alle 9 im Index öffnen →</a></div></div>
           <div class="mk-t-group mk-t-out"><p class="mk-t-gh">Fast genau, aber außerhalb von „Bewaffnung“ <span class="mk-t-n">1</span></p>
             <div class="mk-t-row"><span class="mk-t-ico">⚙</span><span class="mk-t-nm"><b>Repair-Bot „Rep-4“</b><small>Komponente · Größe 4 · <span class="mk-t-why2">Name passt genau, Bereich nicht</span></small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Ins Lager</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div></div>
           <div class="mk-t-group"><p class="mk-t-gh">Patches <span class="mk-t-n">1</span></p>
@@ -6423,21 +6425,23 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
           <button class="anno-pin" type="button" data-anno-pin="t-s3-a1" aria-expanded="false" aria-controls="anno-bubble-t-s3-a1" aria-label="Frage {n}">1</button>
           <div class="anno-bubble" id="anno-bubble-t-s3-a1" data-anno-bubble="t-s3-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s3-a1" aria-expanded="false" aria-controls="anno-bubble-t-s3-a1"><span class="anno-bubble-question">Drei Chips im Feld (Seite, Abschnitt, aus dem Text): der aus dem Text erkannte ist blau-violett. Reicht die Farbe zur Unterscheidung?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s3-a1" data-annotation="t-s3-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s3-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s3-a1" data-annotation="t-s3-a1" data-attachable placeholder="Deine Antwort…" readonly>keine andere farbe, einfach nur bei hover over der drop down button einblenden und auch das x - das braucht man auch nicht die ganze zeit dort!</textarea><div class="attach-slot" data-attach-slot="anno-t-s3-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="t-s3-a2" data-anno-side="left" data-anno-target=".mk-t-ghost" style="--anno-x:86%;--anno-y:40%">
           <button class="anno-pin" type="button" data-anno-pin="t-s3-a2" aria-expanded="false" aria-controls="anno-bubble-t-s3-a2" aria-label="Frage {n}">2</button>
           <div class="anno-bubble" id="anno-bubble-t-s3-a2" data-anno-bubble="t-s3-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s3-a2" aria-expanded="false" aria-controls="anno-bubble-t-s3-a2"><span class="anno-bubble-question">Gedämpftes Bild der fokussierten Zeile hinter dem Panel (16 % Deckkraft): erkennbar genug, um Reclaimer und Redeemer zu trennen?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s3-a2" data-annotation="t-s3-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s3-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s3-a2" data-annotation="t-s3-a2" data-attachable placeholder="Deine Antwort…" readonly>hmmm ne, maximal abdunkeln aber nicht dann irgendwa s anderes als die aktuelle seite dahinter! denk dir varianten aus wie wir das bild anders vorschauen können gedämpft / die silhouette!
+
+</textarea><div class="attach-slot" data-attach-slot="anno-t-s3-a2"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="t-s3-a3" data-anno-side="left" data-anno-target=".mk-t-out" style="--anno-x:64%;--anno-y:67%">
           <button class="anno-pin" type="button" data-anno-pin="t-s3-a3" aria-expanded="false" aria-controls="anno-bubble-t-s3-a3" aria-label="Frage {n}">3</button>
           <div class="anno-bubble" id="anno-bubble-t-s3-a3" data-anno-bubble="t-s3-a3" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="t-s3-a3" aria-expanded="false" aria-controls="anno-bubble-t-s3-a3"><span class="anno-bubble-question">Treffer außerhalb des Filters: eigener, gestrichelter Bereich unten — oder als einzelne markierte Zeile im passenden Bereich?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s3-a3" data-annotation="t-s3-a3" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-t-s3-a3"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-t-s3-a3" data-annotation="t-s3-a3" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-t-s3-a3"></div></div>
           </div>
         </div>
       </div>
@@ -6454,7 +6458,7 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
         <div class="mk-t-page"><div class="mk-t-pside"><i></i><i></i><i></i><i></i></div><div class="mk-t-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
         <div class="mk-t-scrim"></div>
         <div class="mk-t-menu">
-          <input type="text" value="" placeholder="Größe suchen …" aria-label="Größe suchen">
+          <input type="text" value="" placeholder="Größe suchen …" aria-label="Größe suchen" readonly disabled>
           <div><span>Größe 1</span><small>2</small></div><div><span>Größe 2</span><small>3</small></div><div><span>Größe 3</span><small>4</small></div>
           <div class="on"><button type="button" class="mk-t-link" data-screen-link="t-s3">Größe 4</button><small>9</small></div>
           <div><span>Größe 5</span><small>1</small></div><div><span>Größe 6</span><small>0</small></div><div><span>Größe 7–10</span><small>0</small></div>
@@ -6483,7 +6487,7 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
           <div class="mk-t-group mk-t-out"><p class="mk-t-gh">Fast genau, aber nicht auf der Idris-M <span class="mk-t-n">2</span></p>
             <div class="mk-t-row on"><span class="mk-t-ico">➶</span><span class="mk-t-nm"><b>Stalker V</b><small>Rakete · Größe 5 · <span class="mk-t-fit no">⚠ passt nicht · kein Raketen-Port S5</span></small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Gegenüberstellen</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div>
             <div class="mk-t-row"><span class="mk-t-ico">➶</span><span class="mk-t-nm"><b>Stalker III</b><small>Rakete · Größe 3 · <span class="mk-t-fit ok">✓ passt auf Idris-M</span></small></span><span class="mk-t-rt"><span class="mk-t-cta ghost">Montieren</span><span class="mk-t-sep"></span><span class="mk-t-ib">🔖</span><span class="mk-t-ib">⧉</span><span class="mk-t-ib">↗</span></span></div></div>
-          <div class="mk-t-more"><button type="button" class="mk-t-link" style="width:auto">Ohne „Idris-M“ überall suchen (⌫)</button></div>
+          <div class="mk-t-more"><button type="button" class="mk-t-link" style="width:auto" disabled>Ohne „Idris-M“ überall suchen (⌫)</button></div>
           <div class="mk-t-keys"><span>↑ ↓ navigieren</span><span>↵ öffnen</span><span>⌫ Chip weg</span><span>Esc schließen</span></div>
         </div>
         <button type="button" class="mk-t-close" data-screen-link="t-s1">Esc · schließen ✕</button>
@@ -6505,12 +6509,13 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
       <h3 data-question>Welche drei Icons stehen an jeder Zeile?</h3>
       <p data-stakes>Was man überall gleich findet und wie voll eine Zeile wirkt</p>
       <div data-options>
-        <label data-opt="mlt" data-recommended><input type="radio" name="dm-q2-icons" value="mlt" checked><span data-opt-label>Merken · Link kopieren · In neuem Tab</span><span data-opt-consequence>Alles sofort baubar. Neuer Tab rettet Handys, wo es kein Strg+Klick gibt.</span></label>
-        <label data-opt="mvl"><input type="radio" name="dm-q2-icons" value="mvl"><span data-opt-label>Merken · Vorschau · Link kopieren</span><span data-opt-consequence>Empfehlung des Agenten: Vorschau per Leertaste neben der Liste. Mehr Bauarbeit.</span></label>
-        <label data-opt="mol"><input type="radio" name="dm-q2-icons" value="mol"><span data-opt-label>Merken · Besitz (+ Lager/Hangar) · Link kopieren</span><span data-opt-consequence>Besitz-Icon ist bei Seiten, Herstellern, Patches immer aus.</span></label>
+        <label data-opt="mlt" data-recommended><input type="radio" name="dm-q2-icons" value="mlt" disabled><span data-opt-label>Merken · Link kopieren · In neuem Tab</span><span data-opt-consequence>Alles sofort baubar. Neuer Tab rettet Handys, wo es kein Strg+Klick gibt.</span></label>
+        <label data-opt="mvl"><input type="radio" name="dm-q2-icons" value="mvl" disabled><span data-opt-label>Merken · Vorschau · Link kopieren</span><span data-opt-consequence>Empfehlung des Agenten: Vorschau per Leertaste neben der Liste. Mehr Bauarbeit.</span></label>
+        <label data-opt="mol"><input type="radio" name="dm-q2-icons" value="mol" disabled><span data-opt-label>Merken · Besitz (+ Lager/Hangar) · Link kopieren</span><span data-opt-consequence>Besitz-Icon ist bei Seiten, Herstellern, Patches immer aus.</span></label>
       </div>
-      <textarea data-comment="q2-icons-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-icons-none" value=""><input type="hidden" name="dm-q2-icons-hes" value=""><input type="hidden" name="dm-q2-icons-touched" value=""><input type="hidden" name="dm-q2-icons-issue" value=""><input type="hidden" name="dm-q2-icons-epic" value="">
+      <textarea data-comment="q2-icons-note" placeholder="Notiz (optional)" readonly>[Befund · Frage 1]  Gern eher auf die Wunschliste, in das Lager und 
+Außerdem schaue das die icons den gleichen style haben! und das der cta zwar sichtbar aber nicht zuu bullig daneben ist!</textarea>
+      <input type="hidden" name="dm-q2-icons-none" value="" disabled><input type="hidden" name="dm-q2-icons-hes" value="{&quot;ms&quot;:166932,&quot;revisits&quot;:5,&quot;median&quot;:166932}" disabled><input type="hidden" name="dm-q2-icons-touched" value="1" disabled><input type="hidden" name="dm-q2-icons-issue" value="" disabled><input type="hidden" name="dm-q2-icons-epic" value="" disabled>
       <div data-alevel="3" data-title="Die drei Icons">
         <div data-slot="short"><p>Universell sind nur Aktionen auf den Eintrag selbst.</p></div>
         <div data-slot="long"><p>Wunschliste gibt es heute nur für Schiffe (Hangar-Status <code>wishlist</code>, <code>hangar-dashboard.component.ts:929</code>) und für Konzeptschiffe. „Ins Lager“ hat einen Unterbau (<code>HqInventoryService.addManual</code>), aber ohne Codex-Verknüpfung. Ein Besitz-Icon wäre bei Seiten, Herstellern, Patches und angekündigten Schiffen immer aus, also nicht „immer gleich“.</p></div>
@@ -6523,13 +6528,13 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
       <h3 data-question>Merken = bei Schiffen die Hangar-Wunschliste, sonst eine neue Merkliste im HQ?</h3>
       <p data-stakes>Ob es eine oder zwei Listen für „will ich haben“ gibt</p>
       <div data-options>
-        <label data-opt="yes" data-recommended><input type="radio" name="dm-q2-mark" value="yes" checked><span data-opt-label>Ja, so</span><span data-opt-consequence>Eine Liste „Gemerkt“ im HQ, Schiffe darin = Wunschliste. Braucht eine neue Tabelle.</span></label>
-        <label data-opt="no"><input type="radio" name="dm-q2-mark" value="no"><span data-opt-label>Nein, Merken nur für Schiffe</span><span data-opt-consequence>Bei allem anderen ist das Icon aus.</span></label>
-        <label data-opt="alt"><input type="radio" name="dm-q2-mark" value="alt"><span data-opt-label>Anders</span><span data-opt-consequence>Schreib unten, wie.</span></label>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q2-mark" value="yes" checked disabled><span data-opt-label>Ja, so</span><span data-opt-consequence>Eine Liste „Gemerkt“ im HQ, Schiffe darin = Wunschliste. Braucht eine neue Tabelle.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q2-mark" value="no" disabled><span data-opt-label>Nein, Merken nur für Schiffe</span><span data-opt-consequence>Bei allem anderen ist das Icon aus.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q2-mark" value="alt" disabled><span data-opt-label>Anders</span><span data-opt-consequence>Schreib unten, wie.</span></label>
       </div>
-      <input type="text" name="dm-q2-mark-alt" value="" placeholder="Wie stattdessen?">
-      <textarea data-comment="q2-mark-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-mark-none" value=""><input type="hidden" name="dm-q2-mark-hes" value=""><input type="hidden" name="dm-q2-mark-touched" value=""><input type="hidden" name="dm-q2-mark-issue" value=""><input type="hidden" name="dm-q2-mark-epic" value="">
+      <input type="text" name="dm-q2-mark-alt" value="" placeholder="Wie stattdessen?" readonly disabled>
+      <textarea data-comment="q2-mark-note" placeholder="Notiz (optional)" readonly>In der suche merken als standard icon immer! aber bitte daraus folgen entweder in den nachschub übernehmen oder zum ieinsatz hinzufügen. Btw, missiionen, blueprints und co. sollte amn auch alles suchen sollen was spielinhalte sind. Aber für news, patches und galerie bitte keine standard icons machen!</textarea>
+      <input type="hidden" name="dm-q2-mark-none" value="" disabled><input type="hidden" name="dm-q2-mark-hes" value="{&quot;ms&quot;:378278,&quot;revisits&quot;:0,&quot;median&quot;:166932}" disabled><input type="hidden" name="dm-q2-mark-touched" value="1" disabled><input type="hidden" name="dm-q2-mark-issue" value="" disabled><input type="hidden" name="dm-q2-mark-epic" value="" disabled>
       <div data-alevel="3" data-title="Was Merken ist">
         <div data-slot="short"><p>Wunschliste existiert nur für Schiffe (2 Stellen).</p></div>
         <div data-slot="long"><p><code>hangar_ships.status</code> kennt <code>owned | wishlist</code>; Konzeptschiffe haben eine eigene Tabelle (<code>hangar.service.ts:269-345</code>). Abgemeldet bleibt Merken sichtbar und fragt nach Anmeldung, statt ein toter Knopf zu sein.</p></div>
@@ -6542,13 +6547,13 @@ Neu Icon gern aber nur mit hover over das es neu im patch xyz ist.</textarea>
       <h3 data-question>Stimmt diese Belegung der Hauptaktion?</h3>
       <p data-stakes>Was der eine Knopf in jeder Lage tut</p>
       <div data-options>
-        <label data-opt="ok" data-recommended><input type="radio" name="dm-q2-matrix" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Wird als Tabelle im Code umgesetzt und getestet.</span></label>
-        <label data-opt="partial"><input type="radio" name="dm-q2-matrix" value="partial"><span data-opt-label>Stimmt teilweise</span><span data-opt-consequence>Schreib die Zellen, die anders sollen, unten hin.</span></label>
-        <label data-opt="wrong"><input type="radio" name="dm-q2-matrix" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Dann baue ich sie neu.</span></label>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-q2-matrix" value="ok" checked disabled><span data-opt-label>Stimmt so</span><span data-opt-consequence>Wird als Tabelle im Code umgesetzt und getestet.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-q2-matrix" value="partial" disabled><span data-opt-label>Stimmt teilweise</span><span data-opt-consequence>Schreib die Zellen, die anders sollen, unten hin.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-q2-matrix" value="wrong" disabled><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Dann baue ich sie neu.</span></label>
       </div>
-      <input type="text" name="dm-q2-matrix-fix" value="" placeholder="Was soll anders sein?">
-      <textarea data-comment="q2-matrix-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-matrix-none" value=""><input type="hidden" name="dm-q2-matrix-hes" value=""><input type="hidden" name="dm-q2-matrix-touched" value=""><input type="hidden" name="dm-q2-matrix-issue" value=""><input type="hidden" name="dm-q2-matrix-epic" value="">
+      <input type="text" name="dm-q2-matrix-fix" value="" placeholder="Was soll anders sein?" readonly disabled>
+      <textarea data-comment="q2-matrix-note" placeholder="Notiz (optional)" readonly>[Befund · Frage 3] nochmal kritisch mit den agenten prüfen aber sonst machen wir das erstmal so!</textarea>
+      <input type="hidden" name="dm-q2-matrix-none" value="" disabled><input type="hidden" name="dm-q2-matrix-hes" value="{&quot;ms&quot;:171035,&quot;revisits&quot;:0,&quot;median&quot;:166932}" disabled><input type="hidden" name="dm-q2-matrix-touched" value="1" disabled><input type="hidden" name="dm-q2-matrix-issue" value="" disabled><input type="hidden" name="dm-q2-matrix-epic" value="" disabled>
       <div data-alevel="3" data-title="Hauptaktion je Kontext">
         <div data-slot="short"><p>9 Kontexte × 7 Arten, eine Aktion pro Zelle.</p></div>
         <div data-slot="long"><p>„Im Index“ fällt weg (öffnete nur den Index gefiltert auf den Namen). „Vergleichen“ bleibt nur auf den Codex-Listenseiten, dort als Hauptaktion. „Gegenüberstellen“ ist ein 1:1 mit dem Schiff oder der Waffe im Chip.</p></div>
@@ -6573,11 +6578,11 @@ Seiten, Patches   — überall (Patch: „Änderungen“)
       <h3 data-question>Was passiert mit einem Icon, das bei einer Zeile nichts tun kann?</h3>
       <p data-stakes>Ob die Icons immer an derselben Stelle stehen</p>
       <div data-options>
-        <label data-opt="dim" data-recommended><input type="radio" name="dm-q2-off" value="dim" checked><span data-opt-label>Bleibt stehen, ausgegraut, mit Grund im Tooltip</span><span data-opt-consequence>Positionen wandern nie.</span></label>
-        <label data-opt="hide"><input type="radio" name="dm-q2-off" value="hide"><span data-opt-label>Wird ausgeblendet, Platz bleibt frei</span><span data-opt-consequence>Ruhiger, aber Lücken in der Reihe.</span></label>
+        <label data-opt="dim" data-recommended><input type="radio" name="dm-q2-off" value="dim" disabled><span data-opt-label>Bleibt stehen, ausgegraut, mit Grund im Tooltip</span><span data-opt-consequence>Positionen wandern nie.</span></label>
+        <label data-opt="hide"><input type="radio" name="dm-q2-off" value="hide" checked disabled><span data-opt-label>Wird ausgeblendet, Platz bleibt frei</span><span data-opt-consequence>Ruhiger, aber Lücken in der Reihe.</span></label>
       </div>
-      <textarea data-comment="q2-off-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-off-none" value=""><input type="hidden" name="dm-q2-off-hes" value=""><input type="hidden" name="dm-q2-off-touched" value=""><input type="hidden" name="dm-q2-off-issue" value=""><input type="hidden" name="dm-q2-off-epic" value="">
+      <textarea data-comment="q2-off-note" placeholder="Notiz (optional)" readonly>Lieber einfach keine standardaktionen bei denjenigen! und keine cta aktion</textarea>
+      <input type="hidden" name="dm-q2-off-none" value="" disabled><input type="hidden" name="dm-q2-off-hes" value="{&quot;ms&quot;:70994,&quot;revisits&quot;:0,&quot;median&quot;:166932}" disabled><input type="hidden" name="dm-q2-off-touched" value="1" disabled><input type="hidden" name="dm-q2-off-issue" value="" disabled><input type="hidden" name="dm-q2-off-epic" value="" disabled>
       <div data-alevel="3" data-title="Icon ohne Sinn">
         <div data-slot="short"><p>Seiten und abgemeldete Nutzer sind die zwei Fälle.</p></div>
         <div data-slot="long"><p>Abgemeldet bleibt Merken aktiv und fragt per Dialog nach Anmeldung; ausgegraut ist es nur bei Seiten (Merken für Hersteller: ja).</p></div>
@@ -6589,12 +6594,12 @@ Seiten, Patches   — überall (Patch: „Änderungen“)
       <h3 data-question>Was steht ganz links in einer Zeile?</h3>
       <p data-stakes>Ob man Treffer ohne Lesen einordnen kann</p>
       <div data-options>
-        <label data-opt="sil" data-recommended><input type="radio" name="dm-q2-rowicon" value="sil" checked><span data-opt-label>Silhouette, wo der Uploader eine liefert; sonst neues Art-Icon</span><span data-opt-consequence>Schiffe sofort unterscheidbar; Icon-Set für ≈ 12 Arten neu zeichnen.</span></label>
-        <label data-opt="kind"><input type="radio" name="dm-q2-rowicon" value="kind"><span data-opt-label>Immer ein Art-Icon, neu gezeichnet</span><span data-opt-consequence>Einheitlich, aber Schiffe sehen alle gleich aus.</span></label>
-        <label data-opt="thumb"><input type="radio" name="dm-q2-rowicon" value="thumb"><span data-opt-label>Vorschaubild für alles, das eines hat</span><span data-opt-consequence>Braucht erst den Nachweis, dass Uploader-Bilder im Codex landen.</span></label>
+        <label data-opt="sil" data-recommended><input type="radio" name="dm-q2-rowicon" value="sil" checked disabled><span data-opt-label>Silhouette, wo der Uploader eine liefert; sonst neues Art-Icon</span><span data-opt-consequence>Schiffe sofort unterscheidbar; Icon-Set für ≈ 12 Arten neu zeichnen.</span></label>
+        <label data-opt="kind"><input type="radio" name="dm-q2-rowicon" value="kind" disabled><span data-opt-label>Immer ein Art-Icon, neu gezeichnet</span><span data-opt-consequence>Einheitlich, aber Schiffe sehen alle gleich aus.</span></label>
+        <label data-opt="thumb"><input type="radio" name="dm-q2-rowicon" value="thumb" disabled><span data-opt-label>Vorschaubild für alles, das eines hat</span><span data-opt-consequence>Braucht erst den Nachweis, dass Uploader-Bilder im Codex landen.</span></label>
       </div>
-      <textarea data-comment="q2-rowicon-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-rowicon-none" value=""><input type="hidden" name="dm-q2-rowicon-hes" value=""><input type="hidden" name="dm-q2-rowicon-touched" value=""><input type="hidden" name="dm-q2-rowicon-issue" value=""><input type="hidden" name="dm-q2-rowicon-epic" value="">
+      <textarea data-comment="q2-rowicon-note" placeholder="Notiz (optional)" readonly>stimmt, das reicht! gute idee,</textarea>
+      <input type="hidden" name="dm-q2-rowicon-none" value="" disabled><input type="hidden" name="dm-q2-rowicon-hes" value="{&quot;ms&quot;:28718,&quot;revisits&quot;:1,&quot;median&quot;:166932}" disabled><input type="hidden" name="dm-q2-rowicon-touched" value="1" disabled><input type="hidden" name="dm-q2-rowicon-issue" value="" disabled><input type="hidden" name="dm-q2-rowicon-epic" value="" disabled>
       <div data-alevel="3" data-title="Icon vorn in der Zeile">
         <div data-slot="short"><p>Ein Icon pro Art, keins pro Ding.</p></div>
         <div data-slot="long"><p><code>fusion-search.component.ts:235</code> → <code>polyHitIconKind()</code> (<code>codex-poly-search.ts:109</code>). Silhouetten: <code>ingest-catalog/index.ts:132</code>, <code>dataforge_extract.py:468</code>. Vorschaubilder aus P4K: <code>images.py:157</code>, Weg in den Codex nicht belegt.</p></div>
@@ -6615,13 +6620,13 @@ Seiten, Patches   — überall (Patch: „Änderungen“)
       <h3 data-question>Ist diese Liste als Startpunkt richtig?</h3>
       <p data-stakes>Ob „connie“, „qt s2“ oder „herc“ etwas finden</p>
       <div data-options>
-        <label data-opt="ok" data-recommended><input type="radio" name="dm-q2-abbr" value="ok" checked><span data-opt-label>Passt, alles aufnehmen</span><span data-opt-consequence>Auch die „mittel“-Einträge; später mit echten Suchen nachschärfen.</span></label>
-        <label data-opt="partial"><input type="radio" name="dm-q2-abbr" value="partial"><span data-opt-label>Teilweise, Ergänzungen unten</span><span data-opt-consequence>Schreib fehlende oder falsche Begriffe ins Feld.</span></label>
-        <label data-opt="wrong"><input type="radio" name="dm-q2-abbr" value="wrong"><span data-opt-label>Nur belegte Einträge</span><span data-opt-consequence>Spitznamen erst nach Prüfung in Reddit/Spectrum.</span></label>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-q2-abbr" value="ok" checked disabled><span data-opt-label>Passt, alles aufnehmen</span><span data-opt-consequence>Auch die „mittel“-Einträge; später mit echten Suchen nachschärfen.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-q2-abbr" value="partial" disabled><span data-opt-label>Teilweise, Ergänzungen unten</span><span data-opt-consequence>Schreib fehlende oder falsche Begriffe ins Feld.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-q2-abbr" value="wrong" disabled><span data-opt-label>Nur belegte Einträge</span><span data-opt-consequence>Spitznamen erst nach Prüfung in Reddit/Spectrum.</span></label>
       </div>
-      <input type="text" name="dm-q2-abbr-fix" value="" placeholder="Was fehlt oder ist falsch?">
-      <textarea data-comment="q2-abbr-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-abbr-none" value=""><input type="hidden" name="dm-q2-abbr-hes" value=""><input type="hidden" name="dm-q2-abbr-touched" value=""><input type="hidden" name="dm-q2-abbr-issue" value=""><input type="hidden" name="dm-q2-abbr-epic" value="">
+      <input type="text" name="dm-q2-abbr-fix" value="" placeholder="Was fehlt oder ist falsch?" readonly disabled>
+      <textarea data-comment="q2-abbr-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q2-abbr-none" value="" disabled><input type="hidden" name="dm-q2-abbr-hes" value="" disabled><input type="hidden" name="dm-q2-abbr-touched" value="" disabled><input type="hidden" name="dm-q2-abbr-issue" value="" disabled><input type="hidden" name="dm-q2-abbr-epic" value="" disabled>
       <div data-alevel="3" data-title="Abkürzungsliste">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"36 → ≈ 170","unit":"Begriffe","label":"heute nur DE→EN, künftig Abkürzungen + Spitznamen"}'>36 → ≈ 170</div></div>
         <div data-slot="long"><p>Quellen: starcitizen.tools (Acronyms, Ship components, Personal weapons), starcitizenhelp.com/glossary, starcitizen-community.de/glossar. Hoch belegt: Komponenten, Größen, Klassen, Mechaniken, FPS-Waffen. Mittel: Schiffs-Spitznamen und Waffen-Slang.</p></div>
@@ -6646,13 +6651,13 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
       <h3 data-question>Suchen ohne Treffer anonym zählen, um fehlende Begriffe nachzupflegen?</h3>
       <p data-stakes>Ob die Liste mit der Zeit von selbst besser wird</p>
       <div data-options>
-        <label data-opt="yes" data-recommended><input type="radio" name="dm-q2-misses" value="yes" checked><span data-opt-label>Ja, nur Suchtext + Anzahl</span><span data-opt-consequence>Ohne Nutzer-ID; im Admin als Liste „Häufig ohne Treffer“.</span></label>
-        <label data-opt="no"><input type="radio" name="dm-q2-misses" value="no"><span data-opt-label>Nein</span><span data-opt-consequence>Liste wird nur von Hand gepflegt.</span></label>
-        <label data-opt="alt"><input type="radio" name="dm-q2-misses" value="alt"><span data-opt-label>Anders</span><span data-opt-consequence>Schreib unten, wie.</span></label>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q2-misses" value="yes" checked disabled><span data-opt-label>Ja, nur Suchtext + Anzahl</span><span data-opt-consequence>Ohne Nutzer-ID; im Admin als Liste „Häufig ohne Treffer“.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q2-misses" value="no" disabled><span data-opt-label>Nein</span><span data-opt-consequence>Liste wird nur von Hand gepflegt.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q2-misses" value="alt" disabled><span data-opt-label>Anders</span><span data-opt-consequence>Schreib unten, wie.</span></label>
       </div>
-      <input type="text" name="dm-q2-misses-alt" value="" placeholder="Wie stattdessen?">
-      <textarea data-comment="q2-misses-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-misses-none" value=""><input type="hidden" name="dm-q2-misses-hes" value=""><input type="hidden" name="dm-q2-misses-touched" value=""><input type="hidden" name="dm-q2-misses-issue" value=""><input type="hidden" name="dm-q2-misses-epic" value="">
+      <input type="text" name="dm-q2-misses-alt" value="" placeholder="Wie stattdessen?" readonly disabled>
+      <textarea data-comment="q2-misses-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q2-misses-none" value="" disabled><input type="hidden" name="dm-q2-misses-hes" value="" disabled><input type="hidden" name="dm-q2-misses-touched" value="" disabled><input type="hidden" name="dm-q2-misses-issue" value="" disabled><input type="hidden" name="dm-q2-misses-epic" value="" disabled>
       <div data-alevel="3" data-title="Suchen ohne Treffer">
         <div data-slot="short"><p>Heute: kein Zählen, keine Rückmeldung.</p></div>
         <div data-slot="long"><p>Das ergibt auch die Daten für „was andere oft öffnen“, das du als Sortier-Signal willst: dieselbe Zählung, einmal für Treffer, einmal für leere Suchen.</p></div>
@@ -6665,16 +6670,537 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
       <h3 data-question>Welche Seitenabschnitte setzen beim Öffnen der Suche einen Chip?</h3>
       <p data-stakes>Ob „Bewaffnung“ auf der Idris-Seite als Filter mitkommt</p>
       <div data-options>
-        <label data-opt="data" data-recommended><input type="radio" name="dm-q2-anchor" value="data" checked><span data-opt-label>Jeder Abschnitt, der eine Art Daten zeigt</span><span data-opt-consequence>Bewaffnung, Komponenten, Bestand, Hangar, Sets: ja. Beschreibung, Galerie: nein.</span></label>
-        <label data-opt="all"><input type="radio" name="dm-q2-anchor" value="all"><span data-opt-label>Jeder Abschnitt mit eigener Überschrift</span><span data-opt-consequence>Auch reine Text-Abschnitte bekommen einen Chip, der dann nur sortiert.</span></label>
+        <label data-opt="data" data-recommended><input type="radio" name="dm-q2-anchor" value="data" checked disabled><span data-opt-label>Jeder Abschnitt, der eine Art Daten zeigt</span><span data-opt-consequence>Bewaffnung, Komponenten, Bestand, Hangar, Sets: ja. Beschreibung, Galerie: nein.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-q2-anchor" value="all" disabled><span data-opt-label>Jeder Abschnitt mit eigener Überschrift</span><span data-opt-consequence>Auch reine Text-Abschnitte bekommen einen Chip, der dann nur sortiert.</span></label>
       </div>
-      <textarea data-comment="q2-anchor-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q2-anchor-none" value=""><input type="hidden" name="dm-q2-anchor-hes" value=""><input type="hidden" name="dm-q2-anchor-touched" value=""><input type="hidden" name="dm-q2-anchor-issue" value=""><input type="hidden" name="dm-q2-anchor-epic" value="">
+      <textarea data-comment="q2-anchor-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q2-anchor-none" value="" disabled><input type="hidden" name="dm-q2-anchor-hes" value="" disabled><input type="hidden" name="dm-q2-anchor-touched" value="" disabled><input type="hidden" name="dm-q2-anchor-issue" value="" disabled><input type="hidden" name="dm-q2-anchor-epic" value="" disabled>
       <div data-alevel="3" data-title="Welche Abschnitte einen Chip setzen">
         <div data-slot="short"><p>Anker setzen heute nie einen Chip.</p></div>
         <div data-slot="long"><p><code>search-context.ts:78</code> schneidet den #-Teil ab. HQ setzt Abschnitte über <code>setHqPage()</code> (<code>hq-pages.component.ts:100-151</code>). Der Chip wird auf Hauptseiten und Codex-Segmenten heute ausgeblendet (<code>fusion-bar.component.ts:199</code>), wirkt aber trotzdem. Künftig ist er immer sichtbar, weil er filtert.</p></div>
       </div>
     </section>
+  </section>
+
+</section>
+
+<section data-iteration="3" data-iteration-template="design" data-design-set="alternatives" id="iter-3" data-active>
+<style>
+.mk-u-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 660px; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 70% 20%, #0c2232 0%, #07131d 55%, #040a10 100%); font-family: system-ui, "Segoe UI", sans-serif;
+  color: #e6f0f6; padding: 16px; box-sizing: border-box; isolation: isolate; font-size: 13px; }
+.mk-u-page { position: absolute; inset: 96px 16px 16px; display: grid; grid-template-columns: 220px 1fr; gap: 18px; opacity: .85; }
+.mk-u-page i { display: block; border-radius: 10px; background: #0d1f2c; }
+.mk-u-page .mk-u-pside { display: flex; flex-direction: column; gap: 10px; } .mk-u-page .mk-u-pside i { height: 38px; }
+.mk-u-page .mk-u-pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-content: start; } .mk-u-page .mk-u-pgrid i { height: 120px; }
+.mk-u-bar { position: relative; z-index: 3; display: flex; align-items: center; gap: 14px; height: 62px; padding: 0 12px; border-radius: 20px;
+  background: rgba(16, 36, 52, .9); box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+.mk-u-brand { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; width: 230px; }
+.mk-u-logo { flex: none; width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #9be4f7 0 14%, #2a7ea0 30%, #0c2333 62%); }
+.mk-u-cat { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: rgba(230, 240, 246, .42); }
+.mk-u-trail { font-size: 12px; color: rgba(138, 163, 179, .75); white-space: nowrap; }
+.mk-u-trail b { font-weight: 400; color: rgba(201, 219, 230, .85); }
+.mk-u-search { position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border-radius: 999px;
+  background: #0a1a26; border: 0; color: inherit; font: inherit; text-align: left; cursor: text;
+  box-shadow: inset 0 0 0 1px rgba(90, 200, 232, .35), 0 0 22px rgba(90, 200, 232, .16); }
+.mk-u-glass { flex: none; width: 14px; height: 14px; border: 2px solid #5ac8e8; border-radius: 50%; position: relative; box-sizing: border-box; }
+.mk-u-glass::after { content: ''; position: absolute; width: 6px; height: 2px; background: #5ac8e8; right: -5px; bottom: -3px; transform: rotate(45deg); }
+.mk-u-ctx { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #1d4258; color: #e6f7fd; }
+.mk-u-q { color: #f1f8fb; font-size: 14px; }
+.mk-u-caret { flex: none; width: 2px; height: 18px; background: #9be4f7; animation: mk-u-blink 1.1s steps(1) infinite; }
+@keyframes mk-u-blink { 50% { opacity: 0; } }
+.mk-u-ph { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #7f98a8; font-size: 14px; }
+.mk-u-fill { flex: 1 1 auto; }
+.mk-u-kbd { flex: none; font: 10px ui-monospace, monospace; padding: 1px 5px; border-radius: 4px; color: #7f98a8; background: rgba(255, 255, 255, .04); }
+.mk-u-x { flex: none; color: #7f98a8; font-size: 13px; }
+.mk-u-apps { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 999px;
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(201, 219, 230, .6); }
+.mk-u-me { flex: none; width: 38px; height: 38px; border-radius: 50%; background: rgba(24, 52, 71, .6); }
+.mk-u-scrim { position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(2, 6, 10, .25), rgba(2, 6, 10, .55)); }
+.mk-u-drop { position: absolute; z-index: 4; left: 262px; right: 150px; top: 88px; max-height: 552px; display: flex; flex-direction: column; gap: 10px; padding: 12px; box-sizing: border-box;
+  border-radius: 24px; background: #142d3e; box-shadow: 0 2px 0 rgba(255, 255, 255, .04) inset, 0 36px 90px rgba(0, 0, 0, .75), 0 10px 24px rgba(0, 0, 0, .45); overflow: hidden; }
+.mk-u-group { background: #0f2433; border-radius: 16px; padding: 8px 10px; }
+.mk-u-gh { display: flex; align-items: center; gap: 8px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #7f98a8; margin: 0 0 4px 4px; }
+.mk-u-gh .mk-u-n { letter-spacing: 0; font-size: 11px; padding: 0 7px; border-radius: 999px; background: #1b3d52; color: #c9dbe6; }
+.mk-u-gh .mk-u-why { margin-left: auto; letter-spacing: 0; text-transform: none; font-size: 11px; color: #6f8a9b; }
+.mk-u-own .mk-u-gh { color: #8fe0c0; }
+.mk-u-own { box-shadow: inset 0 0 0 1px rgba(98, 214, 168, .28); }
+.mk-u-row { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 12px; min-height: 44px; padding: 3px 8px; border-radius: 10px; }
+.mk-u-row.on { background: #1b3d52; }
+.mk-u-ico { width: 28px; height: 28px; border-radius: 50%; background: #1b3d52; display: grid; place-items: center; color: #5ac8e8; font-size: 12px; }
+.mk-u-row.on .mk-u-ico { background: #24506a; }
+.mk-u-nm b { display: block; font-size: 14px; font-weight: 600; } .mk-u-nm small { display: block; font-size: 11.5px; color: #8aa3b3; }
+.mk-u-nm small em { font-style: normal; color: #8fe0c0; }
+.mk-u-rt { display: flex; align-items: center; gap: 6px; }
+.mk-u-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(98, 214, 168, .14); color: #8fe0c0; white-space: nowrap; }
+.mk-u-icb { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: #9fb7c6; font-size: 13px; background: transparent; }
+.mk-u-row:not(.on) .mk-u-icb { opacity: 0; }
+.mk-u-cta { height: 28px; padding: 0 12px; border-radius: 8px; border: 0; font: inherit; font-size: 12px; font-weight: 600; background: #22506b; color: #e6f7fd; white-space: nowrap; }
+.mk-u-cta.ghost { background: transparent; box-shadow: inset 0 0 0 1px #2c5874; color: #c9dbe6; }
+.mk-u-more { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 2px; font-size: 12px; }
+.mk-u-more button { border: 0; background: transparent; color: #8fd6ee; font: inherit; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.mk-u-more a { color: #7f98a8; text-decoration: none; }
+.mk-u-tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 2px 4px; }
+.mk-u-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 12px; font-size: 12.5px; border-radius: 10px; background: #1b3d52; color: #c9dbe6; }
+.mk-u-tag i { width: 8px; height: 8px; border-radius: 2px; background: #5ac8e8; display: inline-block; }
+.mk-u-keys { display: flex; justify-content: center; gap: 18px; font-size: 11px; color: #7f98a8; padding-top: 2px; margin-top: auto; }
+.mk-u-hint { font-size: 11.5px; color: #8aa3b3; padding: 2px 6px; }
+.mk-u-hint b { color: #c9dbe6; font-weight: 600; }
+.mk-u-close { position: absolute; right: 14px; top: 96px; z-index: 5; border: 0; background: transparent; color: #8aa3b3; font: inherit; font-size: 12px; cursor: pointer; }
+.mk-u-note { position: absolute; left: 16px; bottom: 10px; z-index: 1; font-size: 11.5px; color: #7f98a8; max-width: 230px; }
+.mk-u-link { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; }
+
+/* ── Round 3 additions ── */
+.mk-u-frame { height: 640px; }
+.mk-u-scrim { background: rgba(2, 6, 10, .82); }
+.mk-u-ico svg, .mk-u-ib svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.mk-u-ico { width: 40px; height: 28px; border-radius: 8px; background: transparent; color: #7fc6de; }
+.mk-u-ico .mk-u-sil { width: 40px; height: 16px; }
+.mk-u-sil { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.mk-u-row { grid-template-columns: 40px 1fr auto auto; position: relative; }
+.mk-u-row .mk-u-rt { grid-column: 4; }
+.mk-u-cta { height: 26px; padding: 0 10px; border-radius: 7px; background: transparent; box-shadow: inset 0 0 0 1px rgba(90, 200, 232, .32); color: #8fd6ee; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; letter-spacing: .01em; }
+.mk-u-row.on .mk-u-cta { background: rgba(90, 200, 232, .12); box-shadow: inset 0 0 0 1px rgba(90, 200, 232, .55); color: #c8f1fb; }
+.mk-u-ib { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: #8aa3b3; background: transparent; }
+.mk-u-row.on .mk-u-ib { color: #c9dbe6; background: rgba(255, 255, 255, .05); }
+.mk-u-sep { width: 1px; height: 20px; background: #24445a; margin: 0 4px; }
+.mk-u-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #1d4258; color: #e6f7fd; position: relative; }
+.mk-u-chip .mk-u-dd, .mk-u-chip .mk-u-cx { display: none; font-size: 10px; opacity: .8; }
+.mk-u-chip.hov .mk-u-dd, .mk-u-chip.hov .mk-u-cx { display: inline; }
+.mk-u-chip.open { border-radius: 12px 12px 0 0; background: #24506a; }
+.mk-u-menu { position: absolute; top: 100%; left: 0; z-index: 8; width: 180px; padding: 8px; border-radius: 0 12px 12px 12px; background: #24506a; box-shadow: 0 18px 40px rgba(0, 0, 0, .6); display: flex; flex-direction: column; gap: 2px; font-weight: 400; }
+.mk-u-menu input { height: 26px; border-radius: 7px; border: 0; background: #0a1a26; color: #e6f0f6; padding: 0 9px; font: inherit; font-size: 12px; margin-bottom: 4px; }
+.mk-u-menu span { display: flex; justify-content: space-between; padding: 4px 8px; border-radius: 6px; color: #d4e6f0; }
+.mk-u-menu span.on { background: rgba(255, 255, 255, .12); color: #fff; }
+.mk-u-menu small { color: #9fb7c6; }
+.mk-u-teaser { position: absolute; left: 262px; right: 150px; z-index: 4; font-size: 12px; color: #9fb7c6; }
+/* A · band in the focused row */
+.mk-u-band { grid-column: 2 / 4; grid-row: 2; height: 34px; color: rgba(155, 228, 247, .38); display: flex; align-items: center; padding-left: 2px; }
+.mk-u-band .mk-u-sil { height: 34px; width: 120px; }
+/* B · edge strip */
+.mk-u-wide { right: 60px; padding-right: 200px; }
+.mk-u-edge { position: absolute; z-index: 5; right: 72px; top: 100px; width: 176px; height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: rgba(155, 228, 247, .3); border-left: 1px solid rgba(90, 200, 232, .1); }
+.mk-u-edgesil .mk-u-sil { width: 160px; height: 56px; }
+.mk-u-edgelbl { font-size: 10px; letter-spacing: .16em; text-transform: lowercase; color: rgba(155, 228, 247, .35); }
+/* C · watermark behind the focused row */
+.mk-u-dc .mk-u-row.on::before { content: ''; position: absolute; inset: -8px 30% -8px 4%; pointer-events: none; opacity: .14;
+  background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 70'%3E%3Cpath d='M8 35 L40 22 L120 18 L170 26 L192 35 L170 44 L120 52 L40 48 Z M60 22 L70 6 L96 6 L104 19 M60 48 L70 64 L96 64 L104 51 M120 18 L120 52 M150 23 L150 47' fill='none' stroke='%239be4f7' stroke-width='1.6'/%3E%3C/svg%3E"); }
+.mk-u-dc .mk-u-row.on > * { position: relative; }
+
+</style>
+
+  <header class="iteration-intro">
+    <h2>Runde 3 · Wie zeigt die Suche, was ein Treffer ist? Drei Varianten für den gedämpften Umriss</h2>
+    <p><strong>Aus Runde 2 fest und in allen drei Designs gleich:</strong></p>
+    <ul>
+      <li><strong>Hinter dem Panel</strong> liegt nur noch die aktuelle Seite, stark abgedunkelt. Kein Bild mehr dahinter.</li>
+      <li><strong>Zeilen:</strong> Schiffsname zuerst, dann dein eigener Name. Vorn steht die Silhouette aus dem Uploader, sonst ein Art-Icon.</li>
+      <li><strong>Hauptaktionen</strong> sehen alle gleich aus: sichtbar, aber leise, mit Umriss statt Fläche.</li>
+      <li><strong>Drei Icons</strong> im selben Linienstil: Wunschliste, Ins Lager, Nachschub. Das dritte steht unten zur Wahl.</li>
+      <li><strong>Ohne Aktionen und ohne Icons</strong> bleiben News, Patches, Galerie und Seiten.</li>
+      <li><strong>Chips</strong> haben alle dieselbe Farbe. ▾ und × erscheinen nur beim Überfahren, das Menü wächst direkt aus dem Chip.</li>
+      <li><strong>Der Hinweis im leeren Feld</strong> ist einzeilig und wechselt; 70 Beispiele stehen in der Ansicht „Feinschliff“.</li>
+      <li><strong>Suchbar</strong> werden auch Missionen, Blaupausen und alle übrigen Spielinhalte.</li>
+    </ul>
+    <p><strong>Was die drei Designs unterscheidet:</strong> nur, wo und wie der gedämpfte Umriss des fokussierten Treffers erscheint. Dein Beispiel: Reclaimer, Redeemer und Retaliator sind am Namen kaum zu unterscheiden, am Umriss sofort. Jedes Design zeigt dazu den Fall „Waffe ohne Umriss“ (Rückfall auf das Art-Icon) und das Chip-Menü.</p>
+  </header>
+
+  <section data-design="band" data-nav-label="Umriss in der Zeile" data-design-active="true"
+           data-design-motto="Die fokussierte Zeile zeigt ihren Umriss" data-design-traits="Zeile mit Fokus wird höher und zeigt den Umriss breit|Andere Zeilen bleiben kompakt mit kleinem Umriss vorn|Umriss bewegt sich mit der Pfeiltaste von Zeile zu Zeile" data-design-icon="cube" data-design-color="#5ac8e8" data-ov-demo=".mk-u-drop">
+    <section id="ua-s1" data-nav-label="Fokus auf Schiff" data-screen data-screen-active="true">
+      <div class="mk-u-frame mk-u-da">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex</div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-q">aegis re</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        
+        <div class="mk-u-drop ">
+          <div class="mk-u-group mk-u-own"><p class="mk-u-gh">Aus deinem Bestand <span class="mk-u-n">1</span></p>
+            <div class="mk-u-row" data-sil="redeemer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M20 35 L70 26 L150 28 L190 35 L150 42 L70 44 Z"/><path d="M80 27 L60 6 L110 10 L120 27"/><path d="M80 43 L60 64 L110 60 L120 43"/><circle cx="62" cy="10" r="4"/><circle cx="62" cy="60" r="4"/></svg></span><span class="mk-u-nm"><b>Aegis Redeemer · „Bulwark“</b><small>dein Schiff · Kanonenboot · Loadout „Eskorte“</small></span><span class="mk-u-rt"><span class="mk-u-cta">Im Hangar</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Schiffe <span class="mk-u-n">3</span></p>
+            <div class="mk-u-row on" data-sil="reclaimer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M8 35 L40 22 L120 18 L170 26 L192 35 L170 44 L120 52 L40 48 Z"/><path d="M60 22 L70 6 L96 6 L104 19"/><path d="M60 48 L70 64 L96 64 L104 51"/><path d="M120 18 L120 52 M150 23 L150 47"/><circle cx="178" cy="35" r="5"/></svg></span><span class="mk-u-nm"><b>Aegis Reclaimer</b><small>Bergung · schwer · 5–7 Crew</small></span><span class="mk-u-band"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M8 35 L40 22 L120 18 L170 26 L192 35 L170 44 L120 52 L40 48 Z"/><path d="M60 22 L70 6 L96 6 L104 19"/><path d="M60 48 L70 64 L96 64 L104 51"/><path d="M120 18 L120 52 M150 23 L150 47"/><circle cx="178" cy="35" r="5"/></svg></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row" data-sil="redeemer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M20 35 L70 26 L150 28 L190 35 L150 42 L70 44 Z"/><path d="M80 27 L60 6 L110 10 L120 27"/><path d="M80 43 L60 64 L110 60 L120 43"/><circle cx="62" cy="10" r="4"/><circle cx="62" cy="60" r="4"/></svg></span><span class="mk-u-nm"><b>Aegis Redeemer</b><small>Kanonenboot · mittel · 5 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row" data-sil="retaliator"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M10 35 L30 28 L160 28 L190 35 L160 42 L30 42 Z"/><path d="M110 28 L130 4 L150 4 L148 28"/><path d="M110 42 L130 66 L150 66 L148 42"/><path d="M40 28 L40 42 M70 28 L70 42 M100 28 L100 42"/></svg></span><span class="mk-u-nm"><b>Aegis Retaliator</b><small>Bomber · schwer · 6 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Patches <span class="mk-u-n">1</span></p>
+            <div class="mk-u-row"><span class="mk-u-ico">◷</span><span class="mk-u-nm"><b>Patch 4.3.2 · Reclaimer-Bergung überarbeitet</b><small>Patch-Notiz · vor 5 Tagen</small></span><span class="mk-u-rt"></span></div>
+          </div>
+          <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
+        </div>
+        <button type="button" class="mk-u-close" data-screen-link="ua-s2">Nächster Zustand → Waffe ohne Umriss</button>
+        <p class="mk-u-note">Die fokussierte Zeile wächst um eine Umriss-Spur unter dem Namen. So sieht man Reclaimer und Redeemer direkt untereinander, ohne Panel-Bereich daneben.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="ua-s1-a1" data-anno-side="left" data-anno-target=".mk-u-band" style="--anno-x:62%;--anno-y:40%">
+          <button class="anno-pin" type="button" data-anno-pin="ua-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a1" aria-label="Frage {n}">1</button>
+          <div class="anno-bubble" id="anno-bubble-ua-s1-a1" data-anno-bubble="ua-s1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="ua-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a1"><span class="anno-bubble-question">Die Zeile mit Fokus wird ~30 px höher, damit der Umriss Platz hat. Stört das Springen beim Durchpfeilen?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ua-s1-a1" data-annotation="ua-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ua-s1-a1"></div></div>
+          </div>
+        </div>
+        <div class="anno" data-anno="ua-s1-a2" data-anno-side="right" data-anno-target=".mk-u-row .mk-u-ico" style="--anno-x:30%;--anno-y:26%">
+          <button class="anno-pin" type="button" data-anno-pin="ua-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a2" aria-label="Frage {n}">2</button>
+          <div class="anno-bubble" id="anno-bubble-ua-s1-a2" data-anno-bubble="ua-s1-a2" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="ua-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a2"><span class="anno-bubble-question">Kleiner Umriss als Icon vorn bei jeder Schiffszeile: reicht der allein schon zum Unterscheiden?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ua-s1-a2" data-annotation="ua-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ua-s1-a2"></div></div>
+          </div>
+        </div></div>
+    </section>
+    <section id="ua-s2" data-nav-label="Fokus auf Waffe" data-screen hidden>
+      <div class="mk-u-frame mk-u-da">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Mein HQ › <b>Bestand</b></div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Bestand</span><span class="mk-u-q">laser</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <div class="mk-u-drop ">
+          <div class="mk-u-group mk-u-own"><p class="mk-u-gh">Aus deinem Bestand <span class="mk-u-n">2</span></p>
+            <div class="mk-u-row on"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-337 Panther</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 3 · <em>3× im Lager · 2 auf „Nachtfalke“</em></small></span><span class="mk-u-rt"><span class="mk-u-cta">Menge ändern</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M4 8h14v4h-8l-2 6H5l1-6H4z"/></svg></span><span class="mk-u-nm"><b>Arclight</b><small>Klaus &amp; Werner · Laser-Pistole · <em>1× im Spind</em></small></span><span class="mk-u-rt"><span class="mk-u-cta">Menge ändern</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Schiffswaffen <span class="mk-u-n">14</span></p>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
+          </div>
+          <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
+        </div>
+        <button type="button" class="mk-u-close" data-screen-link="ua-s3">Nächster Zustand → Chip-Menü</button>
+        <p class="mk-u-note">Ohne Umriss (Waffe) wächst die Zeile nicht, das Art-Icon bleibt. Kein Platzhalter, kein Sprung in der Liste.</p>
+      </div>
+    </section>
+    <section id="ua-s3" data-nav-label="Chip-Menü" data-screen hidden>
+      <div class="mk-u-frame mk-u-da">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex › Schiffe › <b>Idris-M</b></div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen"><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <p class="mk-u-teaser" style="top:auto;bottom:16px">Chip „Idris-M“ ohne Hover: kein ▾, kein ×. Über „Größe 4“: ▾ und × erscheinen, das Menü wächst direkt aus dem Chip.</p>
+        <button type="button" class="mk-u-close" data-screen-link="ua-s1">Zurück → Fokus auf Schiff</button>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="rand" data-nav-label="Umriss am Panelrand" hidden
+           data-design-motto="Ein leiser Umriss neben der Liste" data-design-traits="Rechts im Panel ein schmaler Streifen nur mit Umriss|Kein Text, keine Werte, nur die Linie|Liste bleibt ruhig, nichts springt" data-design-icon="compass" data-design-color="#e0a060" data-ov-demo=".mk-u-drop">
+    <section id="ub-s1" data-nav-label="Fokus auf Schiff" data-screen data-screen-active="true">
+      <div class="mk-u-frame mk-u-db">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex</div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-q">aegis re</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <div class="mk-u-edge"><span class="mk-u-edgesil"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M8 35 L40 22 L120 18 L170 26 L192 35 L170 44 L120 52 L40 48 Z"/><path d="M60 22 L70 6 L96 6 L104 19"/><path d="M60 48 L70 64 L96 64 L104 51"/><path d="M120 18 L120 52 M150 23 L150 47"/><circle cx="178" cy="35" r="5"/></svg></span><span class="mk-u-edgelbl">Reclaimer</span></div>
+        <div class="mk-u-drop mk-u-wide">
+          <div class="mk-u-group mk-u-own"><p class="mk-u-gh">Aus deinem Bestand <span class="mk-u-n">1</span></p>
+            <div class="mk-u-row" data-sil="redeemer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M20 35 L70 26 L150 28 L190 35 L150 42 L70 44 Z"/><path d="M80 27 L60 6 L110 10 L120 27"/><path d="M80 43 L60 64 L110 60 L120 43"/><circle cx="62" cy="10" r="4"/><circle cx="62" cy="60" r="4"/></svg></span><span class="mk-u-nm"><b>Aegis Redeemer · „Bulwark“</b><small>dein Schiff · Kanonenboot · Loadout „Eskorte“</small></span><span class="mk-u-rt"><span class="mk-u-cta">Im Hangar</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Schiffe <span class="mk-u-n">3</span></p>
+            <div class="mk-u-row on" data-sil="reclaimer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M8 35 L40 22 L120 18 L170 26 L192 35 L170 44 L120 52 L40 48 Z"/><path d="M60 22 L70 6 L96 6 L104 19"/><path d="M60 48 L70 64 L96 64 L104 51"/><path d="M120 18 L120 52 M150 23 L150 47"/><circle cx="178" cy="35" r="5"/></svg></span><span class="mk-u-nm"><b>Aegis Reclaimer</b><small>Bergung · schwer · 5–7 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row" data-sil="redeemer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M20 35 L70 26 L150 28 L190 35 L150 42 L70 44 Z"/><path d="M80 27 L60 6 L110 10 L120 27"/><path d="M80 43 L60 64 L110 60 L120 43"/><circle cx="62" cy="10" r="4"/><circle cx="62" cy="60" r="4"/></svg></span><span class="mk-u-nm"><b>Aegis Redeemer</b><small>Kanonenboot · mittel · 5 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row" data-sil="retaliator"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M10 35 L30 28 L160 28 L190 35 L160 42 L30 42 Z"/><path d="M110 28 L130 4 L150 4 L148 28"/><path d="M110 42 L130 66 L150 66 L148 42"/><path d="M40 28 L40 42 M70 28 L70 42 M100 28 L100 42"/></svg></span><span class="mk-u-nm"><b>Aegis Retaliator</b><small>Bomber · schwer · 6 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Patches <span class="mk-u-n">1</span></p>
+            <div class="mk-u-row"><span class="mk-u-ico">◷</span><span class="mk-u-nm"><b>Patch 4.3.2 · Reclaimer-Bergung überarbeitet</b><small>Patch-Notiz · vor 5 Tagen</small></span><span class="mk-u-rt"></span></div>
+          </div>
+          <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
+        </div>
+        <button type="button" class="mk-u-close" data-screen-link="ub-s2">Nächster Zustand → Waffe ohne Umriss</button>
+        <p class="mk-u-note">Rechts im Panel steht ein schmaler Streifen nur mit dem Umriss der fokussierten Zeile, sehr gedämpft. Keine Werte, keine Knöpfe: das ist keine Vorschau, nur ein Erkennungsbild.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="ub-s1-a1" data-anno-side="left" data-anno-target=".mk-u-edge" style="--anno-x:82%;--anno-y:40%">
+          <button class="anno-pin" type="button" data-anno-pin="ub-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a1" aria-label="Frage {n}">1</button>
+          <div class="anno-bubble" id="anno-bubble-ub-s1-a1" data-anno-bubble="ub-s1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="ub-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a1"><span class="anno-bubble-question">Der Streifen kostet ~180 px Panelbreite. Lohnt sich das für ein reines Erkennungsbild?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a1" data-annotation="ub-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a1"></div></div>
+          </div>
+        </div>
+        <div class="anno" data-anno="ub-s1-a2" data-anno-side="left" data-anno-target=".mk-u-edgelbl" style="--anno-x:82%;--anno-y:66%">
+          <button class="anno-pin" type="button" data-anno-pin="ub-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a2" aria-label="Frage {n}">2</button>
+          <div class="anno-bubble" id="anno-bubble-ub-s1-a2" data-anno-bubble="ub-s1-a2" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="ub-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a2"><span class="anno-bubble-question">Unter dem Umriss nur das Modell in Kleinbuchstaben: hilfreich, oder doppelt zur Zeile?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a2" data-annotation="ub-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a2"></div></div>
+          </div>
+        </div></div>
+    </section>
+    <section id="ub-s2" data-nav-label="Fokus auf Waffe" data-screen hidden>
+      <div class="mk-u-frame mk-u-db">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Mein HQ › <b>Bestand</b></div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Bestand</span><span class="mk-u-q">laser</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <div class="mk-u-drop mk-u-wide">
+          <div class="mk-u-group mk-u-own"><p class="mk-u-gh">Aus deinem Bestand <span class="mk-u-n">2</span></p>
+            <div class="mk-u-row on"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-337 Panther</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 3 · <em>3× im Lager · 2 auf „Nachtfalke“</em></small></span><span class="mk-u-rt"><span class="mk-u-cta">Menge ändern</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M4 8h14v4h-8l-2 6H5l1-6H4z"/></svg></span><span class="mk-u-nm"><b>Arclight</b><small>Klaus &amp; Werner · Laser-Pistole · <em>1× im Spind</em></small></span><span class="mk-u-rt"><span class="mk-u-cta">Menge ändern</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Schiffswaffen <span class="mk-u-n">14</span></p>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
+          </div>
+          <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
+        </div>
+        <button type="button" class="mk-u-close" data-screen-link="ub-s3">Nächster Zustand → Chip-Menü</button>
+        <p class="mk-u-note">Ohne Umriss bleibt der Streifen leer und dunkel; die Liste behält ihre Breite.</p>
+      </div>
+    </section>
+    <section id="ub-s3" data-nav-label="Chip-Menü" data-screen hidden>
+      <div class="mk-u-frame mk-u-db">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex › Schiffe › <b>Idris-M</b></div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen"><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <p class="mk-u-teaser" style="top:auto;bottom:16px">Chip „Idris-M“ ohne Hover: kein ▾, kein ×. Über „Größe 4“: ▾ und × erscheinen, das Menü wächst direkt aus dem Chip.</p>
+        <button type="button" class="mk-u-close" data-screen-link="ub-s1">Zurück → Fokus auf Schiff</button>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="wasser" data-nav-label="Umriss als Wasserzeichen" hidden
+           data-design-motto="Der Umriss liegt hinter der Zeile" data-design-traits="Umriss groß und blass hinter dem Text der Zeile|Kein zusätzlicher Platz, Zeile bleibt gleich hoch|Wirkt wie eine Gravur auf der Kachel" data-design-icon="layers" data-design-color="#a48bff" data-ov-demo=".mk-u-drop">
+    <section id="uc-s1" data-nav-label="Fokus auf Schiff" data-screen data-screen-active="true">
+      <div class="mk-u-frame mk-u-dc">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex</div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-q">aegis re</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        
+        <div class="mk-u-drop mk-u-wm">
+          <div class="mk-u-group mk-u-own"><p class="mk-u-gh">Aus deinem Bestand <span class="mk-u-n">1</span></p>
+            <div class="mk-u-row" data-sil="redeemer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M20 35 L70 26 L150 28 L190 35 L150 42 L70 44 Z"/><path d="M80 27 L60 6 L110 10 L120 27"/><path d="M80 43 L60 64 L110 60 L120 43"/><circle cx="62" cy="10" r="4"/><circle cx="62" cy="60" r="4"/></svg></span><span class="mk-u-nm"><b>Aegis Redeemer · „Bulwark“</b><small>dein Schiff · Kanonenboot · Loadout „Eskorte“</small></span><span class="mk-u-rt"><span class="mk-u-cta">Im Hangar</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Schiffe <span class="mk-u-n">3</span></p>
+            <div class="mk-u-row on" data-sil="reclaimer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M8 35 L40 22 L120 18 L170 26 L192 35 L170 44 L120 52 L40 48 Z"/><path d="M60 22 L70 6 L96 6 L104 19"/><path d="M60 48 L70 64 L96 64 L104 51"/><path d="M120 18 L120 52 M150 23 L150 47"/><circle cx="178" cy="35" r="5"/></svg></span><span class="mk-u-nm"><b>Aegis Reclaimer</b><small>Bergung · schwer · 5–7 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row" data-sil="redeemer"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M20 35 L70 26 L150 28 L190 35 L150 42 L70 44 Z"/><path d="M80 27 L60 6 L110 10 L120 27"/><path d="M80 43 L60 64 L110 60 L120 43"/><circle cx="62" cy="10" r="4"/><circle cx="62" cy="60" r="4"/></svg></span><span class="mk-u-nm"><b>Aegis Redeemer</b><small>Kanonenboot · mittel · 5 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row" data-sil="retaliator"><span class="mk-u-ico"><svg viewBox="0 0 200 70" class="mk-u-sil"><path d="M10 35 L30 28 L160 28 L190 35 L160 42 L30 42 Z"/><path d="M110 28 L130 4 L150 4 L148 28"/><path d="M110 42 L130 66 L150 66 L148 42"/><path d="M40 28 L40 42 M70 28 L70 42 M100 28 L100 42"/></svg></span><span class="mk-u-nm"><b>Aegis Retaliator</b><small>Bomber · schwer · 6 Crew</small></span><span class="mk-u-rt"><span class="mk-u-cta">Hinzufügen</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Patches <span class="mk-u-n">1</span></p>
+            <div class="mk-u-row"><span class="mk-u-ico">◷</span><span class="mk-u-nm"><b>Patch 4.3.2 · Reclaimer-Bergung überarbeitet</b><small>Patch-Notiz · vor 5 Tagen</small></span><span class="mk-u-rt"></span></div>
+          </div>
+          <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
+        </div>
+        <button type="button" class="mk-u-close" data-screen-link="uc-s2">Nächster Zustand → Waffe ohne Umriss</button>
+        <p class="mk-u-note">Der Umriss der fokussierten Zeile liegt groß und sehr blass hinter ihrem Text, wie eine Gravur. Die Zeile wird nicht höher.</p>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="uc-s1-a1" data-anno-side="left" data-anno-target=".mk-u-row.on" style="--anno-x:60%;--anno-y:46%">
+          <button class="anno-pin" type="button" data-anno-pin="uc-s1-a1" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a1" aria-label="Frage {n}">1</button>
+          <div class="anno-bubble" id="anno-bubble-uc-s1-a1" data-anno-bubble="uc-s1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="uc-s1-a1" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a1"><span class="anno-bubble-question">Umriss hinter dem Text: noch gut lesbar, oder kämpfen Text und Linie miteinander?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-uc-s1-a1" data-annotation="uc-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-uc-s1-a1"></div></div>
+          </div>
+        </div>
+        <div class="anno" data-anno="uc-s1-a2" data-anno-side="right" data-anno-target=".mk-u-row .mk-u-ico" style="--anno-x:30%;--anno-y:26%">
+          <button class="anno-pin" type="button" data-anno-pin="uc-s1-a2" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a2" aria-label="Frage {n}">2</button>
+          <div class="anno-bubble" id="anno-bubble-uc-s1-a2" data-anno-bubble="uc-s1-a2" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="uc-s1-a2" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a2"><span class="anno-bubble-question">Soll das Wasserzeichen auch auf der Hover-Zeile erscheinen, oder nur auf der per Pfeiltaste fokussierten?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-uc-s1-a2" data-annotation="uc-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-uc-s1-a2"></div></div>
+          </div>
+        </div></div>
+    </section>
+    <section id="uc-s2" data-nav-label="Fokus auf Waffe" data-screen hidden>
+      <div class="mk-u-frame mk-u-dc">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Mein HQ › <b>Bestand</b></div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Bestand</span><span class="mk-u-q">laser</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <div class="mk-u-drop mk-u-wm">
+          <div class="mk-u-group mk-u-own"><p class="mk-u-gh">Aus deinem Bestand <span class="mk-u-n">2</span></p>
+            <div class="mk-u-row on"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-337 Panther</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 3 · <em>3× im Lager · 2 auf „Nachtfalke“</em></small></span><span class="mk-u-rt"><span class="mk-u-cta">Menge ändern</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M4 8h14v4h-8l-2 6H5l1-6H4z"/></svg></span><span class="mk-u-nm"><b>Arclight</b><small>Klaus &amp; Werner · Laser-Pistole · <em>1× im Spind</em></small></span><span class="mk-u-rt"><span class="mk-u-cta">Menge ändern</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+          </div>
+          <div class="mk-u-group"><p class="mk-u-gh">Schiffswaffen <span class="mk-u-n">14</span></p>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
+            <div class="mk-u-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
+          </div>
+          <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
+        </div>
+        <button type="button" class="mk-u-close" data-screen-link="uc-s3">Nächster Zustand → Chip-Menü</button>
+        <p class="mk-u-note">Ohne Umriss bleibt die Zeile schlicht, nur das Art-Icon.</p>
+      </div>
+    </section>
+    <section id="uc-s3" data-nav-label="Chip-Menü" data-screen hidden>
+      <div class="mk-u-frame mk-u-dc">
+        
+        <div class="mk-u-bar">
+          <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex › Schiffe › <b>Idris-M</b></div></div></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen"><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
+        </div>
+        <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="mk-u-scrim"></div>
+        <p class="mk-u-teaser" style="top:auto;bottom:16px">Chip „Idris-M“ ohne Hover: kein ▾, kein ×. Über „Größe 4“: ▾ und × erscheinen, das Menü wächst direkt aus dem Chip.</p>
+        <button type="button" class="mk-u-close" data-screen-link="uc-s1">Zurück → Fokus auf Schiff</button>
+      </div>
+    </section>
+  </section>
+  <!-- ═══════════════ View · Feinschliff ═══════════════ -->
+  <section data-view="v3-fine" data-view-kind="analysis" data-analysis="lite" data-nav-label="Feinschliff" hidden>
+    <div data-alevel="1" data-title="Feinschliff">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4","unit":"Fragen","label":"drittes Icon, Hinweise, Matrix nach Gegenprüfung, Lager-Icon bei Schiffen"}'>3 Fragen</div></div>
+      <div data-slot="long"><p>Die Designs oben klären, wo der Umriss steht. Diese drei Fragen gelten für jedes Design: welches dritte Icon neben Wunschliste und Lager steht, ob die 70 Hinweise für das leere Feld passen, und wie die Matrix der Hauptaktionen nach der kritischen Gegenprüfung aussieht.</p></div>
+    </div>
+
+    <section id="q3-third" data-nav-label="Drittes Icon" data-decision="q3-third" data-decision-mode="single" data-label="Drittes Icon" data-rec="nachschub" data-rec-why="Nachschub geht heute schon (Codex-Klasse wird mitgespeichert); Zum Einsatz bräuchte erst eine Auswahl, zu welchem Einsatz. Vorher klären: die Wunschliste für Nicht-Schiffe darf nicht in derselben Tabelle landen." data-applies-to="drei Icons jeder Spielinhalt-Zeile" data-finding="f3-third">
+      <p data-applies>Gilt für: das dritte Icon neben Wunschliste und Ins Lager</p>
+      <p data-situation>Deine Notiz aus Runde 2 brach nach „Wunschliste, in das Lager und …“ ab. Beim Merken hast du geschrieben, dass daraus „entweder in den Nachschub übernehmen oder zum Einsatz hinzufügen“ folgt. Im HQ gibt es beides schon: die Nachschub-Liste und die Einsatzplanung.</p>
+      <h3 data-question>Welches Icon steht als drittes neben Wunschliste und Ins Lager?</h3>
+      <p data-stakes>Welche Absicht man aus jeder Zeile mit einem Klick erreicht</p>
+      <div data-options>
+        <label data-opt="einsatz"><input type="radio" name="dm-q3-third" value="einsatz"><span data-opt-label>Zum Einsatz hinzufügen</span><span data-opt-consequence>Fragt, zu welchem geplanten Einsatz; braucht dafür erst eine Auswahl.</span></label>
+        <label data-opt="nachschub" data-recommended><input type="radio" name="dm-q3-third" value="nachschub" checked><span data-opt-label>In den Nachschub</span><span data-opt-consequence>Direkt auf die Besorgen-Liste; heute schon baubar.</span></label>
+        <label data-opt="menu"><input type="radio" name="dm-q3-third" value="menu"><span data-opt-label>Ein Planen-Icon mit Mini-Menü: Nachschub oder Einsatz</span><span data-opt-consequence>Beides erreichbar, aber ein Klick mehr.</span></label>
+      </div>
+      <textarea data-comment="q3-third-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q3-third-none" value=""><input type="hidden" name="dm-q3-third-hes" value=""><input type="hidden" name="dm-q3-third-touched" value=""><input type="hidden" name="dm-q3-third-issue" value=""><input type="hidden" name="dm-q3-third-epic" value="">
+      <div data-alevel="3" data-title="Drittes Icon">
+        <div data-slot="short"><p>Nachschub und Einsatzplanung gibt es im HQ schon.</p></div>
+        <div data-slot="long"><p>Nachschub: <code>hq-supplies.service.ts</code>, Popup <code>hq-supplies-popup.component.ts</code>; im Plan gibt es schon „Fehlendes in Nachschub (n)“. Einsatz: Planung unter <code>src/app/hq/plan/</code>. Die Wunschliste existiert nur für Schiffe (Hangar-Status) und wird für alle Spielinhalte erweitert.</p></div>
+      </div>
+    </section>
+
+    <section id="q3-hints" data-nav-label="70 Hinweise" data-decision="q3-hints" data-decision-mode="verify" data-label="70 Hinweise" data-rec="ok" data-rec-why="Jede Zeile zeigt eine echte Fähigkeit der neuen Suche; einzeilig, alle 6 s ein anderer, Klick setzt das Beispiel ins Feld." data-applies-to="leeres Feld" data-finding="f3-hints">
+      <p data-applies>Gilt für: den einzeiligen, wechselnden Hinweis im leeren Feld</p>
+      <p data-situation>Du wolltest einen Hinweis, der wechselt, statt drei Beispiele nebeneinander, und rund 70 davon. Die Liste im Befund (Tab „Beispiel“) deckt Abkürzungen, Werte, eigene Daten, Kontext, Missionen und Tastatur ab.</p>
+      <h3 data-question>Passen diese 70 Hinweise?</h3>
+      <p data-stakes>Was neue Nutzer über die Suche lernen</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-q3-hints" value="ok" checked><span data-opt-label>Passen so</span><span data-opt-consequence>Kommen als i18n-Liste (DE + EN) in die App.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-q3-hints" value="partial"><span data-opt-label>Teilweise, Änderungen unten</span><span data-opt-consequence>Nummern streichen oder ergänzen.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-q3-hints" value="wrong"><span data-opt-label>Anderer Ton</span><span data-opt-consequence>Schreib unten, wie sie klingen sollen.</span></label>
+      </div>
+      <input type="text" name="dm-q3-hints-fix" value="" placeholder="Was soll anders sein?">
+      <textarea data-comment="q3-hints-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q3-hints-none" value=""><input type="hidden" name="dm-q3-hints-hes" value=""><input type="hidden" name="dm-q3-hints-touched" value=""><input type="hidden" name="dm-q3-hints-issue" value=""><input type="hidden" name="dm-q3-hints-epic" value="">
+      <div data-alevel="3" data-title="70 Hinweise">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"70","unit":"Hinweise","label":"einzeilig, wechseln alle 6 s"}'>70</div></div>
+        <div data-slot="long"><p>Gruppen: Abkürzungen und Spitznamen (1–16), Werte und Größen (17–28), eigene Daten (29–40), Kontext und Chips (41–50), Spielinhalte wie Missionen, Blaupausen, Orte (51–62), Tastatur (63–70). Jeder Hinweis setzt per Klick sein Beispiel ins Feld.</p></div>
+        <div data-example><pre> 1 „connie“ findet die Constellation          36 „gemerkt“ zeigt deine Wunschliste
+ 2 „cutty“ findet die Cutlass-Familie         37 Im Hangar findet „patrouille“ dein Loadout
+ 3 „herc“ findet alle Hercules                38 „im lager s3“ zeigt, was du in Größe 3 hast
+ 4 „polly“ findet die Polaris                 39 Eigene Treffer stehen immer ganz oben
+ 5 „tali“ findet die Retaliator               40 „fehlt mir“ zeigt deinen Nachschub
+ 6 „hammie“ findet die Hammerhead             41 Die Suche merkt sich, wo du sie öffnest
+ 7 „msr“ findet die Mercury Star Runner       42 Auf einer Schiffsseite zeigt sie, was passt
+ 8 „bmm“ findet die Merchantman               43 Chips mit ▾ lassen sich umschalten
+ 9 „qt“ findet Quantenantriebe                44 ⌫ am Feldanfang entfernt den letzten Chip
+10 „pp“ findet Kraftwerke                     45 Fast genaue Treffer außerhalb des Chips zeigt sie trotzdem
+11 „rep“ findet Repeater                      46 Auf der Waffenseite: „s4“ zeigt Alternativen
+12 „dist“ findet Distortion-Waffen            47 Im Bestand: „laser“ zeigt erst dein Lager
+13 „k&amp;w“ findet Klaus &amp; Werner               48 In der Einsatzplanung zeigt sie Bezugsquellen
+14 „krig“ findet Kruger Intergalactic         49 „passt“ blendet nur passende Teile ein
+15 „p4“ findet das P4-AR                      50 Ein Chip filtert, die Reihenfolge folgt der Seite
+16 „mil“ findet militärische Komponenten      51 „mission kopfgeld“ findet Kopfgeld-Missionen
+17 „größe 3“ filtert auf Größe 3              52 „blaupause p4“ zeigt, wo du sie bekommst
+18 „s2 qd“ findet Quantenantriebe Größe 2     53 „hurston“ findet Orte, Missionen und Händler
+19 „klasse a“ zeigt nur Grade-A-Teile         54 „om-3“ findet Orbital Marker 3
+20 „stealth kühler“ findet Tarn-Kühler        55 „cru-l1“ findet die Raststation
+21 „schild s1 mil“ kombiniert drei Filter     56 „4.3.2“ öffnet die Patch-Notizen
+22 „1 crew“ findet Einsitzer                  57 „neu“ zeigt, was dieser Patch brachte
+23 „frachter 100 scu“ findet große Frachter   58 „kommend“ zeigt angekündigte Schiffe
+24 „bergung“ findet Bergungsschiffe           59 „munition s3“ findet passende Munition
+25 „bomber“ findet Bomber und Torpedoboote    60 „rüstung schwer“ findet schwere Rüstungen
+26 „gimbal s3“ findet Gimbal-Halterungen      61 „medpen“ findet Heil-Ausrüstung
+27 „torpedo s9“ findet große Torpedos         62 „tasten quantum“ zeigt die Quantum-Taste
+28 „energie pistole“ findet Laser-Pistolen    63 Strg K öffnet die Suche von überall
+29 Dein Schiffsname findet dein Schiff        64 „/“ öffnet die Suche ebenfalls
+30 „nachtfalke“ findet deine Gladius          65 ↑ ↓ wählt, ↵ öffnet
+31 Set-Namen finden deine FPS-Sets            66 Strg ↵ öffnet in neuem Tab
+32 Loadout-Namen finden deine Konfigurationen 67 → klappt einen Bereich auf
+33 „meine schiffe“ zeigt deinen Hangar        68 Esc schließt, dein Text bleibt
+34 „im hangar aegis“ filtert deinen Hangar    69 Englisch geht immer: „quantum drive“
+35 „lager“ zeigt dein ganzes Lager            70 Tippfehler? Die Suche fragt „Meintest du …“</pre></div>
+      </div>
+    </section>
+
+        <section id="q3-matrix" data-nav-label="Matrix nach Gegenprüfung" data-decision="q3-matrix" data-decision-mode="verify" data-label="Matrix nach Gegenprüfung" data-rec="ok" data-rec-why="Keine Hauptaktion doppelt mehr ein Icon, jede Aktion hat ein Ziel oder ist als Neubau markiert, und Missionen, Munition und Blaupausen haben eigene Spalten." data-applies-to="Hauptaktion jeder Zeile" data-finding="f3-matrix">
+      <p data-applies>Gilt für: die eine Hauptaktion jeder Zeile</p>
+      <p data-situation>Ein Prüf-Agent hat die Matrix aus Runde 2 gegen den Code gehalten. Er fand 5 Zellen, die jetzt ein Icon doppeln („Ins Lager“, „Merken“), und 3 Namen für dieselbe Aktion („Im Hangar“, „Loadout“, „Im Hangar/Bestand“). 9 Aktionen haben in der App kein Ziel. Die Spalte „FPS“ ist intern keine eigene Art, und Missionen, Munition und Blaupausen fehlten ganz.</p>
+      <h3 data-question>Stimmt die korrigierte Matrix?</h3>
+      <p data-stakes>Was der eine Knopf in jeder Lage tut und was dafür neu gebaut wird</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-q3-matrix" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Zellen mit * kommen als eigene Folge-Aufgaben.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-q3-matrix" value="partial"><span data-opt-label>Teilweise, Änderungen unten</span><span data-opt-consequence>Nenne Zeile × Spalte und was stattdessen.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-q3-matrix" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Dann baue ich sie mit dir neu.</span></label>
+      </div>
+      <input type="text" name="dm-q3-matrix-fix" value="" placeholder="Welche Zelle soll anders sein?">
+      <textarea data-comment="q3-matrix-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q3-matrix-none" value=""><input type="hidden" name="dm-q3-matrix-hes" value=""><input type="hidden" name="dm-q3-matrix-touched" value=""><input type="hidden" name="dm-q3-matrix-issue" value=""><input type="hidden" name="dm-q3-matrix-epic" value="">
+      <div data-alevel="3" data-title="Matrix nach Gegenprüfung">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"5 + 9","unit":"Funde","label":"Icon-Doppelungen + Aktionen ohne Ziel in der App"}'>5 + 9</div></div>
+        <div data-slot="long"><p>Die wichtigsten Änderungen:</p><ul><li>„Mein Loadout“ ersetzt drei Namen und führt direkt zum Schiff im HQ statt zur Hangar-Liste.</li><li>„Wo gelagert?“ ersetzt „Ins Lager“, „Bei RSI“ ersetzt „Merken“ bei angekündigten Schiffen.</li><li>„Tauschen“ geht in „Montieren“ auf, „Damit planen“ in „Einsatz planen“.</li><li>Vergleichen nimmt nur gleiche Arten an (höchstens 4); angekündigte Schiffe lassen sich gar nicht vergleichen.</li></ul></div>
+        <div data-example><pre>Kontext \ Art   Besitz          Schiff           Waffe/Komp.        FPS-Item       Munition        Blaupause         Angekündigt  Hersteller     Mission
+Neutral/Codex   Mein Loadout    Gegenüberst.¹    Passende Schiffe*  In Set         Passende Waff.* Material→Nachsch. Bei RSI      Alle Produkte  Zum Einsatz*
+Codex-Liste K   Vergleichen, wenn die Zeile Art K ist (nie Angekündigt/Hersteller), sonst wie Neutral
+Chip Schiff     Gegenüberst.    Gegenüberst.     Montieren*         wie Neutral    wie Neutral     wie Neutral       wie Neutral  wie Neutral    wie Neutral
+Chip Item       Montieren*      wie Neutral      Gegenüberst.²      Gegenüberst.²  wie Neutral     wie Neutral       wie Neutral  wie Neutral    wie Neutral
+HQ Hangar       Mein Loadout    Hinzufügen       Wo verbaut?*       In Set         wie Neutral     wie Neutral       Bei RSI      wie Neutral    wie Neutral
+HQ Bestand      Mein Loadout    Hinzufügen       Wo gelagert?       Wo gelagert?   Wo gelagert?    wie Neutral       —            wie Neutral    wie Neutral
+HQ Planen       Einsatz planen  Bezugsquelle*    Bezugsquelle       Bezugsquelle   Bezugsquelle    Material→Nachsch. wie Neutral  wie Neutral    Zum Einsatz*
+Abgemeldet      —               Hinzufügen³      Passende Schiffe*  wie Neutral    wie Neutral     wie Neutral       Bei RSI      Alle Produkte  wie Neutral
+News, Patches, Galerie, Seiten: keine Hauptaktion, keine Icons
+
+*  braucht ein neues Feature (eigene Folge-Aufgabe)
+¹  mit deinem Flaggschiff   ² nur gleiche Art   ³ fragt nach Anmeldung
+Neue Kontexte: Schiff im HQ (/hq/hangar/:id), Set im Spind, FPS-Liste, HQ Jetzt und Statistik.
+Missionen stehen noch gar nicht im Index: das ist ein Daten-Feature, keine Frage der Aktion.</pre></div>
+      </div>
+    </section>
+
+    <section id="q3-shipicon" data-nav-label="Lager-Icon bei Schiffen" data-decision="q3-shipicon" data-decision-mode="single" data-label="Lager-Icon bei Schiffen" data-rec="hangar" data-rec-why="Dasselbe Icon an derselben Stelle heißt „gehört mir“; bei Schiffen landet das im Hangar statt im Lager." data-applies-to="Icon Ins Lager" data-finding="f3-shipicon">
+      <p data-applies>Gilt für: das Icon „Ins Lager“ und welche Arten überhaupt Icons bekommen</p>
+      <p data-situation>Schiffe liegen im Hangar, nicht im Lager. Bei Herstellern und Missionen ergibt weder Wunschliste noch Lager Sinn. Blaupausen kann man sich wünschen, aber nicht einlagern.</p>
+      <h3 data-question>Was tut das Lager-Icon bei Schiffen, und wer bekommt die Icons überhaupt?</h3>
+      <p data-stakes>Ob die drei Icons überall dasselbe heißen</p>
+      <div data-options>
+        <label data-opt="hangar" data-recommended><input type="radio" name="dm-q3-shipicon" value="hangar" checked><span data-opt-label>Bei Schiffen „In den Hangar“; Icons nur bei Ausrüstung, Schiffen, Blaupausen</span><span data-opt-consequence>Hersteller, Missionen: keine Icons; Blaupause: nur Wunschliste.</span></label>
+        <label data-opt="hide"><input type="radio" name="dm-q3-shipicon" value="hide"><span data-opt-label>Bei Schiffen kein Lager-Icon, Hauptaktion „Hinzufügen“ bleibt</span><span data-opt-consequence>Schiffszeilen haben dann nur zwei Icons.</span></label>
+      </div>
+      <textarea data-comment="q3-shipicon-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q3-shipicon-none" value=""><input type="hidden" name="dm-q3-shipicon-hes" value=""><input type="hidden" name="dm-q3-shipicon-touched" value=""><input type="hidden" name="dm-q3-shipicon-issue" value=""><input type="hidden" name="dm-q3-shipicon-epic" value="">
+      <div data-alevel="3" data-title="Lager-Icon bei Schiffen">
+        <div data-slot="short"><p>Schiffe gehören in den Hangar, Ausrüstung ins Lager. Der Rest bekommt keines von beiden.</p></div>
+        <div data-slot="long"><p><code>hangar.addShip(slug, 'owned')</code> legt Schiffe an. Das Lager (<code>HqInventoryService</code>) speichert Gegenstände nach ihrem Namen, nicht nach ihrer Codex-Klasse. „Wo gelagert?“ gleicht deshalb nur unscharf ab.</p></div>
+      </div>
+    </section>
+
   </section>
 
 </section>
@@ -6890,7 +7416,8 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
-<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Runde 3</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
