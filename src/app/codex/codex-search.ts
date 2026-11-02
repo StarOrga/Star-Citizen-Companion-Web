@@ -16,6 +16,8 @@
 //     boundary, so "p4ar" finds "P4-AR";
 //   - `*` stays a wildcard, as the index placeholder (`AEGS_*`) promises.
 
+import { aliasExpansions } from './search/search-aliases';
+
 /** Lower-case, strip diacritics, collapse whitespace. */
 export function normalizeSearch(value: string): string {
   return value
@@ -119,7 +121,7 @@ export const SEARCH_SYNONYMS: Readonly<Record<string, readonly string[]>> = {
 
 /** The alternatives one token stands for: itself plus its synonyms. */
 function tokenAlternatives(token: string): string[] {
-  return [token, ...(SEARCH_SYNONYMS[token] ?? [])];
+  return [token, ...(SEARCH_SYNONYMS[token] ?? []), ...aliasExpansions(token)];
 }
 
 /**
@@ -218,7 +220,8 @@ export function ilikeTokenGroups(term: string): string[][] {
     .filter((t) => t.replace(/\*/g, '') !== '')
     .slice(0, MAX_TOKENS)
     .map((raw) => {
-      const syn = SEARCH_SYNONYMS[normalizeSearch(raw)] ?? [];
+      const key = normalizeSearch(raw);
+      const syn = [...(SEARCH_SYNONYMS[key] ?? []), ...aliasExpansions(key)];
       return [...toIlikePatterns(raw), ...syn.flatMap(toIlikePatterns)];
     })
     .filter((g) => g.length > 0);

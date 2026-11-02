@@ -1,8 +1,10 @@
 // The Codex search — pure, framework-free parts.
 // -----------------------------------------------------------------------------
 // ONE Codex search runs behind Ctrl+K, the Codex landing terminal and the
-// Codex search bar on every Codex page (CodexSearchEngine). This module owns
-// what can be tested without Angular: grouping the ranked hits by kind, the
+// Codex search bar on every Codex page (CodexSearchEngine).
+// RESULT MODEL for the fusion bar (chips, groups, rows, CTA, icons): see
+// search-result-model.ts; composed by search-compose.ts; engine.result().
+// This module owns what can be tested without Angular: grouping the ranked hits by kind, the
 // "all N in the index" targets, display names and the recent-search store.
 
 import type { Lang, LocalizedText } from '../codex.types';
@@ -22,6 +24,8 @@ import { normalizeSearch } from '../codex-search';
 export interface SearchTarget {
   link: string[];
   queryParams: Record<string, string> | null;
+  /** Optional #anchor (an HQ page, a page section). */
+  fragment?: string;
 }
 
 /** One kind's slice of a search. */
@@ -182,7 +186,8 @@ export function suggestionOptions(recent: readonly string[], fresh: readonly Pol
 export function targetUrl(t: SearchTarget): string {
   const path = t.link.join('/').replace(/\/{2,}/g, '/');
   const qs = t.queryParams ? new URLSearchParams(t.queryParams).toString() : '';
-  return qs ? `${path}?${qs}` : path;
+  const hash = t.fragment ? `#${t.fragment}` : "";
+  return (qs ? `${path}?${qs}` : path) + hash;
 }
 
 /**

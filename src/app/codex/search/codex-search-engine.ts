@@ -239,7 +239,7 @@ export class CodexSearchEngine {
   }
 
   private navigate(t: SearchTarget): Promise<boolean> {
-    return this.router.navigate(t.link, { queryParams: t.queryParams ?? undefined });
+    return this.router.navigate(t.link, { queryParams: t.queryParams ?? undefined, fragment: t.fragment });
   }
 
   private setTerm(term: string): void {
