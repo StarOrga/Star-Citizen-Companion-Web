@@ -241,13 +241,14 @@ export function aliasKeyCount(lang: Lang): number {
 
 /**
  * What a token stands for, in the data's language (English), or [] when it is
- * no alias. `lang` defaults to the language the engine set. An expansion equal
- * to the token itself is dropped (nothing to add).
+ * no alias. `lang` defaults to the language the engine set. An expansion that
+ * contains the token is dropped: the matcher is a substring match, so it adds nothing
+ * ("torp" already finds "torpedo", "p4" finds "P4-AR").
  */
 export function aliasExpansions(token: string, lang: Lang = aliasLang): readonly string[] {
   const k = fold(token);
   if (!k) return [];
   const hit = (lang === 'en' ? INDEX_EN : INDEX_DE).get(k);
   if (!hit) return [];
-  return hit.filter((t) => fold(t) !== k);
+  return hit.filter((t) => !fold(t).includes(k));
 }

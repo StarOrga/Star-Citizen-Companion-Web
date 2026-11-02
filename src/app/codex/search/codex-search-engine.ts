@@ -408,7 +408,10 @@ export class CodexSearchEngine {
   }
 
   private navigate(t: SearchTarget): Promise<boolean> {
-    return this.router.navigate(t.link, { queryParams: t.queryParams ?? undefined, fragment: t.fragment });
+    return this.router.navigate(t.link, {
+      queryParams: t.queryParams ?? undefined,
+      ...(t.fragment ? { fragment: t.fragment } : {}),
+    });
   }
 
   private setTerm(term: string): void {
@@ -443,7 +446,7 @@ export class CodexSearchEngine {
     this.partialError.set(null);
     this.didYouMean.set([]);
     try {
-      const { hits, totals, distinct, read, failed, failure, facets } = await this.codex.searchAll(term, this.perGroup(), attrs);
+      const { hits, totals, distinct, read, failed, failure, facets } = await (hasAttrs ? this.codex.searchAll(term, this.perGroup(), attrs) : this.codex.searchAll(term, this.perGroup()));
       if (seq !== this.seq) return; // a newer search superseded this one
       this.hits.set(hits);
       this.totals.set(totals);

@@ -170,7 +170,7 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
   }
 
   const key = ctaRowKey(ctx, signedIn);
-  const owned = signedIn && loadoutShipId(row) !== null;
+  const owned = loadoutShipId(row) !== null;
   const idx = CTA_COLUMNS.indexOf(owned ? 'owned' : column);
   const neutralIdx = CTA_COLUMNS.indexOf(column);
 
