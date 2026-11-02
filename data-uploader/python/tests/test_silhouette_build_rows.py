@@ -146,3 +146,45 @@ def test_cache_key_covers_cgam_and_is_reused_across_code_versions_only_when_equa
     exp.algo = "other"
     assert exp.cached(a) is None
     assert exp.prune_cache() == 1
+
+
+def test_every_skipped_entity_is_recorded_with_its_reason(tmp_path):
+    class Failing(FakeExporter):
+        def compute(self, src, mesh_id, tolerance_m):
+            if src.path.endswith("broken.cgf"):
+                raise silhouette_export.SilhouetteSkip("convert_failed", "RuntimeError: no glb")
+            return super().compute(src, mesh_id, tolerance_m)
+
+    ents = entities() + [{"kind": "ship", "class_name": "BROKEN", "mesh": "s/broken.cgf"}]
+    manifest_skips = [{"kind": "ship", "className": "NOMESH", "reason": "no_mesh", "detail": "x"}]
+    stats = build_rows(Failing(), ents, out_dir=tmp_path, build={}, manifest_skips=manifest_skips)
+    skips = json.loads((tmp_path / "silhouettes" / "skips.json").read_text())["skips"]
+    by_class = {s["className"]: s["reason"] for s in skips}
+    assert by_class == {"NOMESH": "no_mesh", "GONE": "no_mesh", "EMPTY": "empty", "BROKEN": "convert_failed"}
+    assert stats["skipReasons"] == {"no_mesh": 2, "empty": 1, "convert_failed": 1}
+
+
+def test_a_clean_build_still_writes_an_empty_skip_list(tmp_path):
+    build_rows(FakeExporter(), entities()[:2], out_dir=tmp_path, build={})
+    assert json.loads((tmp_path / "silhouettes" / "skips.json").read_text()) == {"skips": []}
+
+
+def test_compute_names_a_converter_failure_and_an_empty_mesh(tmp_path, monkeypatch):
+    exp, _ = _exporter(tmp_path, {"a.cga": b"mesh"})
+    src = exp.source("a.cga", 0.15)
+
+    def boom(*_a, **_k):
+        raise RuntimeError("cgf-converter produced no usable glb")
+    monkeypatch.setattr(exp, "_cgf_to_glb", boom)
+    try:
+        exp.compute(src, "a", 0.15)
+        raise AssertionError("expected SilhouetteSkip")
+    except silhouette_export.SilhouetteSkip as skip:
+        assert skip.reason == "convert_failed" and "no usable glb" in skip.detail
+
+    monkeypatch.setattr(exp, "_triangles", lambda s, m: [])
+    try:
+        exp.compute(src, "a", 0.15)
+        raise AssertionError("expected SilhouetteSkip")
+    except silhouette_export.SilhouetteSkip as skip:
+        assert skip.reason == "empty"

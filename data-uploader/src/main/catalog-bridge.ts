@@ -262,6 +262,25 @@ async function readJsonDir(outDir: string, sub: string): Promise<Record<string, 
   return out;
 }
 
+/**
+ * The silhouette build's skip list (`silhouettes/skips.json`, #842): one entry
+ * per entity without an outline, with the reason. Null when the file is missing
+ * or unreadable — an extract from before the list existed must not send an
+ * empty list, which would wipe the reasons a newer run recorded.
+ */
+export async function readSilhouetteSkips(outDir: string): Promise<Record<string, unknown>[] | null> {
+  const file = join(outDir, 'silhouettes', 'skips.json');
+  if (!existsSync(file)) return null;
+  try {
+    const parsed: unknown = JSON.parse(await readFile(file, 'utf-8'));
+    const skips = (parsed as { skips?: unknown } | null)?.skips;
+    return Array.isArray(skips) ? (skips.filter((e) => e && typeof e === 'object') as Record<string, unknown>[]) : null;
+  } catch (e) {
+    log.warn(`[catalog] skip silhouettes/skips.json: ${(e as Error).message}`);
+    return null;
+  }
+}
+
 /** The game's own `build_manifest.id` (JSON) next to Data.p4k, or null. */
 export async function readGameBuildManifest(p4kPath: string | null | undefined): Promise<Record<string, unknown> | null> {
   if (!p4kPath) return null;
@@ -623,6 +642,24 @@ export async function uploadCatalog(
             },
           },
         );
+      }
+
+      // 10b2. why a hull has no silhouette (#842) --------------------------------
+      // One call replaces the build's list, so a hull outlined in this run loses
+      // its old reason. Optional like the constellation: a server without the
+      // op or the table must not fail the step.
+      {
+        const skips = await readSilhouetteSkips(outDir);
+        if (skips) {
+          try {
+            const res = await post('silhouette_skips', { build_id: buildId, rows: skips });
+            if (res.degraded) log.warn(`[catalog] silhouette skip reasons unavailable (${String(res.degraded)})`);
+            else log.info(`[catalog] silhouette skip reasons stored: ${Number(res.stored ?? 0)}`);
+          } catch (e) {
+            if (isInterrupt(e)) throw e;
+            log.warn(`[catalog] silhouette skip reasons not sent: ${(e as Error).message}`);
+          }
+        }
       }
 
       // 10c. Verse-hub constellation -------------------------------------------
