@@ -101,7 +101,7 @@ import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
     /* Phone: the chip sits in the top strip as the bare β (role is the aria-label). */
     @media (max-width: 720px) {
       /* The bar is at the bottom: the top-right corner is free. The bare β; the role is its aria-label. */
-      .chip-wrap { top: calc(var(--sc-safe-top, 0px) + var(--sc-space-2)); }
+      .chip-wrap { top: calc(var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + var(--sc-space-2)); }
       .chip-wrap.bar-hidden { transform: none; opacity: 1; pointer-events: auto; }
       .role { display: none; }
     }
