@@ -786,6 +786,7 @@
       "FuelTank": "Fuel tank",
       "FuelIntake": "Fuel intake",
       "CargoGrid": "Cargo grid",
+      "Radar": "Radar",
       "Other": "Other"
     },
     "results": {
@@ -1698,6 +1699,9 @@
       "minPower": "Min. power",
       "coolantDraw": "Cooling draw",
       "coolingRate": "Cooling output",
+      "aimAssistRange": "Range (aim assist)",
+      "radarSensitivity": "Sensitivity (IR/EM/CS)",
+      "pingCooldown": "Ping cooldown",
       "emSignature": "EM signature",
       "irSignature": "IR signature",
       "derivedHint": "Derived value, calculated from other extracted stats.",

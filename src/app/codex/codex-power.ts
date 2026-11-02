@@ -214,6 +214,9 @@ export function classifyPowerGroup(occupant: SummaryOccupant): PowerGroup | null
       return 'quantum';
     case 'Thruster':
       return 'thrusters';
+    case 'Radar':
+      // #842: radars are components since uploader 0.70.0.
+      return 'radar';
     default:
       break;
   }

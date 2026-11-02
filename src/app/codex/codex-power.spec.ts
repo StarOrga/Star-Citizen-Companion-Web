@@ -168,6 +168,11 @@ describe('classifyPowerGroup', () => {
     expect(occupantDraw(fc).consumeSegments).toBe(6);
   });
 
+  it('routes a radar COMPONENT (#842) by its kind, whatever its port is called', () => {
+    const radar = occ({ section: 'structure', className: 'RADR_BLTR_S01_Hunter', componentKind: 'Radar' });
+    expect(classifyPowerGroup(radar)).toBe('radar');
+  });
+
   it('routes a powered radar / life-support ITEM by its attach type (#227)', () => {
     const radar = occ({ section: 'structure', entityKind: 'item', className: 'RADR_NAVE_S01_SNSR6', attachType: 'Radar' });
     const life = occ({ section: 'structure', entityKind: 'item', className: 'LFSP_TYDT_S02_ComfortAirPlus', attachType: 'LifeSupportGenerator' });

@@ -100,9 +100,11 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/python/sc_extract/thresholds.py',
     ],
   },
-  { key: 'components', revision: 3, phases: ['codex_components'], sources: CATALOG_SHARED },
+  // components 4 / items 4: #842 — ship radars move from codex_items to
+  // codex_components (kind Radar) with flat range / sensitivity keys.
+  { key: 'components', revision: 4, phases: ['codex_components'], sources: CATALOG_SHARED },
   { key: 'weapons', revision: 3, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
-  { key: 'items', revision: 3, phases: ['codex_items'], sources: CATALOG_SHARED },
+  { key: 'items', revision: 4, phases: ['codex_items'], sources: CATALOG_SHARED },
   {
     key: 'codex_extra',
     // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on

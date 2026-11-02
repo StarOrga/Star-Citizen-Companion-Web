@@ -104,7 +104,17 @@ _COMPONENT_KIND = {
     "QuantumFuelTank": "FuelTank",
     "FuelIntake": "FuelIntake",
     "CargoGrid": "CargoGrid",
+    # #842: ship radars are components (they sit in a component slot and draw
+    # power like one); they used to fall through to `items`.
+    "Radar": "Radar",
 }
+
+# `SCItemRadarComponentParams.signatureDetection[]` is indexed by signature
+# type. VERIFIED LIVE 4.10.2 against the star-citizen.wiki item API: Hunter
+# [0.8, 0.8, 0.8, 0, 1, …] = IR/EM/CS 0.80, dB 0, resource 1.00, and Socoria
+# [0.95, 0.95, 1.0, 0, 1, …] puts its 1.00 cross-section at index 2. Slots 5–7
+# carry no named signature and stay out.
+_RADAR_SIGNATURES = ("IR", "EM", "CS", "DB", "RS")
 
 # AttachDef.Type values that denote weapons (ship + FPS).
 _SHIP_WEAPON_TYPES = {"WeaponGun", "Turret", "MissileLauncher", "WeaponDefensive"}
@@ -391,6 +401,39 @@ def _scu_of(node: Any) -> Optional[float]:
     if micro is not None:
         return micro / 1_000_000.0
     return None
+
+
+def _add_radar(c: Dict[str, Any], flat: Dict[str, Any]) -> None:
+    """Flat radar keys next to the generic flatten (#842).
+
+    LIVE 4.10 radars carry no metre "detection range": detection is a per-
+    signature sensitivity (`signatureDetection[]`, a LIST the generic flatten
+    drops). The one distance a radar states is its aim-assist assignment range
+    (`aimAssist.distanceMaxAssignment` — what the SC wiki shows as the radar's
+    range, 1 029 m on a Hunter S1, 2 691 m on a Socoria S3), so that is the
+    range figure, under its real name."""
+    aim = c.get("aimAssist")
+    if isinstance(aim, dict):
+        hi = _to_float(aim.get("distanceMaxAssignment"))
+        lo = _to_float(aim.get("distanceMinAssignment"))
+        if hi is not None:
+            flat["aimAssistRangeM"] = hi
+        if lo is not None:
+            flat["aimAssistMinRangeM"] = lo
+    ping = c.get("pingProperties")
+    if isinstance(ping, dict) and _to_float(ping.get("cooldownTime")) is not None:
+        flat["pingCooldownS"] = _to_float(ping.get("cooldownTime"))
+    det = c.get("signatureDetection")
+    if isinstance(det, list):
+        for name, slot in zip(_RADAR_SIGNATURES, det):
+            if not isinstance(slot, dict):
+                continue
+            sens = _to_float(slot.get("sensitivity"))
+            pierce = _to_float(slot.get("piercing"))
+            if sens is not None:
+                flat[f"sensitivity{name}"] = sens
+            if pierce is not None:
+                flat[f"piercing{name}"] = pierce
 
 
 def _default_loadout_of(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -2412,6 +2455,8 @@ class CodexExtractor:
                 self._add_vehicle_armor_depth2(c, flat)
             if t == "ItemResourceComponentParams":
                 self._add_resource_network(c, flat)
+            if t == "SCItemRadarComponentParams":
+                _add_radar(c, flat)
             if flat:  # only components that actually carry scalar values
                 stats[t] = flat
         return stats
