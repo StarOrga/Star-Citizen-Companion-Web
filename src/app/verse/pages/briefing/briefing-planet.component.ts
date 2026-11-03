@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, output, signal } from '@angular/core';
 import { logWarn } from '../../../core/log';
+import { PlanetNetwork, PlanetSources, loadBakedPlanet, nightSize } from './planet/planet-assets';
 import { PlanetRenderer } from './planet/planet-gl';
 import { paintDay, paintNight } from './planet/planet-textures';
 import { AuroraClock, Train, TrainNetwork } from './planet/planet-trains';
-import { DAY_MS, PlanetWorld, Vec3, generateWorld, project, seeded } from './planet/planet-world';
+import { DAY_MS, Vec3, generateWorld, project, seeded } from './planet/planet-world';
 
 /**
  * The hub's big planet, live (concept 2026-10-29 "Verse-Planet Nachtseite"):
@@ -50,8 +51,17 @@ export class BriefingPlanetComponent {
   private readonly zone = inject(NgZone);
   private stopped = false;
   private cleanup: (() => void)[] = [];
+  /**
+   * The baked planet (public/planet/, scripts/bake-planet.mjs), requested as
+   * the component is created rather than after its first render: the intro
+   * waits for the planet, so the download starts as early as it can.
+   */
+  private readonly baked: Promise<PlanetSources> | null =
+    builtWorld || typeof window === 'undefined' ? null : loadBakedPlanet(nightSize(innerWidth));
 
   constructor() {
+    // Handled in fromBake(); this only keeps an early failure from being reported as unhandled.
+    this.baked?.catch(() => undefined);
     afterNextRender(() => this.zone.runOutsideAngular(() => void this.start()));
     inject(DestroyRef).onDestroy(() => {
       this.stopped = true;
@@ -71,17 +81,15 @@ export class BriefingPlanetComponent {
     }
     this.cleanup.push(() => renderer.dispose());
 
-    // The generated world + textures live for the whole document: coming back to the Verse
-    // inside the session shows the planet at once (Kurz-Auftakt), not after a fresh generation.
+    // The world + textures live for the whole document: coming back to the Verse inside the
+    // session shows the planet at once (Kurz-Auftakt). The first time they come from the bake
+    // (a download, decoded off the main thread); generating them here is the fallback.
     let built = builtWorld;
     this.instant.set(!!built);
     if (!built) {
-      const world = await this.slices(generateWorld());
-      if (!world) return;
-      const { day, cloud } = paintDay(world);
-      const night = await this.slices(paintNight(world, innerWidth >= 1000 ? 4096 : 2048));
-      if (!night) return;
-      built = builtWorld = { world, day, night, cloud };
+      built = (await this.fromBake()) ?? (await this.generate());
+      if (!built) return;
+      builtWorld = built;
     }
     const { world, day, night, cloud } = built;
     renderer.setTextures(day, night, cloud);
@@ -91,17 +99,48 @@ export class BriefingPlanetComponent {
     this.loop(world, renderer, glCanvas, trainCanvas);
   }
 
+  /** The baked planet, or null when it could not be loaded (the caller then generates it). */
+  private async fromBake(): Promise<PlanetSources | null> {
+    if (!this.baked) return null;
+    try {
+      const sources = await this.baked;
+      // Kept for the session even when the page went away meanwhile: the next visit shows it at once.
+      builtWorld ??= sources;
+      return this.stopped ? null : sources;
+    } catch (err) {
+      logWarn('verse.planet', 'baked planet unavailable, generating it in the page', err);
+      return null;
+    }
+  }
+
+  /** Fallback: generates the world and paints its textures here; null when the page went away. */
+  private async generate(): Promise<PlanetSources | null> {
+    if (this.stopped) return null;
+    const world = await this.slices(generateWorld());
+    if (!world) return null;
+    const { day, cloud } = paintDay(world);
+    const night = await this.slices(paintNight(world, nightSize(innerWidth)));
+    if (!night) return null;
+    return { world, day, night, cloud };
+  }
+
   /** Drives a generator in idle slices; null when the page went away meanwhile. */
   private slices<T>(gen: Generator<void, T>): Promise<T | null> {
-    // First build: the page's intro waits for it, so slices are fat and follow each other at once;
-    // afterwards (nothing waits) it is the gentle idle kind.
+    // First build: the page's intro waits for it, so slices are fat and follow each other at once.
+    // Otherwise each slice takes the idle time the browser actually offers (at least 8 ms): with a
+    // fixed 10 ms per idle callback and a 200 ms timeout, a page whose animations left little idle
+    // time got ~5 % of the main thread, and the planet took 10–20 s to appear (profiled 2026-11-03).
     const urgent = this.snap();
-    const idle = (fn: () => void) =>
-      urgent ? setTimeout(fn, 0) : 'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16);
+    const idle = (fn: (budget: number) => void) =>
+      urgent
+        ? setTimeout(() => fn(28), 0)
+        : 'requestIdleCallback' in window
+          ? requestIdleCallback((d) => fn(Math.max(8, d.timeRemaining())), { timeout: 100 })
+          : setTimeout(() => fn(10), 16);
     return new Promise((resolve) => {
-      const step = () => {
+      const step = (budget: number) => {
         if (this.stopped) return resolve(null);
-        const until = performance.now() + (urgent ? 28 : 10);
+        const until = performance.now() + budget;
         for (;;) {
           const r = gen.next();
           if (r.done) return resolve(r.value);
@@ -113,7 +152,7 @@ export class BriefingPlanetComponent {
     });
   }
 
-  private loop(world: PlanetWorld, renderer: PlanetRenderer, glCanvas: HTMLCanvasElement, trainCanvas: HTMLCanvasElement): void {
+  private loop(world: PlanetNetwork, renderer: PlanetRenderer, glCanvas: HTMLCanvasElement, trainCanvas: HTMLCanvasElement): void {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const rnd = seeded(Date.now() & 0xffff);
     const net = new TrainNetwork(world.cities, world.edges, rnd);
@@ -208,8 +247,8 @@ export class BriefingPlanetComponent {
   }
 }
 
-/** The planet's generated world and its textures, kept for the session (see start()). */
-let builtWorld: { world: PlanetWorld; day: HTMLCanvasElement; night: HTMLCanvasElement; cloud: HTMLCanvasElement } | null = null;
+/** The planet's world and its textures, kept for the session (see start()). */
+let builtWorld: PlanetSources | null = null;
 
 /** `--sc-accent` as 0..1 RGB for the atmosphere (falls back to the default cyan). */
 function accentRgb(): [number, number, number] {

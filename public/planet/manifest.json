@@ -1,0 +1,27 @@
+{
+  "source": "5052fa308150f3483bdd9e722957709b81b26bc94db056f2acedccdaf00927d8",
+  "seed": 1337,
+  "files": {
+    "day.webp": {
+      "bytes": 149508,
+      "encoder": "Pillow lossless method=6"
+    },
+    "cloud.webp": {
+      "bytes": 102198,
+      "encoder": "Pillow lossless method=6"
+    },
+    "night-2048.webp": {
+      "bytes": 156506,
+      "encoder": "Pillow lossless method=6"
+    },
+    "night-4096.webp": {
+      "bytes": 487330,
+      "encoder": "Pillow lossless method=6"
+    },
+    "world.json": {
+      "bytes": 82131,
+      "cities": 1100,
+      "edges": 1505
+    }
+  }
+}
