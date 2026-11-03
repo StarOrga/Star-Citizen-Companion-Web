@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.198.1] - 2026-11-03
+
+### Security
+- Community stability votes now count an account from 7 days after its approval, not after sign-up (#885).
+
+### Changed
+- A community verdict moves the stability number by at most ±5 points at the 25-vote minimum. The full ±10 applies only from 50 effective votes (#885).
+
 ## [0.198.0] - 2026-11-03
 
 ### Added
