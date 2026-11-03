@@ -32,7 +32,7 @@ describe('missions as a search source', () => {
     expect(missionTarget('X').queryParams).toBeNull();
   });
 
-  it('adds a Missionen group after the catalog, without CTA, icons or "Alle N" (B10)', () => {
+  it('adds a Missionen group after the catalog: CTA Zum Einsatz, no icons, no "Alle N"', () => {
     const missions = mapMissionRows([rpc(), rpc({ class_name: 'Z', title: 'Zeta' })]);
     const r = composeSearchResult({
       term: 'cargo', signedIn: true, groups: [group('ship', [ship])], context: searchContextOf('/codex'), chips: [], missions,
@@ -43,7 +43,7 @@ describe('missions as a search source', () => {
     expect(g.moreTarget).toBeNull();
     expect(g.total).toBe(3);
     for (const row of g.rows) {
-      expect(row.cta).toBeNull();
+      expect(row.cta?.id).toBe('toEinsatz');
       expect(row.icons).toEqual({ wishlist: false, lager: false, nachschub: false });
     }
     expect(r.empty).toBeFalse();

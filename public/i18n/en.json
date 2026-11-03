@@ -649,7 +649,9 @@
       "reset": "Reset filters",
       "anySize": "Any size",
       "anyGrade": "Any grade",
-      "blueprintGroup": "Blueprint group"
+      "blueprintGroup": "Blueprint group",
+      "fits": "Fits",
+      "ammo": "Fires"
     },
     "weaponClass": {
       "Ship": "Ship",
@@ -5174,7 +5176,13 @@
       "nameLabel": "Name of the op",
       "remove": "Remove {{name}}",
       "removeTitle": "Remove op?",
-      "removeMessage": "\"{{name}}\" and its steps will be deleted."
+      "removeMessage": "\"{{name}}\" and its steps will be deleted.",
+      "pick": {
+        "title": "Which op?",
+        "message": "\"{{name}}\" joins as a mission step.",
+        "none": "You have no planned or running op yet.",
+        "new": "New op"
+      }
     },
     "activity": {
       "kopfgeld": "Bounty",
@@ -6102,7 +6110,11 @@
       "whereInstalled": "Where fitted?",
       "planOps": "Plan mission",
       "sourceOf": "Where to get",
-      "openSet": "Open set"
+      "openSet": "Open set",
+      "fittingShips": "Fitting ships",
+      "fittingWeapons": "Matching weapons",
+      "mount": "Mount",
+      "toEinsatz": "Add to op"
     },
     "why": {
       "ownHq": "first because you are in your HQ",
@@ -6192,7 +6204,10 @@
       "lager": "\"{{name}}\" is now stored in {{where}}",
       "nachschub": "\"{{name}}\" is on your supply list",
       "compare": "\"{{name}}\" is in the comparison",
-      "failed": "That did not work, try again in a moment"
+      "failed": "That did not work, try again in a moment",
+      "einsatzAdded": "\"{{name}}\" is now a step in \"{{op}}\"",
+      "einsatzNew": "New op \"{{name}}\" created",
+      "einsatzFull": "\"{{op}}\" already has the most steps an op can hold"
     },
     "hints": [
       {

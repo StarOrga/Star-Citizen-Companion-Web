@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
+import { SHIP_SOURCE_FRAGMENT } from './search/search-cta';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   BaseEntityPayload,
@@ -672,8 +673,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           </section>
         }
 
-        @if (kind() === 'item' || kind() === 'weapon') {
-          <section class="sc-card block">
+        @if (kind() === 'item' || kind() === 'weapon' || kind() === 'ship') {
+          <section class="sc-card block" [attr.id]="kind() === 'ship' ? shipSourceFragment : null">
             <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
             @if (buyLoading()) {
               <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
@@ -1394,6 +1395,7 @@ export class CodexDetailComponent implements OnInit {
   private readonly stars = inject(StarTriggerService);
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
+  readonly shipSourceFragment = SHIP_SOURCE_FRAGMENT;
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly t = inject(TranslateService);
@@ -2107,7 +2109,7 @@ export class CodexDetailComponent implements OnInit {
           this.pinnedConfigId = null;
           void this.applyLoadoutSource(d.classNameSlug, seq);
         }
-        if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
+        if (kind === 'item' || kind === 'weapon' || kind === 'ship') void this.loadWhereToBuy(d);
         void this.loadSkinGroup(kind, d.classNameSlug);
         if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
@@ -2394,14 +2396,21 @@ export class CodexDetailComponent implements OnInit {
     const name = (p?.name ? pickLocalized(p.name, 'en') : '') || this.displayName();
     const row = d.row;
     try {
-      const options = await this.uexShop.whereToBuy({
-        name,
-        attachType: (row['attach_type'] as string | null) ?? null,
-        weaponClass: (row['weapon_class'] as string | null) ?? null,
-        subType: (row['sub_type'] as string | null) ?? null,
-      });
+      const options =
+        d.kind === 'ship'
+          ? await this.uexShop.whereToBuyShip({ guid: (row['guid'] as string | null) ?? null, name })
+          : await this.uexShop.whereToBuy({
+              name,
+              attachType: (row['attach_type'] as string | null) ?? null,
+              weaponClass: (row['weapon_class'] as string | null) ?? null,
+              subType: (row['sub_type'] as string | null) ?? null,
+            });
       if (seq !== this.buySeq) return;
       this.buyOptions.set(options);
+      // Search CTA "Bezugsquelle" lands on #bezugsquelle: the section exists only now.
+      if (d.kind === 'ship' && this.route.snapshot.fragment === SHIP_SOURCE_FRAGMENT) {
+        setTimeout(() => document.getElementById(SHIP_SOURCE_FRAGMENT)?.scrollIntoView({ block: 'start' }));
+      }
     } catch (error) {
       logWarn('codex', 'where to buy failed', error);
       if (seq !== this.buySeq) return;

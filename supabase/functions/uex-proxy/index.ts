@@ -2,7 +2,7 @@
 // The UEX bearer token lives ONLY as the `UEX_API_TOKEN` edge secret and never
 // reaches the browser; the client calls this function, we attach the token and
 // forward to UEX. Read-only, public shop/price/location data — used by the Codex
-// "Where to buy" feature (#254). UEX data is community-crowdsourced and UEX is
+// "Where to buy" feature (#254) for items and, since #832, ships. UEX data is community-crowdsourced and UEX is
 // unaffiliated with CIG; the UI surfaces that caveat + attribution.
 //
 // JWT verification is OFF (config.toml verify_jwt=false, mirrors rsi-upcoming-ships):
@@ -14,6 +14,7 @@
 // open relay.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { ALLOWED_RESOURCES, upstreamUrl } from './allow.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -25,28 +26,7 @@ const UEX_BASE = 'https://api.uexcorp.uk/2.0';
 const UEX_TIMEOUT_MS = 12_000;
 const UEX_TOKEN = Deno.env.get('UEX_API_TOKEN') ?? '';
 
-// Read-only resources this proxy may reach. Everything the "Where to buy"
-// feature needs to map an item → price → terminal → physical location. User-
-// specific / write resources (user, data_submit, trades, …) are deliberately
-// excluded — they are none of this feature's business.
-const ALLOWED_RESOURCES = new Set<string>([
-  'items',            // UEX item catalog (match our SC item → UEX id_item)
-  'items_prices',     // buy/sell prices per item, references a terminal
-  'categories',       // item categories (for filtering)
-  'terminals',        // terminal → location (star system / planet / station)
-  'cities',
-  'space_stations',
-  'outposts',
-  'planets',
-  'star_systems',
-]);
-
-// Only forward filter params whose key looks like a UEX filter (snake_case
-// alnum) and whose value is a short scalar — no arbitrary passthrough.
-const PARAM_KEY_RE = /^[a-z][a-z0-9_]{0,39}$/;
-function safeParam(key: string, value: string): boolean {
-  return PARAM_KEY_RE.test(key) && value.length <= 120 && /^[\w .,:%\-]*$/.test(value);
-}
+// The allow-list and the param filter live in ./allow.ts (tested in allow.test.ts).
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
@@ -67,15 +47,10 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const resource = (url.searchParams.get('resource') ?? '').trim();
   if (!resource) return json({ error: 'missing "resource" query param' }, 400);
-  if (!ALLOWED_RESOURCES.has(resource)) {
-    return json({ error: `resource "${resource}" is not allowed`, allowed: [...ALLOWED_RESOURCES] }, 400);
-  }
-
   // Rebuild a clean upstream query from the forwarded filter params.
-  const upstream = new URL(`${UEX_BASE}/${resource}/`);
-  for (const [key, value] of url.searchParams) {
-    if (key === 'resource') continue;
-    if (safeParam(key, value)) upstream.searchParams.append(key, value);
+  const upstream = upstreamUrl(UEX_BASE, resource, url.searchParams);
+  if (!upstream) {
+    return json({ error: `resource "${resource}" is not allowed`, allowed: [...ALLOWED_RESOURCES] }, 400);
   }
 
   const ctrl = new AbortController();

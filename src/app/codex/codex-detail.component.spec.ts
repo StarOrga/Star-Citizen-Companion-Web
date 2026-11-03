@@ -225,7 +225,7 @@ function configureSetup(
           assetUrl: (path: string | null) => path,
         } as Partial<ShipSkinsService>,
       },
-      { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
+      { provide: UexShopService, useValue: { whereToBuy: async () => [], whereToBuyShip: async () => [] } as Partial<UexShopService> },
       // No 3D package lookups against the real Supabase from a spec.
       { provide: AssetPackageService, useValue: { findRow: async () => null } as Partial<AssetPackageService> },
       {
@@ -770,7 +770,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
           assetUrl: (path: string | null) => path,
         } as Partial<ShipSkinsService>,
       },
-      { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
+      { provide: UexShopService, useValue: { whereToBuy: async () => [], whereToBuyShip: async () => [] } as Partial<UexShopService> },
       // No 3D package lookups against the real Supabase from a spec.
       { provide: AssetPackageService, useValue: { findRow: async () => null } as Partial<AssetPackageService> },
       {
