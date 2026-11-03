@@ -5,7 +5,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling, withPreloading } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { REMOVE_STYLES_ON_COMPONENT_DESTROY } from '@angular/platform-browser';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
@@ -15,6 +15,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
 import { provideCodexNumberLocale } from './codex/codex-number-locale';
 import { AppErrorHandler } from './core/app-error-handler';
+import { IdlePreloadingStrategy } from './core/idle-preloading.strategy';
 import { AppTranslateLoader } from './core/locale/app-translate-loader';
 import { provideOverlayRouteScroll } from './core/overlay-route-scroll';
 import { provideNavOrigin } from './shared/page-header/nav-origin.service';
@@ -33,6 +34,9 @@ export const appConfig: ApplicationConfig = {
       // 'disabled' + provideOverlayRouteScroll(): top on every navigation
       // except opening/closing a routed overlay (admin feedback #245).
       withInMemoryScrolling({ scrollPositionRestoration: 'disabled', anchorScrolling: 'enabled' }),
+      // The main areas' code loads in idle time once the opened page is up, so
+      // switching tabs or opening a Codex entry does not wait for a chunk.
+      withPreloading(IdlePreloadingStrategy),
     ),
     provideOverlayRouteScroll(),
     provideAnimationsAsync(),

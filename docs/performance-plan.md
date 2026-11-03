@@ -123,7 +123,12 @@ committen → pushen → hier abhaken.
    modulweit gecacht, ein wiederverwendetes Mess-Canvas. Bleibt bewusst
    synchron im `load`-Handler: verschoben würde der Bild-Zoom sichtbar springen.
 
-6. **Gezieltes Vorladen** (`app.config.ts › provideRouter(withPreloading(...))`):
+6. ~~**Gezieltes Vorladen**~~ — erledigt (`core/idle-preloading.strategy.ts`):
+   Routen mit `data: { preload: true }` (Verse-Start, Codex-Landing,
+   Codex-Detail, HQ + HQ-Landing) laden ≥ 3 s nach dem Start im Leerlauf,
+   nacheinander, nur eingeloggt, nie bei Save-Data/2G. Offen als Ergänzung:
+   Vorladen bei Hover/Touch eines Links (braucht URL→Route-Zuordnung).
+   Ursprüngliche Notiz:
    eigene `PreloadingStrategy` — nach dem ersten Paint im Leerlauf die
    Nachbarbereiche der Einstiegsseite (Verse → Codex-Landing, HQ; Codex →
    Codex-Detail, Verse), bei Hover/Touch eines Links dessen Route; Admin-Routen
