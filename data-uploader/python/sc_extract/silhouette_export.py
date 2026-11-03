@@ -47,6 +47,24 @@ def _noop(level: str, msg: str) -> None:
     pass
 
 
+# Why an entity got no silhouette row (#842). The build records one of these
+# per skipped entity (`silhouettes/skips.json`) so the admin coverage tile can
+# say WHY a hull has no outline instead of only that it has none.
+SKIP_NO_MESH = "no_mesh"                # no geometry path, or the path is not in the archive
+SKIP_CONVERT_FAILED = "convert_failed"  # cgf-converter / glb parse failed
+SKIP_EMPTY = "empty"                    # converted, but no triangles / no traceable outline
+SKIP_REASONS = (SKIP_NO_MESH, SKIP_CONVERT_FAILED, SKIP_EMPTY)
+
+
+class SilhouetteSkip(Exception):
+    """A mesh that yields no silhouette, with the reason (one of `SKIP_REASONS`)."""
+
+    def __init__(self, reason: str, detail: str = "") -> None:
+        super().__init__(f"{reason}: {detail}" if detail else reason)
+        self.reason = reason
+        self.detail = detail
+
+
 # glTF accessor componentType -> (struct format char, byte size)
 _COMPONENT_TYPES = {
     5121: ("B", 1),  # UNSIGNED_BYTE
@@ -335,13 +353,16 @@ class SilhouetteExporter:
     # ---- conversion (any thread) --------------------------------------------
     def compute(self, src: MeshSource, mesh_id: str, tolerance_m: float) -> Optional[Dict[str, Any]]:
         """Convert + trace one mesh from its bytes and cache the result. Does
-        not touch the P4K, so several can run at once."""
+        not touch the P4K, so several can run at once.
+
+        Raises `SilhouetteSkip` when the conversion fails or yields no
+        triangles; returns None when the trace finds no outline (also `empty`)."""
         from .silhouette import build_silhouette
 
         t0 = time.monotonic()
         triangles = self._triangles(src, mesh_id)
         if not triangles:
-            return None
+            raise SilhouetteSkip(SKIP_EMPTY, "converted mesh has no triangles")
         silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=self.cfg.on_log)
         # Should-fix "runtime" (wave1-redteam.md): the wall-clock cost of the
         # expensive part per mesh, so a real run's timing is provable.
@@ -356,7 +377,7 @@ class SilhouetteExporter:
                 self.cfg.on_log("warn", f"silhouette cache write failed for {mesh_id}: {exc}")
         return silhouette
 
-    def _triangles(self, src: MeshSource, mesh_id: str) -> Optional[List[Triangle]]:
+    def _triangles(self, src: MeshSource, mesh_id: str) -> List[Triangle]:
         safe_id(mesh_id, "mesh_id")  # flows into filenames + cmdline
         mirror = self.cfg.work_dir / f"{mesh_id}-{src.key[:8]}"
         if mirror.exists():
@@ -376,7 +397,7 @@ class SilhouetteExporter:
                 return world_triangles_from_glb(gltf, binary)
         except Exception as exc:  # noqa: BLE001 — one bad mesh must not abort the run
             self.cfg.on_log("warn", f"silhouette mesh {mesh_id}: {type(exc).__name__}: {exc}")
-            return None
+            raise SilhouetteSkip(SKIP_CONVERT_FAILED, f"{type(exc).__name__}: {exc}") from exc
         finally:
             if not self.cfg.keep_work:
                 shutil.rmtree(mirror, ignore_errors=True)
@@ -421,7 +442,7 @@ class SilhouetteExporter:
         usable geometry — never a placeholder)."""
         try:
             silhouette = self.silhouette_for_mesh(mesh_path, mesh_id, tolerance_m)
-        except FileNotFoundError:
+        except (FileNotFoundError, SilhouetteSkip):
             return None
         if silhouette is None:
             return None

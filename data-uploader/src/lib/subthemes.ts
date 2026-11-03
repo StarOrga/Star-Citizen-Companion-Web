@@ -87,7 +87,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // interiorMapSection (Prospector).
     // 9: #797 — rooms no deck takes land on one extra `fallback` deck
     // ("All rooms" / "Other rooms"); ships without decks get just that one.
-    revision: 9,
+    // 10: #842 — cargoScu / cargoStatus follow a cargo item's own stock fit
+    // and count ore pods; no hull is "unmeasured" for a missing grid anymore.
+    revision: 10,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
@@ -98,9 +100,11 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/python/sc_extract/thresholds.py',
     ],
   },
-  { key: 'components', revision: 3, phases: ['codex_components'], sources: CATALOG_SHARED },
+  // components 4 / items 4: #842 — ship radars move from codex_items to
+  // codex_components (kind Radar) with flat range / sensitivity keys.
+  { key: 'components', revision: 4, phases: ['codex_components'], sources: CATALOG_SHARED },
   { key: 'weapons', revision: 3, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
-  { key: 'items', revision: 3, phases: ['codex_items'], sources: CATALOG_SHARED },
+  { key: 'items', revision: 4, phases: ['codex_items'], sources: CATALOG_SHARED },
   {
     key: 'codex_extra',
     // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on
@@ -136,7 +140,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 5: #795/#794 — anchors come from the corrected hardpointTransforms (turret
     //    ports from the vehicle XML, helper offsets, no origin anchors).
     // 6: silhouettes for every item (not only armor) and for ammunition.
-    revision: 6,
+    // 7: #842 — hulls whose LOD0 breaks cgf-converter get their LOD1 outline,
+    //    and every skipped entity's reason goes up (silhouette_skips).
+    revision: 7,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',

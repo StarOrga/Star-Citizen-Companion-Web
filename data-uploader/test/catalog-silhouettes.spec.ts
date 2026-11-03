@@ -87,4 +87,41 @@ describe('silhouettes as their own step', () => {
     expect(r).toMatchObject({ ok: false, errorCode: 'no_build_id' });
     expect(ops).toEqual([]);
   });
+
+  it('sends the skip reasons after the outlines, and only when the build wrote them (#842)', async () => {
+    const r1 = await uploadCatalog('jwt', outDir, () => {}, { backoffMs: () => 0, mode: 'silhouettes', buildId: 'b-1' });
+    expect(r1.ok).toBe(true);
+    expect(ops).not.toContain('silhouette_skips');
+
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+      bodies.push(body);
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, stored: 1 }) });
+    });
+    writeFileSync(
+      join(outDir, 'silhouettes', 'skips.json'),
+      JSON.stringify({ skips: [{ kind: 'ship', className: 'SHIP_1', reason: 'no_mesh', detail: 'x' }] }),
+    );
+    const r2 = await uploadCatalog('jwt', outDir, () => {}, { backoffMs: () => 0, mode: 'silhouettes', buildId: 'b-1' });
+    expect(r2.ok).toBe(true);
+    const sent = bodies.find((b) => b.op === 'silhouette_skips');
+    expect(sent).toMatchObject({ build_id: 'b-1', rows: [{ kind: 'ship', className: 'SHIP_1', reason: 'no_mesh' }] });
+    expect(bodies.map((b) => b.op).indexOf('silhouette_skips')).toBeGreaterThan(bodies.map((b) => b.op).indexOf('prune'));
+  });
+
+  it('a failing skip upload does not fail the silhouette step', async () => {
+    writeFileSync(join(outDir, 'silhouettes', 'skips.json'), JSON.stringify({ skips: [] }));
+    vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { op: string };
+      ops.push(body.op);
+      if (body.op === 'silhouette_skips') {
+        return Promise.resolve({ ok: false, status: 400, json: async () => ({ error: 'invalid_body', message: "unknown op 'silhouette_skips'" }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true }) });
+    });
+    const r = await uploadCatalog('jwt', outDir, () => {}, { backoffMs: () => 0, mode: 'silhouettes', buildId: 'b-1' });
+    expect(r).toMatchObject({ ok: true, counts: { silhouettes: 1 } });
+    expect(ops).toContain('silhouette_skips');
+  });
 });
