@@ -662,7 +662,9 @@
       "reset": "Reset filters",
       "anySize": "Any size",
       "anyGrade": "Any grade",
-      "blueprintGroup": "Blueprint group"
+      "blueprintGroup": "Blueprint group",
+      "fits": "Fits",
+      "ammo": "Fires"
     },
     "weaponClass": {
       "Ship": "Ship",
@@ -2291,6 +2293,21 @@
       "subtitleAll": "{{shown}} entries · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} of {{total}}",
       "subtitleAllNoPatch": "{{shown}} entries"
+    },
+    "contract": {
+      "eyebrow": "Mission",
+      "giver": "Contractor",
+      "location": "Location",
+      "reward": "Reward",
+      "rewardDynamic": "No fixed base reward",
+      "legality": "Legality",
+      "lawful": "Lawful",
+      "unlawful": "Unlawful",
+      "variantsLabel": "Variants",
+      "variants": "{{n}} contracts share this title",
+      "patch": "Patch",
+      "placeholderHint": "‹…› is filled in by the game when you accept (location, contractor, target).",
+      "notFound": "This mission is not in the current LIVE build."
     }
   },
   "blueprint": {
@@ -5172,7 +5189,13 @@
       "nameLabel": "Name of the op",
       "remove": "Remove {{name}}",
       "removeTitle": "Remove op?",
-      "removeMessage": "\"{{name}}\" and its steps will be deleted."
+      "removeMessage": "\"{{name}}\" and its steps will be deleted.",
+      "pick": {
+        "title": "Which op?",
+        "message": "\"{{name}}\" joins as a mission step.",
+        "none": "You have no planned or running op yet.",
+        "new": "New op"
+      }
     },
     "activity": {
       "kopfgeld": "Bounty",
@@ -6097,9 +6120,14 @@
       "allProducts": "All products",
       "add": "Add",
       "whereStored": "Where stored?",
+      "whereInstalled": "Where fitted?",
       "planOps": "Plan mission",
       "sourceOf": "Where to get",
-      "openSet": "Open set"
+      "openSet": "Open set",
+      "fittingShips": "Fitting ships",
+      "fittingWeapons": "Matching weapons",
+      "mount": "Mount",
+      "toEinsatz": "Add to op"
     },
     "why": {
       "ownHq": "first because you are in your HQ",
@@ -6125,7 +6153,8 @@
       "expanded": "{{name}} expanded",
       "collapseKey": "← back",
       "allInIndex": "Open all {{n}} in the index",
-      "allInHq": "Open all {{n}} in the HQ"
+      "allInHq": "Open all {{n}} in the HQ",
+      "mission": "Missions"
     },
     "icon": {
       "wishlist": "Add to wishlist",
@@ -6150,7 +6179,9 @@
     "row": {
       "patch": "Patch {{line}}",
       "patchMeta": "Patch note · {{version}}",
-      "galleryMeta": "Gallery"
+      "galleryMeta": "Gallery",
+      "missionMeta": "Mission",
+      "missionVariants": "{{n}} variants"
     },
     "abbr": {
       "alias": "\"{{word}}\" read as",
@@ -6186,7 +6217,10 @@
       "lager": "\"{{name}}\" is now stored in {{where}}",
       "nachschub": "\"{{name}}\" is on your supply list",
       "compare": "\"{{name}}\" is in the comparison",
-      "failed": "That did not work, try again in a moment"
+      "failed": "That did not work, try again in a moment",
+      "einsatzAdded": "\"{{name}}\" is now a step in \"{{op}}\"",
+      "einsatzNew": "New op \"{{name}}\" created",
+      "einsatzFull": "\"{{op}}\" already has the most steps an op can hold"
     },
     "hints": [
       {

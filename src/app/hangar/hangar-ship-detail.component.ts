@@ -30,6 +30,7 @@ import {
 import type { CodexItemPort, ShipPayload } from '../codex/codex.types';
 import { ShipSkinViewerComponent } from '../codex/ship-skin-viewer.component';
 import { HangarItemPickerComponent, PickedItem } from './hangar-item-picker.component';
+import { firstFittingPort } from './hangar-mount';
 import { HangarService } from './hangar.service';
 import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
@@ -357,6 +358,7 @@ interface PortRow {
                       @if (pickerPort() === row.port.portName) {
                         <sc-hangar-item-picker
                           [port]="portQuery(row.port)"
+                          [preselect]="mountPreselect()"
                           (picked)="onPicked(row, $event)"
                           (closed)="pickerPort.set(null)" />
                       }
@@ -548,6 +550,8 @@ export class HangarShipDetailComponent implements OnInit {
   readonly newConfigName = signal('');
   readonly newConfigRole = signal<ShipConfigRole>('multipurpose');
   readonly pickerPort = signal<string | null>(null);
+  /** `?mount=<className>` (search CTA "Montieren"): offered first in the picker it opened. */
+  readonly mountPreselect = signal<string | null>(null);
 
   private readonly resolved = signal<Map<string, ResolvedEntity>>(new Map());
   private readonly payloads = signal<Map<string, { kind: string; payload: unknown }>>(new Map());
@@ -698,6 +702,30 @@ export class HangarShipDetailComponent implements OnInit {
     const active = configs.find((c) => c.isActive) ?? configs[0];
     if (active) this.selectConfig(active);
     else await this.refreshResolved();
+    await this.applyMountParam();
+  }
+
+  /**
+   * `?mount=<className>` from the search CTA "Montieren": open the picker on the
+   * first port the piece fits (same verdict as the search badge) with the piece
+   * offered first. No fitting port, or an unknown piece: the page stays as is.
+   * The param is dropped afterwards, so a reload does not reopen the picker.
+   */
+  private async applyMountParam(): Promise<void> {
+    const cls = this.route.snapshot.queryParamMap.get('mount')?.trim() ?? '';
+    if (!cls) return;
+    try {
+      if (!/^[\w.-]{1,120}$/.test(cls)) return;
+      const id = await this.codex.fitIdentity(cls);
+      const port = id ? firstFittingPort(this.ports(), id) : null;
+      if (!port) return;
+      this.mountPreselect.set(cls);
+      this.pickerPort.set(port);
+    } catch {
+      /* the piece could not be read: nothing to preselect, the page itself is fine */
+    } finally {
+      void this.router.navigate([], { relativeTo: this.route, queryParams: { mount: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    }
   }
 
   /**
@@ -812,6 +840,7 @@ export class HangarShipDetailComponent implements OnInit {
   }
 
   openPicker(row: PortRow): void {
+    this.mountPreselect.set(null);
     this.pickerPort.set(row.port.portName);
   }
 

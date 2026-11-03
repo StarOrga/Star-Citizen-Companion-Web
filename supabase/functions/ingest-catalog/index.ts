@@ -26,6 +26,10 @@
 //         silhouette (#842: no_mesh | convert_failed | empty). Replaces the
 //         build's list; an empty list clears it. Read by silhouette_coverage().)
 //        (mirror of clear_ports; uploaders with `carry` use `prune` instead)
+//   POST { op: "missions",         build_id, rows: [...] }             -> { upserted }
+//        (rows: the extractor's missions/<class>.json bodies; mapped to the
+//         pinned codex_missions columns by _missions.ts, upserted on
+//         (build_id, class_name) so a resumed run is idempotent)
 //   POST { op: "carry",            build_id, table, rows: [{k, h}], set? } -> { kept, copied, missing: [i] }
 //        (per-object incremental upload, migration 20261102000000: rows whose
 //         content hash h is already in this build are kept, rows found with h
@@ -98,6 +102,7 @@ import {
 import { nullUndefinedPlaceholders } from './_placeholders.ts';
 import { isCarryUnavailable, isRpcMissing, parseCarry, parsePrune } from './_carry.ts';
 import { parseSkips } from './_silhouette-skips.ts';
+import { MAX_MISSION_ROWS, parseMissions } from './_missions.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -563,6 +568,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .upload(path, bytes, { contentType: 'image/webp', upsert: true });
       if (error) throw error;
       return json({ ok: true, path });
+    }
+
+    if (op === 'missions') {
+      const buildId = String(body.build_id ?? '');
+      const list = body.rows as unknown[];
+      if (!buildId || !Array.isArray(list) || list.length === 0 || list.length > MAX_MISSION_ROWS) {
+        return json({ error: 'invalid_body', message: 'build_id + 1..' + MAX_MISSION_ROWS + ' rows required' }, 400);
+      }
+      const { data: b, error: bErr } = await admin
+        .from('codex_builds').select('channel,patch_version,build_number').eq('id', buildId).maybeSingle();
+      if (bErr) throw bErr;
+      if (!b) return json({ error: 'invalid_body', message: 'unknown build' }, 400);
+      const nat = b as { channel: string; patch_version: string; build_number: string };
+      const rows = parseMissions(list, { build_id: buildId, ...nat });
+      if (rows.length === 0) return json({ ok: true, upserted: 0 });
+      const { error } = await admin.from('codex_missions').upsert(rows, { onConflict: 'build_id,class_name' });
+      if (error) throw error;
+      return json({ ok: true, upserted: rows.length });
     }
 
     if (op === 'clear_ports') {

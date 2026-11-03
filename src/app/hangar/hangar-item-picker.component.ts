@@ -71,7 +71,8 @@ export interface PickedItem {
         <ul class="results" role="listbox">
           @for (r of results(); track r.classNameSlug) {
             <li>
-              <button type="button" class="result" role="option" (click)="pick(r)">
+              <button type="button" class="result" role="option" [class.pre]="r.classNameSlug === preselect()"
+                      [attr.aria-selected]="r.classNameSlug === preselect()" (click)="pick(r)">
                 <span class="r-name">{{ itemName(r) }}</span>
                 <span class="r-badges">
                   @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
@@ -116,6 +117,7 @@ export interface PickedItem {
       font-family: inherit; font-size: 0.85rem; text-align: left;
     }
     .result:hover { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-0)); }
+    .result.pre { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-0)); }
     .r-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
     .r-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
     .badge { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
@@ -131,6 +133,8 @@ export class HangarItemPickerComponent implements OnInit {
   readonly port = input<PortQuery | null>(null);
   /** Free-search mode: restrict weapons to FPS class (role loadouts). */
   readonly fpsOnly = input(false);
+  /** Port mode: the entry to offer first and highlight (search CTA "Montieren", `?mount=`). */
+  readonly preselect = input<string | null>(null);
 
   readonly picked = output<PickedItem>();
   readonly closed = output<void>();
@@ -153,7 +157,9 @@ export class HangarItemPickerComponent implements OnInit {
   readonly results = computed(() => {
     if (this.port()) {
       const q = this.query().trim().toLowerCase();
-      const all = this.compat();
+      const pre = this.preselect();
+      const hit = pre ? this.compat().find((r) => r.classNameSlug === pre) : undefined;
+      const all = hit ? [hit, ...this.compat().filter((r) => r !== hit)] : this.compat();
       if (!q) return all.slice(0, 60);
       return all
         .filter(

@@ -9,7 +9,7 @@ import type { SearchTarget } from './codex-search-model';
 import type { SearchFit } from './search-compat';
 
 /** A result group id: a catalog kind, or one of the extra sources. */
-export type SearchGroupId = PolyHitKind | 'own' | 'patch' | 'gallery';
+export type SearchGroupId = PolyHitKind | 'own' | 'patch' | 'gallery' | 'mission';
 
 export type OwnRowType = 'ship' | 'config' | 'set' | 'item';
 
@@ -95,7 +95,12 @@ export type SearchCtaId =
   | 'whereStored'
   | 'planOps'
   | 'sourceOf'
-  | 'openSet';
+  | 'openSet'
+  | 'whereInstalled'
+  | 'fittingShips'
+  | 'fittingWeapons'
+  | 'mount'
+  | 'toEinsatz';
 
 /** The one main action of a row. `link` navigates (render an anchor), `action` is handled by the host. */
 export interface SearchCta {
@@ -141,6 +146,18 @@ export type SearchResultRow =
       qty: number | null;
     })
   | (RowBase & { type: 'patch'; line: string; title: string; version: string; publishedAt: string })
+  | (RowBase & {
+      /** A contract title of the current LIVE build (same-title contracts folded, `variants`). */
+      type: 'mission';
+      className: string;
+      title: string;
+      typeName: string | null;
+      giver: string | null;
+      location: string | null;
+      /** Highest base payout over the folded contracts (aUEC); null = none / dynamic. */
+      reward: number | null;
+      variants: number;
+    })
   | (RowBase & {
       type: 'gallery';
       imageId: string;

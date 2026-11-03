@@ -662,7 +662,9 @@
       "reset": "Filter zurücksetzen",
       "anySize": "Beliebige Größe",
       "anyGrade": "Beliebiger Grade",
-      "blueprintGroup": "Bauplan-Gruppe"
+      "blueprintGroup": "Bauplan-Gruppe",
+      "fits": "Passt für",
+      "ammo": "Feuert"
     },
     "weaponClass": {
       "Ship": "Schiff",
@@ -2291,6 +2293,21 @@
       "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} von {{total}}",
       "subtitleAllNoPatch": "{{shown}} Einträge"
+    },
+    "contract": {
+      "eyebrow": "Mission",
+      "giver": "Auftraggeber",
+      "location": "Ort",
+      "reward": "Belohnung",
+      "rewardDynamic": "Keine feste Grundbelohnung",
+      "legality": "Rechtslage",
+      "lawful": "Legal",
+      "unlawful": "Illegal",
+      "variantsLabel": "Varianten",
+      "variants": "{{n}} Aufträge mit diesem Titel",
+      "patch": "Patch",
+      "placeholderHint": "‹…› setzt das Spiel erst beim Annehmen ein (Ort, Auftraggeber, Ziel).",
+      "notFound": "Diese Mission gibt es im aktuellen LIVE-Build nicht."
     }
   },
   "blueprint": {
@@ -5172,7 +5189,13 @@
       "nameLabel": "Name des Einsatzes",
       "remove": "{{name}} entfernen",
       "removeTitle": "Einsatz entfernen?",
-      "removeMessage": "„{{name}}“ und seine Schritte werden gelöscht."
+      "removeMessage": "„{{name}}“ und seine Schritte werden gelöscht.",
+      "pick": {
+        "title": "Zu welchem Einsatz?",
+        "message": "„{{name}}“ kommt als Missionsschritt dazu.",
+        "none": "Du hast noch keinen geplanten oder laufenden Einsatz.",
+        "new": "Neuer Einsatz"
+      }
     },
     "activity": {
       "kopfgeld": "Kopfgeld",
@@ -6097,9 +6120,14 @@
       "allProducts": "Alle Produkte",
       "add": "Hinzufügen",
       "whereStored": "Wo gelagert?",
+      "whereInstalled": "Wo verbaut?",
       "planOps": "Einsatz planen",
       "sourceOf": "Bezugsquelle",
-      "openSet": "Set öffnen"
+      "openSet": "Set öffnen",
+      "fittingShips": "Passende Schiffe",
+      "fittingWeapons": "Passende Waffen",
+      "mount": "Montieren",
+      "toEinsatz": "Zum Einsatz"
     },
     "why": {
       "ownHq": "steht oben, weil du im HQ bist",
@@ -6125,7 +6153,8 @@
       "expanded": "{{name}} aufgeklappt",
       "collapseKey": "← zurück",
       "allInIndex": "Alle {{n}} im Index öffnen",
-      "allInHq": "Alle {{n}} im HQ öffnen"
+      "allInHq": "Alle {{n}} im HQ öffnen",
+      "mission": "Missionen"
     },
     "icon": {
       "wishlist": "Auf die Wunschliste",
@@ -6150,7 +6179,9 @@
     "row": {
       "patch": "Patch {{line}}",
       "patchMeta": "Patch-Notiz · {{version}}",
-      "galleryMeta": "Galerie"
+      "galleryMeta": "Galerie",
+      "missionMeta": "Mission",
+      "missionVariants": "{{n}} Varianten"
     },
     "abbr": {
       "alias": "„{{word}}“ gelesen als",
@@ -6186,7 +6217,10 @@
       "lager": "„{{name}}“ liegt jetzt in {{where}}",
       "nachschub": "„{{name}}“ steht im Nachschub",
       "compare": "„{{name}}“ liegt im Vergleich",
-      "failed": "Das hat nicht geklappt, versuch es gleich noch einmal"
+      "failed": "Das hat nicht geklappt, versuch es gleich noch einmal",
+      "einsatzAdded": "„{{name}}“ ist jetzt ein Schritt in „{{op}}“",
+      "einsatzNew": "Neuer Einsatz „{{name}}“ angelegt",
+      "einsatzFull": "„{{op}}“ hat schon die meisten Schritte, die ein Einsatz haben kann"
     },
     "hints": [
       {

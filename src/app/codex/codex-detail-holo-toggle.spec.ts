@@ -166,7 +166,7 @@ async function setup(queryParams: Record<string, string> = {}): Promise<Componen
         provide: ShipSkinsService,
         useValue: { listSkins: async () => ({ skins: [], error: false }), assetUrl: (p: string | null) => p } as Partial<ShipSkinsService>,
       },
-      { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
+      { provide: UexShopService, useValue: { whereToBuy: async () => [], whereToBuyShip: async () => [] } as Partial<UexShopService> },
       { provide: AssetPackageService, useValue: { findRow: async () => null } as Partial<AssetPackageService> },
       {
         provide: UpcomingShipsService,

@@ -180,6 +180,13 @@ export const routes: Routes = [
           import('./codex/codex-browse.component').then((m) => m.CodexBrowseComponent),
       },
       {
+        // Mission (contract) page — target of the global search's mission group.
+        path: 'codex/mission/:className',
+        data: { layout: 'content' },
+        loadComponent: () =>
+          import('./codex/mission-detail.component').then((m) => m.MissionDetailComponent),
+      },
+      {
         path: 'codex/blueprint/:className',
         data: { layout: 'content' },
         loadComponent: () =>
