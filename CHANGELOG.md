@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.200.3] - 2026-11-03
+
+### Fixed
+- Data Uploader 0.72.0: the silhouette build no longer sits at 99 % for hours on big ships, and shows which ship it is retrying.
+- Data Uploader: "Jetzt installieren" always answers. It waits visibly while work runs, installs on its own when the work ends or is paused, and can be cancelled.
+- Data Uploader: copying the log reports failures and an empty log instead of claiming success, and the log now holds the silhouette and skin build lines.
+
 ## [0.200.2] - 2026-11-03
 
 ### Fixed
