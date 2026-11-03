@@ -1,7 +1,7 @@
 // Extra search sources next to the Codex index: patches and gallery images
 // (concept 2026-11-02, C11). Pure mappers and matchers; the fetching lives in
-// the engine / signals service. Missions are not in any index yet (a data
-// follow-up issue), so there is no source for them here.
+// the engine / signals service. Missions come from the `search_missions` RPC
+// (codex_missions, migration 20261103130000).
 
 import type { PatchLineGroup } from '../../news/patch-notes';
 import { matchesTokens, tokenizeQuery } from '../../news/patch-search';
@@ -10,6 +10,19 @@ import type { SearchResultRow } from './search-result-model';
 
 export type PatchMatch = Omit<Extract<SearchResultRow, { type: 'patch' }>, 'cta' | 'icons'>;
 export type GalleryMatch = Omit<Extract<SearchResultRow, { type: 'gallery' }>, 'cta' | 'icons'>;
+export type MissionMatch = Omit<Extract<SearchResultRow, { type: 'mission' }>, 'cta' | 'icons'>;
+
+/** A row of the `search_missions(p_query, p_limit)` RPC (one per distinct title). */
+export interface MissionRpcRow {
+  class_name: string;
+  title: string | null;
+  type_name: string | null;
+  giver_name: string | null;
+  location_name: string | null;
+  reward_amount: number | null;
+  variants: number | null;
+  total: number | null;
+}
 
 export interface SourceResult<T> {
   rows: T[];
@@ -82,4 +95,31 @@ export function mapGalleryRows(rows: readonly GalleryRpcRow[] | null | undefined
     });
   }
   return { rows: out, total: out.length };
+}
+
+export function missionTarget(className: string): SearchTarget {
+  return { link: ['/codex', 'mission', className], queryParams: null };
+}
+
+export function mapMissionRows(rows: readonly MissionRpcRow[] | null | undefined): SourceResult<MissionMatch> {
+  const out: MissionMatch[] = [];
+  let total = 0;
+  for (const r of rows ?? []) {
+    const title = r?.title?.trim();
+    if (!r?.class_name || !title) continue;
+    total = Math.max(total, r.total ?? 0);
+    out.push({
+      type: 'mission',
+      id: `mission-${r.class_name}`,
+      className: r.class_name,
+      title,
+      typeName: r.type_name?.trim() || null,
+      giver: r.giver_name?.trim() || null,
+      location: r.location_name?.trim() || null,
+      reward: typeof r.reward_amount === 'number' && r.reward_amount > 0 ? r.reward_amount : null,
+      variants: Math.max(1, r.variants ?? 1),
+      target: missionTarget(r.class_name),
+    });
+  }
+  return { rows: out, total: Math.max(total, out.length) };
 }

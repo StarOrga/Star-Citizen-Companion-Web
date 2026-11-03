@@ -33,7 +33,7 @@ import {
   RankSignals,
   signalOrder,
 } from './search-signals';
-import { GalleryMatch, PatchMatch, SourceResult, sourceMoreTarget } from './search-sources';
+import { GalleryMatch, MissionMatch, PatchMatch, SourceResult, sourceMoreTarget } from './search-sources';
 import {
   RowOwnership,
   SEARCH_ROWS_SHOWN,
@@ -56,6 +56,7 @@ export interface ComposeInput {
   own?: OwnSearchResult | null;
   patches?: SourceResult<PatchMatch> | null;
   gallery?: SourceResult<GalleryMatch> | null;
+  missions?: SourceResult<MissionMatch> | null;
   signals?: RankSignals;
   /** What the reader owns of a hit (for Mein Loadout / Wo gelagert?). */
   ownership?: (hit: PolySearchHit) => RowOwnership | null;
@@ -85,6 +86,8 @@ function groupAllowed(id: SearchGroupId, chips: readonly SearchChip[]): boolean 
 }
 
 const FAST_EXACT = 3;
+
+const NO_ICONS = { wishlist: false, lager: false, nachschub: false } as const;
 
 export function composeSearchResult(input: ComposeInput): SearchResult {
   const { context: ctx, chips, term, signedIn } = input;
@@ -187,6 +190,19 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
       outside: false,
     };
   }
+  // Missions: no CTA and no icons (B10 style) — the row itself opens the mission page.
+  // No "Alle N": there is no mission index page yet.
+  let missionGroup: SearchResultGroup | null = null;
+  const mis = input.missions;
+  if (mis && mis.rows.length && groupAllowed('mission', chips)) {
+    missionGroup = {
+      id: 'mission', kind: null, reason: null, total: mis.total,
+      rows: mis.rows.map((r): SearchResultRow => ({ ...r, cta: null, icons: { ...NO_ICONS } })),
+      expandable: Math.max(0, mis.rows.length - SEARCH_ROWS_SHOWN),
+      moreTarget: null,
+      outside: false,
+    };
+  }
   let patchGroup: SearchResultGroup | null = null;
   const pat = input.patches;
   if (pat && pat.rows.length && groupAllowed('patch', chips)) {
@@ -203,6 +219,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
   const groups: SearchResultGroup[] = [...catalog];
   const inHq = ctx.key.startsWith('hq') || ctx.ownedFirst || ownFirst;
   if (ownGroup) groups.splice(inHq ? 0 : Math.min(1, groups.length), 0, ownGroup);
+  if (missionGroup) groups.push(missionGroup);
   if (galleryGroup) {
     if (ctx.key === 'gallery') groups.unshift(galleryGroup);
     else groups.push(galleryGroup);

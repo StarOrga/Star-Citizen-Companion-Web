@@ -4,8 +4,10 @@
 // verified "ok" by the owner) — one row per context, one column per kind of
 // row. Cells marked `*` need a feature that does not exist yet (own follow-up
 // issues): they fall back to the neutral row's CTA of the same column, or to
-// no CTA when that one is a `*` too. "Im Index" is gone; news, patches, gallery
-// and app pages have no CTA and no icons.
+// no CTA when that one is a `*` too. Flipped `*` cells carry their own code
+// (`whereInstalled`); the rest still wait for their target (see the matrix
+// note). "Im Index" is gone; news, patches, gallery and app pages have no CTA
+// and no icons.
 
 import { UPCOMING_HIT_KIND, type PolyHitKind } from '../codex-poly-search';
 import type { SearchContext } from '../../shell/fusion-bar/search-context';
@@ -29,8 +31,11 @@ export interface CtaRow {
   flagshipClassName?: string | null;
 }
 
-/** Cell codes: a CTA id, `N` = as neutral, `-` = none, `*` = needs a new feature. */
-type Cell = SearchCtaId | 'N' | '-' | '*' | 'compareSame';
+/**
+ * Cell codes: a CTA id, `N` = as neutral, `-` = none, `*` = needs a new feature,
+ * `whereInstalled` = "Wo verbaut?" (the hangar ship the piece is fitted on).
+ */
+type Cell = SearchCtaId | 'N' | '-' | '*' | 'compareSame' | 'whereInstalled';
 type Column = 'owned' | 'ship' | 'weaponComponent' | 'fps' | 'ammunition' | 'blueprint' | 'upcoming' | 'manufacturer' | 'mission';
 
 export const CTA_COLUMNS: readonly Column[] = [
@@ -39,12 +44,18 @@ export const CTA_COLUMNS: readonly Column[] = [
 
 export type CtaRowKey = 'neutral' | 'chipShip' | 'chipItem' | 'hqHangar' | 'hqStock' | 'hqPlan' | 'signedOut';
 
-/** Round 3 `q3-matrix`, cell for cell. Order of cells = {@link CTA_COLUMNS}. */
+/**
+ * Round 3 `q3-matrix`, cell for cell. Order of cells = {@link CTA_COLUMNS}.
+ * Still `*` (no target in the app yet): Passende Schiffe / Passende Waffen
+ * (no reverse port / ammo lookup), Montieren (the loadout editors take no
+ * "mount this" entry), Bezugsquelle for ships (no ship shop data), Zum Einsatz
+ * (no mission kind, no add-to-Einsatz flow).
+ */
 export const CTA_MATRIX: Readonly<Record<CtaRowKey, readonly Cell[]>> = {
   neutral:   ['myLoadout', 'compareWith', '*', 'inSet', '*', 'materialToSupply', 'atRsi', 'allProducts', '*'],
   chipShip:  ['compareWith', 'compareWith', '*', 'N', 'N', 'N', 'N', 'N', 'N'],
   chipItem:  ['*', 'N', 'compareSame', 'compareSame', 'N', 'N', 'N', 'N', 'N'],
-  hqHangar:  ['myLoadout', 'add', '*', 'inSet', 'N', 'N', 'atRsi', 'N', 'N'],
+  hqHangar:  ['myLoadout', 'add', 'whereInstalled', 'inSet', 'N', 'N', 'atRsi', 'N', 'N'],
   hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'N', '-', 'N', 'N'],
   hqPlan:    ['planOps', '*', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'N', 'N', '*'],
   signedOut: ['-', 'add', '*', 'N', 'N', 'N', 'atRsi', 'allProducts', 'N'],
@@ -144,6 +155,18 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
 }
 
 /**
+ * "Wo verbaut?" — the hangar ship the piece is fitted on (the first one; the
+ * row's meta line names the others). Same target as Mein Loadout, its own
+ * wording: the reader asks about the piece, not the ship. Null when it is
+ * fitted nowhere.
+ */
+function whereInstalled(row: CtaRow): SearchCta | null {
+  const ship = row.ownership?.fittedOn[0]?.shipId ?? row.ownership?.equippedOnShipId ?? null;
+  if (!ship) return null;
+  return { id: 'myLoadout', labelKey: 'search.cta.whereInstalled', type: 'link', target: { link: hqShip(ship), queryParams: null }, needsSignIn: false };
+}
+
+/**
  * The one main CTA of a row in a context, or null.
  *
  * Order: no-CTA rows (news / patch / gallery / page) → the reader's own data
@@ -174,10 +197,16 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
   const idx = CTA_COLUMNS.indexOf(owned ? 'owned' : column);
   const neutralIdx = CTA_COLUMNS.indexOf(column);
 
+  // "Wo verbaut?" asks about the piece: it wins over the Besitz column of a fitted piece.
+  if (CTA_MATRIX[key][neutralIdx] === 'whereInstalled') {
+    const where = whereInstalled(row);
+    if (where) return where;
+  }
+
   const chipItemKind = ctx.chips.find((c) => c.filter.compatWith)?.filter.compatWith?.kind;
   const own = (cell: Cell): SearchCta | null | 'neutral' => {
     if (cell === '-') return null;
-    if (cell === '*' || cell === 'N') return 'neutral';
+    if (cell === '*' || cell === 'N' || cell === 'whereInstalled') return 'neutral';
     if (cell === 'compareSame') return chipItemKind && chipItemKind === row.kind ? build('compareWith', row, ctx, signedIn) : 'neutral';
     return build(cell, row, ctx, signedIn);
   };

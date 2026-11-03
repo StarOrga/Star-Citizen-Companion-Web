@@ -19,6 +19,7 @@ export type SearchIconKind =
   | 'stock'
   | 'patch'
   | 'gallery'
+  | 'mission'
   | 'page';
 
 /** Path data per kind (several sub-paths per icon, drawn in one stroke style). */
@@ -36,6 +37,7 @@ export const SEARCH_KIND_ICONS: Readonly<Record<SearchIconKind, readonly string[
   stock: ['M4 8l8-4 8 4v9l-8 4-8-4z', 'M4 8l8 4 8-4M12 12v9'],
   patch: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3 2'],
   gallery: ['M3 5h18v14H3z', 'M3 16l5-5 4 4 3-3 6 6', 'M15.5 9.5a1.5 1.5 0 1 0 0-.01'],
+  mission: ['M12 3a9 9 0 1 0 .01 0', 'M12 8a4 4 0 1 0 .01 0', 'M12 1v4M12 19v4M1 12h4M19 12h4'],
   page: ['M12 2.5L21 12l-9 9.5L3 12z', 'M12 8v8M8 12h8'],
 };
 

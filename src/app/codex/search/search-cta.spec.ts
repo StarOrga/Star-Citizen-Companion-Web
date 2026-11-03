@@ -86,6 +86,35 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
     expect(resolveCta(ctx, rowOf('weaponComponent', { kind: 'component' }), true)).toBeNull();
   });
 
+  describe('Wo verbaut? (HQ Hangar x Waffe/Komp., flipped * cell)', () => {
+    const hangar = searchContextOf('/hq/hangar');
+    const fitted = { ...OWN, shipId: null, equippedOnShipId: 'h9', fittedOn: [{ shipId: 'h7', name: 'Nachtfalke', count: 2 }] };
+    it('links to the hangar ship the piece is fitted on, in its own wording', () => {
+      const cta = resolveCta(hangar, rowOf('weaponComponent', { ownership: fitted }), true);
+      expect(cta).toEqual(jasmine.objectContaining({ labelKey: 'search.cta.whereInstalled', type: 'link', needsSignIn: false }));
+      expect(cta?.target?.link).toEqual(['/hq/hangar', 'h7']);
+    });
+    it('also for components', () => {
+      const cta = resolveCta(hangar, rowOf('weaponComponent', { kind: 'component', ownership: fitted }), true);
+      expect(cta?.labelKey).toBe('search.cta.whereInstalled');
+    });
+    it('stays Mein Loadout outside the hangar context', () => {
+      expect(resolveCta(searchContextOf('/codex'), rowOf('weaponComponent', { ownership: fitted }), true)?.labelKey).toBe('search.cta.myLoadout');
+    });
+    it('a piece fitted nowhere falls back (no CTA, the neutral cell is still *)', () => {
+      expect(resolveCta(hangar, rowOf('weaponComponent'), true)).toBeNull();
+    });
+  });
+
+  describe('still-* cells keep their fallback', () => {
+    it('Passende Schiffe / Passende Waffen / Montieren / Bezugsquelle for ships have no target yet', () => {
+      expect(resolveCta(searchContextOf('/codex'), rowOf('weaponComponent'), true)).toBeNull();
+      expect(resolveCta(searchContextOf('/codex'), rowOf('ammunition'), true)).toBeNull();
+      expect(resolveCta(searchContextOf('/codex/ship/AEGS_Gladius'), rowOf('weaponComponent'), true)).toBeNull();
+      expect(resolveCta(searchContextOf('/hq', 'planen'), rowOf('ship'), true)?.id).toBe('compareWith');
+    });
+  });
+
   describe('Vergleichen on Codex list pages', () => {
     const list = searchContextOf('/codex/index?kind=weapon');
     it('is the CTA for rows of the list kind', () => {

@@ -19,7 +19,9 @@ import { OwnSources, searchOwn } from './search-own';
 import { parseQuery, switchChip } from './search-query-parse';
 import { RowOwnership, SearchChip, SearchResult, SearchResultRow } from './search-result-model';
 import { SearchSignalsService } from './search-signals.service';
-import { GalleryMatch, GalleryRpcRow, SourceResult, mapGalleryRows, searchPatches } from './search-sources';
+import {
+  GalleryMatch, GalleryRpcRow, MissionMatch, MissionRpcRow, SourceResult, mapGalleryRows, mapMissionRows, searchPatches,
+} from './search-sources';
 import { CodexBuildDiffService } from '../codex-build-diff.service';
 import { PolyHitKind, PolySearchHit, toPolyHit } from '../codex-poly-search';
 import { mergeSuggestions } from '../codex-did-you-mean.component';
@@ -170,6 +172,7 @@ export class CodexSearchEngine {
   private readonly baseResult = signal<PolySearchResult | null>(null);
   private readonly facets = signal<PolySearchResult['facets'] | null>(null);
   private readonly galleryRows = signal<SourceResult<GalleryMatch> | null>(null);
+  private readonly missionRows = signal<SourceResult<MissionMatch> | null>(null);
   private readonly compatPorts = signal<{ key: string; ports: FitPort[] } | null>(null);
   private readonly shipNames = signal<ReadonlyMap<string, string>>(new Map());
   private ownDataRequested = false;
@@ -203,6 +206,7 @@ export class CodexSearchEngine {
       own,
       patches: hasText ? searchPatches(text, this.news().patchLines(), this.perGroup()) : null,
       gallery: hasText ? this.galleryRows() : null,
+      missions: hasText ? this.missionRows() : null,
       signals,
       ownership,
       fit: compat?.kind === 'ship' ? (hit) => fitVerdict(hit, ports) : undefined,
@@ -459,6 +463,7 @@ export class CodexSearchEngine {
       this.baseResult.set(null);
       this.facets.set(null);
       this.galleryRows.set(null);
+      this.missionRows.set(null);
       this.error.set(null);
       this.partialError.set(null);
       this.didYouMean.set([]);
@@ -496,6 +501,8 @@ export class CodexSearchEngine {
       }
       this.galleryRows.set(null);
       void this.loadGallery(seq, term);
+      this.missionRows.set(null);
+      void this.loadMissions(seq, term);
       if (failed?.length) this.partialError.set(toErrorKey('codex', 'search', failure, { term, failed }));
       this.activeIndex.set(-1);
       if (hits.length === 0) void this.loadDidYouMean(seq, term);
@@ -522,6 +529,18 @@ export class CodexSearchEngine {
       this.galleryRows.set(mapGalleryRows(data as GalleryRpcRow[]));
     } catch {
       /* degrade silently: no gallery group */
+    }
+  }
+
+  /** Missions (contracts of the current LIVE build): a low-priority add-on like the gallery. */
+  private async loadMissions(seq: number, term: string): Promise<void> {
+    if (term.length < 2) return;
+    try {
+      const { data, error } = await this.injector.get(SupabaseClientProvider).client.rpc('search_missions', { p_query: term, p_limit: 8 });
+      if (error || seq !== this.seq) return;
+      this.missionRows.set(mapMissionRows(data as MissionRpcRow[]));
+    } catch {
+      /* degrade silently: no mission group */
     }
   }
 

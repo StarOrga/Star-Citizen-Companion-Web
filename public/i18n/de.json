@@ -2278,6 +2278,21 @@
       "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} von {{total}}",
       "subtitleAllNoPatch": "{{shown}} Einträge"
+    },
+    "contract": {
+      "eyebrow": "Mission",
+      "giver": "Auftraggeber",
+      "location": "Ort",
+      "reward": "Belohnung",
+      "rewardDynamic": "Keine feste Grundbelohnung",
+      "legality": "Rechtslage",
+      "lawful": "Legal",
+      "unlawful": "Illegal",
+      "variantsLabel": "Varianten",
+      "variants": "{{n}} Aufträge mit diesem Titel",
+      "patch": "Patch",
+      "placeholderHint": "‹…› setzt das Spiel erst beim Annehmen ein (Ort, Auftraggeber, Ziel).",
+      "notFound": "Diese Mission gibt es im aktuellen LIVE-Build nicht."
     }
   },
   "blueprint": {
@@ -6084,6 +6099,7 @@
       "allProducts": "Alle Produkte",
       "add": "Hinzufügen",
       "whereStored": "Wo gelagert?",
+      "whereInstalled": "Wo verbaut?",
       "planOps": "Einsatz planen",
       "sourceOf": "Bezugsquelle",
       "openSet": "Set öffnen"
@@ -6112,7 +6128,8 @@
       "expanded": "{{name}} aufgeklappt",
       "collapseKey": "← zurück",
       "allInIndex": "Alle {{n}} im Index öffnen",
-      "allInHq": "Alle {{n}} im HQ öffnen"
+      "allInHq": "Alle {{n}} im HQ öffnen",
+      "mission": "Missionen"
     },
     "icon": {
       "wishlist": "Auf die Wunschliste",
@@ -6137,7 +6154,9 @@
     "row": {
       "patch": "Patch {{line}}",
       "patchMeta": "Patch-Notiz · {{version}}",
-      "galleryMeta": "Galerie"
+      "galleryMeta": "Galerie",
+      "missionMeta": "Mission",
+      "missionVariants": "{{n}} Varianten"
     },
     "abbr": {
       "alias": "„{{word}}“ gelesen als",
