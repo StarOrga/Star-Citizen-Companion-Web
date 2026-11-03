@@ -208,6 +208,15 @@ a.holo {
   color: color-mix(in srgb, var(--sc-warning) 72%, var(--sc-fg-1));
 }
 .c-cmp.worse { color: var(--sc-warning); }
+/* A loadout part without a placeable mount sits on its hull zone (#884): a dashed ring, not a mount. */
+.dot.zone { background: transparent; border: 1.5px dashed var(--holo-hi); box-shadow: none; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+.c-zone { margin-left: 6px; font-style: normal; letter-spacing: 0.04em; text-transform: none; color: var(--sc-fg-1); }
+/* Flug / Loadout (#884): the switch heads the callout column it swaps. */
+.set {
+  position: absolute; right: 79%; top: 15%; z-index: 5; transform: translateY(-50%);
+  animation: call-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) var(--at) both;
+}
+.leaving .set { animation: call-out 0.3s ease-in both; }
 
 // ── Kennung: a dimension bracket on the hologram box's right edge ──
 // The half square ( ] ) measures the hologram's height; the name stands at its
@@ -325,7 +334,7 @@ a.holo {
   .beam { transform: none; opacity: 1; animation: none !important; }
   .beam .rays, .beam .motes, .band, .scan, .disc, .shock, .sweep { animation: none !important; }
   .scan, .band, .shock { display: none; }
-  .form, .leaders path, .dot, .dot.real::after, .call, .k-eye, .k-type, .k-dim, .k-facts, .k-paints, .flash, .emitter, .pool, .pv { animation: none !important; }
+  .form, .leaders path, .dot, .dot.real::after, .call, .set, .k-eye, .k-type, .k-dim, .k-facts, .k-paints, .flash, .emitter, .pool, .pv { animation: none !important; }
   .form, .k-type { clip-path: none; }
   .leaders path { stroke-dashoffset: 0; }
   .prog .run { animation: none !important; stroke-dashoffset: 0; }
@@ -343,7 +352,7 @@ a.holo {
 
 // Narrow stage: the callouts give way (their values go to the bars pane).
 @media (max-width: 1099px) {
-  .leaders, .dot, .callouts { display: none; }
+  .leaders, .dot, .callouts, .set { display: none; }
   :host { --hx: 6%; --hw: 62%; }
 }
 @media (max-width: 720px) {

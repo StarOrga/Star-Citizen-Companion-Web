@@ -541,6 +541,12 @@ export const VOTE_PRIOR_STRENGTH = 15;
 export const VOTE_DEAD_BAND = 3;
 /** Symmetric cap of the correction in points. */
 export const VOTE_CORRECTION_CAP = 10;
+/**
+ * The cap grows with the evidence: n_eff / this × VOTE_CORRECTION_CAP, full from here on. A unanimous
+ * bloc right at MIN_EFFECTIVE_VOTES has zero variance (no interval) and would otherwise move S by the
+ * full cap (#885 red-team R8); now it moves it by half.
+ */
+export const VOTE_FULL_CAP_VOTES = 50;
 /** Both extreme shares at or above this → the votes are split. */
 export const VOTE_SPLIT_SHARE = 0.25;
 /** Correction multiplier when split. */
@@ -605,7 +611,8 @@ export function communityCorrection(S: number, agg: VoteAggregate): CommunityCor
   }
 
   const posterior = (nEff * mean + VOTE_PRIOR_STRENGTH * S) / (nEff + VOTE_PRIOR_STRENGTH);
-  let target = Math.min(VOTE_CORRECTION_CAP, Math.max(-VOTE_CORRECTION_CAP, posterior - S));
+  const cap = VOTE_CORRECTION_CAP * Math.min(1, nEff / VOTE_FULL_CAP_VOTES);
+  let target = Math.min(cap, Math.max(-cap, posterior - S));
   const split = shares.stabil >= VOTE_SPLIT_SHARE && shares.instabil >= VOTE_SPLIT_SHARE;
   if (split) target *= VOTE_SPLIT_FACTOR;
   return { ...base, state: split ? 'split' : 'applied', correction: Math.round(target) || 0, halfWidth };

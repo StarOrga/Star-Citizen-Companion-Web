@@ -345,6 +345,13 @@
         "cargoScu": "Fracht",
         "crew": {
           "size": "Crew"
+        },
+        "loadout": {
+          "weapons": "Waffen",
+          "shield": "Schild",
+          "quantum": "Quantenantrieb",
+          "power": "Leistung (Segmente)",
+          "cooler": "Kühlung (pro s)"
         }
       },
       "overview": {
@@ -434,6 +441,12 @@
         "open": "{{label}} {{value}}: {{name}} öffnen",
         "legend": "Klassenschnitt",
         "toPage": "Zur {{name}}-Seite"
+      },
+      "set": {
+        "label": "Werte",
+        "flight": "Flug",
+        "loadout": "Loadout",
+        "zone": "≈ Zone"
       },
       "compare": {
         "delta": "{{delta}} % ggü. Klasse",

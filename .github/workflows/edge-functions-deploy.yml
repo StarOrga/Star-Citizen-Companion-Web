@@ -171,7 +171,8 @@ jobs:
 
           for slug in $SLUGS; do
             echo "::group::deploy $slug"
-            if supabase functions deploy "$slug" --project-ref "$PROJECT_REF"; then
+            # --yes: the CLI asks for confirmation and refuses to deploy without a TTY.
+            if supabase functions deploy "$slug" --project-ref "$PROJECT_REF" --yes; then
               deployed="$deployed $slug"
             else
               # Keep going: one bad function must not leave the rest stale.

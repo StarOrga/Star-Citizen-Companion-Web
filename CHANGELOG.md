@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.199.0] - 2026-11-03
+
+### Added
+- Search follows the page you are on: gallery images are found as links, and in the HQ your own hangar is searched on your device only. A wishlist, popular searches and an admin list of searches without results come with it.
+- Codex holotable: a Flug / Loadout switch shows the ship's loadout (weapons, shield, quantum drive, power, cooling) at its hardpoints; your choice is remembered per profile.
+
+### Fixed
+- Edge-function deploys no longer stop at the CLI's confirmation prompt.
+
+## [0.198.1] - 2026-11-03
+
+### Security
+- Community stability votes now count an account from 7 days after its approval, not after sign-up (#885).
+
+### Changed
+- A community verdict moves the stability number by at most ±5 points at the 25-vote minimum. The full ±10 applies only from 50 effective votes (#885).
+
 ## [0.198.0] - 2026-11-03
 
 ### Added

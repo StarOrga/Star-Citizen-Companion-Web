@@ -1,0 +1,74 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Backlog-Entscheidungen vom 2. November</h2>
+  </div>
+
+  <ol class="fr-flow">
+    <li>Entscheidungen abgegeben</li>
+    <li>In die Issues geschrieben</li>
+    <li>Galerie- und Hangar-Suche übergeben</li>
+    <li>Große Teile als eigene Sitzungen vorgeschlagen</li>
+  </ol>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Deine fünf Entscheidungen stehen jetzt als „Refinement“ in #859, #832, #842, #884 und #885, damit spätere Läufe sie nicht noch einmal abfragen.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span><b>HQ-Konzept</b> deckt jetzt Wunschliste, Live-Daten, Handel und Org ab, Ruf fällt raus.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🔎</span><span><b>Galerie- und Hangar-Suche</b> übernimmt die laufende Suche-Sitzung.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛠</span><span><b>Datenlücken, Callouts und Votes</b> haben je einen klaren Bauplan.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🗂 Datenintegrität</span>
+          <b class="fr-meter-value">5 / 5</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Issues mit genau einem Refinement-Block und einer Nutzen-Zeile, Ziel 5. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">2 / 2</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Bei zwei Issues hatte ein Netzfehler den Text überschrieben. Beide sind aus der GitHub-Historie wiederhergestellt. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">Stufe 6<small> von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="na">{{final.level_code}}</li>
+      <li data-level="2" data-state="na">{{final.level_dry}}</li>
+      <li data-level="3" data-state="na">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="na">{{final.level_local}}</li>
+      <li data-level="5" data-state="na">{{final.level_prod}}</li>
+      <li data-level="6" data-state="done">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Kein Code geändert. Die Issue-Texte wurden direkt auf GitHub gegengelesen.</p>
+  </div>
+
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="h-fankit" data-crit="mid" data-guide="web">Fankit-Regel auf der RSI-Seite nachlesen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Issues #859, #832, #842, #884, #885 mit Refinement-Markern</li>
+      <li>Brief: <code>docs/concepts/2026-11-02-backlog-entscheidungen/briefs/implement.md</code></li>
+      <li>Galerie- und Hangar-Suche an die Sitzung „Suchfunktion: Intelligenz und Kontext“ übergeben</li>
+    </ul>
+  </details>
+</section>

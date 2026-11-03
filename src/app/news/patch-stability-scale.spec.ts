@@ -76,9 +76,15 @@ describe('communityCorrection', () => {
     expect(up.correction).toBe(VOTE_CORRECTION_CAP);
   });
 
+  it('scales the cap with the evidence: half at n_eff 25, full from 50', () => {
+    // a unanimous bloc of 25 has no interval; it may move S by 5, not 10 (R8)
+    expect(communityCorrection(95, agg(0, 0, 25)).correction).toBe(-5);
+    expect(communityCorrection(95, agg(0, 0, 50)).correction).toBe(-VOTE_CORRECTION_CAP);
+  });
+
   it('halves the correction when both extremes hold at least 25 %', () => {
-    // 10/10/10: mean 56.7, S 95 -> capped -10, split -> -5
-    const r = communityCorrection(95, agg(10, 10, 10));
+    // 20/20/20: mean 56.7, S 95 -> capped -10 (n_eff 60), split -> -5
+    const r = communityCorrection(95, agg(20, 20, 20));
     expect(r.state).toBe('split');
     expect(r.correction).toBe(-5);
     expect(r.halfWidth).toBeGreaterThan(0);

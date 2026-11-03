@@ -8,7 +8,7 @@
 -- Runs in begin ... rollback as the real roles (authenticated / anon).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(32);
+select plan(33);
 
 -- Fixtures (as the migration owner) ----------------------------------------
 insert into auth.users (id, email, created_at) values
@@ -24,6 +24,9 @@ insert into auth.users (id, email, created_at) values
 insert into public.profiles (id, is_approved)
 select u.id, u.email <> 'pgtap-bv-e@example.test' from auth.users u where u.email like 'pgtap-bv-%@example.test'
 on conflict (id) do update set is_approved = excluded.is_approved;
+-- Approved a month ago — except D, approved (and created) just now.
+update public.profiles set approved_at = now() - interval '30 days'
+ where is_approved and id in (select id from auth.users where email like 'pgtap-bv-%@example.test' and email <> 'pgtap-bv-d@example.test');
 
 -- Future thread_first_at: the fixtures are the newest running build of their channel.
 insert into public.patch_channel_builds (channel, version, line, started_at, thread_first_at, running) values
@@ -168,6 +171,11 @@ select ('00000000-0000-4000-a000-0000008851' || lpad(i::text, 2, '0'))::uuid, 'p
 insert into public.profiles (id, is_approved)
 select u.id, true from auth.users u where u.email like 'pgtap-bv-x%@example.test'
 on conflict (id) do update set is_approved = true;
+-- x10 is old but approved just now (R5): its vote must weigh 0 for 7 days.
+update public.profiles set approved_at = now() - interval '30 days'
+ where id in (select id from auth.users where email like 'pgtap-bv-x%@example.test' and email <> 'pgtap-bv-x10@example.test');
+update public.profiles set approved_at = now()
+ where id = (select id from auth.users where email = 'pgtap-bv-x10@example.test');
 alter table public.patch_channel_build_votes disable trigger patch_channel_build_votes_guard;
 insert into public.patch_channel_build_votes (user_id, channel, version, verdict, updated_at)
 select u.id, 'ptu', 'pgtap-9.9.0', 'instabil', now() - interval '2 hours' from auth.users u where u.email like 'pgtap-bv-x%@example.test';
@@ -179,6 +187,8 @@ select ok((select w_instabil > 0 from public.patch_channel_build_vote_state() wh
           'from 10 counted votes the split is returned');
 select is((select w_stabil from public.patch_channel_build_vote_state() where version = 'pgtap-9.9.0'), 0::double precision,
           'the fresh account''s stabil vote weighs 0');
+select ok((select w_instabil < 10 from public.patch_channel_build_vote_state() where version = 'pgtap-9.9.0'),
+          'an old account approved just now weighs 0 (the age counts from the approval)');
 reset role;
 
 -- Anonymous -------------------------------------------------------------------

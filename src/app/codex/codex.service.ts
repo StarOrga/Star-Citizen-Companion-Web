@@ -407,6 +407,15 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
  */
 export const PAYLOAD_READS_IN_FLIGHT = 3;
 
+/** Headline numbers of one ship component ({@link CodexService.getComponentKeyStats}); null = not that kind of part. */
+export interface ComponentKeyStats {
+  shield: number | null;
+  /** Quantum drive speed in m/s. */
+  quantum: number | null;
+  power: number | null;
+  cooling: number | null;
+}
+
 /**
  * Run `task` over `items` with at most `limit` of them in flight, in order of
  * `items`. Resolves when all have settled; `task` handles its own failures.
@@ -1752,6 +1761,49 @@ export class CodexService {
       }
       for (const r of data as unknown as Record<string, unknown>[]) {
         out.set(r['class_name'] as string, r['payload']);
+      }
+    });
+    return out;
+  }
+
+  /**
+   * The headline number of each ship component for the landing's loadout
+   * callouts (#884): shield HP, quantum drive speed (m/s), power segments,
+   * cooling rate. PostgREST picks them out of the payload server-side, so a
+   * ship plus its class cohort costs a few bytes per component instead of the
+   * full ~10 kB payload. A field the component does not have comes back null;
+   * a failed chunk is logged and simply missing from the map.
+   */
+  async getComponentKeyStats(classNames: string[]): Promise<Map<string, ComponentKeyStats>> {
+    const out = new Map<string, ComponentKeyStats>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0) return out;
+    // Keys with a dot are literal payload keys, not paths: quoted for PostgREST.
+    const select =
+      'class_name,' +
+      'shield:payload->stats->SCItemShieldGeneratorParams->MaxShieldHealth,' +
+      'quantum:payload->stats->SCItemQuantumDriveParams->"params.driveSpeed",' +
+      'power:payload->stats->ItemResourceComponentParams->"online.power.generateSegments",' +
+      'cooling:payload->stats->ItemResourceComponentParams->"online.coolant.generate"';
+    const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    await forEachLimited(chunk(names, 200), PAYLOAD_READS_IN_FLIGHT, async (slice) => {
+      const { data, error } = await this.sb.client
+        .from('codex_components')
+        .select(select)
+        .eq('build_id', build.id)
+        .in('class_name', slice);
+      if (error || !data) {
+        logWarn('codex', 'getComponentKeyStats chunk failed', { error });
+        return;
+      }
+      for (const r of data as unknown as Record<string, unknown>[]) {
+        out.set(r['class_name'] as string, {
+          shield: num(r['shield']),
+          quantum: num(r['quantum']),
+          power: num(r['power']),
+          cooling: num(r['cooling']),
+        });
       }
     });
     return out;

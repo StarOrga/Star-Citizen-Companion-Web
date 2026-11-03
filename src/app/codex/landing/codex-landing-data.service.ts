@@ -12,6 +12,7 @@ import {
   CodexKind,
   CodexListRow,
   CodexService,
+  ComponentKeyStats,
   manufacturerLabel,
   pickLocalized,
   toLang,
@@ -19,10 +20,11 @@ import {
 import { UpcomingShipsService, normalizeShipName } from '../upcoming-ships.service';
 import { formatNumber } from '../codex-format';
 import { shipAnchorPorts, shipAnchorPositions } from './codex-landing-values';
+import { loadoutAnchorPorts, loadoutComponentClasses, loadoutValues, withLoadoutClassStats } from './codex-landing-loadout';
 
-/** Real hardpoint anchors of a ship's callouts (cx-anchors): candidate ports + their codex positions. */
+/** Real hardpoint anchors of a ship's callouts (cx-anchors) — flight and loadout set: candidate ports + their codex positions. */
 function shipAnchors(payload: unknown): Pick<LandingItem, 'anchorPorts' | 'anchorPositions'> {
-  const anchorPorts = shipAnchorPorts(payload);
+  const anchorPorts = { ...shipAnchorPorts(payload), ...loadoutAnchorPorts(payload) };
   return { anchorPorts, anchorPositions: shipAnchorPositions(payload, anchorPorts) };
 }
 import {
@@ -420,6 +422,7 @@ export class CodexLandingDataService {
     const roleKey = category === 'ship' ? ((detail.payload as { role?: string | null })?.role ?? listRow.role) : null;
     const roleText = roleKey ? ((await this.codex.resolveLocaleKeys([roleKey], lang)).get(roleKey) ?? null) : null;
     const overview = overviewFor(category, listRow, manufacturer, roleText);
+    const cohort = classCohort(category, row, rows);
     return {
       category,
       kind,
@@ -430,11 +433,31 @@ export class CodexLandingDataService {
       imageUrl: category === 'ship' ? await this.rsiShipImage(name) : null,
       previewUrl: this.codex.previewUrl(payload?.previewImage ?? null),
       overview,
-      topValues: withClassStats(category, topValuesFor(category, detail.payload), classCohort(category, row, rows)),
+      topValues: withClassStats(category, topValuesFor(category, detail.payload), cohort),
       facts: factsFor(category, detail.payload, listRow.size),
       fresh: fresh.some((r) => r.classNameSlug === className),
-      ...(category === 'ship' ? shipAnchors(detail.payload) : {}),
+      ...(category === 'ship' ? { ...shipAnchors(detail.payload), loadoutValues: await this.loadoutFor(detail.payload, cohort) } : {}),
     };
+  }
+
+  /**
+   * The loadout callout set of a ship (#884) with its class comparison: the
+   * component stats of the ship and its cohort in one lean read. A failed read
+   * yields only the weapon value (it needs no stats), never an error state —
+   * the flight set stays the default either way.
+   */
+  private async loadoutFor(payload: unknown, cohort: readonly Pick<CodexListRow, 'payload'>[]): Promise<LandingValue[]> {
+    const names = [payload, ...cohort.map((r) => r.payload)].flatMap(loadoutComponentClasses);
+    let stats: ReadonlyMap<string, ComponentKeyStats> = new Map();
+    try {
+      stats = await this.codex.getComponentKeyStats(names);
+    } catch (err) {
+      logWarn('codex-landing', 'loadout stats failed', err);
+    }
+    return withLoadoutClassStats(
+      loadoutValues(payload, stats),
+      cohort.map((r) => loadoutValues(r.payload, stats)),
+    );
   }
 
   // ── Codex list: new items per category ────────────────────────────────────
