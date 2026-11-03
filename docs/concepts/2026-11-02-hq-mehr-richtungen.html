@@ -5540,7 +5540,8 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       </header>
 
       <main>
-<section data-iteration="1" data-iteration-template="decision" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-baked id="iter-1" data-active>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
 <style>
 #hq-next .hqx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 #hq-next .hqx-table th, #hq-next .hqx-table td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--border-color); }
@@ -5575,7 +5576,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <!-- 1 · Wishlist / goals -->
     <section id="hq-goals" data-nav-label="Ziele" data-decision="hq-goals" data-decision-mode="single" data-label="Ziele und Wunschliste"
              data-rec="goals" data-rec-why="Ein Ziel mit Bedarf füllt den Nachschub von selbst, und Live-Käufe haken ihn ab — damit wird Planen zum Weg zu etwas, statt zu einer Liste."
-             data-applies-to="HQ Planen und Nachschub, nur für dich (v1 solo)" data-finding="f-hq-goals">
+             data-applies-to="HQ Planen und Nachschub, nur für dich (v1 solo)" data-finding="f-hq-goals"><input type="hidden" name="dm-hq-goals-hes" value="{&quot;ms&quot;:11313080,&quot;revisits&quot;:1,&quot;median&quot;:174187}">
       <p data-applies>Gilt für: Planen und Nachschub, nur für dich</p>
       <p data-situation>Nachschub kennt heute nur „für Set …“. Was du eigentlich erreichen willst — ein Schiff, ein Item, ein Blueprint — steht nirgends; die Hangar-Wunschliste kennt nur Schiffe.</p>
       <h3 data-question>Was wird ein Ziel im HQ, und wie speist es den Nachschub?</h3>
@@ -5585,7 +5586,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
         <label data-opt="hangar"><input type="radio" name="dm-hq-goals" value="hangar"><span data-opt-label>Hangar-Wunschliste übernehmen, nur als aUEC-Sparziel</span><span data-opt-consequence>Kein neues Modell, aber nur Schiffe und keine Zutaten im Nachschub.</span></label>
       </div>
       <textarea data-comment="hq-goals-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-hq-goals-touched" value="">
+      <input type="hidden" name="dm-hq-goals-touched" value="1">
       <input type="hidden" name="dm-hq-goals-issue" value="">
       <input type="hidden" name="dm-hq-goals-epic" value="">
       <div data-alevel="3" data-title="Ziele">
@@ -5600,7 +5601,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <!-- 2 · More live data -->
     <section id="hq-live" data-nav-label="Live-Daten" data-decision="hq-live" data-decision-mode="multi" data-label="Neue Live-Daten-Nutzungen"
              data-rec="sessions losses" data-rec-why="Beide nutzen Ereignisse, die die App schon schickt und das HQ noch nicht zeigt, und beantworten Fragen, die du nach jeder Session hast."
-             data-applies-to="HQ Jetzt, Bestand und Statistik; nur mit SCC-App-Sync (Opt-in)" data-finding="f-hq-live">
+             data-applies-to="HQ Jetzt, Bestand und Statistik; nur mit SCC-App-Sync (Opt-in)" data-finding="f-hq-live"><input type="hidden" name="dm-hq-live-hes" value="{&quot;ms&quot;:175336,&quot;revisits&quot;:1,&quot;median&quot;:174187}">
       <p data-applies>Gilt für: Jetzt, Bestand und Statistik — nur wer den Sync in der SCC-App einschaltet</p>
       <p data-situation>Die App schickt seit v0.96.0 (1. Nov.) über 40 Ereignistypen. Das HQ nutzt davon acht: Käufe, Verträge, Raffinerie, Ankünfte, Tode, Claims, Crimestat, Blueprints.</p>
       <h3 data-question>Welche neuen Live-Daten soll das HQ zeigen?</h3>
@@ -5608,11 +5609,11 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       <div data-options>
         <label data-opt="sessions" data-recommended><input type="checkbox" name="dm-hq-live.sessions" checked><span data-opt-label>Session-Logbuch: jede Session als Karte (Dauer, Sprünge, Verträge, aUEC, Verluste)</span><span data-opt-consequence>Aus session.joined/quit und den Ereignissen dazwischen; reines Web, keine App-Änderung.</span></label>
         <label data-opt="losses" data-recommended><input type="checkbox" name="dm-hq-live.losses" checked><span data-opt-label>Schiffsverlust und Versicherung im Bestand verfolgen</span><span data-opt-consequence>vehicle.destroyed markiert das Schiff, insurance.claim_complete gibt es wieder frei.</span></label>
-        <label data-opt="contracts"><input type="checkbox" name="dm-hq-live.contracts"><span data-opt-label>Vertragsquote: erledigt, gescheitert, abgebrochen</span><span data-opt-consequence>Eine Kachel mehr in Statistik; die Ereignisse tragen nur Name und Ergebnis, keinen Lohn.</span></label>
-        <label data-opt="zones"><input type="checkbox" name="dm-hq-live.zones"><span data-opt-label>Zonen-Status auf Jetzt: Armistice, Sperrgebiet, Comm-Array aus</span><span data-opt-consequence>Hilft nur, wenn du das HQ beim Spielen offen hast; das Overlay der App zeigt es schon.</span></label>
+        <label data-opt="contracts"><input type="checkbox" name="dm-hq-live.contracts" checked><span data-opt-label>Vertragsquote: erledigt, gescheitert, abgebrochen</span><span data-opt-consequence>Eine Kachel mehr in Statistik; die Ereignisse tragen nur Name und Ergebnis, keinen Lohn.</span></label>
+        <label data-opt="zones"><input type="checkbox" name="dm-hq-live.zones" checked><span data-opt-label>Zonen-Status auf Jetzt: Armistice, Sperrgebiet, Comm-Array aus</span><span data-opt-consequence>Hilft nur, wenn du das HQ beim Spielen offen hast; das Overlay der App zeigt es schon.</span></label>
       </div>
       <textarea data-comment="hq-live-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-hq-live-touched" value="">
+      <input type="hidden" name="dm-hq-live-touched" value="1">
       <input type="hidden" name="dm-hq-live-issue" value="">
       <input type="hidden" name="dm-hq-live-epic" value="">
       <div data-alevel="3" data-title="Live-Daten">
@@ -5627,18 +5628,18 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <!-- 3 · Trading / aUEC -->
     <section id="hq-trade" data-nav-label="Handel" data-decision="hq-trade" data-decision-mode="single" data-label="Handel und aUEC-Profit"
              data-rec="runs" data-rec-why="Deine eigenen Käufe und Verkäufe sind echte Spielpreise — das kann kein Routenplaner, und es braucht keine fremde Preisquelle."
-             data-applies-to="HQ Statistik und Planen" data-finding="f-hq-trade">
+             data-applies-to="HQ Statistik und Planen" data-finding="f-hq-trade"><input type="hidden" name="dm-hq-trade-hes" value="{&quot;ms&quot;:174187,&quot;revisits&quot;:0,&quot;median&quot;:174187}">
       <p data-applies>Gilt für: Statistik und Planen</p>
       <p data-situation>Statistik zeigt schon die aUEC-Bilanz (Käufe gegen Verkäufe). Marktpreise gibt es nur über UEX (uex-proxy, heute für „Wo kaufen“), und UEX ist Community-Crowdsourcing, keine geprüfte Quelle.</p>
       <h3 data-question>Welche Handels-Fassung kommt ins HQ?</h3>
       <p data-stakes>Ob das HQ eine fremde Preisquelle braucht, der wir vertrauen müssen.</p>
       <div data-options>
-        <label data-opt="runs" data-recommended><input type="radio" name="dm-hq-trade" value="runs" checked><span data-opt-label>Handelsfahrten aus deinen Käufen und Verkäufen: Profit pro Fahrt und pro Ware</span><span data-opt-consequence>Kauf und Verkauf derselben Ware werden gepaart; nur eigene Live-Daten, keine Marktpreise.</span></label>
+        <label data-opt="runs" data-recommended><input type="radio" name="dm-hq-trade" value="runs"><span data-opt-label>Handelsfahrten aus deinen Käufen und Verkäufen: Profit pro Fahrt und pro Ware</span><span data-opt-consequence>Kauf und Verkauf derselben Ware werden gepaart; nur eigene Live-Daten, keine Marktpreise.</span></label>
         <label data-opt="market"><input type="radio" name="dm-hq-trade" value="market"><span data-opt-label>Routenplaner mit Marktpreisen, nach einem Spike zur Preisquelle</span><span data-opt-consequence>Erst prüfen, wie frisch und vollständig UEX-Rohstoffpreise sind; der Planer selbst ist L und konkurriert mit UEX und SC Trade Tools.</span></label>
-        <label data-opt="both"><input type="radio" name="dm-hq-trade" value="both"><span data-opt-label>Beides: Handelsfahrten bauen und den Preisquellen-Spike als eigenes Issue</span><span data-opt-consequence>Zwei Issues; der Planer startet erst, wenn der Spike eine Quelle freigibt.</span></label>
+        <label data-opt="both"><input type="radio" name="dm-hq-trade" value="both" checked><span data-opt-label>Beides: Handelsfahrten bauen und den Preisquellen-Spike als eigenes Issue</span><span data-opt-consequence>Zwei Issues; der Planer startet erst, wenn der Spike eine Quelle freigibt.</span></label>
       </div>
-      <textarea data-comment="hq-trade-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-hq-trade-touched" value="">
+      <textarea data-comment="hq-trade-note" placeholder="Notiz (optional)">aber das spike auch direkt sstarten, ggf. subsession</textarea>
+      <input type="hidden" name="dm-hq-trade-touched" value="1">
       <input type="hidden" name="dm-hq-trade-issue" value="">
       <input type="hidden" name="dm-hq-trade-epic" value="">
       <div data-alevel="3" data-title="Handel">
@@ -5653,17 +5654,17 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <!-- 4 · Org / group -->
     <section id="hq-group" data-nav-label="Gruppe" data-decision="hq-group" data-decision-mode="single" data-label="Org- und Gruppenspiel"
              data-rec="model" data-rec-why="Crews wollen mitplanen, nicht nur zusehen; ein kleines Gruppenmodell trägt geteilte Einsätze und später Gruppen-Ziele, ein Link nicht."
-             data-applies-to="HQ Einsätze, Nachschub und Ziele; neue Gruppen-Tabellen" data-finding="f-hq-group">
+             data-applies-to="HQ Einsätze, Nachschub und Ziele; neue Gruppen-Tabellen" data-finding="f-hq-group"><input type="hidden" name="dm-hq-group-hes" value="{&quot;ms&quot;:10496,&quot;revisits&quot;:0,&quot;median&quot;:174187}">
       <p data-applies>Gilt für: Einsätze, Nachschub und Ziele — zum ersten Mal Daten zwischen Konten</p>
       <p data-situation>Heute gibt es nur den Stimmungs-Schalter Solo ↔ Gruppe; jede HQ-Tabelle ist per RLS auf den eigenen Nutzer beschränkt. Ein Gruppenmodell gibt es im Projekt noch nicht.</p>
       <h3 data-question>Wie kommt Gruppenspiel ins HQ?</h3>
       <p data-stakes>RLS-Modell, Datenschutzhinweis und wer was von dir sieht.</p>
       <div data-options>
-        <label data-opt="model" data-recommended><input type="radio" name="dm-hq-group" value="model"  checked><span data-opt-label>Kleines Gruppenmodell: Einladungscode, Rollen Leitung und Mitglied, geteilte Einsätze</span><span data-opt-consequence>Neue Tabellen mit RLS über Mitgliedschaft, Datenschutzhinweis, Austritt löscht Freigaben; Gruppen-Nachschub als Folge.</span></label>
+        <label data-opt="model" data-recommended><input type="radio" name="dm-hq-group" value="model" checked><span data-opt-label>Kleines Gruppenmodell: Einladungscode, Rollen Leitung und Mitglied, geteilte Einsätze</span><span data-opt-consequence>Neue Tabellen mit RLS über Mitgliedschaft, Datenschutzhinweis, Austritt löscht Freigaben; Gruppen-Nachschub als Folge.</span></label>
         <label data-opt="link"><input type="radio" name="dm-hq-group" value="link"><span data-opt-label>Nur Teilen per Link: ein Einsatz als lesbarer Schnappschuss</span><span data-opt-consequence>Kein Gruppenmodell, S statt L; die Crew sieht den Plan, kann aber nichts beitragen.</span></label>
       </div>
       <textarea data-comment="hq-group-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-hq-group-touched" value="">
+      <input type="hidden" name="dm-hq-group-touched" value="1">
       <input type="hidden" name="dm-hq-group-issue" value="">
       <input type="hidden" name="dm-hq-group-epic" value="">
       <div data-alevel="3" data-title="Gruppe">
@@ -5678,7 +5679,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
     <!-- 5 · Order -->
     <section id="hq-order" data-nav-label="Reihenfolge" data-decision="hq-order" data-decision-mode="order" data-label="Reihenfolge der Follow-up-Issues"
              data-rec="goals,live,trade,group" data-rec-why="Ziele und Live-Daten stehen auf fertigen Daten; Handel nutzt dieselben Live-Daten; Gruppe ist am größten und profitiert davon, dass Ziele schon existieren."
-             data-applies-to="Reihenfolge der neuen Issues im Backlog" data-finding="f-hq-order">
+             data-applies-to="Reihenfolge der neuen Issues im Backlog" data-finding="f-hq-order"><input type="hidden" name="dm-hq-order-hes" value="{&quot;ms&quot;:45266,&quot;revisits&quot;:0,&quot;median&quot;:174187}">
       <p data-applies>Gilt für: die Reihenfolge der neuen Issues im Backlog</p>
       <p data-situation>Aus jeder Richtung wird mindestens ein Issue; Gruppe baut auf Zielen auf (Gruppen-Ziele), Handel auf denselben Live-Daten wie das Logbuch.</p>
       <h3 data-question>In welcher Reihenfolge kommen die Richtungen dran?</h3>
