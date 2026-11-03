@@ -1,60 +1,32 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createLogBudget } from '../src/lib/log-budget.js';
+import { COPY_OUTCOME_KEY, copyTranscript } from '../src/lib/log-copy.js';
 
-function fakeButton() {
-  const classes = new Set<string>();
-  return {
-    textContent: 'Kopieren',
-    classList: {
-      add: (c: string) => classes.add(c),
-      remove: (...cs: string[]) => cs.forEach((c) => classes.delete(c)),
-      has: (c: string) => classes.has(c),
-    },
-  } as unknown as HTMLButtonElement & { classList: { has(c: string): boolean } };
-}
-
-describe('copyLog', () => {
-  let write: ReturnType<typeof vi.fn>;
-  beforeEach(() => {
-    vi.resetModules();
-    vi.useFakeTimers();
-    vi.stubGlobal('document', { getElementById: () => null });
-    write = vi.fn();
-    vi.stubGlobal('window', { sc: { clipboard: { writeText: write } } });
-  });
-
-  it('copies the full transcript and shows the copied state', async () => {
-    const mod = await import('../src/renderer/log-drawer.js');
-    mod.resetLog();
-    mod.appendLog('first');
-    mod.appendLog('boom', 'error');
-    write.mockResolvedValue({ ok: true });
-    const btn = fakeButton();
-    expect(await mod.copyLog(btn)).toBe('copied');
+describe('copyTranscript', () => {
+  it('copies the full transcript', async () => {
+    const write = vi.fn().mockResolvedValue({ ok: true });
+    expect(await copyTranscript('first\n[err] boom\n', write)).toBe('copied');
     expect(write).toHaveBeenCalledWith('first\n[err] boom\n');
-    expect(btn.classList.has('copied')).toBe(true);
-    vi.advanceTimersByTime(2000);
-    expect(btn.classList.has('copied')).toBe(false);
   });
 
-  it('shows the failed state when the clipboard write rejects', async () => {
-    const mod = await import('../src/renderer/log-drawer.js');
-    mod.resetLog();
-    mod.appendLog('x');
-    write.mockRejectedValue(new Error('denied'));
-    const btn = fakeButton();
-    expect(await mod.copyLog(btn)).toBe('failed');
-    expect(btn.classList.has('copy-failed')).toBe(true);
-    expect(btn.classList.has('copied')).toBe(false);
+  it('fails when the clipboard write rejects', async () => {
+    const write = vi.fn().mockRejectedValue(new Error('denied'));
+    expect(await copyTranscript('x\n', write)).toBe('failed');
+  });
+
+  it('fails when the main process answers ok: false', async () => {
+    const write = vi.fn().mockResolvedValue({ ok: false });
+    expect(await copyTranscript('x\n', write)).toBe('failed');
   });
 
   it('says so for an empty log and leaves the clipboard alone', async () => {
-    const mod = await import('../src/renderer/log-drawer.js');
-    mod.resetLog();
-    const btn = fakeButton();
-    expect(await mod.copyLog(btn)).toBe('empty');
+    const write = vi.fn();
+    expect(await copyTranscript('  \n', write)).toBe('empty');
     expect(write).not.toHaveBeenCalled();
-    expect(btn.classList.has('copied')).toBe(false);
+  });
+
+  it('has a text for every outcome', () => {
+    expect(COPY_OUTCOME_KEY).toEqual({ copied: 'run.copied', failed: 'run.copyFailed', empty: 'run.copyEmpty' });
   });
 });
 

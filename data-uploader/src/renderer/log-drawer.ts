@@ -7,6 +7,7 @@
  */
 
 import { t } from '../lib/i18n.js';
+import { COPY_OUTCOME_KEY, copyTranscript, type CopyOutcome } from '../lib/log-copy.js';
 
 export type LogLevel = 'info' | 'success' | 'warn' | 'error';
 
@@ -92,29 +93,14 @@ export function wireLogDrawer(): void {
   copyBtn?.addEventListener('click', () => void copyLog(copyBtn));
 }
 
-/**
- * Copy the transcript and say what happened: copied, failed, or empty. An empty
- * log (after an app restart the in-memory transcript is gone) is reported as
- * such and never written - it would silently wipe the user's clipboard.
- */
 let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
-export async function copyLog(btn: HTMLButtonElement): Promise<'copied' | 'failed' | 'empty'> {
-  let outcome: 'copied' | 'failed' | 'empty';
-  if (!plainText.trim()) {
-    outcome = 'empty';
-  } else {
-    try {
-      const r = await window.sc.clipboard.writeText(plainText);
-      outcome = r && (r as { ok?: boolean }).ok === false ? 'failed' : 'copied';
-    } catch {
-      outcome = 'failed';
-    }
-  }
+export async function copyLog(btn: HTMLButtonElement): Promise<CopyOutcome> {
+  const outcome = await copyTranscript(plainText, (text) => window.sc.clipboard.writeText(text));
   btn.classList.remove('copied', 'copy-failed');
   if (outcome === 'copied') btn.classList.add('copied');
   else if (outcome === 'failed') btn.classList.add('copy-failed');
-  btn.textContent = t(outcome === 'copied' ? 'run.copied' : outcome === 'failed' ? 'run.copyFailed' : 'run.copyEmpty');
+  btn.textContent = t(COPY_OUTCOME_KEY[outcome]);
   if (copyResetTimer) clearTimeout(copyResetTimer);
   copyResetTimer = setTimeout(() => {
     btn.classList.remove('copied', 'copy-failed');
