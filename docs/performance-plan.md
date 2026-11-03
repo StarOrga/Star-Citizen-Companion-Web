@@ -89,7 +89,10 @@ committen → pushen → hier abhaken.
      ist oder 0 Fläche hat; nicht-compositete Eigenschaften nur dort ersetzen,
      wo das Bild identisch bleibt.
 
-4. **Erzwungene Layouts im Shell-Code**: `shell.component.ts › publishTopbarHeight`,
+4. **Erzwungene Layouts im Shell-Code** — Hinweis: `publishTopbarHeight` muss
+   synchron bleiben (Versuch, die Erstmessung dem ResizeObserver zu überlassen,
+   brach 3 Specs in `shell-nav.spec.ts`, u. a. die Header-Kompression) — nicht
+   erneut versuchen. Übrige Kandidaten: `shell.component.ts › publishTopbarHeight`,
    `fusion-bar.component.ts › measureTrail / placeStage / publishHeight`,
    `stage-hero.directive.ts › align`, `verse-briefing.component.ts › lines/measure`.
    Muster: Messen nur in ResizeObserver-/IntersectionObserver-Callbacks oder
