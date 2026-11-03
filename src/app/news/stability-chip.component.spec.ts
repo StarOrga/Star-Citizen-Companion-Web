@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { PatchStabilityVotesService } from './patch-stability-votes.service';
+import { ChannelBuildVotesService } from './channel-build-votes.service';
 import type { CommunityCorrection, StabilityVerdict } from './patch-stability';
 import { StabilityChipComponent, StabilityChipData, chipFromVerdict } from './stability-chip.component';
 
@@ -12,7 +13,7 @@ const EN = {
     noData: 'Not enough data',
     tip: {
       noData: 'No rating yet', better: '{{d}} points stronger than {{prev}} ({{p}} %)', worse: '{{d}} points weaker than {{prev}} ({{p}} %)',
-      same: 'about the same as {{prev}} ({{p}} %)', community: 'of which {{c}} from the community verdict', early: 'still provisional', open: 'click opens the calculation',
+      same: 'about the same as {{prev}} ({{p}} %)', community: 'of which {{c}} from the community verdict', early: 'still provisional', open: 'click opens the calculation', communityMark: 'community-corrected',
     },
   },
 };
@@ -24,17 +25,28 @@ const data = (extra: Partial<StabilityChipData> = {}): StabilityChipData => ({
 describe('StabilityChipComponent', () => {
   const votesLine = signal<string | null>(null);
   let correction: CommunityCorrection | null = null;
+  let buildCorrection: CommunityCorrection | null = null;
   const ensured: string[] = [];
+  const buildCalls: string[] = [];
 
   beforeEach(() => {
     votesLine.set(null);
     correction = null;
+    buildCorrection = null;
     ensured.length = 0;
+    buildCalls.length = 0;
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         provideTranslateService({}),
         { provide: PatchStabilityVotesService, useValue: { line: votesLine, correctionFor: () => correction, ensure: (l: string) => ensured.push(l) } },
+        {
+          provide: ChannelBuildVotesService,
+          useValue: {
+            ensure: () => buildCalls.push('ensure'),
+            correctionFor: (ch: string, v: string) => { buildCalls.push(`${ch}:${v}`); return buildCorrection; },
+          },
+        },
       ],
     });
     const t = TestBed.inject(TranslateService);
@@ -119,5 +131,41 @@ describe('StabilityChipComponent', () => {
     expect(chipFromVerdict({ ...v, insufficient: true }, {})?.percent).toBeNull();
     expect(chipFromVerdict(null)).toBeNull();
     expect(render(null).querySelector('.chip')).toBeNull();
+  });
+
+  describe('build votes (#885)', () => {
+    const corr = (state: CommunityCorrection['state'], c: number): CommunityCorrection => ({
+      state, correction: c, nEff: state === 'too-few' ? 3 : 30, shares: { stabil: 0.2, wackelig: 0.3, instabil: 0.5 }, halfWidth: 4, votes: 31,
+    });
+    const build = (): StabilityChipData => data({ line: '4.4', percent: 70, previous: null, previousLabel: null, build: { channel: 'ptu', version: '4.4.0' } });
+
+    it('below the minimum effective votes: number unchanged, no community mark', () => {
+      buildCorrection = corr('too-few', 0);
+      const el = render(build());
+      expect(buildCalls).toContain('ensure');
+      expect(buildCalls).toContain('ptu:4.4.0');
+      expect(el.querySelector('.pct')!.textContent).toBe('70 %');
+      expect(el.querySelector('[data-community-mark]')).toBeNull();
+    });
+
+    it('above it: the build correction applies and the chip is marked community-corrected', () => {
+      buildCorrection = corr('applied', -8);
+      const el = render(build());
+      expect(el.querySelector('.pct')!.textContent).toBe('62 %');
+      expect(el.querySelector('[data-community-mark]')).not.toBeNull();
+      expect(el.querySelector('.chip')!.getAttribute('aria-label')).toContain('community-corrected');
+    });
+
+    it('a confirmed verdict is marked too, without moving the number', () => {
+      buildCorrection = corr('confirmed', 0);
+      const el = render(build());
+      expect(el.querySelector('.pct')!.textContent).toBe('70 %');
+      expect(el.querySelector('[data-community-mark]')).not.toBeNull();
+    });
+
+    it('a chip without a build never asks the build votes', () => {
+      render(data());
+      expect(buildCalls).toEqual([]);
+    });
   });
 });

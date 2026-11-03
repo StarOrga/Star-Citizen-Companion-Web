@@ -253,6 +253,24 @@ const COOLER_S3 = {
   },
 };
 
+/** A ship radar since #842 (uploader 0.70.0): RADR_BLTR_S01_Hunter, LIVE 4.10.2. */
+const RADAR_S1 = {
+  entityKind: 'component',
+  kind: 'Radar',
+  stats: {
+    SCItemRadarComponentParams: {
+      aimAssistRangeM: 1028.5,
+      aimAssistMinRangeM: 780,
+      pingCooldownS: 2.5,
+      sensitivityIR: 0.8,
+      sensitivityEM: 0.8,
+      sensitivityCS: 0.8,
+      sensitivityRS: 1,
+    },
+    ItemResourceComponentParams: { stateNames: 'Online', 'online.power.consumeSegments': 2 },
+  },
+};
+
 /** A power plant: 14 segments of budget — the number the whole dock spends. */
 const REACTOR_S3 = {
   entityKind: 'component',
@@ -985,6 +1003,13 @@ describe('codex-equipped-stats', () => {
       expect(valueOf(COOLER_S3, 'codex.equipped.minPower')).toBe(0.6667);
       expect(valueOf(COOLER_S3, 'codex.equipped.emSignature')).toBe(1490);
       expect(valueOf(COOLER_S3, 'codex.equipped.irSignature')).toBe(7130);
+    });
+
+    it('gives a radar its range, sensitivity and ping cooldown and keeps its draw (#842)', () => {
+      expect(valueOf(RADAR_S1, 'codex.equipped.aimAssistRange')).toBe(1028.5);
+      expect(valueOf(RADAR_S1, 'codex.equipped.radarSensitivity')).toBe(0.8);
+      expect(valueOf(RADAR_S1, 'codex.equipped.pingCooldown')).toBe(2.5);
+      expect(valueOf(RADAR_S1, 'codex.equipped.powerDraw')).toBe(2);
     });
 
     it('converts a gun\'s standard units into comparable segments, marked derived', () => {

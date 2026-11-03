@@ -65,6 +65,36 @@ describe('SilhouetteCoverageComponent', () => {
     expect(links[1].textContent!.trim()).toBe('XNAA_SanTokYai');
   });
 
+  it('names the recorded skip reason per hull and flags hulls without one (#842)', async () => {
+    const withReasons = {
+      ...COVERAGE,
+      reasons: { no_mesh: 1, convert_failed: 0, empty: 0 },
+      unexplained: 22,
+      missing: [
+        { class_name: 'AEGS_Idris_M', name: 'Idris-M', reason: 'no_mesh', detail: 'not in archive: x.cga' },
+        { class_name: 'XNAA_SanTokYai', name: null, reason: null, detail: null },
+      ],
+    };
+    const { el } = await mount(() => ({ data: withReasons }));
+    const chips = Array.from(el.querySelectorAll<HTMLElement>('.missing .reason'));
+    expect(chips.map((c) => c.textContent!.trim())).toEqual([
+      'admin.silhouettes.reason.no_mesh',
+      'admin.silhouettes.reason.none',
+    ]);
+    expect(chips[1].classList).toContain('unknown');
+    expect(fixture.componentInstance.reasonTip(fixture.componentInstance.data()!.missing[0]))
+      .toBe('admin.silhouettes.reasonTip.no_mesh — not in archive: x.cga');
+    expect(el.textContent).toContain('admin.silhouettes.reasonSplit');
+  });
+
+  it('treats every gap as unexplained when the RPC predates the reasons', async () => {
+    await mount(() => ({ data: COVERAGE }));
+    const d = fixture.componentInstance.data()!;
+    expect(d.unexplained).toBe(23);
+    expect(d.reasons).toEqual({ no_mesh: 0, convert_failed: 0, empty: 0 });
+    expect(d.missing.every((m) => m.reason === null)).toBeTrue();
+  });
+
   it('hides the missing list when every hull has a silhouette', async () => {
     const full = { ...COVERAGE, with_silhouette: 355, without_silhouette: 0, fallback_icon: 0, fallback_none: 0, missing: [] };
     const { el } = await mount(() => ({ data: full }));

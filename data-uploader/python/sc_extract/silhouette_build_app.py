@@ -26,7 +26,7 @@ from typing import Any, Dict
 
 from .events import count, done, error, log, phase, progress
 from . import stage_timing
-from .silhouette_build import build_rows, cache_dir_for
+from .silhouette_build import build_rows, cache_dir_for, write_skips
 
 
 def main() -> int:
@@ -61,6 +61,7 @@ def main() -> int:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         entities = manifest.get("entities", [])
         if not entities:
+            write_skips(args.out, list(manifest.get("skips") or []))
             log("info", "silhouette manifest is empty — nothing to build")
             done(result={"written": 0, "skipped": 0, "cached": 0})
             return 0
@@ -117,6 +118,7 @@ def main() -> int:
         stats = build_rows(
             exporter, entities, out_dir=args.out, build=build, tolerance_m=args.tolerance_m,
             workers=args.workers, log=on_log, on_progress=on_progress, on_count=count,
+            manifest_skips=manifest.get("skips") or [],
         )
         wall = time.perf_counter() - t0
         workers = max(1, args.workers)

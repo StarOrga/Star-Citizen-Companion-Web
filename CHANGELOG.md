@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.198.0] - 2026-11-03
+
+### Added
+- Players can rate how stable a running PTU or Hotfix build plays, on the patch page under "Laufende Test-Builds". The hub row shows the result and marks the chip once enough votes are in (#885).
+
+### Security
+- Hardened the LIVE stability votes: only approved accounts may vote, suspended accounts no longer count, and the public totals no longer reveal single votes (#885).
+
+## [0.197.0] - 2026-11-03
+
+### Added
+- Ship radars are listed as components with their aim-assist range, signature sensitivity and ping cooldown; their power draw still shows in the energy views (Data Uploader 0.70.0, #842).
+
+## [0.196.0] - 2026-11-03
+
+### Fixed
+- Ship cargo capacity is read for hulls whose cargo grid hangs behind a rack, lift, bay door or module, and ore pods count too — no ship is "not measured" anymore; the Constellation Taurus shows 174 SCU instead of 6, the Starlancer Max 224 instead of 96 (Data Uploader 0.69.0, #842).
+
+## [0.195.0] - 2026-11-03
+
+### Added
+- Admin silhouette tile names why a hull has no Holotable silhouette (no mesh / conversion failed / empty), recorded per entity by the Data Uploader (#842).
+
+### Fixed
+- Large hulls whose full-detail mesh breaks the converter (Polaris, Perseus, Ironclad, Hull B, Vulture, Constellations …) get their silhouette from the next detail level — Data Uploader 0.68.0 (#842).
+
 ## [0.194.0] - 2026-11-02
 
 ### Changed

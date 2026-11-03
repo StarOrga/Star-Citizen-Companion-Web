@@ -1,7 +1,91 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.194.0",
+  "current": "0.198.0",
   "releases": [
+    {
+      "version": "0.198.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Players can rate how stable a running PTU or Hotfix build plays, on the patch page under \"Laufende Test-Builds\". The hub row shows the result and marks the chip once enough votes are in (#885)."
+            }
+          ]
+        },
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Hardened the LIVE stability votes: only approved accounts may vote, suspended accounts no longer count, and the public totals no longer reveal single votes (#885)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.197.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship radars are listed as components with their aim-assist range, signature sensitivity and ping cooldown; their power draw still shows in the energy views (Data Uploader 0.70.0, #842)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.196.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship cargo capacity is read for hulls whose cargo grid hangs behind a rack, lift, bay door or module, and ore pods count too — no ship is \"not measured\" anymore; the Constellation Taurus shows 174 SCU instead of 6, the Starlancer Max 224 instead of 96 (Data Uploader 0.69.0, #842)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.195.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin silhouette tile names why a hull has no Holotable silhouette (no mesh / conversion failed / empty), recorded per entity by the Data Uploader (#842)."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Large hulls whose full-detail mesh breaks the converter (Polaris, Perseus, Ironclad, Hull B, Vulture, Constellations …) get their silhouette from the next detail level — Data Uploader 0.68.0 (#842)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.194.0",
       "date": "2026-11-02",

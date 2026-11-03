@@ -786,6 +786,7 @@
       "FuelTank": "Fuel tank",
       "FuelIntake": "Fuel intake",
       "CargoGrid": "Cargo grid",
+      "Radar": "Radar",
       "Other": "Other"
     },
     "results": {
@@ -1698,6 +1699,9 @@
       "minPower": "Min. power",
       "coolantDraw": "Cooling draw",
       "coolingRate": "Cooling output",
+      "aimAssistRange": "Range (aim assist)",
+      "radarSensitivity": "Sensitivity (IR/EM/CS)",
+      "pingCooldown": "Ping cooldown",
       "emSignature": "EM signature",
       "irSignature": "IR signature",
       "derivedHint": "Derived value, calculated from other extracted stats.",
@@ -2612,6 +2616,7 @@
         "unknown": "No patch data for Alpha {{line}}.",
         "section": {
           "stabilitaet": "Stability",
+          "builds": "Running test builds",
           "prep": "How do I prepare?",
           "prepPast": "What you needed to know",
           "contents": "What's in it?",
@@ -2810,7 +2815,8 @@
       "same": "about the same as {{prev}} ({{p}} %)",
       "community": "of which {{c}} from the community verdict",
       "early": "still provisional",
-      "open": "click to open the calculation"
+      "open": "click to open the calculation",
+      "communityMark": "community-corrected"
     },
     "long": {
       "ghost": "{{prev}}: {{p}} %",
@@ -2871,7 +2877,10 @@
       "tooSoon": "You can change it {{h}} h after your last vote at the earliest.",
       "rules": "Only accounts at least {{days}} days old count. Changeable {{h}} h after your last vote at the earliest. Your verdict is never shown with your name.",
       "signedOut": "Sign in to add your verdict.",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "dailyCap": "You already cast or changed {{n}} build verdicts today – try again tomorrow.",
+      "buildClosed": "This build is no longer running – only the running build can be judged.",
+      "rulesBuild": "Only accounts at least {{days}} days old count. Changeable at the earliest {{h}} h after you voted, at most {{n}} build verdicts per day, only while the build runs. Your verdict is never shown with your name."
     }
   },
   "p4k": {
@@ -3328,6 +3337,19 @@
       "barLabel": "{{pct}} % with silhouette",
       "fallbackSplit": "without: {{icon}} with preview icon, {{none}} RSI art or glyph",
       "missingToggle": "Show the {{count}} hulls without silhouette",
+      "reasonSplit": "Reasons: {{no_mesh}} no mesh, {{convert_failed}} conversion failed, {{empty}} empty, {{unexplained}} without a recorded reason",
+      "reason": {
+        "no_mesh": "no mesh",
+        "convert_failed": "conversion failed",
+        "empty": "empty",
+        "none": "no reason recorded"
+      },
+      "reasonTip": {
+        "no_mesh": "The record names no .cga/.cgf geometry, or the file is missing from the archive.",
+        "convert_failed": "cgf-converter or reading the glb failed.",
+        "empty": "Converted, but without triangles or without a traceable outline.",
+        "none": "The uploader reported no reason for this hull — a build from before uploader 0.68.0, or the silhouette step did not run."
+      },
       "noBuild": "No current build — nothing to count yet.",
       "retry": "Try again"
     },

@@ -93,7 +93,7 @@ export const SEARCH_COMMIT_MS = 1000;
 // actually present (server seeds only a subset).
 const COMPONENT_KINDS = [
   'PowerPlant', 'Shield', 'Cooler', 'QuantumDrive', 'Thruster',
-  'FuelTank', 'FuelIntake', 'CargoGrid', 'Other',
+  'FuelTank', 'FuelIntake', 'CargoGrid', 'Radar', 'Other',
 ] as const;
 
 /**
