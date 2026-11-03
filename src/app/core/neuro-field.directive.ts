@@ -1,4 +1,4 @@
-import { Directive, ElementRef, Input, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
+import { Directive, ElementRef, Input, NgZone, OnDestroy, OnInit, effect, inject, input, untracked } from '@angular/core';
 
 /**
  * Neuronenfeld — die Ladeanimation der Inhaltskacheln.
@@ -126,16 +126,7 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
    * intersecting, and every loaded news thumbnail kept redrawing an invisible
    * canvas each frame — under a backdrop-filter pill that re-blurred with it.
    */
-  @Input() set neuroActive(active: boolean) {
-    if (active === this.active) return;
-    this.active = active;
-    clearTimeout(this.fadeTimer);
-    if (active) {
-      if (this.visible) this.start();
-    } else {
-      this.zone.runOutsideAngular(() => (this.fadeTimer = setTimeout(() => this.stop(), FADE_OUT_MS)));
-    }
-  }
+  readonly neuroActive = input(true);
 
   private readonly host = inject(ElementRef).nativeElement as HTMLElement;
   private readonly zone = inject(NgZone);
@@ -154,6 +145,24 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
   private accentRead = false;
   private stillDrawn = false;
   private fadeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    effect(() => {
+      const active = this.neuroActive();
+      untracked(() => this.setActive(active));
+    });
+  }
+
+  private setActive(active: boolean): void {
+    if (active === this.active) return;
+    this.active = active;
+    clearTimeout(this.fadeTimer);
+    if (active) {
+      if (this.visible) this.start();
+    } else {
+      this.zone.runOutsideAngular(() => (this.fadeTimer = setTimeout(() => this.stop(), FADE_OUT_MS)));
+    }
+  }
 
   /* Eigener Generator statt Math.random(): zwei Kacheln nebeneinander sollen
      unterschiedlich aussehen, dieselbe Kachel aber bei jedem Aufbau gleich —
