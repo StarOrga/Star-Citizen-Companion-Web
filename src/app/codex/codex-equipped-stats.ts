@@ -354,6 +354,7 @@ export function countermeasureStats(ammoPayload: unknown, launcherPayload?: unkn
 const SHIELD_STRUCT = 'shield';
 const QUANTUM_STRUCT = 'quantum';
 const THRUSTER_STRUCT = 'thruster';
+const RADAR_STRUCT = 'radar';
 
 type StatsMap = Record<string, Record<string, unknown>> | undefined;
 
@@ -633,9 +634,18 @@ function componentStats(kind: string, payload: unknown): EquippedStat[] {
         'dec',
       );
       break;
+    case 'Radar':
+      // #842: LIVE 4.10 radars state no metre detection range. Detection is a
+      // per-signature sensitivity (IR / EM / cross-section share one rating);
+      // the one distance on the record is the aim-assist assignment range,
+      // which is what the game's own stat sheets call the radar's range.
+      push(out, 'codex.equipped.aimAssistRange', findStat(stats, RADAR_STRUCT, ['aimAssistRangeM']), 'metres');
+      push(out, 'codex.equipped.radarSensitivity', findStat(stats, RADAR_STRUCT, ['sensitivityIR']), 'percent');
+      push(out, 'codex.equipped.pingCooldown', findStat(stats, RADAR_STRUCT, ['pingCooldownS']), 'seconds');
+      break;
     default:
-      // Radar, life support, tractor beams and friends have no dedicated
-      // params struct; the resource rows below are all they can honestly show.
+      // Life support, tractor beams and friends have no dedicated params
+      // struct; the resource rows below are all they can honestly show.
       break;
   }
 

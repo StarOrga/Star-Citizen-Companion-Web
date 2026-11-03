@@ -24,6 +24,7 @@ import pytest
 from sc_extract.dataforge import DataForge
 from sc_extract.localization import Localizer
 from sc_extract.dataforge_extract import (
+    _classify_entity,
     CodexExtractor,
     _components_of,
     _attach_def,
@@ -79,7 +80,6 @@ def _project(ex: CodexExtractor, resolved: dict) -> dict:
 
 
 @pytest.mark.parametrize("atype,segments", [
-    ("Radar", 2.0),
     ("LifeSupportGenerator", 2.0),
     ("TractorBeam", 1.0),
     ("TowingBeam", 3.0),
@@ -120,13 +120,49 @@ def test_unpowered_item_still_has_no_stats(ex: CodexExtractor) -> None:
 
 
 def test_powered_item_also_keeps_its_own_params(ex: CodexExtractor) -> None:
-    """Once the block is emitted it is the usual struct-keyed dump, so a radar's
-    own params ride along for a future per-module sheet — nothing is cherry-
-    picked out."""
-    resolved = _powered_item("Radar", 2.0, sub_type="MidRangeRadar", extra=[
-        {"_Type_": "SCItemRadarComponentParams", "detectionLifetime": 1.5},
+    """Once the block is emitted it is the usual struct-keyed dump, so an
+    item's own params ride along — nothing is cherry-picked out."""
+    resolved = _powered_item("LifeSupportGenerator", 2.0, extra=[
+        {"_Type_": "SCItemLifeSupportParams", "oxygenRate": 1.5},
     ])
     obj = _project(ex, resolved)
-    assert obj["subType"] == "MidRangeRadar"
-    assert obj["stats"]["SCItemRadarComponentParams"]["detectionLifetime"] == 1.5
+    assert obj["stats"]["SCItemLifeSupportParams"]["oxygenRate"] == 1.5
+    assert obj["stats"]["ItemResourceComponentParams"]["online.power.consumeSegments"] == 2.0
+
+
+# Live shape of RADR_BLTR_S01_Hunter (LIVE 4.10.2, trimmed): eight signature
+# slots, aim assist, ping cooldown.
+def _hunter_radar() -> dict:
+    slot = lambda sens, pierce: {"_Type_": "SCItemRadarSignatureDetection",  # noqa: E731
+                                 "sensitivity": sens, "piercing": pierce,
+                                 "permitPassiveDetection": True, "permitActiveDetection": True}
+    return {
+        "_Type_": "SCItemRadarComponentParams",
+        "signatureDetection": [slot(0.8, 0.25), slot(0.8, 0.25), slot(0.8, 0.25), slot(0.0, 0.25),
+                               slot(1.0, 1.0), slot(1.0, 0.25), slot(1.0, 0.25), slot(0.0, 0.25)],
+        "pingProperties": {"_Type_": "SCItemRadarPingProperties", "cooldownTime": 2.5},
+        "aimAssist": {"_Type_": "SRadarAimAssistData", "distanceMinAssignment": 780.0,
+                      "distanceMaxAssignment": 1028.5, "outsideRangeBufferDistance": 60.0},
+    }
+
+
+def test_a_ship_radar_is_a_component_with_flat_range_and_sensitivity(ex: CodexExtractor) -> None:
+    """#842: radars sit in a component slot and draw power like one, so they
+    are `codex_components` kind `Radar` — with the power draw kept and the
+    detection numbers the generic flatten drops (a list) as flat keys."""
+    assert _COMPONENT_KIND["Radar"] == "Radar"
+    resolved = _powered_item("Radar", 2.0, sub_type="MidRangeRadar", extra=[_hunter_radar()])
+    comps = _components_of(resolved)
+    attach = _attach_def(comps)
+    assert _classify_entity("radar.xml", comps, attach) == "components"
+    obj = ex._project_component(ex.df.records[0], resolved, comps, attach, "Radar")
+    assert obj["entityKind"] == "component" and obj["kind"] == "Radar"
+    radar = obj["stats"]["SCItemRadarComponentParams"]
+    assert radar["aimAssistRangeM"] == 1028.5
+    assert radar["aimAssistMinRangeM"] == 780.0
+    assert radar["pingCooldownS"] == 2.5
+    assert (radar["sensitivityIR"], radar["sensitivityEM"], radar["sensitivityCS"]) == (0.8, 0.8, 0.8)
+    assert radar["sensitivityDB"] == 0.0 and radar["sensitivityRS"] == 1.0
+    assert radar["piercingRS"] == 1.0
+    assert "sensitivity5" not in radar  # unnamed slots stay out
     assert obj["stats"]["ItemResourceComponentParams"]["online.power.consumeSegments"] == 2.0

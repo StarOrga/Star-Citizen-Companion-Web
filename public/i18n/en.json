@@ -786,6 +786,7 @@
       "FuelTank": "Fuel tank",
       "FuelIntake": "Fuel intake",
       "CargoGrid": "Cargo grid",
+      "Radar": "Radar",
       "Other": "Other"
     },
     "results": {
@@ -1698,6 +1699,9 @@
       "minPower": "Min. power",
       "coolantDraw": "Cooling draw",
       "coolingRate": "Cooling output",
+      "aimAssistRange": "Range (aim assist)",
+      "radarSensitivity": "Sensitivity (IR/EM/CS)",
+      "pingCooldown": "Ping cooldown",
       "emSignature": "EM signature",
       "irSignature": "IR signature",
       "derivedHint": "Derived value, calculated from other extracted stats.",
@@ -3328,6 +3332,19 @@
       "barLabel": "{{pct}} % with silhouette",
       "fallbackSplit": "without: {{icon}} with preview icon, {{none}} RSI art or glyph",
       "missingToggle": "Show the {{count}} hulls without silhouette",
+      "reasonSplit": "Reasons: {{no_mesh}} no mesh, {{convert_failed}} conversion failed, {{empty}} empty, {{unexplained}} without a recorded reason",
+      "reason": {
+        "no_mesh": "no mesh",
+        "convert_failed": "conversion failed",
+        "empty": "empty",
+        "none": "no reason recorded"
+      },
+      "reasonTip": {
+        "no_mesh": "The record names no .cga/.cgf geometry, or the file is missing from the archive.",
+        "convert_failed": "cgf-converter or reading the glb failed.",
+        "empty": "Converted, but without triangles or without a traceable outline.",
+        "none": "The uploader reported no reason for this hull — a build from before uploader 0.68.0, or the silhouette step did not run."
+      },
       "noBuild": "No current build — nothing to count yet.",
       "retry": "Try again"
     },
