@@ -23,6 +23,7 @@ describe('SwUpdateService', () => {
   let reload: jasmine.Spy;
   let sessionStore: Map<string, string>;
   let service: SwUpdateService;
+  let fireInput: (type: string) => void;
 
   const versionReady = (): VersionReadyEvent =>
     ({
@@ -48,7 +49,10 @@ describe('SwUpdateService', () => {
     };
     reload = jasmine.createSpy('reload');
     sessionStore = new Map<string, string>();
+    const inputListeners = new Map<string, () => void>();
+    fireInput = (type) => inputListeners.get(type)?.();
     const fakeWindow = {
+      addEventListener: (type: string, listener: () => void) => void inputListeners.set(type, listener),
       sessionStorage: {
         getItem: (k: string) => (sessionStore.has(k) ? sessionStore.get(k)! : null),
         setItem: (k: string, v: string) => void sessionStore.set(k, v),
@@ -90,6 +94,19 @@ describe('SwUpdateService', () => {
     expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
     expect(service.updateReady()).toBeTrue();
   });
+
+  for (const type of ['pointerdown', 'keydown', 'wheel']) {
+    it(`prompts instead of reloading once a ${type} landed inside the grace window`, async () => {
+      service.init();
+      fireInput(type);
+      versionUpdates.next(versionReady());
+      await flush();
+
+      expect(reload).not.toHaveBeenCalled();
+      expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
+      expect(service.updateReady()).toBeTrue();
+    });
+  }
 
   it('auto-reloads at most once per session, then falls back to the prompt', async () => {
     service.init();

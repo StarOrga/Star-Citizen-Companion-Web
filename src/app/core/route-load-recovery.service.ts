@@ -62,11 +62,10 @@ export function isRouteChunkError(error: unknown): boolean {
  * ones were already imported and live in memory, so they keep working.
  *
  * The trigger is a stale document: this app deploys many times a day, and
- * `vercel.json` rewrites every unmatched path to `/index.html`, so a chunk
- * name from a superseded build does not even 404 — it answers 200 with HTML,
- * which fails the module MIME check. A long-open tab (or a service worker that
- * fell back to network passthrough) therefore asks for chunk names that no
- * longer exist.
+ * a chunk name from a superseded build answers 404 (`vercel.json` keeps hashed
+ * assets out of its SPA rewrite, so HTML can never be cached as immutable under
+ * a chunk URL). A long-open tab (or a service worker that fell back to network
+ * passthrough) therefore asks for chunk names that no longer exist.
  *
  * Recovery is what the plain `<a href>` would have done without the router: a
  * full page load of the same URL, so index.html and the chunk manifest come
