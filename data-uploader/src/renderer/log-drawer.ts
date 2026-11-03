@@ -89,12 +89,33 @@ export function wireLogDrawer(): void {
   const copyBtn = document.getElementById('log-drawer-copy') as HTMLButtonElement | null;
   const toggleBtn = document.getElementById('log-drawer-toggle') as HTMLButtonElement | null;
   toggleBtn?.addEventListener('click', () => toggleLogDrawer());
-  copyBtn?.addEventListener('click', () => {
-    void window.sc.clipboard.writeText(plainText).then(() => {
-      copyBtn.textContent = t('run.copied');
-      setTimeout(() => {
-        copyBtn.textContent = t('run.copyLog');
-      }, 1600);
-    });
-  });
+  copyBtn?.addEventListener('click', () => void copyLog(copyBtn));
+}
+
+/**
+ * Copy the transcript and say what happened: copied, failed, or empty. An empty
+ * log (after an app restart the in-memory transcript is gone) is reported as
+ * such and never written - it would silently wipe the user's clipboard.
+ */
+export async function copyLog(btn: HTMLButtonElement): Promise<'copied' | 'failed' | 'empty'> {
+  let outcome: 'copied' | 'failed' | 'empty';
+  if (!plainText.trim()) {
+    outcome = 'empty';
+  } else {
+    try {
+      const r = await window.sc.clipboard.writeText(plainText);
+      outcome = r && (r as { ok?: boolean }).ok === false ? 'failed' : 'copied';
+    } catch {
+      outcome = 'failed';
+    }
+  }
+  btn.classList.remove('copied', 'copy-failed');
+  if (outcome === 'copied') btn.classList.add('copied');
+  else if (outcome === 'failed') btn.classList.add('copy-failed');
+  btn.textContent = t(outcome === 'copied' ? 'run.copied' : outcome === 'failed' ? 'run.copyFailed' : 'run.copyEmpty');
+  setTimeout(() => {
+    btn.classList.remove('copied', 'copy-failed');
+    btn.textContent = t('run.copyLog');
+  }, 1600);
+  return outcome;
 }

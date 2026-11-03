@@ -28,6 +28,12 @@ import {
 } from '../lib/release-token.js';
 import { isNewerVersion } from '../lib/semver.js';
 import { isStagedSuperseded, shouldReplaceStaged } from '../lib/update-staleness.js';
+import {
+  CLOSING_NOTICE_MS,
+  nextInstallStep,
+  type InstallPhase,
+  type InstallReply,
+} from '../lib/update-install.js';
 import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 import { reportCrash } from './telemetry-reporter.js';
 
@@ -36,7 +42,7 @@ const { autoUpdater } = electronUpdater;
 
 export type UpdateEventPayload =
   | { type: 'checking' }
-  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null }
+  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null; supersedes?: string }
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
@@ -44,7 +50,10 @@ export type UpdateEventPayload =
   // renderer shows a dismissible "download vX manually" hint on the first screen
   // only — never an error, and never when already up to date.
   | { type: 'manual'; currentVersion: string; latestVersion: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  // The install click's visible state (preparing / waiting for work / closing /
+  // could not start). Takes precedence over the background-check states below.
+  | { type: 'install-state'; state: 'preparing' | 'waiting' | 'closing' | 'failed'; version: string };
 
 const FEED_URL = `${API_BASE}/functions/v1/desktop-latest`;
 
@@ -84,6 +93,11 @@ function isUpdateBusy(type: UpdateEventPayload['type']): boolean {
 }
 
 function broadcast(payload: UpdateEventPayload): void {
+  // While an install is in progress a background check must not repaint over its
+  // notice (or drop the lock on the button): re-assert the install state instead.
+  if (installPhase !== 'idle' && stagedUpdate && ['checking', 'not-available', 'downloaded'].includes(payload.type)) {
+    payload = { type: 'install-state', state: installPhase, version: stagedUpdate };
+  }
   lastEvent = payload;
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('sc:update:event', payload);
@@ -124,7 +138,7 @@ export function getLastUpdateEvent(): UpdateEventPayload {
  * newer than what's running, prompt a manual download. Best-effort: any failure
  * (offline, 401, malformed) simply yields no banner.
  */
-async function fetchLatestVersion(): Promise<string | null> {
+async function fetchLatestVersion(timeoutMs = 15_000): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(`${FEED_URL}/${currentChannel}.yml`, {
       headers: {
@@ -132,7 +146,7 @@ async function fetchLatestVersion(): Promise<string | null> {
         'X-SC-Tool-Version': TOOL_VERSION,
         Accept: 'application/yaml',
       },
-    }, 15_000);
+    }, timeoutMs);
     if (!res.ok) return null;
     const text = await res.text();
     const m = text.match(/^\s*version:\s*['"]?(\d+\.\d+\.\d+[^\s'"]*)/m);
@@ -253,8 +267,13 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
       version: info.version,
       releaseDate: info.releaseDate,
       notes: typeof info.releaseNotes === 'string' ? info.releaseNotes : null,
+      // Tell the user the staged installer is being replaced, not silently dropped.
+      ...(staged ? { supersedes: staged } : {}),
     });
     // autoDownload is off — kick the background download for a genuine upgrade.
+    // The pending install request is void: it was for the version being replaced.
+    installPhase = 'idle';
+    stopWaitTimer();
     autoUpdater.downloadUpdate().catch((err) => {
       log.warn('[updater] downloadUpdate failed:', err);
     });
@@ -283,7 +302,7 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   // failures (the rejected promises below emit through here too), so this is the
   // single choke point where update errors reach both the banner and telemetry.
   autoUpdater.on('error', (err) => {
-    installRequested = false;
+    if (installPhase === 'preparing') installPhase = 'idle';
     reportUpdateError(err);
     // A failed re-check (or a failed download of a newer release) must not take
     // away the install button of the update that is already staged.
@@ -364,8 +383,33 @@ export function setUpdateChannel(channel: ReleaseChannel): void {
  */
 const UPDATE_SILENT = true;
 
-/** quitAndInstall fired once already — a second click must not queue another run. */
-let installRequested = false;
+/**
+ * Where the install click stands. 'preparing' = asking the feed whether the
+ * staged version is still the newest; 'waiting' = request kept standing while
+ * work runs; 'closing' = notice shown, quit imminent. Repeated clicks never go
+ * silent: each returns (and re-broadcasts) the current phase.
+ */
+let installPhase: InstallPhase = 'idle';
+let waitTimer: ReturnType<typeof setInterval> | null = null;
+/** Re-check cadence while the request waits for running work to end or pause. */
+const WAIT_POLL_MS = 3000;
+/** Feed lookup before installing - short, a slow feed must not freeze the click. */
+const INSTALL_FEED_TIMEOUT_MS = 6000;
+
+/** Registered by the main process: true while a job or upload run is in flight. */
+let isWorkBusy: () => boolean = () => false;
+export function setWorkBusyProbe(probe: () => boolean): void {
+  isWorkBusy = probe;
+}
+
+function stopWaitTimer(): void {
+  if (waitTimer) clearInterval(waitTimer);
+  waitTimer = null;
+}
+
+function announceInstall(state: 'preparing' | 'waiting' | 'closing' | 'failed'): void {
+  broadcast({ type: 'install-state', state, version: stagedUpdate ?? '' });
+}
 
 /**
  * The version a silent install is expected to produce. A silent installer that
@@ -421,43 +465,102 @@ function stagedVersion(): string | null {
   return stagedUpdate;
 }
 
-export function installUpdateNow(): void {
-  if (IS_UNSIGNED_DEV_BUILD) return;
-  if (installRequested) return;
-  installRequested = true;
+export function installUpdateNow(): InstallReply {
+  if (IS_UNSIGNED_DEV_BUILD || !stagedUpdate) return { ok: false, state: 'none' };
+  if (installPhase !== 'idle') {
+    // Repeated click: answer with the state the user should be looking at.
+    announceInstall(installPhase);
+    return { ok: true, state: installPhase };
+  }
+  installPhase = 'preparing';
+  announceInstall('preparing');
   void installNewestStaged();
+  return { ok: true, state: 'preparing' };
+}
+
+/** The user's veto on a waiting install: back to the plain "install" banner. */
+export function cancelInstallRequest(): void {
+  if (installPhase !== 'waiting') return;
+  installPhase = 'idle';
+  stopWaitTimer();
+  if (stagedUpdate) broadcast({ type: 'downloaded', version: stagedUpdate });
 }
 
 /**
- * Install what is staged — unless the feed meanwhile has a newer release: then
+ * Install what is staged - unless the feed meanwhile has a newer release: then
  * fetch that one instead (its banner returns once downloaded) rather than
  * installing a version that is already outdated. An unreachable feed installs
- * the staged update as before.
+ * the staged update as before. While work runs the request stays standing and
+ * is retried every few seconds: the install goes ahead once the run ended or
+ * was paused (a paused run resumes after the restart).
  */
 async function installNewestStaged(): Promise<void> {
   const staged = stagedVersion();
-  if (isStagedSuperseded(staged, await fetchLatestVersion())) {
-    log.info(`[updater] staged v${staged} is outdated — fetching the newest release before installing`);
-    installRequested = false;
+  const feed = await fetchLatestVersion(INSTALL_FEED_TIMEOUT_MS);
+  // The wait may have been vetoed (or the staged version replaced) meanwhile.
+  if (installPhase === 'idle' || stagedVersion() !== staged) return;
+  evaluateInstall(staged, feed);
+}
+
+function evaluateInstall(staged: string | null, feed: string | null): void {
+  const step = nextInstallStep({
+    staged,
+    feedVersion: feed,
+    superseded: isStagedSuperseded(staged, feed),
+    workBusy: isWorkBusy(),
+  });
+  if (step === 'none') {
+    installPhase = 'idle';
+    return;
+  }
+  if (step === 'refetch') {
+    log.info(`[updater] staged v${staged} is outdated - fetching the newest release before installing`);
+    installPhase = 'idle';
+    stopWaitTimer();
     autoUpdater.checkForUpdates().catch((err) => {
       log.warn('[updater] re-check before install failed:', err);
+      if (staged) broadcast({ type: 'install-state', state: 'failed', version: staged });
     });
     return;
   }
+  if (step === 'wait') {
+    if (installPhase !== 'waiting') log.info('[updater] install requested while work runs - waiting for it to end or pause');
+    installPhase = 'waiting';
+    announceInstall('waiting');
+    if (!waitTimer) {
+      waitTimer = setInterval(() => {
+        if (installPhase !== 'waiting' || isWorkBusy()) return;
+        stopWaitTimer();
+        evaluateInstall(stagedVersion(), null);
+      }, WAIT_POLL_MS);
+    }
+    return;
+  }
+  stopWaitTimer();
+  installPhase = 'closing';
+  announceInstall('closing');
   rememberPendingUpdate(staged);
-  // setImmediate so the IPC reply can finish before the app quits.
-  setImmediate(() => {
+  // Leave the closing notice on screen long enough to read: the silent installer
+  // shows no window for ~2-3 minutes, which otherwise looks like "nothing happened".
+  setTimeout(() => {
+    if (isWorkBusy()) {
+      // Work started in the notice window - do not kill it; wait again.
+      installPhase = 'waiting';
+      evaluateInstall(staged, null);
+      return;
+    }
     autoUpdater.quitAndInstall(UPDATE_SILENT, true);
     // quitAndInstall returns without quitting when the staged installer is
-    // gone; re-arm the button instead of leaving it dead for the session.
+    // gone; re-arm the button with a message instead of leaving it dead.
     setTimeout(() => {
-      installRequested = false;
+      installPhase = 'idle';
+      announceInstall('failed');
     }, 15_000);
-  });
+  }, CLOSING_NOTICE_MS);
 }
 
 /** The on-quit install (autoInstallOnAppQuit) is silent too — remember what it should produce. */
 export function noteQuitWithStagedUpdate(): void {
   if (IS_UNSIGNED_DEV_BUILD || IS_PORTABLE_BUILD) return;
-  if (!installRequested) rememberPendingUpdate(stagedVersion());
+  if (installPhase === 'idle') rememberPendingUpdate(stagedVersion());
 }
