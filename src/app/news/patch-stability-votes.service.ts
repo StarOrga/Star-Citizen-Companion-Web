@@ -32,7 +32,8 @@ export function toVoteAggregate(r: VoteStateRow | null | undefined): VoteAggrega
   };
 }
 
-export type CastResult = 'ok' | 'too-soon' | 'signed-out' | 'error';
+/** `daily-cap` / `closed` come from build votes only (3 casts per 24 h, build no longer running). */
+export type CastResult = 'ok' | 'too-soon' | 'daily-cap' | 'closed' | 'signed-out' | 'error';
 
 /**
  * The community verdict of ONE patch line (the LIVE line): its aggregate and

@@ -31,13 +31,15 @@ import { HighlightSegment, fuzzyTokens, highlightSegments, matchesFuzzy, tokeniz
 import { stackCardFor, type StackCard } from './patch-stack';
 import { StabilityChipComponent, chipFromVerdict } from './stability-chip.component';
 import { StabilityLongComponent } from './stability-long.component';
+import { BuildVerdictComponent } from './build-verdict.component';
+import { ChannelBuildVotesService } from './channel-build-votes.service';
 import { groupCardsByCategory, roadmapCardUrl, type RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ShareButtonComponent } from '../shared/share-button/share-button.component';
 
-type SectionId = 'stabilitaet' | 'prep' | 'contents' | 'fixed' | 'next';
+type SectionId = 'stabilitaet' | 'builds' | 'prep' | 'contents' | 'fixed' | 'next';
 
 /** DOM id of a section: the stability long form is the deep-link target `#stabilitaet`. */
 function anchorId(id: SectionId): string {
@@ -53,7 +55,7 @@ function anchorId(id: SectionId): string {
  * Once it has landed, what is in it and whether one's own bug is gone lead;
  * the preparation is done and slides to the end.
  */
-export function sectionOrder(status: StackCard['status']): Exclude<SectionId, 'stabilitaet'>[] {
+export function sectionOrder(status: StackCard['status']): Exclude<SectionId, 'stabilitaet' | 'builds'>[] {
   switch (status) {
     case 'next':
     case 'evocati':
@@ -120,7 +122,7 @@ function scrollBehavior(): ScrollBehavior {
   standalone: true,
   imports: [
     TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
-    PatchNoteDetailComponent, StabilityChipComponent, StabilityLongComponent, ScDialogDirective,
+    PatchNoteDetailComponent, StabilityChipComponent, StabilityLongComponent, BuildVerdictComponent, ScDialogDirective,
     ScTooltipDirective, ShareButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -173,6 +175,16 @@ function scrollBehavior(): ScrollBehavior {
                   <sc-stability-long [verdict]="v" [live]="c.status === 'live'" [previous]="previous()" />
                 </section>
               }
+              }
+
+              @case ('builds') {
+              <!-- ── Running Hotfix / PTU builds of this line: the one place they can be voted on (#885). ── -->
+              <section id="pd-builds" class="sec" [class.flash]="flash() === 'builds'">
+                <h3>{{ sectionKey('builds') | translate }}</h3>
+                @for (b of builds(); track b.channel + ':' + b.version) {
+                  <sc-build-verdict [build]="b" />
+                }
+              </section>
               }
 
               @case ('prep') {
@@ -616,6 +628,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   private readonly overlayOrigin = inject(OverlayOriginService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly stability = inject(PatchStabilityService);
+  private readonly buildVotes = inject(ChannelBuildVotesService);
   readonly anchorId = anchorId;
   private readonly fragment = toSignal(inject(ActivatedRoute).fragment, { initialValue: null });
 
@@ -738,18 +751,23 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
    * a scroll aimed at the old layout lands in the wrong place. Latched at
    * open, so typing in the field later never reshuffles the page.
    */
+  /** Running Hotfix / PTU builds of this line (#885) — their vote cards sit right under the LIVE stability. */
+  readonly builds = computed(() => this.buildVotes.forLine(this.line()));
+  private readonly loadBuildVotes = effect(() => untracked(() => this.buildVotes.ensure()));
+
   readonly sections = computed<SectionId[]>(() => {
     const c = this.card();
     const has: Record<SectionId, boolean> = {
       // Always: the general advice below the patch-specific facts holds for
       // every build, so this question is never unanswerable (2026-09-05).
       stabilitaet: !!this.verdict(),
+      builds: this.builds().length > 0,
       prep: true,
       contents: this.hasContents(),
       fixed: !!c?.group,
       next: this.hasCycle(),
     };
-    const out = (['stabilitaet', ...sectionOrder(c?.status ?? 'other')] as SectionId[]).filter((id) => has[id]);
+    const out = (['stabilitaet', 'builds', ...sectionOrder(c?.status ?? 'other')] as SectionId[]).filter((id) => has[id]);
     if (!this.openedWithQuery() || !out.includes('fixed')) return out;
     return ['fixed', ...out.filter((id) => id !== 'fixed')];
   });
