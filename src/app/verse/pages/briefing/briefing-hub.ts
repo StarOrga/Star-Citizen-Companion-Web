@@ -1,3 +1,4 @@
+import { isVotableChannel } from '../../../news/channel-build-votes.service';
 import type { PatchLineGroup } from '../../../news/patch-notes';
 import { channelStability } from '../../../news/patch-stability';
 import type { ChannelBuildSample, StabilityVerdict } from '../../../news/patch-stability';
@@ -64,9 +65,14 @@ function sample(b: VerseChannelBuild, toIso: string, fromIso = b.threadFirstAt):
 
 const EMPTY = { chip: null, sinceDays: null, wave: null } as const;
 
-/** Chip of a test-channel build against the previous build of the SAME channel; PTU is provisional by nature. */
-function channelChip(kind: HubChannelKind, line: string, cur: ReturnType<typeof channelStability>, prev: ReturnType<typeof channelStability>, prevLabel: string | null): StabilityChipData {
-  return { line, percent: cur?.stability ?? null, early: kind === 'ptu', finished: false, previous: prev?.stability ?? null, previousLabel: prev ? prevLabel : null };
+/**
+ * Chip of a test-channel build against the previous build of the SAME channel; PTU is provisional by nature.
+ * With the running `version` the chip also applies that build's community votes (#885) — the hub only shows
+ * the result, voting happens on the dossier.
+ */
+function channelChip(kind: HubChannelKind, line: string, cur: ReturnType<typeof channelStability>, prev: ReturnType<typeof channelStability>, prevLabel: string | null, version: string | null = null): StabilityChipData {
+  const build = version && isVotableChannel(kind) ? { channel: kind, version } : null;
+  return { line, percent: cur?.stability ?? null, early: kind === 'ptu', finished: false, previous: prev?.stability ?? null, previousLabel: prev ? prevLabel : null, build };
 }
 
 /** Whole days between an ISO instant and now; null for a missing / unparsable one. */
@@ -113,6 +119,7 @@ export function hubChannel(
       channelStability(sample(info, toIso)),
       p ? channelStability(sample(p, p.endedAt ?? toIso)) : null,
       p ? p.version + CHANNEL_SUFFIX[kind] : null,
+      version,
     );
     return { kind, version, line, chip, sinceDays: daysSince(info.startedAt, now), wave: kind === 'hotfix' ? null : info.wave };
   }

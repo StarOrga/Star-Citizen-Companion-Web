@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.198.0] - 2026-11-03
+
+### Added
+- Players can rate how stable a running PTU or Hotfix build plays, on the patch page under "Laufende Test-Builds". The hub row shows the result and marks the chip once enough votes are in (#885).
+
+### Security
+- Hardened the LIVE stability votes: only approved accounts may vote, suspended accounts no longer count, and the public totals no longer reveal single votes (#885).
+
 ## [0.197.0] - 2026-11-03
 
 ### Added
