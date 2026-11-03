@@ -228,6 +228,16 @@ const MIN_ZOOM = 1.03;
 /** Upper bound so a mis-measure can never blow the thumbnail up into mush. */
 const MAX_ZOOM = 2.2;
 
+/** The probe canvas `detectFramePads` reuses (see there). */
+let probeCanvas: HTMLCanvasElement | null = null;
+
+/**
+ * Frame insets measured this session, by image url. A thumbnail measures its
+ * picture once — but every visit to a news page builds the thumbnails anew, so
+ * the per-instance record measured the same pictures again on each return.
+ */
+const measuredInsets = new Map<string, FrameInset>();
+
 /** Per-side margin shares of an image, in the range 0…1. */
 export interface FramePads { left: number; right: number; top: number; bottom: number; }
 /** Symmetric margin shares actually trimmed, per axis. */
@@ -254,7 +264,10 @@ export function detectFramePads(img: HTMLImageElement): FramePads | null {
   const scale = Math.min(1, PROBE_MAX / Math.max(nw, nh));
   const w = Math.max(8, Math.round(nw * scale));
   const h = Math.max(8, Math.round(nh * scale));
-  const canvas = document.createElement('canvas');
+  // One probe canvas for every measurement (they run synchronously, one at a
+  // time): a news page measures dozens of thumbnails, each used to allocate a
+  // canvas and a 2D context of its own. Resizing also clears it.
+  const canvas = (probeCanvas ??= document.createElement('canvas'));
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
@@ -771,9 +784,15 @@ export class NewsThumbComponent implements OnDestroy {
   /** Measure the frame once per url; a `null` reading is recorded as "no frame". */
   private measureFrame(url: string, img: HTMLImageElement): void {
     if (url in this.insets()) return;
-    const pads = detectFramePads(img);
-    const inset = pads ? frameInset(pads) : { x: 0, y: 0 };
-    this.insets.update((m) => (url in m ? m : { ...m, [url]: inset }));
+    let inset = measuredInsets.get(url);
+    if (!inset) {
+      const pads = detectFramePads(img);
+      inset = pads ? frameInset(pads) : { x: 0, y: 0 };
+      // A tainted canvas (null) is not cached: the CORS retry may load a readable copy.
+      if (pads) measuredInsets.set(url, inset);
+    }
+    const found = inset;
+    this.insets.update((m) => (url in m ? m : { ...m, [url]: found }));
   }
 
   ngOnDestroy(): void { this.stop(); }

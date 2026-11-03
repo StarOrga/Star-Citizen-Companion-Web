@@ -96,10 +96,9 @@ committen → pushen → hier abhaken.
    gebündelt in einem rAF (erst alle Reads, dann alle Writes); keine
    Messung in jedem Scroll-Event ohne rAF-Bündelung.
 
-5. **`news-thumb › detectFramePads`**: Ergebnis pro Bild-URL in einer
-   modulweiten `Map` cachen (Rückkehr auf die Seite rechnet nicht neu); die
-   Analyse selbst in `requestIdleCallback` verschieben, damit sie nicht im
-   `load`-Handler mehrerer Bilder hintereinander läuft.
+5. ~~**`news-thumb › detectFramePads`**~~ — erledigt: Ergebnis pro Bild-URL
+   modulweit gecacht, ein wiederverwendetes Mess-Canvas. Bleibt bewusst
+   synchron im `load`-Handler: verschoben würde der Bild-Zoom sichtbar springen.
 
 6. **Gezieltes Vorladen** (`app.config.ts › provideRouter(withPreloading(...))`):
    eigene `PreloadingStrategy` — nach dem ersten Paint im Leerlauf die
