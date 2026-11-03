@@ -169,11 +169,19 @@ committen → pushen → hier abhaken.
    keine `#fragment`-Links in die verzögerten Blöcke zeigen
    (`anchorScrolling: 'enabled'`).
 
-10. **Zoneless** (`provideZonelessChangeDetection()`, zone.js aus den
-    Polyfills): alle 221 Komponenten sind schon `OnPush`. Vorher prüfen:
-    `NgZone.onStable/onMicrotaskEmpty/isStable`, `ApplicationRef.isStable`
-    (SW-Registrierung `registerWhenStable`), `fakeAsync`-Specs (zone.js für
-    Tests behalten).
+10. **Zoneless — geprüft, bewusst zurückgestellt.** Voraussetzungen erfüllt
+    (alle Komponenten `OnPush`, keine `onStable`/`afterEveryRender`/`ngDoCheck`,
+    keine dynamisch angehängten Views). Experiment: TestBed global zoneless
+    (temporäre Spec-Datei mit `resetTestEnvironment()` +
+    `initTestEnvironment([BrowserTestingModule, Modul mit
+    provideZonelessChangeDetection()], platformBrowserTesting())`) →
+    **153 von 5327 Specs rot**, v. a. `CodexDetailComponent` (26),
+    `HangarShipDetailComponent` (9), `HangarDashboardComponent` (9),
+    `CodexSwapPickerComponent` (17), `KeybindsComponent` (9); Fehlerbilder:
+    Element nach Async-Schritt `null`, `flush failed after reaching the limit`.
+    Vor einer Umstellung jeden Fall einordnen (Test-Artefakt vs. echte
+    Regression). Gewinn klein: zone.js ≈ 40 ms Haupt-Thread pro Laden,
+    11,6 kB gz.
 
 11. **Echte Nutzerdaten**: LCP, CLS, INP, Long Tasks per `PerformanceObserver`
     über den vorhandenen `AnalyticsService` (nur mit Statistik-Einwilligung).
