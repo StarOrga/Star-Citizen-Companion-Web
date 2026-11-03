@@ -61,7 +61,9 @@ measureTrail/placeStage/publishHeight` (~95 ms auf `/verse` mit Beta),
 | `03acc56` | **News-Edge-Function**: Feed pro Isolate 2 min memoisiert, Bild-/DB-Nacharbeit nur einmal pro Build (`supabase/functions/fetch-verse-news/feed-memo.ts` + Test). Wird erst live mit `functions:deploy` nach dem Merge. |
 | `ff008ee` | **Skeleton-Animation** (`core/neuro-field.directive.ts`): neuer Input `neuroActive` — stoppt 600 ms nach dem Ausblenden (news-thumb bindet `!loaded()`); ein gemeinsamer Intersection-/ResizeObserver für alle Felder, Lesen und Schreiben getrennt (keine Layout-Kette mehr). |
 | `538f752` | **Codex-Board-Figur**: kein Probe-Kontext mehr; Vorab-Check = API vorhanden + seitenweites Flag nach gescheitertem Renderer. |
-| `0ca4f45` | **i18n**: Englisch als Fallback erst nach dem ersten Paint (Englisch sofort, sonst `requestIdleCallback` ≤ 5 s). `EnglishStringsService` lädt Englisch für die Keybinds weiter bei Bedarf. |
+| ~~`0ca4f45`~~ | i18n-Fallback verzögert — **zurückgenommen** (`0919013`), weil `main` (#907) dasselbe besser löst. |
+| `64e5267` | **Planet-Loop** pausiert, solange der Planet aus dem Bild gescrollt ist. |
+| `1d4e1e9` | **News-Vorschaubilder**: Rahmen-Messung pro URL einmal pro Sitzung, ein wiederverwendetes Mess-Canvas. |
 | `e16efcb` | **Planet gebacken**: `scripts/bake-planet.mjs` → `public/planet/` (verlustfreies WebP, pixelgenau verifiziert; `world.json` bitgenau, Spec `planet-assets.spec.ts`). Komponente lädt die Dateien parallel, dekodiert per `createImageBitmap` abseits des Haupt-Threads; Berechnung im Browser nur noch als Rückfall (mit fairer Idle-Planung). Prebuild prüft per Quell-Hash, ob neu gebacken werden muss (`npm run gen:planet`). Service Worker cacht `/planet/**`. |
 
 ## 4. Offen — in dieser Reihenfolge
@@ -71,6 +73,9 @@ Jeder Punkt: umsetzen → `npm run typecheck` → betroffene Specs
 committen → pushen → hier abhaken.
 
 1. **`main` regelmäßig mergen** (`git fetch origin main && git merge origin/main`).
+   Zuletzt gemergt: #907 (2026-11-03, 23:40) — der löst das i18n-Doppel-Laden
+   mit `public/i18n-boot.js` + `AppTranslateLoader`; der eigene Ansatz dieses
+   Branches wurde dafür zurückgenommen.
 
 2. ~~**Planet-Loop entlasten**~~ — erledigt: Loop pausiert per
    IntersectionObserver, wenn der Planet aus dem Bild gescrollt ist.
@@ -124,8 +129,9 @@ committen → pushen → hier abhaken.
      `account-prefs.service.ts`, `app.component.ts` Sprache/Region) → ein
      gemeinsamer Read mit allen Spalten.
    - `rpc/set_ui_pref` (ein **Write**) bei jedem Laden → nur bei echter Änderung.
-   - `rsi-upcoming-ships` Edge Function: gleiches Muster wie `fetch-verse-news`
-     prüfen und ggf. memoisieren.
+   - ~~`rsi-upcoming-ships` Edge Function~~ — erledigt: Antwort pro Isolate
+     30 min memoisiert (gleicher Baustein `fetch-verse-news/feed-memo.ts`).
+     Live erst nach `functions:deploy`.
    - SW-`dataGroups` `verse-news`: `freshness` mit `timeout: 10s` → bei
      langsamer Function wartet die UI bis zu 10 s; Timeout senken (z. B. 3 s),
      damit der Cache greift.
