@@ -144,3 +144,9 @@
   100% { opacity: 0; width: 96%; height: calc(var(--ry) * 1.9); }
 }
 
+
+// Out of view: the table's endless loops stand still too (see the component sheet).
+// The doubled attribute out-ranks `:host(.lit) .emitter.boot` & co.
+:host([data-sc-offscreen][data-sc-offscreen]) {
+  .sweep, .pool, .emitter { animation-play-state: paused; }
+}

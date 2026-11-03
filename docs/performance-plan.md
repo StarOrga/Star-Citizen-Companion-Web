@@ -98,7 +98,13 @@ committen → pushen → hier abhaken.
    Intro bewegt den Anker per CSS, ein Cache würde den Planeten versetzen.
    Zeichnen ist bereits gedrosselt (Planet ≤ 15 fps, Züge ≤ 30 fps).
 
-3. **Dauer-Animationen** (Ausgabe „RUNNING ANIMATIONS“ des Profilers):
+3. ~~**Dauer-Animationen**~~ — erledigt für die Codex-Holotable:
+   `shared/pause-offscreen.directive.ts` setzt `data-sc-offscreen`, solange der
+   Host ganz aus dem Bild ist; die Holotable hält dann nur ihre Endlos-Schleifen
+   an (nie etwas in einem `.leaving`-Teil — `[animate.leave]` wartet darauf).
+   Leerlauf weggescrollt: 236 ms → 0 ms pro 5 s. Sterne/Stadtlichter der
+   Shell-Szene sind immer sichtbar und reine Opacity (Compositor) — bleiben.
+   Ursprüngliche Notiz („RUNNING ANIMATIONS“ des Profilers):
    - `/codex`: `rays` (opacity), `motes` (**background-position**, nicht
      composited), `band` — laufen endlos, auch auf einem 480×0-Element.
    - `/verse` Beta: `fs-demo-1/2/3` (**clip-path**, endlos, Such-Platzhalter),

@@ -23,6 +23,7 @@ import { CodexLandingValuesPaneComponent } from './landing/codex-landing-values-
 import { CodexLandingCodexPaneComponent } from './landing/codex-landing-codex-pane.component';
 import { CodexLandingNewsComponent } from './landing/codex-landing-news.component';
 import { CLAIM_MS, ClaimCursor, buildClaims } from './landing/codex-landing-claims';
+import { PauseOffscreenDirective } from '../shared/pause-offscreen.directive';
 
 /** One rotation step (brief A4: ≈ 8 s per category). */
 export const ROTATION_MS = 8000;
@@ -54,6 +55,7 @@ export const CODEX_LIST_ITEMS = 5;
     CodexLandingValuesPaneComponent,
     CodexLandingCodexPaneComponent,
     CodexLandingNewsComponent,
+    PauseOffscreenDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
