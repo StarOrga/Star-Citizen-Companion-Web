@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-11-02T17:44:20" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-11-02T17:44:20" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5521,7 +5521,7 @@ body[data-stage-next] .jr-next-stage:focus-visible { outline: 2px solid var(--ac
 body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
 </style>
 </head>
-<body style="overflow: hidden">
+<body>
   <div class="concept-layout design fullscreen">
     <div class="concept-content">
       <header class="page-header" data-page-header>
@@ -6684,7 +6684,8 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
 
 </section>
 
-<section data-iteration="3" data-iteration-template="design" data-design-set="alternatives" id="iter-3" data-active>
+<section data-iteration="3" data-iteration-template="design" data-design-set="alternatives" data-baked id="iter-3" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mvzskkof4sl3","design":"rand","screen":"ub-s3","x":37.5,"y":9.1,"target":"span.mk-u-chip.hov \"Größe 4 ▾×Größe 1 2Größe 2 3Größe 3 4Grö\"","text":"sehr gut aber bitte keinen helligkeitsunterschied zwischen chip und drop down, ansonsten gut!","attachments":[]},{"id":"up-mvzsl30mxu1n","design":"rand","screen":"ub-s3","x":35.1,"y":38.6,"target":"span \"Größe 6 0\"","text":"zeige sizes mit 0 ausgegraut aber anklickbar an!","attachments":[]}]}</script>
 <style>
 .mk-u-frame { position: relative; max-width: 1180px; margin: 20px auto; height: 660px; border-radius: 14px; overflow: hidden;
   background: radial-gradient(ellipse 80% 60% at 70% 20%, #0c2232 0%, #07131d 55%, #040a10 100%); font-family: system-ui, "Segoe UI", sans-serif;
@@ -6840,14 +6841,14 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
           <button class="anno-pin" type="button" data-anno-pin="ua-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a1" aria-label="Frage {n}">1</button>
           <div class="anno-bubble" id="anno-bubble-ua-s1-a1" data-anno-bubble="ua-s1-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="ua-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a1"><span class="anno-bubble-question">Die Zeile mit Fokus wird ~30 px höher, damit der Umriss Platz hat. Stört das Springen beim Durchpfeilen?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ua-s1-a1" data-annotation="ua-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ua-s1-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ua-s1-a1" data-annotation="ua-s1-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-ua-s1-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="ua-s1-a2" data-anno-side="right" data-anno-target=".mk-u-row .mk-u-ico" style="--anno-x:30%;--anno-y:26%">
           <button class="anno-pin" type="button" data-anno-pin="ua-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a2" aria-label="Frage {n}">2</button>
           <div class="anno-bubble" id="anno-bubble-ua-s1-a2" data-anno-bubble="ua-s1-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="ua-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ua-s1-a2"><span class="anno-bubble-question">Kleiner Umriss als Icon vorn bei jeder Schiffszeile: reicht der allein schon zum Unterscheiden?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ua-s1-a2" data-annotation="ua-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ua-s1-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ua-s1-a2" data-annotation="ua-s1-a2" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-ua-s1-a2"></div></div>
           </div>
         </div></div>
     </section>
@@ -6870,7 +6871,7 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
-            <div class="mk-u-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
+            <div class="mk-u-more"><button type="button" disabled>▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
           </div>
           <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
         </div>
@@ -6883,7 +6884,7 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
         
         <div class="mk-u-bar">
           <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex › Schiffe › <b>Idris-M</b></div></div></div>
-          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen"><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen" readonly disabled><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
           <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
         </div>
         <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
@@ -6929,14 +6930,14 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
           <button class="anno-pin" type="button" data-anno-pin="ub-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a1" aria-label="Frage {n}">1</button>
           <div class="anno-bubble" id="anno-bubble-ub-s1-a1" data-anno-bubble="ub-s1-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="ub-s1-a1" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a1"><span class="anno-bubble-question">Der Streifen kostet ~180 px Panelbreite. Lohnt sich das für ein reines Erkennungsbild?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a1" data-annotation="ub-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a1" data-annotation="ub-s1-a1" data-attachable placeholder="Deine Antwort…" readonly>JA SCHON; ABER BITTE NICHT selbst das icon mit einem weiteren kasten... </textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="ub-s1-a2" data-anno-side="left" data-anno-target=".mk-u-edgelbl" style="--anno-x:82%;--anno-y:66%">
           <button class="anno-pin" type="button" data-anno-pin="ub-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a2" aria-label="Frage {n}">2</button>
           <div class="anno-bubble" id="anno-bubble-ub-s1-a2" data-anno-bubble="ub-s1-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="ub-s1-a2" aria-expanded="false" aria-controls="anno-bubble-ub-s1-a2"><span class="anno-bubble-question">Unter dem Umriss nur das Modell in Kleinbuchstaben: hilfreich, oder doppelt zur Zeile?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a2" data-annotation="ub-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ub-s1-a2" data-annotation="ub-s1-a2" data-attachable placeholder="Deine Antwort…" readonly>ne, wir machen die silhouette nur im icon inline, nicht hier nochmall extra!</textarea><div class="attach-slot" data-attach-slot="anno-ub-s1-a2"></div></div>
           </div>
         </div></div>
     </section>
@@ -6959,7 +6960,7 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
-            <div class="mk-u-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
+            <div class="mk-u-more"><button type="button" disabled>▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
           </div>
           <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
         </div>
@@ -6972,7 +6973,7 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
         
         <div class="mk-u-bar">
           <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex › Schiffe › <b>Idris-M</b></div></div></div>
-          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen"><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen" readonly disabled><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
           <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
         </div>
         <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
@@ -7018,14 +7019,14 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
           <button class="anno-pin" type="button" data-anno-pin="uc-s1-a1" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a1" aria-label="Frage {n}">1</button>
           <div class="anno-bubble" id="anno-bubble-uc-s1-a1" data-anno-bubble="uc-s1-a1" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="uc-s1-a1" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a1"><span class="anno-bubble-question">Umriss hinter dem Text: noch gut lesbar, oder kämpfen Text und Linie miteinander?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-uc-s1-a1" data-annotation="uc-s1-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-uc-s1-a1"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-uc-s1-a1" data-annotation="uc-s1-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-uc-s1-a1"></div></div>
           </div>
         </div>
         <div class="anno" data-anno="uc-s1-a2" data-anno-side="right" data-anno-target=".mk-u-row .mk-u-ico" style="--anno-x:30%;--anno-y:26%">
           <button class="anno-pin" type="button" data-anno-pin="uc-s1-a2" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a2" aria-label="Frage {n}">2</button>
           <div class="anno-bubble" id="anno-bubble-uc-s1-a2" data-anno-bubble="uc-s1-a2" data-open="false">
             <button type="button" class="anno-bubble-summary" data-anno-summary="uc-s1-a2" aria-expanded="false" aria-controls="anno-bubble-uc-s1-a2"><span class="anno-bubble-question">Soll das Wasserzeichen auch auf der Hover-Zeile erscheinen, oder nur auf der per Pfeiltaste fokussierten?</span><span class="anno-chevron" aria-hidden="true">›</span></button>
-            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-uc-s1-a2" data-annotation="uc-s1-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-uc-s1-a2"></div></div>
+            <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-uc-s1-a2" data-annotation="uc-s1-a2" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-uc-s1-a2"></div></div>
           </div>
         </div></div>
     </section>
@@ -7048,7 +7049,7 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-447 Rhino</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 4</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="currentColor"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>CF-227 Badger</b><small>Klaus &amp; Werner · Laser-Repeater · Größe 2</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
             <div class="mk-u-row"><span class="mk-u-ico"><svg viewBox="0 0 24 24"><path d="M3 14h12l3-3h3v3l-3 2H3z"/><path d="M7 14v3"/></svg></span><span class="mk-u-nm"><b>M5A Laser Cannon</b><small>Behring · Laser-Kanone · Größe 5</small></span><span class="mk-u-rt"><span class="mk-u-cta">Passende Schiffe</span><span class="mk-u-sep"></span><span class="mk-u-ib" data-tip="Auf die Wunschliste"><svg viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></svg></span><span class="mk-u-ib" data-tip="Ins Lager"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/></svg></span><span class="mk-u-ib" data-tip="In den Nachschub"><svg viewBox="0 0 24 24"><path d="M8 4h8v3H8z"/><path d="M6 6H5v14h14V6h-1"/><path d="M8 11h8M8 15h6"/></svg></span></span></div>
-            <div class="mk-u-more"><button type="button">▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
+            <div class="mk-u-more"><button type="button" disabled>▾ 11 weitere hier zeigen</button><a>Alle 14 im Index öffnen →</a></div>
           </div>
           <div class="mk-u-keys"><span>↑ ↓ navigieren</span><span>→ aufklappen</span><span>↵ öffnen</span><span>Strg ↵ neuer Tab</span><span>Esc schließen</span></div>
         </div>
@@ -7061,7 +7062,7 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
         
         <div class="mk-u-bar">
           <div class="mk-u-brand"><span class="mk-u-logo"></span><div><div class="mk-u-cat">Star Citizen Companion</div><div class="mk-u-trail">Codex › Schiffe › <b>Idris-M</b></div></div></div>
-          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen"><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
+          <div class="mk-u-search"><span class="mk-u-glass"></span><span class="mk-u-chip">Idris-M</span><span class="mk-u-chip hov open">Größe 4 <span class="mk-u-dd">▾</span><span class="mk-u-cx">×</span><span class="mk-u-menu"><input type="text" placeholder="Größe suchen …" aria-label="Größe suchen" readonly disabled><span>Größe 1 <small>2</small></span><span>Größe 2 <small>3</small></span><span>Größe 3 <small>4</small></span><span class="on">Größe 4 <small>9</small></span><span>Größe 5 <small>1</small></span><span>Größe 6 <small>0</small></span><span>Größe 7–10 <small>0</small></span></span></span><span class="mk-u-q">rep</span><span class="mk-u-caret"></span><span class="mk-u-fill"></span><span class="mk-u-x">✕</span></div>
           <span class="mk-u-apps">▦ Apps</span><span class="mk-u-me"></span>
         </div>
         <div class="mk-u-page"><div class="mk-u-pside"><i></i><i></i><i></i><i></i></div><div class="mk-u-pgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
@@ -7084,12 +7085,12 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
       <h3 data-question>Welches Icon steht als drittes neben Wunschliste und Ins Lager?</h3>
       <p data-stakes>Welche Absicht man aus jeder Zeile mit einem Klick erreicht</p>
       <div data-options>
-        <label data-opt="einsatz"><input type="radio" name="dm-q3-third" value="einsatz"><span data-opt-label>Zum Einsatz hinzufügen</span><span data-opt-consequence>Fragt, zu welchem geplanten Einsatz; braucht dafür erst eine Auswahl.</span></label>
-        <label data-opt="nachschub" data-recommended><input type="radio" name="dm-q3-third" value="nachschub" checked><span data-opt-label>In den Nachschub</span><span data-opt-consequence>Direkt auf die Besorgen-Liste; heute schon baubar.</span></label>
-        <label data-opt="menu"><input type="radio" name="dm-q3-third" value="menu"><span data-opt-label>Ein Planen-Icon mit Mini-Menü: Nachschub oder Einsatz</span><span data-opt-consequence>Beides erreichbar, aber ein Klick mehr.</span></label>
+        <label data-opt="einsatz"><input type="radio" name="dm-q3-third" value="einsatz" disabled><span data-opt-label>Zum Einsatz hinzufügen</span><span data-opt-consequence>Fragt, zu welchem geplanten Einsatz; braucht dafür erst eine Auswahl.</span></label>
+        <label data-opt="nachschub" data-recommended><input type="radio" name="dm-q3-third" value="nachschub" checked disabled><span data-opt-label>In den Nachschub</span><span data-opt-consequence>Direkt auf die Besorgen-Liste; heute schon baubar.</span></label>
+        <label data-opt="menu"><input type="radio" name="dm-q3-third" value="menu" disabled><span data-opt-label>Ein Planen-Icon mit Mini-Menü: Nachschub oder Einsatz</span><span data-opt-consequence>Beides erreichbar, aber ein Klick mehr.</span></label>
       </div>
-      <textarea data-comment="q3-third-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-third-none" value=""><input type="hidden" name="dm-q3-third-hes" value=""><input type="hidden" name="dm-q3-third-touched" value=""><input type="hidden" name="dm-q3-third-issue" value=""><input type="hidden" name="dm-q3-third-epic" value="">
+      <textarea data-comment="q3-third-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q3-third-none" value="" disabled><input type="hidden" name="dm-q3-third-hes" value="{&quot;ms&quot;:10561,&quot;revisits&quot;:0,&quot;median&quot;:9490}" disabled><input type="hidden" name="dm-q3-third-touched" value="" disabled><input type="hidden" name="dm-q3-third-issue" value="" disabled><input type="hidden" name="dm-q3-third-epic" value="" disabled>
       <div data-alevel="3" data-title="Drittes Icon">
         <div data-slot="short"><p>Nachschub und Einsatzplanung gibt es im HQ schon.</p></div>
         <div data-slot="long"><p>Nachschub: <code>hq-supplies.service.ts</code>, Popup <code>hq-supplies-popup.component.ts</code>; im Plan gibt es schon „Fehlendes in Nachschub (n)“. Einsatz: Planung unter <code>src/app/hq/plan/</code>. Die Wunschliste existiert nur für Schiffe (Hangar-Status) und wird für alle Spielinhalte erweitert.</p></div>
@@ -7102,13 +7103,13 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
       <h3 data-question>Passen diese 70 Hinweise?</h3>
       <p data-stakes>Was neue Nutzer über die Suche lernen</p>
       <div data-options>
-        <label data-opt="ok" data-recommended><input type="radio" name="dm-q3-hints" value="ok" checked><span data-opt-label>Passen so</span><span data-opt-consequence>Kommen als i18n-Liste (DE + EN) in die App.</span></label>
-        <label data-opt="partial"><input type="radio" name="dm-q3-hints" value="partial"><span data-opt-label>Teilweise, Änderungen unten</span><span data-opt-consequence>Nummern streichen oder ergänzen.</span></label>
-        <label data-opt="wrong"><input type="radio" name="dm-q3-hints" value="wrong"><span data-opt-label>Anderer Ton</span><span data-opt-consequence>Schreib unten, wie sie klingen sollen.</span></label>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-q3-hints" value="ok" checked disabled><span data-opt-label>Passen so</span><span data-opt-consequence>Kommen als i18n-Liste (DE + EN) in die App.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-q3-hints" value="partial" disabled><span data-opt-label>Teilweise, Änderungen unten</span><span data-opt-consequence>Nummern streichen oder ergänzen.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-q3-hints" value="wrong" disabled><span data-opt-label>Anderer Ton</span><span data-opt-consequence>Schreib unten, wie sie klingen sollen.</span></label>
       </div>
-      <input type="text" name="dm-q3-hints-fix" value="" placeholder="Was soll anders sein?">
-      <textarea data-comment="q3-hints-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-hints-none" value=""><input type="hidden" name="dm-q3-hints-hes" value=""><input type="hidden" name="dm-q3-hints-touched" value=""><input type="hidden" name="dm-q3-hints-issue" value=""><input type="hidden" name="dm-q3-hints-epic" value="">
+      <input type="text" name="dm-q3-hints-fix" value="" placeholder="Was soll anders sein?" readonly disabled>
+      <textarea data-comment="q3-hints-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q3-hints-none" value="" disabled><input type="hidden" name="dm-q3-hints-hes" value="{&quot;ms&quot;:8419,&quot;revisits&quot;:0,&quot;median&quot;:9490}" disabled><input type="hidden" name="dm-q3-hints-touched" value="" disabled><input type="hidden" name="dm-q3-hints-issue" value="" disabled><input type="hidden" name="dm-q3-hints-epic" value="" disabled>
       <div data-alevel="3" data-title="70 Hinweise">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"70","unit":"Hinweise","label":"einzeilig, wechseln alle 6 s"}'>70</div></div>
         <div data-slot="long"><p>Gruppen: Abkürzungen und Spitznamen (1–16), Werte und Größen (17–28), eigene Daten (29–40), Kontext und Chips (41–50), Spielinhalte wie Missionen, Blaupausen, Orte (51–62), Tastatur (63–70). Jeder Hinweis setzt per Klick sein Beispiel ins Feld.</p></div>
@@ -7156,13 +7157,13 @@ Verwechsler  Reclaimer/Redeemer/Retaliator · Cutlass/Cutter/Corsair · Gladius/
       <h3 data-question>Stimmt die korrigierte Matrix?</h3>
       <p data-stakes>Was der eine Knopf in jeder Lage tut und was dafür neu gebaut wird</p>
       <div data-options>
-        <label data-opt="ok" data-recommended><input type="radio" name="dm-q3-matrix" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Zellen mit * kommen als eigene Folge-Aufgaben.</span></label>
-        <label data-opt="partial"><input type="radio" name="dm-q3-matrix" value="partial"><span data-opt-label>Teilweise, Änderungen unten</span><span data-opt-consequence>Nenne Zeile × Spalte und was stattdessen.</span></label>
-        <label data-opt="wrong"><input type="radio" name="dm-q3-matrix" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Dann baue ich sie mit dir neu.</span></label>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-q3-matrix" value="ok" checked disabled><span data-opt-label>Stimmt so</span><span data-opt-consequence>Zellen mit * kommen als eigene Folge-Aufgaben.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-q3-matrix" value="partial" disabled><span data-opt-label>Teilweise, Änderungen unten</span><span data-opt-consequence>Nenne Zeile × Spalte und was stattdessen.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-q3-matrix" value="wrong" disabled><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Dann baue ich sie mit dir neu.</span></label>
       </div>
-      <input type="text" name="dm-q3-matrix-fix" value="" placeholder="Welche Zelle soll anders sein?">
-      <textarea data-comment="q3-matrix-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-matrix-none" value=""><input type="hidden" name="dm-q3-matrix-hes" value=""><input type="hidden" name="dm-q3-matrix-touched" value=""><input type="hidden" name="dm-q3-matrix-issue" value=""><input type="hidden" name="dm-q3-matrix-epic" value="">
+      <input type="text" name="dm-q3-matrix-fix" value="" placeholder="Welche Zelle soll anders sein?" readonly disabled>
+      <textarea data-comment="q3-matrix-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q3-matrix-none" value="" disabled><input type="hidden" name="dm-q3-matrix-hes" value="{&quot;ms&quot;:7943,&quot;revisits&quot;:0,&quot;median&quot;:9490}" disabled><input type="hidden" name="dm-q3-matrix-touched" value="1" disabled><input type="hidden" name="dm-q3-matrix-issue" value="" disabled><input type="hidden" name="dm-q3-matrix-epic" value="" disabled>
       <div data-alevel="3" data-title="Matrix nach Gegenprüfung">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"5 + 9","unit":"Funde","label":"Icon-Doppelungen + Aktionen ohne Ziel in der App"}'>5 + 9</div></div>
         <div data-slot="long"><p>Die wichtigsten Änderungen:</p><ul><li>„Mein Loadout“ ersetzt drei Namen und führt direkt zum Schiff im HQ statt zur Hangar-Liste.</li><li>„Wo gelagert?“ ersetzt „Ins Lager“, „Bei RSI“ ersetzt „Merken“ bei angekündigten Schiffen.</li><li>„Tauschen“ geht in „Montieren“ auf, „Damit planen“ in „Einsatz planen“.</li><li>Vergleichen nimmt nur gleiche Arten an (höchstens 4); angekündigte Schiffe lassen sich gar nicht vergleichen.</li></ul></div>
@@ -7190,11 +7191,11 @@ Missionen stehen noch gar nicht im Index: das ist ein Daten-Feature, keine Frage
       <h3 data-question>Was tut das Lager-Icon bei Schiffen, und wer bekommt die Icons überhaupt?</h3>
       <p data-stakes>Ob die drei Icons überall dasselbe heißen</p>
       <div data-options>
-        <label data-opt="hangar" data-recommended><input type="radio" name="dm-q3-shipicon" value="hangar" checked><span data-opt-label>Bei Schiffen „In den Hangar“; Icons nur bei Ausrüstung, Schiffen, Blaupausen</span><span data-opt-consequence>Hersteller, Missionen: keine Icons; Blaupause: nur Wunschliste.</span></label>
-        <label data-opt="hide"><input type="radio" name="dm-q3-shipicon" value="hide"><span data-opt-label>Bei Schiffen kein Lager-Icon, Hauptaktion „Hinzufügen“ bleibt</span><span data-opt-consequence>Schiffszeilen haben dann nur zwei Icons.</span></label>
+        <label data-opt="hangar" data-recommended><input type="radio" name="dm-q3-shipicon" value="hangar" checked disabled><span data-opt-label>Bei Schiffen „In den Hangar“; Icons nur bei Ausrüstung, Schiffen, Blaupausen</span><span data-opt-consequence>Hersteller, Missionen: keine Icons; Blaupause: nur Wunschliste.</span></label>
+        <label data-opt="hide"><input type="radio" name="dm-q3-shipicon" value="hide" disabled><span data-opt-label>Bei Schiffen kein Lager-Icon, Hauptaktion „Hinzufügen“ bleibt</span><span data-opt-consequence>Schiffszeilen haben dann nur zwei Icons.</span></label>
       </div>
-      <textarea data-comment="q3-shipicon-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-q3-shipicon-none" value=""><input type="hidden" name="dm-q3-shipicon-hes" value=""><input type="hidden" name="dm-q3-shipicon-touched" value=""><input type="hidden" name="dm-q3-shipicon-issue" value=""><input type="hidden" name="dm-q3-shipicon-epic" value="">
+      <textarea data-comment="q3-shipicon-note" placeholder="Notiz (optional)" readonly></textarea>
+      <input type="hidden" name="dm-q3-shipicon-none" value="" disabled><input type="hidden" name="dm-q3-shipicon-hes" value="{&quot;ms&quot;:24101,&quot;revisits&quot;:0,&quot;median&quot;:9490}" disabled><input type="hidden" name="dm-q3-shipicon-touched" value="1" disabled><input type="hidden" name="dm-q3-shipicon-issue" value="" disabled><input type="hidden" name="dm-q3-shipicon-epic" value="" disabled>
       <div data-alevel="3" data-title="Lager-Icon bei Schiffen">
         <div data-slot="short"><p>Schiffe gehören in den Hangar, Ausrüstung ins Lager. Der Rest bekommt keines von beiden.</p></div>
         <div data-slot="long"><p><code>hangar.addShip(slug, 'owned')</code> legt Schiffe an. Das Lager (<code>HqInventoryService</code>) speichert Gegenstände nach ihrem Namen, nicht nach ihrer Codex-Klasse. „Wo gelagert?“ gleicht deshalb nur unscharf ab.</p></div>
@@ -7203,6 +7204,149 @@ Missionen stehen noch gar nicht im Index: das ist ein Daten-Feature, keine Frage
 
   </section>
 
+</section>
+
+<section id="iter-4" data-iteration="4" data-iteration-template="free" data-final-report data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Suche: Kontext und Aktionen</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="2026-11-02-suche-kontext-aktionen/shots/hq-idris.jpg" alt=""><figcaption>HQ: „Aus deinem Bestand“ steht zuerst</figcaption></figure>
+    <figure class="fr-shot"><img src="2026-11-02-suche-kontext-aktionen/shots/ship-rep-s4.jpg" alt=""><figcaption>Schiffsseite: Chips, Kürzelzeile, Aktion und Icons (vor dem Fix der passt-auf-Badges)</figcaption></figure>
+  </div>
+  <p class="fr-try-auth">🔑 Noch nicht live: Die Backlog-Session merged den Branch, shipt alles in einem Release und spielt die 4 Migrationen ein. Lokal ab <code>claude/search-intelligence-context-a1b9d4</code> mit <code>npm start</code>, angemeldet mit dem Testkonto.</p>
+
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">Die Suche zeigt deinen eigenen Bestand zuerst und filtert sichtbar über Chips aus dem Seitenkontext. Jede Zeile hat eine ruhige Hauptaktion und drei Icons (Wunschliste, Lager/Hangar, Nachschub); Galerie, Patches und dein Hangar sind als Quellen dazugekommen.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🏠</span><span><b>Dein Bestand zuerst</b>, mit Menge und Schiff („3× im Lager · 2 auf …“).</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🏷</span><span><b>Chips aus dem Kontext</b>; „s4“ wird zu Größe 4, Kürzel wie „rep“ werden erkannt.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🎯</span><span><b>„passt auf X“</b> prüft auch verschachtelte Türme und Gimbals.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 95%; --fr-target: 70%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">9 ms</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">für die Galerie-Suche im Probelauf; Ziel unter 300 ms, weit unter dem 3-s-Limit für Gäste (geschätzt). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🛡 Sicherheit</span>
+          <b class="fr-meter-value">0</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Hangar-Daten in Anfragen oder im gemeinsamen Index, laut Specs; Ziel 0. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 92%">
+          <span class="fr-meter-name">♿ Barrierefreiheit</span>
+          <b class="fr-meter-value">≥ 44 px</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Mindestgröße aller Tippflächen am Handy (375 px); Ziel 44 px. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-card">
+    <p class="fr-label">Nicht umgesetzt · Auslegung</p>
+    <ul class="fr-wins">
+      <li><span class="fr-win-icon" aria-hidden="true">✏️</span><span><b>Silhouette</b> nur inline als Zeilen-Icon: kein Rahmen, kein Streifen, kein Wasserzeichen (deine Antwort in Runde 3).</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">◐</span><span><b>Nicht umgesetzt:</b> „Material in Nachschub“ übernimmt nur das Teil selbst, weil die Materialliste noch nicht angebunden ist. Ein Teil-Chip zeigt an Schiffszeilen noch kein „passt auf“.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">◐</span><span><b>Nicht umgesetzt:</b> Das Phone-Sheet ist nach dem Fix nicht angemeldet im Browser geprüft. Der Zusatz „Sprache: Deutsch + Englisch“ in der Kürzelzeile fehlt.</span></li>
+    </ul>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Prod-Build geprüft<small>Stufe {n} von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="done">Lokal durchgespielt</li>
+      <li data-level="5" data-state="done">Prod-Build geprüft</li>
+      <li data-level="6" data-state="open">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Lokal angemeldet mit echten Hangar-Daten durchgespielt. Die Parity-Prüfung ergab 22 von 37 Punkten live belegt, den Rest per Spec; 6 der 7 Befunde sind behoben. Wunschliste, Lager und Nachschub lassen sich erst nach dem Einspielen der Migrationen live prüfen.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 {n} Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-matrix-star"
+          data-issue-title="[FEATURE] Search CTAs for the starred matrix cells"
+          data-issue-type="feature"
+          data-issue-body="Concept docs/concepts/2026-11-02-suche-kontext-aktionen (round 3, q3-matrix): the cells marked * were approved as their own follow-ups and fall back to the neutral CTA for now: Passende Schiffe, Passende Waffen, Zum Einsatz, Montieren, Wo verbaut?, Bezugsquelle (ships and components). Resolver: src/app/codex/search/search-cta.ts (CTA_MATRIX, resolveCta). Build each target flow, then flip its cell. Refs #832."
+          data-issue-module="search"
+          data-oq-origin="deferred"
+          data-route-default="issue"
+          data-route-reason="braucht Concept">
+        <span class="oq-label">CTAs der *-Zellen der Matrix</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Sechs Aktionen wie „Passende Schiffe“ oder „Wo verbaut?“ fallen noch auf die neutrale Aktion zurück.</dd>
+          <dt>Wo</dt><dd>Runde 3, Matrix · <code>search-cta.ts</code></dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue: von dir als eigene Folge-Aufgaben beschlossen.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-missions"
+          data-issue-title="[FEATURE] Index missions for the global search"
+          data-issue-type="feature"
+          data-issue-body="Concept round 1 q-sources asked for missions as a search source. The codex index has no mission data yet, so the search cannot list them. Needs mission records in the catalog ingest (uploader / ingest-catalog), then a 'missions' group in search-compose.ts. Refs #832."
+          data-issue-module="search"
+          data-oq-origin="deferred"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo">
+        <span class="oq-label">Missionen in den Such-Index</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Missionen sind als Quelle beschlossen, stehen aber noch nicht im Index.</dd>
+          <dt>Wo</dt><dd>Katalog-Ingest (Uploader)</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue: zuerst braucht es Daten aus dem Uploader.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-manufacturers"
+          data-issue-title="[BUG] Catalog ingest stores paint and shop records as manufacturers"
+          data-issue-type="bug"
+          data-issue-body="Found in search QA: for 'aegis re' the Hersteller group lists 'Paint_Constellation_LunarNewYear2952_Red_Logo'. codex_manufacturers holds Paint_*_Logo and Shop_* rows whose class_name equals manufacturer_code and whose display name is borrowed from a real maker. The SCItemManufacturer ingest over-collects. Fix the ingest (ingest-catalog / uploader) to skip non-manufacturer records, then delete the stray rows."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="riskant">
+        <span class="oq-label">Lack- und Shop-Einträge als Hersteller</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>In der Hersteller-Gruppe tauchen „Paint_…_Logo“-Einträge auf.</dd>
+          <dt>Wo</dt><dd><code>codex_manufacturers</code>, Katalog-Ingest</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue: ein Datenfehler im Ingest, im Client nur zu verstecken.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="web">Such-Sheet am Handy angemeldet ansehen</li>
+      <li data-todo-id="t-fit" data-crit="mid" data-guide="web">Idris: „rep s4“ zeigt ✓ an den Türmen</li>
+      <li data-todo-id="t-icons" data-crit="low" data-guide="web">Wunschliste/Lager/Nachschub nach dem Deploy</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Commits <code>71c91e5f</code> … <code>3dc24977</code> auf <code>claude/search-intelligence-context-a1b9d4</code> · Refs #832</li>
+      <li>Bereiche: <code>src/app/codex/search/</code>, <code>src/app/shell/fusion-bar/</code>, <code>supabase/migrations/202611021*</code> (4, noch nicht eingespielt)</li>
+      <li>Tests: Karma gesamt 5227 (1 Katalog-Spec danach gefixt), Suche + Fusion-Bar 261/261, test:gate 89/89, Build grün</li>
+      <li>Ship, Merge und DB-Push übernimmt die Backlog-Session; hier wird nicht geshippt</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -7417,7 +7561,8 @@ Missionen stehen noch gar nicht im Index: das ist ein Daten-Feature, keine Frage
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
 <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
-<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Runde 3</button>
+<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false" aria-controls="iter-3">Runde 3</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="4" aria-selected="true" aria-controls="iter-4">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
