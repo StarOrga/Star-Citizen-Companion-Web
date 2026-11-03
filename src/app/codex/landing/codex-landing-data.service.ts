@@ -161,21 +161,40 @@ const SHIP_HIGHER_IS_BETTER: ReadonlySet<string> = new Set(['flight.scmSpeed', '
 export const MIN_CLASS_SIZE = 3;
 
 /**
- * The item's class: ships of the same role, other items of the same size —
+ * The item's class: ships of the same role (or, for a rare role, of a
+ * similar hull length), other items of the same size —
  * the whole category when that group is smaller than {@link MIN_CLASS_SIZE}.
  */
-export function classCohort<T extends Pick<CodexListRow, 'role' | 'size'>>(
+export function classCohort<T extends Pick<CodexListRow, 'role' | 'size'> & { payload?: unknown }>(
   category: LandingCategory,
-  target: Pick<CodexListRow, 'role' | 'size'>,
+  target: Pick<CodexListRow, 'role' | 'size'> & { payload?: unknown },
   rows: readonly T[],
 ): readonly T[] {
   let same: T[] = [];
   if (category === 'ship') {
     if (target.role) same = rows.filter((r) => r.role === target.role);
+    // A role with too few ships must not fall back to the whole fleet: a snub
+    // against capital ships reads "−97 %" on every value. Ships of a similar
+    // hull length are the class then.
+    if (same.length < MIN_CLASS_SIZE) {
+      const len = hullLength(target.payload);
+      if (len) same = rows.filter((r) => {
+        const l = hullLength(r.payload);
+        return l !== null && l >= len / SIZE_BAND && l <= len * SIZE_BAND;
+      });
+    }
   } else if (target.size !== null && target.size !== undefined) {
     same = rows.filter((r) => r.size === target.size);
   }
   return same.length >= MIN_CLASS_SIZE ? same : rows;
+}
+
+/** Ships within this factor of the target's hull length form its size class. */
+const SIZE_BAND = 1.5;
+
+function hullLength(payload: unknown): number | null {
+  const len = (payload as { dimensions?: { length?: unknown } | null } | null)?.dimensions?.length;
+  return isNum(len) && len > 0 ? len : null;
 }
 
 /**
