@@ -1,0 +1,612 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives">
+
+<style>
+/* #884 holotable callout-set mocks — namespaced hl-*. */
+[data-design] .hl-frame { position: relative; width: 100%; max-width: 1180px; aspect-ratio: 1180 / 600; margin: 16px auto; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(ellipse 70% 70% at 40% 60%, #0c2232 0%, #07131d 55%, #040a10 100%); color: #e6f0f6;
+  font-family: system-ui, "Segoe UI", sans-serif; container-type: inline-size; }
+[data-design] .hl-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+[data-design] .hl-table { fill: #0b1d29; stroke: #2a5a74; stroke-width: 2; }
+[data-design] .hl-ring { fill: none; stroke: #1b3d52; stroke-width: 1; }
+[data-design] .hl-hull { fill: rgba(90, 200, 232, .10); stroke: #5ac8e8; stroke-width: 1.6; filter: drop-shadow(0 0 6px rgba(90, 200, 232, .55)); }
+[data-design] .hl-lead { fill: none; stroke: #7fb6cc; stroke-width: 1; stroke-dasharray: 4 4; opacity: .8; }
+[data-design] .hl-lead.real { stroke: #9be4f7; stroke-dasharray: none; }
+[data-design] .hl-dot { fill: none; stroke: #9be4f7; stroke-width: 1.5; stroke-dasharray: 3 3; }
+[data-design] .hl-dot.real { fill: #9be4f7; stroke: #fff; stroke-dasharray: none; filter: drop-shadow(0 0 5px #5ac8e8); }
+[data-design] .hl-calls { list-style: none; margin: 0; padding: 0; }
+[data-design] .hl-call { position: absolute; transform: translateY(-50%); display: flex; flex-direction: column; gap: 1px; min-width: 15cqi; }
+[data-design] .hl-clabel { font-size: max(10px, 1cqi); letter-spacing: .14em; text-transform: uppercase; color: #8aa3b3; }
+[data-design] .hl-est { font-style: normal; color: #e0a060; letter-spacing: 0; text-transform: none; margin-left: 4px; }
+[data-design] .hl-cval { font-size: max(15px, 2.2cqi); font-weight: 700; font-variant-numeric: tabular-nums; }
+[data-design] .hl-cval i { font-style: normal; font-size: .6em; color: #5ac8e8; margin-left: 6px; }
+[data-design] .hl-cmp { font-size: max(10px, 1cqi); color: #9fc0d2; }
+[data-design] .hl-cmp.worse { color: #e0a060; }
+[data-design] .hl-call.moved .hl-clabel::after { content: ' ↑ nachgerückt'; color: #9be070; letter-spacing: 0; text-transform: none; }
+[data-design] .hl-pane { position: absolute; right: 2.4%; bottom: 4%; width: 21%; padding: 8px 12px; border-radius: 10px; background: rgba(12, 28, 40, .8); border: 1px solid #1f3a4c; }
+[data-design] .hl-pane p { margin: 0 0 4px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #7f98a8; }
+[data-design] .hl-pane ul { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+[data-design] .hl-pane li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; color: #c9dbe6; }
+[data-design] .hl-id { position: absolute; left: 3%; bottom: 5%; }
+[data-design] .hl-id p { margin: 0; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #8aa3b3; }
+[data-design] .hl-id b { font-size: max(20px, 3.2cqi); }
+[data-design] .hl-id i { font-style: normal; font-size: .5em; color: #5ac8e8; margin-left: 8px; vertical-align: middle; }
+[data-design] .hl-legend { position: absolute; left: 3%; top: 3.5%; margin: 0; font-size: 10.5px; color: #7f98a8; display: flex; gap: 6px; align-items: center; }
+[data-design] .hl-seg .hl-legend { top: auto; bottom: 22%; }
+[data-design] .lg-real, [data-design] .lg-zone { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+[data-design] .lg-real { background: #9be4f7; margin-left: 2px; }
+[data-design] .lg-zone { border: 1.5px dashed #9be4f7; margin-left: 10px; }
+[data-design] .hl-next { position: absolute; right: 2.4%; top: 3.5%; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #24445a; background: #0d2130; color: #c9dbe6; font: inherit; font-size: 12px; cursor: pointer; }
+[data-design] .hl-next:hover { border-color: #5ac8e8; }
+[data-design] .hl-toggle { position: absolute; display: flex; align-items: center; }
+[data-design] .hl-toggle button { font: inherit; cursor: pointer; color: #9fc0d2; background: none; border: 0; }
+[data-design] .hl-ico { margin-right: 6px; color: #5ac8e8; }
+/* seg — segmented pill, top left */
+[data-design] .t-seg { left: 3%; top: 3.5%; padding: 3px; border-radius: 999px; background: rgba(12, 28, 40, .92); border: 1px solid #24445a; }
+[data-design] .t-seg button { min-height: 40px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+[data-design] .t-seg button.on { background: #1b3d52; color: #fff; box-shadow: inset 0 0 0 1px #5ac8e8; }
+/* rim — two light keys on the table's front rim */
+[data-design] .t-rim { left: 50%; transform: translateX(-80%); bottom: 2.2%; gap: 10px; }
+[data-design] .t-rim button { min-height: 40px; padding: 0 18px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+  border-bottom: 2px solid #1b3d52; }
+[data-design] .t-rim button.on { color: #e6f7fc; border-bottom-color: #5ac8e8; text-shadow: 0 0 8px #5ac8e8; }
+/* head — text switch as the callout column's header */
+[data-design] .t-head { top: 11%; gap: 6px; font-size: 13px; }
+[data-design] .hl-thead { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #7f98a8; margin-right: 6px; }
+[data-design] .t-head button { min-height: 40px; padding: 0 4px; font-weight: 600; }
+[data-design] .t-head button.on { color: #fff; text-decoration: underline; text-decoration-color: #5ac8e8; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+[data-design] .hl-tsep { color: #3c5a6c; }
+@media (prefers-reduced-motion: reduce) { [data-design] .hl-frame * { transition: none !important; animation: none !important; } }
+</style>
+
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 1 · Callout-Set „Flug / Loadout“ am Holotisch</h2>
+    <p>Pfad B aus #884: Der Holotisch bekommt einen Schalter zwischen zwei Callout-Sätzen. <strong>Flug</strong> bleibt der Standard und sieht aus wie heute (Rüstung, Max. Geschwindigkeit, Hülle). <strong>Loadout</strong> zeigt drei Bauteile mit Leitlinie auf ihren echten Hardpoint. Der Deckel bleibt bei drei Callouts, der Rest steht in „Weitere Werte“.</p>
+    <p>Die <strong>drei Designs</strong> unterscheiden sich nur darin, <em>wo und wie</em> der Schalter sitzt. In jedem Design: Schalter klicken wechselt Flug ↔ Loadout, „Nächstes Schiff ›“ zeigt den Fallback-Fall (Merlin ohne Quantenantrieb). Die Werte sind echte LIVE-Daten von Gladius und P-52 Merlin; nur die Vergleichszeilen („ggü. Klasse“) sind Platzhalter.</p>
+    <p>Die <strong>vier Fragen-Ansichten</strong> klären den Inhalt: was ein Loadout-Wert anzeigt, welche drei Bauteile an den Tisch kommen, wohin ein Callout ohne Position zeigt und ob der Tisch sich die Wahl merkt. Gilt in jedem Design: nur Schiffe haben den Schalter, auf dem Handy ist er 48 px hoch, und der Wechsel nutzt die vorhandene Leitlinien-Animation.</p>
+  </header>
+
+  <section data-design="seg" data-nav-label="Schalter oben links" data-design-active="true"
+           data-design-motto="Schalter über dem Tisch" data-design-traits="Segment-Schalter oben links im Bild|Immer sichtbar, unabhängig von den Callouts|Icon + Wort pro Set" data-design-icon="layers" data-design-color="#5ac8e8">
+    <section id="seg-s1" data-nav-label="Flug (Standard)" data-screen data-screen-active="true">
+      <div class="hl-frame hl-seg">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-seg-flight-1" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-seg-flight-1)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 262 L470 250 L400 150 L362 150 L380 254 L330 258 L300 270 L300 290 L330 302 L380 306 L362 410 L400 410 L470 310 L560 298 Z" transform="translate(0 0) scale(1)"/>
+          <path class="hl-lead real" d="M470 268 L770 150 L810 150"/><circle class="hl-dot real" cx="470" cy="268" r="6"/><path class="hl-lead real" d="M304 272 L770 280 L810 280"/><circle class="hl-dot real" cx="304" cy="272" r="6"/><path class="hl-lead" d="M430 300 L770 410 L810 410"/><circle class="hl-dot" cx="430" cy="300" r="8"/>
+        </svg>
+        
+        <div class="hl-toggle t-seg" role="group" aria-label="Callout-Set">
+          <button type="button" class="on" aria-pressed="true" data-screen-link="seg-s1"><span class="hl-ico">⟶</span>Flug</button>
+          <button type="button" class="" aria-pressed="false" data-screen-link="seg-s2"><span class="hl-ico">◈</span>Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Rüstung</span>
+            <span class="hl-cval">3.300 HP<i>↗</i></span>
+            <small class="hl-cmp">+8 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Max. Geschwindigkeit</span>
+            <span class="hl-cval">1.193 m/s<i>↗</i></span>
+            <small class="hl-cmp worse">−4 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Hülle <em class="hl-est">≈ Zone</em></span>
+            <span class="hl-cval">6.110 HP<i>↗</i></span>
+            <small class="hl-cmp">Klasse Ø 5.870 HP</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>SCM</span><b>226 m/s</b></li><li><span>Crew</span><b>1</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Aegis Dynamics</p><b>Gladius<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        
+      </div>
+    </section>
+    <section id="seg-s2" data-nav-label="Loadout · Gladius" data-screen hidden>
+      <div class="hl-frame hl-seg">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-seg-loadout-1" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-seg-loadout-1)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 262 L470 250 L400 150 L362 150 L380 254 L330 258 L300 270 L300 290 L330 302 L380 306 L362 410 L400 410 L470 310 L560 298 Z" transform="translate(0 0) scale(1)"/>
+          <path class="hl-lead real" d="M392 162 L770 150 L810 150"/><circle class="hl-dot real" cx="392" cy="162" r="6"/><path class="hl-lead real" d="M425 242 L770 280 L810 280"/><circle class="hl-dot real" cx="425" cy="242" r="6"/><path class="hl-lead real" d="M356 284 L770 410 L810 410"/><circle class="hl-dot real" cx="356" cy="284" r="6"/>
+        </svg>
+        
+        <div class="hl-toggle t-seg" role="group" aria-label="Callout-Set">
+          <button type="button" class="" aria-pressed="false" data-screen-link="seg-s1"><span class="hl-ico">⟶</span>Flug</button>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="seg-s2"><span class="hl-ico">◈</span>Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Waffen</span>
+            <span class="hl-cval">3 × S3<i>↗</i></span>
+            <small class="hl-cmp">Nase + 2 Flügel</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Schild</span>
+            <span class="hl-cval">6.336 HP<i>↗</i></span>
+            <small class="hl-cmp">2 × S1 · +12 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Quantenantrieb</span>
+            <span class="hl-cval">161.411 km/s<i>↗</i></span>
+            <small class="hl-cmp worse">S1 · Klasse Ø 170.200 km/s</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>Leistung</span><b>16 Segmente</b></li><li><span>Kühlung</span><b>68 / s</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Aegis Dynamics</p><b>Gladius<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        <button type="button" class="hl-next" data-screen-link="seg-s3">Nächstes Schiff ›</button>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="seg-a1" data-anno-side="right" data-anno-target=".t-seg" style="--anno-x:8%;--anno-y:7%">
+        <button class="anno-pin" type="button" data-anno-pin="seg-a1" aria-expanded="false" aria-controls="anno-bubble-seg-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-seg-a1" data-anno-bubble="seg-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="seg-a1" aria-expanded="false" aria-controls="anno-bubble-seg-a1">
+            <span class="anno-bubble-question">Oben links über dem Hologramm: findet man den Schalter dort, ohne dass er vom Schiff ablenkt?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-seg-a1" data-annotation="seg-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-seg-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="seg-s3" data-nav-label="Loadout · Merlin (ohne QT)" data-screen hidden>
+      <div class="hl-frame hl-seg">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-seg-loadout-0.78" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-seg-loadout-0.78)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 266 L470 258 L420 200 L392 200 L400 260 L330 262 L300 272 L300 288 L330 298 L400 300 L392 360 L420 360 L470 302 L560 294 Z" transform="translate(120 66) scale(0.78)"/>
+          <path class="hl-lead real" d="M487 267 L770 150 L810 150"/><circle class="hl-dot real" cx="487" cy="267" r="6"/><path class="hl-lead real" d="M463 286 L770 280 L810 280"/><circle class="hl-dot real" cx="463" cy="286" r="6"/><path class="hl-lead real" d="M582 289 L770 410 L810 410"/><circle class="hl-dot real" cx="582" cy="289" r="6"/>
+        </svg>
+        
+        <div class="hl-toggle t-seg" role="group" aria-label="Callout-Set">
+          <button type="button" class="" aria-pressed="false" data-screen-link="seg-s1"><span class="hl-ico">⟶</span>Flug</button>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="seg-s3"><span class="hl-ico">◈</span>Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Schild</span>
+            <span class="hl-cval">3.168 HP<i>↗</i></span>
+            <small class="hl-cmp worse">1 × S1 · Klasse Ø 3.900 HP</small>
+          </li>
+          <li class="hl-call moved" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Leistung</span>
+            <span class="hl-cval">14 Segmente<i>↗</i></span>
+            <small class="hl-cmp">rückt nach — kein Quantenantrieb</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Waffen</span>
+            <span class="hl-cval">1 × S2<i>↗</i></span>
+            <small class="hl-cmp">Mittel-Gimbal</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>Kühlung</span><b>52 / s</b></li><li><span>Quantenantrieb</span><b>— (Snub, keiner verbaut)</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Kruger Intergalactic</p><b>P-52 Merlin<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="seg-a2" data-anno-side="left" data-anno-target=".hl-call.moved" style="--anno-x:70%;--anno-y:66%">
+        <button class="anno-pin" type="button" data-anno-pin="seg-a2" aria-expanded="false" aria-controls="anno-bubble-seg-a2" aria-label="{{anno.pin_label}}">2</button>
+        <div class="anno-bubble" id="anno-bubble-seg-a2" data-anno-bubble="seg-a2" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="seg-a2" aria-expanded="false" aria-controls="anno-bubble-seg-a2">
+            <span class="anno-bubble-question">Der Merlin hat keinen Quantenantrieb, also rückt Leistung nach. Passt das Nachrücken so, oder soll die Lücke sichtbar bleiben (QT „—“)?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-seg-a2" data-annotation="seg-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-seg-a2"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+  <section data-design="rim" data-nav-label="Tasten am Tischrand" hidden
+           data-design-motto="Tasten im Holotisch-Rand" data-design-traits="Zwei Leuchttasten vorne am Tischrand|Wirkt wie ein Teil des Geräts|Unter dem Hologramm statt darüber" data-design-icon="gauge" data-design-color="#e0a060">
+    <section id="rim-s1" data-nav-label="Flug (Standard)" data-screen>
+      <div class="hl-frame hl-rim">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-rim-flight-1" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-rim-flight-1)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 262 L470 250 L400 150 L362 150 L380 254 L330 258 L300 270 L300 290 L330 302 L380 306 L362 410 L400 410 L470 310 L560 298 Z" transform="translate(0 0) scale(1)"/>
+          <path class="hl-lead real" d="M470 268 L770 150 L810 150"/><circle class="hl-dot real" cx="470" cy="268" r="6"/><path class="hl-lead real" d="M304 272 L770 280 L810 280"/><circle class="hl-dot real" cx="304" cy="272" r="6"/><path class="hl-lead" d="M430 300 L770 410 L810 410"/><circle class="hl-dot" cx="430" cy="300" r="8"/>
+        </svg>
+        
+        <div class="hl-toggle t-rim" role="group" aria-label="Callout-Set">
+          <button type="button" class="on" aria-pressed="true" data-screen-link="rim-s1"><span class="hl-ico">⟶</span>Flug</button>
+          <button type="button" class="" aria-pressed="false" data-screen-link="rim-s2"><span class="hl-ico">◈</span>Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Rüstung</span>
+            <span class="hl-cval">3.300 HP<i>↗</i></span>
+            <small class="hl-cmp">+8 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Max. Geschwindigkeit</span>
+            <span class="hl-cval">1.193 m/s<i>↗</i></span>
+            <small class="hl-cmp worse">−4 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Hülle <em class="hl-est">≈ Zone</em></span>
+            <span class="hl-cval">6.110 HP<i>↗</i></span>
+            <small class="hl-cmp">Klasse Ø 5.870 HP</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>SCM</span><b>226 m/s</b></li><li><span>Crew</span><b>1</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Aegis Dynamics</p><b>Gladius<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        
+      </div>
+    </section>
+    <section id="rim-s2" data-nav-label="Loadout · Gladius" data-screen hidden>
+      <div class="hl-frame hl-rim">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-rim-loadout-1" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-rim-loadout-1)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 262 L470 250 L400 150 L362 150 L380 254 L330 258 L300 270 L300 290 L330 302 L380 306 L362 410 L400 410 L470 310 L560 298 Z" transform="translate(0 0) scale(1)"/>
+          <path class="hl-lead real" d="M392 162 L770 150 L810 150"/><circle class="hl-dot real" cx="392" cy="162" r="6"/><path class="hl-lead real" d="M425 242 L770 280 L810 280"/><circle class="hl-dot real" cx="425" cy="242" r="6"/><path class="hl-lead real" d="M356 284 L770 410 L810 410"/><circle class="hl-dot real" cx="356" cy="284" r="6"/>
+        </svg>
+        
+        <div class="hl-toggle t-rim" role="group" aria-label="Callout-Set">
+          <button type="button" class="" aria-pressed="false" data-screen-link="rim-s1"><span class="hl-ico">⟶</span>Flug</button>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="rim-s2"><span class="hl-ico">◈</span>Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Waffen</span>
+            <span class="hl-cval">3 × S3<i>↗</i></span>
+            <small class="hl-cmp">Nase + 2 Flügel</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Schild</span>
+            <span class="hl-cval">6.336 HP<i>↗</i></span>
+            <small class="hl-cmp">2 × S1 · +12 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Quantenantrieb</span>
+            <span class="hl-cval">161.411 km/s<i>↗</i></span>
+            <small class="hl-cmp worse">S1 · Klasse Ø 170.200 km/s</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>Leistung</span><b>16 Segmente</b></li><li><span>Kühlung</span><b>68 / s</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Aegis Dynamics</p><b>Gladius<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        <button type="button" class="hl-next" data-screen-link="rim-s3">Nächstes Schiff ›</button>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="rim-a1" data-anno-side="right" data-anno-target=".t-rim" style="--anno-x:39%;--anno-y:91%">
+        <button class="anno-pin" type="button" data-anno-pin="rim-a1" aria-expanded="false" aria-controls="anno-bubble-rim-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-rim-a1" data-anno-bubble="rim-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="rim-a1" aria-expanded="false" aria-controls="anno-bubble-rim-a1">
+            <span class="anno-bubble-question">Tasten am Tischrand: wirkt das wie Teil des Holotischs, oder geht es neben dem Rand unter?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-rim-a1" data-annotation="rim-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-rim-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="rim-s3" data-nav-label="Loadout · Merlin (ohne QT)" data-screen hidden>
+      <div class="hl-frame hl-rim">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-rim-loadout-0.78" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-rim-loadout-0.78)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 266 L470 258 L420 200 L392 200 L400 260 L330 262 L300 272 L300 288 L330 298 L400 300 L392 360 L420 360 L470 302 L560 294 Z" transform="translate(120 66) scale(0.78)"/>
+          <path class="hl-lead real" d="M487 267 L770 150 L810 150"/><circle class="hl-dot real" cx="487" cy="267" r="6"/><path class="hl-lead real" d="M463 286 L770 280 L810 280"/><circle class="hl-dot real" cx="463" cy="286" r="6"/><path class="hl-lead real" d="M582 289 L770 410 L810 410"/><circle class="hl-dot real" cx="582" cy="289" r="6"/>
+        </svg>
+        
+        <div class="hl-toggle t-rim" role="group" aria-label="Callout-Set">
+          <button type="button" class="" aria-pressed="false" data-screen-link="rim-s1"><span class="hl-ico">⟶</span>Flug</button>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="rim-s3"><span class="hl-ico">◈</span>Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Schild</span>
+            <span class="hl-cval">3.168 HP<i>↗</i></span>
+            <small class="hl-cmp worse">1 × S1 · Klasse Ø 3.900 HP</small>
+          </li>
+          <li class="hl-call moved" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Leistung</span>
+            <span class="hl-cval">14 Segmente<i>↗</i></span>
+            <small class="hl-cmp">rückt nach — kein Quantenantrieb</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Waffen</span>
+            <span class="hl-cval">1 × S2<i>↗</i></span>
+            <small class="hl-cmp">Mittel-Gimbal</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>Kühlung</span><b>52 / s</b></li><li><span>Quantenantrieb</span><b>— (Snub, keiner verbaut)</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Kruger Intergalactic</p><b>P-52 Merlin<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        
+      </div>
+    </section>
+  </section>
+  <section data-design="head" data-nav-label="Kopf der Werte-Spalte" hidden
+           data-design-motto="Umschalter als Spaltenkopf" data-design-traits="Sitzt direkt über den Callouts, die er tauscht|Reiner Text, kein Rahmen|Kleinste Fläche der drei" data-design-icon="list" data-design-color="#9be070">
+    <section id="head-s1" data-nav-label="Flug (Standard)" data-screen>
+      <div class="hl-frame hl-head">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-head-flight-1" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-head-flight-1)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 262 L470 250 L400 150 L362 150 L380 254 L330 258 L300 270 L300 290 L330 302 L380 306 L362 410 L400 410 L470 310 L560 298 Z" transform="translate(0 0) scale(1)"/>
+          <path class="hl-lead real" d="M470 268 L770 150 L810 150"/><circle class="hl-dot real" cx="470" cy="268" r="6"/><path class="hl-lead real" d="M304 272 L770 280 L810 280"/><circle class="hl-dot real" cx="304" cy="272" r="6"/><path class="hl-lead" d="M430 300 L770 410 L810 410"/><circle class="hl-dot" cx="430" cy="300" r="8"/>
+        </svg>
+        
+        <div class="hl-toggle t-head" role="group" aria-label="Callout-Set" style="left:69.49%">
+          <span class="hl-thead">Werte</span>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="head-s1">Flug</button>
+          <span class="hl-tsep">·</span>
+          <button type="button" class="" aria-pressed="false" data-screen-link="head-s2">Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Rüstung</span>
+            <span class="hl-cval">3.300 HP<i>↗</i></span>
+            <small class="hl-cmp">+8 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Max. Geschwindigkeit</span>
+            <span class="hl-cval">1.193 m/s<i>↗</i></span>
+            <small class="hl-cmp worse">−4 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Hülle <em class="hl-est">≈ Zone</em></span>
+            <span class="hl-cval">6.110 HP<i>↗</i></span>
+            <small class="hl-cmp">Klasse Ø 5.870 HP</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>SCM</span><b>226 m/s</b></li><li><span>Crew</span><b>1</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Aegis Dynamics</p><b>Gladius<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        
+      </div>
+    </section>
+    <section id="head-s2" data-nav-label="Loadout · Gladius" data-screen hidden>
+      <div class="hl-frame hl-head">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-head-loadout-1" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-head-loadout-1)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 262 L470 250 L400 150 L362 150 L380 254 L330 258 L300 270 L300 290 L330 302 L380 306 L362 410 L400 410 L470 310 L560 298 Z" transform="translate(0 0) scale(1)"/>
+          <path class="hl-lead real" d="M392 162 L770 150 L810 150"/><circle class="hl-dot real" cx="392" cy="162" r="6"/><path class="hl-lead real" d="M425 242 L770 280 L810 280"/><circle class="hl-dot real" cx="425" cy="242" r="6"/><path class="hl-lead real" d="M356 284 L770 410 L810 410"/><circle class="hl-dot real" cx="356" cy="284" r="6"/>
+        </svg>
+        
+        <div class="hl-toggle t-head" role="group" aria-label="Callout-Set" style="left:69.49%">
+          <span class="hl-thead">Werte</span>
+          <button type="button" class="" aria-pressed="false" data-screen-link="head-s1">Flug</button>
+          <span class="hl-tsep">·</span>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="head-s2">Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Waffen</span>
+            <span class="hl-cval">3 × S3<i>↗</i></span>
+            <small class="hl-cmp">Nase + 2 Flügel</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Schild</span>
+            <span class="hl-cval">6.336 HP<i>↗</i></span>
+            <small class="hl-cmp">2 × S1 · +12 % ggü. Klasse</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Quantenantrieb</span>
+            <span class="hl-cval">161.411 km/s<i>↗</i></span>
+            <small class="hl-cmp worse">S1 · Klasse Ø 170.200 km/s</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>Leistung</span><b>16 Segmente</b></li><li><span>Kühlung</span><b>68 / s</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Aegis Dynamics</p><b>Gladius<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        <button type="button" class="hl-next" data-screen-link="head-s3">Nächstes Schiff ›</button>
+      </div>
+      <div class="anno-layer" data-anno-layer><div class="anno" data-anno="head-a1" data-anno-side="left" data-anno-target=".t-head" style="--anno-x:74%;--anno-y:13%">
+        <button class="anno-pin" type="button" data-anno-pin="head-a1" aria-expanded="false" aria-controls="anno-bubble-head-a1" aria-label="{{anno.pin_label}}">1</button>
+        <div class="anno-bubble" id="anno-bubble-head-a1" data-anno-bubble="head-a1" data-open="false">
+          <button type="button" class="anno-bubble-summary" data-anno-summary="head-a1" aria-expanded="false" aria-controls="anno-bubble-head-a1">
+            <span class="anno-bubble-question">Als Kopf der Werte-Spalte: klar genug als Schalter erkennbar, oder zu leise?</span>
+            <span class="anno-chevron" aria-hidden="true">›</span>
+          </button>
+          <div class="anno-bubble-body">
+            <textarea class="anno-answer" data-comment="anno-head-a1" data-annotation="head-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+            <div class="attach-slot" data-attach-slot="anno-head-a1"></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section id="head-s3" data-nav-label="Loadout · Merlin (ohne QT)" data-screen hidden>
+      <div class="hl-frame hl-head">
+        <svg class="hl-svg" viewBox="0 0 1180 600" aria-hidden="true">
+          <defs><radialGradient id="hl-beam-head-loadout-0.78" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#5ac8e8" stop-opacity=".28"/><stop offset="1" stop-color="#5ac8e8" stop-opacity="0"/></radialGradient></defs>
+          <path d="M260 560 L360 120 L560 120 L660 560 Z" fill="url(#hl-beam-head-loadout-0.78)"/>
+          <ellipse class="hl-table" cx="460" cy="548" rx="300" ry="40"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="250" ry="30"/>
+          <ellipse class="hl-ring" cx="460" cy="548" rx="190" ry="22"/>
+          <path class="hl-hull" d="M640 280 L560 266 L470 258 L420 200 L392 200 L400 260 L330 262 L300 272 L300 288 L330 298 L400 300 L392 360 L420 360 L470 302 L560 294 Z" transform="translate(120 66) scale(0.78)"/>
+          <path class="hl-lead real" d="M487 267 L770 150 L810 150"/><circle class="hl-dot real" cx="487" cy="267" r="6"/><path class="hl-lead real" d="M463 286 L770 280 L810 280"/><circle class="hl-dot real" cx="463" cy="286" r="6"/><path class="hl-lead real" d="M582 289 L770 410 L810 410"/><circle class="hl-dot real" cx="582" cy="289" r="6"/>
+        </svg>
+        
+        <div class="hl-toggle t-head" role="group" aria-label="Callout-Set" style="left:69.49%">
+          <span class="hl-thead">Werte</span>
+          <button type="button" class="" aria-pressed="false" data-screen-link="head-s1">Flug</button>
+          <span class="hl-tsep">·</span>
+          <button type="button" class="on" aria-pressed="true" data-screen-link="head-s3">Loadout</button>
+        </div>
+        <ul class="hl-calls">
+          <li class="hl-call" style="left:69.49%;top:25.00%">
+            <span class="hl-clabel">Schild</span>
+            <span class="hl-cval">3.168 HP<i>↗</i></span>
+            <small class="hl-cmp worse">1 × S1 · Klasse Ø 3.900 HP</small>
+          </li>
+          <li class="hl-call moved" style="left:69.49%;top:46.67%">
+            <span class="hl-clabel">Leistung</span>
+            <span class="hl-cval">14 Segmente<i>↗</i></span>
+            <small class="hl-cmp">rückt nach — kein Quantenantrieb</small>
+          </li>
+          <li class="hl-call" style="left:69.49%;top:68.33%">
+            <span class="hl-clabel">Waffen</span>
+            <span class="hl-cval">1 × S2<i>↗</i></span>
+            <small class="hl-cmp">Mittel-Gimbal</small>
+          </li>
+        </ul>
+        <aside class="hl-pane"><p>Weitere Werte</p><ul><li><span>Kühlung</span><b>52 / s</b></li><li><span>Quantenantrieb</span><b>— (Snub, keiner verbaut)</b></li></ul></aside>
+        <div class="hl-id"><p>Neu in 4.3 · Schiff · Kruger Intergalactic</p><b>P-52 Merlin<i>↗</i></b></div>
+        <p class="hl-legend"><span class="lg-real"></span>echter Hardpoint <span class="lg-zone"></span>Rumpfzone (Fallback)</p>
+        
+      </div>
+    </section>
+  </section>
+
+  <section data-view="v-value" data-view-kind="decision" data-nav-label="Inhalt eines Loadout-Werts" hidden>
+  <div class="view-frame">
+    <h2>Was steht in einem Loadout-Callout?</h2>
+    <p>Die Bauteile selbst stehen nicht im Schiffs-Payload, nur ihre Klassennamen im <code>defaultLoadout</code>. Für echte Kennwerte lädt die Landing pro Schiff einmal die 4–6 verbauten Komponenten nach (ein gebündelter Read, gecacht, gleiche Form wie die Swap-Kandidaten).</p>
+    <div class="variant-evaluation" data-decision="val-stat" data-label="Kennwert, summiert">
+      <h3>Kennwert, summiert (Empfehlung)</h3>
+      <p>Schild = Summe <code>MaxShieldHealth</code> aller Generatoren, QT = <code>driveSpeed</code> in km/s, Leistung = Segmente, Kühlung = Kühlrate; Waffen = Anzahl × Größe. Mit Klassenvergleich wie die Flugwerte („+12 % ggü. Klasse“). Kostet einen zusätzlichen Read pro Schiff.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-val-stat" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-stat" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="val-stat-note">{{decision.comment_label}}</label>
+        <textarea id="val-stat-note" data-comment="val-stat-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="val-name" data-label="Bauteilname + Größe">
+      <h3>Bauteilname + Größe</h3>
+      <p>„2 × AllStop · S1“, „Beacon · S1“. Erkennt man aus dem Spiel wieder, braucht aber die lokalisierten Namen (ebenfalls ein Read) und lässt sich nicht mit der Klasse vergleichen.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-val-name" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-name" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="val-name-note">{{decision.comment_label}}</label>
+        <textarea id="val-name-note" data-comment="val-name-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="val-size" data-label="Nur Anzahl × Größe">
+      <h3>Nur Anzahl × Größe</h3>
+      <p>„2 × S1“ direkt aus den Klassennamen, kein zusätzlicher Read. Am billigsten, sagt aber wenig: fast jeder Jäger zeigt dann „S1“.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-val-size" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-size" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="val-size-note">{{decision.comment_label}}</label>
+        <textarea id="val-size-note" data-comment="val-size-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+  </div>
+  </section>
+  <section data-view="v-pick" data-view-kind="decision" data-nav-label="Welche drei am Tisch" hidden>
+  <div class="view-frame">
+    <h2>Welche drei Bauteile bekommen einen Callout?</h2>
+    <p>Der Deckel bleibt bei drei Callouts (Pfad C — mehr Callouts — ist verworfen). Die anderen Loadout-Werte landen wie heute in „Weitere Werte“.</p>
+    <div class="variant-evaluation" data-decision="pick-fixed" data-label="Feste Reihenfolge mit Nachrücken">
+      <h3>Feste Reihenfolge: Waffen → Schild → QT → Leistung → Kühlung (Empfehlung)</h3>
+      <p>Die ersten drei vorhandenen gewinnen. Fehlt ein Bauteil (Snub ohne QT, Bodenfahrzeug ohne Schild), rückt das nächste nach. Gleiche Plätze bei jedem Schiff, leicht vergleichbar beim Durchlaufen des Tischs.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-pick-fixed" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pick-fixed" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="pick-fixed-note">{{decision.comment_label}}</label>
+        <textarea id="pick-fixed-note" data-comment="pick-fixed-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="pick-role" data-label="Nach Schiffsrolle">
+      <h3>Nach Schiffsrolle</h3>
+      <p>Kampf: Waffen/Schild/Leistung · Fracht &amp; Industrie: Schild/QT/Kühlung · Exploration: QT/Schild/Leistung. Passender pro Schiff, aber die Plätze wechseln beim Durchlaufen.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-pick-role" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pick-role" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="pick-role-note">{{decision.comment_label}}</label>
+        <textarea id="pick-role-note" data-comment="pick-role-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+  </div>
+  </section>
+  <section data-view="v-fallback" data-view-kind="decision" data-nav-label="Bauteil ohne Locator" hidden>
+  <div class="view-frame">
+    <h2>Wohin zeigt ein Callout, wenn die Position fehlt?</h2>
+    <p>Datenlage im LIVE-Build (360 Schiffe): Wo ein Bauteil verbaut ist, hat der Port fast immer eine Position in <code>hardpointTransforms</code> (Waffen 322/322, Schild 336/336, QT 289/289, Kühlung 354/354, Leistung 354/355). Fehlt das Bauteil ganz, greift „Nachrücken“ aus der Frage davor. Diese Frage betrifft nur den seltenen Fall „verbaut, aber ohne Position“.</p>
+    <div class="variant-evaluation" data-decision="fb-zone" data-label="Rumpfzone pro Bauteiltyp">
+      <h3>Rumpfzone pro Bauteiltyp, gestrichelter Punkt (Empfehlung)</h3>
+      <p>Wie heute bei „Hülle“: jeder Typ hat eine feste Zone (Waffen vorne, Schild Mitte oben, Leistung Mitte, Kühlung hinten seitlich, QT hinten Mitte). Der Punkt ist gestrichelt und das Label trägt „≈ Zone“, damit niemand einen echten Hardpoint vermutet.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-fb-zone" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-fb-zone" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="fb-zone-note">{{decision.comment_label}}</label>
+        <textarea id="fb-zone-note" data-comment="fb-zone-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="fb-pane" data-label="In „Weitere Werte“ statt Callout">
+      <h3>Ohne Position kein Callout</h3>
+      <p>Der Wert wandert in „Weitere Werte“, das nächste Bauteil rückt nach. Nie ein ungenauer Punkt, aber der Callout-Satz ist dann von Schiff zu Schiff anders.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-fb-pane" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-fb-pane" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="fb-pane-note">{{decision.comment_label}}</label>
+        <textarea id="fb-pane-note" data-comment="fb-pane-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+  </div>
+  </section>
+  <section data-view="v-memory" data-view-kind="decision" data-nav-label="Merken der Wahl" hidden>
+  <div class="view-frame">
+    <h2>Merkt sich der Tisch die Wahl?</h2>
+    <p>Der Holotisch wechselt alle paar Sekunden das Objekt. Die Wahl gilt immer für alle Schiffe des Durchlaufs; Nicht-Schiffe (Waffen, Komponenten) haben keinen Schalter und zeigen ihre Werte wie heute.</p>
+    <div class="variant-evaluation" data-decision="mem-device" data-label="Auf dem Gerät merken">
+      <h3>Auf dem Gerät merken (Empfehlung)</h3>
+      <p>In <code>localStorage</code>: wer Loadout gewählt hat, sieht beim nächsten Besuch wieder Loadout. Ohne Speicher (privates Fenster) startet es mit Flug.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-mem-device" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-device" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="mem-device-note">{{decision.comment_label}}</label>
+        <textarea id="mem-device-note" data-comment="mem-device-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="mem-session" data-label="Nur in diesem Tab">
+      <h3>Nur in diesem Tab</h3>
+      <p>In <code>sessionStorage</code>: ein neuer Tab oder Besuch startet wieder mit Flug.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-mem-session" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-session" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="mem-session-note">{{decision.comment_label}}</label>
+        <textarea id="mem-session-note" data-comment="mem-session-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+    <div class="variant-evaluation" data-decision="mem-none" data-label="Nie merken">
+      <h3>Nie merken</h3>
+      <p>Jeder Seitenaufruf startet mit Flug. Am einfachsten, aber wer Loadout bevorzugt, klickt jedes Mal.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-mem-none" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-none" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row"><label for="mem-none-note">{{decision.comment_label}}</label>
+        <textarea id="mem-none-note" data-comment="mem-none-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea></div>
+    </div>
+  </div>
+  </section>
+
+</section>
