@@ -97,12 +97,16 @@ export interface PlanetFrame {
   readonly aurora: number;
 }
 
+/** Texture unit of each planet map: 0 day, 1 night, 2 cloud. */
+export type PlanetTextureUnit = 0 | 1 | 2;
+
 export class PlanetRenderer {
   private readonly gl: WebGLRenderingContext;
   private readonly prog: WebGLProgram;
   private readonly u: Record<string, WebGLUniformLocation | null> = {};
   private readonly textures: WebGLTexture[] = [];
   private readonly aniso: EXT_texture_filter_anisotropic | null;
+  private readonly anisoLevel: number;
   private readonly mipmaps: boolean;
 
   /** Throws when WebGL is missing — the caller then keeps the CSS planet. */
@@ -113,6 +117,11 @@ export class PlanetRenderer {
     const prog = gl.createProgram()!;
     const deriv = !!gl.getExtension('OES_standard_derivatives');
     this.aniso = gl.getExtension('EXT_texture_filter_anisotropic');
+    // Read once, before any upload: getParameter is a synchronous round trip to
+    // the GPU process, and asked after each texture it waited for that texture's
+    // upload and mipmaps to finish — the longest task left on the page after
+    // the world stopped being generated here (profiled 2026-11-03).
+    this.anisoLevel = this.aniso ? Math.min(8, gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number) : 1;
     gl.attachShader(prog, this.shader(gl.VERTEX_SHADER, VS));
     gl.attachShader(prog, this.shader(gl.FRAGMENT_SHADER, FS(deriv)));
     this.mipmaps = deriv;
@@ -137,23 +146,26 @@ export class PlanetRenderer {
 
   /** Uploads the equirect sources; they may be released afterwards. */
   setTextures(day: TexImageSource, night: TexImageSource, cloud: TexImageSource): void {
+    [day, night, cloud].forEach((img, unit) => this.setTexture(unit as PlanetTextureUnit, img));
+  }
+
+  /** Uploads one equirect source to its unit (0 day, 1 night, 2 cloud). */
+  private setTexture(unit: PlanetTextureUnit, img: TexImageSource): void {
     const gl = this.gl;
-    [day, night, cloud].forEach((img, unit) => {
-      const t = gl.createTexture()!;
-      gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, t);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      // Mipmaps keep the far, foreshortened limb from shimmering; without the
-      // seam fix (no derivatives) they would draw a line at the date line.
-      if (this.mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
-      if (this.aniso) gl.texParameterf(gl.TEXTURE_2D, this.aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.uniform1i(gl.getUniformLocation(this.prog, ['tDay', 'tNight', 'tCloud'][unit]), unit);
-      this.textures.push(t);
-    });
+    const t = gl.createTexture()!;
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    // Mipmaps keep the far, foreshortened limb from shimmering; without the
+    // seam fix (no derivatives) they would draw a line at the date line.
+    if (this.mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+    if (this.aniso) gl.texParameterf(gl.TEXTURE_2D, this.aniso.TEXTURE_MAX_ANISOTROPY_EXT, this.anisoLevel);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.uniform1i(gl.getUniformLocation(this.prog, ['tDay', 'tNight', 'tCloud'][unit]), unit);
+    this.textures.push(t);
   }
 
   draw(f: PlanetFrame, dpr: number): void {
