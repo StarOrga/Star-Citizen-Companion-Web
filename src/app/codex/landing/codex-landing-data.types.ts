@@ -17,7 +17,9 @@ export interface LandingValue {
   key: string;
   value: number;
   /** Unit hint for formatting, null when unitless/unknown. */
-  unit: 'm/s' | 'hp' | 'scu' | 'kg' | null;
+  unit: 'm/s' | 'km/s' | 'hp' | 'scu' | 'kg' | null;
+  /** Display text in place of the formatted number (e.g. `3 × S3` for the weapon mounts). */
+  text?: string;
   /** Mean of this value over the item's class (cohort); absent/null without a cohort of at least two. */
   classAvg?: number | null;
   /** Highest value in the class — the full length of the comparison bar. */
@@ -100,6 +102,12 @@ export interface LandingItem {
    * holotable ends the leader line at the first one the 3D model can locate.
    */
   anchorPorts?: Record<string, string[]>;
+  /**
+   * Ships: the loadout callout set (#884) — weapons, shield, quantum drive,
+   * power and cooling of the stock loadout, with class stats. Absent or empty:
+   * the holotable offers no set switch for this ship.
+   */
+  loadoutValues?: LandingValue[];
   /** Ships: codex-data position (glb space, metres) of those ports, for hulls whose glb has no locators. */
   anchorPositions?: Record<string, [number, number, number]>;
 }

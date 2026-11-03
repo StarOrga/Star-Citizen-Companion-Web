@@ -13,7 +13,7 @@
               @defer (on immediate) {
                 <sc-ship-skin-viewer class="viewer" [shipId]="it.className" [embedded]="true" [holo]="true"
                                      [still]="still()" [hardpointPorts]="anchorRefs()" [anchorsOnly]="true" [fallbackPositions]="it.anchorPositions ?? null"
-                                     (locatable)="located.set($event)"
+                                     (locatable)="onLocated($event)"
                                      (available)="onAvailable(it.className, $event)" />
               } @placeholder {
                 <span class="viewer" aria-hidden="true"></span>
@@ -35,13 +35,13 @@
             }
           </svg>
           @for (c of callouts(); track c.key) {
-            <i class="dot" aria-hidden="true" [attr.data-key]="c.key" [class.real]="anchorPortOf().has(c.key)"
+            <i class="dot" aria-hidden="true" [attr.data-key]="c.key" [class.real]="anchorPortOf().has(c.key)" [class.zone]="zoneKeys().has(c.key)"
                [style.left.%]="c.ax" [style.top.%]="c.ay" [style.--at.s]="c.at"></i>
           }
           <ul class="callouts" [attr.aria-label]="'codex.landing.values.key' | translate">
             @for (c of callouts(); track c.key) {
               <li class="call" [style.top.%]="c.y" [style.--at.s]="c.at">
-                <span class="c-label">{{ c.label }}</span>
+                <span class="c-label">{{ c.label }}@if (zoneKeys().has(c.key)) { <em class="c-zone">{{ 'codex.landing.set.zone' | translate }}</em> }</span>
                 <a class="c-value flash" [routerLink]="it.detailRoute"
                    [attr.aria-label]="'codex.landing.values.open' | translate: { label: c.label, value: c.text, name: it.name }">
                   {{ c.text }}<i aria-hidden="true">↗</i>
@@ -58,6 +58,10 @@
               </li>
             }
           </ul>
+        }
+
+        @if (canSwitch()) {
+          <sc-codex-landing-set-toggle class="set" [style.--at.s]="idAt()" />
         }
 
         <div class="kennung" [style.--at.s]="idAt()" [style.--chars]="nameChars()">
