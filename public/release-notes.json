@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.197.0",
+  "current": "0.198.0",
   "releases": [
+    {
+      "version": "0.198.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Players can rate how stable a running PTU or Hotfix build plays, on the patch page under \"Laufende Test-Builds\". The hub row shows the result and marks the chip once enough votes are in (#885)."
+            }
+          ]
+        },
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Hardened the LIVE stability votes: only approved accounts may vote, suspended accounts no longer count, and the public totals no longer reveal single votes (#885)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.197.0",
       "date": "2026-11-03",
