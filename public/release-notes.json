@@ -1,7 +1,53 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.200.3",
+  "current": "0.201.0",
   "releases": [
+    {
+      "version": "0.201.0",
+      "date": "2026-11-04",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "With your statistics consent, the app reports how fast pages load on your device (load times only, nothing about you or what you look at), so slow spots can be found and fixed. The privacy policy names it."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Verse planet is ready within a second instead of being worked out anew on every visit, and the opening sequence no longer swaps it in halfway through."
+            },
+            {
+              "title": "",
+              "text": "News pages no longer keep animating the placeholders behind loaded pictures, which kept the processor busy for as long as the page was open."
+            },
+            {
+              "title": "",
+              "text": "The HQ page no longer freezes for about a second when its 3D figure starts."
+            },
+            {
+              "title": "",
+              "text": "Once the page you opened is ready, Codex, HQ and the Verse load quietly in the background, so switching between them is faster."
+            },
+            {
+              "title": "",
+              "text": "The Codex holotable rests its animations while it is scrolled out of view."
+            },
+            {
+              "title": "",
+              "text": "When the server is slow, news and upcoming ships show the last saved copy after 4 seconds instead of 10, and the server answers repeated requests from a short-lived copy instead of fetching every source again."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.200.3",
       "date": "2026-11-03",
