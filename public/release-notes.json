@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.199.0",
+  "current": "0.200.0",
   "releases": [
+    {
+      "version": "0.200.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Search finds missions, each with its own page, and result rows offer fitting ships, fitting weapons, mount, where installed, where to buy and to Einsatz."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The manufacturer list no longer contains paint and shop entries."
+            },
+            {
+              "title": "",
+              "text": "Codex landing: the class comparison uses ships of similar hull length when a role is too small, so small ships no longer read as far below their class."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.199.0",
       "date": "2026-11-03",

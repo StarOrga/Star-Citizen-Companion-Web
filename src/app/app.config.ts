@@ -10,12 +10,12 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { REMOVE_STYLES_ON_COMPONENT_DESTROY } from '@angular/platform-browser';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideServiceWorker } from '@angular/service-worker';
-import { provideTranslateService } from '@ngx-translate/core';
-import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
+import { provideTranslateLoader, provideTranslateService } from '@ngx-translate/core';
 import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
 import { provideCodexNumberLocale } from './codex/codex-number-locale';
 import { AppErrorHandler } from './core/app-error-handler';
+import { AppTranslateLoader } from './core/locale/app-translate-loader';
 import { provideOverlayRouteScroll } from './core/overlay-route-scroll';
 import { provideNavOrigin } from './shared/page-header/nav-origin.service';
 
@@ -61,8 +61,8 @@ export const appConfig: ApplicationConfig = {
     }),
     provideTranslateService({
       fallbackLang: 'en',
+      loader: provideTranslateLoader(AppTranslateLoader),
     }),
-    provideTranslateHttpLoader({ prefix: 'i18n/', suffix: '.json' }),
     // Every catalog figure is grouped in the resolved UI locale (feedback
     // dbdb2ffe). Bootstrap-eager on purpose — see codex-number-locale.ts.
     provideCodexNumberLocale(),
