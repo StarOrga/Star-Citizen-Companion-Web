@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.196.0",
+  "current": "0.197.0",
   "releases": [
+    {
+      "version": "0.197.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship radars are listed as components with their aim-assist range, signature sensitivity and ping cooldown; their power draw still shows in the energy views (Data Uploader 0.70.0, #842)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.196.0",
       "date": "2026-11-03",
