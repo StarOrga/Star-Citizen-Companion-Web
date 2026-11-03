@@ -128,6 +128,12 @@ def main() -> int:
                     f"{backend} raster): "
                     f"{stage_timing.summary(stage_timing.since(before), wall * workers)}")
         done(result=stats)
+        if stats.get("abandoned"):
+            # A mesh blew its time budget and its worker thread cannot be killed;
+            # the interpreter would wait for it at exit. The result is out, so leave now.
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(0)
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")
