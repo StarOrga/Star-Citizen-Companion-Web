@@ -47,6 +47,70 @@ const AREA_PER_BLOB = 9000;
 const SPAWN_MIN_MS = 1200;
 const SPAWN_JITTER_MS = 1800;
 
+/**
+ * How long a field keeps drawing after its host said it is no longer needed
+ * (`neuroActive` false): long enough for a fade-out on top of it to finish
+ * (news-thumb fades its skeleton over 450 ms), so nothing freezes mid-fade.
+ */
+const FADE_OUT_MS = 600;
+
+/**
+ * One IntersectionObserver and one ResizeObserver for every field on the page.
+ * Their callbacks run after layout and hand over each tile's box, and the
+ * callback reads every tile first and writes (canvas sizes, loops) second — so
+ * no tile forces a layout of its own. With one observer per tile, a news page
+ * mounting 80 thumbnails read each tile's rect and colour between the canvas
+ * writes of the previous one: a chain of forced reflows that showed up as
+ * ~100 ms long tasks right after the list rendered (profiled 2026-11-03).
+ */
+class FieldRegistry {
+  private io?: IntersectionObserver;
+  private ro?: ResizeObserver;
+  private readonly fields = new Map<Element, NeuroFieldDirective>();
+
+  add(host: Element, field: NeuroFieldDirective, zone: NgZone): void {
+    if (!this.io) {
+      zone.runOutsideAngular(() => {
+        this.io = new IntersectionObserver((entries) => this.onIntersect(entries), { threshold: 0 });
+        if (typeof ResizeObserver !== 'undefined') this.ro = new ResizeObserver((entries) => this.onResize(entries));
+      });
+    }
+    this.fields.set(host, field);
+    this.io!.observe(host);
+    this.ro?.observe(host);
+  }
+
+  remove(host: Element): void {
+    if (!this.fields.delete(host)) return;
+    this.io?.unobserve(host);
+    this.ro?.unobserve(host);
+  }
+
+  private onIntersect(entries: IntersectionObserverEntry[]): void {
+    const read: [NeuroFieldDirective, boolean, number, number][] = [];
+    for (const e of entries) {
+      const field = this.fields.get(e.target);
+      if (!field) continue;
+      const host = e.target as HTMLElement;
+      // Reads only: layout is clean in this callback until the write pass below.
+      if (e.isIntersecting) field.readAccentOnce();
+      read.push([field, e.isIntersecting, host.offsetWidth, host.offsetHeight]);
+    }
+    for (const [field, visible, w, h] of read) field.setVisible(visible, w, h);
+  }
+
+  private onResize(entries: ResizeObserverEntry[]): void {
+    for (const e of entries) {
+      const box = e.borderBoxSize?.[0];
+      const w = box ? box.inlineSize : e.contentRect.width;
+      const h = box ? box.blockSize : e.contentRect.height;
+      this.fields.get(e.target)?.resize(w, h);
+    }
+  }
+}
+
+const registry = new FieldRegistry();
+
 @Directive({
   selector: '[scNeuroField]',
   standalone: true,
@@ -54,6 +118,24 @@ const SPAWN_JITTER_MS = 1800;
 export class NeuroFieldDirective implements OnInit, OnDestroy {
   /** Position im Raster — staffelt den ersten Blitz, damit nicht alle gleichzeitig zünden. */
   @Input() neuroIndex = 0;
+
+  /**
+   * False once the host no longer shows the field (its content arrived and the
+   * skeleton fades out). The field finishes the fade (`FADE_OUT_MS`) and then
+   * stops: a skeleton that is only faded to opacity 0 still counts as
+   * intersecting, and every loaded news thumbnail kept redrawing an invisible
+   * canvas each frame — under a backdrop-filter pill that re-blurred with it.
+   */
+  @Input() set neuroActive(active: boolean) {
+    if (active === this.active) return;
+    this.active = active;
+    clearTimeout(this.fadeTimer);
+    if (active) {
+      if (this.visible) this.start();
+    } else {
+      this.zone.runOutsideAngular(() => (this.fadeTimer = setTimeout(() => this.stop(), FADE_OUT_MS)));
+    }
+  }
 
   private readonly host = inject(ElementRef).nativeElement as HTMLElement;
   private readonly zone = inject(NgZone);
@@ -66,9 +148,12 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
   private w = 0;
   private h = 0;
   private raf: number | null = null;
-  private io?: IntersectionObserver;
-  private ro?: ResizeObserver;
   private visible = false;
+  private active = true;
+  private reduced = false;
+  private accentRead = false;
+  private stillDrawn = false;
+  private fadeTimer: ReturnType<typeof setTimeout> | undefined;
 
   /* Eigener Generator statt Math.random(): zwei Kacheln nebeneinander sollen
      unterschiedlich aussehen, dieselbe Kachel aber bei jedem Aufbau gleich —
@@ -92,41 +177,45 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
     this.host.appendChild(canvas);
     this.host.dataset['neuroReady'] = '1';
 
-    this.readAccent();
-    this.measure();
-
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
-      // Ein Standbild: die Struktur ist da, es bewegt sich nichts.
+    // Ein Standbild bei reduzierter Bewegung: die Struktur ist da, es bewegt
+    // sich nichts. Gezeichnet wird es, sobald die Kachel sichtbar ist.
+    this.reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (typeof IntersectionObserver === 'undefined') {
+      this.readAccentOnce();
+      this.resize(this.host.offsetWidth, this.host.offsetHeight);
       this.draw(0);
       return;
     }
-
-    this.zone.runOutsideAngular(() => {
-      this.io = new IntersectionObserver(entries => {
-        for (const e of entries) {
-          this.visible = e.isIntersecting;
-          if (this.visible) { this.measure(); this.start(); } else { this.stop(); }
-        }
-      }, { threshold: 0 });
-      this.io.observe(this.host);
-
-      if (typeof ResizeObserver !== 'undefined') {
-        this.ro = new ResizeObserver(() => this.measure());
-        this.ro.observe(this.host);
-      }
-    });
+    registry.add(this.host, this, this.zone);
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.fadeTimer);
     this.stop();
-    this.io?.disconnect();
-    this.ro?.disconnect();
+    registry.remove(this.host);
     this.canvas?.remove();
   }
 
+  /** Registry callback, after layout: visibility plus the host's layout box. */
+  setVisible(visible: boolean, w: number, h: number): void {
+    this.visible = visible;
+    if (!visible) {
+      this.stop();
+      return;
+    }
+    this.resize(w, h);
+    if (this.reduced) {
+      if (!this.stillDrawn) {
+        this.stillDrawn = true;
+        this.draw(0);
+      }
+      return;
+    }
+    if (this.active) this.start();
+  }
+
   private start(): void {
-    if (this.raf !== null) return;
+    if (this.raf !== null || this.reduced) return;
     const loop = (now: number) => {
       this.draw(now);
       this.raf = requestAnimationFrame(loop);
@@ -140,13 +229,13 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
     this.raf = null;
   }
 
-  private measure(): void {
+  /** Sizes the canvas bitmap to the host's layout box; a no-op when it did not change. */
+  resize(width: number, height: number): void {
     const canvas = this.canvas;
     const ctx = this.ctx;
     if (!canvas || !ctx) return;
-    const rect = this.host.getBoundingClientRect();
-    const w = Math.max(1, Math.round(rect.width));
-    const h = Math.max(1, Math.round(rect.height));
+    const w = Math.max(1, Math.round(width));
+    const h = Math.max(1, Math.round(height));
     if (w === this.w && h === this.h) return;
     this.w = w;
     this.h = h;
@@ -155,6 +244,8 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.initBlobs();
+    // A resized still frame has to be drawn again (the bitmap was cleared).
+    if (this.reduced && this.stillDrawn) this.draw(0);
   }
 
   private initBlobs(): void {
@@ -181,7 +272,9 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
 
   /** Einmal aufgelöst und gemerkt — nicht je Blob und Frame. */
   private rgb = '82, 193, 230';
-  private readAccent(): void {
+  readAccentOnce(): void {
+    if (this.accentRead) return;
+    this.accentRead = true;
     const raw = getComputedStyle(this.host).getPropertyValue('--sc-neuro-rgb').trim();
     if (raw) this.rgb = raw;
   }

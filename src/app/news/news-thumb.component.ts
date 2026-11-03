@@ -403,7 +403,7 @@ export function isPixelReadable(url: string): boolean {
       <!-- Shimmer sits BEHIND the image layers and fades out once the active layer
            has decoded — so even if the decode signal is ever missed, a painted
            image is never hidden behind the placeholder. -->
-      <div class="skel sc-skel-field" scNeuroField aria-hidden="true" [class.hide]="loaded()"></div>
+      <div class="skel sc-skel-field" scNeuroField aria-hidden="true" [class.hide]="loaded()" [neuroActive]="!loaded()"></div>
       @for (url of display(); track url; let i = $index) {
         <img class="layer" [class.show]="revealable() && i === active() && isDecoded(url)"
              [srcset]="srcsetFor(url)" [src]="defaultSrcFor(url)" [sizes]="sizes()"
