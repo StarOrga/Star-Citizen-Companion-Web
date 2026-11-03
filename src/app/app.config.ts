@@ -59,9 +59,10 @@ export const appConfig: ApplicationConfig = {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
-    provideTranslateService({
-      fallbackLang: 'en',
-    }),
+    // English is still the fallback language, but it is registered by
+    // AppComponent once the first paint is done (FALLBACK_LANG there): set
+    // here, it loaded en.json at bootstrap next to the active catalogue.
+    provideTranslateService({}),
     provideTranslateHttpLoader({ prefix: 'i18n/', suffix: '.json' }),
     // Every catalog figure is grouped in the resolved UI locale (feedback
     // dbdb2ffe). Bootstrap-eager on purpose — see codex-number-locale.ts.
