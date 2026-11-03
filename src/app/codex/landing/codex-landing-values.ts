@@ -22,6 +22,13 @@ export const SHIP_ANCHORS: Readonly<Record<string, HoloAnchor>> = {
   'hull.hp': { x: 47, y: 50 },
   cargoScu: { x: 56, y: 58 },
   'flight.maxSpeed': { x: 30, y: 64 },
+  // Loadout set (#884): the fallback zone per part type, used only when the
+  // part's mount has no position (the ring shows it is a zone, not a mount).
+  'loadout.weapons': { x: 64, y: 40 },
+  'loadout.shield': { x: 48, y: 38 },
+  'loadout.quantum': { x: 38, y: 58 },
+  'loadout.power': { x: 46, y: 54 },
+  'loadout.cooler': { x: 34, y: 48 },
 };
 
 /**
@@ -165,7 +172,8 @@ export function valueLabel(t: Pick<TranslateService, 'instant'>, key: string): s
   return humanizeClassName(last.replace(/([a-z])([A-Z])/g, '$1 $2'));
 }
 
-export function valueText(v: Pick<LandingValue, 'value' | 'unit'>): string {
+export function valueText(v: Pick<LandingValue, 'value' | 'unit' | 'text'>): string {
+  if (v.text) return v.text;
   const n = formatNumber(v.value);
   if (!v.unit) return n;
   return v.unit === 'scu' ? `${n} SCU` : v.unit === 'hp' ? `${n} HP` : `${n} ${v.unit}`;

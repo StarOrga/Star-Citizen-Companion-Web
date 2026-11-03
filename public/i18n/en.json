@@ -345,6 +345,13 @@
         "cargoScu": "Cargo",
         "crew": {
           "size": "Crew"
+        },
+        "loadout": {
+          "weapons": "Weapons",
+          "shield": "Shield",
+          "quantum": "Quantum drive",
+          "power": "Power (segments)",
+          "cooler": "Cooling (per s)"
         }
       },
       "overview": {
@@ -434,6 +441,12 @@
         "open": "{{label}} {{value}}: open {{name}}",
         "legend": "Class average",
         "toPage": "To the {{name}} page"
+      },
+      "set": {
+        "label": "Values",
+        "flight": "Flight",
+        "loadout": "Loadout",
+        "zone": "≈ zone"
       },
       "compare": {
         "delta": "{{delta}} % vs. class",

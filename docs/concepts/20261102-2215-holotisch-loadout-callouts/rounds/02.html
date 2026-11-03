@@ -1,0 +1,89 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Holotisch: Callout-Set Flug / Loadout</h2>
+  </div>
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261102-2215-holotisch-loadout-callouts/shots/after.jpg" alt="Codex-Startseite: Holotisch mit Schalter „Werte · Flug · Loadout“, Loadout aktiv, Callouts Schild, Waffen, Quantenantrieb an echten Hardpoints der Avenger Stalker"><figcaption>{{final.after}}</figcaption></figure>
+  </div>
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Der Holotisch hat jetzt den Schalter „Werte · Flug · Loadout“ als Kopf der Callout-Spalte, genau wie Design „Kopf der Werte-Spalte“. Flug bleibt Standard, Loadout zeigt summierte Kennwerte an den echten Hardpoints, und die Wahl ist im Profil gespeichert. Gebaut und gepusht auf dem Branch, nicht geshippt — die Backlog-Session merged und shippt alles zusammen.</p>
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">◈</span><span><b>Schalter als Spaltenkopf</b> über den Callouts; unter 1100 px, wo die Callouts weichen, steht er in „Weitere Werte“. 48 px hoch auf Touch.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛡</span><span><b>Kennwerte summiert</b>: Waffen als Anzahl × Größe, Schild-HP aller Generatoren, Quantenantrieb in km/s, Leistung und Kühlung — mit Klassenvergleich wie bei den Flugwerten. Feste Reihenfolge, ein fehlendes Bauteil lässt das nächste nachrücken.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📍</span><span><b>Nie ohne Anker</b>: jeder Callout endet am eigenen Mount; hat der keine Position, sitzt er auf der Rumpfzone seines Typs mit gestricheltem Ring und „≈ Zone“.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">👤</span><span><b>Pro Profil gemerkt</b> (dein Kommentar): <code>profiles.ui_prefs</code>, auf jedem Gerät gleich; abgemeldet nur lokal. Keine Migration nötig.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">1 Read</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">für Schiff + Klasse: nur vier Zahlen pro Komponente per JSON-Pfad, keine ~10-kB-Payloads. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">37 / 37</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Landing-Specs grün (Edge), davon 11 neue für Loadout und Set-Wahl; Typecheck und Produktions-Build grün, Lint 0 Fehler. Die volle Suite lief nicht. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_prod}}<small>Stufe 5 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="done">{{final.level_local}}</li>
+      <li data-level="5" data-state="done">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Auf dem Produktions-Build lokal geprüft, eingeloggt mit dem Test-Account und echten LIVE-Daten: Flug als Standard, Wechsel auf Loadout, alle drei Punkte auf echten Hardpoints, die Wahl bleibt beim Rotieren, Schalter wandert unter 1100 px in „Weitere Werte“. Live erst nach dem gemeinsamen Ship der Backlog-Session.</p>
+  </div>
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 Fund unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-class-cohort"
+          data-issue-title="[BUG] Landing class comparison mixes small and capital ships"
+          data-issue-type="bug"
+          data-issue-body="On the codex landing holotable the Aegis Avenger Stalker shows -97 % shield and hull vs its class and -89 % armour, for flight and loadout values alike. The class cohort (classCohort in src/app/codex/landing/codex-landing-data.service.ts) is the ship role, which spans snubs to capital ships, so the mean is dominated by a few huge hulls. Found while verifying #884. **User value:** The class comparison under each callout tells players something real about the ship instead of a near-constant minus."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="eigenes Thema">
+        <span class="oq-label">Klassenvergleich: −97 % bei kleinen Schiffen</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Avenger Stalker zeigt −97 % Schild und Rumpf ggü. Klasse, schon bei den Flugwerten — die „Klasse“ ist die Rolle und reicht vom Snub bis zum Großkampfschiff.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Codex-Startseite, Holotisch und „Weitere Werte“</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — betrifft beide Sets, eigene Entscheidung (Größenklasse statt Rolle?).</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-switch-live" data-crit="high" data-guide="">Loadout-Wahl auf zweitem Gerät nach dem Ship</li>
+      <li data-todo-id="t-phone-toggle" data-crit="mid" data-guide="">Schalter in „Weitere Werte“ am Handy</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>refs/heads/claude/heuristic-chebyshev-c82843</code> · Commit 09d76b68 (Konzept 2f757502, main gemergt 82f10e2a)</li>
+      <li><code>src/app/codex/landing/codex-landing-loadout.ts</code>, <code>codex-landing-callout-set.service.ts</code>, <code>codex-landing-set-toggle.component.ts</code>, Holotisch + Werte-Pane, <code>CodexService.getComponentKeyStats</code></li>
+      <li>Typecheck grün · Build grün · Landing-Karma 37/37 (Edge) · Lint 0 Fehler</li>
+      <li>Abnahme: <code>briefs/implement.md</code> — alle Punkte umgesetzt</li>
+    </ul>
+  </details>
+</section>

@@ -3,6 +3,8 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LandingItem } from './codex-landing-data.types';
 import { barOf, compareValue, splitCallouts, valueLabel, valueText } from './codex-landing-values';
+import { CodexLandingCalloutSetService, hasLoadoutSet, valuesForSet } from './codex-landing-callout-set.service';
+import { CodexLandingSetToggleComponent } from './codex-landing-set-toggle.component';
 
 interface BarRow {
   key: string;
@@ -24,7 +26,7 @@ interface BarRow {
 @Component({
   selector: 'sc-codex-landing-values-pane',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, CodexLandingSetToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.still]': 'still()' },
   template: `
@@ -33,6 +35,10 @@ interface BarRow {
       @for (k of [key()]; track k) {
         <section class="body" [class.boot]="boot()" [attr.aria-label]="'codex.landing.values.more' | translate">
           <h2 class="ph">{{ 'codex.landing.values.more' | translate }}</h2>
+          @if (canSwitch()) {
+            <!-- Where the callouts give way (< 1100px), the Flug / Loadout switch moves here (#884). -->
+            <sc-codex-landing-set-toggle class="set" />
+          }
           @if (rows().length) {
             <dl class="rows">
               @for (r of rows(); track r.key; let i = $index) {
@@ -90,6 +96,7 @@ interface BarRow {
         margin: 0 0 14px; font: 600 max(10px, 0.62rem) / 1.2 var(--sc-font-display); letter-spacing: 0.24em;
         text-transform: uppercase; color: var(--sc-accent);
       }
+      .set { display: none; margin: -6px 0 12px; }
       .rows { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 0; }
       .row { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; row-gap: 6px; }
       .row dt { grid-column: 2; grid-row: 1; justify-self: end; font: 600 max(9.5px, 0.6rem) / 1.2 var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
@@ -135,7 +142,7 @@ interface BarRow {
       :host(.still) .body, :host(.still) .bar i, :host(.still) .sweep, :host(.still) .flash { animation: none; clip-path: none; }
       :host(.still) .sweep { display: none; }
       @media (prefers-reduced-motion: reduce) { .body, .bar i, .sweep, .flash { animation: none !important; clip-path: none; } .sweep { display: none; } }
-      @media (max-width: 1099px) { .row.callout { display: grid; } }
+      @media (max-width: 1099px) { .row.callout { display: grid; } .set { display: block; } }
       /* Touch screens: the dense holo labels stay readable and the link tappable (mobile gate). */
       @media (pointer: coarse) {
         .ph, .row dt, .legend { font-size: 12px; }
@@ -158,6 +165,7 @@ interface BarRow {
 export class CodexLandingValuesPaneComponent {
   private readonly translate = inject(TranslateService);
   private readonly lang = this.translate.currentLang;
+  private readonly calloutSet = inject(CodexLandingCalloutSetService);
 
   readonly item = input<LandingItem | null>(null);
   readonly switchNo = input(0);
@@ -174,7 +182,7 @@ export class CodexLandingValuesPaneComponent {
     this.lang();
     const it = this.item();
     if (!it) return [];
-    const { callouts, rest } = splitCallouts(it.category, it.topValues);
+    const { callouts, rest } = splitCallouts(it.category, valuesForSet(it, this.calloutSet.set()));
     const toRow = (v: (typeof rest)[number], callout: boolean): BarRow => ({
       key: v.key,
       label: valueLabel(this.translate, v.key),
@@ -185,5 +193,6 @@ export class CodexLandingValuesPaneComponent {
     });
     return [...rest.map((v) => toRow(v, false)), ...callouts.map((c) => toRow(c.value, true))];
   });
+  readonly canSwitch = computed(() => hasLoadoutSet(this.item()));
   readonly hasBars = computed(() => this.rows().some((r) => !r.callout && r.bar?.avg !== null && !!r.bar));
 }

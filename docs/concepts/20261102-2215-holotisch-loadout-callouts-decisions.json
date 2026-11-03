@@ -1,0 +1,85 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "favorite": "head",
+    "decisions": [
+      {
+        "id": "val-stat",
+        "label": "Kennwert, summiert",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "val-name",
+        "label": "Bauteilname + Größe",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "val-size",
+        "label": "Nur Anzahl × Größe",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "pick-fixed",
+        "label": "Feste Reihenfolge mit Nachrücken",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "pick-role",
+        "label": "Nach Schiffsrolle",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "fb-zone",
+        "label": "Rumpfzone pro Bauteiltyp",
+        "evaluation": "include",
+        "note": ""
+      },
+      {
+        "id": "fb-pane",
+        "label": "In „Weitere Werte“ statt Callout",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "mem-device",
+        "label": "Auf dem Gerät merken",
+        "evaluation": "include",
+        "note": "das sollte tatsächlich sogar für das profil gemerkt werden! egal auf welchem gerät!"
+      },
+      {
+        "id": "mem-session",
+        "label": "Nur in diesem Tab",
+        "evaluation": "discard",
+        "note": ""
+      },
+      {
+        "id": "mem-none",
+        "label": "Nie merken",
+        "evaluation": "discard",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "mem-device-note",
+          "text": "das sollte tatsächlich sogar für das profil gemerkt werden! egal auf welchem gerät!",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    }
+  }
+]

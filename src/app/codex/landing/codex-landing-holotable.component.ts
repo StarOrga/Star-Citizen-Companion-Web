@@ -20,6 +20,8 @@ import { CodexCategoryIconComponent } from '../codex-category-icon.component';
 import { LandingCategory, LandingItem, LandingPaint } from './codex-landing-data.types';
 import { CalloutValue, ValueComparison, compareValue, splitCallouts, valueLabel, valueText } from './codex-landing-values';
 import type { HardpointPortRef } from '../hardpoint-port-ref';
+import { CodexLandingCalloutSetService, hasLoadoutSet, valuesForSet } from './codex-landing-callout-set.service';
+import { CodexLandingSetToggleComponent } from './codex-landing-set-toggle.component';
 
 /** How long a "no hull" answer of the viewer is doubted: its first emit precedes the skin catalog read. */
 const NO_HULL_GRACE_MS = 3000;
@@ -96,7 +98,15 @@ interface CalloutView {
 @Component({
   selector: 'sc-codex-landing-holotable',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScDialogDirective, ScTooltipDirective, ShipSkinViewerComponent, CodexCategoryIconComponent],
+  imports: [
+    RouterLink,
+    TranslatePipe,
+    ScDialogDirective,
+    ScTooltipDirective,
+    ShipSkinViewerComponent,
+    CodexCategoryIconComponent,
+    CodexLandingSetToggleComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.still]': 'still()', '[class.paused]': 'paused()', '[class.lit]': '!!item()' },
   templateUrl: './codex-landing-holotable.component.html',
@@ -105,6 +115,7 @@ interface CalloutView {
 export class CodexLandingHolotableComponent {
   private readonly translate = inject(TranslateService);
   private readonly lang = this.translate.currentLang;
+  private readonly calloutSet = inject(CodexLandingCalloutSetService);
 
   readonly item = input<LandingItem | null>(null);
   readonly paints = input<readonly LandingPaint[]>([]);
@@ -136,8 +147,16 @@ export class CodexLandingHolotableComponent {
     this.lang();
     const it = this.item();
     if (!it) return [];
-    const { callouts } = splitCallouts(it.category, it.topValues);
+    const set = this.calloutSet.set();
+    const { callouts } = splitCallouts(it.category, valuesForSet(it, set));
     const slots = slotsFor(callouts.length);
+    // A set switch on the shown item redraws at once (a short stagger), not
+    // with the scan's timing. Bookkeeping only, no signal: the item key and the
+    // set are both dependencies of this computed already.
+    const key = this.key();
+    if (key !== this.shown.key) this.shown = { key, set, switched: false };
+    else if (set !== this.shown.set) this.shown = { key, set, switched: true };
+    const switched = this.shown.switched;
     return callouts.map((c: CalloutValue, i) => {
       const ax = BOX.left + (c.anchor.x / 100) * BOX.width;
       const ay = BOX.top + (c.anchor.y / 100) * BOX.height;
@@ -150,11 +169,16 @@ export class CodexLandingHolotableComponent {
         y,
         ax,
         ay,
-        at: scanPassAt(this.start(), c.anchor.y),
+        at: switched ? i * 0.08 : scanPassAt(this.start(), c.anchor.y),
         path: leaderPath(y, ax, ay),
       };
     });
   });
+
+  /** The ship offers the Flug / Loadout switch (#884). */
+  readonly canSwitch = computed(() => hasLoadoutSet(this.item()));
+  /** The item the callouts were last built for and whether its set was switched since. */
+  private shown: { key: string; set: string; switched: boolean } = { key: '', set: '', switched: false };
 
   readonly visiblePaints = computed(() => {
     const list = this.paints();
@@ -180,6 +204,23 @@ export class CodexLandingHolotableComponent {
   });
   /** Ports the viewer could place on the model. */
   readonly located = signal<readonly string[]>([]);
+  /** The viewer has answered for this item (or there is no 3D hull): unplaced anchors are now known to be zones. */
+  private readonly locatedOnce = signal(false);
+  /**
+   * Loadout callouts (#884) whose part has no placeable mount: their dot sits on
+   * the part type's hull zone, drawn as a dashed ring with "≈ Zone" in the label.
+   */
+  readonly zoneKeys = computed(() => {
+    const it = this.item();
+    if (!it || !(this.locatedOnce() || this.no3d().has(it.className))) return new Set<string>();
+    const anchored = this.anchorPortOf();
+    return new Set(this.callouts().filter((c) => c.key.startsWith('loadout.') && !anchored.has(c.key)).map((c) => c.key));
+  });
+
+  onLocated(ports: readonly string[]): void {
+    this.located.set(ports);
+    this.locatedOnce.set(true);
+  }
   /** Callout key -> the hardpoint its leader line ends at; a callout without one keeps its hull zone. */
   readonly anchorPortOf = computed(() => {
     const it = this.item();
@@ -204,7 +245,10 @@ export class CodexLandingHolotableComponent {
     // A new item: the previous model's located ports no longer apply.
     effect(() => {
       this.key();
-      untracked(() => this.located.set([]));
+      untracked(() => {
+        this.located.set([]);
+        this.locatedOnce.set(false);
+      });
     });
     // Leader lines follow their hardpoints while the hull turns: once per
     // frame, straight into the DOM (no change detection per frame).
