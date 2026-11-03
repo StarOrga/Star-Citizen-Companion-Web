@@ -1,63 +1,13 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
-import { AuthService } from '../../auth/auth.service';
-import { CodexService } from '../../codex/codex.service';
-import { CodexSearchEngine } from '../../codex/search/codex-search-engine';
-import { CodexSearchHub } from '../../codex/search/codex-search-hub.service';
-import { HangarService } from '../../hangar/hangar.service';
-import { HqOwnershipService } from '../../hq/hq-ownership.service';
-import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService } from './shell-chrome.service';
+import { fakeEngine, fxGroup, setupFusionSearch } from './fusion-search.testing';
 
 /** op-hybrid open behaviour (concept 2026-11-01, round 2). */
 describe('FusionSearchComponent op-hybrid', () => {
   function setup() {
-    const input = signal('');
-    const groups = signal<{ kind: string; total: number; hits: unknown[]; count: number; countIsFloor: boolean }[]>([]);
-    const engine = {
-      input,
-      term: input,
-      loading: signal(false),
-      error: signal<string | null>(null),
-      groups,
-      recent: signal<string[]>([]),
-      lang: signal('de'),
-      setInput: (v: string) => input.set(v),
-      ensureSuggestions: () => undefined,
-      clear: () => input.set(''),
-      retry: () => undefined,
-      commit: () => false,
-      remember: () => undefined,
-      searchFor: () => undefined,
-      href: () => '',
-    };
-    TestBed.configureTestingModule({
-      imports: [FusionSearchComponent],
-      providers: [
-        provideTranslateService(),
-        provideRouter([]),
-        { provide: AuthService, useValue: { user: signal(null) } },
-        { provide: CodexService, useValue: { isPinned: () => false } },
-        { provide: HangarService, useValue: {} },
-        { provide: HqOwnershipService, useValue: { ensureLoaded: async () => undefined, ownsShip: () => false } },
-        { provide: CodexSearchHub, useValue: { register: () => () => undefined, hasBar: () => false, activate: () => false } },
-      ],
-    });
-    TestBed.overrideComponent(FusionSearchComponent, {
-      set: { providers: [{ provide: CodexSearchEngine, useValue: engine }] },
-    });
-    const fixture = TestBed.createComponent(FusionSearchComponent);
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    const field = el.querySelector('input.input') as HTMLInputElement;
-    const type = (v: string) => {
-      field.value = v;
-      field.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-    };
-    return { fixture, el, field, engine, groups, type, cmp: fixture.componentInstance };
+    const engine = fakeEngine();
+    const h = setupFusionSearch(engine);
+    return { ...h, engine, groups: engine.groups };
   }
 
   afterEach(() => (document.activeElement as HTMLElement | null)?.blur?.());
@@ -106,10 +56,7 @@ describe('FusionSearchComponent op-hybrid', () => {
     const { fixture, el, cmp, type, groups } = setup();
     const applied: string[] = [];
     const off = TestBed.inject(ShellChromeService).registerPageSearch({}, (t) => applied.push(t));
-    groups.set([
-      { kind: 'ship', total: 7, hits: [], count: 7, countIsFloor: false },
-      { kind: 'weapon', total: 5, hits: [], count: 5, countIsFloor: false },
-    ]);
+    groups.set([fxGroup('ship', [], 7), fxGroup('weapon', [], 5)]);
     type('gla');
     expect(applied).toEqual(['gla']);
     expect(cmp.open()).withContext('panel stays shut').toBeFalse();

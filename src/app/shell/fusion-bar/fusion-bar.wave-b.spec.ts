@@ -3,25 +3,19 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { AuthService } from '../../auth/auth.service';
 import { RoleService } from '../../auth/role.service';
-import { CodexService } from '../../codex/codex.service';
-import { CodexSearchHub } from '../../codex/search/codex-search-hub.service';
-import { CodexSearchEngine } from '../../codex/search/codex-search-engine';
 import { BetaService } from '../../core/beta.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import type { PageLayout } from '../../core/layout/page-layout';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
-import { HangarService } from '../../hangar/hangar.service';
-import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { FusionBarComponent } from './fusion-bar.component';
 import { FusionSearchComponent } from './fusion-search.component';
+import { fakeEngine, setupFusionSearch } from './fusion-search.testing';
 import { ShellChromeService } from './shell-chrome.service';
 
 @Component({ selector: 'sc-fusion-search', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, template: '<ng-content />' })
 class FusionSearchStub {
   readonly placement = input<'top' | 'bottom'>('top');
-  readonly hideContext = input(false);
   readonly compact = input(false);
   readonly demo = input(false);
   readonly openChange = output<boolean>();
@@ -73,16 +67,14 @@ describe('FusionBarComponent, wave B parity', () => {
 
   afterEach(() => document.querySelectorAll('sc-fusion-bar').forEach((n) => n.remove()));
 
-  it('docked on a main page: no context chip in the field (the plate names the area), the demo only while staged', async () => {
+  it('docked on a main page: the demo only while staged (chips are always shown, concept 2026-11-02 C3)', async () => {
     layout.set('cinematic');
     const fixture = await setup('/verse');
     const search = () => fixture.debugElement.query(By.directive(FusionSearchStub)).componentInstance as FusionSearchStub;
     expect(search().demo()).toBeTrue();
-    expect(search().hideContext()).toBeTrue();
     fixture.componentInstance.onScroll(200);
     fixture.detectChanges();
     expect(fixture.nativeElement.getAttribute('data-mode')).toBe('docked');
-    expect(search().hideContext()).withContext('docked: no chip').toBeTrue();
     expect(search().demo()).withContext('docked: no demo').toBeFalse();
     // Ruhige Leiste (concept 2026-11-01): no light line along the docked bar any more, depth only;
     // the echo frames belong to the staged field.
@@ -149,38 +141,8 @@ describe('FusionBarComponent, wave B parity', () => {
 
 describe('FusionSearchComponent typed demo', () => {
   function setup() {
-    const input = signal('');
-    const engine = {
-      input,
-      term: signal(''),
-      loading: signal(false),
-      error: signal<string | null>(null),
-      groups: signal([]),
-      recent: signal<string[]>([]),
-      opening: signal(false),
-      setInput: (v: string) => input.set(v),
-      ensureSuggestions: () => undefined,
-      clear: () => input.set(''),
-      retry: () => undefined,
-      commit: () => undefined,
-      searchFor: () => undefined,
-      href: () => '',
-    };
-    TestBed.configureTestingModule({
-      imports: [FusionSearchComponent],
-      providers: [
-        ...baseProviders(),
-        { provide: AuthService, useValue: { user: signal(null) } },
-        { provide: CodexService, useValue: {} },
-        { provide: HangarService, useValue: {} },
-        { provide: HqOwnershipService, useValue: { ensureLoaded: async () => undefined, owns: () => false } },
-        { provide: CodexSearchHub, useValue: { register: () => () => undefined } },
-      ],
-    });
-    TestBed.overrideComponent(FusionSearchComponent, {
-      set: { providers: [{ provide: CodexSearchEngine, useValue: engine }] },
-    });
-    const fixture = TestBed.createComponent(FusionSearchComponent);
+    const engine = fakeEngine();
+    const { fixture } = setupFusionSearch(engine);
     fixture.componentRef.setInput('demo', true);
     fixture.detectChanges();
     return { fixture, engine };

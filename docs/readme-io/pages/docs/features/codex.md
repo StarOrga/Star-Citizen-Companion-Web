@@ -72,20 +72,35 @@ table, every phone — the pins stay numbered and the list beside or below the
 table names them.
 
 Results are grouped by kind — ships, weapons, components, items and so on —
-with the best few of each and an **All N in the index** link that opens the
-full list with your term. The number beside a group counts the results as
-listed: variants that share a name (four records of one armour, every
-livery of a launcher) fold into one row, and a quiet note says how many were
-folded in, so *Weapons 1 · 48 variants folded in* sits above one row and
-*All 49 in the index*. When only part of a large group was read, the count
-reads as a minimum (*12+*). Liveries carry a
-*Livery* badge, announced ships a *Not in the game yet* badge. With an empty
-field the search offers your recent searches, the ships new in this patch and
-shortcuts into the Codex areas.
+in tiles of three rows each. When something of yours matches (a ship, also by
+the name you gave it, a loadout, an FPS set, something in your stock), the
+green-edged **From your inventory** tile comes first. A tile with more rows
+offers **▾ N more here**, which opens the whole group inside the search (→ does
+the same, ← folds it back), and **Open all N in the index**, which opens the
+full list with your term. Liveries carry a *Livery* badge, announced ships a
+*Not in the game yet* badge.
+
+Where you open the search adds chips to the field: the page's kind on a Codex
+list, the ship on a ship page, *Stock*, *Hangar* or *Sets* in the HQ, and values
+you type (`s3` becomes *Size 3*, `grade a` *Grade A*). A chip filters; hovering
+it shows ▾ to switch its value (each value with its hit count) and × to drop
+it, and ⌫ at the start of the field drops the last one. A near-exact hit outside
+the chips still shows, in a dashed tile. On a ship page each part says whether
+it fits that ship.
+
+Every row shows the ship's outline (or an icon for its kind), the name — the
+ship type first, then your own name — the maker, size and what you own of it, a
+small star when it is new in this patch, and one main action that depends on
+where you are (*Add*, *My loadout*, *Where stored?*, *Compare* on a Codex list
+…). Beside it sit the same three icons everywhere: **Wishlist**, **Put in
+stock** (on ships: **Add to hangar**) and **Add to supplies**. Patches, gallery
+images and app pages have neither. With an empty field the search offers your
+seven latest searches, the three things you opened last and one rotating tip.
 
 Keyboard: ↑/↓ move through all groups, Enter opens the highlighted result,
-Ctrl+Enter (⌘+Enter) opens it in a new tab, Esc clears the field and then
-closes the search. Every result is a real link, so middle click works too.
+Ctrl+Enter (⌘+Enter) opens it in a new tab, Esc closes the search at once and
+keeps your text; the ✕ in the field only clears it. Every result is a real
+link, so middle click works too.
 A page opened from a result keeps the way back: its breadcrumb reads
 *Search "term"* and returns to the results.
 
@@ -114,7 +129,8 @@ follows the same rules:
 A search that fails shows an error with a retry button instead of an empty
 result. When only some areas fail (say, the items timed out but ships answered),
 the results you got stay and a quiet note above them says some areas could not
-be searched, with a retry. Typos are not corrected yet.
+be searched, with a retry. A typo that finds nothing gets a *Did you mean …*
+line with the closest names.
 
 ### Picking gear for an FPS set
 

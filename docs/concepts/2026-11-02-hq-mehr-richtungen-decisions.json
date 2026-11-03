@@ -1,0 +1,100 @@
+{
+  "concept": "docs/concepts/2026-11-02-hq-mehr-richtungen.html",
+  "issue": 859,
+  "round": 1,
+  "action": "implement",
+  "submission_id": "sub-mw10ayss-qk6jqkmm",
+  "decisions": [
+    {
+      "id": "hq-goals",
+      "label": "Ziele und Wunschliste",
+      "mode": "single",
+      "value": "goals",
+      "rec": "goals",
+      "deviates": false,
+      "note": ""
+    },
+    {
+      "id": "hq-live",
+      "label": "Neue Live-Daten-Nutzungen",
+      "mode": "multi",
+      "value": [
+        "sessions",
+        "losses",
+        "contracts",
+        "zones"
+      ],
+      "rec": "sessions losses",
+      "deviates": true,
+      "note": ""
+    },
+    {
+      "id": "hq-trade",
+      "label": "Handel und aUEC-Profit",
+      "mode": "single",
+      "value": "both",
+      "rec": "runs",
+      "deviates": true,
+      "note": "aber das spike auch direkt sstarten, ggf. subsession"
+    },
+    {
+      "id": "hq-group",
+      "label": "Org- und Gruppenspiel",
+      "mode": "single",
+      "value": "model",
+      "rec": "model",
+      "deviates": false,
+      "note": ""
+    },
+    {
+      "id": "hq-order",
+      "label": "Reihenfolge der Follow-up-Issues",
+      "mode": "order",
+      "value": [
+        "goals",
+        "live",
+        "trade",
+        "group"
+      ],
+      "rec": "goals,live,trade,group",
+      "deviates": false,
+      "note": ""
+    }
+  ],
+  "comments": {
+    "general": {
+      "text": "",
+      "attachments": []
+    },
+    "items": [
+      {
+        "id": "hq-trade-note",
+        "text": "aber das spike auch direkt sstarten, ggf. subsession",
+        "attachments": []
+      }
+    ]
+  },
+  "outcome": {
+    "followUps": {
+      "goals": [
+        895
+      ],
+      "live": [
+        896,
+        897,
+        898,
+        899
+      ],
+      "trade": [
+        900,
+        901,
+        902
+      ],
+      "group": [
+        903
+      ]
+    },
+    "spike": "#901 started in the concept session (research agent); result posted on #901",
+    "implement": "Scope of this concept = follow-up issues (hq-order decision); no code built here"
+  }
+}

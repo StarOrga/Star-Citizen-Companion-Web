@@ -345,6 +345,13 @@
         "cargoScu": "Cargo",
         "crew": {
           "size": "Crew"
+        },
+        "loadout": {
+          "weapons": "Weapons",
+          "shield": "Shield",
+          "quantum": "Quantum drive",
+          "power": "Power (segments)",
+          "cooler": "Cooling (per s)"
         }
       },
       "overview": {
@@ -434,6 +441,12 @@
         "open": "{{label}} {{value}}: open {{name}}",
         "legend": "Class average",
         "toPage": "To the {{name}} page"
+      },
+      "set": {
+        "label": "Values",
+        "flight": "Flight",
+        "loadout": "Loadout",
+        "zone": "≈ zone"
       },
       "compare": {
         "delta": "{{delta}} % vs. class",
@@ -3485,6 +3498,15 @@
           "dnt": "Do not translate"
         }
       }
+    },
+    "searchMisses": {
+      "title": "Often without hits",
+      "subtitle": "Searches without a single hit, counted anonymously (text and count only).",
+      "query": "Search",
+      "hits": "Count",
+      "last": "Last",
+      "empty": "No search without hits yet.",
+      "retry": "Reload"
     }
   },
   "desktop": {
@@ -6036,6 +6058,401 @@
         "desc": "Imports your RSI hangar into your fleet in one click."
       },
       "open": "Open"
+    }
+  },
+  "search": {
+    "chip": {
+      "size": "Size {{size}}",
+      "grade": "Grade {{grade}}",
+      "kind": "{{kind}}",
+      "page": {
+        "gallery": "Gallery",
+        "fps": "FPS"
+      },
+      "section": {
+        "weapons": "Weapons",
+        "components": "Components",
+        "stock": "Stock",
+        "hangar": "Hangar",
+        "sets": "Sets"
+      },
+      "compat": {
+        "ship": "{{name}}",
+        "weapon": "{{name}}",
+        "component": "{{name}}",
+        "item": "{{name}}"
+      },
+      "switchAria": "Switch {{name}}",
+      "removeAria": "Remove filter \"{{name}}\"",
+      "miniSearch": "Search {{name}} …",
+      "noValue": "No value matches"
+    },
+    "cta": {
+      "myLoadout": "My loadout",
+      "compareWith": "Side by side",
+      "compare": "Compare",
+      "inSet": "In set",
+      "materialToSupply": "Materials to supplies",
+      "atRsi": "At RSI",
+      "allProducts": "All products",
+      "add": "Add",
+      "whereStored": "Where stored?",
+      "planOps": "Plan mission",
+      "sourceOf": "Where to get",
+      "openSet": "Open set"
+    },
+    "why": {
+      "ownHq": "first because you are in your HQ",
+      "own": "your own hits first",
+      "context": "first, matches {{ctx}}",
+      "outside": "Near-exact, but outside \"{{chip}}\""
+    },
+    "fit": {
+      "fits": "fits {{name}}",
+      "noFit": "does not fit",
+      "unknown": "no hardpoint data",
+      "unknownItem": "item has no attach type",
+      "noType": "no matching port",
+      "noSize": "size {{size}} outside S{{min}}–S{{max}}"
+    },
+    "group": {
+      "own": "From your inventory",
+      "patch": "Patches",
+      "gallery": "Gallery",
+      "opened": "Recently opened",
+      "expand": "▾ Show {{n}} more here",
+      "collapse": "▴ Collapse",
+      "expanded": "{{name}} expanded",
+      "collapseKey": "← back",
+      "allInIndex": "Open all {{n}} in the index",
+      "allInHq": "Open all {{n}} in the HQ"
+    },
+    "icon": {
+      "wishlist": "Add to wishlist",
+      "wishlistOff": "Remove from wishlist",
+      "lager": "Put in stock",
+      "hangar": "Add to hangar",
+      "nachschub": "Add to supplies"
+    },
+    "own": {
+      "ship": "your ship",
+      "fitted": "fitted on your ship",
+      "lager": "in stock",
+      "sets": "in {{n}} sets",
+      "config": "your loadout on \"{{ship}}\"",
+      "set": "your set",
+      "qty": "{{n}}× in stock",
+      "fittedOn": "{{n}} on \"{{name}}\"",
+      "fittedMoreOne": "+1 more ship",
+      "fittedMore": "+{{n}} more ships",
+      "setsOne": "in 1 set"
+    },
+    "row": {
+      "patch": "Patch {{line}}",
+      "patchMeta": "Patch note · {{version}}",
+      "galleryMeta": "Gallery"
+    },
+    "abbr": {
+      "alias": "\"{{word}}\" read as",
+      "chip": "\"{{word}}\" became the chip"
+    },
+    "newInPatch": "New in patch {{version}}",
+    "dym": {
+      "lead": "Did you mean …"
+    },
+    "keys": {
+      "expand": "expand",
+      "dropChip": "remove last chip"
+    },
+    "hint": {
+      "lead": "Tip:",
+      "tryAria": "Try it: {{hint}}"
+    },
+    "signIn": {
+      "title": "Sign in?",
+      "message": "Wishlist, stock and supplies belong to your account. Sign in to save this.",
+      "confirm": "Go to sign-in"
+    },
+    "lager": {
+      "title": "Put \"{{name}}\" in stock",
+      "message": "Where is it?",
+      "location": "Place (e.g. Area18, ship, hangar)",
+      "confirm": "Store"
+    },
+    "done": {
+      "wishlistOn": "\"{{name}}\" is on your wishlist",
+      "wishlistOff": "\"{{name}}\" is off your wishlist",
+      "hangar": "\"{{name}}\" is in your hangar",
+      "lager": "\"{{name}}\" is now stored in {{where}}",
+      "nachschub": "\"{{name}}\" is on your supply list",
+      "compare": "\"{{name}}\" is in the comparison",
+      "failed": "That did not work, try again in a moment"
+    },
+    "hints": [
+      {
+        "t": "\"connie\" finds the Constellation",
+        "q": "connie"
+      },
+      {
+        "t": "\"cutty\" finds the Cutlass family",
+        "q": "cutty"
+      },
+      {
+        "t": "\"herc\" finds every Hercules",
+        "q": "herc"
+      },
+      {
+        "t": "\"polly\" finds the Polaris",
+        "q": "polly"
+      },
+      {
+        "t": "\"tali\" finds the Retaliator",
+        "q": "tali"
+      },
+      {
+        "t": "\"hammie\" finds the Hammerhead",
+        "q": "hammie"
+      },
+      {
+        "t": "\"msr\" finds the Mercury Star Runner",
+        "q": "msr"
+      },
+      {
+        "t": "\"bmm\" finds the Merchantman",
+        "q": "bmm"
+      },
+      {
+        "t": "\"qt\" finds quantum drives",
+        "q": "qt"
+      },
+      {
+        "t": "\"pp\" finds power plants",
+        "q": "pp"
+      },
+      {
+        "t": "\"rep\" finds repeaters",
+        "q": "rep"
+      },
+      {
+        "t": "\"dist\" finds distortion weapons",
+        "q": "dist"
+      },
+      {
+        "t": "\"k&w\" finds Klaus & Werner",
+        "q": "k&w"
+      },
+      {
+        "t": "\"krig\" finds Kruger Intergalactic",
+        "q": "krig"
+      },
+      {
+        "t": "\"p4\" finds the P4-AR",
+        "q": "p4"
+      },
+      {
+        "t": "\"mil\" finds military components",
+        "q": "mil"
+      },
+      {
+        "t": "\"size 3\" filters to size 3",
+        "q": "size 3"
+      },
+      {
+        "t": "\"s2 qd\" finds size 2 quantum drives",
+        "q": "s2 qd"
+      },
+      {
+        "t": "\"grade a\" shows grade A parts only",
+        "q": "grade a"
+      },
+      {
+        "t": "\"stealth cooler\" finds stealth coolers",
+        "q": "stealth cooler"
+      },
+      {
+        "t": "\"shield s1 mil\" combines three filters",
+        "q": "shield s1 mil"
+      },
+      {
+        "t": "\"1 crew\" finds single-seaters",
+        "q": "1 crew"
+      },
+      {
+        "t": "\"freighter 100 scu\" finds big freighters",
+        "q": "freighter 100 scu"
+      },
+      {
+        "t": "\"salvage\" finds salvage ships",
+        "q": "salvage"
+      },
+      {
+        "t": "\"bomber\" finds bombers and torpedo boats",
+        "q": "bomber"
+      },
+      {
+        "t": "\"gimbal s3\" finds gimbal mounts",
+        "q": "gimbal s3"
+      },
+      {
+        "t": "\"torpedo s9\" finds large torpedoes",
+        "q": "torpedo s9"
+      },
+      {
+        "t": "\"energy pistol\" finds laser pistols",
+        "q": "energy pistol"
+      },
+      {
+        "t": "Your ship's name finds your ship"
+      },
+      {
+        "t": "\"nighthawk\" finds your Gladius"
+      },
+      {
+        "t": "Set names find your FPS sets"
+      },
+      {
+        "t": "Loadout names find your configurations"
+      },
+      {
+        "t": "\"my ships\" shows your hangar",
+        "q": "my ships"
+      },
+      {
+        "t": "\"in hangar aegis\" filters your hangar",
+        "q": "in hangar aegis"
+      },
+      {
+        "t": "\"stock\" shows everything you have stored",
+        "q": "stock"
+      },
+      {
+        "t": "\"wishlist\" shows your wishlist",
+        "q": "wishlist"
+      },
+      {
+        "t": "In the hangar \"patrol\" finds your loadout"
+      },
+      {
+        "t": "\"in stock s3\" shows what you have in size 3",
+        "q": "in stock s3"
+      },
+      {
+        "t": "Your own hits always come first"
+      },
+      {
+        "t": "\"missing\" shows your supply list",
+        "q": "missing"
+      },
+      {
+        "t": "The search remembers where you open it"
+      },
+      {
+        "t": "On a ship page it shows what fits"
+      },
+      {
+        "t": "Chips with ▾ can be switched"
+      },
+      {
+        "t": "⌫ at the start of the field removes the last chip"
+      },
+      {
+        "t": "Near-exact hits outside the chip still show"
+      },
+      {
+        "t": "On a weapon page: \"s4\" shows alternatives",
+        "q": "s4"
+      },
+      {
+        "t": "In your stock: \"laser\" shows your storage first",
+        "q": "laser"
+      },
+      {
+        "t": "In mission planning it shows where to get things"
+      },
+      {
+        "t": "\"fits\" shows only parts that fit",
+        "q": "fits"
+      },
+      {
+        "t": "A chip filters, the order follows the page"
+      },
+      {
+        "t": "\"bounty mission\" finds bounty missions",
+        "q": "bounty mission"
+      },
+      {
+        "t": "\"blueprint p4\" shows where to get it",
+        "q": "blueprint p4"
+      },
+      {
+        "t": "\"hurston\" finds places, missions and shops",
+        "q": "hurston"
+      },
+      {
+        "t": "\"om-3\" finds Orbital Marker 3",
+        "q": "om-3"
+      },
+      {
+        "t": "\"cru-l1\" finds the rest stop",
+        "q": "cru-l1"
+      },
+      {
+        "t": "\"4.3.2\" opens the patch notes",
+        "q": "4.3.2"
+      },
+      {
+        "t": "\"new\" shows what this patch brought",
+        "q": "new"
+      },
+      {
+        "t": "\"upcoming\" shows announced ships",
+        "q": "upcoming"
+      },
+      {
+        "t": "\"ammo s3\" finds matching ammunition",
+        "q": "ammo s3"
+      },
+      {
+        "t": "\"heavy armor\" finds heavy armour",
+        "q": "heavy armor"
+      },
+      {
+        "t": "\"medpen\" finds healing gear",
+        "q": "medpen"
+      },
+      {
+        "t": "\"keybind quantum\" shows the quantum key",
+        "q": "keybind quantum"
+      },
+      {
+        "t": "Ctrl K opens the search from anywhere"
+      },
+      {
+        "t": "\"/\" opens the search too"
+      },
+      {
+        "t": "↑ ↓ picks, ↵ opens"
+      },
+      {
+        "t": "Ctrl ↵ opens in a new tab"
+      },
+      {
+        "t": "→ expands a group"
+      },
+      {
+        "t": "Esc closes, your text stays"
+      },
+      {
+        "t": "Shorthand works too: \"qd s2\"",
+        "q": "qd s2"
+      },
+      {
+        "t": "Typo? The search asks \"Did you mean …\""
+      }
+    ],
+    "outside": {
+      "none": "Nothing in \"{{chip}}\" is called \"{{term}}\".",
+      "drop": "Search everywhere without \"{{chip}}\" (⌫)"
     }
   }
 }

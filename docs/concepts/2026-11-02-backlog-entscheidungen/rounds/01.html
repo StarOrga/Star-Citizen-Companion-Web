@@ -1,0 +1,228 @@
+<section data-iteration="1" data-iteration-template="decision" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
+  <div class="iteration-intro">
+    <h2>Was der Run erledigt hat — und was jetzt bei dir liegt</h2>
+    <p>Der Backlog-Run hat 9 offene Issues plus deinen Zusatzauftrag triagiert. <b>Ausgeliefert</b>: #883 Uploader „Metadaten“ (v0.193.1, Uploader 0.67.1 im Alpha-Kanal), #838 48px-Touch-Ziele (v0.193.2), #830 „Companion fragen“ endgültig gestrichen (v0.193.3), #864 β-Chip unter Notch und Banner (v0.193.4), #836 rollierende Stabilitäts-Schwellen + Vote-Reihenfolge (v0.194.0). <b>Geschlossen mit Live-Beleg</b>: #831 (Nachschub serverseitig, seit #869 live) und #788 (Turret-Limits und Hardpoints live). Offen sind fünf Richtungsfragen — jede ist mit meiner Empfehlung vorausgewählt.</p>
+  </div>
+
+  <section id="lite-backlog" data-analysis="lite" data-nav-label="Entscheidungen">
+    <div data-alevel="1" data-title="Entscheidungen">
+      <div data-slot="short"><p>5 Fragen zu 5 Issues — keine davon blockiert die ausgelieferte Arbeit.</p></div>
+      <div data-slot="long"><p>Drei Items hat der Run bewusst nicht angefasst, weil sie eine Produktentscheidung (#859, #884), eine Rechts- und Auth-Frage (#832) oder einen echten Data.p4k-Lauf (#842) brauchen. #885 ist aus #836 abgespalten und wartet nur auf die Reihenfolge.</p></div>
+    </div>
+
+    <section id="d-hq" data-nav-label="Mehr ins HQ" data-decision="d-hq" data-decision-mode="multi"
+             data-label="#859 Mehr ins HQ" data-rec="wishlist live reputation"
+             data-rec-why="Die drei Kandidaten mit dem besten Verhältnis aus Wert und Aufwand; Handel ist am Markt schon gut besetzt, Org/Gruppe braucht erst ein Rechte- und Datenschutzmodell."
+             data-applies-to="#859 · HQ-Concept-Runde" data-finding="f-hq">
+      <p data-applies>Gilt für: #859 — die nächste HQ-Concept-Runde</p>
+      <p data-situation>Das HQ hat heute fünf Bühnen (Start, Planen, Jetzt, Bestand, Statistik) und einen serverseitigen Nachschub. Ruf, Wunschliste und Handel gibt es noch nirgends.</p>
+      <h3 data-question>Welche Richtungen soll die HQ-Concept-Runde ausarbeiten?</h3>
+      <p data-context>Empfehlung: die Runde erst nach 1–2 Wochen HQ-Beta-Nutzung starten, Wunschliste in v1 nur solo.</p>
+      <div data-options>
+        <label data-opt="wishlist" data-recommended>
+          <input type="checkbox" name="dm-d-hq.wishlist" checked>
+          <span data-opt-label>Wunschliste und Ziele, die den Nachschub füllen</span>
+          <span data-opt-consequence>Hoher Wert, S–M, nutzt die bestehende Nachschub-Pipeline.</span>
+        </label>
+        <label data-opt="live" data-recommended>
+          <input type="checkbox" name="dm-d-hq.live" checked>
+          <span data-opt-label>Mehr aus den Live-Daten der SCC-App zeigen</span>
+          <span data-opt-consequence>Hoher Wert, M — nur sinnvoll, wenn der App-Sync live ist.</span>
+        </label>
+        <label data-opt="reputation" data-recommended>
+          <input type="checkbox" name="dm-d-hq.reputation">
+          <span data-opt-label>Ruf unter „Erspieltes“ ausprobieren</span>
+          <span data-opt-consequence>Mittlerer Wert, M–L — Datenquelle erst per Spike prüfen.</span>
+        </label>
+        <label data-opt="trade">
+          <input type="checkbox" name="dm-d-hq.trade" checked>
+          <span data-opt-label>Handel und aUEC-Gewinn aufnehmen</span>
+          <span data-opt-consequence>L, braucht externe Preisdaten; Markt schon dicht besetzt.</span>
+        </label>
+        <label data-opt="org">
+          <input type="checkbox" name="dm-d-hq.org" checked>
+          <span data-opt-label>Org- und Gruppenspiel aufnehmen</span>
+          <span data-opt-consequence>L, braucht Gruppenmodell, RLS und Datenschutz-Konzept.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-hq-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-hq-none" value="">
+      <input type="hidden" name="dm-d-hq-hes" value="{&quot;ms&quot;:213563,&quot;revisits&quot;:2,&quot;median&quot;:48279}">
+      <input type="hidden" name="dm-d-hq-touched" value="1">
+      <input type="hidden" name="dm-d-hq-issue" value="">
+      <input type="hidden" name="dm-d-hq-epic" value="">
+      <div data-alevel="3" data-title="Mehr ins HQ">
+        <div data-slot="short"><p>3 von 5 Kandidaten lohnen eine Concept-Runde.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Wunschliste","value":3},{"label":"Live-Daten","value":3},{"label":"Ruf","value":2},{"label":"Handel","value":1},{"label":"Org/Gruppe","value":1}],"unit":"Wert (1–3)"}'></div>
+          <p>Bewertet nach Nutzen für einen intensiven Spieler gegen Aufwand und offene Abhängigkeiten. Wunschliste nutzt den Nachschub, der seit #869 serverseitig läuft; Live-Daten hängen am SCC-App-Sync; für Ruf ist unklar, ob Log oder Data.p4k die Werte liefern.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-832" data-nav-label="Shell-Beta-Split" data-decision="d-832" data-decision-mode="multi"
+             data-label="#832 Shell-Beta-Follow-ups" data-rec="fankit gallery hangar"
+             data-rec-why="Die Fankit-Prüfung ist billig und entscheidet, ob die Shell Standard werden darf; E-Mail-Hand-off ist ein neuer Auth-Kanal mit Redteam-Aufwand, QR und Link decken den Fall heute ab."
+             data-applies-to="#832 · wird zum Tracker" data-finding="f-832">
+      <p data-applies>Gilt für: #832 — wird zum Tracker mit eigenen Issues</p>
+      <p data-situation>#832 bündelt vier unabhängige Teile: Galerie-Suche, Hangar-Suche, Fankit-Disclaimer-Regel und E-Mail-Hand-off. Keiner ist auf main erledigt.</p>
+      <h3 data-question>Welche Teile sollen eigene Issues werden?</h3>
+      <p data-context>Reihenfolge laut Empfehlung: Fankit → Galerie → Hangar.</p>
+      <div data-options>
+        <label data-opt="fankit" data-recommended>
+          <input type="checkbox" name="dm-d-832.fankit" checked>
+          <span data-opt-label>Fankit-Regel zum Disclaimer klären</span>
+          <span data-opt-consequence>S, kein Code; Regel liegt hinter dem RSI-Login — du prüfst sie dort.</span>
+        </label>
+        <label data-opt="gallery" data-recommended>
+          <input type="checkbox" name="dm-d-832.gallery" checked>
+          <span data-opt-label>Galerie-Bilder in der Suche finden</span>
+          <span data-opt-consequence>M, braucht eine Such-RPC mit Index (anon-Timeout 3 s).</span>
+        </label>
+        <label data-opt="hangar" data-recommended>
+          <input type="checkbox" name="dm-d-832.hangar" checked>
+          <span data-opt-label>Eigenen Hangar im HQ durchsuchen</span>
+          <span data-opt-consequence>M, rein im Browser, nur im HQ-Kontext und eingeloggt.</span>
+        </label>
+        <label data-opt="mail">
+          <input type="checkbox" name="dm-d-832.mail">
+          <span data-opt-label>Hand-off zum Handy per E-Mail anbieten</span>
+          <span data-opt-consequence>L, neuer Auth-Kanal mit Missbrauchs- und Phishing-Fläche.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-832-note" placeholder="Notiz (optional)">gib galerie bilder suche und eigenen hangar durchsuchen an die andere session die das gerade schon bearbetiet  ;)</textarea>
+      <input type="hidden" name="dm-d-832-none" value="">
+      <input type="hidden" name="dm-d-832-hes" value="{&quot;ms&quot;:72873,&quot;revisits&quot;:3,&quot;median&quot;:48279}">
+      <input type="hidden" name="dm-d-832-touched" value="1">
+      <input type="hidden" name="dm-d-832-issue" value="">
+      <input type="hidden" name="dm-d-832-epic" value="">
+      <div data-alevel="3" data-title="Shell-Beta-Split">
+        <div data-slot="short"><p>4 Teile, davon 1 ohne Code und 1 mit hohem Risiko.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Fankit","value":1},{"label":"Galerie","value":2},{"label":"Hangar","value":2},{"label":"E-Mail","value":3}],"unit":"Aufwand (S=1 … L=3)"}'></div>
+          <p>Die Suche kennt heute nur Codex-Treffer; der Galerie-Kontext listet nur App-Orte. Der Disclaimer steht bereits in der Fußzeilen-Blase und auf /about — offen ist nur, ob die Fankit-Regel ihn dauerhaft sichtbar verlangt.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-842" data-nav-label="Codex-Lücken" data-decision="d-842" data-decision-mode="multi"
+             data-label="#842 Codex-Lücken Ship Fitting" data-rec="silhouettes cargo radar"
+             data-rec-why="Alle drei Lücken blockieren die Fitting-Ansicht der Desktop-App; einzeln ausgeliefert bleiben sie überschaubar."
+             data-applies-to="#842 · drei PRs mit Uploader-Release" data-finding="f-842">
+      <p data-applies>Gilt für: #842 — Uploader, Ingest und echter Data.p4k-Lauf</p>
+      <p data-situation>59 Schiffe haben keine Silhouette, 69 stehen bei Fracht auf „unmeasured“, Radar liegt in den Items statt bei den Komponenten. Jeder Teil braucht einen echten Data.p4k-Lauf und ein Uploader-Release.</p>
+      <h3 data-question>Welche Teile von #842 sollen angegangen werden?</h3>
+      <p data-context>Radar verschieben heißt: Radar-Klassen landen in <code>codex_components</code> statt <code>codex_items</code> — vorher prüfen, ob die Desktop-App sie aus den Items liest.</p>
+      <div data-options>
+        <label data-opt="silhouettes" data-recommended>
+          <input type="checkbox" name="dm-d-842.silhouettes" checked>
+          <span data-opt-label>Fehlende Silhouetten erst diagnostizieren, dann beheben</span>
+          <span data-opt-consequence>M–L: Skip-Grund pro Klasse in der Admin-Kachel, Fix nach Ursache.</span>
+        </label>
+        <label data-opt="cargo" data-recommended>
+          <input type="checkbox" name="dm-d-842.cargo" checked>
+          <span data-opt-label>Fracht für alle Schiffe messen oder als „kein Laderaum“ markieren</span>
+          <span data-opt-consequence>M: Container-Auflösung erweitern, keine erfundenen SCU.</span>
+        </label>
+        <label data-opt="radar" data-recommended>
+          <input type="checkbox" name="dm-d-842.radar" checked>
+          <span data-opt-label>Radar zu den Komponenten verschieben, mit Reichweite</span>
+          <span data-opt-consequence>S: kann Zählungen in Suche und Bereichsbaum verschieben.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-842-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-842-none" value="">
+      <input type="hidden" name="dm-d-842-hes" value="{&quot;ms&quot;:10625,&quot;revisits&quot;:0,&quot;median&quot;:48279}">
+      <input type="hidden" name="dm-d-842-touched" value="1">
+      <input type="hidden" name="dm-d-842-issue" value="">
+      <input type="hidden" name="dm-d-842-epic" value="">
+      <div data-alevel="3" data-title="Codex-Lücken">
+        <div data-slot="short"><p>128 Schiffs-Lücken in zwei Feldern, plus Radar am falschen Ort.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"ohne Silhouette","value":59},{"label":"Fracht unmeasured","value":69}],"unit":"Schiffe"}'></div>
+          <p>Der Silhouetten-Build zählt Fehler heute nur als „skipped“ — der Grund pro Klasse geht verloren. Die Fracht-Erkennung matcht „cargo“ auch in Türen und Controllern, daher sind manche „unmeasured“ in Wahrheit ohne Laderaum.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-884" data-nav-label="Holotisch-Callouts" data-decision="d-884" data-decision-mode="single"
+             data-label="#884 Holotisch-Callouts" data-rec="toggle"
+             data-rec-why="Bringt die Bauteile, die Spieler vergleichen, ohne Flugwerte zu verdrängen oder den Tisch zu überladen."
+             data-applies-to="#884 · Codex-Startseite" data-finding="f-884">
+      <p data-applies>Gilt für: #884 — Holotisch auf der Codex-Startseite</p>
+      <p data-situation>Der Holotisch zeigt höchstens 3 Callouts (Tempo, Hülle, Panzerung, Fracht). Waffen, Schilde, Quantenantrieb, Reaktor und Kühler haben echte Hardpoints, sind aber keine Callouts.</p>
+      <h3 data-question>Wie sollen Bauteile auf den Holotisch kommen?</h3>
+      <div data-options>
+        <label data-opt="toggle" data-recommended>
+          <input type="radio" name="dm-d-884" value="toggle" checked>
+          <span data-opt-label>Umschaltbares Set „Flug / Loadout“ konzipieren</span>
+          <span data-opt-consequence>Concept-Runde mit Mocks; neue Payload-Pfade für Bauteilwerte.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-884" value="keep">
+          <span data-opt-label>Bei den 3 Flugwerten bleiben</span>
+          <span data-opt-consequence>Kein Aufwand; Bauteile bleiben auf der Schiffsseite.</span>
+        </label>
+        <label data-opt="more">
+          <input type="radio" name="dm-d-884" value="more">
+          <span data-opt-label>Auf 5–6 Callouts erhöhen</span>
+          <span data-opt-consequence>Tisch wird voll, das Linien-Layout bricht.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-884-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-884-none" value="">
+      <input type="hidden" name="dm-d-884-hes" value="{&quot;ms&quot;:48279,&quot;revisits&quot;:0,&quot;median&quot;:48279}">
+      <input type="hidden" name="dm-d-884-touched" value="">
+      <input type="hidden" name="dm-d-884-issue" value="">
+      <input type="hidden" name="dm-d-884-epic" value="">
+      <div data-alevel="3" data-title="Holotisch-Callouts">
+        <div data-slot="short"><p>3 Plätze, 5 Bauteil-Kandidaten.</p></div>
+        <div data-slot="long">
+          <div data-viz="bar" data-viz-spec='{"value":3,"max":8,"label":"Callout-Plätze heute","unit":""}'></div>
+          <p>Schiffe ohne passende Locator fallen auf die Hardpoint-Transforms zurück; Waffen-Ports sind dort teils dünn belegt — ein Umschalter muss pro Schiff eine Ersatzposition haben.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-885" data-nav-label="Votes auf PTU/Hotfix" data-decision="d-885" data-decision-mode="yesnoalt"
+             data-label="#885 Votes auf PTU/Hotfix" data-rec="yes"
+             data-rec-why="Die rollierenden Schwellen aus #836 sind jetzt live; Channel-Builds haben noch keine Stabilitätszahl, die Votes korrigieren könnten."
+             data-applies-to="#885 · Verse-Hub und Patch-Detail" data-finding="f-885">
+      <p data-applies>Gilt für: #885 — Hotfix- und PTU-Builds</p>
+      <p data-situation>Community-Votes gibt es nur für die LIVE-Linie. Vorschlag: eigene Tabelle für Channel-Builds, PTU und Hotfix ja, Evocati nein, abstimmen nur auf der Detailseite.</p>
+      <h3 data-question>Soll #885 in dieser Form als Nächstes kommen?</h3>
+      <div data-options>
+        <label data-opt="yes" data-recommended>
+          <input type="radio" name="dm-d-885" value="yes" checked>
+          <span data-opt-label>So umsetzen, sobald #836 Rückmeldungen hat</span>
+          <span data-opt-consequence>Eigene Tabelle + RPC, Tageslimit pro Account, Redteam auf RLS.</span>
+        </label>
+        <label data-opt="no">
+          <input type="radio" name="dm-d-885" value="no">
+          <span data-opt-label>Votes auf die LIVE-Linie beschränken</span>
+          <span data-opt-consequence>#885 wird geschlossen, keine neue Missbrauchsfläche.</span>
+        </label>
+        <label data-opt="alt">
+          <input type="radio" name="dm-d-885" value="alt">
+          <span data-opt-label>Anders umsetzen</span>
+          <span data-opt-consequence>Deine Variante unten eintragen.</span>
+        </label>
+      </div>
+      <input type="text" name="dm-d-885-alt" placeholder="Deine Variante" value="">
+      <textarea data-comment="d-885-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-885-none" value="">
+      <input type="hidden" name="dm-d-885-hes" value="{&quot;ms&quot;:9161,&quot;revisits&quot;:0,&quot;median&quot;:48279}">
+      <input type="hidden" name="dm-d-885-touched" value="1">
+      <input type="hidden" name="dm-d-885-issue" value="">
+      <input type="hidden" name="dm-d-885-epic" value="">
+      <div data-alevel="3" data-title="Votes auf PTU/Hotfix">
+        <div data-slot="short"><p>3 Kanäle ohne Community-Stimme, 1 davon unter NDA.</p></div>
+        <div data-slot="long">
+          <div data-viz="bar" data-viz-spec='{"value":25,"max":25,"label":"effektive Stimmen nötig, bevor ein Vote das Urteil bewegt","unit":""}'></div>
+          <p>Die Schutzmechanik aus #851 (7-Tage-Accountalter, 12 h Änderungssperre, Mindeststimmen, ±10-Punkte-Deckel) würde übernommen. Ein FK-Umbau der bestehenden Tabelle wäre ein Breaking Change — die eigene Tabelle vermeidet ihn.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>

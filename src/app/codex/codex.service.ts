@@ -41,6 +41,17 @@ export interface PolySearchResult {
   failed?: PolyHitKind[];
   /** The first failure of a partial search, for the translated note (never rendered raw). */
   failure?: unknown;
+  /**
+   * Per attribute value: how many of the rows read carry it (size 0-10, grade A-D).
+   * Fills the chip menus ("S3 (12)"); a floor, since only the over-fetch is read.
+   */
+  facets?: { size: Record<string, number>; grade: Record<string, number> };
+}
+
+/** Attribute filters a search can hand to the server (chips parsed from the text). */
+export interface SearchAllFilters {
+  size?: number;
+  grade?: string;
 }
 import { ilikeTokenGroups, ilikeTokenPatterns, normalizeSearch, searchMatcher, searchTokens } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
@@ -294,6 +305,10 @@ export interface PortQuery {
   maxSize: number | null;
 }
 
+/** Kinds with a `size` / `grade` column (LIST_SELECT). */
+const SIZE_KINDS: ReadonlySet<CodexKind> = new Set<CodexKind>(['weapon', 'component', 'item', 'ammunition']);
+const GRADE_KINDS: ReadonlySet<CodexKind> = new Set<CodexKind>(['weapon', 'component', 'item']);
+
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
 
@@ -380,6 +395,15 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
  * light read never waits behind more than a handful of queries.
  */
 export const PAYLOAD_READS_IN_FLIGHT = 3;
+
+/** Headline numbers of one ship component ({@link CodexService.getComponentKeyStats}); null = not that kind of part. */
+export interface ComponentKeyStats {
+  shield: number | null;
+  /** Quantum drive speed in m/s. */
+  quantum: number | null;
+  power: number | null;
+  cooling: number | null;
+}
 
 /**
  * Run `task` over `items` with at most `limit` of them in flight, in order of
@@ -1731,6 +1755,49 @@ export class CodexService {
   }
 
   /**
+   * The headline number of each ship component for the landing's loadout
+   * callouts (#884): shield HP, quantum drive speed (m/s), power segments,
+   * cooling rate. PostgREST picks them out of the payload server-side, so a
+   * ship plus its class cohort costs a few bytes per component instead of the
+   * full ~10 kB payload. A field the component does not have comes back null;
+   * a failed chunk is logged and simply missing from the map.
+   */
+  async getComponentKeyStats(classNames: string[]): Promise<Map<string, ComponentKeyStats>> {
+    const out = new Map<string, ComponentKeyStats>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0) return out;
+    // Keys with a dot are literal payload keys, not paths: quoted for PostgREST.
+    const select =
+      'class_name,' +
+      'shield:payload->stats->SCItemShieldGeneratorParams->MaxShieldHealth,' +
+      'quantum:payload->stats->SCItemQuantumDriveParams->"params.driveSpeed",' +
+      'power:payload->stats->ItemResourceComponentParams->"online.power.generateSegments",' +
+      'cooling:payload->stats->ItemResourceComponentParams->"online.coolant.generate"';
+    const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    await forEachLimited(chunk(names, 200), PAYLOAD_READS_IN_FLIGHT, async (slice) => {
+      const { data, error } = await this.sb.client
+        .from('codex_components')
+        .select(select)
+        .eq('build_id', build.id)
+        .in('class_name', slice);
+      if (error || !data) {
+        logWarn('codex', 'getComponentKeyStats chunk failed', { error });
+        return;
+      }
+      for (const r of data as unknown as Record<string, unknown>[]) {
+        out.set(r['class_name'] as string, {
+          shield: num(r['shield']),
+          quantum: num(r['quantum']),
+          power: num(r['power']),
+          cooling: num(r['cooling']),
+        });
+      }
+    });
+    return out;
+  }
+
+  /**
    * Hangar dashboard cards: codex ship rows (promoted columns + payload) for
    * a set of class names in the current build. Map keyed by class_name.
    */
@@ -1765,12 +1832,14 @@ export class CodexService {
    * the terminal answered with nothing at all). Those hits carry the `upcoming`
    * pseudo-kind and are tinted + badged apart from anything you can fly today.
    */
-  async searchAll(query: string, perKindLimit = 6): Promise<PolySearchResult> {
+  async searchAll(query: string, perKindLimit = 6, attrs: SearchAllFilters = {}): Promise<PolySearchResult> {
     const q = query.trim();
+    const hasAttrs = attrs.size != null || !!attrs.grade;
     const totals: Partial<Record<PolyHitKind, number>> = {};
     const distinct: Partial<Record<PolyHitKind, number>> = {};
     const read: Partial<Record<PolyHitKind, number>> = {};
-    if (!q) return { hits: [], totals };
+    if (!q && !hasAttrs) return { hits: [], totals };
+    const facets = { size: {} as Record<string, number>, grade: {} as Record<string, number> };
     const failed: PolyHitKind[] = [];
     let failure: unknown;
     const fail = (kind: PolyHitKind, err: unknown): PolySearchHit[] => {
@@ -1779,11 +1848,23 @@ export class CodexService {
       return [];
     };
     const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
+      // size lives on weapon/component/item/ammunition rows, grade on the first three:
+      // a kind without the column cannot satisfy the filter, so it is not asked.
+      if ((attrs.size != null && !SIZE_KINDS.has(kind)) || (attrs.grade && !GRADE_KINDS.has(kind))) return [];
       try {
         // Over-fetch: the server orders alphabetically, so the best match of a
         // short term ("p4", "ar") can sit behind `perKindLimit` weaker ones.
         // Rank first, then keep the top `perKindLimit` of each kind.
-        const res = await this.listByKind(kind, { search: q, limit: perKindLimit * SEARCH_OVERFETCH });
+        const res = await this.listByKind(kind, {
+          search: q || undefined,
+          ...(attrs.size != null ? { size: attrs.size } : {}),
+          ...(attrs.grade ? { grade: attrs.grade } : {}),
+          limit: perKindLimit * SEARCH_OVERFETCH,
+        });
+        for (const r of res.rows) {
+          if (r.size != null) facets.size[String(r.size)] = (facets.size[String(r.size)] ?? 0) + 1;
+          if (r.grade) facets.grade[r.grade.toUpperCase()] = (facets.grade[r.grade.toUpperCase()] ?? 0) + 1;
+        }
         // The server count is what "all N in the index" promises — the index
         // runs the very same list query.
         totals[kind] = res.count;
@@ -1796,7 +1877,7 @@ export class CodexService {
         return fail(kind, err);
       }
     });
-    sources.push(
+    if (!hasAttrs) sources.push(
       (async () => {
         try {
           const ships = await this.upcoming.searchShips(q, UPCOMING_SEARCH_ALL);
@@ -1811,7 +1892,7 @@ export class CodexService {
     // Nothing answered: an outage, not an empty archive — the caller shows an error with retry.
     if (failed.length === sources.length) throw failure;
     const hits = rankPolyHits(q, results.flat());
-    return failed.length ? { hits, totals, distinct, read, failed, failure } : { hits, totals, distinct, read };
+    return failed.length ? { hits, totals, distinct, read, facets, failed, failure } : { hits, totals, distinct, read, facets };
   }
 
   /**

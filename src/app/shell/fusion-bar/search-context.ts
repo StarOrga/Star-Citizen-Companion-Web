@@ -3,15 +3,21 @@
 // The bar runs the ONE Codex search (CodexSearchEngine) and only re-weights
 // what it returns by where the reader stands (spec §5): never a hard filter,
 // every group stays reachable, the context only decides the ORDER of the
-// groups, how many rows each shows ("top x per group") and which app places
-// come first. The context is shown as a chip inside the field; removing it
-// (✕ or Backspace at the start of the field) searches neutrally.
+// groups and which app places come first. Concept 2026-11-02 (C1/C2): the
+// context ALSO filters, visibly, through chips (SearchContext.chips) that come
+// only automatically: from the route and from the page section the search was
+// opened from (the URL #anchor or an explicit section id). The order stays
+// invisible. Chips are always shown; removing one (x or Backspace at the start
+// of the field) searches without that filter; there is no hideContext. Every
+// group shows 3 rows on every page (SEARCH_ROWS_SHOWN): the context never
+// changes the row count, only the order.
 
 import type { PolyHitKind } from '../../codex/codex-poly-search';
 import { KIND_PRIORITY } from '../../codex/codex-poly-search';
 import type { CodexSearchGroup, SearchTarget } from '../../codex/search/codex-search-model';
 import { normalizeSearch } from '../../codex/codex-search';
 import type { HqPageId } from '../../hq/hq-routes';
+import type { SearchChip, SearchGroupId } from '../../codex/search/search-result-model';
 
 /** Where the reader stands, as far as search weighting cares. */
 export type SearchContextKey =
@@ -49,6 +55,8 @@ export interface SearchContext {
   exclude: readonly PolyHitKind[];
   /** Kinds that rank after the neutral ones but before the excluded (still the normal row cap). */
   deprioritize: readonly PolyHitKind[];
+  /** Visible filter chips of the route and of the page section (C1/C2); parsed chips come from the text. */
+  chips: SearchChip[];
 }
 
 /** Rows a preferred group shows; every other group shows {@link CAP_OTHER}. */
@@ -66,6 +74,7 @@ const NEUTRAL: SearchContext = {
   ownedFirst: false,
   exclude: [],
   deprioritize: [],
+  chips: [],
 };
 
 const INDEX_KINDS: readonly string[] = [
@@ -73,30 +82,47 @@ const INDEX_KINDS: readonly string[] = [
 ];
 
 /** The context of a router URL (`/codex/index?kind=weapon`, `/hq/hangar`, …). */
-export function searchContextOf(url: string, hqPage: HqPageId | null = null): SearchContext {
-  const [pathPart, query = ''] = url.split('#', 1)[0].split('?');
+export function searchContextOf(
+  url: string,
+  hqPage: HqPageId | null = null,
+  section: string | null = null,
+): SearchContext {
+  const hashAt = url.indexOf('#');
+  const hash = hashAt === -1 ? '' : url.slice(hashAt + 1);
+  const base = routeContext(url.split('#', 1)[0], hqPage);
+  // The section the search was opened from: an explicit id wins over the URL #anchor.
+  const chip = sectionChip(section ?? hash);
+  if (!chip || base.chips.some((c) => c.id.split(':')[1] === chip.id.split(':')[1])) return base;
+  return { ...base, chips: [...base.chips, chip] };
+}
+
+function routeContext(urlNoHash: string, hqPage: HqPageId | null): SearchContext {
+  const [pathPart, query = ''] = urlNoHash.split('?');
   const path = pathPart.replace(/\/+$/, '') || '/';
   const seg = path.split('/').filter(Boolean);
   const params = new URLSearchParams(query);
 
   if (seg[0] === 'verse') {
-    if (seg[1] === 'gallery') return ctx('gallery', [], true);
+    if (seg[1] === 'gallery') return { ...ctx('gallery', [], true), chips: [routeChip('gallery', ['gallery'])] };
     return ctx('verse', ['ship', 'upcoming'], false);
   }
-  if (seg[0] === 'hq') return hqContext(seg.length === 1 ? hqPage : null);
+  if (seg[0] === 'hq') return hqContext(seg.length === 1 ? hqPage : null, seg[1] ?? null);
   if (seg[0] === 'codex') {
     if (seg.length === 1) return ctx('codex', ['ship'], false);
     if (seg[1] === 'index' || seg[1] === 'upcoming') {
       const k = seg[1] === 'upcoming' ? 'upcoming' : params.get('kind') ?? 'ship';
       const kind = (INDEX_KINDS.includes(k) || k === 'upcoming' ? k : 'ship') as PolyHitKind;
-      return { ...ctx('codexIndex', [kind], false), labelParams: { kind } };
+      return { ...ctx('codexIndex', [kind], false), labelParams: { kind }, chips: [kindChip(kind)] };
     }
-    if (seg[1] === 'fps') return ctx('fps', ['weapon', 'item'], false);
+    if (seg[1] === 'fps') return { ...ctx('fps', ['weapon', 'item'], false), chips: [routeChip('fps', ['weapon', 'item'])] };
     if (seg[1] === 'keybinds') return ctx('codex', ['ship'], false);
-    if (seg[1] === 'ship' && seg[2]) return ctx('ship', ['component', 'weapon'], false);
+    if (seg[1] === 'ship' && seg[2]) {
+      return { ...ctx('ship', ['component', 'weapon'], false), chips: [compatChip('ship', seg[2])] };
+    }
     if (seg.length >= 3 && INDEX_KINDS.includes(seg[1])) {
       const kind = seg[1] as PolyHitKind;
-      return { ...ctx('codexDetail', [kind], false), labelParams: { kind } };
+      const compat = kind === 'weapon' || kind === 'component' || kind === 'item' ? [compatChip(kind, seg[2])] : [];
+      return { ...ctx('codexDetail', [kind], false), labelParams: { kind }, chips: compat };
     }
     return ctx('codex', ['ship'], false);
   }
@@ -109,15 +135,17 @@ export function searchContextOf(url: string, hqPage: HqPageId | null = null): Se
  * kinds it leans towards. The mission and shop groups of the plan (§4.4) join these lists with
  * their PolyHitKind once the Codex index holds them.
  */
-export function hqContext(page: HqPageId | null): SearchContext {
+export function hqContext(page: HqPageId | null, sub: string | null = null): SearchContext {
   const base: SearchContext = { ...ctx('hq', ['ship'], true), ownedFirst: true };
+  if (!page && sub === 'hangar') base.chips = [sectionChipById('hangar', 'route')!];
+  if (!page && sub === 'locker') base.chips = [sectionChipById('sets', 'route')!];
   switch (page) {
     case 'planen':
       return { ...base, key: 'hqPlan', labelKey: 'fusionBar.ctx.hqPlan', prefer: ['item', 'blueprint', 'ship'], deprioritize: ['upcoming', 'manufacturer'] };
     case 'jetzt':
       return { ...base, key: 'hqNow', labelKey: 'fusionBar.ctx.hqNow', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition'] };
     case 'bestand':
-      return { ...base, key: 'hqStock', labelKey: 'fusionBar.ctx.hqStock', prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
+      return { ...base, chips: [sectionChipById('stock', 'route')!], key: 'hqStock', labelKey: 'fusionBar.ctx.hqStock', prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
     case 'statistik':
       return { ...base, key: 'hqStats', labelKey: 'fusionBar.ctx.hqStats', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition', 'component', 'weapon', 'item', 'blueprint'] };
     default:
@@ -131,7 +159,82 @@ export function neutralContext(): SearchContext {
 }
 
 function ctx(key: SearchContextKey, prefer: readonly PolyHitKind[], placesFirst: boolean): SearchContext {
-  return { key, labelKey: `fusionBar.ctx.${key}`, labelParams: null, prefer, placesFirst, ownedFirst: false, exclude: [], deprioritize: [] };
+  return { key, labelKey: `fusionBar.ctx.${key}`, labelParams: null, prefer, placesFirst, ownedFirst: false, exclude: [], deprioritize: [], chips: [] };
+}
+
+// ── chips ────────────────────────────────────────────────────────────────────
+
+/** Kinds the "Typ" chip can switch between on the Codex index. */
+const KIND_OPTIONS: readonly PolyHitKind[] = ['ship', 'weapon', 'component', 'item', 'ammunition', 'manufacturer', 'blueprint', 'upcoming'];
+
+function kindChip(kind: PolyHitKind): SearchChip {
+  return {
+    id: 'route:kind',
+    source: 'route',
+    labelKey: 'search.chip.kind',
+    labelParams: { kind },
+    filter: { groups: [kind] },
+    options: KIND_OPTIONS.map((k) => ({ value: k, labelKey: 'search.chip.kind', labelParams: { kind: k }, count: null })),
+    switchable: true,
+  };
+}
+
+function routeChip(name: string, groups: SearchGroupId[]): SearchChip {
+  return { id: `route:${name}`, source: 'route', labelKey: `search.chip.page.${name}`, labelParams: null, filter: { groups }, switchable: false };
+}
+
+/** "Passt auf X": the page names a ship / weapon / item. No filter; rows are checked against it (B5). */
+function compatChip(kind: 'ship' | 'weapon' | 'component' | 'item', className: string): SearchChip {
+  return {
+    id: `route:compat:${kind}`,
+    source: 'route',
+    labelKey: `search.chip.compat.${kind}`,
+    labelParams: { name: className },
+    filter: { compatWith: { kind, className } },
+    switchable: false,
+  };
+}
+
+interface SectionDef {
+  /** Ids / URL anchors that name this section (normalized, German and English). */
+  ids: readonly string[];
+  /** Hard group filter; absent for the HQ ownership sections, which only put the own group first. */
+  groups?: SearchGroupId[];
+  ownKinds?: SearchChip['filter']['ownKinds'];
+  ownFirst?: boolean;
+}
+
+/**
+ * Page sections that show ONE kind of data: only these make a chip. Other
+ * anchors (stability, notes, ...) add nothing.
+ */
+const SECTIONS: Readonly<Record<string, SectionDef>> = {
+  weapons: { ids: ['bewaffnung', 'weapons', 'waffen', 'hardpoints'], groups: ['weapon'] },
+  components: { ids: ['komponenten', 'components'], groups: ['component'] },
+  stock: { ids: ['bestand', 'stock', 'lager', 'inventory'], ownKinds: ['item'], ownFirst: true },
+  hangar: { ids: ['hangar', 'flotte', 'fleet'], ownKinds: ['ship', 'config'], ownFirst: true },
+  sets: { ids: ['sets', 'spind', 'locker', 'loadouts'], ownKinds: ['set'], ownFirst: true },
+};
+
+function sectionChipById(id: string, source: 'route' | 'section'): SearchChip | null {
+  const d = SECTIONS[id];
+  if (!d) return null;
+  return {
+    id: `${source}:${id}`,
+    source,
+    labelKey: `search.chip.section.${id}`,
+    labelParams: null,
+    filter: { ...(d.groups ? { groups: d.groups } : {}), ...(d.ownKinds ? { ownKinds: d.ownKinds } : {}), ...(d.ownFirst ? { ownFirst: true } : {}) },
+    switchable: false,
+  };
+}
+
+/** The chip of a page section / URL anchor, or null when it is no data section. */
+export function sectionChip(section: string | null | undefined): SearchChip | null {
+  const key = normalizeSearch((section ?? '').replace(/^#/, ''));
+  if (!key) return null;
+  const id = Object.keys(SECTIONS).find((k) => SECTIONS[k].ids.includes(key));
+  return id ? sectionChipById(id, 'section') : null;
 }
 
 /**
