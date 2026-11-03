@@ -813,6 +813,16 @@ export async function uploadCatalog(
       );
     }
 
+    // 9b. missions (contracts, sc_extract/missions.py) ----------------------
+    // Not part of carry: ~2 000 small rows, re-sent per build and upserted on
+    // (build_id, class_name), so a resumed run is idempotent.
+    {
+      const list = await readJsonDir(outDir, 'missions');
+      counts.missions = await sendChunks('codex_missions', list, CHUNK, (slice) =>
+        post('missions', { build_id: buildId, rows: slice }),
+      );
+    }
+
     // 10. entity strings (deduped) + ports ----------------------------------
     {
       const deduped = dedupeStrings(strings);

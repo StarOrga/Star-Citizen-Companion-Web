@@ -235,6 +235,26 @@ def _is_catalog_entity(class_name: str) -> bool:
     return _NONCATALOG_RE.search(norm) is None
 
 
+def _is_real_manufacturer(class_name: str, filename: Optional[str],
+                          code: Any) -> bool:
+    """True only for a genuine ``SCItemManufacturer`` record.
+
+    The DCB holds thousands of per-paint ``Paint_*_Logo`` and per-shop
+    ``Shop_*`` records of the same type. They copy a real maker's localization
+    keys (so they show up as "Aegis Dynamics") but have no ``Code`` field of
+    their own, and the old ``code or record name`` fallback turned each into a
+    manufacturer row whose code equalled its class name. A real maker always
+    has a ``Code``; a record under a paints / shops folder never is one.
+    """
+    if not isinstance(code, str) or not code.strip():
+        return False
+    path = "/" + _norm_path(filename).lower().strip("/") + "/"
+    return not any(t in path for t in _NON_MANUFACTURER_DIRS)
+
+
+_NON_MANUFACTURER_DIRS = ("/paint/", "/paints/", "/shop/", "/shops/")
+
+
 def _safe_filename(name: str) -> str:
     keep = "".join(c if (c.isalnum() or c in "._-") else "_" for c in name)
     return keep[:180] or "unnamed"
@@ -544,6 +564,7 @@ class CodexExtractor:
         self.extract_manufacturers()
         self.extract_ammunition()
         self.extract_blueprints()     # crafting blueprints (CraftingBlueprintRecord)
+        self.extract_missions()       # contracts (MissionBrokerEntry), see missions.py
         self.extract_entities()       # ships / weapons / components / items
         self._write_skin_build_manifest()
         self._write_silhouette_manifest()
@@ -634,26 +655,44 @@ class CodexExtractor:
         d = self.out / "manufacturers"
         d.mkdir(parents=True, exist_ok=True)
         n = 0
+        skipped: List[Any] = []   # (record, name key) of non-manufacturer records
+        by_name_key: Dict[str, Dict[str, Any]] = {}
         for r in self.df.records_by_type_name("SCItemManufacturer"):
             if not _is_catalog_entity(_strip_type_prefix(r.name)):
                 continue
             resolved = self.df.record_to_dict(r, max_depth=8)
             rv = resolved.get("_RecordValue_", {})
-            code = rv.get("Code") or _strip_type_prefix(r.name)
+            loc = rv.get("Localization") if isinstance(rv.get("Localization"), dict) else {}
+            if not _is_real_manufacturer(_strip_type_prefix(r.name), r.filename, rv.get("Code")):
+                # Paint / shop / commodity records borrow a real maker's name
+                # but carry no code of their own. Not a catalog row; items that
+                # reference one are re-pointed to the maker it borrows from.
+                skipped.append((r, loc.get("Name")))
+                continue
+            code = rv.get("Code")
             obj = {
                 "className": _strip_type_prefix(r.name),
                 "guid": r.guid,
                 "code": code,
-                "name": self._localized(rv.get("Localization", {}).get("Name")
-                                        if isinstance(rv.get("Localization"), dict) else None),
-                "description": self._localized(rv.get("Localization", {}).get("Description")
-                                               if isinstance(rv.get("Localization"), dict) else None),
+                "name": self._localized(loc.get("Name")),
+                "description": self._localized(loc.get("Description")),
                 "source": self.source,
             }
             self._manu_cache[r.guid] = obj
+            if loc.get("Name"):
+                by_name_key.setdefault(loc["Name"], obj)
             (d / f"{_safe_filename(obj['className'])}.json").write_text(
                 json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
             n += 1
+        # Alias the skipped records' guids to the real maker with the same name
+        # key, so an item's AttachDef.Manufacturer still resolves to e.g. AEG.
+        for r, name_key in skipped:
+            real = by_name_key.get(name_key) if name_key else None
+            if real is not None:
+                self._manu_cache[r.guid] = real
+        if skipped:
+            self.on_log("info", f"manufacturers: skipped {len(skipped)} paint/shop "
+                                f"records without a manufacturer code")
         self._bump("manufacturers", n)
 
     def _manufacturer_ref(self, attach_def: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -701,6 +740,13 @@ class CodexExtractor:
             # ballistic rounds are pure physics with none — those are skipped.
             self._note_silhouette_candidate("ammo", obj["className"], [rv])
         self._bump("ammunition", n)
+
+    # ── missions ───────────────────────────────────────────────────────────────
+    def extract_missions(self) -> None:
+        from .missions import extract_missions
+
+        self._bump("missions", extract_missions(self.df, self._localized, self.out,
+                                                self.source, self.on_log))
 
     # ── blueprints ─────────────────────────────────────────────────────────────
     def extract_blueprints(self) -> None:

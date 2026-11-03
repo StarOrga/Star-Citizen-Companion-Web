@@ -969,6 +969,13 @@ export class CodexBrowseComponent implements OnInit {
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
   readonly manufacturer = signal('');
+  /** `?fits=<item>` — ships whose ports take that piece (search CTA "Passende Schiffe"). Ship list only. */
+  readonly fitsItem = signal('');
+  /** `?ammo=<ammo>` — weapons that fire that round (search CTA "Passende Waffen"). Weapon list only. */
+  readonly ammoOf = signal('');
+  /** The display name of the `?fits=` piece, once resolved. */
+  private readonly fitsName = signal<string | null>(null);
+  private readonly restrictCache = new Map<string, Promise<string[]>>();
   readonly size = signal('');
   readonly grade = signal('');
   readonly componentKind = signal('');
@@ -1236,6 +1243,10 @@ export class CodexBrowseComponent implements OnInit {
       const label = this.manufacturerOptions().find((m) => m.code === mfr)?.label ?? mfr;
       add('manufacturer', 'codex.filters.manufacturer', label, () => this.setManufacturer(''));
     }
+    if (this.kind() === 'ship' && this.fitsItem()) {
+      add('fits', 'codex.filters.fits', this.fitsName() ?? this.fitsItem(), () => this.fitsItem.set(''));
+    }
+    if (this.kind() === 'weapon' && this.ammoOf()) add('ammo', 'codex.filters.ammo', this.ammoOf(), () => this.ammoOf.set(''));
     if (this.size()) add('size', 'codex.filters.size', 'S' + this.size(), () => this.setSize(''));
     if (this.grade()) add('grade', 'codex.filters.grade', this.grade(), () => this.setGrade(''));
     if (this.componentKind()) add('componentKind', 'codex.filters.componentKind', this.componentKind(), () => this.setComponentKind(''));
@@ -1348,6 +1359,8 @@ export class CodexBrowseComponent implements OnInit {
       this.armorSlot();
       this.searchTerm();
       this.manufacturer();
+      this.fitsItem();
+      this.ammoOf();
       this.size();
       this.grade();
       this.componentKind();
@@ -1367,6 +1380,8 @@ export class CodexBrowseComponent implements OnInit {
         // The upcoming grid owns its own search box (on the RSI feed service).
         q: (this.isUpcoming() ? this.rsi.query() : this.searchTerm()) || null,
         mfr: this.manufacturer() || null,
+        fits: this.kind() === 'ship' ? this.fitsItem() || null : null,
+        ammo: this.kind() === 'weapon' ? this.ammoOf() || null : null,
         size: this.size() || null,
         grade: this.grade() || null,
         ck: this.componentKind() || null,
@@ -1569,6 +1584,9 @@ export class CodexBrowseComponent implements OnInit {
       if (v) set(v);
     };
     take('mfr', (v) => this.manufacturer.set(v));
+    const cls = /^[\w.-]{1,120}$/;
+    if (this.kind() === 'ship') take('fits', (v) => cls.test(v) && this.fitsItem.set(v));
+    if (this.kind() === 'weapon') take('ammo', (v) => cls.test(v) && this.ammoOf.set(v));
     // A size is a number: `?size=abc` from a typed link used to reach the
     // query as `size=eq.NaN` and put an error card over the list.
     take('size', (v) => /^\d{1,2}$/.test(v) && this.size.set(v));
@@ -1855,6 +1873,30 @@ export class CodexBrowseComponent implements OnInit {
     this.suggestions.set(names);
   }
 
+  /**
+   * The class-name list of `?fits=` (ships) / `?ammo=` (weapons), resolved once
+   * per value through the reverse-lookup RPCs; undefined = no restriction.
+   * A failed lookup throws into the list's error state (never an unfiltered list).
+   */
+  private restriction(kind: CodexKind): Promise<string[]> | undefined {
+    const fits = kind === 'ship' ? this.fitsItem() : '';
+    const ammo = kind === 'weapon' ? this.ammoOf() : '';
+    if (!fits && !ammo) return undefined;
+    const key = fits ? `fits:${fits}` : `ammo:${ammo}`;
+    let pending = this.restrictCache.get(key);
+    if (!pending) {
+      pending = fits
+        ? this.svc.shipsFittingItem(fits).then((r) => {
+            this.fitsName.set(r?.name ?? null);
+            return r?.classNames ?? [];
+          })
+        : this.svc.weaponsForAmmo(ammo);
+      pending.catch(() => this.restrictCache.delete(key));
+      this.restrictCache.set(key, pending);
+    }
+    return pending;
+  }
+
   private async runQuery(reset: boolean): Promise<void> {
     if (reset) this.offset = 0;
     const seq = ++this.loadSeq;
@@ -1863,7 +1905,9 @@ export class CodexBrowseComponent implements OnInit {
     if (reset) this.suggestions.set([]);
     const activeKind = this.kind();
     try {
-      const filters = this.buildFilters();
+      const classNameIn = await this.restriction(activeKind);
+      if (seq !== this.loadSeq) return;
+      const filters: CodexListFilters = { ...this.buildFilters(), ...(classNameIn ? { classNameIn } : {}) };
       const res = await this.svc.listByKind(activeKind, filters);
       if (seq !== this.loadSeq) return;
       this.rawRows.set(reset ? res.rows : [...this.rawRows(), ...res.rows]);

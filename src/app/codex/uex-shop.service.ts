@@ -43,6 +43,41 @@ interface UexItem {
   name: string;
 }
 
+/** A UEX ship (`vehicles`): `uuid` is the game's entity GUID. */
+interface UexVehicle {
+  id: number;
+  name: string;
+  name_full: string | null;
+  uuid: string | null;
+}
+
+/** An in-game ship purchase price (`vehicles_purchases_prices`). */
+interface UexVehiclePrice {
+  id_vehicle: number;
+  id_terminal: number;
+  price_buy: number;
+  price_buy_avg: number | null;
+}
+
+/**
+ * The codex keeps a ship's GUID in CryEngine word order; UEX prints the same
+ * 16 bytes as a standard UUID. Codex `4cb14f49-a874-6135-2b1f-99e58157299f`
+ * = UEX `6135a874-4cb1-4f49-9f29-5781e5991f2b` (verified on the 100i): the
+ * first three groups swap, the last 8 bytes are reversed. '' for a malformed GUID.
+ */
+export function codexGuidToUexUuid(guid: string | null | undefined): string {
+  const m = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/.exec((guid ?? '').trim().toLowerCase());
+  if (!m) return '';
+  const tail = (m[4] + m[5]).match(/../g)!.reverse().join('');
+  return `${m[3]}${m[2]}-${m[1].slice(0, 4)}-${m[1].slice(4)}-${tail.slice(0, 4)}-${tail.slice(4)}`;
+}
+
+/** The ship to look up: the game GUID (matches UEX `uuid`) and the English name as fallback. */
+export interface WhereToBuyShipQuery {
+  guid?: string | null;
+  name: string;
+}
+
 interface UexItemPrice {
   id_item: number;
   id_terminal: number;
@@ -121,6 +156,55 @@ export class UexShopService {
   private planetsCache: Promise<Map<number, string>> | null = null;
   private citiesCache: Promise<Map<number, string>> | null = null;
   private spaceStationsCache: Promise<Map<number, string>> | null = null;
+  private vehiclesCache: Promise<UexVehicle[]> | null = null;
+
+  /**
+   * Bezugsquelle for a ship (#832): where it is sold in game (UEX
+   * `vehicles_purchases_prices`). Matched by the game GUID first (UEX keeps
+   * it as `uuid`), then by the English full name like items. Returns [] when
+   * UEX does not know the ship or it is not sold anywhere — never throws.
+   */
+  async whereToBuyShip(query: WhereToBuyShipQuery): Promise<BuyOption[]> {
+    try {
+      if (!this.vehiclesCache) this.vehiclesCache = this.fetchList<UexVehicle>('vehicles');
+      const vehicles = await this.vehiclesCache;
+      const guids = new Set([(query.guid ?? '').trim().toLowerCase(), codexGuidToUexUuid(query.guid)].filter(Boolean));
+      const byGuid = guids.size ? vehicles.find((v) => guids.has((v.uuid ?? '').toLowerCase())) : undefined;
+      const match =
+        byGuid ??
+        this.matchItem(vehicles.map((v) => ({ id: v.id, id_category: 0, name: v.name_full || v.name })), query.name);
+      if (!match) return [];
+      const prices = await this.fetchList<UexVehiclePrice>('vehicles_purchases_prices', { id_vehicle: String(match.id) });
+      return await this.toOptions(prices);
+    } catch (error) {
+      logWarn('uex-shop', 'where to buy ship failed', { query, error });
+      return [];
+    }
+  }
+
+  /** Buyable prices → sorted, capped options with terminal + location names. */
+  private async toOptions(prices: readonly { id_terminal: number; price_buy: number; price_buy_avg: number | null }[]): Promise<BuyOption[]> {
+    const buyable = prices.filter((p) => p.price_buy > 0);
+    if (buyable.length === 0) return [];
+    const [terminals, systems, planets, cities, stations] = await Promise.all([
+      this.getTerminals(),
+      this.getStarSystems(),
+      this.getPlanets(),
+      this.getCities(),
+      this.getSpaceStations(),
+    ]);
+    const options: BuyOption[] = buyable.map((p) => {
+      const terminal = terminals.get(p.id_terminal);
+      return {
+        price: p.price_buy,
+        priceAvg: p.price_buy_avg ?? null,
+        terminal: terminal?.fullname || terminal?.nickname || terminal?.name || '—',
+        location: this.resolveLocationName(terminal ?? null, systems, planets, cities, stations),
+      };
+    });
+    options.sort((a, b) => a.price - b.price);
+    return options.slice(0, MAX_RESULTS);
+  }
 
   /**
    * Resolve purchase options for a codex FPS armor piece or personal weapon.
@@ -139,38 +223,7 @@ export class UexShopService {
       const match = this.matchItem(lists.flat(), query.name);
       if (!match) return [];
 
-      const prices = await this.getItemPrices(match.id);
-      const buyable = prices.filter((p) => p.price_buy > 0);
-      if (buyable.length === 0) return [];
-
-      const [terminals, systems, planets, cities, stations] = await Promise.all([
-        this.getTerminals(),
-        this.getStarSystems(),
-        this.getPlanets(),
-        this.getCities(),
-        this.getSpaceStations(),
-      ]);
-
-      const options: BuyOption[] = buyable.map((p) => {
-        const terminal = terminals.get(p.id_terminal);
-        const terminalName = terminal?.fullname || terminal?.nickname || terminal?.name || '—';
-        const location = this.resolveLocationName(
-          terminal ?? null,
-          systems,
-          planets,
-          cities,
-          stations,
-        );
-        return {
-          price: p.price_buy,
-          priceAvg: p.price_buy_avg ?? null,
-          terminal: terminalName,
-          location,
-        };
-      });
-
-      options.sort((a, b) => a.price - b.price);
-      return options.slice(0, MAX_RESULTS);
+      return await this.toOptions(await this.getItemPrices(match.id));
     } catch (error) {
       logWarn('uex-shop', 'where to buy failed', { query, error });
       return [];

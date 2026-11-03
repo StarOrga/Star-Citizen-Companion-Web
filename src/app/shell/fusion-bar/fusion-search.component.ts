@@ -982,6 +982,7 @@ export class FusionSearchComponent {
     if (g.id === 'own') return { key: 'search.group.own', params: null };
     if (g.id === 'patch') return { key: 'search.group.patch', params: null };
     if (g.id === 'gallery') return { key: 'search.group.gallery', params: null };
+    if (g.id === 'mission') return { key: 'search.group.mission', params: null };
     return { key: `codex.kinds.${g.kind ?? g.id}`, params: null };
   }
 
@@ -1048,6 +1049,7 @@ export class FusionSearchComponent {
       case 'own': return { title: r.title, own: r.ownName };
       case 'patch': return { title: this.t.instant('search.row.patch', { line: r.title }), own: null };
       case 'gallery': return { title: r.title, own: null };
+      case 'mission': return { title: r.title, own: null };
       case 'place': return { title: this.t.instant(r.place.labelKey), own: null };
     }
   }
@@ -1092,6 +1094,13 @@ export class FusionSearchComponent {
         return out;
       case 'patch': return [{ key: 'search.row.patchMeta', params: { version: r.version } }];
       case 'gallery': return [{ key: 'search.row.galleryMeta' }, ...(r.series ? [{ text: r.series }] : [])];
+      case 'mission':
+        return [
+          ...(r.typeName ? [{ text: r.typeName }] : [{ key: 'search.row.missionMeta' }]),
+          ...(r.giver ? [{ text: r.giver }] : []),
+          ...(r.location ? [{ text: r.location }] : []),
+          ...(r.variants > 1 ? [{ key: 'search.row.missionVariants', params: { n: r.variants } }] : []),
+        ];
       case 'place': return [{ key: 'fusionBar.search.page' }];
     }
   }
@@ -1550,6 +1559,7 @@ function iconKindOf(r: ViewRow): SearchIconKind {
     case 'own': return r.ownKind === 'item' ? 'stock' : r.ownKind === 'set' ? 'set' : r.ownKind === 'config' ? 'config' : 'ship';
     case 'patch': return 'patch';
     case 'gallery': return 'gallery';
+    case 'mission': return 'mission';
     case 'place': return 'page';
   }
 }
