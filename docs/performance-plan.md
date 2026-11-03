@@ -162,7 +162,12 @@ committen → pushen → hier abhaken.
      `rsi-upcoming-ships` warten 4 s statt 10 s aufs Netz, bevor die
      zwischengespeicherte Antwort (max. 15 min bzw. 6 h alt, unverändert) greift.
 
-9. **Unsichtbares später rendern**: `@defer (on viewport)` mit Platzhalter in
+9. ~~**Unsichtbares später rendern**~~ — geprüft: Bilder sind schon lazy
+   (`news-thumb` mit `fetchpriority` fürs Titelbild, `fallback-image` lazy per
+   Default); die News-Liste ist auf `/verse` ohne Beta die ganze Seite, kein
+   Block unter dem Falz. Die 3D-Figur auf `/hq` steht oben im Bild — ihr
+   WebGL-Kontext (SwiftShader 0,6 s, echte GPU ~50–150 ms) gehört zum
+   sichtbaren Inhalt. Ursprüngliche Notiz: `@defer (on viewport)` mit Platzhalter in
    fester Höhe für Blöcke unterhalb des Falzes (z. B. `<sc-news-list>` am Ende
    der Verse-Beta-Seite); Bilder unterhalb des Falzes `loading="lazy"` +
    `decoding="async"`, Titelbild `fetchpriority="high"`. Vorher prüfen, dass
@@ -183,8 +188,12 @@ committen → pushen → hier abhaken.
     Regression). Gewinn klein: zone.js ≈ 40 ms Haupt-Thread pro Laden,
     11,6 kB gz.
 
-11. **Echte Nutzerdaten**: LCP, CLS, INP, Long Tasks per `PerformanceObserver`
-    über den vorhandenen `AnalyticsService` (nur mit Statistik-Einwilligung).
+11. ~~**Echte Nutzerdaten**~~ — erledigt (`core/web-vitals.service.ts`):
+    Ereignis `web_vitals` (area = erstes Pfadsegment, navigation, ttfb, fcp,
+    lcp, cls, inp, long_tasks, long_task_ms, connection), einmal pro Laden beim
+    Verlassen/Ausblenden, nur mit Statistik-Einwilligung. Datenschutzerklärung
+    nennt jetzt „Ladezeiten“ (Stand November 2026). In PostHog auswerten, um zu
+    sehen, wo echte Nutzer hängen — die Lab-Messung sieht keine echten Geräte.
 
 12. **Abschluss**: voller Lauf (`npm run lint`, `npm test`, `npm run test:gate`,
     `npm run test:functions`, `npm run build`), Nachmessung mit dem Profiler,

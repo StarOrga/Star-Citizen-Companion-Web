@@ -3642,7 +3642,7 @@
     },
     "privacy": {
       "title": "Datenschutz­erklärung",
-      "updated": "Stand: Juli 2026",
+      "updated": "Stand: November 2026",
       "summary": {
         "title": "Kurz gefasst",
         "noAds": "Keine Werbung, keine Werbenetzwerke.",
@@ -3694,7 +3694,7 @@
         "supabase": "Supabase (Datenbank, Authentifizierung, Datei-Speicher) — EU-Region eu-central-1 (Frankfurt); verarbeitet deine Konto- und Anwendungsdaten in unserem Auftrag.",
         "vercel": "Vercel Inc. (Hosting, CDN) — Auslieferung der statischen App.",
         "google": "Google Sign-In (Google Ireland Limited / Google LLC) — nur wenn du dich bewusst mit Google anmeldest; Details im Abschnitt „Anmeldung mit Google\".",
-        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud (eu.i.posthog.com); erfasst anonyme Nutzungsereignisse und Fehler, und das nur nach deiner Zustimmung.",
+        "posthog": "PostHog (Produkt-Analytik und Fehlerdiagnose) — EU-Cloud (eu.i.posthog.com); erfasst anonyme Nutzungsereignisse, Ladezeiten der Seiten und Fehler, und das nur nach deiner Zustimmung.",
         "fonts": "Google Fonts — Schriftdateien werden von Google-Servern geladen; Google kann dabei deine IP-Adresse sehen.",
         "rsiMedia": "Bilder in den Verse-News kommen teils direkt von Servern von Roberts Space Industries (media.robertsspaceindustries.com, theverse.robertsspaceindustries.com) — beim Laden sieht RSI deine IP-Adresse.",
         "gameApis": "Öffentliche Star-Citizen-Daten: status.robertsspaceindustries.com und api.star-citizen.wiki (nur lesend, es werden keine Kontodaten übertragen)."

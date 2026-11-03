@@ -4,6 +4,7 @@ import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
 import { PresenceService } from './auth/presence.service';
 import { AnalyticsService } from './core/analytics.service';
+import { WebVitalsService } from './core/web-vitals.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
 import { LocaleService } from './core/locale/locale.service';
 import { RouteLoadRecoveryService } from './core/route-load-recovery.service';
@@ -106,6 +107,7 @@ export class AppComponent implements OnInit {
   private readonly presence = inject(PresenceService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly analytics = inject(AnalyticsService);
+  private readonly webVitals = inject(WebVitalsService);
   private readonly locale = inject(LocaleService);
   readonly swUpdate = inject(SwUpdateService);
   private readonly routeRecovery = inject(RouteLoadRecoveryService);
@@ -191,6 +193,8 @@ export class AppComponent implements OnInit {
     this.routeRecovery.init();
     // No-op without a configured key or statistics consent (#139).
     this.analytics.init();
+    // Real-user load metrics, sent once per page load — same statistics consent gate.
+    this.webVitals.init();
     // C7 — one-shot: reads UTM params off THIS load's URL; no-op without
     // params or (yet) consent. Must run after init() so it shares the same
     // lazy-loaded PostHog client once consent is granted.
