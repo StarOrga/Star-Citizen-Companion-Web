@@ -11,11 +11,6 @@ import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
 import { ImpersonationBannerComponent } from './shell/impersonation-banner.component';
 
-/** The language a missing key falls back to (see `registerFallbackLang`). */
-const FALLBACK_LANG = 'en';
-/** Latest point after boot at which a non-English session registers the fallback. */
-const FALLBACK_LANG_DEADLINE_MS = 5000;
-
 @Component({
   selector: 'sc-root',
   standalone: true,
@@ -175,7 +170,6 @@ export class AppComponent implements OnInit {
     // the effect above only handles subsequent changes.
     const initial = this.locale.language();
     this.translate.use(initial);
-    this.registerFallbackLang(initial);
 
     // Sync <html lang> with the active translation so SEO + screenreaders
     // see the right language. ngx-translate does not touch this attribute.
@@ -201,30 +195,5 @@ export class AppComponent implements OnInit {
     // params or (yet) consent. Must run after init() so it shares the same
     // lazy-loaded PostHog client once consent is granted.
     this.analytics.captureLanding();
-  }
-
-  /**
-   * English is the fallback language: a key missing from the active catalogue
-   * renders in English. Registered in `provideTranslateService`, it made
-   * ngx-translate fetch en.json at bootstrap — for a German reader a second
-   * ~250 kB catalogue requested before (and parsed next to) the one the page
-   * actually renders in, although the parity spec (core/i18n-catalogue.spec.ts)
-   * guarantees it is never consulted. An English session registers it at once
-   * (same table, one request); any other language does so once the browser is
-   * idle, so the safety net is in place without sitting on the critical path.
-   * EnglishStringsService loads English on demand where it is needed for its
-   * own sake (keybinds).
-   */
-  private registerFallbackLang(initial: string): void {
-    const register = () => this.translate.setFallbackLang(FALLBACK_LANG);
-    if (initial === FALLBACK_LANG || typeof window === 'undefined') {
-      register();
-      return;
-    }
-    if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(register, { timeout: FALLBACK_LANG_DEADLINE_MS });
-    } else {
-      setTimeout(register, FALLBACK_LANG_DEADLINE_MS);
-    }
   }
 }
