@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.198.0",
+  "current": "0.198.1",
   "releases": [
+    {
+      "version": "0.198.1",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Community stability votes now count an account from 7 days after its approval, not after sign-up (#885)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "A community verdict moves the stability number by at most ±5 points at the 25-vote minimum. The full ±10 applies only from 50 effective votes (#885)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.198.0",
       "date": "2026-11-03",
