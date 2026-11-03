@@ -138,9 +138,9 @@ committen → pushen → hier abhaken.
    - ~~`rsi-upcoming-ships` Edge Function~~ — erledigt: Antwort pro Isolate
      30 min memoisiert (gleicher Baustein `fetch-verse-news/feed-memo.ts`).
      Live erst nach `functions:deploy`.
-   - SW-`dataGroups` `verse-news`: `freshness` mit `timeout: 10s` → bei
-     langsamer Function wartet die UI bis zu 10 s; Timeout senken (z. B. 3 s),
-     damit der Cache greift.
+   - ~~SW-`dataGroups` Timeout~~ — erledigt: `verse-news` und
+     `rsi-upcoming-ships` warten 4 s statt 10 s aufs Netz, bevor die
+     zwischengespeicherte Antwort (max. 15 min bzw. 6 h alt, unverändert) greift.
 
 9. **Unsichtbares später rendern**: `@defer (on viewport)` mit Platzhalter in
    fester Höhe für Blöcke unterhalb des Falzes (z. B. `<sc-news-list>` am Ende
