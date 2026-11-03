@@ -16,8 +16,9 @@ import { SupabaseClientProvider } from './supabase.client';
  *   "not known yet" and never overwrites a local choice with an empty map.
  * - `set()` updates the signal at once and writes one key through the
  *   `set_ui_pref` RPC — a merge, so two tabs setting different keys cannot
- *   clobber each other. Signed out it is a no-op; a failed write is logged
- *   and the local copy still holds.
+ *   clobber each other. Signed out it is a no-op, and so is a value the
+ *   loaded map already holds; a failed write is logged and the local copy
+ *   still holds.
  */
 @Injectable({ providedIn: 'root' })
 export class AccountPrefsService {
@@ -64,7 +65,12 @@ export class AccountPrefsService {
 
   set(key: string, value: string | number | boolean | null): void {
     if (!this.auth.user()) return;
-    const next = { ...(this.state() ?? {}) };
+    const current = this.state();
+    // The account already holds exactly this: no write. Callers re-assert a
+    // choice on every visit (the Codex marks the patch News seen each time it
+    // opens), and each of those used to be a database write.
+    if (current !== null && (value === null ? !(key in current) : current[key] === value)) return;
+    const next = { ...(current ?? {}) };
     if (value === null) delete next[key];
     else next[key] = value;
     this.state.set(next);

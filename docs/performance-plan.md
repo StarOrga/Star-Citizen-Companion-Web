@@ -126,9 +126,15 @@ committen → pushen → hier abhaken.
 
 8. **Backend-Requests beim Start** (je Seitenaufruf ~15):
    - `profiles` wird 4× gelesen (`role.service.ts`, `profile.service.ts`,
-     `account-prefs.service.ts`, `app.component.ts` Sprache/Region) → ein
-     gemeinsamer Read mit allen Spalten.
-   - `rpc/set_ui_pref` (ein **Write**) bei jedem Laden → nur bei echter Änderung.
+     `account-prefs.service.ts`, `app.component.ts` Sprache/Region). Bewusst
+     **nicht** zusammengelegt: die vier Primärschlüssel-Reads laufen parallel
+     (Wartezeit ≈ einer), und `role.service` trägt die Fail-closed-Logik des
+     Freischalt-Guards — ein gemeinsamer Read würde den Auth-Pfad anfassen
+     für kaum messbaren Gewinn.
+   - ~~`rpc/set_ui_pref` bei jedem Laden~~ — war ein Artefakt der Fixtures
+     (Erstkontakt ohne gespeicherten Wert). Trotzdem erledigt:
+     `AccountPrefsService.set()` schreibt nicht mehr, wenn das Konto den Wert
+     schon hält (die Codex-Landing setzt „News gesehen“ bei jedem Öffnen).
    - ~~`rsi-upcoming-ships` Edge Function~~ — erledigt: Antwort pro Isolate
      30 min memoisiert (gleicher Baustein `fetch-verse-news/feed-memo.ts`).
      Live erst nach `functions:deploy`.
