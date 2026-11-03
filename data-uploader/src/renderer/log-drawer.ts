@@ -7,6 +7,7 @@
  */
 
 import { t } from '../lib/i18n.js';
+import { COPY_OUTCOME_KEY, copyTranscript, type CopyOutcome } from '../lib/log-copy.js';
 
 export type LogLevel = 'info' | 'success' | 'warn' | 'error';
 
@@ -89,12 +90,21 @@ export function wireLogDrawer(): void {
   const copyBtn = document.getElementById('log-drawer-copy') as HTMLButtonElement | null;
   const toggleBtn = document.getElementById('log-drawer-toggle') as HTMLButtonElement | null;
   toggleBtn?.addEventListener('click', () => toggleLogDrawer());
-  copyBtn?.addEventListener('click', () => {
-    void window.sc.clipboard.writeText(plainText).then(() => {
-      copyBtn.textContent = t('run.copied');
-      setTimeout(() => {
-        copyBtn.textContent = t('run.copyLog');
-      }, 1600);
-    });
-  });
+  copyBtn?.addEventListener('click', () => void copyLog(copyBtn));
+}
+
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+export async function copyLog(btn: HTMLButtonElement): Promise<CopyOutcome> {
+  const outcome = await copyTranscript(plainText, (text) => window.sc.clipboard.writeText(text));
+  btn.classList.remove('copied', 'copy-failed');
+  if (outcome === 'copied') btn.classList.add('copied');
+  else if (outcome === 'failed') btn.classList.add('copy-failed');
+  btn.textContent = t(COPY_OUTCOME_KEY[outcome]);
+  if (copyResetTimer) clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => {
+    btn.classList.remove('copied', 'copy-failed');
+    btn.textContent = t('run.copyLog');
+  }, 1600);
+  return outcome;
 }

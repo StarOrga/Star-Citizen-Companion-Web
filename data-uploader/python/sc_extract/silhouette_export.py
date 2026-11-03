@@ -30,6 +30,7 @@ import os
 import shutil
 import struct
 import subprocess
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,6 +66,27 @@ class SilhouetteSkip(Exception):
         self.detail = detail
 
 
+class MeshBudgetExceeded(SilhouetteSkip):
+    """A mesh used up its time budget (`silhouette_build.MESH_BUDGET_S`)."""
+
+
+# Cooperative per-mesh deadline. Python threads cannot be killed, so the decode
+# loop below polls this thread-local and gives up by itself; the build sets it
+# around each `compute` call (see `silhouette_build`).
+_deadline = threading.local()
+
+
+def set_deadline(at: Optional[float]) -> None:
+    """Monotonic time after which this thread's mesh work must stop (None = no limit)."""
+    _deadline.at = at
+
+
+def check_deadline() -> None:
+    at = getattr(_deadline, "at", None)
+    if at is not None and time.monotonic() > at:
+        raise MeshBudgetExceeded(SKIP_CONVERT_FAILED, "time budget exceeded while reading the mesh")
+
+
 # glTF accessor componentType -> (struct format char, byte size)
 _COMPONENT_TYPES = {
     5121: ("B", 1),  # UNSIGNED_BYTE
@@ -90,6 +112,27 @@ def _read_accessor(gltf: dict, binary: bytes, accessor_index: int) -> List[Any]:
         vals = struct.unpack_from(fmt, binary, off)
         out.append(vals[0] if n == 1 else vals)
     return out
+
+
+_NP_TYPES = {5121: "u1", 5123: "<u2", 5125: "<u4", 5126: "<f4"}
+
+
+def _read_accessor_np(gltf: dict, binary: bytes, accessor_index: int):
+    """`_read_accessor` as one numpy array ``(count,)`` / ``(count, n)`` — same
+    offsets, stride and values, decoded in one go instead of per vertex."""
+    import numpy as np
+
+    acc = gltf["accessors"][accessor_index]
+    count = acc["count"]
+    comp_size = _COMPONENT_TYPES[acc["componentType"]][1]
+    n = _TYPE_COUNTS[acc["type"]]
+    view = gltf["bufferViews"][acc["bufferView"]]
+    base = view.get("byteOffset", 0) + acc.get("byteOffset", 0)
+    stride = view.get("byteStride") or (comp_size * n)
+    shape = (count,) if n == 1 else (count, n)
+    strides = (stride,) if n == 1 else (stride, comp_size)
+    return np.ndarray(shape, dtype=np.dtype(_NP_TYPES[acc["componentType"]]),
+                      buffer=binary, offset=base, strides=strides)
 
 
 def _node_mesh_positions(gltf: dict, binary: bytes) -> List[Tuple[int, List[Tuple[float, float, float]]]]:
@@ -176,7 +219,13 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
         for child in nodes[idx].get("children", []):
             stack.append((child, m))
 
-    accessors = gltf.get("accessors", [])
+    import numpy as np
+
+    # Every primitive of a hull usually shares ONE POSITION accessor (50 MB on
+    # a Perseus): decode + transform it once per (accessor, node), not per
+    # primitive. Same term order as `_apply` / `_gltf_to_cry` in float64, so the
+    # values are bit-identical to the per-vertex Python code this replaced.
+    verts_cache: Dict[Tuple[int, int], List[Tuple[float, float, float]]] = {}
     triangles: List[Triangle] = []
     for idx, node in enumerate(nodes):
         mesh_idx = node.get("mesh")
@@ -190,22 +239,25 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
             pos_idx = prim.get("attributes", {}).get("POSITION")
             if pos_idx is None:
                 continue
-            positions = [
-                _apply(m, tuple(p)) for p in _read_accessor(gltf, binary, pos_idx)
-            ]
+            check_deadline()
+            verts = verts_cache.get((pos_idx, idx))
+            if verts is None:
+                p = _read_accessor_np(gltf, binary, pos_idx).astype(np.float64)
+                x, y, z = p[:, 0], p[:, 1], p[:, 2]
+                wx = m[0] * x + m[4] * y + m[8] * z + m[12]
+                wy = m[1] * x + m[5] * y + m[9] * z + m[13]
+                wz = m[2] * x + m[6] * y + m[10] * z + m[14]
+                # glTF -> Cry: (x, y, z) -> (x, -z, y)
+                verts = list(zip(wx.tolist(), (-wz).tolist(), wy.tolist()))
+                verts_cache[(pos_idx, idx)] = verts
+            n_verts = len(verts)
             if "indices" in prim:
-                indices = _read_accessor(gltf, binary, prim["indices"])
+                indices = _read_accessor_np(gltf, binary, prim["indices"]).astype(np.int64)
             else:
-                indices = list(range(len(positions)))
-            for i in range(0, len(indices) - 2, 3):
-                a, b, c = indices[i], indices[i + 1], indices[i + 2]
-                if a >= len(positions) or b >= len(positions) or c >= len(positions):
-                    continue
-                triangles.append((
-                    _gltf_to_cry(positions[a]),
-                    _gltf_to_cry(positions[b]),
-                    _gltf_to_cry(positions[c]),
-                ))
+                indices = np.arange(n_verts, dtype=np.int64)
+            tri = indices[: (len(indices) // 3) * 3].reshape(-1, 3)
+            tri = tri[(tri < n_verts).all(axis=1)]  # out-of-range triangles are skipped
+            triangles.extend((verts[a], verts[b], verts[c]) for a, b, c in tri.tolist())
     return triangles
 
 
@@ -395,6 +447,8 @@ class SilhouetteExporter:
                 gltf, binary = read_glb(raw_glb)
                 strip_noop_skins(gltf, binary, self.cfg.on_log)
                 return world_triangles_from_glb(gltf, binary)
+        except MeshBudgetExceeded:
+            raise
         except Exception as exc:  # noqa: BLE001 — one bad mesh must not abort the run
             self.cfg.on_log("warn", f"silhouette mesh {mesh_id}: {type(exc).__name__}: {exc}")
             raise SilhouetteSkip(SKIP_CONVERT_FAILED, f"{type(exc).__name__}: {exc}") from exc

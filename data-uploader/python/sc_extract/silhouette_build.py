@@ -21,6 +21,7 @@ import argparse
 import datetime
 import json
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -71,6 +72,16 @@ def cache_dir_for(out_dir: Path) -> Path:
 
 Hook = Optional[Callable[..., None]]
 
+# Wall-clock budget per mesh (convert + decode + trace). It runs on while the
+# resource governor suspends the process tree, and a slow PC profile leaves as
+# little as 15 % CPU: a healthy mesh (~10 s of work, up to the 600 s converter
+# timeout) must fit even then, or its silhouette would be lost to the throttle.
+# Past it the mesh becomes a skip instead of holding the run forever.
+MESH_BUDGET_S = 1800.0
+# Extra time a mesh that ignored the cooperative deadline (a stuck external
+# call, a long numpy step) gets before its future is abandoned.
+ABANDON_GRACE_S = 60.0
+
 
 def write_skips(out_dir: Path, skips: List[Dict[str, Any]]) -> Path:
     """Write ``<out_dir>/silhouettes/skips.json`` — one entry per entity that
@@ -113,6 +124,8 @@ def build_rows(
     on_progress: Hook = None,
     on_count: Hook = None,
     manifest_skips: Optional[List[Dict[str, Any]]] = None,
+    budget_s: float = MESH_BUDGET_S,
+    grace_s: float = ABANDON_GRACE_S,
 ) -> Dict[str, Any]:
     """Build every silhouette row of a manifest.
 
@@ -128,9 +141,10 @@ def build_rows(
     own ``manifest_skips`` (hulls with no mesh path at all) — lands in
     ``silhouettes/skips.json`` with its reason.
     """
+    import time
     from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
     from .silhouette_export import (SKIP_CONVERT_FAILED, SKIP_EMPTY, SKIP_NO_MESH,
-                                    SilhouetteSkip)
+                                    SilhouetteSkip, set_deadline)
 
     rows_dir = out_dir / "silhouettes" / "rows"
     rows_dir.mkdir(parents=True, exist_ok=True)
@@ -212,7 +226,45 @@ def build_rows(
 
     workers = max(1, int(workers))
     pending: Dict[Any, str] = {}
-    with ThreadPoolExecutor(max_workers=workers) as pool:
+    started: Dict[Any, float] = {}   # future -> monotonic start (set by the worker thread)
+    abandoned: List[str] = []
+    poll_s = max(0.05, min(5.0, budget_s / 4))
+
+    def run(fut_box: List[Any], ready: Any, fn: Callable[..., Any], *args: Any,
+            note: Optional[str] = None) -> Any:
+        # Runs on a pool thread: stamps the start, arms the cooperative deadline.
+        ready.wait()  # the submitting thread has stored the future in `fut_box`
+        started[fut_box[0]] = time.monotonic()
+        set_deadline(time.monotonic() + budget_s)
+        if note:
+            log("info", note)
+        try:
+            return fn(*args)
+        finally:
+            set_deadline(None)
+
+    def submit(pool: Any, fn: Callable[..., Any], *args: Any, note: Optional[str] = None) -> Any:
+        box: List[Any] = []
+        ready = threading.Event()
+        fut = pool.submit(run, box, ready, fn, *args, note=note)
+        box.append(fut)
+        ready.set()
+        return fut
+
+    def overdue(futs: Any) -> List[Any]:
+        now = time.monotonic()
+        # Every worker is stuck on an abandoned mesh: what is still queued never starts.
+        no_worker_left = len(abandoned) >= workers
+        return [f for f in futs if not f.done()
+                and (now - started[f] > budget_s + grace_s if f in started else no_worker_left)]
+
+    def budget_skip(mesh: str) -> Tuple[str, str]:
+        log("warn", f"{mesh}: abandoned after {budget_s + grace_s:.0f}s (time budget exceeded)")
+        abandoned.append(mesh)
+        return (SKIP_CONVERT_FAILED, f"time budget exceeded ({budget_s:.0f}s)")
+
+    pool = ThreadPoolExecutor(max_workers=workers)
+    try:
         for mesh in by_mesh:
             try:
                 src = exporter.source(mesh, tolerance_m)
@@ -228,22 +280,26 @@ def build_rows(
                 finish(mesh, hit, True)
                 continue
             mesh_id = _safe_filename(Path(mesh).stem)
-            pending[pool.submit(exporter.compute, src, mesh_id, tolerance_m)] = mesh
+            pending[submit(pool, exporter.compute, src, mesh_id, tolerance_m)] = mesh
             # Bounded in flight: each queued job holds its mesh bytes (a big
             # hull + .cgam is tens of MB), so never read far ahead of the pool.
             while len(pending) >= workers * 2:
-                done_set, _ = wait(list(pending), return_when=FIRST_COMPLETED)
-                for fut in done_set:
-                    _collect(fut, pending, settle, log, SilhouetteSkip)
+                _drain(pending, wait, FIRST_COMPLETED, poll_s, settle, log, SilhouetteSkip,
+                       overdue, budget_skip)
         while pending:
-            done_set, _ = wait(list(pending), return_when=FIRST_COMPLETED)
-            for fut in done_set:
-                _collect(fut, pending, settle, log, SilhouetteSkip)
+            _drain(pending, wait, FIRST_COMPLETED, poll_s, settle, log, SilhouetteSkip,
+                   overdue, budget_skip)
 
         # LOD1 retries: read on this thread, convert on the pool.
         lod_jobs: Dict[Any, Tuple[str, str, Tuple[str, str]]] = {}
-        for mesh, skip in retry:
+        n_retry = len(retry)
+        if n_retry:
+            log("info", f"LOD1 retry: {n_retry} mesh(es) failed to convert and are retried on their LOD1")
+        for i, (mesh, skip) in enumerate(retry, 1):
             lod = lod1_sibling(mesh) or ""
+            label = f"LOD1 retry {i}/{n_retry}: {Path(mesh).stem}"
+            if on_progress:
+                on_progress(done_entities, total, label)
             try:
                 src = exporter.source(lod, tolerance_m)
             except FileNotFoundError:
@@ -254,24 +310,44 @@ def build_rows(
                 continue
             hit = exporter.cached(src)
             if hit is not None:
+                log("info", f"{label} (cached)")
                 finish(mesh, hit, True, used_mesh=lod)
                 continue
             mesh_id = _safe_filename(Path(lod).stem)
-            lod_jobs[pool.submit(exporter.compute, src, mesh_id, tolerance_m)] = (mesh, lod, skip)
-        for fut, (mesh, lod, skip) in lod_jobs.items():
+            lod_jobs[submit(pool, exporter.compute, src, mesh_id, tolerance_m,
+                            note=f"{label} started")] = (mesh, lod, skip)
+
+        def finish_lod(fut: Any) -> None:
+            mesh, lod, skip = lod_jobs.pop(fut)
             try:
                 sil = fut.result()
             except SilhouetteSkip as exc:
+                log("info", f"LOD1 retry {Path(mesh).stem}: skipped ({exc.reason})")
                 finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1: {exc.reason}: {exc.detail}"))
-                continue
+                return
             except Exception as exc:  # noqa: BLE001
+                log("info", f"LOD1 retry {Path(mesh).stem}: failed ({type(exc).__name__})")
                 finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1: {type(exc).__name__}: {exc}"))
-                continue
+                return
             if sil is None:
+                log("info", f"LOD1 retry {Path(mesh).stem}: traced no outline")
                 finish(mesh, None, False, (SKIP_EMPTY, f"{skip[1]}; lod1 traced no outline"))
-                continue
+                return
             log("info", f"silhouette {Path(mesh).stem}: LOD0 failed to convert, used {Path(lod).name}")
             finish(mesh, sil, False, used_mesh=lod)
+
+        while lod_jobs:
+            done_set, _ = wait(list(lod_jobs), timeout=poll_s, return_when=FIRST_COMPLETED)
+            for fut in done_set:
+                finish_lod(fut)
+            for fut in overdue(list(lod_jobs)):
+                mesh, lod, skip = lod_jobs.pop(fut)
+                _, detail = budget_skip(lod)
+                finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1: {detail}"))
+    finally:
+        # Never wait for an abandoned (stuck) worker: the `with` form would block here forever.
+        pool.shutdown(wait=not abandoned, cancel_futures=True)
+    stats["abandoned"] = len(abandoned)
 
     write_skips(out_dir, skips)
     reasons: Dict[str, int] = {}
@@ -291,6 +367,19 @@ def build_rows(
         log("warn", f"{stats['shipsWithoutAnchors']}/{stats['ships']} ship silhouettes without anchors: "
                     + ", ".join(sorted(no_anchor)[:40]) + (" …" if len(no_anchor) > 40 else ""))
     return stats
+
+
+def _drain(pending: Dict[Any, str], wait: Callable[..., Any], first_completed: Any,
+           poll_s: float, finish: Callable[..., None], log: Callable[[str, str], None],
+           skip_type: type, overdue: Callable[[Any], List[Any]],
+           budget_skip: Callable[[str], Tuple[str, str]]) -> None:
+    """Collect whatever finished; give up on meshes past their budget."""
+    done_set, _ = wait(list(pending), timeout=poll_s, return_when=first_completed)
+    for fut in done_set:
+        _collect(fut, pending, finish, log, skip_type)
+    for fut in overdue(list(pending)):
+        mesh = pending.pop(fut)
+        finish(mesh, None, False, budget_skip(mesh))
 
 
 def _collect(fut: Any, pending: Dict[Any, str], finish: Callable[..., None],

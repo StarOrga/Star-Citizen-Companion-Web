@@ -36,6 +36,13 @@ import {
 import { whenDoneChipHtml, wireWhenDoneChip, closeWhenDonePopoverIfOpen } from './when-done-chip.js';
 import { beginRunEta, endRunEta, initRunEta, noteRunEta, refreshRunEta } from './run-eta.js';
 import { RUN_STEP_KEYS, type RunStepKey } from '../lib/run-estimate.js';
+import { createLogBudget, type LogBudget } from '../lib/log-budget.js';
+import {
+  bannerModel,
+  INSTALL_REPLY_TIMEOUT_MS,
+  type BannerInput,
+  type InstallNoticeState,
+} from '../lib/update-install.js';
 import { resetLog, replayLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import {
   updateCategoryBars,
@@ -1048,12 +1055,13 @@ function paintConnection(): void {
 
 type UpdateEvent =
   | { type: 'checking' }
-  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null }
+  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null; supersedes?: string }
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
   | { type: 'manual'; currentVersion: string; latestVersion: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'install-state'; state: InstallNoticeState; version: string };
 
 // Public download page — opened for portable builds that can't self-update.
 // window.open is intercepted by the main process' setWindowOpenHandler and
@@ -1138,47 +1146,73 @@ function paintManualBanner(): void {
 // The last update event, so a language switch can repaint the banner in place.
 let lastUpdateEvent: UpdateEvent | null = null;
 
+/**
+ * Python `log` events into the transcript, so the copied log is not nearly empty
+ * during a run. warn/error always; info only up to PY_LOG_INFO_CAP lines per
+ * build (the builds log per entity - thousands of DOM rows otherwise), with one
+ * notice at the moment the cap is first hit.
+ */
+const PY_LOG_INFO_CAP = 150;
+function forwardPyLog(budget: LogBudget, ev: { message?: string; level?: string }): void {
+  if (!ev.message) return;
+  const lvl = ev.level === 'error' || ev.level === 'warn' ? ev.level : 'info';
+  if (budget.take(lvl)) {
+    drawerAppendLog(ev.message, lvl);
+  } else if (budget.dropped === 1) {
+    drawerAppendLog(t('run.logTruncated'), 'info');
+  }
+}
+
+/** Version whose installer is staged (renderer view), for banner states that keep it. */
+let stagedVersionSeen: string | null = null;
+
 function paintUpdateBanner(ev: UpdateEvent): void {
   lastUpdateEvent = ev;
+  if (ev.type === 'downloaded') stagedVersionSeen = ev.version;
+  else if (ev.type === 'checking' || ev.type === 'not-available' || ev.type === 'available') stagedVersionSeen = null;
   const banner = $('#update-banner');
   const text = $('#update-banner-text');
   const action = $('#update-banner-action') as HTMLButtonElement | null;
   if (!banner || !text || !action) return;
   banner.classList.remove('update-banner-error');
   action.hidden = true;
+  action.disabled = false;
   action.onclick = null;
 
-  switch (ev.type) {
-    case 'checking':
-    case 'not-available':
-    // 'manual' is handled outside the shell banner — it renders on the Discover
-    // (first) screen only, via paintManualBanner / renderDiscover.
-    case 'manual':
-      banner.classList.add('hidden');
-      return;
-    case 'available':
-      text.textContent = t('update.available', { version: ev.version });
-      banner.classList.remove('hidden');
-      return;
-    case 'progress':
-      text.textContent = t('update.progress', { pct: String(ev.pct) });
-      banner.classList.remove('hidden');
-      return;
-    case 'downloaded':
-      text.textContent = t('update.downloaded', { version: ev.version });
-      action.textContent = t('update.install');
-      action.hidden = false;
-      action.onclick = () =>
-        void window.sc.update.install().then((r) => {
-          if (r.busy) text.textContent = t('update.busy');
-        });
-      banner.classList.remove('hidden');
-      return;
-    case 'error':
-      text.textContent = t('update.error', { message: ev.message });
-      banner.classList.remove('hidden');
-      banner.classList.add('update-banner-error');
-      return;
+  const m = bannerModel(ev as BannerInput);
+  if (!m.visible) {
+    banner.classList.add('hidden');
+    return;
+  }
+  text.textContent = t(m.textKey, m.params);
+  banner.classList.remove('hidden');
+  if (m.tone === 'error') banner.classList.add('update-banner-error');
+  if (!m.button) return;
+  action.textContent = t(m.button.labelKey);
+  action.disabled = m.button.disabled;
+  action.hidden = false;
+  action.onclick = m.button.action === 'cancel' ? () => void window.sc.update.cancelInstall() : () => void onInstallClick();
+}
+
+/**
+ * Install click: answer at once (locked button + "preparing"), then let the
+ * main process's install-state events drive the banner. A hung or failed IPC
+ * lands back on a readable state with the button enabled again.
+ */
+async function onInstallClick(): Promise<void> {
+  const version = stagedVersionSeen ?? '';
+  const show = (state: InstallNoticeState): void =>
+    paintUpdateBanner({ type: 'install-state', state, version });
+  show('preparing');
+  try {
+    const reply = await Promise.race([
+      window.sc.update.install(),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), INSTALL_REPLY_TIMEOUT_MS)),
+    ]);
+    if (!reply.ok) show('failed');
+    // ok: the main process now broadcasts preparing / waiting / closing.
+  } catch {
+    show('failed');
   }
 }
 
@@ -3065,6 +3099,7 @@ async function buildSilhouettes(
     hint: t('silhouettes.hint'),
   });
   const silhouetteCounters: Record<string, number> = {};
+  const silhouetteLogBudget = createLogBudget(PY_LOG_INFO_CAP);
   const unsub = window.sc.silhouette.onEvent((ev) => {
     currentSilhouetteJobId = ev.jobId;
     if (ev.type === 'phase' && ev.phase) {
@@ -3084,8 +3119,9 @@ async function buildSilhouettes(
       // under the same plural labels the extract uses.
       silhouetteCounters[SILHOUETTE_KIND_COUNTER[ev.counter.key] ?? ev.counter.key] = ev.counter.value;
       progress?.update({ counters: { ...silhouetteCounters } });
-    } else if (ev.type === 'log' && ev.level === 'error') {
-      progress?.update({ detail: ev.message ?? '' });
+    } else if (ev.type === 'log') {
+      if (ev.level === 'error') progress?.update({ detail: ev.message ?? '' });
+      forwardPyLog(silhouetteLogBudget, ev);
     }
   });
   const built = await window.sc.silhouette
@@ -3192,6 +3228,7 @@ async function buildAndUploadSkins(
     hint: t('skins.hintBuild'),
   });
   const skinCounters: Record<string, number> = {};
+  const skinLogBudget = createLogBudget(PY_LOG_INFO_CAP);
   const unsub = window.sc.skin.onEvent((ev) => {
     if (ev.type === 'phase' && ev.phase) {
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
@@ -3211,8 +3248,9 @@ async function buildAndUploadSkins(
       progress?.update({
         counters: { ships: perShip.length, skins: perShip.reduce((a, b) => a + b, 0) },
       });
-    } else if (ev.type === 'log' && ev.level === 'error') {
-      progress?.update({ detail: ev.message ?? '' });
+    } else if (ev.type === 'log') {
+      if (ev.level === 'error') progress?.update({ detail: ev.message ?? '' });
+      forwardPyLog(skinLogBudget, ev);
     }
   });
   const built = await window.sc.skin

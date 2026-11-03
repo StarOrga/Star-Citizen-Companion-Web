@@ -116,12 +116,13 @@ interface SyncResult {
 
 type UpdateEvent =
   | { type: 'checking' }
-  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null }
+  | { type: 'available'; version: string; releaseDate?: string; notes?: string | null; supersedes?: string }
   | { type: 'not-available'; currentVersion: string }
   | { type: 'progress'; pct: number; bytesPerSecond?: number; transferred?: number; total?: number }
   | { type: 'downloaded'; version: string }
   | { type: 'manual'; currentVersion: string; latestVersion: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'install-state'; state: 'preparing' | 'waiting' | 'closing' | 'failed'; version: string };
 
 interface ExtractRequest {
   p4kPath: string;
@@ -398,7 +399,10 @@ export const api = {
     // Update checks are automatic now (startup, navigation, periodic poll) —
     // there is no manual "check" entry point.
     checkSilent: (): void => ipcRenderer.send('sc:update:check-silent'),
-    install: (): Promise<{ ok: boolean; busy?: boolean }> => ipcRenderer.invoke('sc:update:install'),
+    install: (): Promise<{ ok: boolean; state: 'none' | 'idle' | 'preparing' | 'waiting' | 'closing' }> =>
+      ipcRenderer.invoke('sc:update:install'),
+    /** Withdraw an install request that is waiting for running work. */
+    cancelInstall: (): Promise<void> => ipcRenderer.invoke('sc:update:cancel-install'),
     onEvent: (cb: (ev: UpdateEvent) => void): (() => void) => {
       const listener = (_e: unknown, payload: UpdateEvent): void => cb(payload);
       ipcRenderer.on('sc:update:event', listener);
