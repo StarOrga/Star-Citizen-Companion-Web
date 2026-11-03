@@ -1,7 +1,61 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.200.0",
+  "current": "0.200.2",
   "releases": [
+    {
+      "version": "0.200.2",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.72.0: the silhouette build no longer sits at 99 % for hours on big ships, and shows which ship it is retrying."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader: \"Jetzt installieren\" always answers. It waits visibly while work runs, installs on its own when the work ends or is paused, and can be cancelled."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader: copying the log reports failures and an empty log instead of claiming success, and the log now holds the silhouette and skin build lines."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.200.1",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The site's text now starts loading alongside the app, so pages show their content sooner, most noticeably on slower connections. German pages also no longer download the English texts during startup."
+            },
+            {
+              "title": "",
+              "text": "App files are now cached for the long term, so repeat visits ask the server less often."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "A new version no longer reloads the page by itself once you have clicked, typed or scrolled. You get the update prompt instead."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.200.0",
       "date": "2026-11-03",

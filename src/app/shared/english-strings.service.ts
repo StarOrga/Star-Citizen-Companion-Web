@@ -15,10 +15,11 @@ const EN = 'en';
  * the translated one (Codex → Input Actions language switch, feedback
  * d8f096a7).
  *
- * English is the app's `fallbackLang`, so its table is normally already in the
- * translate store by the time anything asks. The copy is mirrored into a signal
- * so callers stay synchronous *and* reactive: a lookup can be made straight
- * from a template and still re-runs once the table arrives.
+ * English is the app's `fallbackLang`, but on a German page its table only
+ * arrives a few seconds after boot (AppTranslateLoader), so a caller asking
+ * earlier must call `ensureLoaded()`. The copy is mirrored into a signal so
+ * callers stay synchronous *and* reactive: a lookup can be made straight from a
+ * template and still re-runs once the table arrives.
  */
 @Injectable({ providedIn: 'root' })
 export class EnglishStringsService {
@@ -36,6 +37,7 @@ export class EnglishStringsService {
     // polling, and flips `table` from null to a real object exactly once.
     this.t.onTranslationChange.pipe(takeUntilDestroyed()).subscribe(() => this.pull());
     this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => this.pull());
+    this.t.onFallbackLangChange.pipe(takeUntilDestroyed()).subscribe(() => this.pull());
   }
 
   /** True once English strings can actually be served. */
