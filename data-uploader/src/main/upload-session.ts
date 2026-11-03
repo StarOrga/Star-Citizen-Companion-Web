@@ -65,6 +65,19 @@ export function control(): PauseControl {
   return _control;
 }
 
+/** True once this app session started/adopted a run (a stale job file from a crash must not count). */
+let _begun = false;
+
+/**
+ * Is an upload run actively in flight in THIS session? Catalog/bundle upload is
+ * not an extraction job, and between pipeline steps no child process runs while
+ * the run is still going — the durable status is what tells both apart from a
+ * paused or finished run.
+ */
+export function isRunInFlight(): boolean {
+  return _begun && store().load()?.status === 'running';
+}
+
 export interface JobView {
   state: UploadJobState | null;
   resumable: boolean;
@@ -93,6 +106,7 @@ export function view(): JobView {
  * different out_dir means the operator moved on, so the old job is dropped.
  */
 export function begin(outDir: string, nat: JobNat): UploadJobState {
+  _begun = true;
   const existing = store().load();
   if (existing && existing.outDir === outDir && isResumable(existing)) {
     log.info(`[upload-job] resuming ${existing.jobId} at ${describeResume(existing)}`);

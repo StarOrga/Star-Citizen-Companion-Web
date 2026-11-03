@@ -25,6 +25,8 @@ import {
   setUpdateChannel,
   checkForUpdatesSilently,
   installUpdateNow,
+  cancelInstallRequest,
+  setWorkBusyProbe,
   noteQuitWithStagedUpdate,
   getLastUpdateEvent,
 } from './updater.js';
@@ -791,14 +793,15 @@ ipcMain.handle('sc:update:status', () => getLastUpdateEvent());
 // Fire-and-forget silent check driven by renderer navigation — results flow
 // back through the sc:update:event broadcast, so no reply is needed.
 ipcMain.on('sc:update:check-silent', () => checkForUpdatesSilently());
-ipcMain.handle('sc:update:install', () => {
-  // The installer kills the app (and with it a running extraction and its
-  // python children, which may still hold files it has to replace). While a
-  // job runs, the staged update installs on quit instead.
-  if (activeJobs.size > 0) return { ok: false, busy: true };
-  installUpdateNow();
-  return { ok: true };
-});
+// The installer kills the app (and with it a running job and its python
+// children, which may still hold files it has to replace). So the install click
+// never kills work: while a job child runs - extraction, skin or silhouette
+// build - or an upload run is in flight (the catalog upload is no activeJob, and
+// between pipeline steps no child runs while the run is still going), the
+// request stays standing and installs once the work ended or was paused.
+setWorkBusyProbe(() => activeJobs.size > 0 || uploadJob.isRunInFlight());
+ipcMain.handle('sc:update:install', () => installUpdateNow());
+ipcMain.handle('sc:update:cancel-install', () => cancelInstallRequest());
 
 // ============= Extract IPC =============
 
@@ -1457,6 +1460,9 @@ function cancelAllJobs(reason: ExtractAbortReason | null = null): Promise<boolea
 let quitDeferredForTelemetry = false;
 
 app.on('before-quit', (e) => {
+  // Every real quit, also the updater's quitAndInstall: the window's close handler
+  // must let go instead of hiding into the tray, which would abort the quit.
+  quitting = true;
   noteQuitWithStagedUpdate();
   // Quitting mid-extraction throws away the whole scan, so it is reported —
   // but the process would normally die before the POST leaves. Hold the quit
