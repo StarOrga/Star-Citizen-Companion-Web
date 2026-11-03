@@ -21,6 +21,10 @@
 //         meta, generated_at} — Holotable outline contract, see wave0-research
 //         §C1. Pinned column set like PORT_COLUMNS.)
 //   POST { op: "clear_silhouettes",build_id }                          -> { ok }
+//   POST { op: "silhouette_skips", build_id, rows: [...] }             -> { stored }
+//        (rows: {kind, className, reason, detail} — why an entity got no
+//         silhouette (#842: no_mesh | convert_failed | empty). Replaces the
+//         build's list; an empty list clears it. Read by silhouette_coverage().)
 //        (mirror of clear_ports; uploaders with `carry` use `prune` instead)
 //   POST { op: "carry",            build_id, table, rows: [{k, h}], set? } -> { kept, copied, missing: [i] }
 //        (per-object incremental upload, migration 20261102000000: rows whose
@@ -93,6 +97,7 @@ import {
 } from './_constellation.ts';
 import { nullUndefinedPlaceholders } from './_placeholders.ts';
 import { isCarryUnavailable, isRpcMissing, parseCarry, parsePrune } from './_carry.ts';
+import { parseSkips } from './_silhouette-skips.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -604,6 +609,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
         (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
       if (!missingTable) throw error;
       return json({ ok: true, degraded: 'no_silhouettes_table' });
+    }
+
+    if (op === 'silhouette_skips') {
+      const buildId = String(body.build_id ?? '');
+      if (!buildId) return json({ error: 'invalid_body', message: 'build_id required' }, 400);
+      const rows = parseSkips(body.rows, buildId);
+      if (!rows) return json({ error: 'invalid_body', message: 'rows must be a list' }, 400);
+      // The whole list in one call, so replace instead of merge: a hull that
+      // got its outline in this run must lose its old reason. Missing table
+      // (migration 20261102200000 not applied) degrades like `silhouettes`.
+      const skipsMissing = (error: unknown) => {
+        const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
+        const code = (error as { code?: string })?.code;
+        return msg.includes('could not find the table') || msg.includes('does not exist') ||
+          code === 'PGRST205' || code === '42P01';
+      };
+      const { error: delErr } = await admin.from('codex_silhouette_skips').delete().eq('build_id', buildId);
+      if (delErr) {
+        if (skipsMissing(delErr)) return json({ ok: true, stored: 0, degraded: 'no_skips_table' });
+        throw delErr;
+      }
+      for (let i = 0; i < rows.length; i += 1000) {
+        const { error } = await admin.from('codex_silhouette_skips').insert(rows.slice(i, i + 1000));
+        if (error) throw error;
+      }
+      return json({ ok: true, stored: rows.length });
     }
 
     if (op === 'constellation') {

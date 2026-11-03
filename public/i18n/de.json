@@ -786,6 +786,7 @@
       "FuelTank": "Treibstofftank",
       "FuelIntake": "Treibstoffeinlass",
       "CargoGrid": "Frachtraster",
+      "Radar": "Radar",
       "Other": "Sonstige"
     },
     "results": {
@@ -1698,6 +1699,9 @@
       "minPower": "Mindest-Energie",
       "coolantDraw": "Kühlbedarf",
       "coolingRate": "Kühlleistung",
+      "aimAssistRange": "Reichweite (Zielhilfe)",
+      "radarSensitivity": "Empfindlichkeit (IR/EM/QS)",
+      "pingCooldown": "Ping-Abklingzeit",
       "emSignature": "EM-Signatur",
       "irSignature": "IR-Signatur",
       "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
@@ -3328,6 +3332,19 @@
       "barLabel": "{{pct}} % mit Silhouette",
       "fallbackSplit": "ohne: {{icon}} mit Vorschau-Icon, {{none}} RSI-Grafik oder Symbol",
       "missingToggle": "Die {{count}} Rümpfe ohne Silhouette anzeigen",
+      "reasonSplit": "Gründe: {{no_mesh}} ohne Mesh, {{convert_failed}} Konvertierung fehlgeschlagen, {{empty}} leer, {{unexplained}} ohne erfassten Grund",
+      "reason": {
+        "no_mesh": "kein Mesh",
+        "convert_failed": "Konvertierung fehlgeschlagen",
+        "empty": "leer",
+        "none": "kein Grund erfasst"
+      },
+      "reasonTip": {
+        "no_mesh": "Der Eintrag nennt keine .cga/.cgf-Geometrie, oder die Datei fehlt im Archiv.",
+        "convert_failed": "Der cgf-converter oder das Einlesen des glb ist gescheitert.",
+        "empty": "Konvertiert, aber ohne Dreiecke oder ohne nachzeichenbaren Umriss.",
+        "none": "Der Uploader hat für diesen Rumpf keinen Grund gemeldet — Build vor Uploader 0.68.0 oder Silhouetten-Schritt nicht gelaufen."
+      },
       "noBuild": "Kein aktueller Build — noch nichts zu zählen.",
       "retry": "Erneut versuchen"
     },
