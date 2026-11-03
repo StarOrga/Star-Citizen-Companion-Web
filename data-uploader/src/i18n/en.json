@@ -75,7 +75,7 @@
     "copied": "Copied ✓",
     "copyFailed": "Failed",
     "copyEmpty": "Log is empty",
-    "logTruncated": "… more info lines hidden (full: main.log)",
+    "logTruncated": "More info lines hidden. Warnings and errors still appear.",
     "doneSummary": "Done — quality {{score}}/100 · {{entities}} entities in {{time}}",
     "bundleReady": "Extraction complete — the bundle is ready to upload.",
     "bundleReadyCta": "Bundle ready — upload now",

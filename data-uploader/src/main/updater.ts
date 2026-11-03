@@ -538,7 +538,8 @@ function evaluateInstall(staged: string | null, feed: string | null): void {
       waitTimer = setInterval(() => {
         if (installPhase !== 'waiting' || isWorkBusy()) return;
         stopWaitTimer();
-        evaluateInstall(stagedVersion(), null);
+        // The work may have taken hours: ask the feed again before installing.
+        void installNewestStaged();
       }, WAIT_POLL_MS);
     }
     return;

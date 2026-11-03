@@ -75,7 +75,7 @@
     "copied": "Kopiert ✓",
     "copyFailed": "Fehlgeschlagen",
     "copyEmpty": "Protokoll leer",
-    "logTruncated": "… weitere Info-Zeilen ausgeblendet (vollständig: main.log)",
+    "logTruncated": "Weitere Info-Zeilen ausgeblendet. Warnungen und Fehler erscheinen weiterhin.",
     "doneSummary": "Fertig — Qualität {{score}}/100 · {{entities}} Entitäten in {{time}}",
     "bundleReady": "Extraktion abgeschlossen — das Bundle ist bereit zum Upload.",
     "bundleReadyCta": "Bundle fertig — jetzt hochladen",
