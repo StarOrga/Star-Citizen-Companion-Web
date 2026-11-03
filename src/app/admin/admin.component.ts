@@ -10,6 +10,7 @@ import { PeopleRow, mergePeopleRows } from './people-rows';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { SearchMissesComponent } from './search-misses.component';
 import { SilhouetteCoverageComponent } from './silhouette-coverage.component';
 // Pure function, no Angular dependency — the same "vor 3 Std." formatter the
 // news surfaces use (and the `news.relative.*` keys it is documented to read).
@@ -147,7 +148,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [ScDatePipe, ScSelectComponent, TranslatePipe, ScTooltipDirective, SilhouetteCoverageComponent],
+  imports: [ScDatePipe, ScSelectComponent, TranslatePipe, ScTooltipDirective, SilhouetteCoverageComponent, SearchMissesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -450,6 +451,9 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 
       <!-- Holotable silhouette coverage of the current build (#647). -->
       <sc-silhouette-coverage />
+
+      <!-- Searches without a hit, counted anonymously (search concept 2026-11-02, C10). -->
+      <sc-search-misses />
 
       <!--
         ONE people list (feedback 5e2facd9). The allowlist used to have its own

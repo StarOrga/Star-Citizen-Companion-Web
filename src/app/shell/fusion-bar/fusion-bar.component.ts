@@ -196,7 +196,7 @@ const MAX_TOKENS = 3;
           }
 
         <sc-fusion-search class="search" [placement]="phone() && mode() !== 'stage' ? 'bottom' : 'top'"
-                          [compact]="mode() === 'tool'" [hideContext]="mainPage() || !!segment()"
+                          [compact]="mode() === 'tool'"
                           [demo]="mode() === 'stage'" (openChange)="onSearchOpen($event)">
           @if (mode() !== 'stage' && tokens().length) {
             <span fsLeading class="toks">

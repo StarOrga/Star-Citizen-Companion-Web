@@ -3485,6 +3485,15 @@
           "dnt": "Nicht übersetzen"
         }
       }
+    },
+    "searchMisses": {
+      "title": "Häufig ohne Treffer",
+      "subtitle": "Suchen ohne einen einzigen Treffer, anonym gezählt (nur Text und Anzahl).",
+      "query": "Suche",
+      "hits": "Anzahl",
+      "last": "Zuletzt",
+      "empty": "Noch keine Suche ohne Treffer.",
+      "retry": "Erneut laden"
     }
   },
   "desktop": {
@@ -6036,6 +6045,401 @@
         "desc": "Importiert deinen RSI-Hangar mit einem Klick in die Flotte."
       },
       "open": "Öffnen"
+    }
+  },
+  "search": {
+    "chip": {
+      "size": "Größe {{size}}",
+      "grade": "Klasse {{grade}}",
+      "kind": "{{kind}}",
+      "page": {
+        "gallery": "Galerie",
+        "fps": "FPS"
+      },
+      "section": {
+        "weapons": "Bewaffnung",
+        "components": "Komponenten",
+        "stock": "Bestand",
+        "hangar": "Hangar",
+        "sets": "Sets"
+      },
+      "compat": {
+        "ship": "{{name}}",
+        "weapon": "{{name}}",
+        "component": "{{name}}",
+        "item": "{{name}}"
+      },
+      "switchAria": "{{name}} umschalten",
+      "removeAria": "Filter „{{name}}“ entfernen",
+      "miniSearch": "{{name}} suchen …",
+      "noValue": "Kein Wert passt"
+    },
+    "cta": {
+      "myLoadout": "Mein Loadout",
+      "compareWith": "Gegenüberstellen",
+      "compare": "Vergleichen",
+      "inSet": "In Set",
+      "materialToSupply": "Material in Nachschub",
+      "atRsi": "Bei RSI",
+      "allProducts": "Alle Produkte",
+      "add": "Hinzufügen",
+      "whereStored": "Wo gelagert?",
+      "planOps": "Einsatz planen",
+      "sourceOf": "Bezugsquelle",
+      "openSet": "Set öffnen"
+    },
+    "why": {
+      "ownHq": "steht oben, weil du im HQ bist",
+      "own": "deine eigenen Treffer zuerst",
+      "context": "steht oben, passt zu {{ctx}}",
+      "outside": "Fast genau, aber außerhalb von „{{chip}}“"
+    },
+    "fit": {
+      "fits": "passt auf {{name}}",
+      "noFit": "passt nicht",
+      "unknown": "keine Hardpoint-Daten",
+      "unknownItem": "keine Typangabe am Bauteil",
+      "noType": "kein passender Port",
+      "noSize": "Größe {{size}} außerhalb S{{min}}–S{{max}}"
+    },
+    "group": {
+      "own": "Aus deinem Bestand",
+      "patch": "Patches",
+      "gallery": "Galerie",
+      "opened": "Zuletzt geöffnet",
+      "expand": "▾ {{n}} weitere hier zeigen",
+      "collapse": "▴ einklappen",
+      "expanded": "{{name}} aufgeklappt",
+      "collapseKey": "← zurück",
+      "allInIndex": "Alle {{n}} im Index öffnen",
+      "allInHq": "Alle {{n}} im HQ öffnen"
+    },
+    "icon": {
+      "wishlist": "Auf die Wunschliste",
+      "wishlistOff": "Von der Wunschliste nehmen",
+      "lager": "Ins Lager",
+      "hangar": "In den Hangar",
+      "nachschub": "In den Nachschub"
+    },
+    "own": {
+      "ship": "dein Schiff",
+      "fitted": "auf deinem Schiff verbaut",
+      "lager": "im Lager",
+      "sets": "in {{n}} Sets",
+      "config": "dein Loadout auf „{{ship}}“",
+      "set": "dein Set",
+      "qty": "{{n}}× im Lager",
+      "fittedOn": "{{n}} auf „{{name}}“",
+      "fittedMoreOne": "+1 weiteres Schiff",
+      "fittedMore": "+{{n}} weitere Schiffe",
+      "setsOne": "in 1 Set"
+    },
+    "row": {
+      "patch": "Patch {{line}}",
+      "patchMeta": "Patch-Notiz · {{version}}",
+      "galleryMeta": "Galerie"
+    },
+    "abbr": {
+      "alias": "„{{word}}“ gelesen als",
+      "chip": "„{{word}}“ wurde zum Chip"
+    },
+    "newInPatch": "Neu in Patch {{version}}",
+    "dym": {
+      "lead": "Meintest du …"
+    },
+    "keys": {
+      "expand": "aufklappen",
+      "dropChip": "letzter Chip weg"
+    },
+    "hint": {
+      "lead": "Tipp:",
+      "tryAria": "Ausprobieren: {{hint}}"
+    },
+    "signIn": {
+      "title": "Anmelden?",
+      "message": "Wunschliste, Lager und Nachschub gehören zu deinem Konto. Melde dich an, um das zu speichern.",
+      "confirm": "Zur Anmeldung"
+    },
+    "lager": {
+      "title": "„{{name}}“ ins Lager",
+      "message": "Wo liegt es?",
+      "location": "Ort (z. B. Area18, Schiff, Hangar)",
+      "confirm": "Einlagern"
+    },
+    "done": {
+      "wishlistOn": "„{{name}}“ steht auf deiner Wunschliste",
+      "wishlistOff": "„{{name}}“ ist von der Wunschliste weg",
+      "hangar": "„{{name}}“ ist in deinem Hangar",
+      "lager": "„{{name}}“ liegt jetzt in {{where}}",
+      "nachschub": "„{{name}}“ steht im Nachschub",
+      "compare": "„{{name}}“ liegt im Vergleich",
+      "failed": "Das hat nicht geklappt, versuch es gleich noch einmal"
+    },
+    "hints": [
+      {
+        "t": "„connie“ findet die Constellation",
+        "q": "connie"
+      },
+      {
+        "t": "„cutty“ findet die Cutlass-Familie",
+        "q": "cutty"
+      },
+      {
+        "t": "„herc“ findet alle Hercules",
+        "q": "herc"
+      },
+      {
+        "t": "„polly“ findet die Polaris",
+        "q": "polly"
+      },
+      {
+        "t": "„tali“ findet die Retaliator",
+        "q": "tali"
+      },
+      {
+        "t": "„hammie“ findet die Hammerhead",
+        "q": "hammie"
+      },
+      {
+        "t": "„msr“ findet die Mercury Star Runner",
+        "q": "msr"
+      },
+      {
+        "t": "„bmm“ findet die Merchantman",
+        "q": "bmm"
+      },
+      {
+        "t": "„qt“ findet Quantenantriebe",
+        "q": "qt"
+      },
+      {
+        "t": "„pp“ findet Kraftwerke",
+        "q": "pp"
+      },
+      {
+        "t": "„rep“ findet Repeater",
+        "q": "rep"
+      },
+      {
+        "t": "„dist“ findet Distortion-Waffen",
+        "q": "dist"
+      },
+      {
+        "t": "„k&w“ findet Klaus & Werner",
+        "q": "k&w"
+      },
+      {
+        "t": "„krig“ findet Kruger Intergalactic",
+        "q": "krig"
+      },
+      {
+        "t": "„p4“ findet das P4-AR",
+        "q": "p4"
+      },
+      {
+        "t": "„mil“ findet militärische Komponenten",
+        "q": "mil"
+      },
+      {
+        "t": "„größe 3“ filtert auf Größe 3",
+        "q": "größe 3"
+      },
+      {
+        "t": "„s2 qd“ findet Quantenantriebe Größe 2",
+        "q": "s2 qd"
+      },
+      {
+        "t": "„klasse a“ zeigt nur Grade-A-Teile",
+        "q": "klasse a"
+      },
+      {
+        "t": "„stealth kühler“ findet Tarn-Kühler",
+        "q": "stealth kühler"
+      },
+      {
+        "t": "„schild s1 mil“ kombiniert drei Filter",
+        "q": "schild s1 mil"
+      },
+      {
+        "t": "„1 crew“ findet Einsitzer",
+        "q": "1 crew"
+      },
+      {
+        "t": "„frachter 100 scu“ findet große Frachter",
+        "q": "frachter 100 scu"
+      },
+      {
+        "t": "„bergung“ findet Bergungsschiffe",
+        "q": "bergung"
+      },
+      {
+        "t": "„bomber“ findet Bomber und Torpedoboote",
+        "q": "bomber"
+      },
+      {
+        "t": "„gimbal s3“ findet Gimbal-Halterungen",
+        "q": "gimbal s3"
+      },
+      {
+        "t": "„torpedo s9“ findet große Torpedos",
+        "q": "torpedo s9"
+      },
+      {
+        "t": "„energie pistole“ findet Laser-Pistolen",
+        "q": "energie pistole"
+      },
+      {
+        "t": "Dein Schiffsname findet dein Schiff"
+      },
+      {
+        "t": "„nachtfalke“ findet deine Gladius"
+      },
+      {
+        "t": "Set-Namen finden deine FPS-Sets"
+      },
+      {
+        "t": "Loadout-Namen finden deine Konfigurationen"
+      },
+      {
+        "t": "„meine schiffe“ zeigt deinen Hangar",
+        "q": "meine schiffe"
+      },
+      {
+        "t": "„im hangar aegis“ filtert deinen Hangar",
+        "q": "im hangar aegis"
+      },
+      {
+        "t": "„lager“ zeigt dein ganzes Lager",
+        "q": "lager"
+      },
+      {
+        "t": "„gemerkt“ zeigt deine Wunschliste",
+        "q": "gemerkt"
+      },
+      {
+        "t": "Im Hangar findet „patrouille“ dein Loadout"
+      },
+      {
+        "t": "„im lager s3“ zeigt, was du in Größe 3 hast",
+        "q": "im lager s3"
+      },
+      {
+        "t": "Eigene Treffer stehen immer ganz oben"
+      },
+      {
+        "t": "„fehlt mir“ zeigt deinen Nachschub",
+        "q": "fehlt mir"
+      },
+      {
+        "t": "Die Suche merkt sich, wo du sie öffnest"
+      },
+      {
+        "t": "Auf einer Schiffsseite zeigt sie, was passt"
+      },
+      {
+        "t": "Chips mit ▾ lassen sich umschalten"
+      },
+      {
+        "t": "⌫ am Feldanfang entfernt den letzten Chip"
+      },
+      {
+        "t": "Fast genaue Treffer außerhalb des Chips zeigt sie trotzdem"
+      },
+      {
+        "t": "Auf der Waffenseite: „s4“ zeigt Alternativen",
+        "q": "s4"
+      },
+      {
+        "t": "Im Bestand: „laser“ zeigt erst dein Lager",
+        "q": "laser"
+      },
+      {
+        "t": "In der Einsatzplanung zeigt sie Bezugsquellen"
+      },
+      {
+        "t": "„passt“ blendet nur passende Teile ein",
+        "q": "passt"
+      },
+      {
+        "t": "Ein Chip filtert, die Reihenfolge folgt der Seite"
+      },
+      {
+        "t": "„mission kopfgeld“ findet Kopfgeld-Missionen",
+        "q": "mission kopfgeld"
+      },
+      {
+        "t": "„blaupause p4“ zeigt, wo du sie bekommst",
+        "q": "blaupause p4"
+      },
+      {
+        "t": "„hurston“ findet Orte, Missionen und Händler",
+        "q": "hurston"
+      },
+      {
+        "t": "„om-3“ findet Orbital Marker 3",
+        "q": "om-3"
+      },
+      {
+        "t": "„cru-l1“ findet die Raststation",
+        "q": "cru-l1"
+      },
+      {
+        "t": "„4.3.2“ öffnet die Patch-Notizen",
+        "q": "4.3.2"
+      },
+      {
+        "t": "„neu“ zeigt, was dieser Patch brachte",
+        "q": "neu"
+      },
+      {
+        "t": "„kommend“ zeigt angekündigte Schiffe",
+        "q": "kommend"
+      },
+      {
+        "t": "„munition s3“ findet passende Munition",
+        "q": "munition s3"
+      },
+      {
+        "t": "„rüstung schwer“ findet schwere Rüstungen",
+        "q": "rüstung schwer"
+      },
+      {
+        "t": "„medpen“ findet Heil-Ausrüstung",
+        "q": "medpen"
+      },
+      {
+        "t": "„tasten quantum“ zeigt die Quantum-Taste",
+        "q": "tasten quantum"
+      },
+      {
+        "t": "Strg K öffnet die Suche von überall"
+      },
+      {
+        "t": "„/“ öffnet die Suche ebenfalls"
+      },
+      {
+        "t": "↑ ↓ wählt, ↵ öffnet"
+      },
+      {
+        "t": "Strg ↵ öffnet in neuem Tab"
+      },
+      {
+        "t": "→ klappt einen Bereich auf"
+      },
+      {
+        "t": "Esc schließt, dein Text bleibt"
+      },
+      {
+        "t": "Englisch geht immer: „quantum drive“",
+        "q": "quantum drive"
+      },
+      {
+        "t": "Tippfehler? Die Suche fragt „Meintest du …“"
+      }
+    ],
+    "outside": {
+      "none": "In „{{chip}}“ gibt es nichts, das „{{term}}“ heißt.",
+      "drop": "Ohne „{{chip}}“ überall suchen (⌫)"
     }
   }
 }

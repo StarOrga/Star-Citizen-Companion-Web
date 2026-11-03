@@ -41,6 +41,17 @@ export interface PolySearchResult {
   failed?: PolyHitKind[];
   /** The first failure of a partial search, for the translated note (never rendered raw). */
   failure?: unknown;
+  /**
+   * Per attribute value: how many of the rows read carry it (size 0-10, grade A-D).
+   * Fills the chip menus ("S3 (12)"); a floor, since only the over-fetch is read.
+   */
+  facets?: { size: Record<string, number>; grade: Record<string, number> };
+}
+
+/** Attribute filters a search can hand to the server (chips parsed from the text). */
+export interface SearchAllFilters {
+  size?: number;
+  grade?: string;
 }
 import { ilikeTokenGroups, ilikeTokenPatterns, normalizeSearch, searchMatcher, searchTokens } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
@@ -293,6 +304,10 @@ export interface PortQuery {
   minSize: number | null;
   maxSize: number | null;
 }
+
+/** Kinds with a `size` / `grade` column (LIST_SELECT). */
+const SIZE_KINDS: ReadonlySet<CodexKind> = new Set<CodexKind>(['weapon', 'component', 'item', 'ammunition']);
+const GRADE_KINDS: ReadonlySet<CodexKind> = new Set<CodexKind>(['weapon', 'component', 'item']);
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
@@ -1765,12 +1780,14 @@ export class CodexService {
    * the terminal answered with nothing at all). Those hits carry the `upcoming`
    * pseudo-kind and are tinted + badged apart from anything you can fly today.
    */
-  async searchAll(query: string, perKindLimit = 6): Promise<PolySearchResult> {
+  async searchAll(query: string, perKindLimit = 6, attrs: SearchAllFilters = {}): Promise<PolySearchResult> {
     const q = query.trim();
+    const hasAttrs = attrs.size != null || !!attrs.grade;
     const totals: Partial<Record<PolyHitKind, number>> = {};
     const distinct: Partial<Record<PolyHitKind, number>> = {};
     const read: Partial<Record<PolyHitKind, number>> = {};
-    if (!q) return { hits: [], totals };
+    if (!q && !hasAttrs) return { hits: [], totals };
+    const facets = { size: {} as Record<string, number>, grade: {} as Record<string, number> };
     const failed: PolyHitKind[] = [];
     let failure: unknown;
     const fail = (kind: PolyHitKind, err: unknown): PolySearchHit[] => {
@@ -1779,11 +1796,23 @@ export class CodexService {
       return [];
     };
     const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
+      // size lives on weapon/component/item/ammunition rows, grade on the first three:
+      // a kind without the column cannot satisfy the filter, so it is not asked.
+      if ((attrs.size != null && !SIZE_KINDS.has(kind)) || (attrs.grade && !GRADE_KINDS.has(kind))) return [];
       try {
         // Over-fetch: the server orders alphabetically, so the best match of a
         // short term ("p4", "ar") can sit behind `perKindLimit` weaker ones.
         // Rank first, then keep the top `perKindLimit` of each kind.
-        const res = await this.listByKind(kind, { search: q, limit: perKindLimit * SEARCH_OVERFETCH });
+        const res = await this.listByKind(kind, {
+          search: q || undefined,
+          ...(attrs.size != null ? { size: attrs.size } : {}),
+          ...(attrs.grade ? { grade: attrs.grade } : {}),
+          limit: perKindLimit * SEARCH_OVERFETCH,
+        });
+        for (const r of res.rows) {
+          if (r.size != null) facets.size[String(r.size)] = (facets.size[String(r.size)] ?? 0) + 1;
+          if (r.grade) facets.grade[r.grade.toUpperCase()] = (facets.grade[r.grade.toUpperCase()] ?? 0) + 1;
+        }
         // The server count is what "all N in the index" promises — the index
         // runs the very same list query.
         totals[kind] = res.count;
@@ -1796,7 +1825,7 @@ export class CodexService {
         return fail(kind, err);
       }
     });
-    sources.push(
+    if (!hasAttrs) sources.push(
       (async () => {
         try {
           const ships = await this.upcoming.searchShips(q, UPCOMING_SEARCH_ALL);
@@ -1811,7 +1840,7 @@ export class CodexService {
     // Nothing answered: an outage, not an empty archive — the caller shows an error with retry.
     if (failed.length === sources.length) throw failure;
     const hits = rankPolyHits(q, results.flat());
-    return failed.length ? { hits, totals, distinct, read, failed, failure } : { hits, totals, distinct, read };
+    return failed.length ? { hits, totals, distinct, read, facets, failed, failure } : { hits, totals, distinct, read, facets };
   }
 
   /**

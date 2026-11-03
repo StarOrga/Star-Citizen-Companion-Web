@@ -19,6 +19,15 @@ function leaves(node: unknown, prefix = '', out = new Map<string, unknown>()): M
   return out;
 }
 
+// A leaf is a non-empty string, or a non-empty list of them (or of flat
+// objects whose values are non-empty strings, e.g. search.hints {t, q}).
+function validLeaf(v: unknown): boolean {
+  const str = (x: unknown) => typeof x === 'string' && x.trim() !== '';
+  if (str(v)) return true;
+  if (!Array.isArray(v) || v.length === 0) return false;
+  return v.every((e) => str(e) || (!!e && typeof e === 'object' && !Array.isArray(e) && Object.values(e).length > 0 && Object.values(e).every(str)));
+}
+
 describe('i18n catalogues (de/en)', () => {
   const deLeaves = leaves(de);
   const enLeaves = leaves(en);
@@ -33,9 +42,17 @@ describe('i18n catalogues (de/en)', () => {
   it('carry a non-empty string in every leaf', () => {
     for (const [lang, map] of [['de', deLeaves], ['en', enLeaves]] as const) {
       const bad = [...map.entries()]
-        .filter(([, v]) => typeof v !== 'string' || v.trim() === '')
+        .filter(([, v]) => !validLeaf(v))
         .map(([k]) => k);
       expect(bad).withContext(`empty or non-string leaves in ${lang}.json`).toEqual([]);
+    }
+  });
+
+  it('keeps list leaves the same length in both languages', () => {
+    for (const [k, v] of deLeaves) {
+      if (!Array.isArray(v)) continue;
+      const other = enLeaves.get(k);
+      expect(Array.isArray(other) ? other.length : -1).withContext(k).toBe(v.length);
     }
   });
 });
