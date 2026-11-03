@@ -66,6 +66,21 @@ measureTrail/placeStage/publishHeight` (~95 ms auf `/verse` mit Beta),
 | `1d4e1e9` | **News-Vorschaubilder**: Rahmen-Messung pro URL einmal pro Sitzung, ein wiederverwendetes Mess-Canvas. |
 | `e16efcb` | **Planet gebacken**: `scripts/bake-planet.mjs` → `public/planet/` (verlustfreies WebP, pixelgenau verifiziert; `world.json` bitgenau, Spec `planet-assets.spec.ts`). Komponente lädt die Dateien parallel, dekodiert per `createImageBitmap` abseits des Haupt-Threads; Berechnung im Browser nur noch als Rückfall (mit fairer Idle-Planung). Prebuild prüft per Quell-Hash, ob neu gebacken werden muss (`npm run gen:planet`). Service Worker cacht `/planet/**`. |
 
+### Nachmessung (gleicher Aufbau, 2026-11-03)
+
+| Seite | vorher | nachher |
+|---|---|---|
+| `/verse` (Beta) — Planet fertig (`sc-verse-planet-ready`) | nach 14 s noch nicht | **0,95 s** |
+| `/verse` (Beta) — längste Blockade | 0,27 s + endlose Generierung | 0,43 s (Textur-Upload auf SwiftShader; echte GPU: Bruchteil) |
+| `/verse` — Long Tasks | 9–15 Stück, 0,95–1,4 s gesamt | **2 Stück, 0,14 s** |
+| `/hq` — längste Blockade | **1,07–1,22 s** | **0,10 s** |
+
+Weitere Commits: `6e21c8f` (Anisotropie-Limit einmal vor den Uploads lesen —
+`getParameter` ist ein synchroner GPU-Roundtrip; Uploads einzeln per Frame zu
+verteilen war **schlechter**: 5,8-s-Blockade, nicht wieder versuchen),
+`0eaf5b3` (`set_ui_pref` nur bei echter Änderung), `e91249b` (SW-Timeout 4 s),
+`a28e2f0` (`rsi-upcoming-ships` memoisiert).
+
 ## 4. Offen — in dieser Reihenfolge
 
 Jeder Punkt: umsetzen → `npm run typecheck` → betroffene Specs
