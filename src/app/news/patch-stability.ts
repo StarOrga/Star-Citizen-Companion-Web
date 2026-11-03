@@ -529,6 +529,8 @@ export const VOTE_MIN_ACCOUNT_DAYS = 7;
 export const VOTE_HALF_LIFE_DAYS = 7;
 /** A vote can be changed at most this often (DB trigger). */
 export const VOTE_CHANGE_HOURS = 12;
+/** Build votes (Hotfix / PTU) one account may cast or change per rolling 24 h (DB trigger). */
+export const BUILD_VOTE_DAILY_CAP = 3;
 /** Below this effective sample size there is no correction. */
 export const MIN_EFFECTIVE_VOTES = 25;
 /** One-sided z of the interval (≈ 90 % two-sided). */
