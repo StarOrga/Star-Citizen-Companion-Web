@@ -5,7 +5,7 @@
 -- Runs in begin ... rollback as the real roles.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(10);
 
 insert into auth.users (id, email, created_at)
 select ('00000000-0000-4000-a000-0000008852' || lpad(i::text, 2, '0'))::uuid, 'pgtap-lv-' || i || '@example.test', now() - interval '30 days'
@@ -13,6 +13,8 @@ select ('00000000-0000-4000-a000-0000008852' || lpad(i::text, 2, '0'))::uuid, 'p
 insert into public.profiles (id, is_approved)
 select u.id, u.email <> 'pgtap-lv-12@example.test' from auth.users u where u.email like 'pgtap-lv-%@example.test'
 on conflict (id) do update set is_approved = excluded.is_approved;
+update public.profiles set approved_at = now() - interval '30 days'
+ where is_approved and id in (select id from auth.users where email like 'pgtap-lv-%@example.test');
 insert into public.patch_stability_patches (patch_line, live_at, notes_thread_id, notes_slug)
 values ('pgtap-9.9', now() - interval '3 days', 999999001, 'pgtap');
 
@@ -58,6 +60,19 @@ update public.profiles set suspended_at = now(), suspended_until = null where id
 set local role anon;
 select is((select votes from public.patch_stability_vote_state('pgtap-9.9')), 9, 'nine counted votes');
 select is((select sum_w from public.patch_stability_vote_state('pgtap-9.9')), 0::double precision, 'below 10 the split is withheld');
+
+-- R5: approved_at follows is_approved; a raw session cannot set it ------------------
+reset role;
+update public.profiles set is_approved = false where id = '00000000-0000-4000-a000-000000885209';
+update public.profiles set is_approved = true where id = '00000000-0000-4000-a000-000000885209';
+select ok((select approved_at > now() - interval '1 minute' from public.profiles where id = '00000000-0000-4000-a000-000000885209'),
+          're-approval restarts the 7-day wait');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-a000-000000885209","role":"authenticated"}', true);
+update public.profiles set approved_at = now() - interval '1 year' where id = auth.uid();
+reset role;
+select ok((select approved_at > now() - interval '1 minute' from public.profiles where id = '00000000-0000-4000-a000-000000885209'),
+          'a raw session cannot backdate its approval');
 
 reset role;
 select * from finish();
