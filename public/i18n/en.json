@@ -6067,7 +6067,7 @@
       "openSet": "Open set"
     },
     "why": {
-      "ownHq": "first because you are in {{ctx}}",
+      "ownHq": "first because you are in your HQ",
       "own": "your own hits first",
       "context": "first, matches {{ctx}}",
       "outside": "Near-exact, but outside \"{{chip}}\""
@@ -6076,6 +6076,7 @@
       "fits": "fits {{name}}",
       "noFit": "does not fit",
       "unknown": "no hardpoint data",
+      "unknownItem": "item has no attach type",
       "noType": "no matching port",
       "noSize": "size {{size}} outside S{{min}}–S{{max}}"
     },

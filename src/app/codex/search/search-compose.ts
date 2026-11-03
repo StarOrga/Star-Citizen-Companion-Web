@@ -152,6 +152,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
       reason: null,
       rows: ordered.map((h) => hitRow(h, false)),
       total,
+      count: dropped === 0 ? Math.min(total, Math.max(g.count ?? ordered.length, ordered.length)) : ordered.length,
       expandable: Math.max(0, ordered.length - SEARCH_ROWS_SHOWN),
       moreTarget: total > SEARCH_ROWS_SHOWN ? indexMoreTarget(g.kind, term, chips) : null,
       outside: false,
@@ -262,7 +263,7 @@ function indexMoreTarget(kind: PolyHitKind, term: string, chips: readonly Search
 function groupReason(g: SearchResultGroup, index: number, ctx: SearchContext): SearchReason | null {
   const inHq = ctx.key.startsWith('hq') || ctx.ownedFirst;
   if (g.id === 'own') {
-    if (index === 0 && inHq) return { key: 'search.why.ownHq', params: { ctx: ctx.labelKey } };
+    if (index === 0 && inHq) return { key: 'search.why.ownHq', params: {} };
     return { key: 'search.why.own', params: null };
   }
   if (index !== 0) return null;

@@ -262,3 +262,49 @@ describe('FusionSearchHintComponent (A7)', () => {
     }
   });
 });
+
+describe('Esc with a mouse-opened chip menu', () => {
+  const esc = (target: EventTarget) => target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+
+  it('the chip closes its own menu on Esc from the toggle (focus stays on it) and from the document', async () => {
+    TestBed.configureTestingModule({ imports: [FusionSearchChipComponent], providers: [provideTranslateService()] });
+    const f = TestBed.createComponent(FusionSearchChipComponent);
+    f.componentRef.setInput('chip', sizeChip(4));
+    f.componentRef.setInput('label', 'Größe 4');
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    const toggle = el.querySelector('button.lbl') as HTMLButtonElement;
+    toggle.click();
+    f.detectChanges();
+    await Promise.resolve();
+    expect(el.querySelector('.menu')).not.toBeNull();
+    esc(toggle);
+    f.detectChanges();
+    expect(el.querySelector('.menu')).withContext('Esc on the toggle').toBeNull();
+    toggle.click();
+    f.detectChanges();
+    await Promise.resolve();
+    esc(document.body);
+    f.detectChanges();
+    expect(el.querySelector('.menu')).withContext('Esc with focus elsewhere').toBeNull();
+  });
+
+  it('the first Esc closes only the menu; the next closes the panel and keeps the text', async () => {
+    const engine = fakeEngine({ groups: [ships], extraChips: [sizeChip(4)] });
+    const { el, type, cmp, fixture } = setupFusionSearch(engine);
+    type('aegis');
+    const toggle = el.querySelector('sc-fusion-search-chip button.lbl') as HTMLButtonElement;
+    expect(toggle).withContext('a switchable chip').not.toBeNull();
+    toggle.click();
+    fixture.detectChanges();
+    await Promise.resolve();
+    esc(toggle);
+    fixture.detectChanges();
+    expect(el.querySelector('.menu')).toBeNull();
+    expect(cmp.open()).withContext('the panel survives the first Esc').toBeTrue();
+    esc(toggle);
+    fixture.detectChanges();
+    expect(cmp.open()).toBeFalse();
+    expect(engine.input()).toBe('aegis');
+  });
+});

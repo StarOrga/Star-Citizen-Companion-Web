@@ -31,6 +31,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     '[class.open]': 'menuOpen()',
     '(focusout)': 'onFocusOut($event)',
     '(keydown)': 'onHostKey($event)',
+    '(document:keydown.escape)': 'onDocumentEscape($event)',
   },
   template: `
     <span class="chip" [class.open]="menuOpen()">
@@ -204,7 +205,20 @@ export class FusionSearchChipComponent {
     }
   }
 
+  /** Esc with a mouse-opened menu: focus sits on the toggle (or nowhere), not inside `.menu`. */
+  onDocumentEscape(ev: Event): void {
+    if (!this.menuOpen() || ev.defaultPrevented) return;
+    ev.preventDefault();
+    this.closeMenu(true);
+  }
+
   onHostKey(ev: KeyboardEvent): void {
+    if (ev.key === 'Escape' && this.menuOpen()) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.closeMenu(true);
+      return;
+    }
     if (this.menuOpen() && ev.target instanceof Element && ev.target.closest('.menu')) this.onMenuKey(ev);
   }
 

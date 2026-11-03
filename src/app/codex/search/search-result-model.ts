@@ -159,6 +159,8 @@ export interface SearchResultGroup {
   rows: SearchResultRow[];
   /** Every match the source holds (index total / own total) — "Alle N". */
   total: number;
+  /** What the group header counts: the cards the reader sees (same-name variants folded). Equals `total` when nothing folded. */
+  count?: number;
   /** Loaded rows beyond the first three: "▾ N weitere hier zeigen". */
   expandable: number;
   /** "Alle N im Index/HQ öffnen →" (real anchor), null when nothing more exists. */

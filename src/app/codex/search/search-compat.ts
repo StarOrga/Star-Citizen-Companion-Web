@@ -62,6 +62,13 @@ export function buildFitPorts(
     const cls = entry?.entityClassName?.trim();
     const subs = cls && depth < MAX_DEPTH ? itemPorts(cls) : undefined;
     if (subs?.length) return { ...base, children: buildFitPorts(subs, entry?.entries, itemPorts, depth + 1) };
+    // The mount is known to list no ports of its own (the Idris' turret shells), but the loadout seats
+    // things on it: read the seats from the loadout, each seated item brings its own ports.
+    const seated = (entry?.entries ?? []).filter((e) => e.itemPortName && e.entityClassName);
+    if (cls && subs && depth < MAX_DEPTH && seated.length) {
+      const seats = seated.map((e) => ({ portName: e.itemPortName, types: [] as string[] }));
+      return { ...base, children: buildFitPorts(seats, entry?.entries, itemPorts, depth + 1) };
+    }
     return base.types.some((t) => CONTAINER_TYPE.test(t)) ? { ...base, opaque: true } : base;
   });
 }
@@ -94,13 +101,16 @@ const norm = (s: string): string => s.trim().toLowerCase();
 
 /**
  * The verdict for one hit against a ship's ports.
- *  - not mountable / no attach type / no ports → unknown
+ *  - not mountable / no ports → unknown (no hardpoint data)
+ *  - no attach type on the item → unknown (reason: search.fit.unknownItem)
  *  - some port takes the type and the size → fits
  *  - ports take the type, but not the size → noFit (reason: size)
  *  - no port takes the type → noFit (reason: type)
  */
 export function fitVerdict(hit: Pick<PolySearchHit, 'kind' | 'attachType' | 'size'>, ports: readonly FitPort[] | null): SearchFit {
-  if (!ports?.length || !MOUNTABLE.has(hit.kind) || !hit.attachType) return UNKNOWN;
+  if (!ports?.length || !MOUNTABLE.has(hit.kind)) return UNKNOWN;
+  // The ship is known, the item is not: its own wording, not "no hardpoint data".
+  if (!hit.attachType) return { ...UNKNOWN, reasonKey: 'search.fit.unknownItem' };
   const type = norm(hit.attachType);
   // Every level counts: a weapon fits the gun seat inside a turret's gimbal, not the turret itself.
   const all = flatten(ports);

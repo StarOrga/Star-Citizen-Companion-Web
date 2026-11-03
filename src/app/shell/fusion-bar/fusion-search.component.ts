@@ -327,14 +327,16 @@ const FITTED_SHOWN = 2;
                             </span>
                             <span class="meta">
                               @for (m of metaOf(r); track $index) {
-                                <span [class.mine]="m.mine">{{ m.key ? (m.key | translate: m.params) : m.text }}</span>
+                                @if (m.key || m.text) {
+                                  <span [class.mine]="m.mine">{{ m.key ? (m.key | translate: m.params) : m.text }}</span>
+                                }
                               }
                               @if (fitOf(r); as fit) {
                                 <span class="fit" [class.ok]="fit.verdict === 'fits'" [class.no]="fit.verdict === 'noFit'" [class.unk]="fit.verdict === 'unknown'">
                                   @switch (fit.verdict) {
                                     @case ('fits') { ✓ {{ 'search.fit.fits' | translate: { name: compatName() } }} }
                                     @case ('noFit') { ⚠ {{ 'search.fit.noFit' | translate }}@if (fit.reasonKey) { · {{ fit.reasonKey | translate: fit.reasonParams }} } }
-                                    @default { ? {{ 'search.fit.unknown' | translate }} }
+                                    @default { ? {{ (fit.reasonKey ?? 'search.fit.unknown') | translate }} }
                                   }
                                 </span>
                               }
@@ -664,12 +666,22 @@ const FITTED_SHOWN = 2;
     :host(.compact) .field { height: 40px; }
 
     /* Phones: the bar sits at the bottom, under the thumb; the panel is a sheet above it. */
+    :host(.bottom) {
+      /* Room the sheet gives up: the fixed route line at the top (banner + safe area + its own row), the bar under it. */
+      --_sheet-top: calc(var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + 56px + var(--sc-space-2));
+      --_sheet-bottom: calc(var(--sc-float-bottom) + var(--sc-bar-h) + var(--sc-space-2));
+    }
     :host(.bottom) .panel {
-      position: fixed; top: max(var(--sc-space-3), env(safe-area-inset-top, 0px)); right: var(--sc-page-gutter, 12px); left: var(--sc-page-gutter, 12px);
-      bottom: calc(var(--sc-float-bottom) + var(--sc-bar-h) + var(--sc-space-2));
-      width: auto; max-height: none; transform-origin: bottom center;
+      /* Anchored to the bar, grows upward, never past the route line or the viewport (vh = fallback for dvh). */
+      position: fixed; top: auto; right: var(--sc-page-gutter, 12px); left: var(--sc-page-gutter, 12px);
+      bottom: var(--_sheet-bottom);
+      width: auto; transform-origin: bottom center;
+      max-height: calc(100vh - var(--_sheet-top) - var(--_sheet-bottom));
+      max-height: calc(100dvh - var(--_sheet-top) - var(--_sheet-bottom));
       animation-name: fs-sheet-in;
     }
+    /* The feedback launcher's disc sits in this row: the typed text stops before it. */
+    :host(.bottom.open) .field { padding-inline-end: max(var(--sc-space-2), calc(var(--sc-fab-clear-inline) - var(--sc-page-gutter, 12px))); }
     :host(.bottom) .keys, :host(.bottom) .hint { display: none; }
     .mag { display: none; }
     :host(.bottom:not(.open)) .field { display: none; }
@@ -949,7 +961,7 @@ export class FusionSearchComponent {
       id: g.id,
       labelKey: label.key,
       labelParams: label.params,
-      count: g.total,
+      count: g.count ?? g.total,
       reason: g.outside ? null : this.reasonText(g),
       own,
       outside: g.outside,
@@ -1296,7 +1308,7 @@ export class FusionSearchComponent {
     }
     if (this.open()) {
       // Esc from anywhere inside the panel (a CTA, an icon) closes it at once; the text stays (A9).
-      if (ev.key === 'Escape' && !this.chipMenu() && (this.host.nativeElement as HTMLElement).contains(ev.target as Node) && ev.target !== this.fieldRef()?.nativeElement) {
+      if (ev.key === 'Escape' && !ev.defaultPrevented && !this.chipMenu() && (this.host.nativeElement as HTMLElement).contains(ev.target as Node) && ev.target !== this.fieldRef()?.nativeElement) {
         ev.preventDefault();
         this.close(true);
       }
@@ -1369,6 +1381,8 @@ export class FusionSearchComponent {
         return;
       }
       case 'Escape':
+        // A chip menu is open: leave the event to bubble, the chip closes its menu first.
+        if (this.chipMenu()) return;
         // Esc closes at once; the typed text stays for the next open (A9).
         ev.preventDefault();
         ev.stopPropagation();

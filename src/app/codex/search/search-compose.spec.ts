@@ -288,3 +288,59 @@ describe('nested ports (B5)', () => {
     expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, plain).reasonKey).toBe('search.fit.noType');
   });
 });
+
+describe('turret shells without own ports (Idris, B5)', () => {
+  // The Idris turret items carry itemPorts: [] — the seats exist only in the stock loadout.
+  const top = [{ portName: 'hardpoint_front_left_turret', types: ['Turret'], minSize: 4, maxSize: 4 }];
+  const loadout = [{
+    itemPortName: 'hardpoint_front_left_turret',
+    entityClassName: 'AEGS_Idris_SCItem_AI_Turret_Top_Left',
+    entries: [
+      { itemPortName: 'turret_left', entityClassName: 'Mount_Gimbal_S4', entries: [{ itemPortName: 'hardpoint_class_2', entityClassName: 'APAR_BallisticGatling_S4' }] },
+    ],
+  }];
+  const items: Record<string, { portName: string; types: string[]; minSize: number; maxSize: number }[]> = {
+    AEGS_Idris_SCItem_AI_Turret_Top_Left: [],
+    Mount_Gimbal_S4: [{ portName: 'hardpoint_class_2', types: ['WeaponGun'], minSize: 4, maxSize: 4 }],
+  };
+  const ports = buildFitPorts(top, loadout, (c) => items[c]);
+
+  it('an S4 repeater fits through the gimbal seat', () => {
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 4 }, ports).verdict).toBe('fits');
+  });
+
+  it('an S6 gun is a real no-fit, not "?"', () => {
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 6 }, ports).verdict).toBe('noFit');
+  });
+
+  it('a hit without attach type says so in its own words', () => {
+    const v = fitVerdict({ kind: 'weapon', attachType: null, size: 4 }, ports);
+    expect(v).toEqual(jasmine.objectContaining({ verdict: 'unknown', reasonKey: 'search.fit.unknownItem' }));
+    expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 4 }, []).reasonKey).toBeNull();
+  });
+});
+
+describe('group header count vs index total (idris)', () => {
+  it('8 rows folded into 3 same-name cards: the header counts the 3 cards the reader sees, "Alle 8" keeps the index total', () => {
+    const idris: CodexSearchGroup = { ...group('ship', [hit('ship', 'AEGS_Idris_M', 'Idris-M'), hit('ship', 'AEGS_Idris_P', 'Idris-P'), hit('ship', 'AEGS_Idris_K', 'Idris-K')], 8), count: 3, folded: 5 };
+    const r = composeSearchResult({ term: 'idris', signedIn: true, flagshipClassName: null, groups: [idris], context: searchContextOf('/codex'), chips: [] });
+    const g = r.groups.find((x) => x.id === 'ship')!;
+    expect(g.count).toBe(3);
+    expect(g.total).toBe(8);
+    expect(g.expandable).toBe(0);
+    expect(g.moreTarget).not.toBeNull();
+  });
+
+  it('more than three cards always offer the expander', () => {
+    const many: CodexSearchGroup = { ...group('ship', [1, 2, 3, 4].map((i) => hit('ship', `S${i}`, `Ship ${i}`)), 8), count: 6 };
+    const g = composeSearchResult({ term: 'ship', signedIn: true, flagshipClassName: null, groups: [many], context: searchContextOf('/codex'), chips: [] }).groups[0];
+    expect(g.count).toBe(6);
+    expect(g.expandable).toBe(1);
+  });
+
+  it('the HQ why-line is a fixed phrase, not an interpolated nav label', () => {
+    const own = { total: 1, rows: [{ type: 'own' as const, id: 'o1', ownKind: 'ship' as const, title: 'X', ownName: null, subtitle: null, classNameSlug: 'AEGS_X', qty: null, target: { link: ['/hq'], queryParams: null } }] };
+    const r = composeSearchResult({ term: 'x', signedIn: true, flagshipClassName: null, groups: [], context: searchContextOf('/hq'), chips: [], own });
+    expect(r.groups[0].reason).toEqual({ key: 'search.why.ownHq', params: {} });
+  });
+});

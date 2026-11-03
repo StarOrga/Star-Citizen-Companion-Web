@@ -6067,7 +6067,7 @@
       "openSet": "Set öffnen"
     },
     "why": {
-      "ownHq": "steht oben, weil du im {{ctx}} bist",
+      "ownHq": "steht oben, weil du im HQ bist",
       "own": "deine eigenen Treffer zuerst",
       "context": "steht oben, passt zu {{ctx}}",
       "outside": "Fast genau, aber außerhalb von „{{chip}}“"
@@ -6076,6 +6076,7 @@
       "fits": "passt auf {{name}}",
       "noFit": "passt nicht",
       "unknown": "keine Hardpoint-Daten",
+      "unknownItem": "keine Typangabe am Bauteil",
       "noType": "kein passender Port",
       "noSize": "Größe {{size}} außerhalb S{{min}}–S{{max}}"
     },
