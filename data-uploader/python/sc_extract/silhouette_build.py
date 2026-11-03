@@ -72,10 +72,12 @@ def cache_dir_for(out_dir: Path) -> Path:
 
 Hook = Optional[Callable[..., None]]
 
-# Wall-clock budget per mesh (convert + decode + trace). Real hulls took up to
-# ~4 min with several workers contending for the GIL, so this leaves a generous
-# margin; a mesh past it becomes a skip instead of holding the run forever.
-MESH_BUDGET_S = 900.0
+# Wall-clock budget per mesh (convert + decode + trace). It runs on while the
+# resource governor suspends the process tree, and a slow PC profile leaves as
+# little as 15 % CPU: a healthy mesh (~10 s of work, up to the 600 s converter
+# timeout) must fit even then, or its silhouette would be lost to the throttle.
+# Past it the mesh becomes a skip instead of holding the run forever.
+MESH_BUDGET_S = 1800.0
 # Extra time a mesh that ignored the cooperative deadline (a stuck external
 # call, a long numpy step) gets before its future is abandoned.
 ABANDON_GRACE_S = 60.0
@@ -251,8 +253,10 @@ def build_rows(
 
     def overdue(futs: Any) -> List[Any]:
         now = time.monotonic()
-        return [f for f in futs if f in started and not f.done()
-                and now - started[f] > budget_s + grace_s]
+        # Every worker is stuck on an abandoned mesh: what is still queued never starts.
+        no_worker_left = len(abandoned) >= workers
+        return [f for f in futs if not f.done()
+                and (now - started[f] > budget_s + grace_s if f in started else no_worker_left)]
 
     def budget_skip(mesh: str) -> Tuple[str, str]:
         log("warn", f"{mesh}: abandoned after {budget_s + grace_s:.0f}s (time budget exceeded)")

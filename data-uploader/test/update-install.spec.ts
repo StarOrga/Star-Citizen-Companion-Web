@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nextInstallStep, bannerModel } from '../src/lib/update-install.js';
+import { nextInstallStep, effectiveUpdateEventType, bannerModel } from '../src/lib/update-install.js';
 
 const base = { staged: '0.9.0', feedVersion: null, superseded: false, workBusy: false };
 
@@ -20,44 +20,49 @@ describe('nextInstallStep', () => {
 
 describe('bannerModel install states', () => {
   it('preparing locks the button with text', () => {
-    const m = bannerModel({ type: 'install-state', state: 'preparing', version: '0.9.0' }, '0.9.0');
+    const m = bannerModel({ type: 'install-state', state: 'preparing', version: '0.9.0' });
     expect(m.textKey).toBe('update.preparing');
     expect(m.button).toMatchObject({ disabled: true, action: 'install' });
   });
   it('waiting stays visible and offers a veto', () => {
-    const m = bannerModel({ type: 'install-state', state: 'waiting', version: '0.9.0' }, '0.9.0');
+    const m = bannerModel({ type: 'install-state', state: 'waiting', version: '0.9.0' });
     expect(m.textKey).toBe('update.waiting');
     expect(m.button).toMatchObject({ disabled: false, action: 'cancel' });
   });
   it('closing announces the 2-3 minute restart and locks the button', () => {
-    const m = bannerModel({ type: 'install-state', state: 'closing', version: '0.9.0' }, '0.9.0');
+    const m = bannerModel({ type: 'install-state', state: 'closing', version: '0.9.0' });
     expect(m.textKey).toBe('update.closing');
     expect(m.button?.disabled).toBe(true);
   });
   it('failed re-enables the install button with an error message', () => {
-    const m = bannerModel({ type: 'install-state', state: 'failed', version: '0.9.0' }, '0.9.0');
+    const m = bannerModel({ type: 'install-state', state: 'failed', version: '0.9.0' });
     expect(m.tone).toBe('error');
     expect(m.button).toMatchObject({ disabled: false, action: 'install' });
   });
   it('downloaded offers install', () => {
-    const m = bannerModel({ type: 'downloaded', version: '0.9.0' }, null);
+    const m = bannerModel({ type: 'downloaded', version: '0.9.0' });
     expect(m.button).toMatchObject({ action: 'install', disabled: false });
   });
 });
 
 describe('bannerModel background checks', () => {
   it('a re-check keeps the staged install button', () => {
-    for (const type of ['checking', 'not-available'] as const) {
-      const m = bannerModel({ type }, '0.9.0');
-      expect(m.visible).toBe(true);
-      expect(m.button?.action).toBe('install');
+    for (const type of ['checking', 'not-available']) {
+      expect(effectiveUpdateEventType(type, 'idle', '0.9.0')).toBe('downloaded');
     }
   });
-  it('hides when nothing is staged', () => {
-    expect(bannerModel({ type: 'checking' }, null).visible).toBe(false);
+  it('a re-check keeps a running install notice', () => {
+    for (const type of ['checking', 'not-available', 'downloaded']) {
+      expect(effectiveUpdateEventType(type, 'waiting', '0.9.0')).toBe('install-state');
+    }
+  });
+  it('a staged update dropped by a channel switch leaves no install button', () => {
+    expect(effectiveUpdateEventType('checking', 'idle', null)).toBe('unchanged');
+    expect(bannerModel({ type: 'checking' }).visible).toBe(false);
+    expect(bannerModel({ type: 'not-available' }).visible).toBe(false);
   });
   it('tells that a newer version replaces the staged one', () => {
-    const m = bannerModel({ type: 'available', version: '0.10.0', supersedes: '0.9.0' }, '0.9.0');
+    const m = bannerModel({ type: 'available', version: '0.10.0', supersedes: '0.9.0' });
     expect(m.textKey).toBe('update.supersedes');
     expect(m.params).toEqual({ version: '0.10.0', old: '0.9.0' });
     expect(m.button).toBeNull();

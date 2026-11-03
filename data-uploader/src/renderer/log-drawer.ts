@@ -97,6 +97,8 @@ export function wireLogDrawer(): void {
  * log (after an app restart the in-memory transcript is gone) is reported as
  * such and never written - it would silently wipe the user's clipboard.
  */
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+
 export async function copyLog(btn: HTMLButtonElement): Promise<'copied' | 'failed' | 'empty'> {
   let outcome: 'copied' | 'failed' | 'empty';
   if (!plainText.trim()) {
@@ -113,7 +115,8 @@ export async function copyLog(btn: HTMLButtonElement): Promise<'copied' | 'faile
   if (outcome === 'copied') btn.classList.add('copied');
   else if (outcome === 'failed') btn.classList.add('copy-failed');
   btn.textContent = t(outcome === 'copied' ? 'run.copied' : outcome === 'failed' ? 'run.copyFailed' : 'run.copyEmpty');
-  setTimeout(() => {
+  if (copyResetTimer) clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => {
     btn.classList.remove('copied', 'copy-failed');
     btn.textContent = t('run.copyLog');
   }, 1600);

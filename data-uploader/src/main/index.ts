@@ -1460,6 +1460,9 @@ function cancelAllJobs(reason: ExtractAbortReason | null = null): Promise<boolea
 let quitDeferredForTelemetry = false;
 
 app.on('before-quit', (e) => {
+  // Every real quit, also the updater's quitAndInstall: the window's close handler
+  // must let go instead of hiding into the tray, which would abort the quit.
+  quitting = true;
   noteQuitWithStagedUpdate();
   // Quitting mid-extraction throws away the whole scan, so it is reported —
   // but the process would normally die before the POST leaves. Hold the quit

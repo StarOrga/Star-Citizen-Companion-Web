@@ -1149,9 +1149,8 @@ let lastUpdateEvent: UpdateEvent | null = null;
 /**
  * Python `log` events into the transcript, so the copied log is not nearly empty
  * during a run. warn/error always; info only up to PY_LOG_INFO_CAP lines per
- * build (the builds log per entity - thousands of DOM rows otherwise), then one
- * "N more hidden" line when the stage ends is not possible here, so the notice
- * is appended once, at the moment the cap is first hit.
+ * build (the builds log per entity - thousands of DOM rows otherwise), with one
+ * notice at the moment the cap is first hit.
  */
 const PY_LOG_INFO_CAP = 150;
 function forwardPyLog(budget: LogBudget, ev: { message?: string; level?: string }): void {
@@ -1170,7 +1169,7 @@ let stagedVersionSeen: string | null = null;
 function paintUpdateBanner(ev: UpdateEvent): void {
   lastUpdateEvent = ev;
   if (ev.type === 'downloaded') stagedVersionSeen = ev.version;
-  else if (ev.type === 'available' && !ev.supersedes) stagedVersionSeen = null;
+  else if (ev.type === 'checking' || ev.type === 'not-available' || ev.type === 'available') stagedVersionSeen = null;
   const banner = $('#update-banner');
   const text = $('#update-banner-text');
   const action = $('#update-banner-action') as HTMLButtonElement | null;
@@ -1180,7 +1179,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
   action.disabled = false;
   action.onclick = null;
 
-  const m = bannerModel(ev as BannerInput, stagedVersionSeen);
+  const m = bannerModel(ev as BannerInput);
   if (!m.visible) {
     banner.classList.add('hidden');
     return;
@@ -1192,7 +1191,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
   action.textContent = t(m.button.labelKey);
   action.disabled = m.button.disabled;
   action.hidden = false;
-  action.onclick = m.button.action === 'cancel' ? () => void window.sc.update.cancelInstall() : () => void onInstallClick(action);
+  action.onclick = m.button.action === 'cancel' ? () => void window.sc.update.cancelInstall() : () => void onInstallClick();
 }
 
 /**
@@ -1200,7 +1199,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
  * main process's install-state events drive the banner. A hung or failed IPC
  * lands back on a readable state with the button enabled again.
  */
-async function onInstallClick(action: HTMLButtonElement): Promise<void> {
+async function onInstallClick(): Promise<void> {
   const version = stagedVersionSeen ?? '';
   const show = (state: InstallNoticeState): void =>
     paintUpdateBanner({ type: 'install-state', state, version });
@@ -1215,7 +1214,6 @@ async function onInstallClick(action: HTMLButtonElement): Promise<void> {
   } catch {
     show('failed');
   }
-  void action;
 }
 
 // Derive the favicon from the single inline header logo so the SCC monogram is

@@ -30,6 +30,7 @@ import { isNewerVersion } from '../lib/semver.js';
 import { isStagedSuperseded, shouldReplaceStaged } from '../lib/update-staleness.js';
 import {
   CLOSING_NOTICE_MS,
+  effectiveUpdateEventType,
   nextInstallStep,
   type InstallPhase,
   type InstallReply,
@@ -54,6 +55,8 @@ export type UpdateEventPayload =
   // The install click's visible state (preparing / waiting for work / closing /
   // could not start). Takes precedence over the background-check states below.
   | { type: 'install-state'; state: 'preparing' | 'waiting' | 'closing' | 'failed'; version: string };
+
+type InstallNoticePhase = Exclude<InstallPhase, 'idle'>;
 
 const FEED_URL = `${API_BASE}/functions/v1/desktop-latest`;
 
@@ -93,10 +96,13 @@ function isUpdateBusy(type: UpdateEventPayload['type']): boolean {
 }
 
 function broadcast(payload: UpdateEventPayload): void {
-  // While an install is in progress a background check must not repaint over its
-  // notice (or drop the lock on the button): re-assert the install state instead.
-  if (installPhase !== 'idle' && stagedUpdate && ['checking', 'not-available', 'downloaded'].includes(payload.type)) {
-    payload = { type: 'install-state', state: installPhase, version: stagedUpdate };
+  // A background check must not repaint over an install notice or take away the
+  // install button of what is staged.
+  const effective = effectiveUpdateEventType(payload.type, installPhase, stagedUpdate);
+  if (effective === 'install-state') {
+    payload = { type: 'install-state', state: installPhase as InstallNoticePhase, version: stagedUpdate as string };
+  } else if (effective === 'downloaded') {
+    payload = { type: 'downloaded', version: stagedUpdate as string };
   }
   lastEvent = payload;
   for (const win of BrowserWindow.getAllWindows()) {
@@ -511,6 +517,7 @@ function evaluateInstall(staged: string | null, feed: string | null): void {
   });
   if (step === 'none') {
     installPhase = 'idle';
+    stopWaitTimer();
     return;
   }
   if (step === 'refetch') {
@@ -543,6 +550,8 @@ function evaluateInstall(staged: string | null, feed: string | null): void {
   // Leave the closing notice on screen long enough to read: the silent installer
   // shows no window for ~2-3 minutes, which otherwise looks like "nothing happened".
   setTimeout(() => {
+    // Voided meanwhile: a newer release replaces this one, or the channel changed.
+    if (installPhase !== 'closing' || stagedVersion() !== staged) return;
     if (isWorkBusy()) {
       // Work started in the notice window - do not kill it; wait again.
       installPhase = 'waiting';
@@ -553,6 +562,7 @@ function evaluateInstall(staged: string | null, feed: string | null): void {
     // quitAndInstall returns without quitting when the staged installer is
     // gone; re-arm the button with a message instead of leaving it dead.
     setTimeout(() => {
+      if (installPhase !== 'closing') return;
       installPhase = 'idle';
       announceInstall('failed');
     }, 15_000);

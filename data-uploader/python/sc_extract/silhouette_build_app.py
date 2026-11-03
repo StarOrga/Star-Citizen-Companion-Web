@@ -137,7 +137,10 @@ def main() -> int:
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")
-        return 1
+        # Same as above: an abandoned worker must not hold the interpreter at exit.
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
 
 
 if __name__ == "__main__":

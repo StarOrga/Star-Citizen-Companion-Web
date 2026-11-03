@@ -156,6 +156,30 @@ def test_main_pass_budget_exceeded_ends_in_skip(tmp_path: Path) -> None:
     assert stats["abandoned"] >= 1
 
 
+def test_single_stuck_worker_does_not_hold_the_queued_meshes(tmp_path: Path) -> None:
+    release = threading.Event()
+
+    class Hangs(FakeExporter):
+        def compute(self, src, mesh_id, tolerance_m):
+            if "stuck" in src.path:
+                release.wait(30)
+                return dict(SIL)
+            return super().compute(src, mesh_id, tolerance_m)
+
+    ents = [{"kind": "ship", "class_name": "STUCK", "mesh": "s/stuck.cga"},
+            {"kind": "weapon", "class_name": "GUN", "mesh": "w/gun.cgf"}]
+    t0 = time.monotonic()
+    try:
+        build_rows(Hangs(), ents, out_dir=tmp_path, build={}, workers=1,
+                   budget_s=0.2, grace_s=0.2)
+        elapsed = time.monotonic() - t0
+    finally:
+        release.set()
+    assert elapsed < 10  # the queue behind the only worker was given up, not waited for
+    skips = json.loads((tmp_path / "silhouettes" / "skips.json").read_text())["skips"]
+    assert {s["className"] for s in skips} == {"STUCK", "GUN"}
+
+
 def test_lod1_retry_budget_exceeded_ends_in_skip(tmp_path: Path) -> None:
     release = threading.Event()
 

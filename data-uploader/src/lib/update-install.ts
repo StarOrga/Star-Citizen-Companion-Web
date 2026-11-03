@@ -40,6 +40,22 @@ export function nextInstallStep(i: InstallInputs): InstallStep {
   return 'go';
 }
 
+/**
+ * What a background event becomes on its way to the banner. The main process is
+ * the one owner of "something is staged": a running install request keeps its
+ * notice, and a re-check keeps the staged install button.
+ */
+export function effectiveUpdateEventType(
+  type: string,
+  phase: InstallPhase,
+  staged: string | null,
+): 'install-state' | 'downloaded' | 'unchanged' {
+  if (!staged) return 'unchanged';
+  if (phase !== 'idle' && ['checking', 'not-available', 'downloaded'].includes(type)) return 'install-state';
+  if (type === 'checking' || type === 'not-available') return 'downloaded';
+  return 'unchanged';
+}
+
 /** The install notice stays up this long before the app quits, so it can be read. */
 export const CLOSING_NOTICE_MS = 4000;
 /** Renderer gives up on the install IPC after this long and re-enables the button. */
@@ -76,19 +92,15 @@ export interface BannerModel {
 const HIDDEN: BannerModel = { visible: false, textKey: '', params: {}, tone: 'normal', button: null };
 
 /**
- * Banner for an update event. `staged` is the version whose installer is ready
- * (renderer memory): a background re-check ('checking' / 'not-available') must
- * keep that banner and its install button instead of hiding it.
+ * Banner for an update event. A 'checking' / 'not-available' that arrives here
+ * means nothing is staged: the main process turns them into 'downloaded' otherwise
+ * (`effectiveUpdateEventType`).
  */
-export function bannerModel(ev: BannerInput, staged: string | null): BannerModel {
+export function bannerModel(ev: BannerInput): BannerModel {
   const installBtn = { labelKey: 'update.install', disabled: false, action: 'install' as const };
   switch (ev.type) {
     case 'checking':
     case 'not-available':
-      if (staged) {
-        return { visible: true, textKey: 'update.downloaded', params: { version: staged }, tone: 'normal', button: installBtn };
-      }
-      return HIDDEN;
     case 'manual':
       return HIDDEN;
     case 'available':
@@ -115,7 +127,7 @@ export function bannerModel(ev: BannerInput, staged: string | null): BannerModel
     case 'error':
       return { visible: true, textKey: 'update.error', params: { message: ev.message ?? '' }, tone: 'error', button: null };
     case 'install-state': {
-      const params = { version: ev.version ?? staged ?? '' };
+      const params = { version: ev.version ?? '' };
       switch (ev.state) {
         case 'preparing':
           return {
