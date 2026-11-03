@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-11-02T22:13:02" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-11-02T22:13:02" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5521,7 +5521,7 @@ body[data-stage-next] .jr-next-stage:focus-visible { outline: 2px solid var(--ac
 body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
 </style>
 </head>
-<body style="overflow: hidden">
+<body>
   <div class="concept-layout design fullscreen">
     <div class="concept-content">
       <header class="page-header" data-page-header>
@@ -5530,7 +5530,8 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       </header>
       <style>html[data-template="design"] [data-page-header] { display: none; }</style>
       <main>
-<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"head"}</script>
 
 <style>
 /* #884 holotable callout-set mocks — namespaced hl-*. */
@@ -5684,7 +5685,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-seg-a1" data-annotation="seg-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-seg-a1" data-annotation="seg-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-seg-a1"></div>
           </div>
         </div>
@@ -5736,7 +5737,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-seg-a2" data-annotation="seg-a2" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-seg-a2" data-annotation="seg-a2" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-seg-a2"></div>
           </div>
         </div>
@@ -5830,7 +5831,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-rim-a1" data-annotation="rim-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-rim-a1" data-annotation="rim-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-rim-a1"></div>
           </div>
         </div>
@@ -5967,7 +5968,7 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
             <span class="anno-chevron" aria-hidden="true">›</span>
           </button>
           <div class="anno-bubble-body">
-            <textarea class="anno-answer" data-comment="anno-head-a1" data-annotation="head-a1" data-attachable placeholder="Deine Antwort…"></textarea>
+            <textarea class="anno-answer" data-comment="anno-head-a1" data-annotation="head-a1" data-attachable placeholder="Deine Antwort…" readonly></textarea>
             <div class="attach-slot" data-attach-slot="anno-head-a1"></div>
           </div>
         </div>
@@ -6024,31 +6025,31 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       <h3>Kennwert, summiert (Empfehlung)</h3>
       <p>Schild = Summe <code>MaxShieldHealth</code> aller Generatoren, QT = <code>driveSpeed</code> in km/s, Leistung = Segmente, Kühlung = Kühlrate; Waffen = Anzahl × Größe. Mit Klassenvergleich wie die Flugwerte („+12 % ggü. Klasse“). Kostet einen zusätzlichen Read pro Schiff.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-val-stat" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-val-stat" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-stat" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-stat" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="val-stat-note">Notiz / Override (optional)</label>
-        <textarea id="val-stat-note" data-comment="val-stat-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="val-stat-note" data-comment="val-stat-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
     <div class="variant-evaluation" data-decision="val-name" data-label="Bauteilname + Größe">
       <h3>Bauteilname + Größe</h3>
       <p>„2 × AllStop · S1“, „Beacon · S1“. Erkennt man aus dem Spiel wieder, braucht aber die lokalisierten Namen (ebenfalls ein Read) und lässt sich nicht mit der Klasse vergleichen.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-val-name" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-val-name" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-name" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-name" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="val-name-note">Notiz / Override (optional)</label>
-        <textarea id="val-name-note" data-comment="val-name-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="val-name-note" data-comment="val-name-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
     <div class="variant-evaluation" data-decision="val-size" data-label="Nur Anzahl × Größe">
       <h3>Nur Anzahl × Größe</h3>
       <p>„2 × S1“ direkt aus den Klassennamen, kein zusätzlicher Read. Am billigsten, sagt aber wenig: fast jeder Jäger zeigt dann „S1“.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-val-size" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-val-size" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-size" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-val-size" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="val-size-note">Notiz / Override (optional)</label>
-        <textarea id="val-size-note" data-comment="val-size-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="val-size-note" data-comment="val-size-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
   </div>
   </section>
@@ -6060,21 +6061,21 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       <h3>Feste Reihenfolge: Waffen → Schild → QT → Leistung → Kühlung (Empfehlung)</h3>
       <p>Die ersten drei vorhandenen gewinnen. Fehlt ein Bauteil (Snub ohne QT, Bodenfahrzeug ohne Schild), rückt das nächste nach. Gleiche Plätze bei jedem Schiff, leicht vergleichbar beim Durchlaufen des Tischs.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-pick-fixed" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-pick-fixed" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pick-fixed" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pick-fixed" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="pick-fixed-note">Notiz / Override (optional)</label>
-        <textarea id="pick-fixed-note" data-comment="pick-fixed-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="pick-fixed-note" data-comment="pick-fixed-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
     <div class="variant-evaluation" data-decision="pick-role" data-label="Nach Schiffsrolle">
       <h3>Nach Schiffsrolle</h3>
       <p>Kampf: Waffen/Schild/Leistung · Fracht &amp; Industrie: Schild/QT/Kühlung · Exploration: QT/Schild/Leistung. Passender pro Schiff, aber die Plätze wechseln beim Durchlaufen.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-pick-role" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-pick-role" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pick-role" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-pick-role" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="pick-role-note">Notiz / Override (optional)</label>
-        <textarea id="pick-role-note" data-comment="pick-role-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="pick-role-note" data-comment="pick-role-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
   </div>
   </section>
@@ -6086,21 +6087,21 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       <h3>Rumpfzone pro Bauteiltyp, gestrichelter Punkt (Empfehlung)</h3>
       <p>Wie heute bei „Hülle“: jeder Typ hat eine feste Zone (Waffen vorne, Schild Mitte oben, Leistung Mitte, Kühlung hinten seitlich, QT hinten Mitte). Der Punkt ist gestrichelt und das Label trägt „≈ Zone“, damit niemand einen echten Hardpoint vermutet.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-fb-zone" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-fb-zone" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-fb-zone" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-fb-zone" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="fb-zone-note">Notiz / Override (optional)</label>
-        <textarea id="fb-zone-note" data-comment="fb-zone-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="fb-zone-note" data-comment="fb-zone-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
     <div class="variant-evaluation" data-decision="fb-pane" data-label="In „Weitere Werte“ statt Callout">
       <h3>Ohne Position kein Callout</h3>
       <p>Der Wert wandert in „Weitere Werte“, das nächste Bauteil rückt nach. Nie ein ungenauer Punkt, aber der Callout-Satz ist dann von Schiff zu Schiff anders.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-fb-pane" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-fb-pane" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-fb-pane" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-fb-pane" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="fb-pane-note">Notiz / Override (optional)</label>
-        <textarea id="fb-pane-note" data-comment="fb-pane-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="fb-pane-note" data-comment="fb-pane-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
   </div>
   </section>
@@ -6112,35 +6113,125 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       <h3>Auf dem Gerät merken (Empfehlung)</h3>
       <p>In <code>localStorage</code>: wer Loadout gewählt hat, sieht beim nächsten Besuch wieder Loadout. Ohne Speicher (privates Fenster) startet es mit Flug.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-mem-device" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-mem-device" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-device" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-device" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="mem-device-note">Notiz / Override (optional)</label>
-        <textarea id="mem-device-note" data-comment="mem-device-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="mem-device-note" data-comment="mem-device-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly>das sollte tatsächlich sogar für das profil gemerkt werden! egal auf welchem gerät!</textarea></div>
     </div>
     <div class="variant-evaluation" data-decision="mem-session" data-label="Nur in diesem Tab">
       <h3>Nur in diesem Tab</h3>
       <p>In <code>sessionStorage</code>: ein neuer Tab oder Besuch startet wieder mit Flug.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-mem-session" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-mem-session" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-session" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-session" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="mem-session-note">Notiz / Override (optional)</label>
-        <textarea id="mem-session-note" data-comment="mem-session-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="mem-session-note" data-comment="mem-session-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
     <div class="variant-evaluation" data-decision="mem-none" data-label="Nie merken">
       <h3>Nie merken</h3>
       <p>Jeder Seitenaufruf startet mit Flug. Am einfachsten, aber wer Loadout bevorzugt, klickt jedes Mal.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-mem-none" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-mem-none" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-none" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-mem-none" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row"><label for="mem-none-note">Notiz / Override (optional)</label>
-        <textarea id="mem-none-note" data-comment="mem-none-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2"></textarea></div>
+        <textarea id="mem-none-note" data-comment="mem-none-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“…" rows="2" readonly></textarea></div>
     </div>
   </div>
   </section>
 
+</section>
+
+<section data-iteration="2" data-iteration-template="free" data-final-report id="iter-2" data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Holotisch: Callout-Set Flug / Loadout</h2>
+  </div>
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261102-2215-holotisch-loadout-callouts/shots/after.jpg" alt="Codex-Startseite: Holotisch mit Schalter „Werte · Flug · Loadout“, Loadout aktiv, Callouts Schild, Waffen, Quantenantrieb an echten Hardpoints der Avenger Stalker"><figcaption>Nachher</figcaption></figure>
+  </div>
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">Der Holotisch hat jetzt den Schalter „Werte · Flug · Loadout“ als Kopf der Callout-Spalte, genau wie Design „Kopf der Werte-Spalte“. Flug bleibt Standard, Loadout zeigt summierte Kennwerte an den echten Hardpoints, und die Wahl ist im Profil gespeichert. Gebaut und gepusht auf dem Branch, nicht geshippt — die Backlog-Session merged und shippt alles zusammen.</p>
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">◈</span><span><b>Schalter als Spaltenkopf</b> über den Callouts; unter 1100 px, wo die Callouts weichen, steht er in „Weitere Werte“. 48 px hoch auf Touch.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛡</span><span><b>Kennwerte summiert</b>: Waffen als Anzahl × Größe, Schild-HP aller Generatoren, Quantenantrieb in km/s, Leistung und Kühlung — mit Klassenvergleich wie bei den Flugwerten. Feste Reihenfolge, ein fehlendes Bauteil lässt das nächste nachrücken.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📍</span><span><b>Nie ohne Anker</b>: jeder Callout endet am eigenen Mount; hat der keine Position, sitzt er auf der Rumpfzone seines Typs mit gestricheltem Ring und „≈ Zone“.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">👤</span><span><b>Pro Profil gemerkt</b> (dein Kommentar): <code>profiles.ui_prefs</code>, auf jedem Gerät gleich; abgemeldet nur lokal. Keine Migration nötig.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">1 Read</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">für Schiff + Klasse: nur vier Zahlen pro Komponente per JSON-Pfad, keine ~10-kB-Payloads. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">37 / 37</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Landing-Specs grün (Edge), davon 11 neue für Loadout und Set-Wahl; Typecheck und Produktions-Build grün, Lint 0 Fehler. Die volle Suite lief nicht. <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Prod-Build geprüft<small>Stufe 5 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="done">Lokal durchgespielt</li>
+      <li data-level="5" data-state="done">Prod-Build geprüft</li>
+      <li data-level="6" data-state="open">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Auf dem Produktions-Build lokal geprüft, eingeloggt mit dem Test-Account und echten LIVE-Daten: Flug als Standard, Wechsel auf Loadout, alle drei Punkte auf echten Hardpoints, die Wahl bleibt beim Rotieren, Schalter wandert unter 1100 px in „Weitere Werte“. Live erst nach dem gemeinsamen Ship der Backlog-Session.</p>
+  </div>
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 Fund unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-class-cohort"
+          data-issue-title="[BUG] Landing class comparison mixes small and capital ships"
+          data-issue-type="bug"
+          data-issue-body="On the codex landing holotable the Aegis Avenger Stalker shows -97 % shield and hull vs its class and -89 % armour, for flight and loadout values alike. The class cohort (classCohort in src/app/codex/landing/codex-landing-data.service.ts) is the ship role, which spans snubs to capital ships, so the mean is dominated by a few huge hulls. Found while verifying #884. **User value:** The class comparison under each callout tells players something real about the ship instead of a near-constant minus."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="eigenes Thema">
+        <span class="oq-label">Klassenvergleich: −97 % bei kleinen Schiffen</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Die Avenger Stalker zeigt −97 % Schild und Rumpf ggü. Klasse, schon bei den Flugwerten — die „Klasse“ ist die Rolle und reicht vom Snub bis zum Großkampfschiff.</dd>
+          <dt>Wo</dt><dd>Codex-Startseite, Holotisch und „Weitere Werte“</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — betrifft beide Sets, eigene Entscheidung (Größenklasse statt Rolle?).</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-switch-live" data-crit="high" data-guide="">Loadout-Wahl auf zweitem Gerät nach dem Ship</li>
+      <li data-todo-id="t-phone-toggle" data-crit="mid" data-guide="">Schalter in „Weitere Werte“ am Handy</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>refs/heads/claude/heuristic-chebyshev-c82843</code> · Commit 09d76b68 (Konzept 2f757502, main gemergt 82f10e2a)</li>
+      <li><code>src/app/codex/landing/codex-landing-loadout.ts</code>, <code>codex-landing-callout-set.service.ts</code>, <code>codex-landing-set-toggle.component.ts</code>, Holotisch + Werte-Pane, <code>CodexService.getComponentKeyStats</code></li>
+      <li>Typecheck grün · Build grün · Landing-Karma 37/37 (Edge) · Lint 0 Fehler</li>
+      <li>Abnahme: <code>briefs/implement.md</code> — alle Punkte umgesetzt</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -6353,7 +6444,8 @@ body[data-stage-next] .jr-next-stage:disabled { opacity: 0.5; cursor: default; }
       </div>
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="2" aria-selected="true" aria-controls="iter-2">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
