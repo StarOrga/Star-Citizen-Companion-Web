@@ -1,9 +1,9 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.200.2",
+  "current": "0.200.3",
   "releases": [
     {
-      "version": "0.200.2",
+      "version": "0.200.3",
       "date": "2026-11-03",
       "sections": [
         {
@@ -21,6 +21,22 @@
             {
               "title": "",
               "text": "Data Uploader: copying the log reports failures and an empty log instead of claiming success, and the log now holds the silhouette and skin build lines."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.200.2",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "App files go back to the previous caching, because the long-term caching from 0.200.1 could keep a broken response in the browser. Faster text loading and the calmer update behaviour stay."
             }
           ]
         }
