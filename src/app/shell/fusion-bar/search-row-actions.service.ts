@@ -8,6 +8,8 @@ import { SearchWishlistService } from '../../codex/search/search-wishlist.servic
 import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../../hq/data/hq-inventory.service';
+import { HqEinsatzService, missionStep } from '../../hq/data/hq-einsatz.service';
+import { HqEinsatzPickService } from '../../hq/plan/hq-einsatz-pick.service';
 import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { hqLocker } from '../../hq/hq-routes';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -43,6 +45,8 @@ export class SearchRowActionsService {
   private readonly wishlist = inject(SearchWishlistService);
   private readonly inventory = inject(HqInventoryService);
   private readonly supplies = inject(HqSuppliesService);
+  private readonly einsaetze = inject(HqEinsatzService);
+  private readonly einsatzPick = inject(HqEinsatzPickService);
 
   isWished(row: SearchResultRow): boolean {
     const id = idOf(row);
@@ -103,6 +107,7 @@ export class SearchRowActionsService {
    */
   async cta(cta: SearchCta, row: SearchResultRow, title: string, chips: readonly SearchChip[], flagship: string | null): Promise<RowActionResult | null> {
     if (cta.needsSignIn && !(await this.ensureSignedIn())) return null;
+    if (cta.id === 'toEinsatz') return row.type === 'mission' ? this.toEinsatz(row.className, title) : null;
     const id = idOf(row);
     if (!id) return null;
     try {
@@ -136,6 +141,26 @@ export class SearchRowActionsService {
       }
     } catch (err) {
       return { key: toErrorKey('search', `cta ${cta.id}`, err), error: true };
+    }
+  }
+
+  /** "Zum Einsatz": the mission joins a planned / active Einsatz as a step, or starts a new one. */
+  private async toEinsatz(className: string, title: string): Promise<RowActionResult | null> {
+    if (!(await this.ensureSignedIn())) return null;
+    try {
+      const open = this.einsaetze.upcoming();
+      const choice = await this.einsatzPick.pick(title, open.map((e) => ({ id: e.id, title: e.title, steps: e.steps.length })));
+      if (!choice) return null;
+      const step = missionStep(className, title);
+      if (choice.kind === 'new') {
+        if (!this.einsaetze.create({ title, steps: [step] })) return { key: 'search.done.failed', error: true };
+        return { key: 'search.done.einsatzNew', params: { name: title } };
+      }
+      const op = open.find((e) => e.id === choice.id)?.title ?? '';
+      if (!this.einsaetze.addStep(choice.id, step)) return { key: 'search.done.einsatzFull', params: { op }, error: true };
+      return { key: 'search.done.einsatzAdded', params: { name: title, op } };
+    } catch (err) {
+      return { key: toErrorKey('search', 'cta toEinsatz', err), error: true };
     }
   }
 }

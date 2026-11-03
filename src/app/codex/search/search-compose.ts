@@ -33,7 +33,7 @@ import {
   RankSignals,
   signalOrder,
 } from './search-signals';
-import { GalleryMatch, PatchMatch, SourceResult, sourceMoreTarget } from './search-sources';
+import { GalleryMatch, MissionMatch, PatchMatch, SourceResult, sourceMoreTarget } from './search-sources';
 import {
   RowOwnership,
   SEARCH_ROWS_SHOWN,
@@ -56,6 +56,7 @@ export interface ComposeInput {
   own?: OwnSearchResult | null;
   patches?: SourceResult<PatchMatch> | null;
   gallery?: SourceResult<GalleryMatch> | null;
+  missions?: SourceResult<MissionMatch> | null;
   signals?: RankSignals;
   /** What the reader owns of a hit (for Mein Loadout / Wo gelagert?). */
   ownership?: (hit: PolySearchHit) => RowOwnership | null;
@@ -63,6 +64,8 @@ export interface ComposeInput {
   fit?: (hit: PolySearchHit) => SearchFit | null;
   signedIn: boolean;
   flagshipClassName?: string | null;
+  /** The reader's hangar ship id of a ship class (Montieren under a ship chip); null = none owned. */
+  ownShipIdFor?: (shipClassName: string) => string | null;
   didYouMean?: readonly string[];
   /** Value → count over the rows read WITHOUT size/grade chips; fills the chip menus. */
   facets?: { size: Record<string, number>; grade: Record<string, number> } | null;
@@ -86,6 +89,8 @@ function groupAllowed(id: SearchGroupId, chips: readonly SearchChip[]): boolean 
 
 const FAST_EXACT = 3;
 
+const NO_ICONS = { wishlist: false, lager: false, nachschub: false } as const;
+
 export function composeSearchResult(input: ComposeInput): SearchResult {
   const { context: ctx, chips, term, signedIn } = input;
   const signals = input.signals ?? NO_SIGNALS;
@@ -95,12 +100,15 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
     (input.own?.rows ?? []).filter((r) => r.ownKind === 'ship' && r.classNameSlug).map((r) => r.classNameSlug!.toLowerCase()),
   );
 
+  const chipShip = chips.find((c) => c.filter.compatWith?.kind === 'ship')?.filter.compatWith?.className ?? null;
+  const chipShipId = chipShip && signedIn ? (input.ownShipIdFor?.(chipShip) ?? null) : null;
+
   const hitRow = (hit: PolySearchHit, outside: boolean): SearchResultRow => {
     const ownership = input.ownership?.(hit) ?? null;
     const target = hitTarget(hit);
     const row: CtaRow = {
       type: 'hit', kind: hit.kind, classNameSlug: hit.classNameSlug, manufacturerCode: hit.manufacturerCode,
-      ownership, target, flagshipClassName: flagship,
+      ownership, target, flagshipClassName: flagship, chipShipId,
     };
     return {
       type: 'hit',
@@ -187,6 +195,23 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
       outside: false,
     };
   }
+  // Missions: the CTA "Zum Einsatz" (an action), no icons — the row itself opens the mission page.
+  // No "Alle N": there is no mission index page yet.
+  let missionGroup: SearchResultGroup | null = null;
+  const mis = input.missions;
+  if (mis && mis.rows.length && groupAllowed('mission', chips)) {
+    missionGroup = {
+      id: 'mission', kind: null, reason: null, total: mis.total,
+      rows: mis.rows.map((r): SearchResultRow => ({
+        ...r,
+        cta: resolveCta(ctx, { type: 'mission', kind: null, classNameSlug: r.className }, signedIn),
+        icons: { ...NO_ICONS },
+      })),
+      expandable: Math.max(0, mis.rows.length - SEARCH_ROWS_SHOWN),
+      moreTarget: null,
+      outside: false,
+    };
+  }
   let patchGroup: SearchResultGroup | null = null;
   const pat = input.patches;
   if (pat && pat.rows.length && groupAllowed('patch', chips)) {
@@ -203,6 +228,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
   const groups: SearchResultGroup[] = [...catalog];
   const inHq = ctx.key.startsWith('hq') || ctx.ownedFirst || ownFirst;
   if (ownGroup) groups.splice(inHq ? 0 : Math.min(1, groups.length), 0, ownGroup);
+  if (missionGroup) groups.push(missionGroup);
   if (galleryGroup) {
     if (ctx.key === 'gallery') groups.unshift(galleryGroup);
     else groups.push(galleryGroup);

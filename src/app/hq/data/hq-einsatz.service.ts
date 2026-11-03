@@ -74,6 +74,11 @@ const PUSH_BATCH = 50;
 export const STEPS_ID_CHUNK = 50;
 export const STEPS_PAGE = 1000;
 
+/** A mission as an Einsatz step (`kind: 'mission'`, the contract's class name as `missionRef`). */
+export function missionStep(className: string, title: string): NewEinsatz['steps'][number] {
+  return { kind: 'mission', label: title.trim() || className, location: null, system: null, className: null, qty: null, supplyId: null, missionRef: className };
+}
+
 /** "Einsatz" for one step, "Einsatz ×N" (tooltip "N Schritte") for two or more (D17). */
 export function einsatzBadge(e: Pick<Einsatz, 'steps'>): { multi: boolean; n: number } {
   return { multi: e.steps.length >= 2, n: e.steps.length };
@@ -170,6 +175,20 @@ export class HqEinsatzService {
     };
     this.commit([...this.rows(), e]);
     return e;
+  }
+
+  /**
+   * Append one step to an existing Einsatz (search CTA "Zum Einsatz"). False
+   * when the Einsatz is gone or already holds {@link EINSATZ_STEPS_MAX} steps.
+   * A finished Einsatz reopens as active: it has an open step again.
+   */
+  addStep(id: string, step: NewEinsatz['steps'][number]): boolean {
+    const e = this.items().find((x) => x.id === id);
+    if (!e || e.steps.length >= EINSATZ_STEPS_MAX) return false;
+    const ord = e.steps.reduce((m, s) => Math.max(m, s.ord), -1) + 1;
+    const added: EinsatzStep = { ...step, label: step.label.slice(0, 160), ord, state: 'todo', doneAt: null, doneBy: null };
+    this.patch(id, { steps: [...e.steps, added], status: e.status === 'done' ? 'active' : e.status });
+    return true;
   }
 
   rename(id: string, title: string): void {

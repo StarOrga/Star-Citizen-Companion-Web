@@ -24,7 +24,7 @@ function rowOf(col: (typeof CTA_COLUMNS)[number], extra: Partial<CtaRow> = {}): 
     blueprint: 'blueprint', upcoming: 'upcoming', manufacturer: 'manufacturer', mission: null,
   };
   return {
-    type: 'hit', kind: kinds[col], classNameSlug: 'X', manufacturerCode: 'AEGS',
+    type: col === 'mission' ? 'mission' : 'hit', kind: kinds[col], classNameSlug: 'X', manufacturerCode: 'AEGS',
     ownership: col === 'owned' ? OWN : null, target: { link: ['/x'], queryParams: null },
     flagshipClassName: 'DRAK_Cutlass', ...extra,
   };
@@ -34,18 +34,19 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   // Expected ids per context, cell by cell, with every "wie Neutral" and `*` fallback resolved by hand.
   const expected: Record<CtaRowKey, (SearchCtaId | null)[]> = {
     //            owned          ship           wc             fps       ammo     bp                  upcoming  mfr           mission
-    neutral:   ['myLoadout', 'compareWith', null, 'inSet', null, 'materialToSupply', 'atRsi', 'allProducts', null],
-    chipShip:  ['compareWith', 'compareWith', null, 'inSet', null, 'materialToSupply', 'atRsi', 'allProducts', null],
-    chipItem:  ['myLoadout', 'compareWith', 'compareWith', 'compareWith', null, 'materialToSupply', 'atRsi', 'allProducts', null],
-    hqHangar:  ['myLoadout', 'add', null, 'inSet', null, 'materialToSupply', 'atRsi', 'allProducts', null],
-    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'materialToSupply', null, 'allProducts', null],
-    hqPlan:    ['planOps', 'compareWith', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'atRsi', 'allProducts', null],
-    signedOut: [null, 'add', null, 'inSet', null, 'materialToSupply', 'atRsi', 'allProducts', null],
+    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    // Montieren needs the reader's own ship of the chip's class; rowOf owns none, so the cell falls back.
+    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    // Wo verbaut? on a piece fitted nowhere falls back to the neutral cell.
+    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'materialToSupply', null, 'allProducts', 'toEinsatz'],
+    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
   };
 
   (Object.keys(expected) as CtaRowKey[]).forEach((key) => {
     CTA_COLUMNS.forEach((col, i) => {
-      if (col === 'mission') return; // there is no mission kind in the index yet
       it(`${key} x ${col} -> ${expected[key][i] ?? 'none'}`, () => {
         const ctx = ctxFor(key);
         // chip item context: the chip is a weapon, so "same kind" compare only for weapons/components
@@ -83,7 +84,87 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   it('chip item compares only the same kind', () => {
     const ctx = searchContextOf('/codex/weapon/BEHR_Rifle');
     expect(resolveCta(ctx, rowOf('weaponComponent', { kind: 'weapon' }), true)?.id).toBe('compareWith');
-    expect(resolveCta(ctx, rowOf('weaponComponent', { kind: 'component' }), true)).toBeNull();
+    // A component under a weapon chip is no "same kind": the neutral cell (Passende Schiffe) answers.
+    expect(resolveCta(ctx, rowOf('weaponComponent', { kind: 'component' }), true)?.id).toBe('fittingShips');
+  });
+
+  describe('Wo verbaut? (HQ Hangar x Waffe/Komp., flipped * cell)', () => {
+    const hangar = searchContextOf('/hq/hangar');
+    const fitted = { ...OWN, shipId: null, equippedOnShipId: 'h9', fittedOn: [{ shipId: 'h7', name: 'Nachtfalke', count: 2 }] };
+    it('links to the hangar ship the piece is fitted on, in its own wording', () => {
+      const cta = resolveCta(hangar, rowOf('weaponComponent', { ownership: fitted }), true);
+      expect(cta).toEqual(jasmine.objectContaining({ id: 'whereInstalled', labelKey: 'search.cta.whereInstalled', type: 'link', needsSignIn: false }));
+      expect(cta?.target?.link).toEqual(['/hq/hangar', 'h7']);
+    });
+    it('also for components', () => {
+      const cta = resolveCta(hangar, rowOf('weaponComponent', { kind: 'component', ownership: fitted }), true);
+      expect(cta?.labelKey).toBe('search.cta.whereInstalled');
+    });
+    it('stays Mein Loadout outside the hangar context', () => {
+      expect(resolveCta(searchContextOf('/codex'), rowOf('weaponComponent', { ownership: fitted }), true)?.labelKey).toBe('search.cta.myLoadout');
+    });
+    it('a piece fitted nowhere falls back to the neutral cell (Passende Schiffe)', () => {
+      expect(resolveCta(hangar, rowOf('weaponComponent'), true)?.id).toBe('fittingShips');
+    });
+  });
+
+  describe('Passende Schiffe (Neutral / Abgemeldet x Waffe/Komp.)', () => {
+    it('links to the ship index filtered by the piece', () => {
+      const cta = resolveCta(searchContextOf('/codex'), rowOf('weaponComponent', { classNameSlug: 'BEHR_LaserCannon_S3' }), true);
+      expect(cta).toEqual(jasmine.objectContaining({ id: 'fittingShips', type: 'link', labelKey: 'search.cta.fittingShips' }));
+      expect(cta?.target).toEqual({ link: ['/codex', 'index'], queryParams: { kind: 'ship', fits: 'BEHR_LaserCannon_S3' } });
+    });
+    it('is a plain link signed out too (reading needs no account)', () => {
+      const cta = resolveCta(searchContextOf('/codex'), rowOf('weaponComponent', { kind: 'component' }), false);
+      expect(cta).toEqual(jasmine.objectContaining({ id: 'fittingShips', needsSignIn: false }));
+    });
+  });
+
+  describe('Passende Waffen (Neutral x Munition)', () => {
+    it('links to the weapon index filtered by the round', () => {
+      const cta = resolveCta(searchContextOf('/codex'), rowOf('ammunition', { classNameSlug: 'AMMO_S3_Laser' }), true);
+      expect(cta?.id).toBe('fittingWeapons');
+      expect(cta?.target).toEqual({ link: ['/codex', 'index'], queryParams: { kind: 'weapon', ammo: 'AMMO_S3_Laser' } });
+    });
+  });
+
+  describe('Montieren', () => {
+    const chipShip = searchContextOf('/codex/ship/AEGS_Gladius');
+    it('Chip Schiff x Waffe/Komp.: onto the reader\'s own ship of the chip class, with ?mount=', () => {
+      const cta = resolveCta(chipShip, rowOf('weaponComponent', { classNameSlug: 'BEHR_S3', chipShipId: 'h4' }), true);
+      expect(cta).toEqual(jasmine.objectContaining({ id: 'mount', type: 'link', labelKey: 'search.cta.mount' }));
+      expect(cta?.target).toEqual({ link: ['/hq/hangar', 'h4'], queryParams: { mount: 'BEHR_S3' } });
+    });
+    it('Chip Schiff without an own ship of that class falls back to Passende Schiffe', () => {
+      expect(resolveCta(chipShip, rowOf('weaponComponent', { chipShipId: null }), true)?.id).toBe('fittingShips');
+    });
+    it('Chip Item x Besitz: the chip\'s piece onto the row\'s own ship', () => {
+      const cta = resolveCta(searchContextOf('/codex/weapon/BEHR_Rifle'), rowOf('owned'), true);
+      expect(cta?.id).toBe('mount');
+      expect(cta?.target).toEqual({ link: ['/hq/hangar', 'h1'], queryParams: { mount: 'BEHR_Rifle' } });
+    });
+    it('Chip Item x an own ship row (Eigene Daten) mounts too', () => {
+      const cta = resolveCta(searchContextOf('/codex/weapon/BEHR_Rifle'), { type: 'own', ownKind: 'ship', ownRefId: 'h2', kind: null }, true);
+      expect(cta?.target).toEqual({ link: ['/hq/hangar', 'h2'], queryParams: { mount: 'BEHR_Rifle' } });
+    });
+  });
+
+  describe('Bezugsquelle for ships (HQ Planen x Schiff)', () => {
+    it('links to the ship page at its where-to-buy section', () => {
+      const cta = resolveCta(searchContextOf('/hq', 'planen'), rowOf('ship', { target: { link: ['/codex', 'ship', 'AEGS_Gladius'], queryParams: null } }), true);
+      expect(cta).toEqual(jasmine.objectContaining({ id: 'sourceOf', type: 'link' }));
+      expect(cta?.target).toEqual({ link: ['/codex', 'ship', 'AEGS_Gladius'], queryParams: null, fragment: 'bezugsquelle' });
+    });
+  });
+
+  describe('Zum Einsatz (Neutral / HQ Planen x Mission)', () => {
+    it('is an action (a button), not a link', () => {
+      const cta = resolveCta(searchContextOf('/hq', 'planen'), rowOf('mission'), true);
+      expect(cta).toEqual(jasmine.objectContaining({ id: 'toEinsatz', type: 'action', target: null, needsSignIn: false }));
+    });
+    it('asks for sign-in when signed out', () => {
+      expect(resolveCta(searchContextOf('/codex'), rowOf('mission'), false)?.needsSignIn).toBeTrue();
+    });
   });
 
   describe('Vergleichen on Codex list pages', () => {
@@ -101,7 +182,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
       expect(resolveCta(mfr, rowOf('manufacturer'), true)?.id).toBe('allProducts');
     });
     it('is not offered outside list pages', () => {
-      expect(resolveCta(searchContextOf('/codex'), rowOf('weaponComponent'), true)?.id).toBeUndefined();
+      expect(resolveCta(searchContextOf('/codex'), rowOf('weaponComponent'), true)?.id).toBe('fittingShips');
     });
   });
 

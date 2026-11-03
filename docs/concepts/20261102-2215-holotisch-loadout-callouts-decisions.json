@@ -81,5 +81,18 @@
       "screens": {},
       "views": {}
     }
+  },
+  {
+    "iteration": 2,
+    "action": "finalize",
+    "implement": [
+      "oq-class-cohort (dc2a4052)"
+    ],
+    "ship": "not run here — owner: ship all together from the backlog session",
+    "disposition": "keep (project rule 5; payload said discard)",
+    "tests": [
+      "t-switch-live",
+      "t-phone-toggle (self)"
+    ]
   }
 ]

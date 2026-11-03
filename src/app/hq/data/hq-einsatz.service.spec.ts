@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../../auth/auth.service';
 import { FakeCall, FakeResult, chainArgs, fakeSupabase } from '../../testing/fake-supabase';
 import type { HqEinsatzRow, HqEinsatzStepRow } from './hq-db.types';
-import { EINSATZ_CACHE_KEY, HqEinsatzService, NewEinsatz, STEPS_ID_CHUNK, einsatzBadge, einsatzCacheKey } from './hq-einsatz.service';
+import { EINSATZ_CACHE_KEY, HqEinsatzService, NewEinsatz, STEPS_ID_CHUNK, einsatzBadge, einsatzCacheKey, missionStep, EINSATZ_STEPS_MAX } from './hq-einsatz.service';
 
 const steps: NewEinsatz['steps'] = [
   { kind: 'buy', label: 'S3 Repeater', location: 'Lorville', system: 'Stanton', className: 'REP_S3', qty: 1, supplyId: 's1', missionRef: null },
@@ -187,6 +187,36 @@ describe('HqEinsatzService', () => {
     expect(einsaetze[0].status).toBe('active');
     expect(localStorage.getItem(einsatzCacheKey('u1'))).toBeNull();
     expect(s.items()).toEqual([]);
+  });
+
+  describe('addStep (search CTA "Zum Einsatz")', () => {
+    it('appends a mission step after the highest ord, open, and marks the Einsatz dirty', () => {
+      const s = make();
+      const e = s.create({ title: 'Pembroke run', steps })!;
+      expect(s.addStep(e.id, missionStep('CTR_Bounty_01', 'Bounty: Vanduul'))).toBeTrue();
+      const after = s.items().find((x) => x.id === e.id)!;
+      expect(after.steps.length).toBe(4);
+      expect(after.steps[3]).toEqual(jasmine.objectContaining({ ord: 3, kind: 'mission', missionRef: 'CTR_Bounty_01', label: 'Bounty: Vanduul', state: 'todo' }));
+      expect(after.dirty).toBeTrue();
+    });
+    it('reopens a finished Einsatz as active', () => {
+      const s = make();
+      const e = s.create({ title: 'Done run', steps: steps.slice(0, 1) })!;
+      s.toggleStep(e.id, 0);
+      expect(s.items()[0].status).toBe('done');
+      s.addStep(e.id, missionStep('CTR_X', 'X'));
+      expect(s.items()[0].status).toBe('active');
+    });
+    it('refuses an unknown Einsatz and a full one', () => {
+      const s = make();
+      expect(s.addStep('nope', missionStep('CTR_X', 'X'))).toBeFalse();
+      const many = Array.from({ length: EINSATZ_STEPS_MAX }, (_, i) => ({ ...steps[0], label: `s${i}` }));
+      const full = s.create({ title: 'Full', steps: many })!;
+      expect(s.addStep(full.id, missionStep('CTR_X', 'X'))).toBeFalse();
+    });
+    it('missionStep falls back to the class name for an empty title', () => {
+      expect(missionStep('CTR_Y', '  ').label).toBe('CTR_Y');
+    });
   });
 
   describe('live agent API', () => {

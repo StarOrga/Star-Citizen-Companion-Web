@@ -107,6 +107,13 @@ describe('class comparison + size facts', () => {
     expect(classCohort('component', { role: null, size: null }, rows).length).toBe(4);
   });
 
+  it('classCohort: a ship whose role is too small compares with ships of similar length, not the fleet', () => {
+    const len = (role: string, length: number) => row(role, null, { dimensions: { length } });
+    const rows = [len('stalker', 22), len('touring', 25), len('fighter', 18), len('fighter', 20), len('capital', 155), len('capital', 270)];
+    const cohort = classCohort('ship', { role: 'stalker', size: null, payload: { dimensions: { length: 22 } } }, rows);
+    expect(cohort.map((r) => (r.payload as { dimensions: { length: number } }).dimensions.length)).toEqual([22, 25, 18, 20]);
+  });
+
   it('withClassStats: mean + max over members that carry the value, direction per ship value', () => {
     const cohort = [{ payload: { hull: { hp: 100 } } }, { payload: { hull: { hp: 300 } } }, { payload: { hull: {} } }];
     const [hull, mass] = withClassStats('ship', [

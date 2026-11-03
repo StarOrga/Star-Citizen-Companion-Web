@@ -59,8 +59,9 @@
           data-issue-body="On the codex landing holotable the Aegis Avenger Stalker shows -97 % shield and hull vs its class and -89 % armour, for flight and loadout values alike. The class cohort (classCohort in src/app/codex/landing/codex-landing-data.service.ts) is the ship role, which spans snubs to capital ships, so the mean is dominated by a few huge hulls. Found while verifying #884. **User value:** The class comparison under each callout tells players something real about the ship instead of a near-constant minus."
           data-oq-origin="found"
           data-route-default="issue"
-          data-route-reason="eigenes Thema">
+          data-route-reason="eigenes Thema" data-routed>
         <span class="oq-label">Klassenvergleich: −97 % bei kleinen Schiffen</span>
+        <span class="oq-done">✓ umgesetzt — Rückfall auf ähnliche Rumpflänge statt ganze Flotte</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Die Avenger Stalker zeigt −97 % Schild und Rumpf ggü. Klasse, schon bei den Flugwerten — die „Klasse“ ist die Rolle und reicht vom Snub bis zum Großkampfschiff.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex-Startseite, Holotisch und „Weitere Werte“</dd>
@@ -69,6 +70,15 @@
       </li>
     </ul>
   </details>
+
+  <section id="nachtrag" data-nav-label="Nachtrag">
+    <p class="fr-label">Nachtrag</p>
+    <ul>
+      <li><b>Klassenvergleich behoben:</b> Ursache war nicht die Rolle selbst, sondern der Rückfall. Die Rolle der Avenger Stalker hat nach dem Dedupe nur 2 Schiffe, also wurde mit der ganzen Flotte inklusive Großkampfschiffen verglichen. Eine seltene Rolle vergleicht jetzt mit Schiffen ähnlicher Rumpflänge (±1,5×). Gilt für Flug- und Loadout-Werte.</li>
+      <li><b>Nicht geshippt:</b> Auf Wunsch des Owners shippt die Backlog-Session alle Branches zusammen. Dieser Branch ist dafür übergeben.</li>
+      <li><b>Konzept behalten statt verworfen</b> (Projektregel 5): Runden und Entscheidungen bleiben in <code>docs/concepts/</code>.</li>
+    </ul>
+  </section>
 
   <section data-tests hidden aria-label="{{final.group_tests}}">
     <ul>

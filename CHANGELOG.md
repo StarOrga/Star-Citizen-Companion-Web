@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.200.1] - 2026-11-03
+
+### Changed
+- The site's text now starts loading alongside the app, so pages show their content sooner, most noticeably on slower connections. German pages also no longer download the English texts during startup.
+- App files are now cached for the long term, so repeat visits ask the server less often.
+
+### Fixed
+- A new version no longer reloads the page by itself once you have clicked, typed or scrolled. You get the update prompt instead.
+
+## [0.200.0] - 2026-11-03
+
+### Added
+- Search finds missions, each with its own page, and result rows offer fitting ships, fitting weapons, mount, where installed, where to buy and to Einsatz.
+
+### Fixed
+- The manufacturer list no longer contains paint and shop entries.
+- Codex landing: the class comparison uses ships of similar hull length when a role is too small, so small ships no longer read as far below their class.
+
 ## [0.199.0] - 2026-11-03
 
 ### Added

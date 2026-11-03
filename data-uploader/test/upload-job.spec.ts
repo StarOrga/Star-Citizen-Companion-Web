@@ -272,7 +272,7 @@ describe('resumeSummary', () => {
     expect(sum.stages.map((s) => s.state)).toEqual(['done', 'active', 'pending', 'pending']);
     // codex_ships is the 4th of the 16 publish phases — the SAME number the live
     // bar shows, so banner and bar agree.
-    expect(sum.catalog).toEqual({ step: 4, total: 16, phase: 'codex_ships' });
+    expect(sum.catalog).toEqual({ step: 4, total: 17, phase: 'codex_ships' });
   });
 
   it('falls back to the next unsent phase when catalog has no live cursor', () => {
@@ -283,7 +283,7 @@ describe('resumeSummary', () => {
     s.catalog.cursor = null;
     const sum = resumeSummary(s);
     // codex_components is next after the three done phases — step 5 of 16.
-    expect(sum.catalog).toEqual({ step: 5, total: 16, phase: 'codex_components' });
+    expect(sum.catalog).toEqual({ step: 5, total: 17, phase: 'codex_components' });
   });
 
   it('resumes at the silhouette step once the codex went live (macro 3 / 4)', () => {

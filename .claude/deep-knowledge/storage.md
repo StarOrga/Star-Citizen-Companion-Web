@@ -35,6 +35,10 @@ copies the existing objects (dry run unless `--apply`); a change to
   The Free plan allows 500 MB for the whole database.
 - 2026-09-24: 952 MB with six builds. The four obsolete ones were deleted by
   hand and every `codex_*` table got `VACUUM FULL` → 349 MB.
+- `codex_missions` (migration `20261103130000`, ingest op `missions`): ~2 000
+  released contracts per build, ~2.4 MB JSON before TOAST, plain table outside
+  the `codex_payloads` dedupe, cascades with its build. Read only through
+  `search_missions()` / `codex_mission()` (current LIVE build).
 - `prune_codex_builds(2)` runs nightly (pg_cron job `codex-build-retention`,
   migration `20260925010000`): per channel the two newest builds stay, the
   `is_current` one always stays. Two, because the Holotable patch selector and

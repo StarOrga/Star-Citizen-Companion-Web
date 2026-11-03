@@ -49,6 +49,8 @@ export class SwUpdateService {
   private applying = false;
   /** Epoch ms of the last init() — the anchor for the startup grace window. */
   private startedAt = 0;
+  /** The user clicked, typed or scrolled since opening: no silent reload any more. */
+  private interacted = false;
 
   /**
    * Subscribe to version events and start polling. No-op when the service
@@ -60,6 +62,7 @@ export class SwUpdateService {
     }
     this.initialized = true;
     this.startedAt = Date.now();
+    this.watchForInteraction();
 
     this.swUpdate.versionUpdates
       .pipe(filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'))
@@ -97,17 +100,33 @@ export class SwUpdateService {
    * user simply gets the newest site with no reload button. A version that lands
    * later — the user is already on the page and mid-task — instead raises the
    * prompt, so they choose when to reload without losing their view (feedback
-   * 4f9fcff8). The once-per-session guard keeps a persistent "ready" state from
-   * looping the page.
+   * 4f9fcff8). The same goes for a user who already clicked, typed or scrolled
+   * inside the window: the reload would throw away what they started, and the
+   * next open gets the new build anyway. The once-per-session guard keeps a
+   * persistent "ready" state from looping the page.
    */
   private onVersionReady(): void {
     const withinStartup = Date.now() - this.startedAt < SwUpdateService.STARTUP_GRACE_MS;
-    if (withinStartup && !this.autoReloadedThisSession()) {
+    if (withinStartup && !this.interacted && !this.autoReloadedThisSession()) {
       this.markAutoReloaded();
       void this.applyUpdate();
       return;
     }
     this.updateReady.set(true);
+  }
+
+  /** Flags the first input. Outside the zone: it only sets a field, no CD needed. */
+  private watchForInteraction(): void {
+    const view = this.window();
+    if (!view) return;
+    const mark = (): void => {
+      this.interacted = true;
+    };
+    this.zone.runOutsideAngular(() => {
+      for (const type of ['pointerdown', 'keydown', 'wheel']) {
+        view.addEventListener(type, mark, { capture: true, once: true, passive: true });
+      }
+    });
   }
 
   /** Whether this browsing session already spent its one silent auto-reload. */

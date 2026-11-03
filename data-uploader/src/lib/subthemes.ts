@@ -113,11 +113,13 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // the vehicle implementation XML.
     // 4: #794 — codex_item_ports.position applies the helper offset; ports on
     // the hull origin carry no position.
-    revision: 4,
+    // 5: codex_missions — released contracts for the global search.
+    revision: 5,
     phases: [
       'codex_manufacturers',
       'codex_blueprints',
       'codex_blueprint_ingredients',
+      'codex_missions',
       'codex_entity_strings',
       'codex_item_ports',
       'codex_previews',
@@ -128,6 +130,7 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/python/sc_extract/geometry.py',
       'data-uploader/python/sc_extract/hardpoints.py',
       'data-uploader/python/sc_extract/images.py',
+      'data-uploader/python/sc_extract/missions.py',
       'data-uploader/python/sc_extract/keybinds.py',
     ],
   },

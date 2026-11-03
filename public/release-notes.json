@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.198.1",
+  "current": "0.200.0",
   "releases": [
+    {
+      "version": "0.200.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Search finds missions, each with its own page, and result rows offer fitting ships, fitting weapons, mount, where installed, where to buy and to Einsatz."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The manufacturer list no longer contains paint and shop entries."
+            },
+            {
+              "title": "",
+              "text": "Codex landing: the class comparison uses ships of similar hull length when a role is too small, so small ships no longer read as far below their class."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.199.0",
+      "date": "2026-11-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Search follows the page you are on: gallery images are found as links, and in the HQ your own hangar is searched on your device only. A wishlist, popular searches and an admin list of searches without results come with it."
+            },
+            {
+              "title": "",
+              "text": "Codex holotable: a Flug / Loadout switch shows the ship's loadout (weapons, shield, quantum drive, power, cooling) at its hardpoints; your choice is remembered per profile."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Edge-function deploys no longer stop at the CLI's confirmation prompt."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.198.1",
       "date": "2026-11-03",
