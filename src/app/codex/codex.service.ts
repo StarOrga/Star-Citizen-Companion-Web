@@ -232,8 +232,19 @@ export interface CodexListFilters {
   // single-category select stays authoritative for its own value, this only
   // widens/narrows the group around it. Ignored for other kinds.
   blueprintCategoryIn?: string[];
+  // Restrict to these class names (the search CTAs "Passende Schiffe" ?fits= /
+  // "Passende Waffen" ?ammo= resolve their reverse lookup into this list).
+  classNameIn?: string[];
   limit?: number;
   offset?: number;
+}
+
+/** A mountable piece as the fit check needs it ({@link CodexService.fitIdentity}). */
+export interface FitIdentity {
+  kind: 'weapon' | 'component' | 'item';
+  attachType: string | null;
+  size: number | null;
+  name: string | null;
 }
 
 export interface BlueprintListFilters {
@@ -892,6 +903,7 @@ export class CodexService {
     if (filters.category && kind === 'blueprint') query = query.eq('category', filters.category);
     if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
       query = query.in('category', filters.blueprintCategoryIn);
+    if (filters.classNameIn) query = query.in('class_name', filters.classNameIn.length ? filters.classNameIn : ['-']);
     return query;
   }
 
@@ -2090,6 +2102,62 @@ export class CodexService {
       cargoScu: payload.cargoScu ?? null,
       stats: payload.stats ?? null,
     };
+  }
+
+  /**
+   * "Passende Schiffe": the ships of the current build whose ports (incl. the
+   * seats inside turrets / gimbals) take this weapon / component / item —
+   * its attach type + size from the promoted columns, then the precomputed
+   * `codex_ships_fitting` RPC. Null when the item is unknown or has no type.
+   */
+  async shipsFittingItem(className: string): Promise<{ classNames: string[]; name: string | null } | null> {
+    const build = await this.loadCurrentBuild();
+    const seed = build ? await this.fitIdentity(className) : null;
+    if (!build || !seed?.attachType) return null;
+    const { data, error } = await this.sb.client.rpc('codex_ships_fitting', {
+      p_build_id: build.id,
+      p_type: seed.attachType,
+      p_size: seed.size,
+    });
+    if (error) throw error;
+    return { classNames: ((data ?? []) as { class_name: string }[]).map((r) => r.class_name), name: seed.name };
+  }
+
+  /**
+   * What a mountable piece is, from the promoted columns only (no payload):
+   * kind, attach type, size, name. Weapons first, then components, then items
+   * (first table that owns the class name wins). Null when unknown.
+   */
+  async fitIdentity(className: string): Promise<FitIdentity | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build || !className) return null;
+    for (const kind of ['weapon', 'component', 'item'] as const) {
+      const { data, error } = await this.sb.client
+        .from(CODEX_ENTITY_TABLES[kind])
+        .select('attach_type, size, name_localized')
+        .eq('build_id', build.id)
+        .eq('class_name', className)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        const r = data as { attach_type: string | null; size: number | null; name_localized: string | null };
+        return { kind, attachType: r.attach_type, size: r.size, name: r.name_localized };
+      }
+    }
+    return null;
+  }
+
+  /** "Passende Waffen": weapons of the current build that fire this ammunition class. */
+  async weaponsForAmmo(ammoClassName: string): Promise<string[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build || !ammoClassName) return [];
+    const { data, error } = await this.sb.client.rpc('codex_weapons_for_ammo', {
+      p_build_id: build.id,
+      p_ammo: ammoClassName,
+    });
+    if (error) throw error;
+    return ((data ?? []) as { class_name: string }[]).map((r) => r.class_name);
   }
 
   /**

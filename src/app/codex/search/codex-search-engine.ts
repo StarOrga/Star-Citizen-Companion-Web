@@ -212,6 +212,10 @@ export class CodexSearchEngine {
       fit: compat?.kind === 'ship' ? (hit) => fitVerdict(hit, ports) : undefined,
       signedIn,
       flagshipClassName: signedIn ? this.hangar().flagshipClassName() : null,
+      // Montieren (Chip Schiff): the reader's own ship of that class, from the local hangar list.
+      ownShipIdFor: signedIn
+        ? (cls) => this.hangar().ships().find((s) => s.shipClassName.toLowerCase() === cls.toLowerCase())?.id ?? null
+        : undefined,
       didYouMean: this.didYouMean(),
       facets: this.facets(),
     });

@@ -2,12 +2,13 @@
 // -----------------------------------------------------------------------------
 // Pure. The table below IS the corrected CTA matrix of round 3 (`q3-matrix`,
 // verified "ok" by the owner) — one row per context, one column per kind of
-// row. Cells marked `*` need a feature that does not exist yet (own follow-up
-// issues): they fall back to the neutral row's CTA of the same column, or to
-// no CTA when that one is a `*` too. Flipped `*` cells carry their own code
-// (`whereInstalled`); the rest still wait for their target (see the matrix
-// note). "Im Index" is gone; news, patches, gallery and app pages have no CTA
-// and no icons.
+// row. The cells that were `*` in the round (a feature that did not exist
+// yet) are all built now and carry their own code: Wo verbaut?, Passende
+// Schiffe (`?fits=`), Passende Waffen (`?ammo=`), Montieren (`?mount=` on the
+// HQ ship), Bezugsquelle for ships (the ship page's UEX section) and Zum
+// Einsatz (missions). A cell that cannot resolve (no own ship of the chip's
+// class, piece fitted nowhere) falls back to the neutral row. "Im Index" is
+// gone; news, patches, gallery and app pages have no CTA and no icons.
 
 import { UPCOMING_HIT_KIND, type PolyHitKind } from '../codex-poly-search';
 import type { SearchContext } from '../../shell/fusion-bar/search-context';
@@ -17,7 +18,7 @@ import type { OwnRowType, RowOwnership, SearchCta, SearchCtaId, SearchRowIcons }
 
 /** What the CTA needs to know about a row. */
 export interface CtaRow {
-  type: 'hit' | 'own' | 'patch' | 'gallery' | 'place';
+  type: 'hit' | 'own' | 'patch' | 'gallery' | 'place' | 'mission';
   kind?: PolyHitKind | null;
   classNameSlug?: string | null;
   manufacturerCode?: string | null;
@@ -29,13 +30,19 @@ export interface CtaRow {
   target?: SearchTarget | null;
   /** The reader's flagship (Gegenüberstellung in a neutral context). */
   flagshipClassName?: string | null;
+  /**
+   * Chip Schiff: the reader's own hangar ship of the chip's ship class (resolved
+   * client-side from HangarService), the target of Montieren. Null = none owned.
+   */
+  chipShipId?: string | null;
 }
 
 /**
- * Cell codes: a CTA id, `N` = as neutral, `-` = none, `*` = needs a new feature,
- * `whereInstalled` = "Wo verbaut?" (the hangar ship the piece is fitted on).
+ * Cell codes: a CTA id, `N` = as neutral, `-` = none, `compareSame` =
+ * Gegenüberstellung for the same kind only, `shipSource` = Bezugsquelle of a
+ * ship (its page's where-to-buy section).
  */
-type Cell = SearchCtaId | 'N' | '-' | '*' | 'compareSame' | 'whereInstalled';
+type Cell = SearchCtaId | 'N' | '-' | 'compareSame' | 'shipSource';
 type Column = 'owned' | 'ship' | 'weaponComponent' | 'fps' | 'ammunition' | 'blueprint' | 'upcoming' | 'manufacturer' | 'mission';
 
 export const CTA_COLUMNS: readonly Column[] = [
@@ -44,22 +51,22 @@ export const CTA_COLUMNS: readonly Column[] = [
 
 export type CtaRowKey = 'neutral' | 'chipShip' | 'chipItem' | 'hqHangar' | 'hqStock' | 'hqPlan' | 'signedOut';
 
-/**
- * Round 3 `q3-matrix`, cell for cell. Order of cells = {@link CTA_COLUMNS}.
- * Still `*` (no target in the app yet): Passende Schiffe / Passende Waffen
- * (no reverse port / ammo lookup), Montieren (the loadout editors take no
- * "mount this" entry), Bezugsquelle for ships (no ship shop data), Zum Einsatz
- * (no mission kind, no add-to-Einsatz flow).
- */
+/** Round 3 `q3-matrix`, cell for cell. Order of cells = {@link CTA_COLUMNS}. */
 export const CTA_MATRIX: Readonly<Record<CtaRowKey, readonly Cell[]>> = {
-  neutral:   ['myLoadout', 'compareWith', '*', 'inSet', '*', 'materialToSupply', 'atRsi', 'allProducts', '*'],
-  chipShip:  ['compareWith', 'compareWith', '*', 'N', 'N', 'N', 'N', 'N', 'N'],
-  chipItem:  ['*', 'N', 'compareSame', 'compareSame', 'N', 'N', 'N', 'N', 'N'],
+  neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+  chipShip:  ['compareWith', 'compareWith', 'mount', 'N', 'N', 'N', 'N', 'N', 'N'],
+  chipItem:  ['mount', 'N', 'compareSame', 'compareSame', 'N', 'N', 'N', 'N', 'N'],
   hqHangar:  ['myLoadout', 'add', 'whereInstalled', 'inSet', 'N', 'N', 'atRsi', 'N', 'N'],
   hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'N', '-', 'N', 'N'],
-  hqPlan:    ['planOps', '*', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'N', 'N', '*'],
-  signedOut: ['-', 'add', '*', 'N', 'N', 'N', 'atRsi', 'allProducts', 'N'],
+  hqPlan:    ['planOps', 'shipSource', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'N', 'N', 'toEinsatz'],
+  signedOut: ['-', 'add', 'fittingShips', 'N', 'N', 'N', 'atRsi', 'allProducts', 'N'],
 };
+
+/** The id of the where-to-buy section on a Codex ship page (Bezugsquelle). */
+export const SHIP_SOURCE_FRAGMENT = 'bezugsquelle';
+
+/** Chip kinds that mount on a port (Montieren). */
+const MOUNTABLE_CHIP: ReadonlySet<string> = new Set(['weapon', 'component', 'item']);
 
 const KINDS_WITH_COMPARE: ReadonlySet<PolyHitKind> = new Set<PolyHitKind>([
   'ship', 'weapon', 'component', 'item', 'ammunition', 'blueprint',
@@ -69,6 +76,7 @@ const KINDS_WITH_COMPARE: ReadonlySet<PolyHitKind> = new Set<PolyHitKind>([
 const EQUIPMENT: ReadonlySet<PolyHitKind> = new Set<PolyHitKind>(['weapon', 'component', 'item', 'ammunition']);
 
 function columnOf(row: CtaRow): Column | null {
+  if (row.type === 'mission') return 'mission';
   switch (row.kind) {
     case 'ship': return 'ship';
     case 'weapon':
@@ -149,9 +157,49 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
       return cta('sourceOf', 'link', row.target ?? null);
     case 'openSet':
       return row.ownRefId ? cta('openSet', 'link', { link: hqSet(row.ownRefId), queryParams: null }) : null;
+    case 'whereInstalled':
+      return whereInstalled(row);
+    case 'fittingShips':
+      // Only a weapon / component has ports to fit; the column holds both.
+      return row.classNameSlug && (row.kind === 'weapon' || row.kind === 'component')
+        ? cta('fittingShips', 'link', { link: ['/codex', 'index'], queryParams: { kind: 'ship', fits: row.classNameSlug } })
+        : null;
+    case 'fittingWeapons':
+      return row.classNameSlug
+        ? cta('fittingWeapons', 'link', { link: ['/codex', 'index'], queryParams: { kind: 'weapon', ammo: row.classNameSlug } })
+        : null;
+    case 'mount':
+      return mount(row, ctx);
+    case 'toEinsatz':
+      return cta('toEinsatz', 'action', null, !signedIn);
     default:
       return null;
   }
+}
+
+/**
+ * Montieren: to the reader's own HQ ship with `?mount=<piece>`, where the ship
+ * page opens the picker on the first port the piece fits.
+ *  - Chip Schiff × Waffe/Komp.: the row's piece onto the reader's ship of the
+ *    chip's class (null when the reader owns none — the cell falls back).
+ *  - Chip Item × Besitz: the chip's piece onto the row's own ship.
+ */
+function mount(row: CtaRow, ctx: SearchContext): SearchCta | null {
+  const compat = ctx.chips.find((c) => c.filter.compatWith)?.filter.compatWith;
+  if (!compat) return null;
+  if (compat.kind === 'ship') {
+    if (!row.chipShipId || !row.classNameSlug || (row.kind !== 'weapon' && row.kind !== 'component')) return null;
+    return cta('mount', 'link', { link: hqShip(row.chipShipId), queryParams: { mount: row.classNameSlug } });
+  }
+  const ship = loadoutShipId(row);
+  if (!ship || !MOUNTABLE_CHIP.has(compat.kind)) return null;
+  return cta('mount', 'link', { link: hqShip(ship), queryParams: { mount: compat.className } });
+}
+
+/** Bezugsquelle of a ship: its Codex page, scrolled to the UEX where-to-buy section. */
+function shipSource(row: CtaRow): SearchCta | null {
+  if (!row.target) return null;
+  return cta('sourceOf', 'link', { ...row.target, fragment: SHIP_SOURCE_FRAGMENT });
 }
 
 /**
@@ -163,7 +211,7 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
 function whereInstalled(row: CtaRow): SearchCta | null {
   const ship = row.ownership?.fittedOn[0]?.shipId ?? row.ownership?.equippedOnShipId ?? null;
   if (!ship) return null;
-  return { id: 'myLoadout', labelKey: 'search.cta.whereInstalled', type: 'link', target: { link: hqShip(ship), queryParams: null }, needsSignIn: false };
+  return cta('whereInstalled', 'link', { link: hqShip(ship), queryParams: null });
 }
 
 /**
@@ -181,6 +229,8 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
   if (row.type === 'own') {
     if (row.ownKind === 'set') return build('openSet', row, ctx, signedIn);
     if (row.ownKind === 'item') return build('whereStored', row, ctx, signedIn);
+    // Chip Item × Besitz: the reader's own ship takes the chip's piece.
+    if (signedIn && ctaRowKey(ctx, signedIn) === 'chipItem') return build('mount', row, ctx, signedIn) ?? build('myLoadout', row, ctx, signedIn);
     return build('myLoadout', row, ctx, signedIn);
   }
 
@@ -204,11 +254,15 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
   }
 
   const chipItemKind = ctx.chips.find((c) => c.filter.compatWith)?.filter.compatWith?.kind;
+  // Cells that may not resolve for this row (no own ship of the chip's class,
+  // fitted nowhere, a component in the Passende-Schiffe column): fall back.
+  const fallible = new Set<Cell>(['whereInstalled', 'mount', 'shipSource', 'fittingShips', 'fittingWeapons']);
   const own = (cell: Cell): SearchCta | null | 'neutral' => {
     if (cell === '-') return null;
-    if (cell === '*' || cell === 'N' || cell === 'whereInstalled') return 'neutral';
+    if (cell === 'N' || cell === 'whereInstalled') return 'neutral';
     if (cell === 'compareSame') return chipItemKind && chipItemKind === row.kind ? build('compareWith', row, ctx, signedIn) : 'neutral';
-    return build(cell, row, ctx, signedIn);
+    const built = cell === 'shipSource' ? shipSource(row) : build(cell, row, ctx, signedIn);
+    return built === null && fallible.has(cell) ? 'neutral' : built;
   };
 
   let result = own(CTA_MATRIX[key][idx]);
@@ -216,7 +270,7 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
   if (result === null && owned && CTA_MATRIX[key][idx] !== '-') result = own(CTA_MATRIX[key][neutralIdx]);
   if (result !== 'neutral') return result;
 
-  const neutral = own(CTA_MATRIX.neutral[owned && CTA_MATRIX.neutral[idx] !== '*' ? idx : neutralIdx]);
+  const neutral = own(CTA_MATRIX.neutral[owned ? idx : neutralIdx]);
   return neutral === 'neutral' ? null : neutral;
 }
 

@@ -95,7 +95,12 @@ export type SearchCtaId =
   | 'whereStored'
   | 'planOps'
   | 'sourceOf'
-  | 'openSet';
+  | 'openSet'
+  | 'whereInstalled'
+  | 'fittingShips'
+  | 'fittingWeapons'
+  | 'mount'
+  | 'toEinsatz';
 
 /** The one main action of a row. `link` navigates (render an anchor), `action` is handled by the host. */
 export interface SearchCta {
