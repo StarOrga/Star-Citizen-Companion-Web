@@ -1,6 +1,6 @@
 # Performance-Plan — flüssiger Start auf PC und Handy
 
-Stand: 2026-11-03 · Branch `claude/funny-keller-7pm4ty` · Auftrag des Owners:
+Stand: 2026-11-04 · Branch `claude/funny-keller-7pm4ty` · Auftrag des Owners:
 
 > Die Seite soll beim Öffnen auf PC und Handy ohne Ruckler laufen (die Lags gab
 > es auch auf einem PC mit 250-Mbit-Leitung). **Qualität und Funktionen bleiben
@@ -80,6 +80,28 @@ Weitere Commits: `6e21c8f` (Anisotropie-Limit einmal vor den Uploads lesen —
 verteilen war **schlechter**: 5,8-s-Blockade, nicht wieder versuchen),
 `0eaf5b3` (`set_ui_pref` nur bei echter Änderung), `e91249b` (SW-Timeout 4 s),
 `a28e2f0` (`rsi-upcoming-ships` memoisiert).
+
+### Endstand (Produktions-Build, 2026-11-04 ~00:25 MEZ)
+
+| Seite | Ergebnis |
+|---|---|
+| `/verse` (Beta) | Planet fertig nach **0,89 s**; 3 Long Tasks (max. 0,42 s = Textur-Upload auf SwiftShader) |
+| `/verse` | 2 Long Tasks, **0,12 s** gesamt |
+| `/verse` (deutsch) | `de.json` nach 31 ms, `en.json` erst nach 4,1 s (#907) |
+| `/hq` | max. 0,6 s = ein WebGL-Kontext der 3D-Figur auf SwiftShader (echte GPU ~50–150 ms), vorher 1,1–1,2 s mit zweitem Probe-Kontext |
+| `/codex` | 2 Long Tasks, max. 0,1 s; Leerlauf weggescrollt 0 ms statt 236 ms / 5 s |
+
+Checks auf diesem Stand: Typecheck ✔, Lint 0 Fehler ✔, Karma **5331/5331** ✔,
+`test:gate` 89/89 ✔, `test:functions` 340/340 ✔, `npm run build` inkl. aller
+Prebuild-Guards ✔, `gate:mobile:quick` grün ✔.
+
+**Deploy-Hinweis:** Die zwei Edge-Function-Änderungen (`fetch-verse-news`,
+`rsi-upcoming-ships`) wirken erst nach `npm run functions:deploy` bzw. dem
+Deploy-Workflow nach dem Merge.
+
+Noch nicht untersucht: LCP liegt in der Lab-Messung auf `/verse` und `/codex`
+bei ~3 s (vor wie nach den Änderungen) — mit echten `web_vitals`-Daten aus
+PostHog prüfen, ob das echte Nutzer betrifft, bevor man es angeht.
 
 ## 4. Offen — in dieser Reihenfolge
 
