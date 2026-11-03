@@ -216,7 +216,15 @@ export class BriefingPlanetComponent {
       }
       for (const tr of trails.keys()) if (!net.trains.includes(tr)) trails.delete(tr);
     };
+    // Off screen (scrolled past the stage, the sticky canvas left with it) nothing is drawn that
+    // anyone sees, but the loop kept stepping the trains and redrawing the GL planet. It pauses
+    // there and picks up again on return (dt is clamped below, so the world just moves on).
+    let onScreen = true;
     const tick = (now: number) => {
+      if (!onScreen) {
+        frame = 0;
+        return;
+      }
       const dt = Math.min(100, now - last);
       last = now;
       time += dt / 1000;
@@ -236,8 +244,17 @@ export class BriefingPlanetComponent {
     // Capture: the shell may scroll an inner element instead of the window.
     addEventListener('resize', onResize);
     document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    const io = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([e]) => {
+      onScreen = e.isIntersecting;
+      if (onScreen && !reduce && !frame) {
+        last = performance.now();
+        frame = requestAnimationFrame(tick);
+      }
+    });
+    io?.observe(this.host);
     this.cleanup.push(() => {
       cancelAnimationFrame(frame);
+      io?.disconnect();
       removeEventListener('resize', onResize);
       document.removeEventListener('scroll', onScroll, { capture: true });
     });

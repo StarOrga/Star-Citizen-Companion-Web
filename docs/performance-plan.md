@@ -72,14 +72,11 @@ committen → pushen → hier abhaken.
 
 1. **`main` regelmäßig mergen** (`git fetch origin main && git merge origin/main`).
 
-2. **Planet-Loop entlasten** (`verse/pages/briefing/briefing-planet.component.ts › loop`):
-   - `tick` läuft jedes rAF-Frame weiter, auch wenn der Planet aus dem Bild
-     gescrollt ist (`draw` bricht nur früh ab). → IntersectionObserver auf den
-     Host: Loop anhalten, wenn nicht sichtbar; beim Wiedereintritt `last`
-     zurücksetzen (sonst Zeitsprung in `net.step`).
-   - `geometry()` ruft pro Frame zweimal `getBoundingClientRect` → nur bei
-     Scroll/Resize neu messen und cachen (Scroll-Listener existiert schon).
-   - Zeichnen ist bereits gedrosselt (Planet ≤ 15 fps, Züge ≤ 30 fps) — so lassen.
+2. ~~**Planet-Loop entlasten**~~ — erledigt: Loop pausiert per
+   IntersectionObserver, wenn der Planet aus dem Bild gescrollt ist.
+   `geometry()` (2 × `getBoundingClientRect` pro Frame) bleibt bewusst: das
+   Intro bewegt den Anker per CSS, ein Cache würde den Planeten versetzen.
+   Zeichnen ist bereits gedrosselt (Planet ≤ 15 fps, Züge ≤ 30 fps).
 
 3. **Dauer-Animationen** (Ausgabe „RUNNING ANIMATIONS“ des Profilers):
    - `/codex`: `rays` (opacity), `motes` (**background-position**, nicht
