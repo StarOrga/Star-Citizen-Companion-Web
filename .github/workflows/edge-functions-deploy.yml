@@ -171,7 +171,7 @@ jobs:
 
           for slug in $SLUGS; do
             echo "::group::deploy $slug"
-            # --yes: since CLI 2.x the deploy asks for confirmation and refuses without a TTY.
+            # --yes: the CLI asks for confirmation and refuses to deploy without a TTY.
             if supabase functions deploy "$slug" --project-ref "$PROJECT_REF" --yes; then
               deployed="$deployed $slug"
             else
