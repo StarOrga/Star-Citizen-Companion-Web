@@ -786,6 +786,7 @@
       "FuelTank": "Treibstofftank",
       "FuelIntake": "Treibstoffeinlass",
       "CargoGrid": "Frachtraster",
+      "Radar": "Radar",
       "Other": "Sonstige"
     },
     "results": {
@@ -1698,6 +1699,9 @@
       "minPower": "Mindest-Energie",
       "coolantDraw": "Kühlbedarf",
       "coolingRate": "Kühlleistung",
+      "aimAssistRange": "Reichweite (Zielhilfe)",
+      "radarSensitivity": "Empfindlichkeit (IR/EM/QS)",
+      "pingCooldown": "Ping-Abklingzeit",
       "emSignature": "EM-Signatur",
       "irSignature": "IR-Signatur",
       "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",

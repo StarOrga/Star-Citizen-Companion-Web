@@ -102,7 +102,7 @@ export type EntityKind = 'ship' | 'weapon' | 'component' | 'item' | 'blueprint';
 export type WeaponClass = 'Ship' | 'FPS';
 export type ComponentKind =
   | 'PowerPlant' | 'Shield' | 'Cooler' | 'QuantumDrive' | 'Thruster'
-  | 'FuelTank' | 'FuelIntake' | 'CargoGrid' | 'Other';
+  | 'FuelTank' | 'FuelIntake' | 'CargoGrid' | 'Radar' | 'Other';
 export type Lang = 'de' | 'en';
 
 // ── payload JSON shapes (the full per-entity extractor output) ───────────────
