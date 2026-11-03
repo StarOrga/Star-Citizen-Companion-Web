@@ -280,8 +280,11 @@ export class CommunityVerdictComponent {
     return n === 0 ? '±0' : (n > 0 ? '+' : '−') + Math.abs(n);
   }
 
+  /** Effective votes; below 10 counted votes the RPC withholds the split (no sums), so the raw count stands in. */
   nEffText(): number {
-    return Math.floor(this.correction()?.nEff ?? 0);
+    const c = this.correction();
+    if (!c) return 0;
+    return c.nEff > 0 ? Math.floor(c.nEff) : c.votes;
   }
 
   distAria(): string {

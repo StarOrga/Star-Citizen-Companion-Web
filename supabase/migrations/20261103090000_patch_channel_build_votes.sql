@@ -1,5 +1,5 @@
 -- ============================================================
--- 20261102200000_patch_channel_build_votes.sql
+-- 20261103090000_patch_channel_build_votes.sql
 --
 -- Community verdict on a running Hotfix / PTU BUILD (#885, split from #836).
 -- The LIVE line keeps patch_stability_votes (FK to patch_stability_patches);
@@ -22,8 +22,9 @@
 --   - the restrictive is_approved() gate like every other self-scoped table,
 --     and the aggregate drops votes of accounts that are no longer approved or
 --     are suspended (a vote cannot be withdrawn, so this is the moderation lever),
---   - vote ages are rounded to the hour before weighting, so the public sums
---     do not reveal a vote's exact timestamp.
+--   - the public sums never reveal a single vote: a vote counts from the next
+--     full hour on (hourly batches), its age is rounded to the hour, and below
+--     10 counted votes the RPC returns the count only, no split.
 -- Ties on thread_first_at resolve by version desc in the trigger and the RPC.
 -- The minimum effective votes and the +-10 point cap are applied client-side
 -- by communityCorrection() (src/app/news/patch-stability.ts) - one formula.
@@ -196,31 +197,44 @@ as $$
     join public.profiles p on p.id = v.user_id
    where p.is_approved
      and (p.suspended_at is null or (p.suspended_until is not null and p.suspended_until <= now()))
+     -- Hourly batches: a vote counts from the next full hour on, so polling
+     -- cannot tie a change in the sums to one vote (#885 redteam R3).
+     and v.updated_at < date_trunc('hour', now())
+  ),
+  agg as (
+    select w.channel, w.version, count(*)::integer as n,
+           sum(w.w) filter (where w.verdict = 'stabil')   as ws,
+           sum(w.w) filter (where w.verdict = 'wackelig') as ww,
+           sum(w.w) filter (where w.verdict = 'instabil') as wi,
+           sum(w.w) as sw, sum(w.w * w.w) as sw2
+      from weighted w
+     group by w.channel, w.version
   )
+  -- Below 10 counted votes only the count leaves the function, never the
+  -- split (the client shows no distribution before 25 effective votes anyway).
   select
     b.channel, b.version, b.line, b.wave, b.thread_first_at, b.replies,
     b.top_ticket_share, b.top_ticket_vote_share,
-    coalesce(sum(w.w) filter (where w.verdict = 'stabil'), 0)::double precision,
-    coalesce(sum(w.w) filter (where w.verdict = 'wackelig'), 0)::double precision,
-    coalesce(sum(w.w) filter (where w.verdict = 'instabil'), 0)::double precision,
-    coalesce(sum(w.w), 0)::double precision,
-    coalesce(sum(w.w * w.w), 0)::double precision,
-    count(w.verdict)::integer,
+    case when a.n >= 10 then coalesce(a.ws, 0) else 0 end::double precision,
+    case when a.n >= 10 then coalesce(a.ww, 0) else 0 end::double precision,
+    case when a.n >= 10 then coalesce(a.wi, 0) else 0 end::double precision,
+    case when a.n >= 10 then coalesce(a.sw, 0) else 0 end::double precision,
+    case when a.n >= 10 then coalesce(a.sw2, 0) else 0 end::double precision,
+    coalesce(a.n, 0),
     o.verdict,
     o.updated_at + interval '12 hours'
   from builds b
-  left join weighted w on w.channel = b.channel and w.version = b.version
+  left join agg a on a.channel = b.channel and a.version = b.version
   left join public.patch_channel_build_votes o
     on o.channel = b.channel and o.version = b.version and o.user_id = (select auth.uid())
-  group by b.channel, b.version, b.line, b.wave, b.thread_first_at, b.replies,
-           b.top_ticket_share, b.top_ticket_vote_share, o.verdict, o.updated_at
   order by b.channel;
 $$;
 
 comment on function public.patch_channel_build_vote_state() is
   'Per running Hotfix / PTU build: its raw Spectrum numbers, the weighted '
   'community-verdict sums (accounts < 7 days weigh 0, half-life 7 days on '
-  'updated_at), the raw vote count and the caller''s own vote with the time it '
+  'updated_at, counted from the next full hour, split withheld below 10 votes), '
+  'the counted votes and the caller''s own vote with the time it '
   'becomes changeable. SECURITY DEFINER (reads auth.users.created_at and other '
   'users'' rows); returns no user id. The correction formula is client-side.';
 

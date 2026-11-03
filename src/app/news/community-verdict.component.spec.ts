@@ -141,6 +141,13 @@ describe('CommunityVerdictComponent', () => {
     expect(el.textContent).toContain('Not enough votes (12 of 25)');
   });
 
+  it('below 10 counted votes the RPC withholds the split: the raw count stands in', () => {
+    agg.set({ ...AGG, wStabil: 0, wWackelig: 0, wInstabil: 0, sumW: 0, sumW2: 0, votes: 7 });
+    const { el } = render();
+    expect(el.querySelector('.bar')).toBeNull();
+    expect(el.textContent).toContain('Not enough votes (7 of 25)');
+  });
+
   it('signed out: the result shows normally with a sign-in hint instead of vote buttons', () => {
     user.set(null);
     const { el } = render();
