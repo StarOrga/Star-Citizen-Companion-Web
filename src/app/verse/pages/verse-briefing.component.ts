@@ -73,10 +73,24 @@ export const TITLE_MIN_SCALE = 0.55;
 /** Entrance length in seconds: the full "Anflug" once per session, a short one afterwards. */
 export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 1 };
 
-/** Hub title sequence (beta shell), seconds at --k 1: letterbox, title cascade, search, calm, details, comet. */
-/** Longest the first-visit intro waits for the live planet before it starts with the CSS fallback. */
-export const INTRO_HOLD_MS = 3000;
-export const HUB_INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 6.4, short: 1.1 };
+/*
+ * β shell entrance (owner brief 2026-11-04), played on the first visit of a session or a
+ * reload when the page opened on the hub; coming back shows the final state at once.
+ * Stars only, then the app's name sharpens in the hero (0.35 s +45 ms/letter), the bars
+ * open, the main header (1.9 s) and the search field (2.3 s) arrive, the sun (2.6 s) and
+ * the doors and news float in (2.9 s). The planet slides in from below whenever it is
+ * ready — it no longer holds anything up. The comet comes last, once all of that stood
+ * AND the planet did (or the wait ran out); it lights the constellation and hands the
+ * hero from the app's name to the first story.
+ */
+/** Everything but the planet and the finale stands this long after the entrance started. */
+export const INTRO_BUILD_MS = 3600;
+/** Longest the finale waits for the planet; past it the planet slides in whenever it arrives. */
+export const INTRO_PLANET_WAIT_MS = 7000;
+/** Into the finale: the comet has landed, the hero switches from the app's name to the first story. */
+export const INTRO_SWITCH_MS = 800;
+/** Into the finale: the constellation finished building, the entrance is over. */
+export const INTRO_FINALE_MS = 2800;
 
 interface Gate {
   door: VerseDoor;
@@ -199,8 +213,13 @@ export class VerseBriefingComponent {
 
   readonly top = this.api.topItems;
 
-  /** Claimed only when the cinematic actually renders. */
-  readonly intro: IntroMode = this.enabled() ? claimIntro() : 'short';
+  /**
+   * Claimed only when the cinematic actually renders. On the β stage the full
+   * entrance plays only when the shell announced it at boot (the page OPENED on
+   * the hub — first visit of the session or a reload): reaching the hub from
+   * another page shows it at once instead of hiding and re-showing the header.
+   */
+  readonly intro: IntroMode = this.enabled() ? this.decideIntro() : 'short';
   readonly introSeconds = INTRO_SECONDS[this.intro];
 
   /**
@@ -416,8 +435,6 @@ export class VerseBriefingComponent {
 
   /** The scroll flight stage → hub (briefing-dock): where the page stands, and whether the planets fly. */
   readonly dock = signal<DockState>('top');
-  /** The live planet took far too long: the CSS planet stands in (otherwise it only lends geometry — #8a, no old→new morph). */
-  readonly cssFallback = signal(false);
   /** A message stands in the holo: the "more" cue is hidden meanwhile (#1). */
   readonly newsShown = signal(false);
   readonly dockFlying = signal(false);
@@ -451,22 +468,12 @@ export class VerseBriefingComponent {
 
     if (this.shell()) this.wireStage();
     if (this.shell()) this.startTitleIntro();
-    if (this.shell()) {
-      // The planet's own world is generated on the first visit; the intro waits for it (at most
-      // INTRO_HOLD_MS), so the slot is never empty while the camera moves (#8a). Past that, the
-      // CSS planet stands in and the sequence starts anyway.
-      const cap = setTimeout(() => {
-        this.cssFallback.set(true);
-        this.releaseIntro();
-      }, INTRO_HOLD_MS);
-      const fb = setTimeout(() => this.cssFallback.set(true), 8000);
-      this.destroyRef.onDestroy(() => { clearTimeout(cap); clearTimeout(fb); });
-    }
 
     // "Gesehen": a story counts as shown once it stood in the hero for 5 s of
     // focused time; the clock restarts with every switch.
     effect(() => {
-      const key = this.enabled() ? (this.current()?.item.key ?? null) : null;
+      // The app's name in the hero during the entrance is no story: nothing is counted then.
+      const key = this.enabled() && !this.brand() ? (this.current()?.item.key ?? null) : null;
       untracked(() => {
         this.stopTracking?.();
         this.stopTracking = key ? this.api.trackShown([key]) : null;
@@ -525,7 +532,8 @@ export class VerseBriefingComponent {
     effect((onCleanup) => {
       const n = this.stories().length;
       this.index();
-      if (!on() || this.heroHold() || n < 2) return;
+      // The first story gets its full turn once it takes over from the app's name.
+      if (!on() || this.heroHold() || this.brand() || n < 2) return;
       const id = setTimeout(() => this.advance(), HERO_MS);
       onCleanup(() => clearTimeout(id));
     });
@@ -533,6 +541,9 @@ export class VerseBriefingComponent {
     this.destroyRef.onDestroy(() => sub.unsubscribe());
     afterRenderEffect(() => {
       this.current();
+      // The app's name (letters) and the story (plain text) measure differently: fit again
+      // when one hands over to the other, or the story keeps the name's width and is cut.
+      this.brand();
       const el = this.titleEl()?.nativeElement;
       if (el) this.titleClipped.set(fitTitle(el));
     });
@@ -584,46 +595,71 @@ export class VerseBriefingComponent {
     this._index.set((this.index() + dir + n) % n);
   }
 
-  /** True while the title letters cascade in; afterwards the title renders as plain text again. */
+  /** The entrance plays (first visit / reload on the β stage, motion allowed). */
   readonly titleIntro = signal(false);
-  /** The intro timeline may start: the live planet stands (or will not come), or the hold ran out. */
-  readonly introGo = signal(this.intro === 'short');
-  private introTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The app's name stands in the hero while the entrance builds up; the first story takes over in the finale. */
+  readonly brand = signal(false);
+  /** The entrance's last beat: the comet flies in and lights the constellation. */
+  readonly finale = signal(false);
   /** The hero title needed more than two lines even at the smallest size: it is cut with an ellipsis. */
   readonly titleClipped = signal(false);
+  private introTimers: ReturnType<typeof setTimeout>[] = [];
+  private builtUp = false;
+  private planetSettled = false;
 
-  /** Splits the hub title into letters for the entrance only (never under reduced motion). */
+  private decideIntro(): IntroMode {
+    const claimed = claimIntro();
+    if (!this.shell()) return claimed;
+    return claimed === 'full' && this.chrome.heroIntro()?.hold === true ? 'full' : 'short';
+  }
+
+  /** Starts the entrance on a full visit (never under reduced motion); otherwise the final state shows at once. */
   private startTitleIntro(): void {
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || !this.enabled()) return;
+    if (reduce || !this.enabled() || this.intro !== 'full') {
+      // An announced entrance that will not play must not keep the header hidden.
+      if (this.chrome.heroIntro()?.hold) this.chrome.endHeroIntro();
+      return;
+    }
     this.titleIntro.set(true);
-    if (this.introGo()) this.beginIntro();
+    this.brand.set(true);
+    // The shell reveals its main header (1.9 s) and search field (2.3 s) in step with it.
+    this.chrome.startHeroIntro(1, true);
+    this.introTimers.push(
+      setTimeout(() => {
+        this.builtUp = true;
+        this.maybeFinale();
+      }, INTRO_BUILD_MS),
+      setTimeout(() => this.startFinale(), INTRO_PLANET_WAIT_MS),
+    );
     this.destroyRef.onDestroy(() => {
-      clearTimeout(this.introTimer);
+      this.introTimers.forEach(clearTimeout);
       this.chrome.endHeroIntro();
     });
   }
 
-  /** The live planet is drawn (or failed): lets the held intro start. */
-  releaseIntro(): void {
-    if (this.introGo() || !this.titleIntro()) return;
-    this.introGo.set(true);
-    this.beginIntro();
+  /** Planet output: it stands (drawn) or will not come (no WebGL) — the finale may follow. */
+  onPlanetSettled(): void {
+    this.planetSettled = true;
+    this.maybeFinale();
   }
 
-  /** Planet output: one macrotask later, so the planet's own class flip (no fade-in) renders first. */
-  onPlanetReady(): void {
-    setTimeout(() => this.releaseIntro(), 0);
+  private maybeFinale(): void {
+    if (this.builtUp && this.planetSettled) this.startFinale();
   }
 
-  private beginIntro(): void {
-    // The shell reveals its search field and (first visit) the main header in step with it.
-    // Kurz-Auftakt: the shell's field ignites at ~0.5 s (3.4 s × 0.15), inside the 1 s.
-    this.chrome.startHeroIntro(this.intro === 'full' ? 1 : 0.15, this.intro === 'full');
-    this.introTimer = setTimeout(() => {
-      this.titleIntro.set(false);
-      this.chrome.endHeroIntro();
-    }, (HUB_INTRO_SECONDS[this.intro] + 0.4) * 1000);
+  /** The comet, the constellation, then the first story takes over from the app's name. */
+  private startFinale(): void {
+    if (this.finale() || !this.titleIntro()) return;
+    this.finale.set(true);
+    this.introTimers.push(
+      setTimeout(() => this.brand.set(false), INTRO_SWITCH_MS),
+      setTimeout(() => {
+        this.finale.set(false);
+        this.titleIntro.set(false);
+        this.chrome.endHeroIntro();
+      }, INTRO_FINALE_MS),
+    );
   }
 
   /** Letters of a (translated) title for the cascade. */

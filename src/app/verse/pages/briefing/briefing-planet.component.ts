@@ -11,9 +11,10 @@ import { DAY_MS, Vec3, generateWorld, project, seeded } from './planet/planet-wo
  * a WebGL sphere that turns once in 30 minutes under a fixed sun, with city
  * lights on its night side, 2–5 trains on the rail network and an aurora now
  * and then. It draws into a sticky, viewport-tall canvas inside the stage's
- * `.world-clip` and takes its geometry from the CSS planet (`anchor`), which
- * stays in place as the fallback — no WebGL, or the world still generating,
- * and the reader simply sees the opaque CSS planet.
+ * `.world-clip` and takes its geometry from the CSS planet (`anchor`). That one
+ * is invisible: it is shown only when no live planet can come (no WebGL). While
+ * the live one loads, the stars show — there is never a second, plainer planet
+ * underneath it (owner feedback 2026-11-04: it showed through while scrolling).
  *
  * The turn follows the wall clock, so every visit shows another part of the
  * world. Under reduced motion the planet is drawn once and stands still.
@@ -25,17 +26,20 @@ import { DAY_MS, Vec3, generateWorld, project, seeded } from './planet/planet-wo
   host: { 'aria-hidden': 'true', '[class.on]': 'ready()', '[class.instant]': 'instant() || snap()' },
   template: '<canvas class="bp-gl"></canvas><canvas class="bp-trains"></canvas>',
   styles: [`
-    :host { position: sticky; top: 0; display: block; width: 100%; height: 100vh; height: 100dvh; pointer-events: none; opacity: 0; transition: opacity 0.9s ease-out; }
-    :host(.instant) { transition: none; }
-    :host(.on) { opacity: 1; }
+    :host { position: sticky; top: 0; display: block; width: 100%; height: 100vh; height: 100dvh; pointer-events: none; opacity: 0; }
+    /* It slides in from below the moment it stands — whenever that is; the entrance never waits
+       for it (owner brief 2026-11-04). Built earlier in this document: it simply stands. */
+    :host(.on) { opacity: 1; animation: planet-in 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    :host(.on.instant) { animation: none; }
+    @keyframes planet-in { from { opacity: 0; transform: translateY(16vh); } to { opacity: 1; transform: none; } }
     canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-    @media (prefers-reduced-motion: reduce) { :host { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { :host(.on) { animation: none; } }
   `],
 })
 export class BriefingPlanetComponent {
   /** The CSS planet: the live one is drawn exactly over it. */
   readonly anchor = input.required<HTMLElement>();
-  /** The page holds its intro for the planet: it appears at once instead of fading in (#8a). */
+  /** Appear at once instead of sliding in; also makes a fallback generation run in fat slices. */
   readonly snap = input(false);
   /** Fires once the planet is drawn for the first time. */
   readonly drawn = output<void>();

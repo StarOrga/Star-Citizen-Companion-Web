@@ -23,11 +23,23 @@ export const DOCK_EASE_MS = 1100;
 export interface HeroIntro {
   k: number;
   full: boolean;
+  /**
+   * The entrance is announced but has not started: header and search field
+   * stand at their first frame (hidden) until the hub starts it. Set by the
+   * shell at boot, before the hub's lazy chunk has arrived.
+   */
+  hold?: boolean;
 }
 
-/** Seconds at k = 1: the staged search field ignites / the main header appears. */
-export const HERO_INTRO_FIELD_S = 3.4;
-export const HERO_INTRO_HEADER_S = 4.85;
+/**
+ * Seconds at k = 1 after the entrance starts: the main header appears, then
+ * the staged search field ignites (owner brief 2026-11-04 — stars and the
+ * app's name first, then the chrome builds up; the comet comes last).
+ */
+export const HERO_INTRO_HEADER_S = 1.9;
+export const HERO_INTRO_FIELD_S = 2.3;
+/** A hold the hub never took over (its chunk failed to load) is dropped after this long. */
+export const HERO_INTRO_HOLD_MAX_MS = 8000;
 
 /** What a page publishes about its own header for the bar (crumbs + title). */
 export interface ChromeCrumbs {
@@ -160,6 +172,18 @@ export class ShellChromeService {
   /** The hub's title sequence starts (never call it under reduced motion). */
   startHeroIntro(k: number, full: boolean): void {
     this.introState.set({ k, full });
+  }
+
+  /**
+   * A full entrance is ahead (the shell knows at boot, the hub's chunk is still
+   * loading): header and search field stay at their hidden first frame until
+   * `startHeroIntro` plays them. Dropped by itself if no hub takes it over.
+   */
+  holdHeroIntro(): void {
+    this.introState.set({ k: 1, full: true, hold: true });
+    setTimeout(() => {
+      if (this.introState()?.hold) this.introState.set(null);
+    }, HERO_INTRO_HOLD_MAX_MS);
   }
 
   /** The hub's title sequence is over or the hub left. */

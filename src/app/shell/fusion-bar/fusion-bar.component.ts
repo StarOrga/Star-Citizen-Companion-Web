@@ -106,6 +106,8 @@ const MAX_TOKENS = 3;
     '[class.settled]': 'chrome.dockFull()',
     '[class.entering]': 'entering()',
     '[class.hero-intro]': 'heroIntro()',
+    '[class.intro-hold]': 'introHold()',
+    '[class.intro-hidden]': 'introHidden()',
     '[style.--sc-intro-k]': 'introK()',
     '[class.placed]': 'placed()',
     '[class.public]': "variant() === 'public'",
@@ -321,8 +323,21 @@ export class FusionBarComponent {
   readonly hidden = signal(false);
   readonly morphing = signal(false);
   readonly entering = signal(false);
-  /** The hub's title sequence runs: the staged field hides until 3.4 s and ignites in step with it. */
+  /** The hub's title sequence runs: the staged field hides until 2.3 s and ignites in step with it. */
   readonly heroIntro = computed(() => this.chrome.heroIntro() !== null && this.mode() === 'stage');
+  /** The entrance is announced but not started yet: the field's animation stands at its hidden first frame. */
+  readonly introHold = computed(() => this.chrome.heroIntro()?.hold === true);
+  /**
+   * A full entrance is ahead or running while the bar is not (yet) on the
+   * stage — at boot the hub's search slot does not exist yet, and the bar
+   * showed as a plain field, only to vanish when the entrance started and
+   * ignite again later (owner feedback 2026-11-04). It stays out of sight
+   * until it stands on the stage, where its own entrance takes over.
+   */
+  readonly introHidden = computed(() => {
+    const h = this.chrome.heroIntro();
+    return !!h && h.full && (h.hold === true || this.mode() !== 'stage');
+  });
   readonly introK = computed(() => this.chrome.heroIntro()?.k ?? 1);
   /** Main page scrolled past the threshold: the staged field docked as the subheader. */
   readonly docked = signal(false);

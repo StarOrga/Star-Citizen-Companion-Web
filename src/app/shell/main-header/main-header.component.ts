@@ -49,6 +49,7 @@ export const MAIN_NAV_SLOT_PX = 112;
     '[class.snap]': 'snap()',
     '[attr.inert]': "compressed() || introWait() ? '' : null",
     '[class.hero-intro]': 'introWait()',
+    '[class.intro-hold]': 'introHold()',
     '[style.--sc-intro-k]': 'introK()',
   },
   template: `
@@ -124,9 +125,14 @@ export const MAIN_NAV_SLOT_PX = 112;
       :host([data-ease]) {
         transition: --sc-dock-p 1.1s var(--mh-ease);
       }
-      /* First Verse visit: the header appears only when the hub's title sequence reaches 4.85 s. */
+      /* First Verse visit: the header appears when the hub's entrance reaches 1.9 s (after
+         the stars and the app's name). Announced but not started (.intro-hold): it stands
+         at its hidden first frame — from the very first paint, not only once the hub loaded. */
       :host(.hero-intro) {
-        animation: mh-intro calc(0.6s * var(--sc-intro-k, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(4.85s * var(--sc-intro-k, 1)) both;
+        animation: mh-intro calc(0.6s * var(--sc-intro-k, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(1.9s * var(--sc-intro-k, 1)) both;
+      }
+      :host(.hero-intro.intro-hold) {
+        animation-play-state: paused;
       }
       @keyframes mh-intro {
         from { opacity: 0; transform: translateY(-14px); }
@@ -493,8 +499,10 @@ export class MainHeaderComponent {
   readonly activeIndex = computed(() => this.areas().findIndex((a) => a.id === this.activeArea()));
   readonly activeElevated = computed(() => this.areas()[this.activeIndex()]?.elevated ?? false);
 
-  /** The hub's first-visit intro holds the header back until its 4.85 s mark. */
+  /** The hub's first-visit intro holds the header back until its 1.9 s mark. */
   readonly introWait = computed(() => this.chrome.heroIntro()?.full === true);
+  /** The entrance is announced but not started: the header stands at its hidden first frame. */
+  readonly introHold = computed(() => this.chrome.heroIntro()?.hold === true);
   readonly introK = computed(() => this.chrome.heroIntro()?.k ?? 1);
 
   constructor() {

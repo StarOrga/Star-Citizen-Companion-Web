@@ -5,14 +5,14 @@
          carries the hub columns further down — one cinematic picture. The live
          WebGL planet draws over the CSS one once its world is generated; the
          CSS planet stays as the fallback and as its geometry. -->
-    <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.css-planet]="planet.failed() || cssFallback()">
+    <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.css-planet]="planet.failed()" [class.cinema]="titleIntro()">
       <div class="brief-world" #world></div>
       <div class="city"></div>
-      <sc-briefing-planet #planet [anchor]="world" [snap]="titleIntro() && !introGo()" (drawn)="onPlanetReady()" (unavailable)="releaseIntro()" />
+      <sc-briefing-planet #planet [anchor]="world" (drawn)="onPlanetSettled()" (unavailable)="onPlanetSettled()" />
     </div>
     <!-- Easter egg: a double click on the empty sky left of the hero (see the component). -->
     <sc-briefing-asteroid #egg [planet]="world" (passing)="shake()" />
-    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro() && introGo()" [class.hold]="titleIntro() && !introGo()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
+    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [class.finale]="finale()" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
       <div class="scn">
         <!-- Entrance only (CSS, gone after the sequence / under reduced motion): letterbox bars and the comet that lights the constellation. -->
         <i class="lb lb-t" aria-hidden="true"></i><i class="lb lb-b" aria-hidden="true"></i>
@@ -33,33 +33,37 @@
             } @else {
               @let c = current();
               <p class="kick">
-                @if (c) {
-                  {{ ('verse.hub.area.' + c.item.kind) | translate }}@if (c.unseen) {<em> · {{ 'verse.briefing.newSince' | translate }}</em>}
+                @if (c && !brand()) {
+                  <span animate.enter="t-in">{{ ('verse.hub.area.' + c.item.kind) | translate }}@if (c.unseen) {<em> · {{ 'verse.briefing.newSince' | translate }}</em>}</span>
                 }
               </p>
               <div class="hrow" (mouseenter)="holdHero(true)" (mouseleave)="holdHero(false)"
                    (focusin)="holdHero(true)" (focusout)="heroFocusOut($event)">
-                @if (stories().length > 1) {
-                  <button type="button" class="step" (click)="step(-1)" [attr.aria-label]="'verse.hub.prev' | translate"
+                @if (stories().length > 1 && !brand()) {
+                  <button type="button" class="step" animate.enter="t-in" (click)="step(-1)" [attr.aria-label]="'verse.hub.prev' | translate"
                           [scTooltip]="'verse.hub.prev' | translate" scTooltipTier="label"><span class="chev l" aria-hidden="true"></span></button>
                 }
                 <h1 class="title2" #titleEl>
-                  @if (c) {
+                  @if (brand()) {
+                    <!-- The entrance: the app's name in the hero, its letters sharpening out of blur. -->
+                    @let name = 'verse.hub.brand' | translate;
+                    <span class="tl brand"><span class="sc-sr-only">{{ name }}</span>@for (ch of chars(name); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}</span>
+                  } @else if (c) {
                     @for (st of currentList(); track st.item.key) {
                       @if (st.link.internal) {
                         <a class="tl" animate.enter="t-in" [scTooltip]="st.item.title" [scTooltipDisabled]="!titleClipped()" [routerLink]="st.link.path" [queryParams]="st.link.query"
-                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">@if (titleIntro()) {<span class="sc-sr-only">{{ st.item.title }}</span>@for (ch of chars(st.item.title); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}} @else {<ng-container>{{ st.item.title }}</ng-container>}</a>
+                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">{{ st.item.title }}</a>
                       } @else {
                         <a class="tl" animate.enter="t-in" [scTooltip]="st.item.title" [scTooltipDisabled]="!titleClipped()" [href]="st.link.path" target="_blank" rel="noopener noreferrer"
-                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">@if (titleIntro()) {<span class="sc-sr-only">{{ st.item.title }}</span>@for (ch of chars(st.item.title); track ch.i) {<i class="ltr" aria-hidden="true" [style.--i]="ch.i">{{ ch.c }}</i>}} @else {<ng-container>{{ st.item.title }}</ng-container>}</a>
+                           (click)="openItem(st.item)" (auxclick)="openItem(st.item)">{{ st.item.title }}</a>
                       }
                     }
                   } @else {
                     <span class="tl">{{ 'verse.briefing.headlineQuiet' | translate }}</span>
                   }
                 </h1>
-                @if (stories().length > 1) {
-                  <button type="button" class="step" (click)="step(1)" [attr.aria-label]="'verse.hub.next' | translate"
+                @if (stories().length > 1 && !brand()) {
+                  <button type="button" class="step" animate.enter="t-in" (click)="step(1)" [attr.aria-label]="'verse.hub.next' | translate"
                           [scTooltip]="'verse.hub.next' | translate" scTooltipTier="label"><span class="chev r" aria-hidden="true"></span></button>
                 }
               </div>
