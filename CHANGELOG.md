@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.203.1] - 2026-11-04
+
+### Fixed
+- Data Uploader 0.72.1: the total CPU load now uses the same measure as Task Manager, so it no longer reads too high.
+- Data Uploader: the blue share in the performance panel no longer shows the app's own CPU use far too small (by the number of processor threads).
+- Data Uploader: the bars at the top of the performance panel keep the same 10 LEDs whether it is folded or unfolded.
+
 ## [0.203.0] - 2026-11-04
 
 ### Changed
