@@ -226,3 +226,33 @@ committen → pushen → hier abhaken.
 12. **Abschluss**: voller Lauf (`npm run lint`, `npm test`, `npm run test:gate`,
     `npm run test:functions`, `npm run build`), Nachmessung mit dem Profiler,
     Vorher/Nachher-Tabelle hier ergänzen.
+
+---
+
+## 5. Folgeauftrag 2026-11-04 — Kino-Intro auf `/verse` (Beta-Bühne)
+
+Owner-Feedback nach v0.201.0: Beim Neuladen (`Strg+R`) erscheint erst ein
+blauer Hintergrund, dann das Sternbild, der Planet blinkt, dann „Patches 4.10“
+(die „10“ abgeschnitten), dann die Suche — der Rest ploppt auf, statt sich
+aufzubauen; die Suche taucht auf, verschwindet und kommt wieder; alles
+verschwindet kurz außer den Admin-Elementen; die Sternschnuppe kommt mitten im
+Aufbau.
+
+**Soll-Ablauf** (nur erster Besuch in der Sitzung bzw. Neuladen; Rückkehr
+innerhalb der Sitzung = alles sofort da):
+
+1. Zuerst **nur der Sternenhimmel**.
+2. In der Mitte, wo sonst der erste Titel steht: **„Star Citizen Companion“**.
+3. Danach baut sich alles **nacheinander und weich** auf: Kopfzeile, Suche,
+   Beacons/Monde. Kein Element erscheint, verschwindet und kommt wieder.
+4. Der große Planet **schiebt sich von unten herein**, sobald er geladen ist —
+   kein Blinken.
+5. Die **Sternschnuppe** erst ganz am Schluss („alles fertig“).
+6. Dann springt der Titel auf die erste Meldung; „Star Citizen Companion“
+   kommt in der Rotation **nicht** mehr vor.
+7. Admin-Elemente (Admin-Konsole unten rechts, Admin-Links) stehen ohne
+   Animation da.
+8. Fehler: Titel abgeschnitten, Planet blinkt, alles verschwindet kurz.
+
+Ansehen: Bildfolge über CDP `Page.captureScreenshot` (Playwrights
+`page.screenshot` wartet auf der Beta-Bühne bis zu 9 s auf einen Frame).
