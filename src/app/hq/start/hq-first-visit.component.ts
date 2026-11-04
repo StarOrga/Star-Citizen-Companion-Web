@@ -13,7 +13,7 @@ interface LaunchStep {
 
 /**
  * The first-visit block of the Start page (concept D9): the promise as the quiet heading of the
- * launch steps, three steps (RSI-Hangar holen · SCC-App verbinden · Ersten Einsatz planen), the
+ * launch steps, three steps (RSI-Hangar holen · SCC-App starten · Ersten Einsatz planen), the
  * primary "Los geht's" with "Überspringen" under it and a quiet "≈ 4 Minuten". No progress bar.
  * A step that turns done plays a short tick animation (not under reduced motion).
  * Every step leads somewhere, so each is a real anchor.
@@ -98,7 +98,7 @@ export class HqFirstVisitComponent {
   readonly goLink = [hqHangar];
   readonly steps = computed<LaunchStep[]>(() => [
     { id: 1, key: 'hangar', link: [hqHangar], done: this.hangarDone() },
-    { id: 2, key: 'app', link: ['/apps'], done: this.appDone() },
+    { id: 2, key: 'app', link: [HQ_ROOT], fragment: hqPage('jetzt').fragment, done: this.appDone() },
     { id: 3, key: 'einsatz', link: [HQ_ROOT], fragment: hqPage('planen').fragment, done: this.einsatzDone() },
   ]);
 }

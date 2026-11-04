@@ -5055,7 +5055,7 @@
     "first": {
       "promise": "Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.",
       "step1": "RSI-Hangar holen",
-      "step2": "SCC-App verbinden",
+      "step2": "SCC-App starten",
       "step3": "Ersten Einsatz planen",
       "go": "Los geht's",
       "skip": "Überspringen",
@@ -5098,7 +5098,7 @@
       "loading": "Lade den Spielstand …",
       "retry": "Erneut versuchen",
       "connect": {
-        "title": "Spiel nicht erkannt — SCC-App verbinden",
+        "title": "Spiel nicht erkannt — SCC-App starten",
         "hint": "Die SCC-App meldet deinen Standort und deine Aktionen live hierher."
       },
       "anchor": {
@@ -5314,8 +5314,7 @@
       "preview": {
         "stamp": "Vorschau",
         "title": "Hier wächst deine Statistik",
-        "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
-        "connect": "SCC-App verbinden"
+        "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
       }
     },
     "stock": {
@@ -5361,7 +5360,14 @@
       }
     },
     "app": {
-      "download": "SCC-App herunterladen"
+      "launch": "SCC-App starten",
+      "starting": "SCC-App wird gestartet …",
+      "started": "SCC-App startet. Melde dich dort an, dann kommen deine Daten hierher.",
+      "downloading": "SCC-App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
+      "noResponse": "Die SCC-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
+      "retry": "Schon installiert? Erneut starten",
+      "download": "SCC-App herunterladen",
+      "close": "Schließen"
     }
   },
   "verse": {

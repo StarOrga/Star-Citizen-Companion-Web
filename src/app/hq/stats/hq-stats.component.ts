@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import type { HqStats, HqStatsRange } from '../data/hq-db.types';
 import { HQ_STATS_RANGES, HqStatsService } from '../data/hq-stats.service';
-import { HqAppDownloadComponent } from '../hq-app-download.component';
+import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqSparkComponent } from './hq-spark.component';
 
 export type HqTileId = 'auec' | 'missions' | 'deaths' | 'crimestat' | 'refinery' | 'blueprints';
@@ -33,7 +32,7 @@ export interface HqTile {
 @Component({
   selector: 'sc-hq-stats',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScSegmentedComponent, HqSparkComponent, ScDialogDirective, HqAppDownloadComponent],
+  imports: [TranslatePipe, ScSegmentedComponent, HqSparkComponent, ScDialogDirective, HqAppLaunchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="head">
@@ -75,8 +74,7 @@ export interface HqTile {
             <h3 id="hq-stats-preview" class="o-title">{{ 'hq.stats.preview.title' | translate }}</h3>
             <p class="o-text">{{ 'hq.stats.preview.text' | translate }}</p>
             <div class="o-actions">
-              <a class="sc-btn sc-btn-primary" routerLink="/apps">{{ 'hq.stats.preview.connect' | translate }}</a>
-              <sc-hq-app-download />
+              <sc-hq-app-launch />
             </div>
           </section>
         </div>
