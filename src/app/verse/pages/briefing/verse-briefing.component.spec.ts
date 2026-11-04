@@ -15,7 +15,10 @@ import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
-import { INTRO_HOLD_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SWITCH_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
+import { By } from '@angular/platform-browser';
+import { BriefingPlanetComponent } from './briefing-planet.component';
 import {
   INTRO_FLAG,
   briefingStatus,
@@ -394,46 +397,93 @@ describe('Verse briefing — component', () => {
     beta.set({ ...beta(), verse: true });
   });
 
-  describe('first-visit intro hold (#8a)', () => {
+  describe('cinematic entrance (owner brief 2026-11-04)', () => {
     const stage = (fx: { nativeElement: HTMLElement }) => fx.nativeElement.querySelector('section.bstage');
-
-    it('keeps the stage dark until the live planet is drawn, then starts the timeline', fakeAsync(() => {
+    const title = (fx: { nativeElement: HTMLElement }) => fx.nativeElement.querySelector('.hrow h1');
+    let chrome: ShellChromeService;
+    beforeEach(() => {
       beta.set({ ...beta(), shell: true });
+      chrome = TestBed.inject(ShellChromeService);
+    });
+    afterEach(() => beta.set({ ...beta(), shell: false }));
+
+    it('plays only when the shell announced it at boot; otherwise everything stands at once', fakeAsync(() => {
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
-      expect(stage(fixture)?.classList).withContext('held').toContain('hold');
+      expect(fixture.componentInstance.intro).toBe('short');
       expect(stage(fixture)?.classList).not.toContain('intro');
-      fixture.componentInstance.onPlanetReady();
-      tick(1);
-      fixture.detectChanges();
-      expect(stage(fixture)?.classList).not.toContain('hold');
-      expect(stage(fixture)?.classList).toContain('intro');
+      expect(title(fixture)?.querySelector('.brand')).toBeNull();
       tick(10_000);
-      beta.set({ ...beta(), shell: false });
     }));
 
-    it('starts anyway with the CSS planet once the hold ran out', fakeAsync(() => {
-      beta.set({ ...beta(), shell: true });
+    it('opens on the app name, builds up, lets the comet fly last and then hands over to the first story', fakeAsync(() => {
+      chrome.holdHeroIntro();
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
-      tick(INTRO_HOLD_MS);
-      fixture.detectChanges();
-      expect(fixture.componentInstance.cssFallback()).toBeTrue();
+      const c = fixture.componentInstance;
+      expect(c.intro).toBe('full');
       expect(stage(fixture)?.classList).toContain('intro');
-      expect(stage(fixture)?.classList).not.toContain('hold');
+      expect(chrome.heroIntro()).withContext('the hub took the announced entrance over').toEqual({ k: 1, full: true });
+      // The app's name in the hero: no story title, no eyebrow, no chevrons yet.
+      expect(title(fixture)?.querySelector('.tl.brand')).not.toBeNull();
+      expect(title(fixture)?.querySelectorAll('i.ltr').length).toBeGreaterThan(0);
+      expect(fixture.nativeElement.querySelector('.hrow a.tl')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.hrow .step')).toBeNull();
+      expect(stage(fixture)?.classList).not.toContain('finale');
+
+      // The finale comes once everything stood — at the latest after the planet wait.
+      tick(INTRO_PLANET_WAIT_MS);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).toContain('finale');
+      tick(INTRO_SWITCH_MS);
+      fixture.detectChanges();
+      expect(title(fixture)?.querySelector('.brand')).withContext('the name left the hero').toBeNull();
+      expect(fixture.nativeElement.querySelector('.hrow a.tl')?.textContent?.trim()).toBe(c.current()?.item.title);
+      tick(INTRO_FINALE_MS);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('intro');
+      expect(stage(fixture)?.classList).not.toContain('finale');
+      expect(chrome.heroIntro()).toBeNull();
       tick(10_000);
-      beta.set({ ...beta(), shell: false });
+      // The app's name never comes back in the rotation.
+      fixture.detectChanges();
+      expect(title(fixture)?.querySelector('.brand')).toBeNull();
     }));
 
-    it('never holds the Kurz-Auftakt: planet and sky stand from the start', fakeAsync(() => {
-      beta.set({ ...beta(), shell: true });
+    it('does not start the finale before the build-up stood', fakeAsync(() => {
+      chrome.holdHeroIntro();
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      fixture.componentInstance.onPlanetSettled();
+      tick(INTRO_BUILD_MS - 100);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('finale');
+      tick(200);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).toContain('finale');
+      tick(10_000);
+    }));
+
+    it('a return within the session shows everything at once and releases an announced hold', fakeAsync(() => {
       sessionStorage.setItem(INTRO_FLAG, '1');
+      chrome.holdHeroIntro();
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
-      expect(stage(fixture)?.classList).not.toContain('hold');
-      expect(stage(fixture)?.classList).toContain('intro');
+      expect(fixture.componentInstance.intro).toBe('short');
+      expect(stage(fixture)?.classList).not.toContain('intro');
+      expect(chrome.heroIntro()).toBeNull();
       tick(10_000);
-      beta.set({ ...beta(), shell: false });
+    }));
+
+    it('shows the CSS planet only when no live planet can come — never on a timer', fakeAsync(() => {
+      chrome.holdHeroIntro();
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      tick(10_000);
+      fixture.detectChanges();
+      const clip = fixture.nativeElement.querySelector('.world-clip') as HTMLElement;
+      const planet = fixture.debugElement.query(By.directive(BriefingPlanetComponent)).componentInstance as BriefingPlanetComponent;
+      expect(clip.classList.contains('css-planet')).toBe(planet.failed());
     }));
   });
 });

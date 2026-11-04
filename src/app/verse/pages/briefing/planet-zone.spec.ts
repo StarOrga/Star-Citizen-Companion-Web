@@ -13,6 +13,7 @@ import { PatchStabilityService } from '../../../news/patch-stability.service';
 import { PatchStabilityVotesService } from '../../../news/patch-stability-votes.service';
 import type { StabilityVerdict } from '../../../news/patch-stability';
 import { VerseApiService } from '../../data/verse-api.service';
+import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { VerseDigest, VerseDigestItem } from '../../data/verse.models';
 import { HERO_MS, VerseBriefingComponent } from '../verse-briefing.component';
 import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing-beacons.component';
@@ -294,30 +295,30 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     discardPeriodicTasks();
   }));
 
-  it('splits the hero title into letter spans for the entrance and still exposes the full title once', fakeAsync(() => {
+  it('spells the app name in letter spans for the entrance, exposes it once, then shows the story as plain text', fakeAsync(() => {
+    // The shell announces the entrance at boot when the page opens on the hub.
+    TestBed.inject(ShellChromeService).holdHeroIntro();
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    const link = el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl');
-    const full = fixture.componentInstance.current()?.item.title ?? '';
-    expect(full).not.toBe('');
+    const name = 'verse.hub.brand'; // no catalogue loaded here: the key is the text
     expect(el.querySelector('.bstage')?.classList.contains('intro')).toBeTrue();
-    const letters = Array.from(link?.querySelectorAll<HTMLElement>('i.ltr') ?? []);
-    expect(letters.length).toBe(Array.from(full).length);
+    const brand = el.querySelector<HTMLElement>('.hrow h1 .tl.brand');
+    const letters = Array.from(brand?.querySelectorAll<HTMLElement>('i.ltr') ?? []);
+    expect(letters.length).toBe(Array.from(name).length);
     expect(letters.every((l) => l.getAttribute('aria-hidden') === 'true')).toBeTrue();
-    // The letters carry no-break spaces so a title never collapses its gaps.
-    expect(letters.map((l) => l.textContent).join('').replace(/\u00a0/g, ' ')).toBe(full);
+    // The letters carry no-break spaces so the name never collapses its gaps.
+    expect(letters.map((l) => l.textContent).join('').replace(/\u00a0/g, ' ')).toBe(name);
     expect(letters[3].style.getPropertyValue('--i')).toBe('3');
-    // The accessible name is the title once: the visually hidden copy, letters hidden.
-    expect(link?.querySelector('.sc-sr-only')?.textContent).toBe(full);
-    // After the sequence the title is plain text again.
+    // The accessible name is the app name once: the visually hidden copy, letters hidden.
+    expect(brand?.querySelector('.sc-sr-only')?.textContent).toBe(name);
+    // After the entrance the hero carries the story, as plain text.
     tick(10000);
     fixture.detectChanges();
     expect(el.querySelector('.bstage')?.classList.contains('intro')).toBeFalse();
-    expect(el.querySelector('.hrow h1 a.tl i.ltr')).toBeNull();
-    // The carousel may have moved on during the wait: compare against the title now shown.
+    expect(el.querySelector('.hrow h1 i.ltr')).toBeNull();
     expect(el.querySelector('.hrow h1 a.tl')?.textContent?.trim()).toBe(fixture.componentInstance.current()?.item.title);
     fixture.destroy();
     discardPeriodicTasks();
