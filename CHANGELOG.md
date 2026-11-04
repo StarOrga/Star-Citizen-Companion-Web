@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.202.0] - 2026-11-04
+
+### Changed
+- Opening or reloading the Verse page plays a calmer entrance: first only the star sky, then "Star Citizen Companion" in the middle, then the header, the search, the sun and the three planets build up one after the other. The comet comes last, and the first news takes over from the name. Coming back within the same visit shows everything at once.
+- The big planet slides in from below as soon as it is ready, instead of the page waiting for it.
+
+### Fixed
+- A plainer second planet no longer shows underneath the planet, for example while scrolling.
+- The search and the header no longer appear, vanish and appear again while the page starts.
+- Headlines such as "4.10" are no longer cut off after the entrance.
+- The first moment of a page load shows the star sky instead of a flat blue background.
+
 ## [0.201.0] - 2026-11-04
 
 ### Added
