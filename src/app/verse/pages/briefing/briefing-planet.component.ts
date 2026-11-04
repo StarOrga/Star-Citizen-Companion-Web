@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, output, signal } from '@angular/core';
 import { logWarn } from '../../../core/log';
-import { PlanetNetwork, PlanetSources, loadBakedPlanet, nightSize } from './planet/planet-assets';
+import { PLANET_SOURCES, PlanetNetwork, PlanetSources, nightSize } from './planet/planet-assets';
 import { PlanetRenderer } from './planet/planet-gl';
 import { paintDay, paintNight } from './planet/planet-textures';
 import { AuroraClock, Train, TrainNetwork } from './planet/planet-trains';
@@ -57,7 +57,7 @@ export class BriefingPlanetComponent {
    * waits for the planet, so the download starts as early as it can.
    */
   private readonly baked: Promise<PlanetSources> | null =
-    builtWorld || typeof window === 'undefined' ? null : loadBakedPlanet(nightSize(innerWidth));
+    builtWorld || typeof window === 'undefined' ? null : inject(PLANET_SOURCES)(nightSize(innerWidth));
 
   constructor() {
     // Handled in fromBake(); this only keeps an early failure from being reported as unhandled.

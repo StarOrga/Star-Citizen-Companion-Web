@@ -1,3 +1,4 @@
+import { InjectionToken } from '@angular/core';
 import { City, Edge, PlanetWorld, angle, sph } from './planet-world';
 
 /**
@@ -78,3 +79,17 @@ export async function loadBakedPlanet(size: 2048 | 4096, base: string = document
   ]);
   return { world, day, night, cloud };
 }
+
+/** Loads the planet's sources for a night-texture size; rejects to make the page generate them. */
+export type PlanetSourcesLoader = (size: 2048 | 4096) => Promise<PlanetSources>;
+
+/**
+ * The loader the live planet uses — the baked assets by default. A token so a
+ * spec can answer deterministically: a real download settles outside
+ * `fakeAsync`'s clock, so a spec that renders the stage provides a loader that
+ * rejects, and the planet is generated in fake time as before.
+ */
+export const PLANET_SOURCES = new InjectionToken<PlanetSourcesLoader>('PLANET_SOURCES', {
+  providedIn: 'root',
+  factory: () => loadBakedPlanet,
+});
