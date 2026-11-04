@@ -498,7 +498,7 @@
       "vramTotal": "VRAM total"
     },
     "tip": {
-      "cpu": "Load across all {{threads}} threads, measured like the \"CPU\" column in Task Manager (turbo clock included). It is sampled every second and swings hard during a run, so a side-by-side with Task Manager rarely shows the same number. 10 % always stays with Windows.",
+      "cpu": "Load across all {{threads}} threads, measured like the CPU figure in Task Manager. It is sampled every second and swings hard during a run, so a side-by-side at the same moment rarely shows exactly the same number. 20 % always stays with Windows.",
       "cpuNoHardCap": "The hard CPU limit could not be set — the run continues at low priority.",
       "ram": "Memory in use by all programs, the same number as \"Memory\" in Task Manager. The limit decides how many workers the next step starts.",
       "drive": "Active time: the share of time the drive had at least one open request — the \"Disk\" percentage in Task Manager. 100 % means \"always busy\", not \"at its limit\": an SSD often still delivers several times the throughput. Whether it is overloaded shows in the response time.",

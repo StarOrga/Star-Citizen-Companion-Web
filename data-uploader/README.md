@@ -132,8 +132,8 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
   Werte mit Einheit. Der blaue Griff außen ist die Grenze — sie bremst nur den
   Lauf, Blau kann sie also um den Anteil der App überschreiten. Die Gesamtlast liefert
   `python/sc_extract/sysmon.py` (Windows-Leistungsindikatoren über
-  `PdhAddEnglishCounterW`, also sprachunabhängig; CPU = `% Processor Utility`
-  wie im Task-Manager). Er läuft nur, solange der Sampler tickt (sichtbares
+  `PdhAddEnglishCounterW`, also sprachunabhängig; CPU = `% Processor Time`
+  wie im Task-Manager seit Windows 11 24H2). Er läuft nur, solange der Sampler tickt (sichtbares
   Fenster oder laufender Job).
 - **Laufwerke**: `sysmon.py` liest zusätzlich jedes physische Laufwerk
   (`\PhysicalDisk(*)`: Aktivzeit = 100 − `% Idle Time`, Antwortzeit,

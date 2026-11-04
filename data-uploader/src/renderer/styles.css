@@ -583,10 +583,9 @@ kbd.sc-kbd {
 .resource-dock.is-expanded .res-cell .res-ico { display: none; }
 .resource-dock.is-expanded .res-cell { gap: 4px; padding: 0 5px; }
 .resource-dock.is-expanded .res-cell-num { font-size: var(--fs-sm); gap: 3px; }
-/* Narrow cells shrink in this order: LED bar (12 → 6 cells), "von" → "/", label font, numbers. */
+/* Narrow cells shrink in this order: LED gaps, "von" → "/", label font, numbers. Never the LED count: folded and unfolded show the same bar. */
 @container (max-width: 190px) {
-  .resource-dock .res-cell .res-leds { gap: 2px; min-width: 14px; }
-  .resource-dock .res-cell .res-led:nth-child(2n) { display: none; }
+  .resource-dock .res-cell .res-leds { gap: 1px; }
 }
 @container (max-width: 172px) {
   .resource-dock .res-cell .res-n-of, .resource-dock .res-cell .res-n-u { display: none; }
@@ -603,8 +602,10 @@ kbd.sc-kbd {
   .resource-dock .res-cell .res-l-short { display: inline; }
 }
 @container (max-width: 100px) {
-  .resource-dock .res-cell .res-cell-num { font-size: 10px; }
-  .resource-dock .res-cell .res-leds { min-width: 10px; gap: 1px; }
+  .resource-dock .res-cell .res-cell-num { font-size: 9.5px; gap: 0; }
+  .resource-dock .res-cell .res-cell-label { font-size: 9px; }
+  /* 10 LEDs of 1 px and their 9 gaps: the least that still shows every LED. */
+  .resource-dock .res-cell .res-leds { min-width: 19px; }
 }
 .res-cell.is-at .res-led.run { box-shadow: 0 0 6px var(--sc-accent); }
 .res-cell.is-held { background: rgba(var(--accent-warning-rgb), 0.12); box-shadow: inset 0 0 12px rgba(var(--accent-warning-rgb), 0.35); }

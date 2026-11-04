@@ -783,7 +783,7 @@ function takeSample(): ResourceSample {
     t: Date.now(),
     cpuTotalPct: Math.round(Math.max(0, Math.min(100, cpuTotalPct)) * 10) / 10,
     cpuRunPct: run.cpuPct,
-    cpuAppPct: appCpuPct(appCpu, machine.cores),
+    cpuAppPct: appCpuPct(appCpu),
     ramUsedMb: Math.round((totalmem() - freemem()) / mb),
     ramAppMb: Math.round(ramAppMb),
     ramRunMb: run.memMb,

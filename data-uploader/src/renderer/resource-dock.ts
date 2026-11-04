@@ -12,7 +12,7 @@
  * name, ▴) and one cell per resource — CPU, RAM, one per drive the run touches
  * (game drive, work drive, or one cell when both are the same disk) and the
  * GPU while the uploader may use it (gpuPct > 0, GPU available). A cell is
- * icon · label · a 12-LED bar · "41 % von 100 %" (uploader first, then the
+ * icon · label · a 10-LED bar · "41 % von 100 %" (uploader first, then the
  * whole PC), always in percent: RAM of the total RAM, a drive's active time,
  * the GPU's load. The LED bars stay when the dock unfolds; the icons go.
  *
@@ -109,8 +109,12 @@ const PULSED_KEY = 'sc.resourceDock.pulsed';
 
 const DISK_KEYS: readonly DiskLimitKey[] = ['readMBs', 'writeMBs', 'iops'];
 const GPU_METRICS: readonly GpuMetric[] = ['load', 'vram'];
-/** Cells of the strip's LED bar and segments of a dial's ring. */
-const LEDS = 12;
+/**
+ * Cells of the strip's LED bar — the same number folded and unfolded, at every
+ * window width (one LED = 10 %); the CSS only makes them thinner — and segments
+ * of a dial's ring.
+ */
+const LEDS = 10;
 const SEGMENTS = 30;
 
 let view: ResourceViewLike | null = null;

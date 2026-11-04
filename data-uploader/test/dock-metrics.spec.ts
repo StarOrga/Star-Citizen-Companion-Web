@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
   HISTORY_SIZE,
@@ -149,5 +150,13 @@ describe('driveCongested', () => {
     expect(driveCongested(null, 50)).toBe(false);
     expect(driveCongested(100, null)).toBe(false);
     expect(driveCongested(undefined, undefined)).toBe(false);
+  });
+});
+
+describe('strip LED bar', () => {
+  it('keeps its LED count at every cell width, folded and unfolded', () => {
+    // A width tier hiding LEDs made the bar 12 LEDs folded and 6 unfolded.
+    const css = readFileSync(new URL('../src/renderer/styles.css', import.meta.url), 'utf-8');
+    expect(css).not.toMatch(/\.res-led[^{}]*\{[^}]*display:\s*none/);
   });
 });

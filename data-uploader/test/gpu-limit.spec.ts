@@ -87,10 +87,11 @@ describe('sysmon GPU sample', () => {
 });
 
 describe('app CPU share', () => {
-  it('normalises per-core percentCPUUsage to the whole machine', () => {
-    expect(appCpuPct([50, 30, 0, 80], 16)).toBe(10);
-    expect(appCpuPct([null, undefined, Number.NaN, -3], 8)).toBe(0);
-    expect(appCpuPct([500], 2)).toBe(100);
+  it('sums percentCPUUsage, which already is a share of the whole machine', () => {
+    // One core busy on 12 threads reads 8.3 per process, so nothing is divided again.
+    expect(appCpuPct([8.3, 1.2, 0, 0.5])).toBe(10);
+    expect(appCpuPct([null, undefined, Number.NaN, -3])).toBe(0);
+    expect(appCpuPct([70, 60])).toBe(100);
   });
 });
 
