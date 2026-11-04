@@ -295,7 +295,8 @@ def build_rows(
         n_retry = len(retry)
         if n_retry:
             log("info", f"LOD1 retry: {n_retry} mesh(es) failed to convert and are retried on their LOD1")
-        for i, (mesh, skip) in enumerate(retry, 1):
+        # `retry` fills in completion order; sort so numbering and log don't depend on thread timing.
+        for i, (mesh, skip) in enumerate(sorted(retry, key=lambda item: item[0]), 1):
             lod = lod1_sibling(mesh) or ""
             label = f"LOD1 retry {i}/{n_retry}: {Path(mesh).stem}"
             if on_progress:
