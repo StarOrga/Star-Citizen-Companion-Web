@@ -59,6 +59,8 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 import { MainHeaderComponent } from './main-header/main-header.component';
 import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
+import { ShellChromeService } from './fusion-bar/shell-chrome.service';
+import { peekIntro } from '../verse/pages/briefing/briefing.model';
 import { avatarUrlOf } from './avatar-url';
 
 @Component({
@@ -1095,6 +1097,12 @@ export class ShellComponent implements AfterViewInit {
   private topbarHeightPx: number | null = null;
 
   constructor() {
+    // A first visit to the Verse hub (or a reload) opens with its entrance: the stars,
+    // then the app's name, then the chrome. The hub's chunk is still on its way here,
+    // so the entrance is announced now — header and search field stand hidden from
+    // the first frame instead of showing, vanishing and fading in again (owner
+    // feedback 2026-11-04). The hub takes it over (or it is dropped after 8 s).
+    if (this.cinemaAhead()) inject(ShellChromeService).holdHeroIntro();
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
         this.onCodexSubpage.set(isCodexSubpage(e.urlAfterRedirects));
@@ -1125,6 +1133,14 @@ export class ShellComponent implements AfterViewInit {
       if (this.switchInTimer) clearTimeout(this.switchInTimer);
     });
     this.destroyRef.onDestroy(() => this.stopTopbarProbe());
+  }
+
+  /** The page opens on the Verse hub with the β stage, motion allowed, and the hub will play its full entrance. */
+  private cinemaAhead(): boolean {
+    if (typeof window === 'undefined' || !isVerseHome(location.pathname)) return false;
+    if (!this.beta.isEnabled('verse')() || !this.beta.isEnabled('shell')()) return false;
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    return peekIntro() === 'full';
   }
 
   ngAfterViewInit(): void {

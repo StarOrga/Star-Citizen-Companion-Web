@@ -274,18 +274,19 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
 .hx::before { inset: -40% -18%; }
 .hub::before { inset: -6% -8% 0; background: radial-gradient(closest-side, rgba(2, 6, 11, 0.55), rgba(2, 6, 11, 0.3) 60%, transparent); }
 
-// ── Entrance: "Titelsequenz" (concept 2026-10-29, A1) ───────────────────
-// Timeline in seconds at --k 1 (a repeat visit scales it by --k, .short):
-//   0.8–1.6  letterbox opens         1.0–2.6  planet rises
-//   2.0 +45 ms/letter  title letters sharpen out of blur
-//   3.4–4.15 search ignites (line → field, glow), 3.9–4.4 light sheen over it
-//   4.15–4.85 calm — nothing new
-//   4.85     details: eyebrow, news, "Mehr im Verse", sun (+ the main header)
-//   4.85–5.45 comet flies in, 5.3 constellation lights up (briefing-beacons / -sky)
-// First visit: the stage stays dark until the live planet stands (at most 3 s), then the timeline starts (.hold → .intro).
-.bstage.hold .scn { opacity: 0; }
-// Everything is keyed on .bstage.intro, which the component sets only while the
-// sequence plays and never under reduced motion: without it the final state shows.
+// ── Entrance: "Titelsequenz" (concept 2026-10-29, re-cut 2026-11-04) ────
+// Owner brief: the stars first, nothing else; then the app's name in the hero; then
+// everything builds up one after the other, smoothly; the planet slides in from below
+// when it is ready; the comet comes last. Seconds after the entrance starts:
+//   0.15–1.35 letterbox opens
+//   0.35 +45 ms/letter  "Star Citizen Companion" sharpens out of blur (~1.7 s)
+//   1.9      main header (shell)      2.3–3.05 search ignites, 2.8–3.3 sheen (shell)
+//   2.6      sun                      2.9 doors + news float in, 3.05 "Mehr im Verse"
+//   planet   slides in from below whenever it stands (sc-briefing-planet), never held for
+//   finale   (.finale, from 3.6 s once the planet stood, at most 7 s): comet, then the
+//            constellation lights up; at +0.8 s the first story replaces the app's name.
+// Everything is keyed on .bstage.intro, which the component sets only on a full visit
+// and never under reduced motion: without it (a return visit) the final state shows.
 .bstage { --k: 1; }
 .bstage.short { --k: 0.1765; }
 .lb, .comet { display: none; }
@@ -298,27 +299,31 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
   z-index: 8;
   // Weicher Verlauf (concept 2026-11-01): the page's own dark, fading to nothing — no hard edge, no pure black.
   pointer-events: none;
-  animation: lb-open calc(1.2s * var(--k)) cubic-bezier(0.45, 0, 0.25, 1) calc(0.8s * var(--k)) both;
+  animation: lb-open 1.2s cubic-bezier(0.45, 0, 0.25, 1) 0.15s both;
 }
 .lb { --lb: color-mix(in srgb, var(--sc-bg-0) 40%, #000); }
 // The top veil reaches up behind the (transparent) main header — the stage itself starts below it, and its edge would show as a line.
 .lb-t { top: calc(-1 * var(--brief-chrome, 0px)); height: calc(18% + var(--brief-chrome, 0px)); transform-origin: 50% 0; background: linear-gradient(to bottom, color-mix(in srgb, var(--lb) 94%, transparent), color-mix(in srgb, var(--lb) 55%, transparent) 55%, transparent); }
 .lb-b { bottom: 0; transform-origin: 50% 100%; background: linear-gradient(to top, color-mix(in srgb, var(--lb) 94%, transparent), color-mix(in srgb, var(--lb) 55%, transparent) 45%, transparent); }
-.bstage.intro .brief-world, .bstage.intro .city { animation: world-rise calc(1.6s * var(--k)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(1s * var(--k)) both; }
+// The CSS planet never moves now — it only lends the live planet its geometry. Where it
+// stands in (no WebGL), it slides in from below once, like the live one.
+.world-clip.cinema.css-planet .brief-world, .world-clip.cinema.css-planet .city { animation: planet-in 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes planet-in { from { opacity: 0; transform: translateY(16vh); } to { opacity: 1; transform: none; } }
 .bstage.intro .ltr {
   display: inline-block;
   white-space: pre;
-  animation: ltr-in calc(0.7s * var(--k)) cubic-bezier(0.16, 1, 0.3, 1) calc(2s * var(--k) + var(--i) * 0.045s * var(--k)) both;
+  animation: ltr-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(0.35s + var(--i) * 0.045s) both;
 }
-// The bar's field itself is the shell's: it hides until 3.4 s and ignites in step
+// The bar's field itself is the shell's: it hides until 2.3 s and ignites in step
 // (fusion-bar.component.scss, .hero-intro); its glow and sheen live inside that
 // field, because the field stands above the page and would cover a slot overlay.
-.bstage.intro .kick, .bstage.intro sc-briefing-transmit, .bstage.intro .more-cue {
-  animation: detail-in calc(0.6s * var(--k)) cubic-bezier(0.16, 1, 0.3, 1) calc(4.85s * var(--k)) both;
-}
-.bstage.intro .more-cue { animation-delay: calc(5s * var(--k)); }
+// The eyebrow arrives with the first story (finale), not here.
+.bstage.intro sc-briefing-transmit { animation: float-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2.9s both; }
+.bstage.intro .more-cue { animation: detail-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 3.05s both; }
+@keyframes float-in { from { opacity: 0; filter: blur(6px); transform: translateY(28px); } to { opacity: 1; filter: none; transform: none; } }
 // Comet: head at the origin, tail up-right along the flight path, ends on the constellation's centre.
-.bstage.intro .comet {
+// It flies only in the finale — the sign that everything stands.
+.bstage.finale .comet {
   display: block;
   position: absolute;
   z-index: 6;
@@ -331,11 +336,9 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
   box-shadow: 0 0 12px #52c1e6;
   transform-origin: 0 50%;
   pointer-events: none;
-  animation: comet-fly calc(0.6s * var(--k)) cubic-bezier(0.55, 0, 0.45, 1) calc(4.85s * var(--k)) both;
+  animation: comet-fly 0.6s cubic-bezier(0.55, 0, 0.45, 1) 0.05s both;
 }
 @keyframes lb-open { from { opacity: 1; transform: scaleY(1); } to { opacity: 0; transform: scaleY(0.6); } }
-// Transform only: the CSS planet is the live planet's anchor and moves it along (opacity is never animated here).
-@keyframes world-rise { from { transform: translateY(14vh); } to { transform: none; } }
 @keyframes ltr-in { from { opacity: 0; filter: blur(12px); transform: scale(1.7); } to { opacity: 1; filter: none; transform: none; } }
 @keyframes detail-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
 @keyframes comet-fly {
@@ -345,15 +348,8 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
   100% { opacity: 0; transform: rotate(-30deg) translateX(0) scaleX(0.2); }
 }
 
-// ── Kurz-Auftakt (coming back within the session, ~1 s) ────────────────
-// Planet and sky stand at once, no camera move, no bars, no comet: only the title,
-// the search field (the shell, k 0.15) and the hub fade in, staggered over 0–1 s.
-@keyframes soft-in { from { opacity: 0; } to { opacity: 1; } }
-.bstage.short.intro .lb, .bstage.short.intro .comet { display: none; }
-.bstage.short.intro .brief-world, .bstage.short.intro .city { animation: none; }
-.bstage.short.intro .ltr { animation: soft-in 0.45s ease-out calc(0.05s + var(--i) * 0.008s) both; filter: none; }
-.bstage.short.intro .kick, .bstage.short.intro sc-briefing-transmit, .bstage.short.intro .more-cue { animation: soft-in 0.45s ease-out 0.4s both; }
-.bstage.short.intro ~ .hub { animation: soft-in 0.5s ease-out 0.5s both; }
+// Coming back within the session: no entrance at all — the stage, the planet (kept for
+// the document) and the chrome stand at once (owner brief 2026-11-04).
 
 // Easter egg (sc-briefing-asteroid): the closest pass shakes stage and planet once.
 .bstage.quake, .world-clip.quake { animation: quake 0.6s cubic-bezier(0.3, 0.7, 0.4, 1); }

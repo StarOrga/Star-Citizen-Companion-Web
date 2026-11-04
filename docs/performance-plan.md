@@ -226,3 +226,50 @@ committen → pushen → hier abhaken.
 12. **Abschluss**: voller Lauf (`npm run lint`, `npm test`, `npm run test:gate`,
     `npm run test:functions`, `npm run build`), Nachmessung mit dem Profiler,
     Vorher/Nachher-Tabelle hier ergänzen.
+
+---
+
+## 5. Folgeauftrag 2026-11-04 — Kino-Intro auf `/verse` (Beta-Bühne)
+
+Owner-Feedback nach v0.201.0: Beim Neuladen (`Strg+R`) erscheint erst ein
+blauer Hintergrund, dann das Sternbild, der Planet blinkt, dann „Patches 4.10“
+(die „10“ abgeschnitten), dann die Suche — der Rest ploppt auf, statt sich
+aufzubauen; die Suche taucht auf, verschwindet und kommt wieder; alles
+verschwindet kurz außer den Admin-Elementen; die Sternschnuppe kommt mitten im
+Aufbau.
+
+**Soll-Ablauf** (nur erster Besuch in der Sitzung bzw. Neuladen; Rückkehr
+innerhalb der Sitzung = alles sofort da):
+
+1. Zuerst **nur der Sternenhimmel**.
+2. In der Mitte, wo sonst der erste Titel steht: **„Star Citizen Companion“**.
+3. Danach baut sich alles **nacheinander und weich** auf: Kopfzeile, Suche,
+   Beacons/Monde. Kein Element erscheint, verschwindet und kommt wieder.
+4. Der große Planet **schiebt sich von unten herein**, sobald er geladen ist —
+   kein Blinken.
+5. Die **Sternschnuppe** erst ganz am Schluss („alles fertig“).
+6. Dann springt der Titel auf die erste Meldung; „Star Citizen Companion“
+   kommt in der Rotation **nicht** mehr vor.
+7. Admin-Elemente (Admin-Konsole unten rechts, Admin-Links) stehen ohne
+   Animation da.
+8. Fehler: Titel abgeschnitten, Planet blinkt, alles verschwindet kurz.
+
+Ansehen: Bildfolge über CDP `Page.captureScreenshot` (Playwrights
+`page.screenshot` wartet auf der Beta-Bühne bis zu 9 s auf einen Frame).
+
+**Stand der Umsetzung (2026-11-04, Branch `claude/funny-keller-7pm4ty`):**
+
+| Punkt | Umsetzung |
+|---|---|
+| Sterne zuerst | Boot-Himmel in `src/styles.scss`: bis die erste Seite steht, ist der Seitenhintergrund der Szenen-Himmel (gleiche Felder/Seeds wie `shell-scene`); Splash-Ring erst nach 1,2 s |
+| Name in der Mitte | `brand()` in `verse-briefing.component.ts`: „Star Citizen Companion“ (`verse.hub.brand`) statt der ersten Story, ohne Rubrik und Pfeile; auch während die Übersicht lädt (kein Platzhalter-Balken) |
+| Aufbau nacheinander | Zeitplan ab Intro-Start: Balken 0,15 s, Name 0,35 s + 45 ms/Buchstabe, Kopfzeile 1,9 s, Suche 2,3 s, Sonne 2,6 s, Planeten schweben 2,9 s ein, „Mehr im Verse“ 3,05 s |
+| Kein Auftauchen-Verschwinden | Shell kündigt das Intro beim Start an (`holdHeroIntro`): Kopfzeile/Suche stehen ab dem ersten Frame auf ihrem verborgenen Startbild; die Suche bleibt unsichtbar, bis sie auf der Bühne steht |
+| Planet von unten | `sc-briefing-planet`: gleitet beim Bereitwerden herein (1,5 s), das Intro wartet nicht mehr auf ihn |
+| Nur ein Planet | CSS-Planet nur noch ohne WebGL (keine 3-s-/8-s-Ersatz-Einblendung mehr) |
+| Sternschnuppe zuletzt | `.finale`: frühestens nach dem Aufbau (3,6 s) und wenn der Planet steht, spätestens 7 s; danach zündet das Sternbild, bei +0,8 s wechselt der Titel zur ersten Story; der Name kommt nie wieder |
+| Nur beim Öffnen/Neuladen | volles Intro nur, wenn die Seite auf `/verse` geöffnet wurde (erster Besuch der Sitzung oder Neuladen); sonst steht alles sofort |
+| „4.10“ abgeschnitten | Titel wird beim Wechsel Name → Story neu eingepasst |
+
+Checks: Karma 5336/5336, Lint 0 Fehler, Build inkl. Guards, Mobile-Gate grün.
+

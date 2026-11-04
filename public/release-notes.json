@@ -1,7 +1,49 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.201.0",
+  "current": "0.202.0",
   "releases": [
+    {
+      "version": "0.202.0",
+      "date": "2026-11-04",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Opening or reloading the Verse page plays a calmer entrance: first only the star sky, then \"Star Citizen Companion\" in the middle, then the header, the search, the sun and the three planets build up one after the other. The comet comes last, and the first news takes over from the name. Coming back within the same visit shows everything at once."
+            },
+            {
+              "title": "",
+              "text": "The big planet slides in from below as soon as it is ready, instead of the page waiting for it."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "A plainer second planet no longer shows underneath the planet, for example while scrolling."
+            },
+            {
+              "title": "",
+              "text": "The search and the header no longer appear, vanish and appear again while the page starts."
+            },
+            {
+              "title": "",
+              "text": "Headlines such as \"4.10\" are no longer cut off after the entrance."
+            },
+            {
+              "title": "",
+              "text": "The first moment of a page load shows the star sky instead of a flat blue background."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.201.0",
       "date": "2026-11-04",

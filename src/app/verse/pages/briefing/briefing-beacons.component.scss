@@ -233,11 +233,16 @@
 // under reduced motion): the sun arrives with the details, the constellation
 // is lit by the comet (planet.scss) a beat later — its stars and lines build up
 // from --intro-d on (briefing-sky).
-:host-context(.bstage.intro) .sun-l { animation: bk-in calc(0.6s * var(--k, 1)) ease-out calc(4.85s * var(--k, 1)) both; }
+// Re-timed 2026-11-04: the sun arrives at 2.6 s; the constellation waits, unlit, for the
+// finale (.finale — the comet lands once everything else stands) and only then ignites and
+// builds up. Until then its own animation and the sky's stars and lines (which follow
+// --sc-brief-play) stand at their hidden first frame.
+:host-context(.bstage.intro) .sun-l { animation: bk-in 0.6s ease-out 2.6s both; }
 :host-context(.bstage.intro) .const-l {
-  --intro-d: calc(5.3s * var(--k, 1));
-  animation: bk-ignite calc(0.9s * var(--k, 1)) ease-out calc(5.3s * var(--k, 1)) both;
+  --intro-d: 0.45s;
+  animation: bk-ignite 0.9s ease-out 0.45s both;
 }
+:host-context(.bstage.intro:not(.finale)) .const-l { animation-play-state: paused; --sc-brief-play: paused; }
 @keyframes bk-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
 @keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
 

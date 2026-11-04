@@ -235,6 +235,25 @@ export function claimIntro(
   }
 }
 
+/**
+ * What `claimIntro` WILL answer for the next claim, without claiming: the shell
+ * asks at boot, before the hub's lazy chunk arrives, so the main header and the
+ * search field are held back from the very first frame of a full entrance
+ * instead of showing, vanishing when it starts and fading in again.
+ */
+export function peekIntro(
+  storage: Pick<Storage, 'getItem'> | null = safeSession(),
+  reloaded: () => boolean = isReloadNavigation,
+): IntroMode {
+  try {
+    if (!storage) return 'full';
+    const played = !!storage.getItem(INTRO_FLAG);
+    return played && !(!documentClaimed && reloaded()) ? 'short' : 'full';
+  } catch {
+    return 'full';
+  }
+}
+
 function safeSession(): Storage | null {
   try {
     return typeof sessionStorage === 'undefined' ? null : sessionStorage;

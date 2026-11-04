@@ -177,11 +177,16 @@
 :host(.entering[data-mode='stage']) .cap {
   animation: sub-fly 1.28s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 }
-// Hub title sequence (concept 2026-10-29): the field is a clipped centre line until
-// 3.4 s * k, then opens to the full field over 0.75 s * k; glow + sheen ride inside it.
+// Hub title sequence (concept 2026-10-29, re-timed 2026-11-04): the field is a clipped
+// centre line until 2.3 s * k, then opens to the full field over 0.75 s * k; glow +
+// sheen ride inside it. While the entrance is only announced (.intro-hold) the field
+// stands at that hidden first frame; off the stage during a full entrance it is out
+// of sight altogether (.intro-hidden) — no field that shows, vanishes and comes back.
 :host(.hero-intro[data-mode='stage']) .cap {
-  animation: fi-open calc(0.75s * var(--sc-intro-k, 1)) cubic-bezier(0.65, 0, 0.25, 1) calc(3.4s * var(--sc-intro-k, 1)) both;
+  animation: fi-open calc(0.75s * var(--sc-intro-k, 1)) cubic-bezier(0.65, 0, 0.25, 1) calc(2.3s * var(--sc-intro-k, 1)) both;
 }
+:host(.intro-hold) .cap, :host(.intro-hold) .ifx { animation-play-state: paused; }
+:host(.intro-hidden) { opacity: 0; pointer-events: none; }
 :host(.hero-intro[data-mode='stage']) .trace,
 :host(.hero-intro[data-mode='stage']) .echo {
   animation: none;
@@ -197,8 +202,8 @@
   background-size: 260% 100%;
   mix-blend-mode: screen;
   animation:
-    fi-glow calc(0.75s * var(--sc-intro-k, 1)) ease-out calc(3.4s * var(--sc-intro-k, 1)) both,
-    fi-sheen calc(0.5s * var(--sc-intro-k, 1)) cubic-bezier(0.4, 0, 0.2, 1) calc(3.9s * var(--sc-intro-k, 1)) both;
+    fi-glow calc(0.75s * var(--sc-intro-k, 1)) ease-out calc(2.3s * var(--sc-intro-k, 1)) both,
+    fi-sheen calc(0.5s * var(--sc-intro-k, 1)) cubic-bezier(0.4, 0, 0.2, 1) calc(2.8s * var(--sc-intro-k, 1)) both;
 }
 @media (prefers-reduced-motion: reduce) {
   :host(.hero-intro[data-mode='stage']) .cap { animation: none; }

@@ -1,5 +1,8 @@
 /* Global styles — SC Companion */
 
+// The scene's star fields, reused for the boot sky below (same seeds, same tiles).
+@use 'app/shell/scene/starfield' as boot-stars;
+
 /* StarOrga shared design system — single source of truth for tokens, fonts and
    base visuals. The local --sc-* tokens below are now thin aliases onto StarUI
    tokens, so every component (which references var(--sc-*)) adopts the StarOrga
@@ -899,6 +902,50 @@ body::before {
   pointer-events: none;
   z-index: -1;
 }
+
+/* ── Boot sky ─────────────────────────────────────────────────────────────
+   Owner brief 2026-11-04: the first thing anyone sees is the star sky, nothing
+   else. Until the first routed page stands (the boot splash, then the moment
+   the app has rendered but its lazily loaded page has not), the page background
+   IS the shell scene's sky — same base colour, same nebula, the very same star
+   fields (seeds and tiles of shell-scene.component.scss, box of its .sky) — so
+   the scene takes over without a seam instead of after a flat blue frame. */
+html:has(.sc-boot),
+html:has(.routed-content > router-outlet:last-child) {
+  background-color: #02070d;
+  background-image:
+    radial-gradient(ellipse 34% 26% at 22% 30%, rgba(46, 120, 190, 0.36), transparent 70%),
+    radial-gradient(ellipse 30% 22% at 72% 20%, rgba(124, 74, 170, 0.3), transparent 72%),
+    radial-gradient(ellipse 22% 15% at 86% 34%, rgba(255, 150, 90, 0.16), transparent 70%),
+    radial-gradient(ellipse 48% 28% at 52% 62%, rgba(20, 70, 110, 0.32), transparent 75%),
+    radial-gradient(ellipse 40% 30% at 92% 70%, rgba(40, 110, 150, 0.22), transparent 75%),
+    linear-gradient(180deg, #02070d 0%, #041320 60%, #061827 100%);
+  background-size: 132vw 116vh;
+  background-position: -8vw -8vh;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  body { background: transparent; }
+  body::before {
+    inset: -8% -24% -8% -8%;
+    opacity: 0.55;
+    @include boot-stars.field(170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: -8% -24% -8% -8%;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.85;
+    @include boot-stars.field(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
+  }
+}
+/* The splash (index.html) lets the sky through; its ring and word wait 1.2 s, so a
+   quick start shows nothing but stars and a slow one still says it is loading. */
+html .sc-boot { background: transparent; }
+html .sc-boot > * { animation: sc-boot-late 0.4s ease-out 1.2s both; }
+@keyframes sc-boot-late { from { opacity: 0; } to { opacity: 1; } }
 
 h1, h2, h3, h4 {
   font-family: var(--sc-font-display);

@@ -5534,6 +5534,7 @@
       "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the star maps you earned."
     },
     "hub": {
+      "brand": "Star Citizen Companion",
       "search": "Search …",
       "searchKey": "Ctrl K",
       "more": "More in the Verse",
