@@ -369,3 +369,13 @@ a.holo {
   .chips { justify-content: center; }
   .pv { left: 50%; bottom: auto; top: calc(100% + 10px); transform: translateX(-50%); width: min(300px, 92vw); }
 }
+
+// Out of view (scPauseOffscreen on the host — codex-landing.component.html sets the
+// attribute): the endless loops stand still. The beam's motes alone animate
+// background-position, a main-thread repaint every frame — ~5 % of the main thread
+// for as long as the landing was open, seen or not (profiled 2026-11-03). Nothing
+// inside a leaving piece is touched: [animate.leave] waits for its animations.
+:host([data-sc-offscreen]) {
+  .beam, .beam .rays, .beam .motes, .skirt .band { animation-play-state: paused; }
+  .piece:not(.leaving) .form, .piece:not(.leaving) .band, .piece:not(.leaving) .dot { animation-play-state: paused; }
+}

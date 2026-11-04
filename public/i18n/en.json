@@ -3642,7 +3642,7 @@
     },
     "privacy": {
       "title": "Privacy Policy",
-      "updated": "Last updated: July 2026",
+      "updated": "Last updated: November 2026",
       "summary": {
         "title": "In short",
         "noAds": "No advertising, no ad networks.",
@@ -3694,7 +3694,7 @@
         "supabase": "Supabase (database, authentication, file storage) — EU region eu-central-1 (Frankfurt); processes your account and application data on our behalf.",
         "vercel": "Vercel Inc. (hosting, CDN) — delivery of the static app.",
         "google": "Google Sign-In (Google Ireland Limited / Google LLC) — only if you choose to sign in with Google; details in the \"Signing in with Google\" section.",
-        "posthog": "PostHog (product analytics and error diagnostics) — EU cloud (eu.i.posthog.com); captures anonymous usage events and errors, and only after you consent.",
+        "posthog": "PostHog (product analytics and error diagnostics) — EU cloud (eu.i.posthog.com); captures anonymous usage events, page load times and errors, and only after you consent.",
         "fonts": "Google Fonts — font files are loaded from Google servers; Google may see your IP address.",
         "rsiMedia": "Images in the Verse news are partly loaded straight from Roberts Space Industries servers (media.robertsspaceindustries.com, theverse.robertsspaceindustries.com) — RSI sees your IP address while they load.",
         "gameApis": "Public Star Citizen data: status.robertsspaceindustries.com and api.star-citizen.wiki (read-only, no account data is sent)."

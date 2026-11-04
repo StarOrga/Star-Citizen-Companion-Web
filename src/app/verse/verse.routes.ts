@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { BetaService } from '../core/beta.service';
+import { PRELOAD_ROUTE_DATA } from '../core/idle-preloading.strategy';
 import { OVERLAY_ROUTE_DATA } from '../core/overlay-route-scroll';
 import { verseFlightResolver } from './shared/verse-flight';
 
@@ -25,7 +26,7 @@ export const constellationsToStarmap: CanActivateFn = () =>
 export const VERSE_ROUTES: Routes = [
   {
     path: '',
-    data: { layout: 'cinematic' },
+    data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true },
     resolve: flight,
     pathMatch: 'full',
     loadComponent: () => import('./pages/verse-briefing.component').then((m) => m.VerseBriefingComponent),

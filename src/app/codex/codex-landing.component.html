@@ -68,7 +68,7 @@
     } @else if (!loading() && !items().length) {
       <p class="empty">{{ 'codex.landing.holo.empty' | translate }}</p>
     }
-    <sc-codex-landing-holotable class="holotable" [item]="current()" [paints]="paints()" [paused]="paused()"
+    <sc-codex-landing-holotable class="holotable" scPauseOffscreen [item]="current()" [paints]="paints()" [paused]="paused()"
                                 [still]="still()" [loading]="loading()" [switchNo]="switchNo()" [cycle]="cycle()"
                                 [cycleMs]="rotationMs" [(paintOpen)]="paintOpen" />
     <sc-codex-landing-codex-pane class="codex" [codex]="codex()" [items]="items()" [active]="category()"

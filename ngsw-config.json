@@ -24,6 +24,7 @@
           "/icons/**",
           "/i18n/*.json",
           "/meshopt/**",
+          "/planet/**",
           "/release-notes.json",
           "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
         ]
@@ -39,7 +40,7 @@
       "cacheConfig": {
         "maxSize": 50,
         "maxAge": "15m",
-        "timeout": "10s",
+        "timeout": "4s",
         "strategy": "freshness"
       }
     },
@@ -51,7 +52,7 @@
       "cacheConfig": {
         "maxSize": 4,
         "maxAge": "6h",
-        "timeout": "10s",
+        "timeout": "4s",
         "strategy": "freshness"
       }
     },

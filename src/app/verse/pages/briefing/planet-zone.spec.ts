@@ -6,6 +6,7 @@ import { AnalyticsService } from '../../../core/analytics.service';
 import { BetaService } from '../../../core/beta.service';
 import { AuthService } from '../../../auth/auth.service';
 import { NewsListComponent } from '../../../news/news-list.component';
+import { PLANET_SOURCES } from './planet/planet-assets';
 import { NewsService, VerseNewsItem } from '../../../news/news.service';
 import type { PatchLineGroup } from '../../../news/patch-notes';
 import { PatchStabilityService } from '../../../news/patch-stability.service';
@@ -140,6 +141,8 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
       providers: [
         provideRouter([]),
         provideTranslateService({}),
+        // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
+        { provide: PLANET_SOURCES, useValue: () => Promise.reject(new Error('specs generate the planet')) },
         { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy(), flags: () => ({}) } },
         { provide: BriefingGalleryFillService, useValue: { items: signal<VerseDigestItem[]>([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { isEnabled: (a: string) => () => !!beta()[a] } },

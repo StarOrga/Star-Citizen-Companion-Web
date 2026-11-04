@@ -14,6 +14,7 @@ import { fillGallery } from './briefing-hub';
 import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
+import { PLANET_SOURCES } from './planet/planet-assets';
 import { INTRO_HOLD_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import {
   INTRO_FLAG,
@@ -208,6 +209,8 @@ describe('Verse briefing — component', () => {
       providers: [
         provideRouter([]),
         provideTranslateService({}),
+        // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
+        { provide: PLANET_SOURCES, useValue: () => Promise.reject(new Error('specs generate the planet')) },
         { provide: AnalyticsService, useValue: { captureVerse, flags: () => ({}) } },
         { provide: BriefingGalleryFillService, useValue: { items: signal([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { state: beta, isEnabled: (a: string) => () => beta()[a] } },

@@ -59,6 +59,22 @@ describe('AccountPrefsService', () => {
     expect(rpc).toHaveBeenCalledOnceWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: 'role' });
   });
 
+  it('writes nothing when the account already holds that value', async () => {
+    const svc = setup({ id: 'u1' });
+    await settle();
+    svc.set('codex.rankScope', 'career');
+    svc.set('absent.key', null);
+    expect(rpc).not.toHaveBeenCalled();
+    svc.set('codex.rankScope', null);
+    expect(rpc).toHaveBeenCalledOnceWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: null });
+  });
+
+  it('still writes while the map has not loaded yet', async () => {
+    const svc = setup({ id: 'u1' });
+    svc.set('codex.rankScope', 'career');
+    expect(rpc).toHaveBeenCalledOnceWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: 'career' });
+  });
+
   it('writes nothing while signed out', async () => {
     const svc = setup(null);
     await settle();

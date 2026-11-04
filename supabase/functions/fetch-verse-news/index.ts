@@ -43,6 +43,7 @@ import {
   variantPath,
 } from './image-variants.ts';
 import { edgeCodecs } from './image-codecs.ts';
+import { createFeedMemo } from './feed-memo.ts';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -1699,9 +1700,20 @@ function scheduleDeferred(work: () => Promise<void>): void {
 }
 
 // --------------------- Server ---------------------
-Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
+interface BuiltFeed {
+  /** The serialized response body. */
+  body: string;
+  /** Raw upstream items (un-rewritten urls) — what the deferred work needs. */
+  news: VerseNewsItem[];
+}
 
+// Two minutes: the client polls every 5 min and the service worker keeps a 15 min
+// copy, so nobody sees a staler feed than before — but a burst of page loads no
+// longer turns into a burst of upstream crawls and image-cache work.
+const FEED_MEMO_TTL_MS = 2 * 60 * 1000;
+const feedMemo = createFeedMemo<BuiltFeed>(FEED_MEMO_TTL_MS, (f) => f.news.length > 0);
+
+async function buildFeed(): Promise<BuiltFeed> {
   const [commLinks, youtube, spectrum, patchNotes, status] = await Promise.all([
     fetchCommLinks(),
     fetchYouTube(),
@@ -1726,29 +1738,41 @@ Deno.serve(async (req: Request) => {
     console.error('rewriteToCachedImages failed, serving raw urls:', err);
   }
 
-  const response = new Response(
-    JSON.stringify({ status, news: responseNews, fetchedAt: new Date().toISOString() }),
-    {
-      headers: {
-        ...CORS_HEADERS,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, s-maxage=900',
-      },
+  return {
+    body: JSON.stringify({ status, news: responseNews, fetchedAt: new Date().toISOString() }),
+    news,
+  };
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
+
+  const { value: feed, fresh } = await feedMemo.get(buildFeed);
+
+  const response = new Response(feed.body, {
+    headers: {
+      ...CORS_HEADERS,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=300, s-maxage=900',
     },
-  );
+  });
 
   // Best-effort side effects, deferred until after the response is committed, on
   // `news` (raw upstream urls). captureWallpapers records full-res wallpaper
   // metadata from the raw media urls (#133); warmImageCache downloads+decodes the
   // sources the rewrite above couldn't serve yet, populating the cache for the
-  // next request; enforceVideoRetention stamps/prunes video thumbnails (e7082310).
-  // Order is no longer load-bearing (warmImageCache doesn't rewrite in place), but
-  // capture stays first by convention. Each is independently guarded.
-  scheduleDeferred(async () => {
-    try { await captureWallpapers(news); } catch (err) { console.error('captureWallpapers failed:', err); }
-    try { await warmImageCache(news); } catch (err) { console.error('warmImageCache failed:', err); }
-    try { await enforceVideoRetention(news); } catch (err) { console.error('enforceVideoRetention failed:', err); }
-  });
+  // next build; enforceVideoRetention stamps/prunes video thumbnails (e7082310).
+  // Runs once per BUILD, not per request: a memo hit has nothing new to capture,
+  // and re-running the warm-up for every hit only stacked decode work and DB
+  // writes on the free-tier instance. Each step is independently guarded.
+  if (fresh) {
+    const news = feed.news;
+    scheduleDeferred(async () => {
+      try { await captureWallpapers(news); } catch (err) { console.error('captureWallpapers failed:', err); }
+      try { await warmImageCache(news); } catch (err) { console.error('warmImageCache failed:', err); }
+      try { await enforceVideoRetention(news); } catch (err) { console.error('enforceVideoRetention failed:', err); }
+    });
+  }
 
   return response;
 });

@@ -6,6 +6,7 @@ import { publicOnlyGuard } from './auth/public-only.guard';
 import { roleGuard } from './auth/role.guard';
 import { OVERLAY_ROUTE_DATA } from './core/overlay-route-scroll';
 import { BetaService } from './core/beta.service';
+import { PRELOAD_ROUTE_DATA } from './core/idle-preloading.strategy';
 import { shellBetaOn } from './core/layout/shell-beta.guard';
 import { hqPageHref } from './hq/hq-routes';
 
@@ -152,6 +153,7 @@ export const routes: Routes = [
         // sits behind the Verse β switch (BetaService) — switched off, every
         // area renders the legacy component it replaced; one backend.
         path: 'verse',
+        data: { [PRELOAD_ROUTE_DATA]: true },
         loadChildren: () => import('./verse/verse.routes').then((m) => m.VERSE_ROUTES),
       },
       // The two bridges installed apps still open (concept 2026-10-30): the
@@ -164,7 +166,7 @@ export const routes: Routes = [
         // Codex front door = "the composed depth-field landing": Archive
         // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.
         path: 'codex',
-        data: { layout: 'cinematic' },
+        data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true },
         pathMatch: 'full',
         loadComponent: () =>
           import('./codex/codex-landing.component').then((m) => m.CodexLandingComponent),
@@ -258,7 +260,7 @@ export const routes: Routes = [
       },
       {
         path: 'codex/:kind/:className',
-        data: { layout: 'content' },
+        data: { layout: 'content', [PRELOAD_ROUTE_DATA]: true },
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
       },
@@ -269,11 +271,12 @@ export const routes: Routes = [
         // the outlet. Gated by the shell's canActivateChild like every child;
         // all data stays RLS self-only.
         path: 'hq',
+        data: { [PRELOAD_ROUTE_DATA]: true },
         loadComponent: () => import('./hq/hq-shell.component').then((m) => m.HqShellComponent),
         children: [
           {
             path: '',
-            data: { layout: 'cinematic' },
+            data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true },
             pathMatch: 'full',
             // Beta shell: the five-page landing (Start · Planen · Jetzt · Bestand · Statistik,
             // /hq#planen …); β off: today's overview, unchanged.

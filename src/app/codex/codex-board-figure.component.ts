@@ -461,12 +461,20 @@ export class CodexBoardFigureComponent {
       this.three = T;
       this.palette = readPalette(canvas);
 
-      const renderer = new T.WebGLRenderer({
-        canvas,
-        alpha: true,
-        antialias: true,
-        powerPreference: 'low-power',
-      });
+      let renderer: THREE.WebGLRenderer;
+      try {
+        renderer = new T.WebGLRenderer({
+          canvas,
+          alpha: true,
+          antialias: true,
+          powerPreference: 'low-power',
+        });
+      } catch (error) {
+        // No context here means none for the next figure either: remember it,
+        // so they keep the drawn suit without importing three again.
+        webglSupport = false;
+        throw error;
+      }
       renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
       renderer.setClearAlpha(0);
       renderer.toneMapping = T.ACESFilmicToneMapping;
@@ -592,25 +600,24 @@ export class CodexBoardFigureComponent {
   }
 }
 
-/** WebGL support does not change within a page — probe once, not per figure. */
+/**
+ * WebGL support does not change within a page: once a figure failed to get a
+ * context, the others skip the three import and keep the drawn suit.
+ */
 let webglSupport: boolean | null = null;
 
 /**
- * A context probe, not a feature test — cheap enough to run before the import.
- * The probe's own context is released at once: every figure used to leave one
- * behind, and enough of them push the page into the browser's context limit.
+ * Cheap pre-check before the three import: the API exists, and no figure on
+ * this page failed to get a context yet. It no longer opens a probe context of
+ * its own — creating a WebGL context is one of the slowest calls a page makes
+ * (it starts the GPU side of the context), and the probe paid it once more
+ * right before three created the real one: ~0.95 s of the 1.2 s long task on
+ * /hq in a profile (2026-11-03). A browser that exposes the API but refuses
+ * the context makes `new WebGLRenderer` throw, which `boot()` already turns
+ * into the drawn fallback.
  */
 function hasWebgl(): boolean {
-  if (webglSupport !== null) return webglSupport;
-  try {
-    const probe = document.createElement('canvas');
-    const gl = (probe.getContext('webgl2') ?? probe.getContext('webgl')) as WebGLRenderingContext | null;
-    gl?.getExtension('WEBGL_lose_context')?.loseContext();
-    webglSupport = !!gl;
-  } catch {
-    webglSupport = false;
-  }
-  return webglSupport;
+  return webglSupport !== false && typeof WebGLRenderingContext !== 'undefined';
 }
 
 function safeColor(value: string, fallback: string): string {

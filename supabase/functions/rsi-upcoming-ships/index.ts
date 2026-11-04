@@ -38,6 +38,7 @@
 // artwork is not an upcoming-ships-only feature.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createFeedMemo } from '../fetch-verse-news/feed-memo.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const CORS_HEADERS = {
@@ -282,6 +283,114 @@ async function fetchGameShipNames(): Promise<{ exact: Set<string>; all: string[]
 }
 
 // --------------------- server ---------------------
+/**
+ * Builds the response body: the whole Ship-Matrix from RSI plus every ingested
+ * game ship name from the database, matched against each other. Throws when an
+ * upstream read fails (the handler answers 502 and nothing is memoised).
+ */
+async function buildPayload(): Promise<string> {
+  const [matrix, gameNames] = await Promise.all([fetchShipMatrix(), fetchGameShipNames()]);
+
+  const ships: UpcomingShip[] = [];
+  const seenIds = new Set<string>();
+  // normalized game-ship name → best RSI art found for it (+ the score that won).
+  const artByGameName = new Map<string, { art: RsiShipArt; score: number }>();
+  for (const raw of matrix) {
+    const name = typeof raw['name'] === 'string' ? (raw['name'] as string).trim() : '';
+    if (!name) continue;
+    const rsiNorm = normalizeName(name);
+    const rsiUrl = normalizeShipUrl(raw['url']);
+    const thumbnails = rsiThumbnails(raw['media']);
+
+    const mfr = raw['manufacturer'];
+    const mfrRec = mfr && typeof mfr === 'object' ? (mfr as Record<string, unknown>) : null;
+    const mfrName = mfrRec && typeof mfrRec['name'] === 'string' ? (mfrRec['name'] as string) : null;
+    const mfrCode = mfrRec && typeof mfrRec['code'] === 'string' ? (mfrRec['code'] as string) : null;
+
+    // Best score per matched game name, across the bare AND the
+    // manufacturer-prefixed candidate ("roc" alone is too short to match,
+    // "greycatroc" hits exactly).
+    const matches = new Map<string, number>();
+    for (const cand of nameCandidates(name, mfrName, mfrCode)) {
+      for (const m of matchGameData(cand, gameNames.exact, gameNames.all)) {
+        const cur = matches.get(m.name);
+        if (cur === undefined || m.score > cur) matches.set(m.name, m.score);
+      }
+    }
+
+    if (matches.size > 0) {
+      // Already in our game data → not part of the diff, but its artwork is
+      // exactly what the Codex ship card wants when the datamined render is
+      // missing. Most specific RSI name wins per game ship.
+      if (thumbnails.length > 0) {
+        for (const [gameName, score] of matches) {
+          const cur = artByGameName.get(gameName);
+          if (!cur || score > cur.score) {
+            artByGameName.set(gameName, { art: { name, rsiUrl, thumbnails }, score });
+          }
+        }
+      }
+      continue;
+    }
+
+    const id = String(raw['id'] ?? rsiNorm);
+    if (seenIds.has(id)) continue;
+    seenIds.add(id);
+
+    const productionStatus = typeof raw['production_status'] === 'string' ? (raw['production_status'] as string) : null;
+
+    ships.push({
+      id,
+      name,
+      manufacturer: mfrName,
+      manufacturerCode: mfrCode,
+      productionStatus,
+      type: typeof raw['type'] === 'string' ? (raw['type'] as string) : null,
+      focus: typeof raw['focus'] === 'string' ? (raw['focus'] as string) : null,
+      rsiUrl,
+      thumbnail: thumbnails[0] ?? null,
+      thumbnails,
+      flightReadyButMissing: productionStatus === 'flight-ready',
+    });
+  }
+
+  const gameShipArt: Record<string, RsiShipArt> = {};
+  for (const [gameName, entry] of artByGameName) gameShipArt[gameName] = entry.art;
+
+  // Concept ships first (RSI still building them), then just-released/missing,
+  // each block alphabetical — a stable, reviewer-friendly order.
+  ships.sort((a, b) => {
+    if (a.flightReadyButMissing !== b.flightReadyButMissing) return a.flightReadyButMissing ? 1 : -1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const payload = {
+    ships,
+    // normalized game-ship name → RSI artwork; consumed by the Codex ship
+    // cards, not by the upcoming list.
+    gameShipArt,
+    counts: {
+      total: ships.length,
+      concept: ships.filter((s) => !s.flightReadyButMissing).length,
+      flightReadyMissing: ships.filter((s) => s.flightReadyButMissing).length,
+      rsiTotal: matrix.length,
+      gameNames: gameNames.all.length,
+      gameShipArt: Object.keys(gameShipArt).length,
+    },
+    fetchedAt: new Date().toISOString(),
+  };
+
+  return JSON.stringify(payload);
+}
+
+// RSI ship data changes at most a couple of times a day, but every request that
+// reached this function fetched the whole Ship-Matrix and read every ingested
+// ship name again — the Cache-Control below only helps a cache that sits in
+// front of it, and each browser asks once per visit. Requests reaching the same
+// isolate now share one build for 30 minutes; a failed build is not kept.
+const PAYLOAD_MEMO_TTL_MS = 30 * 60 * 1000;
+const payloadMemo = createFeedMemo<string>(PAYLOAD_MEMO_TTL_MS, () => true);
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
 
@@ -293,98 +402,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const [matrix, gameNames] = await Promise.all([fetchShipMatrix(), fetchGameShipNames()]);
+    const { value: body } = await payloadMemo.get(buildPayload);
 
-    const ships: UpcomingShip[] = [];
-    const seenIds = new Set<string>();
-    // normalized game-ship name → best RSI art found for it (+ the score that won).
-    const artByGameName = new Map<string, { art: RsiShipArt; score: number }>();
-    for (const raw of matrix) {
-      const name = typeof raw['name'] === 'string' ? (raw['name'] as string).trim() : '';
-      if (!name) continue;
-      const rsiNorm = normalizeName(name);
-      const rsiUrl = normalizeShipUrl(raw['url']);
-      const thumbnails = rsiThumbnails(raw['media']);
-
-      const mfr = raw['manufacturer'];
-      const mfrRec = mfr && typeof mfr === 'object' ? (mfr as Record<string, unknown>) : null;
-      const mfrName = mfrRec && typeof mfrRec['name'] === 'string' ? (mfrRec['name'] as string) : null;
-      const mfrCode = mfrRec && typeof mfrRec['code'] === 'string' ? (mfrRec['code'] as string) : null;
-
-      // Best score per matched game name, across the bare AND the
-      // manufacturer-prefixed candidate ("roc" alone is too short to match,
-      // "greycatroc" hits exactly).
-      const matches = new Map<string, number>();
-      for (const cand of nameCandidates(name, mfrName, mfrCode)) {
-        for (const m of matchGameData(cand, gameNames.exact, gameNames.all)) {
-          const cur = matches.get(m.name);
-          if (cur === undefined || m.score > cur) matches.set(m.name, m.score);
-        }
-      }
-
-      if (matches.size > 0) {
-        // Already in our game data → not part of the diff, but its artwork is
-        // exactly what the Codex ship card wants when the datamined render is
-        // missing. Most specific RSI name wins per game ship.
-        if (thumbnails.length > 0) {
-          for (const [gameName, score] of matches) {
-            const cur = artByGameName.get(gameName);
-            if (!cur || score > cur.score) {
-              artByGameName.set(gameName, { art: { name, rsiUrl, thumbnails }, score });
-            }
-          }
-        }
-        continue;
-      }
-
-      const id = String(raw['id'] ?? rsiNorm);
-      if (seenIds.has(id)) continue;
-      seenIds.add(id);
-
-      const productionStatus = typeof raw['production_status'] === 'string' ? (raw['production_status'] as string) : null;
-
-      ships.push({
-        id,
-        name,
-        manufacturer: mfrName,
-        manufacturerCode: mfrCode,
-        productionStatus,
-        type: typeof raw['type'] === 'string' ? (raw['type'] as string) : null,
-        focus: typeof raw['focus'] === 'string' ? (raw['focus'] as string) : null,
-        rsiUrl,
-        thumbnail: thumbnails[0] ?? null,
-        thumbnails,
-        flightReadyButMissing: productionStatus === 'flight-ready',
-      });
-    }
-
-    const gameShipArt: Record<string, RsiShipArt> = {};
-    for (const [gameName, entry] of artByGameName) gameShipArt[gameName] = entry.art;
-
-    // Concept ships first (RSI still building them), then just-released/missing,
-    // each block alphabetical — a stable, reviewer-friendly order.
-    ships.sort((a, b) => {
-      if (a.flightReadyButMissing !== b.flightReadyButMissing) return a.flightReadyButMissing ? 1 : -1;
-      return a.name.localeCompare(b.name);
-    });
-
-    const payload = {
-      ships,
-      // normalized game-ship name → RSI artwork; consumed by the Codex ship
-      // cards, not by the upcoming list.
-      gameShipArt,
-      counts: {
-        total: ships.length,
-        concept: ships.filter((s) => !s.flightReadyButMissing).length,
-        flightReadyMissing: ships.filter((s) => s.flightReadyButMissing).length,
-        rsiTotal: matrix.length,
-        gameNames: gameNames.all.length,
-        gameShipArt: Object.keys(gameShipArt).length,
-      },
-      fetchedAt: new Date().toISOString(),
-    };
-
-    return new Response(JSON.stringify(payload), {
+    return new Response(body, {
       headers: {
         ...CORS_HEADERS,
         'Content-Type': 'application/json',

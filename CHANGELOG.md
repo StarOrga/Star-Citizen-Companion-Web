@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.201.0] - 2026-11-04
+
+### Added
+- With your statistics consent, the app reports how fast pages load on your device (load times only, nothing about you or what you look at), so slow spots can be found and fixed. The privacy policy names it.
+
+### Changed
+- The Verse planet is ready within a second instead of being worked out anew on every visit, and the opening sequence no longer swaps it in halfway through.
+- News pages no longer keep animating the placeholders behind loaded pictures, which kept the processor busy for as long as the page was open.
+- The HQ page no longer freezes for about a second when its 3D figure starts.
+- Once the page you opened is ready, Codex, HQ and the Verse load quietly in the background, so switching between them is faster.
+- The Codex holotable rests its animations while it is scrolled out of view.
+- When the server is slow, news and upcoming ships show the last saved copy after 4 seconds instead of 10, and the server answers repeated requests from a short-lived copy instead of fetching every source again.
+
 ## [0.200.3] - 2026-11-03
 
 ### Fixed
