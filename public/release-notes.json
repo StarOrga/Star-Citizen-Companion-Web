@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.203.1",
+  "current": "0.203.2",
   "releases": [
+    {
+      "version": "0.203.2",
+      "date": "2026-11-04",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Jetzt now tells a connected SCC app without live data that live sync or the game is still missing, and names the setting."
+            },
+            {
+              "title": "",
+              "text": "After the game closes, HQ Jetzt shows the location as \"Last seen here\" with the time of the last update instead of as your current position."
+            },
+            {
+              "title": "",
+              "text": "The download menu shows a freshly connected app without a page reload."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.203.1",
       "date": "2026-11-04",
