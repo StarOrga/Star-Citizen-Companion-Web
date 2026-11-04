@@ -5099,10 +5099,17 @@
       "retry": "Try again",
       "connect": {
         "title": "Game not detected — start the SCC app",
-        "hint": "The SCC app reports your location and actions here, live."
+        "hint": "The SCC app reports your location and actions here, live.",
+        "syncOffTitle": "SCC app connected — no live data yet",
+        "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game."
+      },
+      "fresh": {
+        "updated": "Last update: {{at}}",
+        "ended": "Game closed · as of {{at}}"
       },
       "anchor": {
         "label": "You are here",
+        "lastSeen": "Last seen here",
         "unknown": "Location unknown",
         "ship": "Ship:"
       },

@@ -495,7 +495,8 @@ export class AppDownloadMenuComponent {
 
   /** Fetch on first open only — a resting trigger must cost the page nothing. */
   private async loadOnce(): Promise<void> {
-    void this.conn.refresh();
+    // Forced: the app may have connected while this tab was open.
+    void this.conn.refresh(true);
     if (this.busy() || this.releases().length > 0) return;
     this.busy.set(true);
     this.errorMsg.set(null);

@@ -13,6 +13,14 @@ export interface LiveContract {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
+/** True when the newest session event says the game is closed: the state is then only the last known one. */
+export function sessionEnded(eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type'>[]): boolean {
+  const last = eventsNewestFirst.find(
+    (e) => e.type === 'session.joined' || e.type === 'session.quit' || e.type === 'disconnect',
+  );
+  return !!last && last.type !== 'session.joined';
+}
+
 export function readLocation(state: Record<string, unknown> | null): LiveLocation | null {
   const l = state?.['location'];
   if (typeof l === 'string') return str(l) ? { name: l.trim(), system: null } : null;

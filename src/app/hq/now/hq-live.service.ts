@@ -91,6 +91,8 @@ export class HqLiveService {
   private readonly community = inject(HqCommunityService);
 
   readonly state = signal<Record<string, unknown> | null>(null);
+  /** When the desktop app last wrote `state`. The app writes on change only, so this is no heartbeat. */
+  readonly stateUpdatedAt = signal<string | null>(null);
   /** Newest first. */
   readonly events = signal<readonly HqLiveEventRow[]>([]);
   readonly connected = signal(false);
@@ -123,6 +125,7 @@ export class HqLiveService {
     this.teardown();
     this.uid = uid;
     this.state.set(null);
+    this.stateUpdatedAt.set(null);
     this.events.set([]);
     this.loaded.set(false);
     this.hasMore.set(true);
@@ -132,7 +135,10 @@ export class HqLiveService {
     void this.refresh().then(() => {
       if (this.uid !== uid) return;
       this.stop = this.store.subscribe(uid, {
-        onState: (row) => this.state.set(row.state),
+        onState: (row) => {
+          this.state.set(row.state);
+          this.stateUpdatedAt.set(row.updated_at ?? null);
+        },
         onEvent: (row) => this.ingest([row]),
         onStatus: (s) => this.connected.set(s === 'SUBSCRIBED'),
       });
@@ -158,6 +164,7 @@ export class HqLiveService {
       const [st, evs] = await Promise.all([this.store.fetchState(uid), this.store.fetchEvents(uid, FIRST_LOAD)]);
       if (this.uid !== uid) return;
       this.state.set(st?.state ?? null);
+      this.stateUpdatedAt.set(st?.updated_at ?? null);
       const first = !this.loaded();
       this.ingest(evs);
       if (first && evs.length < FIRST_LOAD) this.hasMore.set(false);

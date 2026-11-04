@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { HqLiveEventRow } from '../data/hq-db.types';
+import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
+import { ConnectionState } from '../../desktop/desktop-access';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqLiveService } from './hq-live.service';
 import { HqNowComponent } from './hq-now.component';
@@ -17,6 +19,7 @@ function ev(i: number): HqLiveEventRow {
 function fakeLive(state: Record<string, unknown> | null, events: HqLiveEventRow[] = []) {
   return {
     state: signal(state),
+    stateUpdatedAt: signal<string | null>(null),
     events: signal(events),
     loaded: signal(true),
     error: signal<string | null>(null),
@@ -32,9 +35,14 @@ function fakeLive(state: Record<string, unknown> | null, events: HqLiveEventRow[
 }
 
 describe('HqNowComponent', () => {
-  function mount(live: ReturnType<typeof fakeLive>): ComponentFixture<HqNowComponent> {
+  function mount(live: ReturnType<typeof fakeLive>, conn: ConnectionState = 'never'): ComponentFixture<HqNowComponent> {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), provideTranslateService(), { provide: HqLiveService, useValue: live }],
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        { provide: HqLiveService, useValue: live },
+        { provide: DesktopConnectionService, useValue: { stateFor: () => conn, refresh: () => Promise.resolve() } },
+      ],
     });
     const f = TestBed.createComponent(HqNowComponent);
     f.detectChanges();
@@ -46,6 +54,32 @@ describe('HqNowComponent', () => {
     expect((f.nativeElement as HTMLElement).querySelector('.connect sc-hq-app-launch')).toBeTruthy();
     expect((f.nativeElement as HTMLElement).querySelector('a[href="/apps"]')).toBeNull();
     expect((f.nativeElement as HTMLElement).querySelector('.anchor')).toBeNull();
+  });
+
+  it('tells a connected app without live data to enable the sync', () => {
+    const f = mount(fakeLive(null), 'connected');
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.connect .connect-title')?.textContent).toContain('hq.now.connect.syncOffTitle');
+    expect(el.querySelector('.connect .muted')?.textContent).toContain('hq.now.connect.syncOffHint');
+  });
+
+  it('marks the location as last known once the session ended', () => {
+    const live = fakeLive({ location: { name: 'Lorville', system: null } }, [
+      { ...ev(0), type: 'session.quit' },
+      { ...ev(1), type: 'session.joined' },
+    ]);
+    live.stateUpdatedAt.set(new Date().toISOString());
+    const el = mount(live).nativeElement as HTMLElement;
+    expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.lastSeen');
+    expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.ended');
+  });
+
+  it('shows the last update of a running session', () => {
+    const live = fakeLive({ location: { name: 'Lorville', system: null } }, [{ ...ev(0), type: 'session.joined' }]);
+    live.stateUpdatedAt.set(new Date().toISOString());
+    const el = mount(live).nativeElement as HTMLElement;
+    expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.label');
+    expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.updated');
   });
 
   it('renders the location anchor as system > place with the ship and the mission count', () => {
