@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.203.2] - 2026-11-04
+
+### Fixed
+- HQ Jetzt now tells a connected SCC app without live data that live sync or the game is still missing, and names the setting.
+- After the game closes, HQ Jetzt shows the location as "Last seen here" with the time of the last update instead of as your current position.
+- The download menu shows a freshly connected app without a page reload.
+
 ## [0.203.1] - 2026-11-04
 
 ### Fixed
