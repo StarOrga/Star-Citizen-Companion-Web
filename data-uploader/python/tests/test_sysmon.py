@@ -5,7 +5,6 @@ from sc_extract.sysmon import COUNTERS, DRIVE_COUNTERS, build_drives, clean, ins
 
 
 def test_cpu_is_rounded_and_capped_at_100():
-    # % Processor Utility can exceed 100 with turbo clocks; Task Manager caps it.
     assert clean("cpuPct", 37.26) == 37.3
     assert clean("cpuPct", 131.0) == 100.0
 
@@ -23,7 +22,8 @@ def test_glitches_read_as_zero():
 def test_counters_use_english_names_with_a_cpu_fallback():
     paths = dict(COUNTERS)
     assert set(paths) == {"cpuPct", "readBps", "writeBps", "iops"}
-    assert paths["cpuPct"][0].endswith("% Processor Utility")
+    # Task Manager's basis since Windows 11 24H2; % Processor Utility reads higher.
+    assert all(path.endswith("% Processor Time") for path in paths["cpuPct"])
     assert len(paths["cpuPct"]) == 2
 
 

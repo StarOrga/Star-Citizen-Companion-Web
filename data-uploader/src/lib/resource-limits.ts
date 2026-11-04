@@ -327,7 +327,7 @@ export interface ResourceSample {
   cpuRunPct: number;
   /**
    * The uploader app itself (Electron processes: `app.getAppMetrics()`
-   * `cpu.percentCPUUsage`, normalised by {@link appCpuPct}) — percent of the
+   * `cpu.percentCPUUsage`, summed by {@link appCpuPct}) — percent of the
    * whole machine (all logical cores = 100). The dock's "Uploader" share is
    * `cpuRunPct + cpuAppPct` (and RAM `ramRunMb + ramAppMb`); the tooltip
    * explains that the limits cover the run only, so the blue share may exceed
@@ -413,15 +413,15 @@ export function parseSampleGpu(raw: unknown, vramTotalMb: number | null): Sample
 }
 
 /**
- * The Electron app's CPU as a share of the WHOLE machine. `percentCPUUsage` of
- * `app.getAppMetrics()` is per process and relative to one core (a busy
- * renderer may read 150), so the sum is divided by the logical core count.
+ * The Electron app's CPU as a share of the WHOLE machine: the sum over its
+ * processes. `percentCPUUsage` of `app.getAppMetrics()` is already relative to
+ * all logical cores — measured on Electron 45 with 12 threads, one core burning
+ * in the main process reads about 8.3, not 100 — so it must not be divided again.
  */
-export function appCpuPct(perProcess: readonly (number | null | undefined)[], cores: number): number {
+export function appCpuPct(perProcess: readonly (number | null | undefined)[]): number {
   let sum = 0;
   for (const p of perProcess) if (typeof p === 'number' && Number.isFinite(p) && p > 0) sum += p;
-  const pct = sum / Math.max(1, Math.floor(cores) || 1);
-  return Math.round(Math.min(100, pct) * 10) / 10;
+  return Math.round(Math.min(100, sum) * 10) / 10;
 }
 
 /** Room above the limit on a measured scale, so the handle never sits pinned at its end. */

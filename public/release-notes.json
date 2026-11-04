@@ -1,7 +1,51 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.202.0",
+  "current": "0.203.1",
   "releases": [
+    {
+      "version": "0.203.1",
+      "date": "2026-11-04",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.72.1: the total CPU load now uses the same measure as Task Manager, so it no longer reads too high."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader: the blue share in the performance panel no longer shows the app's own CPU use far too small (by the number of processor threads)."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader: the bars at the top of the performance panel keep the same 10 LEDs whether it is folded or unfolded."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.203.0",
+      "date": "2026-11-04",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ: \"SCC-App verbinden\" and \"SCC-App herunterladen\" are now one button, \"SCC-App starten\". If the app doesn't respond, the download starts and a small hint says so. Until the next SCC app release, the app can't be started from the browser yet, so the button downloads the installer even if you already have it."
+            },
+            {
+              "title": "",
+              "text": "The first-visit step for the SCC app now leads to the HQ page \"Jetzt\" instead of the apps overview, which doesn't list the SCC app."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.202.0",
       "date": "2026-11-04",

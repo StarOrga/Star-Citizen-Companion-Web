@@ -43,9 +43,12 @@ touching a disk. Sent only when at least one pid could be read twice.
 
 Windows only, via the Performance Data Helper with the *English* counter
 names (``PdhAddEnglishCounterW``), so a German or any other localized Windows
-reads the same counters. CPU is ``% Processor Utility`` — the value Task
-Manager's "CPU" column uses, which accounts for turbo clocks — with
-``% Processor Time`` as the fallback on systems that lack it.
+reads the same counters. CPU is ``% Processor Time``: since Windows 11 24H2
+(KB5058411, May 2025) Task Manager computes CPU as busy time / (elapsed time x
+logical processors) on every page. ``% Processor Utility``, its old source,
+scales with the clock speed and reads about 10 % higher here (Ryzen 5 3600 at
+full load: 110.8 against 100.0). The run's share comes from Job Object CPU
+seconds (``governor.py``), so this also puts whole PC and run on one scale.
 """
 
 from __future__ import annotations
@@ -63,7 +66,7 @@ SAMPLE_S = 1.0
 #: (key, English counter path candidates — the first one that opens wins).
 COUNTERS: List[Tuple[str, Tuple[str, ...]]] = [
     ("cpuPct", (
-        r"\Processor Information(_Total)\% Processor Utility",
+        r"\Processor Information(_Total)\% Processor Time",
         r"\Processor(_Total)\% Processor Time",
     )),
     ("readBps", (r"\PhysicalDisk(_Total)\Disk Read Bytes/sec",)),

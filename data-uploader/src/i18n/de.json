@@ -498,7 +498,7 @@
       "vramTotal": "VRAM gesamt"
     },
     "tip": {
-      "cpu": "Auslastung aller {{threads}} Threads, gemessen wie die Spalte „CPU“ im Task-Manager (inkl. Turbo-Takt). Der Wert wird jede Sekunde neu gemessen und springt bei einem Lauf stark, deshalb zeigt ein Vergleich mit dem Task-Manager selten dieselbe Zahl. 10 % bleiben immer für Windows.",
+      "cpu": "Auslastung aller {{threads}} Threads, gemessen wie die CPU-Anzeige im Task-Manager. Der Wert wird jede Sekunde neu gemessen und springt bei einem Lauf stark, deshalb zeigt ein Vergleich im selben Moment selten genau dieselbe Zahl. 20 % bleiben immer für Windows.",
       "cpuNoHardCap": "Die harte CPU-Grenze ließ sich nicht setzen — der Lauf läuft mit niedriger Priorität weiter.",
       "ram": "Von allen Programmen belegter Arbeitsspeicher, dieselbe Zahl wie „Arbeitsspeicher“ im Task-Manager. Die Grenze bestimmt, wie viele Worker der nächste Schritt startet.",
       "drive": "Aktive Zeit: Anteil der Zeit, in der das Laufwerk mindestens eine offene Anfrage hatte — die Prozentzahl „Datenträger“ im Task-Manager. 100 % heißt „ständig beschäftigt“, nicht „am Limit“: Eine SSD liefert dabei oft noch ein Vielfaches an Durchsatz. Ob sie überlastet ist, zeigt die Antwortzeit.",
