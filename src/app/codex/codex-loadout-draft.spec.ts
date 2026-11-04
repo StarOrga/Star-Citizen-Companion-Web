@@ -6,6 +6,11 @@ import {
   extendHydration,
   changedCount,
   decodeDraftParam,
+  decodePowerParam,
+  encodePowerParam,
+  DEFAULT_POWER_DRAFT,
+  parseDockPosition,
+  parseDockSlot,
   deleteDraftPaths,
   draftKey,
   encodeDraftParam,
@@ -267,5 +272,26 @@ describe('localStorage draft mirror', () => {
     expect(parseLocalDraft(null)).toBeNull();
     expect(parseLocalDraft('{"not":"the shape"}')).toBeNull();
     expect(parseLocalDraft('not json at all')).toBeNull();
+  });
+});
+
+describe('dock position + Analyse slot', () => {
+  it('reads every position, the new edge and Analyse ones included', () => {
+    for (const p of ['left', 'center', 'right', 'edgeLeft', 'edgeRight', 'analysis', 'inline'] as const) {
+      expect(parseDockPosition(p)).toBe(p);
+      const enc = encodePowerParam({ ...DEFAULT_POWER_DRAFT, dock: p });
+      if (p === 'center') expect(enc).toBeNull();
+      else expect(decodePowerParam(enc)?.dock).toBe(p);
+    }
+    expect(parseDockPosition('top')).toBeNull();
+  });
+
+  it('reads the Analyse slot tolerantly, defaulting to below the last panel', () => {
+    expect(parseDockSlot('0')).toBe(0);
+    expect(parseDockSlot('2')).toBe(2);
+    expect(parseDockSlot(null)).toBe(3);
+    expect(parseDockSlot('')).toBe(3);
+    expect(parseDockSlot('9')).toBe(3);
+    expect(parseDockSlot('1.5')).toBe(3);
   });
 });

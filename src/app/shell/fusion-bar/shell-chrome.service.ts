@@ -99,6 +99,7 @@ export class ShellChromeService {
   private readonly stage = signal<StageSearchState>('none');
   private readonly sectionLabel = signal<string | null>(null);
   private readonly hiddenState = signal(false);
+  private readonly pinCount = signal(0);
   private readonly snapState = signal(false);
   private readonly fullState = signal(false);
   private readonly dockTargets = new Set<HTMLElement>();
@@ -163,6 +164,23 @@ export class ShellChromeService {
   readonly dockFull = this.fullState.asReadonly();
   /** True while the bar is slid away (content pages, scrolling down). */
   readonly barHidden = this.hiddenState.asReadonly();
+  /**
+   * A page asked the bar to stay put on scroll (the codex ship page's classic
+   * view, which hangs its sticky KPI strip under the bar). Ref-counted, so two
+   * owners never release each other's request.
+   */
+  readonly barPinned = computed(() => this.pinCount() > 0);
+
+  /** Keeps the bar from sliding away until the returned release is called. */
+  pinBar(): () => void {
+    this.pinCount.update((n) => n + 1);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.pinCount.update((n) => Math.max(0, n - 1));
+    };
+  }
 
   /** The HQ landing reports the page in view (null when it leaves). */
   setHqPage(page: HqPageId | null): void {

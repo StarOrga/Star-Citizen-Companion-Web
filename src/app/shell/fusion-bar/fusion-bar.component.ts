@@ -484,9 +484,11 @@ export class FusionBarComponent {
     effect(() => {
       const m = this.mode();
       const main = this.mainPage();
+      // A page that pins the bar (codex classic view) brings a slid-away bar back at once.
+      const pinned = this.chrome.barPinned();
       untracked(() => {
         this.chrome.setStageSearch(main ? (m === 'docked' ? 'docked' : 'stage') : 'none');
-        if (!hidesOnScroll(m)) this.setHidden(false);
+        if (!hidesOnScroll(m) || pinned) this.setHidden(false);
         this.publishHeight();
       });
     });
@@ -613,7 +615,7 @@ export class FusionBarComponent {
       this.tracker.reset(y);
       return;
     }
-    if (hidesOnScroll(this.mode()) && !this.searchOpen() && !this.panelOpen()) {
+    if (hidesOnScroll(this.mode()) && !this.chrome.barPinned() && !this.searchOpen() && !this.panelOpen()) {
       const next = this.tracker.update(y, this.barH);
       if (next !== this.hidden()) this.zone.run(() => this.setHidden(next));
     } else {

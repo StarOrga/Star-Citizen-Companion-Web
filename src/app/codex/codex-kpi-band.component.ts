@@ -26,7 +26,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       @for (c of cells(); track c.key) {
         <div class="kpi-cell" [class.accent]="c.accent" [class.gap]="c.value == null" [class.from-power]="c.fromPower">
           <span class="kpi-label">
-            {{ c.labelKey | translate }}
+            <span class="kpi-label-text">{{ c.labelKey | translate }}</span>
             @if (c.tooltipKey; as tip) {
               <button type="button" class="kpi-info tip" tabindex="0" [attr.aria-describedby]="'kpi-tip-' + c.key">ⓘ</button>
               <span [id]="'kpi-tip-' + c.key" class="kpi-tip" role="tooltip">{{ tip | translate }}</span>
@@ -56,12 +56,17 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        as the band, so it never moved (#240). The host's parent is the page
        column, which runs the full length of the classic view.
        --sc-topbar-h is the height the shell header parks at (0px whenever the
-       header itself scrolls away, below 1080px). */
+       header itself scrolls away, below 1080px).
+       It parks UNDER the bar with a small gap, and never closer to the
+       viewport top than the search bar itself stands (--sc-chrome-top) — so
+       with no bar above it, it still floats free of the edge instead of
+       sticking flush to it. */
     :host {
       display: block;
       position: sticky;
-      top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px));
+      top: max(var(--sc-chrome-top, 24px), calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 8px));
       z-index: 10; /* below the energy dock (14), compare tray (40) and every dialog backdrop */
+      --_r: 12px;
     }
     @media (max-width: 720px) {
       :host { position: static; }
@@ -71,20 +76,23 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        carries no border of its own — every cell paints top/left/bottom and the
        last one closes the right edge. Dropping the radius also drops the
        overflow clip, so the label tooltips are no longer cut off at the band. */
+    /* ONE row, whatever the mission and whatever the width: the band never
+       wraps into a second or third row (it used to fold to 3 and 2 columns).
+       Cells share the width; a label that does not fit ends in an ellipsis,
+       the value never shrinks. Round outer corners like the docked bar. */
     .kpi-band {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
       background: var(--sc-bg-0);
+      border-radius: var(--_r);
       box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.55);
     }
-    @media (max-width: 1120px) {
-      .kpi-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      /* part-02.html:290 — once the band wraps, the cell that ends a row would
-         sit open on its right, so every cell closes its own edge. */
-      .kpi-cell { border-right: 1px solid var(--sc-border); }
-    }
-    @media (max-width: 480px) {
-      .kpi-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Phones: six cells cannot share 360px — the row scrolls sideways instead
+       of wrapping (the band is not sticky there). */
+    @media (max-width: 720px) {
+      .kpi-band { grid-auto-columns: minmax(max-content, 1fr); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+      .kpi-band::-webkit-scrollbar { display: none; }
     }
     /* One baseline ROW per cell — label left, value pushed right, delta chip
        trailing (part-02.html:178). Not a stacked column. */
@@ -100,19 +108,23 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
          to the top by the baseline alignment. */
       padding: 14px 9px;
       min-height: 48px;
+      min-width: 0;
+      white-space: nowrap;
     }
-    .kpi-cell:last-child { border-right: 1px solid var(--sc-border); }
+    .kpi-cell:first-child { border-radius: var(--_r) 0 0 var(--_r); }
+    .kpi-cell:last-child { border-right: 1px solid var(--sc-border); border-radius: 0 var(--_r) var(--_r) 0; }
     @media (pointer: fine) {
       /* The concept's own .45rem .7rem at the mock 13px root = 6px 9px, which
          is the ~25px baseline row a mouse user is meant to see. */
       .kpi-cell { padding: 6px 9px; min-height: 0; }
     }
     .kpi-cell.accent { background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 18%, var(--sc-bg-2)), var(--sc-bg-1)); border-bottom: 2px solid var(--sc-accent); }
-    .kpi-label { font-size: max(9.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); letter-spacing: 0.13em; text-transform: uppercase; }
-    .kpi-value { margin-left: auto; font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; font-size: 17px; color: var(--sc-fg-0); }
+    .kpi-label { display: inline-flex; align-items: baseline; min-width: 0; font-size: max(9.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); letter-spacing: 0.13em; text-transform: uppercase; }
+    .kpi-label-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .kpi-value { flex: none; margin-left: auto; font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; font-size: 17px; color: var(--sc-fg-0); }
     .kpi-cell.gap .kpi-value.gap-dash { color: var(--sc-fg-2); font-size: 15px; cursor: help; }
     /* The delta is a tinted CHIP, not bare text (part-02.html:184-186). */
-    .kpi-delta { font-size: max(10px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums;
+    .kpi-delta { flex: none; font-size: max(10px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums;
       padding: 1px 4px; border-radius: 2px; }
     .kpi-delta.good { color: var(--sc-success); background: color-mix(in srgb, var(--sc-success) 12%, transparent); }
     /* --sc-warning, not --sc-danger: a worse value is a comparison, not an error (CLAUDE.md). */

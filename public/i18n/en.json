@@ -1395,7 +1395,13 @@
         "left": "bottom left",
         "center": "bottom centre",
         "right": "bottom right",
-        "inline": "in the page flow"
+        "inline": "in the page flow",
+        "edgeLeft": "at the left screen edge, scrolls along",
+        "edgeRight": "at the right screen edge, scrolls along",
+        "analysis": "in the Analysis column",
+        "slotGroup": "Place in the Analysis column",
+        "slotUp": "Move up in the Analysis column",
+        "slotDown": "Move down in the Analysis column"
       },
       "group": {
         "weapons": "Weapons",
