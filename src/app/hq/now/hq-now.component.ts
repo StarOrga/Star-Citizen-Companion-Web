@@ -11,10 +11,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScStepComponent } from '../../shared/step/sc-step.component';
-import { HqAppDownloadComponent } from '../hq-app-download.component';
+import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqLiveService } from './hq-live.service';
 import { eventLabel, readContracts, readLocation, readShip } from './hq-live.util';
@@ -32,7 +31,7 @@ const PREVIEW = 3;
 @Component({
   selector: 'sc-hq-now',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, RouterLink, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent, HqAppDownloadComponent],
+  imports: [TranslatePipe, DatePipe, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent, HqAppLaunchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 class="page-title" id="hq-now-title">{{ 'hq.pages.jetzt' | translate }}</h2>
@@ -43,11 +42,11 @@ const PREVIEW = 3;
       <p class="err" role="alert">{{ live.error()! | translate }}</p>
       <button type="button" class="btn" (click)="live.refresh()">{{ 'hq.now.retry' | translate }}</button>
     } @else if (!live.state()) {
-      <a class="connect" routerLink="/apps">
+      <section class="connect">
         <span class="connect-title">{{ 'hq.now.connect.title' | translate }}</span>
         <span class="muted">{{ 'hq.now.connect.hint' | translate }}</span>
-      </a>
-      <sc-hq-app-download class="connect-dl" />
+        <sc-hq-app-launch class="connect-go" />
+      </section>
     } @else {
       <div class="top">
         <section class="anchor" aria-labelledby="hq-now-anchor">
@@ -159,12 +158,11 @@ const PREVIEW = 3;
       }
       .btn:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
       .connect {
-        display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); padding: var(--sc-space-5, 20px); text-decoration: none; color: var(--sc-fg);
+        display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); padding: var(--sc-space-5, 20px); color: var(--sc-fg);
         border: 1px dashed var(--sc-accent); border-radius: var(--sc-radius, 10px);
       }
-      .connect:hover { background: var(--sc-surface-2, transparent); }
       .connect-title { font-weight: 600; font-size: 1.15rem; color: var(--sc-accent); }
-      .connect-dl { margin-top: var(--sc-space-3, 12px); }
+      .connect-go { margin-top: var(--sc-space-3, 12px); }
       .toast {
         position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px);
         display: flex; align-items: center; gap: var(--sc-space-3, 12px); max-width: min(480px, calc(100vw - 2 * var(--sc-space-3, 12px)));

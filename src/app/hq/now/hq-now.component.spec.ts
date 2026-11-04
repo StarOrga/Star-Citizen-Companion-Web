@@ -41,11 +41,10 @@ describe('HqNowComponent', () => {
     return f;
   }
 
-  it('shows the connect CTA linking /apps when there is no state', () => {
+  it('shows the one start action when there is no state', () => {
     const f = mount(fakeLive(null));
-    const a = (f.nativeElement as HTMLElement).querySelector('a.connect') as HTMLAnchorElement;
-    expect(a).toBeTruthy();
-    expect(a.getAttribute('href')).toBe('/apps');
+    expect((f.nativeElement as HTMLElement).querySelector('.connect sc-hq-app-launch')).toBeTruthy();
+    expect((f.nativeElement as HTMLElement).querySelector('a[href="/apps"]')).toBeNull();
     expect((f.nativeElement as HTMLElement).querySelector('.anchor')).toBeNull();
   });
 

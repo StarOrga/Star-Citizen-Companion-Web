@@ -136,7 +136,7 @@ export class HqStartComponent implements OnInit {
 
   readonly hasShips = computed(() => this.hangar.ships().length > 0);
   /**
-   * "SCC-App verbinden" is done once the SCC app itself reported game data (a live state or any
+   * "SCC-App starten" is done once the SCC app itself reported game data (a live state or any
    * live event) - an uploader or Starscape check-in does not count.
    */
   readonly hasApp = computed(() => this.live.state() !== null || this.live.events().length > 0);

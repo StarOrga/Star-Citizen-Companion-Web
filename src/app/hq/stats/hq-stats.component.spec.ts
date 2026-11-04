@@ -34,7 +34,8 @@ describe('HqStatsComponent', () => {
     expect(ghost.querySelectorAll('.tile').length).toBe(6);
     expect(ghost.querySelectorAll('.stamp').length).toBe(6);
     expect(el.querySelectorAll('button.tile').length).toBe(0);
-    expect(el.querySelector('.overlay a[href="/apps"]')).toBeTruthy();
+    expect(el.querySelector('.overlay sc-hq-app-launch')).toBeTruthy();
+    expect(el.querySelector('.overlay a[href="/apps"]')).toBeNull();
     expect(el.querySelector('[role="alert"]')).toBeNull();
     expect(el.querySelector('#hq-stats-title')).toBeTruthy();
   });
