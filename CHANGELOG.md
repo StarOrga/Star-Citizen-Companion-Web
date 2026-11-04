@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.203.0] - 2026-11-04
+
+### Changed
+- HQ: "SCC-App verbinden" and "SCC-App herunterladen" are now one button, "SCC-App starten". If the app doesn't respond, the download starts and a small hint says so. Until the next SCC app release, the app can't be started from the browser yet, so the button downloads the installer even if you already have it.
+- The first-visit step for the SCC app now leads to the HQ page "Jetzt" instead of the apps overview, which doesn't list the SCC app.
+
 ## [0.202.0] - 2026-11-04
 
 ### Changed
