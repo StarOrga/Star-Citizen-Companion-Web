@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.component';
@@ -91,7 +91,7 @@ export function audienceOf(value: string | null): { friendId: string } | { group
     `,
   ],
 })
-export class HqFriendShareComponent implements OnInit {
+export class HqFriendShareComponent {
   protected readonly friends = inject(FriendsService);
   protected readonly social = inject(SocialService);
 
@@ -119,9 +119,18 @@ export class HqFriendShareComponent implements OnInit {
     return [...friends, ...groups];
   });
 
-  ngOnInit(): void {
-    if (this.friends.friendCount() === 0 && !this.friends.loading()) void this.friends.load();
-    if (this.social.groups().length === 0) void this.social.loadGroups();
+  /**
+   * The friend graph comes from the app start. An account without friends causes no request here
+   * at all, and a page with one entry per ship variant shares one groups request (`loadGroups` is
+   * single-flight).
+   */
+  constructor() {
+    effect(() => {
+      if (this.friends.friendCount() === 0) return;
+      untracked(() => {
+        if (this.social.groups().length === 0) void this.social.loadGroups();
+      });
+    });
   }
 
   protected pathOf(r: FriendShareRow): string[] {

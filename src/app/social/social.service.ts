@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal, Injector } from '@angular/core';
 import { toErrorKey } from '../core/describe-error';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import {
@@ -38,7 +38,11 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class SocialService {
-  private readonly sb = inject(SupabaseClientProvider);
+  private readonly injector = inject(Injector);
+  /** Resolved on first use: holding this service (every HQ page does) creates no Supabase client. */
+  private get sb(): SupabaseClientProvider {
+    return this.injector.get(SupabaseClientProvider);
+  }
 
   readonly invite = signal<FriendInvite | null>(null);
   readonly groups = signal<FriendGroup[]>([]);
@@ -62,9 +66,18 @@ export class SocialService {
     if (rows) this.invite.set(rows[0] ?? null);
   }
 
-  async loadGroups(): Promise<void> {
-    const rows = await this.load<FriendGroup[]>('list_my_friend_groups');
-    if (rows) this.groups.set(rows);
+  private groupsInFlight: Promise<void> | null = null;
+
+  /** Single-flight: several share entries on one page ask at once and share the one request. */
+  loadGroups(): Promise<void> {
+    this.groupsInFlight ??= this.load<FriendGroup[]>('list_my_friend_groups')
+      .then((rows) => {
+        if (rows) this.groups.set(rows);
+      })
+      .finally(() => {
+        this.groupsInFlight = null;
+      });
+    return this.groupsInFlight;
   }
 
   async loadVisibility(): Promise<void> {
