@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-11-05T14:09:37" data-template="decision">
+<html lang="de" data-theme="dark" data-page-version="2026-11-05T14:09:37" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -4937,7 +4937,9 @@ html[data-theme="light"] [data-analysis] {
 .an-enh { box-sizing: border-box; position: relative; display: flex; flex-direction: column; max-width: 780px; margin: 0 auto; padding: 40px 24px 36px; }
 .an-enh > * { flex: 0 0 auto; }
 /* a live Full analysis gives the chat the height: no subtitle, the title up top */
-.concept-content:has(section[data-analysis="full"][data-active]) { padding-top: 0.75rem; }
+/* the top band stays free on every analysis page, active round or not: the fixed bars (frozen, persist warning) live there */
+.concept-content:has(section[data-analysis]) { padding-top: 60px; }
+html:has(section[data-analysis]) { scroll-padding-top: 60px; }
 .concept-content:has(section[data-analysis="full"][data-active]) > header .subtitle { display: none; }
 .concept-content:has(section[data-analysis="full"][data-active]) > header h1 { margin: 0.25rem 0 0.25rem; }
 .an-enh:not(.an-lite) { overflow: hidden; padding-bottom: 28px; }
@@ -5044,7 +5046,7 @@ html[data-theme="light"] .an-kind { color: var(--an-ac); }
 .an-link[aria-pressed="true"] { color: var(--an-li); }
 .an-go { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
-/* ---------- first visit: the messages enter one after another (2.7 s apart) with a "read me" glow ----------
+/* ---------- first visit: the messages enter one after another (paced by reading time, dwellMs) with a "read me" glow ----------
    The engine reveals them itself (enterSeq): a message that has not entered yet is
    display:none (.an-wait), so it never reserves an empty area the chat could scroll to,
    and the chat glides down only as far as the message that just entered (glide). */
@@ -5104,6 +5106,8 @@ html[data-theme="light"] .an-tagw { color: var(--an-ac); }
 .an-send svg { width: 22px; height: 22px; fill: currentColor; }
 .an-send:hover:not(:disabled) { filter: brightness(1.1); }
 .an-sent .an-send { animation: an-fade .4s ease-out 1; }
+.an-comp-msg { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); padding: 8px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--an-b1) 45%, transparent); background: var(--an-s1); color: var(--an-tx); font-size: 13px; line-height: 1.4; z-index: 7; }
+.an-comp-msg[hidden] { display: none; }
 
 /* ---------- briefing + closing: the cool blue of devops concepts, no type colour of their own ---------- */
 .an-brief { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; padding-top: 24px; text-align: center; }
@@ -5158,13 +5162,11 @@ html[data-theme="light"] .an-tagw { color: var(--an-ac); }
 
 /* ---------- topic page: the topic's colour, never blue ---------- */
 .an-intro { margin-top: 10px; }
-.an-topic { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 30px 30px 26px; border-radius: 22px; background: radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--c) 26%, transparent), transparent 60%), var(--an-s1); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); cursor: default; }
+.an-topic { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 24px; align-items: center; padding: 30px 30px 26px; border-radius: 22px; background: radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--c) 26%, transparent), transparent 60%), var(--an-s1); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); cursor: default; }
 .an-first .an-topic { animation: an-in .9s cubic-bezier(.22,.8,.24,1) both; }
 .an-topic .an-h { margin: 6px 0 12px; font-size: 30px; line-height: 1.2; letter-spacing: -.025em; }
-.an-ring { width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c) 0 var(--p, 0%), rgba(255,255,255,.08) 0 100%); }
-.an-ring > div { width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; align-content: center; text-align: center; background: var(--an-bg); }
-.an-ring b { display: block; font-size: 26px; }
-.an-ring small { font-size: 11px; color: var(--an-mu); }
+.an-topic-viz { min-width: 0; }
+.an-topic-cap { margin-bottom: 8px; font-size: 12px; color: var(--an-mu); }
 .an-tq { display: grid; gap: 4px; }
 .an-tqi { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 4px 0; color: var(--an-tx2); }
 .an-tqi:hover { color: var(--an-tx); }
@@ -5574,7 +5576,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </header>
       <style>html[data-template="design"] [data-page-header] { display: none; }</style>
       <main>
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Plan und Fragen" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Plan und Fragen" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Btw, rechts bei der analyse sind scrollbar abschneidend zu den chatinhalten - dabei sollte ein ganz kleines bisschen platz ist. \n\nSeieh anbei, das frage label z. B. funktioniert nicht immer, unklar, wwann es rein kommt und dann auch noch falschen link...","attachments":[{"id":"265e62eca6292cd214fa95cc01a13bcd9bba7d92c41a898a0fd5d4b88fd2e522.png","name":"image.png","mime":"image/png","size":494655,"path":".claude/concepts/20261105-1510-batch-verse-codex-hq-mobile/attachments/265e62eca6292cd214fa95cc01a13bcd9bba7d92c41a898a0fd5d4b88fd2e522.png"}]}}</script>
   <div class="iteration-intro">
     <h2>Sieben Notizen, ein Plan</h2>
     <p>Klare Punkte sind eingeplant, hier stehen nur die Fragen, die deine Antwort brauchen.</p>
@@ -5613,32 +5616,32 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </div>
 
-    <section id="d-hero" data-nav-label="Hero-Inhalt" data-decision="d-hero" data-decision-mode="picture" data-label="Inhalt des Patches-Hero" data-rec="ai" data-rec-why="Der Titel allein bleibt nüchtern, und die Quellen für einen echten Satz sind schon da." data-applies-to="Verse-Hero, Patches" data-finding="f-hero">
+    <section id="d-hero" data-nav-label="Hero-Inhalt" data-decision="d-hero" data-decision-mode="picture" data-label="Inhalt des Patches-Hero" data-rec="ai" data-rec-why="Der Titel allein bleibt nüchtern, und die Quellen für einen echten Satz sind schon da." data-applies-to="Verse-Hero, Patches" data-finding="f-hero"><input type="hidden" name="dm-d-hero-hes" value="{&quot;ms&quot;:58499,&quot;revisits&quot;:2,&quot;median&quot;:97129}" disabled><input type="hidden" name="dm-d-hero-none" value="1" disabled>
       <p data-applies>Gilt für: Verse-Hero, Patches</p>
       <p data-situation>Der Digest setzt als Titel nur die Patch-Linie („4.10“) und als Text nichts. Deshalb wirkt der Hero leer.</p>
       <h3 data-question>Was soll der Patches-Hero zeigen?</h3>
       <p data-stakes>Mit KI-Text kommen eine Migration und ein Edge-Lauf je neuem Patch dazu.</p>
       <div data-options>
         <label data-opt="ai" data-recommended>
-          <input type="radio" name="dm-d-hero" value="ai" checked>
+          <input type="radio" name="dm-d-hero" value="ai" disabled>
           <span data-opt-media><svg viewBox="0 0 240 110" role="img" aria-label="Skizze: Kanal, Titel und ein KI-Satz"><rect x="88" y="8" width="64" height="16" rx="8" fill="none" stroke="currentColor"/><text x="120" y="20" text-anchor="middle" font-size="9" fill="currentColor">LIVE</text><text x="120" y="48" text-anchor="middle" font-size="17" fill="currentColor">Neues in 4.10.3</text><text x="120" y="72" text-anchor="middle" font-size="9" fill="currentColor">Stabilere Server, neue Boomtube-Varianten,</text><text x="120" y="86" text-anchor="middle" font-size="9" fill="currentColor">überarbeitete Fracht-Missionen.</text></svg></span>
           <span data-opt-label>Titel, Kanal und KI-Satz zeigen</span>
           <span data-opt-consequence>Fest begrenzte Länge; fehlt der Text, bleibt der Titel allein stehen.</span>
         </label>
         <label data-opt="plain">
-          <input type="radio" name="dm-d-hero" value="plain">
+          <input type="radio" name="dm-d-hero" value="plain" disabled>
           <span data-opt-media><svg viewBox="0 0 240 110" role="img" aria-label="Skizze: nur Kanal und Titel"><rect x="88" y="20" width="64" height="16" rx="8" fill="none" stroke="currentColor"/><text x="120" y="32" text-anchor="middle" font-size="9" fill="currentColor">LIVE</text><text x="120" y="66" text-anchor="middle" font-size="17" fill="currentColor">Neues in 4.10.3</text></svg></span>
           <span data-opt-label>Nur Titel und Kanal zeigen</span>
           <span data-opt-consequence>Schnell gebaut und ohne KI-Kosten, sagt aber nichts über den Inhalt.</span>
         </label>
         <label data-opt="bullets">
-          <input type="radio" name="dm-d-hero" value="bullets">
+          <input type="radio" name="dm-d-hero" value="bullets" disabled>
           <span data-opt-media><svg viewBox="0 0 240 110" role="img" aria-label="Skizze: Titel und Stichpunkte aus den Patchnotes"><text x="120" y="24" text-anchor="middle" font-size="15" fill="currentColor">Neues in 4.10.3 · LIVE</text><text x="44" y="52" font-size="9" fill="currentColor">• Server-Stabilität</text><text x="44" y="68" font-size="9" fill="currentColor">• Neue FPS-Waffen</text><text x="44" y="84" font-size="9" fill="currentColor">• Fracht-Missionen</text></svg></span>
           <span data-opt-label>Stichpunkte aus den Patchnotes zeigen</span>
           <span data-opt-consequence>Ohne KI und wörtlich von RSI, aber roher und höher im Hero.</span>
         </label>
       </div>
-      <textarea data-comment="d-hero-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-hero-note" placeholder="Notiz (optional)" readonly disabled>[Frage 1] Nein, es soll so bleiben wie heute der hero, eldiglich der text im textteil des heroes soll angepasst werden! Dort dann das wort live rein und entweder Neues zu... oder gern auch einen ki generierten teaser titel dafür...</textarea>
       <div data-alevel="3" data-title="Hero-Inhalt">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Titel und Text kommen aus dem Digest, der Text ist bei Patches immer leer."}'></div></div>
         <div data-slot="long">
@@ -5651,29 +5654,29 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-future" data-nav-label="Künftige Patches" data-decision="d-future" data-decision-mode="single" data-label="Quelle für künftige Patches" data-rec="roadmap" data-rec-why="Die Funktion rsi-roadmap liefert schon, was für den aktuellen und den nächsten Patch geplant ist." data-applies-to="Verse-Hero, künftige Patches" data-finding="f-future">
+    <section id="d-future" data-nav-label="Künftige Patches" data-decision="d-future" data-decision-mode="single" data-label="Quelle für künftige Patches" data-rec="roadmap" data-rec-why="Die Funktion rsi-roadmap liefert schon, was für den aktuellen und den nächsten Patch geplant ist." data-applies-to="Verse-Hero, künftige Patches" data-finding="f-future"><input type="hidden" name="dm-d-future-hes" value="{&quot;ms&quot;:18527,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Verse-Hero, Patches</p>
       <p data-situation>Für 4.11 oder 5.0 gibt es noch keinen Build-Vergleich. Die vorhandene Funktion <code>rsi-roadmap</code> liest aber die RSI-Roadmap und die Patchnotes.</p>
       <h3 data-question>Worauf soll sich der Text zu künftigen Patches stützen?</h3>
       <p data-stakes>Roadmap-Inhalte sind Pläne von RSI und können sich noch ändern.</p>
       <div data-options>
         <label data-opt="roadmap" data-recommended>
-          <input type="radio" name="dm-d-future" value="roadmap" checked>
+          <input type="radio" name="dm-d-future" value="roadmap" checked disabled>
           <span data-opt-label>Roadmap und Patchnotes nutzen</span>
           <span data-opt-consequence>4.11 und 5.0 erscheinen früh, klar als „geplant“ gekennzeichnet.</span>
         </label>
         <label data-opt="channels">
-          <input type="radio" name="dm-d-future" value="channels">
+          <input type="radio" name="dm-d-future" value="channels" disabled>
           <span data-opt-label>Erst ab Evocati oder PTU zeigen</span>
           <span data-opt-consequence>Nur was wirklich läuft, dafür keine Vorschau auf ferne Patches.</span>
         </label>
         <label data-opt="live">
-          <input type="radio" name="dm-d-future" value="live">
+          <input type="radio" name="dm-d-future" value="live" disabled>
           <span data-opt-label>Nur den LIVE-Patch zeigen</span>
           <span data-opt-consequence>Am einfachsten, deckt deinen Wunsch nach künftigen Patches aber nicht ab.</span>
         </label>
       </div>
-      <textarea data-comment="d-future-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-future-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Künftige Patches">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Quellen sind da, nur eine reicht über laufende Builds hinaus."}'></div></div>
         <div data-slot="long">
@@ -5683,23 +5686,23 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-announced" data-nav-label="Angekündigte Schiffe" data-decision="d-announced" data-decision-mode="single" data-label="Klick auf angekündigte Schiffe" data-rec="preview" data-rec-why="So verhält sich jeder Eintrag der Liste gleich, wie du es in Notiz 2 wolltest." data-applies-to="Codex-Landing, Liste Neu in x" data-finding="f-announced">
+    <section id="d-announced" data-nav-label="Angekündigte Schiffe" data-decision="d-announced" data-decision-mode="single" data-label="Klick auf angekündigte Schiffe" data-rec="preview" data-rec-why="So verhält sich jeder Eintrag der Liste gleich, wie du es in Notiz 2 wolltest." data-applies-to="Codex-Landing, Liste Neu in x" data-finding="f-announced"><input type="hidden" name="dm-d-announced-hes" value="{&quot;ms&quot;:51266,&quot;revisits&quot;:3,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Codex-Landing, Liste „Neu in x“</p>
       <p data-situation>Ein Klick legt künftig jeden Eintrag auf den Holotisch. Angekündigte Schiffe haben aber nur eine Upcoming-Seite und eventuell keine Tischdaten.</p>
       <h3 data-question>Was passiert beim Klick auf ein angekündigtes Schiff?</h3>
       <div data-options>
         <label data-opt="preview" data-recommended>
-          <input type="radio" name="dm-d-announced" value="preview" checked>
+          <input type="radio" name="dm-d-announced" value="preview" disabled>
           <span data-opt-label>Mit vorhandenen Daten auf den Tisch legen</span>
           <span data-opt-consequence>Name und Kategorie-Icon, ohne Werte; der Pfeil öffnet die Upcoming-Seite.</span>
         </label>
         <label data-opt="navigate">
-          <input type="radio" name="dm-d-announced" value="navigate">
+          <input type="radio" name="dm-d-announced" value="navigate" disabled>
           <span data-opt-label>Direkt zur Upcoming-Seite wechseln</span>
           <span data-opt-consequence>Weniger Aufwand, aber diese Einträge verhalten sich anders als der Rest.</span>
         </label>
       </div>
-      <textarea data-comment="d-announced-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-announced-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Angekündigte Schiffe">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der Tisch lädt bisher nur das neueste Item je Kategorie."}'></div></div>
         <div data-slot="long">
@@ -5709,25 +5712,25 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-tabs" data-nav-label="Kategorie-Leiste" data-decision="d-tabs" data-decision-mode="picture" data-label="Kategorie-Leiste" data-rec="active" data-rec-why="Fünf Namen passen bei rund 300 px nicht in eine Zeile, Icons plus aktiver Name schon." data-applies-to="Codex-Landing, Liste Neu in x" data-finding="f-tabs">
+    <section id="d-tabs" data-nav-label="Kategorie-Leiste" data-decision="d-tabs" data-decision-mode="picture" data-label="Kategorie-Leiste" data-rec="active" data-rec-why="Fünf Namen passen bei rund 300 px nicht in eine Zeile, Icons plus aktiver Name schon." data-applies-to="Codex-Landing, Liste Neu in x" data-finding="f-tabs"><input type="hidden" name="dm-d-tabs-hes" value="{&quot;ms&quot;:123420,&quot;revisits&quot;:5,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Codex-Landing, Liste „Neu in x“</p>
       <p data-situation>Die Liste ist im Screenshot rund 300 px breit. „Raumschiffe, FPS-Waffen, Rüstung, Komponenten, Werkzeuge“ passen so mit Icons nicht lesbar nebeneinander.</p>
       <h3 data-question>Wie soll die horizontale Kategorie-Leiste aussehen?</h3>
       <div data-options>
         <label data-opt="active" data-recommended>
-          <input type="radio" name="dm-d-tabs" value="active" checked>
+          <input type="radio" name="dm-d-tabs" value="active" checked disabled>
           <span data-opt-media><svg viewBox="0 0 240 70" role="img" aria-label="Skizze: vier Icons und die aktive Kategorie mit Namen"><circle cx="20" cy="35" r="9" fill="none" stroke="currentColor"/><rect x="38" y="21" width="96" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="52" cy="35" r="7" fill="none" stroke="currentColor"/><text x="64" y="39" font-size="10" fill="currentColor">FPS-Waffen</text><circle cx="152" cy="35" r="9" fill="none" stroke="currentColor"/><circle cx="182" cy="35" r="9" fill="none" stroke="currentColor"/><circle cx="212" cy="35" r="9" fill="none" stroke="currentColor"/></svg></span>
           <span data-opt-label>Icons zeigen, aktive Kategorie mit Namen</span>
           <span data-opt-consequence>Passt in Deutsch und Englisch; die Namen der anderen stehen im Tooltip.</span>
         </label>
         <label data-opt="two-rows">
-          <input type="radio" name="dm-d-tabs" value="two-rows">
+          <input type="radio" name="dm-d-tabs" value="two-rows" disabled>
           <span data-opt-media><svg viewBox="0 0 240 70" role="img" aria-label="Skizze: alle Kategorien mit Namen in zwei Zeilen"><text x="8" y="26" font-size="9" fill="currentColor">Raumschiffe</text><text x="84" y="26" font-size="9" fill="currentColor">FPS-Waffen</text><text x="160" y="26" font-size="9" fill="currentColor">Rüstung</text><text x="8" y="50" font-size="9" fill="currentColor">Komponenten</text><text x="84" y="50" font-size="9" fill="currentColor">Werkzeuge</text></svg></span>
           <span data-opt-label>Alle Namen in zwei Zeilen zeigen</span>
           <span data-opt-consequence>Alles sofort lesbar, kostet aber Höhe in der Liste.</span>
         </label>
       </div>
-      <textarea data-comment="d-tabs-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-tabs-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Kategorie-Leiste">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≈ 300","unit":"px","label":"Breite der Liste"}'></div></div>
         <div data-slot="long">
@@ -5747,23 +5750,23 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </div>
 
-    <section id="d-sc" data-nav-label="Vorbild" data-decision="d-sc" data-decision-mode="single" data-label="Bedeutung von ähnlich zu sc" data-rec="app" data-rec-why="Die App-Suche hat Filter-Chips und Trefferzeilen schon gebaut, das Popup wirkt damit vertraut." data-applies-to="Bestand-Popup" data-finding="f-sc">
+    <section id="d-sc" data-nav-label="Vorbild" data-decision="d-sc" data-decision-mode="single" data-label="Bedeutung von ähnlich zu sc" data-rec="app" data-rec-why="Die App-Suche hat Filter-Chips und Trefferzeilen schon gebaut, das Popup wirkt damit vertraut." data-applies-to="Bestand-Popup" data-finding="f-sc"><input type="hidden" name="dm-d-sc-hes" value="{&quot;ms&quot;:311364,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Bestand-Popup</p>
       <p data-situation>Du schreibst „eine suche mit filtern ähnlich zu sc“. Das lässt sich als das Spiel oder als die Suche dieser App lesen.</p>
       <h3 data-question>Welches Vorbild meinst du für Suche und Filter?</h3>
       <div data-options>
         <label data-opt="app" data-recommended>
-          <input type="radio" name="dm-d-sc" value="app" checked>
+          <input type="radio" name="dm-d-sc" value="app" checked disabled>
           <span data-opt-label>Die Suche von SC Companion</span>
           <span data-opt-consequence>Gleiche Chips und Zeilen wie im Suchfeld oben.</span>
         </label>
         <label data-opt="game">
-          <input type="radio" name="dm-d-sc" value="game">
+          <input type="radio" name="dm-d-sc" value="game" disabled>
           <span data-opt-label>Das Ingame-Inventar von Star Citizen</span>
           <span data-opt-consequence>Kategorie-Spalten und Raster wie im Spiel, mehr neue Oberfläche.</span>
         </label>
       </div>
-      <textarea data-comment="d-sc-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-sc-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Vorbild">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der Begriff „sc“ ist in deiner Notiz doppeldeutig."}'></div></div>
         <div data-slot="long">
@@ -5773,18 +5776,18 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-overview" data-nav-label="Übersicht" data-decision="d-overview" data-decision-mode="multi" data-label="Inhalt der Bestand-Übersicht" data-rec="totals places recent ships" data-rec-why="Das beantwortet die häufigsten Fragen, passt in einen Bildschirm und bleibt ohne Scrollen." data-applies-to="HQ, Seite Bestand" data-finding="f-overview">
+    <section id="d-overview" data-nav-label="Übersicht" data-decision="d-overview" data-decision-mode="multi" data-label="Inhalt der Bestand-Übersicht" data-rec="totals places recent ships" data-rec-why="Das beantwortet die häufigsten Fragen, passt in einen Bildschirm und bleibt ohne Scrollen." data-applies-to="HQ, Seite Bestand" data-finding="f-overview"><input type="hidden" name="dm-d-overview-hes" value="{&quot;ms&quot;:134081,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: HQ, Seite Bestand</p>
       <p data-situation>Die Seite darf nicht mehr scrollen. Sie zeigt nur noch eine Übersicht, deren Schnelllinks das Popup vorgefiltert öffnen.</p>
       <h3 data-question>Was gehört auf die Bestand-Übersicht?</h3>
       <div data-options>
-        <label data-opt="totals"><input type="checkbox" name="dm-d-overview.totals" checked><span data-opt-label>Summen zeigen</span><span data-opt-consequence>Anzahl Items und Orte, ein Klick öffnet alles.</span></label>
-        <label data-opt="places"><input type="checkbox" name="dm-d-overview.places" checked><span data-opt-label>Größte Orte verlinken</span><span data-opt-consequence>Die fünf vollsten Orte plus „ortsfrei“ als Filter.</span></label>
-        <label data-opt="recent"><input type="checkbox" name="dm-d-overview.recent" checked><span data-opt-label>Veraltete Orte verlinken</span><span data-opt-consequence>Orte, deren Stand älter als sieben Tage ist.</span></label>
-        <label data-opt="ships"><input type="checkbox" name="dm-d-overview.ships" checked><span data-opt-label>Schiffe, Sets und Erspieltes behalten</span><span data-opt-consequence>Die drei vorhandenen Karten bleiben auf der Seite.</span></label>
-        <label data-opt="cats"><input type="checkbox" name="dm-d-overview.cats"><span data-opt-label>Kategorien verlinken</span><span data-opt-consequence>Braucht eine neue Zuordnung, weil Items heute nur Namen tragen.</span></label>
+        <label data-opt="totals"><input type="checkbox" name="dm-d-overview.totals" checked disabled><span data-opt-label>Summen zeigen</span><span data-opt-consequence>Anzahl Items und Orte, ein Klick öffnet alles.</span></label>
+        <label data-opt="places"><input type="checkbox" name="dm-d-overview.places" checked disabled><span data-opt-label>Größte Orte verlinken</span><span data-opt-consequence>Die fünf vollsten Orte plus „ortsfrei“ als Filter.</span></label>
+        <label data-opt="recent"><input type="checkbox" name="dm-d-overview.recent" checked disabled><span data-opt-label>Veraltete Orte verlinken</span><span data-opt-consequence>Orte, deren Stand älter als sieben Tage ist.</span></label>
+        <label data-opt="ships"><input type="checkbox" name="dm-d-overview.ships" checked disabled><span data-opt-label>Schiffe, Sets und Erspieltes behalten</span><span data-opt-consequence>Die drei vorhandenen Karten bleiben auf der Seite.</span></label>
+        <label data-opt="cats"><input type="checkbox" name="dm-d-overview.cats" checked disabled><span data-opt-label>Kategorien verlinken</span><span data-opt-consequence>Braucht eine neue Zuordnung, weil Items heute nur Namen tragen.</span></label>
       </div>
-      <textarea data-comment="d-overview-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-overview-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Übersicht">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Daten für Summen, Orte und Alter liegen schon im Inventar-Dienst."}'></div></div>
         <div data-slot="long">
@@ -5794,17 +5797,17 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-views" data-nav-label="Ansichten" data-decision="d-views" data-decision-mode="multi" data-label="Ansichten im Popup" data-rec="place name qty" data-rec-why="Diese drei gehen mit den vorhandenen Daten und decken Suchen und Aufräumen ab." data-applies-to="Bestand-Popup" data-finding="f-views">
+    <section id="d-views" data-nav-label="Ansichten" data-decision="d-views" data-decision-mode="multi" data-label="Ansichten im Popup" data-rec="place name qty" data-rec-why="Diese drei gehen mit den vorhandenen Daten und decken Suchen und Aufräumen ab." data-applies-to="Bestand-Popup" data-finding="f-views"><input type="hidden" name="dm-d-views-hes" value="{&quot;ms&quot;:32073,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Bestand-Popup</p>
       <p data-situation>Die Grundsortierung ist laut Notiz „nach Ort bzw. ortsfrei“. Du möchtest aber auch andere Ansichten.</p>
       <h3 data-question>Welche Ansichten soll das Popup anbieten?</h3>
       <div data-options>
-        <label data-opt="place"><input type="checkbox" name="dm-d-views.place" checked><span data-opt-label>Nach Ort gruppieren (Standard)</span><span data-opt-consequence>Ortsfreie Items bilden eine eigene Gruppe.</span></label>
-        <label data-opt="name"><input type="checkbox" name="dm-d-views.name" checked><span data-opt-label>Nach Item zusammenfassen</span><span data-opt-consequence>Ein Item, darunter alle Orte mit Mengen.</span></label>
-        <label data-opt="qty"><input type="checkbox" name="dm-d-views.qty" checked><span data-opt-label>Nach Menge sortieren</span><span data-opt-consequence>Zeigt, wovon am meisten da ist.</span></label>
-        <label data-opt="age"><input type="checkbox" name="dm-d-views.age"><span data-opt-label>Nach Alter des Stands sortieren</span><span data-opt-consequence>Hilft beim Aktualisieren alter Orte.</span></label>
+        <label data-opt="place"><input type="checkbox" name="dm-d-views.place" checked disabled><span data-opt-label>Nach Ort gruppieren (Standard)</span><span data-opt-consequence>Ortsfreie Items bilden eine eigene Gruppe.</span></label>
+        <label data-opt="name"><input type="checkbox" name="dm-d-views.name" checked disabled><span data-opt-label>Nach Item zusammenfassen</span><span data-opt-consequence>Ein Item, darunter alle Orte mit Mengen.</span></label>
+        <label data-opt="qty"><input type="checkbox" name="dm-d-views.qty" checked disabled><span data-opt-label>Nach Menge sortieren</span><span data-opt-consequence>Zeigt, wovon am meisten da ist.</span></label>
+        <label data-opt="age"><input type="checkbox" name="dm-d-views.age" disabled><span data-opt-label>Nach Alter des Stands sortieren</span><span data-opt-consequence>Hilft beim Aktualisieren alter Orte.</span></label>
       </div>
-      <textarea data-comment="d-views-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-views-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Ansichten">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Alle Zeilen sind schon im Client, Lazy Loading betrifft nur das Rendern."}'></div></div>
         <div data-slot="long">
@@ -5814,23 +5817,23 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-forms" data-nav-label="Hinzufügen" data-decision="d-forms" data-decision-mode="single" data-label="Ort für Hinzufügen und Wo liegt" data-rec="both" data-rec-why="Dein Auslöser war das Hinzufügen; im Popup scrollt nur noch das Popup, nie die Seite." data-applies-to="HQ, Seite Bestand und Popup" data-finding="f-forms">
+    <section id="d-forms" data-nav-label="Hinzufügen" data-decision="d-forms" data-decision-mode="single" data-label="Ort für Hinzufügen und Wo liegt" data-rec="both" data-rec-why="Dein Auslöser war das Hinzufügen; im Popup scrollt nur noch das Popup, nie die Seite." data-applies-to="HQ, Seite Bestand und Popup" data-finding="f-forms"><input type="hidden" name="dm-d-forms-hes" value="{&quot;ms&quot;:84831,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: HQ, Seite Bestand und Popup</p>
       <p data-situation>Auf der Seite stehen auch „Wo liegt …?“ und das Formular zum Erfassen eines Items. Das Hinzufügen macht die Seite heute scrollbar.</p>
       <h3 data-question>Wohin wandern Erfassen und „Wo liegt …?“?</h3>
       <div data-options>
         <label data-opt="both" data-recommended>
-          <input type="radio" name="dm-d-forms" value="both" checked>
+          <input type="radio" name="dm-d-forms" value="both" checked disabled>
           <span data-opt-label>Beide ins Popup verschieben</span>
           <span data-opt-consequence>Die Seite bleibt reine Übersicht, ein Button öffnet „Hinzufügen“ direkt.</span>
         </label>
         <label data-opt="find-stays">
-          <input type="radio" name="dm-d-forms" value="find-stays">
+          <input type="radio" name="dm-d-forms" value="find-stays" disabled>
           <span data-opt-label>„Wo liegt …?“ als Feld auf der Seite lassen</span>
           <span data-opt-consequence>Schneller Zugriff; die Treffer öffnen das Popup, Erfassen wandert hinein.</span>
         </label>
       </div>
-      <textarea data-comment="d-forms-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-forms-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Hinzufügen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"„Wo liegt …?“ und Erfassen hängen heute direkt in der Seite."}'></div></div>
         <div data-slot="long">
@@ -5850,28 +5853,28 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </div>
 
-    <section id="d-admin" data-nav-label="Admin-Eintrag" data-decision="d-admin" data-decision-mode="single" data-label="Admin-Eintrag am Handy" data-rec="subrow" data-rec-why="So bleibt Admin wie am Desktop ein eigener roter Eintrag außerhalb der normalen Navigation." data-applies-to="Hauptkopf am Handy" data-finding="f-admin">
+    <section id="d-admin" data-nav-label="Admin-Eintrag" data-decision="d-admin" data-decision-mode="single" data-label="Admin-Eintrag am Handy" data-rec="subrow" data-rec-why="So bleibt Admin wie am Desktop ein eigener roter Eintrag außerhalb der normalen Navigation." data-applies-to="Hauptkopf am Handy" data-finding="f-admin"><input type="hidden" name="dm-d-admin-hes" value="{&quot;ms&quot;:109427,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Hauptkopf am Handy</p>
       <p data-situation>Am Desktop steht Admin als eigener roter Eintrag unter dem Account. Am Handy ist es der fünfte Platz in der Navigation neben Verse, Codex und HQ.</p>
       <h3 data-question>Wo soll der Admin-Eintrag am Handy stehen?</h3>
       <div data-options>
         <label data-opt="subrow" data-recommended>
-          <input type="radio" name="dm-d-admin" value="subrow" checked>
+          <input type="radio" name="dm-d-admin" value="subrow" disabled>
           <span data-opt-label>Eigene rote Zeile unter dem Account</span>
           <span data-opt-consequence>Wie am Desktop; die Navigation behält nur die normalen Bereiche.</span>
         </label>
         <label data-opt="account">
-          <input type="radio" name="dm-d-admin" value="account">
+          <input type="radio" name="dm-d-admin" value="account" checked disabled>
           <span data-opt-label>Ins Account-Menü verschieben</span>
           <span data-opt-consequence>Spart Platz im Kopf, ist aber einen Tipp weiter weg und anders als am Desktop.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-admin" value="keep">
+          <input type="radio" name="dm-d-admin" value="keep" disabled>
           <span data-opt-label>In der Navigation lassen</span>
           <span data-opt-consequence>Keine Änderung; Admin bleibt ein gleichrangiger Bereich am Handy.</span>
         </label>
       </div>
-      <textarea data-comment="d-admin-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-admin-note" placeholder="Notiz (optional)" readonly disabled>[Frage 1]  Lass usn das dgenerell ins accoutn menü verschieben! das admin menüpunkt!</textarea>
       <div data-alevel="3" data-title="Admin-Eintrag">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Unterzeile ist am Handy ausgeblendet, stattdessen erscheint ein fünfter Platz."}'></div></div>
         <div data-slot="long">
@@ -5884,23 +5887,23 @@ main-header.component.ts:333-335  .subrow wird am Handy ausgeblendet</pre></div>
       </div>
     </section>
 
-    <section id="d-filter" data-nav-label="Index-Filter" data-decision="d-filter" data-decision-mode="single" data-label="Filter im Codex-Index am Handy" data-rec="bar" data-rec-why="Der Filter-Button der Leiste gibt es auf beiden Formaten, ein zweiter Weg ist überflüssig." data-applies-to="Codex-Index am Handy" data-finding="f-filter">
+    <section id="d-filter" data-nav-label="Index-Filter" data-decision="d-filter" data-decision-mode="single" data-label="Filter im Codex-Index am Handy" data-rec="bar" data-rec-why="Der Filter-Button der Leiste gibt es auf beiden Formaten, ein zweiter Weg ist überflüssig." data-applies-to="Codex-Index am Handy" data-finding="f-filter"><input type="hidden" name="dm-d-filter-hes" value="{&quot;ms&quot;:175294,&quot;revisits&quot;:3,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Codex-Index am Handy</p>
       <p data-situation>Am Handy hat der Index zwei Filter-Einstiege: den Button der unteren Leiste und einen eigenen breiten „Filter (n)“-Button, der laut CSS an derselben Stelle sitzt.</p>
       <h3 data-question>Welcher Filter-Einstieg bleibt am Handy?</h3>
       <div data-options>
         <label data-opt="bar" data-recommended>
-          <input type="radio" name="dm-d-filter" value="bar" checked>
+          <input type="radio" name="dm-d-filter" value="bar" checked disabled>
           <span data-opt-label>Nur den Button der Leiste behalten</span>
           <span data-opt-consequence>Ein Weg wie am Desktop; alle Filter müssen dafür im Leisten-Panel erreichbar sein.</span>
         </label>
         <label data-opt="fab">
-          <input type="radio" name="dm-d-filter" value="fab">
+          <input type="radio" name="dm-d-filter" value="fab" disabled>
           <span data-opt-label>Nur den breiten Button behalten</span>
           <span data-opt-consequence>Auffälliger, aber die Leiste verhält sich dann auf dieser Seite anders.</span>
         </label>
       </div>
-      <textarea data-comment="d-filter-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-filter-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Index-Filter">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Einstiege","label":"für denselben Filter"}'></div></div>
         <div data-slot="long">
@@ -5912,28 +5915,28 @@ fusion-bar.component.ts:222-235    Filter der Leiste</pre></div>
       </div>
     </section>
 
-    <section id="d-landing" data-nav-label="Landing-Reihenfolge" data-decision="d-landing" data-decision-mode="single" data-label="Reihenfolge der Codex-Landing am Handy" data-rec="table-first" data-rec-why="Der Holotisch ist der Kern der Seite, die News-Marke gehört nicht vor den Titel." data-applies-to="Codex-Landing am Handy" data-finding="f-landing">
+    <section id="d-landing" data-nav-label="Landing-Reihenfolge" data-decision="d-landing" data-decision-mode="single" data-label="Reihenfolge der Codex-Landing am Handy" data-rec="table-first" data-rec-why="Der Holotisch ist der Kern der Seite, die News-Marke gehört nicht vor den Titel." data-applies-to="Codex-Landing am Handy" data-finding="f-landing"><input type="hidden" name="dm-d-landing-hes" value="{&quot;ms&quot;:27430,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: Codex-Landing am Handy</p>
       <p data-situation>Am Desktop steht der Titel in der Mitte, Werte links, Liste rechts. Am Handy folgen untereinander: News-Marke, Titel, Holotisch, Werte, Liste.</p>
       <h3 data-question>In welcher Reihenfolge soll die Landing am Handy stehen?</h3>
       <div data-options>
         <label data-opt="table-first" data-recommended>
-          <input type="radio" name="dm-d-landing" value="table-first" checked>
+          <input type="radio" name="dm-d-landing" value="table-first" checked disabled>
           <span data-opt-label>Titel, Holotisch, Liste, Werte, News-Marke</span>
           <span data-opt-consequence>Passt zu Notiz 2: Die Liste steuert direkt darüber den Tisch.</span>
         </label>
         <label data-opt="values-first">
-          <input type="radio" name="dm-d-landing" value="values-first">
+          <input type="radio" name="dm-d-landing" value="values-first" disabled>
           <span data-opt-label>Titel, Holotisch, Werte, Liste, News-Marke</span>
           <span data-opt-consequence>Werte bleiben beim Item, die Liste rutscht nach unten.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-landing" value="keep">
+          <input type="radio" name="dm-d-landing" value="keep" disabled>
           <span data-opt-label>Reihenfolge lassen</span>
           <span data-opt-consequence>Keine Änderung; die News-Marke bleibt ganz oben.</span>
         </label>
       </div>
-      <textarea data-comment="d-landing-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-landing-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Landing-Reihenfolge">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Reihenfolge am Handy kommt aus einer einzigen Spaltenregel."}'></div></div>
         <div data-slot="long">
@@ -5943,19 +5946,19 @@ fusion-bar.component.ts:222-235    Filter der Leiste</pre></div>
       </div>
     </section>
 
-    <section id="d-exceptions" data-nav-label="Ausnahmen" data-decision="d-exceptions" data-decision-mode="multi" data-label="Erlaubte Handy-Ausnahmen" data-rec="bar hqbar stage admin-table" data-rec-why="Diese vier sind für Daumen und schmale Breite gebaut; ein Angleichen würde das Handy schlechter machen." data-applies-to="Gesamte Handy-Beta" data-finding="f-exceptions">
+    <section id="d-exceptions" data-nav-label="Ausnahmen" data-decision="d-exceptions" data-decision-mode="multi" data-label="Erlaubte Handy-Ausnahmen" data-rec="bar hqbar stage admin-table" data-rec-why="Diese vier sind für Daumen und schmale Breite gebaut; ein Angleichen würde das Handy schlechter machen." data-applies-to="Gesamte Handy-Beta" data-finding="f-exceptions"><input type="hidden" name="dm-d-exceptions-hes" value="{&quot;ms&quot;:112188,&quot;revisits&quot;:0,&quot;median&quot;:97129}" disabled>
       <p data-applies>Gilt für: gesamte Handy-Beta</p>
       <p data-situation>Die übrigen Abweichungen sind gewollte Anpassungen an schmale Breite. Du wolltest nur wenige Ausnahmen, deshalb stehen die sichtbarsten hier zur Wahl.</p>
       <h3 data-question>Welche Handy-Abweichungen dürfen bleiben?</h3>
       <p data-context>Abgewählte Punkte gleicht Bündel B5 an den Desktop an.</p>
       <div data-options>
-        <label data-opt="bar"><input type="checkbox" name="dm-d-exceptions.bar" checked><span data-opt-label>Subheader als untere Leiste behalten</span><span data-opt-consequence>Suche und Filter am Daumen; Kategorien liegen im Filter-Panel.</span></label>
-        <label data-opt="hqbar"><input type="checkbox" name="dm-d-exceptions.hqbar" checked><span data-opt-label>HQ-Tabs unten statt Seitenleiste behalten</span><span data-opt-consequence>Gleiche fünf Einträge in gleicher Reihenfolge.</span></label>
-        <label data-opt="stage"><input type="checkbox" name="dm-d-exceptions.stage" checked><span data-opt-label>Verse-Bühne gestapelt behalten</span><span data-opt-consequence>Monde als Zeilen, die Seite scrollt normal.</span></label>
-        <label data-opt="admin-table"><input type="checkbox" name="dm-d-exceptions.admin-table" checked><span data-opt-label>Admin-Tabelle als Karten behalten</span><span data-opt-consequence>Kein seitliches Scrollen in der Nutzerliste.</span></label>
-        <label data-opt="plan-list"><input type="checkbox" name="dm-d-exceptions.plan-list"><span data-opt-label>Planen-Karte als Textliste behalten</span><span data-opt-consequence>Nur mit Vorbehalt: Gleicher Inhalt wie die Karte ist noch nicht geprüft.</span></label>
+        <label data-opt="bar"><input type="checkbox" name="dm-d-exceptions.bar" checked disabled><span data-opt-label>Subheader als untere Leiste behalten</span><span data-opt-consequence>Suche und Filter am Daumen; Kategorien liegen im Filter-Panel.</span></label>
+        <label data-opt="hqbar"><input type="checkbox" name="dm-d-exceptions.hqbar" checked disabled><span data-opt-label>HQ-Tabs unten statt Seitenleiste behalten</span><span data-opt-consequence>Gleiche fünf Einträge in gleicher Reihenfolge.</span></label>
+        <label data-opt="stage"><input type="checkbox" name="dm-d-exceptions.stage" checked disabled><span data-opt-label>Verse-Bühne gestapelt behalten</span><span data-opt-consequence>Monde als Zeilen, die Seite scrollt normal.</span></label>
+        <label data-opt="admin-table"><input type="checkbox" name="dm-d-exceptions.admin-table" checked disabled><span data-opt-label>Admin-Tabelle als Karten behalten</span><span data-opt-consequence>Kein seitliches Scrollen in der Nutzerliste.</span></label>
+        <label data-opt="plan-list"><input type="checkbox" name="dm-d-exceptions.plan-list" disabled><span data-opt-label>Planen-Karte als Textliste behalten</span><span data-opt-consequence>Nur mit Vorbehalt: Gleicher Inhalt wie die Karte ist noch nicht geprüft.</span></label>
       </div>
-      <textarea data-comment="d-exceptions-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-exceptions-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Ausnahmen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die meisten geprüften Abweichungen sind Layout-Anpassungen, keine fehlenden Elemente."}'></div></div>
         <div data-slot="long">
@@ -5965,6 +5968,140 @@ fusion-bar.component.ts:222-235    Filter der Leiste</pre></div>
       </div>
     </section>
   </section>
+</section>
+
+<section id="iter-2" data-iteration="2" data-iteration-template="free" data-final-report data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Sieben Notizen zu Verse, Codex, HQ und Handy</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261105-1510-batch-verse-codex-hq-mobile/shots/before.png" alt="Verse-Hero der Live-Version: als Titel steht nur 4.10"><figcaption>Vorher</figcaption></figure>
+    <figure class="fr-shot"><img src="20261105-1510-batch-verse-codex-hq-mobile/shots/after.png" alt="Verse-Hero nach der Änderung: LIVE · Neues in 4.10.2"><figcaption>Nachher</figcaption></figure>
+    <a class="fr-try" href="http://127.0.0.1:4200/verse" target="_blank" rel="noopener noreferrer">▶ Selbst ausprobieren</a>
+  </div>
+  <p class="fr-try-auth">🔑 Mit deinem eigenen Konto per E-Mail und Passwort auf genau dieser Adresse anmelden. Die neue Oberfläche schaltest du über den β-Chip oben rechts ein.</p>
+
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">Alle sieben Notizen sind umgesetzt: Der Patch-Hero nennt Kanal und genaue Version, der Holotisch öffnet direkt auf der Codex-Seite, die Suche bleibt, wo du bist, der Bestand ist eine Übersicht mit Popup, und Handy und Desktop zeigen dieselben Elemente, Admin steht jetzt im Account-Menü.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🛰</span><span>Der Hero sagt <b>LIVE · Neues in 4.10.2</b> und PTU · Neues in 4.10.3 statt nur „4.10“.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📦</span><span>Der Bestand ist <b>eine Übersicht ohne Scrollen</b>, Suchen und Filtern laufen im Popup.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🔎</span><span>Ein Klick auf „zuletzt gesucht“ <b>führt nicht mehr weg</b>, auch nicht zur Codex-Startseite.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 90%; --fr-target: 60%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">150 Teile</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Mit 150 Gegenständen an 30 Orten und 8 Freigaben passt der Bestand am Handy auf einen Schirm, Ziel 100 Gegenstände (geschätzt). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 80%; --fr-target: 80%">
+          <span class="fr-meter-name">🛡 Stabilität</span>
+          <b class="fr-meter-value">1 Ausfall</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Fällt die Roadmap aus, bleibt der Titel dank zweiter Quelle bei 4.10.2, Ziel ein abgefangener Ausfall (geschätzt). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 70%; --fr-target: 90%">
+          <span class="fr-meter-name">📱 Kompatibilität</span>
+          <b class="fr-meter-value">390 × 844</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Bis zu dieser Handygröße scrollt der Bestand nicht, Ziel 360 × 640 (geschätzt). <span class="fr-meter-verdict">▲ {n} fehlen bis Ziel</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Prod-Build geprüft<small>Stufe {n} von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="done">Lokal durchgespielt</li>
+      <li data-level="5" data-state="done">Prod-Build geprüft</li>
+      <li data-level="6" data-state="open">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Noch nicht live getestet. Nicht ganz erreicht: Auf sehr kleinen Handys (360 × 640) passt der Bestand nicht auf einen Schirm, und geplante Patches erscheinen im Hero nur, wenn in der Rotation ein Platz frei ist. Der KI-Teaser läuft erst nach dem Ausliefern, bis dahin steht dort „Neues in …“. Die Kategorien im Popup sind eine Schätzung aus den Teilenamen, was nicht passt, landet unter „Sonstiges“. Die Kachel auf dem Planeten zeigt weiter „4.10“, denn du wolltest nur den Textteil geändert haben. Der rote β-Chip bleibt: Er schaltet die Beta-Bereiche und ist nicht der Admin-Menüpunkt. Zur Frage nach angekündigten Schiffen lag keine Antwort vor, deshalb zeigt der Tisch sie als Vorschau, das habe ich nur im Test gesehen. Am echten Handy und beim Speichern im Popup habe ich nicht geprüft, das bleibt bei dir (🧪 im Menü).</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 {n} Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-concept-scrollbar"
+          data-issue-title="[BUG] Concept page: analysis panel scrollbar touches the chat content"
+          data-issue-type="bug"
+          data-issue-body="Reported by the user during concept 20261105-1510: in the analysis panel on the right, the scrollbar sits directly on the chat content and needs a small gap. Belongs to the devops plugin's auto-concept page, not to this app."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo">
+        <span class="oq-label">Concept-Seite: Scrollbar klebt am Chat</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Rechts in der Analyse schneidet die Scrollbar an die Chat-Inhalte an, es fehlt etwas Abstand.</dd>
+          <dt>Wo</dt><dd>Concept-Seite des Plugins, deine Anmerkung aus Runde 1</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue, denn das gehört zum Plugin und nicht zur App.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-concept-tag"
+          data-issue-title="[BUG] Concept page: question tag in the composer appears unreliably and links to the wrong question"
+          data-issue-type="bug"
+          data-issue-body="Reported by the user during concept 20261105-1510, with a screenshot in .claude/concepts/20261105-1510-batch-verse-codex-hq-mobile/attachments/: the 'Frage 1' tag in the composer only appears sometimes, and it can point at a different question than the one being answered. Belongs to the devops plugin's auto-concept page."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo">
+        <span class="oq-label">Concept-Seite: Frage-Label falsch verlinkt</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Das Label „Frage 1“ erscheint nicht immer und verweist manchmal auf die falsche Frage.</dd>
+          <dt>Wo</dt><dd>Concept-Seite des Plugins, deine Anmerkung mit Screenshot</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue, denn das gehört zum Plugin und nicht zur App.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-patch-versions"
+          data-issue-title="[BUG] patch_versions has no writer, channel data stays empty"
+          data-issue-type="bug"
+          data-issue-body="The verse_digest channels list reads from patch_versions, but nothing writes that table, so it is empty on production. The hero now takes the LIVE version from rsi-roadmap.liveVersion with patch_stability_patches.notes_slug as a fallback, which works around it. Decide whether to fill the table or remove it, and check other readers."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="Datenquelle">
+        <span class="oq-label">Patch-Tabelle wird nie befüllt</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Die Tabelle mit den Patch-Kanälen bleibt leer, weil nichts in sie schreibt. Der Hero holt die Version deshalb aus anderen Quellen.</dd>
+          <dt>Wo</dt><dd>Datenbank, Verse-Daten</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue, denn befüllen oder entfernen ist eine eigene Entscheidung.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-stock" data-crit="high" data-guide="web">Bestand: Teil erfassen und übernehmen</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="web">Am echten Handy durch alle Bereiche gehen</li>
+      <li data-todo-id="t-rail" data-crit="low" data-guide="web">HQ-Seitenleiste am Desktop anklicken</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Commit <code>c42339a1</code> auf <code>claude/keen-borg-305ff2</code> · Bereiche: verse, codex, hq, shell, supabase</li>
+      <li><code>src/app/hq/stock/hq-stock-popup.component.ts</code>, <code>src/app/verse/pages/briefing/briefing-patch-title.ts</code>, <code>supabase/functions/patch-teaser/</code></li>
+      <li>Tests: Web 5590 grün (voller Lauf vor den letzten zwei Kleinänderungen, danach Shell 216 grün), Skripte 115, Funktionen 356, Lint 0 Fehler (Stand Runde 2)</li>
+      <li>Handy-Gate: 19 Audits, 6 blockierende nur WebGL ohne GPU (nicht gegen main verglichen), 2 Warnungen wegen der noch fehlenden Tabelle <code>patch_teasers</code></li>
+      <li>Beim Ausliefern: Migration <code>20261105150000_patch_teasers.sql</code> und Funktion <code>patch-teaser</code> deployen, Sweep einmal anstoßen</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -6177,7 +6314,8 @@ fusion-bar.component.ts:222-235    Filter der Leiste</pre></div>
       </div>
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Plan und Fragen</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Plan und Fragen</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="2" aria-selected="true" aria-controls="iter-2">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
@@ -19783,6 +19921,7 @@ function collectModeDecisions(scope) {
   /** Loads the open stage's note into the composer (a leading "[tag] " becomes the tag again). */
   function loadComposer(inst, st) {
     const store = storeOf(inst, st), ed = inst.comp.ed;
+    if (inst.comp.msg) inst.comp.msg.hidden = true;
     let v = store ? store.value : '';
     const m = TAGRE.exec(v);
     ed.textContent = '';
@@ -19819,7 +19958,22 @@ function collectModeDecisions(scope) {
     inst.comp.el.classList.remove('an-sent'); void inst.comp.el.offsetWidth; inst.comp.el.classList.add('an-sent');
     // Only a question advances (an untagged note accepts the current choice / recommendation); briefing, topic intro and closing never do.
     if (!inst.tag && st.kind === 'dec') { markTouched(st.el); step(inst, 1); }
+    else showSaved(inst, st);
     return true;
+  }
+  /** A note that does not move the page on still needs an answer: the send must never look like nothing happened. */
+  function showSaved(inst, st) {
+    const c = inst.comp;
+    if (!c.msg) {
+      c.msg = h('div', 'an-comp-msg');
+      c.msg.setAttribute('role', 'status');
+      c.el.appendChild(c.msg);
+    }
+    c.msg.textContent = L('Notiz gespeichert, sie geht mit der nächsten Runde an devops.', 'Note saved, it goes to devops with the next round.')
+      + (st.kind === 'dec' ? ' ' + L('Sie bleibt bei dieser Frage, „Weiter“ geht zur nächsten.', 'It stays on this question, "Next" moves on.') : '');
+    c.msg.hidden = false;
+    clearTimeout(c.msgTimer);
+    c.msgTimer = setTimeout(() => { c.msg.hidden = true; }, 5000);
   }
   /** Empty send / Enter on a question: ONE stage forward, never more. A stage that is still entering simply
    *  shows in full (go() ends the enter sequence); a second send within SEND_GAP ms (the new stage is not
@@ -19866,13 +20020,11 @@ function collectModeDecisions(scope) {
     intro.style.setProperty('--c', g.color);
     intro.dataset.group = String(g.idx);
   }
-  /** Topic page: "Thema n von N", title (<= 5 words), ring with the topic's share of the potential, its questions, the button. */
+  /** Topic page: "Thema n von N", title (<= 5 words), a graphic about the topic (topicVisual), its questions, the button. */
   function fillIntro(inst, st) {
     const g = st.group, el = st.el;
     el.textContent = '';
     const l2 = [...g.topic.children].find(c => c.getAttribute('data-alevel') === '2');
-    const chip = inst.brief && inst.brief.querySelector('[data-briefing-topic="' + cssEsc(g.topic.id) + '"]');
-    const share = chip ? Math.round(num(chip.dataset.share)) : 0;
     const hero = h('div', 'an-topic'), left = h('div', 'an-topic-l');
     left.appendChild(h('div', 'an-meta', L('Thema ', 'Topic ') + (g.idx + 1) + L(' von ', ' of ') + inst.groups.length));
     left.appendChild(h('h2', 'an-h', (l2 && l2.dataset.title) || g.label));
@@ -19886,15 +20038,34 @@ function collectModeDecisions(scope) {
     left.appendChild(qs);
     left.appendChild(goButtons(inst, L('Starten', 'Start')));
     hero.appendChild(left);
-    if (share) {
-      const ring = h('div', 'an-ring');
-      ring.style.setProperty('--p', clamp(share, 0, 100) + '%');
-      const mid = h('div');
-      mid.append(h('b', '', share + ' %'), h('small', '', L('des Potenzials', 'of the potential')));
-      ring.appendChild(mid);
-      hero.appendChild(ring);
-    }
+    const vis = topicVisual(inst, g, l2);
+    if (vis) hero.appendChild(vis);
     el.appendChild(hero);
+  }
+  /** The topic's own display (L2 long slot); without one, where the topic stands among all topics of the analysis. */
+  function topicVisual(inst, g, l2) {
+    const box = h('div', 'an-topic-viz');
+    const slot = l2 && [...l2.children].find(c => c.getAttribute('data-slot') === 'long');
+    const own = slot && slot.querySelector('[data-viz]');
+    if (own) {
+      const c = own.cloneNode(true);
+      c.removeAttribute('data-viz-done');
+      box.appendChild(c);
+      renderViz(box, 'long');
+      return box;
+    }
+    const items = inst.groups.map(x => {
+      const chip = inst.brief && inst.brief.querySelector('[data-briefing-topic="' + cssEsc(x.topic.id) + '"]');
+      return { label: x.label, value: chip ? Math.round(num(chip.dataset.share)) : 0 };
+    }).filter(i => i.value > 0);
+    if (items.length < 2 || !items.some(i => i.label === g.label)) return null;   // nothing to place the topic against
+    box.appendChild(h('div', 'an-topic-cap', L('Dieses Thema in der Gesamtanalyse', 'This topic in the overall analysis')));
+    const v = h('div');
+    v.setAttribute('data-viz', 'bars');
+    v.setAttribute('data-viz-spec', JSON.stringify({ items, unit: '%', hl: g.label }));
+    box.appendChild(v);
+    renderViz(box, 'long');
+    return box;
   }
   /** [Zurück] [Weiter] pair. */
   function goButtons(inst, nextLabel, opts) {
@@ -20582,24 +20753,34 @@ function collectModeDecisions(scope) {
     const r = inst.comp.el.getBoundingClientRect();
     if (r.height) document.documentElement.style.setProperty('--an-comp-top', Math.max(0, Math.round(window.innerHeight - r.top)) + 'px');
   }
-  /** First visit of a question: finding now, question after 2.7 s, answer block (+ "Als Nächstes") after 5.4 s.
+  /** First visit of a question: finding now, then each next message once the one before it can have been read
+   *  (dwellMs), the answer block (+ "Als Nächstes") last.
    *  A message that has not entered is display:none, so no empty area waits below; each entry
    *  glides the chat down just far enough to show it - unless the user scrolled (user scroll wins). */
-  const ENTER_GAP = 2700;
+  // Reading pace, counted in letters so long German words do not skew it. Brysbaert 2019 (J. Memory and Language 109):
+  // 238 wpm x 4.6 letters (non-fiction) = 260 wpm x 4.2 letters (fiction) = about 1,095 letters/min = 18.25/s.
+  // +10 %: an average reader who reads a little faster, no speed reader. Figures are from English text; no German value exists.
+  const READ_LPS = 18.25 * 1.1, DWELL_MIN = 1200, DWELL_MAX = 20000;
+  function dwellMs(el) {
+    const letters = (el.textContent.match(/[\p{L}\p{N}]/gu) || []).length;
+    return clamp(Math.round(letters / READ_LPS * 1000), DWELL_MIN, DWELL_MAX);
+  }
   function enterSeq(inst, st) {
     const parts = [st.el.querySelector(':scope > .an-m-find'), st.el.querySelector(':scope > .an-m-q'), st.el.querySelector(':scope > .an-m-a')].filter(Boolean);
     if (!parts.length) return;
     const tail = [inst.peekDn];
     parts.slice(1).concat(tail).forEach(n => n.classList.add('an-wait'));
     parts[0].classList.add('an-enter');
+    let at = 0;
     parts.slice(1).forEach((n, i) => {
+      at += dwellMs(parts[i]);
       inst.timers.push(setTimeout(() => {
         if (inst.stages[inst.idx] !== st) return;
         n.classList.remove('an-wait');
         n.classList.add('an-enter');
         if (n === parts[parts.length - 1]) tail.forEach(t => t.classList.remove('an-wait'));
         glide(inst, n, parts[Math.min(i + 1, 1)]);   // the answer never pushes the question out of view
-      }, ENTER_GAP * (i + 1)));
+      }, at));
     });
     if (parts.length === 1) tail.forEach(t => t.classList.remove('an-wait'));
     inst.timers.push(setTimeout(() => { if (inst.stages[inst.idx] === st) pulse(st.el); }, 1650));

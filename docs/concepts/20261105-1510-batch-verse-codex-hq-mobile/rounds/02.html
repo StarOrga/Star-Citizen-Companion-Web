@@ -1,0 +1,133 @@
+<section id="iter-2" data-iteration="2" data-iteration-template="free" data-final-report data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Sieben Notizen zu Verse, Codex, HQ und Handy</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261105-1510-batch-verse-codex-hq-mobile/shots/before.png" alt="Verse-Hero der Live-Version: als Titel steht nur 4.10"><figcaption>{{final.before}}</figcaption></figure>
+    <figure class="fr-shot"><img src="20261105-1510-batch-verse-codex-hq-mobile/shots/after.png" alt="Verse-Hero nach der Änderung: LIVE · Neues in 4.10.2"><figcaption>{{final.after}}</figcaption></figure>
+    <a class="fr-try" href="http://127.0.0.1:4200/verse" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+  </div>
+  <p class="fr-try-auth">🔑 Mit deinem eigenen Konto per E-Mail und Passwort auf genau dieser Adresse anmelden. Die neue Oberfläche schaltest du über den β-Chip oben rechts ein.</p>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Alle sieben Notizen sind umgesetzt: Der Patch-Hero nennt Kanal und genaue Version, der Holotisch öffnet direkt auf der Codex-Seite, die Suche bleibt, wo du bist, der Bestand ist eine Übersicht mit Popup, und Handy und Desktop zeigen dieselben Elemente, Admin steht jetzt im Account-Menü.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🛰</span><span>Der Hero sagt <b>LIVE · Neues in 4.10.2</b> und PTU · Neues in 4.10.3 statt nur „4.10“.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📦</span><span>Der Bestand ist <b>eine Übersicht ohne Scrollen</b>, Suchen und Filtern laufen im Popup.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🔎</span><span>Ein Klick auf „zuletzt gesucht“ <b>führt nicht mehr weg</b>, auch nicht zur Codex-Startseite.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 90%; --fr-target: 60%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">150 Teile</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Mit 150 Gegenständen an 30 Orten und 8 Freigaben passt der Bestand am Handy auf einen Schirm, Ziel 100 Gegenstände (geschätzt). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 80%; --fr-target: 80%">
+          <span class="fr-meter-name">🛡 Stabilität</span>
+          <b class="fr-meter-value">1 Ausfall</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Fällt die Roadmap aus, bleibt der Titel dank zweiter Quelle bei 4.10.2, Ziel ein abgefangener Ausfall (geschätzt). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 70%; --fr-target: 90%">
+          <span class="fr-meter-name">📱 Kompatibilität</span>
+          <b class="fr-meter-value">390 × 844</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Bis zu dieser Handygröße scrollt der Bestand nicht, Ziel 360 × 640 (geschätzt). <span class="fr-meter-verdict">▲ {{final.target_short}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_prod}}<small>{{final.level_of}}</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="done">{{final.level_local}}</li>
+      <li data-level="5" data-state="done">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Noch nicht live getestet. Nicht ganz erreicht: Auf sehr kleinen Handys (360 × 640) passt der Bestand nicht auf einen Schirm, und geplante Patches erscheinen im Hero nur, wenn in der Rotation ein Platz frei ist. Der KI-Teaser läuft erst nach dem Ausliefern, bis dahin steht dort „Neues in …“. Die Kategorien im Popup sind eine Schätzung aus den Teilenamen, was nicht passt, landet unter „Sonstiges“. Die Kachel auf dem Planeten zeigt weiter „4.10“, denn du wolltest nur den Textteil geändert haben. Der rote β-Chip bleibt: Er schaltet die Beta-Bereiche und ist nicht der Admin-Menüpunkt. Zur Frage nach angekündigten Schiffen lag keine Antwort vor, deshalb zeigt der Tisch sie als Vorschau, das habe ich nur im Test gesehen. Am echten Handy und beim Speichern im Popup habe ich nicht geprüft, das bleibt bei dir (🧪 im Menü).</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-concept-scrollbar"
+          data-issue-title="[BUG] Concept page: analysis panel scrollbar touches the chat content"
+          data-issue-type="bug"
+          data-issue-body="Reported by the user during concept 20261105-1510: in the analysis panel on the right, the scrollbar sits directly on the chat content and needs a small gap. Belongs to the devops plugin's auto-concept page, not to this app."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo">
+        <span class="oq-label">Concept-Seite: Scrollbar klebt am Chat</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Rechts in der Analyse schneidet die Scrollbar an die Chat-Inhalte an, es fehlt etwas Abstand.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Concept-Seite des Plugins, deine Anmerkung aus Runde 1</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, denn das gehört zum Plugin und nicht zur App.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-concept-tag"
+          data-issue-title="[BUG] Concept page: question tag in the composer appears unreliably and links to the wrong question"
+          data-issue-type="bug"
+          data-issue-body="Reported by the user during concept 20261105-1510, with a screenshot in .claude/concepts/20261105-1510-batch-verse-codex-hq-mobile/attachments/: the 'Frage 1' tag in the composer only appears sometimes, and it can point at a different question than the one being answered. Belongs to the devops plugin's auto-concept page."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo">
+        <span class="oq-label">Concept-Seite: Frage-Label falsch verlinkt</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Das Label „Frage 1“ erscheint nicht immer und verweist manchmal auf die falsche Frage.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Concept-Seite des Plugins, deine Anmerkung mit Screenshot</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, denn das gehört zum Plugin und nicht zur App.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-patch-versions"
+          data-issue-title="[BUG] patch_versions has no writer, channel data stays empty"
+          data-issue-type="bug"
+          data-issue-body="The verse_digest channels list reads from patch_versions, but nothing writes that table, so it is empty on production. The hero now takes the LIVE version from rsi-roadmap.liveVersion with patch_stability_patches.notes_slug as a fallback, which works around it. Decide whether to fill the table or remove it, and check other readers."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="Datenquelle">
+        <span class="oq-label">Patch-Tabelle wird nie befüllt</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Tabelle mit den Patch-Kanälen bleibt leer, weil nichts in sie schreibt. Der Hero holt die Version deshalb aus anderen Quellen.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Datenbank, Verse-Daten</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, denn befüllen oder entfernen ist eine eigene Entscheidung.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-stock" data-crit="high" data-guide="web">Bestand: Teil erfassen und übernehmen</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="web">Am echten Handy durch alle Bereiche gehen</li>
+      <li data-todo-id="t-rail" data-crit="low" data-guide="web">HQ-Seitenleiste am Desktop anklicken</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commit <code>c42339a1</code> auf <code>claude/keen-borg-305ff2</code> · Bereiche: verse, codex, hq, shell, supabase</li>
+      <li><code>src/app/hq/stock/hq-stock-popup.component.ts</code>, <code>src/app/verse/pages/briefing/briefing-patch-title.ts</code>, <code>supabase/functions/patch-teaser/</code></li>
+      <li>Tests: Web 5590 grün (voller Lauf vor den letzten zwei Kleinänderungen, danach Shell 216 grün), Skripte 115, Funktionen 356, Lint 0 Fehler (Stand Runde 2)</li>
+      <li>Handy-Gate: 19 Audits, 6 blockierende nur WebGL ohne GPU (nicht gegen main verglichen), 2 Warnungen wegen der noch fehlenden Tabelle <code>patch_teasers</code></li>
+      <li>Beim Ausliefern: Migration <code>20261105150000_patch_teasers.sql</code> und Funktion <code>patch-teaser</code> deployen, Sweep einmal anstoßen</li>
+    </ul>
+  </details>
+</section>
