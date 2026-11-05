@@ -240,7 +240,7 @@ import { avatarUrlOf } from './avatar-url';
       <!-- Both account menus stay mounted: the header's slides and fades into the bar
            when it compresses (scroll dock and main → subpage alike), the bar's shows
            wherever the bar is docked. The compressed header's copy is inert. -->
-      <sc-main-header>
+      <sc-main-header [class.menu-open]="menuOpen()">
         <div mhAccount class="mh-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
       </sc-main-header>
       @if (cineHeader()) {

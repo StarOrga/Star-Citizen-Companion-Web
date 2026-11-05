@@ -106,6 +106,8 @@ export const MAIN_NAV_SLOT_PX = 112;
         padding-bottom: var(--sc-space-4);
         pointer-events: none;
       }
+      /* The open account menu lies over the beta chip (z-index 45), which would cover its head. */
+      :host(.menu-open) { z-index: 46; }
       /* A route change eases the progress for a moment; scrolling sets it directly. */
       :host([data-ease]) {
         transition: --sc-dock-p 1.1s var(--mh-ease);
