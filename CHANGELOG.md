@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.207.6] - 2026-11-05
+
+### Added
+- /verse: Verse, Codex and HQ links sit again at the very bottom under the Patches (test placement)
+
 ## [0.207.5] - 2026-11-05
 
 ### Fixed
