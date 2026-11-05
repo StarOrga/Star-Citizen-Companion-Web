@@ -11,6 +11,7 @@ import { ImpersonationService } from '../auth/impersonation.service';
 import { RouteLoadRecoveryService } from '../core/route-load-recovery.service';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
+import { FriendsService } from '../social/friends.service';
 import { AccountNoticeComponent } from '../social/account-notice.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { FooterComponent } from './footer.component';
@@ -143,8 +144,23 @@ describe('ShellComponent menu navigation', () => {
     ).map((a) => (a as HTMLAnchorElement).getAttribute('href'));
 
     expect(hrefs).toContain('/settings');
-    expect(hrefs).toContain('/friends');
+    expect(hrefs).toContain('/social');
     expect(hrefs).toContain('/admin/api-tokens');
+  });
+
+  it('shows the open-request count on the Social entry and the account icon, in the normal accent', () => {
+    const fixture = setup();
+    TestBed.inject(FriendsService).graph.update((g) => ({
+      ...g,
+      incoming: [{ kind: 'incoming', request_id: 'r1', user_id: 'u1', display_name: 'A', username: 'a', since: '2026-11-05' }],
+    }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.avatar-badge')).toBeTruthy();
+    openMenu(fixture);
+    const link = fixture.nativeElement.querySelector('a.dropdown-item[href="/social"]') as HTMLAnchorElement;
+    expect(link.querySelector('.di-count')).toBeTruthy();
+    expect(link.classList.contains('elevated')).toBeFalse();
+    expect(link.getAttribute('aria-label')).toBeTruthy();
   });
 
   it('renders the Telemetrie header entry as a real anchor for an admin', () => {
@@ -163,7 +179,7 @@ describe('ShellComponent menu navigation', () => {
     openMenu(fixture);
     expect(fixture.componentInstance.menuOpen()).toBeTrue();
 
-    click(fixture.nativeElement.querySelector('a.dropdown-item[href="/friends"]'));
+    click(fixture.nativeElement.querySelector('a.dropdown-item[href="/social"]'));
 
     expect(fixture.componentInstance.menuOpen()).toBeFalse();
   });
@@ -173,7 +189,7 @@ describe('ShellComponent menu navigation', () => {
 
     for (const init of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { button: 1 }]) {
       openMenu(fixture);
-      click(fixture.nativeElement.querySelector('a.dropdown-item[href="/friends"]'), init);
+      click(fixture.nativeElement.querySelector('a.dropdown-item[href="/social"]'), init);
 
       expect(fixture.componentInstance.menuOpen())
         .withContext(`a ${JSON.stringify(init)} click opens a tab and stays here`)

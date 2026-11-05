@@ -1,0 +1,112 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "submission": "sub-mw3meq4b-o4gt0ess",
+    "decisions": [
+      {
+        "id": "d-rolle",
+        "label": "Lesart: Rolle im HQ",
+        "mode": "verify",
+        "value": "ok",
+        "rec": "ok",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-zweck",
+        "label": "Zweck von Freunden",
+        "mode": "single",
+        "value": "zusammen",
+        "rec": "zusammen",
+        "deviates": false,
+        "untouched": false,
+        "note": "+ teilen + sozialbereich mit vergleichen usw...."
+      },
+      {
+        "id": "d-umfang",
+        "label": "Was Freunde zusätzlich können",
+        "mode": "multi",
+        "value": [
+          "uebernehmen",
+          "einsatz",
+          "variante",
+          "zusagen",
+          "online"
+        ],
+        "rec": "uebernehmen einsatz",
+        "deviates": true,
+        "untouched": false,
+        "note": "Ja genau, ich stelle mir vor im Social Bereich , dort kann ich vergleichen wie sie scc web / app nutzen, aber auch was sie so machen ggü. mir, später dnan auszupfeilen mit gemeinsamen anspoprn usw. aber im hq an allen ecken und enden natürlich integriert, auch wenn sehr dezent oder nur in fällen."
+      },
+      {
+        "id": "d-heimat",
+        "label": "Platz von Freunden",
+        "mode": "single",
+        "value": "konto",
+        "rec": "beides",
+        "deviates": true,
+        "untouched": false,
+        "note": "Lass usn doich eine seite soical machen auf meinen proifl icon menü - nix dazu in den einstellungen! Und ansonsten embeedeed in hq aber keine extra seite sondern einfach an den diversen stellen"
+      },
+      {
+        "id": "d-signal",
+        "label": "Meldung offener Anfragen",
+        "mode": "single",
+        "value": "zaehler",
+        "rec": "zaehler",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-links",
+        "label": "Link-Aufräumen",
+        "mode": "multi",
+        "value": [
+          "sackgasse",
+          "geteilt",
+          "bestand",
+          "einstieg",
+          "suche",
+          "perk"
+        ],
+        "rec": "sackgasse geteilt bestand einstieg suche perk",
+        "deviates": false,
+        "untouched": false,
+        "note": "Freunde dürfen auch in orgs organisiert werden und in einsatzgruppen bei mehreren!"
+      },
+      {
+        "id": "d-name",
+        "label": "Klick auf einen Freund",
+        "mode": "single",
+        "value": "freundseite",
+        "rec": "freundseite",
+        "deviates": false,
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "d-finden",
+        "label": "Weg zur Freundschaft",
+        "mode": "single",
+        "value": "einladung",
+        "rec": "einladung",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-sicht",
+        "label": "Sichtbarkeit für Freunde",
+        "mode": "single",
+        "value": "hangar",
+        "rec": "aktiv",
+        "deviates": true,
+        "untouched": false,
+        "note": "ja man soll festlegen können pro freund und generell auf der social setite was man automatisch teilt! dort in den einestellungen als popup oder so.."
+      }
+    ]
+  }
+]

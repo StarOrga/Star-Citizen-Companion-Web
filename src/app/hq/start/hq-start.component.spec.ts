@@ -8,6 +8,9 @@ import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
+import { FriendsService } from '../../social/friends.service';
+import { emptyGraph } from '../../social/friends.types';
+import { SocialService } from '../../social/social.service';
 import { HQ_FIRST_SKIPPED_KEY, HqStartComponent } from './hq-start.component';
 
 describe('HqStartComponent first-visit block', () => {
@@ -40,6 +43,8 @@ describe('HqStartComponent first-visit block', () => {
         },
         { provide: HqEinsatzService, useValue: einsatz },
         { provide: HqSuppliesService, useValue: { items: signal([]) } },
+        { provide: FriendsService, useValue: { graph: signal(emptyGraph()), busy: signal(false), error: signal(null), friendCount: () => 0, load: () => Promise.resolve() } },
+        { provide: SocialService, useValue: { sharedEinsaetze: signal([]), loadSharedEinsaetze: () => Promise.resolve() } },
       ],
     });
     const f = TestBed.createComponent(HqStartComponent);

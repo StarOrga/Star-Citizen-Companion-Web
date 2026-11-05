@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal, Injector } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import {
   FoundUser,
@@ -24,7 +24,11 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class FriendsService {
-  private readonly sb = inject(SupabaseClientProvider);
+  private readonly injector = inject(Injector);
+  /** Resolved on first use: holding this service (every HQ page does) creates no Supabase client. */
+  private get sb(): SupabaseClientProvider {
+    return this.injector.get(SupabaseClientProvider);
+  }
 
   readonly graph = signal<FriendGraph>(emptyGraph());
   readonly loading = signal(false);

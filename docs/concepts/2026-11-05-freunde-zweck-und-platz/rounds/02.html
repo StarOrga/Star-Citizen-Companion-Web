@@ -1,0 +1,149 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Freunde werden zu Social</h2>
+  </div>
+
+  <p class="fr-try-auth">🔑 Noch nicht direkt testbar: Die Migration liegt erst nach dem Ship auf der Datenbank, und die eingeloggte Browser-Session hängt an Port 4200, den gerade eine andere Session belegt.</p>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Freunde haben jetzt eine eigene Seite /social im Profil-Menü, tauchen im HQ an den vorhandenen Stellen auf und bringen dort echten Nutzen: teilen, übernehmen, gemeinsam planen und vergleichen.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">👥</span><span><b>Social-Seite</b> mit Anfragen, Einladungslink, Gruppen, Vergleich und Freundes-Seite.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span><b>Im HQ eingebettet:</b> Start, Planen, Jetzt und Bestand, nur wenn es etwas zu zeigen gibt.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🤝</span><span><b>Zusammen spielen:</b> Einsätze und Varianten teilen, Crew-Plätze, Zusagen, Sets übernehmen.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="false" style="--fr-tested: 99%; --fr-target: 100%">
+          <span class="fr-meter-name">🧯 Stabilität</span>
+          <b class="fr-meter-value">5460 / 5461</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Specs grün, Ziel alle. Der eine rote Spec ist auch auf main rot. <span class="fr-meter-verdict">▲ {{final.target_short}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 90%; --fr-target: 80%">
+          <span class="fr-meter-name">🛡 Sicherheit</span>
+          <b class="fr-meter-value">≈ 100</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Verhaltensprüfungen in SQL bestanden, Ziel 80 (geschätzt), aber gegen nachgebaute Tabellen. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🔌 Kompatibilität</span>
+          <b class="fr-meter-value">0 Fehler</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Migration lief auf dem echten Schema und wurde zurückgerollt, Ziel 0. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-card">
+    <p class="fr-label">Was nicht oder anders gebaut ist</p>
+    <ul class="fr-wins">
+      <li><span class="fr-win-icon" aria-hidden="true">⚠️</span><span><b>Website-Nutzung fehlt im Vergleich:</b> Dafür gibt es keine Daten pro Konto. Enthalten sind unter anderem Schiffe, Sets, Einsätze, Missionen, aktive Tage und ob die App verbunden ist.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">⚠️</span><span><b>Eigene Zusage fehlt:</b> Wer einen Einsatz plant, kann in der Oberfläche nicht selbst zusagen oder einen Platz nehmen, obwohl der Server es erlaubt.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">⚠️</span><span><b>Orgs und Einsatzgruppen</b> sind private Listen, keine gemeinsamen Orgs mit eigenen Mitgliedern.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">⚠️</span><span><b>Einladungslink</b> stellt nur eine Anfrage. Sonst bekäme jeder mit dem Link den Hangar zu sehen.</span></li>
+    </ul>
+  </div>
+
+  <div class="fr-card">
+    <p class="fr-label">Nachtrag</p>
+    <ul class="fr-wins">
+      <li><span class="fr-win-icon" aria-hidden="true">🛡</span><span><b>Sicherheitsprüfung:</b> Kein Leck an Fremde gefunden, sechs Punkte behoben. Eine beendete Freundschaft nimmt jetzt auch alte Freigaben mit.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">🔌</span><span><b>Echtes Schema:</b> Alle 29 Funktionen liefen in einer zurückgerollten Transaktion, 197 Prüfschritte bestanden.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">🧯</span><span><b>Verse-Spec und Build-Wächter</b> behoben: Der Wächter zählt ein altes dist nicht mehr als Erfolg.</span></li>
+    </ul>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_interplay}}<small>Stufe 3 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="open">{{final.level_local}}</li>
+      <li data-level="5" data-state="open">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Die eingeloggten Seiten und alle befüllten Zustände hat noch niemand im Browser gesehen, sie sind nur über Specs abgedeckt. Der Abgleich aller Punkte im Browser steht daher aus.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-routed data-oq-id="oq-ansporn"
+          data-issue-title="[FEATURE] Shared goals between friends on the Social page"
+          data-issue-type="feature"
+          data-issue-body="Parked by the owner in the friends concept (round 1): comparison first, joint goals to refine later. Builds on the comparison on /social."
+          data-issue-module="social"
+          data-oq-origin="deferred"
+          data-route-default="issue"
+          data-route-reason="später">
+        <span class="oq-label">Gemeinsamer Ansporn unter Freunden <a href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/938" target="_blank" rel="noopener noreferrer">[Issue #938]</a> ✓</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Du wolltest das später ausarbeiten: gemeinsame Ziele auf Basis des Vergleichs.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Social-Seite, Runde 1, deine Notiz zum Umfang</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, von dir zurückgestellt.</dd>
+        </dl>
+      </li>
+      <li data-routed data-oq-id="oq-briefing-spec"
+          data-issue-title="[BUG] Verse briefing cinematic entrance spec is red on main"
+          data-issue-type="bug"
+          data-issue-body="verse-briefing.component.spec.ts:447 'opens on the app name, builds up, lets the comet fly last' fails with: Expected bstage to contain 'finale'. Reproduced alone on a clean origin/main checkout on 2026-11-05, unrelated to the social branch."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="fremd">
+        <span class="oq-label">Verse-Briefing-Spec auf main rot</span><span class="oq-done">umgesetzt: 8d0945a1</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Der Spec zum Einflug erwartet die Stufe „finale“ und bekommt sie nicht.</dd>
+          <dt>{{final.fund_where}}</dt><dd>verse-briefing.component.spec.ts:447, auch auf sauberem main</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, hat mit Freunden nichts zu tun.</dd>
+        </dl>
+      </li>
+      <li data-routed data-oq-id="oq-exit-guard"
+          data-issue-title="[BUG] build-with-exit-guard test fails and npm run build can pass on a stale dist"
+          data-issue-type="bug"
+          data-issue-body="scripts/build-with-exit-guard.test.mjs:68 expected exit 2, got 0, reproducible alone; scripts/ is untouched by the social branch. In the same run npm run build exited 0 with 'ng build hung after completing output' while dist held chunks from an earlier build, so a green build there proved nothing. Not yet checked on main."
+          data-issue-module="build"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="riskant">
+        <span class="oq-label">Build-Wächter kann alten Stand durchwinken</span><span class="oq-done">umgesetzt: 23abb0e3</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>npm run build meldete Erfolg, obwohl dist noch den alten Stand enthielt, und der Test dazu ist rot.</dd>
+          <dt>{{final.fund_where}}</dt><dd>scripts/build-with-exit-guard.test.mjs:68</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, riskant für jedes Release.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-social" data-crit="high" data-guide="">Social und Freundes-Seite eingeloggt ansehen</li>
+      <li data-todo-id="t-hq" data-crit="mid" data-guide="">HQ ohne Freunde unverändert prüfen</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="">Social und HQ auf dem Handy ansehen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/freunde-anzeige-verlinkung-755487</code>, nichts gepusht. Migration <code>20261105120000_social_area.sql</code> ist noch nicht angewendet.</li>
+      <li>Karma voll: 5461 von 5465, 1 rot (auch auf main), 4 übersprungen. Typecheck sauber, Lint 0 Fehler, 2 neue a11y-Warnungen im Sichtbarkeits-Dialog.</li>
+      <li>Vollständiger Build nur vor den letzten Fixes geprüft (45 s, keine Template-Fehler); die CI prüft den Endstand.</li>
+      <li>Nach dem Deploy: <code>db push</code>, dann <code>notify pgrst, 'reload schema'</code>, sonst antworten die neuen RPCs mit PGRST202.</li>
+      <li>Standard für Bestandskonten: Freunde sehen Hangar inklusive Wunschliste, Flaggschiff, Online-Status und Vergleich; einmaliger Hinweis auf /social, Absatz im Datenschutz. Abgleich: <code>briefs/implement.md</code>, <code>contract.md</code>.</li>
+    </ul>
+  </details>
+</section>

@@ -14,6 +14,7 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
 import { HqLiveService } from '../now/hq-live.service';
 import { readLocation } from '../now/hq-live.util';
 import { placeOfName } from '../plan/map/hq-places';
+import { HqStockSharedComponent } from './hq-stock-shared.component';
 import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-stock-find';
 
 /**
@@ -27,7 +28,7 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, FormsModule, ScSegmentedComponent, ScSelectComponent],
+  imports: [TranslatePipe, RouterLink, FormsModule, ScSegmentedComponent, ScSelectComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 class="page-title" id="hq-stock-title">{{ 'hq.pages.bestand' | translate }}</h2>
@@ -71,6 +72,8 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
           <a class="more" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
         </section>
       </div>
+
+      <sc-hq-stock-shared />
 
       <section class="lager" aria-labelledby="hq-stock-lager">
         <h3 id="hq-stock-lager">{{ 'hq.stock.lager.title' | translate }}</h3>

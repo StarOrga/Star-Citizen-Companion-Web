@@ -49,6 +49,17 @@ export const READ_RPCS: ReadonlySet<string> = new Set([
   'list_p4k_bundles_for_collaborator',
   'find_user_by_username',
   'admin_feedback_board_delta',
+  'my_friend_invite',
+  'peek_friend_invite',
+  'list_my_friend_groups',
+  'get_my_social_visibility',
+  'list_online_friends',
+  'list_friend_shares',
+  'list_einsaetze_shared_with_me',
+  'list_ship_configs_shared_with_me',
+  'get_einsatz_crew',
+  'friend_overview',
+  'list_friend_compare',
 ]);
 
 /**
