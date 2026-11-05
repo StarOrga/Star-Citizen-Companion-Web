@@ -8,7 +8,7 @@ describe('VerseAreaFootComponent', () => {
   function render(codex: boolean): HTMLElement {
     TestBed.configureTestingModule({
       imports: [VerseAreaFootComponent],
-      providers: [provideRouter([]), provideTranslateService(), { provide: BetaService, useValue: { state: () => ({ codex, verse: true }) } }],
+      providers: [provideRouter([]), provideTranslateService(), { provide: BetaService, useValue: { isEnabled: () => () => codex } }],
     });
     const f = TestBed.createComponent(VerseAreaFootComponent);
     f.detectChanges();

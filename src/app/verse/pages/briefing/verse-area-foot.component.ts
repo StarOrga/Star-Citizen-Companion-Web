@@ -41,8 +41,8 @@ import { AREA_ENTRIES } from '../../../shell/fusion-bar/fusion-bar.model';
   `,
 })
 export class VerseAreaFootComponent {
-  private readonly beta = inject(BetaService);
+  private readonly codexBeta = inject(BetaService).isEnabled('codex');
   readonly areas = computed(() =>
-    AREA_ENTRIES.filter((a) => a.id === 'verse' || a.id === 'codex' || (a.id === 'hq' && this.beta.state().codex)),
+    AREA_ENTRIES.filter((a) => a.id === 'verse' || a.id === 'codex' || (a.id === 'hq' && this.codexBeta())),
   );
 }
