@@ -6,6 +6,7 @@ import { CodexLandingComponent, ROTATION_MS } from './codex-landing.component';
 import { CodexLandingDataService } from './landing/codex-landing-data.service';
 import { LandingCodex, LandingItem, LandingPaint, PatchSummaryView } from './landing/codex-landing-data.types';
 import { BetaService } from '../core/beta.service';
+import { CodexService } from './codex.service';
 import { CLAIM_MS } from './landing/codex-landing-claims';
 
 function item(over: Partial<LandingItem> & { className: string; category: LandingItem['category'] }): LandingItem {
@@ -52,6 +53,9 @@ class FakeData {
   items: LandingItem[] = [];
   paintList: LandingPaint[] = [];
   markNewsSeen = jasmine.createSpy('markNewsSeen');
+  itemByClass = jasmine.createSpy('itemByClass').and.callFake(async (category: LandingItem['category'], className: string) =>
+    item({ category, className, name: 'Picked ' + className, fresh: true }),
+  );
   rotationItems = jasmine.createSpy('rotationItems').and.callFake(async () => this.items);
   news: LandingCodex = {
     patch: '4.3',
@@ -96,11 +100,13 @@ describe('CodexLandingComponent', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: CodexLandingDataService, useValue: data },
+        { provide: CodexService, useValue: { silhouette: async () => null } },
         { provide: BetaService, useValue: { isEnabled: () => signal(true) } },
       ],
     });
     fixture = TestBed.createComponent(CodexLandingComponent);
     fixture.componentInstance.still.set(false);
+    fixture.componentInstance.hidden.set(false);
     el = fixture.nativeElement as HTMLElement;
   }
 
@@ -146,12 +152,12 @@ describe('CodexLandingComponent', () => {
     expect(cmp.active()).toBe(1);
     expect(cmp.switchNo()).toBe(1);
 
-    const rows = () => el.querySelectorAll<HTMLButtonElement>('sc-codex-landing-codex-pane button.row');
+    const rows = () => el.querySelectorAll<HTMLButtonElement>('sc-codex-landing-codex-pane button.tab');
     rows()[2].click();
     fixture.detectChanges();
     expect(cmp.active()).toBe(2);
     expect(cmp.held()).toBeTrue();
-    expect(rows()[2].getAttribute('aria-expanded')).toBe('true');
+    expect(rows()[2].getAttribute('aria-pressed')).toBe('true');
     tick(ROTATION_MS * 2);
     fixture.detectChanges();
     expect(cmp.active()).withContext('held').toBe(2);
@@ -169,12 +175,12 @@ describe('CodexLandingComponent', () => {
     settle();
     const pane = el.querySelector<HTMLElement>('sc-codex-landing-codex-pane')!;
     expect(pane.querySelector('.ph')!.textContent).toContain('codex.landing.codex.title');
-    const counts = Array.from(pane.querySelectorAll('.cnt')).map((c) => c.textContent!.trim());
-    expect(counts.length).toBe(4);
-    const open = pane.querySelector<HTMLElement>('.cat.on .open')!;
-    const entries = Array.from(open.querySelectorAll<HTMLAnchorElement>('.new a'));
+    expect(pane.querySelectorAll('.tabs .tab').length).toBe(4);
+    expect(pane.querySelector('.open .sum')!.textContent).toContain('codex.landing.codex.count');
+    const open = pane.querySelector<HTMLElement>('.open')!;
+    const entries = Array.from(open.querySelectorAll<HTMLAnchorElement>('.new a.ent'));
     expect(entries.length).toBe(2);
-    expect(entries[0].classList).toContain('table');
+    expect(entries[0].closest('li')!.classList).toContain('table');
     expect(entries[0].querySelector('.here')).not.toBeNull();
     expect(entries[1].querySelector('.here')).toBeNull();
     expect(open.querySelector<HTMLAnchorElement>('a.more')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS&sort=new');
@@ -186,13 +192,79 @@ describe('CodexLandingComponent', () => {
     const ship = item({ category: 'fpsWeapon', className: 'AEGS_Gladius', imageUrl: null });
     setup([{ ...ship, category: 'ship', kind: 'ship', detailRoute: ['/codex', 'ship', 'AEGS_Gladius'] }]);
     settle();
-    const open = el.querySelector<HTMLElement>('sc-codex-landing-codex-pane .cat.on .open')!;
-    const entries = Array.from(open.querySelectorAll<HTMLAnchorElement>('.new a'));
+    const open = el.querySelector<HTMLElement>('sc-codex-landing-codex-pane .open')!;
+    const entries = Array.from(open.querySelectorAll<HTMLAnchorElement>('.new a.ent'));
     // The item on the table leads, the announced ship follows with its tag.
     expect(entries[0].getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
     expect(entries[1].querySelector('.soon')).not.toBeNull();
     expect(entries[1].getAttribute('href')).toBe('/codex/upcoming/polaris');
     expect(open.querySelector<HTMLAnchorElement>('a.more')!.getAttribute('href')).toBe('/codex/index?kind=ship&sort=new');
+    flush();
+  }));
+
+  const entries = () => Array.from(el.querySelectorAll<HTMLAnchorElement>('sc-codex-landing-codex-pane .new a.ent'));
+
+  it('B2.1/B2.2: a plain left click puts the entry on this pages table and holds it; the arrow and modified clicks open the subpage', fakeAsync(() => {
+    setup(three());
+    settle();
+    const cmp = fixture.componentInstance;
+    const second = entries()[1];
+    const arrow = second.parentElement!.querySelector<HTMLAnchorElement>('a.go')!;
+    expect(second.getAttribute('href')).toBe('/codex/weapon/KSAR_Smg');
+    expect(arrow.getAttribute('href')).toBe('/codex/weapon/KSAR_Smg');
+
+    const ctrl = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+    second.dispatchEvent(ctrl);
+    expect(ctrl.defaultPrevented).withContext('Ctrl+click falls through to the anchor').toBeFalse();
+    expect(cmp.picked()).toBeNull();
+
+    const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    second.dispatchEvent(plain);
+    settle();
+    expect(plain.defaultPrevented).toBeTrue();
+    expect(data.itemByClass).toHaveBeenCalledWith('fpsWeapon', 'KSAR_Smg');
+    expect(cmp.current()!.className).toBe('KSAR_Smg');
+    expect(cmp.held()).toBeTrue();
+    expect(piece().querySelector('.k-name')!.textContent).toContain('Picked KSAR_Smg');
+    tick(ROTATION_MS * 2);
+    expect(cmp.current()!.className).withContext('held').toBe('KSAR_Smg');
+    // The category tab again resumes the rotation: the picked entry gives way.
+    el.querySelector<HTMLButtonElement>('sc-codex-landing-codex-pane button.tab.on')!.click();
+    fixture.detectChanges();
+    expect(cmp.picked()).toBeNull();
+    expect(cmp.held()).toBeFalse();
+    discardPeriodicTasks();
+    flush();
+  }));
+
+  it('B2.3: an announced ship stands on the table with name and icon only, no values; its arrow opens the upcoming page', fakeAsync(() => {
+    const ship = item({ category: 'fpsWeapon', className: 'AEGS_Gladius' });
+    setup([{ ...ship, category: 'ship', kind: 'ship', detailRoute: ['/codex', 'ship', 'AEGS_Gladius'] }]);
+    settle();
+    const cmp = fixture.componentInstance;
+    const soon = entries().find((a) => a.querySelector('.soon'))!;
+    expect(soon.parentElement!.querySelector('a.go')!.getAttribute('href')).toBe('/codex/upcoming/polaris');
+    soon.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    settle();
+    expect(data.itemByClass).not.toHaveBeenCalled();
+    expect(cmp.current()!.announced).toBeTrue();
+    expect(cmp.held()).toBeTrue();
+    expect(piece().querySelector('.k-name')!.textContent).toContain('RSI Polaris');
+    expect(piece().querySelectorAll('.call').length).withContext('no values').toBe(0);
+    expect(piece().querySelector('.sil sc-codex-icon')).withContext('category icon').not.toBeNull();
+    expect(piece().querySelector('.k-eye')!.textContent).toContain('codex.landing.holo.announced');
+    discardPeriodicTasks();
+    flush();
+  }));
+
+  it('B2.4: the category bar shows the active category with its name, the others icon only', fakeAsync(() => {
+    setup(three());
+    settle();
+    const tabs = Array.from(el.querySelectorAll<HTMLButtonElement>('sc-codex-landing-codex-pane .tabs .tab'));
+    expect(tabs.length).toBe(4);
+    expect(tabs.filter((t) => t.querySelector('.nm')).length).toBe(1);
+    expect(el.querySelector('sc-codex-landing-codex-pane .tab.on .nm')).not.toBeNull();
+    expect(tabs.every((t) => !!t.getAttribute('aria-label'))).toBeTrue();
     flush();
   }));
 
