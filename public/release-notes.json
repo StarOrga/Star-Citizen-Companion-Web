@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.210.0",
+  "current": "0.210.1",
   "releases": [
+    {
+      "version": "0.210.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub: the news tiles open at 30 % of the former speed."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.210.0",
       "date": "2026-11-05",
