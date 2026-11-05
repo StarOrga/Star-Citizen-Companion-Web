@@ -4,12 +4,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { FriendsService } from './friends.service';
 import { humanizeClassName } from '../codex/codex-format';
-import { edgeLabel } from './friends.types';
+import { REPORT_CATEGORIES, REPORT_REASON_MAX, ReportCategory, edgeLabel, isValidReportReason } from './friends.types';
 import { SocialCompareComponent } from './social-compare.component';
 import { SocialService } from './social.service';
 import { FriendOverview, OverviewShared } from './social.types';
@@ -25,7 +26,7 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
 @Component({
   selector: 'sc-social-friend',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, RouterLink, PageHeaderComponent, SocialCompareComponent, ScTooltipDirective, NgTemplateOutlet],
+  imports: [TranslatePipe, ScDatePipe, RouterLink, PageHeaderComponent, SocialCompareComponent, ScTooltipDirective, NgTemplateOutlet, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -61,12 +62,39 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
                 <a class="sc-btn" routerLink="/hq/locker">{{ 'social.friendPage.share' | translate }}</a>
                 <button type="button" class="sc-btn" [disabled]="friends.busy()" (click)="remove()">{{ 'friends.actions.remove' | translate }}</button>
                 <button type="button" class="sc-btn" [disabled]="friends.busy()" (click)="block()">{{ 'friends.actions.block' | translate }}</button>
-                <button type="button" class="sc-btn danger" [disabled]="friends.busy()" (click)="report()">{{ 'friends.actions.report' | translate }}</button>
+                <button type="button" class="sc-btn danger" [disabled]="friends.busy()" (click)="reportOpen.set(true)">{{ 'friends.actions.report' | translate }}</button>
               </div>
             </sc-page-header>
 
             @if (friends.error(); as key) {
               <div class="load-error" role="alert">{{ key | translate }}</div>
+            }
+
+            @if (reportOpen()) {
+              <div class="sc-card report-card">
+                <h2>{{ 'friends.report.title' | translate: { name: displayName() } }}</h2>
+                <p class="hint">{{ 'friends.report.hint' | translate }}</p>
+                <div class="report-field">
+                  <span class="hint">{{ 'friends.report.category' | translate }}</span>
+                  <sc-select
+                    [options]="categoryOptions"
+                    [value]="reportCategory()"
+                    [allowEmpty]="false"
+                    [ariaLabel]="'friends.report.category' | translate"
+                    (valueChange)="setCategory($event)" />
+                </div>
+                <label class="report-field">
+                  <span class="hint">{{ 'friends.report.reason' | translate }}</span>
+                  <textarea class="report-reason" rows="3" [attr.maxlength]="reasonMax"
+                            [value]="reportReason()"
+                            (input)="reportReason.set($any($event.target).value)"
+                            [placeholder]="'friends.report.reasonPlaceholder' | translate"></textarea>
+                </label>
+                <div class="report-actions">
+                  <button type="button" class="sc-btn sc-btn-primary" [disabled]="friends.busy()" (click)="submitReport()">{{ 'friends.report.submit' | translate }}</button>
+                  <button type="button" class="sc-btn" (click)="reportOpen.set(false)">{{ 'friends.report.cancel' | translate }}</button>
+                </div>
+              </div>
             }
 
             @if (d.my_groups.length) {
@@ -135,6 +163,10 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
   `,
   styles: [`
     .page { display: flex; flex-direction: column; gap: 20px; }
+    .report-card { border-color: var(--sc-danger); display: grid; gap: 12px; }
+    .report-field { display: grid; gap: 4px; }
+    .report-reason { width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit; font-size: max(16px, 1em); color: var(--sc-fg-0); background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: var(--sc-radius, 6px); }
+    .report-actions { display: flex; flex-wrap: wrap; gap: 10px; }
     h2 { margin: 0 0 8px; font-size: 1rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
     .hint { color: var(--sc-fg-2); margin: 0; font-size: max(0.8rem, var(--sc-fs-floor)); }
     .empty-inline { color: var(--sc-fg-2); font-style: italic; margin: 6px 0 0; }
@@ -235,18 +267,27 @@ export class SocialFriendComponent {
     if (ok && (await this.friends.block(id))) await this.router.navigate(['/social']);
   }
 
-  async report(): Promise<void> {
+  /** Same category and reason as the list on /social: an admin triages by category. */
+  readonly categoryOptions: readonly ScSelectOption[] = REPORT_CATEGORIES.map((c) => ({
+    value: c,
+    labelKey: 'friends.report.categories.' + c,
+  }));
+  readonly reasonMax = REPORT_REASON_MAX;
+  readonly reportOpen = signal(false);
+  readonly reportCategory = signal<ReportCategory>('other');
+  readonly reportReason = signal('');
+
+  setCategory(value: string | null): void {
+    this.reportCategory.set((value ?? 'other') as ReportCategory);
+  }
+
+  async submitReport(): Promise<void> {
     const id = this.id();
-    if (!id) return;
-    const reason = await this.confirmSvc.prompt({
-      titleKey: 'friends.report.title',
-      messageKey: 'friends.report.hint',
-      params: { name: this.displayName() },
-      inputLabelKey: 'friends.report.reason',
-      confirmKey: 'friends.report.submit',
-      tone: 'danger',
-    });
-    if (reason === null) return;
-    await this.friends.report(id, 'other', reason);
+    const reason = this.reportReason();
+    if (!id || !isValidReportReason(reason)) return;
+    const outcome = await this.friends.report(id, this.reportCategory(), reason.trim());
+    if (outcome === null) return;
+    this.reportOpen.set(false);
+    this.reportReason.set('');
   }
 }

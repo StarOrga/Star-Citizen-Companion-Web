@@ -229,6 +229,20 @@ describe('SocialFriendComponent', () => {
     expect(el.textContent).not.toContain('social.friendPage.hangarEmpty');
   });
 
+  it('a report from the friend page carries the chosen category, not a fixed one', async () => {
+    const rpc = setup({ friend_overview: () => overview, report_user: () => 'created' }, [route('pilot_a')]);
+    const { fixture, el } = await mount(SocialFriendComponent);
+    const page = fixture.componentInstance;
+    page.reportOpen.set(true);
+    page.setCategory('harassment');
+    page.reportReason.set('  insults  ');
+    fixture.detectChanges();
+    expect(el.querySelector('.report-card')).not.toBeNull();
+    await page.submitReport();
+    expect(rpc).toHaveBeenCalledWith('report_user', jasmine.objectContaining({ category: 'harassment', reason: 'insults' }));
+    expect(page.reportOpen()).toBeFalse();
+  });
+
   it('null from the server is the not-found state', async () => {
     setup({ friend_overview: () => null }, [route('nobody')]);
     const { el } = await mount(SocialFriendComponent);
