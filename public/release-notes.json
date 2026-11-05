@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.203.2",
+  "current": "0.204.0",
   "releases": [
+    {
+      "version": "0.204.0",
+      "date": "2026-11-04",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: slimmer loadout, one-line KPI strip and a pinned search bar."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Energy dock can sit at the screen edge or in the Analyse column."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.203.2",
       "date": "2026-11-04",

@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.204.1] - 2026-11-05
+
+### Fixed
+- HQ Jetzt says "You are here" only while the SCC app reports a running game. Otherwise it shows "Last seen here" with the time of the last signal.
+- Game locations read as names, for example "New Babbage" instead of "Stanton4_NewBabbage".
+- Statistik no longer offers to start the SCC app once the app already reports game data.
+
 ## [0.204.0] - 2026-11-04
 
 ### Changed
