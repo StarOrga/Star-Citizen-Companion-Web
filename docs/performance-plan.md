@@ -329,10 +329,26 @@ drawing the surface once and compositing the aurora over it.
 | body maps | 1024, now 512 at dpr 1 | 2.7 before, 1.3 now (body 115 px) | Lowered: `bodyMapWidth()` |
 
 Body maps stay at or above 1:1 for the size a body can reach on this screen. This
-saves GPU memory and upload, not main-thread time: rasterising the SVG maps still
-takes about 1.4 s on the page in `createImageBitmap` at either size, and it is the
-longest task left (about 0.55 s). Baking the maps to lossless WebP, as the big
-planet's are, would move it into the worker; not done yet.
+saves download, GPU memory and upload.
+
+**Baked body maps.** `scripts/bake-body-maps.mjs` writes the SVG rasters as lossless
+WebP to `public/planet/bodies/` (8 maps at 512 and 1024: 0.9 MB and 3.0 MB;
+`/planet/**` is already in the service worker's `assets` group). The bodies' worker
+loads them itself, so the SVG filters, 1.4 s on the main thread in tasks up to
+0.55 s, no longer run on the page. A failed file falls back to rasterising the SVG.
+The prebuild check hashes the SVGs. Re-baking needs a GPU, because the filters come
+out differently on Skia's CPU backend (75-85 % of the pixels, by 1-2 of 255 on
+average); the manifest names the renderer.
+
+**Software WebGL: no special path.** Same session, cold, FCP in seconds, four rounds:
+old page path 5.6, 6.4, 10.7, 8.9; worker 8.1, 3.9, 7.6, 6.3. The audit's "3.1 s
+before, 6.3-9.9 s after" does not hold up: with the box loaded the old build scatters
+just as far. Keeping such machines on the page path (detect the renderer, or no
+transfer API) measured 3.0, 9.8, 8.8, 10.6 s with 8-11 s of blocked main thread against
+0.4-1.5 s, so it buys nothing and costs a frozen page. Holding WebGL back until the
+first contentful paint measured 3.1, 8.1, 9.8, 6.5 s: also nothing, so it was taken
+out again. Real cost on software that remains: the planet stands after about 17-19 s
+instead of 4-6 s, while the page stays usable.
 
 **Service worker:** the worker files are `worker-*.js` in the dist root. If
 `ngsw-config.json` narrows `/*.js`, they need a rule of their own. Without one they

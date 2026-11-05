@@ -15,8 +15,8 @@ class FakeWorker {
   }
 }
 
-/** Past the wait for the page's first paint, whether or not this page has had one. */
-const START = 7000;
+/** Past the wait for the page's next paint. */
+const START = 1000;
 
 describe('body engine — worker path', () => {
   let w: FakeWorker, canvas: HTMLCanvasElement;
@@ -74,6 +74,17 @@ describe('body engine — worker path', () => {
     w.say({ t: 'lost', id: 1 });
     expect(lost).toHaveBeenCalledTimes(1);
     e.dispose();
+  });
+
+  it('answers the worker when a baked map failed: the page rasterises, or says it cannot', async () => {
+    const e = BodyEngine.create({ spawn: () => w as unknown as Worker, mapUrl: () => '/no-such-map.svg' }, undefined)!;
+    expect(e).toBeTruthy();
+    e.dispose();
+    const real = engine();
+    w.say({ t: 'map', name: 'no-such-map', width: 512 });
+    for (let i = 0; i < 200 && !w.of('map').length; i++) await new Promise((r) => setTimeout(r, 25));
+    expect(w.of('map')).toEqual([{ t: 'map', name: 'no-such-map', bitmap: null }]);
+    real.dispose();
   });
 
   it('a worker dying after the hand-over shows the CSS art instead of a blank canvas', fakeAsync(() => {

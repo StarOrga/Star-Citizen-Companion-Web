@@ -25,7 +25,7 @@ class FakeWorker {
 describe('Verse planet — worker link', () => {
   const link = (w: FakeWorker) => new PlanetWorkerLink(w as unknown as Worker, 4096, 'https://app.test/');
 
-  it('starts the download at once and probes WebGL only after the first paint', fakeAsync(() => {
+  it('starts the download at once and probes WebGL only after the next paint', fakeAsync(() => {
     const w = new FakeWorker();
     link(w);
     expect(w.sent.map((m) => m.t)).toEqual(['load']);

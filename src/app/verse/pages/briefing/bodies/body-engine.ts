@@ -1,5 +1,5 @@
 import { logWarn } from '../../../../core/log';
-import { afterFirstContentfulPaint } from '../after-paint';
+import { afterNextPaint } from '../after-paint';
 import { BodyKind, BodyStage } from './body-gl';
 import { loadBakedMap } from './body-maps';
 import type { BodyCommand, BodyEvent } from './body-worker-core';
@@ -201,7 +201,7 @@ export class BodyEngine {
       ev.preventDefault();
       this.workerFailed(ev.message || 'worker error');
     };
-    this.cancelStart = afterFirstContentfulPaint(() => {
+    this.cancelStart = afterNextPaint(() => {
       this.deadline = setTimeout(() => this.workerFailed('no answer'), BODY_WORKER_DEADLINE_MS);
       worker.postMessage({ t: 'init', still: !!this.opts.still, base: this.bakedBase() } satisfies BodyCommand);
     });

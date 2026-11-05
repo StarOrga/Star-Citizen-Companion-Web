@@ -1,6 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { logWarn } from '../../../../core/log';
-import { afterFirstContentfulPaint } from '../after-paint';
+import { afterNextPaint } from '../after-paint';
 import { PlanetBackend, PlanetStatus, PlanetView } from './planet-scene';
 import type { PlanetCommand, PlanetEvent } from './planet-worker-core';
 
@@ -52,7 +52,7 @@ export class PlanetWorkerLink implements PlanetLink {
     worker.onerror = (e) => { e.preventDefault(); this.fail(e.message || 'worker error'); };
     worker.onmessageerror = () => this.fail('message error');
     this.send({ t: 'load', size, base });
-    afterFirstContentfulPaint(() => this.send({ t: 'probe' }));
+    afterNextPaint(() => this.send({ t: 'probe' }));
   }
 
   get alive(): boolean {
