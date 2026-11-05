@@ -49,9 +49,9 @@ const HOVER_SCALE = 1.06;
 /**
  * The raster width a body's maps need: at the disc's centre a map of width W puts
  * W / 2π texels on a radian and the screen r device pixels, so 1:1 takes W = 2πr.
- * The SVG filters run once per raster on the main thread, and they are the longest
- * task the bodies leave there, so a raster no screen pixel can show is not made:
- * 1024 only where a body is big enough for it. Never below 1:1.
+ * A texture no screen pixel can show only costs GPU memory and upload: 1024 only
+ * where a body is big enough for it, never below 1:1. Frozen-clock screenshots at
+ * 1920x1080: 512 against 1024 differs by at most 2 of 255 per channel.
  */
 export function bodyMapWidth(cssWidth: number, dpr: number): 512 | 1024 {
   if (cssWidth <= 0) return 1024; // not laid out yet: the safe side

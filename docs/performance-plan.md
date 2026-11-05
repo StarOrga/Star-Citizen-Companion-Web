@@ -328,7 +328,11 @@ drawing the surface once and compositing the aurora over it.
 | day, cloud | 1024 | 0.11 | Kept |
 | body maps | 1024, now 512 at dpr 1 | 2.7 before, 1.3 now (body 115 px) | Lowered: `bodyMapWidth()` |
 
-Body maps stay at or above 1:1 for the size a body can reach on this screen.
+Body maps stay at or above 1:1 for the size a body can reach on this screen. This
+saves GPU memory and upload, not main-thread time: rasterising the SVG maps still
+takes about 1.4 s on the page in `createImageBitmap` at either size, and it is the
+longest task left (about 0.55 s). Baking the maps to lossless WebP, as the big
+planet's are, would move it into the worker; not done yet.
 
 **Service worker:** the worker files are `worker-*.js` in the dist root. If
 `ngsw-config.json` narrows `/*.js`, they need a rule of their own. Without one they
