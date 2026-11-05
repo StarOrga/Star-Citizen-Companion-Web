@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.205.0",
+  "current": "0.205.1",
   "releases": [
+    {
+      "version": "0.205.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.73.1: objects stored in very deep game folders, such as Starlifter interior parts and Orison hospital doors, now get their silhouette instead of being skipped."
+            },
+            {
+              "title": "",
+              "text": "3D parts from deep game folders no longer risk failing for the same reason."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.205.0",
       "date": "2026-11-05",
