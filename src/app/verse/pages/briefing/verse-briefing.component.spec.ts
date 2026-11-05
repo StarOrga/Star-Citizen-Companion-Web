@@ -407,6 +407,16 @@ describe('Verse briefing — component', () => {
     });
     afterEach(() => beta.set({ ...beta(), shell: false }));
 
+    it('keeps the title halo on the letters: a text-shadow would end in a rectangle at the clamp box', fakeAsync(() => {
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      const css = getComputedStyle(title(fixture)!);
+      expect(css.overflow).withContext('the clamp that would clip a text-shadow').toBe('hidden');
+      expect(css.textShadow).toBe('none');
+      expect(css.filter).toContain('drop-shadow');
+      tick(10_000);
+    }));
+
     it('plays only when the shell announced it at boot; otherwise everything stands at once', fakeAsync(() => {
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();

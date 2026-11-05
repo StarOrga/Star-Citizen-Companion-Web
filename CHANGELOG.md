@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Labels in HQ Bestand and Statistik were invisible on desktop.
 
+## [0.206.3] - 2026-11-05
+
+### Fixed
+- The Verse start page: the patch or news title no longer has a visible dark box behind it, also on hover. Only a soft shadow around the letters remains
+
 ## [0.206.2] - 2026-11-05
 
 ### Fixed

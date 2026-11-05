@@ -118,6 +118,9 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
+  // A text-shadow would be cut off at the clamp's box (a hard rectangle behind the title): --vb-dim-filter runs after the clip.
+  text-shadow: none;
+  filter: var(--vb-dim-filter);
   transition: left 0.45s var(--ease), bottom 0.45s var(--ease), font-size 0.45s;
 }
 .acc-t small { display: block; font-size: max(11px, calc(0.6 * var(--u))); font-weight: 400; color: var(--sc-fg-2, var(--sc-fg-1)); margin-top: 2px; }
