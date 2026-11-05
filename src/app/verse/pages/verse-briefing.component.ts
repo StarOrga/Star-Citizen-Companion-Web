@@ -52,7 +52,7 @@ import {
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { DockState, wireDock } from './briefing/briefing-dock';
-import { channelBuildItems, plannedPatchItem, patchTitleParts } from './briefing/briefing-patch-title';
+import { channelBuildItems, plannedPatchItem, patchTitleParts, withLiveVersion } from './briefing/briefing-patch-title';
 import { PatchTeaserService } from './briefing/briefing-patch-teaser.service';
 import { RoadmapService } from '../../news/roadmap.service';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
@@ -254,7 +254,7 @@ export class VerseBriefingComponent {
     const seen = this.api.seen();
     // The top list first; the rest of the digest (rank order) fills what the dedupe removed.
     const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
-    const channels = this.api.digest()?.patch?.channels ?? null;
+    const channels = withLiveVersion(this.api.digest()?.patch?.channels, this.roadmap.roadmap()?.liveVersion);
     const planned = plannedPatchItem(this.roadmap.roadmap()?.next, channels);
     const have = new Set(rest.map((i) => i.key));
     const builds = channelBuildItems(this.api.digest()?.patch?.channelInfo, have);

@@ -99,3 +99,18 @@ export function channelBuildItems(
   }
   return out;
 }
+
+/**
+ * The digest's `channels` map is empty in production (nothing writes
+ * `patch_versions`), so the LIVE version it should carry is filled from RSI's
+ * own roadmap board ("Live Version: 4.10.2", `rsi-roadmap` `liveVersion`; the
+ * server-side `patch_stability_patches.notes_slug` names the same 4.10.2).
+ * `patchTitleParts` still checks the version belongs to the story's line.
+ */
+export function withLiveVersion(
+  channels: Readonly<Record<string, string>> | null | undefined,
+  roadmapLive: string | null | undefined,
+): Readonly<Record<string, string>> {
+  const live = cleanVersion(roadmapLive ?? '');
+  return channels?.['live'] || !/^\d/.test(live) ? (channels ?? {}) : { ...channels, live };
+}

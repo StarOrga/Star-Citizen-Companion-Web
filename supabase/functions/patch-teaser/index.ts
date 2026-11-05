@@ -18,7 +18,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { VERSION_RE, buildPrompt, parseTeaser, type OutlineNode } from './_teaser.ts';
-import { RETRY_COOLDOWN_MS, pickSweepTargets, wantedVersions } from './_sweep.ts';
+import { RETRY_COOLDOWN_MS, liveVersionOfSlug, pickSweepTargets, wantedVersions } from './_sweep.ts';
 
 const MODEL = Deno.env.get('PATCH_TEASER_MODEL') ?? 'claude-sonnet-5-5';
 const SPECTRUM_LIST_URL = 'https://robertsspaceindustries.com/api/spectrum/forum/channel/threads';
@@ -71,15 +71,19 @@ async function sweep(admin: Admin, serviceKey: string): Promise<Response> {
   if (!key) return json({ ok: true, status: 'no_key', results: [] });
   try {
     const since = new Date(Date.now() - RETRY_COOLDOWN_MS).toISOString();
-    const [pv, builds, have, tries] = await Promise.all([
+    const [pv, builds, have, tries, live] = await Promise.all([
       admin.from('patch_versions').select('version'),
       admin.from('patch_channel_builds').select('version').eq('running', true),
       admin.from('patch_teasers').select('version'),
       admin.from('patch_teaser_tries').select('version').gt('tried_at', since),
+      // patch_versions is never written, so the LIVE version comes from the current LIVE line's release-notes slug.
+      admin.from('patch_stability_patches').select('notes_slug').order('live_at', { ascending: false }).limit(1),
     ]);
-    for (const r of [pv, builds, have, tries]) if (r.error) throw r.error;
+    for (const r of [pv, builds, have, tries, live]) if (r.error) throw r.error;
+    const liveSlug = String(live.data?.[0]?.notes_slug ?? '');
+    const liveVersion = liveVersionOfSlug(liveSlug);
     const col = (r: { data: Array<{ version: unknown }> | null }) => (r.data ?? []).map((x) => x.version);
-    const wanted = wantedVersions(col(pv), col(builds));
+    const wanted = wantedVersions([...col(pv), liveVersion], col(builds));
     const haveSet = new Set(col(have).map(String));
     // Nothing missing: no Spectrum call, no model call.
     if (wanted.every((v) => haveSet.has(v))) return json({ ok: true, results: [] });
@@ -94,7 +98,7 @@ async function sweep(admin: Admin, serviceKey: string): Promise<Response> {
     const raw = ((await list.json()) as { data?: { threads?: Array<Record<string, unknown>> } }).data?.threads ?? [];
     const threads = raw.map((t) => ({ slug: String(t['slug'] ?? ''), subject: String(t['subject'] ?? '') }));
 
-    const targets = pickSweepTargets({ wanted, threads, have: haveSet, recentlyTried: new Set(col(tries).map(String)) });
+    const targets = pickSweepTargets({ wanted, threads, have: haveSet, recentlyTried: new Set(col(tries).map(String)), knownSlugs: liveVersion ? { [liveVersion]: liveSlug } : {} });
     const results: Array<{ version: string; status: string }> = [];
     for (const t of targets) {
       // Recorded BEFORE the call: a crash or timeout still cools the version down.

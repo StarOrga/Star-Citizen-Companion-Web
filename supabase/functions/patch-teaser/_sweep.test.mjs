@@ -1,7 +1,7 @@
 // node --test supabase/functions/patch-teaser/_sweep.test.mjs
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { SWEEP_MAX, cleanVersion, pickSweepTargets, versionOfNotesThread, wantedVersions } from './_sweep.ts';
+import { SWEEP_MAX, cleanVersion, liveVersionOfSlug, pickSweepTargets, versionOfNotesThread, wantedVersions } from './_sweep.ts';
 
 const threads = [
   { slug: 'ptu-4-11-0', subject: 'Star Citizen Alpha 4.11.0 PTU.100 Patch Notes' },
@@ -51,5 +51,20 @@ describe('pickSweepTargets', () => {
     const many = Array.from({ length: 8 }, (_, i) => `4.${20 + i}.0`);
     const th = many.map((v) => ({ slug: `s-${v}`, subject: `Alpha ${v} PTU Patch Notes` }));
     assert.equal(pickSweepTargets({ wanted: many, threads: th, have: none, recentlyTried: none }).length, SWEEP_MAX);
+  });
+});
+
+describe('LIVE version (patch_versions is empty in production)', () => {
+  it('reads it from the LIVE release-notes slug', () => {
+    assert.equal(liveVersionOfSlug('star-citizen-alpha-4-10-2-live-release-notes'), '4.10.2');
+    assert.equal(liveVersionOfSlug('star-citizen-alpha-4-9-live-release-notes'), '4.9');
+    assert.equal(liveVersionOfSlug('whatever'), '');
+  });
+  it('sweeps the LIVE version using its known slug even when no thread of the list matches', () => {
+    const slug = 'star-citizen-alpha-4-10-2-live-release-notes';
+    const live = liveVersionOfSlug(slug);
+    const wanted = wantedVersions([live], ['4.10.3']);
+    const t = pickSweepTargets({ wanted, threads: [], have: new Set(['4.10.3']), recentlyTried: new Set(), knownSlugs: { [live]: slug } });
+    assert.deepEqual(t, [{ version: '4.10.2', slug }]);
   });
 });

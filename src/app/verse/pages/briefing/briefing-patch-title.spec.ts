@@ -1,4 +1,4 @@
-import { TEASER_MAX, channelBuildItems, cleanVersion, patchTitleParts, plannedPatchItem } from './briefing-patch-title';
+import { TEASER_MAX, channelBuildItems, cleanVersion, patchTitleParts, plannedPatchItem, withLiveVersion } from './briefing-patch-title';
 
 const item = (key: string, title = 'x') => ({ key, kind: 'patch' as const, title });
 const none = {};
@@ -74,5 +74,28 @@ describe('channelBuildItems', () => {
   it('skips builds the digest already lists and tolerates a missing channelInfo', () => {
     expect(channelBuildItems({ ptu: b('4.11.0') }, new Set(['build:ptu:4.11.0']))).toEqual([]);
     expect(channelBuildItems(undefined, new Set())).toEqual([]);
+  });
+});
+
+describe('production digest 2026-11-05', () => {
+  // verse_digest().patch as served: channels EMPTY, only a PTU channel_info; the only patch item is "patch:4.10".
+  const patch = { line: '4.10', status: 'live', channels: {}, channel_info: { ptu: { version: '4.10.3', previous: { version: '4.10.2' } } } };
+  const liveItem = { key: 'patch:4.10', kind: 'patch' as const, title: '4.10' };
+
+  it('names the three-part LIVE version once the roadmap board supplies it (rsi-roadmap liveVersion 4.10.2)', () => {
+    const channels = withLiveVersion(patch.channels, '4.10.2');
+    expect(patchTitleParts(liveItem, channels, none, 'de')).toEqual({ channel: 'live', version: '4.10.2', teaser: null });
+  });
+
+  it('keeps the honest line "4.10" while the roadmap is unavailable', () => {
+    expect(patchTitleParts(liveItem, withLiveVersion(patch.channels, undefined), none, 'de')?.version).toBe('4.10');
+  });
+
+  it('ignores a roadmap version of another line and never guesses from the PTU predecessor', () => {
+    expect(patchTitleParts(liveItem, withLiveVersion(patch.channels, '4.9.0'), none, 'de')?.version).toBe('4.10');
+  });
+
+  it('prefers a digest-provided live version', () => {
+    expect(withLiveVersion({ live: '4.10.1' }, '4.10.2')['live']).toBe('4.10.1');
   });
 });
