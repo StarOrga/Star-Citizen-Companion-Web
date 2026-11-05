@@ -184,7 +184,6 @@
     "loading": {
       "weak": "Schwaches Signal · Neu justieren"
     },
-    "friends": "Freunde",
     "loadFailed": {
       "message": "Diese Seite konnte nicht geladen werden — im Browser läuft vermutlich noch eine ältere App-Version.",
       "reload": "App neu laden",
@@ -192,7 +191,10 @@
     },
     "hq": "HQ",
     "verse": "Verse",
-    "translations": "KI-Übersetzung"
+    "translations": "KI-Übersetzung",
+    "social": "Social",
+    "accountMenuRequests": "Konto-Menü, {{count}} offene Freundschaftsanfragen",
+    "socialRequests": "Social, {{count}} offene Freundschaftsanfragen"
   },
   "impersonation": {
     "banner": {
@@ -3140,11 +3142,6 @@
         "notFound": "Dieses Konto gibt es nicht mehr.",
         "invalidBody": "Die Anfrage war ungültig. Bitte lade die Seite neu."
       }
-    },
-    "friends": {
-      "title": "Freunde",
-      "hint": "Freundschaftsanfragen, deine Freundesliste und blockierte Konten verwalten.",
-      "open": "Freunde öffnen"
     }
   },
   "admin": {
@@ -3670,7 +3667,7 @@
         "p1": "Ein Konto brauchst du nur für die persönlichen Funktionen (Hangar, Loadouts, Einstellungen, Feedback). News, Codex und Release Notes gehen ohne. Zum Anmelden gibt es genau zwei Wege: E-Mail-Adresse plus Passwort oder den Knopf „Mit Google fortfahren\". Andere Verfahren — Magic-Link, SMS-Code, weitere Social-Logins — setzt die App nicht ein, und ein Registrierungsformular gibt es nicht: Konten entstehen durch eine Einladung, die ein Administrator an deine E-Mail-Adresse schickt.",
         "p2": "Für die Anmeldung legt unser Backend-Anbieter Supabase in der EU-Region eu-central-1 (Frankfurt) einen Auth-Eintrag zu dir an: deine E-Mail-Adresse, bei der Passwort-Anmeldung einen gesalzenen Passwort-Hash (nie das Passwort im Klartext), die verknüpften Anmeldeverfahren und Zeitstempel wie Einladung, Anlage und letzte Anmeldung.",
         "p3": "Dazu kommt ein Profil-Datensatz mit dem, was die App für dich braucht: ein Anzeigename (beim Anlegen automatisch der Teil deiner E-Mail-Adresse vor dem @), dein selbst gewählter Nutzername, Sprach- und Spielkanal-Einstellung, optional dein RSI-Handle und dein Flaggschiff sowie deine Rolle (Viewer, Collaborator, Admin) und ob dein Konto freigeschaltet ist. Rolle und Freischaltung entscheiden, was du sehen und tun darfst.",
-        "p4": "Funktionsdaten, die du anlegst (Hangar-Schiffe, Loadouts, Schiffs-Links, gespeicherte Entwürfe, Einstellungen), liegen unter deinem Konto und sind nur für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank. Eine Ausnahme ist naheliegend: Feedback, das du absendest, sehen die Maintainer, und zwar mit deinem Konto als Absender, damit sie antworten können.",
+        "p4": "Funktionsdaten, die du anlegst (Hangar-Schiffe, Loadouts, Schiffs-Links, gespeicherte Entwürfe, Einstellungen), liegen unter deinem Konto und sind für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank. Ausnahmen: Feedback, das du absendest, sehen die Maintainer, und zwar mit deinem Konto als Absender, damit sie antworten können; und was du Freunden zeigst (siehe „Freunde und Sichtbarkeit“).",
         "p5": "Konten sind nur auf Einladung nutzbar. Nicht freigeschaltete Registrierungen kommen nicht über die Anmeldeseite hinaus und können samt Daten entfernt werden."
       },
       "google": {
@@ -3713,6 +3710,12 @@
         "p1": "Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch bezüglich deiner personenbezogenen Daten. Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren.",
         "p2": "Dein Konto lässt sich vollständig löschen: Mit dem Auth-Eintrag verschwinden per Datenbank-Kaskade auch Profil, Hangar, Loadouts, Entwürfe und Uploads. Ausgeführt wird die Löschung derzeit von einem Administrator — der Löschen-Knopf in den Einstellungen greift nur bei Konten mit Administratorrolle. Fordere sie über die Kontaktwege im Impressum an; Anfragen werden zeitnah bearbeitet.",
         "p3": "Deine Zustimmung zu Präferenz-Speicher und Statistik kannst du jederzeit in den Einstellungen widerrufen; der Widerruf löscht die betroffenen lokalen Einträge sofort und wirkt für die Zukunft — die Rechtmäßigkeit der Verarbeitung bis dahin bleibt unberührt."
+      },
+      "social": {
+        "title": "Freunde und Sichtbarkeit",
+        "p1": "Freunde sind Konten, mit denen du dich über eine Anfrage oder einen persönlichen Einladungslink verbunden hast; ein Einladungslink läuft ab und kann von dir widerrufen werden. Solange ihr befreundet seid, sehen deine Freunde standardmäßig deinen Hangar, dein Flaggschiff, ob du online bist und die Vergleichszahlen auf der Social-Seite (zum Beispiel wie oft du SCC nutzt). Jeden dieser Punkte kannst du auf der Social-Seite im Sichtbarkeits-Popup allgemein oder für einen einzelnen Freund ausschalten.",
+        "p2": "Dafür speichert die Tabelle user_presence pro Konto den Zeitpunkt deines letzten Besuchs und eine Aktivitätsmaske der letzten 30 Tage (je Tag aktiv oder nicht) — keine Seitenverläufe. „Online“ heißt: in den letzten Minuten gesehen.",
+        "p3": "Gruppen (zum Beispiel Orgs oder Einsatzgruppen) sind eine private Liste von dir: Die Mitglieder sehen weder die Gruppe noch ihren Namen. Einsätze, Loadouts und Schiffsvarianten sieht nur, mit wem du sie ausdrücklich teilst. Beendest du eine Freundschaft, endet jede Sichtbarkeit sofort."
       }
     },
     "imprint": {
@@ -4771,23 +4774,20 @@
     },
     "incoming": {
       "title": "Eingegangene Anfragen",
-      "empty": "Keine offenen Anfragen.",
       "expiryHint": "Unbeantwortete Anfragen verfallen nach sieben Tagen."
     },
     "outgoing": {
       "title": "Gesendete Anfragen",
-      "empty": "Du hast keine Anfrage offen.",
       "expiryHint": "Deine Anfragen verfallen nach sieben Tagen ohne Antwort."
     },
     "list": {
       "title": "Deine Freunde",
-      "empty": "Noch keine Freunde. Füge oben jemanden über den Benutzernamen hinzu.",
+      "empty": "Noch keine Freunde.",
       "since": "Befreundet seit {{date}}"
     },
     "blocked": {
       "title": "Blockiert",
-      "hint": "Blockierte Konten sehen dich nicht und können dir keine Anfrage schicken.",
-      "empty": "Du hast niemanden blockiert."
+      "hint": "Blockierte Konten sehen dich nicht und können dir keine Anfrage schicken."
     },
     "actions": {
       "accept": "Annehmen",
@@ -4885,7 +4885,8 @@
       "pick": "Freund auswählen …",
       "share": "Teilen",
       "noFriends": "Du hast noch keine Freunde hinzugefügt.",
-      "allShared": "Alle deine Freunde haben dieses Set bereits."
+      "allShared": "Alle deine Freunde haben dieses Set bereits.",
+      "toSocial": "Freunde auf der Social-Seite hinzufügen"
     },
     "link": {
       "title": "Öffentlicher Link",
@@ -4921,7 +4922,8 @@
       "shared": "Set geteilt.",
       "alreadyShared": "Dieser Freund hat das Set bereits.",
       "linkCreated": "Link erzeugt.",
-      "revoked": "Freigabe aufgehoben."
+      "revoked": "Freigabe aufgehoben.",
+      "groupShared": "Mit den aktuellen Gruppenmitgliedern geteilt."
     },
     "error": {
       "notFriends": "Ihr seid keine Freunde (mehr).",
@@ -4931,6 +4933,11 @@
       "invalidTarget": "Ungültige Auswahl.",
       "notApproved": "Dein Konto ist nicht freigeschaltet.",
       "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+    },
+    "groups": {
+      "pick": "Gruppe wählen …",
+      "share": "Mit Gruppe teilen",
+      "hint": "Das Set geht an die Mitglieder, die jetzt in der Gruppe sind. Wer später dazukommt, erhält es nicht."
     }
   },
   "conceptPage": {
@@ -5444,6 +5451,53 @@
       "retry": "Schon installiert? Erneut starten",
       "download": "SCC-App herunterladen",
       "close": "Schließen"
+    },
+    "friends": {
+      "sharedLine": "{{n}} Einsatz von Freunden geteilt",
+      "requests": {
+        "title": "Freundschaftsanfragen ({{n}})",
+        "accept": "Annehmen",
+        "decline": "Ablehnen"
+      },
+      "share": {
+        "open": "Mit Freunden teilen",
+        "hint": "Nur zum Ansehen. Bei einer Gruppe bekommen später hinzugefügte Mitglieder ebenfalls Zugriff.",
+        "setHint": "Das Set geht an die Freunde, die jetzt in der Gruppe sind. Spätere Mitglieder bekommen es nicht.",
+        "audience": "Freund oder Gruppe",
+        "choose": "Freund oder Gruppe wählen",
+        "send": "Teilen",
+        "revoke": "Entziehen",
+        "done": "Geteilt.",
+        "duplicate": "Das ist schon geteilt.",
+        "setDone": "Geteilt mit {{n}} Freunden."
+      },
+      "crew": {
+        "open": "Crew-Plätze und Zusagen",
+        "hint": "Benenne die Plätze, die Freunde übernehmen können.",
+        "slotLabel": "Name des Platzes",
+        "removeSlot": "Platz entfernen",
+        "addSlot": "Platz hinzufügen",
+        "save": "Plätze speichern",
+        "counts": "Zusagen {{yes}} · Vielleicht {{maybe}} · Absagen {{no}}"
+      },
+      "shared": {
+        "title": "Von Freunden geteilt",
+        "by": "von",
+        "readOnly": "Nur ansehen",
+        "answer": "Deine Antwort",
+        "slot": "Crew-Platz",
+        "noSlot": "Kein Platz"
+      },
+      "stock": {
+        "adopt": "In meinen Bestand übernehmen",
+        "adopted": "Übernommen",
+        "kindSet": "Set",
+        "kindVariant": "Variante · {{ship}}"
+      },
+      "now": {
+        "online": "Gerade online:",
+        "active": "Läuft gerade: {{title}} · {{n}} Zusagen"
+      }
     }
   },
   "verse": {
@@ -5781,7 +5835,7 @@
     "kartograph": {
       "title": "Kartograph",
       "rank": "Rang {{rank}}",
-      "perks": "Früher Zugang zu Beta-Funktionen, Vorschläge für die Top-Liste und ein Abzeichen, das deine Freunde sehen.",
+      "perks": "Früher Zugang zu Beta-Funktionen, Vorschläge für die Top-Liste und ein Abzeichen, das du als öffentlichen Link teilen kannst.",
       "locked": "Sammle Sterne, um den Kartograph-Rang freizuschalten."
     },
     "community": {
@@ -6085,12 +6139,12 @@
       "keybinds": "Keybinds",
       "upcoming": "Angekündigte Schiffe",
       "settings": "Einstellungen",
-      "friends": "Freunde",
       "releaseNotes": "Neuigkeiten",
       "badge": "Kartograph-Abzeichen",
       "ops": "Einsätze",
       "extension": "Browser-Erweiterung",
-      "download": "Downloads"
+      "download": "Downloads",
+      "social": "Social"
     }
   },
   "adminHub": {
@@ -6582,6 +6636,183 @@
     "outside": {
       "none": "In „{{chip}}“ gibt es nichts, das „{{term}}“ heißt.",
       "drop": "Ohne „{{chip}}“ überall suchen (⌫)"
+    }
+  },
+  "social": {
+    "error": {
+      "inviteNotFound": "Dieser Einladungslink gilt nicht mehr.",
+      "inviteExpired": "Dieser Einladungslink ist abgelaufen. Bitte um einen neuen.",
+      "inviteSelf": "Das ist dein eigener Einladungslink.",
+      "inviteRateLimited": "Zu viele Anfragen in kurzer Zeit. Versuche es in einer Stunde noch einmal.",
+      "inviteLimit": "Du hast heute zu viele neue Einladungslinks erstellt. Versuche es morgen wieder.",
+      "inviteFull": "Bei dieser Person warten schon zu viele Anfragen. Versuche es später noch einmal.",
+      "invalidGroupKind": "Diese Gruppenart gibt es nicht.",
+      "invalidGroupName": "Der Name muss 1 bis 60 Zeichen lang sein.",
+      "groupNameTaken": "Du hast schon eine Gruppe mit diesem Namen.",
+      "groupNotFound": "Diese Gruppe gibt es nicht mehr.",
+      "groupLimit": "Du hast die Höchstzahl von 50 Gruppen erreicht.",
+      "groupFull": "Diese Gruppe ist mit 100 Freunden voll.",
+      "einsatzNotFound": "Dieser Einsatz ist nicht mehr verfügbar.",
+      "einsatzClosed": "Dieser Einsatz ist abgeschlossen und nimmt keine Antworten mehr an.",
+      "configNotFound": "Diese Schiffs-Variante gibt es nicht mehr.",
+      "loadoutNotFound": "Dieses Set gibt es nicht mehr.",
+      "shareNotFound": "Diese Freigabe gibt es nicht mehr.",
+      "tooManySlots": "Ein Einsatz hat höchstens 12 Crew-Plätze.",
+      "invalidSlotLabel": "Eine Platz-Bezeichnung muss 1 bis 40 Zeichen lang sein.",
+      "slotNotFound": "Diesen Crew-Platz gibt es nicht mehr.",
+      "slotTaken": "Dieser Crew-Platz ist schon vergeben.",
+      "invalidAnswer": "Diese Antwort ist nicht möglich.",
+      "notFriends": "Das geht nur mit Freunden.",
+      "invalidTarget": "Das geht mit dieser Person nicht.",
+      "accountSuspended": "Dein Konto ist gesperrt.",
+      "notApproved": "Dein Konto ist noch nicht freigeschaltet."
+    },
+    "compare": {
+      "ships": "Schiffe",
+      "sets": "Sets",
+      "einsaetze_planned": "Geplante Einsätze",
+      "einsaetze_done": "Erledigte Einsätze",
+      "missions_30d": "Missionen (30 Tage)",
+      "kartograph_rank": "Kartograph-Rang",
+      "active_days_30": "Aktive Tage (30 Tage)"
+    },
+    "group": {
+      "kind": {
+        "org": "Org",
+        "einsatzgruppe": "Einsatzgruppe"
+      }
+    },
+    "visibility": {
+      "facet": {
+        "hangar": "Hangar",
+        "flagship": "Flaggschiff",
+        "presence": "Online-Status",
+        "stats": "Vergleichswerte"
+      },
+      "title": "Was Freunde sehen",
+      "done": "Fertig",
+      "general": "Allgemein",
+      "generalHint": "Gilt für alle Freunde, sofern du unten nichts anderes für einen Freund einstellst. Änderungen werden sofort gespeichert.",
+      "facetHint": {
+        "hangar": "Deine Schiffe (auch Wunschliste), ohne Notizen und ohne Konfigurationen.",
+        "flagship": "Das Schiff, das du in deinem Hangar oben angeheftet hast.",
+        "presence": "Ob du gerade online bist. Nie ein genauer Zeitpunkt.",
+        "stats": "Zahlen wie Schiffe, Sets, Einsätze, aktive Tage und Kartograph-Rang."
+      },
+      "perFriend": "Pro Freund",
+      "perFriendHint": "Wähle einen Freund und lege fest, ob er etwas anderes sieht als der Rest.",
+      "noFriends": "Sobald du Freunde hast, kannst du das hier pro Freund einstellen.",
+      "loading": "Wird geladen …",
+      "inherit": "Wie allgemein",
+      "on": "An",
+      "off": "Aus",
+      "result": "Dieser Freund sieht:",
+      "nothing": "nichts davon"
+    },
+    "rsvp": {
+      "yes": "Zusage",
+      "maybe": "Vielleicht",
+      "no": "Absage"
+    },
+    "page": {
+      "title": "Social",
+      "subtitle": "Freunde, Einladungen, Gruppen und der Vergleich mit dir.",
+      "visibilityButton": "Was Freunde sehen",
+      "online": "Online",
+      "emptyHint": "Lade jemanden mit deinem persönlichen Link ein oder gib einen exakten Benutzernamen ein.",
+      "emptyCta": "Zur Einladung",
+      "openFriend": "Seite öffnen"
+    },
+    "notice": {
+      "text": "Freunde sehen standardmäßig deinen Hangar, dein Flaggschiff, deinen Online-Status und deine Vergleichswerte. Du kannst das allgemein und pro Freund ausschalten.",
+      "open": "Einstellen",
+      "dismiss": "Verstanden"
+    },
+    "invite": {
+      "title": "Freunde einladen",
+      "hint": "Schick den Link, zum Beispiel per Discord. Wer ihn öffnet und sich anmeldet, stellt eine Freundschaftsanfrage an dich, die du noch annehmen musst.",
+      "linkLabel": "Dein Einladungslink",
+      "copy": "Link kopieren",
+      "copied": "Kopiert",
+      "expires": "Gültig bis {{date}}",
+      "renew": "Neuer Link",
+      "revoke": "Link zurückziehen",
+      "revoked": "Der Link ist zurückgezogen.",
+      "create": "Einladungslink erstellen"
+    },
+    "groups": {
+      "title": "Gruppen",
+      "privateNote": "Gruppen sind privat. Deine Freunde sehen weder die Gruppen noch, in welcher sie sind. Ein Freund kann in mehreren Gruppen sein.",
+      "shareNote": "Wer zu einer Gruppe hinzukommt, bekommt, was du mit dieser Gruppe teilst (Einsätze, Schiffs-Varianten). Wer entfernt wird oder wenn die Gruppe gelöscht wird, verliert den Zugriff. Ein Set, das du mit einer Gruppe teilst, geht nur an die Mitglieder von heute.",
+      "kindLabel": "Art der Gruppe",
+      "namePlaceholder": "Name der Gruppe",
+      "create": "Gruppe anlegen",
+      "empty": "Noch keine Gruppen. Lege eine Org oder Einsatzgruppe an, um Freunde zu ordnen.",
+      "noFriends": "Du hast noch keine Freunde, die du hinzufügen könntest.",
+      "members": "Mitglieder",
+      "rename": "Umbenennen",
+      "delete": "Löschen",
+      "renameTitle": "Gruppe „{{name}}“ umbenennen",
+      "deleteTitle": "Gruppe „{{name}}“ löschen?",
+      "deleteMessage": "Die Freunde bleiben Freunde. Was du mit dieser Gruppe geteilt hast, ist für sie nicht mehr sichtbar, sofern es nicht auch anders freigegeben ist.",
+      "friendPageHint": "Die Seite eines Freundes zeigt, in welchen deiner Gruppen er ist, zum Beispiel"
+    },
+    "comparePanel": {
+      "title": "Vergleich",
+      "hint": "Wie ihr SCC nutzt und was ihr so macht, verglichen mit dir. Es erscheint nur, was der Freund dir zeigt.",
+      "loading": "Wird geladen …",
+      "noFriends": "Sobald du Freunde hast, kannst du dich hier mit ihnen vergleichen.",
+      "with": "Vergleich mit",
+      "metric": "Wert",
+      "me": "Du",
+      "hidden": "nicht geteilt",
+      "desktop": "Desktop-App verbunden",
+      "yes": "Ja",
+      "no": "Nein",
+      "friendHides": "Dieser Freund zeigt dir seine Vergleichswerte nicht.",
+      "webNote": "Wie oft jemand die Webseite nutzt, wird nicht erfasst. „Aktive Tage“ ist die nächste echte Zahl."
+    },
+    "friendPage": {
+      "loading": "Wird geladen …",
+      "missingTitle": "Nicht gefunden",
+      "missing": "Diese Seite gibt es nicht oder sie ist nicht für dich sichtbar. Sie ist nur für Freunde.",
+      "since": "Befreundet seit {{date}}",
+      "share": "Etwas teilen",
+      "inGroups": "In deinen Gruppen:",
+      "fromFriend": "Von {{name}} mit dir geteilt",
+      "nothingShared": "Noch nichts geteilt.",
+      "fromMe": "Von dir geteilt",
+      "nothingSharedByMe": "Du hast hier noch nichts geteilt.",
+      "hangar": "Hangar",
+      "flagship": "Flaggschiff",
+      "hangarHidden": "Dieser Freund zeigt dir seinen Hangar nicht.",
+      "hangarEmpty": "Der Hangar ist leer.",
+      "wishlist": "Wunschliste",
+      "kindSet": "Set",
+      "kindVariant": "Variante",
+      "kindEinsatz": "Einsatz",
+      "removeTitle": "{{name}} als Freund entfernen?",
+      "removeMessage": "Alles, was ihr einander geteilt habt, ist danach nicht mehr sichtbar.",
+      "blockTitle": "{{name}} blockieren?",
+      "blockMessage": "Die Freundschaft endet und die Person kann dir keine Anfrage mehr schicken."
+    },
+    "inviteLanding": {
+      "title": "Einladung",
+      "loading": "Einladung wird geprüft …",
+      "dead": "Dieser Einladungslink gilt nicht mehr. Bitte um einen neuen.",
+      "toSocial": "Zu Social",
+      "from": "{{name}} lädt dich ein, befreundet zu sein.",
+      "fromAnon": "Du wurdest eingeladen, befreundet zu sein.",
+      "hint": "Wenn du fortfährst, bekommt die Person eine Freundschaftsanfrage und muss sie noch annehmen.",
+      "accept": "Anfrage senden",
+      "signInHint": "Melde dich an, um die Anfrage zu senden. Danach kommst du hierher zurück.",
+      "signIn": "Anmelden",
+      "result": {
+        "pending": "Die Anfrage an {{name}} ist gesendet. Sobald sie angenommen wird, seid ihr befreundet.",
+        "accepted": "Ihr seid jetzt befreundet mit {{name}}.",
+        "already_friends": "Ihr seid schon befreundet mit {{name}}."
+      },
+      "toFriend": "Seite von {{name}}"
     }
   }
 }

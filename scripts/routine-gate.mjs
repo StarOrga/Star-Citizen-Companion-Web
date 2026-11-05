@@ -175,6 +175,8 @@ function readRunSession() {
 function clearRunSession() {
   try { rmSync(runFile(), { force: true }); } catch { /* nothing to clear */ }
 }
+/** The checkout under .claude/worktrees a headless run is started in (routine-watcher.mjs). */
+export const RUNNER_NAME = 'scc-runner';
 /** Claude Code keeps one transcript dir per checkout path: ~/.claude/projects/<path with every non-alphanumeric as '-'>. */
 export function transcriptDirFor(root, home = homedir()) {
   return join(home, '.claude', 'projects', root.replace(/[^A-Za-z0-9]/g, '-'));
@@ -258,7 +260,10 @@ function deadLock(hb, now) {
   // from an older run would judge the wrong transcript. Otherwise judge the whole
   // checkout: any session writing there keeps the lock (safe direction).
   const sid = run?.sid && run.startedAt === hb.run_started_at ? run.sid : null;
-  const newest = newestActivity(transcriptDirFor(repoRoots().root), sid);
+  const { root } = repoRoots();
+  // A headless run writes under its runner checkout, an interactive holder under the primary.
+  const seen = [root, join(root, '.claude', 'worktrees', RUNNER_NAME)].map((r) => newestActivity(transcriptDirFor(r), sid)).filter((t) => t !== null);
+  const newest = seen.length ? Math.max(...seen) : null;
   const dead = runIsDead({ startedAt, newest, now });
   return { dead, sid, newest, idleMin: newest === null ? null : Math.round((now - newest) / 60_000) };
 }

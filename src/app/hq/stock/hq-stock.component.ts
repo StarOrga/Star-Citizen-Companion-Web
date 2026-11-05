@@ -11,6 +11,7 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
 import { formatLocationName } from '../now/hq-live.util';
 import { StockCategory, buildOverview } from './hq-stock-model';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
+import { HqStockSharedComponent } from './hq-stock-shared.component';
 
 /** How many stale places the overview names before it folds the rest into "+n". */
 const STALE_SHOWN = 3;
@@ -25,7 +26,7 @@ const STALE_SHOWN = 3;
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, ScTooltipDirective, HqStockPopupComponent],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -157,6 +158,11 @@ const STALE_SHOWN = 3;
       </div>
     }
 
+    @if (auth.user()) {
+      <!-- Friends' shares can be many: they scroll inside their slot, the page stays one screen. -->
+      <sc-hq-stock-shared class="shared-slot" />
+    }
+
     @if (popup(); as start) {
       <sc-hq-stock-popup [start]="start" (closed)="popup.set(null)" />
     }
@@ -164,6 +170,7 @@ const STALE_SHOWN = 3;
   styles: [
     `
       :host { display: block; container-type: inline-size; }
+      .shared-slot { margin-top: var(--sc-space-3, 12px); max-height: 11rem; overflow-y: auto; }
       .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-3, 12px); }
       .page-title { margin: 0; font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }

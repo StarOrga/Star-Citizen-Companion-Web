@@ -10,6 +10,7 @@ import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.direct
 import { HqPageNavService } from '../hq-page-nav.service';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
+import { HqStartFriendsComponent } from './hq-start-friends.component';
 import { HqFirstVisitComponent } from './hq-first-visit.component';
 
 /** One of the (at most two) patch lines under the Start title: "4.3.1 · S3-Repeater −8 %" / "betrifft Bounty v3 ›". */
@@ -48,7 +49,7 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
 @Component({
   selector: 'sc-hq-start',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, StageHeroDirective, StageSearchDirective, HqFirstVisitComponent],
+  imports: [RouterLink, TranslatePipe, StageHeroDirective, StageSearchDirective, HqFirstVisitComponent, HqStartFriendsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sc-stage-hero hero" scStageHero>
@@ -83,6 +84,9 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
         </nav>
       }
     </div>
+    <div class="friends">
+      <sc-hq-start-friends />
+    </div>
   `,
   styles: [
     `
@@ -105,6 +109,7 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
       a.effect:hover { color: var(--sc-accent); }
       a.effect:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .below { display: flex; justify-content: center; width: min(100%, 720px); margin-top: var(--sc-space-4, 16px); }
+      .friends { display: flex; justify-content: center; width: min(100%, 720px); margin-top: var(--sc-space-3, 12px); }
       .chips { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sc-space-2, 8px); }
       .chips-label { font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-fg-2); }
       .chip {

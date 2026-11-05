@@ -11,6 +11,8 @@ import { PresenceService } from './auth/presence.service';
 import { RoleService } from './auth/role.service';
 import { LocaleService } from './core/locale/locale.service';
 import { SupabaseClientProvider } from './core/supabase.client';
+import { FriendsService } from './social/friends.service';
+import { SocialPresenceService } from './social/social-presence.service';
 import { fakeSupabase } from './testing/fake-supabase';
 
 describe('AppComponent', () => {
@@ -76,9 +78,13 @@ describe('AppComponent — profile locale on account switch', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         provideServiceWorker('ngsw-worker.js', { enabled: false }),
         // AppComponent.ngOnInit calls auth.init() and presence.init().
-        { provide: AuthService, useValue: { user, init: () => undefined } as Partial<AuthService> },
+        { provide: AuthService, useValue: { user, realUser: user, init: () => undefined } as Partial<AuthService> },
         // Real PresenceService would reach realClient.rpc through the stub below.
         { provide: PresenceService, useValue: { init: () => undefined } as Partial<PresenceService> },
+        // The request counter and the 30-day presence mask belong to the social specs; the presence
+        // interval would also keep whenStable() pending forever.
+        { provide: FriendsService, useValue: { load: () => Promise.resolve(), graph: { set: () => undefined } } as unknown as FriendsService },
+        { provide: SocialPresenceService, useValue: { init: () => undefined } as Partial<SocialPresenceService> },
         // The impersonation banner reads the real role; keep it off the DB.
         { provide: RoleService, useValue: { realRole: signal(null) } as unknown as RoleService },
         fake.provider,

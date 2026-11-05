@@ -199,6 +199,15 @@ export function plainShippedMessage(changed) {
   return `✅ Erledigt${changed ? `: ${changed}` : ''}. Passt etwas nicht? Antworte hier im Thread, dann nehme ich das Thema wieder auf.`;
 }
 
+/** What the newest web-ci run of a commit says; `runs` is `gh run list` output, newest first. */
+export function ciVerdict(runs) {
+  const run = runs?.[0];
+  if (!run) return { state: 'none' };
+  if (run.status !== 'completed') return { state: 'running', id: run.databaseId };
+  const green = ['success', 'skipped', 'neutral'].includes(run.conclusion);
+  return { state: green ? 'green' : 'red', id: run.databaseId, conclusion: run.conclusion, url: run.url };
+}
+
 /** Keeps one notification per kind inside the window. */
 export function shouldNotify(state, kind, now, windowMs = 6 * 3_600_000) {
   const last = state.notified?.[kind];

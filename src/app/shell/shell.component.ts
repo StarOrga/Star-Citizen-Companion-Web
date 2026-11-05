@@ -47,6 +47,7 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 import { StarToastComponent } from '../shared/star-toast/star-toast.component';
 import { UndoToastComponent } from '../shared/undo-toast/undo-toast.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
+import { FriendsService } from '../social/friends.service';
 import { AccountNoticeComponent } from '../social/account-notice.component';
 import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.component';
 import { FeedbackCaptureComponent } from '../feedback/feedback-capture.component';
@@ -262,7 +263,7 @@ import { avatarUrlOf } from './avatar-url';
             type="button"
             class="avatar-btn"
             (click)="toggleMenu($event)"
-            [attr.aria-label]="'nav.accountMenu' | translate"
+            [attr.aria-label]="(requestCount() > 0 ? 'nav.accountMenuRequests' : 'nav.accountMenu') | translate: { count: requestCount() }"
             aria-haspopup="menu"
             [attr.aria-expanded]="menuOpen()"
             [class.has-img]="avatarSrc()">
@@ -272,6 +273,10 @@ import { avatarUrlOf } from './avatar-url';
               {{ avatarInitial() }}
             }
           </button>
+          @if (requestCount() > 0) {
+            <!-- Words are on the button's aria-label; the digit is decoration. -->
+            <span class="avatar-badge" aria-hidden="true">{{ requestCount() > 9 ? '9+' : requestCount() }}</span>
+          }
 
           @if (kartographRank(); as kr) {
             <span class="avatar-crest" role="img"
@@ -304,9 +309,13 @@ import { avatarUrlOf } from './avatar-url';
               <a
                 class="dropdown-item"
                 role="menuitem"
-                routerLink="/friends"
+                routerLink="/social"
+                [attr.aria-label]="requestCount() > 0 ? ('nav.socialRequests' | translate: { count: requestCount() }) : null"
                 (click)="onMenuNavigate($event)">
-                {{ 'nav.friends' | translate }}
+                <span class="di-label">{{ 'nav.social' | translate }}</span>
+                @if (requestCount() > 0) {
+                  <span class="di-count" aria-hidden="true">{{ requestCount() }}</span>
+                }
               </a>
               @if (roles.isAdmin() && shellOn()) {
                 <!-- The Admin hub: in the beta shell it is NOT in the nav or the header's sub row
@@ -772,6 +781,21 @@ import { avatarUrlOf } from './avatar-url';
       color: var(--sc-accent-hot);
       background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent);
     }
+    /* Open friend requests: the normal accent, never the admin red. */
+    .dropdown-item .di-label { flex: 1 1 auto; }
+    .dropdown-item:has(.di-count) { display: flex; align-items: center; gap: 8px; }
+    .di-count, .avatar-badge {
+      min-width: 1.4em;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: var(--sc-accent);
+      color: var(--sc-bg-0, #000);
+      font-size: max(0.66rem, var(--sc-fs-floor));
+      font-weight: 700;
+      line-height: 1.5;
+      text-align: center;
+    }
+    .avatar-badge { position: absolute; top: -4px; right: -6px; z-index: 1; pointer-events: none; }
     .dropdown-item.elevated .di-label { flex: 1 1 auto; }
     .dropdown-item.elevated .di-tag {
       font-size: max(0.62rem, var(--sc-fs-floor));
@@ -1029,6 +1053,9 @@ export class ShellComponent implements AfterViewInit {
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);
   readonly profile = inject(ProfileService);
+  private readonly friends = inject(FriendsService);
+  /** Open incoming friend requests (graph is loaded once at app start). */
+  readonly requestCount = this.friends.incomingCount;
   private readonly verseApi = inject(VerseApiService);
   /** Kartograph rank for the avatar's corner crest; null until a rank exists (or the star-map state is not loaded). */
   readonly kartographRank = computed<number | null>(() => {

@@ -1,0 +1,124 @@
+{
+  "de": {
+    "social": {
+      "error": {
+        "inviteNotFound": "Dieser Einladungslink gilt nicht mehr.",
+        "inviteExpired": "Dieser Einladungslink ist abgelaufen. Bitte um einen neuen.",
+        "inviteSelf": "Das ist dein eigener Einladungslink.",
+        "inviteRateLimited": "Zu viele Anfragen in kurzer Zeit. Versuche es in einer Stunde noch einmal.",
+        "inviteLimit": "Du hast heute zu viele neue Einladungslinks erstellt. Versuche es morgen wieder.",
+        "inviteFull": "Bei dieser Person warten schon zu viele Anfragen. Versuche es später noch einmal.",
+        "invalidGroupKind": "Diese Gruppenart gibt es nicht.",
+        "invalidGroupName": "Der Name muss 1 bis 60 Zeichen lang sein.",
+        "groupNameTaken": "Du hast schon eine Gruppe mit diesem Namen.",
+        "groupNotFound": "Diese Gruppe gibt es nicht mehr.",
+        "groupLimit": "Du hast die Höchstzahl von 50 Gruppen erreicht.",
+        "groupFull": "Diese Gruppe ist mit 100 Freunden voll.",
+        "einsatzNotFound": "Dieser Einsatz ist nicht mehr verfügbar.",
+        "einsatzClosed": "Dieser Einsatz ist abgeschlossen und nimmt keine Antworten mehr an.",
+        "configNotFound": "Diese Schiffs-Variante gibt es nicht mehr.",
+        "loadoutNotFound": "Dieses Set gibt es nicht mehr.",
+        "shareNotFound": "Diese Freigabe gibt es nicht mehr.",
+        "tooManySlots": "Ein Einsatz hat höchstens 12 Crew-Plätze.",
+        "invalidSlotLabel": "Eine Platz-Bezeichnung muss 1 bis 40 Zeichen lang sein.",
+        "slotNotFound": "Diesen Crew-Platz gibt es nicht mehr.",
+        "slotTaken": "Dieser Crew-Platz ist schon vergeben.",
+        "invalidAnswer": "Diese Antwort ist nicht möglich.",
+        "notFriends": "Das geht nur mit Freunden.",
+        "invalidTarget": "Das geht mit dieser Person nicht.",
+        "accountSuspended": "Dein Konto ist gesperrt.",
+        "notApproved": "Dein Konto ist noch nicht freigeschaltet.",
+        "shipUnavailable": "Dieses Schiff wurde aus deinem Hangar gelöscht. Füge es erst wieder hinzu."
+      },
+      "compare": {
+        "ships": "Schiffe",
+        "sets": "Sets",
+        "einsaetze_planned": "Geplante Einsätze",
+        "einsaetze_done": "Erledigte Einsätze",
+        "missions_30d": "Missionen (30 Tage)",
+        "kartograph_rank": "Kartograph-Rang",
+        "active_days_30": "Aktive Tage (30 Tage)"
+      },
+      "group": {
+        "kind": {
+          "org": "Org",
+          "einsatzgruppe": "Einsatzgruppe"
+        }
+      },
+      "visibility": {
+        "facet": {
+          "hangar": "Hangar",
+          "flagship": "Flaggschiff",
+          "presence": "Online-Status",
+          "stats": "Vergleichswerte"
+        }
+      },
+      "rsvp": {
+        "yes": "Zusage",
+        "maybe": "Vielleicht",
+        "no": "Absage"
+      }
+    }
+  },
+  "en": {
+    "social": {
+      "error": {
+        "inviteNotFound": "This invite link is no longer valid.",
+        "inviteExpired": "This invite link has expired. Ask for a new one.",
+        "inviteSelf": "This is your own invite link.",
+        "inviteRateLimited": "Too many requests in a short time. Try again in an hour.",
+        "inviteLimit": "You created too many new invite links today. Try again tomorrow.",
+        "inviteFull": "Too many requests are already waiting for this person. Try again later.",
+        "invalidGroupKind": "This kind of group does not exist.",
+        "invalidGroupName": "The name must be 1 to 60 characters long.",
+        "groupNameTaken": "You already have a group with this name.",
+        "groupNotFound": "This group no longer exists.",
+        "groupLimit": "You reached the maximum of 50 groups.",
+        "groupFull": "This group is full at 100 friends.",
+        "einsatzNotFound": "This mission is no longer available.",
+        "einsatzClosed": "This mission is finished and takes no more answers.",
+        "configNotFound": "This ship variant no longer exists.",
+        "loadoutNotFound": "This set no longer exists.",
+        "shareNotFound": "This share no longer exists.",
+        "tooManySlots": "A mission has at most 12 crew slots.",
+        "invalidSlotLabel": "A slot label must be 1 to 40 characters long.",
+        "slotNotFound": "This crew slot no longer exists.",
+        "slotTaken": "This crew slot is already taken.",
+        "invalidAnswer": "This answer is not possible.",
+        "notFriends": "This only works with friends.",
+        "invalidTarget": "This does not work with this person.",
+        "accountSuspended": "Your account is suspended.",
+        "notApproved": "Your account has not been approved yet.",
+        "shipUnavailable": "This ship was deleted from your hangar. Add it again first."
+      },
+      "compare": {
+        "ships": "Ships",
+        "sets": "Sets",
+        "einsaetze_planned": "Planned missions",
+        "einsaetze_done": "Finished missions",
+        "missions_30d": "Missions (30 days)",
+        "kartograph_rank": "Kartograph rank",
+        "active_days_30": "Active days (30 days)"
+      },
+      "group": {
+        "kind": {
+          "org": "Org",
+          "einsatzgruppe": "Mission group"
+        }
+      },
+      "visibility": {
+        "facet": {
+          "hangar": "Hangar",
+          "flagship": "Flagship",
+          "presence": "Online status",
+          "stats": "Comparison numbers"
+        }
+      },
+      "rsvp": {
+        "yes": "Yes",
+        "maybe": "Maybe",
+        "no": "No"
+      }
+    }
+  }
+}
