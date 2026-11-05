@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.208.0] - 2026-11-05
+
+### Added
+- Missile pages open like ship pages: the 3D model, one-word keywords, a comparison against other missiles and a data block. Damage, speed, agility and range appear once a build is uploaded with the new uploader.
+
+## [0.207.5] - 2026-11-05
+
+### Fixed
+- A finished feedback topic no longer waits hours for a slower one in the same batch
+
+## [0.207.4] - 2026-11-05
+
+### Changed
+- Data Uploader: the metadata step takes about half as long on the live game archive, with identical output. Silhouette and 3D builds read from the archive through the same faster path.
+
 ## [0.207.3] - 2026-11-05
 
 ### Changed

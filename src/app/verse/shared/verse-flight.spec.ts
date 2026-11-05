@@ -5,7 +5,8 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { VerseFlight, verseFlightResolver } from './verse-flight';
 import { verseFlightOf, verseFrameOf, verseWorldOf } from './verse-world';
 
-@Component({ template: '<span class="src" data-verse-fly="news" style="display:block;width:40px;height:40px"></span>' })
+// Fixed: the flight only takes a tile in view, and leftovers on the shared Karma page can push a static one below it.
+@Component({ template: '<span class="src" data-verse-fly="news" style="display:block;position:fixed;top:0;width:40px;height:40px"></span>' })
 class HubStub {}
 
 @Component({ template: '<span class="emb" style="display:block;width:64px;height:64px;view-transition-name:verse-emblem"></span>' })
