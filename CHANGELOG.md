@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.205.1] - 2026-11-05
+
+### Fixed
+- Data Uploader 0.73.1: objects stored in very deep game folders, such as Starlifter interior parts and Orison hospital doors, now get their silhouette instead of being skipped.
+- 3D parts from deep game folders no longer risk failing for the same reason.
+
 ## [0.205.0] - 2026-11-05
 
 ### Changed
