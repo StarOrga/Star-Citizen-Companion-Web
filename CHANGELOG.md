@@ -4,10 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.210.2] - 2026-11-05
+## [0.210.3] - 2026-11-06
 
 ### Fixed
 - Verse hub: the opened news image keeps the same gap to the divider lines above and below as a collapsed row's thumbnail.
+
+## [0.210.2] - 2026-11-05
+
+### Fixed
+- Feedback routine: workers get feedback attachments as files instead of URLs that answer 404, and a stylesheet change no longer waits for `npm ci`.
+- Feedback routine: the ship fallback finds the plugin's current server.
 
 ## [0.210.1] - 2026-11-05
 
