@@ -33,7 +33,7 @@ import { FRIEND_GROUP_KINDS, FriendGroup, FriendGroupKind, GROUP_NAME_MAX, frien
                       [ariaLabel]="'social.groups.kindLabel' | translate"
                       (valueChange)="newKind.set($any($event))" />
         <input type="text" class="text-input" [value]="newName()" (input)="onName($event)"
-               [maxlength]="nameMax"
+               [attr.maxlength]="nameMax"
                [placeholder]="'social.groups.namePlaceholder' | translate"
                [attr.aria-label]="'social.groups.namePlaceholder' | translate" autocomplete="off" />
         <button type="submit" class="sc-btn sc-btn-primary" [disabled]="social.busy() || !nameValid()">

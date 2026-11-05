@@ -72,7 +72,9 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
             @if (d.my_groups.length) {
               <p class="hint">
                 {{ 'social.friendPage.inGroups' | translate }}
-                @for (g of d.my_groups; track g.id; let last = $last) {{{ g.name }}{{ last ? '' : ', ' }}}
+                @for (g of d.my_groups; track g.id; let last = $last) {
+                  <span>{{ g.name }}{{ last ? '' : ',' }}</span>
+                }
               </p>
             }
 
