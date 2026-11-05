@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.210.3",
+  "current": "0.211.0",
   "releases": [
+    {
+      "version": "0.211.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Missile pages open like ship pages: the 3D model, one-word keywords, a comparison against other missiles and a data block. Damage, speed, agility and range appear once a build is uploaded with the new uploader (0.73.3)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.210.3",
       "date": "2026-11-06",

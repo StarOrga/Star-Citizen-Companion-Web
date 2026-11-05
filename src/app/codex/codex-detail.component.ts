@@ -159,6 +159,18 @@ import {
   findArmorPayload,
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import type { RankCardCopy, RankCardScope } from './codex-rank-card.component';
+import {
+  MissileRecord,
+  defaultMissileScope,
+  hasCombatMetrics,
+  isMissileRow,
+  missileKeywords,
+  missileRecordOf,
+  missileStatGroups,
+  rankMissile,
+} from './codex-missile';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HeightVarDirective } from '../shared/height-var.directive';
 import type { DockPosition } from './codex-power';
@@ -260,7 +272,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent, HeightVarDirective],
+  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent, HeightVarDirective],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -332,7 +344,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              this template, rendered in both branches (D17). -->
         @if (!(kind() === 'ship' && holoView())) {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
-        <div class="m-top" [class.ship-mode]="kind() === 'ship'" [scFeedbackSpot]="'feedbackSpot.headline'">
+        <div class="m-top" [class.ship-mode]="kind() === 'ship'" [class.missile-mode]="isMissile()" [scFeedbackSpot]="'feedbackSpot.headline'">
         <div class="hero-stack">
         <!-- ── Hero ───────────────────────────────────────────────────
              A ship gets the concept's BÜHNE (§2): the art fills the card, the
@@ -356,7 +368,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (pick)="onShipPickerPick($event)" (open)="onHangarPickerOpen()" />
           </div>
         }
-        <header class="hero sc-card" [class.bay]="kind() === 'ship'" [class.stage]="kind() === 'ship'">
+        <header class="hero sc-card" [class.bay]="kind() === 'ship'" [class.stage]="kind() === 'ship'" [class.missile]="isMissile()">
           @if (kind() === 'ship') {
             <!-- Extracted to keep this file's component-style budget under the
                  Angular build budget (AUD-062) — same DOM, classes and
@@ -381,6 +393,15 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (viewToggle)="toggleHeroView()" />
           } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
+            <!-- A missile has no render in the extract, but most have a 3D model:
+                 that model is the picture, here instead of further down the page. -->
+            @if (isMissile() && itemPackage(); as pkg) {
+              @defer (on viewport) {
+                <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" [still]="prefersReducedMotion()" />
+              } @placeholder {
+                <div class="pkg-viewer" aria-hidden="true"></div>
+              }
+            } @else {
             <div class="art">
               <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
                 <span class="art-fallback">
@@ -388,12 +409,21 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 </span>
               </sc-fallback-image>
             </div>
+            }
           </figure>
           <div class="hero-body">
             <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
             <h1>{{ displayName() }}</h1>
             @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
             <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
+
+            @if (missileKeywords().length > 0) {
+              <ul class="mchips" [attr.aria-label]="'codex.missile.keywordsLabel' | translate">
+                @for (k of missileKeywords(); track k.id) {
+                  <li class="mchip" tabindex="0" [scTooltip]="k.tipKey | translate">{{ k.labelKey | translate }}</li>
+                }
+              </ul>
+            }
 
             <!-- Skin picker (feedback d5e39f86). The list collapses a weapon's
                  paint jobs into ONE entry, so this is where they stay
@@ -507,7 +537,36 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (profileChange)="rankProfile.set($event)"
             (scopeChange)="setRankScope($event)" />
         }
+        @if (isMissile()) {
+          <sc-codex-rank-card
+            [shipName]="displayName()"
+            [sizeClass]="missileRecord()?.size ?? null"
+            [result]="missileRank()"
+            [loading]="missileCohortLoading()"
+            [profiles]="[]"
+            [scopes]="missileRankScopes"
+            [copy]="missileRankCopy"
+            [scope]="missileRankScope()"
+            (scopeChange)="missileScopeChoice.set($event)" />
+        }
         </div>
+
+        @if (isMissile() && missileStats().length > 0) {
+          <section class="sc-card block" [scFeedbackSpot]="'codex.missile.data.title'">
+            <h2>{{ 'codex.missile.data.title' | translate }}</h2>
+            @for (g of missileStats(); track g.id) {
+              <h3 class="sg-head">{{ ('codex.missile.group.' + g.id) | translate }}</h3>
+              <div class="stat-grid">
+                @for (s of g.rows; track s.key) {
+                  <div class="stat"><span class="s-label">{{ s.labelKey | translate }}</span><span class="s-value">@if (s.valueKey) { {{ s.valueKey | translate }} } @else { {{ fmt(s.value!) }} }@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                }
+              </div>
+            }
+            @if (missileCombatMissing()) {
+              <p class="hint">{{ 'codex.missile.data.combatMissing' | translate }}</p>
+            }
+          </section>
+        }
 
 
         <!-- ── Ships: KPI band + mission bar (PR C) ─────────────────
@@ -668,7 +727,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              armor pieces and personal weapons. Best-effort — the section only
              appears for the relevant kinds and quietly shows "no data" rather
              than an error state for anything unmatched. ───────────────── -->
-        @if (itemPackage(); as pkg) {
+        @if (!isMissile() && itemPackage(); as pkg) {
           <section class="sc-card block pkg-block">
             <h2>{{ 'codex.assetPackage.title' | translate }}</h2>
             @defer (on viewport) {
@@ -1092,7 +1151,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
     /* Masthead: hero | Einordnung (MASTER §1/§3) */
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
-    .m-top.ship-mode { grid-template-columns: 1fr 1fr; }
+    .m-top.ship-mode, .m-top.missile-mode { grid-template-columns: 1fr 1fr; }
 
     /* Loadout | Analyse (MASTER §1/§6/§7) */
     .m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
@@ -1130,7 +1189,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     }
 
     @media (max-width: 1100px) {
-      .m-top.ship-mode { grid-template-columns: 1fr; }
+      .m-top.ship-mode, .m-top.missile-mode { grid-template-columns: 1fr; }
       .m-cols { grid-template-columns: 1fr; }
       .m-cols > .col-stick { position: static; }
     }
@@ -1256,6 +1315,19 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .hero-body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
     .cls { align-self: flex-start; }
+
+    /* Missile: half the masthead like a ship, so the model takes the full card
+       width above the name instead of a narrow column beside it. */
+    .hero.missile { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .hero.missile .hero-art { display: block; min-height: 0; }
+    .hero.missile .hero-art .art { min-height: 240px; }
+    .hero.missile .pkg-viewer { height: clamp(15rem, 34vh, 21rem); min-height: 15rem; }
+    .hero.missile .hero-body { padding: 16px 18px; }
+    .mchips { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .mchip { font-size: max(10px, var(--sc-fs-floor)); padding: 3px 7px; border-radius: 3px; letter-spacing: 0.12em;
+      text-transform: uppercase; background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); cursor: default; }
+    .mchip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
     /* Skin / edition picker: sc-codex-variant-picker owns its rules. */
 
@@ -1922,6 +1994,82 @@ export class CodexDetailComponent implements OnInit {
   // missile/rack). Null = no package → the section is simply absent; a failed
   // lookup hides it too (logged) — only manifest/GLB failures show an error.
   readonly itemPackage = signal<AssetPackageRow | null>(null);
+
+  // ── Missile page (feedback e7b6a2a1): the ship's masthead over the missile's own data ──
+  readonly isMissile = computed(() => {
+    const d = this.detail();
+    return !!d && d.kind !== 'ship' && isMissileRow(d.row as { attach_type?: unknown });
+  });
+  /** The peers of this build; null = not loaded or the read failed (the card shows its gap state). */
+  readonly missileCohort = signal<MissileRecord[] | null>(null);
+  readonly missileCohortLoading = signal(false);
+  /** The group the reader picked; null = the page's default for this missile. */
+  readonly missileScopeChoice = signal<RankScope | null>(null);
+  readonly missileRankScopes: readonly RankCardScope[] = [
+    { id: 'all', labelKey: 'codex.missile.scope.all', reasonKey: '' },
+    { id: 'career', labelKey: 'codex.missile.scope.kind', reasonKey: 'codex.missile.scopeOff' },
+    { id: 'sizeClass', labelKey: 'codex.missile.scope.size', reasonKey: 'codex.missile.scopeOff' },
+    { id: 'role', labelKey: 'codex.missile.scope.signal', reasonKey: 'codex.missile.scopeOff' },
+  ];
+  readonly missileRankCopy: RankCardCopy = {
+    cohort: {
+      all: 'codex.missile.rank.nAll',
+      career: 'codex.missile.rank.nKind',
+      sizeClass: 'codex.missile.rank.nSize',
+      role: 'codex.missile.rank.nSignal',
+    },
+    verdict: 'codex.missile.rank.verdict',
+    percentileTooltip: 'codex.missile.rank.percentileTooltip',
+    radarAria: 'codex.missile.rank.radarAria',
+    legendCompare: 'codex.missile.rank.legendCompare',
+    legendBetter: 'codex.missile.rank.legendAbove',
+    legendWorse: 'codex.missile.rank.legendBelow',
+    compareInfo: 'codex.missile.rank.compareInfo',
+    note: 'codex.missile.rank.note',
+  };
+
+  /** This record, from the cohort when it is in there (only that one knows the measurements). */
+  readonly missileRecord = computed<MissileRecord | null>(() => {
+    const d = this.detail();
+    if (!d || !this.isMissile()) return null;
+    const known = this.missileCohort()?.find((m) => m.className === d.classNameSlug);
+    return known ?? missileRecordOf({ ...d.row, class_name: d.classNameSlug }, d.payload, null);
+  });
+  readonly missileRankScope = computed<RankScope>(() => {
+    const target = this.missileRecord();
+    return this.missileScopeChoice() ?? (target ? defaultMissileScope(target, this.missileCohort() ?? []) : 'all');
+  });
+  readonly missileRank = computed(() => {
+    const target = this.missileRecord();
+    const cohort = this.missileCohort();
+    return target && cohort ? rankMissile(target, cohort, this.missileRankScope()) : null;
+  });
+  readonly missileKeywords = computed(() => {
+    const target = this.missileRecord();
+    return target ? missileKeywords(target, this.missileCohort() ?? []) : [];
+  });
+  readonly missileStats = computed(() => {
+    const target = this.missileRecord();
+    return target ? missileStatGroups(target) : [];
+  });
+  readonly missileCombatMissing = computed(() => {
+    const target = this.missileRecord();
+    return !!target && !hasCombatMetrics(target);
+  });
+
+  private async loadMissileCohort(seq: number): Promise<void> {
+    this.missileScopeChoice.set(null);
+    this.missileCohortLoading.set(true);
+    try {
+      const cohort = await this.svc.getMissileCohort();
+      if (seq === this.loadSeq) this.missileCohort.set(cohort);
+    } catch (err) {
+      logWarn('codex-detail', 'missile cohort failed', err);
+      if (seq === this.loadSeq) this.missileCohort.set(null);
+    } finally {
+      if (seq === this.loadSeq) this.missileCohortLoading.set(false);
+    }
+  }
   private readonly assetPackages = inject(AssetPackageService);
 
   private async loadItemPackage(kind: CodexKind, className: string, seq: number): Promise<void> {
@@ -2158,6 +2306,7 @@ export class CodexDetailComponent implements OnInit {
         } else {
           this.itemPackage.set(null);
         }
+        if (this.isMissile()) void this.loadMissileCohort(seq);
         // Ships are not craftable either, so skip the forward lookup as well.
         if (kind !== 'ship') void this.loadRecipe(d.classNameSlug, seq);
         // HQ ownership backs the mode switch and the signposts on every kind.
