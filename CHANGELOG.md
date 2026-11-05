@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.208.0] - 2026-11-05
+
+### Added
+- Social page in the profile menu: friend requests, a personal invite link, private groups (orgs and Einsatzgruppen), a comparison with your friends and a page for each friend
+- HQ shows friends where they help, and only then: open requests on Start, shared Einsätze with crew slots and RSVPs in Planen, who is online in Jetzt, shared sets and ship variants in Bestand
+- Share ship variants and Einsätze with friends or groups, and take a friend's set or variant into your own HQ as a copy
+- Choose what friends see, in general and per friend: hangar, flagship, online status and comparison numbers. All are on by default; the Social page says so once
+
+### Changed
+- /friends now leads to /social, the Settings card is gone, and the menu shows how many requests are waiting
+- Ending a friendship removes what you shared with each other for good, including shared sets. It does not come back if you become friends again
+- Privacy page describes what friends can see and how to switch it off
+
+### Fixed
+- Build guard no longer counts an old build as success
+
 ## [0.207.5] - 2026-11-05
 
 ### Fixed
