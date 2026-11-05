@@ -16,7 +16,7 @@ days before the switch.
 | Every decision, pure and unit-tested | `scripts/lib/routine-watcher-core.mjs`, `scripts/routine-watcher.test.mjs` |
 | Chaos test against the real board and origin, with a fake `claude` | `scripts/routine-watcher-chaos/` (`node scripts/routine-watcher-chaos/chaos.mjs`, about 4 min, cleans up after itself) |
 | Prompt of the headless run | live `~/.claude/scheduled-tasks/scc-feedback-headless/SKILL.md`, repo copy `docs/routine/tasks/scc-feedback-headless/SKILL.md` (`prebuild` fails on drift) |
-| Local state, run file, logs | `%LOCALAPPDATA%\scc-routine\` (`state.json`, `run.json`, `logs/`, 14 days) |
+| Local state, run file, logs | `~/.claude/scc-routine/` (`state.json`, `run.json`, `logs/`, 14 days) |
 | Status at a glance | `npm run watcher -- status` |
 | Setup and removal | `npm run watcher -- install`, `npm run watcher -- uninstall` (primary checkout only) |
 
