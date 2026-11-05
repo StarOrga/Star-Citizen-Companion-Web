@@ -11,11 +11,12 @@
 #
 # Feature branches are skipped too (2026-10-23). Every pushed branch, including
 # each agent worktree branch, left a full preview deployment behind, and the
-# Hobby team hit 100% of its 10 GB Deployment Storage. Only main builds.
+# Hobby team hit 100% of its 10 GB Deployment Storage. Only main builds, plus
+# branches named preview/* (2026-11-05), which ask for a preview on purpose.
 ref="${VERCEL_GIT_COMMIT_REF:-}"
 
 case "$ref" in
-  main)
+  main|preview/*)
     echo "Building ref '$ref'."
     exit 1
     ;;
@@ -25,5 +26,5 @@ case "$ref" in
     ;;
 esac
 
-echo "Skipping Vercel preview build for '${ref:-<unknown>}' (only main deploys)."
+echo "Skipping Vercel preview build for '${ref:-<unknown>}' (only main and preview/* deploy)."
 exit 0
