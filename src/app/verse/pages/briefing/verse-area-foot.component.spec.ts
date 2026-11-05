@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { BetaService } from '../../../core/beta.service';
 import { VerseAreaFootComponent } from './verse-area-foot.component';
 
 describe('VerseAreaFootComponent', () => {
   function render(codex: boolean): HTMLElement {
     TestBed.configureTestingModule({
-      imports: [VerseAreaFootComponent, TranslateModule.forRoot()],
-      providers: [provideRouter([]), { provide: BetaService, useValue: { state: () => ({ codex, verse: true }) } }],
+      imports: [VerseAreaFootComponent],
+      providers: [provideRouter([]), provideTranslateService(), { provide: BetaService, useValue: { state: () => ({ codex, verse: true }) } }],
     });
     const f = TestBed.createComponent(VerseAreaFootComponent);
     f.detectChanges();
