@@ -107,7 +107,6 @@ export interface StockStart {
                       <span class="nm">
                         @if (l.showName) { <span class="t">{{ l.row.name }}</span> }
                         @if (l.showPlace) { <span class="place" [class.t]="!l.showName">{{ l.row.location.trim() ? placeName(l.row.location) : ('hq.stock.free' | translate) }}</span> }
-                        @if (l.showName && l.showPlace) { }
                       </span>
                       <span class="qty">{{ l.row.qty }} {{ unitLabel(l.row.unit) }}</span>
                     </li>
