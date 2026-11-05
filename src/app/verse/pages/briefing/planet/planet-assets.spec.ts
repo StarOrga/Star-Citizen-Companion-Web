@@ -37,6 +37,14 @@ describe('Verse planet — baked assets', () => {
     expect(() => worldFromBake({ v: 1, seed: 1, cities: [], edges: [[0, 1]] })).toThrow();
   });
 
+  it('picks no texture larger than the screen can show: the disc is 160vw wide, 1:1 takes 2πr', () => {
+    // r = 0.8 × viewport width. Device pixels: dpr ≥ 1, so the CSS width is the smallest case.
+    const texelsPerPixel = (w: number, vw: number, dpr = 1) => w / (2 * Math.PI * 0.8 * vw * dpr);
+    for (const vw of [1000, 1440, 1920, 2560, 3840]) expect(texelsPerPixel(nightSize(vw), vw)).toBeLessThan(1);
+    for (const vw of [640, 768, 999]) expect(texelsPerPixel(nightSize(vw), vw)).toBeLessThan(1);
+    expect(texelsPerPixel(4096, 1920)).toBeCloseTo(0.424, 2);
+  });
+
   it('picks the night texture by the same viewport rule as the generator path', () => {
     expect(nightSize(1440)).toBe(4096);
     expect(nightSize(1000)).toBe(4096);
