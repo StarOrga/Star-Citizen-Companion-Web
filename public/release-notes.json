@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.206.0",
+  "current": "0.206.1",
   "releases": [
+    {
+      "version": "0.206.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The feedback watcher can be installed without admin rights"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.206.0",
       "date": "2026-11-05",
