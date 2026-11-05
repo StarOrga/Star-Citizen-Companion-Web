@@ -123,6 +123,8 @@ describe('HqStockComponent', () => {
   it('adds through the popup form', async () => {
     const { fixture, el, inv } = mount({ full: true });
     click(fixture, el.querySelector('.actions .sc-btn-primary')!);
+    await fixture.whenStable();
+    fixture.detectChanges();
     const set = (n: string, v: string) => {
       const i = el.querySelector(`input[name=${n}]`) as HTMLInputElement;
       i.value = v;
