@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.5",
+  "current": "0.207.6",
   "releases": [
+    {
+      "version": "0.207.6",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page: the big title (News, Patches) no longer has a visible box or light behind it, not at rest and not on hover; only a very faint soft shade remains for legibility"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.5",
       "date": "2026-11-05",
