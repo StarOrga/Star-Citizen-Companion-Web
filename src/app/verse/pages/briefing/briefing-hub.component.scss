@@ -8,7 +8,11 @@
 // (2.4 padding + 2.6 head + 1 gap + 26 feature + 3 × 4.6 rows), so u is also
 // capped by the height left under the top bar and above the footer; then the
 // columns narrow with it (86 u wide, centred) and keep the mock's proportions.
-:host { display: block; position: relative; z-index: 1; container-type: inline-size; color: var(--sc-fg-0); }
+:host { display: block; position: relative; z-index: 1; container-type: inline-size; color: var(--sc-fg-0);
+  // The planet-wide --vb-dim text-shadow (three wide halos) is inherited from the parent's .hub and showed as a light field behind
+  // the feature titles; the hub's text sits on dimmed images, so it only needs a tight, faint shade (never a shape).
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--sc-bg-0) 55%, transparent);
+}
 
 .cols {
   --u-h: calc((100dvh - var(--sc-bar-h, 64px) - 16px - 2 * var(--sc-space-6, 32px) - var(--sc-footer-h, 56px)) / 45.8);
@@ -120,8 +124,10 @@
   line-clamp: 2;
   overflow: hidden;
   // A text-shadow would be cut off at the clamp's box (a hard rectangle behind the title): --vb-dim-filter runs after the clip.
+  // The hub's titles sit on a dimmed image already: the shared planet halo (two wide, near-opaque shadows) read as a visible field,
+  // so here only a tight, faint shade stays - legible, but not noticeable as a shape. Same value at rest and on hover.
   text-shadow: none;
-  filter: var(--vb-dim-filter);
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--sc-bg-0) 55%, transparent));
   transition: left 0.45s var(--ease), bottom 0.45s var(--ease), font-size 0.45s;
 }
 .acc-t small { display: block; font-size: max(11px, calc(0.6 * var(--u))); font-weight: 400; color: var(--sc-fg-2, var(--sc-fg-1)); margin-top: 2px; }
