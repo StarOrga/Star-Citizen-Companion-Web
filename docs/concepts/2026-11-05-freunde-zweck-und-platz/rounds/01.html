@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full">
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <div class="iteration-intro">
     <h2>Freunde: wofür und wo</h2>
     <p>Erst der Zweck, dann der Platz, denn der Platz folgt aus dem Zweck.</p>
@@ -30,7 +31,7 @@
       </div>
     </div>
 
-    <section id="d-rolle" data-nav-label="Rolle im HQ" data-decision="d-rolle" data-decision-mode="verify" data-label="Lesart: Rolle im HQ" data-rec="ok" data-rec-why="So passt der Satz zu deiner Frage nach dem Zweck; ein Rollenfeld hätte dort keinen Bezug." data-applies-to="dieses Konzept" data-finding="f-rolle">
+    <section id="d-rolle" data-nav-label="Rolle im HQ" data-decision="d-rolle" data-decision-mode="verify" data-label="Lesart: Rolle im HQ" data-rec="ok" data-rec-why="So passt der Satz zu deiner Frage nach dem Zweck; ein Rollenfeld hätte dort keinen Bezug." data-applies-to="dieses Konzept" data-finding="f-rolle"><input type="hidden" name="dm-d-rolle-hes" value="{&quot;ms&quot;:9598,&quot;revisits&quot;:0,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: dieses Konzept</p>
       <p data-situation>Du schreibst, Freunde sollten im HQ auch eine Rolle spielen. Ein Freund hat heute kein Rollenfeld, und das neue HQ erwähnt Freunde nirgends.</p>
       <h3 data-question>Stimmt meine Lesart: Freunde sollen im HQ vorkommen, kein neues Rollenfeld?</h3>
@@ -40,7 +41,7 @@
         <label data-opt="partial"><input type="radio" name="dm-d-rolle" value="partial"><span data-opt-label>Teilweise, beides ist gemeint</span><span data-opt-consequence>Zusätzlich braucht es eine Rolle je Freund, etwa Pilot oder Bordschütze.</span></label>
         <label data-opt="wrong"><input type="radio" name="dm-d-rolle" value="wrong"><span data-opt-label>Stimmt nicht, gemeint war etwas anderes</span><span data-opt-consequence>Schreib unten kurz, was du meintest.</span></label>
       </div>
-      <input type="text" name="dm-d-rolle-fix" placeholder="Was stimmt nicht?">
+      <input type="text" name="dm-d-rolle-fix" placeholder="Was stimmt nicht?" value="">
       <textarea data-comment="d-rolle-note" placeholder="Notiz (optional)"></textarea>
       <div data-alevel="3" data-title="Rolle im HQ">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der HQ-Ordner erwähnt Freunde kein einziges Mal."}'></div></div>
@@ -50,7 +51,7 @@
       </div>
     </section>
 
-    <section id="d-zweck" data-nav-label="Zweck" data-decision="d-zweck" data-decision-mode="single" data-label="Zweck von Freunden" data-rec="zusammen" data-rec-why="Die Einsätze kennen schon die Stimmung „Gruppe“, und ein gemeinsamer Abend ist der Anlass, den die Liste heute nicht hat. Rein lesend bleibt es klein." data-applies-to="das ganze Feature" data-finding="f-zweck">
+    <section id="d-zweck" data-nav-label="Zweck" data-decision="d-zweck" data-decision-mode="single" data-label="Zweck von Freunden" data-rec="zusammen" data-rec-why="Die Einsätze kennen schon die Stimmung „Gruppe“, und ein gemeinsamer Abend ist der Anlass, den die Liste heute nicht hat. Rein lesend bleibt es klein." data-applies-to="das ganze Feature" data-finding="f-zweck"><input type="hidden" name="dm-d-zweck-hes" value="{&quot;ms&quot;:27052,&quot;revisits&quot;:1,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: das ganze Feature</p>
       <p data-situation>Einziger Nutzen heute ist Set-Teilen, genutzt nullmal. Das HQ plant Einsätze schon mit der Stimmung „Gruppe“, kennt aber keine Mitspieler.</p>
       <h3 data-question>Wofür sind Freunde in SC Companion da?</h3>
@@ -61,7 +62,7 @@
         <label data-opt="sozial"><input type="radio" name="dm-d-zweck" value="sozial"><span data-opt-label>Einen Sozialbereich aufbauen</span><span data-opt-consequence>Profile, Aktivität, Vergleiche. Der größte Aufwand, und bei zehn Konten bleibt er leer.</span></label>
         <label data-opt="weg"><input type="radio" name="dm-d-zweck" value="weg"><span data-opt-label>Freunde zurückbauen, Links reichen</span><span data-opt-consequence>Weniger Code und keine Moderationsfläche. Geteilt wird nur noch per Link, also ohne Empfängerkreis.</span></label>
       </div>
-      <textarea data-comment="d-zweck-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-zweck-note" placeholder="Notiz (optional)">+ teilen + sozialbereich mit vergleichen usw....</textarea>
       <div data-alevel="3" data-title="Zweck">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Nutzen","label":"FPS-Set teilen"}'></div></div>
         <div data-slot="long">
@@ -71,7 +72,7 @@
       </div>
     </section>
 
-    <section id="d-umfang" data-nav-label="Umfang" data-decision="d-umfang" data-decision-mode="multi" data-label="Was Freunde zusätzlich können" data-rec="uebernehmen einsatz" data-rec-why="Beides macht aus Ansehen etwas Nutzbares und bleibt rein lesend. Zusagen und Online-Status lohnen sich erst mit mehr Nutzern." data-applies-to="Teilen zwischen Freunden" data-finding="f-umfang">
+    <section id="d-umfang" data-nav-label="Umfang" data-decision="d-umfang" data-decision-mode="multi" data-label="Was Freunde zusätzlich können" data-rec="uebernehmen einsatz" data-rec-why="Beides macht aus Ansehen etwas Nutzbares und bleibt rein lesend. Zusagen und Online-Status lohnen sich erst mit mehr Nutzern." data-applies-to="Teilen zwischen Freunden" data-finding="f-umfang"><input type="hidden" name="dm-d-umfang-hes" value="{&quot;ms&quot;:70726,&quot;revisits&quot;:4,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: Teilen zwischen Freunden</p>
       <p data-situation>Ein Freund kann ein geteiltes Set heute nur lesen. Eine Schiffs-Variante per Link lässt sich dagegen ins eigene HQ übernehmen.</p>
       <h3 data-question>Was können Freunde zusätzlich miteinander tun?</h3>
@@ -79,11 +80,11 @@
       <div data-options>
         <label data-opt="uebernehmen" data-recommended><input type="checkbox" name="dm-d-umfang.uebernehmen" checked><span data-opt-label>Geteiltes Set in den eigenen Spind übernehmen</span><span data-opt-consequence>Eine Kopie, die dem Empfänger gehört. Die übernehmen-Logik für Schiffe gibt es schon.</span></label>
         <label data-opt="einsatz" data-recommended><input type="checkbox" name="dm-d-umfang.einsatz" checked><span data-opt-label>Einsatz mit Freunden teilen, nur lesend</span><span data-opt-consequence>Der Freund sieht Plan und Kit im HQ. Braucht eine neue Freigabe-Tabelle.</span></label>
-        <label data-opt="variante"><input type="checkbox" name="dm-d-umfang.variante"><span data-opt-label>Schiffs-Variante direkt an Freunde teilen</span><span data-opt-consequence>Ein zweiter Weg neben dem Link, der heute schon funktioniert.</span></label>
-        <label data-opt="zusagen"><input type="checkbox" name="dm-d-umfang.zusagen"><span data-opt-label>Crew-Plätze und Zusagen im Einsatz</span><span data-opt-consequence>Mehr Wert für Gruppen, aber gemeinsames Bearbeiten und deutlich mehr Rechtefragen.</span></label>
-        <label data-opt="online"><input type="checkbox" name="dm-d-umfang.online"><span data-opt-label>Anzeigen, wer gerade online ist</span><span data-opt-consequence>Braucht einen Presence-Dienst; viele sehen das zudem als Privatsphäre-Thema.</span></label>
+        <label data-opt="variante"><input type="checkbox" name="dm-d-umfang.variante" checked><span data-opt-label>Schiffs-Variante direkt an Freunde teilen</span><span data-opt-consequence>Ein zweiter Weg neben dem Link, der heute schon funktioniert.</span></label>
+        <label data-opt="zusagen"><input type="checkbox" name="dm-d-umfang.zusagen" checked><span data-opt-label>Crew-Plätze und Zusagen im Einsatz</span><span data-opt-consequence>Mehr Wert für Gruppen, aber gemeinsames Bearbeiten und deutlich mehr Rechtefragen.</span></label>
+        <label data-opt="online"><input type="checkbox" name="dm-d-umfang.online" checked><span data-opt-label>Anzeigen, wer gerade online ist</span><span data-opt-consequence>Braucht einen Presence-Dienst; viele sehen das zudem als Privatsphäre-Thema.</span></label>
       </div>
-      <textarea data-comment="d-umfang-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-umfang-note" placeholder="Notiz (optional)">Ja genau, ich stelle mir vor im Social Bereich , dort kann ich vergleichen wie sie scc web / app nutzen, aber auch was sie so machen ggü. mir, später dnan auszupfeilen mit gemeinsamen anspoprn usw. aber im hq an allen ecken und enden natürlich integriert, auch wenn sehr dezent oder nur in fällen.</textarea>
       <div data-alevel="3" data-title="Umfang">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Ein fremder Link kann heute mehr als ein Freund."}'></div></div>
         <div data-slot="long">
@@ -102,17 +103,17 @@
       </div>
     </div>
 
-    <section id="d-heimat" data-nav-label="Platz im HQ" data-decision="d-heimat" data-decision-mode="single" data-label="Platz von Freunden" data-rec="beides" data-rec-why="Verwalten gehört zum Konto, Nutzen zum HQ. So bleibt eine Adresse stabil, und das HQ zeigt nur, was gerade etwas bringt." data-applies-to="Routen und HQ-Seiten" data-finding="f-heimat">
+    <section id="d-heimat" data-nav-label="Platz im HQ" data-decision="d-heimat" data-decision-mode="single" data-label="Platz von Freunden" data-rec="beides" data-rec-why="Verwalten gehört zum Konto, Nutzen zum HQ. So bleibt eine Adresse stabil, und das HQ zeigt nur, was gerade etwas bringt." data-applies-to="Routen und HQ-Seiten" data-finding="f-heimat"><input type="hidden" name="dm-d-heimat-hes" value="{&quot;ms&quot;:65826,&quot;revisits&quot;:2,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: Routen und HQ-Seiten</p>
       <p data-situation>Die Route /friends liegt bewusst bei den Einstellungen. Das neue HQ hat fünf Seiten: Start, Planen, Jetzt, Bestand, Statistik.</p>
       <h3 data-question>Wo leben Freunde künftig?</h3>
       <p data-stakes>Ob das HQ eine neue Seite bekommt und die Route umzieht.</p>
       <div data-options>
-        <label data-opt="beides" data-recommended><input type="radio" name="dm-d-heimat" value="beides" checked><span data-opt-label>Konto verwaltet, HQ zeigt den Nutzen</span><span data-opt-consequence>/friends bleibt. Das HQ zeigt Anfragen und Geteiltes genau dort, wo es hingehört.</span></label>
+        <label data-opt="beides" data-recommended><input type="radio" name="dm-d-heimat" value="beides"><span data-opt-label>Konto verwaltet, HQ zeigt den Nutzen</span><span data-opt-consequence>/friends bleibt. Das HQ zeigt Anfragen und Geteiltes genau dort, wo es hingehört.</span></label>
         <label data-opt="hqseite"><input type="radio" name="dm-d-heimat" value="hqseite"><span data-opt-label>Eigene HQ-Seite „Freunde“ anlegen</span><span data-opt-consequence>Alles an einem Ort, aber eine sechste Seite, die für die meisten leer bleibt.</span></label>
-        <label data-opt="konto"><input type="radio" name="dm-d-heimat" value="konto"><span data-opt-label>Nur im Konto belassen</span><span data-opt-consequence>Kein Umbau im HQ. Es bleibt dabei, dass man dort nichts von Freunden sieht.</span></label>
+        <label data-opt="konto"><input type="radio" name="dm-d-heimat" value="konto" checked><span data-opt-label>Nur im Konto belassen</span><span data-opt-consequence>Kein Umbau im HQ. Es bleibt dabei, dass man dort nichts von Freunden sieht.</span></label>
       </div>
-      <textarea data-comment="d-heimat-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-heimat-note" placeholder="Notiz (optional)">Lass usn doich eine seite soical machen auf meinen proifl icon menü - nix dazu in den einstellungen! Und ansonsten embeedeed in hq aber keine extra seite sondern einfach an den diversen stellen</textarea>
       <div data-alevel="3" data-title="Platz im HQ">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"von 5 HQ-Seiten","label":"zeigen Freunde"}'></div></div>
         <div data-slot="long">
@@ -122,7 +123,7 @@
       </div>
     </section>
 
-    <section id="d-signal" data-nav-label="Offene Anfragen" data-decision="d-signal" data-decision-mode="single" data-label="Meldung offener Anfragen" data-rec="zaehler" data-rec-why="Ohne Meldung verfallen Anfragen unbemerkt. Der Zähler kostet eine Abfrage pro Sitzung und braucht keinen Mailversand." data-applies-to="Kopfzeile und HQ-Start" data-finding="f-signal">
+    <section id="d-signal" data-nav-label="Offene Anfragen" data-decision="d-signal" data-decision-mode="single" data-label="Meldung offener Anfragen" data-rec="zaehler" data-rec-why="Ohne Meldung verfallen Anfragen unbemerkt. Der Zähler kostet eine Abfrage pro Sitzung und braucht keinen Mailversand." data-applies-to="Kopfzeile und HQ-Start" data-finding="f-signal"><input type="hidden" name="dm-d-signal-hes" value="{&quot;ms&quot;:17192,&quot;revisits&quot;:0,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: Kopfzeile und HQ-Start</p>
       <p data-situation>Eine Anfrage verfällt nach 7 Tagen. Die Daten lädt nur /friends oder das Teilen-Panel, der fertige Zähler wird nirgends angezeigt.</p>
       <h3 data-question>Wie erfährst du von einer neuen Freundschaftsanfrage?</h3>
@@ -142,7 +143,7 @@
       </div>
     </section>
 
-    <section id="d-links" data-nav-label="Links aufräumen" data-decision="d-links" data-decision-mode="multi" data-label="Link-Aufräumen" data-rec="sackgasse geteilt bestand einstieg suche perk" data-rec-why="Alles klein und unabhängig vom Zweck; zusammen beseitigt es den Eindruck von Zufall." data-applies-to="alle Stellen mit Freunde-Bezug" data-finding="f-links">
+    <section id="d-links" data-nav-label="Links aufräumen" data-decision="d-links" data-decision-mode="multi" data-label="Link-Aufräumen" data-rec="sackgasse geteilt bestand einstieg suche perk" data-rec-why="Alles klein und unabhängig vom Zweck; zusammen beseitigt es den Eindruck von Zufall." data-applies-to="alle Stellen mit Freunde-Bezug" data-finding="f-links"><input type="hidden" name="dm-d-links-hes" value="{&quot;ms&quot;:35434,&quot;revisits&quot;:0,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: alle Stellen mit Freunde-Bezug</p>
       <p data-situation>Sechs Stellen sind heute falsch oder führen nicht weiter. Keine davon hängt am Datenmodell.</p>
       <h3 data-question>Welche dieser Korrekturen übernehmen wir?</h3>
@@ -154,7 +155,7 @@
         <label data-opt="suche" data-recommended><input type="checkbox" name="dm-d-links.suche" checked><span data-opt-label>Suchbegriff „org“ führt nicht mehr zu Freunde</span><span data-opt-consequence>Freunde sind keine Org, der Treffer führt in die Irre.</span></label>
         <label data-opt="perk" data-recommended><input type="checkbox" name="dm-d-links.perk" checked><span data-opt-label>Kartograph-Text wird korrigiert</span><span data-opt-consequence>„Abzeichen, das deine Freunde sehen“ stimmt nicht: Es ist ein öffentlicher Link.</span></label>
       </div>
-      <textarea data-comment="d-links-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-links-note" placeholder="Notiz (optional)">Freunde dürfen auch in orgs organisiert werden und in einsatzgruppen bei mehreren!</textarea>
       <div data-alevel="3" data-title="Links aufräumen">
         <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"6","unit":"Stellen","label":"zum Korrigieren"}'></div></div>
         <div data-slot="long">
@@ -163,7 +164,7 @@
       </div>
     </section>
 
-    <section id="d-name" data-nav-label="Klick auf den Namen" data-decision="d-name" data-decision-mode="single" data-label="Klick auf einen Freund" data-rec="freundseite" data-rec-why="Sie gibt allen Namen ein festes Ziel, ohne Profile öffentlich zu machen. Der bisherige Datenschutz bleibt erhalten." data-applies-to="überall, wo ein Freund genannt wird" data-finding="f-name">
+    <section id="d-name" data-nav-label="Klick auf den Namen" data-decision="d-name" data-decision-mode="single" data-label="Klick auf einen Freund" data-rec="freundseite" data-rec-why="Sie gibt allen Namen ein festes Ziel, ohne Profile öffentlich zu machen. Der bisherige Datenschutz bleibt erhalten." data-applies-to="überall, wo ein Freund genannt wird" data-finding="f-name"><input type="hidden" name="dm-d-name-hes" value="{&quot;ms&quot;:51475,&quot;revisits&quot;:0,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: überall, wo ein Freund genannt wird</p>
       <p data-situation>Namen sind heute reiner Text. Profile kann nur ihr Besitzer lesen, und der Code merkt an, dass der Name ein Link wird, sobald es ein Ziel gibt.</p>
       <h3 data-question>Wohin führt ein Klick auf den Namen eines Freundes?</h3>
@@ -193,7 +194,7 @@
       </div>
     </div>
 
-    <section id="d-finden" data-nav-label="Freunde finden" data-decision="d-finden" data-decision-mode="single" data-label="Weg zur Freundschaft" data-rec="einladung" data-rec-why="Man spielt ohnehin mit Leuten, die man schon kennt und per Discord erreicht. Ein Link erspart beiden den Nutzernamen, und die Suche über alle Konten bleibt zu." data-applies-to="Freund hinzufügen" data-finding="f-finden">
+    <section id="d-finden" data-nav-label="Freunde finden" data-decision="d-finden" data-decision-mode="single" data-label="Weg zur Freundschaft" data-rec="einladung" data-rec-why="Man spielt ohnehin mit Leuten, die man schon kennt und per Discord erreicht. Ein Link erspart beiden den Nutzernamen, und die Suche über alle Konten bleibt zu." data-applies-to="Freund hinzufügen" data-finding="f-finden"><input type="hidden" name="dm-d-finden-hes" value="{&quot;ms&quot;:9836,&quot;revisits&quot;:0,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: Freund hinzufügen</p>
       <p data-situation>8 von 10 Konten haben keinen Nutzernamen und sind nicht auffindbar. Eine Suche über alle Konten ist bewusst ausgeschlossen.</p>
       <h3 data-question>Wie wird jemand dein Freund?</h3>
@@ -213,17 +214,17 @@
       </div>
     </section>
 
-    <section id="d-sicht" data-nav-label="Was Freunde sehen" data-decision="d-sicht" data-decision-mode="single" data-label="Sichtbarkeit für Freunde" data-rec="aktiv" data-rec-why="Hält die heutige Regel ein, dass Profile privat sind, und braucht keine neuen Einstellungen." data-applies-to="alle Daten zwischen Freunden" data-finding="f-sicht">
+    <section id="d-sicht" data-nav-label="Was Freunde sehen" data-decision="d-sicht" data-decision-mode="single" data-label="Sichtbarkeit für Freunde" data-rec="aktiv" data-rec-why="Hält die heutige Regel ein, dass Profile privat sind, und braucht keine neuen Einstellungen." data-applies-to="alle Daten zwischen Freunden" data-finding="f-sicht"><input type="hidden" name="dm-d-sicht-hes" value="{&quot;ms&quot;:49044,&quot;revisits&quot;:0,&quot;median&quot;:35434}">
       <p data-applies>Gilt für: alle Daten zwischen Freunden</p>
       <p data-situation>Freunde sehen heute nur Anzeigename und Nutzername, dazu Sets, die du aktiv geteilt hast. Hangar und Flaggschiff bleiben privat.</p>
       <h3 data-question>Was sehen Freunde von dir ohne dein Zutun?</h3>
       <p data-stakes>Datenschutz-Text, Berechtigungen und der Inhalt der Freundes-Seite.</p>
       <div data-options>
-        <label data-opt="aktiv" data-recommended><input type="radio" name="dm-d-sicht" value="aktiv" checked><span data-opt-label>Nur, was du aktiv teilst</span><span data-opt-consequence>Wie bisher: Name plus deine Freigaben. Keine neuen Einstellungen.</span></label>
+        <label data-opt="aktiv" data-recommended><input type="radio" name="dm-d-sicht" value="aktiv"><span data-opt-label>Nur, was du aktiv teilst</span><span data-opt-consequence>Wie bisher: Name plus deine Freigaben. Keine neuen Einstellungen.</span></label>
         <label data-opt="flaggschiff"><input type="radio" name="dm-d-sicht" value="flaggschiff"><span data-opt-label>Zusätzlich dein Flaggschiff</span><span data-opt-consequence>Die Freundes-Seite wirkt lebendiger; alle Bestandskonten brauchen einen Hinweis.</span></label>
-        <label data-opt="hangar"><input type="radio" name="dm-d-sicht" value="hangar"><span data-opt-label>Deinen ganzen Hangar, abschaltbar</span><span data-opt-consequence>Hilft bei der Abendplanung, legt aber offen, was jemand besitzt und bezahlt hat.</span></label>
+        <label data-opt="hangar"><input type="radio" name="dm-d-sicht" value="hangar" checked><span data-opt-label>Deinen ganzen Hangar, abschaltbar</span><span data-opt-consequence>Hilft bei der Abendplanung, legt aber offen, was jemand besitzt und bezahlt hat.</span></label>
       </div>
-      <textarea data-comment="d-sicht-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-sicht-note" placeholder="Notiz (optional)">ja man soll festlegen können pro freund und generell auf der social setite was man automatisch teilt! dort in den einestellungen als popup oder so..</textarea>
       <div data-alevel="3" data-title="Was Freunde sehen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Heute: Name und aktiv Geteiltes, sonst nichts."}'></div></div>
         <div data-slot="long">
