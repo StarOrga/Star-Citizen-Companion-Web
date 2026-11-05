@@ -156,8 +156,13 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
+  // The line clamp clips at the box, and a text-shadow is clipped with it: the halo would end in a
+  // hard rectangle around the title. A filter runs after the clip, so the halo follows the letters.
+  text-shadow: none;
+  filter: var(--vb-dim-filter);
+  transition: filter 0.2s;
 }
-.tl { color: inherit; text-decoration: none; transition: color 0.2s, text-shadow 0.2s; }
+.tl { color: inherit; text-decoration: none; transition: color 0.2s; }
 a.tl:hover, a.tl:focus-visible { color: #fff; }
 a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; border-radius: 4px; }
 .t-in { animation: t-in 0.45s ease-out both; }
@@ -261,8 +266,10 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 // text in the stage and the hub (title letters, moon labels, comet, transmit, beacons, hub
 // columns, anything added later) carries it. A text with a glow of its own lists --vb-dim first.
 :host { --vb-dim: 0 0 0.35em color-mix(in srgb, var(--sc-bg-0) 95%, transparent), 0 0 1.1em color-mix(in srgb, var(--sc-bg-0) 80%, transparent), 0 0 2.4em color-mix(in srgb, var(--sc-bg-0) 55%, transparent); }
+// The same halo for a text inside a line clamp (the hero title), where a text-shadow would be cut off at the box.
+:host { --vb-dim-filter: drop-shadow(0 0 0.35em color-mix(in srgb, var(--sc-bg-0) 95%, transparent)) drop-shadow(0 0 1.1em color-mix(in srgb, var(--sc-bg-0) 70%, transparent)); }
 .bstage, .hub { text-shadow: var(--vb-dim); }
-a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+.title2:has(a.tl:hover), .title2:has(a.tl:focus-visible) { filter: var(--vb-dim-filter) drop-shadow(0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent)); }
 .hx { position: relative; isolation: isolate; }
 .hx::before, .hub::before {
   content: '';
@@ -369,5 +376,5 @@ a.tl:hover, a.tl:focus-visible { text-shadow: var(--vb-dim), 0 0 1.2cqw color-mi
 
 @media (prefers-reduced-motion: reduce) {
   .t-in { animation: none; }
-  .step, .tl, .find { transition: none; }
+  .step, .tl, .title2, .find { transition: none; }
 }
