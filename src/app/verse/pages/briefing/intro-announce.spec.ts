@@ -13,21 +13,42 @@ describe('Verse entrance announcement', () => {
   };
   beforeEach(() => resetIntroDocument());
 
+  const noon = (d: number) => () => new Date(2026, 10, d, 12, 0, 0);
+
   it('peeks the same answer the claim then gives, without claiming', () => {
     const s = store();
-    expect(peekIntro(s, () => false)).toBe('full');
-    expect(peekIntro(s, () => false)).withContext('peeking claims nothing').toBe('full');
-    expect(claimIntro(s, () => false)).toBe('full');
-    expect(peekIntro(s, () => false)).toBe('short');
-    expect(claimIntro(s, () => false)).toBe('short');
+    expect(peekIntro(s, noon(5))).toBe('full');
+    expect(peekIntro(s, noon(5))).withContext('peeking claims nothing').toBe('full');
+    expect(claimIntro(s, noon(5))).toBe('full');
+    expect(peekIntro(s, noon(5))).toBe('short');
+    expect(claimIntro(s, noon(5))).toBe('short');
   });
 
-  it('treats a reload as a first visit until the document claimed once', () => {
+  it('a reload or new tab on the same day is short, the next local day is full again', () => {
     const s = store();
-    s.setItem(INTRO_FLAG, '1');
-    expect(peekIntro(s, () => true)).toBe('full');
-    expect(claimIntro(s, () => true)).toBe('full');
-    expect(peekIntro(s, () => true)).withContext('the same document coming back').toBe('short');
+    expect(claimIntro(s, noon(5))).toBe('full');
+    resetIntroDocument();
+    expect(peekIntro(s, noon(5))).withContext('reload / new tab').toBe('short');
+    expect(claimIntro(s, noon(5))).toBe('short');
+    expect(peekIntro(s, noon(6))).toBe('full');
+    expect(claimIntro(s, noon(6))).toBe('full');
+    expect(s.getItem(INTRO_FLAG)).toBe('2026-11-06');
+  });
+
+  it('counts the local calendar day: 23:59 and 00:01 are different days', () => {
+    const s = store();
+    expect(claimIntro(s, () => new Date(2026, 10, 5, 23, 59))).toBe('full');
+    expect(claimIntro(s, () => new Date(2026, 10, 5, 23, 59))).toBe('short');
+    expect(claimIntro(s, () => new Date(2026, 10, 6, 0, 1))).toBe('full');
+  });
+
+  it('without usable storage the day is remembered for this document only', () => {
+    const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
+    expect(claimIntro(null, noon(5))).toBe('full');
+    expect(peekIntro(null, noon(5))).toBe('short');
+    expect(claimIntro(broken, noon(5))).withContext('same document, same day').toBe('short');
+    resetIntroDocument();
+    expect(claimIntro(broken, noon(5))).withContext('fresh document').toBe('full');
   });
 
   it('holds the chrome until the hub starts the entrance, and drops a hold nobody took over', fakeAsync(() => {
