@@ -68,25 +68,25 @@ interface BarRow {
     `
       :host { position: relative; display: flex; flex-direction: column; justify-content: flex-end; color: var(--sc-fg-1); --cx-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace; }
       .edge {
-        position: absolute; left: 0; top: 0; bottom: 0; width: 1px; pointer-events: none;
+        position: absolute; right: 0; top: 0; bottom: 0; width: 1px; pointer-events: none;
         background: linear-gradient(180deg, transparent, rgba(170, 238, 255, 0.85) 18%, rgba(220, 250, 255, 1) 50%, rgba(170, 238, 255, 0.85) 82%, transparent);
         box-shadow: 0 0 10px rgba(130, 220, 255, 0.55);
       }
       /* The light fan from the screen edge: narrow at the edge, the full edge height at the line. */
       .edge::before {
-        content: ''; position: absolute; right: 100%; top: 0; bottom: 0; width: var(--cx-bleed, 40px);
-        background: linear-gradient(270deg, rgba(130, 222, 255, 0.07), rgba(82, 193, 230, 0.015) 55%, rgba(170, 238, 255, 0.08));
-        clip-path: polygon(100% 0, 100% 100%, 0 58%, 0 42%);
+        content: ''; position: absolute; left: 100%; top: 0; bottom: 0; width: var(--cx-bleed, 40px);
+        background: linear-gradient(90deg, rgba(130, 222, 255, 0.07), rgba(82, 193, 230, 0.015) 55%, rgba(170, 238, 255, 0.08));
+        clip-path: polygon(0 0, 0 100%, 100% 58%, 100% 42%);
       }
       /* The source slit where the fan leaves the screen edge. */
       .edge::after {
-        content: ''; position: absolute; top: 42%; height: 16%; right: calc(100% + var(--cx-bleed, 40px) - 2px); width: 2px;
+        content: ''; position: absolute; top: 42%; height: 16%; left: calc(100% + var(--cx-bleed, 40px) - 2px); width: 2px;
         background: rgba(220, 250, 255, 0.85); box-shadow: 0 0 12px 2px rgba(130, 220, 255, 0.7); border-radius: 1px;
       }
       .body {
-        position: relative; display: flex; flex-direction: column; align-items: flex-end; text-align: right;
+        position: relative; display: flex; flex-direction: column; align-items: flex-start; text-align: left;
         min-height: 0; overflow-y: auto; scrollbar-width: thin;
-        padding: 16px 0 16px 18px;
+        padding: 16px 18px 16px 0;
         background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.035) 0 1px, transparent 1px 4px);
         clip-path: inset(0 0 100% 0);
         animation: pane-in 0.7s cubic-bezier(0.3, 0.6, 0.3, 1) var(--pane-at, 2.6s) both;
@@ -98,9 +98,10 @@ interface BarRow {
       }
       .set { display: none; margin: -6px 0 12px; }
       .rows { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 0; }
-      .row { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; row-gap: 6px; }
-      .row dt { grid-column: 2; grid-row: 1; justify-self: end; font: 600 max(9.5px, 0.6rem) / 1.2 var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
-      .row dd { grid-column: 1; grid-row: 1; margin: 0; font: 600 max(13px, 0.86rem) / 1 var(--cx-mono); font-variant-numeric: tabular-nums; color: var(--sc-fg-0); white-space: nowrap; }
+      /* The pane stands right of the stage: label toward the hologram, value at the outer edge. */
+      .row { display: grid; grid-template-columns: 1fr auto; align-items: baseline; column-gap: 10px; row-gap: 6px; }
+      .row dt { grid-column: 1; grid-row: 1; justify-self: start; font: 600 max(9.5px, 0.6rem) / 1.2 var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
+      .row dd { grid-column: 2; grid-row: 1; margin: 0; font: 600 max(13px, 0.86rem) / 1 var(--cx-mono); font-variant-numeric: tabular-nums; color: var(--sc-fg-0); white-space: nowrap; }
       .bar { grid-column: 1 / -1; position: relative; height: 3px; border-radius: 2px; background: rgba(82, 193, 230, 0.13); }
       .bar i {
         position: absolute; right: 0; top: 0; bottom: 0; border-radius: 2px;
@@ -109,9 +110,8 @@ interface BarRow {
         transform-origin: 100% 50%;
         animation: bar-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--pane-at, 2.6s) + 0.25s + var(--i) * 0.07s) both;
       }
-      /* Bars grow toward the hologram, so the class mean is mirrored too. */
-      .bar u { position: absolute; top: -3px; bottom: -3px; width: 1.5px; margin-left: -0.75px; background: var(--sc-warning); box-shadow: 0 0 4px color-mix(in srgb, var(--sc-warning) 70%, transparent); transform: scaleX(-1); }
-      .bar { transform: scaleX(-1); }
+      /* Bars grow out of the hologram's side (left) toward the screen edge. */
+      .bar u { position: absolute; top: -3px; bottom: -3px; width: 1.5px; margin-left: -0.75px; background: var(--sc-warning); box-shadow: 0 0 4px color-mix(in srgb, var(--sc-warning) 70%, transparent); }
       .bar i { left: 0; right: auto; transform-origin: 0 50%; }
       .row.callout { display: none; }
       .row.worse .bar i { background: linear-gradient(90deg, color-mix(in srgb, var(--sc-warning) 45%, transparent), var(--sc-warning)); box-shadow: none; }

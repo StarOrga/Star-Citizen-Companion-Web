@@ -105,8 +105,10 @@
   display: flex;
   flex-direction: column;
 }
-.values { left: var(--cx-gut); }
-.codex { right: var(--cx-gut); }
+// The Codex list stands left (the index it leads to keeps its area tree on the
+// left too), the values right; each scrollbar sits on the pane's outer side.
+.codex { left: var(--cx-gut); }
+.values { right: var(--cx-gut); }
 .news {
   position: absolute;
   z-index: 8;
