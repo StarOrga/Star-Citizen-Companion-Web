@@ -265,9 +265,9 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 // behind the glyphs. Container-level, not a selector list: text-shadow inherits, so every
 // text in the stage and the hub (title letters, moon labels, comet, transmit, beacons, hub
 // columns, anything added later) carries it. A text with a glow of its own lists --vb-dim first.
-:host { --vb-dim: 0 0 0.35em color-mix(in srgb, var(--sc-bg-0) 95%, transparent), 0 0 1.1em color-mix(in srgb, var(--sc-bg-0) 80%, transparent), 0 0 2.4em color-mix(in srgb, var(--sc-bg-0) 55%, transparent); }
+:host { --vb-dim: 0 0 0.3em rgba(2, 6, 11, 0.45); }
 // The same halo for a text inside a line clamp (the hero title), where a text-shadow would be cut off at the box.
-:host { --vb-dim-filter: drop-shadow(0 0 0.1em color-mix(in srgb, var(--sc-bg-0) 40%, transparent)); }
+:host { --vb-dim-filter: drop-shadow(0 0 0.08em rgba(2, 6, 11, 0.3)); }
 .bstage, .hub { text-shadow: var(--vb-dim); }
 .hx { position: relative; isolation: isolate; }
 .hub::before {
@@ -275,9 +275,9 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(closest-side, rgba(2, 6, 11, 0.6), rgba(2, 6, 11, 0.36) 55%, transparent);
+  background: radial-gradient(closest-side, rgba(2, 6, 11, 0.3), rgba(2, 6, 11, 0.16) 55%, transparent);
 }
-.hub::before { inset: -6% -8% 0; background: radial-gradient(closest-side, rgba(2, 6, 11, 0.55), rgba(2, 6, 11, 0.3) 60%, transparent); }
+.hub::before { inset: -6% -8% 0; background: radial-gradient(closest-side, rgba(2, 6, 11, 0.28), rgba(2, 6, 11, 0.14) 60%, transparent); }
 
 // ── Entrance: "Titelsequenz" (concept 2026-10-29, re-cut 2026-11-04) ────
 // Owner brief: the stars first, nothing else; then the app's name in the hero; then
