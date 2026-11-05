@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.208.2] - 2026-11-05
+
+### Fixed
+- Feedback routine: headless runs start in a detached runner checkout, so workers can commit past the main-branch guard.
+- Feedback routine: workers verify through `web-ci` on their PR instead of parallel local builds, and a run lands green PRs before it opens a new wave.
+
 ## [0.208.1] - 2026-11-05
 
 ### Fixed
