@@ -273,3 +273,63 @@ Ansehen: Bildfolge über CDP `Page.captureScreenshot` (Playwrights
 
 Checks: Karma 5336/5336, Lint 0 Fehler, Build inkl. Guards, Mobile-Gate grün.
 
+---
+
+## 6. Planet and bodies in workers (performance audit 2026-11-05, GL-1 to GL-7)
+
+**What froze `/verse` on boot** (real GPU, RTX 2080 Super, Direct3D 11, cold shader
+cache, every WebGL call timed from the page): `getProgramParameter(LINK_STATUS)`
+3.5 s + 0.33 s + 0.12 s, then the canvas resize 0.9 s, which is where the GPU
+catches up on texture uploads and mipmaps. `texImage2D` itself takes 35 ms. The
+lab profiler's "resize 4530 ms" was that flush seen on software WebGL; its
+"body-engine `e`" was the link of the bodies' planet shader. With a warm shader
+cache the same page blocks about 1.3 s, most of it app boot.
+
+**The shape now:**
+
+- `planet/planet-scene.ts`: the planet's animation, free of the DOM. It runs in
+  `planet/planet.worker.ts` or, as the fallback, on the page. The page stays clock
+  and ruler: every frame it measures the anchor and posts the view, and the worker
+  draws on arrival. A reader changing one path changes both.
+- `bodies/body-gl.ts`: the same split for the small bodies. Their canvases move
+  with the page, so `bodies/bodies.worker.ts` runs its own animation frames and the
+  page reports only changes (size, on screen, stage pause). SVG maps are rasterised
+  on the page (that takes a document) and sent over as `ImageBitmap`s. Where
+  `KHR_parallel_shader_compile` exists, a body does not wait for another's shader.
+- A canvas goes to a worker only after that worker said it can draw, so a failed
+  worker leaves the page free to draw. After a hand-over the planet gets fresh
+  canvases; a body falls back to its CSS art.
+- The planet's canvases and worker outlive the component (`sessionLink`), so a
+  return inside the session compiles and uploads nothing.
+- Context loss: restore, else after 3 s the CSS planet or CSS art stands in.
+- WebGL starts after the next paint (`after-paint.ts`): on software rendering the
+  GPU process's work otherwise holds up the first paint even from a worker.
+
+**What is rendered without being seen (GL-4), measured by reading every frame back:**
+
+| Pass | Result | Decision |
+|---|---|---|
+| Train layer, full canvas, 30 fps | 73 of 128 clears had no train on them | Removed: untouched until a train is lit |
+| Planet pass while disc and halo are above the canvas | blank canvas, redrawn | Removed: one blank frame, then nothing |
+| Planet base at 15 fps | 0 of 79 frames identical | Kept: pixels change, so it is not needless |
+| Bodies at 30 fps | 0 of 540 frames identical | Kept: same reason |
+| Bodies off screen | already paused by IntersectionObserver | Nothing to do |
+| 2D copy per body | under 0.1 ms per body on the main thread | Kept: one context needs it |
+
+Not taken, because pixels would change: a slower planet pass, a smaller canvas,
+drawing the surface once and compositing the aurora over it.
+
+**Texture size (GL-7).** The disc is `160vw` wide, so r = 0.8 x viewport width, and
+1:1 at the disc's centre takes W = 2 pi r. There is no 8k asset.
+
+| Texture | W | Texels per device pixel at 1920 wide (r = 1536) | Decision |
+|---|---|---|---|
+| night | 4096 | 0.42 | Kept. 1:1 would take 9651 |
+| day, cloud | 1024 | 0.11 | Kept |
+| body maps | 1024, now 512 at dpr 1 | 2.7 before, 1.3 now (body 115 px) | Lowered: `bodyMapWidth()` |
+
+Body maps stay at or above 1:1 for the size a body can reach on this screen.
+
+**Service worker:** the worker files are `worker-*.js` in the dist root. If
+`ngsw-config.json` narrows `/*.js`, they need a rule of their own. Without one they
+still load online; offline the page draws the planet itself.
