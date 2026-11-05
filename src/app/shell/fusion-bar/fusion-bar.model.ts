@@ -96,7 +96,7 @@ export function isMainHeaderPage(url: string): boolean {
   return path === '/verse' || path === '/codex' || path === HQ_ROOT || path === ADMIN_HUB;
 }
 
-/** The main area a URL belongs to (null outside the main areas: settings, friends …). */
+/** The main area a URL belongs to (null outside the main areas: settings, social …). */
 export function activeAreaOf(url: string, starscapeEntry: boolean): AreaId | null {
   const path = url.split(/[?#]/, 1)[0];
   if (path === '/admin' || path.startsWith('/admin/')) return 'admin';

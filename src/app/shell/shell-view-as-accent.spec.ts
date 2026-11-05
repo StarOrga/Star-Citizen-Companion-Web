@@ -146,7 +146,7 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
   it('leaves the entries every signed-in user may use in the normal accent', () => {
     const el = setup({ targets: ['viewer', 'anon'], active: false, admin: true });
 
-    for (const href of ['/settings', '/friends']) {
+    for (const href of ['/settings', '/social']) {
       const item = el.querySelector<HTMLAnchorElement>('a.dropdown-item[href="' + href + '"]');
       expect(item).withContext(href).toBeTruthy();
       expect(item!.classList).withContext(href).not.toContain('elevated');

@@ -15,13 +15,12 @@ import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
-import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_SWITCH_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SWITCH_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
 import {
   INTRO_FLAG,
-  localDay,
   briefingStatus,
   claimIntro,
   resetIntroDocument,
@@ -136,20 +135,26 @@ describe('Verse briefing — model (more)', () => {
     expect(skyFigure(FALLBACK_POINTS, 7).stars.every((s) => s.state === 'lit')).toBeTrue();
   });
 
-  it('claimIntro plays the full entrance once per local day and survives blocked storage', () => {
+  it('claimIntro plays the full entrance once per session and survives blocked storage', () => {
     const store = new Map<string, string>();
     const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
-    const day = () => new Date(2026, 10, 5, 9, 0);
     resetIntroDocument();
-    expect(claimIntro(fake, day)).toBe('full');
-    expect(store.get(INTRO_FLAG)).toBe('2026-11-05');
-    expect(claimIntro(fake, day)).toBe('short');
-    expect(claimIntro(fake, () => new Date(2026, 10, 6, 9, 0))).toBe('full');
+    expect(claimIntro(fake, () => false)).toBe('full');
+    expect(store.get(INTRO_FLAG)).toBe('1');
+    expect(claimIntro(fake, () => false)).toBe('short');
     const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
-    resetIntroDocument();
     expect(claimIntro(broken)).toBe('full');
-    resetIntroDocument();
     expect(claimIntro(null)).toBe('full');
+  });
+
+  it('claimIntro: a reload is a new visit once per document, a later in-session return is short again', () => {
+    const store = new Map<string, string>([[INTRO_FLAG, '1']]);
+    const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+    resetIntroDocument();
+    expect(claimIntro(fake, () => true)).withContext('flag set, but the document was reloaded').toBe('full');
+    expect(claimIntro(fake, () => true)).withContext('the reload entry lives on: only the first claim counts').toBe('short');
+    resetIntroDocument();
+    expect(claimIntro(fake, () => false)).withContext('flag set, plain navigation').toBe('short');
   });
 
   it('fillGallery tops the digest up to the candidate count from the gallery source, without repeats', () => {
@@ -198,7 +203,7 @@ describe('Verse briefing — component', () => {
   const loadSeen = jasmine.createSpy('loadSeen');
 
   beforeEach(() => {
-    localStorage.removeItem(INTRO_FLAG);
+    sessionStorage.removeItem(INTRO_FLAG);
     captureVerse.calls.reset();
     trackShown.calls.reset();
     loadSeen.calls.reset();
@@ -240,7 +245,7 @@ describe('Verse briefing — component', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     beta.set({ ...beta(), shell: false });
-    localStorage.removeItem(INTRO_FLAG);
+    sessionStorage.removeItem(INTRO_FLAG);
   });
 
   it('renders the hero CTA, moons and the constellation star-map link as anchors and the story pills as buttons', () => {
@@ -375,7 +380,7 @@ describe('Verse briefing — component', () => {
   });
 
   it('plays the short entrance on a later visit in the same session', () => {
-    localStorage.setItem(INTRO_FLAG, localDay());
+    sessionStorage.setItem(INTRO_FLAG, '1');
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.stage')?.classList).toContain('short');
@@ -387,7 +392,7 @@ describe('Verse briefing — component', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('sc-news-list')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.stage')).toBeNull();
-    expect(localStorage.getItem(INTRO_FLAG)).toBeNull();
+    expect(sessionStorage.getItem(INTRO_FLAG)).toBeNull();
     expect(trackShown).not.toHaveBeenCalled();
     beta.set({ ...beta(), verse: true });
   });
@@ -436,14 +441,17 @@ describe('Verse briefing — component', () => {
       expect(fixture.nativeElement.querySelector('.hrow .step')).toBeNull();
       expect(stage(fixture)?.classList).not.toContain('finale');
 
-      // The finale comes once everything stood. Whether the planet settles on its own depends on the
-      // machine (no WebGL: at once, so the finale would already be over by the planet wait), so the
-      // spec settles it explicitly and the order stays the same everywhere. The planet-wait fallback (INTRO_PLANET_WAIT_MS)
-      // is a timer in the component only.
-      c.onPlanetSettled();
-      tick(INTRO_BUILD_MS);
-      fixture.detectChanges();
+      // The finale comes once everything stood — as soon as the planet settled (without WebGL that is
+      // right after the build-up), at the latest after the planet wait. Follow it to where it begins,
+      // so the beats below are measured from the finale, not from the clock of this environment.
+      let waited = 0;
+      while (waited < INTRO_PLANET_WAIT_MS && !stage(fixture)?.classList.contains('finale')) {
+        tick(100);
+        waited += 100;
+        fixture.detectChanges();
+      }
       expect(stage(fixture)?.classList).toContain('finale');
+      expect(waited).withContext('the finale never starts before the build-up stood').toBeGreaterThanOrEqual(INTRO_BUILD_MS);
       tick(INTRO_SWITCH_MS);
       fixture.detectChanges();
       expect(title(fixture)?.querySelector('.brand')).withContext('the name left the hero').toBeNull();
@@ -474,7 +482,7 @@ describe('Verse briefing — component', () => {
     }));
 
     it('a return within the session shows everything at once and releases an announced hold', fakeAsync(() => {
-      localStorage.setItem(INTRO_FLAG, localDay());
+      sessionStorage.setItem(INTRO_FLAG, '1');
       chrome.holdHeroIntro();
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();

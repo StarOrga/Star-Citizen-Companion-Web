@@ -322,7 +322,7 @@ export const SEARCH_PLACES: readonly SearchPlace[] = [
   { id: 'ops', labelKey: 'fusionBar.place.ops', link: ['/hq', 'ops'], queryParams: null, keywords: ['einsätze', 'einsatz', 'ops', 'mission', 'missionen', 'planung'], boost: ['hq'] },
   { id: 'extension', labelKey: 'fusionBar.place.extension', link: ['/apps', 'extension'], queryParams: null, keywords: ['erweiterung', 'extension', 'browser', 'chrome', 'edge', 'import'], boost: [] },
   { id: 'settings', labelKey: 'fusionBar.place.settings', link: ['/settings'], queryParams: null, keywords: ['einstellungen', 'settings', 'konto', 'account', 'sprache', 'language'], boost: [] },
-  { id: 'friends', labelKey: 'fusionBar.place.friends', link: ['/friends'], queryParams: null, keywords: ['freunde', 'friends', 'org'], boost: [] },
+  { id: 'social', labelKey: 'fusionBar.place.social', link: ['/social'], queryParams: null, keywords: ['social', 'freunde', 'friends'], boost: [] },
   { id: 'releaseNotes', labelKey: 'fusionBar.place.releaseNotes', link: ['/release-notes'], queryParams: null, keywords: ['release', 'changelog', 'neu', 'version'], boost: [] },
   { id: 'badge', labelKey: 'fusionBar.place.badge', link: ['/badge', 'kartograph'], queryParams: null, keywords: ['badge', 'kartograph', 'abzeichen'], boost: [] },
   { id: 'download', labelKey: 'fusionBar.place.download', link: ['/apps', 'starscape'], queryParams: null, keywords: ['download', 'app', 'starscape', 'uploader', 'desktop'], boost: [] },

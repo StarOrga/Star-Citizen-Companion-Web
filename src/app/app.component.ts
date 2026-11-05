@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, effect, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, OnInit, untracked } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
 import { PresenceService } from './auth/presence.service';
+import { FriendsService } from './social/friends.service';
+import { emptyGraph } from './social/friends.types';
+import { SocialPresenceService } from './social/social-presence.service';
 import { AnalyticsService } from './core/analytics.service';
 import { WebVitalsService } from './core/web-vitals.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
@@ -105,6 +108,8 @@ export class AppComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
   private readonly presence = inject(PresenceService);
+  private readonly socialPresence = inject(SocialPresenceService);
+  private readonly friends = inject(FriendsService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly analytics = inject(AnalyticsService);
   private readonly webVitals = inject(WebVitalsService);
@@ -123,6 +128,17 @@ export class AppComponent implements OnInit {
   private appliedProfileFor: string | null = null;
 
   constructor() {
+    // The open-request counter on the account menu needs the graph once per
+    // sign-in, not per navigation. Failure-silent (load() keeps its own error
+    // signal); a sign-out empties the graph so a counter never outlives it.
+    let friendsFor: string | null = null;
+    effect(() => {
+      const id = this.auth.realUser()?.id ?? null;
+      if (id === friendsFor) return;
+      friendsFor = id;
+      if (id) untracked(() => void this.friends.load());
+      else untracked(() => this.friends.graph.set(emptyGraph()));
+    });
     // After auth is ready and a user appears, load their stored locale
     // preferences and apply them — once per account, so a switch made in the
     // current session is never overridden (see appliedProfileFor).
@@ -185,6 +201,9 @@ export class AppComponent implements OnInit {
     this.auth.init();
     // Keeps the admin "last seen" honest for members who stay signed in.
     this.presence.init();
+    // Online status and the 30-day activity mask (user_presence); without
+    // this nobody is ever online.
+    this.socialPresence.init();
     this.swUpdate.init();
     // Turns a route whose lazy chunk will not load back into a working
     // navigation instead of a menu entry that silently does nothing (admin

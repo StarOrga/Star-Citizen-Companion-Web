@@ -65,7 +65,7 @@
   <p class="fr-label">Nachtrag: deine drei Folgepunkte</p>
   <ul>
     <li><b>Karten der Himmelskörper: gebaut.</b> Sie liegen als verlustfreie WebP vor und laden im Worker. Auf deiner RTX mit kaltem Cache: 2–3 lange Aufgaben statt 8–9, zusammen 0,26–0,35 s statt 1,8–2,1 s, die längste 0,18–0,20 s statt 0,6 s, Planet fertig nach 2,1–2,4 s statt 3,5–3,9 s. Andere GPU-Hersteller bekommen jetzt das Bild aus diesem Bake statt ihres eigenen Rasters, verglichen ist das nicht.</li>
-    <li><b>Rote Einzug-Spec: behoben.</b> Das Produkt war nicht falsch: Ohne WebGL meldet der Planet sofort „fertig“, das Finale war dann vor dem Prüfzeitpunkt vorbei. Der Test setzt das jetzt ausdrücklich, seine Prüfungen sind unverändert. Der 7-Sekunden-Rückfall für einen Planeten, der nie fertig wird, hat damit keinen eigenen Test mehr.</li>
+    <li><b>Rote Einzug-Spec: behoben.</b> Das Produkt war nicht falsch: Ohne WebGL meldet der Planet sofort „fertig“, das Finale war dann vor dem Prüfzeitpunkt vorbei. Dieselbe Reparatur kam parallel über #939 auf <code>main</code>. Ich habe deren Fassung übernommen, weil sie dem Finale bis zu seinem Beginn folgt und mehr prüft als meine.</li>
     <li><b>Ohne GPU: nicht gebaut, entgegen deiner Auswahl.</b> Mein Wert aus dem Bericht hielt nicht: Im selben Messlauf streut der alte Stand beim ersten Inhalt genauso (5,6–10,7 s gegen 3,9–8,1 s mit Worker). Beide Gegenmittel brachten nichts: Der Seitenweg lag bei 3,0–10,6 s und fror die Seite 8–11 s ein, ein Warten auf den ersten Inhalt bei 3,1–9,8 s. Ein Einbau wäre ein Placebo gewesen. Unter der Last dieser Läufe ist ein kleiner Effekt nicht auszuschließen. Der Fund bleibt deshalb offen.</li>
   </ul>
 
@@ -134,7 +134,7 @@
           <dt>{{final.fund_where}}</dt><dd><code>verse-briefing.component.spec.ts:442</code></dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue: nicht von dieser Arbeit verursacht, Ursache noch offen.</dd>
         </dl>
-        <span class="oq-done">✓ umgesetzt — <code>verse-briefing.component.spec.ts</code>, der Test hing vom Rechner ab</span>
+        <span class="oq-done">✓ umgesetzt — <code>verse-briefing.component.spec.ts</code>, Fassung von #939 übernommen</span>
       </li>
     </ul>
   </details>
