@@ -27,8 +27,12 @@ export interface SilhouetteBuildRequest {
   /** Overrides `<outDir>/silhouettes/_build_manifest.json`. */
   manifestPath?: string;
   toleranceM?: number;
-  /** Meshes converted at once (threads in the sidecar) — main sizes it from the resource limits. */
+  /** Meshes converted at once at the start — main sizes it from the resource limits. */
   workers?: number;
+  /** Most meshes at once the limits can ever ask for while the run goes. */
+  maxWorkers?: number;
+  /** File the sidecar polls for the live worker count (`live_limits.py`). */
+  liveLimitsPath?: string;
 }
 
 /**
@@ -56,5 +60,7 @@ export function silhouetteBuildArgs(req: SilhouetteBuildRequest): string[] {
   if (req.manifestPath) args.push('--manifest', req.manifestPath);
   if (req.toleranceM != null) args.push('--tolerance-m', String(req.toleranceM));
   if (req.workers && req.workers > 1) args.push('--workers', String(Math.floor(req.workers)));
+  if (req.maxWorkers) args.push('--max-workers', String(Math.floor(req.maxWorkers)));
+  if (req.liveLimitsPath) args.push('--live-limits', req.liveLimitsPath);
   return args;
 }

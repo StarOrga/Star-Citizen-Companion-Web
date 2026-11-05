@@ -251,22 +251,65 @@ export function dumpWorkers(limits: ResourceLimits, cores: number): number {
 /** Rough resident size of one 3D-export worker (own P4K index + DataCore). */
 export const SKIN_WORKER_MB = 3072;
 
-/** Ships the 3D export builds at once — a ship keeps ~2 cores busy, capped at 4 and by RAM. */
+/**
+ * Cores the CPU share covers, rounded UP. Rounding down would leave the run
+ * below its limit by design (12 threads at 80 % = 9.6 → 9 = 75 %); the job's hard
+ * cap takes care of the fraction above it.
+ */
+function cpuSlots(limits: ResourceLimits, cores: number): number {
+  const total = Math.max(1, Math.floor(cores));
+  return Math.max(1, Math.min(total, Math.ceil((total * limits.cpuPct) / 100)));
+}
+
+/** Ships the 3D export builds at once — a ship keeps ~2 cores busy; RAM caps it. */
 export function skinWorkers(limits: ResourceLimits, cores: number): number {
-  const byCpu = Math.floor(dumpWorkers(limits, cores) / 2);
   const byRam = Math.floor(limits.ramMb / SKIN_WORKER_MB);
-  return Math.max(1, Math.min(4, byCpu, byRam));
+  return Math.max(1, Math.min(Math.floor(cpuSlots(limits, cores) / 2), byRam));
 }
 
 /**
- * Meshes the silhouette step converts at once. One conversion is one
- * cgf-converter process plus a numpy raster — about a core and a few hundred
- * MB — so the CPU share decides, capped at 8 (beyond that the single P4K
- * reader feeding them is the bottleneck).
+ * Meshes the silhouette step converts at once, each in its own process
+ * (`silhouette_pool.py`). One conversion is about a core and a few hundred MB, so
+ * the CPU share decides. The single P4K reader feeding them is no limit: 2.8 ms
+ * per mesh against ~300 ms of conversion.
  */
 export function silhouetteWorkers(limits: ResourceLimits, cores: number): number {
   const byRam = Math.floor(limits.ramMb / 512);
-  return Math.max(1, Math.min(8, dumpWorkers(limits, cores), byRam));
+  return Math.max(1, Math.min(cpuSlots(limits, cores), byRam));
+}
+
+/** The stages whose worker count follows the limits while they run. */
+export type LiveJobKind = 'skin' | 'silhouette';
+
+export function liveWorkers(kind: LiveJobKind, limits: ResourceLimits, cores: number): number {
+  return kind === 'skin' ? skinWorkers(limits, cores) : silhouetteWorkers(limits, cores);
+}
+
+/** The most workers the limits can ever ask for on this machine — the scales' tops. */
+export function maxLiveWorkers(kind: LiveJobKind, machine: MachineInfo): number {
+  const top = rangesFor(machine);
+  return liveWorkers(kind, { ...presetLimits('full', machine), cpuPct: top.cpuPct.max, ramMb: top.ramMb.max }, machine.cores);
+}
+
+/** Below this share of the budget a throttled silhouette run opens up again. */
+export const RAM_RELEASE_SHARE = 0.8;
+
+/**
+ * RAM is the one budget nothing enforces (see the header), and a handful of big
+ * hulls at once can pass it. Over budget the silhouette step halves its meshes at
+ * once until the tree is well below it again. Not for the 3D export: its workers
+ * are sized by RAM already and a restart costs minutes of opening the P4K.
+ */
+export function ramThrottled(wasThrottled: boolean, memMb: number, ramMb: number): boolean {
+  if (memMb >= ramMb) return true;
+  return wasThrottled && memMb >= ramMb * RAM_RELEASE_SHARE;
+}
+
+/** What a running sidecar reads from its `--live-limits` file (`live_limits.py`). */
+export interface LiveLimitsFile {
+  workers: number;
+  useGpu: boolean;
+  gpuShare: number;
 }
 
 export type PriorityClass = 'idle' | 'below_normal';

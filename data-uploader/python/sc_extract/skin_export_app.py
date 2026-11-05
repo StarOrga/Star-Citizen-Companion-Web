@@ -37,11 +37,12 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import stage_timing
 from .events import count, done, error, log, phase, progress
 from .hull3d import EXPORT_FORMAT, Hull3DExporter, HullExportConfig
+from .live_limits import LiveLimits
 from .ship_discovery import SHIPS_ROOT, ShipDiscovery, ShipRef
 from .ship_export import parse_ship
 
@@ -324,6 +325,10 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--workers", type=int, default=0,
                     help="ships built at once in separate processes (0 = auto from "
                          "cores and RAM, 1 = one after another)")
+    ap.add_argument("--max-workers", type=int, default=0,
+                    help="most ships at once the limits can ever ask for while this run goes")
+    ap.add_argument("--live-limits", type=Path, default=None,
+                    help="file the host rewrites when the limits change (live_limits.py)")
     return ap
 
 
@@ -338,6 +343,9 @@ def _on_log(level: str, msg: str) -> None:
 # so RAM caps the count as much as cores do.
 MAX_WORKERS = 4
 WORKER_RAM_GB = 6
+# A worker costs minutes of P4K + DataCore opening: wait until a dragged slider
+# has settled before starting one, or ending one.
+LIVE_SETTLE_S = 5.0
 THREADS_PER_WORKER = 3
 
 
@@ -532,8 +540,10 @@ class _WorkerSink:
         self.queue.put(event)
 
 
-def _worker_main(args, wid: int, tasks, events_q) -> None:
-    """Spawned process: build ships from the shared queue until the sentinel.
+def _worker_main(args, wid: int, tasks, events_q, active=None) -> None:
+    """Spawned process: build ships from the shared queue until the sentinel,
+    or until the live limits no longer leave room for this worker (checked
+    between ships, so a started ship always finishes).
     Its events travel to the parent, which owns stdout."""
     from . import events
     events.set_event_sink(_WorkerSink(events_q))
@@ -544,6 +554,8 @@ def _worker_main(args, wid: int, tasks, events_q) -> None:
         return
     events_q.put({"type": "__ready", "worker": wid})
     while True:
+        if active is not None and wid >= active.value:
+            break
         item = tasks.get()
         if item is None:
             break
@@ -569,8 +581,11 @@ def _worker_main(args, wid: int, tasks, events_q) -> None:
 
 def _build_parallel(args, jobs: List[Tuple[int, ShipRef]], workers: int, total: int,
                     done_before: int, results: Dict[int, Tuple[Optional[dict], Optional[dict]]],
-                    pkg_parts: list, timing: Dict[str, Any]) -> Dict[str, int]:
-    """Fan ``jobs`` out over ``workers`` spawned processes. Fills ``results``
+                    pkg_parts: list, timing: Dict[str, Any],
+                    live_workers: Optional[Callable[[], int]] = None,
+                    max_workers: int = 0) -> Dict[str, int]:
+    """Fan ``jobs`` out over spawned processes, ``workers`` at first and then as
+    many as ``live_workers`` asks for (up to ``max_workers``). Fills ``results``
     by index; returns cache hit/miss totals for the package summary."""
     import multiprocessing as mp
     from dataclasses import asdict
@@ -582,17 +597,54 @@ def _build_parallel(args, jobs: List[Tuple[int, ShipRef]], workers: int, total: 
     tasks, events_q = ctx.Queue(), ctx.Queue()
     for idx, ref in jobs:
         tasks.put((idx, asdict(ref)))
-    for _ in range(workers):
+    cap = max(workers, int(max_workers or 0))
+    # One sentinel per worker that can ever exist; leftovers must not hold exit.
+    for _ in range(cap):
         tasks.put(None)
-    procs = [ctx.Process(target=_worker_main, args=(args, w, tasks, events_q), daemon=True)
-             for w in range(workers)]
-    for p in procs:
-        p.start()
-    log("info", f"{len(jobs)} ship(s) on {workers} parallel worker(s)")
+    tasks.cancel_join_thread()
+    active = ctx.Value("i", workers)
+    procs: Dict[int, Any] = {}
     in_flight: Dict[int, int] = {}
     exited: set = set()
+    failed: set = set()
     stats = {"hits": 0, "misses": 0, "ships": 0}
     finished = done_before
+
+    def start(w: int) -> None:
+        exited.discard(w)
+        procs[w] = ctx.Process(target=_worker_main, args=(args, w, tasks, events_q, active), daemon=True)
+        procs[w].start()
+
+    for w in range(workers):
+        start(w)
+    log("info", f"{len(jobs)} ship(s) on {workers} parallel worker(s)")
+    wanted, wanted_since, applied = workers, time.monotonic(), workers
+    peak = workers
+
+    def follow_limits() -> None:
+        nonlocal wanted, wanted_since, applied, peak
+        if live_workers is None:
+            return
+        now_wanted = max(1, min(cap, int(live_workers())))
+        if now_wanted != wanted:
+            wanted, wanted_since = now_wanted, time.monotonic()
+            return
+        if time.monotonic() - wanted_since < LIVE_SETTLE_S:
+            return
+        active.value = wanted
+        if wanted != applied:
+            applied = wanted
+            peak = max(peak, wanted)
+            log("info", f"3D build: limits changed, now {wanted} worker(s)")
+        unstarted = len(jobs) - (finished - done_before) - len(in_flight)
+        for w in range(wanted):
+            p = procs.get(w)
+            # A worker that ended by itself may come back; a crashed one or one
+            # that could not open the P4K stays down instead of looping.
+            free = p is None or (not p.is_alive() and w in exited and w not in failed)
+            if free and unstarted > 0:
+                start(w)
+                unstarted -= 1
 
     def on_internal(ev: Dict[str, Any]) -> None:
         nonlocal finished
@@ -608,6 +660,7 @@ def _build_parallel(args, jobs: List[Tuple[int, ShipRef]], workers: int, total: 
         elif kind == "__fail":
             log("warn", f"3D worker {wid} could not start: {ev.get('error')}")
             exited.add(wid)
+            failed.add(wid)
         elif kind == "__exit":
             exited.add(wid)
             pkg_parts.extend(ev.get("parts") or [])
@@ -622,7 +675,8 @@ def _build_parallel(args, jobs: List[Tuple[int, ShipRef]], workers: int, total: 
         while True:
             if drain():
                 continue
-            alive = [w for w, p in enumerate(procs) if p.is_alive()]
+            follow_limits()
+            alive = [w for w, p in procs.items() if p.is_alive()]
             if not alive:
                 time.sleep(0.2)
                 while drain():
@@ -630,20 +684,20 @@ def _build_parallel(args, jobs: List[Tuple[int, ShipRef]], workers: int, total: 
                 break
             time.sleep(0.1)
     finally:
-        for p in procs:
+        for p in procs.values():
             p.join(timeout=5)
     # A worker that died mid-ship (crash, OOM) leaves its ship unanswered.
-    for w, p in enumerate(procs):
+    for w, p in procs.items():
         if w in in_flight and in_flight[w] not in results:
             idx = in_flight[w]
             ref = dict(jobs)[idx]
             log("warn", f"{ref.ship_id}: worker {w} died mid-build (exit {p.exitcode})")
             results[idx] = (None, {"ship_id": ref.ship_id, "paints": 0,
                                    "reason": f"worker died (exit {p.exitcode})"})
-    if len(exited) < workers or any((p.exitcode or 0) != 0 for p in procs):
+    if any(w not in exited or (p.exitcode or 0) != 0 for w, p in procs.items()):
         log("warn", "some 3D workers did not finish cleanly — their remaining ships "
                     "were not built")
-    return stats
+    return {**stats, "peak": peak}
 
 
 def main() -> int:
@@ -698,20 +752,27 @@ def main() -> int:
         else:
             workers = auto_workers(len(jobs))
         workers = max(1, min(workers, len(jobs) or 1))
+        # What the limits can ask for later; the same RAM clamp holds.
+        ram_gb = _total_ram_gb()
+        ram_cap = max(1, int(ram_gb // WORKER_RAM_GB)) if ram_gb else args.max_workers
+        cap = max(workers, min(args.max_workers, len(jobs), ram_cap))
+        live = LiveLimits(workers, args.live_limits).start()
 
         timing: Dict[str, Any] = {}
         pkg_parts: list = []
         pkg_stats = {"hits": 0, "misses": 0, "ships": 0}
         run: Optional[_ShipRun] = None
-        needs_local = (args.fps or args.items or args.armor) or (jobs and workers == 1)
+        needs_local = (args.fps or args.items or args.armor) or (jobs and cap == 1)
         if needs_local:
             run = _ShipRun(args, many=len(refs) > 1)
-        if jobs and workers > 1:
+        if jobs and cap > 1:
             phase("discover")
             log("info", f"starting {workers} 3D workers — each opens the P4K and the "
                         "DataCore first (a few minutes)")
             pkg_stats = _build_parallel(args, jobs, workers, len(refs), len(results),
-                                        results, pkg_parts, timing)
+                                        results, pkg_parts, timing,
+                                        live_workers=lambda: live.workers, max_workers=cap)
+            workers = max(workers, pkg_stats.pop("peak", workers))
         elif jobs:
             assert run is not None
             for n, (i, ref) in enumerate(jobs):

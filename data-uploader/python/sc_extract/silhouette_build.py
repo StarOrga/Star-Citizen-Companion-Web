@@ -33,6 +33,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 # so `_ship_anchor_inputs` silently read back no anchors/unresolved for it.
 from .constellation import constellation_from_path
 from .dataforge_extract import _safe_filename
+from .live_limits import SlotGate
 
 
 def _ship_anchor_inputs(out_dir: Path, class_name: str) -> Dict[str, Any]:
@@ -126,6 +127,8 @@ def build_rows(
     manifest_skips: Optional[List[Dict[str, Any]]] = None,
     budget_s: float = MESH_BUDGET_S,
     grace_s: float = ABANDON_GRACE_S,
+    live_workers: Optional[Callable[[], int]] = None,
+    max_workers: int = 0,
 ) -> Dict[str, Any]:
     """Build every silhouette row of a manifest.
 
@@ -140,6 +143,9 @@ def build_rows(
     counts the host reports. Every entity without a row — plus the extractor's
     own ``manifest_skips`` (hulls with no mesh path at all) — lands in
     ``silhouettes/skips.json`` with its reason.
+
+    ``live_workers`` is read all the time: the meshes at once follow the
+    operator's limits while the run goes, up to ``max_workers``.
     """
     import time
     from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -225,6 +231,12 @@ def build_rows(
         finish(mesh, silhouette, from_cache, skip)
 
     workers = max(1, int(workers))
+    cap = max(workers, int(max_workers or 0))
+
+    def target() -> int:
+        return max(1, min(cap, int(live_workers()) if live_workers else workers))
+
+    gate = SlotGate(target)
     pending: Dict[Any, str] = {}
     started: Dict[Any, float] = {}   # future -> monotonic start (set by the worker thread)
     abandoned: List[str] = []
@@ -234,6 +246,8 @@ def build_rows(
             note: Optional[str] = None) -> Any:
         # Runs on a pool thread: stamps the start, arms the cooperative deadline.
         ready.wait()  # the submitting thread has stored the future in `fut_box`
+        if not gate.acquire():
+            return None  # the build is over; nobody reads this result
         started[fut_box[0]] = time.monotonic()
         set_deadline(time.monotonic() + budget_s)
         if note:
@@ -242,6 +256,7 @@ def build_rows(
             return fn(*args)
         finally:
             set_deadline(None)
+            gate.release()
 
     def submit(pool: Any, fn: Callable[..., Any], *args: Any, note: Optional[str] = None) -> Any:
         box: List[Any] = []
@@ -254,7 +269,7 @@ def build_rows(
     def overdue(futs: Any) -> List[Any]:
         now = time.monotonic()
         # Every worker is stuck on an abandoned mesh: what is still queued never starts.
-        no_worker_left = len(abandoned) >= workers
+        no_worker_left = len(abandoned) >= target()
         return [f for f in futs if not f.done()
                 and (now - started[f] > budget_s + grace_s if f in started else no_worker_left)]
 
@@ -263,7 +278,7 @@ def build_rows(
         abandoned.append(mesh)
         return (SKIP_CONVERT_FAILED, f"time budget exceeded ({budget_s:.0f}s)")
 
-    pool = ThreadPoolExecutor(max_workers=workers)
+    pool = ThreadPoolExecutor(max_workers=cap)
     try:
         for mesh in by_mesh:
             try:
@@ -283,7 +298,7 @@ def build_rows(
             pending[submit(pool, exporter.compute, src, mesh_id, tolerance_m)] = mesh
             # Bounded in flight: each queued job holds its mesh bytes (a big
             # hull + .cgam is tens of MB), so never read far ahead of the pool.
-            while len(pending) >= workers * 2:
+            while len(pending) >= target() * 2:
                 _drain(pending, wait, FIRST_COMPLETED, poll_s, settle, log, SilhouetteSkip,
                        overdue, budget_skip)
         while pending:
@@ -346,9 +361,11 @@ def build_rows(
                 _, detail = budget_skip(lod)
                 finish(mesh, None, False, (skip[0], f"{skip[1]}; lod1: {detail}"))
     finally:
+        gate.close()
         # Never wait for an abandoned (stuck) worker: the `with` form would block here forever.
         pool.shutdown(wait=not abandoned, cancel_futures=True)
     stats["abandoned"] = len(abandoned)
+    stats["peakWorkers"] = gate.peak
 
     write_skips(out_dir, skips)
     reasons: Dict[str, int] = {}
@@ -363,7 +380,7 @@ def build_rows(
 
     log("info", f"silhouette build: {stats['written']} written ({stats['cached']} from cache), "
                 f"{stats['skipped']} skipped (no usable geometry), "
-                f"{len(by_mesh)} distinct mesh(es) on {workers} worker(s)")
+                f"{len(by_mesh)} distinct mesh(es) on up to {gate.peak} worker(s)")
     if stats["shipsWithoutAnchors"]:
         log("warn", f"{stats['shipsWithoutAnchors']}/{stats['ships']} ship silhouettes without anchors: "
                     + ", ".join(sorted(no_anchor)[:40]) + (" …" if len(no_anchor) > 40 else ""))
