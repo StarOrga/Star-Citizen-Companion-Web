@@ -4,6 +4,7 @@ import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import type { StabilityVerdict } from '../../../news/patch-stability';
 import type { VerseNewsItem } from '../../../news/news.service';
 import type { VerseChannelInfo } from '../../data/verse.models';
+import { ACC_TRANSITION_MS } from './briefing-accordion';
 import { BriefingHubComponent } from './briefing-hub.component';
 import { daysSince, hubChannel, hubChannels } from './briefing-hub';
 
@@ -75,6 +76,16 @@ describe('BriefingHubComponent — news accordion', () => {
     const css = getComputedStyle((fixture.nativeElement as HTMLElement).querySelector('.acc-i.open .acc-a')!);
     expect(css.overflow).toBe('hidden');
     expect(css.borderTopLeftRadius).toBe('6px');
+  });
+
+  it('animates for exactly as long as the hover intent waits', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
+    const fixture = TestBed.createComponent(BriefingHubComponent);
+    const item = { id: 'n1', title: 'News', thumbnail: null, publishedAt: new Date(NOW).toISOString() };
+    fixture.componentRef.setInput('news', [item] as unknown as VerseNewsItem[]);
+    fixture.detectChanges();
+    const row = (fixture.nativeElement as HTMLElement).querySelector('.acc-i')!;
+    expect(parseFloat(getComputedStyle(row).transitionDuration) * 1000).toBe(ACC_TRANSITION_MS);
   });
 });
 

@@ -1,15 +1,15 @@
 import { signal } from '@angular/core';
 
 /** After the last (fast) movement the pointer has to stand still this long before its entry opens. */
-export const ACC_REST_MS = 80;
+export const ACC_REST_MS = 267;
 /** A step of at most this many pixels is jitter: the pointer counts as standing still. */
 export const ACC_MOVE_PX = 4;
 /** Slower than this (px per ms) is a resting / creeping pointer, not a sweep. */
 export const ACC_SLOW_PX_PER_MS = 0.2;
 /** Two pointer samples further apart than this (ms) say nothing about speed. */
 export const ACC_SAMPLE_MAX_MS = 150;
-/** One open/close transition; a started one always runs to its end. */
-export const ACC_TRANSITION_MS = 450;
+/** One open/close transition; a started one always runs to its end. Same value as --acc-t in briefing-hub.component.scss. */
+export const ACC_TRANSITION_MS = 1500;
 
 /**
  * Hover intent for the hub's News accordion (exactly one entry open):

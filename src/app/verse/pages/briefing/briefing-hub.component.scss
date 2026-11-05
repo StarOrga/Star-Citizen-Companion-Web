@@ -75,11 +75,12 @@
 .acc-i {
   --o: 0;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --acc-t: 1.5s; // ACC_TRANSITION_MS (briefing-accordion.ts)
   position: relative;
   height: calc(var(--row) + var(--o) * (var(--feat) - var(--row)));
   border-top: 1px solid color-mix(in srgb, var(--sc-accent) 12%, transparent);
   overflow: hidden;
-  transition: height 0.45s var(--ease);
+  transition: height var(--acc-t) var(--ease);
 }
 .acc-i:first-child { border-top-color: transparent; }
 .acc-i.open { --o: 1; }
@@ -91,7 +92,7 @@
   inset: 0;
   background: linear-gradient(transparent 50%, rgba(4, 11, 19, 0.88));
   opacity: var(--o);
-  transition: opacity 0.45s;
+  transition: opacity var(--acc-t);
   pointer-events: none;
 }
 .acc-img {
@@ -101,7 +102,7 @@
   width: calc(5.6 * var(--u) + var(--o) * (100% - 5.6 * var(--u)));
   height: calc(3.4 * var(--u) + var(--o) * (100% - 3.4 * var(--u)));
   border-radius: 4px;
-  transition: top 0.45s var(--ease), width 0.45s var(--ease), height 0.45s var(--ease), transform 0.3s ease;
+  transition: top var(--acc-t) var(--ease), width var(--acc-t) var(--ease), height var(--acc-t) var(--ease), transform 0.3s ease;
 }
 // Same slow image zoom as the gallery tiles — on the open (feature-sized) entry.
 .acc-i.open .acc-a:hover .acc-img { transform: scale(1.04); }
@@ -122,7 +123,7 @@
   // A text-shadow would be cut off at the clamp's box (a hard rectangle behind the title): --vb-dim-filter runs after the clip.
   text-shadow: none;
   filter: var(--vb-dim-filter);
-  transition: left 0.45s var(--ease), bottom 0.45s var(--ease), font-size 0.45s;
+  transition: left var(--acc-t) var(--ease), bottom var(--acc-t) var(--ease), font-size var(--acc-t);
 }
 .acc-t small { display: block; font-size: max(11px, calc(0.6 * var(--u))); font-weight: 400; color: var(--sc-fg-2, var(--sc-fg-1)); margin-top: 2px; }
 .acc-a:hover .acc-t { color: #fff; }
