@@ -28,7 +28,9 @@
 }
 // Category bar: icons in a row; the active tab also shows its name, the others name in a tooltip.
 // Wraps instead of clipping: the active tab keeps its full name, the others drop to the next line when the pane is narrow.
-.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 1px; min-width: 0; }
+.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 1px; min-width: 0;
+  // The bar takes the body's right padding (the glowing edge keeps 8px): the body's own scrollbar eats ~10px of the content box.
+  margin-right: -10px; }
 .tab-li { position: relative; display: flex; min-width: 0; flex: 0 0 auto; }
 .tab-li.on { flex: 1 0 auto; }
 .tab {

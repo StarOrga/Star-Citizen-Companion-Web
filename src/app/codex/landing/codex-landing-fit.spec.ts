@@ -26,7 +26,7 @@ function item(category: LandingCategory): LandingItem {
 describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', () => {
   let fixture: ComponentFixture<CodexLandingCodexPaneComponent>;
 
-  async function mount(lang: 'de' | 'en', width: number, active: LandingCategory): Promise<HTMLElement> {
+  async function mount(lang: 'de' | 'en', width: number, active: LandingCategory, height = 0): Promise<HTMLElement> {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ imports: [CodexLandingCodexPaneComponent], providers: [provideRouter([]), provideTranslateService()] });
     const tr = TestBed.inject(TranslateService);
@@ -35,7 +35,8 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
     tr.use(lang);
     fixture = TestBed.createComponent(CodexLandingCodexPaneComponent);
     const host = fixture.nativeElement as HTMLElement;
-    host.style.cssText = `display:block;width:${width}px;position:absolute;left:0;top:0`;
+    // Desktop: the pane is a flex column of limited height, so its body scrolls and carries a REAL scrollbar like in the app (that is what made the bar 229px at a 257px pane).
+    host.style.cssText = `display:flex;flex-direction:column;width:${width}px;position:absolute;left:0;top:0;${height ? `height:${height}px;` : ''}`;
     document.body.appendChild(host);
     fixture.componentRef.setInput('items', LANDING_CATEGORIES.map(item));
     fixture.componentRef.setInput('active', active);
@@ -49,13 +50,13 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
   afterEach(() => fixture?.nativeElement.remove());
 
   /**
-   * Pane widths: 256 = the real list pane at 1440 and 1920 (the side column is clamp(250px, 22%, 350px) of the
-   * page frame minus gutter and 22px; measured 256 by QA), 328 = phone content width. Karma is a fine pointer, so
+   * Pane widths: 257 = the real list pane at 1440 (measured in the app by QA; the side column is clamp(250px, 22%, 350px) of the
+   * page frame minus gutter and 22px), 328 = phone content width. Karma is a fine pointer, so
    * the phone case replays the (pointer: coarse) tab sizing of the pane's stylesheet (min-width 48, 11px name).
    * 186 = tablet (721-1099px): below the desktop minimum a wrap is the honest last resort, so only "no clipping" is asserted there.
    */
   const CASES: { width: number; coarse: boolean; oneRow: boolean }[] = [
-    { width: 256, coarse: false, oneRow: true },
+    { width: 257, coarse: false, oneRow: true },
     { width: 328, coarse: true, oneRow: true },
     { width: 186, coarse: false, oneRow: false },
   ];
@@ -67,7 +68,9 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
         document.head.appendChild(style);
         const measured: string[] = [];
         for (const cat of LANDING_CATEGORIES) {
-          const host = await mount(lang, width, cat);
+          const host = await mount(lang, width, cat, coarse || width < 200 ? 0 : 150);
+          const bodyEl = host.querySelector<HTMLElement>('.body')!;
+          if (!coarse && width > 200) expect(bodyEl.offsetWidth - bodyEl.clientWidth).withContext('real scrollbar present').toBeGreaterThan(0);
           const bar = host.querySelector<HTMLElement>('.tabs')!.getBoundingClientRect();
           const tabs = Array.from(host.querySelectorAll<HTMLElement>('.tabs .tab'));
           expect(tabs.length).toBe(5);
