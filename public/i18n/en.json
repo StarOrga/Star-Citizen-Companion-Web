@@ -2314,6 +2314,113 @@
       "patch": "Patch",
       "placeholderHint": "‹…› is filled in by the game when you accept (location, contractor, target).",
       "notFound": "This mission is not in the current LIVE build."
+    },
+    "missile": {
+      "keywordsLabel": "Quick profile",
+      "scopeOff": "Too few weapons to compare with in this group.",
+      "scope": {
+        "all": "All",
+        "kind": "Kind",
+        "size": "Size",
+        "signal": "Signal"
+      },
+      "axis": {
+        "damage": "DAMAGE",
+        "speed": "SPEED",
+        "agility": "AGILITY",
+        "range": "RANGE",
+        "lockTime": "LOCK",
+        "lifetime": "FLIGHT TIME",
+        "size": "SIZE",
+        "length": "LENGTH",
+        "width": "WIDTH"
+      },
+      "rank": {
+        "nAll": "{{n}} guided weapons",
+        "nKind": "{{n}} guided weapons of the same kind",
+        "nSize": "{{n}} guided weapons of size {{k}}",
+        "nSignal": "{{n}} guided weapons with the same tracking signal",
+        "verdict": "{{pct}} % — {{band}} against {{n}} guided weapons.",
+        "percentileTooltip": "The value says where this weapon sits in the comparison field. 50 % is the exact middle. Size and measurements are no verdict: longer only means longer.",
+        "radarAria": "Radar chart of the percentiles of {{name}} against {{n}} guided weapons",
+        "legendCompare": "Median {{group}} · {{n}} guided weapons",
+        "legendAbove": "above median",
+        "legendBelow": "below median",
+        "compareInfo": "Each axis runs from 0 (centre) to the highest value among the chosen weapons (rim). Blue is this weapon, the dashed line the group's median.",
+        "note": "Compares only what the game data holds for this weapon."
+      },
+      "data": {
+        "title": "Weapon data",
+        "combatMissing": "Damage, speed, agility, range and lock time are not in the current data yet. They appear here as soon as the extract carries them."
+      },
+      "group": {
+        "warhead": "Warhead",
+        "flight": "Flight",
+        "guidance": "Guidance",
+        "build": "Build"
+      },
+      "stat": {
+        "signal": "Tracking signal",
+        "category": "Kind",
+        "size": "Size",
+        "length": "Length",
+        "width": "Width",
+        "damage": "Damage",
+        "speed": "Speed",
+        "agility": "Agility",
+        "range": "Range",
+        "lifetime": "Flight time",
+        "lockTime": "Lock time"
+      },
+      "signal": {
+        "ir": "Infrared",
+        "em": "Electromagnetic",
+        "cs": "Cross section"
+      },
+      "category": {
+        "missile": "Guided missile",
+        "torpedo": "Torpedo",
+        "rocket": "Rocket",
+        "ground": "Ground vehicle missile"
+      },
+      "keyword": {
+        "ir": "Infrared",
+        "em": "Electromagnetic",
+        "cs": "Cross section",
+        "missile": "Missile",
+        "torpedo": "Torpedo",
+        "rocket": "Rocket",
+        "ground": "Ground vehicle",
+        "light": "Light",
+        "medium": "Medium",
+        "heavy": "Heavy",
+        "compact": "Compact",
+        "long": "Long",
+        "hardHitting": "Hard-hitting",
+        "fast": "Fast",
+        "agile": "Agile",
+        "longRange": "Long-range",
+        "quickLock": "Quick-lock"
+      },
+      "keywordTip": {
+        "ir": "Tracks the target's infrared signature.",
+        "em": "Tracks the target's electromagnetic signature.",
+        "cs": "Tracks the target's cross section.",
+        "missile": "Fired from ships.",
+        "torpedo": "Heavy guided weapon against large targets.",
+        "rocket": "Filed as a rocket.",
+        "ground": "For ground vehicles.",
+        "light": "Size 1 to 3.",
+        "medium": "Size 4 to 6.",
+        "heavy": "Size 7 and above.",
+        "compact": "In the shortest quarter of its kind and size.",
+        "long": "In the longest quarter of its kind and size.",
+        "hardHitting": "In the top quarter of its kind for damage.",
+        "fast": "In the fastest quarter of its kind.",
+        "agile": "In the most agile quarter of its kind.",
+        "longRange": "In the longest-ranged quarter of its kind.",
+        "quickLock": "In the quickest-locking quarter of its kind."
+      }
     }
   },
   "blueprint": {

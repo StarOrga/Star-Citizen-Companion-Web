@@ -20,17 +20,17 @@ import type { KpiSheet } from './codex-loadout-stats';
 export type RankProfileId = 'combat' | 'defence' | 'transport';
 export type RankScope = 'sizeClass' | 'all' | 'career' | 'role';
 
-export interface RankAxis {
-  key: KpiKey;
+export interface RankAxis<K extends string = KpiKey> {
+  key: K;
   labelKey: string;
   /** IR/EM/cross-section/mass: a smaller number ranks HIGHER. */
   lowerIsBetter: boolean;
 }
 
-export interface RankProfile {
+export interface RankProfile<K extends string = KpiKey> {
   id: RankProfileId;
   labelKey: string;
-  axes: readonly RankAxis[];
+  axes: readonly RankAxis<K>[];
 }
 
 // The designer authored the axis labels under short slugs, not under the raw
@@ -89,7 +89,7 @@ export function rankProfileById(id: string | null | undefined): RankProfile {
 }
 
 /** One cohort member — the ranking never sees payloads, only sheets. */
-export interface RankShipInput {
+export interface RankShipInput<K extends string = KpiKey> {
   className: string;
   /** The ship's localized display name, when the cohort read carried one —
    * lists that name cohort ships (the Holotable top-3) show it instead of a
@@ -101,11 +101,11 @@ export interface RankShipInput {
   /** The ship's role (`ships.role`, raw localisation key) — the third
    * comparison group. Optional: cohorts cached before it existed. */
   role?: string | null;
-  sheet: Partial<KpiSheet>;
+  sheet: [K] extends [KpiKey] ? Partial<KpiSheet> : Partial<Record<K, number | null>>;
 }
 
-export interface RankAxisResult {
-  key: KpiKey;
+export interface RankAxisResult<K extends string = KpiKey> {
+  key: K;
   labelKey: string;
   lowerIsBetter: boolean;
   /** this ship's raw value; null = gap, the axis is not ranked. */
@@ -134,7 +134,7 @@ export interface RankAxisResult {
 /** Matches the authored keys `codex.rank.band.low|mid|high` (R4). */
 export type RankBand = 'low' | 'mid' | 'high';
 
-export interface RankResult {
+export interface RankResult<K extends string = KpiKey> {
   profileId: RankProfileId;
   /** the scope the cohort was ACTUALLY built with — not necessarily the one
    * that was asked for (see `scopeFallbackKey`). */
@@ -146,9 +146,9 @@ export interface RankResult {
   /** ships in the cohort after the scope filter (including the target). */
   cohortSize: number;
   /** fixed profile order — drives the radar's spokes, vertices and captions. */
-  axes: RankAxisResult[];
+  axes: RankAxisResult<K>[];
   /** the same axes sorted by percentile desc (gaps last) — drives the bar list only. */
-  bars: RankAxisResult[];
+  bars: RankAxisResult<K>[];
   /** mean of the ranked axes' percentiles, null when no axis could be ranked. */
   overall: number | null;
   band: RankBand | null;
@@ -174,11 +174,11 @@ export function rankBandOf(overall: number | null): RankBand | null {
  * ships sharing the target's value — a target with a null discriminator can
  * only ever be compared against the whole field, so we fall back to `all`
  * rather than returning a cohort of one. */
-export function filterCohort(
-  target: RankShipInput,
-  cohort: readonly RankShipInput[],
+export function filterCohort<K extends string = KpiKey>(
+  target: RankShipInput<K>,
+  cohort: readonly RankShipInput<K>[],
   scope: RankScope,
-): RankShipInput[] {
+): RankShipInput<K>[] {
   const withTarget = cohort.some((c) => c.className === target.className)
     ? [...cohort]
     : [target, ...cohort];
@@ -196,7 +196,7 @@ export function filterCohort(
 }
 
 /** Which scopes can filter anything for `target` (see `RankResult.scopeAvailable`). */
-export function rankScopeAvailability(target: RankShipInput): Record<RankScope, boolean> {
+export function rankScopeAvailability<K extends string = KpiKey>(target: RankShipInput<K>): Record<RankScope, boolean> {
   return {
     all: true,
     career: !!target.career,
@@ -254,14 +254,19 @@ const WEAK_THRESHOLD = 45;
 /** The single authored "this axis has no value" string (R4). */
 export const RANK_AXIS_GAP_KEY = 'codex.rank.gapAxis';
 
-/** Rank one ship against a cohort under one profile + scope. */
-export function rankShip(
-  target: RankShipInput,
-  cohort: readonly RankShipInput[],
-  options: { profile?: RankProfileId | RankProfile; scope?: RankScope } = {},
-): RankResult {
-  const profile =
-    typeof options.profile === 'object' ? options.profile : rankProfileById(options.profile ?? 'combat');
+/**
+ * Rank one ship against a cohort under one profile + scope. The maths knows
+ * nothing about ships: a caller with its own axes (missiles, codex-missile.ts)
+ * passes a profile object over its own key type.
+ */
+export function rankShip<K extends string = KpiKey>(
+  target: RankShipInput<K>,
+  cohort: readonly RankShipInput<K>[],
+  options: { profile?: RankProfileId | RankProfile<K>; scope?: RankScope } = {},
+): RankResult<K> {
+  const profile = (
+    typeof options.profile === 'object' ? options.profile : rankProfileById(options.profile ?? 'combat')
+  ) as RankProfile<K>;
   const requested = options.scope ?? 'sizeClass';
   // Rank hygiene: a scope whose discriminator the target does not carry cannot
   // filter anything. Report `all` + the reason rather than pretending the
@@ -271,14 +276,16 @@ export function rankShip(
   const scope: RankScope = degraded ? 'all' : requested;
   const scopeFallbackKey = degraded ? 'codex.rank.disabled.noData' : null;
   const set = filterCohort(target, cohort, scope);
-  const numbersOf = (ships: readonly RankShipInput[], key: KpiKey): number[] =>
+  const valueOf = (ship: RankShipInput<K>, key: K): number | null =>
+    (ship.sheet as Partial<Record<K, number | null>>)[key] ?? null;
+  const numbersOf = (ships: readonly RankShipInput<K>[], key: K): number[] =>
     ships
-      .map((c) => c.sheet[key] ?? null)
+      .map((c) => valueOf(c, key))
       .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
 
-  const axes: RankAxisResult[] = profile.axes.map((a) => {
+  const axes: RankAxisResult<K>[] = profile.axes.map((a) => {
     const values = numbersOf(set, a.key);
-    const value = target.sheet[a.key] ?? null;
+    const value = valueOf(target, a.key);
     const usable = typeof value === 'number' && Number.isFinite(value);
     const percentile = usable ? percentileOf(value, values, a.lowerIsBetter) : null;
     const groupMedian = median(values);
