@@ -188,7 +188,7 @@ describe('CodexBuildDiffService', () => {
         names: { 'b-cur': ['W_1', 'W_2'], 'b-prev': ['W_1'] },
       });
       expect(await svc.addedClassNamesMemo('weapon')).toEqual(['W_2']);
-      expect(await svc.addedClassNamesMemo('component')).toEqual([]);
+      expect(await svc.addedClassNamesMemo('component')).toEqual(['W_2']);
       expect(sb.calls.filter((c) => c.op === 'rpc').length).toBe(1);
     });
 
