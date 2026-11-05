@@ -81,6 +81,10 @@ export const PAGE_BAR_SLACK_PX = 12;
           bottom: calc(var(--sc-float-bottom, 12px) + var(--sc-bar-h, 56px) + var(--sc-space-2, 8px));
           margin-inline-end: 0;
         }
+        /* Hidden: it must travel its own raise as well, else it peeks out under the fusion bar. */
+        :host(.above-bar.hidden) {
+          translate: 0 calc(100% + var(--sc-float-bottom, 12px) + var(--sc-bar-h, 56px) + var(--sc-space-2, 8px) + 12px);
+        }
       }
       /* Narrow phones: the bar shares its row with the feedback launcher's lane, so five labels
          no longer fit and "Statistik" hung out of the panel (seen in a real phone viewport).
