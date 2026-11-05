@@ -21,6 +21,7 @@ export const PAGE_BAR_SLACK_PX = 12;
     <nav class="bar sc-dock-phone" [attr.aria-label]="'hq.rail.label' | translate">
       @for (p of nav.pages; track p) {
         <a class="tab" [href]="nav.href(p)" (click)="nav.go($event, p)"
+           [attr.aria-label]="'hq.pages.' + p | translate"
            [attr.aria-current]="nav.active() === p ? 'page' : null">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons[p]" /></svg>
           <span>{{ 'hq.pages.' + p | translate }}</span>
@@ -71,6 +72,16 @@ export const PAGE_BAR_SLACK_PX = 12;
       .tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
       .tab[aria-current='page'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
       .tab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      /* Narrow phones: the bar shares its row with the feedback launcher's lane, so five labels
+         no longer fit and "Statistik" hung out of the panel (seen in a real phone viewport).
+         Only the current page keeps its name, the others are icons (the aria-label names them). */
+      @media (max-width: 480px) {
+        .bar { display: flex; }
+        .tab { flex: 0 0 auto; min-width: 44px; padding-inline: 6px; }
+        .tab span { display: none; }
+        .tab[aria-current='page'] { flex: 1 1 auto; min-width: 0; }
+        .tab[aria-current='page'] span { display: inline; }
+      }
       @media (prefers-reduced-motion: reduce) { :host { transition: none; } }
     `,
   ],
