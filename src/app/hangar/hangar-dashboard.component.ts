@@ -37,6 +37,8 @@ import {
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { LoadoutSharePanelComponent } from '../social/loadout-share-panel.component';
 import { LoadoutShareService } from '../social/loadout-share.service';
+import { SocialService } from '../social/social.service';
+import { friendPath } from '../social/social.types';
 import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ShipTileArtComponent } from '../codex/ship-blueprint/ship-tile-art.component';
@@ -480,7 +482,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                     <span class="badge role-{{ s.role }}">{{ ('hangar.roles.' + s.role) | translate }}</span>
                   </div>
                   <p class="ld-summary">
-                    {{ 'share.view.by' | translate: { name: sharedOwnerLabel(s) } }}
+                    {{ 'share.view.by' | translate: { name: '' } }}<a class="owner" [routerLink]="ownerPath(s)">{{ sharedOwnerLabel(s) }}</a>
                     <span class="dot">·</span>
                     {{ 'hangar.roleLoadouts.itemCount' | translate: { count: sharedItems(s).length } }}
                   </p>
@@ -491,6 +493,13 @@ const SEARCH_DEBOUNCE_MS = 250;
                     (click)="toggleShare(s.share_id)">
                     {{ (openShare() === s.share_id ? 'share.sharedWithMe.hide' : 'share.sharedWithMe.show') | translate }}
                   </button>
+                  @if (adoptedShares().has(s.share_id)) {
+                    <span class="hint" role="status">{{ 'hq.friends.stock.adopted' | translate }}</span>
+                  } @else {
+                    <button type="button" class="sc-btn tiny shared-toggle" [disabled]="social.busy()" (click)="adoptShared(s)">
+                      {{ 'hq.friends.stock.adopt' | translate }}
+                    </button>
+                  }
                   @if (openShare() === s.share_id) {
                     @if (sharedItems(s).length === 0) {
                       <p class="hint">{{ 'share.view.emptyLoadout' | translate }}</p>
@@ -715,6 +724,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .shared-block .hint { margin: 0 0 10px; }
     .shared-card { display: flex; flex-direction: column; gap: 8px; cursor: default; }
     .shared-card .dot { margin: 0 5px; }
+    .shared-card .owner { color: var(--sc-accent); }
     .shared-toggle { align-self: flex-start; }
     .shared-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
     .shared-items li { display: flex; gap: 10px; flex-wrap: wrap; font-size: max(0.78rem, var(--sc-fs-floor)); }
@@ -825,6 +835,20 @@ export class HangarDashboardComponent implements OnInit {
 
   sharedItems(s: SharedWithMeRow): RoleLoadoutItem[] {
     return shareItems(s).filter((i) => i.slot);
+  }
+
+  readonly social = inject(SocialService);
+  readonly adoptedShares = signal<ReadonlySet<string>>(new Set());
+
+  ownerPath(s: SharedWithMeRow): string[] {
+    return friendPath({ user_id: s.owner_id, username: s.owner_handle });
+  }
+
+  /** Makes a copy owned by the reader, then reloads the hangar so it shows in the list above. */
+  async adoptShared(s: SharedWithMeRow): Promise<void> {
+    if (!(await this.social.adoptLoadout(s.share_id))) return;
+    this.adoptedShares.update((a) => new Set(a).add(s.share_id));
+    await this.hangar.loadAll();
   }
 
   sharedOwnerLabel(s: SharedWithMeRow): string {
