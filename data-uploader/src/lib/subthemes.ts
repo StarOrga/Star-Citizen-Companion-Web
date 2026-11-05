@@ -145,7 +145,10 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 6: silhouettes for every item (not only armor) and for ammunition.
     // 7: #842 — hulls whose LOD0 breaks cgf-converter get their LOD1 outline,
     //    and every skipped entity's reason goes up (silhouette_skips).
-    revision: 7,
+    // 8: meshes deep in the P4K no longer die on WinError 267, so a build
+    //    already on the server gets their silhouettes. The recipe stays: every
+    //    existing blob is byte-identical, only the missing ones are built.
+    revision: 8,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',
