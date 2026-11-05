@@ -1,65 +1,11 @@
-import { PLANET_FS, SUN_FS, VS } from './body-shaders';
+import { logWarn } from '../../../../core/log';
+import { afterNextPaint } from '../after-paint';
+import { BodyKind, BodyStage } from './body-gl';
+import { loadBakedMap } from './body-maps';
+import type { BodyCommand, BodyEvent } from './body-worker-core';
 
-/** The four living bodies of the Verse stage. */
-export type BodyKind = 'sun' | 'crusader' | 'arccorp' | 'microtech';
-
-interface PlanetSpec {
-  readonly layers: Partial<Record<'day' | 'night' | 'cloud', string>>;
-  /** Seconds for one turn of the surface. */
-  readonly period: number;
-  /** Seconds for one turn of the cloud / haze layer (drifts against the surface). */
-  readonly cloudPeriod: number;
-  readonly cloudK: number;
-  readonly cloudColor: readonly [number, number, number];
-  /** Axis tilt in the picture, radians (matches the static SVG's bands). */
-  readonly roll: number;
-  readonly atm: readonly [number, number, number];
-  readonly spec: number;
-  readonly night: number;
-  /** Industrial zones (ArcCorp): Voronoi cells with straight borders, lit transit lines at night. */
-  readonly zones: number;
-}
-
-/**
- * Per planet: which maps, how fast it turns, how its air looks. Turns are slow
- * on purpose — one to four minutes — so the stage lives without pulling the
- * eye away from the headlines.
- */
-export const PLANETS: Readonly<Record<Exclude<BodyKind, 'sun'>, PlanetSpec>> = {
-  crusader: {
-    layers: { day: 'crusader-day', night: 'crusader-night' },
-    period: 70, cloudPeriod: 0, cloudK: 0, cloudColor: [1, 1, 1],
-    roll: -0.157, atm: [0.9, 0.9, 1.0], spec: 0, night: 1.2, zones: 0,
-  },
-  arccorp: {
-    layers: { day: 'arccorp-day', night: 'arccorp-night', cloud: 'arccorp-haze' },
-    period: 110, cloudPeriod: 75, cloudK: 0.28, cloudColor: [0.86, 0.8, 0.7],
-    roll: -0.244, atm: [1.0, 0.8, 0.56], spec: 0.05, night: 1.15, zones: 1,
-  },
-  microtech: {
-    layers: { day: 'microtech-day', night: 'microtech-night', cloud: 'microtech-cloud' },
-    period: 130, cloudPeriod: 95, cloudK: 0.7, cloudColor: [0.97, 0.99, 1.0],
-    roll: -0.105, atm: [0.62, 0.88, 1.0], spec: 0.4, night: 1.3, zones: 0,
-  },
-};
-
-/** Light direction in view space: top right, towards the viewer (the sun beacon). */
-export const SUN_DIR: readonly [number, number, number] = (() => {
-  const v = [0.6, 0.64, 0.42];
-  const l = Math.hypot(v[0], v[1], v[2]);
-  return [v[0] / l, v[1] / l, v[2] / l] as const;
-})();
-
-/** Disc radius of the sun inside its square canvas (0..1 of the half size). */
-export const SUN_DISC = 0.34;
-
-/**
- * Surface turn at a wall-clock time, 0..1 of a full turn. Wall clock, so every
- * visit shows another face and two tabs agree.
- */
-export function turnAt(periodS: number, ms: number): number {
-  return periodS > 0 ? ((ms / 1000) % periodS) / periodS : 0;
-}
+export { PLANETS, SUN_DIR, SUN_DISC, turnAt } from './body-gl';
+export type { BodyKind } from './body-gl';
 
 export interface BodyEngineOptions {
   /** URL of a map by name (default `/img/verse/maps/<name>.svg`). */
@@ -68,184 +14,311 @@ export interface BodyEngineOptions {
   readonly still?: boolean;
   /** Map raster width in pixels (height is half). */
   readonly mapWidth?: number;
+  /** Starts the worker; null keeps the bodies on the page. Default: the real one, where supported. */
+  readonly spawn?: () => Worker | null;
 }
 
 interface Entry {
+  readonly id: number;
   readonly canvas: HTMLCanvasElement;
-  readonly ctx: CanvasRenderingContext2D;
   readonly kind: BodyKind;
   readonly onReady?: () => void;
-  ready: boolean;
+  readonly onLost?: () => void;
   visible: boolean;
+  added: boolean;
   io?: IntersectionObserver;
+  ro?: ResizeObserver;
 }
 
-const MAX_PX = 1024;
-const FRAME_MS = 1000 / 30;
+/** The side that draws: a {@link BodyStage} on this page, or the same stage in a worker. */
+interface BodyBackend {
+  add(e: Entry, cssWidth: number, dpr: number): void;
+  remove(id: number): void;
+  setVisible(id: number, visible: boolean): void;
+  setSize(id: number, cssWidth: number, dpr: number): void;
+  setPaused(paused: boolean): void;
+  redraw(): void;
+  dispose(): void;
+}
+
+/** The worker's script has to run within this time, or the page draws itself. How long WebGL then takes is its own business. */
+export const BODY_WORKER_DEADLINE_MS = 4000;
+const PAUSE_CHECK_MS = 500;
+/** A body grows this much under the pointer (`.pl:hover`). */
+const HOVER_SCALE = 1.06;
 
 /**
- * One WebGL context for every living body on the page: it renders each body
- * into an offscreen square and copies it into that body's own 2D canvas. The
- * caller's CSS art stays underneath as the fallback — no WebGL, maps still
- * loading — and the canvas only covers it once `onReady` fired.
+ * The raster width a body's maps need: at the disc's centre a map of width W puts
+ * W / 2π texels on a radian and the screen r device pixels, so 1:1 takes W = 2πr.
+ * A texture no screen pixel can show only costs download, GPU memory and upload: 1024 only
+ * where a body is big enough for it, never below 1:1. Frozen-clock screenshots at
+ * 1920x1080: 512 against 1024 differs by at most 2 of 255 per channel.
+ */
+export function bodyMapWidth(cssWidth: number, dpr: number): 512 | 1024 {
+  if (cssWidth <= 0) return 1024; // not laid out yet: the safe side
+  return Math.PI * cssWidth * Math.min(2, dpr || 1) * HOVER_SCALE <= 512 ? 512 : 1024;
+}
+
+/** The bodies' worker, where a worker can own a WebGL canvas. */
+function spawnBodyWorker(): Worker | null {
+  if (typeof Worker !== 'function' || typeof OffscreenCanvas !== 'function'
+    || typeof HTMLCanvasElement.prototype.transferControlToOffscreen !== 'function') return null;
+  try {
+    return new Worker(new URL('./bodies.worker', import.meta.url), { type: 'module' });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The page's side of the living bodies: watches the canvases (on screen, size,
+ * the stage pause), and rasterises an SVG map if its baked file fails.
+ * The drawing itself happens in a {@link BodyStage}: in a worker where possible,
+ * so the shaders' link (the longest wait of the whole boot) freezes nothing, and
+ * right here otherwise. A canvas goes to the worker only after the worker has
+ * said it can draw, so a failed worker leaves the page free to draw itself.
  *
- * Runs at ~30 fps while at least one attached canvas is on screen; a canvas
- * whose computed `--sc-brief-play` is `paused` freezes time (the stage pause).
+ * The caller's CSS art stays underneath as the fallback — no WebGL, maps still
+ * loading, context lost — and the canvas only covers it once `onReady` fired.
+ * A canvas whose computed `--sc-brief-play` is `paused` freezes time (the stage
+ * pause).
  */
 export class BodyEngine {
-  private readonly gl: WebGLRenderingContext;
-  private readonly glCanvas: HTMLCanvasElement;
-  private readonly planetProg: WebGLProgram;
-  private readonly sunProg: WebGLProgram;
-  private readonly mipmaps: boolean;
-  private readonly textures = new Map<string, Promise<WebGLTexture | null>>();
-  private readonly loaded = new Map<string, WebGLTexture>();
-  private readonly blank: WebGLTexture;
-  private readonly entries: Entry[] = [];
-  private frame = 0;
-  private last = 0;
-  private clock = 0;
-  private lastNow = 0;
-  private pausedCheck = 0;
+  private backend: BodyBackend | null = null;
+  private worker: Worker | null = null;
+  private deadline: ReturnType<typeof setTimeout> | null = null;
+  private cancelStart: (() => void) | null = null;
+  private pauseTimer: ReturnType<typeof setTimeout> | null = null;
   private paused = false;
+  private nextId = 1;
+  private readonly entries: Entry[] = [];
   private disposed = false;
 
-  /** Null when WebGL is missing or the shaders do not compile. */
+  /** Null when no side can draw: no worker, and WebGL missing or the shaders not compiling here. */
   static create(opts: BodyEngineOptions = {}, onError?: (err: unknown) => void): BodyEngine | null {
-    try {
-      return new BodyEngine(opts);
-    } catch (err) {
-      onError?.(err);
-      return null;
-    }
+    const engine = new BodyEngine(opts, onError);
+    if (!engine.worker && !engine.backend) return null;
+    return engine;
   }
 
-  private constructor(private readonly opts: BodyEngineOptions) {
-    this.glCanvas = document.createElement('canvas');
-    const gl = this.glCanvas.getContext('webgl', { premultipliedAlpha: true, antialias: false, alpha: true, preserveDrawingBuffer: false });
-    if (!gl) throw new Error('webgl unavailable');
-    this.gl = gl;
-    const deriv = !!gl.getExtension('OES_standard_derivatives');
-    this.mipmaps = deriv;
-    this.planetProg = this.program(PLANET_FS(deriv));
-    this.sunProg = this.program(SUN_FS);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    this.blank = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D, this.blank);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
-    this.clock = Date.now();
-    this.lastNow = performance.now();
+  private constructor(private readonly opts: BodyEngineOptions, private readonly onError?: (err: unknown) => void) {
+    const spawn = opts.spawn ?? (opts.mapUrl ? () => null : spawnBodyWorker);
+    this.worker = spawn();
+    if (this.worker) this.waitForWorker(this.worker);
+    else this.drawHere();
   }
 
   /**
    * Starts drawing `kind` into `canvas` (a 2D canvas the caller sizes with
    * CSS). Returns the detach function.
    */
-  attach(canvas: HTMLCanvasElement, kind: BodyKind, onReady?: () => void): () => void {
-    const ctx = canvas.getContext('2d');
-    if (!ctx || this.disposed) return () => undefined;
-    const e: Entry = { canvas, ctx, kind, onReady, ready: false, visible: true };
+  attach(canvas: HTMLCanvasElement, kind: BodyKind, onReady?: () => void, onLost?: () => void): () => void {
+    if (this.disposed) return () => undefined;
+    const e: Entry = { id: this.nextId++, canvas, kind, onReady, onLost, visible: true, added: false };
     if ('IntersectionObserver' in window) {
-      e.io = new IntersectionObserver((xs) => { e.visible = xs.some((x) => x.isIntersecting); this.kick(); });
+      e.io = new IntersectionObserver((xs) => {
+        e.visible = xs.some((x) => x.isIntersecting);
+        if (e.added) this.backend?.setVisible(e.id, e.visible);
+        this.armPauseCheck();
+      });
       e.io.observe(canvas);
     }
+    if ('ResizeObserver' in window) {
+      // Read here, where layout is clean: a body in flight changes size, and nobody polls for it.
+      e.ro = new ResizeObserver(() => {
+        if (e.added) this.backend?.setSize(e.id, canvas.clientWidth, devicePixelRatio);
+      });
+      e.ro.observe(canvas);
+    }
     this.entries.push(e);
-    void this.prepare(kind).then((ok) => {
-      if (!ok || this.disposed || !this.entries.includes(e)) return;
-      e.ready = true;
-      this.draw(e, this.clock);
-      e.onReady?.();
-      this.kick();
-    });
+    this.add(e);
     return () => {
       e.io?.disconnect();
+      e.ro?.disconnect();
       const i = this.entries.indexOf(e);
       if (i >= 0) this.entries.splice(i, 1);
-      if (!this.entries.length) {
-        cancelAnimationFrame(this.frame);
-        this.frame = 0;
-      }
+      if (e.added) this.backend?.remove(e.id);
     };
   }
 
   /** Redraws every ready body once (resize, reduced motion). */
   redraw(): void {
-    for (const e of this.entries) if (e.ready) this.draw(e, this.clock);
+    for (const e of this.entries) if (e.added) this.backend?.setSize(e.id, e.canvas.clientWidth, devicePixelRatio);
+    this.backend?.redraw();
   }
 
   dispose(): void {
     this.disposed = true;
-    cancelAnimationFrame(this.frame);
-    for (const e of this.entries) e.io?.disconnect();
+    if (this.deadline !== null) clearTimeout(this.deadline);
+    if (this.pauseTimer !== null) clearTimeout(this.pauseTimer);
+    this.cancelStart?.();
+    for (const e of this.entries) {
+      e.io?.disconnect();
+      e.ro?.disconnect();
+    }
     this.entries.length = 0;
-    this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+    this.backend?.dispose();
+    this.backend = null;
+    this.worker?.terminate();
+    this.worker = null;
   }
 
-  private kick(): void {
-    if (this.opts.still || this.frame || this.disposed) return;
-    if (!this.entries.some((e) => e.ready && e.visible)) return;
-    this.lastNow = performance.now();
-    this.frame = requestAnimationFrame((t) => this.tick(t));
+  private add(e: Entry): void {
+    if (!this.backend || e.added) return;
+    e.added = true;
+    this.backend.add(e, e.canvas.clientWidth, devicePixelRatio);
+    this.checkPause();
   }
 
-  private tick(now: number): void {
-    this.frame = 0;
-    const live = this.entries.filter((e) => e.ready && e.visible);
-    if (!live.length) return;
-    if (now - this.pausedCheck > 500) {
-      this.pausedCheck = now;
-      this.paused = live.some((e) => getComputedStyle(e.canvas).getPropertyValue('--sc-brief-play').trim() === 'paused');
+  private waitForWorker(worker: Worker): void {
+    worker.onmessage = ({ data }: MessageEvent<BodyEvent>) => {
+      switch (data.t) {
+        case 'alive':
+          if (this.deadline !== null) clearTimeout(this.deadline);
+          this.deadline = null;
+          break;
+        case 'capable':
+          if (!data.ok) return this.workerFailed('cannot draw');
+          this.backend = this.remote(worker);
+          for (const e of this.entries) this.add(e);
+          break;
+        case 'map':
+          void this.mapBitmap(data.name, data.width).then((bitmap) => {
+            if (this.disposed) return bitmap?.close();
+            worker.postMessage({ t: 'map', name: data.name, bitmap } satisfies BodyCommand, bitmap ? [bitmap] : []);
+          });
+          break;
+        case 'ready':
+          this.entries.find((e) => e.id === data.id)?.onReady?.();
+          break;
+        case 'lost':
+          this.entries.find((e) => e.id === data.id)?.onLost?.();
+          break;
+      }
+    };
+    // A dead URL after a deploy answers with HTML, CSP says no, the module does not parse: all land here.
+    worker.onerror = (ev) => {
+      ev.preventDefault();
+      this.workerFailed(ev.message || 'worker error');
+    };
+    this.cancelStart = afterNextPaint(() => {
+      this.deadline = setTimeout(() => this.workerFailed('no answer'), BODY_WORKER_DEADLINE_MS);
+      worker.postMessage({ t: 'init', still: !!this.opts.still, base: this.bakedBase() } satisfies BodyCommand);
+    });
+  }
+
+  /** The worker is out. Canvases it holds show the CSS art from here on; the others draw here. */
+  private workerFailed(reason: string): void {
+    if (this.disposed || !this.worker) return;
+    logWarn('verse.bodies', 'bodies worker failed', reason);
+    if (this.deadline !== null) clearTimeout(this.deadline);
+    this.deadline = null;
+    this.worker.terminate();
+    this.worker = null;
+    const handedOver = this.backend !== null;
+    this.backend = null;
+    if (handedOver) {
+      for (const e of this.entries) if (e.added) e.onLost?.();
+      return;
     }
-    const dt = Math.min(100, now - this.lastNow);
-    this.lastNow = now;
-    if (!this.paused) this.clock += dt;
-    if (now - this.last >= FRAME_MS - 2) {
-      this.last = now;
-      for (const e of live) this.draw(e, this.clock);
-    }
-    this.frame = requestAnimationFrame((t) => this.tick(t));
+    this.drawHere();
   }
 
-  private async prepare(kind: BodyKind): Promise<boolean> {
-    if (kind === 'sun') return true;
-    const names = Object.values(PLANETS[kind].layers);
-    const tex = await Promise.all(names.map((n) => this.texture(n)));
-    return tex.every((t) => !!t);
-  }
-
-  private texture(name: string): Promise<WebGLTexture | null> {
-    let p = this.textures.get(name);
-    if (!p) {
-      p = this.rasterize(name).then((src) => {
-        if (!src || this.disposed) return null;
-        const gl = this.gl, t = gl.createTexture()!;
-        gl.bindTexture(gl.TEXTURE_2D, t);
-        try {
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
-        } catch {
-          // A tainted raster (map from another origin): keep the CSS art.
-          gl.deleteTexture(t);
-          return null;
-        }
-        if (this.mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        src.width = src.height = 0;
-        this.loaded.set(name, t);
-        return t;
+  private drawHere(): void {
+    try {
+      const stage = new BodyStage(document.createElement('canvas'), {
+        still: !!this.opts.still,
+        map: (name, width) => {
+          const base = this.bakedBase();
+          return base === null ? this.rasterize(name, width) : loadBakedMap(name, width, base).catch(() => this.rasterize(name, width));
+        },
+        onReady: (id) => this.entries.find((e) => e.id === id)?.onReady?.(),
+        onLost: (id) => this.entries.find((e) => e.id === id)?.onLost?.(),
       });
-      this.textures.set(name, p);
+      this.backend = {
+        add: (e, css, dpr) => {
+          stage.add(e.id, e.canvas, e.kind, css, dpr, e.visible, this.mapWidthOf(e));
+        },
+        remove: (id) => stage.remove(id),
+        setVisible: (id, v) => stage.setVisible(id, v),
+        setSize: (id, css, dpr) => stage.setSize(id, css, dpr),
+        setPaused: (p) => stage.setPaused(p),
+        redraw: () => stage.redraw(),
+        dispose: () => stage.dispose(),
+      };
+      for (const e of this.entries) this.add(e);
+    } catch (err) {
+      this.onError?.(err);
     }
-    return p;
   }
 
-  /** The SVG map rasterised into a canvas (its filters run once, here). */
-  private async rasterize(name: string): Promise<HTMLCanvasElement | null> {
-    const w = this.opts.mapWidth ?? 1024;
+  private remote(worker: Worker): BodyBackend {
+    const send = (m: BodyCommand, transfer: Transferable[] = []) => worker.postMessage(m, transfer);
+    return {
+      add: (e, cssWidth, dpr) => {
+        const canvas = e.canvas.transferControlToOffscreen();
+        send({ t: 'add', id: e.id, canvas, kind: e.kind, cssWidth, dpr, visible: e.visible, mapWidth: this.mapWidthOf(e) }, [canvas]);
+      },
+      remove: (id) => send({ t: 'remove', id }),
+      setVisible: (id, visible) => send({ t: 'visible', id, visible }),
+      setSize: (id, cssWidth, dpr) => send({ t: 'size', id, cssWidth, dpr }),
+      setPaused: (paused) => send({ t: 'paused', paused }),
+      redraw: () => send({ t: 'redraw' }),
+      dispose: () => undefined, // dispose() terminates the worker, and its context with it
+    };
+  }
+
+  /** The stage pause lives in CSS, so it is read here, twice a second while a body is on screen. */
+  private checkPause(): void {
+    const live = this.entries.filter((e) => e.added && e.visible);
+    if (!live.length) return;
+    const paused = live.some((e) => getComputedStyle(e.canvas).getPropertyValue('--sc-brief-play').trim() === 'paused');
+    if (paused !== this.paused) {
+      this.paused = paused;
+      this.backend?.setPaused(paused);
+    }
+    this.armPauseCheck();
+  }
+
+  private armPauseCheck(): void {
+    if (this.opts.still || this.disposed || this.pauseTimer !== null) return;
+    if (!this.entries.some((e) => e.added && e.visible)) return;
+    this.pauseTimer = setTimeout(() => {
+      this.pauseTimer = null;
+      this.checkPause();
+    }, PAUSE_CHECK_MS);
+  }
+
+  /** The document's base for the baked maps; null when the caller named its own maps. */
+  private bakedBase(): string | null {
+    return this.opts.mapUrl || this.opts.mapWidth ? null : document.baseURI;
+  }
+
+  private async mapBitmap(name: string, width: number): Promise<ImageBitmap | null> {
+    const c = await this.rasterize(name, width);
+    if (!c) return null;
+    try {
+      // Straight alpha and no colour conversion: what the GPU got when the canvas itself was uploaded.
+      return await createImageBitmap(c, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+    } catch {
+      return null; // a tainted raster (map from another origin): keep the CSS art
+    } finally {
+      c.width = c.height = 0;
+    }
+  }
+
+  /**
+   * For the size this body can reach on this screen: a window that is not maximised
+   * yet may still grow, and a map is rastered only once.
+   */
+  private mapWidthOf(e: Entry): number {
+    if (this.opts.mapWidth) return this.opts.mapWidth;
+    const grow = Math.max(1, (screen?.availWidth || 0) / (innerWidth || 1));
+    return bodyMapWidth(e.canvas.clientWidth * grow, devicePixelRatio);
+  }
+
+  /** Fallback, a baked map failed: the SVG rasterised into a canvas (its filters run once, here). */
+  private async rasterize(name: string, w: number): Promise<HTMLCanvasElement | null> {
     const img = new Image();
     img.decoding = 'async';
     img.src = this.opts.mapUrl ? this.opts.mapUrl(name) : `/img/verse/maps/${name}.svg`;
@@ -261,80 +334,5 @@ export class BodyEngine {
     c.height = w / 2;
     c.getContext('2d')!.drawImage(img, 0, 0, w, w / 2);
     return c;
-  }
-
-  private draw(e: Entry, ms: number): void {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const size = Math.min(MAX_PX, Math.round(e.canvas.clientWidth * dpr));
-    if (size <= 0) return;
-    if (e.canvas.width !== size) e.canvas.width = e.canvas.height = size;
-    const gl = this.gl, g = this.glCanvas;
-    if (g.width < size) g.width = g.height = Math.max(size, 256);
-    gl.viewport(0, 0, size, size);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    const t = (ms / 1000) % 3600;
-    if (e.kind === 'sun') {
-      const p = this.use(this.sunProg);
-      gl.uniform2f(p('uRes'), size, size);
-      gl.uniform1f(p('uTime'), t);
-      gl.uniform1f(p('uR'), SUN_DISC);
-    } else {
-      const s = PLANETS[e.kind];
-      const p = this.use(this.planetProg);
-      const bind = (unit: number, uni: string, layer: string | undefined) => {
-        gl.activeTexture(gl.TEXTURE0 + unit);
-        gl.bindTexture(gl.TEXTURE_2D, (layer && this.loaded.get(layer)) || this.blank);
-        gl.uniform1i(p(uni), unit);
-      };
-      bind(0, 'tDay', s.layers.day);
-      bind(1, 'tNight', s.layers.night);
-      bind(2, 'tCloud', s.layers.cloud);
-      gl.uniform2f(p('uRes'), size, size);
-      gl.uniform3f(p('uSun'), SUN_DIR[0], SUN_DIR[1], SUN_DIR[2]);
-      gl.uniform3f(p('uAtm'), s.atm[0], s.atm[1], s.atm[2]);
-      gl.uniform3f(p('uCloudC'), s.cloudColor[0], s.cloudColor[1], s.cloudColor[2]);
-      gl.uniform1f(p('uRot'), turnAt(s.period, ms));
-      gl.uniform1f(p('uCloudRot'), turnAt(s.cloudPeriod, ms));
-      gl.uniform1f(p('uRoll'), s.roll);
-      gl.uniform1f(p('uSpec'), s.spec);
-      gl.uniform1f(p('uNight'), s.night);
-      gl.uniform1f(p('uCloudK'), s.cloudK);
-      gl.uniform1f(p('uZones'), s.zones);
-      gl.uniform1f(p('uTime'), t);
-    }
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    e.ctx.clearRect(0, 0, size, size);
-    e.ctx.drawImage(g, 0, g.height - size, size, size, 0, 0, size, size);
-  }
-
-  private readonly uniforms = new Map<WebGLProgram, Map<string, WebGLUniformLocation | null>>();
-  private use(prog: WebGLProgram): (name: string) => WebGLUniformLocation | null {
-    const gl = this.gl;
-    gl.useProgram(prog);
-    const loc = gl.getAttribLocation(prog, 'p');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    let m = this.uniforms.get(prog);
-    if (!m) this.uniforms.set(prog, (m = new Map()));
-    const cache = m;
-    return (n) => {
-      if (!cache.has(n)) cache.set(n, gl.getUniformLocation(prog, n));
-      return cache.get(n) ?? null;
-    };
-  }
-
-  private program(fs: string): WebGLProgram {
-    const gl = this.gl, prog = gl.createProgram()!;
-    for (const [type, src] of [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]] as const) {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? 'compile failed');
-      gl.attachShader(prog, s);
-    }
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog) ?? 'link failed');
-    return prog;
   }
 }

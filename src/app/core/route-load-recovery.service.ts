@@ -13,7 +13,11 @@ import { SwUpdate } from '@angular/service-worker';
  *  - Safari:   "Importing a module script failed."
  *  - MIME mismatch (see the class comment): "Failed to load module script:
  *    Expected a JavaScript module script but the server responded with a MIME
- *    type of text/html."
+ *    type of text/html." That text goes to the console only. A dynamic
+ *    `import()` of a URL answering 200 `text/html` (Vercel's SPA rewrite for a
+ *    dead chunk) rejects with the Chromium phrasing above — verified in
+ *    Chromium 152 against a local server (TypeError, "Failed to fetch
+ *    dynamically imported module: <url>"), so the first marker covers it.
  *
  * Deliberately narrow: anything else that makes a navigation fail (a guard
  * throwing, a resolver rejecting) must NOT trigger a page load, or a broken

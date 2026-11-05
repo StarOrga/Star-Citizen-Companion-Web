@@ -88,6 +88,8 @@
                      [live]="hubLive()" [liveDays]="liveDays()" [patchImage]="hubPatchImage()" [channels]="hubChannels()"
                      [gallery]="hubGallery()" [incoming]="dockFlying() && dock() !== 'docked'"
                      (retryNews)="retryNews()" (openItem)="openItem($event)" (openDoor)="openDoor($event)" />
+    <!-- Test element (feedback 20af7dd2): area links at the very bottom, under the Patches. -->
+    <sc-verse-area-foot class="sc-below-stage" />
   } @else {
     <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [attr.data-intro]="intro"
              [attr.aria-label]="'verse.briefing.stageAria' | translate">

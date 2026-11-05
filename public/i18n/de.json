@@ -5501,6 +5501,7 @@
     }
   },
   "verse": {
+    "areaFoot": { "aria": "Bereich wechseln" },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",

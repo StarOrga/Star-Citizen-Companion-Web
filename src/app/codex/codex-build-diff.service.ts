@@ -57,6 +57,8 @@ export class CodexBuildDiffService {
   private readonly codex = inject(CodexService);
   private memo: { buildId: string | null; rows: Promise<CodexListRow[]> } | null = null;
   private namesMemo = new Map<string, Promise<string[]>>();
+  /** Set once the RPC answered "not found" — later diffs skip straight to the paged path. */
+  private rpcMissing = false;
 
   /**
    * {@link addedShips}, read once per current build — the Codex search shows
@@ -91,12 +93,39 @@ export class CodexBuildDiffService {
     try {
       const builds = await this.codex.recentLiveBuilds(2);
       if (builds.length < 2) return [];
+      const viaRpc = await this.addedViaRpc(kind, builds[0].id, builds[1].id);
+      if (viaRpc) return viaRpc;
       const [cur, prev] = await Promise.all([this.classNames(table, builds[0].id), this.classNames(table, builds[1].id)]);
       return addedClassNames(cur, prev);
     } catch (error) {
       logWarn('codex', `build diff (added ${kind}) failed`, error);
       return [];
     }
+  }
+
+  /**
+   * The class names `current` has and `previous` lacks, from one
+   * `codex_added_class_names` request (no row cap). `null` when the function is
+   * not deployed yet (PGRST202 / 404 — a deploy-order slip): the caller then
+   * falls back to the paged diff below. Any other failure throws.
+   */
+  private async addedViaRpc(kind: CodexKind, current: string, previous: string): Promise<string[] | null> {
+    if (this.rpcMissing) return null;
+    const { data, error } = await this.sb.client.rpc('codex_added_class_names', {
+      p_kind: kind,
+      p_current: current,
+      p_previous: previous,
+    });
+    if (error) {
+      const e = error as { code?: string; status?: number };
+      if (e.code === 'PGRST202' || e.status === 404) {
+        this.rpcMissing = true;
+        logWarn('codex', 'codex_added_class_names missing, using the paged build diff', error);
+        return null;
+      }
+      throw error;
+    }
+    return ((data ?? []) as string[]).filter((cn) => !!cn);
   }
 
   /** Every class name of one build in one catalog table, paged past the row cap. */
@@ -124,11 +153,15 @@ export class CodexBuildDiffService {
       const builds = await this.codex.recentLiveBuilds(2);
       if (builds.length < 2) return [];
       const [current, previous] = builds;
-      const [cur, prev] = await Promise.all([
-        this.shipClassNames(current.id),
-        this.shipClassNames(previous.id),
-      ]);
-      const added = addedClassNames(cur, prev).slice(0, limit);
+      let added = await this.addedViaRpc('ship', current.id, previous.id);
+      if (!added) {
+        const [cur, prev] = await Promise.all([
+          this.shipClassNames(current.id),
+          this.shipClassNames(previous.id),
+        ]);
+        added = addedClassNames(cur, prev);
+      }
+      added = added.slice(0, limit);
       if (added.length === 0) return [];
       const rows = await this.codex.getShipsByClassNames(added, [...CARD_PAYLOAD_KEYS, 'dimensions']);
       return added.map((cn) => rows.get(cn)).filter((r): r is CodexListRow => !!r);

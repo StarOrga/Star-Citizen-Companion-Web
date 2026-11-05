@@ -40,6 +40,17 @@ needs it now; it is the operator's call whether it stays.
   runs nobody owns; while `run.json` is alive a tick only stamps the heartbeat.
 - **Rescue must not resurrect merged branches.** A finished item's worktree is
   removed without a push, otherwise the sweep has to delete the branch again.
+- **The session must not sit in the primary.** The main-branch guard reads the
+  hook's cwd, and a subagent's shell returns to the session folder after every
+  call, so `cd <worktree> && git commit` is judged as "on main". Two 170-minute
+  runs shipped nothing that way. The session lives in the detached
+  `.claude/worktrees/scc-runner`; transcripts land under that path's project
+  folder, and the gate's lock liveness looks at both.
+- **Local builds do not scale here.** Three parallel builds took 10 to 30 minutes
+  each, more with a game running. `web-ci` does the same in about 3 minutes, so
+  workers wait for it with `scripts/routine-ci-wait.mjs`.
+- **Attachments 404 by URL.** The bucket is private; a worker that gets the URL
+  guesses at the screenshot. The orchestrator downloads them first.
 
 ## Before changing it
 
@@ -52,3 +63,25 @@ needs it now; it is the operator's call whether it stays.
   stay importable without the watcher. Change both, then `npm run watcher -- install`.
 - A silent routine: `npm run watcher -- status`, then
   `~/.claude/scc-routine/logs/watcher-<date>.log`.
+
+## A full queue: read in this order
+
+On 2026-11-05 the panel filled with "wartet auf Routine" for two separate reasons,
+and neither was a broken scheduler.
+
+1. `taskStatus` in `npm run watcher -- status`. "Deaktiviert" means a session paused
+   the task on purpose; find it with a transcript search for `/DISABLE`. The panel
+   has no state for this, it only ages to offline. Do not re-enable while that
+   session is shipping a fix: the next tick starts a run on the old code.
+2. `started run` and `postflight` lines in the watcher log. Runs that keep ending in
+   `hard cap` or `interrupted` with nothing shipped are a throughput bug, not a
+   scheduling one. Count `ship_*` calls in `logs/run-<date>-<sid>.jsonl`.
+
+**Pausing the task makes its re-enable your job.** `schtasks /Change /DISABLE` has no
+timer and nothing turns it back on. Put the re-enable on your task list in the same
+step, and say so in your report. `npm run watcher -- install` also re-enables, since
+its XML sets `Enabled=true`.
+
+**Never call `routine-gate.mjs` without a subcommand to look at something.** The
+default is `check`: it runs the reaper and stamps the heartbeat, so a paused routine
+looks alive on the panel. Read-only inspection is `routine-gate.mjs sql --query`.

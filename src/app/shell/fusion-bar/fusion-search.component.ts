@@ -941,7 +941,10 @@ export class FusionSearchComponent {
       if (ex && !ids.includes(ex)) untracked(() => this.expanded.set(null));
     });
     // Silhouettes and "Neu in Patch" for what is on screen: one batch per new set.
+    // A closed panel decorates nothing: the recently opened rows would otherwise
+    // fire the build diff (about 20 paged reads for items) on every page boot.
     effect(() => {
+      if (!this.open()) return;
       const rows = this.viewGroups().flatMap((g) => g.options).filter((o) => o.type === 'row').map((o) => (o as { row: ViewRow }).row);
       untracked(() => this.loadDecorations(rows));
     });

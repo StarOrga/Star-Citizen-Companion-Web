@@ -4,6 +4,44 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.210.2] - 2026-11-05
+
+### Fixed
+- Feedback routine: workers get feedback attachments as files instead of URLs that answer 404, and a stylesheet change no longer waits for `npm ci`.
+- Feedback routine: the ship fallback finds the plugin's current server.
+
+## [0.210.1] - 2026-11-05
+
+### Changed
+- Verse hub: the news tiles open at 30 % of the former speed.
+
+## [0.210.0] - 2026-11-05
+
+### Added
+- Verse: a Verse / Codex / HQ link row sits centred at the very bottom of the page, under the patches, as a test.
+
+## [0.209.1] - 2026-11-05
+
+### Fixed
+- Verse hub: the stability chip on the live patch card sits flush right on the title line.
+
+## [0.209.0] - 2026-11-05
+
+### Changed
+- Verse start page: the planet and the small bodies now render away from the page itself, so the page stays responsive while they start. On a desktop graphics card the longest freeze drops from about 4 s to about 0.2 s, and the planet stands after about 2 s. Picture, transitions and animations stay as they are.
+- Verse start page: the full entrance plays once per day on each device. A reload or a new tab on the same day shows the short opening instead.
+- Small bodies load ready-made maps, a one-time download of 0.9 to 3 MB depending on the screen.
+- The app stores only its core ahead of time when installed. Everything else loads when needed and in the background, so a new version costs far less to pick up.
+- Without a graphics card the planet takes longer to appear (about 18 s instead of about 5 s), but the page stays usable meanwhile.
+
+### Fixed
+- "New" markers in the Codex now see every item in the build, not only the first 10,000, and need one request instead of about 20.
+
+## [0.208.3] - 2026-11-05
+
+### Fixed
+- Verse hero title and hub texts: the halo is down to one faint dark blur, with no visible field and no glow on hover.
+
 ## [0.208.2] - 2026-11-05
 
 ### Fixed

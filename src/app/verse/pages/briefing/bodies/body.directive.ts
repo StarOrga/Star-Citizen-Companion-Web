@@ -15,7 +15,7 @@ export class VerseBodiesService {
   private users = 0;
   private onResize = (): void => this.engine?.redraw();
 
-  attach(canvas: HTMLCanvasElement, kind: BodyKind, onReady: () => void): () => void {
+  attach(canvas: HTMLCanvasElement, kind: BodyKind, onReady: () => void, onLost: () => void = () => undefined): () => void {
     if (this.failed) return () => undefined;
     return this.zone.runOutsideAngular(() => {
       if (!this.engine) {
@@ -28,7 +28,7 @@ export class VerseBodiesService {
         addEventListener('resize', this.onResize);
       }
       this.users++;
-      const detach = this.engine.attach(canvas, kind, () => this.zone.run(onReady));
+      const detach = this.engine.attach(canvas, kind, () => this.zone.run(onReady), () => this.zone.run(onLost));
       return () => {
         detach();
         if (--this.users === 0) {
@@ -44,7 +44,7 @@ export class VerseBodiesService {
 /**
  * `<canvas [scBody]="'arccorp'">` — draws a living body (rotating planet or
  * the stormy sun) into the canvas once its maps are ready and sets `.on` then.
- * Until that, or without WebGL, the CSS art underneath shows.
+ * Until that, without WebGL, or after a lost context, the CSS art underneath shows.
  */
 @Directive({
   selector: 'canvas[scBody]',
@@ -60,7 +60,7 @@ export class BodyCanvasDirective {
     const bodies = inject(VerseBodiesService);
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => {
-      const detach = bodies.attach(canvas, this.scBody(), () => this.ready.set(true));
+      const detach = bodies.attach(canvas, this.scBody(), () => this.ready.set(true), () => this.ready.set(false));
       destroyRef.onDestroy(detach);
     });
   }
