@@ -110,8 +110,8 @@ export class PlanetRenderer {
   private readonly mipmaps: boolean;
 
   /** Throws when WebGL is missing — the caller then keeps the CSS planet. */
-  constructor(private readonly canvas: HTMLCanvasElement, accent: readonly [number, number, number]) {
-    const gl = canvas.getContext('webgl', { premultipliedAlpha: false, antialias: false, alpha: true });
+  constructor(private readonly canvas: HTMLCanvasElement | OffscreenCanvas, accent: readonly [number, number, number]) {
+    const gl = (canvas as HTMLCanvasElement).getContext('webgl', { premultipliedAlpha: false, antialias: false, alpha: true });
     if (!gl) throw new Error('webgl unavailable');
     this.gl = gl;
     const prog = gl.createProgram()!;
@@ -142,6 +142,29 @@ export class PlanetRenderer {
     gl.uniform3f(this.u['uAccent'], accent[0], accent[1], accent[2]);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  }
+
+  setAccent(accent: readonly [number, number, number]): void {
+    this.gl.uniform3f(this.u['uAccent'], accent[0], accent[1], accent[2]);
+  }
+
+  /**
+   * Waits until the GPU has really taken the uploads and the mipmaps and has
+   * built the pipeline, by drawing an empty frame and reading one pixel back.
+   * Only for the worker: "ready" then means the next frame arrives on time, and
+   * the wait blocks nobody. On the main thread this would be the old freeze.
+   */
+  settle(): void {
+    const gl = this.gl;
+    this.draw({ cx: 0, cy: 0, r: 1, rot: 0, time: 0, aurora: 0 }, 1);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    this.clear();
+  }
+
+  clear(): void {
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
   /** Uploads the equirect sources; they may be released afterwards. */
