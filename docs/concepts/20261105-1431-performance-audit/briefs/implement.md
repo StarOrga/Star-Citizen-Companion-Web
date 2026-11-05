@@ -58,3 +58,9 @@ Comment text was normalised for one broken umlaut byte in the payload; wording i
 ## What each agent returns
 
 One row per checklist line it owns: item → done / partial / not done → evidence (file:line, spec name, measured number). Assumptions are listed apart, never folded into "done".
+
+## Owner addition during implementation (verbatim)
+
+> btw, rendering darf auch bildschirmabhängig sein, bzw. wie viele pixel, wir rbauchen keinen 8k grundplaneten im background obwohl ihc nu rfull hd habe im view oder annähernd durch taskleiste / edge bar.
+
+- [ ] **GL-7** Texture and render resolution follow the viewport actually on screen (CSS pixels × devicePixelRatio), so a full-HD view does not load or render more detail than it can show. Pixels at the owner's resolution stay as sharp as today.
