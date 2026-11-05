@@ -166,10 +166,10 @@ describe('BriefingPlanetComponent — worker path', () => {
   describe('fallback to the page', () => {
     it('no worker at all: nothing is handed over, and the existing path runs', async () => {
       link = null;
+      const transfer = spyOn(HTMLCanvasElement.prototype, 'transferControlToOffscreen').and.callThrough();
       const f = await mount();
       expect(spawned).toBe(1);
-      const c = f.nativeElement.querySelector('canvas') as HTMLCanvasElement;
-      expect(() => c.transferControlToOffscreen()).withContext('still the page\'s canvas').not.toThrow();
+      expect(transfer).withContext('still the page\'s canvas').not.toHaveBeenCalled();
       f.destroy();
     });
 
