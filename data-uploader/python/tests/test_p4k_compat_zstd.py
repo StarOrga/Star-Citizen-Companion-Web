@@ -73,6 +73,21 @@ def test_input_past_the_frame_end_is_dropped_not_fatal():
     d = _Sliced()
     assert d.decompress(frame + b"\x00" * (_ZSTD_SLICE * 2)) == payload
     assert d.eof is True
+    assert _Upstream().decompress(frame + b"\x00" * (_ZSTD_SLICE * 2)) == payload
+
+
+def test_frame_ending_exactly_on_a_slice_boundary_keeps_its_output():
+    """The trailing bytes arrive as their own slice here, but in one upstream call."""
+    size = _ZSTD_SLICE * 2
+    for _ in range(10):  # noise barely compresses, so this settles in a few rounds
+        payload = _noise(size)
+        frame = _frame(payload)
+        if len(frame) == _ZSTD_SLICE * 2:
+            break
+        size += _ZSTD_SLICE * 2 - len(frame)
+    assert len(frame) == _ZSTD_SLICE * 2
+    data = frame + b"\x00" * 64
+    assert _Sliced().decompress(data) == _Upstream().decompress(data) == payload
 
 
 def test_call_after_the_frame_end_ends_the_stream():
