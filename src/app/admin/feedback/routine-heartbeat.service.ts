@@ -4,7 +4,7 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
 /**
  * Liveness of the local admin-feedback routine (feedback a7573f0e).
  *
- * The routine is a Claude scheduled task on the dev PC — not a cloud agent.
+ * The routine is a Task Scheduler watcher on the dev PC — not a cloud agent.
  * When the machine is off, Claude is closed, or the usage limit is reached,
  * it stops without saying so, and from the board "nothing open" and "nothing
  * running" look identical.
@@ -22,7 +22,7 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
  * (no `next_run_at`) fall back to the old fixed window.
  */
 
-/** Row key the scheduled task stamps. */
+/** Row key the watcher stamps. */
 export const HEARTBEAT_ROUTINE_ID = 'admin-feedback-routine';
 
 /**

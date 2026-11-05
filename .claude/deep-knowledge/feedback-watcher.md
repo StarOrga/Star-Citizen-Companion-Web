@@ -40,6 +40,17 @@ needs it now; it is the operator's call whether it stays.
   runs nobody owns; while `run.json` is alive a tick only stamps the heartbeat.
 - **Rescue must not resurrect merged branches.** A finished item's worktree is
   removed without a push, otherwise the sweep has to delete the branch again.
+- **The session must not sit in the primary.** The main-branch guard reads the
+  hook's cwd, and a subagent's shell returns to the session folder after every
+  call, so `cd <worktree> && git commit` is judged as "on main". Two 170-minute
+  runs shipped nothing that way. The session lives in the detached
+  `.claude/worktrees/scc-runner`; transcripts land under that path's project
+  folder, and the gate's lock liveness looks at both.
+- **Local builds do not scale here.** Three parallel builds took 10 to 30 minutes
+  each, more with a game running. `web-ci` does the same in about 3 minutes, so
+  workers wait for it with `scripts/routine-ci-wait.mjs`.
+- **Attachments 404 by URL.** The bucket is private; a worker that gets the URL
+  guesses at the screenshot. The orchestrator downloads them first.
 
 ## Before changing it
 
