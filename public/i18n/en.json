@@ -5110,8 +5110,8 @@
         "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game."
       },
       "fresh": {
-        "updated": "Last update: {{at}}",
-        "ended": "Game closed · as of {{at}}"
+        "updated": "Live · as of {{at}}",
+        "ended": "No live signal · as of {{at}}"
       },
       "anchor": {
         "label": "You are here",
@@ -5327,7 +5327,8 @@
       "preview": {
         "stamp": "Preview",
         "title": "Your stats grow here",
-        "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data."
+        "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
+        "textLinked": "The SCC app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
       }
     },
     "stock": {

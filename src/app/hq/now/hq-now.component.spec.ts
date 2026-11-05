@@ -63,8 +63,28 @@ describe('HqNowComponent', () => {
     expect(el.querySelector('.connect .muted')?.textContent).toContain('hq.now.connect.syncOffHint');
   });
 
+  const presence = (ageMs: number, gameRunning = true) => ({
+    gameRunning,
+    at: new Date(Date.now() - ageMs).toISOString(),
+  });
+
+  it('shows the location as last known without any life sign', () => {
+    const live = fakeLive({ location: { name: 'Stanton4_NewBabbage', system: 'Stanton' } });
+    live.stateUpdatedAt.set(new Date().toISOString());
+    const el = mount(live).nativeElement as HTMLElement;
+    expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.lastSeen');
+    expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.ended');
+    expect(el.querySelector('.place')?.textContent).toBe('New Babbage');
+  });
+
+  it('shows the location as last known with a stale life sign', () => {
+    const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(4 * 60_000) });
+    const el = mount(live).nativeElement as HTMLElement;
+    expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.lastSeen');
+  });
+
   it('marks the location as last known once the session ended', () => {
-    const live = fakeLive({ location: { name: 'Lorville', system: null } }, [
+    const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
       { ...ev(0), type: 'session.quit' },
       { ...ev(1), type: 'session.joined' },
     ]);
@@ -74,9 +94,10 @@ describe('HqNowComponent', () => {
     expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.ended');
   });
 
-  it('shows the last update of a running session', () => {
-    const live = fakeLive({ location: { name: 'Lorville', system: null } }, [{ ...ev(0), type: 'session.joined' }]);
-    live.stateUpdatedAt.set(new Date().toISOString());
+  it('shows you are here only with a fresh life sign of a running game', () => {
+    const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
+      { ...ev(0), type: 'session.joined' },
+    ]);
     const el = mount(live).nativeElement as HTMLElement;
     expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.label');
     expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.updated');

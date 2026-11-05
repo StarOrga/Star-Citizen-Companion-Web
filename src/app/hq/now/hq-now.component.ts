@@ -17,12 +17,13 @@ import { DesktopConnectionService } from '../../desktop/desktop-connection.servi
 import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqLiveService } from './hq-live.service';
-import { eventLabel, readContracts, readLocation, readShip, sessionEnded } from './hq-live.util';
+import { eventLabel, formatLocationName, isGameLive, presenceAt, readContracts, readLocation, readShip } from './hq-live.util';
 import { HQ_NOW_PATH } from './hq-now-path';
 import { HqMissionsPopoverComponent } from './hq-missions-popover.component';
 
 export const TOAST_MS = 6000;
 const PREVIEW = 3;
+const PRESENCE_TICK_MS = 30_000;
 
 /**
  * HQ page "Jetzt": where you are (location anchor), what is next (main path), active missions
@@ -51,11 +52,11 @@ const PREVIEW = 3;
     } @else {
       <div class="top">
         <section class="anchor" aria-labelledby="hq-now-anchor">
-          <span class="eyebrow" id="hq-now-anchor">{{ (ended() ? 'hq.now.anchor.lastSeen' : 'hq.now.anchor.label') | translate }}</span>
+          <span class="eyebrow" id="hq-now-anchor">{{ (gameLive() ? 'hq.now.anchor.label' : 'hq.now.anchor.lastSeen') | translate }}</span>
           @if (location(); as loc) {
             <p class="where">
               @if (loc.system) { <span class="sys">{{ loc.system }}</span><span class="sep" aria-hidden="true"> › </span> }
-              <span class="place">{{ loc.name }}</span>
+              <span class="place">{{ placeName(loc.name) }}</span>
             </p>
           } @else {
             <p class="where unknown">{{ 'hq.now.anchor.unknown' | translate }}</p>
@@ -63,8 +64,8 @@ const PREVIEW = 3;
           @if (ship(); as s) {
             <p class="ship">{{ 'hq.now.anchor.ship' | translate }} <b class="ship-name">{{ s }}</b></p>
           }
-          @if (live.stateUpdatedAt(); as at) {
-            <p class="fresh">{{ (ended() ? 'hq.now.fresh.ended' : 'hq.now.fresh.updated') | translate: { at: (at | date: 'short') } }}</p>
+          @if (lastSignal(); as at) {
+            <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</p>
           }
         </section>
         <sc-hq-missions-popover [contracts]="contracts()" />
@@ -195,13 +196,19 @@ export class HqNowComponent {
   readonly contracts = computed(() => readContracts(this.live.state()));
   readonly path = this.pathSig;
   readonly preview = computed(() => this.live.events().slice(0, PREVIEW));
-  readonly ended = computed(() => sessionEnded(this.live.events()));
+  readonly placeName = formatLocationName;
+  /** Re-evaluates the life sign's age while the page stays open without new data. */
+  private readonly clock = signal(Date.now());
+  readonly gameLive = computed(() => isGameLive(this.live.state(), this.live.events(), this.clock()));
+  readonly lastSignal = computed(() => presenceAt(this.live.state()) ?? this.live.stateUpdatedAt());
   /** Signed-in app without any live state yet: the app is there, only the opt-in sync or the game is missing. */
   readonly appConnected = computed(() => this.conn.stateFor('starscape') === 'connected');
 
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    const ticker = setInterval(() => this.clock.set(Date.now()), PRESENCE_TICK_MS);
+    inject(DestroyRef).onDestroy(() => clearInterval(ticker));
     effect(() => {
       if (this.live.loaded() && !this.live.state()) untracked(() => void this.conn.refresh(true));
     });

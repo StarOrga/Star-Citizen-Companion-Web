@@ -21,6 +21,36 @@ export function sessionEnded(eventsNewestFirst: readonly Pick<HqLiveEventRow, 't
   return !!last && last.type !== 'session.joined';
 }
 
+/** A life sign older than this means the app or the game is gone (the app writes every 60 s). */
+export const LIVE_PRESENCE_MAX_AGE_MS = 3 * 60 * 1000;
+
+/** ISO time of the app's last life sign in the state, or null (older app, no signal yet). */
+export function presenceAt(state: Record<string, unknown> | null): string | null {
+  const p = state?.['presence'];
+  return p && typeof p === 'object' ? str((p as Record<string, unknown>)['at']) : null;
+}
+
+/** The game runs right now: a fresh life sign says so and no newer session event contradicts it. */
+export function isGameLive(
+  state: Record<string, unknown> | null,
+  eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type'>[],
+  now: number,
+): boolean {
+  const p = state?.['presence'] as Record<string, unknown> | undefined;
+  const at = Date.parse(String(p?.['at'] ?? ''));
+  if (p?.['gameRunning'] !== true || !Number.isFinite(at) || now - at > LIVE_PRESENCE_MAX_AGE_MS) return false;
+  return !sessionEnded(eventsNewestFirst);
+}
+
+/**
+ * Readable name of a game location id: `Stanton4_NewBabbage` -> `New Babbage`. The body prefix goes
+ * (the system is shown on its own), underscores and camelCase become spaces. Plain names stay as they are.
+ */
+export function formatLocationName(name: string): string {
+  const body = name.trim().replace(/^(?:stanton|pyro|nyx|terra)\d*[a-z]?_/i, '');
+  return body.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\s+/g, ' ').trim() || name.trim();
+}
+
 export function readLocation(state: Record<string, unknown> | null): LiveLocation | null {
   const l = state?.['location'];
   if (typeof l === 'string') return str(l) ? { name: l.trim(), system: null } : null;

@@ -1,6 +1,6 @@
 # HQ live contract (desktop <-> SCC-Web)
 
-Contract version: 1 (2026-11-01). This file exists in BOTH repos (SCC-App
+Contract version: 2 (2026-11-05). This file exists in BOTH repos (SCC-App
 `docs/contracts/hq-live.md`, SCC-Web copy); a change needs both repos. The web repo holds an
 identical copy at `docs/contracts/hq-live.md` - keep the two byte-identical.
 
@@ -79,6 +79,11 @@ web pick the undo handler).
 sanitized `gamelog.state.changed` snapshot (location, jurisdiction, currentShip,
 contracts, crimestat, lastQt, ...). Written at most once per 10 s, only when changed.
 Upsert `on_conflict=user_id`, merge.
+
+**Life sign (v2):** `state.presence = { gameRunning: bool, at: ISO-8601 UTC }`. The desktop checks
+every 60 s, writes each time while the game runs and once when it stops. The web shows a location
+as current only while `gameRunning` is true and `at` is younger than 3 minutes; a missing or stale
+`presence` means no signal (app closed, crashed, or older than this contract).
 
 ### `hq_inventory_snapshots` PK (user_id, location)
 
