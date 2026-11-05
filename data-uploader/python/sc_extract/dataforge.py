@@ -179,6 +179,8 @@ class DataForge:
         # CALLER must keep the underlying buffer alive for this object's
         # lifetime (see parallel_dump._init, which holds the SharedMemory).
         self._buf = data.toreadonly() if isinstance(data, memoryview) else memoryview(bytes(data))
+        self._st1_memo: Dict[int, str] = {}
+        self._st2_memo: Dict[int, str] = {}
         self._parse()
 
     # ── Header + section parsing ─────────────────────────────────────────────
@@ -353,11 +355,20 @@ class DataForge:
             end += 1
         return bytes(table[offset:end]).decode("utf-8", "replace")
 
+    # The tables never change and every walked field asks for its name, so each
+    # offset is scanned once. Re-scanning byte by byte on every lookup made
+    # record_to_dict twice as slow (LIVE 4.10: ~280k distinct strings in total).
     def _str1(self, off: int) -> str:
-        return self._cstr(self._st1, off)
+        s = self._st1_memo.get(off)
+        if s is None:
+            s = self._st1_memo[off] = self._cstr(self._st1, off)
+        return s
 
     def _str2(self, off: int) -> str:
-        return self._cstr(self._st2, off)
+        s = self._st2_memo.get(off)
+        if s is None:
+            s = self._st2_memo[off] = self._cstr(self._st2, off)
+        return s
 
     def _flatten_props(self, struct_index: int) -> List[int]:
         chain: List[Tuple[int, int]] = []  # (first_attr, count) child->root

@@ -93,9 +93,10 @@ export function classifyExit({ tail = '', exit = null, killedFor = null, now = D
 }
 
 /**
- * Books a finished run. A run that resolved something only charges the items it
- * really claimed; a run that resolved nothing charges everything it was given —
- * that is what stops a run dying before its first claim from retrying forever.
+ * Books a finished run. Only items the run really claimed are charged: a wave that
+ * hit the time limit says nothing about the topics it never reached. A run that
+ * reached nothing at all charges everything it was given — that is what stops a
+ * run dying before its first claim from retrying forever.
  * Limits, login and network never charge an item; neither does a PC shutdown.
  */
 export function applyRun({ state, snapshot, unresolvedIds, claimedIds, outcome, now }) {
@@ -112,9 +113,9 @@ export function applyRun({ state, snapshot, unresolvedIds, claimedIds, outcome, 
 
   next.cooldownUntil = null;
   next.cooldownReason = null;
-  const resolvedAny = snapshot.some((i) => !unresolved.has(i.id));
   const claimed = new Set(claimedIds);
-  const charged = snapshot.filter((i) => unresolved.has(i.id) && (!resolvedAny || claimed.has(i.id)));
+  const reachedAny = snapshot.some((i) => !unresolved.has(i.id) || claimed.has(i.id));
+  const charged = snapshot.filter((i) => unresolved.has(i.id) && (!reachedAny || claimed.has(i.id)));
   const reason = outcome.reason ?? 'the run ended with this item unfinished';
   for (const item of charged) {
     const key = itemKey(item);

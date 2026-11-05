@@ -87,7 +87,7 @@ Branches that match no item are never touched.
 | Supervisor killed | same | same | no |
 | Supervisor wedged | alive, but no beat for 30 min while ticks prove the PC was awake | kill, then as above | no |
 | Headless run hangs | watchdog | kill tree, postflight | yes |
-| Run exceeds 170 min | watchdog | kill tree, postflight; the next run resumes | yes |
+| Run exceeds 170 min | watchdog | kill tree, postflight; the next run resumes | yes, only claimed items |
 | Run crashes or exits without a result | `classifyExit` | postflight, backoff | yes |
 | Run ends fine, item untouched | item still queued | backoff; only claimed items are charged when other items were resolved | yes |
 | Usage limit | `rate_limit_event` rejected, 429, or message text | cool down until the announced reset, panel amber | no |
