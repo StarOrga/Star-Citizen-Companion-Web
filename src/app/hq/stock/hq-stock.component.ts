@@ -69,7 +69,7 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
           @if (blueprintTotal() !== null) {
             <p class="big">{{ 'hq.stock.earned.blueprints' | translate: { n: blueprintTotal() } }}</p>
           }
-          <a class="more" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
+          <a class="more" [routerLink]="['/codex', 'index']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
         </section>
       </div>
 

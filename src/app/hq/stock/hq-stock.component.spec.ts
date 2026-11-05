@@ -90,4 +90,10 @@ describe('HqStockComponent', () => {
     expect(el.querySelector('.place .age.stale')).toBeTruthy();
     expect(el.textContent).toContain('Pfeil');
   });
+
+  it('links the earned blueprints straight to the A-Z blueprint index', () => {
+    const { fixture } = mount({ full: false });
+    const a = (fixture.nativeElement as HTMLElement).querySelector('#hq-stock-earned ~ a.more') as HTMLAnchorElement;
+    expect(a.getAttribute('href')).toBe('/codex/index?kind=blueprint');
+  });
 });
