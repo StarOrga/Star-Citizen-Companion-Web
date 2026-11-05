@@ -60,16 +60,16 @@ describe('FriendsComponent (smoke)', () => {
     expect(rpc).toHaveBeenCalledWith('list_my_friend_edges');
     const names = Array.from(el.querySelectorAll('.edge-name')).map((n) => n.textContent?.trim());
     expect(names).toEqual(['pilot_b', 'pilot_a', 'pilot_c', 'pilot_d']);
-    expect(el.textContent).not.toContain('friends.incoming.empty');
     expect(el.textContent).not.toContain('friends.list.empty');
   });
 
-  it('shows the empty texts for an empty graph', async () => {
+  it('an empty graph keeps only the friends card, so the invite box stays close', async () => {
     const { el } = await mount([]);
-    expect(el.textContent).toContain('friends.incoming.empty');
+    expect(el.querySelectorAll('.section').length).toBe(1);
     expect(el.textContent).toContain('friends.list.empty');
-    expect(el.textContent).toContain('friends.outgoing.empty');
-    expect(el.textContent).toContain('friends.blocked.empty');
+    expect(el.textContent).not.toContain('friends.incoming.title');
+    expect(el.textContent).not.toContain('friends.outgoing.title');
+    expect(el.textContent).not.toContain('friends.blocked.title');
   });
 
   it('accepting a request calls respond_friend_request(accept=true), reloads and flashes', async () => {

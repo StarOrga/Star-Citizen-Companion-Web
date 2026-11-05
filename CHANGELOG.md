@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.208.1] - 2026-11-05
+
+### Fixed
+- Social: empty request and blocked cards no longer push the invite box far down, and the empty friends text no longer points to an add box above.
+
 ## [0.208.0] - 2026-11-05
 
 ### Added
