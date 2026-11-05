@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.2",
+  "current": "0.207.3",
   "releases": [
+    {
+      "version": "0.207.3",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page, News column: the tiles now open at 30 % of the former speed, so the next news entry opens more calmly when the mouse moves on"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.2",
       "date": "2026-11-05",
