@@ -5237,7 +5237,6 @@
       "stepsOne": "1 Schritt",
       "steps": "{{n}} Schritte",
       "unplaced": "{{n}} ohne Ort, nur in der Liste",
-      "listTwin": "Als Liste",
       "node": {
         "needs": "{{place}} ({{path}}): {{needs}}",
         "step": "Schritt {{ords}}: {{place}} ({{path}}): {{needs}}",
