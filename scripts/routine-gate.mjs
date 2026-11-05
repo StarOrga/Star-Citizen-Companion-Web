@@ -10,26 +10,25 @@
  * This script does the deterministic part of a cycle without a model:
  *
  *   check      (default)  1. run lock: is another run still working?
- *                         2. cadence: is THIS tick a working tick? (dense in the
- *                            evening, hourly by day, every 2 h at night — the
- *                            cron itself fires every 20 min around the clock)
- *                         3. reaper: reopen stale claims — but only those whose
+ *                         2. reaper: reopen stale claims — but only those whose
  *                            worktree shows no activity (the liveness check the
  *                            red team demanded; a bare timer reopened live claims
  *                            before — memory feedback-reaper-reopens-live-claims)
- *                         4. one SQL with the queue counts (a)–(f), `and triaged`
+ *                         3. one SQL with the queue counts (a)–(f), `and triaged`
  *                            included (the security gate the prompt had lost)
- *                         5. heartbeat stamp incl. `next_run_at` and `state`
+ *                         4. heartbeat stamp incl. `next_run_at` and `state`
  *                         → prints a summary line on stderr and ONE JSON line on
- *                           stdout. verdict ∈ idle | skip-cadence | running | work | error
+ *                           stdout. verdict ∈ idle | running | work | error
  *   start-run             take the run lock (state=running); prints acquired:true|false
  *   end-run               release it (state=idle|paused, note)
  *   heartbeat             stamp only (mid-run proof of life)
  *
- * Fail-open by design: any SQL/token failure yields verdict=error, exit 2, and
- * the prompt then falls back to the manual path (heartbeat via MCP, reaper,
- * queue reads). A broken gate must never look like an empty queue — and never
- * paint the panel green while nothing is being processed (note=gate-error).
+ * The caller is scripts/routine-watcher.mjs (every 3 min, no model), which starts
+ * a headless run on `work`; the run itself uses `check --in-run` to drain.
+ *
+ * Fail-open by design: any SQL/token failure yields verdict=error, exit 2. A
+ * broken gate must never look like an empty queue — and never paint the panel
+ * green while nothing is being processed (note=gate-error).
  *
  * Token: `--token <pat>` > env SUPABASE_ACCESS_TOKEN > Windows Credential
  * Manager entry "Supabase CLI:supabase" (what `supabase login` stores; read via
@@ -37,11 +36,10 @@
  * supabase-headless-sql-via-cli-token). The token is never printed.
  *
  * Usage (from the repo root of the PRIMARY checkout, never a worktree):
- *   node scripts/routine-gate.mjs check [--force] [--in-run] [--now <iso>] [--dry-run]
+ *   node scripts/routine-gate.mjs check [--in-run] [--now <iso>] [--dry-run]
  *   node scripts/routine-gate.mjs start-run --note claimed:3
  *   node scripts/routine-gate.mjs end-run --state idle --note shipped:2
  *   node scripts/routine-gate.mjs heartbeat --note running
- *   node scripts/routine-gate.mjs next-runs [--now <iso>]     (prints the cadence table check)
  *   node scripts/routine-gate.mjs sql --file <path.sql>          (or --query "<sql>", or stdin)
  *     Runs ONE statement through the same Management-API path the gate uses and
  *     prints the rows as a JSON array — the fallback for a working run whose
@@ -72,10 +70,8 @@ import { pathToFileURL } from 'node:url';
 
 const PROJECT_REF = 'hcnqhvzlavdycidqyaai';
 const HEARTBEAT_ID = 'admin-feedback-routine';
-const TZ = 'Europe/Berlin';
-/** The cron fires at :00/:20/:40 local; the Desktop scheduler adds ~7 min jitter. */
-const TICK_MIN = 20;
-const JITTER_MIN = 7;
+/** The watcher's Task Scheduler interval (scripts/lib/routine-watcher-core.mjs); the panel reads it as next_run_at. */
+const WATCH_INTERVAL_MIN = 3;
 /** A run lock older than this belongs to a dead run and may be taken over. */
 const RUN_LOCK_MAX_MIN = 180;
 /** Reaper: a claim without a PR older than this is a candidate for reopening … */
@@ -94,18 +90,6 @@ const RUN_DEAD_MIN = 30;
 /** …but a fresh lock gets this long before its transcript is judged at all. */
 const RUN_LOCK_GRACE_MIN = 15;
 
-/**
- * Cadence — the ONLY place it lives. Hours are local (Europe/Berlin), a tick
- * is "due" when its slot matches. Evening = every 20-min tick; day = the :00
- * tick of every hour; night = the :00 tick of every second hour.
- */
-const CADENCE = [
-  { name: 'evening', hours: [19, 20, 21, 22, 23, 0], slots: [0, 20, 40] },
-  { name: 'day', hours: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], slots: [0] },
-  { name: 'night', hours: [1, 3, 5, 7], slots: [0] },
-  { name: 'night-off', hours: [2, 4, 6], slots: [] },
-];
-
 const argv = process.argv.slice(2);
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv[0] : 'check';
 const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
@@ -113,35 +97,7 @@ const has = (n) => argv.includes(`--${n}`);
 const log = (...m) => console.error('[routine-gate]', ...m);
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
-// ---------------------------------------------------------------- time
-function localParts(date) {
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
-    .formatToParts(date);
-  const get = (t) => Number(parts.find((p) => p.type === t)?.value);
-  return { hour: get('hour'), minute: get('minute') };
-}
-function windowFor(hour) {
-  return CADENCE.find((w) => w.hours.includes(hour)) ?? { name: 'unknown', slots: [] };
-}
-/** Slot start (UTC ms) of the tick that fired at `date` — minutes floor to the 20-min grid. */
-function slotStart(date) {
-  const t = date.getTime();
-  const min = date.getUTCMinutes();
-  return t - ((min % TICK_MIN) * 60_000) - date.getUTCSeconds() * 1000 - date.getUTCMilliseconds();
-}
-function slotIsDue(slotMs) {
-  const d = new Date(slotMs);
-  const { hour, minute } = localParts(d);
-  return windowFor(hour).slots.includes(minute);
-}
-/** Next due slot strictly after the given slot, as the instant the scheduler will fire (slot + jitter). */
-function nextRunAt(fromSlotMs) {
-  for (let i = 1; i <= (24 * 60) / TICK_MIN; i++) {
-    const s = fromSlotMs + i * TICK_MIN * 60_000;
-    if (slotIsDue(s)) return new Date(s + JITTER_MIN * 60_000);
-  }
-  return new Date(fromSlotMs + 24 * 3_600_000);
-}
+const nextRunAt = (fromMs = Date.now()) => new Date(fromMs + WATCH_INTERVAL_MIN * 60_000);
 
 // ---------------------------------------------------------------- token
 function readCredentialManagerToken() {
@@ -180,7 +136,7 @@ function resolveToken() {
 
 // ---------------------------------------------------------------- sql
 let TOKEN = null;
-async function sql(query) {
+export async function sql(query) {
   if (!TOKEN) TOKEN = resolveToken();
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
     method: 'POST',
@@ -391,14 +347,9 @@ function emit(obj) {
 // ---------------------------------------------------------------- commands
 async function check() {
   const now = flag('now') ? Date.parse(flag('now')) : Date.now();
-  const nowDate = new Date(now);
-  const slot = slotStart(nowDate);
-  const next = nextRunAt(slot);
+  const next = nextRunAt(now);
   const inRun = has('in-run');
-  const force = has('force');
   const dryRun = has('dry-run');
-  const { hour, minute } = localParts(nowDate);
-  const win = windowFor(hour).name;
 
   const hb = await readHeartbeat();
   let lockReaped = null;
@@ -408,7 +359,7 @@ async function check() {
       const note = 'running';
       if (!dryRun) await stampHeartbeat({ note, next, state: 'running', keepRunning: true });
       log(`another run holds the lock since ${hb.run_started_at} (session ${liveness.sid ?? 'unknown'} wrote ${liveness.idleMin ?? '?'} min ago) — nothing to do`);
-      return emit({ verdict: 'running', lockedSince: hb.run_started_at, holderIdleMin: liveness.idleMin, nextRunAt: next.toISOString(), window: win });
+      return emit({ verdict: 'running', lockedSince: hb.run_started_at, holderIdleMin: liveness.idleMin, nextRunAt: next.toISOString() });
     }
     // The holder stopped writing: app quit, crash, usage limit. Release the lock now;
     // its claims go through the normal reaper below (worktree liveness applies).
@@ -422,25 +373,17 @@ async function check() {
     log(`lock held since ${hb.run_started_at} by a DEAD run (session ${liveness.sid ?? 'unknown'}, last write ${liveness.idleMin ?? 'never'} min ago) — released`);
   }
 
-  const due = force || inRun || slotIsDue(slot);
   const reaperResult = await reap(now, dryRun);
   if (lockReaped) reaperResult.lockReaped = lockReaped;
   const c = await counts();
   const work = actionable(c);
-
-  if (!due) {
-    const note = 'skip-cadence';
-    if (!dryRun) await stampHeartbeat({ note, next, state: 'idle', keepRunning: true });
-    log(`tick ${hour}:${String(minute).padStart(2, '0')} (${win}) is not a working slot — heartbeat only; work waiting: ${work}`);
-    return emit({ verdict: 'skip-cadence', window: win, counts: c, ...reaperResult, nextRunAt: next.toISOString() });
-  }
 
   const verdict = work > 0 ? 'work' : 'idle';
   const note = work > 0 ? `work:${work}` : 'queue-empty';
   if (!dryRun && !inRun) await stampHeartbeat({ note, next, state: 'idle', keepRunning: false });
   if (!dryRun && inRun) await stampHeartbeat({ note: 'running', next, state: 'running', keepRunning: false });
   log(`${verdict}: open(a)=${c.a} answered(b)=${c.b} holds(c)=${c.c} continuations(d)=${c.d} answeredHolds(e)=${c.e} replyPending(f)=${c.f ?? '–'} untriaged=${c.untriaged} bareInProgress=${c.bare_in_progress}; reaped=${reaperResult.reaped.length} liveSkipped=${reaperResult.skippedLive.length}`);
-  return emit({ verdict, window: win, counts: c, actionable: work, ...reaperResult, nextRunAt: next.toISOString() });
+  return emit({ verdict, counts: c, actionable: work, ...reaperResult, nextRunAt: next.toISOString() });
 }
 
 async function startRun() {
@@ -463,7 +406,7 @@ async function endRun() {
   const state = flag('state', 'idle');
   if (!['idle', 'paused'].includes(state)) throw new Error('--state must be idle|paused');
   const note = flag('note', state === 'paused' ? 'paused-usage-limit' : 'queue-empty');
-  const next = nextRunAt(slotStart(new Date()));
+  const next = nextRunAt();
   await sql(`update public.routine_heartbeat
     set state = ${q(state)}, run_finished_at = now(), note = ${q(note)}, next_run_at = ${q(next.toISOString())}, last_seen_at = now(), updated_at = now()
     where id = ${q(HEARTBEAT_ID)}`);
@@ -474,22 +417,9 @@ async function endRun() {
 
 async function heartbeat() {
   const note = flag('note', 'running');
-  const next = nextRunAt(slotStart(new Date()));
+  const next = nextRunAt();
   await stampHeartbeat({ note, next, state: 'running', keepRunning: true });
   emit({ stamped: true, note, nextRunAt: next.toISOString() });
-}
-
-function nextRuns() {
-  const now = flag('now') ? new Date(flag('now')) : new Date();
-  let slot = slotStart(now);
-  const out = [];
-  for (let i = 0; i < 12; i++) {
-    const n = nextRunAt(slot);
-    out.push(n.toISOString());
-    slot = slotStart(n);
-  }
-  const { hour, minute } = localParts(now);
-  emit({ now: now.toISOString(), local: `${hour}:${String(minute).padStart(2, '0')}`, window: windowFor(hour).name, thisTickDue: slotIsDue(slotStart(now)), next: out });
 }
 
 async function runSql() {
@@ -625,7 +555,7 @@ async function attachment() {
   emit({ path, file, bytes: bytes.length, contentType });
 }
 
-const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql, 'concept-publish': conceptPublish, 'concept-read': conceptRead, attachment };
+const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, sql: runSql, 'concept-publish': conceptPublish, 'concept-read': conceptRead, attachment };
 // Only dispatch when run as a script — the liveness helpers are imported by the tests.
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) try {

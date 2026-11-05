@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.206.0] - 2026-11-05
+
+### Changed
+- The feedback routine no longer opens a Claude session every tick. A small watcher checks the board every 3 minutes without a model and starts one headless run only when there is work
+- The feedback panel's status now turns red about 18 minutes after the dev PC stops responding
+
+### Added
+- A feedback topic can no longer stall silently: after a crash, a shutdown or a hang, unfinished work is saved and retried, and after 3 failed attempts the topic gets a reply in its thread with a retry option
+- Replies owed for merged changes are posted even when the run that merged them died
+
 ## [0.205.2] - 2026-11-05
 
 ### Changed
