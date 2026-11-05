@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.206.1",
+  "current": "0.206.2",
   "releases": [
+    {
+      "version": "0.206.2",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The feedback watcher's status now shows the same state as the running task"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.206.1",
       "date": "2026-11-05",
