@@ -39,7 +39,7 @@ if (!existsSync(live)) {
   const at = a.findIndex((l, i) => l !== b[i]);
   if (at >= 0 || a.length !== b.length) {
     const line = at >= 0 ? at : Math.min(a.length, b.length);
-    const inWorktree = /[\/].claude[\/]worktrees[\/]/.test(REPO);
+    const inWorktree = /[\\/]\.claude[\\/]worktrees[\\/]/.test(REPO);
     console.error(`${tag} ${inWorktree ? 'WARN' : 'FAIL'} — the live prompt and docs/routine/tasks/${PROMPT}/SKILL.md differ at line ${line + 1}: run npm run sync:routine-prompts`);
     if (!inWorktree) process.exitCode = 1;
   } else {
