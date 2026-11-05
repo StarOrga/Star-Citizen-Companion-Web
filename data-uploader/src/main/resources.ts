@@ -11,7 +11,8 @@
  *     (`python/sc_extract/governor.py`) that receives each change as a JSON
  *     line on stdin and enforces it on the whole process tree at once — hard
  *     CPU cap, disk budgets, background priorities;
- *  2. the worker count of the NEXT stage is sized from them ({@link workers});
+ *  2. the worker count of a running silhouette or 3D stage follows them through a
+ *     small file the sidecar polls ({@link openLiveLimits});
  *  3. the upload loops pace themselves at their work-unit boundaries.
  *
  * It also measures: the whole PC's CPU and disk load the way Task Manager
@@ -25,7 +26,9 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { renameSync, rm, writeFileSync } from 'node:fs';
 import { cpus, freemem, totalmem } from 'node:os';
+import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { app, BrowserWindow } from 'electron';
 import log from 'electron-log';
@@ -39,16 +42,19 @@ import {
   diskKindFrom,
   dumpWorkers,
   governorLimits,
+  liveWorkers,
   matchPreset,
+  maxLiveWorkers,
   migrateLegacyGpu,
   pacingMs,
   parseSampleGpu,
   presetGpuPct,
   presetFromLegacyProfile,
   presetLimits,
+  ramThrottled,
   rangesFor,
-  silhouetteWorkers,
-  skinWorkers,
+  type LiveJobKind,
+  type LiveLimitsFile,
   type MachineInfo,
   type PresetId,
   type Range,
@@ -272,12 +278,10 @@ export function restoreOperatorLimits(): ResourceView {
   return changed(true);
 }
 
-/** Worker counts for a stage starting NOW, from the limits in effect now. */
-export function workers(): { dump: number; skin: number; silhouette: number; memCapMb: number } {
+/** Worker counts for an extract starting NOW; silhouettes and 3D use {@link openLiveLimits}. */
+export function workers(): { dump: number; memCapMb: number } {
   return {
     dump: dumpWorkers(limits, machine.cores),
-    skin: skinWorkers(limits, machine.cores),
-    silhouette: silhouetteWorkers(limits, machine.cores),
     memCapMb: limits.ramMb,
   };
 }
@@ -463,7 +467,69 @@ export function setUseGpu(on: unknown): ResourceView {
 export function setGpuAvailable(available: boolean | null): void {
   gpuProbe = available;
   syncSidecarGpu();
+  pushLiveLimits();
   notify();
+}
+
+// ── Live limits file ────────────────────────────────────────────────────────
+
+interface LiveControl {
+  kind: LiveJobKind;
+  path: string;
+  ramThrottled: boolean;
+  lastWritten: string;
+}
+
+/** jobId → the file its sidecar polls (`python/sc_extract/live_limits.py`). */
+const liveControls = new Map<string, LiveControl>();
+
+function liveLimitsNow(jobId: string, c: LiveControl): LiveLimitsFile {
+  const memMb = governors.get(jobId)?.sample?.memMb ?? 0;
+  c.ramThrottled = c.kind === 'silhouette' && ramThrottled(c.ramThrottled, memMb, limits.ramMb);
+  const n = liveWorkers(c.kind, limits, machine.cores);
+  return {
+    workers: c.ramThrottled ? Math.max(1, Math.ceil(n / 2)) : n,
+    useGpu: limits.gpuPct > 0 && gpuAvailable(),
+    gpuShare: limits.gpuPct,
+  };
+}
+
+function writeLiveLimits(jobId: string, c: LiveControl): void {
+  const text = JSON.stringify(liveLimitsNow(jobId, c));
+  if (text === c.lastWritten) return;
+  try {
+    // Atomic: the sidecar must never read half a file.
+    const tmp = `${c.path}.tmp`;
+    writeFileSync(tmp, text);
+    renameSync(tmp, c.path);
+    if (c.lastWritten) log.info(`[resources] job ${jobId} live limits: ${text}`);
+    c.lastWritten = text;
+  } catch (err) {
+    log.warn(`[resources] live limits for ${jobId}:`, err instanceof Error ? err.message : String(err));
+  }
+}
+
+function pushLiveLimits(): void {
+  for (const [jobId, c] of liveControls) writeLiveLimits(jobId, c);
+}
+
+/**
+ * Before spawning a stage whose worker count follows the limits: the workers it
+ * starts with, the most it may ever be asked for, and the file that asks.
+ * {@link unregisterJob} removes the file.
+ */
+export function openLiveLimits(jobId: string, kind: LiveJobKind): { workers: number; maxWorkers: number; path: string } {
+  const c: LiveControl = { kind, path: join(app.getPath('temp'), `sc-live-limits-${jobId}.json`), ramThrottled: false, lastWritten: '' };
+  liveControls.set(jobId, c);
+  writeLiveLimits(jobId, c);
+  return { workers: liveWorkers(kind, limits, machine.cores), maxWorkers: maxLiveWorkers(kind, machine), path: c.path };
+}
+
+function closeLiveLimits(jobId: string): void {
+  const c = liveControls.get(jobId);
+  if (!c) return;
+  liveControls.delete(jobId);
+  rm(c.path, { force: true }, () => undefined);
 }
 
 // ── Governors ───────────────────────────────────────────────────────────────
@@ -485,6 +551,7 @@ function limitsLine(): string {
 }
 
 function pushToGovernors(): void {
+  pushLiveLimits();
   const line = limitsLine();
   for (const g of governors.values()) {
     try {
@@ -540,6 +607,8 @@ export function registerJob(jobId: string, pid: number | null | undefined): void
       };
       // Forward-compatible: a governor that lists its job's pids saves the tree scan.
       if (Array.isArray(ev.pids)) g.jobPids = ev.pids.filter((n): n is number => Number.isInteger(n) && (n as number) > 0);
+      const live = liveControls.get(jobId);
+      if (live) writeLiveLimits(jobId, live); // the tree's memory may have crossed the budget
     } else if (ev.type === 'ready') {
       log.info(`[resources] governor for ${jobId} (pid ${pid}) ready, job object: ${String(ev.job)}`);
     } else if (ev.type === 'error') {
@@ -557,6 +626,7 @@ export function registerJob(jobId: string, pid: number | null | undefined): void
 
 /** The sidecar ended: closing stdin makes the governor release everything and exit. */
 export function unregisterJob(jobId: string): void {
+  closeLiveLimits(jobId);
   const g = governors.get(jobId);
   if (!g) return;
   governors.delete(jobId);

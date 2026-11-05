@@ -5,6 +5,13 @@ import pytest
 from sc_extract import gpu_share as gs
 
 
+@pytest.fixture(autouse=True)
+def _fresh_pacer():
+    gs.reset()
+    yield
+    gs.reset()
+
+
 @pytest.mark.parametrize("raw, want", [
     (None, 100), ("", 100), ("  ", 100), ("abc", 100), ("nan", 100),
     ("100", 100), ("50", 50), (" 25 ", 25), ("33.6", 34),

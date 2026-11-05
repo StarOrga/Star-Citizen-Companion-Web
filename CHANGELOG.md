@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.205.0] - 2026-11-05
+
+### Changed
+- Data Uploader 0.73.0: the silhouette step now uses several CPU cores, so it can get much closer to the limits you set.
+- Changing the limits or the mode now takes effect while silhouettes and 3D models are building, without a restart.
+- 3D models can build more ships at once when the limits allow it.
+- The silhouette step cuts its parallel work in half when it goes over the memory limit.
+
 ## [0.204.1] - 2026-11-05
 
 ### Fixed

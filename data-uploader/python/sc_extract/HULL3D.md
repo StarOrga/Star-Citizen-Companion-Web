@@ -234,10 +234,13 @@ A LIVE 4.10 catalog run (271 ships) averaged ~8 min per ship one at a time —
 What changed, none of it touching the output (each checked byte for byte
 against the previous pipeline: hull glb, `package.json`, parts, interior):
 
+- **Live worker count** — `--max-workers` + `--live-limits <file>` (`live_limits.py`):
+  the host rewrites the file when the limits change and workers start or end
+  between ships, so opening a slider mid-run takes effect without a restart.
 - **Parallel ships** — `skin_export_app --workers N` builds N ships at once in
   spawned processes fed from one queue (0 = auto from cores and RAM; the
-  uploader passes `skinWorkersFor(speed profile)`: minimal 1, standard 3 and
-  maximum 4 on 12 threads). Each worker opens its own P4K + DataCore (~2–5 min,
+  uploader passes `skinWorkers(limits)`: half the cores the CPU limit covers, 5 at
+  80 % on 12 threads). Each worker opens its own P4K + DataCore (~2–5 min,
   ~3 GB), so RAM caps the count (6 GB per worker). Workers write their own
   part index (`_parts/index.w<N>.json`, all read on start) and scratch dirs
   (`_work_w<N>`, `_work_parts_w<N>`); content-addressed files publish

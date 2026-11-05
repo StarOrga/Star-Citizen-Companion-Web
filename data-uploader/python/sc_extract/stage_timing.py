@@ -39,6 +39,14 @@ def add(label: str, seconds: float) -> None:
 Snapshot = Dict[str, Tuple[float, int]]
 
 
+def absorb(booked: Snapshot) -> None:
+    """Book what a worker process measured (`since` there) into this process."""
+    with _lock:
+        for k, (sec, n) in booked.items():
+            _seconds[k] = _seconds.get(k, 0.0) + sec
+            _calls[k] = _calls.get(k, 0) + n
+
+
 def snapshot() -> Snapshot:
     with _lock:
         return {k: (v, _calls.get(k, 0)) for k, v in _seconds.items()}

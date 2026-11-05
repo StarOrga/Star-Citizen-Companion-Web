@@ -64,6 +64,10 @@ export interface SkinExportRequest {
   armor?: boolean;
   /** Ships built at once (`--workers`); resolved by main from the live speed profile. */
   workers?: number;
+  /** Most ships at once the limits can ever ask for (`--max-workers`). */
+  maxWorkers?: number;
+  /** File the sidecar polls for the live worker count (`--live-limits`, `live_limits.py`). */
+  liveLimitsPath?: string;
 }
 
 export interface SkinEntry {
@@ -235,6 +239,8 @@ export function startSkinExport(
   if (req.gameBuild) args.push('--game-build', req.gameBuild);
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
   if (req.workers) args.push('--workers', String(req.workers));
+  if (req.maxWorkers) args.push('--max-workers', String(req.maxWorkers));
+  if (req.liveLimitsPath) args.push('--live-limits', req.liveLimitsPath);
   args.push('--cache-salt', toolSalt());
   args.push('--recipe', recipeTag('model3d'));
   args.push(...packageExportArgs(req));

@@ -1060,14 +1060,17 @@ ipcMain.handle('sc:skin:ensureTools', async (event) => {
 
 ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<SkinExportFinal> => {
   const jobId = `skin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // Same rule as the extract: parallelism follows the limits live at start.
+  // Parallelism follows the limits, also while the build runs.
   // Which extra 3D package kinds to build is the operator's persisted choice
   // (settings, 3D models); main reads it here so every start path — manual run,
   // unattended auto-run — honours it without the renderer passing it along.
   const pk = getSettings();
+  const live = resources.openLiveLimits(jobId, 'skin');
   req = {
     ...req,
-    workers: resources.workers().skin,
+    workers: live.workers,
+    maxWorkers: live.maxWorkers,
+    liveLimitsPath: live.path,
     fps: pk.pkgFps,
     items: pk.pkgItems,
     armor: pk.pkgArmor,
@@ -1194,8 +1197,9 @@ ipcMain.handle(
       timeoutMs: JOB_STALL_MS,
       onTimeout: (idle) => reportJobStall('silhouette', idle, jobId),
     });
-    // Conversions at once follow the limits live at start, like the other builds.
-    req = { ...req, workers: resources.workers().silhouette };
+    // Conversions at once follow the limits, also while the build runs.
+    const live = resources.openLiveLimits(jobId, 'silhouette');
+    req = { ...req, workers: live.workers, maxWorkers: live.maxWorkers, liveLimitsPath: live.path };
     const job = newActiveJob('silhouette', req.outDir);
     const handle = startSilhouetteBuild(req, (ev) => {
       watchdog.pet();
