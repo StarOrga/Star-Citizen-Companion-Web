@@ -213,9 +213,16 @@ describe('CodexLandingComponent', () => {
     expect(second.getAttribute('href')).toBe('/codex/weapon/KSAR_Smg');
     expect(arrow.getAttribute('href')).toBe('/codex/weapon/KSAR_Smg');
 
-    const ctrl = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
-    second.dispatchEvent(ctrl);
-    expect(ctrl.defaultPrevented).withContext('Ctrl+click falls through to the anchor').toBeFalse();
+    // Swallowed on window, after every page listener has seen it: an unprevented Ctrl+click would open a real tab (new-tab-guard.spec.ts).
+    let leftToBrowser = false;
+    const swallow = (ev: Event) => {
+      leftToBrowser = !ev.defaultPrevented;
+      ev.preventDefault();
+    };
+    window.addEventListener('click', swallow);
+    second.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    window.removeEventListener('click', swallow);
+    expect(leftToBrowser).withContext('Ctrl+click falls through to the anchor').toBeTrue();
     expect(cmp.picked()).toBeNull();
 
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });

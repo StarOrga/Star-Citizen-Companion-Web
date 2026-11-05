@@ -48,26 +48,46 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
 
   afterEach(() => fixture?.nativeElement.remove());
 
-  // Pane widths: tablet 186 (--cx-pane at 721-1099px), desktop 250-gutter-22 up to 350-gutter-22, phone content width 328.
+  /**
+   * Pane widths: 256 = the real list pane at 1440 and 1920 (the side column is clamp(250px, 22%, 350px) of the
+   * page frame minus gutter and 22px; measured 256 by QA), 328 = phone content width. Karma is a fine pointer, so
+   * the phone case replays the (pointer: coarse) tab sizing of the pane's stylesheet (min-width 48, 11px name).
+   * 186 = tablet (721-1099px): below the desktop minimum a wrap is the honest last resort, so only "no clipping" is asserted there.
+   */
+  const CASES: { width: number; coarse: boolean; oneRow: boolean }[] = [
+    { width: 256, coarse: false, oneRow: true },
+    { width: 328, coarse: true, oneRow: true },
+    { width: 186, coarse: false, oneRow: false },
+  ];
   for (const lang of ['de', 'en'] as const) {
-    for (const width of [186, 228, 328]) {
-      it(`${lang} at ${width}px: every tab inside the bar, the active name not truncated, for every category`, async () => {
+    for (const { width, coarse, oneRow } of CASES) {
+      it(`${lang} at ${width}px${coarse ? ' (coarse)' : ''}: ${oneRow ? 'ONE row, ' : ''}no tab clipped, the active name whole, for every category`, async () => {
+        const style = document.createElement('style');
+        if (coarse) style.textContent = 'sc-codex-landing-codex-pane .tab { min-width: 48px !important; padding: 0 4px !important; } sc-codex-landing-codex-pane .tab .nm { font-size: 11px !important; }';
+        document.head.appendChild(style);
+        const measured: string[] = [];
         for (const cat of LANDING_CATEGORIES) {
           const host = await mount(lang, width, cat);
           const bar = host.querySelector<HTMLElement>('.tabs')!.getBoundingClientRect();
           const tabs = Array.from(host.querySelectorAll<HTMLElement>('.tabs .tab'));
           expect(tabs.length).toBe(5);
+          const tops = new Set<number>();
           for (const t of tabs) {
             const r = t.getBoundingClientRect();
+            tops.add(Math.round(r.top));
             expect(r.left).withContext(`${cat} tab left`).toBeGreaterThanOrEqual(bar.left - 0.5);
             expect(r.right).withContext(`${cat} tab right`).toBeLessThanOrEqual(bar.right + 0.5);
           }
+          if (oneRow) expect(tops.size).withContext(`${lang} ${cat} at ${width}px rows`).toBe(1);
           const nm = host.querySelector<HTMLElement>('.tab.on .nm')!;
           expect(nm.scrollWidth).withContext(`${lang} ${cat} name`).toBeLessThanOrEqual(nm.clientWidth + 1);
           const body = host.querySelector<HTMLElement>('.body')!;
           expect(body.scrollWidth).withContext('no sideways scroll').toBeLessThanOrEqual(body.clientWidth + 1);
+          measured.push(`${cat}: rows=${tops.size} bar=${Math.round(bar.width)} name=${Math.round(nm.scrollWidth)}/${Math.round(nm.clientWidth)}`);
           fixture.nativeElement.remove();
         }
+        style.remove();
+        console.info(`FIT ${lang} ${width}px`, measured.join(' | '));
       });
     }
   }

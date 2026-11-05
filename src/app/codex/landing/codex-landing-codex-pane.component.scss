@@ -28,13 +28,13 @@
 }
 // Category bar: icons in a row; the active tab also shows its name, the others name in a tooltip.
 // Wraps instead of clipping: the active tab keeps its full name, the others drop to the next line when the pane is narrow.
-.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 2px; min-width: 0; }
+.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 1px; min-width: 0; }
 .tab-li { position: relative; display: flex; min-width: 0; flex: 0 0 auto; }
 .tab-li.on { flex: 1 0 auto; }
 .tab {
-  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 34px; min-height: 34px;
-  padding: 0 8px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left;
-  font: 600 max(10px, 0.64rem) / 1.2 var(--sc-font-display); letter-spacing: 0.1em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; min-width: 26px; min-height: 34px;
+  padding: 0 4px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left;
+  font: 600 max(10px, 0.64rem) / 1.2 var(--sc-font-display); letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--sc-fg-2); transition: color 0.15s ease, background 0.15s ease;
 }
 .tab.idle { cursor: default; opacity: 0.45; }
@@ -127,7 +127,8 @@
 @media (pointer: coarse) {
   .ph, .keys, .here, .soon, .none, .more, .new a, .tab, .sum, .all { font-size: 12px; }
   .tab, .new a, .more, .all, .keys { min-height: 48px; }
-  .tab { min-width: 48px; }
+  .tab { min-width: 48px; padding: 0 4px; }
+  .tab .nm { font-size: 11px; }
   .new a.go { min-width: 48px; }
 }
 @media (max-width: 720px) {
