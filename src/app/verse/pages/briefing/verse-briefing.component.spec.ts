@@ -15,7 +15,7 @@ import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
-import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SWITCH_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_SWITCH_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
@@ -436,8 +436,12 @@ describe('Verse briefing — component', () => {
       expect(fixture.nativeElement.querySelector('.hrow .step')).toBeNull();
       expect(stage(fixture)?.classList).not.toContain('finale');
 
-      // The finale comes once everything stood — at the latest after the planet wait.
-      tick(INTRO_PLANET_WAIT_MS);
+      // The finale comes once everything stood. Whether the planet settles on its own depends on the
+      // machine (no WebGL: at once, so the finale would already be over by the planet wait), so the
+      // spec settles it explicitly and the order stays the same everywhere. The planet-wait fallback (INTRO_PLANET_WAIT_MS)
+      // is a timer in the component only.
+      c.onPlanetSettled();
+      tick(INTRO_BUILD_MS);
       fixture.detectChanges();
       expect(stage(fixture)?.classList).toContain('finale');
       tick(INTRO_SWITCH_MS);
