@@ -147,6 +147,26 @@ describe('ShellComponent menu navigation', () => {
     expect(hrefs).toContain('/admin/api-tokens');
   });
 
+  it('puts the Admin hub into the account menu: red, admin-only in words, next to API-Tokens', () => {
+    const fixture = setup(true);
+    openMenu(fixture);
+    const items = Array.from(
+      fixture.nativeElement.querySelectorAll('.dropdown a.dropdown-item'),
+    ) as HTMLAnchorElement[];
+    const hrefs = items.map((a) => a.getAttribute('href'));
+    const hub = items[hrefs.indexOf('/admin/hub')];
+    expect(hub).withContext('Admin hub as a real anchor').toBeTruthy();
+    expect(hub.classList.contains('elevated')).toBeTrue();
+    expect(hub.querySelector('.di-tag')?.textContent?.trim()).toBe('nav.adminOnly');
+    expect(hrefs.indexOf('/admin/api-tokens')).toBe(hrefs.indexOf('/admin/hub') + 1);
+  });
+
+  it('shows a plain viewer no Admin entry in the account menu', () => {
+    const fixture = setup(false);
+    openMenu(fixture);
+    expect(fixture.nativeElement.querySelector('.dropdown a[href^="/admin"]')).toBeNull();
+  });
+
   it('renders the Telemetrie header entry as a real anchor for an admin', () => {
     const fixture = setup(true);
 

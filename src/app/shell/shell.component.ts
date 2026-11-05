@@ -58,7 +58,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 import { MainHeaderComponent } from './main-header/main-header.component';
-import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
+import { ADMIN_HUB, isMainHeaderPage } from './fusion-bar/fusion-bar.model';
 import { ShellChromeService } from './fusion-bar/shell-chrome.service';
 import { peekIntro } from '../verse/pages/briefing/briefing.model';
 import { avatarUrlOf } from './avatar-url';
@@ -314,6 +314,17 @@ import { avatarUrlOf } from './avatar-url';
                      hot accent for the same reason the header's admin links are
                      (elevated access), with the tag so the colour is never the
                      only carrier of that meaning — admin feedback f8ea96f5. -->
+                <!-- The Admin hub itself: it left the nav and the header's sub row
+                     (batch 2026-11-05, d-admin), the account menu is its one home,
+                     on desktop and phone alike. -->
+                <a
+                  class="dropdown-item elevated"
+                  role="menuitem"
+                  [routerLink]="adminHub"
+                  (click)="onMenuNavigate($event)">
+                  <span class="di-label">{{ 'nav.adminMenu' | translate }}</span>
+                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                </a>
                 <a
                   class="dropdown-item elevated"
                   role="menuitem"
@@ -1043,6 +1054,8 @@ export class ShellComponent implements AfterViewInit {
   readonly codexBar = computed(() => !this.shellOn() && this.onCodexSubpage());
 
   readonly signingOut = signal(false);
+  /** The Admin hub, the first red entry of the account menu. */
+  protected readonly adminHub = ADMIN_HUB;
   readonly menuOpen = signal(false);
   /** The folded admin menu (721-1179px). */
   readonly adminMenuOpen = signal(false);
