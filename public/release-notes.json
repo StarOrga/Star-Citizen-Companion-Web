@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.209.0",
+  "current": "0.209.1",
   "releases": [
+    {
+      "version": "0.209.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub: the stability chip on the live patch card sits flush right on the title line."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.209.0",
       "date": "2026-11-05",
