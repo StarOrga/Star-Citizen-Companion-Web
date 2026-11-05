@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import type { StabilityVerdict } from '../../../news/patch-stability';
+import type { VerseNewsItem } from '../../../news/news.service';
 import type { VerseChannelInfo } from '../../data/verse.models';
 import { BriefingHubComponent } from './briefing-hub.component';
 import { daysSince, hubChannel, hubChannels } from './briefing-hub';
@@ -61,6 +62,19 @@ describe('Verse hub — channel info (Hotfix / PTU / Evocati)', () => {
     expect(rows[1].sinceDays).toBeNull();
     expect(rows[1].chip?.percent).withContext('no channelInfo → no number').toBeNull();
     expect(rows[2].chip).toBeNull();
+  });
+});
+
+describe('BriefingHubComponent — news accordion', () => {
+  it('clips the open entry to rounded corners, also its image zoom and gradient', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
+    const fixture = TestBed.createComponent(BriefingHubComponent);
+    const item = { id: 'n1', title: 'News', thumbnail: null, publishedAt: new Date(NOW).toISOString() };
+    fixture.componentRef.setInput('news', [item] as unknown as VerseNewsItem[]);
+    fixture.detectChanges();
+    const css = getComputedStyle((fixture.nativeElement as HTMLElement).querySelector('.acc-i.open .acc-a')!);
+    expect(css.overflow).toBe('hidden');
+    expect(css.borderTopLeftRadius).toBe('6px');
   });
 });
 
