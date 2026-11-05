@@ -64,3 +64,9 @@ One row per checklist line it owns: item → done / partial / not done → evide
 > btw, rendering darf auch bildschirmabhängig sein, bzw. wie viele pixel, wir rbauchen keinen 8k grundplaneten im background obwohl ihc nu rfull hd habe im view oder annähernd durch taskleiste / edge bar.
 
 - [ ] **GL-7** Texture and render resolution follow the viewport actually on screen (CSS pixels × devicePixelRatio), so a full-HD view does not load or render more detail than it can show. Pixels at the owner's resolution stay as sharp as today.
+
+## Close-out follow-ups (round 2, action finalize, routed to "Jetzt umsetzen" by the owner)
+
+- [ ] **oq-nogpu** First paint on `/verse` is later without a GPU since the worker move (software WebGL 6.3-9.9 s vs 3.1 s). Option named in the report: detect a software renderer and keep those machines on the page path.
+- [ ] **oq-bodymaps** Bake the body maps to lossless WebP, as the big planet's textures are (`scripts/bake-planet.mjs`), so the 0.55 s raster leaves the main thread.
+- [ ] **oq-redspec** The spec "opens on the app name, builds up, lets the comet fly last" in `verse-briefing.component.spec.ts` fails on `main` too (`Expected bstage to contain 'finale'`). Find the root cause and fix it.
