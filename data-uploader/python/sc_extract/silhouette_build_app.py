@@ -26,6 +26,7 @@ from typing import Any, Dict
 
 from .events import count, done, error, log, phase, progress
 from . import stage_timing
+from .live_limits import LiveLimits
 from .silhouette_build import build_rows, cache_dir_for, write_skips
 
 
@@ -46,12 +47,17 @@ def main() -> int:
                     help="build recipe of the silhouette output (silhouette@N, build-recipes.ts): "
                          "keys the cache instead of the code, so only a bumped recipe recomputes")
     ap.add_argument("--workers", type=int, default=1,
-                    help="meshes converted at once (threads; the host sizes it from the resource limits)")
+                    help="meshes converted at once at the start (the host sizes it from the resource limits)")
+    ap.add_argument("--max-workers", type=int, default=0,
+                    help="most meshes at once the limits can ever ask for while this run goes")
+    ap.add_argument("--live-limits", type=Path, default=None,
+                    help="file the host rewrites when the limits change (live_limits.py)")
     args = ap.parse_args()
 
     def on_log(level: str, msg: str) -> None:
         log(level if level in ("info", "warn", "error") else "info", msg)
 
+    exporter = None
     try:
         manifest_path = args.manifest or (args.out / "silhouettes" / "_build_manifest.json")
         if not manifest_path.exists():
@@ -86,6 +92,9 @@ def main() -> int:
         pruned = exporter.prune_cache()
         if pruned:
             log("info", f"silhouette cache: dropped {pruned} entr(y/ies) of older silhouette code")
+        live = LiveLimits(args.workers, args.live_limits).start()
+        cap = max(args.workers, args.max_workers, live.workers)
+        exporter.use_processes(cap, lambda: live.workers)
 
         from . import silhouette_gpu
         from .silhouette import raster_backend
@@ -119,14 +128,16 @@ def main() -> int:
             exporter, entities, out_dir=args.out, build=build, tolerance_m=args.tolerance_m,
             workers=args.workers, log=on_log, on_progress=on_progress, on_count=count,
             manifest_skips=manifest.get("skips") or [],
+            live_workers=lambda: live.workers, max_workers=cap,
         )
         wall = time.perf_counter() - t0
-        workers = max(1, args.workers)
+        workers = max(1, int(stats.get("peakWorkers") or args.workers))
         # Same per-run accounting as skin_export_app: names the bottleneck.
         # With several worker threads the booked seconds are summed over them.
         log("info", f"silhouette timing ({wall:.1f}s wall, {workers} worker(s), "
                     f"{backend} raster): "
                     f"{stage_timing.summary(stage_timing.since(before), wall * workers)}")
+        exporter.close(kill=bool(stats.get("abandoned")))
         done(result=stats)
         if stats.get("abandoned"):
             # A mesh blew its time budget and its worker thread cannot be killed;
@@ -137,6 +148,8 @@ def main() -> int:
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")
+        if exporter is not None:
+            exporter.close(kill=True)
         # Same as above: an abandoned worker must not hold the interpreter at exit.
         sys.stdout.flush()
         sys.stderr.flush()

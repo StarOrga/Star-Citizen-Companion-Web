@@ -81,6 +81,12 @@ def set_deadline(at: Optional[float]) -> None:
     _deadline.at = at
 
 
+def deadline_remaining() -> Optional[float]:
+    """Seconds left on this thread's deadline (None = no limit) — to hand it to a worker process."""
+    at = getattr(_deadline, "at", None)
+    return None if at is None else max(0.0, at - time.monotonic())
+
+
 def check_deadline() -> None:
     at = getattr(_deadline, "at", None)
     if at is not None and time.monotonic() > at:
@@ -321,12 +327,23 @@ class SilhouetteExporter:
         self.cfg.cache_dir = cfg.cache_dir.resolve()
         self.cfg.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cfg.work_dir.mkdir(parents=True, exist_ok=True)
-        self._byname = {i.filename.replace("\\", "/"): i for i in p4k.infolist()}
+        # A worker process (`silhouette_pool`) has no P4K: it only ever converts.
+        self._byname = {i.filename.replace("\\", "/"): i for i in p4k.infolist()} if p4k is not None else {}
         # Case-insensitive fallback as ONE dict, built once. It used to be a
         # linear scan of every archive entry (1.37M on LIVE) per miss — and a
         # mesh without a `.cgam` (most items) missed three times per entity.
         self._lower: Optional[Dict[str, Any]] = None
         self.algo = algo_tag(cfg.recipe)
+        self._remote: Any = None
+
+    def use_processes(self, max_workers: int, live_workers: Callable[[], int]) -> None:
+        """Run `compute` in worker processes from here on (see `silhouette_pool`)."""
+        from .silhouette_pool import ProcessCompute
+        self._remote = ProcessCompute(self.cfg, max_workers, live_workers)
+
+    def close(self, kill: bool = False) -> None:
+        if self._remote is not None:
+            self._remote.close(kill=kill)
 
     # ---- P4K (single thread) ------------------------------------------------
     def _info(self, p4k_path: str):
@@ -409,6 +426,12 @@ class SilhouetteExporter:
 
         Raises `SilhouetteSkip` when the conversion fails or yields no
         triangles; returns None when the trace finds no outline (also `empty`)."""
+        if self._remote is not None:
+            return self._remote.compute(self, src, mesh_id, tolerance_m)
+        return self.compute_local(src, mesh_id, tolerance_m)
+
+    def compute_local(self, src: MeshSource, mesh_id: str, tolerance_m: float) -> Optional[Dict[str, Any]]:
+        """`compute` on this thread."""
         from .silhouette import build_silhouette
 
         t0 = time.monotonic()

@@ -121,7 +121,7 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
 | Ressource | Skala | Durchsetzung |
 |---|---|---|
 | Prozessor | 0–100 % der ganzen Maschine, Grenze max. **90 %** | harte CPU-Grenze per Windows **Job Object** um den ganzen Sidecar-Baum |
-| Arbeitsspeicher | Gesamt-RAM − 2 GB für Windows; belegt von anderen Programmen + Uploader-App wird live abgezogen | bestimmt die Worker-Zahl des nächsten Schritts (ein hartes Commit-Limit würde Allokationen scheitern lassen und den Lauf abstürzen) |
+| Arbeitsspeicher | Gesamt-RAM − 2 GB für Windows; belegt von anderen Programmen + Uploader-App wird live abgezogen | bestimmt die Worker-Zahl, auch während Silhouetten und 3D laufen (ein hartes Commit-Limit würde Allokationen scheitern lassen und den Lauf abstürzen) |
 | Disk lesen / schreiben (MB/s), Disk-Zugriffe (/s) | Laufwerksklasse der Data.p4k (NVMe / SATA-SSD / HDD, per `Get-PhysicalDisk`) | Governor pausiert den Baum genau so lange, bis das Budget wieder im Plus ist (Duty-Cycle, 250 ms Auflösung) |
 | Grafikkarte | 0–100 % Anteil der GPU (`gpuPct`; Beim Spielen 0 = aus, Ausgewogen 80, Volle Leistung 100) | `gpuPct` 0 oder keine GPU erkannt (`Win32_VideoController`, einmal pro Sitzung) → `SC_USE_GPU=0`; sonst `SC_USE_GPU=1` plus `SC_GPU_SHARE`: Silhouetten-Raster und Loch-Prüfung pausieren nach jeder GPU-Einheit im Verhältnis zur Grenze (`python/sc_extract/gpu_share.py`, max. 2 s). Windows kennt keine harte GPU-Grenze, der Wert kann kurz darüber liegen. Ein altes `useGpu: false` wird bei eigenen Werten zu 0, die Voreinstellungen bringen ihren GPU-Wert mit |
 

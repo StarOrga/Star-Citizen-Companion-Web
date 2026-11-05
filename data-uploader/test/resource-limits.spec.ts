@@ -8,9 +8,12 @@ import {
   diskKindFrom,
   dumpWorkers,
   governorLimits,
+  liveWorkers,
   matchPreset,
+  maxLiveWorkers,
   presetFromLegacyProfile,
   presetLimits,
+  ramThrottled,
   rangesFor,
   ramOthersMb,
   silhouetteWorkers,
@@ -69,13 +72,32 @@ describe('resource limits', () => {
     expect(dumpWorkers({ ...presetLimits('full', pc), cpuPct: 50 }, 16)).toBe(8);
     expect(dumpWorkers({ ...presetLimits('full', pc), cpuPct: 90 }, 16)).toBe(14);
     expect(skinWorkers({ ...presetLimits('full', pc), cpuPct: 90, ramMb: 4096 }, 16)).toBe(1);
-    expect(skinWorkers({ ...presetLimits('full', pc), cpuPct: 90, ramMb: 20000 }, 16)).toBe(4);
+    expect(skinWorkers({ ...presetLimits('full', pc), cpuPct: 90, ramMb: 20000 }, 16)).toBe(6);
+    expect(skinWorkers({ ...presetLimits('full', pc), cpuPct: 80, ramMb: 15616 }, 12)).toBe(5);
   });
 
-  it('sizes the silhouette threads by CPU share, capped', () => {
-    expect(silhouetteWorkers({ ...presetLimits('full', pc), cpuPct: 90 }, 16)).toBe(8);
-    expect(silhouetteWorkers({ ...presetLimits('gaming', pc), cpuPct: 15 }, 16)).toBe(2);
+  it('gives the silhouette step enough workers to reach the CPU limit', () => {
+    expect(silhouetteWorkers({ ...presetLimits('full', pc), cpuPct: 80, ramMb: 15616 }, 12)).toBe(10);
+    expect(silhouetteWorkers({ ...presetLimits('full', pc), cpuPct: 90 }, 16)).toBe(15);
+    expect(silhouetteWorkers({ ...presetLimits('gaming', pc), cpuPct: 15 }, 16)).toBe(3);
     expect(silhouetteWorkers({ ...presetLimits('gaming', pc), ramMb: 1024 }, 16)).toBe(2);
+  });
+
+  it('knows the most workers the scales can ask for', () => {
+    expect(maxLiveWorkers('silhouette', { ...pc, cores: 12 })).toBe(10);
+    expect(maxLiveWorkers('skin', { ...pc, cores: 12 })).toBe(5);
+    for (const id of ['gaming', 'balanced', 'full'] as const) {
+      const limits = presetLimits(id, pc);
+      expect(liveWorkers('silhouette', limits, pc.cores)).toBeLessThanOrEqual(maxLiveWorkers('silhouette', pc));
+      expect(liveWorkers('skin', limits, pc.cores)).toBeLessThanOrEqual(maxLiveWorkers('skin', pc));
+    }
+  });
+
+  it('throttles on RAM over the budget and opens up well below it', () => {
+    expect(ramThrottled(false, 9000, 10000)).toBe(false);
+    expect(ramThrottled(false, 10000, 10000)).toBe(true);
+    expect(ramThrottled(true, 9000, 10000)).toBe(true);
+    expect(ramThrottled(true, 7900, 10000)).toBe(false);
   });
 
   it('hands the governor bytes and a background priority', () => {
