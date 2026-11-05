@@ -23,7 +23,7 @@ describe('HqSuppliesPopupComponent', () => {
   });
   afterEach(() => localStorage.removeItem(SUPPLIES_STORAGE_KEY));
 
-  it('is a dialog on the shared frame (popup mode), adds a line and ticks it off', async () => {
+  it('is a dialog on the shared frame (popup mode), takes no free text and ticks a line off', async () => {
     const f = TestBed.createComponent(HqSuppliesPopupComponent);
     let closed = 0;
     f.componentInstance.closed.subscribe(() => closed++);
@@ -32,10 +32,9 @@ describe('HqSuppliesPopupComponent', () => {
     const el: HTMLElement = f.nativeElement;
     expect(el.querySelector('[role="dialog"][aria-modal="true"]')).not.toBeNull();
 
-    const name = el.querySelector<HTMLInputElement>('#sup-name')!;
-    name.value = 'Quantum drive';
-    name.dispatchEvent(new Event('input'));
-    el.querySelector<HTMLFormElement>('form.add')!.dispatchEvent(new Event('submit'));
+    expect(el.querySelector('input[type="text"]')).toBeNull();
+
+    TestBed.inject(HqSuppliesService).add('Quantum drive', 1);
     f.detectChanges();
     expect(el.querySelectorAll('li.line').length).toBe(1);
     expect(TestBed.inject(HqSuppliesService).open().length).toBe(1);

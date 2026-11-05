@@ -104,7 +104,7 @@ export function keyDirection(e: Pick<KeyboardEvent, 'key' | 'shiftKey'>): number
 }
 
 /** True if `el` (up to the body) sits in something that scrolls itself — that gesture is not the page's. */
-function inScroller(el: Element | null): boolean {
+export function inScroller(el: Element | null): boolean {
   for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
     if (n instanceof HTMLElement && n.scrollHeight > n.clientHeight + 1) {
       const o = getComputedStyle(n).overflowY;
@@ -114,7 +114,8 @@ function inScroller(el: Element | null): boolean {
   return false;
 }
 
-function typing(el: Element | null): boolean {
+/** True in a field or dialog: its keys and wheel are not the page's. */
+export function typing(el: Element | null): boolean {
   return !!el?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="listbox"], [role="dialog"]');
 }
 

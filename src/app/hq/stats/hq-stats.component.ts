@@ -168,12 +168,12 @@ export interface HqTile {
       }
       .tile:hover { border-color: var(--sc-accent); }
       .tile:focus-visible, .sc-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .t-name { color: var(--sc-fg-2); font-size: var(--sc-fs-floor, 0.8rem); text-transform: uppercase; letter-spacing: 0.04em; }
+      .t-name { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; }
       .t-value { font: 600 1.7rem / 1.1 var(--sc-font-display); font-variant-numeric: tabular-nums; }
-      .t-sub { color: var(--sc-fg-2); font-size: var(--sc-fs-floor, 0.8rem); min-height: 1.2em; }
+      .t-sub { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); min-height: 1.2em; }
       .t-spark { height: 2.4rem; margin-top: var(--sc-space-2, 8px); }
       .tile.zero .t-value { color: var(--sc-fg-2); }
-      .t-more { color: var(--sc-accent); font-size: var(--sc-fs-floor, 0.8rem); }
+      .t-more { color: var(--sc-accent); font-size: max(0.8rem, var(--sc-fs-floor)); }
       /* Preview: sample tiles, plainly marked, under the overlay that says how they fill. */
       .preview { position: relative; display: grid; }
       .preview > * { grid-area: 1 / 1; }
@@ -210,7 +210,7 @@ export interface HqTile {
       .d-head h3 { margin: 0; font: 600 1.2rem / 1.2 var(--sc-font-display); }
       .d-sum { margin: 0; font-variant-numeric: tabular-nums; }
       .d-spark { height: 5rem; }
-      .d-hint { margin: 0; color: var(--sc-fg-2); font-size: var(--sc-fs-floor, 0.8rem); }
+      .d-hint { margin: 0; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
       table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
       th, td { padding: var(--sc-space-1, 4px) var(--sc-space-2, 8px); text-align: start; border-bottom: 1px solid var(--sc-border); }
       .num { text-align: end; }

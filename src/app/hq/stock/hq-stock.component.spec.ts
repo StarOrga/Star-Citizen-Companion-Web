@@ -7,6 +7,7 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqOwnershipService } from '../hq-ownership.service';
+import { HqLiveService } from '../now/hq-live.service';
 import { HqStockComponent } from './hq-stock.component';
 
 describe('HqStockComponent', () => {
@@ -28,6 +29,7 @@ describe('HqStockComponent', () => {
             ]
           : [],
       ),
+      items: signal(opts.full ? [{ location: 'Lorville', name: 'Gold', qty: 3, unit: 'scu' }, { location: 'Area18', name: 'Gold', qty: 4, unit: 'scu' }] : []),
       shipStorage: signal(opts.full ? [{ ship_ref: 'sh1', location: 'Area18', taken_at: ago(1) }] : []),
       load: jasmine.createSpy('load').and.resolveTo(),
       addManual: jasmine.createSpy('addManual').and.resolveTo(true),
@@ -48,12 +50,29 @@ describe('HqStockComponent', () => {
         { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([]) } },
         { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve() } },
         { provide: HqInventoryService, useValue: inv },
+        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }) } },
       ],
     });
     const fixture = TestBed.createComponent(HqStockComponent);
     fixture.detectChanges();
     return { fixture, inv };
   }
+
+  it('finds an item, nearest first, and marks the places that make up the amount', () => {
+    const { fixture } = mount({ full: true });
+    const el: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.term.set('Gold');
+    fixture.componentInstance.want.set(5);
+    fixture.detectChanges();
+    const hits = [...el.querySelectorAll('.hit')];
+    expect(hits.map((h) => h.querySelector('.hit-place')?.textContent)).toEqual(['Area18', 'Lorville']);
+    expect(hits.every((h) => h.classList.contains('take'))).toBeTrue();
+  });
+
+  it('keeps the finder away while the storage is empty', () => {
+    const { fixture } = mount({ full: false });
+    expect((fixture.nativeElement as HTMLElement).querySelector('.find')).toBeNull();
+  });
 
   it('renders with empty data and offers the capture form', () => {
     const { fixture } = mount({ full: false });

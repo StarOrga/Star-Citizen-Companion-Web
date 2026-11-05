@@ -1,9 +1,9 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.206.4",
+  "current": "0.207.1",
   "releases": [
     {
-      "version": "0.206.4",
+      "version": "0.207.1",
       "date": "2026-11-05",
       "sections": [
         {
@@ -13,6 +13,50 @@
             {
               "title": "",
               "text": "Verse start page, Patches column: \"none running right now\" and the stability chips now sit flush right in their row"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.207.0",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Planen shows where each item can be bought, with place and price, nearest shop first. The chosen shop feeds the map and the route, so new users now get a route."
+            },
+            {
+              "title": "",
+              "text": "HQ Bestand can search your storage: enter an item, an amount and a unit to see where it lies, nearest or fullest first, with the places that make up the amount marked."
+            },
+            {
+              "title": "",
+              "text": "The \"next page\" cue now stands at the bottom edge of every HQ page, and wheel and keys move whole pages on wide screens."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Supplies only take real items: adding opens the search with the supply icon marked, instead of a free-text field."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Labels in HQ Bestand and Statistik were invisible on desktop."
             }
           ]
         }

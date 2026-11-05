@@ -6,6 +6,8 @@ import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqLiveService } from '../now/hq-live.service';
+import { HqSuppliesService } from '../hq-supplies.service';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HQ_FIRST_SKIPPED_KEY, HqStartComponent } from './hq-start.component';
 
 describe('HqStartComponent first-visit block', () => {
@@ -37,6 +39,7 @@ describe('HqStartComponent first-visit block', () => {
           useValue: { state: signal(opts.app ? { location: 'Area18' } : null), events: signal([]), loaded: signal(true) },
         },
         { provide: HqEinsatzService, useValue: einsatz },
+        { provide: HqSuppliesService, useValue: { items: signal([]) } },
       ],
     });
     const f = TestBed.createComponent(HqStartComponent);
@@ -50,6 +53,16 @@ describe('HqStartComponent first-visit block', () => {
     const { el } = await mount({ ships: 2, app: true, einsaetze: 0 });
     expect(el.querySelector('sc-hq-first-visit')).not.toBeNull();
     expect(el.querySelectorAll('.step.done').length).toBe(2);
+  });
+
+  it('opens the search right here from "Ersten Einsatz planen" while nothing is on the list', async () => {
+    const { f, el } = await mount({ ships: 0, app: false, einsaetze: 0 });
+    const chrome = TestBed.inject(ShellChromeService);
+    const step = el.querySelectorAll<HTMLAnchorElement>('.step-link')[2];
+    expect(step.getAttribute('href')).toBe('/hq#planen');
+    step.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    f.detectChanges();
+    expect(chrome.supplySearch()).toBeTrue();
   });
 
   it('is gone once all three steps are done', async () => {

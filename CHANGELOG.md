@@ -4,10 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.206.4] - 2026-11-05
+## [0.207.1] - 2026-11-05
 
 ### Fixed
 - Verse start page, Patches column: "none running right now" and the stability chips now sit flush right in their row
+
+## [0.207.0] - 2026-11-05
+
+### Added
+- HQ Planen shows where each item can be bought, with place and price, nearest shop first. The chosen shop feeds the map and the route, so new users now get a route.
+- HQ Bestand can search your storage: enter an item, an amount and a unit to see where it lies, nearest or fullest first, with the places that make up the amount marked.
+- The "next page" cue now stands at the bottom edge of every HQ page, and wheel and keys move whole pages on wide screens.
+
+### Changed
+- Supplies only take real items: adding opens the search with the supply icon marked, instead of a free-text field.
+
+### Fixed
+- Labels in HQ Bestand and Statistik were invisible on desktop.
 
 ## [0.206.3] - 2026-11-05
 
