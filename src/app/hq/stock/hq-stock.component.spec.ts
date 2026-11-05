@@ -75,7 +75,7 @@ describe('HqStockComponent', () => {
     expect(el.querySelectorAll('.num').length).toBe(2);
     expect(el.querySelector('.totals .num b')?.textContent).toBe('3');
     expect(el.querySelector('.chip.warn')?.textContent).toContain('Lorville');
-    const fav = el.querySelector('section a[href]') as HTMLAnchorElement;
+    const fav = [...el.querySelectorAll('section a[href]')].find((a) => a.getAttribute('href')?.includes('/hq/hangar/sh1')) as HTMLAnchorElement;
     expect(fav.getAttribute('href')).toContain('/hq/hangar/sh1');
     expect(el.querySelectorAll('.card button').length).toBeGreaterThan(4);
     expect(el.querySelector('.card div[role=button], .card [tabindex="0"]')).toBeNull();
@@ -190,18 +190,16 @@ describe('HqStockComponent', () => {
     expect(bad.inv.load).toHaveBeenCalled();
   });
 
-  it('does not grow past the viewport page: measured height of the overview with realistic data', () => {
-    const { fixture, el } = mount({ full: true, many: 300 });
+  it('fits one phone screen: 150 items in 30 places at 390 px wide stay within 844 px minus the chrome', () => {
+    const { fixture, el } = mount({ full: true, many: 147 });
+    // The component sizes by its own container, so a fixed 390 px host is the phone layout whatever the Karma frame is.
+    el.style.width = '390px';
+    document.body.appendChild(el);
     fixture.detectChanges();
-    const host = el;
-    document.body.appendChild(host);
-    const h = host.getBoundingClientRect().height;
-    // Karma renders at ~749 px wide (phone branch). The stock page's section keeps min-height 100svh with
-    // 64px bar + 24px padding above; the content must leave that room.
-    const room = window.innerHeight - 64 - 24 - 32;
-    // eslint-disable-next-line no-console
-    (window as unknown as { __stockH?: number[] }).__stockH = [h, room, window.innerWidth, window.innerHeight];
-    expect(h).toBeLessThanOrEqual(room);
-    host.remove();
+    const h = el.getBoundingClientRect().height;
+    // 844 viewport - 130 bottom bars (HQ page bar + fusion bar) - 88 top (docked bar + padding) - 32 section bottom padding.
+    const room = 844 - 130 - 88 - 32;
+    expect(h).withContext(`stock overview is ${Math.round(h)}px, room ${room}px`).toBeLessThanOrEqual(room);
+    el.remove();
   });
 });

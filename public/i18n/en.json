@@ -5372,8 +5372,7 @@
       "ships": {
         "title": "Ships",
         "count": "{{n}} in the hangar",
-        "noFavourites": "No favourites marked yet.",
-        "open": "Open hangar"
+        "noFavourites": "No favourites marked yet."
       },
       "sets": {
         "title": "Sets",

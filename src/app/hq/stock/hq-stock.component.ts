@@ -67,11 +67,14 @@ const STALE_SHOWN = 3;
 
         <section class="card" aria-labelledby="hq-stock-places">
           <h3 id="hq-stock-places">{{ 'hq.stock.places.title' | translate }}</h3>
-          <div class="chips">
-            @for (p of ov().top; track p.location) {
-              <button type="button" class="chip" [scTooltip]="placeName(p.location)" scTooltipTier="label" (click)="open({ mode: 'browse', filter: { place: p.location } })">
+          <div class="chips one">
+            @for (p of ov().top; track p.location; let i = $index) {
+              <button type="button" class="chip" [class.fold]="i >= 2" [scTooltip]="placeName(p.location)" scTooltipTier="label" (click)="open({ mode: 'browse', filter: { place: p.location } })">
                 <span class="cl">{{ placeName(p.location) }}</span><b>{{ p.count }}</b>
               </button>
+            }
+            @if (ov().top.length > 2) {
+              <button type="button" class="chip narrow-only plus" (click)="open({ mode: 'browse' })">+{{ ov().top.length - 2 }}</button>
             }
             @if (ov().free) {
               <button type="button" class="chip" (click)="open({ mode: 'browse', filter: { place: '' } })">
@@ -84,15 +87,20 @@ const STALE_SHOWN = 3;
         <section class="card" aria-labelledby="hq-stock-stale">
           <h3 id="hq-stock-stale">{{ 'hq.stock.stale.title' | translate }}</h3>
           @if (ov().stale.length) {
-            <div class="chips">
-              @for (p of staleShown(); track p.location) {
-                <button type="button" class="chip warn" [scTooltip]="placeName(p.location)" scTooltipTier="label"
+            <div class="chips one">
+              @for (p of staleShown(); track p.location; let i = $index) {
+                <button type="button" class="chip warn" [class.fold]="i >= 1" [scTooltip]="placeName(p.location)" scTooltipTier="label"
                         (click)="open({ mode: 'browse', filter: { place: p.location } })">
                   <span class="cl">{{ placeName(p.location) }}</span>
                 </button>
               }
+              @if (ov().stale.length > 1) {
+                <button type="button" class="chip warn narrow-only plus" (click)="open({ mode: 'browse', filter: { stale: true } })">
+                  +{{ ov().stale.length - 1 }}
+                </button>
+              }
               @if (ov().stale.length > staleShown().length) {
-                <button type="button" class="chip warn" (click)="open({ mode: 'browse', filter: { stale: true } })">
+                <button type="button" class="chip warn wide-only plus" (click)="open({ mode: 'browse', filter: { stale: true } })">
                   +{{ ov().stale.length - staleShown().length }}
                 </button>
               }
@@ -104,34 +112,33 @@ const STALE_SHOWN = 3;
 
         <section class="card" aria-labelledby="hq-stock-cats">
           <h3 id="hq-stock-cats">{{ 'hq.stock.cats.title' | translate }}</h3>
-          <div class="chips">
+          <div class="chips cats">
             @for (c of ov().cats; track c.cat) {
               <button type="button" class="chip" (click)="openCat(c.cat)">
                 <span class="cl">{{ 'hq.stock.cat.' + c.cat | translate }}</span><b>{{ c.count }}</b>
               </button>
             }
+            @if (inv.shipStorage().length) {
+              <button type="button" class="chip" (click)="open({ mode: 'browse', filter: { ships: true } })">
+                <span class="cl">{{ 'hq.stock.lager.storage' | translate }}</span><b>{{ inv.shipStorage().length }}</b>
+              </button>
+            }
           </div>
         </section>
 
-        <section class="card" aria-labelledby="hq-stock-ships">
+        <section class="card tile" aria-labelledby="hq-stock-ships">
           <h3 id="hq-stock-ships">{{ 'hq.stock.ships.title' | translate }}</h3>
-          <p class="line">{{ 'hq.stock.ships.count' | translate: { n: owned() } }}</p>
+          <a class="line" [routerLink]="hangarLink">{{ 'hq.stock.ships.count' | translate: { n: owned() } }}</a>
           @if (favourites().length) {
-            <ul class="favs">
+            <ul class="favs wide-only">
               @for (s of favourites(); track s.id) {
                 <li><a [routerLink]="shipRoute(s.id)">★ {{ s.customName || s.shipClassName }}</a></li>
               }
             </ul>
           }
-          <a class="more" [routerLink]="hangarLink">{{ 'hq.stock.ships.open' | translate }} ›</a>
-          @if (inv.shipStorage().length) {
-            <button type="button" class="chip" (click)="open({ mode: 'browse', filter: { ships: true } })">
-              <span class="cl">{{ 'hq.stock.lager.storage' | translate }}</span><b>{{ inv.shipStorage().length }}</b>
-            </button>
-          }
         </section>
 
-        <section class="card" aria-labelledby="hq-stock-sets">
+        <section class="card tile" aria-labelledby="hq-stock-sets">
           <h3 id="hq-stock-sets">{{ 'hq.stock.sets.title' | translate }}</h3>
           <ul class="favs col">
             <li><a [routerLink]="hangarLink">{{ 'hq.stock.sets.ship' | translate: { n: shipLoadouts() } }}</a></li>
@@ -139,12 +146,13 @@ const STALE_SHOWN = 3;
           </ul>
         </section>
 
-        <section class="card" aria-labelledby="hq-stock-earned">
+        <section class="card tile" aria-labelledby="hq-stock-earned">
           <h3 id="hq-stock-earned">{{ 'hq.stock.earned.title' | translate }}</h3>
           @if (blueprintTotal() !== null) {
-            <p class="line">{{ 'hq.stock.earned.blueprints' | translate: { n: blueprintTotal() } }}</p>
+            <a class="line" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.blueprints' | translate: { n: blueprintTotal() } }}</a>
+          } @else {
+            <a class="line" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
           }
-          <a class="more" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
         </section>
       </div>
     }
@@ -155,7 +163,7 @@ const STALE_SHOWN = 3;
   `,
   styles: [
     `
-      :host { display: block; }
+      :host { display: block; container-type: inline-size; }
       .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-3, 12px); }
       .page-title { margin: 0; font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
@@ -184,13 +192,28 @@ const STALE_SHOWN = 3;
       .state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sc-space-2, 8px); }
       .state p { margin: 0; }
       .intro-title { margin: 0; color: var(--sc-fg-0); }
-      /* Phone: four small cards in one row-pair, so the overview stays within the screen. */
-      @media (max-width: 720px) {
-        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sc-space-2, 8px); }
-        .totals, .grid > section:nth-child(2), .grid > section:nth-child(3), .grid > section:nth-child(4) { grid-column: 1 / -1; }
-        .card { padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); }
+      .narrow-only { display: none; }
+      .plus { flex: 0 0 auto; }
+      .chips.one .chip:not(.plus) { flex: 1 1 0; }
+      /* Narrow (container, so a phone and a test fixed at 390 px agree): one dense screen, no scrolling.
+         Long chip lists fold to a few plus "+n" (the rest is one tap away in the popup). */
+      @container (max-width: 520px) {
+        .fold, .wide-only { display: none; }
+        .narrow-only { display: inline-flex; }
         .page-title { font-size: 1.3rem; }
-        .head { margin-bottom: var(--sc-space-2, 8px); }
+        .head { margin-bottom: var(--sc-space-2, 8px); gap: var(--sc-space-2, 8px); }
+        .actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+        .actions .sc-btn { padding-inline: var(--sc-space-2, 8px); line-height: 1.15; }
+        .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sc-space-2, 8px); }
+        .grid > .card:not(.tile) { grid-column: 1 / -1; }
+        .card { padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); gap: var(--sc-space-1, 4px); }
+        .totals h3 { display: none; }
+        .chips { gap: var(--sc-space-1, 4px); }
+        .chips.one { flex-wrap: nowrap; }
+        .chips.cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .chips.cats .chip { min-width: 0; padding-inline: var(--sc-space-2, 8px); gap: var(--sc-space-1, 4px); }
+        .tile .line { font-size: max(0.85rem, var(--sc-fs-floor)); }
+        .favs.col { gap: 0; }
       }
     `,
   ],
