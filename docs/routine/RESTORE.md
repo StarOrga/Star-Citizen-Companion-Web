@@ -28,4 +28,4 @@ Order matters. How it works: [`../feedback-routine/watcher.md`](../feedback-rout
 
 ## Keeping the backup fresh
 
-After an edit of the prompt in the repo: `npm run sync:routine-prompts -- --to-live`, then ship. `prebuild` fails while the repo copy and the live file differ, so a forgotten sync cannot ship.
+After a merged edit of the prompt, from the primary checkout: `npm run sync:routine-prompts -- --to-live`. A run reads the live file at its start, so a running run keeps its prompt. `npm run watcher -- status` shows `promptInSync`; `prebuild` fails on drift only in the primary checkout and just warns in a worktree, so updating the live file cannot stop a running worker.
