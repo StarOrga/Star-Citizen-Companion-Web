@@ -27,9 +27,10 @@
   text-transform: uppercase; color: var(--sc-accent);
 }
 // Category bar: icons in a row; the active tab also shows its name, the others name in a tooltip.
-.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; align-items: stretch; gap: 2px; min-width: 0; }
+// Wraps instead of clipping: the active tab keeps its full name, the others drop to the next line when the pane is narrow.
+.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 2px; min-width: 0; }
 .tab-li { position: relative; display: flex; min-width: 0; flex: 0 0 auto; }
-.tab-li.on { flex: 1 1 auto; }
+.tab-li.on { flex: 1 0 auto; }
 .tab {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 34px; min-height: 34px;
   padding: 0 8px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left;
@@ -41,6 +42,7 @@
 .tab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 .gl { flex: 0 0 auto; font-style: normal; font-size: 14px; text-align: center; color: var(--holo, #8fe3ff); opacity: 0.75; }
 .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab.on .nm { overflow: visible; text-overflow: clip; }
 .tab.on { justify-content: flex-start; color: #fff; text-shadow: 0 0 10px rgba(130, 220, 255, 0.6); }
 .tab.on .gl { opacity: 1; text-shadow: 0 0 8px #8fe3ff; }
 .tab-li.flashing > .tab { animation: row-flash 1.4s ease-out 0.9s both; }
