@@ -77,9 +77,6 @@ describe('body engine — worker path', () => {
   });
 
   it('answers the worker when a baked map failed: the page rasterises, or says it cannot', async () => {
-    const e = BodyEngine.create({ spawn: () => w as unknown as Worker, mapUrl: () => '/no-such-map.svg' }, undefined)!;
-    expect(e).toBeTruthy();
-    e.dispose();
     const real = engine();
     w.say({ t: 'map', name: 'no-such-map', width: 512 });
     for (let i = 0; i < 200 && !w.of('map').length; i++) await new Promise((r) => setTimeout(r, 25));

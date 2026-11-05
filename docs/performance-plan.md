@@ -339,6 +339,9 @@ loads them itself, so the SVG filters, 1.4 s on the main thread in tasks up to
 The prebuild check hashes the SVGs. Re-baking needs a GPU, because the filters come
 out differently on Skia's CPU backend (75-85 % of the pixels, by 1-2 of 255 on
 average); the manifest names the renderer.
+Real GPU, cold, real CSP: 2 long tasks, sum 0.3 s, max 0.22 s, planet ready 2.1-2.5 s
+(before: 8-9 tasks, sum 1.8-2.1 s, max 0.59-0.60 s, ready 3.5-3.9 s). The price is a
+download: 0.9 MB at dpr 1, 3.0 MB at high density, against about 10 kB of SVG.
 
 **Software WebGL: no special path.** Same session, cold, FCP in seconds, four rounds:
 old page path 5.6, 6.4, 10.7, 8.9; worker 8.1, 3.9, 7.6, 6.3. The audit's "3.1 s
