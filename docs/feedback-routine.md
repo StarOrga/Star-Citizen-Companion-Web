@@ -1,19 +1,14 @@
-# Admin-Feedback Routine (local scheduled task, gated every 20 min)
+# Admin-Feedback Routine (local watcher + headless runs)
 
 Autonomous routine that turns the admins-only feedback board
-(`public.admin_feedback`) into shipped changes. Runs as a **local Claude
-scheduled task** — two of them with one prompt body: `nightly-admin-feedback`
-(cron `0,20,40 19-23,0 * * *`, the evening) and `nightly-admin-feedback-day`
-(cron `0 1,3,5,7-18 * * *`, day and night), 34 firings a day that mirror the
-**working cadence table in `scripts/routine-gate.mjs`**: every 20 min in
-the evening, hourly by day, every two hours at night; the gate still decides,
-a tick outside its window only stamps the heartbeat, see
-[`gate.md`](feedback-routine/gate.md). `scripts/check-routine-prompts.mjs`
-(prebuild) fails every build when the two bodies or the snapshot drift — it fires
-only while Claude is running on the dev machine, **not** a PC-independent
-cloud agent. A true event-driven / PC-independent build would require a
-claude.ai Cloud environment + Supabase INSERT webhook; considered and
-declined 2026-07-07 (see `sc-admin-feedback-routine` memory).
+(`public.admin_feedback`) into shipped changes. A Windows Task Scheduler job runs
+`scripts/routine-watcher.mjs` every 3 minutes **without a model**; only when the
+board holds work does it start one headless `claude -p` run, and it settles
+whatever that run leaves behind: [`watcher.md`](feedback-routine/watcher.md). It
+runs only while the dev PC is on and the user is logged in, **not** as a
+PC-independent cloud agent. The prompt of a run is
+`docs/routine/tasks/scc-feedback-headless/SKILL.md` and overrides this file on
+scheduling, locks and background work.
 
 This file is the contract of ONE run, top to bottom. Everything situational
 lives in `docs/feedback-routine/` — the map says which file answers which
@@ -23,7 +18,8 @@ situation.
 
 | Situation | File |
 |---|---|
-| Tick start/end, cadence, heartbeat + panel states, drain loop, usage brake, run lock | [`feedback-routine/gate.md`](feedback-routine/gate.md) |
+| Heartbeat + panel states, drain loop, usage brake, run lock | [`feedback-routine/gate.md`](feedback-routine/gate.md) |
+| How a run starts and ends, retries, parking, any failure or recovery | [`feedback-routine/watcher.md`](feedback-routine/watcher.md) |
 | The gate reported `reaped` / `skippedLive` / a bare `in_progress`; resuming interrupted work | [`feedback-routine/reaper.md`](feedback-routine/reaper.md) |
 | Queue read **(c)** returned open review-holds, or **(e)** an answered hold | [`feedback-routine/holds.md`](feedback-routine/holds.md) |
 | An item just shipped, **(f)** owes a review reply, or **(d)**/**(e)** handed you a continuation | [`feedback-routine/continuation.md`](feedback-routine/continuation.md) |
@@ -37,27 +33,25 @@ situation.
 
 ## STEP 0 — the gate: one script call before anything else
 
-**The first action of every tick**, from the repo root of the PRIMARY checkout:
+**The first action of every watcher tick**, from the repo root of the PRIMARY checkout:
 
 ```bash
 node scripts/routine-gate.mjs check
 ```
 
-Without a model it checks the run lock, the cadence window, the reaper (with a
+Without a model it checks the run lock, the reaper (with a
 worktree liveness check) and the counts (a)–(f), stamps the heartbeat, and
-prints one JSON line. Cadence table, heartbeat semantics and what the admin sees:
+prints one JSON line. Heartbeat semantics and what the admin sees:
 [`gate.md`](feedback-routine/gate.md).
 
-| verdict | what the tick does |
+| verdict | what the watcher does |
 |---|---|
 | `running` | another tick still works — heartbeat stamped, stop |
-| `skip-cadence` | outside the working window — heartbeat stamped, stop |
-| `idle` | nothing actionable — report one line, stop |
-| `work` | take the run lock (`start-run --note work:<n>`; `acquired:false` → stand down), read this file, continue with STEP 1 |
-| `error` | fail open: fall back to the manual path (heartbeat via MCP, reaper SQL, the six queue reads); the note `gate-error` tells the admin why the panel may lag |
+| `idle` | nothing actionable — stop, no model involved |
+| `work` | take the run lock, start the headless run, which reads this file and continues with STEP 1 |
+| `error` | retry next tick; toast after 10 errors; the note `gate-error` tells the admin why the panel may lag |
 
-An idle tick reports one line and stops **without reading this runbook**. Every
-working run ends with `end-run` (STEP 6). Pass the Supabase CLI PAT via the
+The supervisor owns the lock: a run never calls `start-run` or `end-run`. Pass the Supabase CLI PAT via the
 environment, never on a command line that ends up in a transcript.
 
 **If the Supabase MCP is not authorised in the run's session**, every SQL of
@@ -512,7 +506,7 @@ A run is not one wave and done. After the serial merge, re-read the queue
 left, build the next wave of up to 3 disjoint-area items off the now-merged
 `origin/main`. Keep going until the queue is empty or a brake trips. Brakes are
 checked between waves only, never mid-item: under 20 % left in the 5-hour usage
-window, stop with `end-run --state paused --note paused-usage-limit`; an
+window, end the run (the watcher pauses on a real limit); an
 unreadable meter fails open. Each wave's worktrees are removed after its merge
 — **two checks before every `git worktree remove`, per worktree, never as a
 batch afterthought**:
@@ -540,9 +534,10 @@ Details: [`gate.md`](feedback-routine/gate.md).
 Report the open review-holds ([`holds.md`](feedback-routine/holds.md)) and run
 the loose-ends sweep ([`sweep.md`](feedback-routine/sweep.md)) — every cycle,
 queue empty or not. Re-read the queue right before writing the report, because a
-parallel run may have shipped or parked items you thought you owned. Then
-release the run lock with `node scripts/routine-gate.mjs end-run --state idle
---note shipped:<n>`, always — even the "nothing more to do" exit runs it.
+parallel run may have shipped or parked items you thought you owned. No bare
+`in_progress` may be left. The supervisor then releases the lock, sweeps branches
+and worktrees, and retries what is unresolved
+([`watcher.md`](feedback-routine/watcher.md)).
 
 ## Guardrails
 
@@ -567,14 +562,12 @@ release the run lock with `node scripts/routine-gate.mjs end-run --state idle
   ("Surfacing open review-holds") *and* the git/release residue that no query
   sees ("Loose-ends sweep"). Report-only: never promote, never delete a branch /
   worktree / stash, never PR a branch the routine doesn't own.
-- **The gate runs first, every tick** (`node scripts/routine-gate.mjs check`);
-  an idle tick never reads this runbook. Every working run takes the run lock
-  and releases it (`start-run` / `end-run`), and drains the queue wave by wave
-  until empty or the usage brake trips — brakes are checked between waves,
+- **The watcher runs the gate every 3 minutes without a model.** Its supervisor
+  takes and releases the run lock (`start-run` / `end-run`); a headless run drains
+  the queue wave by wave until empty or the usage brake trips — brakes are checked between waves,
   never mid-item ("Drain loop and the usage brake").
-- **Overlapping runs are expected** — the task fires every 20 min and a run can
-  outlast that; the gate's run lock makes the second run stand down, and the
-  atomic per-item claim stops two runs taking the *same* item,
+- **Only one run at a time** — the watcher starts none beside a live run and the
+  gate's run lock is the second guard; the atomic per-item claim stops two runs taking the *same* item,
   but it does **not** prevent shared-checkout corruption: every thread works in
   its own isolated worktree (see "Concurrency: isolated worktrees + up to 3
   parallel disjoint-area threads").
@@ -609,7 +602,7 @@ release the run lock with `node scripts/routine-gate.mjs end-run --state idle
 | `next_run_at`  | when the gate expects the next tick to fire (cadence table + jitter); the panel is green while this + 15 min is ahead (migration `20260913121500`) |
 | `state`        | `idle` · `running` (run lock held) · `paused` (usage brake) — see `feedback-routine/gate.md` |
 | `run_started_at` / `run_finished_at` | the run lock; a `running` older than 3 h is dead and may be taken over |
-| `note`         | machine key (`queue-empty`, `work:<n>`, `shipped:<n>`, `paused-usage-limit`, `skip-cadence`, `gate-error`, `running`) translated by the panel; anything else is shown verbatim — never secrets |
+| `note`         | machine key (`queue-empty`, `work:<n>`, `shipped:<n>`, `paused-usage-limit`, `gate-error`, `running`) translated by the panel; anything else is shown verbatim — never secrets |
 | `updated_at`   | bookkeeping, same instant as `last_seen_at` in practice      |
 
 ### Active vs. Archive

@@ -5,38 +5,30 @@
 
 ## The gate (STEP 0 — one script call before anything else)
 
-Since the 2026-09-13 concept (`docs/concepts/2026-09-13-feedback-routine-takt-anweisung`)
-an idle tick costs one short model turn, not a runbook read. **The first action
-of every tick** is, from the repo root of the PRIMARY checkout:
+The watcher (`scripts/routine-watcher.mjs`, see [`watcher.md`](watcher.md)) calls
+this every 3 minutes without a model, from the repo root of the PRIMARY checkout:
 
 ```bash
 node scripts/routine-gate.mjs check
 ```
 
-It prints one JSON line (`verdict` ∈ `idle` · `skip-cadence` · `running` ·
+It prints one JSON line (`verdict` ∈ `idle` · `running` ·
 `work` · `error`) after doing, without a model:
 
 1. **Run lock.** A live `running` lock (`routine_heartbeat.state='running'`,
    `run_started_at` younger than 3 h, not finished) means another tick is still
    working → `verdict: running`, heartbeat stamped, **stop**. "Läuft noch ein
    anderer Durchlauf?" is answered before anything is claimed.
-2. **Cadence.** Two tasks fire only on cadence slots since 0.85.10 (evening
-   `0,20,40 19-23,0`, day/night `0 1,3,5,7-18`; before that one cron fired
-   every 20 min around the clock and 38 ticks a day were idle); the *working*
-   cadence is a table in the script (Europe/Berlin): 19:00–00:59 every tick,
-   08:00–18:59 the :00 tick only, 01/03/05/07 the :00 tick only. A tick outside
-   its window stamps the heartbeat with `skip-cadence` and **stops** — the
-   reaper still ran, so nothing strands. `--force` overrides (manual "Run now").
-3. **Reaper with liveness.** `in_progress`, `ship_ref is null`, older than 60
+2. **Reaper with liveness.** `in_progress`, `ship_ref is null`, older than 60
    min → reopened to `open` — **unless** an `scfb-<short-id>*` worktree shows
    git activity inside the last 60 min (then it is a live run's claim and is
    left alone; the JSON lists it under `skippedLive`). This is the check the
    old timer-only reaper lacked (memory `feedback-reaper-reopens-live-claims`).
-4. **Counts (a)–(f)** in one SQL — (a) `open and triaged`, (b) answered
+3. **Counts (a)–(f)** in one SQL — (a) `open and triaged`, (b) answered
    `needs_input`, (c) open review-holds, (d) continuations, (e) answered holds,
    (f) `shipped and review_reply_pending` — plus `untriaged` and
    `bare_in_progress` for the report.
-5. **Heartbeat** with `next_run_at`, `state` and a machine-readable `note`.
+4. **Heartbeat** with `next_run_at`, `state` and a machine-readable `note`.
 
 **Lock liveness (0.85.12).** `start-run` records the holder's session id in
 `.claude/routine-run.json` (git-ignored, primary checkout). On every tick a
@@ -57,53 +49,10 @@ app appends without a model turn when it finds a session after a restart
 (0.86.8). An interrupted run must
 resume on its own — prompt RESUME RULE, `reaper.md` "An interrupted run".
 
-**The devops workspace check is expected noise in a tick.** The orchestrator
-session starts in the primary checkout on `main` by design (gate, heartbeat,
-worktree creation) and never edits code — every edit happens in a worker's
-`scfb-*` worktree. The plugin's SessionStart hook cannot tell a scheduled
-session from an interactive one and prints its "On `main` in repo root … call
-AskUserQuestion" block into every tick (an actual `AskUserQuestion` call is
-blocked by `.claude/hooks/pre.ask.unattended.mjs` in scheduled sessions since
-0.86.13); prompt STEP 0 (0.86.1) tells the tick
-to neither ask nor bypass nor restate it — at most one report line,
-`Workspace check: orchestrator on main by design (workers in scfb-* worktrees)`.
-
-**On `idle` / `skip-cadence` / `running` the tick reports one line and stops
-without reading this runbook** — after the session hygiene: every tick is its
-own Desktop session, and an un-archived one is restored as a tab (its own
-`claude.exe`, node service and SessionStart hooks) after the next restart; ~120
-of them pinned the NVMe at 100 % for 15 minutes after a bluescreen on
-2026-09-14. The intended step — each tick lists the sessions, archives the
-routine's older non-running ones (same title only) and finally itself — is
-**suspended since 2026-09-14 23:20**: from a scheduled-task session every
-`archive_session` call (older sessions and `"self"` alike) blocks on an
-approval dialog only the user can click, bypass mode notwithstanding. While
-it waits the session counts as running and the scheduler skips the task: the
-21:47 tick hung 81 minutes on its self-archive and the 22:07, 22:27 and 22:47
-ticks never fired. Until the Desktop app lets an unattended session archive
-without a click, the tick prints its report line and stops, and the operator
-sweeps the routine's sessions from an interactive session (`list_sessions` →
-`archive_session` per routine session — no dialog there): since 2026-09-20
-the app's own "Archive inactive sessions" = 1 day does the archiving without
-a card (the `routine-janitor` scheduled task that swept every 4 h from
-2026-09-18 is disabled — every run cost a consent click), plus
-`/routine-janitor` interactively for the delete card (idle ticks deleted
-after 1 h, ≤ 25 per card; working runs never deleted), see
-`.claude/deep-knowledge/scheduled-tasks.md`. Working runs behave the same at
-the end of STEP 6. On `work` the tick takes the run lock
-(`node scripts/routine-gate.mjs start-run --note work:<n>`; `acquired:false`
-means stand down), reads this runbook, and continues with STEP 1. On `error`
-(token missing, SQL down) the gate is fail-open: the tick falls back to the
-manual path (heartbeat via MCP, reaper SQL, the five queue reads) and the note
-`gate-error` tells the admin why the panel may lag. **A broken gate must never
-look like an empty queue** — that is why the script exits 2 and never prints
-`idle` on a failure.
-
-Every working run ends with `node scripts/routine-gate.mjs end-run --state idle
---note shipped:<n>` (or `--state paused --note paused-usage-limit`, see "Drain
-loop and the usage brake") — releasing the lock is what lets the next tick work.
-A run that dies without releasing it costs the routine at most 3 h, after which
-the lock is taken over.
+The watcher does not call the gate while its own run is alive: it only stamps the
+heartbeat then, because the reaper and the lock liveness are for runs nobody owns.
+A broken gate must never look like an empty queue, which is why the script exits 2
+and never prints `idle` on a failure.
 
 The token the script needs is the Supabase CLI PAT: `--token`, then
 `SUPABASE_ACCESS_TOKEN`, then the Windows Credential Manager entry the CLI
@@ -112,9 +61,8 @@ that ends up in a transcript.
 
 ## Liveness heartbeat (STEP 0.5 — the very first thing every cycle)
 
-The routine runs on **Jerry's PC**, not in the cloud. When the machine is off,
-Claude isn't running, or the usage limit is reached, the routine simply doesn't
-fire — and says nothing. From the board that is indistinguishable from "the
+The routine runs on **Jerry's PC**, not in the cloud. When the machine is off or
+nobody is logged in, the routine simply doesn't fire — and says nothing. From the board that is indistinguishable from "the
 queue is empty and everything is fine": an admin files a topic, sees it sitting
 at `open`, and has no way to tell whether it is queued at a working machine or
 at a dark one. Feedback `a7573f0e` asked for exactly that missing bit — "zeig
@@ -181,7 +129,7 @@ layout, whatever CSS does or fails to load.
 
 **The freshness window is no longer a constant.** Every stamp carries
 `next_run_at` — the instant the gate expects the scheduler to fire next, from
-its cadence table plus the scheduler's jitter — and the panel reads "online"
+the watcher's interval — and the panel reads "online"
 while `now < next_run_at + 15 min`. A fixed 45-minute window (the first cut,
 calibrated for a 20-minute cron) turned red for a quarter of every healthy hour
 the moment the cron moved to hourly, and a status light that lies is worse than
@@ -197,13 +145,11 @@ gate's keys) and says that the routine only runs while the dev PC is up.
 session, or a failed request says nothing whatsoever about the dev PC, and
 painting that red would be a claim the admin then has to go and disprove.
 
-**A usage-limit abort turns the title red on its own** — which is the property
+**A dead watcher turns the title red on its own** — which is the property
 the feedback predicted ("denke das System wird damit automatisch auch erkennen
-wenn die Tokens verbraucht sind"). There is no token check anywhere: a run that
-dies on a usage limit, or never starts because Claude is closed, simply never
-reaches STEP 0.5, so `last_seen_at` stops advancing and ages past the window by
-itself. The same is true for a powered-off PC, a crashed run, and a disabled
-scheduled task. That is why the stamp must be **unconditional** — never guarded
+wenn die Tokens verbraucht sind"). Since the watcher a usage limit paints amber instead (it knows); anything that stops
+the watcher itself simply stops the stamp, so `last_seen_at` stops advancing and ages past the window by
+itself. The same is true for a powered-off PC and a disabled watcher task. That is why the stamp must be **unconditional** — never guarded
 by "did we do any work" — and why it must not be moved later in the cycle.
 
 ### Who may write it
