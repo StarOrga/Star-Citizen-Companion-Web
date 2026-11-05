@@ -21,6 +21,7 @@ import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
 import {
   INTRO_FLAG,
+  localDay,
   briefingStatus,
   claimIntro,
   resetIntroDocument,
@@ -135,26 +136,20 @@ describe('Verse briefing — model (more)', () => {
     expect(skyFigure(FALLBACK_POINTS, 7).stars.every((s) => s.state === 'lit')).toBeTrue();
   });
 
-  it('claimIntro plays the full entrance once per session and survives blocked storage', () => {
+  it('claimIntro plays the full entrance once per local day and survives blocked storage', () => {
     const store = new Map<string, string>();
     const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+    const day = () => new Date(2026, 10, 5, 9, 0);
     resetIntroDocument();
-    expect(claimIntro(fake, () => false)).toBe('full');
-    expect(store.get(INTRO_FLAG)).toBe('1');
-    expect(claimIntro(fake, () => false)).toBe('short');
+    expect(claimIntro(fake, day)).toBe('full');
+    expect(store.get(INTRO_FLAG)).toBe('2026-11-05');
+    expect(claimIntro(fake, day)).toBe('short');
+    expect(claimIntro(fake, () => new Date(2026, 10, 6, 9, 0))).toBe('full');
     const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
+    resetIntroDocument();
     expect(claimIntro(broken)).toBe('full');
+    resetIntroDocument();
     expect(claimIntro(null)).toBe('full');
-  });
-
-  it('claimIntro: a reload is a new visit once per document, a later in-session return is short again', () => {
-    const store = new Map<string, string>([[INTRO_FLAG, '1']]);
-    const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
-    resetIntroDocument();
-    expect(claimIntro(fake, () => true)).withContext('flag set, but the document was reloaded').toBe('full');
-    expect(claimIntro(fake, () => true)).withContext('the reload entry lives on: only the first claim counts').toBe('short');
-    resetIntroDocument();
-    expect(claimIntro(fake, () => false)).withContext('flag set, plain navigation').toBe('short');
   });
 
   it('fillGallery tops the digest up to the candidate count from the gallery source, without repeats', () => {
@@ -203,7 +198,7 @@ describe('Verse briefing — component', () => {
   const loadSeen = jasmine.createSpy('loadSeen');
 
   beforeEach(() => {
-    sessionStorage.removeItem(INTRO_FLAG);
+    localStorage.removeItem(INTRO_FLAG);
     captureVerse.calls.reset();
     trackShown.calls.reset();
     loadSeen.calls.reset();
@@ -245,7 +240,7 @@ describe('Verse briefing — component', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     beta.set({ ...beta(), shell: false });
-    sessionStorage.removeItem(INTRO_FLAG);
+    localStorage.removeItem(INTRO_FLAG);
   });
 
   it('renders the hero CTA, moons and the constellation star-map link as anchors and the story pills as buttons', () => {
@@ -380,7 +375,7 @@ describe('Verse briefing — component', () => {
   });
 
   it('plays the short entrance on a later visit in the same session', () => {
-    sessionStorage.setItem(INTRO_FLAG, '1');
+    localStorage.setItem(INTRO_FLAG, localDay());
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.stage')?.classList).toContain('short');
@@ -392,7 +387,7 @@ describe('Verse briefing — component', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('sc-news-list')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.stage')).toBeNull();
-    expect(sessionStorage.getItem(INTRO_FLAG)).toBeNull();
+    expect(localStorage.getItem(INTRO_FLAG)).toBeNull();
     expect(trackShown).not.toHaveBeenCalled();
     beta.set({ ...beta(), verse: true });
   });
@@ -414,6 +409,10 @@ describe('Verse briefing — component', () => {
       expect(css.overflow).withContext('the clamp that would clip a text-shadow').toBe('hidden');
       expect(css.textShadow).toBe('none');
       expect(css.filter).toContain('drop-shadow');
+      const blur = parseFloat(/rgba?\([^)]*\)\s+0px\s+0px\s+([\d.]+)px/.exec(css.filter)?.[1] ?? '999');
+      expect(blur).withContext('a faint blur, not a visible field').toBeLessThan(parseFloat(css.fontSize) * 0.15);
+      expect((css.filter.match(/drop-shadow/g) ?? []).length).withContext('not stacked').toBe(1);
+      expect(getComputedStyle(title(fixture)!, '::before').content).not.toContain('gradient');
       tick(10_000);
     }));
 
@@ -482,7 +481,7 @@ describe('Verse briefing — component', () => {
     }));
 
     it('a return within the session shows everything at once and releases an announced hold', fakeAsync(() => {
-      sessionStorage.setItem(INTRO_FLAG, '1');
+      localStorage.setItem(INTRO_FLAG, localDay());
       chrome.holdHeroIntro();
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();

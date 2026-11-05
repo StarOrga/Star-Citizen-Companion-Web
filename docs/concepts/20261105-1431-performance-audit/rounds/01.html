@@ -1,0 +1,374 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
+  <div class="iteration-intro">
+    <h2>Warum die Website langsam wirkt</h2>
+    <p>Gemessen in deinem Edge, in den Supabase-Logs und am Produktions-Build. Noch nichts geändert.</p>
+  </div>
+
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Vercel und Cloudflare sind es nicht. Supabase ist um 14:09 Uhr während eines Daten-Uploads abgestürzt, und auch im Normalbetrieb zeigt die App ihren ersten Inhalt erst nach rund 4 s.</p>
+    <p data-briefing-why>Dein PC und deine Leitung sind nicht der Engpass, die Bremse sitzt im Start der App und in der Last auf der kleinen Datenbank.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"≈ 3 s","unit":"früher","label":"erster Inhalt: heute 3,8–4,0 s, Ziel ≈ 1 s"}'>≈ 3 s früher</div>
+    <a data-briefing-topic="t-backend" data-share="35">Datenbank stabil halten</a>
+    <a data-briefing-topic="t-start" data-share="50">Start der App</a>
+    <a data-briefing-topic="t-deploy" data-share="15">Deploys und Browser</a>
+    <p data-briefing-duration>≈ 4 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"120–160","unit":"ms","label":"Antwortzeit von Vercel, Supabase und Cloudflare"}'></div>
+        <p>Die Server antworten schnell. Langsam ist, was danach im Browser und bei Last in der Datenbank passiert.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Erster Inhalt /codex (live)","value":3996},{"label":"Erster Inhalt /verse (live)","value":3772},{"label":"Worker Cloudflare","value":160},{"label":"Supabase","value":130},{"label":"Vercel","value":120}],"unit":"ms"}'></div>
+        <p><strong>Entlastet:</strong> Vercel (Edge Frankfurt, Cache-Treffer), Cloudflare-Worker, Supabase im Normalbetrieb (p50 40–150 ms, Cache-Trefferquote 99,55 %, 29 von 60 Verbindungen).</p>
+        <p><strong>Kein Befund:</strong> Die 1 FPS aus meiner ersten Messung kamen vom verdeckten Fenster (Takt exakt 1,00 s). Im Vordergrund läuft <code>/verse</code> mit 45–50 FPS bei freiem Haupt-Thread.</p>
+        <p><strong>Grenze der Messung:</strong> Der Tab war teils verdeckt. Deshalb sind Live-Zahlen Größenordnungen, die Funktionszuordnung kommt aus dem lokalen Profil mit Software-WebGL.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="t-backend" data-topic data-nav-label="Datenbank stabil halten">
+    <div data-alevel="2" data-title="Datenbank stabil halten">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"8,2","unit":"s","label":"p95 im Ausfall, normal ≈ 0,5 s"}'></div>
+        <p>Ein Upload hat die Free-Datenbank in die Knie gezwungen, genau als du es bemerkt hast.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"13:55","value":549},{"label":"14:00","value":7701},{"label":"14:05","value":8243},{"label":"14:10","value":3224},{"label":"14:15","value":521}],"unit":"ms p95"}'></div>
+        <p>Deine Meldung kam um 14:12 Uhr, mitten in diesem Fenster. Ab 14:15 Uhr ist alles wieder normal.</p>
+      </div>
+    </div>
+
+    <section id="d-ingest" data-nav-label="Daten-Upload" data-decision="d-ingest" data-decision-mode="single" data-label="Daten-Upload" data-rec="throttle" data-rec-why="Behebt die Ursache ohne laufende Kosten und passt zur Regel: Free-Tarife statt Rechnung." data-applies-to="ingest-catalog, Data Uploader" data-finding="f-ingest">
+      <p data-applies>Gilt für: Edge-Function ingest-catalog und den Data Uploader</p>
+      <p data-situation>Zwischen 14:00 und 14:14 Uhr liefen 30 Aufrufe von codex_upsert_rows, bis zu 51 s lang. Um 14:09 Uhr startete Postgres ungeplant neu.</p>
+      <h3 data-question>Wie soll der Daten-Upload die Datenbank künftig schonen?</h3>
+      <p data-stakes>Ob ein Upload die Seite für alle ausbremst oder ganz abschaltet.</p>
+      <div data-options>
+        <label data-opt="throttle" data-recommended>
+          <input type="radio" name="dm-d-ingest" value="throttle">
+          <span data-opt-label>Upload drosseln</span>
+          <span data-opt-consequence>Kleinere Pakete, eins nach dem anderen, Pause bei langsamer Antwort. Der Upload dauert länger, die Seite bleibt nutzbar.</span>
+        </label>
+        <label data-opt="night">
+          <input type="radio" name="dm-d-ingest" value="night">
+          <span data-opt-label>Upload in ruhige Zeiten legen</span>
+          <span data-opt-consequence>Kein Codeeingriff in den Ablauf, aber die Datenbank bleibt beim Upload überlastet und kann weiter abstürzen.</span>
+        </label>
+        <label data-opt="pro">
+          <input type="radio" name="dm-d-ingest" value="pro">
+          <span data-opt-label>Auf Supabase Pro wechseln</span>
+          <span data-opt-consequence>Mehr Reserven sofort, dafür monatliche Kosten und ein Bruch mit der bisherigen Free-Regel. Den Wechsel machst du selbst.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-ingest" value="keep" checked>
+          <span data-opt-label>Upload unverändert lassen</span>
+          <span data-opt-consequence>Jeder große Upload kann die Seite wieder minutenlang lahmlegen.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-ingest-note" placeholder="Notiz (optional)">Also data uploader ist nicht meini thema, der kann ruhig lang laufen! AUßerdem speichern wir doch in cloudflare die daten oder nicht und nur wenig in supabase? Oder verstehe cih das falssch.
+Mein punkt war eher die scc website!</textarea>
+      <input type="hidden" name="dm-d-ingest-none" value="">
+      <input type="hidden" name="dm-d-ingest-hes" value="{&quot;ms&quot;:57621,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-ingest-touched" value="1">
+      <input type="hidden" name="dm-d-ingest-issue" value="">
+      <input type="hidden" name="dm-d-ingest-epic" value="">
+      <div data-alevel="3" data-title="Daten-Upload">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"42","unit":"5xx","label":"Fehlerantworten in 15 min, davor 0"}'></div>
+          <p>In den Stunden davor gab es keine einzige Fehlerantwort.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Normal p95","value":0.5},{"label":"Upload-Aufruf Schnitt","value":9.5},{"label":"Upload-Aufruf Maximum","value":51.5}],"unit":"s"}'></div>
+          <p>21 Statement-Timeouts ab 14:02 Uhr, dann „database system was not properly shut down“ um 14:09:49 Uhr und 99-mal PGRST002 (Schema-Cache nicht ladbar). Von den 46 Upload-Aufrufen der letzten 24 h schlugen 15 fehl.</p>
+          <p>Der Grund des Neustarts steht nicht im Log, der Zusammenhang ist zeitlich belegt. In den 48 Stunden davor gab es keinen solchen Neustart.</p>
+        </div>
+        <div data-example><pre>14:02:29  canceling statement due to statement timeout
+14:08:44  canceling statement due to statement timeout
+14:09:49  database system was interrupted; last known up at 14:05:29
+14:09:50  database system was not properly shut down; automatic recovery in progress</pre></div>
+      </div>
+    </section>
+
+    <section id="d-gates" data-nav-label="Test-Last" data-decision="d-gates" data-decision-mode="single" data-label="Test-Last" data-rec="reduce" data-rec-why="Die Last ist heute harmlos, nimmt der kleinen Datenbank aber Reserve, wenn ein Upload dazukommt." data-applies-to="automatisierte Browser-Tests gegen die Live-Datenbank" data-finding="f-gates">
+      <p data-applies>Gilt für: automatisierte Browser-Läufe gegen die Live-Datenbank</p>
+      <p data-situation>Von 13:30 bis 14:00 Uhr kamen bis zu 2.675 Anfragen in 5 Minuten, überwiegend von einem Headless-Chrome. Nachts sind es 12 pro Stunde.</p>
+      <h3 data-question>Wie viel Testlast darf auf die Live-Datenbank gehen?</h3>
+      <p data-stakes>Wie viel Reserve der Datenbank für echte Besuche übrig bleibt.</p>
+      <div data-options>
+        <label data-opt="reduce" data-recommended>
+          <input type="radio" name="dm-d-gates" value="reduce">
+          <span data-opt-label>Testlast deutlich senken</span>
+          <span data-opt-consequence>Suche und Abstimmungen im Gate gegen Fixtures. Die echte Datenbank prüft nur noch ein kleiner Stichprobenlauf.</span>
+        </label>
+        <label data-opt="serial">
+          <input type="radio" name="dm-d-gates" value="serial">
+          <span data-opt-label>Nur einen Lauf gleichzeitig zulassen</span>
+          <span data-opt-consequence>Kleine Änderung, Spitzen werden flacher, die Gesamtlast bleibt.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-gates" value="keep" checked>
+          <span data-opt-label>Testlast so lassen</span>
+          <span data-opt-consequence>Kein Aufwand, die Last allein hat bisher nichts verlangsamt.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-gates-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-gates-none" value="">
+      <input type="hidden" name="dm-d-gates-hes" value="{&quot;ms&quot;:42991,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-gates-touched" value="1">
+      <input type="hidden" name="dm-d-gates-issue" value="">
+      <input type="hidden" name="dm-d-gates-epic" value="">
+      <div data-alevel="3" data-title="Test-Last">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"1.819","unit":"Aufrufe","label":"search_gallery vom Headless-Chrome seit 13 Uhr"}'></div>
+          <p>Die Spitzen bleiben allein unter 0,5 s p95, die Last ist also noch kein Problem.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"search_gallery","value":1819},{"label":"search_missions","value":1812},{"label":"patch_channel_build_vote_state","value":1397},{"label":"patch_stability_samples","value":489}],"unit":"Aufrufe"}'></div>
+          <p>Der Absender sieht nach dem Mobile-Gate mit Anmeldung aus (<code>web-ci.yml:155</code>). Der Browsertyp passt, bewiesen ist die Zuordnung nicht.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-start" data-topic data-nav-label="Start der App">
+    <div data-alevel="2" data-title="Start der App">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"3,8–4,0","unit":"s","label":"bis zum ersten Inhalt, trotz Service-Worker-Cache"}'></div>
+        <p>Das HTML ist nach 44 ms da. Die Zeit geht danach in drei Mechanismen der App.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Supabase-Aufrufe /codex","value":73},{"label":"Supabase-Aufrufe /verse","value":46},{"label":"JS-Dateien beim Start /verse","value":105}],"unit":"Stück"}'></div>
+        <p>Blockierter Haupt-Thread, ein gestaffelter Einzug und viele Datenabfragen addieren sich. Auf einer 250-Mbit-Leitung bringt mehr Bandbreite hier nichts.</p>
+      </div>
+    </div>
+
+    <section id="d-webgl" data-nav-label="Planeten-Start" data-decision="d-webgl" data-decision-mode="single" data-label="Planeten-Start" data-rec="worker" data-rec-why="Nur der Worker entfernt die Blockade, statt sie zeitlich zu verschieben." data-applies-to="/verse: Planet und Himmelskörper" data-finding="f-webgl">
+      <p data-applies>Gilt für: /verse, großer Planet und kleine Himmelskörper</p>
+      <p data-situation>Beim Start von /verse steht der Haupt-Thread 1,1 bis 4,4 s still. Das Profil zeigt die WebGL-Einrichtung auf dem Haupt-Thread als Ursache.</p>
+      <h3 data-question>Wie soll WebGL den Start von /verse nicht mehr blockieren?</h3>
+      <p data-stakes>Ob die Seite in den ersten Sekunden einfriert.</p>
+      <div data-options>
+        <label data-opt="worker" data-recommended>
+          <input type="radio" name="dm-d-webgl" value="worker" checked>
+          <span data-opt-label>Planeten im Worker rendern</span>
+          <span data-opt-consequence>Der Haupt-Thread bleibt frei und das Bild gleich. Größerer Umbau, ohne OffscreenCanvas bleibt der heutige Weg als Rückfall.</span>
+        </label>
+        <label data-opt="defer">
+          <input type="radio" name="dm-d-webgl" value="defer">
+          <span data-opt-label>WebGL erst nach dem ersten Bild starten</span>
+          <span data-opt-consequence>Kleine Änderung, der Inhalt erscheint früher. Der Ruckler bleibt, kommt aber später.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-webgl" value="keep">
+          <span data-opt-label>WebGL-Start so lassen</span>
+          <span data-opt-consequence>Kein Aufwand, /verse friert beim Start weiter ein.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-webgl-note" placeholder="Notiz (optional)">[Befund · Frage 1]  Ja genau, ggf. auch die webgl themen stark verbessern, weil wir doch viel statisches haben (z. B. das planetenbild, was in einzelheiten drehen vs beleuchtungen daruf dauer rendered), wird ggf. zu viel was gar nicht vor dem user angezeigt wird gerendered? Ich will die qualiätt, übergänge und animationen nicht minimieren / verschlechteern</textarea>
+      <input type="hidden" name="dm-d-webgl-none" value="">
+      <input type="hidden" name="dm-d-webgl-hes" value="{&quot;ms&quot;:178227,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-webgl-touched" value="1">
+      <input type="hidden" name="dm-d-webgl-issue" value="">
+      <input type="hidden" name="dm-d-webgl-epic" value="">
+      <div data-alevel="3" data-title="Planeten-Start">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"1,1–4,4","unit":"s","label":"Blockade live auf deiner RTX 2080 Super"}'></div>
+          <p>Zum Vergleich: Auf /codex ohne Canvas ist die längste Start-Blockade 0,86 s.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"briefing-planet: resize","value":4530},{"label":"body-engine: Einrichtung","value":3623},{"label":"Alles andere zusammen","value":1300}],"unit":"ms im Labor"}'></div>
+          <p>Die Laborwerte laufen auf Software-WebGL und sind daher überhöht. Live ließ sich die Funktion nicht direkt zuordnen, der Zeitpunkt passt aber (Labor bei 1,37 s, live bei 1,33 s).</p>
+          <p>Fundstellen: <code>briefing-planet.component.ts:169</code>, <code>body-engine.ts:332</code>. Texturen einzeln pro Frame hochzuladen war laut Performance-Plan schlechter (5,8 s), das scheidet aus.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-entrance" data-nav-label="Einzug" data-decision="d-entrance" data-decision-mode="single" data-label="Einzug" data-rec="daily" data-rec-why="Der Einzug bleibt als Erlebnis erhalten, nur nicht bei jedem Reload und jedem neuen Tab." data-applies-to="Verse-Einzug, Einzug der Suchleiste" data-finding="f-entrance">
+      <p data-applies>Gilt für: Verse-Einzug und Einzug der Suchleiste</p>
+      <p data-situation>Der neue Einzug vom 4. November spielt in jedem neuen Tab und bei jedem Reload. Der Inhalt ist schon da, wird aber gestaffelt eingeblendet.</p>
+      <h3 data-question>Wann soll der Einzug voll abgespielt werden?</h3>
+      <p data-stakes>Wie schnell sich jeder Reload und jeder neue Tab anfühlt.</p>
+      <div data-options>
+        <label data-opt="daily" data-recommended>
+          <input type="radio" name="dm-d-entrance" value="daily" checked>
+          <span data-opt-label>Einzug einmal pro Tag abspielen</span>
+          <span data-opt-consequence>Der erste Besuch bleibt filmisch, Reload und neue Tabs zeigen den Inhalt sofort.</span>
+        </label>
+        <label data-opt="short">
+          <input type="radio" name="dm-d-entrance" value="short">
+          <span data-opt-label>Einzug auf 1,5 s kürzen</span>
+          <span data-opt-consequence>Überall schneller, dafür verliert der Einzug seine Wirkung und braucht neue Abstimmung.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-entrance" value="keep">
+          <span data-opt-label>Einzug unverändert lassen</span>
+          <span data-opt-consequence>So wie am 4. November von dir beauftragt. Jeder Reload dauert weiter mehrere Sekunden.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-entrance-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-entrance-none" value="">
+      <input type="hidden" name="dm-d-entrance-hes" value="{&quot;ms&quot;:53306,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-entrance-touched" value="1">
+      <input type="hidden" name="dm-d-entrance-issue" value="">
+      <input type="hidden" name="dm-d-entrance-epic" value="">
+      <div data-alevel="3" data-title="Einzug">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"0,85 → 3,2","unit":"s","label":"/codex im Labor: Inhalt im DOM → erster sichtbarer Inhalt"}'></div>
+          <p>Im Labor ohne Netzlatenz vergehen 2,3 s zwischen fertigem DOM und erstem sichtbarem Inhalt.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Hauptmenü sichtbar","value":2.5},{"label":"Suchleisten-Einzug fertig","value":3.1},{"label":"Stage-Elemente fertig","value":3.8},{"label":"Ende des Einzugs, normal","value":6.4},{"label":"Ende des Einzugs, Planet verspätet","value":9.8}],"unit":"s"}'></div>
+          <p>Fundstellen: <code>verse-briefing.component.ts:87-93</code>, <code>fusion-bar.component.ts:62</code>. Die Regel steht in <code>briefing.model.ts:222</code>: Das Flag liegt im sessionStorage, zählt also pro Tab, und ein Reload spielt wieder voll.</p>
+          <p>Offen: Im Labor blieb die Codex-Landing wegen leerer Fixtures unsichtbar. Ob sie live zusätzlich auf Daten wartet, ist nicht geprüft.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-fanout" data-nav-label="Datenabfragen" data-decision="d-fanout" data-decision-mode="single" data-label="Datenabfragen" data-rec="rpc" data-rec-why="Spart die meisten Anfragen für alle Besucher und entlastet zugleich die Datenbank." data-applies-to="Neu-im-Patch-Erkennung" data-finding="f-fanout">
+      <p data-applies>Gilt für: Neu-im-Patch-Erkennung (CodexBuildDiffService)</p>
+      <p data-situation>Um zu wissen, was im Patch neu ist, lädt der Browser alle Klassennamen zweier Builds seitenweise und vergleicht sie selbst.</p>
+      <h3 data-question>Wo soll berechnet werden, was im Patch neu ist?</h3>
+      <p data-stakes>Rund 20 Anfragen pro Seitenaufruf und die Dauerlast auf der Datenbank.</p>
+      <div data-options>
+        <label data-opt="rpc" data-recommended>
+          <input type="radio" name="dm-d-fanout" value="rpc" checked>
+          <span data-opt-label>In der Datenbank berechnen</span>
+          <span data-opt-consequence>Eine Anfrage statt rund 20. Braucht eine Migration und eine neue RPC.</span>
+        </label>
+        <label data-opt="cache">
+          <input type="radio" name="dm-d-fanout" value="cache">
+          <span data-opt-label>Ergebnis im Browser merken</span>
+          <span data-opt-consequence>Keine Datenbankänderung. Nur der erste Besuch pro Build zahlt die rund 20 Anfragen.</span>
+        </label>
+        <label data-opt="lazy">
+          <input type="radio" name="dm-d-fanout" value="lazy">
+          <span data-opt-label>Erst bei geöffneter Suche laden</span>
+          <span data-opt-consequence>Kleinste Änderung, gilt aber nicht für Seiten, die die Neu-Markierung direkt zeigen.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-fanout" value="keep">
+          <span data-opt-label>Abfragen so lassen</span>
+          <span data-opt-consequence>Kein Aufwand, jeder Seitenaufruf lädt weiter alle Klassennamen.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-fanout-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-fanout-none" value="">
+      <input type="hidden" name="dm-d-fanout-hes" value="{&quot;ms&quot;:10093,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-fanout-touched" value="1">
+      <input type="hidden" name="dm-d-fanout-issue" value="">
+      <input type="hidden" name="dm-d-fanout-epic" value="">
+      <div data-alevel="3" data-title="Datenabfragen">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"10","unit":"Seiten","label":"je 1.000 Zeilen, pro Build, nur für Klassennamen"}'></div>
+          <p>Jede dieser Seiten kam in 80 Minuten rund 55-mal aus deinem Edge, meine Messläufe eingeschlossen.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"codex_items-Aufrufe auf /codex","value":26},{"label":"codex_builds-Aufrufe auf /codex","value":13},{"label":"Aufrufe aller Art auf /codex","value":73}],"unit":"Stück"}'></div>
+          <p>Fundstelle: <code>codex-build-diff.service.ts:103-118</code>. Die Schleife läuft mit <code>MAX_PAGES = 10</code> und Seitengröße 1.000 und bricht ab offset 9000 ab.</p>
+          <p>Welcher Aufrufer auf /verse sie auslöst, habe ich nicht eingegrenzt. Das klärt der erste Schritt der Umsetzung.</p>
+        </div>
+        <div data-example><pre>GET /rest/v1/codex_items?select=class_name&amp;order=class_name.asc&amp;offset=0&amp;limit=1000
+GET /rest/v1/codex_items?select=class_name&amp;order=class_name.asc&amp;offset=1000&amp;limit=1000
+…
+GET /rest/v1/codex_items?select=class_name&amp;order=class_name.asc&amp;offset=9000&amp;limit=1000</pre></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-deploy" data-topic data-nav-label="Deploys und Browser">
+    <div data-alevel="2" data-title="Deploys und Browser">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"17","unit":"Deploys","label":"in 24 h, jeder lädt bei dir im Hintergrund neu"}'></div>
+        <p>Gerade du als Stammbesucher triffst fast immer auf eine neue Version.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bar" data-viz-spec='{"value":126,"max":190,"label":"umbenannte Dateien nach einem einzigen Commit","unit":"Dateien"}'></div>
+        <p>Dazu kommt eine fremde Browser-Erweiterung, die auf jeder Seite mitläuft.</p>
+      </div>
+    </div>
+
+    <section id="d-churn" data-nav-label="Service Worker" data-decision="d-churn" data-decision-mode="single" data-label="Service Worker" data-rec="lazy" data-rec-why="Der Worker lädt nur noch, was wirklich gebraucht wurde; das Assets-Bündel arbeitet schon so." data-applies-to="ngsw-config.json, Gruppe app" data-finding="f-churn">
+      <p data-applies>Gilt für: ngsw-config.json, Gruppe app</p>
+      <p data-situation>Der Service Worker lädt alle 192 Dateien vorab. Ein einziger Commit (#928) benannte 126 von 190 Dateien um, und 17 Deploys kamen in 24 h zusammen.</p>
+      <h3 data-question>Was soll der Service Worker nach einem Deploy vorab laden?</h3>
+      <p data-stakes>Wie viel jeder Deploy bei wiederkehrenden Besuchern im Hintergrund kostet.</p>
+      <div data-options>
+        <label data-opt="lazy" data-recommended>
+          <input type="radio" name="dm-d-churn" value="lazy" checked>
+          <span data-opt-label>Nur Genutztes aktualisieren</span>
+          <span data-opt-consequence>Chunks wandern auf installMode lazy. Dafür muss die App verschwundene Chunks abfangen, weil Vercel dort index.html liefert.</span>
+        </label>
+        <label data-opt="batch">
+          <input type="radio" name="dm-d-churn" value="batch">
+          <span data-opt-label>Deploys bündeln</span>
+          <span data-opt-consequence>Kein Codeeingriff, aber Fixes gehen seltener live, und jeder Deploy bleibt gleich teuer.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-churn" value="keep">
+          <span data-opt-label>Vorabladen so lassen</span>
+          <span data-opt-consequence>Offline-Fähigkeit bleibt voll, jeder Deploy lädt weiter bis zu 192 Dateien nach.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-churn-note" placeholder="Notiz (optional)">Ja genau, also der browser braucht nicht komplett direkt offline funktionieren mit allen codex infos! Das kann gern lazy und oder aasynchron geladen werden - lazy, bei bedarf auf jeden fall, asynchron damit man unahbhngig davon die infos auch alle hat!</textarea>
+      <input type="hidden" name="dm-d-churn-none" value="">
+      <input type="hidden" name="dm-d-churn-hes" value="{&quot;ms&quot;:80030,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-churn-touched" value="1">
+      <input type="hidden" name="dm-d-churn-issue" value="">
+      <input type="hidden" name="dm-d-churn-epic" value="">
+      <div data-alevel="3" data-title="Service Worker">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"66","unit":"%","label":"der Dateien nach einem Commit umbenannt"}'></div>
+          <p>Ein Feature-Commit bei den HQ-Seiten hat zwei Drittel aller Dateinamen geändert.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bar" data-viz-spec='{"value":126,"max":190,"label":"Dateien neu benannt (Build von HEAD gegen live)","unit":"Dateien"}'></div>
+          <p>Das Bündel umfasst 189 JS-Dateien mit 6,2 MB, gzip 1,8 MB. Kommt die neue Version in den ersten 10 s an, lädt die App zusätzlich einmal selbst neu (<code>sw-update.service.ts:36</code>).</p>
+          <p>Die direkte Bremse beim Öffnen habe ich nicht gemessen, belegt ist der Mehraufwand im Hintergrund. Deshalb steht dieses Thema hinter dem Start der App.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-rokt" data-nav-label="Fremde Erweiterung" data-decision="d-rokt" data-decision-mode="verify" data-label="Fremde Erweiterung" data-rec="ok" data-rec-why="Rokt steht weder im Code noch in der CSP, und das Tool meldete auf jeder Seite eine fremde Erweiterung." data-applies-to="dein Edge" data-finding="f-rokt">
+      <p data-applies>Gilt für: dein Edge, nicht die App</p>
+      <p data-situation>Auf /verse laufen zwei Iframes von apps.rokt.com (Werbe-Technik) mit je 2 s Ladezeit. Sie stehen nicht im Repo und nicht in der CSP.</p>
+      <h3 data-question>Stimmt das: Die Rokt-Iframes kommen von einer Edge-Erweiterung?</h3>
+      <p data-context>Prüfen unter edge://extensions. Die Annahme lässt sich am schnellsten prüfen, indem du /verse einmal im InPrivate-Fenster ohne Erweiterungen öffnest.</p>
+      <p data-stakes>Ob ein Teil der Langsamkeit nur bei dir auftritt.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-d-rokt" value="ok">
+          <span data-opt-label>Stimmt, eine Erweiterung ist die Quelle</span>
+          <span data-opt-consequence>Du deaktivierst sie selbst, an der App ändert sich nichts.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-d-rokt" value="partial">
+          <span data-opt-label>Teilweise, ich bin nicht sicher</span>
+          <span data-opt-consequence>Ich vergleiche den Lauf mit und ohne Erweiterungen, sobald du mir die Liste nennst.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-d-rokt" value="wrong" checked>
+          <span data-opt-label>Falsch, keine Erweiterung installiert</span>
+          <span data-opt-consequence>Dann suche ich die Quelle der Iframes in der App und im Netz.</span>
+        </label>
+      </div>
+      <input type="text" name="dm-d-rokt-fix" placeholder="Korrektur (optional)" value="check mal meine edge erweiterungen! das habe ich nicht installiert, ist das überhautp seriös!? ">
+      <textarea data-comment="d-rokt-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-rokt-none" value="">
+      <input type="hidden" name="dm-d-rokt-hes" value="{&quot;ms&quot;:43327,&quot;revisits&quot;:0,&quot;median&quot;:53306}">
+      <input type="hidden" name="dm-d-rokt-touched" value="1">
+      <input type="hidden" name="dm-d-rokt-issue" value="">
+      <input type="hidden" name="dm-d-rokt-epic" value="">
+      <div data-alevel="3" data-title="Fremde Erweiterung">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"2","unit":"s","label":"Ladezeit je Rokt-Iframe"}'></div>
+          <p>Die Iframes laufen neben der App, der Anteil an der Langsamkeit ist nicht gemessen.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bar" data-viz-spec='{"value":2013,"max":4000,"label":"Rokt-Iframe gegen erstes sichtbares Bild","unit":"ms"}'></div>
+          <p>Grep im Repo: kein Treffer für „rokt“ in <code>src</code>, <code>public</code> und <code>vercel.json</code>. Das erklärt nicht, warum andere Seiten schnell sind, und bleibt deshalb Nebenbefund.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>

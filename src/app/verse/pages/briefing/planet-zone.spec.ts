@@ -137,7 +137,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   const feedNews = [1, 2, 3, 4, 5].map((i) => ({ id: `f${i}`, title: `News ${i}`, summary: 'Short summary.', thumbnail: null, publishedAt: '2026-10-20T10:00:00Z' }) as unknown as VerseNewsItem);
 
   beforeEach(() => {
-    sessionStorage.removeItem(INTRO_FLAG);
+    localStorage.removeItem(INTRO_FLAG);
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -180,7 +180,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
-    sessionStorage.removeItem(INTRO_FLAG);
+    localStorage.removeItem(INTRO_FLAG);
   });
 
   it('renders beacons, the hero title, the planets and the holo as real anchors — no moons, no for-you line, no overview links', fakeAsync(() => {
