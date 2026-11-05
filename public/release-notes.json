@@ -1,7 +1,43 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.208.1",
+  "current": "0.208.3",
   "releases": [
+    {
+      "version": "0.208.3",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hero title and hub texts: the halo is down to one faint dark blur, with no visible field and no glow on hover."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.208.2",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Feedback routine: headless runs start in a detached runner checkout, so workers can commit past the main-branch guard."
+            },
+            {
+              "title": "",
+              "text": "Feedback routine: workers verify through web-ci on their PR instead of parallel local builds, and a run lands green PRs before it opens a new wave."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.208.1",
       "date": "2026-11-05",
