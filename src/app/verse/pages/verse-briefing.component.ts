@@ -52,7 +52,7 @@ import {
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { DockState, wireDock } from './briefing/briefing-dock';
-import { plannedPatchItem, patchTitleParts } from './briefing/briefing-patch-title';
+import { channelBuildItems, plannedPatchItem, patchTitleParts } from './briefing/briefing-patch-title';
 import { PatchTeaserService } from './briefing/briefing-patch-teaser.service';
 import { RoadmapService } from '../../news/roadmap.service';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
@@ -256,7 +256,9 @@ export class VerseBriefingComponent {
     const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
     const channels = this.api.digest()?.patch?.channels ?? null;
     const planned = plannedPatchItem(this.roadmap.roadmap()?.next, channels);
-    const candidates = themesFirst([...this.top(), ...rest, ...(planned ? [planned] : []), ...this.feedNews()]);
+    const have = new Set(rest.map((i) => i.key));
+    const builds = channelBuildItems(this.api.digest()?.patch?.channelInfo, have);
+    const candidates = themesFirst([...this.top(), ...rest, ...builds, ...(planned ? [planned] : []), ...this.feedNews()]);
     return uniqueStories(candidates, (i) => verseItemLink(i.url), linkKey, HERO_STORIES).map(({ item, link }) => ({
       item: this.withPatchTitle(item, channels),
       link,

@@ -5365,7 +5365,9 @@
         "results": "Bestandseinträge",
         "loading": "Lädt …",
         "loadingMore": "Lädt weitere …",
-        "noMatch": "Nichts passt zu diesen Filtern."
+        "noMatch": "Nichts passt zu diesen Filtern.",
+        "empty": "Noch nichts im Lager erfasst.",
+        "ships": "Schiffe im Terminal"
       },
       "retry": "Erneut versuchen",
       "ships": {
@@ -5390,12 +5392,8 @@
         "days": "zuletzt geöffnet vor {{n}} Tagen"
       },
       "lager": {
-        "title": "Lager per Ort",
         "empty": "Noch nichts im Lager erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
         "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
-        "materials": "Rohstoffe",
-        "pieces": "Gegenstände",
-        "placeEmpty": "Leer.",
         "storage": "Schiffe im Hangar-Terminal"
       },
       "find": {
@@ -5508,6 +5506,7 @@
         "live": "LIVE",
         "ptu": "PTU",
         "evocati": "Evocati",
+        "eptu": "EPTU",
         "hotfix": "Hotfix",
         "planned": "Geplant"
       },

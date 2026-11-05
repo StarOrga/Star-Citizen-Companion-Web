@@ -5365,7 +5365,9 @@
         "results": "Stock entries",
         "loading": "Loading …",
         "loadingMore": "Loading more …",
-        "noMatch": "Nothing matches these filters."
+        "noMatch": "Nothing matches these filters.",
+        "empty": "Nothing stored yet.",
+        "ships": "Ships at terminal"
       },
       "retry": "Try again",
       "ships": {
@@ -5390,12 +5392,8 @@
         "days": "last opened {{n}} days ago"
       },
       "lager": {
-        "title": "Storage by place",
         "empty": "Nothing stored yet. Once there is, you can search here for where it lies.",
         "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand with “Add”.",
-        "materials": "Raw materials",
-        "pieces": "Items",
-        "placeEmpty": "Empty.",
         "storage": "Ships at the hangar terminal"
       },
       "find": {
@@ -5508,6 +5506,7 @@
         "live": "LIVE",
         "ptu": "PTU",
         "evocati": "Evocati",
+        "eptu": "EPTU",
         "hotfix": "Hotfix",
         "planned": "Planned"
       },
