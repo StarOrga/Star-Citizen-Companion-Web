@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexRankCardComponent } from './codex-rank-card.component';
-import { rankShip, RankShipInput } from './codex-rank';
+import { rankShip, RankResult, RankShipInput } from './codex-rank';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 describe('CodexRankCardComponent', () => {
@@ -195,5 +195,73 @@ describe('CodexRankCardComponent - a gap axis is never invented', () => {
     const v = fixture.componentInstance.vertexAt(140, 0, 6).split(',').map(Number);
     const r = Math.hypot(v[0] - 100, v[1] - 100);
     expect(r).toBeLessThanOrEqual(80.01);
+  });
+
+  describe('another kind than a ship', () => {
+    const axisOf = (key: string) => ({
+      key,
+      labelKey: 'x.' + key,
+      lowerIsBetter: false,
+      value: 1,
+      percentile: 60,
+      medianValue: 1,
+      cohortCount: 3,
+      weak: false,
+      gapKey: null,
+      norm: 50,
+      compareNorm: 40,
+      delta: 10,
+    });
+    const result = (keys: string[]): RankResult<string> => {
+      const axes = keys.map(axisOf);
+      return {
+        profileId: 'combat',
+        scope: 'sizeClass',
+        scopeFallbackKey: null,
+        cohortSize: 4,
+        axes,
+        bars: axes,
+        overall: 60,
+        band: 'mid',
+        bandKey: 'codex.rank.band.mid',
+        scopeAvailable: { all: true, career: true, role: true, sizeClass: true },
+      };
+    };
+
+    function render(keys: string[]): HTMLElement {
+      const f = TestBed.createComponent(CodexRankCardComponent);
+      f.componentRef.setInput('shipName', 'Rattler');
+      f.componentRef.setInput('sizeClass', 2);
+      f.componentRef.setInput('profiles', []);
+      f.componentRef.setInput('scopes', [{ id: 'sizeClass', labelKey: 'x.scope', reasonKey: '' }]);
+      f.componentRef.setInput('copy', {
+        cohort: { sizeClass: 'x.cohort', all: 'x.all' },
+        verdict: 'x.verdict',
+        percentileTooltip: 'x.tip',
+        radarAria: 'x.aria',
+        legendCompare: 'x.compare',
+        legendBetter: 'x.up',
+        legendWorse: 'x.down',
+        compareInfo: 'x.info',
+        note: 'x.note',
+      });
+      f.componentRef.setInput('result', result(keys));
+      f.detectChanges();
+      return f.nativeElement as HTMLElement;
+    }
+
+    it('shows its own wording and no ship profile chips', () => {
+      const el = render(['size', 'length', 'width']);
+      expect(el.querySelector('.profile-row')).toBeNull();
+      expect(el.querySelector('.cohort-line')?.textContent).toContain('x.cohort');
+      expect(el.querySelector('.verdict')?.textContent).toContain('x.verdict');
+      expect(el.querySelector('.lens-note')?.textContent).toContain('x.note');
+    });
+
+    it('draws no radar below three axes, the bars stay', () => {
+      const el = render(['length', 'width']);
+      expect(el.querySelector('.rank-col-radar')).toBeNull();
+      expect(el.querySelectorAll('.bar-row').length).toBe(2);
+    });
   });
 });

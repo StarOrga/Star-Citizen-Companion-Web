@@ -423,6 +423,22 @@ def _scu_of(node: Any) -> Optional[float]:
     return None
 
 
+def _add_missile(c: Dict[str, Any], flat: Dict[str, Any]) -> None:
+    """The numbers of a missile the depth-2 flatten cannot reach (feedback e7b6a2a1).
+
+    Probed on LIVE (MISL_S02_IR_NOVP_Rattler): the warhead sits in
+    `explosionParams.damage` and the turn rate per flight phase in
+    `GCSParams.<phase>Phase.angularSpeed`, both a struct deeper than the flatten."""
+    damage = _dig(c, "explosionParams", "damage")
+    if isinstance(damage, dict):
+        for kind, value in _scalars(damage).items():
+            flat[f"explosionParams.damage.{kind}"] = value
+    for phase in ("boostPhase", "interceptPhase", "terminalPhase"):
+        turn = _to_float(_dig(c, "GCSParams", phase, "angularSpeed"))
+        if turn is not None:
+            flat[f"GCSParams.{phase}.angularSpeed"] = turn
+
+
 def _add_radar(c: Dict[str, Any], flat: Dict[str, Any]) -> None:
     """Flat radar keys next to the generic flatten (#842).
 
@@ -2460,7 +2476,10 @@ class CodexExtractor:
         # keeps. Tractor / towing beams carry SCItemWeaponComponentParams and
         # take the weapon path above, whose stats allowlist already kept it.
         has_resource_network = _find_component(comps, "ItemResourceComponentParams") is not None
-        if atype in _ARMOR_TYPES or has_vehicle_armor or has_resource_network:
+        # Missiles, torpedoes and rockets carry their flight and warhead numbers
+        # in SCItemMissileParams and no resource network (feedback e7b6a2a1).
+        has_missile = _find_component(comps, "SCItemMissileParams") is not None
+        if atype in _ARMOR_TYPES or has_vehicle_armor or has_resource_network or has_missile:
             stats = self._component_stats(comps, "Item")
             if stats:
                 base["stats"] = stats
@@ -2503,6 +2522,8 @@ class CodexExtractor:
                 self._add_resource_network(c, flat)
             if t == "SCItemRadarComponentParams":
                 _add_radar(c, flat)
+            if t == "SCItemMissileParams":
+                _add_missile(c, flat)
             if flat:  # only components that actually carry scalar values
                 stats[t] = flat
         return stats

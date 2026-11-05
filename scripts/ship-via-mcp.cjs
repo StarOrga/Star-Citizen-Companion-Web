@@ -35,11 +35,16 @@ if (!tool || !argsFile) {
   main().catch((e) => { console.error(`[ship-via-mcp] ${e.message}`); process.exitCode = 2; });
 }
 
+/** The plugin moved every tool onto one server; older versions keep a server per area. */
+function serverEntry(root) {
+  return [path.join(root, 'mcp-server', 'index.js'), path.join(root, 'mcp-server', 'ship', 'index.js')].find((f) => fs.existsSync(f)) ?? null;
+}
+
 function newestPluginRoot() {
   const base = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'plugins', 'cache', 'dotclaude', 'devops');
   if (!fs.existsSync(base)) throw new Error(`no devops plugin cache at ${base}`);
   const semver = (v) => v.split('.').map((n) => Number.parseInt(n, 10) || 0);
-  const versions = fs.readdirSync(base).filter((d) => /^\d+\.\d+\.\d+$/.test(d) && fs.existsSync(path.join(base, d, 'mcp-server', 'ship', 'index.js')));
+  const versions = fs.readdirSync(base).filter((d) => /^\d+\.\d+\.\d+$/.test(d) && serverEntry(path.join(base, d)));
   if (!versions.length) throw new Error(`no ship server under ${base}`);
   versions.sort((a, b) => { const [x, y] = [semver(a), semver(b)]; return (x[0] - y[0]) || (x[1] - y[1]) || (x[2] - y[2]); });
   return path.join(base, versions[versions.length - 1]);
@@ -55,15 +60,15 @@ async function main() {
 
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [path.join(root, 'mcp-server', 'ship', 'index.js')],
+    args: [serverEntry(root)],
     cwd: root,
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: root },
     stderr: 'pipe',
   });
   const client = new Client({ name: 'ship-via-mcp', version: '1.0.0' });
-  await client.connect(transport);
+  await client.connect(transport, { timeout: 3 * 60 * 1000 });
   try {
-    const res = await client.callTool({ name: tool, arguments: args }, undefined, { timeout: 15 * 60 * 1000 });
+    const res = await client.callTool({ name: tool, arguments: args }, undefined, { timeout: 20 * 60 * 1000, resetTimeoutOnProgress: true });
     for (const c of res.content || []) if (c.type === 'text') console.log(c.text);
     process.exitCode = res.isError ? 1 : 0;
   } finally {

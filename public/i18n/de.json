@@ -2316,6 +2316,116 @@
       "patch": "Patch",
       "placeholderHint": "‹…› setzt das Spiel erst beim Annehmen ein (Ort, Auftraggeber, Ziel).",
       "notFound": "Diese Mission gibt es im aktuellen LIVE-Build nicht."
+    },
+    "missile": {
+      "keywordsLabel": "Kurzprofil",
+      "scopeOff": "Zu wenige Vergleichswaffen in dieser Gruppe.",
+      "scope": {
+        "all": "Alle",
+        "kind": "Art",
+        "size": "Größe",
+        "signal": "Signal"
+      },
+      "axis": {
+        "damage": "SCHADEN",
+        "speed": "TEMPO",
+        "agility": "WENDIGKEIT",
+        "range": "REICHWEITE",
+        "lockTime": "AUFSCHALTUNG",
+        "lifetime": "FLUGZEIT",
+        "size": "GRÖSSE",
+        "length": "LÄNGE",
+        "width": "BREITE"
+      },
+      "rank": {
+        "nAll": "{{n}} Lenkwaffen",
+        "nKind": "{{n}} Lenkwaffen der gleichen Art",
+        "nSize": "{{n}} Lenkwaffen der Größe {{k}}",
+        "nSignal": "{{n}} Lenkwaffen mit dem gleichen Zielsignal",
+        "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Lenkwaffen.",
+        "percentileTooltip": "Der Wert sagt, wo diese Waffe im Vergleichsfeld steht. 50 % ist genau die Mitte. Größe und Maße sind keine Wertung: länger heißt nur länger.",
+        "radarAria": "Netzdiagramm der Perzentile von {{name}} gegenüber {{n}} Lenkwaffen",
+        "legendCompare": "Median {{group}} · {{n}} Lenkwaffen",
+        "legendAbove": "über Median",
+        "legendBelow": "unter Median",
+        "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum höchsten Wert der gewählten Vergleichswaffen (Rand). Blau ist diese Waffe, die gestrichelte Linie der Median der Gruppe.",
+        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten."
+      },
+      "data": {
+        "title": "Waffendaten",
+        "combatMissing": "Schaden, Geschwindigkeit, Wendigkeit, Reichweite und Aufschaltzeit fehlen noch im aktuellen Datenstand. Sie erscheinen hier, sobald die Extraktion sie liefert."
+      },
+      "group": {
+        "warhead": "Gefechtskopf",
+        "flight": "Flug",
+        "guidance": "Lenkung",
+        "build": "Bauform"
+      },
+      "stat": {
+        "signal": "Zielsignal",
+        "category": "Art",
+        "size": "Größe",
+        "length": "Länge",
+        "width": "Breite",
+        "damage": "Schaden",
+        "speed": "Geschwindigkeit",
+        "agility": "Wendigkeit",
+        "range": "Reichweite",
+        "lifetime": "Flugzeit",
+        "lockTime": "Aufschaltzeit",
+        "blastRadius": "Explosionsradius",
+        "armTime": "Scharfschaltzeit",
+        "lockAngle": "Aufschaltwinkel"
+      },
+      "signal": {
+        "ir": "Infrarot",
+        "em": "Elektromagnetisch",
+        "cs": "Querschnitt"
+      },
+      "category": {
+        "missile": "Lenkrakete",
+        "torpedo": "Torpedo",
+        "rocket": "Rakete",
+        "ground": "Bodenfahrzeug-Rakete"
+      },
+      "keyword": {
+        "ir": "Infrarot",
+        "em": "Elektromagnetisch",
+        "cs": "Querschnitt",
+        "missile": "Lenkrakete",
+        "torpedo": "Torpedo",
+        "rocket": "Rakete",
+        "ground": "Bodenfahrzeug",
+        "light": "Leicht",
+        "medium": "Mittel",
+        "heavy": "Schwer",
+        "compact": "Kompakt",
+        "long": "Lang",
+        "hardHitting": "Wuchtig",
+        "fast": "Schnell",
+        "agile": "Wendig",
+        "longRange": "Weitreichend",
+        "quickLock": "Schnellaufschaltung"
+      },
+      "keywordTip": {
+        "ir": "Verfolgt die Infrarot-Signatur des Ziels.",
+        "em": "Verfolgt die elektromagnetische Signatur des Ziels.",
+        "cs": "Verfolgt den Radarquerschnitt des Ziels.",
+        "missile": "Geführt von Schiffen aus.",
+        "torpedo": "Schwere Lenkwaffe gegen große Ziele.",
+        "rocket": "Als Rakete geführt.",
+        "ground": "Für Bodenfahrzeuge.",
+        "light": "Größe 1 bis 3.",
+        "medium": "Größe 4 bis 6.",
+        "heavy": "Größe 7 und darüber.",
+        "compact": "Im kürzesten Viertel ihrer Art und Größe.",
+        "long": "Im längsten Viertel ihrer Art und Größe.",
+        "hardHitting": "Im stärksten Viertel ihrer Art beim Schaden.",
+        "fast": "Im schnellsten Viertel ihrer Art.",
+        "agile": "Im wendigsten Viertel ihrer Art.",
+        "longRange": "Im reichweitenstärksten Viertel ihrer Art.",
+        "quickLock": "Im schnellsten Viertel ihrer Art beim Aufschalten."
+      }
     }
   },
   "blueprint": {
