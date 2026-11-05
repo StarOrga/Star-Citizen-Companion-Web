@@ -81,7 +81,7 @@ export interface StockStart {
             }
           </div>
           <div class="bar">
-            <sc-segmented [options]="viewOptions" [value]="view()" [ariaLabel]="'hq.stock.popup.view' | translate"
+            <sc-segmented [options]="viewOptions" [value]="view()" [ariaLabel]="'hq.stock.popup.viewBy' | translate"
                           (valueChange)="setView($event)" />
             <span class="count" role="status">{{ 'hq.stock.popup.count' | translate: { n: rows().length } }}</span>
           </div>
@@ -219,7 +219,7 @@ export interface StockStart {
               <button type="submit" class="sc-btn sc-btn-primary" [disabled]="!valid()">{{ 'hq.stock.capture.save' | translate }}</button>
             </div>
             @if (justAdded()) {
-              <p class="ok" role="status">{{ 'hq.stock.capture.added' | translate }}</p>
+              <p class="ok" role="status">{{ 'hq.stock.captured' | translate }}</p>
             }
             @if (inv.error() && inv.loaded()) {
               <p class="warn" role="alert">{{ inv.error()! | translate }}</p>

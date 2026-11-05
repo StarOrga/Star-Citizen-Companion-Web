@@ -41,10 +41,12 @@ describe('hq-stock-model', () => {
     expect(place).toEqual(['A', 'B', '']);
     const byName = stockLines(rows, 'name');
     const xHead = byName.findIndex((l) => l.kind === 'head' && l.title === 'x');
-    expect(byName[xHead + 1].kind === 'row' && byName[xHead + 1].row.location).toBe('A');
+    const firstRow = byName[xHead + 1];
+    expect(firstRow.kind === 'row' ? firstRow.row.location : null).toBe('A');
     const qty = stockLines(rows, 'qty');
     expect(qty.every((l) => l.kind === 'row')).toBeTrue();
-    expect(qty[0].kind === 'row' && qty[0].row.qty).toBe(5);
+    const q0 = qty[0];
+    expect(q0.kind === 'row' ? q0.row.qty : null).toBe(5);
   });
 
   it('grows the render window in steps up to the total', () => {
