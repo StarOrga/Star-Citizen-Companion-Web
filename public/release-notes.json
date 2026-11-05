@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.208.0",
+  "current": "0.208.1",
   "releases": [
+    {
+      "version": "0.208.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Social: empty request and blocked cards no longer push the invite box far down, and the empty friends text no longer points to an add box above."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.208.0",
       "date": "2026-11-05",
