@@ -1,7 +1,43 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.210.1",
+  "current": "0.210.3",
   "releases": [
+    {
+      "version": "0.210.3",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub: the opened news image keeps the same gap to the divider lines above and below as a collapsed row's thumbnail."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.210.2",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Feedback routine: workers get feedback attachments as files instead of URLs that answer 404, and a stylesheet change no longer waits for npm ci."
+            },
+            {
+              "title": "",
+              "text": "Feedback routine: the ship fallback finds the plugin's current server."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.210.1",
       "date": "2026-11-05",
