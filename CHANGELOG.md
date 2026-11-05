@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.207.3] - 2026-11-05
+
+### Changed
+- The feedback routine works up to three unrelated topics at once again. Topics about the same file or element still wait for each other, and each further change is tested again on top of the one merged before it
+
 ## [0.207.2] - 2026-11-05
 
 ### Fixed

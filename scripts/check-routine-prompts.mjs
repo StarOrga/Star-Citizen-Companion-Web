@@ -8,6 +8,10 @@
  * `prebuild`, so a drift fails every ship. Refresh with
  * `npm run sync:routine-prompts` (live → repo) or `-- --to-live`.
  *
+ * A worktree only warns: its branch may be older or newer than the live prompt
+ * without anything being wrong, and a failing prebuild there would stop a running
+ * headless worker the moment the live prompt is updated.
+ *
  * Exit 0: in sync — or no live prompt on this machine (CI, Vercel): SKIP.
  * Exit 1: drift.
  */
@@ -35,8 +39,9 @@ if (!existsSync(live)) {
   const at = a.findIndex((l, i) => l !== b[i]);
   if (at >= 0 || a.length !== b.length) {
     const line = at >= 0 ? at : Math.min(a.length, b.length);
-    console.error(`${tag} FAIL — the live prompt and docs/routine/tasks/${PROMPT}/SKILL.md differ at line ${line + 1}: run npm run sync:routine-prompts`);
-    process.exitCode = 1;
+    const inWorktree = /[\\/]\.claude[\\/]worktrees[\\/]/.test(REPO);
+    console.error(`${tag} ${inWorktree ? 'WARN' : 'FAIL'} — the live prompt and docs/routine/tasks/${PROMPT}/SKILL.md differ at line ${line + 1}: run npm run sync:routine-prompts`);
+    if (!inWorktree) process.exitCode = 1;
   } else {
     console.log(`${tag} OK — live prompt and repo copy in sync (${a.length} lines)`);
   }

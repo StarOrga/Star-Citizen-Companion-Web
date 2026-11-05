@@ -599,6 +599,7 @@ function status() {
   console.log(JSON.stringify({
     taskRegistered: Boolean(task),
     taskStatus: /Status:\s*(.+)/.exec(task ?? '')?.[1]?.trim() ?? null,
+    promptInSync: existsSync(LIVE_PROMPT) && readFileSync(LIVE_PROMPT, 'utf8').replace(/\r\n/g, '\n') === readFileSync(REPO_PROMPT, 'utf8').replace(/\r\n/g, '\n'),
     home: HOME,
     run: run ? { ...run, alive: pidAlive(run.pid), claudeAlive: pidAlive(run.childPid) } : null,
     state: loadState(),
