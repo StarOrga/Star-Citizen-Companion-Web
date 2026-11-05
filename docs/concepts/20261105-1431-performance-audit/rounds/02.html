@@ -1,0 +1,153 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Performance-Audit: schnellerer Start</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261105-1431-performance-audit/shots/before.png" alt="Verse-Seite vor dem Umbau, Testdaten, gleiche Planetenstellung"><figcaption>{{final.before}}</figcaption></figure>
+    <figure class="fr-shot"><img src="20261105-1431-performance-audit/shots/after.png" alt="Verse-Seite nach dem Umbau, Testdaten, gleiche Planetenstellung"><figcaption>{{final.after}}</figcaption></figure>
+  </div>
+  <p class="fr-try-auth">🔑 Noch nicht direkt testbar: Die Änderungen liegen auf dem Branch, die Anmeldung funktioniert erst auf der Live-Version.</p>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Die Planeten rendern jetzt abseits des Haupt-Threads, der volle Einzug spielt einmal pro Tag, die Neu-Markierung braucht eine statt rund 20 Anfragen, und der Service Worker lädt nur noch 9 statt 192 Dateien vorab.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🪐</span><span><code>/verse</code> <b>friert kaum noch ein</b>: längste Blockade 0,55 s statt rund 4 s.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🎬</span><span>Reload und neuer Tab bekommen <b>am selben Tag den kurzen Auftakt</b> von rund 1 s.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🏷️</span><span>Die Neu-Markierung <b>sieht alle 20.385 Items</b>, bisher las sie nur 10.000.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 88%; --fr-target: 70%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">0,55 s</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">längste Blockade auf deiner RTX mit kaltem Shader-Cache, Ziel unter 1 s (geschätzt). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 92%; --fr-target: 75%">
+          <span class="fr-meter-name">🗄 Datenlast</span>
+          <b class="fr-meter-value">243 ms</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">neue RPC im schlimmsten Fall, das Limit für anonyme Abfragen liegt bei 3 s. Live erst nach der Migration. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 99%; --fr-target: 100%">
+          <span class="fr-meter-name">🛡 Stabilität</span>
+          <b class="fr-meter-value">5438 / 5443</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Specs grün, 4 übersprungen, 1 rot. Der rote Spec scheitert auf <code>main</code> genauso. <span class="fr-meter-verdict">▲ {{final.target_short}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="fr-label">Was ich korrigieren muss</p>
+  <p>Mein Audit nannte 3,8–4,0 s bis zum ersten Inhalt und ein Potenzial von rund 3 s. <b>Das war zu hoch.</b> Der Tab war bei diesen Messungen zeitweise verdeckt, und ein verdeckter Tab malt nichts. Auf deiner echten GPU kommt der erste Inhalt von <code>/codex</code> mit Testdaten schon nach rund 0,6 s, auch der Einzug der Suchleiste hält ihn nicht zurück. Wie schnell es live mit echten Daten ist, zeigt erst eine neue Messung nach dem Ship, mit dem Tab im Vordergrund.</p>
+
+  <p class="fr-label">Noch offen oder schlechter</p>
+  <ul>
+    <li><b>Ohne GPU ist der erste Inhalt später:</b> Mit Software-WebGL lag er im Labor bei 6,3–9,9 s statt 3,1 s, dafür bleibt die Seite bedienbar (Blockaden zusammen 0,3–3,7 s statt 9 s). Dein Rechner ist davon nicht betroffen.</li>
+    <li><b>Offline nicht voll vorgeladen:</b> Die 10 Dateien, die <code>main</code> direkt braucht, laden erst beim ersten Besuch. Online ändert das nichts, und du hast Offline-Vollständigkeit ausdrücklich nicht verlangt.</li>
+    <li><b>Upload unverändert:</b> Wie von dir entschieden. Der Codex-Katalog liegt aber in derselben Datenbank wie die Website, ein großer Upload kann sie also weiter ausbremsen.</li>
+    <li><b>Nicht geprüft:</b> Dass die Hintergrund-Ladung im Cache des Service Workers landet und die Planeten auch unter aktivem Service Worker starten.</li>
+  </ul>
+
+  <p class="fr-label">Deine Frage: Wird zu viel unsichtbar gerendert?</p>
+  <p>Meist nein. Die Bremse saß im Start, vor allem beim Verlinken der Shader (rund 3,9 s), nicht im Dauerbetrieb. Weg sind die Zeichengänge der Zug-Ebene ohne sichtbaren Zug und die leeren Durchläufe des Planeten außerhalb des Bildes. Planet und Himmelskörper änderten sich in jedem gemessenen Frame und behalten ihre Bildrate. Auch die Auflösung bleibt, wo sie zählt: Die Nachttextur liegt bei Full HD mit 0,42 Texeln pro Pixel unter 1:1, nur die Karten der kleinen Himmelskörper halbieren sich bei normaler Pixeldichte. Sichtbar neu ist eines: Die Himmelskörper zeigen beim ersten Laden kurz ihre CSS-Fassung und blenden dann auf WebGL über.</p>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">Stufe 5<small>von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="done">{{final.level_local}}</li>
+      <li data-level="5" data-state="done">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Geprüft mit Testdaten am Produktions-Build unter der echten CSP, noch nicht live und nicht auf Handys.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 3 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-nogpu"
+          data-issue-title="[BUG] First paint on /verse is later without a GPU since the worker move"
+          data-issue-type="bug"
+          data-issue-body="With software WebGL (SwiftShader) first contentful paint on /verse moved from 3.1 s to 6.3-9.9 s in the lab after the planet and bodies moved to workers. The main thread stays free (long tasks 0.3-3.7 s instead of 9 s). Starting WebGL after the next paint did not help. Option: detect a software renderer and keep those machines on the page path."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht Abwägung">
+        <span class="oq-label">Ohne GPU: erster Inhalt später</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Mit Software-WebGL 6,3–9,9 s statt 3,1 s bis zum ersten Inhalt, die Seite bleibt aber bedienbar.</dd>
+          <dt>{{final.fund_where}}</dt><dd><code>/verse</code>, nur Rechner ohne GPU</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue: früher Inhalt oder freier Haupt-Thread ist eine Abwägung, ohne Felddaten nicht zu entscheiden.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-bodymaps"
+          data-issue-title="[FEATURE] Bake the body maps to WebP so their raster leaves the main thread"
+          data-issue-type="feature"
+          data-issue-body="The longest task left on /verse boot is the SVG map raster for the small bodies, about 0.55 s via createImageBitmap on the page. Baking the maps to lossless WebP, as the big planet's textures already are (scripts/bake-planet.mjs), would move it into the worker."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="eigener Schritt">
+        <span class="oq-label">Karten der Himmelskörper vorbacken</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die letzte lange Aufgabe beim Start sind die SVG-Karten mit rund 0,55 s.</dd>
+          <dt>{{final.fund_where}}</dt><dd><code>bodies/</code>, <code>scripts/bake-planet.mjs</code></dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue: lohnt sich, sprengt aber diesen Umbau.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-redspec"
+          data-issue-title="[BUG] Verse entrance spec fails on main: expected bstage to contain finale"
+          data-issue-type="bug"
+          data-issue-body="The spec 'opens on the app name, builds up, lets the comet fly last' in src/app/verse/pages/briefing/verse-briefing.component.spec.ts fails at line 442 with: Expected bstage to contain 'finale'. It fails the same way on origin/main (0066ac2d, run in a clean worktree), so this branch did not cause it. Root cause not found."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb">
+        <span class="oq-label">Einzug-Spec ist auf main rot</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Ein Spec erwartet die Klasse <code>finale</code> und scheitert, auch ohne diesen Branch.</dd>
+          <dt>{{final.fund_where}}</dt><dd><code>verse-briefing.component.spec.ts:442</code></dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue: nicht von dieser Arbeit verursacht, Ursache noch offen.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-look" data-crit="high" data-guide="">Planet und Züge beim Scrollen ansehen</li>
+      <li data-todo-id="t-live" data-crit="mid" data-guide="">Start live mit Tab im Vordergrund prüfen</li>
+      <li data-todo-id="t-mobile" data-crit="mid" data-guide="">Verse auf Handy und Tablet ansehen</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="h-klarna" data-crit="low" data-guide="">Klarna-Erweiterung in Edge entfernen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/website-performance-audit-2f8702</code>, Merge-Stand <code>71b83be5</code>, nichts auf <code>main</code></li>
+      <li><code>planet/planet.worker.ts</code>, <code>bodies/bodies.worker.ts</code>, <code>ngsw-config.json</code>, <code>codex-build-diff.service.ts</code>, <code>briefing.model.ts</code></li>
+      <li>Karma 5438 grün, 1 rot, 4 übersprungen · Gate 110 · Functions 340 · Build und Typecheck grün · Lint 0 Fehler, 203 Warnungen</li>
+      <li>Vor dem Live-Gang: <code>20261105150000_codex_added_class_names.sql</code> pushen, danach <code>notify pgrst, 'reload schema'</code>. Bis dahin greift der alte Abruf als Rückfall.</li>
+      <li>Harden und Polish laufen erst beim Ship über dessen Diff-Prüfung, die QA hat den Gesamtstand schon getestet.</li>
+    </ul>
+  </details>
+</section>
