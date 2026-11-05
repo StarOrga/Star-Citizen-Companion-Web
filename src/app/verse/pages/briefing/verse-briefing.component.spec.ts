@@ -409,6 +409,10 @@ describe('Verse briefing — component', () => {
       expect(css.overflow).withContext('the clamp that would clip a text-shadow').toBe('hidden');
       expect(css.textShadow).toBe('none');
       expect(css.filter).toContain('drop-shadow');
+      const blur = parseFloat(/rgba?\([^)]*\)\s+0px\s+0px\s+([\d.]+)px/.exec(css.filter)?.[1] ?? '999');
+      expect(blur).withContext('a faint blur, not a visible field').toBeLessThan(parseFloat(css.fontSize) * 0.15);
+      expect((css.filter.match(/drop-shadow/g) ?? []).length).withContext('not stacked').toBe(1);
+      expect(getComputedStyle(title(fixture)!, '::before').content).not.toContain('gradient');
       tick(10_000);
     }));
 

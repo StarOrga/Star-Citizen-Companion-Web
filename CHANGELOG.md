@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - "New" markers in the Codex now see every item in the build, not only the first 10,000, and need one request instead of about 20.
 
+## [0.208.3] - 2026-11-05
+
+### Fixed
+- Verse hero title and hub texts: the halo is down to one faint dark blur, with no visible field and no glow on hover.
+
 ## [0.208.2] - 2026-11-05
 
 ### Fixed
