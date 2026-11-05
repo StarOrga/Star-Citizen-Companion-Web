@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.211.0",
+  "current": "0.211.1",
   "releases": [
+    {
+      "version": "0.211.1",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Codex front page now fits the window without a sliver of scrolling just to reach the footer; the hologram's scan band no longer stretches the page below it."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.211.0",
       "date": "2026-11-06",
