@@ -143,7 +143,8 @@
 .feat-h { display: flex; align-items: center; flex-wrap: wrap; gap: max(6px, 0.7 * var(--u)); }
 .feat-t { font-size: max(15px, var(--u)); font-weight: 600; line-height: 1.25; }
 .feat:hover .feat-t { color: #fff; }
-.ch-chip { justify-self: start; min-width: 0; }
+// The row reads as two edges: the channel on the left, its chip or quiet note flush right.
+.ch-chip { justify-self: end; min-width: 0; }
 
 .ch {
   display: grid;
@@ -165,7 +166,7 @@ a.ch:hover b { color: #fff; }
 // Quiet slot: name, an empty dot, "gerade keiner im Lauf".
 .off .ch-id small { color: var(--sc-fg-2, var(--sc-fg-1)); }
 .off .ch-id small i { background: transparent; border: 1px solid var(--sc-fg-2, var(--sc-fg-1)); }
-.quiet { font-size: max(12px, calc(0.66 * var(--u))); color: var(--sc-fg-2, var(--sc-fg-1)); font-style: italic; }
+.quiet { justify-self: end; text-align: right; font-size: max(12px, calc(0.66 * var(--u))); color: var(--sc-fg-2, var(--sc-fg-1)); font-style: italic; }
 
 // ── Galerie: feature + a dense mosaic of up to six (one 2×2, one 2×1, four small) ──
 .gal { display: flex; flex-direction: column; gap: max(8px, 0.7 * var(--u)); }

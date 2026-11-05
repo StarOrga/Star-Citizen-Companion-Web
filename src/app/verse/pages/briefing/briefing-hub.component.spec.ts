@@ -97,4 +97,12 @@ describe('BriefingHubComponent — channel rows', () => {
     expect(evo.querySelector('sc-stability-chip')).withContext('Evocati row without chip').toBeNull();
     expect(el.querySelector('.ch.off[data-ch="hotfix"] .quiet')!.textContent).toContain('none running');
   });
+
+  it('sets the right side of a row flush right: the quiet note and the chip end on the row edge', () => {
+    const info = { ptu: build('4.10.3', 121, { wave: 2 }) };
+    const el = render(hubChannels({ live: '4.10.2', evocati: '4.11' }, known, noVerdict, info, NOW));
+    const right = (sel: string) => el.querySelector(sel)!.getBoundingClientRect().right;
+    expect(right('.ch.off[data-ch="hotfix"] .quiet')).toBeCloseTo(right('.ch.off[data-ch="hotfix"]'), 0);
+    expect(right('.ch[data-ch="ptu"] .ch-chip')).toBeCloseTo(right('.ch[data-ch="ptu"]'), 0);
+  });
 });
