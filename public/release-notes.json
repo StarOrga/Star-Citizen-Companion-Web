@@ -1,7 +1,63 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.5",
+  "current": "0.208.0",
   "releases": [
+    {
+      "version": "0.208.0",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Social page in the profile menu: friend requests, a personal invite link, private groups (orgs and Einsatzgruppen), a comparison with your friends and a page for each friend"
+            },
+            {
+              "title": "",
+              "text": "HQ shows friends where they help, and only then: open requests on Start, shared Einsätze with crew slots and RSVPs in Planen, who is online in Jetzt, shared sets and ship variants in Bestand"
+            },
+            {
+              "title": "",
+              "text": "Share ship variants and Einsätze with friends or groups, and take a friend's set or variant into your own HQ as a copy"
+            },
+            {
+              "title": "",
+              "text": "Choose what friends see, in general and per friend: hangar, flagship, online status and comparison numbers. All are on by default; the Social page says so once"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/friends now leads to /social, the Settings card is gone, and the menu shows how many requests are waiting"
+            },
+            {
+              "title": "",
+              "text": "Ending a friendship removes what you shared with each other for good, including shared sets. It does not come back if you become friends again"
+            },
+            {
+              "title": "",
+              "text": "Privacy page describes what friends can see and how to switch it off"
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Build guard no longer counts an old build as success"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.5",
       "date": "2026-11-05",
