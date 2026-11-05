@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.204.0",
+  "current": "0.204.1",
   "releases": [
+    {
+      "version": "0.204.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Jetzt says \"You are here\" only while the SCC app reports a running game. Otherwise it shows \"Last seen here\" with the time of the last signal."
+            },
+            {
+              "title": "",
+              "text": "Game locations read as names, for example \"New Babbage\" instead of \"Stanton4_NewBabbage\"."
+            },
+            {
+              "title": "",
+              "text": "Statistik no longer offers to start the SCC app once the app already reports game data."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.204.0",
       "date": "2026-11-04",
