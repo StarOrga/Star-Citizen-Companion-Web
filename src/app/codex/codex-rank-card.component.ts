@@ -567,7 +567,7 @@ export class CodexRankCardComponent {
     });
   });
 
-  private polygonOf(pick: (a: RankAxisResult) => number | null): string {
+  private polygonOf(pick: (a: RankAxisResult<string>) => number | null): string {
     const r = this.result();
     if (!r) return '';
     const n = r.axes.length;

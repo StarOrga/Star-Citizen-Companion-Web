@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexRankCardComponent } from './codex-rank-card.component';
-import { rankShip, RankShipInput } from './codex-rank';
+import { rankShip, RankResult, RankShipInput } from './codex-rank';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 describe('CodexRankCardComponent', () => {
