@@ -232,19 +232,6 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                 }
               </div>
 
-              <!-- Friends — the entry point into the social graph. It belongs
-                   with the account: it is about who you are and who you are
-                   connected to. A real anchor, not a button: it takes you
-                   somewhere, so middle-click and "open in new tab" have to
-                   work. -->
-              <div class="sc-card section">
-                <h3>{{ 'settings.friends.title' | translate }}</h3>
-                <p class="hint">{{ 'settings.friends.hint' | translate }}</p>
-                <a class="sc-btn sc-btn-primary link-btn" routerLink="/friends">
-                  {{ 'settings.friends.open' | translate }}
-                </a>
-              </div>
-
               <!-- Password lives with identity, not in the danger zone: for an
                    INVITED account this is not a change, it is the first one
                    its owner ever picks (feedback d93ddb05). -->
@@ -579,9 +566,6 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       letter-spacing: 0.04em;
     }
     .account h3 { margin-bottom: 2px; }
-    /* The friends entry point is an <a>, so it needs the bits .sc-btn assumes
-       a <button> already brings. */
-    .link-btn { margin-top: 12px; align-self: flex-start; text-decoration: none; width: fit-content; }
     .row {
       display: flex;
       justify-content: space-between;

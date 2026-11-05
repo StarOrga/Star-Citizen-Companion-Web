@@ -1,0 +1,104 @@
+{
+  "de": {
+    "hq": {
+      "friends": {
+        "sharedLine": "{{n}} Einsatz von Freunden geteilt",
+        "requests": {
+          "title": "Freundschaftsanfragen ({{n}})",
+          "accept": "Annehmen",
+          "decline": "Ablehnen"
+        },
+        "share": {
+          "open": "Mit Freunden teilen",
+          "hint": "Nur zum Ansehen. Bei einer Gruppe bekommen später hinzugefügte Mitglieder ebenfalls Zugriff.",
+          "setHint": "Das Set geht an die Freunde, die jetzt in der Gruppe sind. Spätere Mitglieder bekommen es nicht.",
+          "audience": "Freund oder Gruppe",
+          "choose": "Freund oder Gruppe wählen",
+          "send": "Teilen",
+          "revoke": "Entziehen",
+          "done": "Geteilt.",
+          "duplicate": "Das ist schon geteilt.",
+          "setDone": "Geteilt mit {{n}} Freunden."
+        },
+        "crew": {
+          "open": "Crew-Plätze und Zusagen",
+          "hint": "Benenne die Plätze, die Freunde übernehmen können.",
+          "slotLabel": "Name des Platzes",
+          "removeSlot": "Platz entfernen",
+          "addSlot": "Platz hinzufügen",
+          "save": "Plätze speichern",
+          "counts": "Zusagen {{yes}} · Vielleicht {{maybe}} · Absagen {{no}}"
+        },
+        "shared": {
+          "title": "Von Freunden geteilt",
+          "by": "von",
+          "readOnly": "Nur ansehen",
+          "answer": "Deine Antwort",
+          "slot": "Crew-Platz",
+          "noSlot": "Kein Platz"
+        },
+        "stock": {
+          "adopt": "In meinen Bestand übernehmen",
+          "adopted": "Übernommen",
+          "kindSet": "Set",
+          "kindVariant": "Variante · {{ship}}"
+        },
+        "now": {
+          "online": "Gerade online:",
+          "active": "Läuft gerade: {{title}} · {{n}} Zusagen"
+        }
+      }
+    }
+  },
+  "en": {
+    "hq": {
+      "friends": {
+        "sharedLine": "{{n}} Einsatz shared by friends",
+        "requests": {
+          "title": "Friend requests ({{n}})",
+          "accept": "Accept",
+          "decline": "Decline"
+        },
+        "share": {
+          "open": "Share with friends",
+          "hint": "View only. For a group, members added later get access too.",
+          "setHint": "The set goes to the friends in the group now. Members added later do not get it.",
+          "audience": "Friend or group",
+          "choose": "Choose a friend or group",
+          "send": "Share",
+          "revoke": "Revoke",
+          "done": "Shared.",
+          "duplicate": "Already shared.",
+          "setDone": "Shared with {{n}} friends."
+        },
+        "crew": {
+          "open": "Crew slots and RSVPs",
+          "hint": "Name the slots friends can take.",
+          "slotLabel": "Slot name",
+          "removeSlot": "Remove slot",
+          "addSlot": "Add slot",
+          "save": "Save slots",
+          "counts": "Yes {{yes}} · Maybe {{maybe}} · No {{no}}"
+        },
+        "shared": {
+          "title": "Shared by friends",
+          "by": "by",
+          "readOnly": "View only",
+          "answer": "Your answer",
+          "slot": "Crew slot",
+          "noSlot": "No slot"
+        },
+        "stock": {
+          "adopt": "Add to my stock",
+          "adopted": "Adopted",
+          "kindSet": "Set",
+          "kindVariant": "Variant · {{ship}}"
+        },
+        "now": {
+          "online": "Online now:",
+          "active": "Running now: {{title}} · {{n}} confirmed"
+        }
+      }
+    }
+  }
+}

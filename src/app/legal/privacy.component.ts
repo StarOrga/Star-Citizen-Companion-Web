@@ -55,6 +55,13 @@ import { TranslatePipe } from '@ngx-translate/core';
       </div>
 
       <div class="sc-card">
+        <h2>{{ 'legal.privacy.social.title' | translate }}</h2>
+        <p>{{ 'legal.privacy.social.p1' | translate }}</p>
+        <p>{{ 'legal.privacy.social.p2' | translate }}</p>
+        <p>{{ 'legal.privacy.social.p3' | translate }}</p>
+      </div>
+
+      <div class="sc-card">
         <h2>{{ 'legal.privacy.google.title' | translate }}</h2>
         <p>{{ 'legal.privacy.google.p1' | translate }}</p>
         <p>{{ 'legal.privacy.google.p2' | translate }}</p>

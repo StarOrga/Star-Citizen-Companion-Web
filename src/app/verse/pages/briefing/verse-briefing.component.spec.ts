@@ -445,10 +445,17 @@ describe('Verse briefing — component', () => {
       expect(fixture.nativeElement.querySelector('.hrow .step')).toBeNull();
       expect(stage(fixture)?.classList).not.toContain('finale');
 
-      // The finale comes once everything stood — at the latest after the planet wait.
-      tick(INTRO_PLANET_WAIT_MS);
-      fixture.detectChanges();
+      // The finale comes once everything stood — as soon as the planet settled (without WebGL that is
+      // right after the build-up), at the latest after the planet wait. Follow it to where it begins,
+      // so the beats below are measured from the finale, not from the clock of this environment.
+      let waited = 0;
+      while (waited < INTRO_PLANET_WAIT_MS && !stage(fixture)?.classList.contains('finale')) {
+        tick(100);
+        waited += 100;
+        fixture.detectChanges();
+      }
       expect(stage(fixture)?.classList).toContain('finale');
+      expect(waited).withContext('the finale never starts before the build-up stood').toBeGreaterThanOrEqual(INTRO_BUILD_MS);
       tick(INTRO_SWITCH_MS);
       fixture.detectChanges();
       expect(title(fixture)?.querySelector('.brand')).withContext('the name left the hero').toBeNull();

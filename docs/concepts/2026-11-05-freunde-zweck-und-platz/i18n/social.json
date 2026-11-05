@@ -1,0 +1,252 @@
+{
+  "de": {
+    "social": {
+      "page": {
+        "title": "Social",
+        "subtitle": "Freunde, Einladungen, Gruppen und der Vergleich mit dir.",
+        "visibilityButton": "Was Freunde sehen",
+        "online": "Online",
+        "emptyHint": "Lade jemanden mit deinem persönlichen Link ein oder gib einen exakten Benutzernamen ein.",
+        "emptyCta": "Zur Einladung",
+        "openFriend": "Seite öffnen"
+      },
+      "notice": {
+        "text": "Freunde sehen standardmäßig deinen Hangar, dein Flaggschiff, deinen Online-Status und deine Vergleichswerte. Du kannst das allgemein und pro Freund ausschalten.",
+        "open": "Einstellen",
+        "dismiss": "Verstanden"
+      },
+      "invite": {
+        "title": "Freunde einladen",
+        "hint": "Schick den Link, zum Beispiel per Discord. Wer ihn öffnet und sich anmeldet, stellt eine Freundschaftsanfrage an dich, die du noch annehmen musst.",
+        "linkLabel": "Dein Einladungslink",
+        "copy": "Link kopieren",
+        "copied": "Kopiert",
+        "expires": "Gültig bis {{date}}",
+        "renew": "Neuer Link",
+        "revoke": "Link zurückziehen",
+        "revoked": "Der Link ist zurückgezogen.",
+        "create": "Einladungslink erstellen"
+      },
+      "groups": {
+        "title": "Gruppen",
+        "privateNote": "Gruppen sind privat. Deine Freunde sehen weder die Gruppen noch, in welcher sie sind. Ein Freund kann in mehreren Gruppen sein.",
+        "shareNote": "Wer zu einer Gruppe hinzukommt, bekommt, was du mit dieser Gruppe teilst (Einsätze, Schiffs-Varianten). Wer entfernt wird oder wenn die Gruppe gelöscht wird, verliert den Zugriff. Ein Set, das du mit einer Gruppe teilst, geht nur an die Mitglieder von heute.",
+        "kindLabel": "Art der Gruppe",
+        "namePlaceholder": "Name der Gruppe",
+        "create": "Gruppe anlegen",
+        "empty": "Noch keine Gruppen. Lege eine Org oder Einsatzgruppe an, um Freunde zu ordnen.",
+        "noFriends": "Du hast noch keine Freunde, die du hinzufügen könntest.",
+        "members": "Mitglieder",
+        "rename": "Umbenennen",
+        "delete": "Löschen",
+        "renameTitle": "Gruppe „{{name}}“ umbenennen",
+        "deleteTitle": "Gruppe „{{name}}“ löschen?",
+        "deleteMessage": "Die Freunde bleiben Freunde. Was du mit dieser Gruppe geteilt hast, ist für sie nicht mehr sichtbar, sofern es nicht auch anders freigegeben ist.",
+        "friendPageHint": "Die Seite eines Freundes zeigt, in welchen deiner Gruppen er ist, zum Beispiel"
+      },
+      "comparePanel": {
+        "title": "Vergleich",
+        "hint": "Wie ihr SCC nutzt und was ihr so macht, verglichen mit dir. Es erscheint nur, was der Freund dir zeigt.",
+        "loading": "Wird geladen …",
+        "noFriends": "Sobald du Freunde hast, kannst du dich hier mit ihnen vergleichen.",
+        "with": "Vergleich mit",
+        "metric": "Wert",
+        "me": "Du",
+        "hidden": "nicht geteilt",
+        "desktop": "Desktop-App verbunden",
+        "yes": "Ja",
+        "no": "Nein",
+        "friendHides": "Dieser Freund zeigt dir seine Vergleichswerte nicht.",
+        "webNote": "Wie oft jemand die Webseite nutzt, wird nicht erfasst. „Aktive Tage“ ist die nächste echte Zahl."
+      },
+      "visibility": {
+        "title": "Was Freunde sehen",
+        "done": "Fertig",
+        "general": "Allgemein",
+        "generalHint": "Gilt für alle Freunde, sofern du unten nichts anderes für einen Freund einstellst. Änderungen werden sofort gespeichert.",
+        "facetHint": {
+          "hangar": "Deine Schiffe (auch Wunschliste), ohne Notizen und ohne Konfigurationen.",
+          "flagship": "Das Schiff, das du in deinem Hangar oben angeheftet hast.",
+          "presence": "Ob du gerade online bist. Nie ein genauer Zeitpunkt.",
+          "stats": "Zahlen wie Schiffe, Sets, Einsätze, aktive Tage und Kartograph-Rang."
+        },
+        "perFriend": "Pro Freund",
+        "perFriendHint": "Wähle einen Freund und lege fest, ob er etwas anderes sieht als der Rest.",
+        "noFriends": "Sobald du Freunde hast, kannst du das hier pro Freund einstellen.",
+        "loading": "Wird geladen …",
+        "inherit": "Wie allgemein",
+        "on": "An",
+        "off": "Aus",
+        "result": "Dieser Freund sieht:",
+        "nothing": "nichts davon"
+      },
+      "friendPage": {
+        "loading": "Wird geladen …",
+        "missingTitle": "Nicht gefunden",
+        "missing": "Diese Seite gibt es nicht oder sie ist nicht für dich sichtbar. Sie ist nur für Freunde.",
+        "since": "Befreundet seit {{date}}",
+        "share": "Etwas teilen",
+        "inGroups": "In deinen Gruppen:",
+        "fromFriend": "Von {{name}} mit dir geteilt",
+        "nothingShared": "Noch nichts geteilt.",
+        "fromMe": "Von dir geteilt",
+        "nothingSharedByMe": "Du hast hier noch nichts geteilt.",
+        "hangar": "Hangar",
+        "flagship": "Flaggschiff",
+        "hangarHidden": "Dieser Freund zeigt dir seinen Hangar nicht.",
+        "hangarEmpty": "Der Hangar ist leer.",
+        "wishlist": "Wunschliste",
+        "kindSet": "Set",
+        "kindVariant": "Variante",
+        "kindEinsatz": "Einsatz",
+        "removeTitle": "{{name}} als Freund entfernen?",
+        "removeMessage": "Alles, was ihr einander geteilt habt, ist danach nicht mehr sichtbar.",
+        "blockTitle": "{{name}} blockieren?",
+        "blockMessage": "Die Freundschaft endet und die Person kann dir keine Anfrage mehr schicken."
+      },
+      "inviteLanding": {
+        "title": "Einladung",
+        "loading": "Einladung wird geprüft …",
+        "dead": "Dieser Einladungslink gilt nicht mehr. Bitte um einen neuen.",
+        "toSocial": "Zu Social",
+        "from": "{{name}} lädt dich ein, befreundet zu sein.",
+        "fromAnon": "Du wurdest eingeladen, befreundet zu sein.",
+        "hint": "Wenn du fortfährst, bekommt die Person eine Freundschaftsanfrage und muss sie noch annehmen.",
+        "accept": "Anfrage senden",
+        "signInHint": "Melde dich an, um die Anfrage zu senden. Danach kommst du hierher zurück.",
+        "signIn": "Anmelden",
+        "result": {
+          "pending": "Die Anfrage an {{name}} ist gesendet. Sobald sie angenommen wird, seid ihr befreundet.",
+          "accepted": "Ihr seid jetzt befreundet mit {{name}}.",
+          "already_friends": "Ihr seid schon befreundet mit {{name}}."
+        },
+        "toFriend": "Seite von {{name}}"
+      }
+    }
+  },
+  "en": {
+    "social": {
+      "page": {
+        "title": "Social",
+        "subtitle": "Friends, invites, groups and the comparison with you.",
+        "visibilityButton": "What friends see",
+        "online": "Online",
+        "emptyHint": "Invite someone with your personal link, or enter an exact username.",
+        "emptyCta": "Go to the invite",
+        "openFriend": "Open page"
+      },
+      "notice": {
+        "text": "By default friends see your hangar, flagship, online status and comparison numbers. You can switch this off in general and per friend.",
+        "open": "Adjust",
+        "dismiss": "Got it"
+      },
+      "invite": {
+        "title": "Invite friends",
+        "hint": "Send the link, for example on Discord. Whoever opens it and signs in files a friend request to you, which you still have to accept.",
+        "linkLabel": "Your invite link",
+        "copy": "Copy link",
+        "copied": "Copied",
+        "expires": "Valid until {{date}}",
+        "renew": "New link",
+        "revoke": "Withdraw link",
+        "revoked": "The link is withdrawn.",
+        "create": "Create invite link"
+      },
+      "groups": {
+        "title": "Groups",
+        "privateNote": "Groups are private. Your friends see neither the groups nor which one they are in. A friend can be in several groups.",
+        "shareNote": "Whoever joins a group gets what you share with that group (missions, ship variants). Whoever is removed, or when the group is deleted, loses access. A set you share with a group goes only to today's members.",
+        "kindLabel": "Kind of group",
+        "namePlaceholder": "Group name",
+        "create": "Create group",
+        "empty": "No groups yet. Create an org or a mission group to organise friends.",
+        "noFriends": "You have no friends to add yet.",
+        "members": "Members",
+        "rename": "Rename",
+        "delete": "Delete",
+        "renameTitle": "Rename group \"{{name}}\"",
+        "deleteTitle": "Delete group \"{{name}}\"?",
+        "deleteMessage": "The friends stay friends. What you shared with this group is no longer visible to them unless it is shared another way.",
+        "friendPageHint": "A friend's page shows which of your groups they are in, for example"
+      },
+      "comparePanel": {
+        "title": "Comparison",
+        "hint": "How you use SCC and what you each do, compared with you. Only what the friend shows you appears.",
+        "loading": "Loading …",
+        "noFriends": "Once you have friends you can compare yourself with them here.",
+        "with": "Compare with",
+        "metric": "Value",
+        "me": "You",
+        "hidden": "not shared",
+        "desktop": "Desktop app connected",
+        "yes": "Yes",
+        "no": "No",
+        "friendHides": "This friend does not show you their comparison numbers.",
+        "webNote": "How often someone uses the website is not recorded. \"Active days\" is the closest real number."
+      },
+      "visibility": {
+        "title": "What friends see",
+        "done": "Done",
+        "general": "In general",
+        "generalHint": "Applies to all friends unless you set something else for one below. Changes are saved at once.",
+        "facetHint": {
+          "hangar": "Your ships (including the wishlist), without notes and without configurations.",
+          "flagship": "The ship you pinned at the top of your hangar.",
+          "presence": "Whether you are online right now. Never an exact time.",
+          "stats": "Numbers such as ships, sets, missions, active days and Kartograph rank."
+        },
+        "perFriend": "Per friend",
+        "perFriendHint": "Pick a friend and decide whether they see something different from the rest.",
+        "noFriends": "Once you have friends you can set this per friend here.",
+        "loading": "Loading …",
+        "inherit": "As general",
+        "on": "On",
+        "off": "Off",
+        "result": "This friend sees:",
+        "nothing": "none of it"
+      },
+      "friendPage": {
+        "loading": "Loading …",
+        "missingTitle": "Not found",
+        "missing": "This page does not exist or is not visible to you. It is for friends only.",
+        "since": "Friends since {{date}}",
+        "share": "Share something",
+        "inGroups": "In your groups:",
+        "fromFriend": "Shared with you by {{name}}",
+        "nothingShared": "Nothing shared yet.",
+        "fromMe": "Shared by you",
+        "nothingSharedByMe": "You have not shared anything here yet.",
+        "hangar": "Hangar",
+        "flagship": "Flagship",
+        "hangarHidden": "This friend does not show you their hangar.",
+        "hangarEmpty": "The hangar is empty.",
+        "wishlist": "Wishlist",
+        "kindSet": "Set",
+        "kindVariant": "Variant",
+        "kindEinsatz": "Mission",
+        "removeTitle": "Remove {{name}} as a friend?",
+        "removeMessage": "Everything you shared with each other is no longer visible afterwards.",
+        "blockTitle": "Block {{name}}?",
+        "blockMessage": "The friendship ends and this person can no longer send you a request."
+      },
+      "inviteLanding": {
+        "title": "Invitation",
+        "loading": "Checking the invitation …",
+        "dead": "This invite link is no longer valid. Ask for a new one.",
+        "toSocial": "Go to Social",
+        "from": "{{name}} invites you to be friends.",
+        "fromAnon": "You have been invited to be friends.",
+        "hint": "If you continue, this person receives a friend request and still has to accept it.",
+        "accept": "Send request",
+        "signInHint": "Sign in to send the request. You will come back here afterwards.",
+        "signIn": "Sign in",
+        "result": {
+          "pending": "The request to {{name}} is sent. Once it is accepted you are friends.",
+          "accepted": "You are now friends with {{name}}.",
+          "already_friends": "You are already friends with {{name}}."
+        },
+        "toFriend": "{{name}}'s page"
+      }
+    }
+  }
+}

@@ -41,11 +41,17 @@ the instructions of the next run through a merge (concept 2026-09-13, E2a).
 ## One run
 
 `supervise` takes the run lock, keeps the PC awake, fast-forwards the primary
-checkout and starts `claude -p` with a session id it knows. A watchdog checks once
+checkout, refreshes the runner checkout `.claude/worktrees/scc-runner` (detached
+at origin/main) and starts `claude -p` there with a session id it knows. Not in
+the primary: the main-branch guard reads the shell's folder, so a session on
+`main` has every git write refused, also a worker's `cd <worktree> && git commit`. A watchdog checks once
 a minute: 170 awake minutes at most, and 45 minutes without a transcript write
 (subagents included) count as hung. Sleep counts as neither. Print mode ends with
 the model's turn and kills what runs in the background, so the prompt forbids
-`run_in_background`: workers are foreground Task calls in one message.
+`run_in_background`: workers are foreground Task calls in one message. Workers
+verify through `web-ci` on their PR (`scripts/routine-ci-wait.mjs`, about 3 min)
+instead of building locally: three parallel builds took 10 to 30 minutes each and
+used up the whole time box.
 
 Afterwards the **postflight** runs, whatever happened, without a model:
 
@@ -93,6 +99,7 @@ Branches that match no item are never touched.
 | Usage limit | `rate_limit_event` rejected, 429, or message text | cool down until the announced reset, panel amber | no |
 | Claude login expired | 401/403 or message text | 1 h cooldown, toast | no |
 | API overload or no network | 5xx or message text | 10 min cooldown | no |
+| Runner checkout cannot be built | `ensureRunner` throws | 10 min cooldown, the next run rebuilds it | no |
 | Claude CLI missing | spawn error | counts as a crash, so the item gets a reply after 3 attempts | yes |
 | GitHub down or `gh` logged out | `gh` fails | nothing is decided from "no PRs": the claim and the sweep wait | no |
 | Board or PAT down during a tick | gate `error` | retried each tick, toast after 10 errors; the panel ages to red | no |
