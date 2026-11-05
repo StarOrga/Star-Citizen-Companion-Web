@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BriefingPlanetComponent, forgetPlanetSession } from './briefing-planet.component';
 import { PlanetStatus, PlanetView } from './planet/planet-scene';
@@ -36,11 +36,10 @@ class FakeLink implements PlanetLink {
   imports: [BriefingPlanetComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div #a [style.width.px]="200" [style.height.px]="200" [style.marginTop.px]="top()"></div>
+    <div #a [style.width.px]="200" [style.height.px]="200"></div>
     <sc-briefing-planet [anchor]="a" (drawn)="drawn = drawn + 1" (unavailable)="gone = gone + 1" />`,
 })
 class HostComponent {
-  readonly top = signal(0);
   drawn = 0;
   gone = 0;
 }
@@ -89,8 +88,7 @@ describe('BriefingPlanetComponent — worker path', () => {
     runFrames(16);
     const a = link!.views[0];
     expect(a.r).toBe(100);
-    f.componentInstance.top.set(40);
-    f.detectChanges();
+    (f.nativeElement.querySelector('div') as HTMLElement).style.transform = 'translateY(40px)';
     runFrames(32);
     const b = link!.views[1];
     expect(b.cy - a.cy).toBe(40);
