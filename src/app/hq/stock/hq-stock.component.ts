@@ -1,3 +1,4 @@
+import { formatLocationName } from '../now/hq-live.util';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -79,7 +80,7 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
             @for (loc of inv.locations(); track loc.snapshot.location) {
               <li class="card place">
                 <div class="place-head">
-                  <h4>{{ loc.snapshot.location }}</h4>
+                  <h4>{{ placeName(loc.snapshot.location) }}</h4>
                   <span class="age" [class.stale]="age(loc.snapshot.taken_at).stale">{{ ageText(loc.snapshot.taken_at) }}</span>
                 </div>
                 @if (loc.materials.length) {
@@ -195,6 +196,7 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
   ],
 })
 export class HqStockComponent implements OnInit {
+  readonly placeName = formatLocationName;
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
   readonly inv = inject(HqInventoryService);

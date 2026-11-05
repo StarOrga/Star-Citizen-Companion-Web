@@ -1,3 +1,4 @@
+import { HqLiveService } from '../now/hq-live.service';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -5,6 +6,8 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HqStatsComponent } from './hq-stats.component';
+
+const liveState = signal<Record<string, unknown> | null>(null);
 
 describe('HqStatsComponent', () => {
   function mount(rpc: jasmine.Spy) {
@@ -15,12 +18,25 @@ describe('HqStatsComponent', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: SupabaseClientProvider, useValue: { client: { rpc } } },
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
+        { provide: HqLiveService, useValue: { state: liveState } },
       ],
     });
     const fixture = TestBed.createComponent(HqStatsComponent);
     fixture.detectChanges();
     return fixture;
   }
+
+  beforeEach(() => liveState.set(null));
+
+  it('offers no app start in the overlay once the SCC app reports game data', async () => {
+    liveState.set({ location: 'Lorville' });
+    const fixture = mount(jasmine.createSpy('rpc').and.resolveTo({ data: {}, error: null }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.overlay')).toBeTruthy();
+    expect(el.querySelector('.overlay sc-hq-app-launch')).toBeNull();
+  });
 
   it('shows marked, inert preview tiles under an app overlay for empty data - no wall of zeros, no error', async () => {
     const fixture = mount(jasmine.createSpy('rpc').and.resolveTo({ data: {}, error: null }));

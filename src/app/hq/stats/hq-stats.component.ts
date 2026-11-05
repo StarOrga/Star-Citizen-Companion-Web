@@ -1,3 +1,4 @@
+import { HqLiveService } from '../now/hq-live.service';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
@@ -72,10 +73,12 @@ export interface HqTile {
           <section class="overlay" aria-labelledby="hq-stats-preview">
             <span class="o-tag">{{ 'hq.stats.preview.stamp' | translate }}</span>
             <h3 id="hq-stats-preview" class="o-title">{{ 'hq.stats.preview.title' | translate }}</h3>
-            <p class="o-text">{{ 'hq.stats.preview.text' | translate }}</p>
-            <div class="o-actions">
-              <sc-hq-app-launch />
-            </div>
+            <p class="o-text">{{ (appReporting() ? 'hq.stats.preview.textLinked' : 'hq.stats.preview.text') | translate }}</p>
+            @if (!appReporting()) {
+              <div class="o-actions">
+                <sc-hq-app-launch />
+              </div>
+            }
           </section>
         </div>
       } @else {
@@ -217,6 +220,9 @@ export interface HqTile {
 export class HqStatsComponent implements OnInit {
   readonly svc = inject(HqStatsService);
   readonly auth = inject(AuthService);
+  private readonly live = inject(HqLiveService);
+  /** The SCC app already reports game data: only playing is missing, not the app. */
+  readonly appReporting = computed(() => this.live.state() !== null);
   private readonly i18n = inject(TranslateService);
 
   readonly rangeOptions: readonly ScSegmentOption[] = HQ_STATS_RANGES.map((r) => ({

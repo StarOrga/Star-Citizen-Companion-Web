@@ -5110,8 +5110,8 @@
         "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel."
       },
       "fresh": {
-        "updated": "Zuletzt aktualisiert: {{at}}",
-        "ended": "Spiel beendet · Stand: {{at}}"
+        "updated": "Live · Stand: {{at}}",
+        "ended": "Kein Live-Signal · Stand: {{at}}"
       },
       "anchor": {
         "label": "Du bist hier",
@@ -5327,7 +5327,8 @@
       "preview": {
         "stamp": "Vorschau",
         "title": "Hier wächst deine Statistik",
-        "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
+        "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
+        "textLinked": "Die SCC-App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
       }
     },
     "stock": {
