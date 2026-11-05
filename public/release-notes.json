@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.1",
+  "current": "0.207.2",
   "releases": [
+    {
+      "version": "0.207.2",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page, News column: an opened news image now has rounded corners like everything around it, also while it zooms on hover"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.1",
       "date": "2026-11-05",

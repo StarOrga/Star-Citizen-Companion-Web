@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.207.2] - 2026-11-05
+
+### Fixed
+- Verse start page, News column: an opened news image now has rounded corners like everything around it, also while it zooms on hover
+
 ## [0.207.1] - 2026-11-05
 
 ### Fixed
