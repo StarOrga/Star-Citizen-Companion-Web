@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.206.2",
+  "current": "0.206.3",
   "releases": [
+    {
+      "version": "0.206.3",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Verse start page: the patch or news title no longer has a visible dark box behind it, also on hover. Only a soft shadow around the letters remains"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.206.2",
       "date": "2026-11-05",
@@ -12,7 +28,7 @@
           "items": [
             {
               "title": "",
-              "text": "The Verse start page: the patch or news title no longer has a visible dark box behind it, also on hover. Only a soft shadow around the letters remains"
+              "text": "The feedback watcher's status now shows the same state as the running task"
             }
           ]
         }

@@ -16,7 +16,7 @@ Order matters. How it works: [`../feedback-routine/watcher.md`](../feedback-rout
 | GitHub auth for `gh` | `gh auth login` | **no** |
 | Claude login | `claude` then `/login` | **no** |
 | Project memory and `~/.claude/CLAUDE.md` | home backup (`claude-home` branch of the backup repo) | yes |
-| Attempts and cooldowns | `%LOCALAPPDATA%\scc-routine\state.json` | no, and not needed: they start over |
+| Attempts and cooldowns | `~/.claude/scc-routine/state.json` | no, and not needed: they start over |
 
 ## Steps
 
