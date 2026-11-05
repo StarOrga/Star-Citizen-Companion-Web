@@ -37,6 +37,8 @@ describe('CodexBuildDiffService', () => {
       answer:
         opts.answer ??
         ((call) => {
+          // The RPC is "not deployed" unless a spec says otherwise: these specs cover the paged fallback.
+          if (call.op === 'rpc') return { data: null, error: { code: 'PGRST202', message: 'not found' } };
           const all = names[buildIdOf(call) ?? ''] ?? [];
           const [from, to] = (chainArgs(call, 'range') ?? [0, 999]) as [number, number];
           return { data: all.slice(from, to + 1).map((class_name) => ({ class_name })) };
@@ -68,8 +70,9 @@ describe('CodexBuildDiffService', () => {
   it('applies the default browse filters and selects only class_name', async () => {
     const { svc, sb } = setup({ builds: [CUR, PREV], names: { 'b-cur': ['A'], 'b-prev': [] } });
     await svc.addedShips();
-    expect(sb.calls.length).toBe(2);
-    for (const call of sb.calls) {
+    const reads = sb.calls.filter((c) => c.op === 'from');
+    expect(reads.length).toBe(2);
+    for (const call of reads) {
       expect(call.target).toBe('codex_ships');
       expect(chainArgs(call, 'select')).toEqual(['class_name']);
       expect(call.chain).toContain(['eq', ['is_variant', false]]);
@@ -123,7 +126,7 @@ describe('CodexBuildDiffService', () => {
         names: { 'b-cur': ['COMP_B', 'COMP_A', 'COMP_C'], 'b-prev': ['COMP_A'] },
       });
       expect(await svc.addedClassNamesMemo('component')).toEqual(['COMP_B', 'COMP_C']);
-      for (const call of sb.calls) {
+      for (const call of sb.calls.filter((c) => c.op === 'from')) {
         expect(call.target).toBe('codex_components');
         expect(chainArgs(call, 'select')).toEqual(['class_name']);
         expect(call.chain.some(([m]) => m === 'not' || m === 'or')).toBeFalse();
@@ -134,8 +137,10 @@ describe('CodexBuildDiffService', () => {
       const { svc, sb } = setup({ builds: [CUR, PREV], names: { 'b-cur': ['W_1'], 'b-prev': [] } });
       await svc.addedClassNamesMemo('weapon');
       await svc.addedClassNamesMemo('weapon');
-      expect(sb.calls.length).toBe(2);
-      expect(sb.calls.every((c) => c.target === 'codex_weapons')).toBeTrue();
+      const reads = sb.calls.filter((c) => c.op === 'from');
+      expect(reads.length).toBe(2);
+      expect(reads.every((c) => c.target === 'codex_weapons')).toBeTrue();
+      expect(sb.calls.filter((c) => c.op === 'rpc').length).toBe(1);
     });
 
     it('answers ships from the ship diff', async () => {
@@ -152,6 +157,49 @@ describe('CodexBuildDiffService', () => {
     it('returns [] when a read fails', async () => {
       const { svc } = setup({ builds: [CUR, PREV], answer: () => ({ data: null, error: { message: 'boom' } }) });
       expect(await svc.addedClassNamesMemo('item')).toEqual([]);
+    });
+  });
+
+  describe('codex_added_class_names RPC', () => {
+    function rpcAnswer(names: string[]) {
+      return (call: FakeCall): FakeResult =>
+        call.op === 'rpc' ? { data: names } : { data: null, error: { message: 'must not page' } };
+    }
+
+    it('asks for the ship diff in one request and resolves the rows', async () => {
+      const { svc, sb, codex } = setup({ builds: [CUR, PREV], answer: rpcAnswer(['RSI_Zeus', 'KRIG_X']) });
+      const rows = await svc.addedShips();
+      expect(rows.map((r) => r.classNameSlug)).toEqual(['RSI_Zeus', 'KRIG_X']);
+      expect(sb.calls.length).toBe(1);
+      expect(sb.calls[0].target).toBe('codex_added_class_names');
+      expect(sb.calls[0].args).toEqual({ p_kind: 'ship', p_current: 'b-cur', p_previous: 'b-prev' });
+      expect(codex.getShipsByClassNames).toHaveBeenCalledTimes(1);
+    });
+
+    it('caps the resolved ships but not the kind diffs', async () => {
+      const many = Array.from({ length: 12_000 }, (_, i) => `I_${i}`);
+      const { svc } = setup({ builds: [CUR, PREV], answer: rpcAnswer(many) });
+      expect((await svc.addedClassNamesMemo('item')).length).toBe(12_000);
+    });
+
+    it('falls back to the paged diff when the function is missing, and remembers it', async () => {
+      const { svc, sb } = setup({
+        builds: [CUR, PREV],
+        names: { 'b-cur': ['W_1', 'W_2'], 'b-prev': ['W_1'] },
+      });
+      expect(await svc.addedClassNamesMemo('weapon')).toEqual(['W_2']);
+      expect(await svc.addedClassNamesMemo('component')).toEqual([]);
+      expect(sb.calls.filter((c) => c.op === 'rpc').length).toBe(1);
+    });
+
+    it('returns [] without paging when the RPC fails for another reason', async () => {
+      const { svc, sb } = setup({
+        builds: [CUR, PREV],
+        answer: (call) =>
+          call.op === 'rpc' ? { data: null, error: { code: '57014', message: 'timeout' } } : { data: [] },
+      });
+      expect(await svc.addedClassNamesMemo('item')).toEqual([]);
+      expect(sb.calls.filter((c) => c.op === 'from').length).toBe(0);
     });
   });
 });
