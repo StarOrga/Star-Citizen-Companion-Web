@@ -308,15 +308,10 @@ import { avatarUrlOf } from './avatar-url';
                 (click)="onMenuNavigate($event)">
                 {{ 'nav.friends' | translate }}
               </a>
-              @if (roles.isAdmin()) {
-                <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
-                     everyone would only ever hand out a redirect. Painted in the
-                     hot accent for the same reason the header's admin links are
-                     (elevated access), with the tag so the colour is never the
-                     only carrier of that meaning — admin feedback f8ea96f5. -->
-                <!-- The Admin hub itself: it left the nav and the header's sub row
-                     (batch 2026-11-05, d-admin), the account menu is its one home,
-                     on desktop and phone alike. -->
+              @if (roles.isAdmin() && shellOn()) {
+                <!-- The Admin hub: in the beta shell it is NOT in the nav or the header's sub row
+                     any more (batch 2026-11-05, d-admin), this menu is its one home, desktop and
+                     phone alike. The legacy topbar keeps its own admin links. -->
                 <a
                   class="dropdown-item elevated"
                   role="menuitem"
@@ -325,6 +320,13 @@ import { avatarUrlOf } from './avatar-url';
                   <span class="di-label">{{ 'nav.adminMenu' | translate }}</span>
                   <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
+              }
+              @if (roles.isAdmin()) {
+                <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
+                     everyone would only ever hand out a redirect. Painted in the
+                     hot accent for the same reason the header's admin links are
+                     (elevated access), with the tag so the colour is never the
+                     only carrier of that meaning — admin feedback f8ea96f5. -->
                 <a
                   class="dropdown-item elevated"
                   role="menuitem"

@@ -58,6 +58,8 @@ describe('ShellComponent menu navigation', () => {
   let recoveryReload: jasmine.Spy;
   let recoveryDismiss: jasmine.Spy;
 
+  afterEach(() => localStorage.removeItem('sc.beta'));
+
   function setup(admin = false) {
     isAdmin = signal(admin);
     loadFailed = signal(false);
@@ -76,6 +78,7 @@ describe('ShellComponent menu navigation', () => {
           provide: AuthService,
           useValue: {
             ready: () => false,
+            isAuthenticated: () => false,
             realUser: () => null,
             user: signal(null),
             signOut: () => Promise.resolve(),
@@ -148,6 +151,7 @@ describe('ShellComponent menu navigation', () => {
   });
 
   it('puts the Admin hub into the account menu: red, admin-only in words, next to API-Tokens', () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
     const fixture = setup(true);
     openMenu(fixture);
     const items = Array.from(
@@ -162,9 +166,16 @@ describe('ShellComponent menu navigation', () => {
   });
 
   it('shows a plain viewer no Admin entry in the account menu', () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
     const fixture = setup(false);
     openMenu(fixture);
     expect(fixture.nativeElement.querySelector('.dropdown a[href^="/admin"]')).toBeNull();
+  });
+
+  it('leaves the legacy topbar menu without the hub entry (it has its own admin links)', () => {
+    const fixture = setup(true);
+    openMenu(fixture);
+    expect(fixture.nativeElement.querySelector('.dropdown a[href="/admin/hub"]')).toBeNull();
   });
 
   it('renders the Telemetrie header entry as a real anchor for an admin', () => {
