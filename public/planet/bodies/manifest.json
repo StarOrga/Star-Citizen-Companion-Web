@@ -1,0 +1,74 @@
+{
+  "source": "9a73acdbd48470de0b7aec87fa2645a51c00bd0cee65887be7cb44021c2f30ad",
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2080 SUPER (0x00001E81) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "widths": [
+    512,
+    1024
+  ],
+  "files": {
+    "arccorp-day-512.webp": {
+      "bytes": 192284,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "arccorp-day-1024.webp": {
+      "bytes": 648676,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "arccorp-haze-512.webp": {
+      "bytes": 77258,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "arccorp-haze-1024.webp": {
+      "bytes": 253420,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "arccorp-night-512.webp": {
+      "bytes": 279882,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "arccorp-night-1024.webp": {
+      "bytes": 928100,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "crusader-day-512.webp": {
+      "bytes": 114956,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "crusader-day-1024.webp": {
+      "bytes": 399984,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "crusader-night-512.webp": {
+      "bytes": 13978,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "crusader-night-1024.webp": {
+      "bytes": 60396,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "microtech-cloud-512.webp": {
+      "bytes": 90998,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "microtech-cloud-1024.webp": {
+      "bytes": 295426,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "microtech-day-512.webp": {
+      "bytes": 139470,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "microtech-day-1024.webp": {
+      "bytes": 461932,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "microtech-night-512.webp": {
+      "bytes": 11752,
+      "encoder": "Chromium lossless (quality 1)"
+    },
+    "microtech-night-1024.webp": {
+      "bytes": 30234,
+      "encoder": "Chromium lossless (quality 1)"
+    }
+  }
+}

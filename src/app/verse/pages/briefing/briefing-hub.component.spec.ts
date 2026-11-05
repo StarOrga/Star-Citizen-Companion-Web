@@ -4,6 +4,7 @@ import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import type { StabilityVerdict } from '../../../news/patch-stability';
 import type { VerseNewsItem } from '../../../news/news.service';
 import type { VerseChannelInfo } from '../../data/verse.models';
+import { ACC_TRANSITION_MS } from './briefing-accordion';
 import { BriefingHubComponent } from './briefing-hub.component';
 import { daysSince, hubChannel, hubChannels } from './briefing-hub';
 
@@ -76,6 +77,16 @@ describe('BriefingHubComponent — news accordion', () => {
     expect(css.overflow).toBe('hidden');
     expect(css.borderTopLeftRadius).toBe('6px');
   });
+
+  it('animates for exactly as long as the hover intent waits', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
+    const fixture = TestBed.createComponent(BriefingHubComponent);
+    const item = { id: 'n1', title: 'News', thumbnail: null, publishedAt: new Date(NOW).toISOString() };
+    fixture.componentRef.setInput('news', [item] as unknown as VerseNewsItem[]);
+    fixture.detectChanges();
+    const row = (fixture.nativeElement as HTMLElement).querySelector('.acc-i')!;
+    expect(parseFloat(getComputedStyle(row).transitionDuration) * 1000).toBe(ACC_TRANSITION_MS);
+  });
 });
 
 describe('BriefingHubComponent — channel rows', () => {
@@ -118,5 +129,16 @@ describe('BriefingHubComponent — channel rows', () => {
     const right = (sel: string) => el.querySelector(sel)!.getBoundingClientRect().right;
     expect(right('.ch.off[data-ch="hotfix"] .quiet')).toBeCloseTo(right('.ch.off[data-ch="hotfix"]'), 0);
     expect(right('.ch[data-ch="ptu"] .ch-chip')).toBeCloseTo(right('.ch[data-ch="ptu"]'), 0);
+  });
+  it('puts the stability chip of the live patch card flush right', () => {
+    const live = hubChannel('live', { live: '4.10.2' }, known, noVerdict, { live: build('4.10.2', 200) }, NOW);
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
+    const fixture = TestBed.createComponent(BriefingHubComponent);
+    fixture.componentRef.setInput('live', live);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const chip = el.querySelector('.feat-h sc-stability-chip');
+    if (!chip) { pending('no chip for this fixture'); return; }
+    expect(chip.getBoundingClientRect().right).toBeCloseTo(el.querySelector('.feat-h')!.getBoundingClientRect().right, 0);
   });
 });

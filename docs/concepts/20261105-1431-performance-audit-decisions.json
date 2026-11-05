@@ -1,0 +1,69 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "submission_id": "sub-mw3lq4ht-3s0spnni",
+    "decisions": [
+      {
+        "id": "d-ingest",
+        "label": "Daten-Upload",
+        "mode": "single",
+        "value": "keep",
+        "rec": "throttle",
+        "deviates": true,
+        "note": "Also data uploader ist nicht meini thema, der kann ruhig lang laufen! AUßerdem speichern wir doch in cloudflare die daten oder nicht und nur wenig in supabase? Oder verstehe cih das falssch.\nMein punkt war eher die scc website!"
+      },
+      {
+        "id": "d-gates",
+        "label": "Test-Last",
+        "mode": "single",
+        "value": "keep",
+        "rec": "reduce",
+        "deviates": true
+      },
+      {
+        "id": "d-webgl",
+        "label": "Planeten-Start",
+        "mode": "single",
+        "value": "worker",
+        "rec": "worker",
+        "deviates": false,
+        "note": "[Befund · Frage 1]  Ja genau, ggf. auch die webgl themen stark verbessern, weil wir doch viel statisches haben (z. B. das planetenbild, was in einzelheiten drehen vs beleuchtungen daruf dauer rendered), wird ggf. zu viel was gar nicht vor dem user angezeigt wird gerendered? Ich will die qualiätt, übergänge und animationen nicht minimieren / verschlechteern"
+      },
+      {
+        "id": "d-entrance",
+        "label": "Einzug",
+        "mode": "single",
+        "value": "daily",
+        "rec": "daily",
+        "deviates": false
+      },
+      {
+        "id": "d-fanout",
+        "label": "Datenabfragen",
+        "mode": "single",
+        "value": "rpc",
+        "rec": "rpc",
+        "deviates": false
+      },
+      {
+        "id": "d-churn",
+        "label": "Service Worker",
+        "mode": "single",
+        "value": "lazy",
+        "rec": "lazy",
+        "deviates": false,
+        "note": "Ja genau, also der browser braucht nicht komplett direkt offline funktionieren mit allen codex infos! Das kann gern lazy und oder aasynchron geladen werden - lazy, bei bedarf auf jeden fall, asynchron damit man unahbhngig davon die infos auch alle hat!"
+      },
+      {
+        "id": "d-rokt",
+        "label": "Fremde Erweiterung",
+        "mode": "verify",
+        "value": "wrong",
+        "rec": "ok",
+        "deviates": true,
+        "fix": "check mal meine edge erweiterungen! das habe ich nicht installiert, ist das überhautp seriös!?"
+      }
+    ]
+  }
+]

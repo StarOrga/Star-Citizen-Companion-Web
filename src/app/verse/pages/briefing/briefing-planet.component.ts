@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, output, signal } from '@angular/core';
 import { logWarn } from '../../../core/log';
-import { PLANET_SOURCES, PlanetNetwork, PlanetSources, nightSize } from './planet/planet-assets';
+import { PLANET_SOURCES, PlanetSources, loadBakedPlanet, nightSize } from './planet/planet-assets';
 import { PlanetRenderer } from './planet/planet-gl';
+import { PlanetBackend, PlanetScene, PlanetStatus, PlanetView } from './planet/planet-scene';
 import { paintDay, paintNight } from './planet/planet-textures';
-import { AuroraClock, Train, TrainNetwork } from './planet/planet-trains';
-import { DAY_MS, Vec3, generateWorld, project, seeded } from './planet/planet-world';
+import { PLANET_LINK, PlanetLink } from './planet/planet-worker-link';
+import { generateWorld } from './planet/planet-world';
 
 /**
  * The hub's big planet, live (concept 2026-10-29 "Verse-Planet Nachtseite"):
@@ -18,6 +19,11 @@ import { DAY_MS, Vec3, generateWorld, project, seeded } from './planet/planet-wo
  *
  * The turn follows the wall clock, so every visit shows another part of the
  * world. Under reduced motion the planet is drawn once and stands still.
+ *
+ * It draws in a worker where a worker can own a WebGL canvas (planet-worker-core),
+ * so shader link and texture upload do not freeze the page; everywhere else, or
+ * when that worker fails, the same scene runs right here. The page stays the
+ * ruler either way: the anchor is measured here, every frame.
  */
 @Component({
   selector: 'sc-briefing-planet',
@@ -53,19 +59,25 @@ export class BriefingPlanetComponent {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
+  private readonly loader = inject(PLANET_SOURCES);
   private stopped = false;
   private cleanup: (() => void)[] = [];
   /**
    * The baked planet (public/planet/, scripts/bake-planet.mjs), requested as
    * the component is created rather than after its first render: the intro
-   * waits for the planet, so the download starts as early as it can.
+   * waits for the planet, so the download starts as early as it can. In the
+   * worker's case the worker fetches it, and this stays null.
    */
-  private readonly baked: Promise<PlanetSources> | null =
-    builtWorld || typeof window === 'undefined' ? null : inject(PLANET_SOURCES)(nightSize(innerWidth));
+  private baked: Promise<PlanetSources> | null = null;
+  /** A loader of its own (specs) cannot run in the worker: that planet draws here. */
+  private readonly inWorker = this.loader === loadBakedPlanet;
 
   constructor() {
-    // Handled in fromBake(); this only keeps an early failure from being reported as unhandled.
-    this.baked?.catch(() => undefined);
+    const spawn = inject(PLANET_LINK);
+    if (typeof window !== 'undefined' && !builtWorld) {
+      if (this.inWorker) sessionLink ??= spawn(nightSize(innerWidth), document.baseURI);
+      if (!this.inWorker || !sessionLink) this.requestBake();
+    }
     afterNextRender(() => this.zone.runOutsideAngular(() => void this.start()));
     inject(DestroyRef).onDestroy(() => {
       this.stopped = true;
@@ -73,17 +85,29 @@ export class BriefingPlanetComponent {
     });
   }
 
+  private requestBake(): void {
+    this.baked = this.loader(nightSize(innerWidth));
+    // Handled in fromBake(); this only keeps an early failure from being reported as unhandled.
+    this.baked.catch(() => undefined);
+  }
+
   private async start(): Promise<void> {
+    if (this.inWorker && sessionLink) {
+      if (await this.startInWorker(sessionLink)) return;
+      if (this.stopped) return;
+      sessionLink = null;
+      if (!builtWorld) this.requestBake();
+    }
     const [glCanvas, trainCanvas] = Array.from(this.host.querySelectorAll('canvas'));
     let renderer: PlanetRenderer;
     try {
       renderer = new PlanetRenderer(glCanvas, accentRgb());
     } catch (err) {
       logWarn('verse.planet', 'WebGL unavailable, keeping the CSS planet', err);
-      this.zone.run(() => { this.failed.set(true); this.unavailable.emit(); });
+      this.zone.run(() => this.markFailed());
       return;
     }
-    this.cleanup.push(() => renderer.dispose());
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // The world + textures live for the whole document: coming back to the Verse inside the
     // session shows the planet at once (Kurz-Auftakt). The first time they come from the bake
@@ -92,15 +116,91 @@ export class BriefingPlanetComponent {
     this.instant.set(!!built);
     if (!built) {
       built = (await this.fromBake()) ?? (await this.generate());
-      if (!built) return;
+      if (!built) {
+        renderer.dispose();
+        return;
+      }
       builtWorld = built;
     }
     const { world, day, night, cloud } = built;
     renderer.setTextures(day, night, cloud);
+    const scene = new PlanetScene({
+      glCanvas,
+      trainCanvas,
+      world,
+      reduce,
+      renderer,
+      rebuild: async () => {
+        const next = new PlanetRenderer(glCanvas, accentRgb());
+        next.setTextures(day, night, cloud);
+        return next;
+      },
+      onStatus: (status) => this.onStatus(status),
+    });
+    this.cleanup.push(() => scene.dispose());
+    this.stand();
+    this.loop(scene, glCanvas, reduce);
+  }
 
+  /**
+   * Hands the canvases to the worker, or back into this page when it holds them
+   * from an earlier visit (the planet then stands at once: nothing is compiled or
+   * uploaded again). False: the page has to draw this planet itself.
+   */
+  private async startInWorker(link: PlanetLink): Promise<boolean> {
+    let [gl, trains] = Array.from(this.host.querySelectorAll('canvas'));
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const held = link.canvases;
+    if (held && !link.alive) {
+      link.terminate();
+      return false; // its worker died while the planet was parked; the fresh canvases of this visit are untouched
+    }
+    if (held) {
+      gl.replaceWith(held[0]);
+      trains.replaceWith(held[1]);
+      [gl, trains] = held;
+      link.setAccent(accentRgb());
+    } else {
+      if (!(await link.capable) || this.stopped) return this.stopped;
+      link.attach(gl, trains, accentRgb(), reduce);
+    }
+    this.instant.set(link.isReady);
+    this.cleanup.push(() => {
+      link.onStatus = null;
+      link.park();
+    });
+    link.onStatus = (status) => this.onStatus(status);
+    if (!(await link.settled)) {
+      link.terminate();
+      if (this.stopped) return true;
+      // These two belong to the dead worker now: a canvas gives its control away only once.
+      gl.replaceWith(gl.cloneNode(false));
+      trains.replaceWith(trains.cloneNode(false));
+      return false;
+    }
+    if (this.stopped) return true;
+    this.stand();
+    this.loop(link, gl, reduce);
+    return true;
+  }
+
+  private stand(): void {
     performance.mark?.('sc-verse-planet-ready');
     this.zone.run(() => { this.ready.set(true); this.drawn.emit(); });
-    this.loop(world, renderer, glCanvas, trainCanvas);
+  }
+
+  private markFailed(): void {
+    this.failed.set(true);
+    this.unavailable.emit();
+  }
+
+  /** A lost context that does not come back, or a dead worker: never a blank stage. */
+  private onStatus(status: PlanetStatus): void {
+    if (this.stopped) return;
+    this.zone.run(() => {
+      if (status === 'unavailable') this.markFailed();
+      else this.failed.set(false);
+    });
   }
 
   /** The baked planet, or null when it could not be loaded (the caller then generates it). */
@@ -156,102 +256,40 @@ export class BriefingPlanetComponent {
     });
   }
 
-  private loop(world: PlanetNetwork, renderer: PlanetRenderer, glCanvas: HTMLCanvasElement, trainCanvas: HTMLCanvasElement): void {
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const rnd = seeded(Date.now() & 0xffff);
-    const net = new TrainNetwork(world.cities, world.edges, rnd);
-    const aurora = new AuroraClock(rnd);
-    const trails = new Map<Train, Vec3[]>();
-    const tctx = trainCanvas.getContext('2d')!;
-    const rotNow = () => ((Date.now() % DAY_MS) / DAY_MS) * Math.PI * 2;
-    let dpr = 1, frame = 0, last = performance.now(), lastPlanet = 0, lastTrains = 0, lastCy = NaN, time = 0;
-
-    const resize = () => {
-      dpr = Math.min(2, devicePixelRatio || 1);
-      for (const c of [glCanvas, trainCanvas]) {
-        c.width = Math.round(c.clientWidth * dpr);
-        c.height = Math.round(c.clientHeight * dpr);
-      }
-      lastPlanet = 0;
-    };
+  /** The page's half of the animation: measures the anchor every frame and tells the planet. */
+  private loop(planet: PlanetBackend, glCanvas: HTMLCanvasElement, reduce: boolean): void {
+    let frame = 0;
+    const resize = () => planet.resize(glCanvas.clientWidth, glCanvas.clientHeight, devicePixelRatio);
     /** The planet in the canvas's own coordinates (the canvas is sticky, the anchor scrolls). */
-    const geometry = () => {
+    const geometry = (): PlanetView => {
       const a = this.anchor().getBoundingClientRect(), c = glCanvas.getBoundingClientRect();
       const r = a.width / 2;
       return { cx: a.left + r - c.left, cy: a.top + r - c.top, r, h: c.height, w: c.width };
     };
-    const draw = (now: number) => {
-      const g = geometry();
-      if (g.r <= 0 || g.cy - g.r > g.h) return; // planet below the viewport
-      const rot = rotNow();
-      if (now - lastPlanet > 66 || g.cy !== lastCy) {
-        lastPlanet = now;
-        lastCy = g.cy;
-        renderer.draw({ cx: g.cx, cy: g.cy, r: g.r, rot, time, aurora: aurora.level }, dpr);
-      }
-      if (reduce || now - lastTrains < 33) return;
-      lastTrains = now;
-      tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      tctx.clearRect(0, 0, g.w, g.h);
-      for (const tr of net.trains) {
-        const trail = trails.get(tr) ?? [];
-        trail.push(net.position(tr));
-        if (trail.length > 26) trail.shift();
-        trails.set(tr, trail);
-        const p = project(trail[trail.length - 1], rot, g.cx, g.cy, g.r);
-        const night = Math.max(0, Math.min(1, -p.ndl / 0.08)), fore = Math.max(0, Math.min(1, p.z / 0.12));
-        tr.visible = p.z > 0.05 && night > 0.2 && p.y > 0 && p.y < g.h;
-        const a = night * fore;
-        if (a <= 0.01) continue;
-        for (let k = 0; k < trail.length - 1; k++) {
-          const q = project(trail[k], rot, g.cx, g.cy, g.r);
-          tctx.fillStyle = `rgba(255,214,160,${(0.1 * k * a) / trail.length})`;
-          tctx.fillRect(q.x - 0.5, q.y - 0.5, 1, 1);
-        }
-        const glow = tctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 3.2);
-        glow.addColorStop(0, `rgba(255,236,200,${0.55 * a})`);
-        glow.addColorStop(1, 'rgba(255,200,140,0)');
-        tctx.fillStyle = glow;
-        tctx.beginPath();
-        tctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
-        tctx.fill();
-        tctx.fillStyle = `rgba(255,250,236,${0.9 * a})`;
-        tctx.fillRect(p.x - 0.6, p.y - 0.6, 1.2, 1.2);
-      }
-      for (const tr of trails.keys()) if (!net.trains.includes(tr)) trails.delete(tr);
-    };
     // Off screen (scrolled past the stage, the sticky canvas left with it) nothing is drawn that
     // anyone sees, but the loop kept stepping the trains and redrawing the GL planet. It pauses
-    // there and picks up again on return (dt is clamped below, so the world just moves on).
+    // there and picks up again on return (dt is clamped by the scene, so the world just moves on).
     let onScreen = true;
     const tick = (now: number) => {
       if (!onScreen) {
         frame = 0;
         return;
       }
-      const dt = Math.min(100, now - last);
-      last = now;
-      time += dt / 1000;
-      const g = geometry(), rot = rotNow();
-      net.step(dt, (e) => [world.cities[e.a].v, world.cities[e.b].v].some((v) => {
-        const p = project(v, rot, g.cx, g.cy, g.r);
-        return p.z > 0.05 && p.ndl < -0.02 && p.y > 0 && p.y < g.h;
-      }));
-      aurora.step(dt);
-      draw(now);
+      planet.tick(geometry(), now);
       frame = requestAnimationFrame(tick);
     };
 
     resize();
-    const onResize = () => { resize(); if (reduce) draw(performance.now()); };
-    const onScroll = () => { if (reduce) draw(performance.now()); };
+    planet.resume(performance.now());
+    const onResize = () => { resize(); if (reduce) planet.draw(geometry(), performance.now()); };
+    const onScroll = () => { if (reduce) planet.draw(geometry(), performance.now()); };
     // Capture: the shell may scroll an inner element instead of the window.
     addEventListener('resize', onResize);
     document.addEventListener('scroll', onScroll, { passive: true, capture: true });
     const io = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([e]) => {
       onScreen = e.isIntersecting;
       if (onScreen && !reduce && !frame) {
-        last = performance.now();
+        planet.resume(performance.now());
         frame = requestAnimationFrame(tick);
       }
     });
@@ -263,13 +301,23 @@ export class BriefingPlanetComponent {
       document.removeEventListener('scroll', onScroll, { capture: true });
     });
     // rAF pauses in a background tab by itself; reduced motion draws on demand only.
-    if (reduce) draw(performance.now());
+    if (reduce) planet.draw(geometry(), performance.now());
     else frame = requestAnimationFrame(tick);
   }
 }
 
-/** The planet's world and its textures, kept for the session (see start()). */
+/** The worker holding the planet, kept for the session: coming back shows the planet at once. */
+let sessionLink: PlanetLink | null = null;
+
+/** The planet's world and its textures when the page draws it, kept for the session (see start()). */
 let builtWorld: PlanetSources | null = null;
+
+/** Specs only: forgets the session's planet. */
+export function forgetPlanetSession(): void {
+  sessionLink?.terminate();
+  sessionLink = null;
+  builtWorld = null;
+}
 
 /** `--sc-accent` as 0..1 RGB for the atmosphere (falls back to the default cyan). */
 function accentRgb(): [number, number, number] {
