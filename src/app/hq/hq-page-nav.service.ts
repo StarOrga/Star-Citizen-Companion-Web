@@ -40,6 +40,11 @@ export class HqPageNavService {
     return hqPageHref(page);
   }
 
+  /** Go to a page from code (the landing scrolls; off the landing nothing is attached). */
+  open(page: HqPageId): void {
+    this.handler?.(page);
+  }
+
   /** `(click)` of every page anchor. */
   go(ev: MouseEvent, page: HqPageId): void {
     if (!this.handler || !isPlainLeftClick(ev)) return;

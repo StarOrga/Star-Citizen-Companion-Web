@@ -9,6 +9,7 @@ import { EINSATZ_CACHE_KEY, HqEinsatzService as EinsatzServiceToken } from '../d
 import { HqOwnershipService } from '../hq-ownership.service';
 import { SUPPLIES_CACHE_KEY, SUPPLIES_STORAGE_KEY, HqSuppliesService } from '../hq-supplies.service';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HqPlanComponent } from './hq-plan.component';
 import { PLAN_SELECTION_KEY } from './hq-plan-selection';
 
@@ -60,8 +61,17 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('.select')).toBeNull();
     expect(el.querySelector('sc-hq-plan-map')).toBeNull();
     expect(el.querySelector('.switch')).toBeNull();
+    // A need has to be a real item: the way in is the search, not a free-text form.
+    const chrome = TestBed.inject(ShellChromeService);
     click(f, el.querySelector('.fresh-actions button'));
-    expect(el.querySelector('sc-hq-supplies-popup')).not.toBeNull();
+    expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
+    expect(chrome.supplySearch()).toBeTrue();
+    expect(chrome.supplySearchRequest()).toBe(1);
+  });
+
+  it('marks a free-text line as having no source', () => {
+    const { el } = make();
+    expect(text(el, '.need .n-where')).toBe('hq.plan.source.freeText');
   });
 
   it('keeps the section heading and shows Was with the Auswahl; Top 3 is the default (no mode toggle)', () => {

@@ -22,6 +22,11 @@ export interface BuyOption {
   priceAvg: number | null;
   terminal: string;
   location: string;
+  /** The parts of `location`, for callers that place the shop on a map. */
+  system?: string | null;
+  planet?: string | null;
+  /** Station, city or (failing both) planet. */
+  place?: string | null;
 }
 
 export interface WhereToBuyQuery {
@@ -119,6 +124,15 @@ const ARMOR_CATEGORY_BY_ATTACH_TYPE: Record<string, number> = {
 const FPS_GADGET_CATEGORY = 28; // Gadgets
 const FPS_WEAPON_CATEGORY = 18; // Personal Weapons
 
+// Where a codex kind can live in the UEX catalog (`categories`), for a lookup that only knows the
+// kind and the name. Missiles (34) sit under every kind: the codex files them differently per build.
+const CATEGORIES_BY_KIND: Readonly<Record<string, readonly number[]>> = {
+  weapon: [18, 28, 17, 32, 33, 34, 35, 70, 79, 90],
+  component: [19, 21, 22, 23, 26, 29, 30, 31, 33, 34, 67, 83, 86, 110],
+  item: [1, 2, 3, 4, 5, 7, 16, 17, 24, 28, 34, 64, 65, 69],
+  ammunition: [34, 70],
+};
+
 const MIN_CONTAINS_LEN = 4;
 const MAX_RESULTS = 12;
 
@@ -164,7 +178,7 @@ export class UexShopService {
    * it as `uuid`), then by the English full name like items. Returns [] when
    * UEX does not know the ship or it is not sold anywhere — never throws.
    */
-  async whereToBuyShip(query: WhereToBuyShipQuery): Promise<BuyOption[]> {
+  async whereToBuyShip(query: WhereToBuyShipQuery, limit = MAX_RESULTS): Promise<BuyOption[]> {
     try {
       if (!this.vehiclesCache) this.vehiclesCache = this.fetchList<UexVehicle>('vehicles');
       const vehicles = await this.vehiclesCache;
@@ -175,15 +189,37 @@ export class UexShopService {
         this.matchItem(vehicles.map((v) => ({ id: v.id, id_category: 0, name: v.name_full || v.name })), query.name);
       if (!match) return [];
       const prices = await this.fetchList<UexVehiclePrice>('vehicles_purchases_prices', { id_vehicle: String(match.id) });
-      return await this.toOptions(prices);
+      return await this.toOptions(prices, limit);
     } catch (error) {
       logWarn('uex-shop', 'where to buy ship failed', { query, error });
       return [];
     }
   }
 
+  /**
+   * Bezugsquelle for any codex entity known by kind and ENGLISH name: searches every UEX category
+   * that kind can live in. [] when nothing matches or UEX fails, never throws.
+   */
+  async whereToBuyEntity(kind: string, name: string): Promise<BuyOption[]> {
+    try {
+      const categoryIds = CATEGORIES_BY_KIND[kind] ?? [];
+      if (categoryIds.length === 0) return [];
+      const lists = await Promise.all(categoryIds.map((id) => this.getCategoryItems(id)));
+      const match = this.matchItem(lists.flat(), name);
+      if (!match) return [];
+      // Uncapped: the caller wants the nearest shop, and the cheapest 12 can all be in another system.
+      return await this.toOptions(await this.getItemPrices(match.id), Infinity);
+    } catch (error) {
+      logWarn('uex-shop', 'where to buy entity failed', { kind, name, error });
+      return [];
+    }
+  }
+
   /** Buyable prices → sorted, capped options with terminal + location names. */
-  private async toOptions(prices: readonly { id_terminal: number; price_buy: number; price_buy_avg: number | null }[]): Promise<BuyOption[]> {
+  private async toOptions(
+    prices: readonly { id_terminal: number; price_buy: number; price_buy_avg: number | null }[],
+    limit = MAX_RESULTS,
+  ): Promise<BuyOption[]> {
     const buyable = prices.filter((p) => p.price_buy > 0);
     if (buyable.length === 0) return [];
     const [terminals, systems, planets, cities, stations] = await Promise.all([
@@ -195,7 +231,15 @@ export class UexShopService {
     ]);
     const options: BuyOption[] = buyable.map((p) => {
       const terminal = terminals.get(p.id_terminal);
+      const planet = terminal?.id_planet != null ? (planets.get(terminal.id_planet) ?? null) : null;
+      const local =
+        (terminal?.id_space_station != null ? stations.get(terminal.id_space_station) : null) ||
+        (terminal?.id_city != null ? cities.get(terminal.id_city) : null) ||
+        planet;
       return {
+        system: terminal?.id_star_system != null ? (systems.get(terminal.id_star_system) ?? null) : null,
+        planet,
+        place: local ?? null,
         price: p.price_buy,
         priceAvg: p.price_buy_avg ?? null,
         terminal: terminal?.fullname || terminal?.nickname || terminal?.name || '—',
@@ -203,7 +247,7 @@ export class UexShopService {
       };
     });
     options.sort((a, b) => a.price - b.price);
-    return options.slice(0, MAX_RESULTS);
+    return options.slice(0, limit);
   }
 
   /**

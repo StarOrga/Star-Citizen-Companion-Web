@@ -132,6 +132,7 @@ const FITTED_SHOWN = 2;
     '[class.open]': 'open()',
     '[class.bottom]': "placement() === 'bottom'",
     '[class.compact]': 'compact()',
+    '[class.supply-intent]': 'chrome.supplySearch()',
     '(window:resize)': 'fitPanel()',
   },
   template: `
@@ -235,6 +236,12 @@ const FITTED_SHOWN = 2;
 
     @if (open()) {
       <div class="panel" [class.has-term]="hasText()">
+        @if (chrome.supplySearch()) {
+          <p class="supply-hint" role="status">
+            <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of actionIcons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
+            <span>{{ 'search.supplyHint' | translate }}</span>
+          </p>
+        }
         @if (hasText() && engine.error(); as err) {
           <div class="state err" role="alert">
             <span>{{ 'codex.search.bar.failed' | translate }} — {{ err | translate }}</span>
@@ -374,7 +381,7 @@ const FITTED_SHOWN = 2;
                                 </button>
                               }
                               @if (r.icons.nachschub) {
-                                <button type="button" class="ib"
+                                <button type="button" class="ib ib-supply"
                                         [attr.aria-label]="'search.icon.nachschub' | translate: { name: nm.title }"
                                         [scTooltip]="'search.icon.nachschub' | translate: { name: nm.title }" scTooltipTier="label"
                                         (click)="runIcon($event, 'nachschub', r)">
@@ -628,6 +635,13 @@ const FITTED_SHOWN = 2;
     .row.active .ib { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-0) 5%, transparent); }
     .ib:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
     .ib.on { color: var(--sc-accent); }
+    /* "In den Nachschub" as the task at hand: the hint names the icon, the rows mark it. */
+    .supply-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 10%, transparent); color: var(--sc-fg-0); font-size: max(0.85rem, var(--sc-fs-floor)); }
+    .supply-hint svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--sc-accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    :host(.supply-intent) .ib-supply { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); box-shadow: 0 0 0 1px var(--sc-accent); animation: fs-supply-pulse 1.6s ease-in-out infinite; }
+    :host(.supply-intent) .ib-supply:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 32%, transparent); }
+    @keyframes fs-supply-pulse { 50% { box-shadow: 0 0 0 1px var(--sc-accent), 0 0 12px color-mix(in srgb, var(--sc-accent) 60%, transparent); } }
+    @media (prefers-reduced-motion: reduce) { :host(.supply-intent) .ib-supply { animation: none; } }
     .ib svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
     .more-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .expand { border: 0; background: transparent; color: var(--sc-accent); font: inherit; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
@@ -894,6 +908,10 @@ export class FusionSearchComponent {
     effect(() => {
       const ctx = searchContextOf(this.url(), this.chrome.hqPage());
       untracked(() => this.engine.setContext(ctx));
+    });
+    // "Leg etwas in den Nachschub" (HQ Start, Planen): this field takes it, wherever it stands.
+    effect(() => {
+      if (this.chrome.supplySearchRequest() > 0) untracked(() => this.focus());
     });
     // On a Codex page the bar IS the page's Codex search.
     effect(() => {
@@ -1223,6 +1241,7 @@ export class FusionSearchComponent {
   close(returnFocus = false): void {
     if (!this.open()) return;
     this.open.set(false);
+    this.chrome.supplySearch.set(false);
     this.activeIndex.set(-1);
     this.expanded.set(null);
     this.chipMenu.set(false);

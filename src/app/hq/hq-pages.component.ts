@@ -5,6 +5,7 @@ import {
   ElementRef,
   NgZone,
   afterNextRender,
+  computed,
   effect,
   inject,
 } from '@angular/core';
@@ -12,6 +13,8 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+import { HqCueComponent } from './hq-cue.component';
+import { wireHqPageScroll } from './hq-page-scroll';
 import { HqNowComponent } from './now/hq-now.component';
 import { HqPageBarComponent } from './hq-page-bar.component';
 import { HqPageNavService } from './hq-page-nav.service';
@@ -36,6 +39,8 @@ import { HqStockComponent } from './stock/hq-stock.component';
  *   stand under the docked subheader: the bar condenses by scroll depth like on every main page,
  *   and the page column is the subheader's width (`.sc-below-stage` = `--sc-b-w`).
  * - The footer is the shell's own and comes after the last page, Statistik.
+ * - One page at a time (`hq-page-scroll.ts`): wheel and keys glide from page to page, the cue at the
+ *   viewport's bottom edge leads to the next one.
  */
 @Component({
   selector: 'sc-hq-pages',
@@ -44,6 +49,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
     TranslatePipe,
     HqRailComponent,
     HqPageBarComponent,
+    HqCueComponent,
     HqStartComponent,
     HqPlanComponent,
     HqNowComponent,
@@ -68,6 +74,9 @@ import { HqStockComponent } from './stock/hq-stock.component';
     <section id="statistik" class="page follow last sc-below-stage" data-hq-page="statistik" aria-labelledby="hq-stats-title">
       <sc-hq-stats />
     </section>
+    @if (nextPage(); as next) {
+      <sc-hq-cue class="page-cue" [target]="next" />
+    }
     <sc-hq-page-bar />
   `,
   styles: [
@@ -82,6 +91,10 @@ import { HqStockComponent } from './stock/hq-stock.component';
       .follow { scroll-margin-top: calc(-1 * var(--sc-bar-h, 64px)); padding-top: calc(var(--sc-bar-h, 64px) + var(--sc-space-5, 24px)); padding-bottom: var(--sc-space-6, 32px); }
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
+      /* The way on stands at the viewport's bottom edge on every page; the phone bar does that job below 1024px. */
+      .page-cue { position: fixed; z-index: 3; inset-inline: 0; bottom: max(8px, 0.8vw); pointer-events: none; }
+      @media (min-width: 1024px) { .follow { padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-5, 24px)); } }
+      @media (max-width: 1023px) { .page-cue { display: none; } }
     `,
   ],
 })
@@ -95,6 +108,12 @@ export class HqPagesComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Where the cue leads: the page after the one in view; the last page has none. */
+  protected readonly nextPage = computed<HqPageId | null>(() => {
+    const i = HQ_PAGES.indexOf(this.chrome.hqPage() ?? 'start');
+    return HQ_PAGES[i + 1] ?? null;
+  });
 
   constructor() {
     this.chrome.setHqPage(hqPageOfFragment(this.route.snapshot.fragment) ?? 'start');
@@ -135,6 +154,11 @@ export class HqPagesComponent {
       this.measureStartTop();
       if (target && target !== 'start') this.scrollTo(target, false);
       this.observe();
+      const unwire = wireHqPageScroll(
+        () => HQ_PAGES.flatMap((p) => this.section(p) ?? []),
+        this.zone,
+      );
+      this.destroyRef.onDestroy(unwire);
     });
   }
 

@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { HQ_ROOT, hqHangar, hqPage } from '../hq-routes';
+import { isPlainLeftClick } from '../../core/modified-click.util';
+import { HQ_ROOT, hqHangar, hqPage, hqPageHref } from '../hq-routes';
 
 interface LaunchStep {
   id: 1 | 2 | 3;
@@ -16,12 +18,14 @@ interface LaunchStep {
  * launch steps, three steps (RSI-Hangar holen · SCC-App starten · Ersten Einsatz planen), the
  * primary "Los geht's" with "Überspringen" under it and a quiet "≈ 4 Minuten". No progress bar.
  * A step that turns done plays a short tick animation (not under reduced motion).
- * Every step leads somewhere, so each is a real anchor.
+ * Every step leads somewhere, so each is a real anchor. "Ersten Einsatz planen" starts by naming
+ * what you need: its plain left click goes to the parent (the search opens right here), a modified
+ * click opens Planen in a new tab.
  */
 @Component({
   selector: 'sc-hq-first-visit',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="first" [attr.aria-labelledby]="'hq-first-promise'">
@@ -29,19 +33,28 @@ interface LaunchStep {
       <ol class="steps">
         @for (s of steps(); track s.id) {
           <li class="step" [class.done]="s.done">
-            <a class="step-link" [routerLink]="s.link" [fragment]="s.fragment">
-              <span class="badge" aria-hidden="true">
-                @if (s.done) {
-                  <svg viewBox="0 0 24 24"><path class="tick" d="M5.5 12.5l4.5 4.5 8.5-9.5" /></svg>
-                } @else {
-                  {{ s.id }}
-                }
-              </span>
-              <span class="step-label">{{ 'hq.first.step' + s.id | translate }}</span>
-            </a>
+            @if (s.id === 3) {
+              <a class="step-link" [href]="planHref" (click)="onPlan($event)">
+                <ng-container [ngTemplateOutlet]="body" [ngTemplateOutletContext]="{ $implicit: s }" />
+              </a>
+            } @else {
+              <a class="step-link" [routerLink]="s.link" [fragment]="s.fragment">
+                <ng-container [ngTemplateOutlet]="body" [ngTemplateOutletContext]="{ $implicit: s }" />
+              </a>
+            }
           </li>
         }
       </ol>
+      <ng-template #body let-s>
+        <span class="badge" aria-hidden="true">
+          @if (s.done) {
+            <svg viewBox="0 0 24 24"><path class="tick" d="M5.5 12.5l4.5 4.5 8.5-9.5" /></svg>
+          } @else {
+            {{ s.id }}
+          }
+        </span>
+        <span class="step-label">{{ 'hq.first.step' + s.id | translate }}</span>
+      </ng-template>
       <div class="actions">
         <a class="sc-btn primary go" [routerLink]="goLink">{{ 'hq.first.go' | translate }}</a>
         <button type="button" class="skip" (click)="skipped.emit()">{{ 'hq.first.skip' | translate }}</button>
@@ -93,6 +106,16 @@ export class HqFirstVisitComponent {
   readonly einsatzDone = input<boolean>(false);
   /** The reader chose "Überspringen". */
   readonly skipped = output<void>();
+  /** Plain left click on "Ersten Einsatz planen". */
+  readonly plan = output<void>();
+
+  readonly planHref = hqPageHref('planen');
+
+  onPlan(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.plan.emit();
+  }
 
   /** The tour ends with the RSI import (hangar). */
   readonly goLink = [hqHangar];
