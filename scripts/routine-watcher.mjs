@@ -548,7 +548,7 @@ async function waitForRunFile(sid) {
 }
 
 // ---------------------------------------------------------------- install / status
-function taskXml() {
+export function taskXml(user = shOk('whoami', [])) {
   const node = process.execPath;
   const script = join(REPO, 'scripts', 'routine-watcher.mjs');
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -558,9 +558,9 @@ function taskXml() {
   <RegistrationInfo><Description>Polls the SC Companion feedback board without a model; starts a headless Claude run only when there is work. docs/feedback-routine/watcher.md</Description></RegistrationInfo>
   <Triggers>
     <TimeTrigger><Repetition><Interval>PT${WATCH_INTERVAL_MIN}M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition><StartBoundary>${start}</StartBoundary><Enabled>true</Enabled></TimeTrigger>
-    <LogonTrigger><Enabled>true</Enabled></LogonTrigger>
+    <LogonTrigger><Enabled>true</Enabled><UserId>${esc(user)}</UserId></LogonTrigger>
   </Triggers>
-  <Principals><Principal id="Author"><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
+  <Principals><Principal id="Author"><UserId>${esc(user)}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
   <Settings>
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
     <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
@@ -609,6 +609,10 @@ if (isMain) {
   process.chdir(REPO);
   const handlers = { tick, supervise: () => supervise(arg), status, install, uninstall };
   try {
+    // A tick in a worktree would start a real run against the live board from a folder that can vanish.
+    if (['tick', 'supervise'].includes(cmd) && /[\\/]\.claude[\\/]worktrees[\\/]/.test(REPO) && !process.env.SCC_ROUTINE_HOME) {
+      throw new Error(`${cmd} runs from the primary checkout (a test sets SCC_ROUTINE_HOME)`);
+    }
     const h = handlers[cmd];
     if (!h) throw new Error(`usage: routine-watcher.mjs ${Object.keys(handlers).join('|')}`);
     await h();
