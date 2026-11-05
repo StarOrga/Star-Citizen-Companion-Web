@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.210.1",
+  "current": "0.210.2",
   "releases": [
+    {
+      "version": "0.210.2",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub: the opened news image keeps the same gap to the divider lines above and below as a collapsed row's thumbnail."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.210.1",
       "date": "2026-11-05",
