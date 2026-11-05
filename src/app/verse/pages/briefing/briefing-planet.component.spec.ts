@@ -21,7 +21,6 @@ class FakeLink implements PlanetLink {
   attach(gl: HTMLCanvasElement, trains: HTMLCanvasElement, _accent: readonly [number, number, number], reduce: boolean): void {
     this.canvases = [gl, trains];
     this.reduce = reduce;
-    this.isReady = true;
   }
   setAccent(): void { this.accents++; }
   resize(w: number, h: number, dpr: number): void { this.sizes.push([w, h, dpr]); }
@@ -51,6 +50,7 @@ describe('BriefingPlanetComponent — worker path', () => {
 
   const planet = (f: ComponentFixture<HostComponent>) =>
     f.debugElement.children.find((d) => d.componentInstance instanceof BriefingPlanetComponent)!.componentInstance as BriefingPlanetComponent;
+  const runFrames = (t: number) => frames.splice(0).forEach((cb) => cb(t));
   const settle = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
   const mount = async () => {
     const f = TestBed.createComponent(HostComponent);
@@ -86,15 +86,16 @@ describe('BriefingPlanetComponent — worker path', () => {
 
   it('measures the anchor on the page every frame and passes it on, scrolled or not', async () => {
     const f = await mount();
-    frames.shift()!(16);
+    runFrames(16);
     const a = link!.views[0];
     expect(a.r).toBe(100);
     f.componentInstance.top.set(40);
     f.detectChanges();
-    frames.shift()!(32);
+    runFrames(32);
     const b = link!.views[1];
     expect(b.cy - a.cy).toBe(40);
-    expect(frames.length).withContext('the loop goes on').toBe(1);
+    runFrames(48);
+    expect(link!.views.length).withContext('the loop goes on').toBe(3);
   });
 
   it('sends size and device pixel ratio, again on every resize', async () => {
@@ -110,7 +111,8 @@ describe('BriefingPlanetComponent — worker path', () => {
     await mount();
     expect(link!.reduce).toBeTrue();
     expect(link!.draws.length).toBe(1);
-    expect(frames.length).toBe(0);
+    runFrames(16);
+    expect(link!.views.length).withContext('no animation').toBe(0);
     document.dispatchEvent(new Event('scroll'));
     expect(link!.draws.length).toBe(2);
     window.dispatchEvent(new Event('resize'));
@@ -124,13 +126,16 @@ describe('BriefingPlanetComponent — worker path', () => {
     const held = link!.canvases!;
     first.destroy();
     expect(link!.parked).toBe(1);
+    link!.isReady = true;
 
     const again = await mount();
     expect(spawned).withContext('the worker lives on').toBe(1);
     expect(planet(again).instant()).toBeTrue();
     expect(planet(again).ready()).toBeTrue();
     expect(again.componentInstance.drawn).toBe(1);
-    expect(Array.from(again.nativeElement.querySelectorAll('canvas'))).toEqual([held[0], held[1]]);
+    const canvases = Array.from(again.nativeElement.querySelectorAll('canvas')) as HTMLCanvasElement[];
+    expect(canvases[0]).toBe(held[0]);
+    expect(canvases[1]).toBe(held[1]);
     expect(link!.accents).toBe(1);
   });
 
@@ -161,14 +166,10 @@ describe('BriefingPlanetComponent — worker path', () => {
   });
 
   describe('fallback to the page', () => {
-    // Without WebGL the page path ends in `unavailable`; with it, it starts rendering. Either way the worker is out.
-    const onThePage = (f: ComponentFixture<HostComponent>) => planet(f).failed() || !link!.canvases || true;
-
     it('no worker at all: nothing is handed over, and the existing path runs', async () => {
       link = null;
       const f = await mount();
       expect(spawned).toBe(1);
-      expect(onThePage(f)).toBeTrue();
       const c = f.nativeElement.querySelector('canvas') as HTMLCanvasElement;
       expect(() => c.transferControlToOffscreen()).withContext('still the page\'s canvas').not.toThrow();
       f.destroy();
@@ -205,8 +206,8 @@ describe('BriefingPlanetComponent — worker path', () => {
       first.destroy();
       link!.alive = false;
       const again = await mount();
-      const now = Array.from(again.nativeElement.querySelectorAll('canvas'));
-      expect(now).not.toContain(held[0]);
+      const now = Array.from(again.nativeElement.querySelectorAll('canvas')) as HTMLCanvasElement[];
+      expect(now.includes(held[0])).toBeFalse();
       expect(link!.terminated).toBeTrue();
       again.destroy();
     });

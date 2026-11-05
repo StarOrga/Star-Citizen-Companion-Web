@@ -165,10 +165,8 @@ export class PlanetScene implements PlanetBackend {
 
   private drawTrains(v: PlanetView, rot: number): void {
     const { tctx, net, trails } = this;
-    let wiped = false;
+    let lit = false;
     const wipe = () => {
-      if (wiped) return;
-      wiped = true;
       tctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       tctx.clearRect(0, 0, v.w, v.h);
     };
@@ -182,7 +180,8 @@ export class PlanetScene implements PlanetBackend {
       tr.visible = p.z > 0.05 && night > 0.2 && p.y > 0 && p.y < v.h;
       const a = night * fore;
       if (a <= 0.01) continue;
-      wipe();
+      if (!lit) wipe();
+      lit = true;
       for (let k = 0; k < trail.length - 1; k++) {
         const q = project(trail[k], rot, v.cx, v.cy, v.r);
         tctx.fillStyle = `rgba(255,214,160,${(0.1 * k * a) / trail.length})`;
@@ -199,8 +198,8 @@ export class PlanetScene implements PlanetBackend {
       tctx.fillRect(p.x - 0.6, p.y - 0.6, 1.2, 1.2);
     }
     // Last frame's train has gone dark: its pixels still have to go, once.
-    if (this.trainsPainted && !wiped) wipe();
-    this.trainsPainted = wiped;
+    if (this.trainsPainted && !lit) wipe();
+    this.trainsPainted = lit;
     for (const tr of trails.keys()) if (!net.trains.includes(tr)) trails.delete(tr);
   }
 

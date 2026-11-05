@@ -63,7 +63,7 @@ describe('Verse planet — scene', () => {
     const s = scene();
     s.draw({ ...view, cy: 600 }, 1000);
     expect(first.draw).not.toHaveBeenCalled();
-    s.draw({ ...view, cy: -109 }, 1100); // 1.08 r reach: still touches the canvas's top
+    s.draw({ ...view, cy: -100 }, 1100); // 1.08 r reach: still touches the canvas's top
     s.draw({ ...view, cy: -120 }, 1200); // gone: this one empties the canvas
     s.draw({ ...view, cy: -130 }, 1300); // and nothing changes from here on
     s.draw({ ...view, cy: -140 }, 1400);

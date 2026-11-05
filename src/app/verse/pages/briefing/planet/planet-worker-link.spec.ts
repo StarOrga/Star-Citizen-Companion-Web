@@ -37,11 +37,11 @@ describe('Verse planet — worker link', () => {
 
   it('a worker whose script never runs leaves the planet to the page', fakeAsync(() => {
     const w = new FakeWorker(), l = link(w);
-    let capable: boolean | null = null, settled: boolean | null = null;
-    void l.capable.then((v) => (capable = v));
-    void l.settled.then((v) => (settled = v));
+    const got: boolean[] = [];
+    void l.capable.then((v) => got.push(v));
+    void l.settled.then((v) => got.push(v));
     tick(PLANET_WORKER_DEADLINE_MS);
-    expect([capable, settled]).toEqual([false, false]);
+    expect(got).toEqual([false, false]);
     expect(w.terminated).toBeTrue();
     expect(l.alive).toBeFalse();
   }));
@@ -56,22 +56,22 @@ describe('Verse planet — worker link', () => {
 
   it('a script error (dead chunk answering HTML, CSP) leaves the planet to the page', fakeAsync(() => {
     const w = new FakeWorker(), l = link(w);
-    let capable: boolean | null = null;
-    void l.capable.then((v) => (capable = v));
+    const got: boolean[] = [];
+    void l.capable.then((v) => got.push(v));
     w.onerror?.({ preventDefault: () => undefined, message: 'x' } as ErrorEvent);
     tick(1000);
-    expect(capable).toBeFalse();
+    expect(got).toEqual([false]);
     expect(w.terminated).toBeTrue();
   }));
 
   it('a worker that cannot draw is told to go before anything is handed over', fakeAsync(() => {
     const w = new FakeWorker(), l = link(w);
-    let settled: boolean | null = null;
-    void l.settled.then((v) => (settled = v));
+    const got: boolean[] = [];
+    void l.settled.then((v) => got.push(v));
     w.say({ t: 'alive' });
     w.say({ t: 'capable', ok: false });
     tick(1000);
-    expect(settled).toBeFalse();
+    expect(got).toEqual([false]);
     expect(l.canvases).toBeNull();
     expect(w.terminated).toBeTrue();
   }));
