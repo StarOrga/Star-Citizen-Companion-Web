@@ -9,6 +9,7 @@ import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
+import { BetaService } from '../core/beta.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import { HoloSilhouette } from './holo-silhouette';
@@ -111,6 +112,8 @@ describe('CodexBrowseComponent', () => {
       silhouettes?: Map<string, HoloSilhouette>;
       armorCounts?: Map<string, number>;
       crossCounts?: Map<string, number>;
+      /** Beta shell flag; undefined = the real BetaService (shell off). */
+      shell?: boolean;
     } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexBrowseComponent>;
@@ -166,6 +169,9 @@ describe('CodexBrowseComponent', () => {
           ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
           : []),
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        ...(opts.shell === undefined
+          ? []
+          : [{ provide: BetaService, useValue: { state: signal({ verse: true, codex: true, shell: opts.shell }), isEnabled: () => () => opts.shell } }]),
         {
           provide: UpcomingShipsService,
           useValue: {
@@ -237,6 +243,43 @@ describe('CodexBrowseComponent', () => {
     const armor = tree.find((n) => n.id === 'armor')!;
     expect(armor.count).toBe(7);
     expect(tree.find((n) => n.id === 'ship')?.count).toBe(10);
+  });
+
+  it('d-filter: with the beta shell on there is no phone filter button or sheet', async () => {
+    const { fixture } = await setup({ query: { kind: 'ship' }, shell: true });
+    expect(fixture.nativeElement.querySelector('.filter-fab')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.sheet')).toBeNull();
+  });
+
+  it('keeps the phone filter button with the shell off', async () => {
+    const { fixture } = await setup({ query: { kind: 'ship' }, shell: false });
+    expect(fixture.nativeElement.querySelector('.filter-fab')).not.toBeNull();
+  });
+
+  it('d-filter: the bar panel carries the tree levels the sheet had (weapon groups, armor slots)', async () => {
+    const facet = (attachType: string): WeaponFacetRow =>
+      ({ weaponClass: 'Ship', attachType, subType: null, isVariant: false }) as WeaponFacetRow;
+    const weapon = await setup({
+      query: { kind: 'weapon', wg: 'ship' },
+      weaponFacets: [facet('WeaponGun'), facet('TractorBeam')],
+      shell: true,
+    });
+    const ids = weapon.cmp.barFacets().map((f) => f.id);
+    expect(ids).toContain('weaponGroup');
+    expect(ids).toContain('weaponSubGroup');
+    const sub = weapon.cmp.barFacets().find((f) => f.id === 'weaponSubGroup')!;
+    sub.set('utility');
+    expect(weapon.cmp.weaponSubGroup()).toBe('utility');
+    weapon.cmp.barFacets().find((f) => f.id === 'weaponGroup')!.set('fps');
+    expect(weapon.cmp.weaponGroup()).toBe('fps');
+    expect(weapon.cmp.weaponSubGroup()).withContext('a new super group drops the old sub group').toBe('');
+    TestBed.resetTestingModule();
+
+    const armor = await setup({ query: { kind: 'armor' }, shell: true });
+    const slot = armor.cmp.barFacets().find((f) => f.id === 'armorSlot')!;
+    expect(slot.options.map((o) => o.value)).toEqual([...ARMOR_SLOT_IDS]);
+    slot.set('helmet');
+    expect(armor.cmp.armorSlot()).toBe('helmet');
   });
 
   it('renders the tree entries as real links', async () => {
