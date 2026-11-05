@@ -15,6 +15,9 @@ class FakeWorker {
   }
 }
 
+/** Past the wait for the page's first paint, whether or not this page has had one. */
+const START = 7000;
+
 describe('body engine — worker path', () => {
   let w: FakeWorker, canvas: HTMLCanvasElement;
   const engine = (still = false) => BodyEngine.create({ still, spawn: () => w as unknown as Worker })!;
@@ -31,8 +34,8 @@ describe('body engine — worker path', () => {
     const e = engine();
     e.attach(canvas, 'sun');
     expect(w.sent).toEqual([]);
-    tick(1000);
-    expect(w.of('init').length).toBe(1);
+    tick(START);
+    expect(w.of('init')[0].base).toBe(document.baseURI);
     w.say({ t: 'alive' });
     expect(w.of('add')).withContext('it has not said it can draw').toEqual([]);
     w.say({ t: 'capable', ok: true });
@@ -40,13 +43,14 @@ describe('body engine — worker path', () => {
     expect(add.kind).toBe('sun');
     expect(add.cssWidth).toBe(120);
     expect(add.dpr).toBe(devicePixelRatio);
+    expect(add.mapWidth).toBe(bodyMapWidth(120 * Math.max(1, screen.availWidth / innerWidth), devicePixelRatio));
     e.dispose();
     expect(w.terminated).toBeTrue();
   }));
 
   it('a canvas attached later goes over at once; the stage pause reaches the worker', fakeAsync(() => {
     const e = engine();
-    tick(1000);
+    tick(START);
     w.say({ t: 'alive' });
     w.say({ t: 'capable', ok: true });
     canvas.style.setProperty('--sc-brief-play', 'paused');
@@ -76,7 +80,7 @@ describe('body engine — worker path', () => {
     const e = engine();
     const lost = jasmine.createSpy('lost');
     e.attach(canvas, 'sun', undefined, lost);
-    tick(1000);
+    tick(START);
     w.say({ t: 'alive' });
     w.say({ t: 'capable', ok: true });
     w.onerror?.({ preventDefault: () => undefined, message: 'crash' } as ErrorEvent);
@@ -89,7 +93,7 @@ describe('body engine — worker path', () => {
     const transfer = spyOn(canvas, 'transferControlToOffscreen');
     const e = engine();
     e.attach(canvas, 'sun');
-    tick(BODY_WORKER_DEADLINE_MS);
+    tick(START + BODY_WORKER_DEADLINE_MS);
     expect(w.terminated).toBeTrue();
     expect(transfer).not.toHaveBeenCalled();
     e.dispose();

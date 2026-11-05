@@ -66,7 +66,7 @@ export interface BodyStageHooks {
   /** Draw once and stand still (prefers-reduced-motion). */
   readonly still: boolean;
   /** A map's raster; the stage releases it after the upload. Null keeps the CSS art. */
-  map(name: string): Promise<TexImageSource | null>;
+  map(name: string, width: number): Promise<TexImageSource | null>;
   onReady(id: number): void;
   /** The context is gone: the CSS art has to show again until `onReady` fires anew. */
   onLost(id: number): void;
@@ -81,6 +81,7 @@ interface Entry {
   visible: boolean;
   cssWidth: number;
   dpr: number;
+  readonly mapWidth: number;
 }
 
 const MAX_PX = 1024;
@@ -125,10 +126,10 @@ export class BodyStage {
   }
 
   /** Starts drawing `kind` into `canvas` once its maps are there. */
-  add(id: number, canvas: HTMLCanvasElement | OffscreenCanvas, kind: BodyKind, cssWidth: number, dpr: number, visible: boolean): void {
+  add(id: number, canvas: HTMLCanvasElement | OffscreenCanvas, kind: BodyKind, cssWidth: number, dpr: number, visible: boolean, mapWidth: number): void {
     const ctx = (canvas as HTMLCanvasElement).getContext('2d');
     if (!ctx || this.disposed) return;
-    const e: Entry = { id, canvas, ctx, kind, ready: false, visible, cssWidth, dpr };
+    const e: Entry = { id, canvas, ctx, kind, ready: false, visible, cssWidth, dpr, mapWidth };
     this.entries.push(e);
     this.prepare(e);
   }
@@ -194,7 +195,7 @@ export class BodyStage {
   }
 
   private prepare(e: Entry): void {
-    void this.maps(e.kind).then(async (ok) => {
+    void this.maps(e.kind, e.mapWidth).then(async (ok) => {
       if (!ok || !(await this.linked(e.kind === 'sun' ? this.sunProg : this.planetProg))) return;
       if (this.disposed || this.lost || e.ready || !this.entries.includes(e)) return;
       e.ready = true;
@@ -238,17 +239,17 @@ export class BodyStage {
     this.frame = requestAnimationFrame((t) => this.tick(t));
   }
 
-  private async maps(kind: BodyKind): Promise<boolean> {
+  private async maps(kind: BodyKind, width: number): Promise<boolean> {
     if (kind === 'sun') return true;
     const names = Object.values(PLANETS[kind].layers);
-    const tex = await Promise.all(names.map((n) => this.texture(n)));
+    const tex = await Promise.all(names.map((n) => this.texture(n, width)));
     return tex.every((t) => !!t);
   }
 
-  private texture(name: string): Promise<WebGLTexture | null> {
+  private texture(name: string, width: number): Promise<WebGLTexture | null> {
     let p = this.textures.get(name);
     if (!p) {
-      p = this.hooks.map(name).then((src) => {
+      p = this.hooks.map(name, width).then((src) => {
         if (!src || this.disposed) return null;
         const gl = this.gl, t = gl.createTexture()!;
         gl.bindTexture(gl.TEXTURE_2D, t);

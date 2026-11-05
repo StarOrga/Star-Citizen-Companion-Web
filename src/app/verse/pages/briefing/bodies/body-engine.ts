@@ -1,6 +1,7 @@
 import { logWarn } from '../../../../core/log';
-import { afterNextPaint } from '../after-paint';
-import { BodyKind, BodyStage, PLANETS } from './body-gl';
+import { afterFirstContentfulPaint } from '../after-paint';
+import { BodyKind, BodyStage } from './body-gl';
+import { loadBakedMap } from './body-maps';
 import type { BodyCommand, BodyEvent } from './body-worker-core';
 
 export { PLANETS, SUN_DIR, SUN_DISC, turnAt } from './body-gl';
@@ -49,7 +50,7 @@ const HOVER_SCALE = 1.06;
 /**
  * The raster width a body's maps need: at the disc's centre a map of width W puts
  * W / 2π texels on a radian and the screen r device pixels, so 1:1 takes W = 2πr.
- * A texture no screen pixel can show only costs GPU memory and upload: 1024 only
+ * A texture no screen pixel can show only costs download, GPU memory and upload: 1024 only
  * where a body is big enough for it, never below 1:1. Frozen-clock screenshots at
  * 1920x1080: 512 against 1024 differs by at most 2 of 255 per channel.
  */
@@ -71,7 +72,7 @@ function spawnBodyWorker(): Worker | null {
 
 /**
  * The page's side of the living bodies: watches the canvases (on screen, size,
- * the stage pause) and rasterises the SVG maps, which only a document can do.
+ * the stage pause), and rasterises an SVG map if its baked file fails.
  * The drawing itself happens in a {@link BodyStage}: in a worker where possible,
  * so the shaders' link (the longest wait of the whole boot) freezes nothing, and
  * right here otherwise. A canvas goes to the worker only after the worker has
@@ -170,7 +171,6 @@ export class BodyEngine {
   }
 
   private waitForWorker(worker: Worker): void {
-    this.deadline = setTimeout(() => this.workerFailed('no answer'), BODY_WORKER_DEADLINE_MS);
     worker.onmessage = ({ data }: MessageEvent<BodyEvent>) => {
       switch (data.t) {
         case 'alive':
@@ -183,7 +183,7 @@ export class BodyEngine {
           for (const e of this.entries) this.add(e);
           break;
         case 'map':
-          void this.mapBitmap(data.name).then((bitmap) => {
+          void this.mapBitmap(data.name, data.width).then((bitmap) => {
             if (this.disposed) return bitmap?.close();
             worker.postMessage({ t: 'map', name: data.name, bitmap } satisfies BodyCommand, bitmap ? [bitmap] : []);
           });
@@ -201,7 +201,10 @@ export class BodyEngine {
       ev.preventDefault();
       this.workerFailed(ev.message || 'worker error');
     };
-    this.cancelStart = afterNextPaint(() => worker.postMessage({ t: 'init', still: !!this.opts.still } satisfies BodyCommand));
+    this.cancelStart = afterFirstContentfulPaint(() => {
+      this.deadline = setTimeout(() => this.workerFailed('no answer'), BODY_WORKER_DEADLINE_MS);
+      worker.postMessage({ t: 'init', still: !!this.opts.still, base: this.bakedBase() } satisfies BodyCommand);
+    });
   }
 
   /** The worker is out. Canvases it holds show the CSS art from here on; the others draw here. */
@@ -225,13 +228,16 @@ export class BodyEngine {
     try {
       const stage = new BodyStage(document.createElement('canvas'), {
         still: !!this.opts.still,
-        map: (name) => this.rasterize(name),
+        map: (name, width) => {
+          const base = this.bakedBase();
+          return base === null ? this.rasterize(name, width) : loadBakedMap(name, width, base).catch(() => this.rasterize(name, width));
+        },
         onReady: (id) => this.entries.find((e) => e.id === id)?.onReady?.(),
         onLost: (id) => this.entries.find((e) => e.id === id)?.onLost?.(),
       });
       this.backend = {
         add: (e, css, dpr) => {
-          stage.add(e.id, e.canvas, e.kind, css, dpr, e.visible);
+          stage.add(e.id, e.canvas, e.kind, css, dpr, e.visible, this.mapWidthOf(e));
         },
         remove: (id) => stage.remove(id),
         setVisible: (id, v) => stage.setVisible(id, v),
@@ -251,7 +257,7 @@ export class BodyEngine {
     return {
       add: (e, cssWidth, dpr) => {
         const canvas = e.canvas.transferControlToOffscreen();
-        send({ t: 'add', id: e.id, canvas, kind: e.kind, cssWidth, dpr, visible: e.visible }, [canvas]);
+        send({ t: 'add', id: e.id, canvas, kind: e.kind, cssWidth, dpr, visible: e.visible, mapWidth: this.mapWidthOf(e) }, [canvas]);
       },
       remove: (id) => send({ t: 'remove', id }),
       setVisible: (id, visible) => send({ t: 'visible', id, visible }),
@@ -283,8 +289,13 @@ export class BodyEngine {
     }, PAUSE_CHECK_MS);
   }
 
-  private async mapBitmap(name: string): Promise<ImageBitmap | null> {
-    const c = await this.rasterize(name);
+  /** The document's base for the baked maps; null when the caller named its own maps. */
+  private bakedBase(): string | null {
+    return this.opts.mapUrl || this.opts.mapWidth ? null : document.baseURI;
+  }
+
+  private async mapBitmap(name: string, width: number): Promise<ImageBitmap | null> {
+    const c = await this.rasterize(name, width);
     if (!c) return null;
     try {
       // Straight alpha and no colour conversion: what the GPU got when the canvas itself was uploaded.
@@ -300,16 +311,14 @@ export class BodyEngine {
    * For the size this body can reach on this screen: a window that is not maximised
    * yet may still grow, and a map is rastered only once.
    */
-  private mapWidthOf(name: string): 512 | 1024 {
-    const e = this.entries.find((x) => x.kind !== 'sun' && Object.values(PLANETS[x.kind].layers).includes(name));
-    if (!e) return 1024;
+  private mapWidthOf(e: Entry): number {
+    if (this.opts.mapWidth) return this.opts.mapWidth;
     const grow = Math.max(1, (screen?.availWidth || 0) / (innerWidth || 1));
     return bodyMapWidth(e.canvas.clientWidth * grow, devicePixelRatio);
   }
 
-  /** The SVG map rasterised into a canvas (its filters run once, here). */
-  private async rasterize(name: string): Promise<HTMLCanvasElement | null> {
-    const w = this.opts.mapWidth ?? this.mapWidthOf(name);
+  /** Fallback, a baked map failed: the SVG rasterised into a canvas (its filters run once, here). */
+  private async rasterize(name: string, w: number): Promise<HTMLCanvasElement | null> {
     const img = new Image();
     img.decoding = 'async';
     img.src = this.opts.mapUrl ? this.opts.mapUrl(name) : `/img/verse/maps/${name}.svg`;
