@@ -1,7 +1,41 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.205.2",
+  "current": "0.206.0",
   "releases": [
+    {
+      "version": "0.206.0",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The feedback routine no longer opens a Claude session every tick. A small watcher checks the board every 3 minutes without a model and starts one headless run only when there is work"
+            },
+            {
+              "title": "",
+              "text": "The feedback panel's status now turns red about 18 minutes after the dev PC stops responding"
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "A feedback topic can no longer stall silently: after a crash, a shutdown or a hang, unfinished work is saved and retried, and after 3 failed attempts the topic gets a reply in its thread with a retry option"
+            },
+            {
+              "title": "",
+              "text": "Replies owed for merged changes are posted even when the run that merged them died"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.205.2",
       "date": "2026-11-05",
