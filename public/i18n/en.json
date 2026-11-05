@@ -2370,7 +2370,10 @@
         "agility": "Agility",
         "range": "Range",
         "lifetime": "Flight time",
-        "lockTime": "Lock time"
+        "lockTime": "Lock time",
+        "blastRadius": "Blast radius",
+        "armTime": "Arming time",
+        "lockAngle": "Lock angle"
       },
       "signal": {
         "ir": "Infrared",

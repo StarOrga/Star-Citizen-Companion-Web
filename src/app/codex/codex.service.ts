@@ -2074,19 +2074,6 @@ export class CodexService {
     return out;
   }
 
-  /**
-   * The "Einordnung" cohort (MASTER §3): every buyable ship of the current
-   * build, reduced to `{className, sizeClass, career, sheet}` from its STOCK
-   * loadout — the shape `rankShip()` (codex-rank.ts) compares against. Cached
-   * per build id (the scope itself is filtered client-side by `filterCohort`,
-   * so one fetch serves all three scopes) via `cohortCacheKey`/
-   * `readCohortCache`/`writeCohortCache`.
-   *
-   * The schema carries NO ship size class — `sizeClass` is always `null` here,
-   * which is exactly what makes `rankShip()` degrade the "same size class"
-   * scope to `codex.rank.disabled.noData` rather than a cohort of one.
-   */
-  /** Ships scored per tick before the event loop gets a turn back. */
   /** {@link getMissileCohort}'s answer, per build. A failed read is not kept. */
   private missileCohort: { buildId: string; records: MissileRecord[] } | null = null;
 
@@ -2116,6 +2103,19 @@ export class CodexService {
     return records;
   }
 
+  /**
+   * The "Einordnung" cohort (MASTER §3): every buyable ship of the current
+   * build, reduced to `{className, sizeClass, career, sheet}` from its STOCK
+   * loadout — the shape `rankShip()` (codex-rank.ts) compares against. Cached
+   * per build id (the scope itself is filtered client-side by `filterCohort`,
+   * so one fetch serves all three scopes) via `cohortCacheKey`/
+   * `readCohortCache`/`writeCohortCache`.
+   *
+   * The schema carries NO ship size class — `sizeClass` is always `null` here,
+   * which is exactly what makes `rankShip()` degrade the "same size class"
+   * scope to `codex.rank.disabled.noData` rather than a cohort of one.
+   */
+  /** Ships scored per tick before the event loop gets a turn back. */
   async getRankCohort(): Promise<RankShipInput[]> {
     const build = await this.loadCurrentBuild();
     if (!build) return [];

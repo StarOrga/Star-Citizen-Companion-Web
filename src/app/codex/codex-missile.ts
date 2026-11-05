@@ -4,11 +4,11 @@
 // PURE DOMAIN MODULE. Nothing here invents a value: a metric the extract does
 // not carry stays absent, its axis, chip and stat row simply do not exist.
 //
-// What the extract has (LIVE 4.10.2, tool 0.67.1): name, manufacturer, size,
-// sub_type, the tracking signal in the class name and the silhouette's real
-// measurements. The flight and warhead numbers sit in the game's
-// SCItemMissileParams, which the uploader does not export yet — `readCombatMetrics`
-// picks them up as soon as it does, without another web change.
+// What a build on the server carries depends on the uploader that produced it:
+// name, manufacturer, size, sub_type, the tracking signal in the class name and
+// the silhouette's measurements always; the flight and warhead numbers
+// (`payload.stats.SCItemMissileParams`) since items revision 5. Until a build is
+// re-uploaded those stay absent and the data card says so.
 
 import type { RankProfile, RankResult, RankScope, RankShipInput } from './codex-rank';
 import { filterCohort, percentileOf, rankShip, rankScopeAvailability } from './codex-rank';
@@ -26,7 +26,11 @@ export type MissileMetric =
   | 'lifetime'
   | 'size'
   | 'length'
-  | 'width';
+  | 'width'
+  // data card only, no comparison axis
+  | 'blastRadius'
+  | 'armTime'
+  | 'lockAngle';
 
 export type MissileMetrics = Partial<Record<MissileMetric, number>>;
 
@@ -84,24 +88,27 @@ export function missileMeasures(
 }
 
 /**
- * Where each combat metric is expected inside `payload.stats.SCItemMissileParams`
- * (`_component_stats` flattens one struct level to `sub.field`). Not yet proven
- * against a real export: a name that turns out different yields no value, never
- * a wrong one.
+ * Where each combat metric sits inside `payload.stats.SCItemMissileParams`.
+ * Probed on LIVE (`MISL_S02_IR_NOVP_Rattler`: 1029 m/s, 450 deg/s in the intercept
+ * phase, lock range 5000 m, 1370 physical). Deeper keys come from the extractor's
+ * `_add_missile`. Agility is the intercept phase: the longest part of a flight.
  */
 const COMBAT_PATHS: Readonly<Partial<Record<MissileMetric, string>>> = {
   speed: 'GCSParams.linearSpeed',
-  agility: 'GCSParams.turnRate',
+  agility: 'GCSParams.interceptPhase.angularSpeed',
   range: 'targetingParams.lockRangeMax',
   lockTime: 'targetingParams.lockTime',
   lifetime: 'maxLifetime',
+  blastRadius: 'explosionParams.maxRadius',
+  armTime: 'armTime',
+  lockAngle: 'targetingParams.lockingAngle',
 };
 
 function positive(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 }
 
-/** The combat numbers of a payload; none of them is in the extract yet (see the header). */
+/** The combat numbers of a payload; a build uploaded before items revision 5 has none. */
 export function readCombatMetrics(payload: unknown): MissileMetrics {
   const stats = (payload as { stats?: { SCItemMissileParams?: Record<string, unknown> } } | null | undefined)?.stats
     ?.SCItemMissileParams;
@@ -154,6 +161,10 @@ const AXES: readonly { key: MissileMetric; lowerIsBetter: boolean }[] = [
   { key: 'width', lowerIsBetter: false },
 ];
 
+/** Measurements say nothing about strength: they fill in only while combat numbers are too few. */
+const MEASURE_AXES: ReadonlySet<MissileMetric> = new Set<MissileMetric>(['size', 'length', 'width']);
+const MIN_COMBAT_AXES = 3;
+
 /** The four things a missile can be compared by, as the rank engine's scopes. */
 function asRankInput(m: MissileRecord): RankShipInput<MissileMetric> {
   return {
@@ -197,13 +208,15 @@ export function rankMissile(
   }
   const scope = available[requested] ? requested : 'all';
   const group = filterCohort(self, peers, scope);
-  const axes = AXES.filter((axis) => {
+  const comparable = AXES.filter((axis) => {
     if (target.metrics[axis.key] == null) return false;
     const values = group
       .map((m) => (m.sheet as MissileMetrics)[axis.key])
       .filter((v): v is number => v != null);
     return new Set(values).size >= 2;
   });
+  const combat = comparable.filter((axis) => !MEASURE_AXES.has(axis.key));
+  const axes = combat.length >= MIN_COMBAT_AXES ? combat : comparable;
   if (axes.length === 0) return null;
   const profile: RankProfile<MissileMetric> = {
     id: 'combat',
@@ -307,14 +320,21 @@ export interface MissileStatGroup {
 }
 
 const METRIC_ROWS: Readonly<Record<MissileStatGroupId, readonly { metric: MissileMetric; unit: string | null }[]>> = {
-  warhead: [{ metric: 'damage', unit: null }],
+  warhead: [
+    { metric: 'damage', unit: null },
+    { metric: 'blastRadius', unit: 'm' },
+    { metric: 'armTime', unit: 's' },
+  ],
   flight: [
     { metric: 'speed', unit: 'm/s' },
     { metric: 'agility', unit: '°/s' },
     { metric: 'range', unit: 'm' },
     { metric: 'lifetime', unit: 's' },
   ],
-  guidance: [{ metric: 'lockTime', unit: 's' }],
+  guidance: [
+    { metric: 'lockTime', unit: 's' },
+    { metric: 'lockAngle', unit: '°' },
+  ],
   build: [
     { metric: 'length', unit: 'm' },
     { metric: 'width', unit: 'm' },

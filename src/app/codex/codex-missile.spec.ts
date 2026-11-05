@@ -74,14 +74,16 @@ describe('codex-missile', () => {
           stats: {
             SCItemMissileParams: {
               'GCSParams.linearSpeed': 450,
+              'GCSParams.interceptPhase.angularSpeed': 300,
               'targetingParams.lockTime': 0,
+              'explosionParams.maxRadius': 6,
               'explosionParams.damage.DamagePhysical': 100,
               'explosionParams.damage.DamageEnergy': 50,
               'explosionParams.damage.DamageStun': 'n/a',
             },
           },
         }),
-      ).toEqual({ speed: 450, damage: 150 });
+      ).toEqual({ speed: 450, agility: 300, blastRadius: 6, damage: 150 });
     });
   });
 
@@ -99,6 +101,13 @@ describe('codex-missile', () => {
       expect(length.value).toBe(2.4);
       expect(length.percentile).toBe(70);
       expect(length.labelKey).toBe('codex.missile.axis.length');
+    });
+
+    it('leaves measurements out once enough combat numbers can be compared', () => {
+      const armed = (className: string, n: number) =>
+        missile({ className, metrics: { damage: n, speed: n, range: n, length: n, size: n } });
+      const field = [armed('p', 1), armed('q', 2), armed('r', 3)];
+      expect(rankMissile(field[1], field, 'all')!.axes.map((a) => a.key)).toEqual(['damage', 'speed', 'range']);
     });
 
     it('draws no axis a value is missing for', () => {

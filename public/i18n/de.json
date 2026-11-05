@@ -2370,7 +2370,10 @@
         "agility": "Wendigkeit",
         "range": "Reichweite",
         "lifetime": "Flugzeit",
-        "lockTime": "Aufschaltzeit"
+        "lockTime": "Aufschaltzeit",
+        "blastRadius": "Explosionsradius",
+        "armTime": "Scharfschaltzeit",
+        "lockAngle": "Aufschaltwinkel"
       },
       "signal": {
         "ir": "Infrarot",
