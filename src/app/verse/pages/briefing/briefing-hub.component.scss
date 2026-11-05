@@ -11,7 +11,7 @@
 :host { display: block; position: relative; z-index: 1; container-type: inline-size; color: var(--sc-fg-0);
   // The planet-wide --vb-dim text-shadow (three wide halos) is inherited from the parent's .hub and showed as a light field behind
   // the feature titles; the hub's text sits on dimmed images, so it only needs a tight, faint shade (never a shape).
-  text-shadow: 0 1px 2px color-mix(in srgb, var(--sc-bg-0) 55%, transparent);
+  text-shadow: 0 0 3px color-mix(in srgb, var(--sc-bg-0) 40%, transparent);
 }
 
 .cols {
@@ -127,7 +127,7 @@
   // The hub's titles sit on a dimmed image already: the shared planet halo (two wide, near-opaque shadows) read as a visible field,
   // so here only a tight, faint shade stays - legible, but not noticeable as a shape. Same value at rest and on hover.
   text-shadow: none;
-  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--sc-bg-0) 55%, transparent));
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--sc-bg-0) 40%, transparent));
   transition: left 0.45s var(--ease), bottom 0.45s var(--ease), font-size 0.45s;
 }
 .acc-t small { display: block; font-size: max(11px, calc(0.6 * var(--u))); font-weight: 400; color: var(--sc-fg-2, var(--sc-fg-1)); margin-top: 2px; }
