@@ -59,7 +59,12 @@ import { seriesStops } from './starmap.model';
       .rs > small { font-size: 0.8rem; color: var(--sc-accent); }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       @media (pointer: coarse) { .rs { min-height: 48px; } }
-      @media (max-width: 760px) { :host { flex-direction: column; align-items: stretch; gap: 8px; } .road { justify-content: flex-start; } }
+      @media (max-width: 760px) {
+        :host { flex-direction: column; align-items: stretch; gap: 8px; }
+        .road { justify-content: flex-start; }
+        /* The label (kind + count + help button) is as wide as its text: on a phone it wraps instead of pushing the page wider (402px at 390). */
+        .label { flex: 0 1 auto; flex-wrap: wrap; row-gap: 4px; max-width: 100%; white-space: normal; }
+      }
     `,
   ],
 })
