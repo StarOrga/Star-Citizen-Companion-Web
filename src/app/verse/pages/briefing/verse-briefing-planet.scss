@@ -267,18 +267,16 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 // columns, anything added later) carries it. A text with a glow of its own lists --vb-dim first.
 :host { --vb-dim: 0 0 0.35em color-mix(in srgb, var(--sc-bg-0) 95%, transparent), 0 0 1.1em color-mix(in srgb, var(--sc-bg-0) 80%, transparent), 0 0 2.4em color-mix(in srgb, var(--sc-bg-0) 55%, transparent); }
 // The same halo for a text inside a line clamp (the hero title), where a text-shadow would be cut off at the box.
-:host { --vb-dim-filter: drop-shadow(0 0 0.35em color-mix(in srgb, var(--sc-bg-0) 95%, transparent)) drop-shadow(0 0 1.1em color-mix(in srgb, var(--sc-bg-0) 70%, transparent)); }
+:host { --vb-dim-filter: drop-shadow(0 0 0.1em color-mix(in srgb, var(--sc-bg-0) 40%, transparent)); }
 .bstage, .hub { text-shadow: var(--vb-dim); }
-.title2:has(a.tl:hover), .title2:has(a.tl:focus-visible) { filter: var(--vb-dim-filter) drop-shadow(0 0 1.2cqw color-mix(in srgb, var(--sc-accent) 35%, transparent)); }
 .hx { position: relative; isolation: isolate; }
-.hx::before, .hub::before {
+.hub::before {
   content: '';
   position: absolute;
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(closest-side, rgba(2, 6, 11, 0.6), rgba(2, 6, 11, 0.36) 55%, transparent);
 }
-.hx::before { inset: -40% -18%; }
 .hub::before { inset: -6% -8% 0; background: radial-gradient(closest-side, rgba(2, 6, 11, 0.55), rgba(2, 6, 11, 0.3) 60%, transparent); }
 
 // ── Entrance: "Titelsequenz" (concept 2026-10-29, re-cut 2026-11-04) ────
