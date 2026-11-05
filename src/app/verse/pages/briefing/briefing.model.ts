@@ -188,51 +188,55 @@ export function uniqueStories<T>(
   return out;
 }
 
-/** Session flag: the full entrance plays once per browser session, a short one afterwards. */
+/**
+ * Device flag (localStorage): holds the local calendar day on which the full
+ * entrance last played. The full entrance plays once per day and device; every
+ * other visit that day (reload, new tab, coming back) plays the short one.
+ */
 export const INTRO_FLAG = 'sc.verse.introPlayed';
 
 export type IntroMode = 'full' | 'short';
 
-/** True when this document was loaded by a reload (F5 / browser button) — a reload counts as a new visit. */
-export function isReloadNavigation(): boolean {
-  try {
-    const nav = typeof performance === 'undefined' ? [] : performance.getEntriesByType('navigation');
-    return (nav[0] as PerformanceNavigationTiming | undefined)?.type === 'reload';
-  } catch {
-    return false;
-  }
+/** The local calendar day as `YYYY-MM-DD`: "per day" follows the user's clock, not UTC. */
+export function localDay(now: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
 
 /**
- * The document's navigation entry says "reload" for as long as the document
- * lives, so only the FIRST claim of a document may use it: coming back to the
- * Verse inside the same document is an in-session return (short).
+ * Fallback when storage is blocked or throws: the day is remembered for the
+ * life of this document only, so an in-app return stays short but a fresh
+ * document (nothing can be remembered) plays the full entrance.
  */
-let documentClaimed = false;
+let memoryDay: string | null = null;
 
 /** Test hook: a fresh document. */
 export function resetIntroDocument(): void {
-  documentClaimed = false;
+  memoryDay = null;
 }
 
 /**
- * First visit — new tab (empty session flag) or reload — plays the full
- * cinematic entrance; coming back within the session plays the ~1 s Kurz-Auftakt.
+ * First visit of the local day on this device plays the full cinematic
+ * entrance and records the day; every later visit that day plays the ~1 s
+ * Kurz-Auftakt. `now` is injectable for tests.
  */
 export function claimIntro(
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = safeSession(),
-  reloaded: () => boolean = isReloadNavigation,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = safeLocal(),
+  now: () => Date = () => new Date(),
 ): IntroMode {
-  const first = !documentClaimed;
-  documentClaimed = true;
+  const today = localDay(now());
   try {
-    if (!storage) return 'full';
-    const played = !!storage.getItem(INTRO_FLAG);
-    storage.setItem(INTRO_FLAG, '1');
-    return played && !(first && reloaded()) ? 'short' : 'full';
+    if (storage) {
+      const played = storage.getItem(INTRO_FLAG) === today;
+      if (!played) storage.setItem(INTRO_FLAG, today);
+      return played ? 'short' : 'full';
+    }
   } catch {
-    return 'full';
+    // blocked storage: fall through to the per-document memory
   }
+  const seen = memoryDay === today;
+  memoryDay = today;
+  return seen ? 'short' : 'full';
 }
 
 /**
@@ -242,21 +246,21 @@ export function claimIntro(
  * instead of showing, vanishing when it starts and fading in again.
  */
 export function peekIntro(
-  storage: Pick<Storage, 'getItem'> | null = safeSession(),
-  reloaded: () => boolean = isReloadNavigation,
+  storage: Pick<Storage, 'getItem'> | null = safeLocal(),
+  now: () => Date = () => new Date(),
 ): IntroMode {
+  const today = localDay(now());
   try {
-    if (!storage) return 'full';
-    const played = !!storage.getItem(INTRO_FLAG);
-    return played && !(!documentClaimed && reloaded()) ? 'short' : 'full';
+    if (storage) return storage.getItem(INTRO_FLAG) === today ? 'short' : 'full';
   } catch {
-    return 'full';
+    // blocked storage: fall through to the per-document memory
   }
+  return memoryDay === today ? 'short' : 'full';
 }
 
-function safeSession(): Storage | null {
+function safeLocal(): Storage | null {
   try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+    return typeof localStorage === 'undefined' ? null : localStorage;
   } catch {
     return null;
   }

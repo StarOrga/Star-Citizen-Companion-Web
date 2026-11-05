@@ -1,0 +1,95 @@
+{
+  "de": {
+    "nav": {
+      "social": "Social",
+      "accountMenuRequests": "Konto-Menü, {{count}} offene Freundschaftsanfragen",
+      "socialRequests": "Social, {{count}} offene Freundschaftsanfragen"
+    },
+    "fusionBar": {
+      "place": {
+        "social": "Social"
+      }
+    },
+    "starmap": {
+      "kartograph": {
+        "perks": "Früher Zugang zu Beta-Funktionen, Vorschläge für die Top-Liste und ein Abzeichen, das du als öffentlichen Link teilen kannst."
+      }
+    },
+    "share": {
+      "friends": {
+        "toSocial": "Freunde auf der Social-Seite hinzufügen"
+      },
+      "groups": {
+        "pick": "Gruppe wählen …",
+        "share": "Mit Gruppe teilen",
+        "hint": "Das Set geht an die Mitglieder, die jetzt in der Gruppe sind. Wer später dazukommt, erhält es nicht."
+      },
+      "flash": {
+        "groupShared": "Mit den aktuellen Gruppenmitgliedern geteilt."
+      }
+    },
+    "legal": {
+      "privacy": {
+        "account": {
+          "p4": "Funktionsdaten, die du anlegst (Hangar-Schiffe, Loadouts, Schiffs-Links, gespeicherte Entwürfe, Einstellungen), liegen unter deinem Konto und sind für dich lesbar — durchgesetzt per Row-Level-Security in der Datenbank. Ausnahmen: Feedback, das du absendest, sehen die Maintainer, und zwar mit deinem Konto als Absender, damit sie antworten können; und was du Freunden zeigst (siehe „Freunde und Sichtbarkeit“)."
+        },
+        "social": {
+          "title": "Freunde und Sichtbarkeit",
+          "p1": "Freunde sind Konten, mit denen du dich über eine Anfrage oder einen persönlichen Einladungslink verbunden hast; ein Einladungslink läuft ab und kann von dir widerrufen werden. Solange ihr befreundet seid, sehen deine Freunde standardmäßig deinen Hangar, dein Flaggschiff, ob du online bist und die Vergleichszahlen auf der Social-Seite (zum Beispiel wie oft du SCC nutzt). Jeden dieser Punkte kannst du auf der Social-Seite im Sichtbarkeits-Popup allgemein oder für einen einzelnen Freund ausschalten.",
+          "p2": "Dafür speichert die Tabelle user_presence pro Konto den Zeitpunkt deines letzten Besuchs und eine Aktivitätsmaske der letzten 30 Tage (je Tag aktiv oder nicht) — keine Seitenverläufe. „Online“ heißt: in den letzten Minuten gesehen.",
+          "p3": "Gruppen (zum Beispiel Orgs oder Einsatzgruppen) sind eine private Liste von dir: Die Mitglieder sehen weder die Gruppe noch ihren Namen. Einsätze, Loadouts und Schiffsvarianten sieht nur, mit wem du sie ausdrücklich teilst. Beendest du eine Freundschaft, endet jede Sichtbarkeit sofort."
+        }
+      }
+    }
+  },
+  "en": {
+    "nav": {
+      "social": "Social",
+      "accountMenuRequests": "Account menu, {{count}} open friend requests",
+      "socialRequests": "Social, {{count}} open friend requests"
+    },
+    "fusionBar": {
+      "place": {
+        "social": "Social"
+      }
+    },
+    "starmap": {
+      "kartograph": {
+        "perks": "Early access to beta features, suggestions for the top list and a badge you can share as a public link."
+      }
+    },
+    "share": {
+      "friends": {
+        "toSocial": "Add friends on the Social page"
+      },
+      "groups": {
+        "pick": "Pick a group …",
+        "share": "Share with group",
+        "hint": "The set goes to the members who are in the group now. People who join later do not receive it."
+      },
+      "flash": {
+        "groupShared": "Shared with the current group members."
+      }
+    },
+    "legal": {
+      "privacy": {
+        "account": {
+          "p4": "Feature data you create (hangar ships, loadouts, ship links, saved drafts, settings) is stored under your account and readable by you — enforced with row-level security in the database. Exceptions: feedback you send is visible to the maintainers, with your account as the sender so they can reply; and what you show to friends (see \"Friends and visibility\")."
+        },
+        "social": {
+          "title": "Friends and visibility",
+          "p1": "Friends are accounts you connected with through a request or a personal invite link; an invite link expires and you can revoke it. While you are friends, they see your hangar, your flagship, whether you are online and the comparison numbers on the Social page (for example how often you use SCC) by default. You can switch each of these off in the visibility popup on the Social page, in general or for a single friend.",
+          "p2": "For this the user_presence table stores, per account, the time of your last visit and an activity mask for the last 30 days (active or not per day) — no browsing history. \"Online\" means seen within the last few minutes.",
+          "p3": "Groups (for example orgs or squads) are a private list of yours: the members see neither the group nor its name. Einsätze, loadouts and ship variants are only visible to whom you explicitly share them with. Ending a friendship ends all visibility at once."
+        }
+      }
+    }
+  },
+  "delete": [
+    "settings.friends.title",
+    "settings.friends.hint",
+    "settings.friends.open",
+    "nav.friends",
+    "fusionBar.place.friends"
+  ]
+}

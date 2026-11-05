@@ -1,3 +1,4 @@
+import { HqFriendShareComponent } from '../hq/social/hq-friend-share.component';
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { toErrorKey } from '../core/describe-error';
 import {
@@ -77,7 +78,7 @@ interface PortRow {
 @Component({
   selector: 'sc-hangar-ship-detail',
   standalone: true,
-  imports: [PageHeaderComponent, FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective, ShipTileArtComponent, CodexCategoryIconComponent, ClassChipComponent, NeuroFieldDirective],
+  imports: [PageHeaderComponent, FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective, ShipTileArtComponent, CodexCategoryIconComponent, ClassChipComponent, NeuroFieldDirective, HqFriendShareComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -204,6 +205,7 @@ interface PortRow {
                 }
                 <button class="sc-btn small danger ghost" type="button" (click)="deleteConfig(cfg)">{{ 'hangar.configs.delete' | translate }}</button>
               </div>
+              <sc-hq-friend-share kind="ship_config" [subjectId]="cfg.id" />
             }
           }
         </div>

@@ -11,6 +11,7 @@
 import { logWarn } from '../../core/log';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { HqFriendShareComponent } from '../../hq/social/hq-friend-share.component';
 import { toErrorKey } from '../../core/describe-error';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { HangarService } from '../../hangar/hangar.service';
@@ -50,7 +51,7 @@ export function reusableShareLink(
 @Component({
   selector: 'sc-codex-holo-share',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe],
+  imports: [HqFriendShareComponent, TranslatePipe, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-share">
@@ -97,6 +98,7 @@ export function reusableShareLink(
         }
 
         @if (config(); as c) {
+          <sc-hq-friend-share kind="ship_config" [subjectId]="c.id" />
           @if (c.followsOwner) {
             <div class="follow-hint">
               <p class="hint-text">

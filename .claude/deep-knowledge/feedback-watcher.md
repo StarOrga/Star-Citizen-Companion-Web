@@ -52,3 +52,25 @@ needs it now; it is the operator's call whether it stays.
   stay importable without the watcher. Change both, then `npm run watcher -- install`.
 - A silent routine: `npm run watcher -- status`, then
   `~/.claude/scc-routine/logs/watcher-<date>.log`.
+
+## A full queue: read in this order
+
+On 2026-11-05 the panel filled with "wartet auf Routine" for two separate reasons,
+and neither was a broken scheduler.
+
+1. `taskStatus` in `npm run watcher -- status`. "Deaktiviert" means a session paused
+   the task on purpose; find it with a transcript search for `/DISABLE`. The panel
+   has no state for this, it only ages to offline. Do not re-enable while that
+   session is shipping a fix: the next tick starts a run on the old code.
+2. `started run` and `postflight` lines in the watcher log. Runs that keep ending in
+   `hard cap` or `interrupted` with nothing shipped are a throughput bug, not a
+   scheduling one. Count `ship_*` calls in `logs/run-<date>-<sid>.jsonl`.
+
+**Pausing the task makes its re-enable your job.** `schtasks /Change /DISABLE` has no
+timer and nothing turns it back on. Put the re-enable on your task list in the same
+step, and say so in your report. `npm run watcher -- install` also re-enables, since
+its XML sets `Enabled=true`.
+
+**Never call `routine-gate.mjs` without a subcommand to look at something.** The
+default is `check`: it runs the reaper and stamps the heartbeat, so a paused routine
+looks alive on the panel. Read-only inspection is `routine-gate.mjs sql --query`.
