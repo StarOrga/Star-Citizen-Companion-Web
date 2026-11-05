@@ -261,6 +261,9 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     localStorage.removeItem('sc.codex.holoView');
     ownedConfigs = [];
   });
+  // Switching to the classic view stores the preference; left behind, it hides
+  // the Holotable from whichever Codex spec the random order runs next.
+  afterEach(() => localStorage.removeItem('sc.codex.holoView'));
 
   it('?shared= puts the peeked loadout on the table READ-ONLY with the banner', fakeAsync(() => {
     const hangar = {

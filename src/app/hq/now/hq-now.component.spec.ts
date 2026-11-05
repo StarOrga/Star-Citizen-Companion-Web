@@ -127,7 +127,9 @@ describe('HqNowComponent', () => {
   });
 
   it('log dialog groups by day and pages with "Mehr laden"', async () => {
-    const live = fakeLive({}, [ev(0), ev(1), { ...ev(2), at: new Date(Date.now() - 3 * 86_400_000).toISOString() }]);
+    // Fixed local times: events relative to "now" split into an extra day just after midnight.
+    const at = (day: number, minute: number) => new Date(2026, 10, day, 12, minute).toISOString();
+    const live = fakeLive({}, [{ ...ev(0), at: at(5, 1) }, { ...ev(1), at: at(5, 0) }, { ...ev(2), at: at(2, 0) }]);
     TestBed.configureTestingModule({
       providers: [provideTranslateService(), { provide: HqLiveService, useValue: live }],
     });
