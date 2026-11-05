@@ -50,6 +50,12 @@ test('applyRun: progress charges only the claimed item, the unreached one stays 
   assert.deepEqual(charged, ['b']);
   assert.equal(state.items.c, undefined);
 });
+test('applyRun: a wave stopped by the time limit charges its claims, not the topics it never reached', () => {
+  const snapshot = [item('a'), item('b'), item('c')];
+  const { state, charged } = applyRun({ state: emptyState(), snapshot, unresolvedIds: ['a', 'b', 'c'], claimedIds: ['a'], outcome: { kind: 'killed', reason: 'hard cap' }, now: 0 });
+  assert.deepEqual(charged, ['a']);
+  assert.equal(state.items.b, undefined);
+});
 test('applyRun: a resolved item loses its history', () => {
   const start = { ...emptyState(), items: { a: { key: itemKey(item('a')), attempts: 2, nextAttemptAt: 0 } } };
   assert.equal(applyRun({ state: start, snapshot: [item('a')], unresolvedIds: [], claimedIds: [], outcome: { kind: 'ok' }, now: 0 }).state.items.a, undefined);
