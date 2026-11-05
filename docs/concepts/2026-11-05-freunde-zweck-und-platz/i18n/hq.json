@@ -42,6 +42,10 @@
           "adopted": "Übernommen",
           "kindSet": "Set",
           "kindVariant": "Variante · {{ship}}"
+        },
+        "now": {
+          "online": "Gerade online:",
+          "active": "Läuft gerade: {{title}} · {{n}} Zusagen"
         }
       }
     }
@@ -89,6 +93,10 @@
           "adopted": "Adopted",
           "kindSet": "Set",
           "kindVariant": "Variant · {{ship}}"
+        },
+        "now": {
+          "online": "Online now:",
+          "active": "Running now: {{title}} · {{n}} confirmed"
         }
       }
     }

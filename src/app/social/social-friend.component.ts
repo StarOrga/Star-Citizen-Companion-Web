@@ -58,7 +58,7 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
                 }
               </span>
               <div phActions class="actions">
-                <a class="sc-btn" routerLink="/hangar">{{ 'social.friendPage.share' | translate }}</a>
+                <a class="sc-btn" routerLink="/hq/locker">{{ 'social.friendPage.share' | translate }}</a>
                 <button type="button" class="sc-btn" [disabled]="friends.busy()" (click)="remove()">{{ 'friends.actions.remove' | translate }}</button>
                 <button type="button" class="sc-btn" [disabled]="friends.busy()" (click)="block()">{{ 'friends.actions.block' | translate }}</button>
                 <button type="button" class="sc-btn danger" [disabled]="friends.busy()" (click)="report()">{{ 'friends.actions.report' | translate }}</button>
