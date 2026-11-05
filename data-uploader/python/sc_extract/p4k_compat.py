@@ -67,7 +67,17 @@ from __future__ import annotations
 
 import struct
 
+try:
+    import zstandard as zstd
+except ImportError:  # scdatatools needs it too, so apply_p4k_compat returns False
+    zstd = None  # type: ignore[assignment]
+
 _PATCHED_FLAG = "_sc_companion_compat_patched"
+
+#: Compressed bytes per decompressobj call, see :func:`_decompress_sliced`.
+_ZSTD_SLICE = 64 * 1024
+#: How zstandard 0.12 refuses input after a finished frame (not a corrupt stream).
+_ZSTD_FRAME_DONE = "cannot use a decompressobj multiple times"
 
 
 def _decodeExtra_tolerant(self) -> None:
@@ -112,14 +122,39 @@ def _decodeExtra_tolerant(self) -> None:
         offset += ln + 4
 
 
+def _decompress_sliced(self, data: bytes) -> bytes:
+    """Drop-in for ``scdatatools.p4k.ZStdDecompressor.decompress``, in linear time.
+
+    ``p4k.open(info).read()`` hands the whole compressed entry to one
+    ``decompressobj().decompress()`` call, and the pinned zstandard 0.12 grows
+    that call's result by re-copying it, so its cost is quadratic in the output:
+    ~107 s for the 337 MB DataCore on an idle machine. Feeding the same stream in
+    bounded slices bounds each call's output, so the copying stays linear (~1 s).
+    The decoder and the bytes it produces do not change.
+
+    Stream end and corruption keep upstream's outcomes: input past the end of the
+    frame is dropped, while a corrupt stream yields ``b""`` for the failing call.
+    """
+    parts = []
+    view = memoryview(data)
+    try:
+        for start in range(0, len(view), _ZSTD_SLICE):
+            parts.append(self._decomp.decompress(view[start : start + _ZSTD_SLICE]))
+    except zstd.ZstdError as exc:
+        self.eof = True
+        if _ZSTD_FRAME_DONE not in str(exc):
+            return b""
+    return b"".join(parts)
+
+
 def apply_p4k_compat() -> bool:
-    """Monkeypatch scdatatools so the current SC 4.x Data.p4k opens.
+    """Monkeypatch scdatatools so the current SC 4.x Data.p4k opens, and reads fast.
 
     Idempotent; safe to call multiple times. Returns True if patched (or
     already patched), False if scdatatools is not importable.
     """
     try:
-        from scdatatools.p4k import P4KInfo
+        from scdatatools.p4k import P4KInfo, ZStdDecompressor
     except ImportError:
         return False
 
@@ -127,5 +162,6 @@ def apply_p4k_compat() -> bool:
         return True
 
     P4KInfo._decodeExtra = _decodeExtra_tolerant
+    ZStdDecompressor.decompress = _decompress_sliced
     setattr(P4KInfo, _PATCHED_FLAG, True)
     return True
