@@ -123,6 +123,19 @@ export class ShellChromeService {
    */
   readonly hqPage = this.hqPageState.asReadonly();
 
+  /**
+   * "Leg etwas in den Nachschub": the search is open for that one purpose, so it says so and marks
+   * the rows' Nachschub icon. Ends when the search closes.
+   */
+  readonly supplySearch = signal(false);
+  /** Counts the requests: the search focuses itself on every new one. */
+  readonly supplySearchRequest = signal(0);
+
+  startSupplySearch(): void {
+    this.supplySearch.set(true);
+    this.supplySearchRequest.update((n) => n + 1);
+  }
+
   /** The hub's running title sequence, or null (set by the hub, read by the bar and the main header). */
   readonly heroIntro = this.introState.asReadonly();
 

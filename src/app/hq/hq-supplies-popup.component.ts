@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { OverlayFrameComponent } from '../shared/overlay-frame/overlay-frame.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { HangarService } from '../hangar/hangar.service';
+import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqOwnershipService } from './hq-ownership.service';
-import { HqSuppliesService, SUPPLY_NAME_MAX, SUPPLY_QTY_MAX, SupplyItem, setKey } from './hq-supplies.service';
+import { HqSuppliesService, SUPPLY_QTY_MAX, SupplyItem, setKey } from './hq-supplies.service';
 import { buildPlanSets } from './plan/hq-plan-needs';
 
 /**
@@ -13,6 +14,9 @@ import { buildPlanSets } from './plan/hq-plan-needs';
  * cart-style footer with what is still open. Built on the shared overlay frame
  * (`popup` mode): a centred sheet on desktop, a sheet on tablets, full screen in
  * `dvh` on phones. Close = X, Escape, scrim.
+ *
+ * New lines come from the search, never as free text: a line has to be a real item, or nothing can
+ * say where to get it.
  */
 @Component({
   selector: 'sc-hq-supplies-popup',
@@ -21,15 +25,9 @@ import { buildPlanSets } from './plan/hq-plan-needs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-overlay-frame [heading]="'hq.supplies.title' | translate" [popup]="true" (closed)="closed.emit()">
-      <form class="add" (submit)="$event.preventDefault(); add()">
-        <label class="sc-sr-only" for="sup-name">{{ 'hq.supplies.add.name' | translate }}</label>
-        <input id="sup-name" class="sc-input name" type="text" autocomplete="off" [maxLength]="nameMax"
-               [placeholder]="'hq.supplies.add.name' | translate" [value]="name()" (input)="name.set($any($event.target).value)" />
-        <label class="sc-sr-only" for="sup-qty">{{ 'hq.supplies.qty' | translate }}</label>
-        <input id="sup-qty" class="sc-input qty" type="number" inputmode="numeric" min="1" [max]="qtyMax"
-               [value]="qty()" (input)="qty.set($any($event.target).valueAsNumber)" />
-        <button type="submit" class="sc-btn sc-btn-primary" [disabled]="!name().trim()">{{ 'hq.supplies.add.submit' | translate }}</button>
-      </form>
+      <div class="add">
+        <button type="button" class="sc-btn sc-btn-primary" (click)="searchItem()">{{ 'hq.supplies.add.search' | translate }}</button>
+      </div>
 
       @if (svc.items().length === 0) {
         <div class="empty">
@@ -80,8 +78,6 @@ import { buildPlanSets } from './plan/hq-plan-needs';
     `
       :host { display: contents; }
       .add { display: flex; gap: var(--sc-space-2, 8px); flex-wrap: wrap; margin-bottom: var(--sc-space-4, 16px); }
-      .name { flex: 1 1 200px; min-width: 0; }
-      .qty { width: 5.5rem; }
       .add .sc-btn { min-height: var(--sc-tap-min, 44px); }
       .empty { display: flex; flex-direction: column; gap: 6px; }
       .empty-title { margin: 0; color: var(--sc-fg-0); }
@@ -119,6 +115,7 @@ export class HqSuppliesPopupComponent {
   protected readonly svc = inject(HqSuppliesService);
   private readonly hangar = inject(HangarService);
   private readonly ownership = inject(HqOwnershipService);
+  private readonly chrome = inject(ShellChromeService);
   readonly closed = output<void>();
 
   private readonly setNames = computed(
@@ -134,15 +131,11 @@ export class HqSuppliesPopupComponent {
     return i.setKind && i.setId ? (this.setNames().get(setKey(i.setKind, i.setId)) ?? null) : null;
   }
 
-  protected readonly name = signal('');
-  protected readonly qty = signal(1);
-  protected readonly nameMax = SUPPLY_NAME_MAX;
   protected readonly qtyMax = SUPPLY_QTY_MAX;
 
-  protected add(): void {
-    if (this.svc.add(this.name(), this.qty())) {
-      this.name.set('');
-      this.qty.set(1);
-    }
+  /** The popup makes way for the search; the frame hands the focus back first, so the search asks after it. */
+  protected searchItem(): void {
+    this.closed.emit();
+    setTimeout(() => this.chrome.startSupplySearch());
   }
 }

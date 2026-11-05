@@ -4987,8 +4987,7 @@
     "supplies": {
       "button": "Nachschub",
       "add": {
-        "name": "Was brauchst du noch?",
-        "submit": "Hinzufügen"
+        "search": "Gegenstand suchen"
       },
       "qty": "Menge",
       "qtyOf": "Menge von {{name}}",
@@ -5001,7 +5000,7 @@
       "title": "Nachschub",
       "close": "Nachschub schließen",
       "empty": "Noch nichts auf der Nachschub-Liste.",
-      "emptyHint": "Hier sammelst du bald, was deinen Schiffen und Sets noch fehlt — quer über Hangar, Spind und Einsätze."
+      "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst."
     },
     "ops": {
       "title": "Einsätze",
@@ -5153,10 +5152,16 @@
       "fresh": {
         "title": "Noch nichts zu planen",
         "text": "Planen macht aus deinem Nachschub einen Weg: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
-        "step1": "Trag in Nachschub ein, was dir fehlt.",
+        "step1": "Such, was dir fehlt, und leg es in den Nachschub.",
         "step2": "Wähle hier, was davon als Nächstes dran ist.",
         "step3": "Unter „Wie komme ich hin“ entsteht der Weg – speicher ihn als Einsatz.",
-        "addSupply": "Nachschub eintragen"
+        "addSupply": "Gegenstand suchen"
+      },
+      "source": {
+        "loading": "Suche Händler …",
+        "none": "Kein Händler bekannt: vielleicht nur per Mission oder Handwerk zu bekommen.",
+        "freeText": "Freitext-Eintrag ohne Bezugsquelle. Such den Gegenstand, dann siehst du, wo es ihn gibt.",
+        "more": "+{{n}} weitere Orte"
       }
     },
     "mood": {
@@ -5357,15 +5362,47 @@
       },
       "lager": {
         "title": "Lager per Ort",
-        "empty": "Noch nichts im Lager erfasst. Trag unten ein, was wo liegt.",
+        "empty": "Noch nichts im Lager erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
+        "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es unten von Hand ein.",
         "materials": "Rohstoffe",
         "pieces": "Gegenstände",
         "placeEmpty": "Leer.",
         "storage": "Schiffe im Hangar-Terminal"
       },
-      "capture": {
-        "title": "Liegt in …",
+      "find": {
+        "title": "Wo liegt …?",
         "item": "Gegenstand oder Rohstoff",
+        "itemHint": "z. B. Quantanium",
+        "want": "Wie viel?",
+        "unit": "Einheit",
+        "sort": "Sortierung",
+        "nearest": "Am nächsten",
+        "most": "Am meisten",
+        "yours": "Dein Bestand",
+        "here": "Du bist in {{place}}",
+        "whereAmI": "Wo bist du gerade?",
+        "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die SCC-App oder wähle einen Ort.",
+        "prompt": "Gib ein, was du suchst. Darunter siehst du, wo es liegt.",
+        "noHit": "Nichts davon im Lager. Vielleicht in der anderen Einheit?",
+        "take": "{{n}} holen",
+        "summaryOne": "Reicht: {{want}} {{unit}} an einem Ort.",
+        "summaryMany": "Reicht zusammen: {{want}} {{unit}} aus {{stops}} Orten.",
+        "summaryShort": "Reicht nicht: {{total}} von {{want}} {{unit}} im Lager.",
+        "summaryTotal": "{{total}} {{unit}} im Lager.",
+        "pcsUnit": "Stück",
+        "tier": {
+          "here": "Hier",
+          "body": "Selber Planet",
+          "system": "Selbes System",
+          "far": "Anderes System",
+          "unknown": "Entfernung unbekannt"
+        }
+      },
+      "capture": {
+        "title": "Etwas einlagern",
+        "item": "Gegenstand oder Rohstoff",
+        "itemHint": "z. B. Quantanium",
+        "locationHint": "z. B. Area 18",
         "qty": "Menge",
         "unit": "Einheit",
         "pcs": "Stück",
@@ -6184,6 +6221,7 @@
       "hangar": "In den Hangar",
       "nachschub": "In den Nachschub"
     },
+    "supplyHint": "Such den Gegenstand und leg ihn mit diesem Symbol in den Nachschub.",
     "own": {
       "ship": "dein Schiff",
       "fitted": "auf deinem Schiff verbaut",

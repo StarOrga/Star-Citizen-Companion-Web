@@ -4987,8 +4987,7 @@
     "supplies": {
       "button": "Supplies",
       "add": {
-        "name": "What do you still need?",
-        "submit": "Add"
+        "search": "Search for an item"
       },
       "qty": "Quantity",
       "qtyOf": "Quantity of {{name}}",
@@ -5001,7 +5000,7 @@
       "title": "Supplies",
       "close": "Close supplies",
       "empty": "Nothing on the supplies list yet.",
-      "emptyHint": "Soon this collects what your ships and sets still need — across hangar, locker and ops."
+      "emptyHint": "Search for an item and add it to Supplies: Plan then shows where to get it and how to get there."
     },
     "ops": {
       "title": "Ops",
@@ -5153,10 +5152,16 @@
       "fresh": {
         "title": "Nothing to plan yet",
         "text": "Plan turns your supplies into a route: what you still need, where to get it and in which order.",
-        "step1": "Add what you are missing to Supplies.",
+        "step1": "Search for what you are missing and add it to Supplies.",
         "step2": "Pick here what comes next.",
         "step3": "Under “How do I get there” the route appears – save it as an op.",
-        "addSupply": "Add supplies"
+        "addSupply": "Search for an item"
+      },
+      "source": {
+        "loading": "Looking for shops …",
+        "none": "No shop known: it may only come from missions or crafting.",
+        "freeText": "Free-text entry without a source. Search for the item to see where to get it.",
+        "more": "+{{n}} more places"
       }
     },
     "mood": {
@@ -5357,15 +5362,47 @@
       },
       "lager": {
         "title": "Storage by place",
-        "empty": "Nothing stored yet. Add below what lies where.",
+        "empty": "Nothing stored yet. Once there is, you can search here for where it lies.",
+        "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand below.",
         "materials": "Raw materials",
         "pieces": "Items",
         "placeEmpty": "Empty.",
         "storage": "Ships at the hangar terminal"
       },
-      "capture": {
-        "title": "Lies in …",
+      "find": {
+        "title": "Where is …?",
         "item": "Item or raw material",
+        "itemHint": "e.g. Quantanium",
+        "want": "How much?",
+        "unit": "Unit",
+        "sort": "Sort order",
+        "nearest": "Nearest",
+        "most": "Most",
+        "yours": "Your stock",
+        "here": "You are in {{place}}",
+        "whereAmI": "Where are you right now?",
+        "unknownHere": "Without your location we sort by amount. Start the SCC app or pick a place.",
+        "prompt": "Enter what you are looking for. Below you see where it lies.",
+        "noHit": "None of that in storage. Maybe in the other unit?",
+        "take": "take {{n}}",
+        "summaryOne": "Enough: {{want}} {{unit}} in one place.",
+        "summaryMany": "Enough together: {{want}} {{unit}} from {{stops}} places.",
+        "summaryShort": "Not enough: {{total}} of {{want}} {{unit}} in storage.",
+        "summaryTotal": "{{total}} {{unit}} in storage.",
+        "pcsUnit": "pcs",
+        "tier": {
+          "here": "Here",
+          "body": "Same planet",
+          "system": "Same system",
+          "far": "Other system",
+          "unknown": "Distance unknown"
+        }
+      },
+      "capture": {
+        "title": "Put something in storage",
+        "item": "Item or raw material",
+        "itemHint": "e.g. Quantanium",
+        "locationHint": "e.g. Area 18",
         "qty": "Quantity",
         "unit": "Unit",
         "pcs": "Pieces",
@@ -6184,6 +6221,7 @@
       "hangar": "Add to hangar",
       "nachschub": "Add to supplies"
     },
+    "supplyHint": "Search for the item and add it to Supplies with this icon.",
     "own": {
       "ship": "your ship",
       "fitted": "fitted on your ship",

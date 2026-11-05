@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -7,12 +8,17 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
 import { HqEinsatzService, einsatzBadge } from '../data/hq-einsatz.service';
 import { HqOwnershipService } from '../hq-ownership.service';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
+import { HqLiveService } from '../now/hq-live.service';
+import { readLocation } from '../now/hq-live.util';
 import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
 import { HqMoodTogglesComponent } from './hq-mood-toggles.component';
 import { MoodPair, MoodSide, activeMoodKeys } from './hq-moods';
+import { HqNeedSourcesService, NeedSource, NeedSources, bestSource, sourcesByDistance } from './hq-need-sources.service';
 import { buildPlanNeeds, buildPlanSets, placesFromEinsaetze } from './hq-plan-needs';
+import { placeOfName } from './map/hq-places';
 import {
   PlanSelection,
   applyMood,
@@ -52,6 +58,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   standalone: true,
   imports: [
     TranslatePipe,
+    RouterLink,
     ScStepComponent,
     ScTristateComponent,
     ScTooltipDirective,
@@ -98,7 +105,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
           <li>{{ 'hq.plan.fresh.step3' | translate }}</li>
         </ol>
         <div class="fresh-actions">
-          <button type="button" class="sc-btn sc-btn-primary" aria-haspopup="dialog" (click)="suppliesOpen.set(true)">
+          <button type="button" class="sc-btn sc-btn-primary" (click)="chrome.startSupplySearch()">
             {{ 'hq.plan.fresh.addSupply' | translate }}
           </button>
         </div>
@@ -140,10 +147,49 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
               <li class="need" [class.sel]="selection().supplyIds.has(n.id)" [class.ready]="n.status === 'done'">
                 <sc-tristate variant="checkbox" [label]="n.label" [value]="selection().supplyIds.has(n.id) ? 1 : 0" (toggled)="commit(toggleOne(n.id))" />
                 <span class="n-body">
-                  <span class="n-name">{{ n.label }}<b class="mono qty"> ×{{ n.qty }}</b></span>
-                  <span class="n-meta">
-                    @if (n.setName) { {{ 'hq.supply.forSet' | translate: { name: n.setName } }} }
+                  <span class="n-name">
+                    @if (codexLink(n.className); as link) {
+                      <a class="n-link" [routerLink]="link">{{ n.label }}</a>
+                    } @else {
+                      {{ n.label }}
+                    }
+                    <b class="mono qty"> ×{{ n.qty }}</b>
                   </span>
+                  @if (n.setName) {
+                    <span class="n-meta">{{ 'hq.supply.forSet' | translate: { name: n.setName } }}</span>
+                  }
+                  @if (n.status !== 'done') {
+                    @let src = needSources(n.className);
+                    @if (!n.className) {
+                      <span class="n-where none">{{ 'hq.plan.source.freeText' | translate }}</span>
+                    } @else if (src.state === 'loading') {
+                      <span class="n-where" role="status">{{ 'hq.plan.source.loading' | translate }}</span>
+                    } @else if (src.options.length === 0) {
+                      <span class="n-where none">{{ 'hq.plan.source.none' | translate }}</span>
+                    } @else {
+                      @let cur = chosenSource(n.id, src.options);
+                      <button type="button" class="n-where pick" [attr.aria-expanded]="openWhere() === n.id" (click)="toggleWhere(n.id)">
+                        <span class="pin" aria-hidden="true"></span>
+                        <span>{{ placeLine(cur) }}</span>
+                        @if (cur.price !== undefined) { <span class="price mono">{{ auec(cur.price) }}</span> }
+                        @if (src.options.length > 1) { <span class="others">{{ 'hq.plan.source.more' | translate: { n: src.options.length - 1 } }}</span> }
+                      </button>
+                      @if (openWhere() === n.id) {
+                        <ul class="where-list">
+                          @for (o of byDistance(src.options); track o.place.id) {
+                            <li>
+                              <button type="button" class="where-opt" [attr.aria-pressed]="o.place.id === cur.place.id" (click)="pickSource(n.id, o)">
+                                <span class="w-place">{{ placeLine(o) }}</span>
+                                @if (o.terminal) { <span class="w-term">{{ o.terminal }}</span> }
+                                @if (o.price !== undefined) { <span class="price mono">{{ auec(o.price) }}</span> }
+                              </button>
+                            </li>
+                          }
+                        </ul>
+                        <p class="where-note">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
+                      }
+                    }
+                  }
                 </span>
                 <span class="kind-tag">{{ 'hq.step.kind.' + n.kind | translate }}</span>
                 @if (n.status === 'done') { <span class="ready-tag">{{ 'hq.supply.ready' | translate }}</span> }
@@ -242,6 +288,24 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .n-name { overflow-wrap: anywhere; }
       .qty { color: var(--sc-fg-2); }
       .n-meta { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .n-link { color: inherit; text-decoration: none; }
+      .n-link:hover { color: var(--sc-accent); text-decoration: underline; }
+      .n-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
+      .n-where { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px); margin-top: 2px; font-size: max(0.85rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+      .n-where.none { color: var(--sc-fg-2); }
+      .n-where.pick { align-self: flex-start; min-height: 32px; padding: 2px 10px; border: 1px solid var(--sc-border); border-radius: 8px; background: transparent; font-family: inherit; text-align: start; cursor: pointer; }
+      .n-where.pick:hover { border-color: var(--sc-accent); }
+      .n-where.pick:focus-visible, .where-opt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .pin { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--sc-accent); }
+      .price { color: var(--sc-fg-0); }
+      .others { color: var(--sc-fg-2); }
+      .where-list { list-style: none; max-height: 16rem; overflow-y: auto; margin: var(--sc-space-2, 8px) 0 0; padding: 2px; display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); }
+      .where-opt { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sc-space-1, 4px) var(--sc-space-3, 12px); width: 100%; min-height: 36px; padding: 4px 10px; border: 1px solid var(--sc-border); border-radius: 8px; background: transparent; color: var(--sc-fg-1); font: inherit; text-align: start; cursor: pointer; }
+      .where-opt:hover { border-color: var(--sc-accent); }
+      .where-opt[aria-pressed='true'] { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); color: var(--sc-fg-0); }
+      .w-place { flex: 1 1 12rem; min-width: 0; }
+      .w-term { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+      .where-note { margin: var(--sc-space-1, 4px) 0 0; color: var(--sc-fg-2); font-size: max(0.75rem, var(--sc-fs-floor)); }
       .kind-tag, .ready-tag, .badge { flex: none; padding: 1px 10px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .ready-tag { color: var(--sc-accent); border-color: var(--sc-accent); }
       .badge { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); }
@@ -254,7 +318,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .ein-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
       .ein-step { display: flex; align-items: center; gap: var(--sc-space-2, 8px); }
       .ein-step sc-step { flex: 1; min-width: 0; }
-      @media (pointer: coarse) { .seg, .kind, .nach { min-height: 48px; } .rm { min-width: 48px; min-height: 48px; } }
+      @media (pointer: coarse) { .seg, .kind, .nach, .n-where.pick, .where-opt { min-height: 48px; } .rm { min-width: 48px; min-height: 48px; } }
       @media (max-width: 640px) { .page-title { flex-basis: 100%; } }
     `,
   ],
@@ -267,6 +331,9 @@ export class HqPlanComponent {
   private readonly feed = inject(HqStartFeedService);
   private readonly confirm = inject(ScConfirmService);
   private readonly i18n = inject(TranslateService);
+  private readonly live = inject(HqLiveService);
+  private readonly sourcesSvc = inject(HqNeedSourcesService);
+  protected readonly chrome = inject(ShellChromeService);
 
   protected readonly kinds = STEP_KINDS;
   protected readonly shapes = STEP_SHAPES;
@@ -284,7 +351,33 @@ export class HqPlanComponent {
   protected readonly fresh = computed(
     () => this.supplies.ready() && this.einsatz.ready() && this.needs().length === 0 && this.einsatz.items().length === 0,
   );
-  private readonly placeMap = computed(() => placesFromEinsaetze(this.einsatz.items()));
+  /** Where the reader is, for "the nearest shop first". */
+  private readonly here = computed(() => {
+    const at = readLocation(this.live.state());
+    return at ? placeOfName(at.name, at.system) : null;
+  });
+  /** The shop the reader chose per supply line (this tab session). */
+  private readonly picks = signal<ReadonlyMap<string, string>>(new Map());
+  protected readonly openWhere = signal<string | null>(null);
+  /**
+   * The stop of each line: the shop the reader chose, else the place of a saved Einsatz step, else
+   * the shop nearest to them (cheapest when their position is unknown). Without this no line has a
+   * place, and the map and the route stay empty.
+   */
+  private readonly placeMap = computed(() => {
+    const out = new Map(placesFromEinsaetze(this.einsatz.items()));
+    const known = this.sourcesSvc.sources();
+    for (const s of this.supplies.items()) {
+      const options = s.className ? (known.get(s.className)?.options ?? []) : [];
+      const picked = options.find((o) => o.place.id === this.picks().get(s.id));
+      if (picked) out.set(s.id, picked.place);
+      else if (!out.has(s.id)) {
+        const best = bestSource(options, this.here());
+        if (best) out.set(s.id, best.place);
+      }
+    }
+    return out;
+  });
   protected readonly needs = computed(() => buildPlanNeeds(this.supplies.items(), this.sets(), this.placeMap()));
   private readonly ctx = computed(() => ({
     needs: this.needs(),
@@ -315,6 +408,14 @@ export class HqPlanComponent {
   constructor() {
     void this.ownership.ensureLoaded();
     const destroyRef = inject(DestroyRef);
+    // Only what is still to get, and only what is bought: a mining line has no shop.
+    effect(() => {
+      const wanted = this.supplies
+        .open()
+        .filter((s) => s.className && (!s.stepKind || s.stepKind === 'buy'))
+        .map((s) => s.className as string);
+      untracked(() => this.sourcesSvc.ensure(wanted));
+    });
     // "Jetzt wichtig" chips on Start: upcoming Einsaetze, then a set whose Nachschub is all ready.
     effect(() => {
       const upcoming = this.einsatz.upcoming().slice(0, 3).map((e) => ({
@@ -338,6 +439,43 @@ export class HqPlanComponent {
       this.feed.chips.set([...upcoming, ...ready].slice(0, 4));
     });
     destroyRef.onDestroy(() => this.feed.chips.set([]));
+  }
+
+  protected needSources(className: string | null) {
+    return (className ? this.sourcesSvc.sources().get(className) : null) ?? NO_SOURCES;
+  }
+
+  /** The Codex page of a line, once its kind is known. */
+  protected codexLink(className: string | null): string[] | null {
+    const kind = this.needSources(className).kind;
+    return kind && className ? ['/codex', kind, className] : null;
+  }
+
+  /** The option a line stands on right now. */
+  protected chosenSource(id: string, options: readonly NeedSource[]): NeedSource {
+    const place = this.placeMap().get(id);
+    return options.find((o) => o.place.id === place?.id) ?? options[0];
+  }
+
+  protected byDistance(options: readonly NeedSource[]): readonly NeedSource[] {
+    return sourcesByDistance(options, this.here());
+  }
+
+  protected auec(n: number): string {
+    return `${n.toLocaleString(this.i18n.getCurrentLang() || undefined)} aUEC`;
+  }
+
+  protected placeLine(o: NeedSource): string {
+    return [o.place.location, o.place.planet, o.place.system].filter((p, i, all) => !!p && all.indexOf(p) === i).join(' · ');
+  }
+
+  protected toggleWhere(id: string): void {
+    this.openWhere.update((cur) => (cur === id ? null : id));
+  }
+
+  protected pickSource(id: string, o: NeedSource): void {
+    this.picks.update((m) => new Map(m).set(id, o.place.id));
+    this.openWhere.set(null);
   }
 
   protected badge = einsatzBadge;
@@ -431,6 +569,8 @@ export class HqPlanComponent {
     return sel.origin === 'top3' ? null : sel;
   }
 }
+
+const NO_SOURCES = { state: 'ready', kind: null, options: [] } as const satisfies NeedSources;
 
 function sessionOrNull(): Storage | null {
   try {

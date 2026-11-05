@@ -7,7 +7,7 @@ import { HqPageId } from './hq-routes';
  * The page cue — the Verse page-transition cue ("Mehr im Verse": uppercase label, one drawn
  * chevron pointing down; `verse-briefing-planet.scss` `.more-cue` + the `chevron` mixin of
  * `_briefing-worlds.scss`), as a real anchor to the next HQ page (concept D5). No page numbers.
- * Positioned by its host (absolute at the bottom of the Start stage).
+ * Positioned by its host (fixed at the viewport's bottom edge on every page but the last).
  */
 @Component({
   selector: 'sc-hq-cue',
@@ -23,6 +23,7 @@ import { HqPageId } from './hq-routes';
   styles: [
     `
       :host { display: flex; justify-content: center; }
+      /* It floats over page content, so it brings its own quiet ground. */
       .more-cue {
         --cs: max(9px, 0.7vw);
         display: flex;
@@ -30,7 +31,11 @@ import { HqPageId } from './hq-routes';
         align-items: center;
         gap: 4px;
         min-height: 44px;
-        padding: 4px 12px;
+        padding: 6px 14px;
+        pointer-events: auto;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
+        backdrop-filter: blur(6px);
         font: 500 max(11px, 0.66vw) / 1.3 var(--sc-font-body);
         letter-spacing: 0.24em;
         text-transform: uppercase;

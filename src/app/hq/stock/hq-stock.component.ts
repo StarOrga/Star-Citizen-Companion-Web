@@ -5,22 +5,29 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
+import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.component';
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import { HqInventoryService, snapshotAge } from '../data/hq-inventory.service';
 import { HqStatsService } from '../data/hq-stats.service';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { hqHangar, hqLocker, hqShip } from '../hq-routes';
+import { HqLiveService } from '../now/hq-live.service';
+import { readLocation } from '../now/hq-live.util';
+import { placeOfName } from '../plan/map/hq-places';
+import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-stock-find';
 
 /**
  * HQ page "Bestand" (D38/D39): Schiffe (favourites + count), Sets (ship loadouts · FPS sets),
  * Erspieltes (blueprints) and Lager per Ort with the snapshot age as margin note — warning
- * colour from 7 days, never danger. "liegt in …" captures a manual item. Everything that
- * leads somewhere is a real anchor.
+ * colour from 7 days, never danger. "Wo liegt …?" answers the question the Lager is for: an item
+ * and an amount give the places that hold it, nearest or fullest first, with the places to fetch
+ * the amount from marked. A form below captures a manual item. Everything that leads somewhere is
+ * a real anchor.
  */
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, FormsModule, ScSegmentedComponent],
+  imports: [TranslatePipe, RouterLink, FormsModule, ScSegmentedComponent, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 class="page-title" id="hq-stock-title">{{ 'hq.pages.bestand' | translate }}</h2>
@@ -74,8 +81,89 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
             <button type="button" class="sc-btn" (click)="inv.load()">{{ 'hq.stock.retry' | translate }}</button>
           </div>
         } @else if (inv.loaded() && !inv.locations().length && !storage().length) {
-          <p class="muted" role="status">{{ 'hq.stock.lager.empty' | translate }}</p>
+          <div class="card intro">
+            <p class="intro-title" role="status">{{ 'hq.stock.lager.empty' | translate }}</p>
+            <p class="muted">{{ 'hq.stock.lager.emptyHow' | translate }}</p>
+          </div>
         } @else {
+          @if (inv.items().length) {
+            <section class="card find" aria-labelledby="hq-stock-find">
+              <h4 id="hq-stock-find">{{ 'hq.stock.find.title' | translate }}</h4>
+              <div class="row">
+                <label class="wide">
+                  <span>{{ 'hq.stock.find.item' | translate }}</span>
+                  <input name="find-term" type="search" autocomplete="off" [placeholder]="'hq.stock.find.itemHint' | translate"
+                         [value]="term()" (input)="term.set($any($event.target).value)" />
+                </label>
+                <label class="qty-f">
+                  <span>{{ 'hq.stock.find.want' | translate }}</span>
+                  <input name="find-want" type="number" min="0" step="any" inputmode="decimal"
+                         [value]="want() ?? ''" (input)="setWant($any($event.target).valueAsNumber)" />
+                </label>
+                <div class="field">
+                  <span class="field-label">{{ 'hq.stock.find.unit' | translate }}</span>
+                  <sc-segmented [options]="unitOptions" [value]="findUnit()" [ariaLabel]="'hq.stock.find.unit' | translate"
+                                (valueChange)="findUnit.set($event === 'scu' ? 'scu' : 'pcs')" />
+                </div>
+                <div class="field">
+                  <span class="field-label">{{ 'hq.stock.find.sort' | translate }}</span>
+                  <sc-segmented [options]="sortOptions" [value]="sort()" [ariaLabel]="'hq.stock.find.sort' | translate"
+                                (valueChange)="sortChoice.set($event === 'nearest' ? 'nearest' : 'most')" />
+                </div>
+              </div>
+
+              @if (names().length) {
+                <div class="names" role="group" [attr.aria-label]="'hq.stock.find.yours' | translate">
+                  <span class="field-label">{{ 'hq.stock.find.yours' | translate }}</span>
+                  @for (n of names(); track n) {
+                    <button type="button" class="name" [attr.aria-pressed]="n === term()" (click)="term.set(n)">{{ n }}</button>
+                  }
+                </div>
+              }
+
+              <div class="where">
+                @if (liveHere(); as place) {
+                  <span class="muted">{{ 'hq.stock.find.here' | translate: { place: place } }}</span>
+                } @else {
+                  <div class="here-pick">
+                    <sc-select [options]="hereOptions()" [value]="manualHere()" placeholderKey="hq.stock.find.whereAmI"
+                               [ariaLabel]="'hq.stock.find.whereAmI' | translate" (valueChange)="manualHere.set($event)" />
+                  </div>
+                  @if (!hereName() && sort() === 'most') {
+                    <span class="muted">{{ 'hq.stock.find.unknownHere' | translate }}</span>
+                  }
+                }
+              </div>
+
+              @if (!term().trim()) {
+                <p class="muted">{{ 'hq.stock.find.prompt' | translate }}</p>
+              } @else if (!found().length) {
+                <p class="muted" role="status">{{ 'hq.stock.find.noHit' | translate }}</p>
+              } @else {
+                @for (g of found(); track g.name) {
+                  <div class="result">
+                    <div class="result-head">
+                      <strong>{{ g.name }}</strong>
+                      <span class="sum" [class.short]="g.want > 0 && !g.covered" role="status">{{ summary(g) }}</span>
+                    </div>
+                    <ul class="hits">
+                      @for (h of g.hits; track h.location) {
+                        <li class="hit" [class.take]="h.take > 0">
+                          <span class="hit-place">{{ placeName(h.location) }}</span>
+                          <span class="tier">{{ 'hq.stock.find.tier.' + h.tier | translate }}</span>
+                          @if (h.take > 0) {
+                            <span class="take-tag">{{ 'hq.stock.find.take' | translate: { n: h.take } }}</span>
+                          }
+                          <span class="qty">{{ h.qty }} {{ unitLabel(g.unit) }}</span>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              }
+            </section>
+          }
+
           <ul class="places">
             @for (loc of inv.locations(); track loc.snapshot.location) {
               <li class="card place">
@@ -133,22 +221,25 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
           <div class="row">
             <label>
               <span>{{ 'hq.stock.capture.item' | translate }}</span>
-              <input name="item" [(ngModel)]="item" maxlength="160" autocomplete="off" />
+              <input name="item" [(ngModel)]="item" maxlength="160" autocomplete="off" [placeholder]="'hq.stock.capture.itemHint' | translate" />
             </label>
             <label class="qty-f">
               <span>{{ 'hq.stock.capture.qty' | translate }}</span>
               <input name="qty" type="number" min="0.01" step="any" inputmode="decimal" [(ngModel)]="qty" />
             </label>
-            <sc-segmented
-              [options]="unitOptions"
-              [value]="unit()"
-              [ariaLabel]="'hq.stock.capture.unit' | translate"
-              (valueChange)="unit.set($event === 'scu' ? 'scu' : 'pcs')" />
+            <div class="field">
+              <span class="field-label">{{ 'hq.stock.capture.unit' | translate }}</span>
+              <sc-segmented
+                [options]="unitOptions"
+                [value]="unit()"
+                [ariaLabel]="'hq.stock.capture.unit' | translate"
+                (valueChange)="unit.set($event === 'scu' ? 'scu' : 'pcs')" />
+            </div>
           </div>
           <div class="row">
             <label class="wide">
               <span>{{ 'hq.stock.capture.location' | translate }}</span>
-              <input name="location" [(ngModel)]="location" maxlength="200" autocomplete="off" />
+              <input name="location" [(ngModel)]="location" maxlength="200" autocomplete="off" [placeholder]="'hq.stock.capture.locationHint' | translate" />
             </label>
             <button type="submit" class="sc-btn" [disabled]="!valid()">{{ 'hq.stock.capture.save' | translate }}</button>
           </div>
@@ -175,16 +266,37 @@ import { hqHangar, hqLocker, hqShip } from '../hq-routes';
       a:focus-visible, input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .more { justify-self: start; }
       .place-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--sc-space-2, 8px); }
-      .age { color: var(--sc-fg-2); font-size: var(--sc-fs-floor, 0.8rem); }
+      .age { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
       .age.stale { color: var(--sc-warning); }
-      .sub { margin: 0; color: var(--sc-fg-2); font-size: var(--sc-fs-floor, 0.8rem); text-transform: uppercase; letter-spacing: 0.04em; }
+      .sub { margin: 0; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; }
       .items li { display: flex; justify-content: space-between; gap: var(--sc-space-3, 12px); }
       .qty { font-variant-numeric: tabular-nums; color: var(--sc-fg-2); text-align: end; }
       .state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sc-space-2, 8px); }
       .state p { margin: 0; }
       .capture { margin-top: var(--sc-space-3, 12px); }
       .row { display: flex; flex-wrap: wrap; gap: var(--sc-space-3, 12px); align-items: end; }
-      label { display: grid; gap: var(--sc-space-1, 4px); flex: 1 1 10rem; font-size: var(--sc-fs-floor, 0.8rem); color: var(--sc-fg-2); }
+      label { display: grid; gap: var(--sc-space-1, 4px); flex: 1 1 10rem; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .field { display: grid; gap: var(--sc-space-1, 4px); }
+      .field-label { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .intro-title { margin: 0; color: var(--sc-fg-0); }
+      .find { margin: var(--sc-space-2, 8px) 0 var(--sc-space-3, 12px); gap: var(--sc-space-3, 12px); }
+      .names { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px); }
+      .name { min-height: 32px; padding: 0 var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 999px; background: transparent; color: var(--sc-fg-1); font: inherit; cursor: pointer; }
+      .name:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+      .name[aria-pressed='true'] { border-color: var(--sc-accent); color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+      .name:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .where { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-3, 12px); }
+      .here-pick { flex: 0 1 18rem; min-width: 12rem; }
+      .result { display: grid; gap: var(--sc-space-2, 8px); }
+      .result-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sc-space-2, 8px); }
+      .sum { color: var(--sc-fg-1); }
+      .sum.short { color: var(--sc-warning); }
+      .hits { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sc-space-1, 4px); }
+      .hit { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-1, 4px) var(--sc-space-3, 12px); padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 8px; }
+      .hit.take { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+      .hit-place { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; color: var(--sc-fg-0); }
+      .tier { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+      .take-tag { padding: 0 8px; border: 1px solid var(--sc-accent); border-radius: 999px; color: var(--sc-accent); font-size: max(0.8rem, var(--sc-fs-floor)); }
       label.qty-f { flex: 0 1 7rem; }
       label.wide { flex: 2 1 14rem; }
       input {
@@ -206,10 +318,62 @@ export class HqStockComponent implements OnInit {
   readonly hangarLink = hqHangar;
   readonly lockerLink = hqLocker;
 
+  private readonly live = inject(HqLiveService);
+
   readonly unitOptions: readonly ScSegmentOption[] = [
     { value: 'pcs', labelKey: 'hq.stock.capture.pcs' },
     { value: 'scu', label: 'SCU' },
   ];
+  readonly sortOptions: readonly ScSegmentOption[] = [
+    { value: 'nearest', labelKey: 'hq.stock.find.nearest' },
+    { value: 'most', labelKey: 'hq.stock.find.most' },
+  ];
+
+  readonly term = signal('');
+  readonly want = signal<number | null>(null);
+  readonly findUnit = signal<StockUnit>('scu');
+  /** The reader's choice; until then nearest when their place is known. */
+  readonly sortChoice = signal<StockSort | null>(null);
+  /** "Wo bist du gerade?" without a live position. */
+  readonly manualHere = signal<string | null>(null);
+
+  /** The place the SCC app reports, as a readable name. */
+  readonly liveHere = computed(() => {
+    const at = readLocation(this.live.state());
+    return at ? formatLocationName(at.name) : null;
+  });
+  readonly hereName = computed(() => readLocation(this.live.state())?.name ?? this.manualHere());
+  readonly sort = computed<StockSort>(() => this.sortChoice() ?? (this.hereName() ? 'nearest' : 'most'));
+  readonly hereOptions = computed<ScSelectOption[]>(() =>
+    this.inv.locations().map((l) => ({ value: l.snapshot.location, labelKey: '', label: formatLocationName(l.snapshot.location) })),
+  );
+  readonly names = computed(() => stockNames(this.inv.items(), this.term(), this.findUnit()));
+  readonly found = computed<StockGroup[]>(() => {
+    const name = this.hereName();
+    return findStock(this.inv.items(), {
+      term: this.term(),
+      unit: this.findUnit(),
+      want: this.want() ?? 0,
+      here: name ? placeOfName(name, readLocation(this.live.state())?.system ?? null) : null,
+      sort: this.sort(),
+    });
+  });
+
+  setWant(n: number): void {
+    this.want.set(Number.isFinite(n) && n > 0 ? n : null);
+  }
+
+  unitLabel(u: StockUnit): string {
+    return u === 'scu' ? 'SCU' : this.translate.instant('hq.stock.find.pcsUnit');
+  }
+
+  /** The line above a result: enough at one place, enough together, or how much is missing. */
+  summary(g: StockGroup): string {
+    const p = { want: g.want, total: g.total, stops: g.stops, unit: this.unitLabel(g.unit) };
+    if (g.want <= 0) return this.translate.instant('hq.stock.find.summaryTotal', p);
+    if (!g.covered) return this.translate.instant('hq.stock.find.summaryShort', p);
+    return this.translate.instant(g.stops === 1 ? 'hq.stock.find.summaryOne' : 'hq.stock.find.summaryMany', p);
+  }
 
   item = '';
   qty: number | null = 1;

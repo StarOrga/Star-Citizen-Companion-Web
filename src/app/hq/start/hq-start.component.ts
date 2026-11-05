@@ -7,7 +7,9 @@ import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { StageHeroDirective } from '../../shell/fusion-bar/stage-hero.directive';
 import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
-import { HqCueComponent } from '../hq-cue.component';
+import { HqPageNavService } from '../hq-page-nav.service';
+import { HqSuppliesService } from '../hq-supplies.service';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HqFirstVisitComponent } from './hq-first-visit.component';
 
 /** One of the (at most two) patch lines under the Start title: "4.3.1 · S3-Repeater −8 %" / "betrifft Bounty v3 ›". */
@@ -38,7 +40,7 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
  * patch-line slots — the bar's own search field standing in the scene (`[scStageSearch]`, the
  * same `fusion-search` that docks into the subheader on the follow pages), the "Jetzt wichtig"
  * chips and, for a first visit, the launch-step block. The zoomed hub planet behind it is the
- * shell scene (`hq` scene, always on the main pages). The page cue leads to Planen.
+ * shell scene (`hq` scene, always on the main pages). The page cue is the landing's (`HqPagesComponent`).
  *
  * Feeds (Wave 2+): `patchLines` (P8, only for the newest patch and only when it touches the
  * reader's ships/sets) and `chips` (P3: upcoming Einsätze …). Empty → nothing is rendered.
@@ -46,7 +48,7 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
 @Component({
   selector: 'sc-hq-start',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, StageHeroDirective, StageSearchDirective, HqCueComponent, HqFirstVisitComponent],
+  imports: [RouterLink, TranslatePipe, StageHeroDirective, StageSearchDirective, HqFirstVisitComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sc-stage-hero hero" scStageHero>
@@ -71,7 +73,7 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
 
     <div class="below">
       @if (showFirst()) {
-        <sc-hq-first-visit [hangarDone]="hasShips()" [appDone]="hasApp()" [einsatzDone]="hasEinsatz()" (skipped)="skip()" />
+        <sc-hq-first-visit [hangarDone]="hasShips()" [appDone]="hasApp()" [einsatzDone]="hasEinsatz()" (skipped)="skip()" (plan)="startPlanning()" />
       } @else if (shownChips().length) {
         <nav class="chips" [attr.aria-label]="'hq.start.important' | translate">
           <span class="chips-label">{{ 'hq.start.important' | translate }}</span>
@@ -81,8 +83,6 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
         </nav>
       }
     </div>
-
-    <sc-hq-cue class="cue" target="planen" />
   `,
   styles: [
     `
@@ -115,9 +115,8 @@ export const HQ_FIRST_SKIPPED_KEY = 'sc.hq.first.skipped';
       }
       .chip:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
       .chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .cue { position: absolute; inset-inline: 0; bottom: max(12px, 1.4vw); }
-      /* Phones: the bottom bar is the way on; the cue would sit under it. */
-      @media (max-width: 1023px) { .cue { display: none; } :host { padding-bottom: var(--sc-space-6, 32px); } }
+      /* Phones: the bottom bar is the way on, there is no cue to clear. */
+      @media (max-width: 1023px) { :host { padding-bottom: var(--sc-space-6, 32px); } }
       @media (pointer: coarse) { .chip { min-height: 48px; } }
     `,
   ],
@@ -127,6 +126,9 @@ export class HqStartComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly live = inject(HqLiveService);
   private readonly einsatz = inject(HqEinsatzService);
+  private readonly supplies = inject(HqSuppliesService);
+  private readonly chrome = inject(ShellChromeService);
+  private readonly nav = inject(HqPageNavService);
 
   readonly patchLines = input<readonly HqPatchLine[]>([]);
   readonly chips = input<readonly HqChip[]>([]);
@@ -173,6 +175,12 @@ export class HqStartComponent implements OnInit {
     if (!this.auth.user()) return;
     if (this.hangar.ships().length === 0 && this.hangar.roleLoadouts().length === 0) await this.hangar.loadAll();
     this.loaded.set(true);
+  }
+
+  /** "Ersten Einsatz planen": nothing to plan yet → name it in the search right here; else on to Planen. */
+  startPlanning(): void {
+    if (this.supplies.items().length === 0) this.chrome.startSupplySearch();
+    else this.nav.open('planen');
   }
 
   skip(): void {
