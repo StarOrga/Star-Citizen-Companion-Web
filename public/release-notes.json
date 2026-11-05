@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.206.3",
+  "current": "0.206.4",
   "releases": [
+    {
+      "version": "0.206.4",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page, Patches column: \"none running right now\" and the stability chips now sit flush right in their row"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.206.3",
       "date": "2026-11-05",
