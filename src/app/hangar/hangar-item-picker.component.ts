@@ -253,6 +253,7 @@ export class HangarItemPickerComponent implements OnInit {
       search: term || undefined,
       weaponClass,
       limit: 20,
+      payload: 'none', // identity columns only; the picker never reads the payload
     });
     return res.rows.map((r) => ({
       kind,

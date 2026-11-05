@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.205.2] - 2026-11-05
+
+### Changed
+- Codex lists load much less data, so pages open with less traffic. A page of 60 ships dropped from about 331 KB to 2 KB.
+
 ## [0.205.1] - 2026-11-05
 
 ### Fixed

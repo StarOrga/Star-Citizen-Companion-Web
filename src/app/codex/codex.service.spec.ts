@@ -5,6 +5,7 @@ import {
   CodexService,
   PAYLOAD_READS_IN_FLIGHT,
   forEachLimited,
+  listSelect,
   manufacturerFacetOptions,
   manufacturerLabel,
 } from './codex.service';
@@ -1833,5 +1834,59 @@ describe('CodexService German-name search and suggestions', () => {
 
     expect(seen.rpc).toEqual([]);
     expect(seen.ranges).toBe(2);
+  });
+});
+
+/**
+ * Slim list reads (egress, 2026-11-05): a list row no longer carries the whole
+ * payload, only the JSON paths its consumer reads.
+ */
+describe('listSelect and slim list rows', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('keeps the full payload only on request', () => {
+    expect(listSelect('ship', 'full')).toMatch(/, payload$/);
+    expect(listSelect('ship')).not.toMatch(/(^|, )payload($|,)/);
+  });
+
+  it('selects the card keys as payload JSON paths by default', () => {
+    const sel = listSelect('component');
+    expect(sel).toContain('p_name:payload->name');
+    expect(sel).toContain('p_previewImage:payload->previewImage');
+    expect(sel).toContain('p_manufacturer:payload->manufacturer');
+    expect(sel).toContain('size, grade');
+  });
+
+  it("selects no payload for 'none' and exactly the given keys for an array", () => {
+    expect(listSelect('weapon', 'none')).not.toContain('payload');
+    const sel = listSelect('ship', ['flight', 'defaultLoadout']);
+    expect(sel).toContain('p_flight:payload->flight');
+    expect(sel).toContain('p_defaultLoadout:payload->defaultLoadout');
+    expect(sel).not.toContain('p_name');
+  });
+
+  it('rebuilds the payload slice on the row and leaves out absent keys', async () => {
+    const rows = [
+      { class_name: 'a', name_localized: 'Alpha', p_name: { en: 'Alpha', de: 'Alpha' }, p_previewImage: null, p_manufacturer: { name: { en: 'ACME' } } },
+    ];
+    const from = () => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => chain,
+        or: () => chain,
+        not: () => chain,
+        in: () => chain,
+        order: () => chain,
+        range: () => Promise.resolve({ data: rows, count: 1, error: null }),
+        maybeSingle: () => Promise.resolve({ data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true }, error: null }),
+      });
+      return chain;
+    };
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: { from } } }],
+    });
+    const res = await TestBed.inject(CodexService).listByKind('ship');
+    expect(res.rows[0].payload).toEqual({ name: { en: 'Alpha', de: 'Alpha' }, manufacturer: { name: { en: 'ACME' } } });
   });
 });

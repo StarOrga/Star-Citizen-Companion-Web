@@ -62,7 +62,7 @@ describe('CodexBuildDiffService', () => {
     });
     const rows = await svc.addedShips();
     expect(rows.map((r) => r.classNameSlug)).toEqual(['KRIG_S65_Stingray', 'RSI_Zeus']);
-    expect(codex.getShipsByClassNames).toHaveBeenCalledOnceWith(['KRIG_S65_Stingray', 'RSI_Zeus']);
+    expect(codex.getShipsByClassNames).toHaveBeenCalledOnceWith(['KRIG_S65_Stingray', 'RSI_Zeus'], ['name', 'previewImage', 'manufacturer', 'dimensions']);
   });
 
   it('applies the default browse filters and selects only class_name', async () => {
