@@ -78,7 +78,7 @@ const STALE_SHOWN = 3;
               <button type="button" class="chip narrow-only plus" (click)="open({ mode: 'browse' })">+{{ ov().top.length - 2 }}</button>
             }
             @if (ov().free) {
-              <button type="button" class="chip" (click)="open({ mode: 'browse', filter: { place: '' } })">
+              <button type="button" class="chip" [scTooltip]="'hq.stock.free' | translate" scTooltipTier="label" (click)="open({ mode: 'browse', filter: { place: '' } })">
                 <span class="cl">{{ 'hq.stock.free' | translate }}</span><b>{{ ov().free }}</b>
               </button>
             }
@@ -115,12 +115,12 @@ const STALE_SHOWN = 3;
           <h3 id="hq-stock-cats">{{ 'hq.stock.cats.title' | translate }}</h3>
           <div class="chips cats">
             @for (c of ov().cats; track c.cat) {
-              <button type="button" class="chip" (click)="openCat(c.cat)">
+              <button type="button" class="chip" [scTooltip]="('hq.stock.cat.' + c.cat | translate) + ' · ' + c.count" scTooltipTier="label" (click)="openCat(c.cat)">
                 <span class="cl">{{ 'hq.stock.cat.' + c.cat | translate }}</span><b>{{ c.count }}</b>
               </button>
             }
             @if (inv.shipStorage().length) {
-              <button type="button" class="chip" (click)="open({ mode: 'browse', filter: { ships: true } })">
+              <button type="button" class="chip" [scTooltip]="'hq.stock.lager.storage' | translate" scTooltipTier="label" (click)="open({ mode: 'browse', filter: { ships: true } })">
                 <span class="cl">{{ 'hq.stock.lager.storage' | translate }}</span><b>{{ inv.shipStorage().length }}</b>
               </button>
             }
@@ -136,6 +136,8 @@ const STALE_SHOWN = 3;
                 <li><a [routerLink]="shipRoute(s.id)">★ {{ s.customName || s.shipClassName }}</a></li>
               }
             </ul>
+          } @else {
+            <p class="muted wide-only">{{ 'hq.stock.ships.noFavourites' | translate }}</p>
           }
         </section>
 
@@ -170,21 +172,23 @@ const STALE_SHOWN = 3;
   styles: [
     `
       :host { display: block; container-type: inline-size; }
-      .shared-slot { margin-top: var(--sc-space-3, 12px); max-height: 11rem; overflow-y: auto; }
+      .shared-slot { display: block; margin-top: var(--sc-space-3, 12px); max-height: 11rem; overflow-y: auto; }
+      .shared-slot:not(:has(*)) { margin-top: 0; }
       .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-3, 12px); }
       .page-title { margin: 0; font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
-      .actions .sc-btn { min-height: var(--sc-tap-min, 44px); }
+      .actions .sc-btn { min-height: var(--sc-tap-min, 44px); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
       h3 { margin: 0; font: 600 0.95rem / 1.2 var(--sc-font-display); color: var(--sc-fg-1); }
       .muted { color: var(--sc-fg-2); margin: 0; }
       .grid { display: grid; gap: var(--sc-space-3, 12px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
-      .card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: var(--sc-space-3, 12px); display: grid; gap: var(--sc-space-2, 8px); align-content: start; min-width: 0; }
+      .grid > *, .card { min-width: 0; }
+      .card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); padding: var(--sc-space-3, 12px); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sc-space-2, 8px); align-content: start; min-width: 0; }
       .nums { display: flex; gap: var(--sc-space-3, 12px); }
       .num { display: grid; gap: 2px; text-align: start; padding: var(--sc-space-1, 4px) var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-0); color: var(--sc-fg-1); font: inherit; cursor: pointer; flex: 1 1 0; min-height: var(--sc-tap-min, 44px); }
       .num b { font: 600 1.4rem / 1.1 var(--sc-font-display); color: var(--sc-fg-0); }
       .num:hover { border-color: var(--sc-accent); }
       .chips { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
-      .chip { display: inline-flex; align-items: center; gap: var(--sc-space-2, 8px); max-width: 100%; min-height: 32px; padding: 0 var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 999px; background: transparent; color: var(--sc-fg-1); font: inherit; cursor: pointer; }
+      .chip { min-width: 0; overflow: hidden; display: inline-flex; align-items: center; gap: var(--sc-space-2, 8px); max-width: 100%; min-height: 32px; padding: 0 var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 999px; background: transparent; color: var(--sc-fg-1); font: inherit; cursor: pointer; }
       .chip:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
       .chip.warn { color: var(--sc-warning); border-color: color-mix(in srgb, var(--sc-warning) 55%, var(--sc-border)); }
       .chip b { font-variant-numeric: tabular-nums; color: var(--sc-fg-2); }
@@ -205,12 +209,14 @@ const STALE_SHOWN = 3;
       /* Narrow (container, so a phone and a test fixed at 390 px agree): one dense screen, no scrolling.
          Long chip lists fold to a few plus "+n" (the rest is one tap away in the popup). */
       @container (max-width: 520px) {
+        .shared-slot { max-height: none; overflow: visible; }
         .fold, .wide-only { display: none; }
         .narrow-only { display: inline-flex; }
         .page-title { font-size: 1.3rem; }
         .head { margin-bottom: var(--sc-space-2, 8px); gap: var(--sc-space-2, 8px); }
-        .actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
-        .actions .sc-btn { padding-inline: var(--sc-space-2, 8px); line-height: 1.15; }
+        .actions { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1.2fr); width: 100%; }
+        .actions .sc-btn { padding-inline: var(--sc-space-1, 4px); line-height: 1.15; letter-spacing: 0; font-size: 0.8rem; }
+        .tile h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
         .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sc-space-2, 8px); }
         .grid > .card:not(.tile) { grid-column: 1 / -1; }
         .card { padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); gap: var(--sc-space-1, 4px); }

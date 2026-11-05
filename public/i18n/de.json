@@ -5348,8 +5348,9 @@
     "stock": {
       "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
       "free": "Ortsfrei",
+      "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Lager eingetragen.",
-      "actions": { "browse": "Bestand durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
       "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
       "places": { "title": "Größte Orte" },
       "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },

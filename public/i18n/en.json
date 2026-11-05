@@ -5348,8 +5348,9 @@
     "stock": {
       "signedOut": "Sign in to see your holdings.",
       "free": "No place",
+      "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to storage.",
-      "actions": { "browse": "Browse stock", "find": "Where is …?", "add": "Add" },
+      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
       "totals": { "title": "Total", "items": "items", "places": "places" },
       "places": { "title": "Largest places" },
       "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
