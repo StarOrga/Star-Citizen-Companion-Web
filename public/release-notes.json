@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.4",
+  "current": "0.207.5",
   "releases": [
+    {
+      "version": "0.207.5",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "A finished feedback topic no longer waits hours for a slower one in the same batch"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.4",
       "date": "2026-11-05",
