@@ -4771,23 +4771,20 @@
     },
     "incoming": {
       "title": "Eingegangene Anfragen",
-      "empty": "Keine offenen Anfragen.",
       "expiryHint": "Unbeantwortete Anfragen verfallen nach sieben Tagen."
     },
     "outgoing": {
       "title": "Gesendete Anfragen",
-      "empty": "Du hast keine Anfrage offen.",
       "expiryHint": "Deine Anfragen verfallen nach sieben Tagen ohne Antwort."
     },
     "list": {
       "title": "Deine Freunde",
-      "empty": "Noch keine Freunde. Füge oben jemanden über den Benutzernamen hinzu.",
+      "empty": "Noch keine Freunde.",
       "since": "Befreundet seit {{date}}"
     },
     "blocked": {
       "title": "Blockiert",
-      "hint": "Blockierte Konten sehen dich nicht und können dir keine Anfrage schicken.",
-      "empty": "Du hast niemanden blockiert."
+      "hint": "Blockierte Konten sehen dich nicht und können dir keine Anfrage schicken."
     },
     "actions": {
       "accept": "Annehmen",

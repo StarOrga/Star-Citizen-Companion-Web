@@ -38,18 +38,16 @@ import {
       }
 
       <!-- Incoming requests first: they are the only bucket that needs a
-           decision from the user. -->
-      <div class="sc-card section">
-        <h2>
-          {{ 'friends.incoming.title' | translate }}
-          @if (graph().incoming.length > 0) {
+           decision from the user. Incoming, sent and blocked only exist once
+           they hold someone: empty, they would push the invite box, the one
+           thing a new account needs, far down the page. -->
+      @if (graph().incoming.length > 0) {
+        <div class="sc-card section">
+          <h2>
+            {{ 'friends.incoming.title' | translate }}
             <span class="count">{{ graph().incoming.length }}</span>
-          }
-        </h2>
-        <p class="hint">{{ 'friends.incoming.expiryHint' | translate }}</p>
-        @if (graph().incoming.length === 0) {
-          <p class="empty-inline">{{ 'friends.incoming.empty' | translate }}</p>
-        } @else {
+          </h2>
+          <p class="hint">{{ 'friends.incoming.expiryHint' | translate }}</p>
           <ul class="edge-list">
             @for (e of graph().incoming; track e.user_id) {
               <li class="edge">
@@ -88,8 +86,8 @@ import {
               </li>
             }
           </ul>
-        }
-      </div>
+        </div>
+      }
 
       <div class="sc-card section">
         <h2>{{ 'friends.list.title' | translate }}</h2>
@@ -142,12 +140,10 @@ import {
         }
       </div>
 
-      <div class="sc-card section">
-        <h2>{{ 'friends.outgoing.title' | translate }}</h2>
-        <p class="hint">{{ 'friends.outgoing.expiryHint' | translate }}</p>
-        @if (graph().outgoing.length === 0) {
-          <p class="empty-inline">{{ 'friends.outgoing.empty' | translate }}</p>
-        } @else {
+      @if (graph().outgoing.length > 0) {
+        <div class="sc-card section">
+          <h2>{{ 'friends.outgoing.title' | translate }}</h2>
+          <p class="hint">{{ 'friends.outgoing.expiryHint' | translate }}</p>
           <ul class="edge-list">
             @for (e of graph().outgoing; track e.user_id) {
               <li class="edge">
@@ -174,15 +170,13 @@ import {
               </li>
             }
           </ul>
-        }
-      </div>
+        </div>
+      }
 
-      <div class="sc-card section">
-        <h2>{{ 'friends.blocked.title' | translate }}</h2>
-        <p class="hint">{{ 'friends.blocked.hint' | translate }}</p>
-        @if (graph().blocked.length === 0) {
-          <p class="empty-inline">{{ 'friends.blocked.empty' | translate }}</p>
-        } @else {
+      @if (graph().blocked.length > 0) {
+        <div class="sc-card section">
+          <h2>{{ 'friends.blocked.title' | translate }}</h2>
+          <p class="hint">{{ 'friends.blocked.hint' | translate }}</p>
           <ul class="edge-list">
             @for (e of graph().blocked; track e.user_id) {
               <li class="edge">
@@ -200,8 +194,8 @@ import {
               </li>
             }
           </ul>
-        }
-      </div>
+        </div>
+      }
 
       <!-- Report form. Inline rather than a modal: it needs a category and a
            free-text reason, and a one-line native confirm() cannot carry

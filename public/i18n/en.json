@@ -4771,23 +4771,20 @@
     },
     "incoming": {
       "title": "Incoming requests",
-      "empty": "No open requests.",
       "expiryHint": "Requests nobody answers expire after seven days."
     },
     "outgoing": {
       "title": "Sent requests",
-      "empty": "You have no request pending.",
       "expiryHint": "Your requests expire after seven days without an answer."
     },
     "list": {
       "title": "Your friends",
-      "empty": "No friends yet. Add someone by username above.",
+      "empty": "No friends yet.",
       "since": "Friends since {{date}}"
     },
     "blocked": {
       "title": "Blocked",
-      "hint": "Blocked accounts cannot see you and cannot send you a request.",
-      "empty": "You have not blocked anyone."
+      "hint": "Blocked accounts cannot see you and cannot send you a request."
     },
     "actions": {
       "accept": "Accept",
