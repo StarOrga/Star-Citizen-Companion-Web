@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { logWarn } from '../../../core/log';
 import { SupabaseClientProvider } from '../../../core/supabase.client';
-import type { PatchTeasers } from './briefing-patch-title';
+import { liveVersionOfSlug, type PatchTeasers } from './briefing-patch-title';
 
 /**
  * AI teaser titles for patch versions (`patch_teasers`, written by the
@@ -12,7 +12,27 @@ import type { PatchTeasers } from './briefing-patch-title';
 export class PatchTeaserService {
   private readonly sb = inject(SupabaseClientProvider);
   readonly teasers = signal<PatchTeasers>({});
+  /** LIVE version named by the current LIVE release-notes slug ('' until read, or when it fails). */
+  readonly liveVersion = signal('');
   private started = false;
+  private liveStarted = false;
+
+  /** One public-read row: the newest LIVE line's release-notes slug names its full version. */
+  async loadLive(): Promise<void> {
+    if (this.liveStarted) return;
+    this.liveStarted = true;
+    try {
+      const { data, error } = await this.sb.client
+        .from('patch_stability_patches')
+        .select('patch_line, notes_slug')
+        .order('live_at', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      this.liveVersion.set(liveVersionOfSlug((data?.[0] as { notes_slug?: string } | undefined)?.notes_slug));
+    } catch (err) {
+      logWarn('verse', 'live version slug unavailable', err);
+    }
+  }
 
   async load(): Promise<void> {
     if (this.started) return;

@@ -1,4 +1,4 @@
-import { TEASER_MAX, channelBuildItems, cleanVersion, patchTitleParts, plannedPatchItem, withLiveVersion } from './briefing-patch-title';
+import { TEASER_MAX, channelBuildItems, cleanVersion, liveVersionOfSlug, patchTitleParts, plannedPatchItem, withLiveVersion } from './briefing-patch-title';
 
 const item = (key: string, title = 'x') => ({ key, kind: 'patch' as const, title });
 const none = {};
@@ -97,5 +97,17 @@ describe('production digest 2026-11-05', () => {
 
   it('prefers a digest-provided live version', () => {
     expect(withLiveVersion({ live: '4.10.1' }, '4.10.2')['live']).toBe('4.10.1');
+  });
+
+  it('still gives 4.10.2 when the roadmap call failed: the LIVE notes slug is the second source', () => {
+    const slugLive = liveVersionOfSlug('star-citizen-alpha-4-10-2-live-release-notes');
+    expect(slugLive).toBe('4.10.2');
+    const channels = withLiveVersion(patch.channels, undefined, slugLive);
+    expect(patchTitleParts(liveItem, channels, none, 'de')).toEqual({ channel: 'live', version: '4.10.2', teaser: null });
+  });
+
+  it('the roadmap wins over the slug, and a slug of another line is ignored by the line guard', () => {
+    expect(withLiveVersion({}, '4.10.2', '4.10.1')['live']).toBe('4.10.2');
+    expect(patchTitleParts(liveItem, withLiveVersion({}, null, '4.9.1'), none, 'de')?.version).toBe('4.10');
   });
 });

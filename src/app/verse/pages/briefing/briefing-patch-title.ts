@@ -101,16 +101,30 @@ export function channelBuildItems(
 }
 
 /**
+ * The LIVE version a LIVE release-notes slug names:
+ * "star-citizen-alpha-4-10-2-live-release-notes" -> "4.10.2". Server twin: `liveVersionOfSlug`
+ * in supabase/functions/patch-teaser/_sweep.ts.
+ */
+export function liveVersionOfSlug(slug: string | null | undefined): string {
+  const m = /alpha-(\d{1,2})-(\d{1,2})(?:-(\d{1,2}))?-live/.exec((slug ?? '').toLowerCase());
+  return m ? [m[1], m[2], m[3]].filter((x) => x !== undefined).join('.') : '';
+}
+
+/**
  * The digest's `channels` map is empty in production (nothing writes
- * `patch_versions`), so the LIVE version it should carry is filled from RSI's
- * own roadmap board ("Live Version: 4.10.2", `rsi-roadmap` `liveVersion`; the
- * server-side `patch_stability_patches.notes_slug` names the same 4.10.2).
- * `patchTitleParts` still checks the version belongs to the story's line.
+ * `patch_versions`), so the LIVE version it should carry comes from two
+ * independent places, so one failed call does not lose it: RSI's roadmap board
+ * ("Live Version: 4.10.2", `rsi-roadmap` `liveVersion`) first, then the slug of
+ * the current LIVE release-notes thread (`patch_stability_patches.notes_slug`,
+ * one public-read row). `patchTitleParts` still checks the version belongs to
+ * the story's line, so neither source can put a foreign line on a story.
  */
 export function withLiveVersion(
   channels: Readonly<Record<string, string>> | null | undefined,
   roadmapLive: string | null | undefined,
+  slugLive?: string | null,
 ): Readonly<Record<string, string>> {
-  const live = cleanVersion(roadmapLive ?? '');
-  return channels?.['live'] || !/^\d/.test(live) ? (channels ?? {}) : { ...channels, live };
+  if (channels?.['live']) return channels;
+  const live = [cleanVersion(roadmapLive ?? ''), slugLive ?? ''].find((v) => /^\d/.test(v));
+  return live ? { ...channels, live } : (channels ?? {});
 }

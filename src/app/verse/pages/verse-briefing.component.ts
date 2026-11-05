@@ -254,7 +254,7 @@ export class VerseBriefingComponent {
     const seen = this.api.seen();
     // The top list first; the rest of the digest (rank order) fills what the dedupe removed.
     const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
-    const channels = withLiveVersion(this.api.digest()?.patch?.channels, this.roadmap.roadmap()?.liveVersion);
+    const channels = withLiveVersion(this.api.digest()?.patch?.channels, this.roadmap.roadmap()?.liveVersion, this.teasers.liveVersion());
     const planned = plannedPatchItem(this.roadmap.roadmap()?.next, channels);
     const have = new Set(rest.map((i) => i.key));
     const builds = channelBuildItems(this.api.digest()?.patch?.channelInfo, have);
@@ -485,6 +485,7 @@ export class VerseBriefingComponent {
     void this.api.loadSeen();
     if (this.shell()) void this.galleryFill.load();
     void this.teasers.load();
+    void this.teasers.loadLive();
     void this.roadmap.loadRoadmap();
     if (!this.news.feed() && !this.news.loading()) void this.news.refresh(true);
 
