@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.211.0] - 2026-11-05
+
+### Added
+- Missile pages open like ship pages: the 3D model, one-word keywords, a comparison against other missiles and a data block. Damage, speed, agility and range appear once a build is uploaded with the new uploader (0.73.3).
+
 ## [0.210.2] - 2026-11-05
 
 ### Fixed
