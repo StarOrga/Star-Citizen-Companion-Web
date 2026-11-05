@@ -14,6 +14,9 @@ import { readLocation } from '../now/hq-live.util';
 import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
+import { HqEinsatzCrewComponent } from '../social/hq-einsatz-crew.component';
+import { HqFriendShareComponent } from '../social/hq-friend-share.component';
+import { HqSharedEinsaetzeComponent } from '../social/hq-shared-einsaetze.component';
 import { HqMoodTogglesComponent } from './hq-mood-toggles.component';
 import { MoodPair, MoodSide, activeMoodKeys } from './hq-moods';
 import { HqNeedSourcesService, NeedSource, NeedSources, bestSource, sourcesByDistance } from './hq-need-sources.service';
@@ -68,6 +71,9 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     HqSuppliesPopupComponent,
     HqPlanMapComponent,
     HqCommunityOptinComponent,
+    HqFriendShareComponent,
+    HqEinsatzCrewComponent,
+    HqSharedEinsaetzeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -239,11 +245,15 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
                       </div>
                     }
                   </div>
+                  <sc-hq-friend-share kind="einsatz" [subjectId]="e.id" />
+                  <sc-hq-einsatz-crew [einsatzId]="e.id" />
                 </li>
               }
             </ul>
           }
         </section>
+
+        <sc-hq-shared-einsaetze />
       }
     }
 
@@ -313,6 +323,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .steps { display: flex; flex-direction: column; border-top: 1px solid var(--sc-border); }
       .steps > * + * { border-top: 1px solid var(--sc-border); }
       .save { align-self: flex-start; min-height: var(--sc-tap-min, 44px); }
+      .ein sc-hq-friend-share, .ein sc-hq-einsatz-crew { margin-top: var(--sc-space-2, 8px); }
       .ein { padding: var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0); }
       .ein-head { display: flex; align-items: center; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-2, 8px); }
       .ein-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }

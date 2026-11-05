@@ -1,7 +1,221 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.3",
+  "current": "0.210.0",
   "releases": [
+    {
+      "version": "0.210.0",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse: a Verse / Codex / HQ link row sits centred at the very bottom of the page, under the patches, as a test."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.209.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub: the stability chip on the live patch card sits flush right on the title line."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.209.0",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse start page: the planet and the small bodies now render away from the page itself, so the page stays responsive while they start. On a desktop graphics card the longest freeze drops from about 4 s to about 0.2 s, and the planet stands after about 2 s. Picture, transitions and animations stay as they are."
+            },
+            {
+              "title": "",
+              "text": "Verse start page: the full entrance plays once per day on each device. A reload or a new tab on the same day shows the short opening instead."
+            },
+            {
+              "title": "",
+              "text": "Small bodies load ready-made maps, a one-time download of 0.9 to 3 MB depending on the screen."
+            },
+            {
+              "title": "",
+              "text": "The app stores only its core ahead of time when installed. Everything else loads when needed and in the background, so a new version costs far less to pick up."
+            },
+            {
+              "title": "",
+              "text": "Without a graphics card the planet takes longer to appear (about 18 s instead of about 5 s), but the page stays usable meanwhile."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "\"New\" markers in the Codex now see every item in the build, not only the first 10,000, and need one request instead of about 20."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.208.3",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hero title and hub texts: the halo is down to one faint dark blur, with no visible field and no glow on hover."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.208.2",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Feedback routine: headless runs start in a detached runner checkout, so workers can commit past the main-branch guard."
+            },
+            {
+              "title": "",
+              "text": "Feedback routine: workers verify through web-ci on their PR instead of parallel local builds, and a run lands green PRs before it opens a new wave."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.208.1",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Social: empty request and blocked cards no longer push the invite box far down, and the empty friends text no longer points to an add box above."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.208.0",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Social page in the profile menu: friend requests, a personal invite link, private groups (orgs and Einsatzgruppen), a comparison with your friends and a page for each friend"
+            },
+            {
+              "title": "",
+              "text": "HQ shows friends where they help, and only then: open requests on Start, shared Einsätze with crew slots and RSVPs in Planen, who is online in Jetzt, shared sets and ship variants in Bestand"
+            },
+            {
+              "title": "",
+              "text": "Share ship variants and Einsätze with friends or groups, and take a friend's set or variant into your own HQ as a copy"
+            },
+            {
+              "title": "",
+              "text": "Choose what friends see, in general and per friend: hangar, flagship, online status and comparison numbers. All are on by default; the Social page says so once"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/friends now leads to /social, the Settings card is gone, and the menu shows how many requests are waiting"
+            },
+            {
+              "title": "",
+              "text": "Ending a friendship removes what you shared with each other for good, including shared sets. It does not come back if you become friends again"
+            },
+            {
+              "title": "",
+              "text": "Privacy page describes what friends can see and how to switch it off"
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Build guard no longer counts an old build as success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.207.5",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "A finished feedback topic no longer waits hours for a slower one in the same batch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.207.4",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader: the metadata step takes about half as long on the live game archive, with identical output. Silhouette and 3D builds read from the archive through the same faster path."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.3",
       "date": "2026-11-05",
@@ -12,7 +226,7 @@
           "items": [
             {
               "title": "",
-              "text": "Verse start page, News column: the tiles now open at 30 % of the former speed, so the next news entry opens more calmly when the mouse moves on"
+              "text": "The feedback routine works up to three unrelated topics at once again. Topics about the same file or element still wait for each other, and each further change is tested again on top of the one merged before it"
             }
           ]
         }

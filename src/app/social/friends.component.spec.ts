@@ -60,16 +60,16 @@ describe('FriendsComponent (smoke)', () => {
     expect(rpc).toHaveBeenCalledWith('list_my_friend_edges');
     const names = Array.from(el.querySelectorAll('.edge-name')).map((n) => n.textContent?.trim());
     expect(names).toEqual(['pilot_b', 'pilot_a', 'pilot_c', 'pilot_d']);
-    expect(el.textContent).not.toContain('friends.incoming.empty');
     expect(el.textContent).not.toContain('friends.list.empty');
   });
 
-  it('shows the empty texts for an empty graph', async () => {
+  it('an empty graph keeps only the friends card, so the invite box stays close', async () => {
     const { el } = await mount([]);
-    expect(el.textContent).toContain('friends.incoming.empty');
+    expect(el.querySelectorAll('.section').length).toBe(1);
     expect(el.textContent).toContain('friends.list.empty');
-    expect(el.textContent).toContain('friends.outgoing.empty');
-    expect(el.textContent).toContain('friends.blocked.empty');
+    expect(el.textContent).not.toContain('friends.incoming.title');
+    expect(el.textContent).not.toContain('friends.outgoing.title');
+    expect(el.textContent).not.toContain('friends.blocked.title');
   });
 
   it('accepting a request calls respond_friend_request(accept=true), reloads and flashes', async () => {
@@ -99,18 +99,22 @@ describe('FriendsComponent (smoke)', () => {
     expect(el.querySelector('.flash.success')).toBeNull();
   });
 
-  it('the handle field validates before enabling the search button', async () => {
+  it('every friend name is a real anchor to /social/<handle>', async () => {
+    const { el } = await mount([edge('friend', 'a')]);
+    const a = el.querySelector<HTMLAnchorElement>('.edge-name a.edge-link');
+    expect(a?.getAttribute('href')).toBe('/social/pilot_a');
+  });
+
+  it('falls back to the user id in the path when the account has no handle', async () => {
+    const { el } = await mount([{ ...edge('friend', 'a'), username: null }]);
+    expect(el.querySelector('.edge-name a')?.getAttribute('href')).toBe('/social/a');
+  });
+
+  it('the empty friends state leads to the invite box', async () => {
     const { fixture, el } = await mount([]);
-    const input = el.querySelector('input.text-input') as HTMLInputElement;
-    const submit = el.querySelector('form button[type=submit]') as HTMLButtonElement;
-    expect(submit.disabled).toBeTrue();
-    input.value = 'ab';
-    input.dispatchEvent(new Event('input'));
-    await settle(fixture);
-    expect(submit.disabled).toBeTrue();
-    input.value = 'pilot_ok';
-    input.dispatchEvent(new Event('input'));
-    await settle(fixture);
-    expect(submit.disabled).toBeFalse();
+    let asked = 0;
+    fixture.componentInstance.inviteRequested.subscribe(() => asked++);
+    el.querySelector<HTMLButtonElement>('.empty-state button')?.click();
+    expect(asked).toBe(1);
   });
 });

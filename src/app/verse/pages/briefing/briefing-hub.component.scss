@@ -142,9 +142,11 @@
 .feat-c { position: absolute; left: max(12px, var(--u)); right: max(12px, var(--u)); bottom: max(12px, 1.1 * var(--u)); z-index: 1; display: flex; flex-direction: column; gap: max(6px, 0.45 * var(--u)); }
 .feat-k { font-size: max(11px, calc(0.6 * var(--u))); letter-spacing: 0.22em; text-transform: uppercase; color: var(--sc-fg-0); opacity: 0.85; }
 .feat-k b { color: var(--sc-success); font-weight: 600; }
-.feat-h { display: flex; align-items: center; flex-wrap: wrap; gap: max(6px, 0.7 * var(--u)); }
+.feat-h { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: max(6px, 0.7 * var(--u)); }
+// The title sits left, the stability chip flush right on the same line.
 .feat-t { font-size: max(15px, var(--u)); font-weight: 600; line-height: 1.25; }
 .feat:hover .feat-t { color: #fff; }
+.feat-h sc-stability-chip { margin-left: auto; }
 // The row reads as two edges: the channel on the left, its chip or quiet note flush right.
 .ch-chip { justify-self: end; min-width: 0; }
 

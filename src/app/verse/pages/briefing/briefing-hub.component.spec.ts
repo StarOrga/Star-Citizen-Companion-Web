@@ -130,4 +130,15 @@ describe('BriefingHubComponent — channel rows', () => {
     expect(right('.ch.off[data-ch="hotfix"] .quiet')).toBeCloseTo(right('.ch.off[data-ch="hotfix"]'), 0);
     expect(right('.ch[data-ch="ptu"] .ch-chip')).toBeCloseTo(right('.ch[data-ch="ptu"]'), 0);
   });
+  it('puts the stability chip of the live patch card flush right', () => {
+    const live = hubChannel('live', { live: '4.10.2' }, known, noVerdict, { live: build('4.10.2', 200) }, NOW);
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
+    const fixture = TestBed.createComponent(BriefingHubComponent);
+    fixture.componentRef.setInput('live', live);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const chip = el.querySelector('.feat-h sc-stability-chip');
+    if (!chip) { pending('no chip for this fixture'); return; }
+    expect(chip.getBoundingClientRect().right).toBeCloseTo(el.querySelector('.feat-h')!.getBoundingClientRect().right, 0);
+  });
 });

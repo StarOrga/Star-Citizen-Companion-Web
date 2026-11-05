@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BACKOFF_MIN, HARD_CAP_MIN, IDLE_KILL_MIN, MAX_ATTEMPTS, applyRun, classifyBranch, classifyExit, emptyState, itemKey,
+  BACKOFF_MIN, HARD_CAP_MIN, IDLE_KILL_MIN, MAX_ATTEMPTS, applyRun, ciVerdict, classifyBranch, classifyExit, emptyState, itemKey,
   mergedSinceClaim, parkMessage, planQueue, shortIdOfBranch, shouldNotify, watchdogStep,
 } from './lib/routine-watcher-core.mjs';
 
@@ -49,6 +49,12 @@ test('applyRun: progress charges only the claimed item, the unreached one stays 
   const { state, charged } = applyRun({ state: emptyState(), snapshot, unresolvedIds: ['b', 'c'], claimedIds: ['b'], outcome: { kind: 'ok' }, now: 0 });
   assert.deepEqual(charged, ['b']);
   assert.equal(state.items.c, undefined);
+});
+test('applyRun: a wave stopped by the time limit charges its claims, not the topics it never reached', () => {
+  const snapshot = [item('a'), item('b'), item('c')];
+  const { state, charged } = applyRun({ state: emptyState(), snapshot, unresolvedIds: ['a', 'b', 'c'], claimedIds: ['a'], outcome: { kind: 'killed', reason: 'hard cap' }, now: 0 });
+  assert.deepEqual(charged, ['a']);
+  assert.equal(state.items.b, undefined);
 });
 test('applyRun: a resolved item loses its history', () => {
   const start = { ...emptyState(), items: { a: { key: itemKey(item('a')), attempts: 2, nextAttemptAt: 0 } } };
@@ -138,6 +144,14 @@ test('parkMessage: says it failed, where the work is, and offers the retry', () 
   assert.match(m, /feat\/feedback-1a2b3c4d/);
   assert.match(m, /\[\[Erneut versuchen\|Thema schließen\]\]$/);
   assert.match(parkMessage({ attempts: 3, reason: 'x', branch: 'b', prUrl: 'https://pr' }), /https:\/\/pr/);
+});
+test('ciVerdict: reads the newest run only', () => {
+  assert.equal(ciVerdict([]).state, 'none');
+  assert.equal(ciVerdict(null).state, 'none');
+  assert.equal(ciVerdict([{ databaseId: 1, status: 'in_progress', conclusion: '' }]).state, 'running');
+  assert.equal(ciVerdict([{ databaseId: 1, status: 'completed', conclusion: 'success' }]).state, 'green');
+  assert.equal(ciVerdict([{ databaseId: 2, status: 'completed', conclusion: 'failure' }, { databaseId: 1, status: 'completed', conclusion: 'success' }]).state, 'red');
+  assert.equal(ciVerdict([{ databaseId: 1, status: 'completed', conclusion: 'cancelled' }]).state, 'red');
 });
 test('shouldNotify: one toast per kind inside the window', () => {
   assert.equal(shouldNotify({ notified: {} }, 'auth', 1000), true);

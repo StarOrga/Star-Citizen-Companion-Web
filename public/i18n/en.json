@@ -184,7 +184,6 @@
     "loading": {
       "weak": "Weak signal · retuning"
     },
-    "friends": "Friends",
     "loadFailed": {
       "message": "This page could not be loaded — your browser is probably still running an older version of the app.",
       "reload": "Reload app",
@@ -192,7 +191,10 @@
     },
     "hq": "HQ",
     "verse": "Verse",
-    "translations": "AI translation"
+    "translations": "AI translation",
+    "social": "Social",
+    "accountMenuRequests": "Account menu, {{count}} open friend requests",
+    "socialRequests": "Social, {{count}} open friend requests"
   },
   "impersonation": {
     "banner": {
@@ -3137,11 +3139,6 @@
         "notFound": "This account no longer exists.",
         "invalidBody": "The request was invalid. Please reload the page."
       }
-    },
-    "friends": {
-      "title": "Friends",
-      "hint": "Manage friend requests, your friend list and blocked accounts.",
-      "open": "Open friends"
     }
   },
   "admin": {
@@ -3667,7 +3664,7 @@
         "p1": "You only need an account for the personal features (hangar, loadouts, settings, feedback). News, codex and release notes work without one. There are exactly two ways to sign in: e-mail address plus password, or the \"Continue with Google\" button. The app uses no other method — no magic links, no SMS codes, no further social logins — and there is no sign-up form: accounts are created by an invitation an administrator sends to your e-mail address.",
         "p2": "For sign-in, our backend provider Supabase keeps an auth record about you in the EU region eu-central-1 (Frankfurt): your e-mail address, a salted password hash when you use password sign-in (never the plaintext password), the linked sign-in methods, and timestamps such as invitation, creation and last sign-in.",
         "p3": "On top of that there is a profile record with what the app needs for you: a display name (initially the part of your e-mail address before the @), the username you pick yourself, your language and game-channel preference, optionally your RSI handle and your flagship, plus your role (viewer, collaborator, admin) and whether your account is approved. Role and approval decide what you may see and do.",
-        "p4": "Feature data you create (hangar ships, loadouts, ship links, saved drafts, settings) is stored under your account and is only readable by you — enforced with row-level security in the database. One obvious exception: feedback you send is visible to the maintainers, with your account as the sender so they can reply.",
+        "p4": "Feature data you create (hangar ships, loadouts, ship links, saved drafts, settings) is stored under your account and readable by you — enforced with row-level security in the database. Exceptions: feedback you send is visible to the maintainers, with your account as the sender so they can reply; and what you show to friends (see \"Friends and visibility\").",
         "p5": "Accounts are invite-only. Sign-ups that are not approved never get past the login page and can be removed together with their data."
       },
       "google": {
@@ -3710,6 +3707,12 @@
         "p1": "Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability and objection regarding your personal data. You may also lodge a complaint with a data protection supervisory authority.",
         "p2": "Your account can be deleted completely: removing the auth record also removes profile, hangar, loadouts, drafts and uploads through the database cascade. Right now the deletion is carried out by an administrator — the delete button in the settings only works for accounts with the admin role. Request it via the contact routes in the site notice; requests are handled promptly.",
         "p3": "You can withdraw your consent for preference storage and statistics at any time in the settings; withdrawal deletes the affected local entries immediately and applies going forward — the lawfulness of processing up to that point is unaffected."
+      },
+      "social": {
+        "title": "Friends and visibility",
+        "p1": "Friends are accounts you connected with through a request or a personal invite link; an invite link expires and you can revoke it. While you are friends, they see your hangar, your flagship, whether you are online and the comparison numbers on the Social page (for example how often you use SCC) by default. You can switch each of these off in the visibility popup on the Social page, in general or for a single friend.",
+        "p2": "For this the user_presence table stores, per account, the time of your last visit and an activity mask for the last 30 days (active or not per day) — no browsing history. \"Online\" means seen within the last few minutes.",
+        "p3": "Groups (for example orgs or squads) are a private list of yours: the members see neither the group nor its name. Einsätze, loadouts and ship variants are only visible to whom you explicitly share them with. Ending a friendship ends all visibility at once."
       }
     },
     "imprint": {
@@ -4768,23 +4771,20 @@
     },
     "incoming": {
       "title": "Incoming requests",
-      "empty": "No open requests.",
       "expiryHint": "Requests nobody answers expire after seven days."
     },
     "outgoing": {
       "title": "Sent requests",
-      "empty": "You have no request pending.",
       "expiryHint": "Your requests expire after seven days without an answer."
     },
     "list": {
       "title": "Your friends",
-      "empty": "No friends yet. Add someone by username above.",
+      "empty": "No friends yet.",
       "since": "Friends since {{date}}"
     },
     "blocked": {
       "title": "Blocked",
-      "hint": "Blocked accounts cannot see you and cannot send you a request.",
-      "empty": "You have not blocked anyone."
+      "hint": "Blocked accounts cannot see you and cannot send you a request."
     },
     "actions": {
       "accept": "Accept",
@@ -4882,7 +4882,8 @@
       "pick": "Pick a friend …",
       "share": "Share",
       "noFriends": "You have not added any friends yet.",
-      "allShared": "All of your friends already have this set."
+      "allShared": "All of your friends already have this set.",
+      "toSocial": "Add friends on the Social page"
     },
     "link": {
       "title": "Public link",
@@ -4918,7 +4919,8 @@
       "shared": "Set shared.",
       "alreadyShared": "That friend already has this set.",
       "linkCreated": "Link created.",
-      "revoked": "Share revoked."
+      "revoked": "Share revoked.",
+      "groupShared": "Shared with the current group members."
     },
     "error": {
       "notFriends": "You are not friends (any more).",
@@ -4928,6 +4930,11 @@
       "invalidTarget": "Invalid selection.",
       "notApproved": "Your account is not approved.",
       "generic": "That did not work. Please try again."
+    },
+    "groups": {
+      "pick": "Pick a group …",
+      "share": "Share with group",
+      "hint": "The set goes to the members who are in the group now. People who join later do not receive it."
     }
   },
   "conceptPage": {
@@ -5419,9 +5426,57 @@
       "retry": "Already installed? Start again",
       "download": "Download SCC app",
       "close": "Close"
+    },
+    "friends": {
+      "sharedLine": "{{n}} Einsatz shared by friends",
+      "requests": {
+        "title": "Friend requests ({{n}})",
+        "accept": "Accept",
+        "decline": "Decline"
+      },
+      "share": {
+        "open": "Share with friends",
+        "hint": "View only. For a group, members added later get access too.",
+        "setHint": "The set goes to the friends in the group now. Members added later do not get it.",
+        "audience": "Friend or group",
+        "choose": "Choose a friend or group",
+        "send": "Share",
+        "revoke": "Revoke",
+        "done": "Shared.",
+        "duplicate": "Already shared.",
+        "setDone": "Shared with {{n}} friends."
+      },
+      "crew": {
+        "open": "Crew slots and RSVPs",
+        "hint": "Name the slots friends can take.",
+        "slotLabel": "Slot name",
+        "removeSlot": "Remove slot",
+        "addSlot": "Add slot",
+        "save": "Save slots",
+        "counts": "Yes {{yes}} · Maybe {{maybe}} · No {{no}}"
+      },
+      "shared": {
+        "title": "Shared by friends",
+        "by": "by",
+        "readOnly": "View only",
+        "answer": "Your answer",
+        "slot": "Crew slot",
+        "noSlot": "No slot"
+      },
+      "stock": {
+        "adopt": "Add to my stock",
+        "adopted": "Adopted",
+        "kindSet": "Set",
+        "kindVariant": "Variant · {{ship}}"
+      },
+      "now": {
+        "online": "Online now:",
+        "active": "Running now: {{title}} · {{n}} confirmed"
+      }
     }
   },
   "verse": {
+    "areaFoot": { "aria": "Switch area" },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",
@@ -5745,7 +5800,7 @@
     "kartograph": {
       "title": "Cartographer",
       "rank": "Rank {{rank}}",
-      "perks": "Early access to beta features, suggestions for the top list and a badge your friends can see.",
+      "perks": "Early access to beta features, suggestions for the top list and a badge you can share as a public link.",
       "locked": "Collect stars to unlock the cartographer rank."
     },
     "community": {
@@ -6049,12 +6104,12 @@
       "keybinds": "Keybinds",
       "upcoming": "Announced ships",
       "settings": "Settings",
-      "friends": "Friends",
       "releaseNotes": "What's new",
       "badge": "Cartographer badge",
       "ops": "Ops",
       "extension": "Browser extension",
-      "download": "Downloads"
+      "download": "Downloads",
+      "social": "Social"
     }
   },
   "adminHub": {
@@ -6546,6 +6601,183 @@
     "outside": {
       "none": "Nothing in \"{{chip}}\" is called \"{{term}}\".",
       "drop": "Search everywhere without \"{{chip}}\" (⌫)"
+    }
+  },
+  "social": {
+    "error": {
+      "inviteNotFound": "This invite link is no longer valid.",
+      "inviteExpired": "This invite link has expired. Ask for a new one.",
+      "inviteSelf": "This is your own invite link.",
+      "inviteRateLimited": "Too many requests in a short time. Try again in an hour.",
+      "inviteLimit": "You created too many new invite links today. Try again tomorrow.",
+      "inviteFull": "Too many requests are already waiting for this person. Try again later.",
+      "invalidGroupKind": "This kind of group does not exist.",
+      "invalidGroupName": "The name must be 1 to 60 characters long.",
+      "groupNameTaken": "You already have a group with this name.",
+      "groupNotFound": "This group no longer exists.",
+      "groupLimit": "You reached the maximum of 50 groups.",
+      "groupFull": "This group is full at 100 friends.",
+      "einsatzNotFound": "This mission is no longer available.",
+      "einsatzClosed": "This mission is finished and takes no more answers.",
+      "configNotFound": "This ship variant no longer exists.",
+      "loadoutNotFound": "This set no longer exists.",
+      "shareNotFound": "This share no longer exists.",
+      "tooManySlots": "A mission has at most 12 crew slots.",
+      "invalidSlotLabel": "A slot label must be 1 to 40 characters long.",
+      "slotNotFound": "This crew slot no longer exists.",
+      "slotTaken": "This crew slot is already taken.",
+      "invalidAnswer": "This answer is not possible.",
+      "notFriends": "This only works with friends.",
+      "invalidTarget": "This does not work with this person.",
+      "accountSuspended": "Your account is suspended.",
+      "notApproved": "Your account has not been approved yet."
+    },
+    "compare": {
+      "ships": "Ships",
+      "sets": "Sets",
+      "einsaetze_planned": "Planned missions",
+      "einsaetze_done": "Finished missions",
+      "missions_30d": "Missions (30 days)",
+      "kartograph_rank": "Kartograph rank",
+      "active_days_30": "Active days (30 days)"
+    },
+    "group": {
+      "kind": {
+        "org": "Org",
+        "einsatzgruppe": "Mission group"
+      }
+    },
+    "visibility": {
+      "facet": {
+        "hangar": "Hangar",
+        "flagship": "Flagship",
+        "presence": "Online status",
+        "stats": "Comparison numbers"
+      },
+      "title": "What friends see",
+      "done": "Done",
+      "general": "In general",
+      "generalHint": "Applies to all friends unless you set something else for one below. Changes are saved at once.",
+      "facetHint": {
+        "hangar": "Your ships (including the wishlist), without notes and without configurations.",
+        "flagship": "The ship you pinned at the top of your hangar.",
+        "presence": "Whether you are online right now. Never an exact time.",
+        "stats": "Numbers such as ships, sets, missions, active days and Kartograph rank."
+      },
+      "perFriend": "Per friend",
+      "perFriendHint": "Pick a friend and decide whether they see something different from the rest.",
+      "noFriends": "Once you have friends you can set this per friend here.",
+      "loading": "Loading …",
+      "inherit": "As general",
+      "on": "On",
+      "off": "Off",
+      "result": "This friend sees:",
+      "nothing": "none of it"
+    },
+    "rsvp": {
+      "yes": "Yes",
+      "maybe": "Maybe",
+      "no": "No"
+    },
+    "page": {
+      "title": "Social",
+      "subtitle": "Friends, invites, groups and the comparison with you.",
+      "visibilityButton": "What friends see",
+      "online": "Online",
+      "emptyHint": "Invite someone with your personal link, or enter an exact username.",
+      "emptyCta": "Go to the invite",
+      "openFriend": "Open page"
+    },
+    "notice": {
+      "text": "By default friends see your hangar, flagship, online status and comparison numbers. You can switch this off in general and per friend.",
+      "open": "Adjust",
+      "dismiss": "Got it"
+    },
+    "invite": {
+      "title": "Invite friends",
+      "hint": "Send the link, for example on Discord. Whoever opens it and signs in files a friend request to you, which you still have to accept.",
+      "linkLabel": "Your invite link",
+      "copy": "Copy link",
+      "copied": "Copied",
+      "expires": "Valid until {{date}}",
+      "renew": "New link",
+      "revoke": "Withdraw link",
+      "revoked": "The link is withdrawn.",
+      "create": "Create invite link"
+    },
+    "groups": {
+      "title": "Groups",
+      "privateNote": "Groups are private. Your friends see neither the groups nor which one they are in. A friend can be in several groups.",
+      "shareNote": "Whoever joins a group gets what you share with that group (missions, ship variants). Whoever is removed, or when the group is deleted, loses access. A set you share with a group goes only to today's members.",
+      "kindLabel": "Kind of group",
+      "namePlaceholder": "Group name",
+      "create": "Create group",
+      "empty": "No groups yet. Create an org or a mission group to organise friends.",
+      "noFriends": "You have no friends to add yet.",
+      "members": "Members",
+      "rename": "Rename",
+      "delete": "Delete",
+      "renameTitle": "Rename group \"{{name}}\"",
+      "deleteTitle": "Delete group \"{{name}}\"?",
+      "deleteMessage": "The friends stay friends. What you shared with this group is no longer visible to them unless it is shared another way.",
+      "friendPageHint": "A friend's page shows which of your groups they are in, for example"
+    },
+    "comparePanel": {
+      "title": "Comparison",
+      "hint": "How you use SCC and what you each do, compared with you. Only what the friend shows you appears.",
+      "loading": "Loading …",
+      "noFriends": "Once you have friends you can compare yourself with them here.",
+      "with": "Compare with",
+      "metric": "Value",
+      "me": "You",
+      "hidden": "not shared",
+      "desktop": "Desktop app connected",
+      "yes": "Yes",
+      "no": "No",
+      "friendHides": "This friend does not show you their comparison numbers.",
+      "webNote": "How often someone uses the website is not recorded. \"Active days\" is the closest real number."
+    },
+    "friendPage": {
+      "loading": "Loading …",
+      "missingTitle": "Not found",
+      "missing": "This page does not exist or is not visible to you. It is for friends only.",
+      "since": "Friends since {{date}}",
+      "share": "Share something",
+      "inGroups": "In your groups:",
+      "fromFriend": "Shared with you by {{name}}",
+      "nothingShared": "Nothing shared yet.",
+      "fromMe": "Shared by you",
+      "nothingSharedByMe": "You have not shared anything here yet.",
+      "hangar": "Hangar",
+      "flagship": "Flagship",
+      "hangarHidden": "This friend does not show you their hangar.",
+      "hangarEmpty": "The hangar is empty.",
+      "wishlist": "Wishlist",
+      "kindSet": "Set",
+      "kindVariant": "Variant",
+      "kindEinsatz": "Mission",
+      "removeTitle": "Remove {{name}} as a friend?",
+      "removeMessage": "Everything you shared with each other is no longer visible afterwards.",
+      "blockTitle": "Block {{name}}?",
+      "blockMessage": "The friendship ends and this person can no longer send you a request."
+    },
+    "inviteLanding": {
+      "title": "Invitation",
+      "loading": "Checking the invitation …",
+      "dead": "This invite link is no longer valid. Ask for a new one.",
+      "toSocial": "Go to Social",
+      "from": "{{name}} invites you to be friends.",
+      "fromAnon": "You have been invited to be friends.",
+      "hint": "If you continue, this person receives a friend request and still has to accept it.",
+      "accept": "Send request",
+      "signInHint": "Sign in to send the request. You will come back here afterwards.",
+      "signIn": "Sign in",
+      "result": {
+        "pending": "The request to {{name}} is sent. Once it is accepted you are friends.",
+        "accepted": "You are now friends with {{name}}.",
+        "already_friends": "You are already friends with {{name}}."
+      },
+      "toFriend": "{{name}}'s page"
     }
   }
 }

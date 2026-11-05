@@ -1,8 +1,11 @@
 // Stand-in for `claude -p` in the chaos test. Mode comes from FAKE_MODE; item id from FAKE_ITEM.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const REPO = fileURLToPath(new URL('../..', import.meta.url)).replace(/[\\/]$/, '');
+if (process.cwd() === REPO) throw new Error('the run must start in the runner checkout, not in the repo');
 const mode = process.env.FAKE_MODE, id = process.env.FAKE_ITEM, short = id?.slice(0, 8);
-const sql = (query) => execFileSync(process.execPath, ['scripts/routine-gate.mjs', 'sql', '--query', query], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+const sql = (query) => execFileSync(process.execPath, [`${REPO}/scripts/routine-gate.mjs`, 'sql', '--query', query], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
 const out = (o) => console.log(JSON.stringify(o));
 process.stdin.resume();
 await new Promise((r) => process.stdin.on('end', r));
@@ -21,8 +24,8 @@ if (mode === 'usage') {
 } else if (mode === 'claim-die') {
   claim();
   execFileSync('git', ['fetch', 'origin', 'main', '--quiet']);
-  execFileSync('git', ['worktree', 'add', `.claude/worktrees/scfb-${short}`, '-b', `feat/feedback-${short}`, 'origin/main', '--quiet']);
-  fs.writeFileSync(`.claude/worktrees/scfb-${short}/watcher-chaos-test.txt`, 'uncommitted work of a dying run\n');
+  execFileSync('git', ['worktree', 'add', `${REPO}/.claude/worktrees/scfb-${short}`, '-b', `feat/feedback-${short}`, 'origin/main', '--quiet']);
+  fs.writeFileSync(`${REPO}/.claude/worktrees/scfb-${short}/watcher-chaos-test.txt`, 'uncommitted work of a dying run\n');
   process.exitCode = 9;
 } else if (mode === 'hang') {
   claim();

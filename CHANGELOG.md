@@ -4,10 +4,74 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.210.0] - 2026-11-05
+
+### Added
+- Verse: a Verse / Codex / HQ link row sits centred at the very bottom of the page, under the patches, as a test.
+
+## [0.209.1] - 2026-11-05
+
+### Fixed
+- Verse hub: the stability chip on the live patch card sits flush right on the title line.
+
+## [0.209.0] - 2026-11-05
+
+### Changed
+- Verse start page: the planet and the small bodies now render away from the page itself, so the page stays responsive while they start. On a desktop graphics card the longest freeze drops from about 4 s to about 0.2 s, and the planet stands after about 2 s. Picture, transitions and animations stay as they are.
+- Verse start page: the full entrance plays once per day on each device. A reload or a new tab on the same day shows the short opening instead.
+- Small bodies load ready-made maps, a one-time download of 0.9 to 3 MB depending on the screen.
+- The app stores only its core ahead of time when installed. Everything else loads when needed and in the background, so a new version costs far less to pick up.
+- Without a graphics card the planet takes longer to appear (about 18 s instead of about 5 s), but the page stays usable meanwhile.
+
+### Fixed
+- "New" markers in the Codex now see every item in the build, not only the first 10,000, and need one request instead of about 20.
+
+## [0.208.3] - 2026-11-05
+
+### Fixed
+- Verse hero title and hub texts: the halo is down to one faint dark blur, with no visible field and no glow on hover.
+
+## [0.208.2] - 2026-11-05
+
+### Fixed
+- Feedback routine: headless runs start in a detached runner checkout, so workers can commit past the main-branch guard.
+- Feedback routine: workers verify through `web-ci` on their PR instead of parallel local builds, and a run lands green PRs before it opens a new wave.
+
+## [0.208.1] - 2026-11-05
+
+### Fixed
+- Social: empty request and blocked cards no longer push the invite box far down, and the empty friends text no longer points to an add box above.
+
+## [0.208.0] - 2026-11-05
+
+### Added
+- Social page in the profile menu: friend requests, a personal invite link, private groups (orgs and Einsatzgruppen), a comparison with your friends and a page for each friend
+- HQ shows friends where they help, and only then: open requests on Start, shared Einsätze with crew slots and RSVPs in Planen, who is online in Jetzt, shared sets and ship variants in Bestand
+- Share ship variants and Einsätze with friends or groups, and take a friend's set or variant into your own HQ as a copy
+- Choose what friends see, in general and per friend: hangar, flagship, online status and comparison numbers. All are on by default; the Social page says so once
+
+### Changed
+- /friends now leads to /social, the Settings card is gone, and the menu shows how many requests are waiting
+- Ending a friendship removes what you shared with each other for good, including shared sets. It does not come back if you become friends again
+- Privacy page describes what friends can see and how to switch it off
+
+### Fixed
+- Build guard no longer counts an old build as success
+
+## [0.207.5] - 2026-11-05
+
+### Fixed
+- A finished feedback topic no longer waits hours for a slower one in the same batch
+
+## [0.207.4] - 2026-11-05
+
+### Changed
+- Data Uploader: the metadata step takes about half as long on the live game archive, with identical output. Silhouette and 3D builds read from the archive through the same faster path.
+
 ## [0.207.3] - 2026-11-05
 
 ### Changed
-- Verse start page, News column: the tiles now open at 30 % of the former speed, so the next news entry opens more calmly when the mouse moves on
+- The feedback routine works up to three unrelated topics at once again. Topics about the same file or element still wait for each other, and each further change is tested again on top of the one merged before it
 
 ## [0.207.2] - 2026-11-05
 

@@ -7,12 +7,15 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { FriendsService } from './friends.service';
 import { edgeLabel } from './friends.types';
 import { LoadoutShareService } from './loadout-share.service';
+import { SocialService } from './social.service';
+import { friendPath } from './social.types';
 import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.types';
 
 /**
@@ -29,7 +32,7 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
 @Component({
   selector: 'sc-loadout-share-panel',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, ScSelectComponent],
+  imports: [TranslatePipe, ScDatePipe, ScSelectComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sc-card share-card">
@@ -56,7 +59,12 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
             @for (s of friendShares(); track s.id) {
               <li class="share-row">
                 <span class="share-main">
-                  <span class="share-name">{{ friendLabel(s) }}</span>
+                  @if (s.shared_with) {
+                    <!-- Every friend name leads to that friend's page (C13/C19). -->
+                    <a class="share-name" [routerLink]="pathOf(s)">{{ friendLabel(s) }}</a>
+                  } @else {
+                    <span class="share-name">{{ friendLabel(s) }}</span>
+                  }
                   <span class="share-meta">{{ s.created_at | scDate }}</span>
                 </span>
                 <button
@@ -90,9 +98,35 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
             </button>
           </div>
         } @else if (!loading() && friends.friendCount() === 0) {
-          <p class="empty-inline">{{ 'share.friends.noFriends' | translate }}</p>
+          <p class="empty-inline">
+            {{ 'share.friends.noFriends' | translate }}
+            <a class="inline-link" routerLink="/social">{{ 'share.friends.toSocial' | translate }}</a>
+          </p>
         } @else if (!loading()) {
           <p class="empty-inline">{{ 'share.friends.allShared' | translate }}</p>
+        }
+
+        @if (social.groups().length > 0) {
+          <!-- Owner-private groups as a recipient picker (R2). It fans out to
+               the members of today; the hint says so (D5). -->
+          <div class="pick-row">
+            <sc-select
+              class="friend-select"
+              [options]="groupOptions()"
+              [value]="pickedGroup() || null"
+              placeholderKey="share.groups.pick"
+              [ariaLabel]="'share.groups.pick' | translate"
+              (valueChange)="pickedGroup.set($event ?? '')"
+            />
+            <button
+              type="button"
+              class="sc-btn sc-btn-primary"
+              [disabled]="shares.busy() || groupBusy() || !pickedGroup()"
+              (click)="shareWithGroup()">
+              {{ 'share.groups.share' | translate }}
+            </button>
+          </div>
+          <p class="hint small">{{ 'share.groups.hint' | translate }}</p>
         }
       </section>
 
@@ -176,6 +210,8 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
     .share-row:last-child { border-bottom: 0; }
     .share-main { display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px; min-width: 0; }
     .share-name { overflow-wrap: anywhere; }
+    a.share-name, .inline-link { color: var(--sc-accent); text-decoration: none; }
+    a.share-name:hover, .inline-link:hover { text-decoration: underline; }
     .share-meta { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); margin: 6px 0 0; }
 
     .pick-row, .link-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
@@ -236,12 +272,19 @@ export class LoadoutSharePanelComponent implements OnInit {
 
   readonly shares = inject(LoadoutShareService);
   readonly friends = inject(FriendsService);
+  readonly social = inject(SocialService);
 
   private readonly rows = signal<LoadoutShareRow[]>([]);
   readonly loading = signal(true);
   readonly flash = signal<string | null>(null);
   readonly copied = signal(false);
   readonly pickedFriend = signal('');
+  readonly pickedGroup = signal('');
+  readonly groupBusy = signal(false);
+
+  readonly groupOptions = computed<readonly ScSelectOption[]>(() =>
+    this.social.groups().map((g) => ({ value: g.id, labelKey: '', label: g.name })),
+  );
 
   readonly friendShares = computed(() => this.rows().filter((r) => !isLinkShare(r)));
   readonly linkShare = computed(() => this.rows().find((r) => isLinkShare(r)) ?? null);
@@ -265,6 +308,24 @@ export class LoadoutSharePanelComponent implements OnInit {
     // The friend graph may not have been loaded by this route; loading it here
     // is idempotent and keeps the picker from being empty on a deep link.
     if (this.friends.graph().friends.length === 0) await this.friends.load();
+    void this.social.loadGroups();
+    await this.reload();
+  }
+
+  pathOf(s: LoadoutShareRow): string[] {
+    return friendPath({ user_id: s.shared_with ?? '', username: s.friend_handle });
+  }
+
+  async shareWithGroup(): Promise<void> {
+    const groupId = this.pickedGroup();
+    if (!groupId) return;
+    this.flash.set(null);
+    this.groupBusy.set(true);
+    const n = await this.social.shareLoadoutWithGroup(this.loadoutId(), groupId);
+    this.groupBusy.set(false);
+    if (n === null) return;
+    this.pickedGroup.set('');
+    this.flash.set('share.flash.groupShared');
     await this.reload();
   }
 

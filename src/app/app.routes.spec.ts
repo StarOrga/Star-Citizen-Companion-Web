@@ -80,10 +80,18 @@ describe('apps hub routes (concept 2026-10-30)', () => {
     }
   });
 
-  it('runs settings and friends in the content width', () => {
+  it('runs settings and the social pages in the content width', () => {
     const data = (p: string) => shellOf()?.children?.find((c) => c.path === p)?.data;
     expect(data('settings')).toEqual({ layout: 'content' });
-    expect(data('friends')).toEqual({ layout: 'content' });
+    expect(data('social')).toEqual({ layout: 'content' });
+    expect(data('social/:who')).toEqual({ layout: 'content' });
+  });
+
+  it('redirects /friends to /social and serves the invite link outside the gated shell', () => {
+    const friends = shellOf()?.children?.find((c) => c.path === 'friends');
+    expect(friends?.redirectTo).toBe('social');
+    expect(paths()).toContain('invite/:token');
+    expect(shellOf()?.children?.some((c) => c.path === 'invite/:token')).toBeFalse();
   });
 });
 
