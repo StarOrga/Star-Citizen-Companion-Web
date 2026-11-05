@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.207.5",
+  "current": "0.207.6",
   "releases": [
+    {
+      "version": "0.207.6",
+      "date": "2026-11-05",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/verse: Verse, Codex and HQ links sit again at the very bottom under the Patches (test placement)"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.207.5",
       "date": "2026-11-05",
