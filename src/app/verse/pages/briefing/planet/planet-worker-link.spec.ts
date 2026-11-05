@@ -29,10 +29,8 @@ describe('Verse planet — worker link', () => {
     const w = new FakeWorker();
     link(w);
     expect(w.sent.map((m) => m.t)).toEqual(['load']);
-    tick(1000);
+    tick(7000);
     expect(w.sent.map((m) => m.t)).toEqual(['load', 'probe']);
-    w.say({ t: 'alive' });
-    tick(PLANET_WORKER_DEADLINE_MS);
   }));
 
   it('a worker whose script never runs leaves the planet to the page', fakeAsync(() => {

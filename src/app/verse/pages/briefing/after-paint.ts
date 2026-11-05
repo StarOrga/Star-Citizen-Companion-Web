@@ -2,10 +2,9 @@
 const HIDDEN_TAB_MS = 200;
 
 /**
- * Runs `fn` right after the next frame went out. A first WebGL context and its
- * shaders keep the GPU process busy, and on software rendering they hold up the
- * page's first paint even from a worker (lab: FCP 3.1 s to 6.4 s). So they start
- * only once the page stands. Returns the cancel function.
+ * Runs `fn` right after the next frame went out: a first WebGL context and its
+ * shaders keep the GPU process busy, so they wait for the page's frame.
+ * Returns the cancel function.
  */
 export function afterNextPaint(fn: () => void): () => void {
   let done = false;
