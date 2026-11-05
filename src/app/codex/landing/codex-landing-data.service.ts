@@ -49,6 +49,10 @@ export const NEW_PAINT_DAYS = 30;
 export const MAX_TOP_VALUES = 7;
 /** Newly announced ships listed under the new flight-ready ones in the Codex list. */
 export const ANNOUNCED_IN_LIST = 2;
+/** Ship payload keys the cohort comparison reads: SHIP_VALUES paths, hull length (dimensions) and the stock loadout. */
+const COHORT_SHIP_KEYS: readonly string[] = ['flight', 'hull', 'armorHp', 'cargoScu', 'crew', 'dimensions', 'defaultLoadout'];
+/** Payload keys topValuesFor reads for every non-ship category. */
+const COHORT_STAT_KEYS: readonly string[] = ['weaponParams', 'stats'];
 /** Candidate rows read per category before "newest" is chosen. */
 const CANDIDATE_LIMIT = 200;
 /**
@@ -371,7 +375,7 @@ export class CodexLandingDataService {
         // New-this-patch first; the full list follows so a showroom copy that is new
         // can be swapped for its flyable sibling (see dedupeByName).
         const added = await this.diff.addedShipsMemo();
-        const all = (await this.codex.listByKind('ship', { limit: CANDIDATE_LIMIT })).rows;
+        const all = (await this.codex.listByKind('ship', { limit: CANDIDATE_LIMIT, payload: ['dimensions'] })).rows;
         return added.length ? [...added, ...all] : all;
       }
       case 'fpsWeapon':
@@ -382,10 +386,10 @@ export class CodexLandingDataService {
       case 'armor':
         return this.codex.listFpsCatalog('armor', false, true);
       case 'component':
-        return (await this.codex.listByKind('component', { limit: CANDIDATE_LIMIT })).rows;
+        return (await this.codex.listByKind('component', { limit: CANDIDATE_LIMIT, payload: 'none' })).rows;
       case 'tool':
         return (
-          await this.codex.listByKind('weapon', { weaponClass: 'Ship', attachTypeIn: [...TOOL_ATTACH_TYPES], limit: CANDIDATE_LIMIT })
+          await this.codex.listByKind('weapon', { weaponClass: 'Ship', attachTypeIn: [...TOOL_ATTACH_TYPES], limit: CANDIDATE_LIMIT, payload: 'none' })
         ).rows;
     }
   }
@@ -441,7 +445,7 @@ export class CodexLandingDataService {
     const roleKey = category === 'ship' ? ((detail.payload as { role?: string | null })?.role ?? listRow.role) : null;
     const roleText = roleKey ? ((await this.codex.resolveLocaleKeys([roleKey], lang)).get(roleKey) ?? null) : null;
     const overview = overviewFor(category, listRow, manufacturer, roleText);
-    const cohort = classCohort(category, row, rows);
+    const cohort = await this.withCohortPayloads(category, kind, classCohort(category, row, rows));
     return {
       category,
       kind,
@@ -457,6 +461,23 @@ export class CodexLandingDataService {
       fresh: fresh.some((r) => r.classNameSlug === className),
       ...(category === 'ship' ? { ...shipAnchors(detail.payload), loadoutValues: await this.loadoutFor(detail.payload, cohort) } : {}),
     };
+  }
+
+  /**
+   * Gives the class cohort the payload keys its comparison reads. The candidate
+   * list is read without payload (200 ships were ~1.3 MB gzipped); only the
+   * cohort (the target's role or size class) needs them, so only it fetches
+   * them, by JSON path. FPS gear stays lean as before (its cohort has no payload).
+   */
+  private async withCohortPayloads(
+    category: LandingCategory,
+    kind: CodexKind,
+    cohort: readonly CodexListRow[],
+  ): Promise<readonly CodexListRow[]> {
+    if (category === 'fpsWeapon' || category === 'armor') return cohort;
+    const keys = category === 'ship' ? COHORT_SHIP_KEYS : COHORT_STAT_KEYS;
+    const picked = await this.codex.getPayloadKeys(kind, cohort.map((r) => r.classNameSlug), keys);
+    return cohort.map((r) => ({ ...r, payload: { ...((r.payload as object | null) ?? {}), ...picked.get(r.classNameSlug) } }));
   }
 
   /**

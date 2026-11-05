@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { logWarn } from '../core/log';
-import { CodexKind, CodexListRow, CodexService } from './codex.service';
+import { CARD_PAYLOAD_KEYS, CodexKind, CodexListRow, CodexService } from './codex.service';
 
 /** PostgREST answers at most this many rows per request (project max_rows). */
 export const BUILD_DIFF_PAGE_SIZE = 1000;
@@ -130,7 +130,7 @@ export class CodexBuildDiffService {
       ]);
       const added = addedClassNames(cur, prev).slice(0, limit);
       if (added.length === 0) return [];
-      const rows = await this.codex.getShipsByClassNames(added);
+      const rows = await this.codex.getShipsByClassNames(added, [...CARD_PAYLOAD_KEYS, 'dimensions']);
       return added.map((cn) => rows.get(cn)).filter((r): r is CodexListRow => !!r);
     } catch (error) {
       logWarn('codex', 'build diff (added ships) failed', error);

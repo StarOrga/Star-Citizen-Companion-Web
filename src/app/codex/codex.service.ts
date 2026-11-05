@@ -199,6 +199,11 @@ export interface ArmorRatingRow {
 }
 
 export interface CodexListFilters {
+  /**
+   * Which part of the payload the rows carry (see {@link ListPayload}). Default
+   * `'card'`: name, preview image and manufacturer, all a list row renders.
+   */
+  payload?: ListPayload;
   search?: string;
   manufacturer?: string;
   size?: number;
@@ -322,6 +327,14 @@ const GRADE_KINDS: ReadonlySet<CodexKind> = new Set<CodexKind>(['weapon', 'compo
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+
+/**
+ * Payload keys the "Einordnung" rank cohort reads from every ship row
+ * (`getRankCohort`: career, stock loadout, and the KPI sheet's ship input).
+ * Everything else (hardpoint transforms, decks, item ports, skins,
+ * description) is ~70 % of the row and never read there.
+ */
+const RANK_PAYLOAD_KEYS: readonly string[] = ['career', 'defaultLoadout', 'flight', 'hull', 'armorHp', 'cargoScu', 'stats'];
 
 /**
  * Ship-table records that are no ship a player can own or fly: salvage wrecks
@@ -468,6 +481,37 @@ const LIST_SELECT: Record<CodexKind, string> = {
   manufacturer: 'class_name, name_localized, manufacturer_code, payload',
   blueprint: 'class_name, name_localized, category, tier, craft_time_seconds, dismantle_time_seconds, payload',
 };
+
+/**
+ * How much of the heterogeneous `payload` JSON a list read brings along. The
+ * full payload is up to ~55 kB per ship row (hardpoint transforms, decks, item
+ * ports) while a list card shows three small fields: egress, not rendering, was
+ * the cost (Supabase Free at 93 % of 5 GB, 2026-11-05).
+ *
+ * - `'full'`  the whole payload (old behaviour);
+ * - `'card'`  name, previewImage, manufacturer (what browse/search/hangar cards read);
+ * - `'none'`  `payload` is `{}` (rows read for identity only);
+ * - an array  exactly these top-level payload keys, picked server-side with
+ *   PostgREST JSON paths (`payload->key`); rows carry only those keys.
+ *
+ * A key absent from a payload is left out of the row's `payload` (the same as
+ * reading it from the full payload).
+ */
+export type ListPayload = 'full' | 'card' | 'none' | readonly string[];
+
+/** Payload keys a list card reads (browse, search hits, hangar/HQ ship cards). */
+export const CARD_PAYLOAD_KEYS: readonly string[] = ['name', 'previewImage', 'manufacturer'];
+
+const PAYLOAD_ALIAS = 'p_';
+
+/** The select string of one kind's list read with the requested payload slice. */
+export function listSelect(kind: CodexKind, payload: ListPayload = 'card'): string {
+  const full = LIST_SELECT[kind];
+  if (payload === 'full') return full;
+  const columns = full.replace(/,\s*payload$/, '');
+  const keys = payload === 'card' ? CARD_PAYLOAD_KEYS : payload === 'none' ? [] : payload;
+  return [columns, ...keys.map((k) => `${PAYLOAD_ALIAS}${k}:payload->${k}`)].join(', ');
+}
 
 /**
  * Upper bound on the paged facet read in {@link CodexService.weaponFacets}.
@@ -886,7 +930,7 @@ export class CodexService {
   private filteredListQuery(kind: CodexKind, buildId: string, filters: CodexListFilters) {
     let query = this.sb.client
       .from(CODEX_ENTITY_TABLES[kind])
-      .select(LIST_SELECT[kind], { count: 'exact' })
+      .select(listSelect(kind, filters.payload), { count: 'exact' })
       .eq('build_id', buildId);
 
     // "Include variants" is the switch for the raw records — all of them.
@@ -1365,6 +1409,37 @@ export class CodexService {
   }
 
   /**
+   * The named top-level payload keys of a set of rows of one kind, picked
+   * server-side: the second half of a slim list read. The list brought no
+   * payload, and only the rows that need one (a class cohort, not the 200
+   * candidates) fetch the few keys they read. Keyed by class name; a class
+   * without a row is absent.
+   */
+  async getPayloadKeys(
+    kind: CodexKind,
+    classNames: readonly string[],
+    keys: readonly string[],
+  ): Promise<Map<string, Record<string, unknown>>> {
+    const out = new Map<string, Record<string, unknown>>();
+    const build = await this.loadCurrentBuild();
+    const names = Array.from(new Set(classNames.filter(Boolean)));
+    if (!build || names.length === 0 || keys.length === 0) return out;
+    const select = ['class_name', ...keys.map((k) => `${PAYLOAD_ALIAS}${k}:payload->${k}`)].join(', ');
+    await forEachLimited(chunk(names, 100), PAYLOAD_READS_IN_FLIGHT, async (slice) => {
+      const { data, error } = await this.sb.client
+        .from(CODEX_ENTITY_TABLES[kind])
+        .select(select)
+        .eq('build_id', build.id)
+        .in('class_name', slice);
+      if (error) throw error;
+      for (const r of (data ?? []) as unknown as Record<string, unknown>[]) {
+        out.set(r['class_name'] as string, payloadFromAliases(r));
+      }
+    });
+    return out;
+  }
+
+  /**
    * Candidate livery siblings of one entity, for the detail view's skin picker
    * (feedback d5e39f86). Reads the current build by class-name PREFIX — the
    * first three underscore segments, `gmni_pistol_ballistic` for
@@ -1384,7 +1459,7 @@ export class CodexService {
 
     const { data, error } = await this.sb.client
       .from(CODEX_ENTITY_TABLES[kind])
-      .select(LIST_SELECT[kind])
+      .select(listSelect(kind, 'none'))
       .eq('build_id', build.id)
       .ilike('class_name', `${escapeIlike(skinQueryPrefix(classNameSlug))}%`)
       .order('class_name', { ascending: true })
@@ -1410,7 +1485,7 @@ export class CodexService {
 
     const { data, error } = await this.sb.client
       .from(CODEX_ENTITY_TABLES[kind])
-      .select(LIST_SELECT[kind])
+      .select(listSelect(kind, 'none'))
       .eq('build_id', build.id)
       .ilike('class_name', `${escapeIlike(editionQueryPrefix(classNameSlug))}%`)
       .order('class_name', { ascending: true })
@@ -1813,14 +1888,17 @@ export class CodexService {
    * Hangar dashboard cards: codex ship rows (promoted columns + payload) for
    * a set of class names in the current build. Map keyed by class_name.
    */
-  async getShipsByClassNames(classNames: string[]): Promise<Map<string, CodexListRow>> {
+  async getShipsByClassNames(
+    classNames: string[],
+    payload: ListPayload = 'card',
+  ): Promise<Map<string, CodexListRow>> {
     const out = new Map<string, CodexListRow>();
     const build = await this.loadCurrentBuild();
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (!build || names.length === 0) return out;
     const { data, error } = await this.sb.client
       .from('codex_ships')
-      .select(LIST_SELECT.ship)
+      .select(listSelect('ship', payload))
       .eq('build_id', build.id)
       .in('class_name', names);
     if (error || !data) return out;
@@ -1984,7 +2062,7 @@ export class CodexService {
     const out = new Map<string, CodexListRow>();
     const { data, error } = await this.sb.client
       .from('codex_ships')
-      .select(LIST_SELECT.ship)
+      .select(listSelect('ship', ['flight']))
       .eq('build_id', buildId)
       .in('class_name', classNames);
     if (error || !data) return out;
@@ -2102,7 +2180,7 @@ export class CodexService {
     let offset = 0;
     const limit = 200;
     for (;;) {
-      const { rows, count } = await this.listByKind('ship', { limit, offset });
+      const { rows, count } = await this.listByKind('ship', { limit, offset, payload: RANK_PAYLOAD_KEYS });
       out.push(...rows);
       offset += limit;
       if (rows.length < limit || out.length >= (count ?? out.length)) break;
@@ -2640,12 +2718,21 @@ function mapListRow(kind: CodexKind, r: Record<string, unknown>): CodexListRow {
     attachType: (r['attach_type'] as string | null) ?? null,
     speed: (r['speed'] as number | null) ?? null,
     isVariant: (r['is_variant'] as boolean) ?? false,
-    payload: r['payload'],
+    payload: 'payload' in r ? r['payload'] : payloadFromAliases(r),
     // Blueprint-specific promoted columns (null for other kinds)
     blueprintCategory: kind === 'blueprint' ? ((r['category'] as string | null) ?? null) : null,
     blueprintTier: kind === 'blueprint' ? ((r['tier'] as number | null) ?? null) : null,
     craftTimeSec: kind === 'blueprint' ? ((r['craft_time_seconds'] as number | null) ?? null) : null,
   };
+}
+
+/** Rebuilds the payload slice of a {@link listSelect} read from its `p_<key>` columns. */
+function payloadFromAliases(r: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(r)) {
+    if (k.startsWith(PAYLOAD_ALIAS) && v != null) out[k.slice(PAYLOAD_ALIAS.length)] = v;
+  }
+  return out;
 }
 
 function mapPort(p: Record<string, unknown>): CodexItemPort {
