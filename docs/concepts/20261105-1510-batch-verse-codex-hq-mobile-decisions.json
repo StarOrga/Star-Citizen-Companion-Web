@@ -1,0 +1,302 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "d-hero",
+        "label": "Inhalt des Patches-Hero",
+        "mode": "picture",
+        "value": "",
+        "rec": "ai",
+        "deviates": true,
+        "none": true,
+        "untouched": false,
+        "note": "[Frage 1] Nein, es soll so bleiben wie heute der hero, eldiglich der text im textteil des heroes soll angepasst werden! Dort dann das wort live rein und entweder Neues zu... oder gern auch einen ki generierten teaser titel dafür...",
+        "appliesTo": "Verse-Hero, Patches",
+        "finding": "f-hero",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 58499,
+          "noteWords": 38,
+          "revisits": 2,
+          "flagged": true
+        }
+      },
+      {
+        "id": "d-future",
+        "label": "Quelle für künftige Patches",
+        "mode": "single",
+        "value": "roadmap",
+        "rec": "roadmap",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Verse-Hero, künftige Patches",
+        "finding": "f-future",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 18527,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-announced",
+        "label": "Klick auf angekündigte Schiffe",
+        "mode": "single",
+        "value": "",
+        "rec": "preview",
+        "deviates": true,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "Codex-Landing, Liste Neu in x",
+        "finding": "f-announced",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 51266,
+          "noteWords": 0,
+          "revisits": 3,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-tabs",
+        "label": "Kategorie-Leiste",
+        "mode": "picture",
+        "value": "active",
+        "rec": "active",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Codex-Landing, Liste Neu in x",
+        "finding": "f-tabs",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 123420,
+          "noteWords": 0,
+          "revisits": 5,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-sc",
+        "label": "Bedeutung von ähnlich zu sc",
+        "mode": "single",
+        "value": "app",
+        "rec": "app",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Bestand-Popup",
+        "finding": "f-sc",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 311364,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-overview",
+        "label": "Inhalt der Bestand-Übersicht",
+        "mode": "multi",
+        "value": [
+          "totals",
+          "places",
+          "recent",
+          "ships",
+          "cats"
+        ],
+        "rec": "totals places recent ships",
+        "deviates": true,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "HQ, Seite Bestand",
+        "finding": "f-overview",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 134081,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-views",
+        "label": "Ansichten im Popup",
+        "mode": "multi",
+        "value": [
+          "place",
+          "name",
+          "qty"
+        ],
+        "rec": "place name qty",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Bestand-Popup",
+        "finding": "f-views",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 32073,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-forms",
+        "label": "Ort für Hinzufügen und Wo liegt",
+        "mode": "single",
+        "value": "both",
+        "rec": "both",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "HQ, Seite Bestand und Popup",
+        "finding": "f-forms",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 84831,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-admin",
+        "label": "Admin-Eintrag am Handy",
+        "mode": "single",
+        "value": "account",
+        "rec": "subrow",
+        "deviates": true,
+        "none": false,
+        "untouched": false,
+        "note": "[Frage 1]  Lass usn das dgenerell ins accoutn menü verschieben! das admin menüpunkt!",
+        "appliesTo": "Hauptkopf am Handy",
+        "finding": "f-admin",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 109427,
+          "noteWords": 11,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-filter",
+        "label": "Filter im Codex-Index am Handy",
+        "mode": "single",
+        "value": "bar",
+        "rec": "bar",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Codex-Index am Handy",
+        "finding": "f-filter",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 175294,
+          "noteWords": 0,
+          "revisits": 3,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-landing",
+        "label": "Reihenfolge der Codex-Landing am Handy",
+        "mode": "single",
+        "value": "table-first",
+        "rec": "table-first",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Codex-Landing am Handy",
+        "finding": "f-landing",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 27430,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-exceptions",
+        "label": "Erlaubte Handy-Ausnahmen",
+        "mode": "multi",
+        "value": [
+          "bar",
+          "hqbar",
+          "stage",
+          "admin-table"
+        ],
+        "rec": "bar hqbar stage admin-table",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Gesamte Handy-Beta",
+        "finding": "f-exceptions",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 112188,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "Btw, rechts bei der analyse sind scrollbar abschneidend zu den chatinhalten - dabei sollte ein ganz kleines bisschen platz ist. \n\nSeieh anbei, das frage label z. B. funktioniert nicht immer, unklar, wwann es rein kommt und dann auch noch falschen link...",
+        "attachments": [
+          {
+            "id": "265e62eca6292cd214fa95cc01a13bcd9bba7d92c41a898a0fd5d4b88fd2e522.png",
+            "name": "image.png",
+            "mime": "image/png",
+            "size": 494655,
+            "path": ".claude/concepts/20261105-1510-batch-verse-codex-hq-mobile/attachments/265e62eca6292cd214fa95cc01a13bcd9bba7d92c41a898a0fd5d4b88fd2e522.png"
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "d-hero-note",
+          "text": "[Frage 1] Nein, es soll so bleiben wie heute der hero, eldiglich der text im textteil des heroes soll angepasst werden! Dort dann das wort live rein und entweder Neues zu... oder gern auch einen ki generierten teaser titel dafür...",
+          "attachments": []
+        },
+        {
+          "id": "d-admin-note",
+          "text": "[Frage 1]  Lass usn das dgenerell ins accoutn menü verschieben! das admin menüpunkt!",
+          "attachments": []
+        }
+      ]
+    },
+    "userPins": []
+  }
+]
