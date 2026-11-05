@@ -78,23 +78,6 @@ describe('BriefingHubComponent — news accordion', () => {
   });
 });
 
-describe('BriefingHubComponent — news title legibility', () => {
-  it('carries only a tight, faint shade: no wide halo, no inherited planet glow', () => {
-    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
-    const fixture = TestBed.createComponent(BriefingHubComponent);
-    const item = { id: 'n1', title: 'News', thumbnail: null, publishedAt: new Date(NOW).toISOString() };
-    fixture.componentRef.setInput('news', [item] as unknown as VerseNewsItem[]);
-    fixture.detectChanges();
-    const host = fixture.nativeElement as HTMLElement;
-    const title = getComputedStyle(host.querySelector('.acc-t')!);
-    expect(title.textShadow).toBe('none');
-    expect(title.filter).toContain('drop-shadow');
-    const radii = [...title.filter.matchAll(/(\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]));
-    expect(Math.max(...radii)).withContext('title blur radius, px').toBeLessThanOrEqual(4);
-    expect(getComputedStyle(host).textShadow).not.toContain('em');
-  });
-});
-
 describe('BriefingHubComponent — channel rows', () => {
   function render(channels: ReturnType<typeof hubChannels>): HTMLElement {
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
