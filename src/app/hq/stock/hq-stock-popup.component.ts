@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { HangarService } from '../../hangar/hangar.service';
+import { hqShip } from '../hq-routes';
 import { OverlayFrameComponent } from '../../shared/overlay-frame/overlay-frame.component';
 import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.component';
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
@@ -42,7 +45,7 @@ export interface StockStart {
 @Component({
   selector: 'sc-hq-stock-popup',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [TranslatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-overlay-frame [heading]="'hq.stock.popup.title' | translate" [popup]="true" (closed)="closed.emit()">
@@ -68,6 +71,11 @@ export interface StockStart {
             <button type="button" class="chip" [attr.aria-pressed]="filter().stale" (click)="patch({ stale: !filter().stale })">
               {{ 'hq.stock.popup.stale' | translate }}
             </button>
+            @if (storage().length) {
+              <button type="button" class="chip" [attr.aria-pressed]="filter().ships" (click)="patch({ ships: !filter().ships })">
+                {{ 'hq.stock.popup.ships' | translate }}
+              </button>
+            }
             @if (filter().place !== null) {
               <button type="button" class="chip on" aria-pressed="true" [scTooltip]="'hq.stock.popup.clearPlace' | translate" scTooltipTier="label"
                       (click)="patch({ place: null })">
@@ -89,9 +97,9 @@ export interface StockStart {
           <div class="list" tabindex="0" [attr.aria-label]="'hq.stock.popup.results' | translate" (scroll)="onScroll($event)">
             @if (!inv.loaded()) {
               <p class="muted" role="status">{{ 'hq.stock.popup.loading' | translate }}</p>
-            } @else if (!rows().length) {
-              <p class="muted" role="status">{{ (inv.items().length ? 'hq.stock.popup.noMatch' : 'hq.stock.lager.empty') | translate }}</p>
-            } @else {
+            } @else if (!showShips() && !rows().length) {
+              <p class="muted" role="status">{{ (inv.items().length ? 'hq.stock.popup.noMatch' : 'hq.stock.popup.empty') | translate }}</p>
+            } @else if (!filter().ships) {
               <ul>
                 @for (l of visible(); track l.key) {
                   @if (l.kind === 'head') {
@@ -116,6 +124,25 @@ export interface StockStart {
               @if (visible().length < lines().length) {
                 <p class="muted more" role="status">{{ 'hq.stock.popup.loadingMore' | translate }}</p>
               }
+            }
+            @if (showShips()) {
+              <section class="ships" aria-labelledby="hq-stock-ship-storage">
+                <h3 id="hq-stock-ship-storage">{{ 'hq.stock.lager.storage' | translate }}</h3>
+                <ul>
+                  @for (s of storage(); track s.ref) {
+                    <li class="row">
+                      <span class="nm">
+                        @if (s.shipId) {
+                          <a class="t" [routerLink]="shipRoute(s.shipId)">{{ s.name }}</a>
+                        } @else {
+                          <span class="t">{{ s.name }}</span>
+                        }
+                      </span>
+                      <span class="qty">{{ s.location }} · <span class="age" [class.stale]="s.stale">{{ s.age }}</span></span>
+                    </li>
+                  }
+                </ul>
+              </section>
             }
           </div>
         } @else if (mode() === 'find') {
@@ -269,6 +296,10 @@ export interface StockStart {
       .nm .place { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); overflow-wrap: anywhere; }
       .nm .place.t { color: var(--sc-fg-0); font-size: inherit; }
       .qty { font-variant-numeric: tabular-nums; color: var(--sc-fg-2); text-align: end; white-space: nowrap; }
+      .ships { margin-top: var(--sc-space-3, 12px); }
+      .ships h3 { padding: var(--sc-space-2, 8px) 0; }
+      a { color: var(--sc-accent); }
+      a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .more { padding: var(--sc-space-3, 12px) 0; text-align: center; }
       .find, .capture { display: grid; gap: var(--sc-space-3, 12px); align-content: start; overflow: auto; min-height: 0; }
       .row-f { display: flex; flex-wrap: wrap; gap: var(--sc-space-3, 12px); align-items: end; }
@@ -328,6 +359,34 @@ export class HqStockPopupComponent implements OnInit {
   protected readonly view = signal<StockView>('place');
   protected readonly filter = signal<StockFilter>(NO_FILTER);
   private readonly limit = signal(STOCK_PAGE);
+  private readonly hangar = inject(HangarService);
+
+  /** Ships with their storage place; `ref` is a hangar ship id or a class name. */
+  protected readonly storage = computed(() => {
+    const ships = this.hangar.ships();
+    return this.inv.shipStorage().map((s) => {
+      const ship = ships.find((x) => x.id === s.ship_ref) ?? ships.find((x) => x.shipClassName === s.ship_ref);
+      const a = snapshotAge(s.taken_at);
+      return {
+        ref: s.ship_ref,
+        shipId: ship?.id ?? null,
+        name: ship?.customName || ship?.shipClassName || s.ship_ref,
+        location: s.location,
+        stale: a.stale,
+        age: this.translate.instant(`hq.stock.age.${a.unit}`, { n: a.n }),
+      };
+    });
+  });
+  /** The ship group stands alone under its filter, otherwise at the end of the unfiltered list. */
+  protected readonly showShips = computed(() => {
+    if (!this.storage().length) return false;
+    const f = this.filter();
+    return f.ships || (!f.q.trim() && f.place === null && f.cat === null && !f.stale);
+  });
+
+  protected shipRoute(id: string): string[] {
+    return hqShip(id);
+  }
 
   protected readonly places = computed(() => this.inv.snapshots().map((s) => ({ location: s.location, takenAt: s.taken_at })));
   protected readonly rows = computed(() => filterStock(this.inv.items(), this.filter(), this.places()));

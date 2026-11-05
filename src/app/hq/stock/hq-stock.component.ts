@@ -124,6 +124,11 @@ const STALE_SHOWN = 3;
             </ul>
           }
           <a class="more" [routerLink]="hangarLink">{{ 'hq.stock.ships.open' | translate }} ›</a>
+          @if (inv.shipStorage().length) {
+            <button type="button" class="chip" (click)="open({ mode: 'browse', filter: { ships: true } })">
+              <span class="cl">{{ 'hq.stock.lager.storage' | translate }}</span><b>{{ inv.shipStorage().length }}</b>
+            </button>
+          }
         </section>
 
         <section class="card" aria-labelledby="hq-stock-sets">

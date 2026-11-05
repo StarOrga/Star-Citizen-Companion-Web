@@ -96,9 +96,11 @@ export interface StockFilter {
   place: string | null;
   cat: StockCategory | null;
   stale: boolean;
+  /** Only the ships stored at the hangar terminal (not inventory rows). */
+  ships: boolean;
 }
 
-export const NO_FILTER: StockFilter = { q: '', place: null, cat: null, stale: false };
+export const NO_FILTER: StockFilter = { q: '', place: null, cat: null, stale: false, ships: false };
 
 export function filterStock(
   rows: readonly StockItem[],

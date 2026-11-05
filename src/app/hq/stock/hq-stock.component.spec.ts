@@ -36,7 +36,7 @@ describe('HqStockComponent', () => {
       snapshots: signal([...snaps, ...Array.from({ length: Math.min(40, opts.many ?? 0) }, (_, i) => ({ location: `Place ${i}`, taken_at: ago(1), source: 'manual' }))]),
       locations: signal([]),
       items: signal([...base, ...many]),
-      shipStorage: signal([]),
+      shipStorage: signal(opts.full ? [{ ship_ref: 'sh1', location: 'Area18', taken_at: ago(1) }] : []),
       load: jasmine.createSpy('load').and.resolveTo(),
       addManual: jasmine.createSpy('addManual').and.resolveTo(true),
     };
@@ -86,13 +86,13 @@ describe('HqStockComponent', () => {
     click(fixture, [...el.querySelectorAll('.chip')].find((c) => c.textContent?.includes('Lorville'))!);
     expect(el.querySelector('sc-hq-stock-popup')).toBeTruthy();
     expect(fixture.componentInstance.popup()).toEqual({ mode: 'browse', filter: { place: 'Lorville' } });
-    const rows = [...el.querySelectorAll('.list .row')];
+    const rows = [...el.querySelectorAll('.list > ul .row')];
     expect(rows.length).toBe(1);
     expect(rows[0].textContent).toContain('Gold');
     fixture.componentInstance.popup.set(null);
     fixture.detectChanges();
     click(fixture, el.querySelector('.totals .num')!);
-    expect(el.querySelectorAll('.list .row').length).toBe(3);
+    expect(el.querySelectorAll('.list > ul .row').length).toBe(3);
   });
 
   it('opens "Hinzufügen" straight in the capture form, and "Wo liegt" in the finder', () => {
@@ -142,14 +142,14 @@ describe('HqStockComponent', () => {
   it('renders list rows lazily: a window first, more after scrolling inside the popup', () => {
     const { fixture, el } = mount({ full: true, many: 500 });
     click(fixture, el.querySelector('.actions .sc-btn')!);
-    const first = el.querySelectorAll('.list li').length;
+    const first = el.querySelectorAll('.list > ul li').length;
     expect(first).toBeLessThanOrEqual(60);
     expect(first).toBeGreaterThan(10);
     const list = el.querySelector('.list') as HTMLElement;
     list.scrollTop = list.scrollHeight;
     list.dispatchEvent(new Event('scroll'));
     fixture.detectChanges();
-    expect(el.querySelectorAll('.list li').length).toBeGreaterThan(first);
+    expect(el.querySelectorAll('.list > ul li').length).toBeGreaterThan(first);
   });
 
   it('switches the view: by item lists every place beneath, by amount is flat and largest first', () => {
@@ -162,6 +162,16 @@ describe('HqStockComponent', () => {
     click(fixture, seg[2]);
     expect(el.querySelectorAll('.list .head').length).toBe(0);
     expect(el.querySelector('.list .row .qty')?.textContent).toContain('4');
+  });
+
+  it('keeps the ship storage: quick link opens the popup on that group, with the ship as a real anchor', () => {
+    const { fixture, el } = mount({ full: true });
+    click(fixture, [...el.querySelectorAll('.card .chip')].find((c) => c.textContent?.includes('lager.storage'))!);
+    expect(fixture.componentInstance.popup()).toEqual({ mode: 'browse', filter: { ships: true } });
+    expect(el.querySelectorAll('.list .row').length).toBe(1);
+    const a = el.querySelector('.ships a') as HTMLAnchorElement;
+    expect(a.getAttribute('href')).toContain('/hq/hangar/sh1');
+    expect(el.querySelector('.ships')?.textContent).toContain('Area18');
   });
 
   it('keeps the signed-out text, the empty state, and a translated error with retry', () => {
