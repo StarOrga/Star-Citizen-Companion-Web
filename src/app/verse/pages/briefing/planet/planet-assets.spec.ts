@@ -17,7 +17,11 @@ describe('Verse planet — baked assets', () => {
     expect(net.cities.length).toBe(world.cities.length);
     net.cities.forEach((c, i) => {
       const g = world.cities[i];
-      expect([c.lat, c.lon, c.size]).toEqual([g.lat, g.lon, g.size]);
+      // Closeness, not equality: the bake came out of another browser build, and
+      // the same Math.* chain can differ in the last bit between engines.
+      expect(c.lat).toBeCloseTo(g.lat, 10);
+      expect(c.lon).toBeCloseTo(g.lon, 10);
+      expect(c.size).toBeCloseTo(g.size, 10);
       expect(c.v).toEqual(g.v);
       expect(c.links.map((l) => [l.to, l.edge.a, l.edge.b])).toEqual(g.links.map((l) => [l.to, l.edge.a, l.edge.b]));
     });
