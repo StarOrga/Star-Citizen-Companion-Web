@@ -53,6 +53,15 @@
     </ul>
   </div>
 
+  <div class="fr-card">
+    <p class="fr-label">Nachtrag</p>
+    <ul class="fr-wins">
+      <li><span class="fr-win-icon" aria-hidden="true">🛡</span><span><b>Sicherheitsprüfung:</b> Kein Leck an Fremde gefunden, sechs Punkte behoben. Eine beendete Freundschaft nimmt jetzt auch alte Freigaben mit.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">🔌</span><span><b>Echtes Schema:</b> Alle 29 Funktionen liefen in einer zurückgerollten Transaktion, 197 Prüfschritte bestanden.</span></li>
+      <li><span class="fr-win-icon" aria-hidden="true">🧯</span><span><b>Verse-Spec und Build-Wächter</b> behoben: Der Wächter zählt ein altes dist nicht mehr als Erfolg.</span></li>
+    </ul>
+  </div>
+
   <div class="fr-depth">
     <p class="fr-label">{{final.depth}}</p>
     <p class="fr-ladder-top">{{final.level_interplay}}<small>Stufe 3 von 7</small></p>
@@ -71,7 +80,7 @@
   <details class="fr-fold" data-open-questions>
     <summary>🔍 {{final.funde_fold}}</summary>
     <ul class="fr-funde">
-      <li data-oq-id="oq-ansporn"
+      <li data-routed data-oq-id="oq-ansporn"
           data-issue-title="[FEATURE] Shared goals between friends on the Social page"
           data-issue-type="feature"
           data-issue-body="Parked by the owner in the friends concept (round 1): comparison first, joint goals to refine later. Builds on the comparison on /social."
@@ -79,14 +88,14 @@
           data-oq-origin="deferred"
           data-route-default="issue"
           data-route-reason="später">
-        <span class="oq-label">Gemeinsamer Ansporn unter Freunden</span>
+        <span class="oq-label">Gemeinsamer Ansporn unter Freunden <a href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/938" target="_blank" rel="noopener noreferrer">[Issue #938]</a> ✓</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Du wolltest das später ausarbeiten: gemeinsame Ziele auf Basis des Vergleichs.</dd>
           <dt>{{final.fund_where}}</dt><dd>Social-Seite, Runde 1, deine Notiz zum Umfang</dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue, von dir zurückgestellt.</dd>
         </dl>
       </li>
-      <li data-oq-id="oq-briefing-spec"
+      <li data-routed data-oq-id="oq-briefing-spec"
           data-issue-title="[BUG] Verse briefing cinematic entrance spec is red on main"
           data-issue-type="bug"
           data-issue-body="verse-briefing.component.spec.ts:447 'opens on the app name, builds up, lets the comet fly last' fails with: Expected bstage to contain 'finale'. Reproduced alone on a clean origin/main checkout on 2026-11-05, unrelated to the social branch."
@@ -94,14 +103,14 @@
           data-oq-origin="found"
           data-route-default="issue"
           data-route-reason="fremd">
-        <span class="oq-label">Verse-Briefing-Spec auf main rot</span>
+        <span class="oq-label">Verse-Briefing-Spec auf main rot</span><span class="oq-done">umgesetzt: 8d0945a1</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Der Spec zum Einflug erwartet die Stufe „finale“ und bekommt sie nicht.</dd>
           <dt>{{final.fund_where}}</dt><dd>verse-briefing.component.spec.ts:447, auch auf sauberem main</dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue, hat mit Freunden nichts zu tun.</dd>
         </dl>
       </li>
-      <li data-oq-id="oq-exit-guard"
+      <li data-routed data-oq-id="oq-exit-guard"
           data-issue-title="[BUG] build-with-exit-guard test fails and npm run build can pass on a stale dist"
           data-issue-type="bug"
           data-issue-body="scripts/build-with-exit-guard.test.mjs:68 expected exit 2, got 0, reproducible alone; scripts/ is untouched by the social branch. In the same run npm run build exited 0 with 'ng build hung after completing output' while dist held chunks from an earlier build, so a green build there proved nothing. Not yet checked on main."
@@ -109,7 +118,7 @@
           data-oq-origin="found"
           data-route-default="issue"
           data-route-reason="riskant">
-        <span class="oq-label">Build-Wächter kann alten Stand durchwinken</span>
+        <span class="oq-label">Build-Wächter kann alten Stand durchwinken</span><span class="oq-done">umgesetzt: 23abb0e3</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>npm run build meldete Erfolg, obwohl dist noch den alten Stand enthielt, und der Test dazu ist rot.</dd>
           <dt>{{final.fund_where}}</dt><dd>scripts/build-with-exit-guard.test.mjs:68</dd>
