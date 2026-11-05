@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.208.3] - 2026-11-05
+
+### Fixed
+- Verse start page: the big title (News, Patches) no longer has a visible box or light behind it, not at rest and not on hover; only a very faint soft shade remains for legibility.
+
 ## [0.208.2] - 2026-11-05
 
 ### Fixed
