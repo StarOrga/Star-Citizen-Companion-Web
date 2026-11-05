@@ -5476,6 +5476,7 @@
     }
   },
   "verse": {
+    "areaFoot": { "aria": "Switch area" },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",
