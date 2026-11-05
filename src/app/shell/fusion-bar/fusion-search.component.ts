@@ -119,7 +119,7 @@ const FITTED_SHOWN = 2;
  * in-panel accordion (→ / ←), a real "Alle N" anchor, a dashed group for fast
  * exact hits outside the chips, and per row: icon or silhouette, name (ship
  * type first), meta, Neu glyph, passt-auf badge, ONE quiet CTA and the three
- * standard icons (Wunschliste · Ins Lager / In den Hangar · Nachschub).
+ * standard icons (Wunschliste · Nachschub · Bestand / In den Hangar).
  * Every row is a real anchor; the field keeps focus (aria-activedescendant).
  */
 @Component({
@@ -371,6 +371,14 @@ const FITTED_SHOWN = 2;
                                   <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="actionIcons.wishlist[0]" [attr.fill]="on ? 'currentColor' : 'none'" /></svg>
                                 </button>
                               }
+                              @if (r.icons.nachschub) {
+                                <button type="button" class="ib ib-supply"
+                                        [attr.aria-label]="'search.icon.nachschub' | translate: { name: nm.title }"
+                                        [scTooltip]="'search.icon.nachschub' | translate: { name: nm.title }" scTooltipTier="label"
+                                        (click)="runIcon($event, 'nachschub', r)">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of actionIcons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
+                                </button>
+                              }
                               @if (r.icons.lager) {
                                 @let ship = isShipRow(r);
                                 <button type="button" class="ib"
@@ -380,14 +388,6 @@ const FITTED_SHOWN = 2;
                                   <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of (ship ? actionIcons.hangar : actionIcons.lager); track $index) { <path [attr.d]="d" /> }</svg>
                                 </button>
                               }
-                              @if (r.icons.nachschub) {
-                                <button type="button" class="ib ib-supply"
-                                        [attr.aria-label]="'search.icon.nachschub' | translate: { name: nm.title }"
-                                        [scTooltip]="'search.icon.nachschub' | translate: { name: nm.title }" scTooltipTier="label"
-                                        (click)="runIcon($event, 'nachschub', r)">
-                                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of actionIcons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
-                                </button>
-                              }
                             }
                           </span>
                         }
@@ -395,7 +395,7 @@ const FITTED_SHOWN = 2;
                     }
                     @case ('recent') {
                       <a class="term" role="option" tabindex="-1" [id]="optId(o)" [class.active]="isActive(o)" [attr.aria-selected]="isActive(o)"
-                         [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
+                         [attr.href]="href(o.target)"
                          (click)="onTermClick($event, o.term)" (mouseenter)="hover(o)">{{ o.term }}</a>
                     }
                     @default {}
@@ -1510,6 +1510,12 @@ export class FusionSearchComponent {
     if (isPlainLeftClick(ev)) this.close();
   }
 
+  /**
+   * A recent term fills the field; it never navigates (note #5). The anchor
+   * carries a plain href, NOT a routerLink: RouterLink's own click listener
+   * navigates regardless of `preventDefault`, which dropped the reader on the
+   * Codex index. Modified clicks stay the browser's (new tab).
+   */
   onTermClick(ev: MouseEvent, term: string): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();

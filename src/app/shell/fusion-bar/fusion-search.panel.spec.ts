@@ -50,7 +50,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(row.querySelector('.sep')).not.toBeNull();
     const icons = [...row.querySelectorAll<HTMLButtonElement>('.ib')];
     expect(icons.length).toBe(3);
-    expect(icons[1].getAttribute('aria-label')).toBe('search.icon.hangar');
+    expect(icons.map((i) => i.getAttribute('aria-label'))).toEqual(['search.icon.wishlist', 'search.icon.nachschub', 'search.icon.hangar']);
     expect(el.querySelector('.qi')).withContext('the old quick icons (pin star, new tab, copy) are gone').toBeNull();
   });
 

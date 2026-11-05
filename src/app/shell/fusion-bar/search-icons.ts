@@ -41,7 +41,7 @@ export const SEARCH_KIND_ICONS: Readonly<Record<SearchIconKind, readonly string[
   page: ['M12 2.5L21 12l-9 9.5L3 12z', 'M12 8v8M8 12h8'],
 };
 
-/** The three standard icons (r3 mock `mk-u-ib`): Wunschliste · Ins Lager / In den Hangar · Nachschub. */
+/** The three standard icons (r3 mock `mk-u-ib`): Wunschliste · Nachschub · Bestand (Ins Lager / In den Hangar). */
 export const SEARCH_ACTION_ICONS = {
   wishlist: ['M7 4h10v16l-5-4-5 4z'],
   lager: ['M4 8l8-4 8 4v9l-8 4-8-4z', 'M4 8l8 4 8-4M12 12v9'],

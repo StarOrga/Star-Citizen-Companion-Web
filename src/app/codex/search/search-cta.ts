@@ -275,7 +275,7 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
 }
 
 /**
- * Which of the three standard icons (Wunschliste · Lager · Nachschub) a row
+ * Which of the three standard icons (Wunschliste · Nachschub · Bestand, drawn in that order; the flag `lager` is the Bestand one) a row
  * gets. Only equipment, ships and blueprints have them; a blueprint gets the
  * Wunschliste only; `lager` on a ship means "In den Hangar"; an announced ship
  * can be wished for, not stored. Hidden, never greyed out. News, patches,
