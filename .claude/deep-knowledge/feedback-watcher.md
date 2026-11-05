@@ -27,6 +27,11 @@ needs it now; it is the operator's call whether it stays.
 - **Never match a process pattern from a shell whose own command line contains it.**
   A `Stop-Process` filter run from Bash matched its own parent and killed the tool
   call (exit 255). The watcher excludes its own pid; do the same by hand.
+- **`%LOCALAPPDATA%` lies inside a Claude Desktop session.** The app is MSIX, so tools
+  started from a session write AppData to `Packages/AnthropicPBC.Claude_*/LocalCache/Local/`
+  and read a merged view: the task's real `state.json` was shadowed by a session's older
+  copy of the same name, while files only the task wrote showed through. That is why the
+  watcher's home is `~/.claude/scc-routine/`.
 - **Node `spawn` needs a real executable.** `where claude` gives the WinGet link
   `claude.exe`; a `.cmd` needs `shell: true`, which is only used by the chaos test's fake.
 - **A failed `gh` is not an empty list.** `feedbackPrs()` returns null then, and
@@ -46,4 +51,4 @@ needs it now; it is the operator's call whether it stays.
 - `WATCH_INTERVAL_MIN` exists twice on purpose (core and gate), because the gate must
   stay importable without the watcher. Change both, then `npm run watcher -- install`.
 - A silent routine: `npm run watcher -- status`, then
-  `%LOCALAPPDATA%\scc-routine\logs\watcher-<date>.log`.
+  `~/.claude/scc-routine/logs/watcher-<date>.log`.

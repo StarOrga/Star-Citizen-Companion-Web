@@ -30,7 +30,9 @@ import {
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const GATE = join(REPO, 'scripts', 'routine-gate.mjs');
-const HOME = process.env.SCC_ROUTINE_HOME || join(process.env.LOCALAPPDATA || homedir(), 'scc-routine');
+// Not under AppData: an MSIX app (Claude Desktop) gets its own copy-on-write view of it, so a session and the
+// real task would read different files with the same name. ~/.claude's backup allowlist does not include this folder.
+const HOME = process.env.SCC_ROUTINE_HOME || join(homedir(), '.claude', 'scc-routine');
 const LOGS = join(HOME, 'logs');
 const STATE_FILE = join(HOME, 'state.json');
 const RUN_FILE = join(HOME, 'run.json');
@@ -412,6 +414,7 @@ async function tick() {
     if (!state.lastSweepAt || now - state.lastSweepAt > 3_600_000) {
       state.lastSweepAt = now;
       saveState(state);
+      syncPrimary(); // a watcher fix must not wait for the next feedback topic
       killWorktreeOrphans();
       await cleanWorktrees(state.lastSid, 'sweep');
       await reconcileBare();
