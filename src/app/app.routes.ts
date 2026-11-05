@@ -102,6 +102,16 @@ export const routes: Routes = [
           import('./social/shared-loadout.component').then((m) => m.SharedLoadoutComponent),
       },
       {
+        // A personal friend-invite link (C20, D16). Public: a signed-out visitor
+        // sees who invited them and signs in, then comes back here. Peek is
+        // anon-callable and answers every dead link alike; the request is only
+        // filed by an explicit button press while signed in.
+        path: 'invite/:token',
+        data: { layout: 'content' },
+        loadComponent: () =>
+          import('./social/social-invite-landing.component').then((m) => m.SocialInviteLandingComponent),
+      },
+      {
         // A hangar loadout shared via the Holotable "Teilen" popover (concept
         // hg6-*, wave 1.5 user decision 3: peek without login, adopt with
         // login). Same public-by-design reasoning as `shared/loadout/:token`
@@ -432,13 +442,26 @@ export const routes: Routes = [
           import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
-        // Friends: the social graph (requests, friends, blocked). Sits next to
-        // /settings because that is where the account-scoped surfaces live and
-        // where both entry points (account menu, settings card) point.
-        path: 'friends',
+        // Social: requests, friends, invites, groups, comparison, and the
+        // popup for what friends see. Entered from the profile-icon menu.
+        path: 'social',
+        data: { layout: 'content' },
+        loadComponent: () => import('./social/social.component').then((m) => m.SocialComponent),
+      },
+      {
+        // A friend's page. The segment is a handle or, for the many accounts
+        // without one, a user id (friendPath()). Friends only: the RPC answers
+        // "missing" for everybody else.
+        path: 'social/:who',
         data: { layout: 'content' },
         loadComponent: () =>
-          import('./social/friends.component').then((m) => m.FriendsComponent),
+          import('./social/social-friend.component').then((m) => m.SocialFriendComponent),
+      },
+      {
+        // The old friends page moved into /social (2026-11-05). Kept so links,
+        // bookmarks and the stale service-worker shell still land somewhere.
+        path: 'friends',
+        redirectTo: 'social',
       },
       {
         // Install + privacy page for the hangar-import browser extension.

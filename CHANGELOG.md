@@ -4,10 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.207.6] - 2026-11-05
+## [0.208.2] - 2026-11-05
+
+### Fixed
+- Feedback routine: headless runs start in a detached runner checkout, so workers can commit past the main-branch guard.
+- Feedback routine: workers verify through `web-ci` on their PR instead of parallel local builds, and a run lands green PRs before it opens a new wave.
+
+## [0.208.1] - 2026-11-05
+
+### Fixed
+- Social: empty request and blocked cards no longer push the invite box far down, and the empty friends text no longer points to an add box above.
+
+## [0.208.0] - 2026-11-05
 
 ### Added
-- /verse: Verse, Codex and HQ links sit again at the very bottom under the Patches (test placement)
+- Social page in the profile menu: friend requests, a personal invite link, private groups (orgs and Einsatzgruppen), a comparison with your friends and a page for each friend
+- HQ shows friends where they help, and only then: open requests on Start, shared Einsätze with crew slots and RSVPs in Planen, who is online in Jetzt, shared sets and ship variants in Bestand
+- Share ship variants and Einsätze with friends or groups, and take a friend's set or variant into your own HQ as a copy
+- Choose what friends see, in general and per friend: hangar, flagship, online status and comparison numbers. All are on by default; the Social page says so once
+
+### Changed
+- /friends now leads to /social, the Settings card is gone, and the menu shows how many requests are waiting
+- Ending a friendship removes what you shared with each other for good, including shared sets. It does not come back if you become friends again
+- Privacy page describes what friends can see and how to switch it off
+
+### Fixed
+- Build guard no longer counts an old build as success
 
 ## [0.207.5] - 2026-11-05
 

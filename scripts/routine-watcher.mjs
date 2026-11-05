@@ -21,7 +21,7 @@ import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync,
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { newestActivity, sql, transcriptDirFor } from './routine-gate.mjs';
+import { RUNNER_NAME, newestActivity, sql, transcriptDirFor } from './routine-gate.mjs';
 import {
   REPLY_GIVE_UP_MIN, TERMINAL_STATUSES, WATCH_INTERVAL_MIN, applyRun, classifyBranch, classifyExit, emptyState,
   holdClosedMessage, holdMessage, itemKey, mergedSinceClaim, parkMessage, planQueue, plainShippedMessage,
@@ -43,6 +43,8 @@ const CONFIG_DIR = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
 const LIVE_PROMPT = join(CONFIG_DIR, 'scheduled-tasks', PROMPT_ID, 'SKILL.md');
 const REPO_PROMPT = join(REPO, 'docs', 'routine', 'tasks', PROMPT_ID, 'SKILL.md');
 const WORKTREES = join(REPO, '.claude', 'worktrees');
+/** Where the headless session lives. Not the primary: its Bash calls would all count as "on main" and the main-branch guard refuses every git write, also a worker's `cd <worktree> && git commit`. */
+const RUNNER = join(WORKTREES, RUNNER_NAME);
 /** Tools that only make sense with someone watching, or that outlive a print-mode run. */
 const DISALLOWED = 'AskUserQuestion,EnterPlanMode,ExitPlanMode,ScheduleWakeup,CronCreate,CronDelete,RemoteTrigger,Monitor,Workflow,EnterWorktree,ExitWorktree';
 const LOG_KEEP_DAYS = 14;
@@ -467,6 +469,19 @@ function syncPrimary() {
   if (branch !== 'main') { log(`primary checkout is on ${branch}, not fast-forwarding`); return; }
   if (shOk('git', ['merge', '--ff-only', 'origin/main', '--quiet']) === null) log('primary checkout could not fast-forward');
 }
+/** A detached checkout of origin/main, rebuilt when a sweep took it. It holds no work: every item has its own scfb-* worktree. */
+function ensureRunner() {
+  const reused = existsSync(join(RUNNER, '.git')) && shOk('git', ['-C', RUNNER, 'checkout', '--detach', '--force', 'origin/main', '--quiet']) !== null;
+  if (!reused) {
+    if (existsSync(RUNNER)) removeWorktree(RUNNER, null);
+    shOk('git', ['worktree', 'prune']);
+    sh('git', ['worktree', 'add', '--detach', '--force', RUNNER, 'origin/main', '--quiet']);
+  }
+  // Untracked, and it is what enables the Supabase MCP server for a checkout.
+  const local = join(REPO, '.claude', 'settings.local.json');
+  if (existsSync(local)) copyFileSync(local, join(RUNNER, '.claude', 'settings.local.json'));
+  return RUNNER;
+}
 function buildPrompt(run) {
   const prompt = existsSync(LIVE_PROMPT) ? readFileSync(LIVE_PROMPT, 'utf8') : readFileSync(REPO_PROMPT, 'utf8');
   const body = prompt.replace(/\r\n/g, '\n').replace(/^---\n[\s\S]*?\n---\n/, '');
@@ -501,19 +516,23 @@ async function supervise(sid) {
   }
   try {
     syncPrimary();
+    let cwd;
+    try { cwd = ensureRunner(); } catch (e) {
+      throw Object.assign(new Error(`runner checkout failed: ${e.message}`), { outcome: { kind: 'transient', until: Date.now() + 10 * 60_000, reason: 'runner checkout failed' } });
+    }
     const logFile = join(LOGS, `run-${run.startedIso.slice(0, 10)}-${sid.slice(0, 8)}.jsonl`);
     const out = openSync(logFile, 'a');
     const env = { ...process.env, SCC_ROUTINE_HEADLESS: '1', CLAUDE_CODE_SESSION_ID: sid };
     for (const k of ['CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_SSE_PORT']) delete env[k];
     const bin = claudeBin();
     const child = spawn(bin, ['-p', '--session-id', sid, '--dangerously-skip-permissions', '--disallowedTools', DISALLOWED, '--output-format', 'stream-json', '--verbose'],
-      { cwd: REPO, env, stdio: ['pipe', out, out], windowsHide: true, shell: /\.cmd$/i.test(bin) });
+      { cwd, env, stdio: ['pipe', out, out], windowsHide: true, shell: /\.cmd$/i.test(bin) });
     saveRun({ childPid: child.pid, logFile });
     child.stdin.on('error', () => { /* a process that died at start reports through its exit */ });
     child.stdin.end(buildPrompt(run));
 
     const startedAt = Date.now();
-    const dir = transcriptDirFor(REPO);
+    const dir = transcriptDirFor(cwd);
     let dog = { awakeMs: 0, lastBeat: startedAt, quietFloor: startedAt };
     let killedFor = null;
     const beat = setInterval(() => {
@@ -532,7 +551,7 @@ async function supervise(sid) {
     log(`run ${sid.slice(0, 8)} ended: exit=${exit} ${outcome.kind}`);
   } catch (e) {
     log(`supervisor error: ${e.message}`);
-    outcome = { kind: 'crash', reason: e.message.slice(0, 200) };
+    outcome = e.outcome ?? { kind: 'crash', reason: e.message.slice(0, 200) };
     saveRun({ outcome });
   }
   // The board can be away (network, PAT): the run file stays, the next tick repeats this.

@@ -16,6 +16,7 @@ import { ScStepComponent } from '../../shared/step/sc-step.component';
 import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
 import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
+import { HqNowFriendsComponent } from './hq-now-friends.component';
 import { HqLiveService } from './hq-live.service';
 import { eventLabel, formatLocationName, isGameLive, presenceAt, readContracts, readLocation, readShip } from './hq-live.util';
 import { HQ_NOW_PATH } from './hq-now-path';
@@ -33,10 +34,11 @@ const PRESENCE_TICK_MS = 30_000;
 @Component({
   selector: 'sc-hq-now',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent, HqAppLaunchComponent],
+  imports: [TranslatePipe, DatePipe, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent, HqAppLaunchComponent, HqNowFriendsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 class="page-title" id="hq-now-title">{{ 'hq.pages.jetzt' | translate }}</h2>
+    <sc-hq-now-friends />
 
     @if (!live.loaded()) {
       <p class="muted" role="status">{{ 'hq.now.loading' | translate }}</p>

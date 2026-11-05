@@ -42,12 +42,24 @@ on your RSI account.
 |---|---|---|
 | E-mail, password hash | Supabase Auth, `eu-central-1` (Frankfurt) | you + admins |
 | Profile (callsign, role, flagship, language, region) | Postgres, row-level security | you |
-| Hangar, configurations, loadouts, notes | Postgres, row-level security | you |
+| Hangar, configurations, loadouts, notes | Postgres, row-level security | you, and your friends for the parts you share (see below) |
+| Last visit and a 30-day activity mask (`user_presence`) | Postgres, row-level security | you, and your friends (online status, comparison) |
+| Friend invite links, private friend groups | Postgres, row-level security | you (groups are never visible to the people in them) |
 | Session token, language, region, UI state | your browser's local storage | you |
 | Anonymous product analytics | PostHog, EU servers | maintainers, aggregated |
 
 Row-level security is enforced in the database, not just in the UI — another
 signed-in user cannot read your hangar even by calling the API directly.
+
+### What friends see
+
+Friends are people you accepted through a request or a personal, expiring invite
+link. By default they see your hangar, your flagship, whether you are online and
+the numbers behind the comparison on the Social page. You switch each of these
+off in general or for a single friend in the visibility popup on the Social
+page. Friend groups (organisations, squads) are your private list: the members
+do not see them. An Einsatz, loadout or ship variant is only visible to the
+friends you explicitly share it with.
 
 ## Cookies and local storage
 

@@ -38,6 +38,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { PageCrumb } from '../../shared/page-header/nav-origin.service';
+import { HqFriendShareComponent } from '../../hq/social/hq-friend-share.component';
 import { hqLocker, hqSet } from '../../hq/hq-routes';
 
 /** The set page's crumb row: the HQ locker. */
@@ -63,7 +64,7 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
 @Component({
   selector: 'sc-codex-set',
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, HqFriendShareComponent,
     RouterLink,
     TranslatePipe,
     CodexSetStageComponent,
@@ -124,6 +125,7 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
         @if (shareOpen()) {
           <div class="share-box" id="set-share-panel">
             <sc-loadout-share-panel [loadoutId]="activeSet()!.id" />
+            <sc-hq-friend-share kind="loadout" [subjectId]="activeSet()!.id" />
           </div>
         }
 
