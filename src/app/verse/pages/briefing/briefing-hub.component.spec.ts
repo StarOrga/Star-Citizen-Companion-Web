@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import type { StabilityVerdict } from '../../../news/patch-stability';
+import type { VerseNewsItem } from '../../../news/news.service';
 import type { VerseChannelInfo } from '../../data/verse.models';
 import { BriefingHubComponent } from './briefing-hub.component';
 import { daysSince, hubChannel, hubChannels } from './briefing-hub';
@@ -64,6 +65,19 @@ describe('Verse hub — channel info (Hotfix / PTU / Evocati)', () => {
   });
 });
 
+describe('BriefingHubComponent — news accordion', () => {
+  it('clips the open entry to rounded corners, also its image zoom and gradient', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
+    const fixture = TestBed.createComponent(BriefingHubComponent);
+    const item = { id: 'n1', title: 'News', thumbnail: null, publishedAt: new Date(NOW).toISOString() };
+    fixture.componentRef.setInput('news', [item] as unknown as VerseNewsItem[]);
+    fixture.detectChanges();
+    const css = getComputedStyle((fixture.nativeElement as HTMLElement).querySelector('.acc-i.open .acc-a')!);
+    expect(css.overflow).toBe('hidden');
+    expect(css.borderTopLeftRadius).toBe('6px');
+  });
+});
+
 describe('BriefingHubComponent — channel rows', () => {
   function render(channels: ReturnType<typeof hubChannels>): HTMLElement {
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
@@ -96,5 +110,13 @@ describe('BriefingHubComponent — channel rows', () => {
     expect(evo.querySelector('.ch-id span')!.textContent!.trim()).toBe('–');
     expect(evo.querySelector('sc-stability-chip')).withContext('Evocati row without chip').toBeNull();
     expect(el.querySelector('.ch.off[data-ch="hotfix"] .quiet')!.textContent).toContain('none running');
+  });
+
+  it('sets the right side of a row flush right: the quiet note and the chip end on the row edge', () => {
+    const info = { ptu: build('4.10.3', 121, { wave: 2 }) };
+    const el = render(hubChannels({ live: '4.10.2', evocati: '4.11' }, known, noVerdict, info, NOW));
+    const right = (sel: string) => el.querySelector(sel)!.getBoundingClientRect().right;
+    expect(right('.ch.off[data-ch="hotfix"] .quiet')).toBeCloseTo(right('.ch.off[data-ch="hotfix"]'), 0);
+    expect(right('.ch[data-ch="ptu"] .ch-chip')).toBeCloseTo(right('.ch[data-ch="ptu"]'), 0);
   });
 });

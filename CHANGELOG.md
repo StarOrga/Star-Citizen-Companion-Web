@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.207.4] - 2026-11-05
+
+### Changed
+- Data Uploader: the metadata step takes about half as long on the live game archive, with identical output. Silhouette and 3D builds read from the archive through the same faster path.
+
+## [0.207.3] - 2026-11-05
+
+### Changed
+- The feedback routine works up to three unrelated topics at once again. Topics about the same file or element still wait for each other, and each further change is tested again on top of the one merged before it
+
+## [0.207.2] - 2026-11-05
+
+### Fixed
+- Verse start page, News column: an opened news image now has rounded corners like everything around it, also while it zooms on hover
+
+## [0.207.1] - 2026-11-05
+
+### Fixed
+- Verse start page, Patches column: "none running right now" and the stability chips now sit flush right in their row
+
 ## [0.207.0] - 2026-11-05
 
 ### Added
