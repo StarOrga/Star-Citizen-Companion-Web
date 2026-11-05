@@ -454,18 +454,26 @@ class SilhouetteExporter:
 
     def _triangles(self, src: MeshSource, mesh_id: str) -> List[Triangle]:
         safe_id(mesh_id, "mesh_id")  # flows into filenames + cmdline
-        mirror = self.cfg.work_dir / f"{mesh_id}-{src.key[:8]}"
+        # Flat on purpose. The converter runs with its cwd here, and Windows
+        # refuses a cwd over 258 chars even with long paths enabled — mirroring
+        # the P4K path below an install under `Program Files` got there
+        # (WinError 267). Only the mesh and its companion are ever written, so
+        # there is no tree for the converter to resolve anything else in.
+        # The name is a digest: a scratch dir per entity, whatever its name's length.
+        scratch_id = hashlib.sha256(f"{mesh_id}|{src.path}|{src.key}".encode("utf-8")).hexdigest()[:16]
+        mirror = self.cfg.work_dir / scratch_id
         if mirror.exists():
             shutil.rmtree(mirror, ignore_errors=True)
         try:
-            mesh_disk = _safe_join(mirror, src.path.replace("\\", "/"))
-            mesh_disk.parent.mkdir(parents=True, exist_ok=True)
+            mirror.mkdir(parents=True)
+            mesh_name = src.path.replace("\\", "/").rsplit("/", 1)[-1]
+            mesh_disk = _safe_join(mirror, mesh_name)
             mesh_disk.write_bytes(src.mesh)
             if src.cgam is not None:
-                _safe_join(mirror, (src.path[:-4] + ".cgam").replace("\\", "/")).write_bytes(src.cgam)
+                _safe_join(mirror, mesh_name[:-4] + ".cgam").write_bytes(src.cgam)
             raw_glb = mirror / f"{mesh_id}.glb"
             with timed("silhouette.convert"):
-                self._cgf_to_glb(mesh_disk, mirror / "Data", raw_glb)
+                self._cgf_to_glb(mesh_disk, mirror, raw_glb)
             with timed("silhouette.glb_parse"):
                 gltf, binary = read_glb(raw_glb)
                 strip_noop_skins(gltf, binary, self.cfg.on_log)
