@@ -1,10 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, output, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { FriendsService } from './friends.service';
+import { SocialService } from './social.service';
+import { friendPath } from './social.types';
 import {
-  FoundUser,
   FriendEdgeRow,
   REPORT_CATEGORIES,
   REPORT_REASON_MAX,
@@ -13,81 +16,26 @@ import {
   edgeInitial,
   edgeLabel,
   isExpiringSoon,
-  isValidHandle,
 } from './friends.types';
 
 /**
- * The friends page (`/friends`, linked from the account menu and from
- * Settings).
- *
- * Everything on this page is an ACTION on a relationship — accept, decline,
- * block, report — so everything is a `<button>`. There is no per-user detail
- * route in phase 1, hence no `<a [routerLink]>` here; the moment a public
- * profile page exists, the name in each row becomes the anchor.
+ * The requests / friends / outgoing / blocked sections of the Social page
+ * (`/social`; `/friends` redirects there). Actions on a relationship are
+ * buttons; every friend name is a real anchor to the friend page.
  */
 @Component({
   selector: 'sc-friends',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, ScSelectComponent],
+  imports: [TranslatePipe, ScDatePipe, ScSelectComponent, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
-      <header class="head">
-        <div>
-          <h1>{{ 'friends.title' | translate }}</h1>
-          <p class="hint">{{ 'friends.subtitle' | translate }}</p>
-        </div>
-      </header>
-
       @if (friends.error(); as key) {
         <div class="flash error" role="alert">{{ key | translate }}</div>
       }
       @if (flash(); as key) {
         <div class="flash success" role="status">{{ key | translate }}</div>
       }
-
-      <!-- Add a friend by exact handle. Not a search box on purpose: a
-           substring search over profiles would be a user-enumeration
-           endpoint, so find_user_by_username() matches exactly. -->
-      <div class="sc-card section">
-        <h2>{{ 'friends.add.title' | translate }}</h2>
-        <p class="hint">{{ 'friends.add.hint' | translate }}</p>
-        <form class="field-row" (submit)="lookup($event)">
-          <input
-            type="text"
-            class="text-input"
-            [value]="handleInput()"
-            (input)="onHandleInput($event)"
-            [placeholder]="'friends.add.placeholder' | translate"
-            [attr.aria-label]="'friends.add.placeholder' | translate"
-            maxlength="20"
-            autocomplete="off"
-            spellcheck="false" />
-          <button
-            type="submit"
-            class="sc-btn sc-btn-primary"
-            [disabled]="friends.busy() || !handleValid()">
-            {{ 'friends.add.search' | translate }}
-          </button>
-        </form>
-
-        @if (searched() && !found()) {
-          <p class="empty-inline">{{ 'friends.add.notFound' | translate }}</p>
-        }
-        @if (found(); as f) {
-          <div class="found">
-            <span class="avatar">{{ initialOf(f) }}</span>
-            <span class="found-name">{{ labelOf(f) }}</span>
-            <button
-              type="button"
-              class="sc-btn sc-btn-primary"
-              [disabled]="friends.busy()"
-              (click)="sendRequest(f)">
-              {{ 'friends.add.send' | translate }}
-            </button>
-          </div>
-        }
-      </div>
 
       <!-- Incoming requests first: they are the only bucket that needs a
            decision from the user. -->
@@ -148,19 +96,33 @@ import {
         @if (friends.loading() && graph().friends.length === 0) {
           <p class="empty-inline">{{ 'friends.loading' | translate }}</p>
         } @else if (graph().friends.length === 0) {
-          <p class="empty-inline">{{ 'friends.list.empty' | translate }}</p>
+          <div class="empty-state">
+            <p class="empty-inline">{{ 'friends.list.empty' | translate }}</p>
+            <p class="hint">{{ 'social.page.emptyHint' | translate }}</p>
+            <button type="button" class="sc-btn sc-btn-primary" (click)="inviteRequested.emit()">
+              {{ 'social.page.emptyCta' | translate }}
+            </button>
+          </div>
         } @else {
           <ul class="edge-list">
             @for (e of graph().friends; track e.user_id) {
               <li class="edge">
                 <span class="avatar">{{ initialOf(e) }}</span>
                 <span class="edge-main">
-                  <span class="edge-name">{{ labelOf(e) }}</span>
+                  <span class="edge-name">
+                    <a class="edge-link" [routerLink]="friendLink(e)">{{ labelOf(e) }}</a>
+                    @if (isOnline(e)) {
+                      <span class="online-dot" role="img"
+                            [attr.aria-label]="'social.page.online' | translate"
+                            [scTooltip]="'social.page.online' | translate"></span>
+                    }
+                  </span>
                   <span class="edge-meta">
                     {{ 'friends.list.since' | translate: { date: (e.since | scDate) } }}
                   </span>
                 </span>
                 <span class="edge-actions">
+                  <a class="sc-btn micro" [routerLink]="friendLink(e)">{{ 'social.page.openFriend' | translate }}</a>
                   <button type="button" class="sc-btn micro"
                           [disabled]="friends.busy()" (click)="removeFriend(e)">
                     {{ 'friends.actions.remove' | translate }}
@@ -296,6 +258,12 @@ import {
       align-items: center;
       gap: 8px;
     }
+    .edge-link { color: var(--sc-fg-0); text-decoration: none; }
+    .edge-link:hover { color: var(--sc-accent); text-decoration: underline; }
+    .online-dot { display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--sc-success); vertical-align: middle; }
+    .empty-state { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 10px; }
+    .empty-state .empty-inline { margin: 0; }
+    a.sc-btn { text-decoration: none; display: inline-flex; align-items: center; }
     .count {
       display: inline-block;
       min-width: 20px;
@@ -418,6 +386,9 @@ import {
 })
 export class FriendsComponent implements OnInit {
   readonly friends = inject(FriendsService);
+  private readonly social = inject(SocialService);
+  /** The empty state asks the page to bring the invite box into view. */
+  readonly inviteRequested = output<void>();
 
   readonly categoryOptions: readonly ScSelectOption[] = REPORT_CATEGORIES.map((c) => ({
     value: c,
@@ -428,9 +399,6 @@ export class FriendsComponent implements OnInit {
   readonly graph = this.friends.graph;
 
   readonly handleInput = signal('');
-  readonly handleValid = computed(() => isValidHandle(this.handleInput()));
-  readonly found = signal<FoundUser | null>(null);
-  readonly searched = signal(false);
   readonly flash = signal<string | null>(null);
 
   readonly reportTarget = signal<FriendEdgeRow | null>(null);
@@ -439,6 +407,14 @@ export class FriendsComponent implements OnInit {
 
   ngOnInit(): void {
     void this.friends.load();
+  }
+
+  friendLink(e: FriendEdgeRow): string[] {
+    return friendPath(e);
+  }
+
+  isOnline(e: FriendEdgeRow): boolean {
+    return this.social.onlineIds().has(e.user_id);
   }
 
   labelOf(e: { display_name: string | null; username: string | null }): string {
@@ -467,44 +443,12 @@ export class FriendsComponent implements OnInit {
     return isExpiringSoon(e);
   }
 
-  onHandleInput(event: Event): void {
-    this.handleInput.set((event.target as HTMLInputElement).value);
-    this.searched.set(false);
-    this.found.set(null);
-  }
-
   onCategoryChange(value: string | null): void {
     this.reportCategory.set((value ?? 'other') as ReportCategory);
   }
 
   onReasonInput(event: Event): void {
     this.reportReason.set((event.target as HTMLTextAreaElement).value);
-  }
-
-  async lookup(event: Event): Promise<void> {
-    event.preventDefault();
-    if (!this.handleValid()) return;
-    this.flash.set(null);
-    const hit = await this.friends.findByUsername(this.handleInput());
-    this.found.set(hit);
-    this.searched.set(true);
-  }
-
-  async sendRequest(target: FoundUser): Promise<void> {
-    const result = await this.friends.sendRequest(target.user_id);
-    if (!result) return;
-    this.found.set(null);
-    this.searched.set(false);
-    this.handleInput.set('');
-    // "accepted" happens when the other side had already sent me a request —
-    // saying "request sent" there would be a lie.
-    this.flash.set(
-      result === 'accepted'
-        ? 'friends.flash.nowFriends'
-        : result === 'already_friends'
-          ? 'friends.flash.alreadyFriends'
-          : 'friends.flash.requestSent',
-    );
   }
 
   async respond(edge: FriendEdgeRow, accept: boolean): Promise<void> {
