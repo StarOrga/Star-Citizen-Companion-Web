@@ -17,7 +17,7 @@
     <div class="fr-card">
       <p class="fr-label">{{final.results}}</p>
       <ul class="fr-wins">
-        <li><span class="fr-win-icon" aria-hidden="true">🪐</span><span><code>/verse</code> <b>friert kaum noch ein</b>: längste Blockade 0,55 s statt rund 4 s.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🪐</span><span><code>/verse</code> <b>friert kaum noch ein</b>: längste Blockade rund 0,2 s statt rund 4 s.</span></li>
         <li><span class="fr-win-icon" aria-hidden="true">🎬</span><span>Reload und neuer Tab bekommen <b>am selben Tag den kurzen Auftakt</b> von rund 1 s.</span></li>
         <li><span class="fr-win-icon" aria-hidden="true">🏷️</span><span>Die Neu-Markierung <b>sieht alle 20.385 Items</b>, bisher las sie nur 10.000.</span></li>
       </ul>
@@ -25,9 +25,9 @@
     <div class="fr-card">
       <p class="fr-label">{{final.holds}}</p>
       <div class="fr-meters">
-        <div class="fr-meter" data-met="true" style="--fr-tested: 88%; --fr-target: 70%">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 96%; --fr-target: 70%">
           <span class="fr-meter-name">⚡ Performance</span>
-          <b class="fr-meter-value">0,55 s</b>
+          <b class="fr-meter-value">0,20 s</b>
           <div class="fr-meter-bar" aria-hidden="true"></div>
           <p class="fr-meter-context">längste Blockade auf deiner RTX mit kaltem Shader-Cache, Ziel unter 1 s (geschätzt). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
         </div>
@@ -37,11 +37,11 @@
           <div class="fr-meter-bar" aria-hidden="true"></div>
           <p class="fr-meter-context">neue RPC im schlimmsten Fall, das Limit für anonyme Abfragen liegt bei 3 s. Live erst nach der Migration. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
         </div>
-        <div class="fr-meter" data-met="false" style="--fr-tested: 99%; --fr-target: 100%">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
           <span class="fr-meter-name">🛡 Stabilität</span>
-          <b class="fr-meter-value">5438 / 5443</b>
+          <b class="fr-meter-value">5443 / 5443</b>
           <div class="fr-meter-bar" aria-hidden="true"></div>
-          <p class="fr-meter-context">Specs grün, 4 übersprungen, 1 rot. Der rote Spec scheitert auf <code>main</code> genauso. <span class="fr-meter-verdict">▲ 1 Spec fehlt bis Ziel</span></p>
+          <p class="fr-meter-context">Specs grün, 4 übersprungen, keiner rot. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
         </div>
       </div>
     </div>
@@ -52,7 +52,8 @@
 
   <p class="fr-label">Noch offen oder schlechter</p>
   <ul>
-    <li><b>Ohne GPU ist der erste Inhalt später:</b> Mit Software-WebGL lag er im Labor bei 6,3–9,9 s statt 3,1 s, dafür bleibt die Seite bedienbar (Blockaden zusammen 0,3–3,7 s statt 9 s). Dein Rechner ist davon nicht betroffen.</li>
+    <li><b>Ohne GPU steht der Planet später:</b> Mit Software-WebGL rund 17–19 s statt 4–6 s, dafür bleibt die Seite bedienbar (Blockaden zusammen 0,4–1,5 s statt 6–10 s). Dein Rechner ist davon nicht betroffen. Der erste Inhalt ist dort nicht messbar später, siehe Nachtrag.</li>
+    <li><b>Mehr Download beim ersten Besuch:</b> Die Karten der Himmelskörper kosten 0,9 MB bei normaler und 3,0 MB bei hoher Pixeldichte statt rund 10 kB SVG, danach liegen sie im Cache. Auf langsamer Leitung bleibt die CSS-Fassung der Himmelskörper länger stehen.</li>
     <li><b>Offline nicht voll vorgeladen:</b> Die 10 Dateien, die <code>main</code> direkt braucht, laden erst beim ersten Besuch. Online ändert das nichts, und du hast Offline-Vollständigkeit ausdrücklich nicht verlangt.</li>
     <li><b>Upload unverändert:</b> Wie von dir entschieden. Der Codex-Katalog liegt aber in derselben Datenbank wie die Website, ein großer Upload kann sie also weiter ausbremsen.</li>
     <li><b>Nicht geprüft:</b> Dass die Hintergrund-Ladung im Cache des Service Workers landet und die Planeten auch unter aktivem Service Worker starten.</li>
@@ -60,6 +61,13 @@
 
   <p class="fr-label">Deine Frage: Wird zu viel unsichtbar gerendert?</p>
   <p>Meist nein. Die Bremse saß im Start, vor allem beim Verlinken der Shader (rund 3,9 s), nicht im Dauerbetrieb. Weg sind die Zeichengänge der Zug-Ebene ohne sichtbaren Zug und die leeren Durchläufe des Planeten außerhalb des Bildes. Planet und Himmelskörper änderten sich in jedem gemessenen Frame und behalten ihre Bildrate. Auch die Auflösung bleibt, wo sie zählt: Die Nachttextur liegt bei Full HD mit 0,42 Texeln pro Pixel unter 1:1, nur die Karten der kleinen Himmelskörper halbieren sich bei normaler Pixeldichte. Sichtbar neu ist eines: Die Himmelskörper zeigen beim ersten Laden kurz ihre CSS-Fassung und blenden dann auf WebGL über.</p>
+
+  <p class="fr-label">Nachtrag: deine drei Folgepunkte</p>
+  <ul>
+    <li><b>Karten der Himmelskörper: gebaut.</b> Sie liegen als verlustfreie WebP vor und laden im Worker. Auf deiner RTX mit kaltem Cache: 2–3 lange Aufgaben statt 8–9, zusammen 0,26–0,35 s statt 1,8–2,1 s, die längste 0,18–0,20 s statt 0,6 s, Planet fertig nach 2,1–2,4 s statt 3,5–3,9 s. Andere GPU-Hersteller bekommen jetzt das Bild aus diesem Bake statt ihres eigenen Rasters, verglichen ist das nicht.</li>
+    <li><b>Rote Einzug-Spec: behoben.</b> Das Produkt war nicht falsch: Ohne WebGL meldet der Planet sofort „fertig“, das Finale war dann vor dem Prüfzeitpunkt vorbei. Der Test setzt das jetzt ausdrücklich, seine Prüfungen sind unverändert. Der 7-Sekunden-Rückfall für einen Planeten, der nie fertig wird, hat damit keinen eigenen Test mehr.</li>
+    <li><b>Ohne GPU: nicht gebaut, entgegen deiner Auswahl.</b> Mein Wert aus dem Bericht hielt nicht: Im selben Messlauf streut der alte Stand beim ersten Inhalt genauso (5,6–10,7 s gegen 3,9–8,1 s mit Worker). Beide Gegenmittel brachten nichts: Der Seitenweg lag bei 3,0–10,6 s und fror die Seite 8–11 s ein, ein Warten auf den ersten Inhalt bei 3,1–9,8 s. Ein Einbau wäre ein Placebo gewesen. Unter der Last dieser Läufe ist ein kleiner Effekt nicht auszuschließen. Der Fund bleibt deshalb offen.</li>
+  </ul>
 
   <div class="fr-depth">
     <p class="fr-label">{{final.depth}}</p>
@@ -89,12 +97,13 @@
           data-route-reason="braucht Abwägung">
         <span class="oq-label">Ohne GPU: erster Inhalt später</span>
         <dl class="fr-fkv">
-          <dt>{{final.fund_what}}</dt><dd>Mit Software-WebGL 6,3–9,9 s statt 3,1 s bis zum ersten Inhalt, die Seite bleibt aber bedienbar.</dd>
+          <dt>{{final.fund_what}}</dt><dd>Die Lücke von 6,3–9,9 s gegen 3,1 s bestätigte sich im direkten Vergleich nicht, der alte Stand streut genauso. Nicht gebaut, siehe Nachtrag.</dd>
           <dt>{{final.fund_where}}</dt><dd><code>/verse</code>, nur Rechner ohne GPU</dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue: früher Inhalt oder freier Haupt-Thread ist eine Abwägung, ohne Felddaten nicht zu entscheiden.</dd>
         </dl>
       </li>
       <li data-oq-id="oq-bodymaps"
+          data-routed
           data-issue-title="[FEATURE] Bake the body maps to WebP so their raster leaves the main thread"
           data-issue-type="feature"
           data-issue-body="The longest task left on /verse boot is the SVG map raster for the small bodies, about 0.55 s via createImageBitmap on the page. Baking the maps to lossless WebP, as the big planet's textures already are (scripts/bake-planet.mjs), would move it into the worker."
@@ -108,8 +117,10 @@
           <dt>{{final.fund_where}}</dt><dd><code>bodies/</code>, <code>scripts/bake-planet.mjs</code></dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue: lohnt sich, sprengt aber diesen Umbau.</dd>
         </dl>
+        <span class="oq-done">✓ umgesetzt — <code>scripts/bake-body-maps.mjs</code>, <code>public/planet/bodies/</code>, <code>bodies/body-maps.ts</code></span>
       </li>
       <li data-oq-id="oq-redspec"
+          data-routed
           data-issue-title="[BUG] Verse entrance spec fails on main: expected bstage to contain finale"
           data-issue-type="bug"
           data-issue-body="The spec 'opens on the app name, builds up, lets the comet fly last' in src/app/verse/pages/briefing/verse-briefing.component.spec.ts fails at line 442 with: Expected bstage to contain 'finale'. It fails the same way on origin/main (0066ac2d, run in a clean worktree), so this branch did not cause it. Root cause not found."
@@ -123,6 +134,7 @@
           <dt>{{final.fund_where}}</dt><dd><code>verse-briefing.component.spec.ts:442</code></dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue: nicht von dieser Arbeit verursacht, Ursache noch offen.</dd>
         </dl>
+        <span class="oq-done">✓ umgesetzt — <code>verse-briefing.component.spec.ts</code>, der Test hing vom Rechner ab</span>
       </li>
     </ul>
   </details>
@@ -143,9 +155,9 @@
   <details class="fr-fold">
     <summary>🛠 {{final.dev_fold}}</summary>
     <ul class="fr-dev">
-      <li>Branch <code>claude/website-performance-audit-2f8702</code>, Merge-Stand <code>71b83be5</code>, nichts auf <code>main</code></li>
-      <li><code>planet/planet.worker.ts</code>, <code>bodies/bodies.worker.ts</code>, <code>ngsw-config.json</code>, <code>codex-build-diff.service.ts</code>, <code>briefing.model.ts</code></li>
-      <li>Karma 5438 grün, 1 rot, 4 übersprungen · Gate 110 · Functions 340 · Build und Typecheck grün · Lint 0 Fehler, 203 Warnungen</li>
+      <li>Branch <code>claude/website-performance-audit-2f8702</code>, Merge-Stand <code>e35bc23e</code>, nichts auf <code>main</code></li>
+      <li><code>planet/planet.worker.ts</code>, <code>bodies/bodies.worker.ts</code>, <code>ngsw-config.json</code>, <code>codex-build-diff.service.ts</code>, <code>briefing.model.ts</code>, <code>bodies/body-maps.ts</code>, <code>scripts/bake-body-maps.mjs</code></li>
+      <li>Karma 5443 grün, 4 übersprungen · Gate 111 · Functions 340 · Build und Typecheck grün · Lint 0 Fehler, 203 Warnungen</li>
       <li>Vor dem Live-Gang: <code>20261105150000_codex_added_class_names.sql</code> pushen, danach <code>notify pgrst, 'reload schema'</code>. Bis dahin greift der alte Abruf als Rückfall.</li>
       <li>Harden und Polish laufen erst beim Ship über dessen Diff-Prüfung, die QA hat den Gesamtstand schon getestet.</li>
     </ul>
