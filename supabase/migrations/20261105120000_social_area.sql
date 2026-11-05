@@ -16,9 +16,10 @@
 --     SECURITY DEFINER RPCs that pin the actor to auth.uid().
 --   * Authorisation is checked on every READ (are_friends + owner approved and
 --     not suspended), so un-friending or blocking revokes everything on the
---     next read with no cleanup pass. Rows of a dead friendship stay until the
---     owner deletes them and come back if the two become friends again, which
---     is the behaviour loadout_shares already has.
+--     next read with no cleanup pass. On top of that, friendships_after_delete
+--     removes the pair's group memberships, shares, RSVPs and visibility
+--     overrides and revokes their set shares, so nothing comes back when the
+--     two become friends again.
 --   * Errors are stable one-word codes, mapped client-side by socialErrorKey().
 --
 -- DECISIONS (all repeated in the concept's contract.md):
@@ -95,7 +96,7 @@ create index if not exists friend_group_members_member_idx
   on public.friend_group_members (member_id);
 
 comment on table public.friend_group_members is
-  'Friend in a friend_group, several groups per friend allowed. Every read filters by the current friendship; a row of a dead friendship stays and is ignored.';
+  'Friend in a friend_group, several groups per friend allowed. Every read filters by the current friendship; friendships_after_delete removes the row when the friendship ends.';
 
 -- Visibility --------------------------------------------------
 create table if not exists public.social_visibility (
@@ -222,6 +223,44 @@ comment on column public.hangar_role_loadouts.source_owner_id is
 create unique index if not exists hangar_role_loadouts_adopted_unique
   on public.hangar_role_loadouts (user_id, source_loadout_id)
   where source_loadout_id is not null and deleted_at is null;
+-- The two FK actions (on delete set null) look rows up by these columns.
+create index if not exists hangar_role_loadouts_source_idx
+  on public.hangar_role_loadouts (source_loadout_id) where source_loadout_id is not null;
+create index if not exists hangar_role_loadouts_source_owner_idx
+  on public.hangar_role_loadouts (source_owner_id) where source_owner_id is not null;
+
+-- The table has self-only write policies with no column list, so without this a
+-- client could fake a "from <friend>" label and probe which accounts exist
+-- through the foreign key. Same mechanism as hangar_ship_configs_share_guard:
+-- adopt_friend_loadout() sets hangar.internal_write, and the one change allowed
+-- otherwise is the FK action detaching a copy (source deleted, account deleted).
+create or replace function public.hangar_role_loadouts_source_guard()
+returns trigger language plpgsql set search_path = public as $$
+declare
+  v_internal boolean := coalesce(nullif(current_setting('hangar.internal_write', true), ''), 'off') = 'on';
+begin
+  if v_internal then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    if new.source_loadout_id is not null or new.source_owner_id is not null then
+      raise exception 'source columns are managed by adopt_friend_loadout only' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if (new.source_loadout_id is distinct from old.source_loadout_id and new.source_loadout_id is not null)
+     or (new.source_owner_id is distinct from old.source_owner_id and new.source_owner_id is not null) then
+    raise exception 'source columns are managed by adopt_friend_loadout only' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.hangar_role_loadouts_source_guard() from public, anon, authenticated;
+
+drop trigger if exists hangar_role_loadouts_source_guard on public.hangar_role_loadouts;
+create trigger hangar_role_loadouts_source_guard
+  before insert or update of source_loadout_id, source_owner_id on public.hangar_role_loadouts
+  for each row execute function public.hangar_role_loadouts_source_guard();
 
 -- RLS on, no policy, no grant: everything below is the only way in.
 do $$
@@ -281,6 +320,7 @@ returns boolean language sql security definer set search_path = public stable as
   select p_viewer is not null
     and public.are_friends(p_viewer, p_owner)
     and public.social_peer_ok(p_owner)
+    and public.social_peer_ok(p_viewer)
     and (
       p_shared_with = p_viewer
       or exists (
@@ -310,6 +350,7 @@ returns jsonb language sql security definer set search_path = public stable as $
     from public.einsatz_rsvps r
     join public.profiles p on p.id = r.user_id
     where r.einsatz_id = p_einsatz
+      and public.social_peer_ok(r.user_id)
       and (r.user_id = p_owner or public.einsatz_access(p_einsatz, r.user_id))
   )
   select jsonb_build_object(
@@ -402,6 +443,7 @@ $$;
 --   desktop_connected a desktop_connections check-in or an SCC App live event
 --                   within 30 days; the SCC App has no desktop_connections
 --                   product, its proof of life is hq_live_events
+-- Never handed to a friend directly: social_stats_for() applies their visibility.
 create or replace function public.social_stats(p_user uuid)
 returns jsonb language sql security definer set search_path = public stable as $$
   select jsonb_build_object(
@@ -433,6 +475,63 @@ returns jsonb language sql security definer set search_path = public stable as $
   );
 $$;
 
+-- social_stats as p_viewer may see it: null when the stats are hidden. The two
+-- numbers that give away when somebody was around are presence data, so they
+-- follow the presence facet.
+create or replace function public.social_stats_for(p_user uuid, p_viewer uuid)
+returns jsonb language sql security definer set search_path = public stable as $$
+  select case
+    when not public.social_visible(p_user, p_viewer, 'stats') then null
+    when public.social_visible(p_user, p_viewer, 'presence') then public.social_stats(p_user)
+    else public.social_stats(p_user)
+         || jsonb_build_object('active_days_30', null::integer, 'desktop_connected', null::boolean)
+  end;
+$$;
+
+-- A friendship that ends takes everything between the two with it, in both
+-- directions. Without this, block + unblock + re-friend would restore old access,
+-- because the read-side checks only ask "are they friends now?". That includes
+-- set shares in loadout_shares, revoked rather than deleted as that table's rule
+-- says. What a person adopted stays theirs: a copy is not a share.
+create or replace function public.friendships_after_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.friend_group_members m
+   using public.friend_groups g
+   where m.group_id = g.id
+     and ((g.owner_id = old.user_low and m.member_id = old.user_high)
+       or (g.owner_id = old.user_high and m.member_id = old.user_low));
+
+  delete from public.friend_shares s
+   where (s.owner_id = old.user_low and s.shared_with = old.user_high)
+      or (s.owner_id = old.user_high and s.shared_with = old.user_low);
+
+  update public.loadout_shares s
+     set revoked_at = now()
+   where s.revoked_at is null
+     and ((s.owner_id = old.user_low and s.shared_with = old.user_high)
+       or (s.owner_id = old.user_high and s.shared_with = old.user_low));
+
+  delete from public.einsatz_rsvps r
+   using public.hq_einsaetze e
+   where r.einsatz_id = e.id
+     and ((e.user_id = old.user_low and r.user_id = old.user_high)
+       or (e.user_id = old.user_high and r.user_id = old.user_low));
+
+  delete from public.social_visibility_overrides o
+   where (o.user_id = old.user_low and o.friend_id = old.user_high)
+      or (o.user_id = old.user_high and o.friend_id = old.user_low);
+  return null;
+end;
+$$;
+
+drop trigger if exists friendships_after_delete on public.friendships;
+create trigger friendships_after_delete
+  after delete on public.friendships
+  for each row execute function public.friendships_after_delete();
+
+revoke all on function public.friendships_after_delete() from public, anon, authenticated;
+revoke all on function public.social_stats_for(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.social_peer_ok(uuid) from public, anon, authenticated;
 revoke all on function public.social_visible(uuid, uuid, text) from public, anon, authenticated;
 revoke all on function public.friend_share_reaches(uuid, uuid, uuid, uuid) from public, anon, authenticated;
@@ -535,6 +634,9 @@ declare
   v_name text;
   v_handle citext;
 begin
+  -- Parallel clicks must not slip past the limits below.
+  perform pg_advisory_xact_lock(hashtextextended('redeem_friend_invite:' || caller::text, 0));
+
   select * into v_invite from public.friend_invites i where i.token = p_token;
   -- Blocked answers like unknown: the caller must not be able to tell.
   if v_invite.id is null
@@ -1044,6 +1146,9 @@ language sql security definer set search_path = public stable as $$
     join public.profiles p on p.id = s.owner_id
     where s.kind = 'ship_config'
       and public.is_approved()
+      -- Start from the reader's own rows, so the indexes on shared_with and group_id carry it.
+      and (s.shared_with = auth.uid()
+           or s.group_id in (select m.group_id from public.friend_group_members m where m.member_id = auth.uid()))
       and c.deleted_at is null
       and public.friend_share_reaches(s.shared_with, s.group_id, s.owner_id, auth.uid())
     order by c.id, s.created_at
@@ -1099,11 +1204,13 @@ begin
     return jsonb_build_object('loadoutId', v_id, 'existed', true);
   end if;
 
+  perform set_config('hangar.internal_write', 'on', true);
   insert into public.hangar_role_loadouts (user_id, name, role, items, source_loadout_id, source_owner_id)
   values (caller, v_source.name, v_source.role, v_source.items, v_source.id, v_source.user_id)
   on conflict (user_id, source_loadout_id) where source_loadout_id is not null and deleted_at is null
   do nothing
   returning id into v_id;
+  perform set_config('hangar.internal_write', 'off', true);
 
   if v_id is null then
     -- Lost the race to a concurrent adopt of the same source.
@@ -1144,19 +1251,29 @@ begin
    where c.user_id = caller and c.source_config_id = v_source.id and c.deleted_at is null;
 
   if v_id is null then
+    -- A live row, owned first; today hangar_ships_user_ship_key allows only one
+    -- per class, the order matters once that key turns partial (see
+    -- 20261009090000). A wishlist row stays a wishlist row. A tombstone is never
+    -- revived behind the reader's back: while that key still counts it, the
+    -- insert below fails and the answer is ship_unavailable.
     select h.id into v_ship from public.hangar_ships h
-     where h.user_id = caller and h.ship_class_name = v_class;
+     where h.user_id = caller and h.ship_class_name = v_class and h.deleted_at is null
+     order by (h.status = 'owned') desc
+     limit 1;
     if v_ship is null then
-      insert into public.hangar_ships (user_id, ship_class_name, status)
-      values (caller, v_class, 'owned')
-      returning id into v_ship;
-    else
-      update public.hangar_ships h set deleted_at = null
-       where h.id = v_ship and h.deleted_at is not null;
+      begin
+        insert into public.hangar_ships (user_id, ship_class_name, status)
+        values (caller, v_class, 'owned')
+        returning id into v_ship;
+      exception when unique_violation then
+        raise exception 'ship_unavailable' using errcode = '23505';
+      end;
     end if;
 
     perform set_config('hangar.internal_write', 'on', true);
-    -- A tombstone of an earlier copy holds the unique slot, drop it first.
+    -- A tombstone of an earlier copy of this same source holds the unique slot,
+    -- drop it first. Only that row goes: a friend_share of it was invisible
+    -- already, readers skip deleted configs.
     delete from public.hangar_ship_configs c
      where c.user_id = caller and c.source_config_id = v_source.id and c.deleted_at is not null;
     insert into public.hangar_ship_configs (
@@ -1320,7 +1437,6 @@ declare
   v_hangar boolean;
   v_flagship boolean;
   v_presence boolean;
-  v_stats boolean;
 begin
   if p_friend is null or btrim(p_friend) = '' then
     return null;
@@ -1345,7 +1461,6 @@ begin
   v_hangar := public.social_visible(v_friend, caller, 'hangar');
   v_flagship := public.social_visible(v_friend, caller, 'flagship');
   v_presence := public.social_visible(v_friend, caller, 'presence');
-  v_stats := public.social_visible(v_friend, caller, 'stats');
 
   return jsonb_build_object(
     'friend', jsonb_build_object(
@@ -1379,14 +1494,15 @@ begin
     ), '[]'::jsonb) end,
     'compare', jsonb_build_object(
       'me', public.social_stats(caller),
-      'friend', case when v_stats then public.social_stats(v_friend) end
+      'friend', public.social_stats_for(v_friend, caller)
     )
   );
 end;
 $$;
 
 -- The Social page's comparison in one call. `stats` is null for a friend who
--- hides it.
+-- hides it; active_days_30 and desktop_connected are null for one who hides
+-- their presence.
 create or replace function public.list_friend_compare()
 returns jsonb language plpgsql security definer set search_path = public stable as $$
 declare caller uuid := public.social_actor();
@@ -1398,7 +1514,7 @@ begin
         'user_id', d.id,
         'display_name', d.display_name,
         'username', d.username,
-        'stats', case when public.social_visible(d.id, caller, 'stats') then public.social_stats(d.id) end
+        'stats', public.social_stats_for(d.id, caller)
       ) order by coalesce(d.username::text, d.display_name))
       from (
         select p.id, p.display_name, p.username

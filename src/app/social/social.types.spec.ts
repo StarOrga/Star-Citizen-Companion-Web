@@ -78,6 +78,14 @@ describe('social.types', () => {
       expect(rows[0].labelKey).toBe('social.compare.ships');
     });
 
+    it('leaves only the presence metric open when the friend hides their presence', () => {
+      const rows = compareRows(stats(), stats({ active_days_30: null, desktop_connected: null }));
+      const days = rows.find((r) => r.metric === 'active_days_30');
+      expect(days?.friend).toBeNull();
+      expect(days?.standing).toBeNull();
+      expect(rows.find((r) => r.metric === 'ships')?.standing).toBe('even');
+    });
+
     it('has no friend value and no standing when the friend hides the stats', () => {
       const rows = compareRows(stats(), null);
       expect(rows.every((r) => r.friend === null && r.standing === null)).toBeTrue();
@@ -88,6 +96,7 @@ describe('social.types', () => {
     it('maps the stable codes', () => {
       expect(socialErrorKey('invite_expired')).toBe('social.error.inviteExpired');
       expect(socialErrorKey('slot_taken')).toBe('social.error.slotTaken');
+      expect(socialErrorKey('ship_unavailable')).toBe('social.error.shipUnavailable');
       expect(socialErrorKey('not_friends')).toBe('social.error.notFriends');
       expect(socialErrorKey('not approved')).toBe('social.error.notApproved');
     });

@@ -228,7 +228,11 @@ export interface AdoptedShipConfig {
 
 // --- Comparison + friend page ----------------------------------------------
 
-/** `social_stats()`: only numbers the server really knows. */
+/**
+ * `social_stats()`: only numbers the server really knows. On a friend's stats
+ * `active_days_30` and `desktop_connected` are null when that friend hides their
+ * presence; on your own they are always set.
+ */
 export interface SocialStats {
   ships: number;
   sets: number;
@@ -236,8 +240,8 @@ export interface SocialStats {
   einsaetze_done: number;
   missions_30d: number;
   kartograph_rank: number;
-  active_days_30: number;
-  desktop_connected: boolean;
+  active_days_30: number | null;
+  desktop_connected: boolean | null;
 }
 
 /** `list_friend_compare()`. `stats` is null for a friend who hides them. */
@@ -266,7 +270,7 @@ export interface CompareRow {
   metric: CompareMetric;
   labelKey: string;
   me: number;
-  /** Null when the friend hides their stats. */
+  /** Null when the friend hides their stats, or their presence for `active_days_30`. */
   friend: number | null;
   /** `behind` renders in `--sc-warning`: a comparison is not an error. */
   standing: 'ahead' | 'even' | 'behind' | null;
@@ -275,7 +279,8 @@ export interface CompareRow {
 export function compareRows(me: SocialStats, friend: SocialStats | null): CompareRow[] {
   return COMPARE_METRICS.map((metric) => {
     const mine = Number(me[metric]) || 0;
-    const theirs = friend ? Number(friend[metric]) || 0 : null;
+    const raw = friend ? friend[metric] : null;
+    const theirs = raw === null || raw === undefined ? null : Number(raw) || 0;
     return {
       metric,
       labelKey: `social.compare.${metric}`,
@@ -374,6 +379,7 @@ export function socialErrorKey(message: string | null | undefined): string | nul
     ['einsatz_not_found', 'einsatzNotFound'],
     ['einsatz_closed', 'einsatzClosed'],
     ['config_not_found', 'configNotFound'],
+    ['ship_unavailable', 'shipUnavailable'],
     ['loadout_not_found', 'loadoutNotFound'],
     ['share_not_found', 'shareNotFound'],
     ['too_many_slots', 'tooManySlots'],

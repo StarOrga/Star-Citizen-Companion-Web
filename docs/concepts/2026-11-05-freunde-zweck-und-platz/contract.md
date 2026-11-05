@@ -15,7 +15,7 @@ Existing and unchanged: `FriendsService` (graph, requests, block, report, `incom
 | D5 | A **set shared with a group fans out at share time** into `loadout_shares`; later members do not get it. | That table has no group column and its reader is existing code. |
 | D6 | Revoking a `friend_shares` row deletes it. `loadout_shares` keeps revoke-never-delete. | 500 MB budget. |
 | D7 | Adopting a friend's ship variant makes a **copy that does not follow** (`follows_owner = false`, `forked_at` set, `source_config_id` only for idempotence, `owner_user_id` as the "from" hint). | `hangar_follow_snapshot()` does not re-check a friendship, so a follower would keep reading after un-friending. |
-| D8 | Adopting a ship variant adds the ship to the recipient's hangar as `owned` if it is missing, exactly as `adopt_shared_loadout()` does. | One behaviour for both adopt paths. Consequence: it counts in `stats.ships`. |
+| D8 | Adopting a ship variant adds the ship to the recipient's hangar as `owned` if it is missing, exactly as `adopt_shared_loadout()` does. An existing wishlist row is used and stays a wishlist row. A tombstoned row is never revived: while `hangar_ships_user_ship_key` counts it, the answer is `ship_unavailable`. | One behaviour for both adopt paths. Consequence: a newly added ship counts in `stats.ships`. The web client hard-deletes today, so the tombstone case cannot occur yet. |
 | D9 | All four visibility facets default to ON; no row = all on. | R4 for the hangar; flagship is a subset of it; presence and stats would otherwise make C06 and C07 empty. |
 | D10 | Friend-visible hangar = `hangar_ships` with `ship_class_name`, `custom_name`, `status` (owned **and** wishlist), `pinned_rank`. Never `notes`, `selected_skin_id`, configs or `hangar_concept_ships`. | "Deinen ganzen Hangar", without free-text notes. Render `status` so a wishlist entry does not read as owned. |
 | D11 | Crew names: the owner sees all. A friend sees the name on a slot only for the owner, themselves and their own friends, otherwise `taken: true, taker: null`. The answer list `rsvps` is owner-only, friends get `counts`. | A share must not introduce two people who are not friends. |
@@ -25,6 +25,9 @@ Existing and unchanged: `FriendsService` (graph, requests, block, report, `incom
 | D15 | Presence exposes a boolean only, never a timestamp. | The feature asked for "online". |
 | D16 | Invite route is `/invite/<token>`, public, not `/social/invite/<token>`. | A signed-out visitor must reach it and `/social/<name>` belongs to the handles. |
 | D17 | `/social/<x>` accepts a handle or a user id; use `friendPath()`. | 8 of 10 accounts have no handle. |
+| D18 | When a friendship ends (remove, block), the trigger `friendships_after_delete` removes in both directions: group memberships, `friend_shares`, RSVPs on each other's Einsätze, visibility overrides, and it revokes `loadout_shares` between the two. A re-friend starts clean. Adopted copies stay. **This changes existing set-share behaviour:** a set share used to come back on re-friending. | Read-time checks alone restored everything after block + unblock + re-friend. |
+| D19 | `active_days_30` and `desktop_connected` follow the **presence** facet, not stats: null for a friend who hides presence, with the other numbers still there. | Both tell when somebody was around. |
+| D20 | `source_loadout_id` and `source_owner_id` on `hangar_role_loadouts` are frozen by the trigger `hangar_role_loadouts_source_guard` outside `adopt_friend_loadout()`, except the one-way FK detach to null. | The table's self-only policies have no column list: a client could fake "from <friend>" and probe account existence through the FK. |
 
 **Comparison numbers.** Real and included: ships (owned), sets, Einsätze planned (planned + active), Einsätze done, missions in 30 days (same count as `hq_stats`), Kartograph rank (patch lines with at least 7 stars, the rule of `verse_explorer_state`), active days in 30, desktop connected.
 
@@ -87,7 +90,7 @@ All are SECURITY DEFINER. "Actor" = `social_actor()`, which raises `not authenti
 | `list_einsaetze_shared_with_me`* | none | rows, see `SharedEinsatz`; one per Einsatz even when it reaches me twice; no `archived`; steps without `supply_id` and `done_by` | |
 | `list_ship_configs_shared_with_me`* | none | rows, see `SharedShipConfig`; one per config | |
 | `adopt_friend_loadout` | `p_share uuid`, a `loadout_shares.id` | jsonb `{loadoutId, existed}` | `share_not_found` |
-| `adopt_friend_ship_config` | `p_share uuid`, a `friend_shares.id` | jsonb `{configId, shipClassName, existed}` | `share_not_found` |
+| `adopt_friend_ship_config` | `p_share uuid`, a `friend_shares.id` | jsonb `{configId, shipClassName, existed}` | `share_not_found`, `ship_unavailable` |
 
 Set shares to one friend stay on `share_loadout_with_friend` / `list_loadouts_shared_with_me` / `revoke_loadout_share`.
 
@@ -108,7 +111,9 @@ Every crew RPC returns the `EinsatzCrew` jsonb: `{slots: [{id, ord, label, taken
 | `friend_overview` | `p_friend text`, handle or user id | jsonb, see `FriendOverview`, or **null** for a non-friend, a block, a suspended or missing account | actor only |
 | `list_friend_compare` | none | jsonb `{me: stats, friends: [{user_id, display_name, username, stats}]}`; `stats` null when hidden | actor only |
 
-A hidden facet arrives as `null`, never as an empty list: `hangar`, `friend.flagship_ship_class`, `friend.online`, `compare.friend`.
+A hidden facet arrives as `null`, never as an empty list: `hangar`, `friend.flagship_ship_class`, `friend.online`, `compare.friend`. Inside a friend's stats, `active_days_30` and `desktop_connected` are null when presence is hidden. Render them as "not shared", not as 0 or "not connected"; `compareRows` already gives `friend: null, standing: null` for that row.
+
+A suspended or unapproved account counts as gone everywhere: it has no access, its crew answer and slot disappear from every read, and anyone taking that slot evicts it.
 
 ## `SocialService`
 

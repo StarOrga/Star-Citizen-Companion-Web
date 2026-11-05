@@ -27,7 +27,8 @@
         "notFriends": "Das geht nur mit Freunden.",
         "invalidTarget": "Das geht mit dieser Person nicht.",
         "accountSuspended": "Dein Konto ist gesperrt.",
-        "notApproved": "Dein Konto ist noch nicht freigeschaltet."
+        "notApproved": "Dein Konto ist noch nicht freigeschaltet.",
+        "shipUnavailable": "Dieses Schiff wurde aus deinem Hangar gelöscht. Füge es erst wieder hinzu."
       },
       "compare": {
         "ships": "Schiffe",
@@ -87,7 +88,8 @@
         "notFriends": "This only works with friends.",
         "invalidTarget": "This does not work with this person.",
         "accountSuspended": "Your account is suspended.",
-        "notApproved": "Your account has not been approved yet."
+        "notApproved": "Your account has not been approved yet.",
+        "shipUnavailable": "This ship was deleted from your hangar. Add it again first."
       },
       "compare": {
         "ships": "Ships",
