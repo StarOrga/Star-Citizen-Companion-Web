@@ -1,0 +1,235 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full">
+  <div class="iteration-intro">
+    <h2>Freunde: wofür und wo</h2>
+    <p>Erst der Zweck, dann der Platz, denn der Platz folgt aus dem Zweck.</p>
+  </div>
+
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Freunde bringen heute genau einen Nutzen: ein FPS-Set teilen. Das hat auf Produktion noch niemand getan.</p>
+    <p data-briefing-why>Ohne festen Zweck bleibt jede Platzierung Zufall, deshalb klären wir ihn zuerst.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"0","unit":"geteilte Sets","label":"bei 10 Konten und 1 Freundschaft"}'>0 geteilte Sets</div>
+    <a data-briefing-topic="t-zweck" data-share="45">Wofür Freunde da sind</a>
+    <a data-briefing-topic="t-platz" data-share="40">Anzeige und Verlinkung</a>
+    <a data-briefing-topic="t-zugang" data-share="15">Finden und Sichtbarkeit</a>
+    <p data-briefing-duration>≈ 5 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Freundschaft","label":"10 Konten, 2 mit Nutzername"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Konten","value":10},{"label":"mit Nutzername","value":2},{"label":"Freundschaften","value":1},{"label":"an Freunde geteilte Sets","value":0},{"label":"Set-Links","value":0}],"unit":""}'></div>
+        <p>Das Feature ist kaum auffindbar und führt zu wenig. Eine Anfrage meldet sich nirgends, ein Name lässt sich nicht anklicken, und das neue HQ kennt Freunde gar nicht. Bei zehn Konten ist die kleine Zahl allein kein Urteil, aber sie spricht gegen einen großen Sozialbereich.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="t-zweck" data-topic data-nav-label="Wofür Freunde da sind">
+    <div data-alevel="2" data-title="Wofür Freunde da sind">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Heute verwaltest du Freunde, tust aber kaum etwas mit ihnen."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Anfrage","value":"exakter Nutzername"},{"label":"Freundschaft","value":"entfernen, blockieren, melden"},{"label":"FPS-Set teilen","value":"einziger Nutzen"},{"label":"Freund sieht das Set","value":"nur lesen, unten im Spind"}]}'></div>
+        <p>Die Kette endet nach einem Schritt. Danach gibt es keinen Grund, die Freundesliste noch einmal zu öffnen.</p>
+      </div>
+    </div>
+
+    <section id="d-rolle" data-nav-label="Rolle im HQ" data-decision="d-rolle" data-decision-mode="verify" data-label="Lesart: Rolle im HQ" data-rec="ok" data-rec-why="So passt der Satz zu deiner Frage nach dem Zweck; ein Rollenfeld hätte dort keinen Bezug." data-applies-to="dieses Konzept" data-finding="f-rolle">
+      <p data-applies>Gilt für: dieses Konzept</p>
+      <p data-situation>Du schreibst, Freunde sollten im HQ auch eine Rolle spielen. Ein Freund hat heute kein Rollenfeld, und das neue HQ erwähnt Freunde nirgends.</p>
+      <h3 data-question>Stimmt meine Lesart: Freunde sollen im HQ vorkommen, kein neues Rollenfeld?</h3>
+      <p data-stakes>Ob Thema 2 das HQ plant oder ein Feld „Rolle“ dazukommt.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended><input type="radio" name="dm-d-rolle" value="ok" checked><span data-opt-label>Stimmt, Freunde sollen im HQ vorkommen</span><span data-opt-consequence>Das Konzept plant einen Platz im HQ.</span></label>
+        <label data-opt="partial"><input type="radio" name="dm-d-rolle" value="partial"><span data-opt-label>Teilweise, beides ist gemeint</span><span data-opt-consequence>Zusätzlich braucht es eine Rolle je Freund, etwa Pilot oder Bordschütze.</span></label>
+        <label data-opt="wrong"><input type="radio" name="dm-d-rolle" value="wrong"><span data-opt-label>Stimmt nicht, gemeint war etwas anderes</span><span data-opt-consequence>Schreib unten kurz, was du meintest.</span></label>
+      </div>
+      <input type="text" name="dm-d-rolle-fix" placeholder="Was stimmt nicht?">
+      <textarea data-comment="d-rolle-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Rolle im HQ">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der HQ-Ordner erwähnt Freunde kein einziges Mal."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"Start, Planen, Jetzt, Bestand und Statistik zeigen nichts von Freunden. Der einzige Bezug im HQ ist der Block „Von Freunden geteilt“ auf der alten Seite /hq/locker, ganz unten."}'></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-zweck" data-nav-label="Zweck" data-decision="d-zweck" data-decision-mode="single" data-label="Zweck von Freunden" data-rec="zusammen" data-rec-why="Die Einsätze kennen schon die Stimmung „Gruppe“, und ein gemeinsamer Abend ist der Anlass, den die Liste heute nicht hat. Rein lesend bleibt es klein." data-applies-to="das ganze Feature" data-finding="f-zweck">
+      <p data-applies>Gilt für: das ganze Feature</p>
+      <p data-situation>Einziger Nutzen heute ist Set-Teilen, genutzt nullmal. Das HQ plant Einsätze schon mit der Stimmung „Gruppe“, kennt aber keine Mitspieler.</p>
+      <h3 data-question>Wofür sind Freunde in SC Companion da?</h3>
+      <p data-stakes>Alles Weitere: Platz im HQ, Datenmodell, wie viel gebaut wird.</p>
+      <div data-options>
+        <label data-opt="zusammen" data-recommended><input type="radio" name="dm-d-zweck" value="zusammen" checked><span data-opt-label>Mit ihnen zusammen spielen</span><span data-opt-consequence>Freunde sind deine Mitspieler: Du zeigst ihnen Sets und Einsätze. Braucht eine kleine Erweiterung.</span></label>
+        <label data-opt="teilen"><input type="radio" name="dm-d-zweck" value="teilen"><span data-opt-label>Bei einer reinen Teilen-Liste bleiben</span><span data-opt-consequence>Kein neues Datenmodell, nur Links aufräumen. Der Anlass, die Liste zu öffnen, fehlt weiter.</span></label>
+        <label data-opt="sozial"><input type="radio" name="dm-d-zweck" value="sozial"><span data-opt-label>Einen Sozialbereich aufbauen</span><span data-opt-consequence>Profile, Aktivität, Vergleiche. Der größte Aufwand, und bei zehn Konten bleibt er leer.</span></label>
+        <label data-opt="weg"><input type="radio" name="dm-d-zweck" value="weg"><span data-opt-label>Freunde zurückbauen, Links reichen</span><span data-opt-consequence>Weniger Code und keine Moderationsfläche. Geteilt wird nur noch per Link, also ohne Empfängerkreis.</span></label>
+      </div>
+      <textarea data-comment="d-zweck-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Zweck">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Nutzen","label":"FPS-Set teilen"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"FPS-Set an Freund teilen","value":1},{"label":"Schiffs-Variante teilen","value":0},{"label":"Einsatz teilen","value":0},{"label":"Freund ansehen","value":0}],"unit":"","hl":"FPS-Set an Freund teilen"}'></div>
+          <p>Von den vier naheliegenden Dingen geht genau eines. Schiffs-Varianten gehen nur per öffentlichem Link, Einsätze gar nicht, und eine Freundes-Seite gibt es nicht. Das Mock aus dem HQ-Konzept zeigte schon „Bunker-Lauf mit Freunden“, gebaut ist davon nichts.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-umfang" data-nav-label="Umfang" data-decision="d-umfang" data-decision-mode="multi" data-label="Was Freunde zusätzlich können" data-rec="uebernehmen einsatz" data-rec-why="Beides macht aus Ansehen etwas Nutzbares und bleibt rein lesend. Zusagen und Online-Status lohnen sich erst mit mehr Nutzern." data-applies-to="Teilen zwischen Freunden" data-finding="f-umfang">
+      <p data-applies>Gilt für: Teilen zwischen Freunden</p>
+      <p data-situation>Ein Freund kann ein geteiltes Set heute nur lesen. Eine Schiffs-Variante per Link lässt sich dagegen ins eigene HQ übernehmen.</p>
+      <h3 data-question>Was können Freunde zusätzlich miteinander tun?</h3>
+      <p data-stakes>Umfang der Migration und der neuen Berechtigungen.</p>
+      <div data-options>
+        <label data-opt="uebernehmen" data-recommended><input type="checkbox" name="dm-d-umfang.uebernehmen" checked><span data-opt-label>Geteiltes Set in den eigenen Spind übernehmen</span><span data-opt-consequence>Eine Kopie, die dem Empfänger gehört. Die übernehmen-Logik für Schiffe gibt es schon.</span></label>
+        <label data-opt="einsatz" data-recommended><input type="checkbox" name="dm-d-umfang.einsatz" checked><span data-opt-label>Einsatz mit Freunden teilen, nur lesend</span><span data-opt-consequence>Der Freund sieht Plan und Kit im HQ. Braucht eine neue Freigabe-Tabelle.</span></label>
+        <label data-opt="variante"><input type="checkbox" name="dm-d-umfang.variante"><span data-opt-label>Schiffs-Variante direkt an Freunde teilen</span><span data-opt-consequence>Ein zweiter Weg neben dem Link, der heute schon funktioniert.</span></label>
+        <label data-opt="zusagen"><input type="checkbox" name="dm-d-umfang.zusagen"><span data-opt-label>Crew-Plätze und Zusagen im Einsatz</span><span data-opt-consequence>Mehr Wert für Gruppen, aber gemeinsames Bearbeiten und deutlich mehr Rechtefragen.</span></label>
+        <label data-opt="online"><input type="checkbox" name="dm-d-umfang.online"><span data-opt-label>Anzeigen, wer gerade online ist</span><span data-opt-consequence>Braucht einen Presence-Dienst; viele sehen das zudem als Privatsphäre-Thema.</span></label>
+      </div>
+      <textarea data-comment="d-umfang-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Umfang">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Ein fremder Link kann heute mehr als ein Freund."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"Es gibt zwei getrennte Teilen-Wege. FPS-Sets gehen an Freunde oder per Link, Empfänger können sie nicht übernehmen. Schiffs-Varianten gehen nur per Link, lassen sich aber übernehmen. Einsätze lassen sich gar nicht teilen."}'></div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-platz" data-topic data-nav-label="Anzeige und Verlinkung">
+    <div data-alevel="2" data-title="Anzeige und Verlinkung">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Eingänge, viele Sackgassen, keine Meldung bei neuen Anfragen."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Wege zur Seite /friends","value":3},{"label":"Stellen mit Freund, ohne Link dorthin","value":3},{"label":"Stellen, die offene Anfragen melden","value":0}],"unit":""}'></div>
+        <p>Zur Seite führen das Konto-Menü, eine Karte in den Einstellungen und die Suche. Wo Freunde sonst auftauchen, geht es nicht weiter: im Teilen-Panel, bei „Von Freunden geteilt“ und im Kartograph-Text. Das ist das „random“, das du meinst.</p>
+      </div>
+    </div>
+
+    <section id="d-heimat" data-nav-label="Platz im HQ" data-decision="d-heimat" data-decision-mode="single" data-label="Platz von Freunden" data-rec="beides" data-rec-why="Verwalten gehört zum Konto, Nutzen zum HQ. So bleibt eine Adresse stabil, und das HQ zeigt nur, was gerade etwas bringt." data-applies-to="Routen und HQ-Seiten" data-finding="f-heimat">
+      <p data-applies>Gilt für: Routen und HQ-Seiten</p>
+      <p data-situation>Die Route /friends liegt bewusst bei den Einstellungen. Das neue HQ hat fünf Seiten: Start, Planen, Jetzt, Bestand, Statistik.</p>
+      <h3 data-question>Wo leben Freunde künftig?</h3>
+      <p data-stakes>Ob das HQ eine neue Seite bekommt und die Route umzieht.</p>
+      <div data-options>
+        <label data-opt="beides" data-recommended><input type="radio" name="dm-d-heimat" value="beides" checked><span data-opt-label>Konto verwaltet, HQ zeigt den Nutzen</span><span data-opt-consequence>/friends bleibt. Das HQ zeigt Anfragen und Geteiltes genau dort, wo es hingehört.</span></label>
+        <label data-opt="hqseite"><input type="radio" name="dm-d-heimat" value="hqseite"><span data-opt-label>Eigene HQ-Seite „Freunde“ anlegen</span><span data-opt-consequence>Alles an einem Ort, aber eine sechste Seite, die für die meisten leer bleibt.</span></label>
+        <label data-opt="konto"><input type="radio" name="dm-d-heimat" value="konto"><span data-opt-label>Nur im Konto belassen</span><span data-opt-consequence>Kein Umbau im HQ. Es bleibt dabei, dass man dort nichts von Freunden sieht.</span></label>
+      </div>
+      <textarea data-comment="d-heimat-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Platz im HQ">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"von 5 HQ-Seiten","label":"zeigen Freunde"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Start","value":"offene Anfragen"},{"label":"Planen","value":"Einsatz teilen"},{"label":"Bestand","value":"Von Freunden geteilt"},{"label":"Konto /friends","value":"Liste verwalten"}]}'></div>
+          <p>So sähe die Verteilung bei der Empfehlung aus: Jede Stelle zeigt nur, wenn es etwas zu zeigen gibt, damit das HQ für Konten ohne Freunde ruhig bleibt.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-signal" data-nav-label="Offene Anfragen" data-decision="d-signal" data-decision-mode="single" data-label="Meldung offener Anfragen" data-rec="zaehler" data-rec-why="Ohne Meldung verfallen Anfragen unbemerkt. Der Zähler kostet eine Abfrage pro Sitzung und braucht keinen Mailversand." data-applies-to="Kopfzeile und HQ-Start" data-finding="f-signal">
+      <p data-applies>Gilt für: Kopfzeile und HQ-Start</p>
+      <p data-situation>Eine Anfrage verfällt nach 7 Tagen. Die Daten lädt nur /friends oder das Teilen-Panel, der fertige Zähler wird nirgends angezeigt.</p>
+      <h3 data-question>Wie erfährst du von einer neuen Freundschaftsanfrage?</h3>
+      <p data-stakes>Ob eine Anfrage den Empfänger überhaupt erreicht.</p>
+      <div data-options>
+        <label data-opt="zaehler" data-recommended><input type="radio" name="dm-d-signal" value="zaehler" checked><span data-opt-label>Zähler am Konto-Menü, Karte auf HQ-Start</span><span data-opt-consequence>Sichtbar auf jeder Seite, annehmen mit einem Klick im HQ.</span></label>
+        <label data-opt="menu"><input type="radio" name="dm-d-signal" value="menu"><span data-opt-label>Nur Zähler am Konto-Menü</span><span data-opt-consequence>Der kleinste Eingriff; das HQ bleibt ohne Freunde-Bezug.</span></label>
+        <label data-opt="mail"><input type="radio" name="dm-d-signal" value="mail"><span data-opt-label>Zähler und zusätzlich eine E-Mail</span><span data-opt-consequence>Erreicht auch Abwesende, braucht aber Mailversand und eine Abmeldeoption.</span></label>
+      </div>
+      <textarea data-comment="d-signal-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Offene Anfragen">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Hinweise","label":"auf offene Anfragen außerhalb von /friends"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="kpi" data-viz-spec='{"value":"7","unit":"Tage","label":"bis eine ungesehene Anfrage verfällt"}'></div>
+          <p>Wer /friends nicht von selbst öffnet, erfährt nie von der Anfrage. Der Absender sieht nur, dass nichts passiert. Der Zähler existiert im Dienst bereits, es fehlen nur die Anzeige und das Laden beim App-Start.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-links" data-nav-label="Links aufräumen" data-decision="d-links" data-decision-mode="multi" data-label="Link-Aufräumen" data-rec="sackgasse geteilt bestand einstieg suche perk" data-rec-why="Alles klein und unabhängig vom Zweck; zusammen beseitigt es den Eindruck von Zufall." data-applies-to="alle Stellen mit Freunde-Bezug" data-finding="f-links">
+      <p data-applies>Gilt für: alle Stellen mit Freunde-Bezug</p>
+      <p data-situation>Sechs Stellen sind heute falsch oder führen nicht weiter. Keine davon hängt am Datenmodell.</p>
+      <h3 data-question>Welche dieser Korrekturen übernehmen wir?</h3>
+      <div data-options>
+        <label data-opt="sackgasse" data-recommended><input type="checkbox" name="dm-d-links.sackgasse" checked><span data-opt-label>„Noch keine Freunde“ im Teilen-Panel verlinkt auf /friends</span><span data-opt-consequence>Heute reiner Text: Man will teilen und kommt nicht weiter.</span></label>
+        <label data-opt="geteilt" data-recommended><input type="checkbox" name="dm-d-links.geteilt" checked><span data-opt-label>„Von Freunden geteilt“ nennt den Freund als echten Link</span><span data-opt-consequence>Der Name führt zu dem Freund, den der nächste Punkt festlegt.</span></label>
+        <label data-opt="bestand" data-recommended><input type="checkbox" name="dm-d-links.bestand" checked><span data-opt-label>Geteilte Sets erscheinen auch im HQ-Bestand</span><span data-opt-consequence>Heute nur am Ende von /hq/locker, im neuen HQ also unsichtbar.</span></label>
+        <label data-opt="einstieg" data-recommended><input type="checkbox" name="dm-d-links.einstieg" checked><span data-opt-label>Einstellungen-Karte entfällt, Konto-Menü bleibt der Eingang</span><span data-opt-consequence>Eine Karte, die nur weiterleitet, verschwindet aus den Einstellungen.</span></label>
+        <label data-opt="suche" data-recommended><input type="checkbox" name="dm-d-links.suche" checked><span data-opt-label>Suchbegriff „org“ führt nicht mehr zu Freunde</span><span data-opt-consequence>Freunde sind keine Org, der Treffer führt in die Irre.</span></label>
+        <label data-opt="perk" data-recommended><input type="checkbox" name="dm-d-links.perk" checked><span data-opt-label>Kartograph-Text wird korrigiert</span><span data-opt-consequence>„Abzeichen, das deine Freunde sehen“ stimmt nicht: Es ist ein öffentlicher Link.</span></label>
+      </div>
+      <textarea data-comment="d-links-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Links aufräumen">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"6","unit":"Stellen","label":"zum Korrigieren"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"Teilen-Panel: Text ohne Link. /hq/locker: Name ohne Link, Block nur dort. Einstellungen: doppelter Eingang. Suche: „org“. Verse-Kartograph: falsches Versprechen. Die Freundesliste selbst hat absichtlich keine Links, weil es noch keine Zielseite gibt."}'></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-name" data-nav-label="Klick auf den Namen" data-decision="d-name" data-decision-mode="single" data-label="Klick auf einen Freund" data-rec="freundseite" data-rec-why="Sie gibt allen Namen ein festes Ziel, ohne Profile öffentlich zu machen. Der bisherige Datenschutz bleibt erhalten." data-applies-to="überall, wo ein Freund genannt wird" data-finding="f-name">
+      <p data-applies>Gilt für: überall, wo ein Freund genannt wird</p>
+      <p data-situation>Namen sind heute reiner Text. Profile kann nur ihr Besitzer lesen, und der Code merkt an, dass der Name ein Link wird, sobald es ein Ziel gibt.</p>
+      <h3 data-question>Wohin führt ein Klick auf den Namen eines Freundes?</h3>
+      <p data-stakes>Ob überhaupt ein einheitlicher Link möglich ist.</p>
+      <div data-options>
+        <label data-opt="freundseite" data-recommended><input type="radio" name="dm-d-name" value="freundseite" checked><span data-opt-label>Auf eine Seite nur für Freunde</span><span data-opt-consequence>/friends/&lt;name&gt; zeigt, was ihr miteinander teilt. Für alle anderen existiert sie nicht.</span></label>
+        <label data-opt="profil"><input type="radio" name="dm-d-name" value="profil"><span data-opt-label>Auf ein öffentliches Profil</span><span data-opt-consequence>Teilbar und auffindbar, aber neue Fläche für Moderation und Nutzer-Suche.</span></label>
+        <label data-opt="liste"><input type="radio" name="dm-d-name" value="liste"><span data-opt-label>Auf den Eintrag in der Freundesliste</span><span data-opt-consequence>Ohne neue Seite, aber dort kann man nur entfernen, blockieren und melden.</span></label>
+      </div>
+      <textarea data-comment="d-name-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Klick auf den Namen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Kein Name führt heute irgendwohin."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Name im Bestand","value":"Link"},{"label":"Freundes-Seite","value":"Sets und Einsätze zwischen euch"},{"label":"Aktionen","value":"teilen, entfernen, blockieren, melden"}]}'></div>
+          <p>Die Daten kämen aus einer eigenen Abfrage, die die Freundschaft bei jedem Lesen prüft, wie es die geteilten Sets heute schon tun. Eine Entfreundung schließt die Seite damit sofort.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-zugang" data-topic data-nav-label="Finden und Sichtbarkeit">
+    <div data-alevel="2" data-title="Finden und Sichtbarkeit">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2 von 10","unit":"Konten","label":"sind überhaupt auffindbar"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="donut" data-viz-spec='{"parts":[{"label":"mit Nutzername","value":2},{"label":"ohne Nutzername","value":8}]}'></div>
+        <p>Jemanden hinzufügen geht nur über den exakten Nutzernamen, und den haben die meisten nicht gesetzt. Egal wie gut der Platz im HQ wird: So bleibt die Liste leer.</p>
+      </div>
+    </div>
+
+    <section id="d-finden" data-nav-label="Freunde finden" data-decision="d-finden" data-decision-mode="single" data-label="Weg zur Freundschaft" data-rec="einladung" data-rec-why="Man spielt ohnehin mit Leuten, die man schon kennt und per Discord erreicht. Ein Link erspart beiden den Nutzernamen, und die Suche über alle Konten bleibt zu." data-applies-to="Freund hinzufügen" data-finding="f-finden">
+      <p data-applies>Gilt für: Freund hinzufügen</p>
+      <p data-situation>8 von 10 Konten haben keinen Nutzernamen und sind nicht auffindbar. Eine Suche über alle Konten ist bewusst ausgeschlossen.</p>
+      <h3 data-question>Wie wird jemand dein Freund?</h3>
+      <p data-stakes>Ob sich die Liste überhaupt füllen kann.</p>
+      <div data-options>
+        <label data-opt="einladung" data-recommended><input type="radio" name="dm-d-finden" value="einladung" checked><span data-opt-label>Persönlicher Einladungslink, Nutzername bleibt möglich</span><span data-opt-consequence>Link in Discord posten, Klick stellt die Anfrage. Braucht ablaufende Tokens.</span></label>
+        <label data-opt="pflicht"><input type="radio" name="dm-d-finden" value="pflicht"><span data-opt-label>Nutzernamen beim ersten Besuch abfragen</span><span data-opt-consequence>Wenig Aufwand, aber ein Hindernis für alle, die Freunde nie nutzen.</span></label>
+        <label data-opt="bleibt"><input type="radio" name="dm-d-finden" value="bleibt"><span data-opt-label>Beim exakten Nutzernamen bleiben</span><span data-opt-consequence>Nichts zu bauen, und die Hürde bleibt, wie sie ist.</span></label>
+      </div>
+      <textarea data-comment="d-finden-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Freunde finden">
+        <div data-slot="short"><div data-viz="bar" data-viz-spec='{"value":2,"max":10,"label":"Konten mit Nutzername","unit":""}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bar" data-viz-spec='{"value":2,"max":10,"label":"Konten mit Nutzername","unit":""}'></div>
+          <p>Der Nutzername ist optional und steht in den Einstellungen, und nichts weist beim Hinzufügen darauf hin. Beide Seiten müssen also etwas vorbereitet haben, bevor eine Anfrage möglich ist.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-sicht" data-nav-label="Was Freunde sehen" data-decision="d-sicht" data-decision-mode="single" data-label="Sichtbarkeit für Freunde" data-rec="aktiv" data-rec-why="Hält die heutige Regel ein, dass Profile privat sind, und braucht keine neuen Einstellungen." data-applies-to="alle Daten zwischen Freunden" data-finding="f-sicht">
+      <p data-applies>Gilt für: alle Daten zwischen Freunden</p>
+      <p data-situation>Freunde sehen heute nur Anzeigename und Nutzername, dazu Sets, die du aktiv geteilt hast. Hangar und Flaggschiff bleiben privat.</p>
+      <h3 data-question>Was sehen Freunde von dir ohne dein Zutun?</h3>
+      <p data-stakes>Datenschutz-Text, Berechtigungen und der Inhalt der Freundes-Seite.</p>
+      <div data-options>
+        <label data-opt="aktiv" data-recommended><input type="radio" name="dm-d-sicht" value="aktiv" checked><span data-opt-label>Nur, was du aktiv teilst</span><span data-opt-consequence>Wie bisher: Name plus deine Freigaben. Keine neuen Einstellungen.</span></label>
+        <label data-opt="flaggschiff"><input type="radio" name="dm-d-sicht" value="flaggschiff"><span data-opt-label>Zusätzlich dein Flaggschiff</span><span data-opt-consequence>Die Freundes-Seite wirkt lebendiger; alle Bestandskonten brauchen einen Hinweis.</span></label>
+        <label data-opt="hangar"><input type="radio" name="dm-d-sicht" value="hangar"><span data-opt-label>Deinen ganzen Hangar, abschaltbar</span><span data-opt-consequence>Hilft bei der Abendplanung, legt aber offen, was jemand besitzt und bezahlt hat.</span></label>
+      </div>
+      <textarea data-comment="d-sicht-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Was Freunde sehen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Heute: Name und aktiv Geteiltes, sonst nichts."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"Die Freundesliste gibt absichtlich nur Anzeigename und Nutzername heraus. Jede Erweiterung braucht eine neue Abfrage, die die Freundschaft prüft, und einen Absatz in der Datenschutz-Seite."}'></div>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
