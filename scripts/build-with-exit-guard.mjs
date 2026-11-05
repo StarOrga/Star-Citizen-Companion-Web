@@ -23,7 +23,7 @@
 // Use process.exitCode instead and let the event loop drain naturally.
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,8 +35,22 @@ export const COMPLETION_MARKER = 'Application bundle generation complete';
 const DIST_INDEX = path.join(repoRoot, 'dist/sc-companion/browser/index.html');
 const DIST_NGSW = path.join(repoRoot, 'dist/sc-companion/browser/ngsw.json');
 
-function defaultArtefactsComplete() {
-  return existsSync(DIST_INDEX) && existsSync(DIST_NGSW);
+/**
+ * True only when every file exists AND was written at/after `since` (epoch
+ * ms). A dist left over from an earlier build must never vouch for this one.
+ */
+export function freshArtefacts(files, since) {
+  return files.every((file) => {
+    try {
+      return statSync(file).mtimeMs >= since;
+    } catch {
+      return false;
+    }
+  });
+}
+
+function defaultArtefactsComplete(since) {
+  return freshArtefacts([DIST_INDEX, DIST_NGSW], since);
 }
 
 function killTree(child) {
@@ -61,7 +75,7 @@ function killTree(child) {
  * @param {string} [opts.cwd]
  * @param {number} [opts.graceMs]
  * @param {number} [opts.timeoutMs]
- * @param {() => boolean} [opts.artefactsComplete]
+ * @param {(since: number) => boolean} [opts.artefactsComplete] receives the build start time (epoch ms)
  * @param {NodeJS.WritableStream} [opts.stdout]
  * @param {NodeJS.WritableStream} [opts.stderr]
  */
@@ -74,6 +88,10 @@ export function runGuarded(command, args, opts = {}) {
     stdout = process.stdout,
     stderr = process.stderr,
   } = opts;
+
+  // 1s slack for coarse filesystem timestamps.
+  const startedAt = Date.now() - 1000;
+  const complete = () => artefactsComplete(startedAt);
 
   return new Promise((resolve) => {
     const child = spawn(command, args, { cwd, stdio: ['inherit', 'pipe', 'pipe'], shell: false });
@@ -95,13 +113,19 @@ export function runGuarded(command, args, opts = {}) {
       if (!sawCompletion && chunk.toString('utf8').includes(COMPLETION_MARKER)) {
         sawCompletion = true;
         graceTimer = setTimeout(() => {
-          if (settled) return;
-          if (artefactsComplete()) {
-            stdout.write('ng build hung after completing output — proceeding under exit guard\n');
-            killTree(child);
-            finish(0);
-          }
-          // else: let it keep running until the hard ceiling decides.
+          // After a stalled event loop (parallel-agent load) the timers phase
+          // runs before pending child 'close' events, so a child that already
+          // exited non-zero would be mistaken for a hang. Let the poll phase
+          // deliver those events first, then decide.
+          setImmediate(() => {
+            if (settled || child.exitCode !== null) return;
+            if (complete()) {
+              stdout.write('ng build hung after completing output — proceeding under exit guard\n');
+              killTree(child);
+              finish(0);
+            }
+            // else: let it keep running until the hard ceiling decides.
+          });
         }, graceMs);
       }
     };
@@ -112,7 +136,7 @@ export function runGuarded(command, args, opts = {}) {
     const hardTimer = setTimeout(() => {
       if (settled) return;
       killTree(child);
-      if (artefactsComplete()) {
+      if (complete()) {
         stdout.write('ng build hung after completing output — proceeding under exit guard\n');
         finish(0);
       } else {
@@ -129,9 +153,9 @@ export function runGuarded(command, args, opts = {}) {
     child.on('close', (code, signal) => {
       if (settled) return;
       if (code === null) {
-        // Killed by a signal outside our own guard paths — treat as failure
-        // unless the artefacts are already complete.
-        finish(artefactsComplete() ? 0 : 1);
+        // Killed by a signal we did not send: a stale or partial dist must
+        // not turn that into success.
+        finish(1);
         return;
       }
       finish(code ?? (signal ? 1 : 0));
