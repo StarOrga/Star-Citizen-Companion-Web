@@ -138,7 +138,7 @@ const PRESENCE_TICK_MS = 30_000;
   styles: [
     `
       :host { display: block; }
-      .page-title { margin: 0 0 var(--sc-space-3, 12px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
+      .page-title { margin: 0 0 var(--sc-space-4, 16px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .muted { color: var(--sc-fg-2); }
       .err { color: var(--sc-danger); }
       .top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sc-space-3, 12px); }

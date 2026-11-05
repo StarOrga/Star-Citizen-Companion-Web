@@ -256,7 +256,7 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
   styles: [
     `
       :host { display: block; }
-      .page-title { margin: 0 0 var(--sc-space-3, 12px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
+      .page-title { margin: 0 0 var(--sc-space-4, 16px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
       h3 { margin: 0 0 var(--sc-space-2, 8px); font: 600 1.1rem / 1.2 var(--sc-font-display); }
       h4 { margin: 0; font: 600 1rem / 1.2 var(--sc-font-display); }
       .muted { color: var(--sc-fg-2); margin: 0; }
