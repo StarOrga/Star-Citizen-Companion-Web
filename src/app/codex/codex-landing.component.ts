@@ -17,7 +17,7 @@ import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive
 import { STAGE_SLOT_MOVED, StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
 import { CodexSearchBarComponent } from './search/codex-search-bar.component';
 import { CodexLandingDataService } from './landing/codex-landing-data.service';
-import { LandingCodex, LandingItem, LandingPaint } from './landing/codex-landing-data.types';
+import { LandingCategory, LandingCodex, LandingCodexEntry, LandingItem, LandingPaint } from './landing/codex-landing-data.types';
 import { CodexLandingHolotableComponent } from './landing/codex-landing-holotable.component';
 import { CodexLandingValuesPaneComponent } from './landing/codex-landing-values-pane.component';
 import { CodexLandingCodexPaneComponent } from './landing/codex-landing-codex-pane.component';
@@ -98,7 +98,11 @@ export class CodexLandingComponent {
   /** Top of the hero block inside the landing (px): News and the panes start on it. */
   readonly heroTop = signal(0);
 
-  readonly current = computed(() => this.items()[this.active()] ?? null);
+  /** An entry of the Codex list the reader put on the table (B2.1); it wins over the rotation's item until the rotation moves on. */
+  readonly picked = signal<LandingItem | null>(null);
+  private entryToken = 0;
+
+  readonly current = computed(() => this.picked() ?? this.items()[this.active()] ?? null);
   readonly category = computed(() => this.current()?.category ?? null);
   readonly paused = computed(
     () =>
@@ -181,7 +185,7 @@ export class CodexLandingComponent {
       const it = this.current();
       const token = ++this.paintsToken;
       untracked(() => this.paints.set([]));
-      if (!it || it.category !== 'ship') return;
+      if (!it || it.category !== 'ship' || it.announced) return;
       void this.data.paintsFor(it.className, it.name).then((list) => {
         if (token === this.paintsToken) this.paints.set(list);
       });
@@ -226,18 +230,43 @@ export class CodexLandingComponent {
     const [items, codex] = await Promise.all([this.data.rotationItems(), this.data.codexNews(CODEX_LIST_ITEMS)]);
     this.items.set(items);
     this.codex.set(codex);
+    this.picked.set(null);
     this.active.set(0);
     this.loading.set(false);
   }
 
   /** Category click: jump + hold; the held category again resumes the rotation. */
   pick(i: number): void {
+    this.entryToken++;
+    this.picked.set(null);
     if (this.held() && i === this.active()) {
       this.held.set(false);
       this.advance();
       return;
     }
     this.active.set(i);
+    this.held.set(true);
+    this.remaining = ROTATION_MS;
+    this.cycle.update((c) => c + 1);
+  }
+
+  /**
+   * Plain left click on an entry of the Codex list: that entry goes onto the
+   * holotable of this page and is held (B2.1). An announced ship stands there
+   * with name and category icon only, no values (B2.3, d-announced `preview`).
+   */
+  async pickEntry(category: LandingCategory, entry: LandingCodexEntry): Promise<void> {
+    const token = ++this.entryToken;
+    const index = this.items().findIndex((i) => i.category === category && i.className === entry.id);
+    let item: LandingItem | null = null;
+    if (index < 0) {
+      item = entry.announced ? announcedItem(entry) : await this.data.itemByClass(category, entry.id);
+      if (token !== this.entryToken) return;
+      if (!item) return;
+    }
+    const catIndex = this.items().findIndex((i) => i.category === category);
+    this.picked.set(item);
+    this.active.set(index >= 0 ? index : Math.max(0, catIndex));
     this.held.set(true);
     this.remaining = ROTATION_MS;
     this.cycle.update((c) => c + 1);
@@ -252,6 +281,8 @@ export class CodexLandingComponent {
   }
 
   private advance(): void {
+    this.entryToken++;
+    this.picked.set(null);
     const n = this.items().length;
     if (n) this.active.set((this.active() + 1) % n);
     this.remaining = ROTATION_MS;
@@ -276,4 +307,21 @@ export class CodexLandingComponent {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
   }
+}
+
+/** An announced ship on the table: name and category icon, no values; the route is its upcoming page. */
+function announcedItem(entry: LandingCodexEntry): LandingItem {
+  return {
+    category: 'ship',
+    kind: 'ship',
+    className: entry.id,
+    name: entry.name,
+    eyebrow: { manufacturer: null, descriptor: null },
+    detailRoute: entry.route,
+    imageUrl: null,
+    previewUrl: null,
+    overview: [],
+    topValues: [],
+    announced: true,
+  };
 }

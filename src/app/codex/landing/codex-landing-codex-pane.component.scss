@@ -26,47 +26,56 @@
   margin: 0 0 10px; font: 600 max(10px, 0.62rem) / 1.2 var(--sc-font-display); letter-spacing: 0.24em;
   text-transform: uppercase; color: var(--sc-accent);
 }
-.cats { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
-.cat { position: relative; }
-.row {
-  display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; width: 100%; min-height: 34px;
-  padding: 0 6px 0 2px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left;
-  font: 600 max(10px, 0.64rem) / 1.2 var(--sc-font-display); letter-spacing: 0.12em; text-transform: uppercase;
+// Category bar: icons in a row; the active tab also shows its name, the others name in a tooltip.
+.tabs { margin: 0 0 6px; padding: 0; list-style: none; display: flex; align-items: stretch; gap: 2px; min-width: 0; }
+.tab-li { position: relative; display: flex; min-width: 0; flex: 0 0 auto; }
+.tab-li.on { flex: 1 1 auto; }
+.tab {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 34px; min-height: 34px;
+  padding: 0 8px; border: 0; border-radius: 3px; background: none; cursor: pointer; text-align: left;
+  font: 600 max(10px, 0.64rem) / 1.2 var(--sc-font-display); letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--sc-fg-2); transition: color 0.15s ease, background 0.15s ease;
 }
-.row.idle { cursor: default; }
-.row:hover, .row:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.06); }
-.row:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-.gl { font-style: normal; font-size: 13px; text-align: center; color: var(--holo, #8fe3ff); opacity: 0.75; }
+.tab.idle { cursor: default; opacity: 0.45; }
+.tab:hover, .tab:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.06); }
+.tab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+.gl { flex: 0 0 auto; font-style: normal; font-size: 14px; text-align: center; color: var(--holo, #8fe3ff); opacity: 0.75; }
 .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cnt { font: 500 max(10px, 0.62rem) / 1 var(--sc-font-body); font-style: normal; letter-spacing: 0.04em; text-transform: none; color: var(--sc-fg-2); white-space: nowrap; }
-.cat.on > .row { color: #fff; text-shadow: 0 0 10px rgba(130, 220, 255, 0.6); }
-.cat.on > .row .gl { opacity: 1; text-shadow: 0 0 8px #8fe3ff; }
-.cat.on > .row .cnt { color: var(--sc-accent); }
-.cat.flashing > .row { animation: row-flash 1.4s ease-out 0.9s both; }
-.row.held { animation: breathe 2.4s ease-in-out infinite; }
-// Rotation progress under the open row (paused with the rotation).
+.tab.on { justify-content: flex-start; color: #fff; text-shadow: 0 0 10px rgba(130, 220, 255, 0.6); }
+.tab.on .gl { opacity: 1; text-shadow: 0 0 8px #8fe3ff; }
+.tab-li.flashing > .tab { animation: row-flash 1.4s ease-out 0.9s both; }
+.tab.held { animation: breathe 2.4s ease-in-out infinite; }
+// Rotation progress under the active tab (paused with the rotation).
 .prog {
-  position: absolute; left: 34px; right: 6px; top: 32px; height: 1px; display: block; pointer-events: none;
+  position: absolute; left: 6px; right: 6px; bottom: 0; height: 1px; display: block; pointer-events: none;
   background: linear-gradient(90deg, rgba(200, 245, 255, 0.9), rgba(143, 227, 255, 0.5));
   box-shadow: 0 0 6px rgba(143, 227, 255, 0.8);
   transform-origin: 0 50%;
   animation: fill linear both;
 }
 :host(.paused) .prog { animation-play-state: paused; }
-.row.held ~ .prog { animation: none; transform: scaleX(1); }
-.open { margin: 4px 0 8px 24px; animation: open 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
+.tab.held ~ .prog { animation: none; transform: scaleX(1); }
+.sum { margin: 6px 8px 4px; font: 500 max(10px, 0.62rem) / 1 var(--sc-font-body); letter-spacing: 0.04em; color: var(--sc-accent); }
+.open { margin: 0 0 8px; animation: open 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
 .new { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
+.new li { display: flex; align-items: stretch; border-radius: 2px; transition: background 0.15s ease; }
+.new li:hover { background: rgba(82, 193, 230, 0.06); }
 .new a {
   display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 28px; padding: 4px 8px; border-radius: 2px; text-decoration: none;
   font: 400 max(11px, 0.74rem) / 1.2 var(--sc-font-body); color: var(--sc-fg-1);
   transition: background 0.15s ease, color 0.15s ease;
 }
+.new a.ent { flex: 1 1 auto; min-width: 0; }
+// The small arrow: a real anchor to the subpage.
+.new a.go { flex: 0 0 auto; justify-content: center; min-width: 32px; padding: 4px; color: var(--sc-fg-2); }
+.new a.go i { font-style: normal; }
+.new a.go:hover, .new a.go:focus-visible { color: var(--sc-accent); }
 .new a .nm { flex: 1 1 auto; overflow: visible; white-space: normal; text-overflow: clip; }
-.new a:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
+.new a.ent:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
 .new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-.new a.table { color: #fff; background: rgba(82, 193, 230, 0.14); box-shadow: inset 2px 0 0 #c8f2ff; }
-.new a.flash { animation: entry-flash 1.4s ease-out 1.1s both; }
+.new li.table { background: rgba(82, 193, 230, 0.14); box-shadow: inset 2px 0 0 #c8f2ff; }
+.new li.table a.ent { color: #fff; }
+.new li.flash { animation: entry-flash 1.4s ease-out 1.1s both; }
 .here { flex: 0 0 auto; font-size: max(9.5px, 0.58rem); letter-spacing: 0.06em; color: var(--holo, #8fe3ff); white-space: nowrap; }
 .soon {
   flex: 0 0 auto; padding: 1px 7px; border: 1px solid color-mix(in srgb, var(--sc-warning) 55%, transparent); border-radius: 999px;
@@ -108,14 +117,16 @@
   100% { box-shadow: inset 2px 0 0 #c8f2ff; }
 }
 :host(.still) .prog { animation: none; transform: scaleX(1); opacity: 0.4; }
-:host(.still) .open, :host(.still) .cat.flashing > .row, :host(.still) .new a.flash, :host(.still) .row.held { animation: none; }
+:host(.still) .open, :host(.still) .tab-li.flashing > .tab, :host(.still) .new li.flash, :host(.still) .tab.held { animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  .prog, .open, .cat.flashing > .row, .new a.flash, .row.held { animation: none !important; }
+  .prog, .open, .tab-li.flashing > .tab, .new li.flash, .tab.held { animation: none !important; }
 }
 // Touch screens: readable labels and 48px rows (mobile gate).
 @media (pointer: coarse) {
-  .ph, .keys, .here, .soon, .none, .more, .new a, .row, .cnt, .all { font-size: 12px; }
-  .row, .new a, .more, .all, .keys { min-height: 48px; }
+  .ph, .keys, .here, .soon, .none, .more, .new a, .tab, .sum, .all { font-size: 12px; }
+  .tab, .new a, .more, .all, .keys { min-height: 48px; }
+  .tab { min-width: 48px; }
+  .new a.go { min-width: 48px; }
 }
 @media (max-width: 720px) {
   :host { justify-content: flex-start; }
