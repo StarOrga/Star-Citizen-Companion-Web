@@ -339,18 +339,23 @@ class PartStore:
         companion = geometry_path + "m"  # .cgam / .cgfm
         if self.exists(companion):
             _safe_join(scratch, companion).write_bytes(self.read(companion))
-        cmd = [str(self.converter), mesh.name, "-glb", "-objectdir", str(scratch / "Data"),
-               "-loglevel", "Error"]
+        # The mesh goes in relative to the scratch root and the converter runs
+        # from there: Windows refuses a cwd over 258 chars even with long paths
+        # enabled (WinError 267), and a deep P4K path below the install gets
+        # close. The glb still lands next to the mesh, and -mtl stays relative
+        # to the mesh; checked on the LIVE P4K, the output is the same.
+        root = scratch.resolve()
+        cmd = [str(self.converter), os.path.relpath(mesh, root).replace("\\", "/"), "-glb",
+               "-objectdir", str(scratch / "Data"), "-loglevel", "Error"]
         if material_path and self.exists(material_path):
             mtl = _safe_join(scratch, material_path)
             mtl.parent.mkdir(parents=True, exist_ok=True)
             mtl.write_bytes(self.read(material_path))
-            import os
             cmd += ["-mtl", os.path.relpath(mtl, mesh.parent).replace("\\", "/")]
         produced = mesh.with_suffix(".glb")
         produced.unlink(missing_ok=True)
         with stage_timing.timed("convert"):
-            r = subprocess.run(cmd, cwd=str(mesh.parent), capture_output=True, timeout=600)
+            r = subprocess.run(cmd, cwd=str(root), capture_output=True, timeout=600)
         if not produced.exists() or produced.stat().st_size < 256:
             raise RuntimeError(f"cgf-converter produced no glb (rc={r.returncode})")
         gltf, binary = glb_materials.read_glb(produced)
