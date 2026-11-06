@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
@@ -59,7 +60,9 @@ async function setup(
     imports: [BlueprintDetailComponent],
     providers: [
       provideTranslateService(),
-      provideRouter([]),
+      // The page's anchors really navigate here: to a stub, on a mock location.
+      provideRouter([{ path: '**', children: [] }]),
+      provideLocationMocks(),
       { provide: CodexService, useValue: { getBlueprint, ...extra } as Partial<CodexService> },
       { provide: ItemPathService, useValue: fakeItemPath() },
       { provide: SignInAskService, useValue: fakeSignIn() },
@@ -126,7 +129,7 @@ describe('BlueprintDetailComponent — mission (A9)', () => {
   afterEach(() => TestBed.inject(UndoToastService).flush());
   const pathOf = () => TestBed.inject(ItemPathService) as unknown as FakeItemPath;
   const pill = (f: ComponentFixture<BlueprintDetailComponent>) => (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a.to-mission');
-  // Stays on the page: the spec's router has no such route to go to.
+  // preventDefault: a modified click on a real anchor would open a real tab in the test browser.
   const click = (a: HTMLAnchorElement, init: MouseEventInit = {}) => {
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
     a.addEventListener('click', (e) => e.preventDefault(), { once: true });
