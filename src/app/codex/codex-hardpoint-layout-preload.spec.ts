@@ -41,7 +41,7 @@ describe('CodexHardpointLayoutComponent — swap list preload (#244)', () => {
     ];
     fixture.componentRef.setInput('sections', sections);
     fixture.detectChanges();
-    await fixture.whenStable();
+    await new Promise<void>((r) => setTimeout(r));
 
     expect(stub.holders).toBe(1);
     expect(stub.preloads).toEqual([[{ installed: 'GUN_S3', types: [], size: 3 }]]);
