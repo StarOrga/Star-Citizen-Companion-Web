@@ -87,6 +87,17 @@ describe('SlowMotionService', () => {
     discardPeriodicTasks();
   }));
 
+  it('takes over an animation as soon as it starts', fakeAsync(() => {
+    stop = slow.start();
+    const el = add('animation: sm-test 10s linear infinite');
+    expect(only(el).playState).toBe('running');
+    el.dispatchEvent(new AnimationEvent('animationstart', { bubbles: true }));
+    expect(only(el).pending || only(el).playState === 'paused').toBeTrue();
+    stop();
+    stop = null;
+    discardPeriodicTasks();
+  }));
+
   it('finishes an adopted animation at its end, so its finish handlers run', fakeAsync(() => {
     const el = document.createElement('div');
     host.appendChild(el);
