@@ -65,11 +65,11 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
         {
           provide: UpcomingShipsService,
           useValue: {
-            diff: () => ({ added: [], favoriteUpdates: [] }),
+            diff: () => ({ added: [], wishedUpdates: [] }),
             notificationCount: () => 0,
             feed: () => ({ ships: [] }),
             refresh: async () => undefined,
-            isFavorite: () => false,
+            isWished: () => false,
             acknowledge: () => undefined,
           },
         },

@@ -1,0 +1,170 @@
+<section data-iteration="3" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Jeder Gegenstand hat jetzt denselben Weg aus Wunschliste, Nachschub und Inventar, überall mit demselben Baustein und nur noch einer Wunschliste.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🛤️</span><span><b>Eine Bahn überall:</b> Suche, Codex, HQ und Hangar zeigen dieselben Halte.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🔖</span><span><b>Ein Lesezeichen</b> in der Kopfzeile statt Stern, mit Merkliste und Nachschub.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📦</span><span>Besorgtes kommt <b>mit Ort ins Inventar</b>, „Nachholen“ legt es neu nach.</span></li>
+      </ul>
+      <p class="fr-try-auth">🔑 Ansehen geht erst nach dem Ship live: Lokal gibt es nur den Test-Account.</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261106-1150-gegenstand-weg/shots/before.png" alt=""><figcaption>Bauplan ohne Bahn</figcaption></figure>
+      <figure class="fr-shot"><img src="20261106-1150-gegenstand-weg/shots/after.png" alt=""><figcaption>Bauplan mit drei Halten</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Volle Testsuite ohne roten Test, zuletzt vor den letzten Wörter-Änderungen; Anforderung: kein roter Test (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">0 rot</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 90%" data-tip="Telefon- und Tablet-Prüfung über 74 Seiten ohne Befund, aber am Dev-Build und vor dem letzten Commit; Anforderung: kein Befund im echten Build (geschätzt).">
+        <span class="fr-meter-name">📱 Kompatibilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">0 / 74</b>
+      </div>
+      <div class="fr-meter" data-grade="open" style="--fr-fill: 0%" data-tip="Die Migration lief noch nicht, nur die vier Spalten stehen in der Cloud. Beide Tabellen waren leer, als ich nachgesehen habe; Anforderung: kein Eintrag geht verloren (geschätzt).">
+        <span class="fr-meter-name">🗄️ Datenintegrität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">offen</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ○ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_local}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_prod}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+    <details class="fr-fold" data-open-questions>
+      <summary>🔍 7 {{final.funde_fold}}</summary>
+      <ul class="fr-funde">
+        <li data-oq-id="oq-bp-mission"
+            data-issue-title="[FEATURE] Link blueprints to the missions that award them"
+            data-issue-type="feature"
+            data-issue-body="Approved in round 2 (r2-bp = mission): a blueprint's Nachschub line should offer 'Zum Einsatz' for the mission that earns it. Not built: no source maps a blueprint to its missions. data-uploader/python/sc_extract/dataforge_extract.py writes missionSource as null and codex_missions has no blueprint or reward-pool link. CtaRow.missionTarget and the opts.stepKind path are ready once the data exists."
+            data-oq-origin="shortfall"
+            data-route-default="issue"
+            data-route-reason="Daten-fehlen">
+          <span class="oq-label">Bauplan: „Zum Einsatz“ fehlt</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Die Nachschub-Zeile eines Bauplans nennt keine Mission, weil die Spieldaten keine Verbindung von Bauplan zu Mission liefern.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Bauplan-Seite und Nachschub, Datenquelle im Uploader</dd>
+            <dt>{{final.fund_why}}</dt><dd>📌 Issue: Zuerst muss der Uploader die Daten liefern.</dd>
+          </dl>
+        </li>
+        <li data-oq-id="oq-star-toast"
+            data-issue-title="[DESIGN] Decide on the star glyph in the Explorer star toast"
+            data-issue-type="design"
+            data-issue-body="The owner asked to remove the star completely. star-toast.component.ts still shows the glyph: it is the Explorer achievement ('Star lit') of the Verse star map, and its texts name the star. The map legend also keeps a star as the mission shape, as agreed."
+            data-oq-origin="shortfall"
+            data-route-default="ignore"
+            data-route-reason="Auszeichnung">
+          <span class="oq-label">Stern im Stern-Toast bleibt</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Du wolltest den Stern komplett raus. Hier steht er für die Explorer-Auszeichnung „Stern entzündet“, nicht für Favoriten. Die Karten-Legende behält ihn wie besprochen.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Verse, Meldung nach einem entdeckten Stern</dd>
+            <dt>{{final.fund_why}}</dt><dd>Weglassen: Ohne den Stern passen die Texte der Auszeichnung nicht mehr.</dd>
+          </dl>
+        </li>
+        <li data-oq-id="oq-material-qty"
+            data-issue-title="[FEATURE] Store blueprint material amounts in SCU in Nachschub"
+            data-issue-type="feature"
+            data-issue-body="ItemPathService.addToNachschub adds one line per ingredient of a blueprint and rounds SCU up to whole pieces with a minimum of 1, because hq_supplies.qty is an integer. A blueprint needing 0.36 SCU Agricium shows 1. Removing the blueprint line through the path node leaves its material lines; undo takes them out together."
+            data-oq-origin="shortfall"
+            data-route-default="issue"
+            data-route-reason="Schema">
+          <span class="oq-label">Material nur in ganzen Stück</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Material kommt mit in den Nachschub, aber aufgerundet: 0,36 SCU werden zu 1. „Entfernen“ am Bauplan lässt die Material-Zeilen stehen, nur Rückgängig nimmt alles mit.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Nachschub-Zeilen eines Bauplans</dd>
+            <dt>{{final.fund_why}}</dt><dd>📌 Issue: Genaue Mengen brauchen ein neues Datenbankfeld.</dd>
+          </dl>
+        </li>
+        <li data-oq-id="oq-scale"
+            data-issue-title="[DESIGN] Review the balance scale as the compare icon"
+            data-issue-type="design"
+            data-issue-body="The owner asked what could stand for compare once the swap arrows mean switch ship. Built as a balance scale (codex/compare-icon.component.ts). Named here so the owner can veto it."
+            data-oq-origin="found"
+            data-route-default="ignore"
+            data-route-reason="Veto">
+          <span class="oq-label">Vergleichen als Waage</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Mein Vorschlag auf deine Frage, ⇄ bleibt für „Schiff wechseln“. Stell es um, wenn dir die Waage nicht gefällt.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Codex und Suche</dd>
+            <dt>{{final.fund_why}}</dt><dd>Weglassen, außer du legst ein Veto ein.</dd>
+          </dl>
+        </li>
+        <li data-oq-id="oq-sets"
+            data-issue-title="[DESIGN] Review the rename of the Spind tab to Sets"
+            data-issue-type="design"
+            data-issue-body="The checklist removes the word Spind. The tab shows FPS role sets rather than the item inventory, so Inventar would be wrong there. It now reads Sets. Also: flagship set and unset moved into the Verwalten panel, and the card 'Schiff hinzufügen' stays on /hq/hangar as the in-page way to add an owned ship."
+            data-oq-origin="found"
+            data-route-default="ignore"
+            data-route-reason="Veto">
+          <span class="oq-label">„Spind“ heißt jetzt „Sets“</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Der Reiter zeigt FPS-Sets, „Inventar“ wäre falsch. Außerdem liegt Flaggschiff setzen jetzt in „Verwalten“, und die Karte „Schiff hinzufügen“ bleibt im Hangar.</dd>
+            <dt>{{final.fund_where}}</dt><dd>HQ und Hangar</dd>
+            <dt>{{final.fund_why}}</dt><dd>Weglassen, außer du legst ein Veto ein.</dd>
+          </dl>
+        </li>
+        <li data-oq-id="oq-recents-consent"
+            data-issue-title="[CHORE] Check whether opened-page recents need the preferences consent"
+            data-issue-type="chore"
+            data-issue-body="Opened pages now write sc.search.recentRows without a consent check, exactly as the search already did. The rows stay on the device. Check against the storage categories in the privacy page and core consent handling. Gating it would leave 'Zuletzt geöffnet' empty for an undecided visitor."
+            data-oq-origin="found"
+            data-route-default="issue"
+            data-route-reason="Datenschutz">
+          <span class="oq-label">Zuletzt geöffnet: Consent</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Geöffnete Seiten landen ohne Consent-Abfrage im Browser, wie schon bei der Suche. Die Daten bleiben auf dem Gerät.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Merkliste, Datenschutzseite</dd>
+            <dt>{{final.fund_why}}</dt><dd>📌 Issue: Das sollte einmal gegen die Datenschutzseite geprüft werden.</dd>
+          </dl>
+        </li>
+        <li data-oq-id="oq-pr2"
+            data-issue-title="[REFACTOR] Move the remaining action buttons to scAction"
+            data-issue-type="refactor"
+            data-issue-body="Section G of docs/concepts/20261106-1150-gegenstand-weg/briefs/implement.md, approved as PR 2 (r2-roll = two): migrate the remaining .sc-btn, .btn, .act, .cta and tiny ghost actions to scAction, starting with the Planen and set pages and the admin hot tone, then add the prebuild guard once complete."
+            data-oq-origin="deferred"
+            data-route-default="issue"
+            data-route-reason="eigener-PR">
+          <span class="oq-label">PR 2: restliche Knöpfe</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Dein zweiter Schritt: alle übrigen Knöpfe auf den neuen Baustein, zuletzt eine Build-Sperre gegen alte Klassen.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Restliche App, zuerst Planen, Sets und Admin</dd>
+            <dt>{{final.fund_why}}</dt><dd>📌 Issue: So hast du es gewählt, er folgt nach dem Ship von PR 1.</dd>
+          </dl>
+        </li>
+      </ul>
+    </details>
+
+    <details class="fr-fold">
+      <summary>🛠 {{final.dev_fold}}</summary>
+      <ul class="fr-dev">
+        <li>Branch <code>claude/supply-wishlist-inventory-ux-d68280</code> · Stand <code>e5437f34</code></li>
+        <li><code>hq/data/item-path.service.ts</code>, <code>shared/item-path/</code>, <code>shared/action/</code></li>
+        <li>Karma 5754 grün, 5 übersprungen, vor den letzten Commits; danach je Bereich grün</li>
+        <li>Vor dem Ship: Migration <code>20261106140000</code> nach dem Deploy pushen; Spalten stehen vorab in der Cloud</li>
+        <li>Nicht gebaut: Häkchen-Tausch am Halt, das Konzept zeigt ihn dort nicht; lokale Stern-Favoriten wandern einmalig mit</li>
+      </ul>
+    </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-holo" data-crit="mid" data-guide="">Holo-Schublade, Slots, Tausch nicht gesehen</li>
+      <li data-todo-id="t-news" data-crit="mid" data-guide="">News-Panel, Freundesseite nicht gesehen</li>
+      <li data-todo-id="t-live" data-crit="low" data-guide="">Ort aus laufender App nicht geprüft</li>
+    </ul>
+  </section>
+</section>

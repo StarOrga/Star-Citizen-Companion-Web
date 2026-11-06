@@ -8,6 +8,7 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -38,11 +39,17 @@ import {
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { noteOpenedPage } from '../shell/merkliste/merkliste-opened';
+import { pathLevelFor } from './path-level.util';
+import { blueprintMissions } from './blueprint-missions';
+import { isPlainLeftClick } from '../core/modified-click.util';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
 
 @Component({
   selector: 'sc-blueprint-detail',
   standalone: true,
-  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCategoryIconComponent, ClassChipComponent],
+  imports: [ItemPathComponent, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCategoryIconComponent, ClassChipComponent, ScActionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -70,6 +77,9 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
             <h1 class="entity-name">{{ displayName() }}</h1>
             @if (outputEntity()?.manufacturerCode; as mfr) { <p class="sc-detail-mfr">{{ mfr }}</p> }
             <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
+            <!-- All three stops (wish, Nachschub with its material, Inventar as "collected"). -->
+            <sc-item-path class="path" kind="blueprint" [className]="detail()!.classNameSlug" [name]="displayName()" [level]="pathLevel()"
+                          [stepKind]="missions() ? 'mission' : null" [missionLink]="missions()?.rows?.[0]?.link ?? null" />
             @if (facts().length > 0) {
               <ul class="sc-detail-facts">
                 @for (f of facts(); track f.label) {
@@ -87,6 +97,30 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
           <section class="section sc-card sc-detail-block">
             <h2>{{ 'codex.detail.description' | translate }}</h2>
             <p class="desc">{{ desc }}</p>
+          </section>
+        }
+
+        <!-- The contracts that award it (A9). Without that data nothing shows here. -->
+        @if (missions(); as m) {
+          <section class="section sc-card sc-detail-block missions">
+            <h2>{{ 'blueprint.detail.missions' | translate }}</h2>
+            <p class="quality-note muted">{{ 'blueprint.detail.missionsNote' | translate }}</p>
+            <ul class="ingredient-list mission-list">
+              @for (row of m.rows; track row.className; let first = $first) {
+                <li class="ingredient-row mission-row">
+                  <div class="ing-info">
+                    <a class="ing-name link" [routerLink]="row.link" (click)="onToMission($event)">{{ row.title }}</a>
+                    @if (row.meta; as meta) { <span class="mission-meta">{{ meta }}</span> }
+                  </div>
+                  @if (first) {
+                    <a scAction tier="secondary" class="to-mission" [routerLink]="row.link" (click)="onToMission($event)">{{ 'blueprint.detail.toMission' | translate }}</a>
+                  }
+                </li>
+              }
+            </ul>
+            @if (m.more > 0) {
+              <p class="muted mission-more">{{ 'blueprint.detail.missionsMore' | translate: { count: m.more } }}</p>
+            }
           </section>
         }
 
@@ -198,8 +232,13 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
     .skel-card { min-height: 200px; }
     .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.55; max-width: var(--sc-measure); }
     .ing-cls { align-self: flex-start; }
+    .path { margin-top: 4px; }
 
     .ingredient-list { display: flex; flex-direction: column; gap: 8px; }
+    .mission-list { list-style: none; margin: 0; padding: 0; }
+    .mission-row { align-items: center; flex-wrap: wrap; }
+    .mission-meta { font-size: 0.8rem; color: var(--sc-fg-2); }
+    .mission-more { margin: 10px 0 0; font-size: 0.85rem; }
     .ing-unit { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--sc-fg-2); }
     .ingredient-row, .output-row {
       display: flex; gap: 14px; align-items: flex-start;
@@ -251,6 +290,8 @@ export class BlueprintDetailComponent implements OnInit {
       labelKey: 'codex.kinds.blueprint', link: '/codex/index', queryParams: { kind: 'blueprint' },
     });
   });
+  /** The full path form when the reader came from Planen or a set, the pill otherwise (D2). */
+  protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
   readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
@@ -338,6 +379,19 @@ export class BlueprintDetailComponent implements OnInit {
     return facts;
   });
 
+  /** The missions that award it, best first; null while the build holds no such link. */
+  readonly missions = computed(() => blueprintMissions(this.payload?.missionSource, this.lang));
+
+  private readonly pathControl = viewChild(ItemPathComponent);
+
+  /**
+   * "Zum Einsatz" is a real anchor; the plain click also puts the step on the list. A new tab
+   * is only a look, so a modified click writes nothing.
+   */
+  onToMission(ev: MouseEvent): void {
+    if (isPlainLeftClick(ev)) void this.pathControl()?.ensureNachschubStep();
+  }
+
   readonly ingredients = computed((): CodexBlueprintIngredient[] => {
     return this.detail()?.ingredients ?? [];
   });
@@ -422,6 +476,7 @@ export class BlueprintDetailComponent implements OnInit {
       const result = await this.svc.getBlueprint(className);
       if (seq !== this.loadSeq) return;
       this.detail.set(result);
+      if (result) noteOpenedPage({ kind: 'blueprint', className: result.classNameSlug, title: this.displayName(), manufacturerCode: null });
       void this.resolveOutput(seq);
     } catch (err) {
       if (seq !== this.loadSeq) return;

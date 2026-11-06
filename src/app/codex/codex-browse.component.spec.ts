@@ -1,3 +1,5 @@
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -158,6 +160,7 @@ describe('CodexBrowseComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CodexBrowseComponent],
       providers: [
+        { provide: ItemPathService, useValue: fakeItemPath() },
         provideNoShipBlueprints(),
         provideRouter([]),
         provideLocationMocks(),
@@ -183,8 +186,7 @@ describe('CodexBrowseComponent', () => {
             query: signal(''),
             ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
             refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
-            isFavorite: () => false,
-            toggleFavorite: () => undefined,
+            isWished: () => false,
             artFor: () => [] as string[],
             searchLoadedShips: () => [],
           },

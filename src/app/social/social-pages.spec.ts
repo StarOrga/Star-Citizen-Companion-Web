@@ -1,3 +1,5 @@
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -35,6 +37,7 @@ function setup(handlers: Record<string, Handler>, extra: unknown[] = []) {
     providers: [
       provideRouter([]),
       provideTranslateService({}),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       { provide: SupabaseClientProvider, useValue: { client, realClient: client } },
       ...(extra as never[]),
     ],
@@ -220,6 +223,14 @@ describe('SocialFriendComponent', () => {
     expect(el.textContent).toContain('Mining set');
     expect(el.textContent).toContain('social.friendPage.wishlist');
     expect(el.querySelector('#social-compare')).not.toBeNull();
+  });
+
+  it('every hangar row and shared variant carries the tertiary item path of its ship', async () => {
+    const withCfg = { ...overview, from_friend: { ...overview.from_friend, ship_configs: [{ share_id: 'c', config_id: 'k', name: 'Cargo', role: 'cargo', ship_class_name: 'ANVL_Carrack' }] } };
+    setup({ friend_overview: () => withCfg }, [route('pilot_a')]);
+    const { el } = await mount(SocialFriendComponent);
+    expect(el.querySelectorAll('.ships sc-item-path').length).toBe(1);
+    expect(el.querySelectorAll('.shared sc-item-path').length).toBeGreaterThan(0);
   });
 
   it('a hidden hangar is said to be hidden, not empty', async () => {

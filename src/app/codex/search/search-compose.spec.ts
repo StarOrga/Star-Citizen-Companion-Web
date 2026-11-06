@@ -118,7 +118,7 @@ describe('composeSearchResult', () => {
   it('HQ ownership chips order, they do not filter: own group first, catalog below with HQ CTAs (A2, A3, B7, C1)', () => {
     const own = searchOwn('laser', { ships: [], configs: [], sets: [], items: [{ name: 'Laser Repeater S3', class_name: 'KLWE_LaserRepeater_S3', location: 'Lager A', qty: 3 }] });
     const lasers = group('weapon', [hit('weapon', 'KLWE_LaserRepeater_S3', 'Laser Repeater S3', { attachType: 'WeaponGun', size: 3 }), hit('weapon', 'W9', 'Laser Beam S1')]);
-    const ctx = searchContextOf('/hq', 'bestand');
+    const ctx = searchContextOf('/hq', 'inventar');
     const r = composeSearchResult({ ...base, term: 'laser', groups: [lasers], context: ctx, chips: ctx.chips, own });
     expect(r.groups.map((g) => g.id)).toEqual(['own', 'weapon']);
     expect(r.outside).toBeNull();

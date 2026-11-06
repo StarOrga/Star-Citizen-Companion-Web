@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
-import { HqSuppliesPanelComponent } from './hq-supplies-panel.component';
 import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
 import { HqSuppliesService } from './hq-supplies.service';
 import { HQ_ROOT, hqHangar, hqLocker, hqOps } from './hq-routes';
@@ -33,7 +33,7 @@ export const HQ_TABS: readonly HqTab[] = [
   // No track class: the frame places it by layout — the cinematic overview spans the
   // full track (its first view A, the rest B), the sub pages sit in B.
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, HqSuppliesPanelComponent, HqSuppliesPopupComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, ScActionDirective, HqSuppliesPopupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Beta "shell": the tabs live in the Fusion bar (header and subheader are one capsule). -->
@@ -53,9 +53,10 @@ export const HQ_TABS: readonly HqTab[] = [
         </nav>
       }
       <button
-        #suppliesBtn
         type="button"
-        class="sc-btn supplies-btn"
+        scAction
+        tier="secondary"
+        class="supplies-btn"
         aria-haspopup="dialog"
         [attr.aria-expanded]="suppliesOpen()"
         [attr.aria-label]="'hq.supplies.buttonAria' | translate: { count: suppliesCount() }"
@@ -67,12 +68,9 @@ export const HQ_TABS: readonly HqTab[] = [
 
     <router-outlet />
 
+    <!-- Beta off or on, the one popup (tabs Wunschliste / Nachschub); the old non-beta panel is gone. -->
     @if (suppliesOpen() && !onPages()) {
-      @if (shell()) {
-        <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
-      } @else {
-        <sc-hq-supplies-panel [returnFocus]="suppliesBtn" (closed)="suppliesOpen.set(false)" />
-      }
+      <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
     }
   `,
   styles: [
@@ -134,6 +132,6 @@ export class HqShellComponent {
    * Nachschub button leaves, supplies move into Planen (web-supply / web-ops packages).
    */
   readonly onPages = computed(() => this.chrome.hqPage() !== null);
-  /** Beta off: the supplies list has no data source, so the counter is 0. Beta on: the open lines of the popup list. */
-  readonly suppliesCount = computed(() => (this.shell() ? this.supplies.open().length : 0));
+  /** The open lines of the Nachschub list (the one popup serves beta on and off). */
+  readonly suppliesCount = computed(() => this.supplies.open().length);
 }

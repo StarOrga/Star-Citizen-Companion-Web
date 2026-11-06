@@ -1,14 +1,18 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
+import { humanizeClassName } from '../../codex/codex-format';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqStatsService } from '../data/hq-stats.service';
 import { HqOwnershipService } from '../hq-ownership.service';
-import { hqHangar, hqLocker, hqShip } from '../hq-routes';
-import { formatLocationName } from '../now/hq-live.util';
+import { HqLink, hqHangar, hqLocker, personalItemLink, personalShipLink } from '../hq-routes';
+import { flagshipFirst } from '../../hangar/flagship-first';
+import type { HangarShip } from '../../hangar/hangar.types';
+import { placeLabel } from '../now/hq-live.util';
 import { StockCategory, buildOverview } from './hq-stock-model';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 import { HqStockSharedComponent } from './hq-stock-shared.component';
@@ -26,16 +30,15 @@ const STALE_SHOWN = 3;
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
+  imports: [TranslatePipe, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
-      <h2 class="page-title" id="hq-stock-title">{{ 'hq.pages.bestand' | translate }}</h2>
+      <h2 class="page-title" id="hq-stock-title">{{ 'hq.pages.inventar' | translate }}</h2>
       @if (auth.user()) {
         <div class="actions">
-          <button type="button" class="sc-btn" (click)="open({ mode: 'browse' })">{{ 'hq.stock.actions.browse' | translate }}</button>
-          <button type="button" class="sc-btn" (click)="open({ mode: 'find' })">{{ 'hq.stock.actions.find' | translate }}</button>
-          <button type="button" class="sc-btn sc-btn-primary" (click)="open({ mode: 'add' })">{{ 'hq.stock.actions.add' | translate }}</button>
+          <!-- r2-head = one: a single primary. Browse is the number tiles, "Wo liegt ...?" the fusion search. -->
+          <button type="button" scAction tier="primary" (click)="open({ mode: 'add' })"><span>{{ 'hq.stock.actions.add' | translate }}</span></button>
         </div>
       }
     </header>
@@ -133,7 +136,10 @@ const STALE_SHOWN = 3;
           @if (favourites().length) {
             <ul class="favs wide-only">
               @for (s of favourites(); track s.id) {
-                <li><a [routerLink]="shipRoute(s.id)">★ {{ s.customName || s.shipClassName }}</a></li>
+                <li>
+                  <a [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">{{ s.customName || shipTitle(s.shipClassName) }}</a>
+                  @if (hangar.isFlagship(s.shipClassName)) { <span class="flag-mark">{{ 'hangar.flagship.mark' | translate }}</span> }
+                </li>
               }
             </ul>
           } @else {
@@ -197,6 +203,7 @@ const STALE_SHOWN = 3;
       a { color: var(--sc-accent); }
       a:focus-visible, button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .line { margin: 0; color: var(--sc-fg-0); }
+      .flag-mark { margin-inline-start: var(--sc-space-2, 8px); color: var(--sc-warning); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
       .favs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sc-space-1, 4px) var(--sc-space-3, 12px); }
       .favs.col { flex-direction: column; }
       .more { justify-self: start; }
@@ -232,9 +239,11 @@ const STALE_SHOWN = 3;
   ],
 })
 export class HqStockComponent implements OnInit {
-  readonly placeName = formatLocationName;
+  private readonly tr = inject(TranslateService);
+  readonly placeName = (n: string): string => placeLabel(n, this.tr.getCurrentLang());
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
+  protected readonly shipTitle = humanizeClassName;
   readonly inv = inject(HqInventoryService);
   private readonly stats = inject(HqStatsService);
   private readonly ownership = inject(HqOwnershipService);
@@ -254,12 +263,23 @@ export class HqStockComponent implements OnInit {
   readonly staleShown = computed(() => this.ov().stale.slice(0, STALE_SHOWN));
 
   readonly owned = computed(() => this.hangar.ships().filter((s) => s.status === 'owned').length);
-  readonly favourites = computed(() =>
-    this.hangar
+  /** The pinned top three, the flagship first (E6) even when it is not pinned. */
+  readonly favourites = computed(() => {
+    const pinned = this.hangar
       .ships()
       .filter((s) => s.pinnedRank !== null && s.pinnedRank >= 1 && s.pinnedRank <= 3)
-      .sort((a, b) => (a.pinnedRank ?? 9) - (b.pinnedRank ?? 9)),
-  );
+      .sort((a, b) => (a.pinnedRank ?? 9) - (b.pinnedRank ?? 9));
+    const flag = this.hangar.ships().find((s) => this.hangar.isFlagship(s.shipClassName));
+    const list = flag && !pinned.includes(flag) ? [flag, ...pinned] : pinned;
+    return flagshipFirst(list, (c) => this.hangar.isFlagship(c));
+  });
+
+  /** A ship's own page is the personal Codex view of its active variant. */
+  shipLink(s: HangarShip): HqLink {
+    const cfgs = this.ownership.configsForShip(s.id);
+    const cfg = cfgs.find((c) => c.isActive) ?? cfgs[0];
+    return cfg ? personalShipLink(s.shipClassName, cfg.id) : personalItemLink('ship', s.shipClassName);
+  }
   readonly shipLoadouts = computed(() => this.ownership.configs().length);
   /** Blueprints received in the stats range loaded elsewhere; null until the Statistik data exists. */
   readonly blueprintTotal = computed(() => this.stats.stats()?.blueprints.total ?? null);
@@ -278,7 +298,4 @@ export class HqStockComponent implements OnInit {
     this.open({ mode: 'browse', filter: { cat } });
   }
 
-  shipRoute(id: string): string[] {
-    return hqShip(id);
-  }
 }

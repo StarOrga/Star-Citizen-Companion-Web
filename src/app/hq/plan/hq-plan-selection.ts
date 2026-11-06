@@ -34,7 +34,10 @@ export interface PlanNeed {
   id: string;
   label: string;
   kind: StepKind;
+  /** Pieces, or portions when `amount` is set. */
   qty: number;
+  /** Exact SCU of a material line (shown instead of the count), else absent/null. */
+  amount?: number | null;
   /** "liegt bereit" = done. */
   status: 'open' | 'done';
   /** Set key `ship:<id>` / `fps:<id>`, null for a loose line. */

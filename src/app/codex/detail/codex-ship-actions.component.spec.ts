@@ -13,7 +13,7 @@ describe('CodexShipActionsComponent', () => {
       user?: { id: string } | null;
       pledgeLink?: string | null;
       myPledgeLink?: string | null;
-      inputs?: Partial<Record<'spacer' | 'inHangar' | 'addBusy' | 'addFailed', boolean>>;
+      inputs?: Partial<Record<"spacer", boolean>>;
     } = {},
   ) {
     const store = {
@@ -57,24 +57,9 @@ describe('CodexShipActionsComponent', () => {
     expect(links[0].rel).toContain('nofollow');
   });
 
-  it('emits addToHangar from the add button, and hides it once the ship is in the hangar', async () => {
-    const { fixture, el } = await setup();
-    const emitted = jasmine.createSpy('add');
-    fixture.componentInstance.addToHangar.subscribe(emitted);
-    (el.querySelector('button.add-hangar') as HTMLButtonElement).click();
-    expect(emitted).toHaveBeenCalledTimes(1);
-
-    fixture.componentRef.setInput('inHangar', true);
-    fixture.detectChanges();
+  it('no longer offers "In dein HQ übernehmen" (the path pill owns the hangar stop)', async () => {
+    const { el } = await setup();
     expect(el.querySelector('button.add-hangar')).toBeNull();
-  });
-
-  it('disables the add button while busy and announces a failed add', async () => {
-    const { el } = await setup({ inputs: { addBusy: true, addFailed: true } });
-    const btn = el.querySelector('button.add-hangar') as HTMLButtonElement;
-    expect(btn.disabled).toBeTrue();
-    expect(btn.getAttribute('aria-busy')).toBe('true');
-    expect(el.querySelector('.add-err[role="alert"]')?.textContent).toContain('codex.card.addToHangarFailed');
   });
 
   it('renders the spacer only when asked for', async () => {

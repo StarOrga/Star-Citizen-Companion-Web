@@ -51,13 +51,13 @@ import { JournalEntry } from './codex-holo-model';
     .card { display: grid; gap: 8px; min-width: 0; }
     .h2 { display: flex; align-items: center; gap: 8px; font-family: var(--sc-font-display); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); }
     .rule { flex: 1; height: 1px; background: color-mix(in srgb, var(--sc-accent) 24%, transparent); }
-    .mut { margin: 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
+    .mut { margin: 0; font-size: max(12px, var(--f)); color: var(--sc-fg-2); }
     .lnk { background: none; border: none; padding: 0; color: var(--sc-accent); cursor: pointer; font: inherit;
       font-size: max(11px, var(--f)); min-height: var(--sc-tap-min, 24px); justify-self: start; }
     .lnk:hover { text-decoration: underline; }
     .lnk:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: var(--holo-r-xs); }
     .journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-    .journal li { display: flex; align-items: center; gap: 8px; font-size: max(11.5px, var(--f)); animation: j-in 260ms var(--holo-e-out) backwards; }
+    .journal li { display: flex; align-items: center; gap: 8px; font-size: max(12px, var(--f)); animation: j-in 260ms var(--holo-e-out) backwards; }
     @keyframes j-in { from { opacity: 0; } }
     .j-label { color: var(--sc-fg-0); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .j-state { color: var(--sc-fg-2); font-size: max(10px, var(--f)); }

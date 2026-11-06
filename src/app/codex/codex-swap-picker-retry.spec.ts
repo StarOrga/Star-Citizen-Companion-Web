@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexSwapPickerComponent, SwapTarget } from './codex-swap-picker.component';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
@@ -51,7 +53,7 @@ describe('CodexSwapPickerComponent — load failure', () => {
     const svc = new FlakyService();
     await TestBed.configureTestingModule({
       imports: [CodexSwapPickerComponent],
-      providers: [provideTranslateService({}), { provide: CodexService, useValue: svc },
+      providers: [{ provide: ItemPathService, useValue: fakeItemPath() }, provideTranslateService({}), { provide: CodexService, useValue: svc },
         // No codex_swap_candidates RPC yet → the chained fallback load.
         {
           provide: SupabaseClientProvider,

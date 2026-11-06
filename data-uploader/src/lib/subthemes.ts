@@ -115,7 +115,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 4: #794 — codex_item_ports.position applies the helper offset; ports on
     // the hull origin carry no position.
     // 5: codex_missions — released contracts for the global search.
-    revision: 5,
+    // 6: codex_blueprints.payload.missionSource + codex_missions gains the
+    //    career/list contracts that award a blueprint (blueprint_sources.py).
+    revision: 6,
     phases: [
       'codex_manufacturers',
       'codex_blueprints',
@@ -131,6 +133,7 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/python/sc_extract/geometry.py',
       'data-uploader/python/sc_extract/hardpoints.py',
       'data-uploader/python/sc_extract/images.py',
+      'data-uploader/python/sc_extract/blueprint_sources.py',
       'data-uploader/python/sc_extract/missions.py',
       'data-uploader/python/sc_extract/keybinds.py',
     ],

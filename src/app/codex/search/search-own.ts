@@ -45,7 +45,7 @@ export function ownMoreTarget(rows: readonly OwnMatch[], term: string): SearchTa
   const qp = q ? { q } : null;
   const first = rows[0]?.ownKind;
   if (first === 'set') return { link: [hqLocker], queryParams: qp };
-  if (first === 'item') return { link: ['/hq'], queryParams: qp, fragment: 'bestand' };
+  if (first === 'item') return { link: ['/hq'], queryParams: qp, fragment: 'inventar' };
   return { link: [hqHangar], queryParams: qp };
 }
 
@@ -53,13 +53,15 @@ export function ownMoreTarget(rows: readonly OwnMatch[], term: string): SearchTa
  * Match the term against the reader's own data.
  *
  * @param nameOf Catalog name of a ship class ("Aegis Gladius"); defaults to the humanised class name.
+ * @param all Without a term, list everything instead of nothing.
  */
 export function searchOwn(
   term: string,
   src: OwnSources,
-  opts: { limit?: number; nameOf?: (className: string) => string | null; kinds?: readonly OwnRowType[] } = {},
+  opts: { limit?: number; nameOf?: (className: string) => string | null; kinds?: readonly OwnRowType[]; all?: boolean } = {},
 ): OwnSearchResult {
-  const match = searchMatcher(term);
+  // `all`: an empty term lists every record of the wanted kinds ("lager" alone is the whole Inventar).
+  const match = searchMatcher(term) ?? (opts.all ? (): boolean => true : null);
   if (!match) return { rows: [], total: 0 };
   const limit = opts.limit ?? 5;
   const nameOf = (c: string): string => opts.nameOf?.(c) || humanizeClassName(c);
@@ -124,7 +126,7 @@ export function searchOwn(
         {
           type: 'own', id: `own-item-${found.length}`, ownKind: 'item', title: it.name, ownName: null,
           subtitle: it.location || null, classNameSlug: it.class_name, qty: it.qty,
-          target: { link: ['/hq'], queryParams: { q: it.name }, fragment: 'bestand' },
+          target: { link: ['/hq'], queryParams: { q: it.name }, fragment: 'inventar' },
         },
         [it.name],
         [it.class_name],

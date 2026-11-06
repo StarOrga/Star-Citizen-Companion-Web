@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
+import { formatQuantity } from '../codex/codex-format';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -19,6 +20,8 @@ import {
 
 /** Where a line came from (`hq_supplies.source`). */
 export type SupplySource = HqSupplyRow['source'];
+/** The unit of an exact amount (`hq_supplies.unit`); a line without amount counts pieces. */
+export type SupplyUnit = 'scu';
 
 /**
  * One line of the supplies list: a task you tick off, shaped like a cart line (name x quantity).
@@ -37,6 +40,15 @@ export interface SupplyItem {
   readonly stepKind: StepKind | null;
   readonly wanted: boolean;
   readonly source: SupplySource;
+  /**
+   * Exact quantity in `unit` (0.36 SCU of a blueprint material), else null = whole pieces in `qty`.
+   * On such a line `qty` counts portions (one blueprint's worth): the -/+ buttons move by one portion
+   * and `amount` follows proportionally, so nothing is ever rounded.
+   */
+  readonly amount: number | null;
+  readonly unit: SupplyUnit | null;
+  /** Class name of the blueprint this material line was added for (removed together with it), else null. */
+  readonly forClassName: string | null;
   /** Client edit time (ISO) - the LWW key. */
   readonly updatedAt: string;
   /** Tombstone (ISO) while a deletion is on its way to the server; never listed in `items`. */
@@ -54,7 +66,34 @@ export interface SupplyMeta {
   stepKind?: StepKind | null;
   wanted?: boolean;
   source?: SupplySource;
+  /** Exact quantity: `qty` is then the portions count (default 1), `amount` the total in `unit`. */
+  amount?: number | null;
+  unit?: SupplyUnit | null;
+  forClassName?: string | null;
 }
+
+/** What {@link HqSuppliesService.addLine} changed: the line and its quantities before (0 / null = new). */
+export interface AddedLine {
+  id: string;
+  prevQty: number;
+  prevAmount: number | null;
+}
+
+/** The quantity a line stands for: the exact amount if it has one, else its pieces. */
+export function lineAmount(i: Pick<SupplyItem, 'qty' | 'amount'>): number {
+  return i.amount ?? i.qty;
+}
+
+/** A line's quantity as the reader reads it: "0,36 SCU" for an exact amount (locale-aware), else the pieces. */
+export function supplyQtyText(i: Pick<SupplyItem, 'qty' | 'amount'>): string {
+  return i.amount !== null ? `${formatQuantity(i.amount)} SCU` : String(i.qty);
+}
+
+/** Floats from sums and ratios of recipe amounts, trimmed to what the numeric column can hold sensibly. */
+export function roundAmount(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
+}
+
 
 /** Legacy local list (before the server table). Read once after sign-in, then removed. */
 export const SUPPLIES_STORAGE_KEY = 'sc.hq.supplies';
@@ -145,17 +184,38 @@ export class HqSuppliesService {
   }
 
   add(name: string, qty: number, meta: SupplyMeta = {}): boolean {
+    return this.addLine(name, qty, meta) !== null;
+  }
+
+  /**
+   * Like {@link add}, but names the line it landed on: `prevQty` is the quantity before (0 for a
+   * new line), so a caller can undo exactly this. Null when the list is full or the name empty.
+   */
+  addLine(name: string, qty: number, meta: SupplyMeta = {}): AddedLine | null {
     const clean = name.trim().slice(0, SUPPLY_NAME_MAX);
-    if (!clean || this.items().length >= SUPPLIES_MAX_ITEMS) return false;
+    if (!clean || this.items().length >= SUPPLIES_MAX_ITEMS) return null;
     const q = clampQty(qty);
     const setId = meta.setId ?? null;
-    // Same name (case-insensitive), same set and still open: raise its quantity like a cart does.
+    const amount = validAmount(meta.amount, meta.unit);
+    const forClassName = meta.forClassName?.trim() || null;
+    // Same name (case-insensitive), same set, same origin (a blueprint's own material or a line of its
+    // own), same kind of quantity and still open: raise its quantity like a cart does.
     const same = this.items().find(
-      (i) => !i.done && i.setId === setId && i.name.toLowerCase() === clean.toLowerCase(),
+      (i) =>
+        !i.done &&
+        i.setId === setId &&
+        i.name.toLowerCase() === clean.toLowerCase() &&
+        (i.forClassName ?? '').toLowerCase() === (forClassName ?? '').toLowerCase() &&
+        (i.amount !== null) === (amount !== null),
     );
     if (same) {
-      this.patch(same.id, { qty: clampQty(same.qty + q) });
-    } else {
+      this.patch(same.id, {
+        qty: clampQty(same.qty + q),
+        amount: same.amount !== null && amount !== null ? roundAmount(same.amount + amount) : same.amount,
+      });
+      return { id: same.id, prevQty: same.qty, prevAmount: same.amount };
+    }
+    {
       const setKind = setId ? (meta.setKind ?? null) : null;
       const row: SupplyItem = {
         id: newClientId(),
@@ -169,13 +229,16 @@ export class HqSuppliesService {
         stepKind: meta.stepKind ?? null,
         wanted: meta.wanted ?? true,
         source: meta.source ?? 'manual',
+        amount,
+        unit: amount !== null ? 'scu' : null,
+        forClassName,
         updatedAt: nowIso(),
         deletedAt: null,
         dirty: true,
       };
       this.commit([...this.rows(), row]);
+      return { id: row.id, prevQty: 0, prevAmount: null };
     }
-    return true;
   }
 
   toggle(id: string): void {
@@ -183,13 +246,48 @@ export class HqSuppliesService {
     if (i) this.patch(id, { done: !i.done });
   }
 
+  /** Close (`done`) or reopen a line explicitly - a toggle cannot say which way it went. */
+  setDone(id: string, done: boolean): void {
+    const i = this.items().find((x) => x.id === id);
+    if (i && i.done !== done) this.patch(id, { done });
+  }
+
+  /** Open lines of a catalog item (by class name), manual lines first. */
+  openLinesFor(className: string): SupplyItem[] {
+    const key = className.trim().toLowerCase();
+    if (!key) return [];
+    return this.open()
+      .filter((i) => (i.className ?? '').toLowerCase() === key)
+      .sort((a, b) => Number(!!a.setId) - Number(!!b.setId));
+  }
+
   /** Mark a line as wanted / not wanted for its set (drives the ring fraction). */
   setWanted(id: string, wanted: boolean): void {
     this.patch(id, { wanted });
   }
 
+  /** A pieces line takes `qty`; an amount line takes `qty` portions and its amount follows proportionally. */
   setQty(id: string, qty: number): void {
-    this.patch(id, { qty: clampQty(qty) });
+    const i = this.items().find((x) => x.id === id);
+    if (i) this.patch(id, withQty(i, clampQty(qty)));
+  }
+
+  /** Exact restore of a line's quantities (undo): no scaling, no rounding. */
+  setLine(id: string, qty: number, amount: number | null): void {
+    this.patch(id, { qty: clampQty(qty), amount: amount === null ? null : roundAmount(amount) });
+  }
+
+  /** Brings back a removed line (undo of {@link remove}); a newer edit clears the tombstone. */
+  restore(id: string): void {
+    const i = this.rows().find((x) => x.id === id);
+    if (i?.deletedAt) this.patch(id, { deletedAt: null });
+  }
+
+  /** Open lines a blueprint brought along (its material), see `forClassName`. */
+  openLinesForBlueprint(blueprintClassName: string): SupplyItem[] {
+    const key = blueprintClassName.trim().toLowerCase();
+    if (!key) return [];
+    return this.open().filter((i) => (i.forClassName ?? '').toLowerCase() === key);
   }
 
   remove(id: string): void {
@@ -218,7 +316,7 @@ export class HqSuppliesService {
     const hit = hits.find((i) => i.wanted) ?? hits[0];
     if (!hit) return null;
     if (n >= hit.qty) this.patch(hit.id, { done: true });
-    else this.patch(hit.id, { qty: hit.qty - n });
+    else this.patch(hit.id, withQty(hit, hit.qty - n));
     return hit.id;
   }
 
@@ -227,7 +325,7 @@ export class HqSuppliesService {
     const i = this.items().find((x) => x.id === id);
     if (!i) return;
     if (i.done) this.patch(id, { done: false });
-    else this.patch(id, { qty: clampQty(i.qty + qty) });
+    else this.patch(id, withQty(i, clampQty(i.qty + qty)));
   }
 
   /** Push dirty rows, then pull what changed on the server. Never throws; failures land in `syncError`. */
@@ -415,6 +513,25 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/** The amount of a line when it is a usable SCU figure, else null (a pieces line). */
+function validAmount(amount: unknown, unit: unknown): number | null {
+  const n = typeof amount === 'string' ? Number(amount) : amount;
+  if (unit !== 'scu' || typeof n !== 'number' || !Number.isFinite(n) || n <= 0 || n > 1_000_000_000) return null;
+  return roundAmount(n);
+}
+
+/** `amount` + `unit` from a server row or a stored line (numeric may arrive as a string). */
+function fromAmount(amount: unknown, unit: unknown): Pick<SupplyItem, 'amount' | 'unit'> {
+  const a = validAmount(amount, unit);
+  return { amount: a, unit: a !== null ? 'scu' : null };
+}
+
+/** The change that gives a line `qty` pieces / portions; an amount follows by proportion. */
+function withQty(i: SupplyItem, qty: number): Partial<SupplyItem> {
+  if (i.amount === null || i.qty <= 0) return { qty };
+  return { qty, amount: roundAmount((i.amount / i.qty) * qty) };
+}
+
 function clampQty(n: number): number {
   return Number.isFinite(n) ? Math.min(SUPPLY_QTY_MAX, Math.max(1, Math.round(n))) : 1;
 }
@@ -433,6 +550,9 @@ function toRow(i: SupplyItem, uid: string): Partial<HqSupplyRow> {
     step_kind: i.stepKind,
     wanted: i.wanted,
     source: i.source,
+    // The new columns only travel when set: a line without them writes exactly what it always did.
+    ...(i.amount !== null && i.unit ? { amount: i.amount, unit: i.unit } : {}),
+    ...(i.forClassName ? { for_class_name: i.forClassName } : {}),
     deleted_at: i.deletedAt,
     updated_at: i.updatedAt,
   };
@@ -451,6 +571,8 @@ function fromRow(r: HqSupplyRow): SupplyItem {
     stepKind: r.step_kind,
     wanted: r.wanted,
     source: r.source,
+    ...fromAmount(r.amount, r.unit),
+    forClassName: r.for_class_name?.trim() || null,
     updatedAt: r.updated_at,
     deletedAt: r.deleted_at,
     dirty: false,
@@ -517,6 +639,8 @@ function sanitize(r: unknown, keepSync: boolean): SupplyItem | null {
     stepKind,
     wanted: o['wanted'] !== false,
     source,
+    ...fromAmount(o['amount'], o['unit']),
+    forClassName: str('forClassName'),
     updatedAt: str('updatedAt') ?? nowIso(),
     deletedAt: keepSync ? str('deletedAt') : null,
     dirty: keepSync ? o['dirty'] === true : false,

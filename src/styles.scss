@@ -1950,3 +1950,106 @@ html.sc-unfocused {
     animation-play-state: paused !important;
   }
 }
+
+/* ===== ACTION (scAction) =====
+   The one action control, concept gegenstand-weg round 2 `baustein`
+   (src/app/shared/action/sc-action.directive.ts). Tiers: primary 40 px,
+   secondary 36 px pill, tertiary 32 px icon square; touch floor 48 px.
+   Tone sets --sc-action-t (hot = elevated access, danger = destructive). */
+.sc-action {
+  --sc-action-t: var(--sc-accent);
+  --sc-action-on: var(--sc-bg-0);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: var(--sc-action-t);
+  font: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  flex: none;
+  transition: filter 0.15s ease, background-color 0.15s ease;
+}
+.sc-action.sc-action--hot { --sc-action-t: var(--sc-accent-hot); }
+.sc-action.sc-action--danger { --sc-action-t: var(--sc-danger); }
+.sc-action .sc-action-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sc-action .sc-action-icon.is-filled { fill: color-mix(in srgb, currentColor 28%, transparent); }
+.sc-action.sc-action--primary {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: var(--sc-action-t);
+  color: var(--sc-action-on);
+  font-family: var(--sc-font-display);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sc-action.sc-action--secondary {
+  min-height: 36px;
+  padding: 4px 14px;
+  border: 1px solid var(--sc-action-t);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sc-action-t) 9%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sc-action-t) 22%, transparent);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.sc-action.sc-action--tertiary {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 7px;
+}
+.sc-action.sc-action--tertiary .sc-action-icon { width: 17px; height: 17px; }
+.sc-action:hover:not(:disabled, .is-busy, [aria-disabled='true']) { filter: brightness(1.18); }
+.sc-action.sc-action--tertiary:hover:not(:disabled, .is-busy, [aria-disabled='true']) {
+  background: color-mix(in srgb, var(--sc-action-t) 14%, transparent);
+}
+.sc-action:focus-visible { outline: 2px solid var(--sc-action-t); outline-offset: 2px; }
+.sc-action:disabled,
+.sc-action[aria-disabled='true'] {
+  opacity: 0.38;
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.sc-action.is-busy { cursor: progress; }
+.sc-action.is-done { background: color-mix(in srgb, var(--sc-success, var(--sc-accent)) 22%, transparent); color: var(--sc-success, var(--sc-accent)); border-color: var(--sc-success, var(--sc-accent)); }
+.sc-action .sc-action-ring {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: sc-action-spin 0.8s linear infinite;
+}
+@keyframes sc-action-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .sc-action .sc-action-ring { animation-duration: 2.4s; }
+  .sc-action { transition: none; }
+}
+@media (pointer: coarse) {
+  .sc-action.sc-action--primary,
+  .sc-action.sc-action--secondary { min-height: 48px; }
+  .sc-action.sc-action--tertiary { width: 48px; height: 48px; }
+}
+/* ===== /ACTION ===== */

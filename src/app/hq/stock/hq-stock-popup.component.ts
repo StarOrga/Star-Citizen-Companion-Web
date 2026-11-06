@@ -1,3 +1,4 @@
+import { humanizeClassName } from '../../codex/codex-format';
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,16 +7,21 @@ import { CodexService, toLang } from '../../codex/codex.service';
 import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
 import { hqShip } from '../hq-routes';
+import { ItemPathService } from '../data/item-path.service';
+import { PATH_ICONS } from '../../shared/item-path/path-icons';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { OverlayFrameComponent } from '../../shared/overlay-frame/overlay-frame.component';
 import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.component';
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService, snapshotAge } from '../data/hq-inventory.service';
-import { formatLocationName, readLocation } from '../now/hq-live.util';
+import { formatLocationName, placeLabel, readLocation } from '../now/hq-live.util';
 import { HqLiveService } from '../now/hq-live.service';
 import { placeOfName } from '../plan/map/hq-places';
 import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-stock-find';
-import { StockSuggestion, StockTarget, stockSuggestions, stockTarget } from './hq-stock-ref';
+import { StockSuggestion, StockTarget, parseStockRef, stockSuggestions, stockTarget } from './hq-stock-ref';
 import {
   NO_FILTER,
   STOCK_CATEGORIES,
@@ -49,7 +55,7 @@ export interface StockStart {
 @Component({
   selector: 'sc-hq-stock-popup',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [TranslatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, ItemPathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-overlay-frame [heading]="'hq.stock.popup.title' | translate" [popup]="true" (closed)="closed.emit()">
@@ -122,6 +128,16 @@ export interface StockStart {
                         }
                         @if (l.showPlace) { <span class="place" [class.t]="!l.showName">{{ l.row.location.trim() ? placeName(l.row.location) : ('hq.stock.free' | translate) }}</span> }
                       </span>
+                      @if (pathOf(l.row); as p) {
+                        <!-- D4: tertiary path + "Nachholen" (A7); the row has no click handler of its own. -->
+                        <span class="row-acts">
+                          <sc-item-path [kind]="p.kind" [className]="p.className" [name]="l.row.name" />
+                          <button scAction tier="secondary" type="button" class="again" [attr.aria-label]="'hq.stock.popup.nachholenAria' | translate: { name: l.row.name }" (click)="nachholen(l.row)">
+                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
+                            <span>{{ 'hq.stock.popup.nachholen' | translate }}</span>
+                          </button>
+                        </span>
+                      }
                       <span class="qty">{{ l.row.qty }} {{ unitLabel(l.row.unit) }}</span>
                     </li>
                   }
@@ -130,6 +146,9 @@ export interface StockStart {
               @if (visible().length < lines().length) {
                 <p class="muted more" role="status">{{ 'hq.stock.popup.loadingMore' | translate }}</p>
               }
+            }
+            @if (rowError(); as key) {
+              <p class="warn" role="alert">{{ key | translate }}</p>
             }
             @if (showShips()) {
               <section class="ships" aria-labelledby="hq-stock-ship-storage">
@@ -351,6 +370,9 @@ export interface StockStart {
       .nm .t { color: var(--sc-fg-0); overflow-wrap: anywhere; }
       .nm .place { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); overflow-wrap: anywhere; }
       .nm .place.t { color: var(--sc-fg-0); font-size: inherit; }
+      .row-acts { display: inline-flex; align-items: center; gap: var(--sc-space-2, 8px); margin-inline-start: auto; flex: none; }
+      .row-acts .again { min-height: max(32px, var(--sc-tap-min, 0px)); padding: 2px 10px; font-size: 0.8125rem; }
+      @media (max-width: 520px) { .row { flex-wrap: wrap; } .row-acts { order: 3; width: 100%; justify-content: flex-end; margin-inline-start: 0; } }
       .qty { font-variant-numeric: tabular-nums; color: var(--sc-fg-2); text-align: end; white-space: nowrap; }
       .ships { margin-top: var(--sc-space-3, 12px); }
       .ships h3 { padding: var(--sc-space-2, 8px) 0; }
@@ -389,7 +411,7 @@ export class HqStockPopupComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  protected readonly placeName = formatLocationName;
+  protected readonly placeName = (n: string): string => placeLabel(n, this.translate.getCurrentLang());
   protected readonly cats: readonly StockCategory[] = STOCK_CATEGORIES;
 
   protected readonly modeOptions: readonly ScSegmentOption[] = [
@@ -416,6 +438,36 @@ export class HqStockPopupComponent implements OnInit {
   protected readonly filter = signal<StockFilter>(NO_FILTER);
   private readonly limit = signal(STOCK_PAGE);
   private readonly hangar = inject(HangarService);
+  private readonly path = inject(ItemPathService);
+  private readonly toast = inject(UndoToastService);
+  protected readonly icons = PATH_ICONS;
+  protected readonly rowError = signal<string | null>(null);
+
+  /** The path of one Inventar row: needs a class name; ships have no Inventar stop. */
+  protected pathOf(row: Pick<StockItem, 'class_name'>): { kind: string; className: string } | null {
+    const ref = parseStockRef(row.class_name);
+    if (!ref || ref.kind === 'ship') return null;
+    // The path writes bare class names; a blueprint is recognisable by its own prefix.
+    return { kind: ref.kind ?? (ref.className.startsWith('BP_') ? 'blueprint' : 'item'), className: ref.className };
+  }
+
+  /** A7 "Nachholen": the quantity goes back to Nachschub, the stock stays. */
+  protected nachholen(row: StockItem): void {
+    const p = this.pathOf(row);
+    if (!p) return;
+    const res = row.unit === 'scu'
+      ? this.path.nachholen(p.kind, p.className, row.name, row.qty, 'scu')
+      : this.path.nachholen(p.kind, p.className, row.name, Math.max(1, Math.round(row.qty)));
+    this.rowError.set(res.ok ? null : res.key);
+    const undo = res.undo;
+    if (!res.ok || !undo) return;
+    this.toast.offer({
+      messageKey: res.key,
+      messageParams: res.params,
+      commit: () => undefined,
+      onUndo: () => void undo().then((back) => this.rowError.set(back.ok ? null : back.key)),
+    });
+  }
 
   /** Ships with their storage place; `ref` is a hangar ship id or a class name. */
   protected readonly storage = computed(() => {
@@ -426,7 +478,7 @@ export class HqStockPopupComponent implements OnInit {
       return {
         ref: s.ship_ref,
         shipId: ship?.id ?? null,
-        name: ship?.customName || ship?.shipClassName || s.ship_ref,
+        name: ship?.customName || humanizeClassName(ship?.shipClassName ?? s.ship_ref),
         location: s.location,
         stale: a.stale,
         age: this.translate.instant(`hq.stock.age.${a.unit}`, { n: a.n }),
@@ -452,7 +504,7 @@ export class HqStockPopupComponent implements OnInit {
     [...new Set(this.inv.items().map((i) => i.location))]
       .filter((l) => !isPlaceFree(l))
       .sort((a, b) => a.localeCompare(b))
-      .map((l) => ({ value: l, labelKey: '', label: formatLocationName(l) })),
+      .map((l) => ({ value: l, labelKey: '', label: this.placeName(l) })),
   );
 
   constructor() {

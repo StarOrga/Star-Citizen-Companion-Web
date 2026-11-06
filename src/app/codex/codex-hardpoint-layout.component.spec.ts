@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -102,7 +104,7 @@ describe('CodexHardpointLayoutComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CodexHardpointLayoutComponent],
-      providers: [provideRouter([]), provideTranslateService({})],
+      providers: [{ provide: ItemPathService, useValue: fakeItemPath() }, provideRouter([]), provideTranslateService({})],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexHardpointLayoutComponent);
   });

@@ -666,7 +666,23 @@ export interface BlueprintPayload {
   outputClassName: string | null; // primary output entity className
   outputQuantity: number | null;
   qualityStats: QualityStatSummary[];
+  /** The contracts that award it (sc_extract/blueprint_sources.py); null or absent = none known. */
+  missionSource?: BlueprintMissionSource | null;
   source: ExtractSource;
+}
+
+/** A blueprint's missions: the first ones, best first, and how many exist in all. */
+export interface BlueprintMissionSource {
+  total: number;
+  missions: BlueprintMissionRef[];
+}
+
+/** One mission that awards a blueprint; `className` is its codex_missions row. */
+export interface BlueprintMissionRef {
+  className: string;
+  title: { en: string; de: string };
+  giver: { en: string; de: string } | null;
+  location: { en: string; de: string } | null;
 }
 
 /** One ingredient row from codex_blueprint_ingredients. */

@@ -51,6 +51,7 @@ describe('HqOverviewComponent', () => {
       loadAll: jasmine.createSpy('loadAll').and.resolveTo(),
       markShipPicked: jasmine.createSpy('markShipPicked').and.callFake((cn: string) => order.set([cn])),
       markSetPicked: jasmine.createSpy('markSetPicked'),
+      isFlagship: () => false,
     };
     const ownership = {
       error: signal<string | null>(null),

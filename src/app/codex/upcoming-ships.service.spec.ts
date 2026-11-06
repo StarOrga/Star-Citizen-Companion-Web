@@ -3,6 +3,9 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { UpcomingShipsFeed, UpcomingShipsService } from './upcoming-ships.service';
 import { ConsentService } from '../core/consent.service';
+import { AuthService } from '../auth/auth.service';
+import { SearchWishlistService } from './search/search-wishlist.service';
+import { signal } from '@angular/core';
 
 const FAVORITES_KEY = 'sc-companion.upcoming.favorites';
 const BASELINE_KEY = 'sc-companion.upcoming.baseline';
@@ -30,10 +33,28 @@ describe('UpcomingShipsService', () => {
   let svc: UpcomingShipsService;
   let http: HttpTestingController;
 
+  let wishedNames: Set<string>;
+  let addSpy: jasmine.Spy;
+  let addResult = true;
+  let bump: () => void;
+
   function setup(preferencesAllowed = true) {
+    wishedNames = new Set();
+    addSpy = jasmine.createSpy('add').and.callFake(async () => addResult);
+    const user = signal<unknown>({ id: 'u1' });
+    // The wishlist keys off a signal so the computed in the service re-reads it.
+    const names = signal(0);
+    bump = () => names.update((n) => n + 1);
+    const wishlistFake = {
+      has: (_k: string, _c: string, name?: string | null) => { names(); return wishedNames.has(name ?? ''); },
+      ensureLoaded: () => undefined,
+      add: addSpy,
+    };
     TestBed.configureTestingModule({
       providers: [
         UpcomingShipsService,
+        { provide: AuthService, useValue: { user } },
+        { provide: SearchWishlistService, useValue: wishlistFake },
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: ConsentService, useValue: { preferencesAllowed: () => preferencesAllowed } },
@@ -55,6 +76,7 @@ describe('UpcomingShipsService', () => {
   });
 
   afterEach(() => {
+    addResult = true;
     http.verify();
     TestBed.resetTestingModule();
     localStorage.removeItem(FAVORITES_KEY);
@@ -86,24 +108,43 @@ describe('UpcomingShipsService', () => {
     expect(JSON.parse(localStorage.getItem(BASELINE_KEY)!)).toEqual({ a: 'in-concept', b: 'in-concept' });
   });
 
-  it('persists favorites and restores them from storage', async () => {
+  it('reads the wished state from the one wishlist, with no star list of its own', async () => {
     setup();
-    await flush(feed([{ id: 'a', name: 'A' }]));
-    svc.toggleFavorite('a');
-    expect(svc.isFavorite('a')).toBeTrue();
-    expect(JSON.parse(localStorage.getItem(FAVORITES_KEY)!)).toEqual(['a']);
-    svc.toggleFavorite('a');
-    expect(svc.isFavorite('a')).toBeFalse();
-    expect(JSON.parse(localStorage.getItem(FAVORITES_KEY)!)).toEqual([]);
+    await flush(feed([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]));
+    expect(svc.isWished('a')).toBeFalse();
+    wishedNames.add('B');
+    bump();
+    expect(svc.isWished('b')).toBeTrue();
+    expect([...svc.wishedIds()]).toEqual(['b']);
   });
 
   it('does not write preference storage while consent is missing', async () => {
     setup(false);
     await flush(feed([{ id: 'a', name: 'A' }]));
-    svc.toggleFavorite('a');
-    expect(svc.isFavorite('a')).toBeTrue();
-    expect(localStorage.getItem(FAVORITES_KEY)).toBeNull();
+    svc.acknowledge();
     expect(localStorage.getItem(BASELINE_KEY)).toBeNull();
+  });
+
+  it('moves the retired local star list onto the wishlist once, then drops the key', async () => {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(['a', 'gone']));
+    setup();
+    await flush(feed([{ id: 'a', name: 'Ship A' }]));
+    TestBed.tick();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(addSpy).toHaveBeenCalledOnceWith('upcoming', 'a', 'Ship A');
+    expect(localStorage.getItem(FAVORITES_KEY)).toBeNull();
+  });
+
+  it('keeps the old key when a wishlist write fails, so the next session retries', async () => {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(['a']));
+    addResult = false;
+    setup();
+    await flush(feed([{ id: 'a', name: 'Ship A' }]));
+    TestBed.tick();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(localStorage.getItem(FAVORITES_KEY)).not.toBeNull();
   });
 
   it('filters the rendered blocks by the search query', async () => {
@@ -113,18 +154,6 @@ describe('UpcomingShipsService', () => {
     expect(svc.concept().map((s) => s.id)).toEqual(['b']);
     expect(svc.filteredOut()).toBe(1);
     svc.clearQuery();
-    expect(svc.concept().length).toBe(2);
-  });
-
-  it('favorites-only narrows the list and releases itself when the last favorite goes', async () => {
-    setup();
-    await flush(feed([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]));
-    svc.toggleFavorite('a');
-    svc.toggleFavoritesOnly();
-    expect(svc.concept().map((s) => s.id)).toEqual(['a']);
-    expect(svc.favoriteCount()).toBe(1);
-    svc.toggleFavorite('a');
-    expect(svc.favoritesOnly()).toBeFalse();
     expect(svc.concept().length).toBe(2);
   });
 

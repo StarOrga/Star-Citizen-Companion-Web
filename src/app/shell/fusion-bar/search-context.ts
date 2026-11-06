@@ -144,7 +144,7 @@ export function hqContext(page: HqPageId | null, sub: string | null = null): Sea
       return { ...base, key: 'hqPlan', labelKey: 'fusionBar.ctx.hqPlan', prefer: ['item', 'blueprint', 'ship'], deprioritize: ['upcoming', 'manufacturer'] };
     case 'jetzt':
       return { ...base, key: 'hqNow', labelKey: 'fusionBar.ctx.hqNow', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition'] };
-    case 'bestand':
+    case 'inventar':
       return { ...base, chips: [sectionChipById('stock', 'route')!], key: 'hqStock', labelKey: 'fusionBar.ctx.hqStock', prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
     case 'statistik':
       return { ...base, key: 'hqStats', labelKey: 'fusionBar.ctx.hqStats', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition', 'component', 'weapon', 'item', 'blueprint'] };
@@ -211,7 +211,7 @@ interface SectionDef {
 const SECTIONS: Readonly<Record<string, SectionDef>> = {
   weapons: { ids: ['bewaffnung', 'weapons', 'waffen', 'hardpoints'], groups: ['weapon'] },
   components: { ids: ['komponenten', 'components'], groups: ['component'] },
-  stock: { ids: ['bestand', 'stock', 'lager', 'inventory'], ownKinds: ['item'], ownFirst: true },
+  stock: { ids: ['inventar', 'bestand', 'stock', 'lager', 'inventory'], ownKinds: ['item'], ownFirst: true },
   hangar: { ids: ['hangar', 'flotte', 'fleet'], ownKinds: ['ship', 'config'], ownFirst: true },
   sets: { ids: ['sets', 'spind', 'locker', 'loadouts'], ownKinds: ['set'], ownFirst: true },
 };
