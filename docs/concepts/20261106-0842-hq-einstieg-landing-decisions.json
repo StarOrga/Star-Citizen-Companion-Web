@@ -275,5 +275,71 @@
       "general": "Alles nicht schlecht, aber wir sind erst bei 60% visueller darstellung, inhalte darstellung schon 90% :)"
     },
     "submission_id": "sub-mw4r9zqk-9kw1bdu8"
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "favorite": "kante",
+    "decisions": [],
+    "annotations": [
+      {
+        "id": "r4-s1-a1",
+        "answer": "Perfekt!\nGenauso!"
+      },
+      {
+        "id": "r4-s1-a2",
+        "answer": "Sollte eher im tooltip der seitenmenüs sein, als auch hier von den drei kacheln aber mit long dealy"
+      },
+      {
+        "id": "r4-s1-a4",
+        "answer": "Finde ich super! Allerdings \nIch gehe davon aus S3 Repeater kaufen ist der aktuelel / erste geplante Einsatz, wenn keiner vorhanden, daann dort einfach kein cta button! \n\nMir ist es irgendwie zu unruhig wohin ich fokussieren soll, vllt. die ringe dahinter irgendwie weichzeichnen und noch etwas dezenter?"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw4rh3t9l1m1",
+        "design": "kante",
+        "screen": "s1-first",
+        "x": 27.6,
+        "y": 47.8,
+        "target": "kbd \"1\"",
+        "text": "hotkeys, nur wenn man lange hovered als tooltip! Und aauch Hotkey: davor!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4rkyles9b3",
+        "design": "kante",
+        "screen": "s1-live",
+        "x": 64.7,
+        "y": 58,
+        "target": "em \"Weg öffnen ›\"",
+        "text": "Route statt weg ist besser ;)",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4rl7gb903k",
+        "design": "kante",
+        "screen": "s1-live",
+        "x": 64.7,
+        "y": 46.9,
+        "target": "span.d4-side-k \"Planen3\"",
+        "text": "wenn ich auf die karte klicke, gehe ich davon aus, dass dann der punkt planen aufgeht neutral ggü. route öffnen genau diese route schon öffnet",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4rna2l37l0",
+        "design": "kante",
+        "screen": "s1-first",
+        "x": 50.7,
+        "y": 58.5,
+        "target": "button.d4-go \"SCC-App startenÖffnet die SCC-App auf de\"",
+        "text": "wenn gerade nicht verbunden => noch nie verbunden oder schon mal verbunden aber noch nicht in diesem browser kontext lokal clientseitig gespeichert, dann sollte scc app downloaden dort stehen und bei klick direkt downloaden!",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": ""
+    },
+    "submission_id": "sub-mw4rqkj0-mqv1i85q"
   }
 ]
