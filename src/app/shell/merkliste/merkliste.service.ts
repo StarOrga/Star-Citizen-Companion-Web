@@ -6,6 +6,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { WishlistStore, type WishRow } from '../../hq/data/wishlist.store';
 import { NewsService } from '../../news/news.service';
+import { WishNamesService } from '../../codex/search/wish-names.service';
 import { readRecentRows, type StoredRow } from '../fusion-bar/search-recent-rows';
 import {
   MERK_NEWS_SHOWN,
@@ -59,6 +60,7 @@ export class MerklisteService {
   private readonly supplies = inject(HqSuppliesService);
   private readonly news = inject(NewsService);
   private readonly consent = inject(ConsentService);
+  private readonly wishNames = inject(WishNamesService);
 
   private readonly url = signal(this.router.url);
   readonly type = computed<MerkType | null>(() => merkTypeOf(this.url()));
@@ -123,8 +125,12 @@ export class MerklisteService {
     const type = this.type();
     if (type === 'news') return [];
     const out: MerkRow[] = [];
-    for (const w of this.wishes()) {
-      const row = wishRowOfType(w, type);
+    const wishes = this.wishes();
+    // Entries stored without a name (older wishes, wished ships) resolve from the catalog; the
+    // lookup answers into a signal, so the rows below re-render with the real names.
+    this.wishNames.request(wishes.filter((w) => !w.name && w.kind !== 'upcoming').map((w) => w.className));
+    for (const w of wishes) {
+      const row = wishRowOfType(w, type, this.wishNames.nameOf);
       if (row) out.push(row);
     }
     return out;

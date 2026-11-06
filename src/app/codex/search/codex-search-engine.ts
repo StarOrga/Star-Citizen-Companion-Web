@@ -12,12 +12,15 @@ import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { HqInventoryService } from '../../hq/data/hq-inventory.service';
 import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { SearchWishlistService } from './search-wishlist.service';
+import { WishlistStore } from '../../hq/data/wishlist.store';
 import { NewsService } from '../../news/news.service';
 import { SearchContext, neutralContext } from '../../shell/fusion-bar/search-context';
 import { composeSearchResult } from './search-compose';
 import { FitItemPort, FitLoadoutEntry, FitPort, buildFitPorts, fitVerdict } from './search-compat';
 import { AliasReading, aliasReadings, setAliasLanguage } from './search-aliases';
 import { OwnSources, searchOwn } from './search-own';
+import { OwnSetEntry, ownSetGroups, ownSetOf } from './search-own-sets';
+import { WishNamesService } from './wish-names.service';
 import { parseQuery, switchChip } from './search-query-parse';
 import { RowOwnership, SearchChip, SearchResult, SearchResultRow } from './search-result-model';
 import { SearchSignalsService } from './search-signals.service';
@@ -108,14 +111,23 @@ export class CodexSearchEngine {
   readonly activeIndex = signal(-1);
 
   readonly hasTerm = computed(() => this.term().trim().length > 0);
-  readonly groups = computed<CodexSearchGroup[]>(() =>
-    this.hasTerm() ? groupHits(this.searchText(), this.hits(), this.totals(), this.perGroup(), this.counts()) : [],
-  );
+  /**
+   * The catalog groups of the term. "gemerkt" / "fehlt mir" make the reader's own set the pool
+   * (the term only narrows it, A10), "lager" / "inventar" take the catalog out altogether.
+   */
+  readonly groups = computed<CodexSearchGroup[]>(() => {
+    if (!this.hasTerm()) return [];
+    const chips = this.activeChips();
+    const set = ownSetOf(chips);
+    if (set) return ownSetGroups(this.ownSetEntries(set), this.searchText(), this.wishNames().nameOf);
+    if (chips.some((c) => c.filter.ownOnly)) return [];
+    return groupHits(this.searchText(), this.hits(), this.totals(), this.perGroup(), this.counts());
+  });
   /** Server-filtered groups plus the unfiltered extras (candidates for the outside group). */
   private readonly mergedGroups = computed<CodexSearchGroup[]>(() => {
     const inside = this.groups();
     const base = this.baseResult();
-    if (!base) return inside;
+    if (!base || ownSetOf(this.activeChips()) || this.activeChips().some((c) => c.filter.ownOnly)) return inside;
     const extra = groupHits(this.searchText(), base.hits, base.totals, this.perGroup(), { distinct: base.distinct, read: base.read });
     const out = inside.map((g) => ({ ...g }));
     for (const e of extra) {
@@ -191,11 +203,14 @@ export class CodexSearchEngine {
     const ownership = this.ownershipFn();
     const signals = this.signals().signals((cls) => this.owns(cls));
     const ownKinds = chips.find((c) => c.filter.ownKinds)?.filter.ownKinds;
-    const own = signedIn && hasText
+    // "lager" alone lists the whole Inventar (an empty term would match nothing otherwise).
+    const ownOnly = chips.some((c) => c.filter.ownOnly);
+    const own = signedIn && (hasText || ownOnly)
       ? searchOwn(text, this.ownSources(), {
           limit: this.perGroup(),
           nameOf: (c) => this.shipNames().get(c.toLowerCase()) ?? null,
           kinds: ownKinds,
+          all: ownOnly,
         })
       : null;
     const compat = chips.find((c) => c.filter.compatWith)?.filter.compatWith;
@@ -222,6 +237,7 @@ export class CodexSearchEngine {
       needed: signedIn ? this.neededFn() : undefined,
       didYouMean: this.didYouMean(),
       facets: this.facets(),
+      ownSet: ownSetOf(chips) !== null,
     });
   });
 
@@ -464,29 +480,37 @@ export class CodexSearchEngine {
   private setTerm(term: string): void {
     this.term.set(term);
     if (!term.trim()) {
-      // Invalidate a search still in flight, or its hits land after the clear.
-      this.seq++;
-      this.hits.set([]);
-      this.totals.set({});
-      this.counts.set({});
-      this.baseResult.set(null);
-      this.facets.set(null);
-      this.galleryRows.set(null);
-      this.missionRows.set(null);
-      this.error.set(null);
-      this.partialError.set(null);
-      this.didYouMean.set([]);
-      this.loading.set(false);
+      this.clearResults();
       return;
     }
     void this.run();
+  }
+
+  /** Invalidate a search still in flight, or its hits land after the clear, and empty every source. */
+  private clearResults(): void {
+    this.seq++;
+    this.hits.set([]);
+    this.totals.set({});
+    this.counts.set({});
+    this.baseResult.set(null);
+    this.facets.set(null);
+    this.galleryRows.set(null);
+    this.missionRows.set(null);
+    this.error.set(null);
+    this.partialError.set(null);
+    this.didYouMean.set([]);
+    this.loading.set(false);
   }
 
   private async run(): Promise<void> {
     const term = parseQuery(this.term().trim()).rest;
     const attrs = serverAttrs(this.activeChips());
     const hasAttrs = attrs.size != null || !!attrs.grade;
-    if (!term && !hasAttrs) return;
+    if (!term && !hasAttrs) {
+      // Own-data words alone ("gemerkt") read no catalog: drop what an earlier term left behind.
+      this.clearResults();
+      return;
+    }
     setAliasLanguage(this.lang());
     const seq = ++this.seq;
     this.loading.set(true);
@@ -610,6 +634,26 @@ export class CodexSearchEngine {
   private readonly inventory = (): HqInventoryService => this.injector.get(HqInventoryService);
   private readonly wishlist = (): SearchWishlistService => this.injector.get(SearchWishlistService);
   private readonly supplies = (): HqSuppliesService => this.injector.get(HqSuppliesService);
+  private readonly wishNames = (): WishNamesService => this.injector.get(WishNamesService);
+  private readonly wishStore = (): WishlistStore => this.injector.get(WishlistStore);
+
+  /** The entries of the reader's wishlist / open Nachschub: the pool "gemerkt" and "fehlt mir" filter. */
+  private ownSetEntries(set: 'wished' | 'needed'): OwnSetEntry[] {
+    if (!this.signedIn()) return [];
+    let entries: OwnSetEntry[];
+    if (set === 'wished') {
+      this.wishlist().ensureLoaded();
+      entries = [
+        ...this.wishStore().rows().map((r) => ({ kind: r.kind, className: r.className, name: r.name, manufacturerCode: r.manufacturer })),
+        ...this.hangar().ships().filter((s) => s.status === 'wishlist').map((s) => ({ kind: 'ship', className: s.shipClassName, name: null })),
+      ];
+    } else {
+      entries = this.supplies().open().filter((i) => i.className).map((i) => ({ kind: i.entityKind ?? 'item', className: i.className!, name: i.name }));
+    }
+    // Rows without a stored name resolve from the catalog (asynchronously, the class name shows meanwhile).
+    this.wishNames().request(entries.filter((e) => !e.name && e.kind !== 'upcoming').map((e) => e.className));
+    return entries;
+  }
   /** Open Nachschub lines by class name, for the "fehlt mir" filter. */
   private readonly neededFn = (): ((hit: PolySearchHit) => boolean) => {
     const open = new Set(this.supplies().open().map((i) => (i.className ?? '').toLowerCase()).filter(Boolean));

@@ -78,7 +78,15 @@ export function recentRowsOfType(rows: readonly StoredRow[], type: MerkType | nu
   return out;
 }
 
-export function wishRowOfType(w: Pick<WishRow, 'kind' | 'className' | 'name' | 'manufacturer'>, type: MerkType | null): MerkRow | null {
+/**
+ * A wished entry as a panel row. The title is the stored name, else the catalog name `nameOf`
+ * resolved for the class, else the readable class name (never the raw "MISL_S01_IR_VNCL_Arrow").
+ */
+export function wishRowOfType(
+  w: Pick<WishRow, 'kind' | 'className' | 'name' | 'manufacturer'>,
+  type: MerkType | null,
+  nameOf?: (kind: string, className: string) => string | null,
+): MerkRow | null {
   const t = typeOfKind(w.kind);
   if (!t || (type && t !== type)) return null;
   const target: SearchTarget = {
@@ -88,7 +96,7 @@ export function wishRowOfType(w: Pick<WishRow, 'kind' | 'className' | 'name' | '
   return {
     id: `wish:${w.kind}:${w.className}`,
     type: t,
-    title: w.name || humanizeClassName(w.className),
+    title: w.name || nameOf?.(w.kind, w.className) || humanizeClassName(w.className),
     subtitle: w.kind === 'upcoming' ? null : w.manufacturer,
     target,
     href: null,

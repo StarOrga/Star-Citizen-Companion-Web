@@ -54,7 +54,8 @@ export class SearchWishlistService {
       if (ship) return false; // owned already: nothing to wish for
       return !!(await this.hangar.addShip(className, 'wishlist'));
     }
-    const ok = await this.store.add({ kind, className, name: kind === 'upcoming' ? (name ?? className) : null });
+    // The name is stored for every kind, so the Merkliste and the lists show "Arrow-I-Rakete", not the class name.
+    const ok = await this.store.add({ kind, className, name: name?.trim() || (kind === 'upcoming' ? className : null) });
     if (!ok) logWarn('search', 'wishlist add failed', { kind });
     return ok;
   }

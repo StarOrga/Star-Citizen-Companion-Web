@@ -1039,7 +1039,9 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   }
   .route {
     pointer-events: auto;
-    padding-right: calc(max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)) + 52px) !important;
+    // Room for the account at the right end: bookmark (50) + Apps (48) + avatar (48) + a gap. The title
+    // ellipsizes into what is left instead of running under the three controls.
+    padding-right: calc(max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)) + 154px) !important;
     position: fixed;
     top: var(--sc-imp-banner-h, 0px);
     left: 0;

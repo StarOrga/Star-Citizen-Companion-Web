@@ -70,6 +70,8 @@ export interface ComposeInput {
   /** The reader's hangar ship id of a ship class (Montieren under a ship chip); null = none owned. */
   ownShipIdFor?: (shipClassName: string) => string | null;
   didYouMean?: readonly string[];
+  /** The groups are the reader's own wishlist / Nachschub entries: "all N in the index" would lie. */
+  ownSet?: boolean;
   /** Value → count over the rows read WITHOUT size/grade chips; fills the chip menus. */
   facets?: { size: Record<string, number>; grade: Record<string, number> } | null;
 }
@@ -93,7 +95,12 @@ export function failingChip(
 
 /** True when a non-catalog group (own / patch / gallery) is allowed by the chips. */
 function groupAllowed(id: SearchGroupId, chips: readonly SearchChip[]): boolean {
-  return chips.every((c) => !c.filter.groups || c.filter.groups.includes(id));
+  return chips.every((c) => {
+    const f = c.filter;
+    if (f.wished || f.needed) return false; // a set of catalog entries: no own, patch, gallery or mission rows
+    if (f.ownOnly && id !== 'own') return false; // "lager": the reader's own data only
+    return !f.groups || f.groups.includes(id);
+  });
 }
 
 const FAST_EXACT = 3;
@@ -171,7 +178,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
       total,
       count: dropped === 0 ? Math.min(total, Math.max(g.count ?? ordered.length, ordered.length)) : ordered.length,
       expandable: Math.max(0, ordered.length - SEARCH_ROWS_SHOWN),
-      moreTarget: total > SEARCH_ROWS_SHOWN ? indexMoreTarget(g.kind, term, chips) : null,
+      moreTarget: total > SEARCH_ROWS_SHOWN && !input.ownSet ? indexMoreTarget(g.kind, term, chips) : null,
       outside: false,
     });
   }

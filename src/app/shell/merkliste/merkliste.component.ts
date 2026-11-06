@@ -36,7 +36,7 @@ type Tab = 'type' | 'nachschub';
         <button #trigger type="button" class="trigger" [class.on]="open()" (click)="toggle()"
                 aria-haspopup="dialog" [attr.aria-expanded]="open()" [attr.aria-controls]="open() ? panelId : null"
                 [attr.aria-label]="'merkliste.aria' | translate: { count: svc.count(), wishes: svc.wishCount(), supply: svc.supplyOpen(), posts: svc.bookmarkCount() }"
-                [scTooltip]="'merkliste.aria' | translate: { count: svc.count(), wishes: svc.wishCount(), supply: svc.supplyOpen(), posts: svc.bookmarkCount() }" scTooltipTier="label">
+                [scTooltip]="open() ? null : ('merkliste.aria' | translate: { count: svc.count(), wishes: svc.wishCount(), supply: svc.supplyOpen(), posts: svc.bookmarkCount() })" scTooltipTier="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path [attr.d]="wishPath" />
           </svg>

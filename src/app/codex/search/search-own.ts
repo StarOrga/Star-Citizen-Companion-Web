@@ -53,13 +53,15 @@ export function ownMoreTarget(rows: readonly OwnMatch[], term: string): SearchTa
  * Match the term against the reader's own data.
  *
  * @param nameOf Catalog name of a ship class ("Aegis Gladius"); defaults to the humanised class name.
+ * @param all Without a term, list everything instead of nothing.
  */
 export function searchOwn(
   term: string,
   src: OwnSources,
-  opts: { limit?: number; nameOf?: (className: string) => string | null; kinds?: readonly OwnRowType[] } = {},
+  opts: { limit?: number; nameOf?: (className: string) => string | null; kinds?: readonly OwnRowType[]; all?: boolean } = {},
 ): OwnSearchResult {
-  const match = searchMatcher(term);
+  // `all`: an empty term lists every record of the wanted kinds ("lager" alone is the whole Inventar).
+  const match = searchMatcher(term) ?? (opts.all ? (): boolean => true : null);
   if (!match) return { rows: [], total: 0 };
   const limit = opts.limit ?? 5;
   const nameOf = (c: string): string => opts.nameOf?.(c) || humanizeClassName(c);
