@@ -1,0 +1,78 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": "lage",
+    "decisions": [
+      {
+        "id": "q-order",
+        "label": "Reihenfolge der HQ-Seiten",
+        "mode": "chain",
+        "value": "",
+        "rec": "prep",
+        "none": true,
+        "note": "Denk nochmal drüber nach, ich weiß eingie spieler würden gern erstmal immer bestand haben, dann planen. Andere jetzt vorne stehend, dann bestand... Ich bin unsicher ob wir nicht nochmal rethinken müssen .."
+      },
+      {
+        "id": "q-live",
+        "label": "Einstieg bei laufendem Spiel",
+        "mode": "single",
+        "value": "fixed",
+        "rec": "fixed",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "q-steps",
+        "label": "Reihenfolge der Startschritte",
+        "mode": "chain",
+        "value": "value",
+        "rec": "value",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "q-go",
+        "label": "Ziel von Los geht's",
+        "mode": "yesnoalt",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "rec": "yes",
+        "none": false,
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "h2-a1",
+        "screen": "h2-first",
+        "design": "lage",
+        "question": "Die drei Startschritte stecken hier in den Kacheln, ohne Nummern. Findest du so den Anfang, oder fehlt dir die feste Abfolge?",
+        "answer": "Ne, das ist perfekt!"
+      },
+      {
+        "id": "h2-a2",
+        "screen": "h2-quiet",
+        "design": "lage",
+        "question": "Welche eine Zahl oder Aussage soll jede Kachel tragen? Vorschlag steht in den Kacheln, korrigier, was dir nichts sagt.",
+        "answer": "Nichts offen sollte besser formuliert werden!"
+      },
+      {
+        "id": "h2-a5",
+        "screen": "h2-live",
+        "design": "lage",
+        "question": "Bei laufendem Spiel rückt die Jetzt-Kachel nach vorn und leuchtet. Hilft das, oder soll jede Kachel ihren festen Platz behalten?",
+        "answer": "Sollte eher festen Platz halten, aber das stellt mir die frage ob man wirklcih vier gleichwertigew Kacheln macht oder sie anders verschachelt, da gern nochmal varianten aufzeigen"
+      }
+    ],
+    "comments": {
+      "general": "ich kann keine custom speech bubbles überall setzen!",
+      "designs": {
+        "lage": "Die hero card muss visuell genauso sein wie auf den anderen seiten! Die darf nciht anders aussehen. \nDann gern darunter die 4 kacheln dürfen gern etwas absstand bekommen!"
+      }
+    },
+    "submission_id": "sub-mw4p0wdh-147dmwjm"
+  }
+]
