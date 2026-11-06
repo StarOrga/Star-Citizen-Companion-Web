@@ -1,0 +1,162 @@
+<section data-iteration="4" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Der Holotisch öffnet als Glas-Pult auf einer Seite: Modell links, ein Panel rechts, Leiste unten. Jedes Schiff wird nach seiner Klasse bewertet.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🪟</span><span><b>Eine Seite ohne Scrollen</b> bei 1920, 1440 und 1366, die Leiste klebt unten.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🎯</span><span><b>Das Schiff bleibt beim Hover stehen</b>; ein Klick hält das Bauteil, Callout neben dem Rumpf.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⬡</span><span><b>Ein Frachter wird als Frachter bewertet</b>, Einsatz Transport wirkt wieder.</span></li>
+      </ul>
+      <a class="fr-try" href="http://127.0.0.1:4317/codex/ship/AEGS_Gladius" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+      <p class="fr-try-auth">🔑 Lokaler Dev-Server; für das neue Layout muss der β-Schalter der Shell an sein.</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="{{img:real1920}}" alt="Vorher: drei Panels, Modell in der Mitte"><figcaption>Drei Panels, das Modell in der Mitte</figcaption></figure>
+      <figure class="fr-shot"><img src="{{img:after2}}" alt="Nachher: Modell links, Callout, ein Panel rechts"><figcaption>Glas-Pult mit gewähltem Bauteil</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Leiste endet exakt am Fensterrand bei 1920×1080, 1440×900 und 1366×768; unabhängig geprüft, nach den Korrekturen erneut gemessen. Lange Listen scrollen im Panel. Anforderung: 3 von 3 (geschätzt).">
+        <span class="fr-meter-name">📐 Passt aufs Fenster</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">3 / 3</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Mit „Alle Teile“: Gladius 34 von 34, Hammerhead 120 von 120 Punkte erreichbar, gemessen vor dem Einbau ins Layout. Danach: Gladius 15 Punkte im Standard, Klick wählt aus.">
+        <span class="fr-meter-name">🎯 Punkte erreichbar</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">34 / 34</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 60%" data-tip="Gladius gegen alle Schiffe, Anteil am Rand: Dauer-DPS 1,2 → 36, Boost 41 → 86, aber Alpha 0,1 → 2,8 und Schild 0,1 → 2,0. Ziel: alle Achsen lesbar (geschätzt). Drei von fünf deutlich sichtbar.">
+        <span class="fr-meter-name">⬡ Hexagon lesbar</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">3 / 5</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ○ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_local}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_prod}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 6 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-landscape"
+          data-issue-title="[FEATURE] Open the ship's 3D view fullscreen in landscape on phones"
+          data-issue-type="feature"
+          data-issue-body="Owner note on the details decision: 3D on a phone may be fullscreen landscape. Not built: requestFullscreen is missing on iPhone Safari, and the shell and strip stacking need rework; CSS only gives the frame the screen height while the title rows stay above it. A fixed overlay would work without the Fullscreen API."
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="braucht-Konzept">
+        <span class="oq-label">3D-Vollbild auf dem Phone</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Nicht umgesetzt, weil dem iPhone die Vollbild-Schnittstelle fehlt und Kopfzeile und Leiste umgebaut werden müssten.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Schiffsseite, Phone quer</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, du hattest es als „kann ruhig“ genannt.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-maker"
+          data-issue-title="[BUG] Show the manufacturer's name for components in the part panel"
+          data-issue-type="bug"
+          data-issue-body="The part panel resolves the manufacturer through facetValues(kind) plus manufacturerLabel. Weapons show the name, a power plant (Regulus) still shows the code AEG. Seen on the final commit at /codex/ship/AEGS_Gladius."
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Hersteller teils als Kürzel</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Waffen zeigen den Namen, das Kraftwerk Regulus noch „AEG“.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Panel, gewähltes Bauteil</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt, kleine Korrektur.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-scale"
+          data-issue-title="[DESIGN] Decide the hexagon's scale for axes with extreme outliers"
+          data-issue-type="design"
+          data-issue-body="The rim sits at the group's 95th percentile as decided. Measured on the Gladius against all ships: Alpha 0.1 to 2.8, Schild HP 0.1 to 2.0, both under 3 percent of the rim, because the 95th percentile is far above a light fighter. Readable would need a log or percentile scale, which changes what the rim means; the owner asked for rim = 100 percent of the group."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht-Konzept">
+        <span class="oq-label">Hexagon: Alpha, Schild klein</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Das 95. Perzentil hilft Dauer-DPS und Boost; Alpha und Schild bleiben gegen alle Schiffe unter 3 %.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Einordnung, „Alle Schiffe“</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, eine andere Skala wäre eine neue Entscheidung.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-em"
+          data-issue-title="[FEATURE] Provide idle EM and a true maximum EM for the stealth axes"
+          data-issue-type="feature"
+          data-issue-body="The Schleichen axes use IR, EM idle, EM max, cross section, agility, SCM. The power model has no idle EM, so that axis stays empty, and EM max is really the strip's EM at the default allocation. Mining, salvage, medical and refuel also have no values, so those classes have no axis of their own."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht-Daten">
+        <span class="oq-label">EM Ruhe ohne Werte</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>EM Ruhe bleibt leer, „EM Max“ ist genau genommen die EM der Standard-Verteilung; Abbau und Bergung haben keine Werte.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Einordnung, Uploader-Daten</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, das braucht neue Daten.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-variants"
+          data-issue-title="[BUG] Count hull variants once in the rank comparison groups"
+          data-issue-type="bug"
+          data-issue-body="Role groups count variants of one hull separately (Caterpillar, Caterpillar_Pirate, Caterpillar_ShipShowdown, Collector variants), so 26 Leichte Jäger may overstate the group and the median leans towards hulls with many variants. Reported only, not changed in this concept."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="riskant">
+        <span class="oq-label">Varianten zählen einzeln</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Varianten desselben Rumpfs zählen in der Vergleichsgruppe mehrfach.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Einordnung, Median</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, das ändert alle Werte.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-actions"
+          data-issue-title="[DESIGN] Decide where the ship actions sit on the Holotable page"
+          data-issue-type="design"
+          data-issue-body="While opening the details, the ship actions (add to HQ, pledge link, compare) moved into the open block with the variants. The owner's list named only description, where to buy, deck plan and variants."
+          data-oq-origin="found"
+          data-route-default="ignore"
+          data-route-reason="nur-anders">
+        <span class="oq-label">Aktionen im offenen Block</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>In dein HQ, Pledge-Link und Vergleichen stehen jetzt offen bei den Varianten, nicht mehr in der Schublade.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Unter der ersten Seite</dd>
+          <dt>{{final.fund_why}}</dt><dd>✕ Passt zum unteren Teil, den wir als Nächstes angehen.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commits <code>3d7d44b4</code> bis <code>60530282</code> auf <code>claude/holotisch-ship-details-analysis-0ac9ec</code>, nichts gepusht</li>
+      <li><code>src/app/codex/holo/</code>, <code>codex-rank.ts</code>, <code>asset-package/</code>, <code>codex-detail.component.ts</code></li>
+      <li>Tests: Karma headless 5796 grün, 0 rot, 5 übersprungen; ein Lauf im sichtbaren Chrome davor 5799 grün, 1 rot (Name fehlt im gekürzten Log, Energie-Dock allein grün); Lint 0 Fehler (Stand vor der letzten Nachbesserung); Build grün</li>
+      <li>Brief: <code>briefs/implement.md</code>; Prüfung unabhängig, 8 Lücken gefunden, 7 geschlossen, siehe Funde</li>
+      <li>Callout-Größe je Fenster: 168×66 bei 1920, 147×58 bei 1440, 144×56 bei 1366</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-role" data-crit="mid" data-guide="">Standard-Gruppe mit eigenem Konto ansehen</li>
+      <li data-todo-id="t-size" data-crit="mid" data-guide="">Modellgröße und freie Ränder beurteilen</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="">Schiffsseite auf echtem Phone ansehen</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="h-front" data-crit="mid" data-guide="desktop">Uploader bauen und hochladen für Frontsicht</li>
+    </ul>
+  </section>
+</section>

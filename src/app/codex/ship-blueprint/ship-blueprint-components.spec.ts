@@ -188,13 +188,13 @@ describe('ship blueprint components', () => {
       return { fixture, el: fixture.nativeElement as HTMLElement, hovered, inspected };
     }
 
-    it('draws the top view with one marker per hardpoint, and the side elevation', async () => {
+    it('draws the chosen view large with one marker per hardpoint', async () => {
       const { el } = await setup();
       const plan = el.querySelector('svg.plan')!;
       expect(plan.getAttribute('role')).toBe('img');
       expect(plan.querySelectorAll('g.mk').length).toBe(3);
       expect(plan.querySelector('g.mk.g-weapons')!.getAttribute('transform')).toBe('translate(100 30)');
-      expect(el.querySelector('svg.elevation path.hull')).not.toBeNull();
+      expect(el.querySelectorAll('svg').length).withContext('one drawing per view').toBe(1);
       expect(el.querySelector('.dim')!.textContent).toContain('codex.shipBlueprint.schema.extent');
     });
 

@@ -841,11 +841,12 @@
     },
     "editionPicker": {
       "label": "Variante",
-      "standard": "Standard"
+      "standard": "Standard",
+      "count": "{{count}} Editionen"
     },
     "holo": {
       "noGeometry": "Keine Silhouette",
-      "pinUnresolved": "Position nicht bekannt",
+      "pinUnresolved": "Position geschätzt",
       "toggle": {
         "group": "Ansicht",
         "classic": "Klassisch",
@@ -854,11 +855,15 @@
         "holoHint": "Holotisch-Ansicht"
       },
       "stage": {
-        "railToggle": "Leiste ein-/ausklappen",
         "einordnung": "Einordnung",
-        "cohortLink": "Kohorte ansehen",
+        "cohortLink": "Alle Schiffe ansehen",
         "view3d": "3D",
         "viewSchema": "Schema",
+        "surfaceSimple": "Einfach",
+        "surfaceTop": "Draufsicht",
+        "surfaceSide": "Seitensicht",
+        "surfaceFront": "Frontsicht",
+        "surfaceFrontPending": "Die Frontsicht kommt mit dem nächsten Daten-Upload dieses Schiffs.",
         "viewShare": "Teilen",
         "silhouetteAria": "Silhouette von {{name}}",
         "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
@@ -885,7 +890,6 @@
         "staticCrew": "Crew",
         "staticMass": "Masse",
         "staticCargo": "Laderaum",
-        "profileNote": "{{profile}}-Profil",
         "strengthsWeaknesses": "Stärken · Schwächen",
         "top3": "Top 3 · zuletzt gesehen & Hangar",
         "portsCount": "{{n}} Ports",
@@ -915,17 +919,40 @@
         "pinLabels": "Pin-Beschriftungen am Rumpf",
         "legendUnresolved": "Position geschätzt",
         "rawPortHint": "Roh-Port aus den Spieldaten — kein Bauteil zum Tauschen oder Öffnen.",
-        "eyebrowTop": "Draufsicht · {{n}} Hardpoints",
-        "eyebrow3d": "3D-Modell · ziehen zum Drehen",
-        "eyebrowSchema": "Schema · Hardpoint-Positionen",
+        "eyebrowTop": "Tauschbare Bauteile · {{n}}",
+        "eyebrow3d": "Ziehen zum Drehen",
+        "eyebrowSchema": "Alle Hardpoints",
         "pinListTitle": "Alle Hardpoints",
         "pinGroupOther": "Hardpoints",
         "rankLoading": "Vergleich mit der ganzen Flotte läuft … der erste Besuch pro Patch dauert einen Moment.",
         "rankFailed": "Der Flottenvergleich konnte nicht geladen werden.",
-        "rankEmpty": "Für diese Flotte gibt es noch keine Vergleichswerte."
+        "rankEmpty": "Für diese Flotte gibt es noch keine Vergleichswerte.",
+        "tab": {
+          "parts": "Bauteile",
+          "changes": "Änderungen"
+        },
+        "backToParts": "Alle Bauteile",
+        "backHint": "Zurück zur Liste (Esc)",
+        "partsTotal": "{{n}} Bauteile",
+        "partsInstalled": "{{n}} verbaut",
+        "partSize": "Größe",
+        "partGrade": "Klasse",
+        "iconWishlist": "Wunschliste",
+        "iconSupply": "Nachschub",
+        "iconStock": "Bestand",
+        "previewTitle": "Vorschau der Detailseite",
+        "previewMaker": "Hersteller",
+        "fullscreenExit": "Vollbild schließen",
+        "previewFitted": "Verbaut in",
+        "previewBuy": "Wo zu kaufen",
+        "previewAlternatives": "Passende Alternativen",
+        "previewOpen": "Detailseite öffnen",
+        "patchDiff": "Patch-Vergleich",
+        "patchDiffHint": "Wähle oben im Patch-Menü einen anderen Patch, dann steht hier, was sich an diesem Schiff geändert hat."
       },
       "strip": {
         "einsatz": "Einsatz",
+        "einsatzPick": "Einsatz wählen",
         "shipCount": "{{n}} Schiffe",
         "offensive": "Offensive",
         "defensive": "Verteidigung",
@@ -939,7 +966,8 @@
         "collapse": "Leiste einklappen",
         "presetTag": "Preset",
         "minimize": "Leiste minimieren",
-        "restore": "Ganze Leiste einblenden"
+        "restore": "Ganze Leiste einblenden",
+        "cohortRole": "{{n}} × {{role}}"
       },
       "patch": {
         "trigger": {
@@ -1014,10 +1042,7 @@
         }
       },
       "components": {
-        "title": "Komponenten im Modell",
-        "hint": "Antippen oder klicken markiert · Esc löst",
-        "unknownPosition": "Position im Modell unbekannt",
-        "groupCount": "{{count}} verbaut · {{located}} im Modell"
+        "unknownPosition": "Position im Modell unbekannt"
       },
       "shared": {
         "loading": "Geteiltes Loadout wird geladen …",
@@ -1251,19 +1276,29 @@
       "profile": {
         "combat": "Kampf",
         "defense": "Verteidigung",
-        "transport": "Transport"
+        "transport": "Transport",
+        "exploration": "Erkundung",
+        "resources": "Ressourcen",
+        "support": "Support",
+        "multirole": "Multirole",
+        "competition": "Wettkampf",
+        "travel": "Reisen",
+        "stealth": "Schleichen"
       },
       "scope": {
         "sizeClass": "Gleiche Größenklasse",
         "all": "Alle Schiffe",
         "career": "Karriere",
-        "role": "Rolle"
+        "role": "Rolle",
+        "careerHolo": "Gleiche Klasse",
+        "roleHolo": "Gleiche Art"
       },
       "disabled": {
         "noCargo": "Dieses Schiff hat keinen Laderaum",
         "noData": "Für dieses Profil fehlen in diesem Build die Werte",
         "noCareer": "Für dieses Schiff ist keine Karriere hinterlegt.",
-        "noRole": "Für dieses Schiff ist keine Rolle hinterlegt."
+        "noRole": "Für dieses Schiff ist keine Rolle hinterlegt.",
+        "smallGroup": "Diese Gruppe ist zu klein, der Vergleich wurde erweitert."
       },
       "axis": {
         "alpha": "ALPHA",
@@ -1280,14 +1315,45 @@
         "cargo": "FRACHT",
         "quantumRange": "QUANTUM-REICHWEITE",
         "scm": "SCM",
-        "mass": "MASSE"
+        "mass": "MASSE",
+        "maxSpeed": "MAXIMAL",
+        "quantumSpeed": "Q-TEMPO",
+        "spool": "SPOOL",
+        "ir": "IR",
+        "emIdle": "EM RUHE",
+        "emMax": "EM MAX"
       },
       "nShipsOfRole": "{{n}} Schiffe der gleichen Rolle",
       "compare": {
         "label": "Verglichen mit",
         "info": "Jede Achse reicht von 0 (Mitte) bis zum besten Wert der gewählten Vergleichsschiffe (Rand); die Ringe markieren 33, 67 und 100 % davon. Blau ist dieses Schiff, die gestrichelte Linie der Median der Vergleichsschiffe. Blaue Striche: besser als der Vergleich, gelbe: schwächer.",
-        "axisDelta": "{{d}} Punkte zum Vergleich"
-      }
+        "axisDelta": "{{d}} Punkte zum Vergleich",
+        "infoHolo": "Jede Achse reicht von 0 (Mitte) bis zum 95. Perzentil der gewählten Gruppe (Rand). Der Median liegt auf derselben Skala, stärkere Werte enden am Rand."
+      },
+      "class": {
+        "combat": "Kampfschiff",
+        "transport": "Frachter",
+        "exploration": "Erkundungsschiff",
+        "resources": "Ressourcenschiff",
+        "support": "Support-Schiff",
+        "multirole": "Mehrzweckschiff",
+        "competition": "Rennschiff"
+      },
+      "classPlural": {
+        "combat": "Kampfschiffe",
+        "transport": "Frachter",
+        "exploration": "Erkundungsschiffe",
+        "resources": "Ressourcenschiffe",
+        "support": "Support-Schiffe",
+        "multirole": "Mehrzweckschiffe",
+        "competition": "Rennschiffe"
+      },
+      "group": {
+        "of": "Alle {{name}}"
+      },
+      "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
+      "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
+      "betterThan": "Besser als {{n}} %"
     },
     "detail": {
       "manufacturer": "Hersteller",
@@ -2233,6 +2299,7 @@
         "interior": "Innenraum",
         "other": "Sonstiges"
       },
+      "resetView": "Ansicht zurücksetzen",
       "parts": "Teile ({{count}})",
       "show": "{{name}} einblenden",
       "hide": "{{name}} ausblenden",
@@ -2245,7 +2312,10 @@
         "next": "Nächster Platz",
         "close": "Auswahl aufheben",
         "emptySlot": "Freier Platz"
-      }
+      },
+      "allParts": "Alle Teile",
+      "zoomHint": "Strg + Mausrad zoomt",
+      "swap": "Bauteil tauschen"
     },
     "attachType": {
       "WeaponPersonal": "Handwaffe",
@@ -5508,16 +5578,40 @@
       "free": "Ortsfrei",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Lager eingetragen.",
-      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
-      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
-      "places": { "title": "Größte Orte" },
-      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
-      "cats": { "title": "Kategorien" },
-      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "actions": {
+        "browse": "Durchsuchen",
+        "find": "Wo liegt …?",
+        "add": "Hinzufügen"
+      },
+      "totals": {
+        "title": "Gesamt",
+        "items": "Gegenstände",
+        "places": "Orte"
+      },
+      "places": {
+        "title": "Größte Orte"
+      },
+      "stale": {
+        "title": "Stand älter als 7 Tage",
+        "none": "Alle Orte sind aktuell."
+      },
+      "cats": {
+        "title": "Kategorien"
+      },
+      "cat": {
+        "materials": "Rohstoffe",
+        "weapons": "Waffen",
+        "armor": "Rüstung",
+        "other": "Sonstiges"
+      },
       "popup": {
         "title": "Bestand",
         "modes": "Was möchtest du tun",
-        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "mode": {
+          "browse": "Durchsuchen",
+          "find": "Wo liegt …?",
+          "add": "Hinzufügen"
+        },
         "search": "Bestand durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
@@ -5525,7 +5619,11 @@
         "clearPlace": "Ortsfilter entfernen",
         "place": "Ort",
         "viewBy": "Ansicht",
-        "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
+        "view": {
+          "place": "Nach Ort",
+          "name": "Nach Gegenstand",
+          "qty": "Nach Menge"
+        },
         "count": "{{n}} Einträge",
         "results": "Bestandseinträge",
         "loading": "Lädt …",

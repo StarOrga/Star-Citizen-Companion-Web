@@ -82,6 +82,7 @@
 
 import { findStat } from '../hangar/loadout-stats';
 import { ArmorSignalMultipliers, armorSignalMultipliers, crossSectionAxes, findArmorPayload } from './codex-loadout-stats';
+import type { KpiSheet } from './codex-loadout-stats';
 import type { SummaryOccupant } from './ship-summary-panels';
 import {
   RESOURCE_STATS_GROUP,
@@ -1064,4 +1065,25 @@ export function isFlightMode(v: unknown): v is FlightMode {
 
 export function isDockPosition(v: unknown): v is DockPosition {
   return typeof v === 'string' && (DOCK_POSITIONS as readonly string[]).includes(v);
+}
+
+/**
+ * The ranking sheet's signature values from the SAME model the strip shows
+ * (IR and EM of the powered components at the default allocation, times the
+ * hull armor's factor). The ship payload carries no signature stats of its own,
+ * so the sheet ir and emMax were always null and the hexagon marked them
+ * as gaps while the strip printed km. A value stays null when the model has
+ * none; emIdle has no source in the model and is left as the sheet had it.
+ */
+export function withPowerSignature(
+  sheet: KpiSheet,
+  occupants: readonly SummaryOccupant[],
+  shipStats: Record<string, Record<string, unknown>> | null | undefined,
+  schemaVersion: number | null | undefined,
+): KpiSheet {
+  if (sheet.ir != null && sheet.emMax != null) return sheet;
+  const facts = computePowerSheet({ occupants, shipStats, schemaVersion }).facts;
+  const ir = facts.find((f) => f.key === 'ir')?.value ?? null;
+  const em = facts.find((f) => f.key === 'em')?.value ?? null;
+  return { ...sheet, ir: sheet.ir ?? ir, emMax: sheet.emMax ?? em };
 }

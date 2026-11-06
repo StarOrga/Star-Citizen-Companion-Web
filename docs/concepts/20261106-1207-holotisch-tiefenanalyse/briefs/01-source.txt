@@ -1,0 +1,524 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives">
+<style>
+/* Holotable mocks, namespaced hx-*. Real model render, real Gladius values. */
+:is([data-design], .design-ov-scale) .hx { --a:#4fc3e8; --a2:rgba(79,195,232,.14); --l:#1f4a60; --bg:#0c2231; --bg2:#102b3d; --ink:#d9edf6; --mut:#7fa1b3; --gold:#c8a84b; --warm:#e0a060;
+  position:relative; width:100%; height:100%; min-height:640px; display:flex; flex-direction:column; gap:8px; padding:14px 18px 0; box-sizing:border-box; background:var(--bg); color:var(--ink); font:13px/1.35 system-ui,"Segoe UI",sans-serif; overflow:hidden; }
+:is([data-design], .design-ov-scale) .hx button, :is([data-design], .design-ov-scale) .hx a.hx-btn { font:inherit; color:inherit; background:none; border:0; cursor:pointer; text-decoration:none; }
+:is([data-design], .design-ov-scale) .hx-title { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; }
+:is([data-design], .design-ov-scale) .hx-name { text-align:center; }
+:is([data-design], .design-ov-scale) .hx-name small { display:block; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-name b { font-size:20px; letter-spacing:.12em; font-weight:500; }
+:is([data-design], .design-ov-scale) .hx-patch { justify-self:end; font-size:12px; padding:5px 10px; border:1px solid var(--l); border-radius:3px; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-body { flex:1; min-height:0; display:grid; gap:8px; }
+:is([data-design], .design-ov-scale) .hx-panel { border:1px solid var(--l); border-radius:4px; background:rgba(16,43,61,.55); min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+:is([data-design], .design-ov-scale) .hx-ph { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--l); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--a); }
+:is([data-design], .design-ov-scale) .hx-pb { padding:10px 12px; display:flex; flex-direction:column; gap:8px; overflow:auto; min-height:0; }
+:is([data-design], .design-ov-scale) .hx-stage { position:relative; flex:1; min-height:0; background:radial-gradient(ellipse at 50% 55%, #16344a 0%, #0c2231 75%); overflow:hidden; }
+:is([data-design], .design-ov-scale) .hx-stage img { position:absolute; left:50%; top:50%; translate:-50% -50%; width:min(88%,1000px); height:auto; -webkit-mask-image:radial-gradient(closest-side,#000 72%,transparent); mask-image:radial-gradient(closest-side,#000 72%,transparent); }
+:is([data-design], .design-ov-scale) .hx-tools { display:flex; align-items:center; gap:12px; padding:7px 12px; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-tools .on { color:var(--a); border-bottom:1px solid var(--a); }
+:is([data-design], .design-ov-scale) .hx-tools .sp { flex:1; }
+:is([data-design], .design-ov-scale) .hx-chips { position:absolute; left:12px; bottom:10px; display:flex; gap:6px; flex-wrap:wrap; }
+:is([data-design], .design-ov-scale) .hx-chips span { font-size:12px; padding:2px 10px; border:1px solid var(--a); border-radius:99px; color:var(--a); }
+:is([data-design], .design-ov-scale) .hx-chips span.off { border-color:var(--l); color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-card { position:absolute; left:50%; top:12px; translate:-50% 0; width:270px; padding:8px 12px; border:1px solid var(--a); border-radius:4px; background:#0c2231; text-align:center; }
+:is([data-design], .design-ov-scale) .hx-card b { display:block; }
+:is([data-design], .design-ov-scale) .hx-card span { font-size:11.5px; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-dot { position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; border:2px solid #fff; background:var(--a); box-shadow:0 0 12px 4px rgba(79,195,232,.7); }
+:is([data-design], .design-ov-scale) .hx-row { display:flex; justify-content:space-between; gap:8px; width:100%; padding:5px 8px; border-radius:3px; text-align:left; }
+:is([data-design], .design-ov-scale) .hx-row:hover { background:var(--a2); }
+:is([data-design], .design-ov-scale) .hx-row.sel { background:var(--a2); outline:1px solid var(--a); }
+:is([data-design], .design-ov-scale) .hx-row i { font-style:normal; color:var(--mut); font-family:ui-monospace,Consolas,monospace; font-size:11.5px; }
+:is([data-design], .design-ov-scale) .hx-sec { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--a); margin-top:4px; }
+:is([data-design], .design-ov-scale) .hx-stat { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+:is([data-design], .design-ov-scale) .hx-stat div { padding:5px 8px; background:rgba(12,34,49,.8); border-radius:3px; }
+:is([data-design], .design-ov-scale) .hx-stat small { display:block; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-stat b { font:500 14px ui-monospace,Consolas,monospace; }
+:is([data-design], .design-ov-scale) .hx-bar { display:grid; grid-template-columns:90px 1fr 44px; gap:8px; align-items:center; font-size:11.5px; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-bar u { display:block; height:4px; border-radius:2px; background:var(--a); text-decoration:none; }
+:is([data-design], .design-ov-scale) .hx-bar u.w { background:var(--warm); }
+:is([data-design], .design-ov-scale) .hx-bar em { font:normal 11.5px ui-monospace,Consolas,monospace; color:var(--ink); text-align:right; }
+:is([data-design], .design-ov-scale) .hx-act { padding:6px 10px !important; border:1px solid var(--a) !important; border-radius:3px; color:var(--a) !important; text-align:center; }
+:is([data-design], .design-ov-scale) .hx-strip { display:flex; align-items:stretch; margin:0 -18px; border-top:1px solid var(--l); background:#0a1d2a; min-height:58px; }
+:is([data-design], .design-ov-scale) .hx-strip > div, :is([data-design], .design-ov-scale) .hx-strip > button { padding:7px 12px; border-right:1px solid var(--l); display:flex; flex-direction:column; justify-content:center; gap:2px; text-align:left; }
+:is([data-design], .design-ov-scale) .hx-strip small { font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--mut); }
+:is([data-design], .design-ov-scale) .hx-strip b { font:500 12.5px ui-monospace,Consolas,monospace; }
+:is([data-design], .design-ov-scale) .hx-strip .ein { background:rgba(79,195,232,.1); }
+:is([data-design], .design-ov-scale) .hx-strip .ein b { font-family:inherit; letter-spacing:.12em; color:var(--a); text-transform:uppercase; }
+:is([data-design], .design-ov-scale) .hx-float { position:absolute; top:12px; bottom:12px; width:280px; border:1px solid var(--l); border-radius:4px; background:rgba(12,34,49,.94); display:flex; flex-direction:column; overflow:hidden; }
+:is([data-design], .design-ov-scale) .hx-rail { position:absolute; top:12px; display:flex; flex-direction:column; gap:6px; }
+:is([data-design], .design-ov-scale) .hx-rail button { padding:7px 12px !important; border:1px solid var(--l) !important; border-radius:3px; background:rgba(12,34,49,.9) !important; font-size:10.5px !important; letter-spacing:.12em; text-transform:uppercase; color:var(--a) !important; }
+:is([data-design], .design-ov-scale) .hx-tabs { display:flex; border-bottom:1px solid var(--l); }
+:is([data-design], .design-ov-scale) .hx-tabs button { flex:1; padding:9px 6px !important; font-size:10.5px !important; letter-spacing:.12em; text-transform:uppercase; color:var(--mut) !important; }
+:is([data-design], .design-ov-scale) .hx-tabs button.on { color:var(--a) !important; box-shadow:inset 0 -2px 0 var(--a); }
+/* Comparison view: real screenshots */
+[data-view] .hx-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:12px 0 22px; }
+[data-view] .hx-grid figure { margin:0; border:1px solid var(--border-color); border-radius:8px; overflow:hidden; background:var(--panel-bg); }
+[data-view] .hx-grid img { display:block; width:100%; height:auto; }
+[data-view] .hx-grid figcaption { padding:8px 12px; font-size:13px; color:var(--text-secondary); }
+[data-view] .hx-grid figcaption b { color:var(--text-primary); }
+[data-view] .hx-done { width:100%; border-collapse:collapse; font-size:14px; margin:8px 0 22px; }
+[data-view] .hx-done th, [data-view] .hx-done td { text-align:left; vertical-align:top; padding:7px 10px; border-bottom:1px solid var(--border-color); }
+[data-view] .hx-done th { font-size:12px; color:var(--text-secondary); font-weight:600; }
+[data-view] .hx-done td:last-child { color:var(--text-secondary); }
+@media (prefers-reduced-motion: reduce) { :is([data-design], .design-ov-scale) .hx * { transition:none !important; animation:none !important; } }
+</style>
+
+<header class="iteration-intro">
+  <h2>Runde 1 · Holotisch: Basis steht, drei Fragen an die Form</h2>
+  <p>Fünf Agents haben Funktionen, Daten, frühere Entscheidungen, Bedienung und Wettbewerb ausgewertet. Was eindeutig war, ist schon gebaut und liegt als Basis auf diesem Branch; das zeigt die Ansicht <strong>Schon umgesetzt</strong>. Hier geht es nur noch um das, was du entscheiden solltest.</p>
+  <p>Die <strong>drei Designs</strong> zeigen, wie viel Platz das Modell bekommt. Design 1 bleibt beim beschlossenen Drei-Panel-Rahmen, Design 2 und 3 brechen bewusst damit. In der Ansicht <strong>Analyse</strong> stehen die Einzelfragen zur Bedienung, die für jedes Design gelten. Die Werte im Inspektor der Mocks sind Platzhalter, alles andere stammt von der echten Gladius.</p>
+</header>
+
+<section data-design="werkbank" data-nav-label="Werkbank" data-design-active="true"
+  data-design-motto="Alles bleibt im Blick" data-design-traits="Drei Panels wie beschlossen|Modell mittelgroß, Panels immer offen|Keine neue Bedienlogik zu lernen" data-design-icon="grid">
+  <section id="w-s1" data-nav-label="Werkbank: Übersicht" data-screen data-screen-active="true">
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body" style="grid-template-columns:270px 1fr 270px">
+        <div class="hx-panel"><div class="hx-ph">Einordnung</div><div class="hx-pb">
+          <div class="hx-stat"><div><small>Crew</small><b>1</b></div><div><small>Masse</small><b>48,55 t</b></div><div><small>Laderaum</small><b>—</b></div></div>
+          <div class="hx-sec">Stärken · Schwächen</div>
+          <div class="hx-bar">Wendigkeit<u style="width:92%"></u><em>91,7</em></div>
+          <div class="hx-bar">Boost<u style="width:86%"></u><em>85,9</em></div>
+          <div class="hx-bar">Dauer-DPS<u style="width:54%"></u><em>53,6</em></div>
+          <div class="hx-bar">Schild<u class="w" style="width:40%"></u><em>40,4</em></div>
+          <div class="hx-bar">Alpha<u class="w" style="width:36%"></u><em>35,6</em></div>
+        </div></div>
+        <div class="hx-panel">
+          <div class="hx-tools"><span>Hangar</span><span>Ziehen zum Drehen</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+          <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell"><div class="hx-chips"><span>Waffen</span><span>Raketen</span><span>Komponenten</span><span class="off">Innenraum</span></div></div>
+        </div>
+        <div class="hx-panel"><div class="hx-ph">Inspektor</div><div class="hx-pb">
+          <div class="hx-sec">Bewaffnung</div>
+          <button type="button" class="hx-row" data-screen-link="w-s2">1 Mantis GT-220 Gatling</button>
+          <button type="button" class="hx-row">2 CF-337 Panther<i>S3</i></button>
+          <button type="button" class="hx-row">3 CF-337 Panther<i>S3</i></button>
+          <div class="hx-sec">Schilde</div>
+          <button type="button" class="hx-row">8 AllStop<i>3.168</i></button>
+          <button type="button" class="hx-row">9 AllStop<i>3.168</i></button>
+          <div class="hx-sec">Quantenantrieb</div>
+          <button type="button" class="hx-row">11 Beacon<i>161.411 km/s</i></button>
+        </div></div>
+      </div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div><div><small>Signatur</small><b>16,4 km · 21,6 km</b></div></div>
+    </div>
+  </section>
+  <section id="w-s2" data-nav-label="Werkbank: Bauteil gewählt" data-screen hidden>
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body" style="grid-template-columns:270px 1fr 270px">
+        <div class="hx-panel"><div class="hx-ph">Einordnung</div><div class="hx-pb"><div class="hx-stat"><div><small>Crew</small><b>1</b></div><div><small>Masse</small><b>48,55 t</b></div><div><small>Laderaum</small><b>—</b></div></div></div></div>
+        <div class="hx-panel">
+          <div class="hx-tools"><span>Hangar</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+          <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell"><i class="hx-dot" style="left:62%;top:42%"></i><div class="hx-card"><b>Mantis GT-220 Gatling</b><span>S3 · Waffe</span></div></div>
+        </div>
+        <div class="hx-panel"><div class="hx-ph">Inspektor · 1 / 17</div><div class="hx-pb">
+          <b>Mantis GT-220 Gatling</b>
+          <div class="hx-stat"><div><small>Alpha</small><b>42,1</b></div><div><small>DPS</small><b>682</b></div><div><small>Größe</small><b>S3</b></div></div>
+          <button type="button" class="hx-act">Bauteil tauschen</button>
+          <button type="button" class="hx-row" data-screen-link="w-s1">Zurück zur Liste</button>
+        </div></div>
+      </div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div></div>
+    </div>
+  </section>
+</section>
+
+<section data-design="buehne" data-nav-label="Bühne" hidden
+  data-design-motto="Das Schiff ist die Seite" data-design-traits="Modell über die ganze Breite|Einordnung und Inspektor schweben ein, wenn gebraucht|Beim Wählen legt sich der Inspektor rechts über die Bühne" data-design-icon="rocket">
+  <section id="b-s1" data-nav-label="Bühne: Nur das Schiff" data-screen data-screen-active="true">
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body"><div class="hx-panel">
+        <div class="hx-tools"><span>Hangar</span><span>Ziehen zum Drehen</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+        <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell">
+          <div class="hx-rail" style="left:12px"><button type="button" data-screen-link="b-s3">Einordnung</button></div>
+          <div class="hx-rail" style="right:12px"><button type="button" data-screen-link="b-s2">Bauteile · 17</button></div>
+          <div class="hx-chips"><span>Waffen</span><span>Raketen</span><span>Komponenten</span><span class="off">Innenraum</span></div>
+        </div>
+      </div></div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div><div><small>Signatur</small><b>16,4 km · 21,6 km</b></div></div>
+    </div>
+  </section>
+  <section id="b-s2" data-nav-label="Bühne: Bauteil gewählt" data-screen hidden>
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body"><div class="hx-panel">
+        <div class="hx-tools"><span>Hangar</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+        <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell" style="left:40%"><i class="hx-dot" style="left:48%;top:42%"></i>
+          <div class="hx-float" style="right:12px"><div class="hx-ph">Inspektor<span style="flex:1"></span><button type="button" data-screen-link="b-s1">✕</button></div><div class="hx-pb">
+            <b>Mantis GT-220 Gatling</b>
+            <div class="hx-stat"><div><small>Alpha</small><b>42,1</b></div><div><small>DPS</small><b>682</b></div><div><small>Größe</small><b>S3</b></div></div>
+            <button type="button" class="hx-act">Bauteil tauschen</button>
+            <div class="hx-sec">Bewaffnung</div>
+            <button type="button" class="hx-row sel">1 Mantis GT-220 Gatling</button>
+            <button type="button" class="hx-row">2 CF-337 Panther<i>S3</i></button>
+            <button type="button" class="hx-row">3 CF-337 Panther<i>S3</i></button>
+          </div></div>
+        </div>
+      </div></div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div></div>
+    </div>
+  </section>
+  <section id="b-s3" data-nav-label="Bühne: Einordnung offen" data-screen hidden>
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body"><div class="hx-panel">
+        <div class="hx-tools"><span>Hangar</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+        <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell" style="left:60%">
+          <div class="hx-float" style="left:12px"><div class="hx-ph">Einordnung<span style="flex:1"></span><button type="button" data-screen-link="b-s1">✕</button></div><div class="hx-pb">
+            <div class="hx-stat"><div><small>Crew</small><b>1</b></div><div><small>Masse</small><b>48,55 t</b></div><div><small>Laderaum</small><b>—</b></div></div>
+            <div class="hx-bar">Wendigkeit<u style="width:92%"></u><em>91,7</em></div>
+            <div class="hx-bar">Boost<u style="width:86%"></u><em>85,9</em></div>
+            <div class="hx-bar">Dauer-DPS<u style="width:54%"></u><em>53,6</em></div>
+            <div class="hx-bar">Schild<u class="w" style="width:40%"></u><em>40,4</em></div>
+          </div></div>
+        </div>
+      </div></div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div></div>
+    </div>
+  </section>
+</section>
+
+<section data-design="pult" data-nav-label="Pult" hidden
+  data-design-motto="Ein Modell, ein Pult" data-design-traits="Modell links, gut zwei Drittel der Breite|Ein rechtes Panel mit drei Reitern|Immer nur ein Thema zur Zeit offen" data-design-icon="layers">
+  <section id="p-s1" data-nav-label="Pult: Reiter Bauteile" data-screen data-screen-active="true">
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body" style="grid-template-columns:1fr 320px">
+        <div class="hx-panel">
+          <div class="hx-tools"><span>Hangar</span><span>Ziehen zum Drehen</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+          <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell"><div class="hx-chips"><span>Waffen</span><span>Raketen</span><span>Komponenten</span><span class="off">Innenraum</span></div></div>
+        </div>
+        <div class="hx-panel">
+          <div class="hx-tabs"><button type="button" class="on">Bauteile</button><button type="button" data-screen-link="p-s2">Einordnung</button><button type="button">Änderungen</button></div>
+          <div class="hx-pb">
+            <div class="hx-sec">Bewaffnung</div>
+            <button type="button" class="hx-row" data-screen-link="p-s3">1 Mantis GT-220 Gatling</button>
+            <button type="button" class="hx-row">2 CF-337 Panther<i>S3</i></button>
+            <button type="button" class="hx-row">3 CF-337 Panther<i>S3</i></button>
+            <div class="hx-sec">Schilde</div>
+            <button type="button" class="hx-row">8 AllStop<i>3.168</i></button>
+            <button type="button" class="hx-row">9 AllStop<i>3.168</i></button>
+            <div class="hx-sec">Quantenantrieb</div>
+            <button type="button" class="hx-row">11 Beacon<i>161.411 km/s</i></button>
+          </div>
+        </div>
+      </div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div><div><small>Signatur</small><b>16,4 km · 21,6 km</b></div></div>
+    </div>
+  </section>
+  <section id="p-s2" data-nav-label="Pult: Reiter Einordnung" data-screen hidden>
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body" style="grid-template-columns:1fr 320px">
+        <div class="hx-panel">
+          <div class="hx-tools"><span>Hangar</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+          <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell"></div>
+        </div>
+        <div class="hx-panel">
+          <div class="hx-tabs"><button type="button" data-screen-link="p-s1">Bauteile</button><button type="button" class="on">Einordnung</button><button type="button">Änderungen</button></div>
+          <div class="hx-pb">
+            <div class="hx-stat"><div><small>Crew</small><b>1</b></div><div><small>Masse</small><b>48,55 t</b></div><div><small>Laderaum</small><b>—</b></div></div>
+            <div class="hx-sec">Stärken · Schwächen</div>
+            <div class="hx-bar">Wendigkeit<u style="width:92%"></u><em>91,7</em></div>
+            <div class="hx-bar">Boost<u style="width:86%"></u><em>85,9</em></div>
+            <div class="hx-bar">Dauer-DPS<u style="width:54%"></u><em>53,6</em></div>
+            <div class="hx-bar">Schild<u class="w" style="width:40%"></u><em>40,4</em></div>
+            <div class="hx-bar">Alpha<u class="w" style="width:36%"></u><em>35,6</em></div>
+          </div>
+        </div>
+      </div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div></div>
+    </div>
+  </section>
+  <section id="p-s3" data-nav-label="Pult: Bauteil gewählt" data-screen hidden>
+    <div class="hx">
+      <div class="hx-title"><span></span><div class="hx-name"><small>Aegis Dynamics · Leichter Jäger</small><b>GLADIUS</b></div><span class="hx-patch">4.10.2-LIVE</span></div>
+      <div class="hx-body" style="grid-template-columns:1fr 320px">
+        <div class="hx-panel">
+          <div class="hx-tools"><span>Hangar</span><span class="sp"></span><span class="on">3D</span><span>Schema</span><span>Teilen</span></div>
+          <div class="hx-stage"><img src="{{img:model}}" alt="Gladius als 3D-Modell"><i class="hx-dot" style="left:60%;top:42%"></i></div>
+        </div>
+        <div class="hx-panel">
+          <div class="hx-tabs"><button type="button" class="on" data-screen-link="p-s1">Bauteile</button><button type="button" data-screen-link="p-s2">Einordnung</button><button type="button">Änderungen</button></div>
+          <div class="hx-pb">
+            <button type="button" class="hx-row" data-screen-link="p-s1">‹ Alle Bauteile</button>
+            <b>Mantis GT-220 Gatling</b>
+            <div class="hx-stat"><div><small>Alpha</small><b>42,1</b></div><div><small>DPS</small><b>682</b></div><div><small>Größe</small><b>S3</b></div></div>
+            <button type="button" class="hx-act">Bauteil tauschen</button>
+          </div>
+        </div>
+      </div>
+      <div class="hx-strip"><button type="button" class="ein"><small>Einsatz ▴</small><b>◈ Alles</b></button><div><small>Offensive</small><b>119,3 · 1.945/s</b></div><div><small>Verteidigung</small><b>6.336 · 1.204/s</b></div><div><small>Bewegung</small><b>520 · 226 m/s</b></div></div>
+    </div>
+  </section>
+</section>
+
+<section data-view="v-done" data-view-kind="comparison" data-nav-label="Schon umgesetzt" hidden>
+  <div class="view-frame">
+    <h2>Schon umgesetzt: die Basis für alles Weitere</h2>
+    <p>Alles hier liegt auf dem Branch, noch nicht auf main. Getestet im Browser mit echter GPU an Gladius und Hammerhead. Die Screenshots sind echt und stammen vom Dev-Server.</p>
+
+    <h3>Deine beiden Wünsche</h3>
+    <div class="hx-grid">
+      <figure><img src="{{img:before3d}}" alt="Vorher: Einsatz-Leiste über dem 3D-Modell, kleines Modell"><figcaption><b>Vorher.</b> Einsatz-Leiste über dem Modell, Rahmen fest 480 px hoch.</figcaption></figure>
+      <figure><img src="{{img:after3d}}" alt="Nachher: keine Leiste, das Modell nutzt die Höhe"><figcaption><b>Nachher.</b> Keine Leiste im 3D, und der Rahmen wächst mit dem Fenster.</figcaption></figure>
+      <figure><img src="{{img:picker}}" alt="Einsatz-Auswahl im Panel unten"><figcaption><b>Einsatz im Panel wählbar.</b> Vorher zeigte das Panel den Einsatz nur an. Ohne diese Auswahl wäre er im 3D gar nicht mehr umschaltbar gewesen.</figcaption></figure>
+      <figure><img src="{{img:simple}}" alt="Schema Einfach"><figcaption><b>Schema · Einfach.</b> Silhouette von oben mit Strichen, nur tauschbare Bauteile: Gladius 15 statt 17.</figcaption></figure>
+      <figure><img src="{{img:top}}" alt="Schema Draufsicht"><figcaption><b>Schema · Draufsicht.</b> Eine große Zeichnung mit allen 27 Hardpoints, übereinanderliegende Marker fächern auf.</figcaption></figure>
+      <figure><img src="{{img:side}}" alt="Schema Seitensicht"><figcaption><b>Schema · Seitensicht.</b> Jetzt mit Markern, vorher nur ein Bild ohne Ziele; alle 27 per Maus erreichbar.</figcaption></figure>
+    </div>
+    <p><strong>Frontsicht:</strong> Der Uploader zeichnet sie jetzt (Tests grün, geprüft nur an einem synthetischen Schiff, nicht an einem echten Rumpf). Die Daten fehlen noch, deshalb ist der Knopf deaktiviert und nennt den Grund. Für die Daten braucht es einen Uploader-Build und einen normalen Upload-Lauf; die Rümpfe werden dabei aus dem lokalen Cache neu gezeichnet, ohne neuen 3D-Export.</p>
+
+    <h3>Hover im 3D: gemessen</h3>
+    <table class="hx-done">
+      <thead><tr><th>Messung</th><th>Vorher</th><th>Nachher</th></tr></thead>
+      <tbody>
+        <tr><td>Erreichbare Punkte beim Hover, Gladius</td><td>13 von 34</td><td>34 von 34</td></tr>
+        <tr><td>Erreichbare Punkte beim Hover, Hammerhead</td><td>11 von 120</td><td>120 von 120</td></tr>
+        <tr><td>Rumpf beim Hover</td><td>10 % Deckkraft, schlagartig</td><td>45 %, weich über 140 ms (Stärke: siehe Analyse)</td></tr>
+        <tr><td>Leere Fläche „3D wird geladen“ beim Öffnen</td><td>rund 5 s</td><td>keine, Pins bleiben bis das Modell bereit ist</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Weiteres, ohne Rückfrage</h3>
+    <table class="hx-done">
+      <thead><tr><th>Bereich</th><th>Was jetzt anders ist</th></tr></thead>
+      <tbody>
+        <tr><td>Hover</td><td>Kein zweites Namensschild mehr am Mauszeiger. Die Karte blockiert nur noch auf ihren Knöpfen. Der Wechsel zwischen Zeilen flackert nicht mehr, weil das Verlassen 120 ms wartet.</td></tr>
+        <tr><td>3D-Bedienung</td><td>„Ansicht zurücksetzen“ und Doppelklick. Esc löst Hover und Markierung.</td></tr>
+        <tr><td>Auswahl</td><td>Das Bauteil im Inspektor bleibt am Modell markiert. Pins und Inspektor nennen die Waffe statt der Halterung („Mantis GT-220“ statt „VariPuck S3 Gimbal Mount“).</td></tr>
+        <tr><td>Merken</td><td>Eine gewählte Schema-Ansicht gilt auch beim nächsten Schiff. Wer 3D wählt, ist wieder beim Standard.</td></tr>
+        <tr><td>Speichern</td><td>Die Leiste für ungespeicherte Änderungen schwebt über dem Panel. Vorher lag sie unterhalb des sichtbaren Bereichs.</td></tr>
+        <tr><td>Fehlende Infos</td><td>„Wo zu kaufen“ gibt es jetzt auch im Holotisch (Details). Der Such-Link „Bezugsquelle“ öffnet es dort; vorher lief er ins Leere.</td></tr>
+        <tr><td>Texte</td><td>Doppelter Titel „Einordnung“ und doppelte Schiffszahl weg, „Kohorte ansehen“ heißt „Alle Schiffe ansehen“, „Alle Werte“ unter Signatur entfernt (war dasselbe wie unter Bewegung), rohe Klassennamen in der Waffentabelle lesbar, Tooltips am Ansichtsschalter.</td></tr>
+        <tr><td>Leistung</td><td>Die 3D-Szene läuft außerhalb der Angular-Prüfung und pausiert, wenn sie nicht sichtbar ist.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Gefunden, nicht angefasst</h3>
+    <table class="hx-done">
+      <thead><tr><th>Fund</th><th>Warum offen</th></tr></thead>
+      <tbody>
+        <tr><td>Kopfzeile läuft bei 1280 px um 124 px über (mit Admin-Menü)</td><td>Betrifft alle Seiten, nicht den Holotisch</td></tr>
+        <tr><td>Beta-Schalter unten links verdecken die erste Spalte des Panels</td><td>Betrifft alle Seiten mit Panel</td></tr>
+        <tr><td>Rumpf-HP fehlt im Verteidigungs-Panel, das untere Panel hat den Wert</td><td>Eigener Daten-Fix</td></tr>
+        <tr><td>Turm-Schwenkbereiche sind extrahiert, aber nirgends sichtbar (#788)</td><td>Braucht ein eigenes Konzept</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-view="v-analysis" data-view-kind="analysis" data-analysis="full" data-nav-label="Analyse" hidden>
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Der Holotisch ist ein starkes Schaustück, aber noch kein gutes Entscheidungswerkzeug. Die Basis ist gebaut; offen sind 14 Fragen, die seine Bedienung und seinen Inhalt festlegen.</p>
+    <p data-briefing-why>Die meisten Schwächen liegen in Standardwerten und Inhalten, nicht im Aussehen: Ein Frachter wird als Jäger bewertet, und ein Klick aufs Schiff führt aus der Seite heraus.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"14","unit":"Fragen","label":"statt 11 Aufgaben mit Umwegen"}'>14 Fragen</div>
+    <a data-briefing-topic="t-model" data-share="40">Am Modell</a>
+    <a data-briefing-topic="t-einsatz" data-share="35">Einsatz</a>
+    <a data-briefing-topic="t-seite" data-share="25">Seite</a>
+    <p data-briefing-duration>≈ 8 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><p>Von 11 geprüften Aufgaben gewinnt der Holotisch 6, Klassisch 2. Es sind die Aufgaben von jemandem, der gleich Geld ausgibt.</p></div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Holotisch vorn","value":6},{"label":"Klassisch vorn","value":2},{"label":"Gleichstand oder beide schwach","value":2},{"label":"Phone: nicht gerechtfertigt","value":1}],"unit":"Aufgaben"}'></div>
+        <p>Bewertet aus Code und Live-Durchlauf, nicht mit echten Spielern. Erkul, SPViewer und FleetYards ließen sich nicht direkt auslesen; der Vergleich mit ihnen stützt sich auf Beschreibungen Dritter.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="t-model" data-topic data-nav-label="Am Modell">
+    <div data-alevel="2" data-title="Am Modell">
+      <div data-slot="short"><p>Hover ist repariert. Offen ist, was Hover und Klick bedeuten sollen.</p></div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Erreichbar vorher (Hammerhead)","value":11},{"label":"Erreichbar nachher","value":120}],"unit":"von 120"}'></div><p>Alle Punkte sind jetzt erreichbar, aber bei großen Schiffen entsteht eine Wolke aus 120 Punkten.</p></div>
+    </div>
+
+    <section id="d-hover" data-nav-label="Hover-Stärke" data-decision="d-hover" data-decision-mode="picture" data-label="Hover-Stärke" data-rec="both" data-rec-why="Das Modell bleibt beim Überfahren ruhig, innenliegende Teile sieht man trotzdem per Klick." data-applies-to="3D-Modell" data-finding="f-hover">
+      <p data-applies>Gilt für: 3D-Modell</p>
+      <p data-situation>Gebaut ist die weiche Stufe, das nimmt das Schlimmste weg. Ohne Dimmen bleibt das Schiff ganz stehen, dafür sieht man Teile im Rumpf nicht, zum Beispiel den Tank.</p>
+      <h3 data-question>Wie stark tritt das Schiff zurück, wenn du ein Bauteil überfährst?</h3>
+      <p data-stakes>Wie ruhig das Modell beim Absuchen bleibt und ob Innenteile sichtbar sind.</p>
+      <div data-options>
+        <label data-opt="both" data-recommended><input type="radio" name="dm-d-hover" value="both" checked><span data-opt-media><img src="{{img:hvnone}}" alt="Hover ohne Dimmen" style="width:100%;display:block;border-radius:6px"></span><span data-opt-label>Hover ohne Dimmen, Klick mit Durchsicht</span><span data-opt-consequence>Schiff bleibt beim Absuchen ganz stehen. Innenteile zeigen sich erst nach dem Klick.</span></label>
+        <label data-opt="soft"><input type="radio" name="dm-d-hover" value="soft"><span data-opt-media><img src="{{img:hvsoft}}" alt="Weiche Durchsicht" style="width:100%;display:block;border-radius:6px"></span><span data-opt-label>Immer weiche Durchsicht (so ist es jetzt)</span><span data-opt-consequence>Innenteile sofort sichtbar, das Schiff wirkt beim Hover aber dünner.</span></label>
+        <label data-opt="strong"><input type="radio" name="dm-d-hover" value="strong"><span data-opt-media><img src="{{img:hvstrong}}" alt="Starke Durchsicht" style="width:100%;display:block;border-radius:6px"></span><span data-opt-label>Zurück zur starken Durchsicht</span><span data-opt-consequence>Bauteil sticht am stärksten heraus, das ist der Zustand, über den du dich beschwert hast.</span></label>
+      </div>
+      <textarea data-comment="d-hover-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Hover-Stärke"><div data-slot="short"><p>Rumpf vorher 10 %, jetzt 45 %. Echte Renderings der Gladius.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Vorher","value":10},{"label":"Jetzt","value":45},{"label":"Ohne Dimmen","value":100}],"unit":"% Rumpf"}'></div><p>Die Bilder in den Antworten zeigen dasselbe Bauteil, den Internal Tank, mit den drei Einstellungen.</p></div></div>
+    </section>
+
+    <section id="d-click" data-nav-label="Klick aufs Bauteil" data-decision="d-click" data-decision-mode="single" data-label="Klick aufs Bauteil" data-rec="inspect" data-rec-why="Auf Silhouette und Schema öffnet der Klick schon den Inspektor; nur im 3D verlässt er die Seite." data-applies-to="3D-Modell" data-finding="f-click">
+      <p data-applies>Gilt für: 3D-Modell und Teileliste</p>
+      <p data-situation>Heute führt ein Klick auf einen 3D-Punkt zur Codex-Seite des Bauteils. Aus dem 3D kommt man gar nicht in den Inspektor, tauschen geht von dort also nicht.</p>
+      <h3 data-question>Was passiert beim Klick auf ein Bauteil im 3D-Modell?</h3>
+      <p data-stakes>Ob man direkt am Schiff tauschen kann.</p>
+      <div data-options>
+        <label data-opt="inspect" data-recommended><input type="radio" name="dm-d-click" value="inspect" checked><span data-opt-label>Inspektor öffnen und Auswahl halten</span><span data-opt-consequence>Strg- und Mittelklick öffnen weiter die Codex-Seite. Die Codex-Seite kostet sonst einen Klick mehr.</span></label>
+        <label data-opt="nav"><input type="radio" name="dm-d-click" value="nav"><span data-opt-label>Weiter zur Codex-Seite führen</span><span data-opt-consequence>Bleibt wie heute, der Tausch braucht weiter den Weg über die Liste.</span></label>
+      </div>
+      <textarea data-comment="d-click-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Klick aufs Bauteil"><div data-slot="short"><p>Neun Stellen auf der Seite, vier verschiedene Bedeutungen.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Öffnet Inspektor","value":3},{"label":"Verlässt die Seite","value":2},{"label":"Tut nichts","value":2},{"label":"Etwas anderes","value":2}],"unit":"Stellen"}'></div><p>Auf dem Phone traf ein Tipp sogar ein anderes Bauteil als das angezielte und verließ sofort die Seite.</p></div></div>
+    </section>
+
+    <section id="d-dots" data-nav-label="Welche Punkte" data-decision="d-dots" data-decision-mode="single" data-label="Welche Punkte" data-rec="main" data-rec-why="Dieselbe Logik wie deine Einfach-Ansicht: nur was man tauschen kann." data-applies-to="3D-Modell" data-finding="f-dots">
+      <p data-applies>Gilt für: 3D-Modell</p>
+      <p data-situation>Jedes verbaute Teil bekommt heute einen Punkt, auch Kindteile. Die Hammerhead hat 120, aufgefächert ergibt das eine Wolke.</p>
+      <h3 data-question>Welche Bauteile bekommen im 3D-Modell einen Punkt?</h3>
+      <div data-options>
+        <label data-opt="main" data-recommended><input type="radio" name="dm-d-dots" value="main" checked><span data-opt-label>Nur tauschbare Hauptbauteile</span><span data-opt-consequence>Weit weniger Punkte. Der Rest bleibt über die Chips Waffen, Raketen und Teile erreichbar.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-d-dots" value="all"><span data-opt-label>Alle Teile wie jetzt</span><span data-opt-consequence>Nichts verschwindet, große Schiffe bleiben unruhig.</span></label>
+      </div>
+      <textarea data-comment="d-dots-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Welche Punkte"><div data-slot="short"><p>Hammerhead: 120 Punkte im Modell.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Gladius","value":34},{"label":"Carrack","value":40},{"label":"Reclaimer","value":69},{"label":"Idris-P","value":93},{"label":"Hammerhead","value":120}],"unit":"Punkte"}'></div><p>Die Zahl der tauschbaren Hauptbauteile pro Schiff habe ich nicht gemessen; bei der Gladius sind es 15.</p></div><div data-example><img src="{{img:hvhh}}" alt="Hammerhead mit 120 Punkten beim Hover" style="width:100%;display:block;border-radius:6px"></div></div>
+    </section>
+
+    <section id="d-wheel" data-nav-label="Mausrad" data-decision="d-wheel" data-decision-mode="single" data-label="Mausrad" data-rec="ctrl" data-rec-why="Das Modell ist jetzt so groß, dass die Maus beim Scrollen fast immer darüber steht." data-applies-to="3D-Modell" data-finding="f-wheel">
+      <p data-applies>Gilt für: 3D-Modell</p>
+      <p data-situation>Das Mausrad zoomt heute und scrollt manchmal beim ersten Rasten die Seite. Mit dem größeren Rahmen trifft das öfter.</p>
+      <h3 data-question>Was macht das Mausrad über dem 3D-Modell?</h3>
+      <div data-options>
+        <label data-opt="ctrl" data-recommended><input type="radio" name="dm-d-wheel" value="ctrl" checked><span data-opt-label>Seite scrollen, Zoom mit Strg</span><span data-opt-consequence>Die Seite bleibt immer scrollbar; Zoomen muss man einmal lernen, ein Hinweis erklärt es.</span></label>
+        <label data-opt="zoom"><input type="radio" name="dm-d-wheel" value="zoom"><span data-opt-label>Immer zoomen</span><span data-opt-consequence>Wie in den meisten 3D-Betrachtern; zum Scrollen muss die Maus neben das Modell.</span></label>
+      </div>
+      <textarea data-comment="d-wheel-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Mausrad"><div data-slot="short"><p>Erstes Rasten scrollte 120–200 px, weitere zoomten.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Rahmenhöhe bei 900 px Fenster","value":460},{"label":"Bei 1080 px","value":640},{"label":"Bei 1440 px","value":820}],"unit":"px"}'></div><p>Sketchfab zoomt mit dem Rad; dort ist das Modell aber die ganze Seite, hier eine lange Scrollseite.</p></div></div>
+    </section>
+  </section>
+
+  <section id="t-einsatz" data-topic data-nav-label="Einsatz">
+    <div data-alevel="2" data-title="Einsatz">
+      <div data-slot="short"><p>Jedes Schiff startet mit einer Kampf-Wertung, auch Frachter.</p></div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Vergleich Alle Schiffe","value":350},{"label":"Vergleich Rolle (Gladius)","value":26}],"unit":"Schiffe"}'></div><p>„Alles“ bedeutet intern das Kampf-Profil.</p></div>
+    </div>
+
+    <section id="d-bar" data-nav-label="Leiste im Schema" data-decision="d-bar" data-decision-mode="single" data-label="Leiste im Schema" data-rec="all" data-rec-why="Sonst springen 3D und Schema-Knopf beim Umschalten unter dem Mauszeiger weg." data-applies-to="Schema-Ansichten" data-finding="f-bar">
+      <p data-applies>Gilt für: Schema-Ansichten</p>
+      <p data-situation>Du wolltest die Leiste im 3D weghaben, das ist gebaut. Im Schema ist sie noch da. Beim Umschalten springen die Knöpfe deshalb um rund 50 px, im Test lag der Mauszeiger danach auf „Bergbau“.</p>
+      <h3 data-question>Soll die Einsatz-Leiste auch im Schema entfallen?</h3>
+      <div data-options>
+        <label data-opt="all" data-recommended><input type="radio" name="dm-d-bar" value="all" checked><span data-opt-label>Überall entfernen, nur das Panel wählt</span><span data-opt-consequence>Ein Ort, nichts springt. Die Leitwerte stehen dann nur noch in der Auswahl im Panel.</span></label>
+        <label data-opt="only3d"><input type="radio" name="dm-d-bar" value="only3d"><span data-opt-label>Nur im 3D entfernen (so ist es jetzt)</span><span data-opt-consequence>Leitwerte im Schema direkt sichtbar, dafür zwei Bedienorte und der Sprung.</span></label>
+      </div>
+      <textarea data-comment="d-bar-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Leiste im Schema"><div data-slot="short"><p>Bei 1440×900 schneidet das Panel die Einfach-Ansicht unten ab.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Leiste","value":50},{"label":"Unterauswahl","value":34}],"unit":"px Höhe"}'></div><p>Ohne Leiste passt die Silhouette bei 1440×900 besser ins Bild; nachgemessen habe ich das nicht.</p></div></div>
+    </section>
+
+    <section id="d-lens" data-nav-label="Start-Einsatz" data-decision="d-lens" data-decision-mode="single" data-label="Start-Einsatz" data-rec="career" data-rec-why="Sonst wird ein Frachter beim Öffnen als schlechter Jäger bewertet." data-applies-to="alle Schiffe" data-finding="f-lens">
+      <p data-applies>Gilt für: alle Schiffe</p>
+      <p data-situation>Jedes Schiff öffnet mit „Alles“, und das wertet nach dem Kampf-Profil. Ein Frachter sieht zuerst eine Kampf-Prozentzahl.</p>
+      <h3 data-question>Mit welchem Einsatz öffnet ein Schiff?</h3>
+      <div data-options>
+        <label data-opt="career" data-recommended><input type="radio" name="dm-d-lens" value="career" checked><span data-opt-label>Passend zur Karriere des Schiffs</span><span data-opt-consequence>Frachter mit Transport, Jäger mit Kampf. „Alles“ bleibt wählbar.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-d-lens" value="all"><span data-opt-label>Immer „Alles“ wie heute</span><span data-opt-consequence>Gleicher Start überall, Nichtkämpfer wirken schwach.</span></label>
+      </div>
+      <textarea data-comment="d-lens-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Start-Einsatz"><div data-slot="short"><p>Vier von sieben Einsätzen zeigen dieselben Kennzahlen.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Einsätze gesamt","value":7},{"label":"mit gleichen Kennzahlen","value":4}],"unit":"Einsätze"}'></div><p>Quelle ist der Code (<code>codex-mission.ts</code>, Profilzuordnung in der Stage).</p></div></div>
+    </section>
+
+    <section id="d-cohort" data-nav-label="Vergleichsgruppe" data-decision="d-cohort" data-decision-mode="single" data-label="Vergleichsgruppe" data-rec="role" data-rec-why="Ein Jäger gegen ein Großkampfschiff sagt wenig aus." data-applies-to="Einordnung" data-finding="f-cohort">
+      <p data-applies>Gilt für: Einordnung</p>
+      <p data-situation>Die Einordnung vergleicht zuerst mit allen 350 Schiffen, also auch einen Jäger mit einem Großkampfschiff.</p>
+      <h3 data-question>Womit wird ein Schiff zuerst verglichen?</h3>
+      <div data-options>
+        <label data-opt="role" data-recommended><input type="radio" name="dm-d-cohort" value="role" checked><span data-opt-label>Mit Schiffen gleicher Rolle</span><span data-opt-consequence>Aussagekräftiger; bei sehr kleinen Gruppen fällt es auf die Karriere zurück.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-d-cohort" value="all"><span data-opt-label>Mit allen Schiffen wie heute</span><span data-opt-consequence>Immer dieselbe Skala, aber wenig Aussage.</span></label>
+      </div>
+      <textarea data-comment="d-cohort-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Vergleichsgruppe"><div data-slot="short"><p>Gladius: 350 Schiffe gesamt, 26 gleiche Rolle.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Alle Schiffe","value":350},{"label":"Rolle","value":26}],"unit":"Schiffe"}'></div><p>Eine Größenklasse wäre noch genauer, dieses Feld gibt es in den Daten aber nicht.</p></div></div>
+    </section>
+
+    <section id="d-mining" data-nav-label="Bergbau und Bergung" data-decision="d-mining" data-decision-mode="single" data-label="Bergbau und Bergung" data-rec="honest" data-rec-why="Eine Prozentzahl auf falscher Grundlage ist schlimmer als keine." data-applies-to="Einsätze Bergbau und Bergung" data-finding="f-mining">
+      <p data-applies>Gilt für: Einsätze Bergbau und Bergung</p>
+      <p data-situation>Diese beiden Einsätze zeigen Kampfwerte und eine Transport-Wertung, weil die Daten keine Abbau-Kennzahlen enthalten.</p>
+      <h3 data-question>Was zeigen Bergbau und Bergung, solange Abbau-Daten fehlen?</h3>
+      <div data-options>
+        <label data-opt="honest" data-recommended><input type="radio" name="dm-d-mining" value="honest" checked><span data-opt-label>Keine Wertung, nur vorhandene Werte</span><span data-opt-consequence>Bestückung und Laderaum statt Prozentzahl. Wirkt weniger vollständig, stimmt aber.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-d-mining" value="keep"><span data-opt-label>So lassen</span><span data-opt-consequence>Sieht vollständig aus, die Zahl führt aber in die Irre.</span></label>
+      </div>
+      <textarea data-comment="d-mining-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Bergbau und Bergung"><div data-slot="short"><p>Code-Kommentar: keine Abbau-Hardpoint-Werte im Extrakt.</p></div><div data-slot="long"><p>Echte Kennzahlen bräuchten eine Änderung am Uploader und eine neue Extraktion; der Umfang ist nicht geprüft. Über „Als Issue anlegen“ kannst du das zusätzlich festhalten.</p></div></div>
+    </section>
+
+    <section id="d-pct" data-nav-label="Prozentzahl" data-decision="d-pct" data-decision-mode="single" data-label="Prozentzahl" data-rec="words" data-rec-why="P68 erklärt sich für niemanden von selbst." data-applies-to="Panel, Kacheln, Einordnung" data-finding="f-pct">
+      <p data-applies>Gilt für: Panel, Kacheln, Einordnung</p>
+      <p data-situation>Derselbe Wert steht als „P68“ und als „68 %“ auf der Seite, bis zu dreimal und ohne Erklärung.</p>
+      <h3 data-question>Wie liest sich der Vergleichswert?</h3>
+      <div data-options>
+        <label data-opt="words" data-recommended><input type="radio" name="dm-d-pct" value="words" checked><span data-opt-label>„Besser als 68 %“, einmal pro Wert</span><span data-opt-consequence>Sofort verständlich, braucht mehr Platz, deshalb nicht im Panel.</span></label>
+        <label data-opt="p"><input type="radio" name="dm-d-pct" value="p"><span data-opt-label>„P68“ überall, mit Tooltip</span><span data-opt-consequence>Kurz und einheitlich, muss man aber kennen.</span></label>
+      </div>
+      <textarea data-comment="d-pct-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Prozentzahl"><div data-slot="short"><p>Bis zu 3× pro Wert, in zwei Schreibweisen.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Einsatz-Name","value":8},{"label":"Schiffszahl","value":8},{"label":"Hardpoint-Anzahl","value":6},{"label":"Perzentil je Wert","value":3}],"unit":"× auf der Seite"}'></div><p>Geschätzt aus dem Code, je nach Schiff etwas weniger.</p></div></div>
+    </section>
+  </section>
+
+  <section id="t-seite" data-topic data-nav-label="Seite">
+    <div data-alevel="2" data-title="Seite">
+      <div data-slot="short"><p>Dieselben Bauteile stehen in bis zu fünf Listen, die Seite ist rund 3.300 px lang.</p></div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Erster Bildschirm: Zahlen","value":85},{"label":"Bedienelemente","value":60},{"label":"Beschriftete Blöcke","value":20}],"unit":"Stück"}'></div><p>Mittelwerte einer groben Zählung aus dem Code.</p></div>
+    </div>
+
+    <section id="d-lists" data-nav-label="Listen unterm Modell" data-decision="d-lists" data-decision-mode="single" data-label="Listen unterm Modell" data-rec="drop" data-rec-why="Inspektor und Teile-Chip decken sie ab, die Liste schiebt nur alles nach unten." data-applies-to="3D-Ansicht" data-finding="f-lists">
+      <p data-applies>Gilt für: 3D-Ansicht</p>
+      <p data-situation>Unter dem Modell steht zusätzlich „Komponenten im Modell“. Beim Wechsel in 3D wird die Seite dadurch rund 270 px länger, und die Liste liegt meist unter dem Panel.</p>
+      <h3 data-question>Bleibt die Liste „Komponenten im Modell“ unter dem 3D-Modell?</h3>
+      <div data-options>
+        <label data-opt="drop" data-recommended><input type="radio" name="dm-d-lists" value="drop" checked><span data-opt-label>Entfernen</span><span data-opt-consequence>Eine Liste weniger, die Seite springt nicht. Markieren geht dann über Inspektor oder Teile-Chip.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-d-lists" value="keep"><span data-opt-label>Behalten</span><span data-opt-consequence>Nichts ändert sich.</span></label>
+      </div>
+      <textarea data-comment="d-lists-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Listen unterm Modell"><div data-slot="short"><p>Seitenhöhe 3.064 px im Schema, 3.330 px im 3D.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Schema","value":3064},{"label":"3D","value":3330}],"unit":"px"}'></div><p>Die fünf Listen: Inspektor, Komponenten im Modell, Teile-Liste im Modell, Alle Ports, Hardpoints in den Details.</p></div></div>
+    </section>
+
+    <section id="d-arrival" data-nav-label="Ankunft" data-decision="d-arrival" data-decision-mode="single" data-label="Ankunft" data-rec="short" data-rec-why="Bleibt beim ersten Schiff voll wirksam und kostet danach kaum Zeit." data-applies-to="Schiffswechsel" data-finding="f-arrival">
+      <p data-applies>Gilt für: Öffnen eines Schiffs</p>
+      <p data-situation>Die Ankunft läuft pro Schiff einmal und dauert 1,3 bis 2,3 s. Du wolltest sie ausdrücklich; wer viele Schiffe durchgeht, wartet aber jedes Mal.</p>
+      <h3 data-question>Wie oft läuft die Ankunft in voller Länge?</h3>
+      <div data-options>
+        <label data-opt="short" data-recommended><input type="radio" name="dm-d-arrival" value="short" checked><span data-opt-label>Einmal pro Sitzung, danach kurz</span><span data-opt-consequence>Rund 400 ms ab dem zweiten Schiff, die Werte kommen sofort.</span></label>
+        <label data-opt="each"><input type="radio" name="dm-d-arrival" value="each"><span data-opt-label>Bei jedem neuen Schiff wie heute</span><span data-opt-consequence>Voller Effekt, aber bis zu 2,3 s Wartezeit pro Schiff.</span></label>
+      </div>
+      <textarea data-comment="d-arrival-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Ankunft"><div data-slot="short"><p>1,3–2,3 s pro Schiff.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Heute, längstens","value":2300},{"label":"Heute, kürzestens","value":1300},{"label":"Vorschlag ab Schiff 2","value":400}],"unit":"ms"}'></div><p>Parallax, Hochzählen und Töne bleiben unangetastet, die hast du bestätigt.</p></div></div>
+    </section>
+
+    <section id="d-start" data-nav-label="Start auf dem Phone" data-decision="d-start" data-decision-mode="single" data-label="Start auf dem Phone" data-rec="simple" data-rec-why="Unterwegs will man meist einen Wert und keinen Modell-Download." data-applies-to="Phone" data-finding="f-start">
+      <p data-applies>Gilt für: Phone</p>
+      <p data-situation>Auf dem Phone lädt das 3D-Modell ungefragt, und ein Tipp darauf verlässt die Seite. Ob es dort überhaupt Nutzer gibt, ist nicht bekannt.</p>
+      <h3 data-question>Womit startet der Holotisch auf dem Phone?</h3>
+      <div data-options>
+        <label data-opt="simple" data-recommended><input type="radio" name="dm-d-start" value="simple" checked><span data-opt-label>Mit Einfach, 3D auf Wunsch</span><span data-opt-consequence>Schneller und spart Daten, weniger Wow beim ersten Blick.</span></label>
+        <label data-opt="3d"><input type="radio" name="dm-d-start" value="3d"><span data-opt-label>Mit 3D wie am Desktop</span><span data-opt-consequence>Gleiches Erlebnis überall, dafür Download und Wisch-Konflikt.</span></label>
+      </div>
+      <textarea data-comment="d-start-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Start auf dem Phone"><div data-slot="short"><p>Tisch beginnt erst bei 760 von 844 px.</p></div><div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Seitenhöhe Phone","value":8087},{"label":"Seitenhöhe Desktop","value":3388}],"unit":"px"}'></div><p>Die Gerätezahlen stehen in PostHog, die habe ich nicht abgefragt. Sind es sehr wenige Nutzer, reicht diese eine Änderung.</p></div></div>
+    </section>
+
+    <section id="d-drawer" data-nav-label="Details-Schublade" data-decision="d-drawer" data-decision-mode="single" data-label="Details-Schublade" data-rec="open" data-rec-why="Beschreibung und Kaufort sind Grundinformationen und kein Anhang." data-applies-to="Details" data-finding="f-drawer">
+      <p data-applies>Gilt für: Bereich Details</p>
+      <p data-situation>In der eingeklappten Schublade liegen Beschreibung, Kaufort, Deckplan, Varianten und Rohdaten, dazu zwei Einstellungen. Ein Neuling braucht zwei Bildschirme und einen Klick bis zur Beschreibung.</p>
+      <h3 data-question>Was bleibt in der eingeklappten Details-Schublade?</h3>
+      <div data-options>
+        <label data-opt="open" data-recommended><input type="radio" name="dm-d-drawer" value="open" checked><span data-opt-label>Nur noch Rohdaten und Einstellungen</span><span data-opt-consequence>Beschreibung, Kaufort, Deckplan und Varianten stehen offen auf der Seite, die dadurch länger wird.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-d-drawer" value="keep"><span data-opt-label>Alles bleibt drin</span><span data-opt-consequence>Kurze Seite, wichtige Inhalte bleiben versteckt.</span></label>
+      </div>
+      <textarea data-comment="d-drawer-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Details-Schublade"><div data-slot="short"><p>Die Kaufentscheidung ist die Aufgabe, die Klassisch gewinnt.</p></div><div data-slot="long"><p>Das SC-Wiki beantwortet die Fragen eines Käufers auf einer Scrollseite, inklusive Kaufort und Preis. Deine Vorgabe „keine Information darf verloren gehen“ ist erfüllt, aber nicht gut auffindbar.</p></div></div>
+    </section>
+
+    <section id="d-tiles" data-nav-label="Kacheln und Panel" data-decision="d-tiles" data-decision-mode="single" data-label="Kacheln und Panel" data-rec="read" data-rec-why="Das Panel hält die Zahlen, die Kacheln sagen, was sie bedeuten." data-applies-to="Perspektiven-Kacheln" data-finding="f-tiles">
+      <p data-applies>Gilt für: Perspektiven-Kacheln</p>
+      <p data-situation>Panel und Kacheln zeigen dieselben Kennzahlen. Du wolltest die Analyse ausdrücklich anders als weitere Tabellen.</p>
+      <h3 data-question>Was zeigen die vier Perspektiven-Kacheln künftig?</h3>
+      <div data-options>
+        <label data-opt="read" data-recommended><input type="radio" name="dm-d-tiles" value="read" checked><span data-opt-label>Die Einordnung in Worten, keine Doppelwerte</span><span data-opt-consequence>Ruhiger und klar getrennt vom Panel, die großen Zahlen fallen dort weg.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-d-tiles" value="keep"><span data-opt-label>Bleiben wie jetzt</span><span data-opt-consequence>Werte stehen doppelt, dafür auch beim Scrollen groß im Blick.</span></label>
+      </div>
+      <textarea data-comment="d-tiles-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Kacheln und Panel"><div data-slot="short"><p>Dieselben Werte stehen zweimal untereinander.</p></div><div data-slot="long"><p>Deine Notiz aus dem ersten Konzept: „nicht einfach noch weitere Boxen mit Tabellen“. Die Kacheln selbst stehen nicht zur Debatte, nur ihr Inhalt.</p></div></div>
+    </section>
+  </section>
+</section>
+</section>

@@ -1,7 +1,7 @@
 /**
  * Blueprint drawings: one hull -> two SVG files (docs/blueprint.md).
  *
- *   full  top + side view, outline, main and detail lines, 1600 units along
+ *   full  top + side + front view, outline, main and detail lines, 1600 units along
  *         the hull's longest side. The ship page's schema view draws the
  *         hardpoints onto its top view.
  *   icon  top view only, outline + a few main lines, 400 units. Search rows
@@ -34,7 +34,7 @@ import {
 import { type Projection, type SvgView, writeSvg } from './svg.js';
 
 /** Bumped whenever the drawing changes for the same hull (invalidates on-disk caches). */
-export const BLUEPRINT_GENERATOR = 'sc-blueprint/1';
+export const BLUEPRINT_GENERATOR = 'sc-blueprint/2';
 
 /** Drawing units along the hull's longest side at full detail. */
 const FULL_LONG = 1600;
@@ -59,7 +59,7 @@ interface LodSpec {
 
 export const LODS: Record<'full' | 'icon', LodSpec> = {
   full: {
-    long: FULL_LONG, margin: 16, gap: 40, views: ['top', 'side'], outlineTol: 0.7, lineTol: 0.6,
+    long: FULL_LONG, margin: 16, gap: 40, views: ['top', 'side', 'front'], outlineTol: 0.7, lineTol: 0.6,
     minLoopShare: 0.00002, minor: true, minMajorShare: 0.004, maxMajor: 4000, pointBudget: 9000,
   },
   icon: {
@@ -144,10 +144,15 @@ function drawLod(
 
     const { major, minor } = pickLines(a.lines, spec, s);
 
-    // u = -z, v = x (top) or -y (side); drawing = (u - uMin) * k + margin.
+    // u = -z (top, side) or -x (front); v = x (top) or -y; drawing = (u - uMin) * k + margin.
+    // front: u = -x, v = -y.
+    const ox = spec.margin - k * a.win.uMin;
+    const oy = y - k * a.win.vMin;
     const projection: Projection = view === 'top'
-      ? [[0, 0, -k, spec.margin - k * a.win.uMin], [k, 0, 0, y - k * a.win.vMin]]
-      : [[0, 0, -k, spec.margin - k * a.win.uMin], [0, -k, 0, y - k * a.win.vMin]];
+      ? [[0, 0, -k, ox], [k, 0, 0, oy]]
+      : view === 'side'
+        ? [[0, 0, -k, ox], [0, -k, 0, oy]]
+        : [[-k, 0, 0, ox], [0, -k, 0, oy]];
     views.push({
       view,
       box: { x: spec.margin, y, w: boxW, h: boxH },

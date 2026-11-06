@@ -161,7 +161,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
   {
     key: 'hulls',
     // 2: ground-vehicle hulls and armor/clothing asset packages.
-    revision: 2,
+    // 3: blueprint drawings gain the `front` view (sc-blueprint/2). The cached
+    // hull GLBs are reused; only the drawings are redrawn and re-committed.
+    revision: 3,
     phases: [],
     sources: [
       'data-uploader/python/sc_extract/assets3d/',
@@ -176,6 +178,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
       'data-uploader/src/main/skin-bridge.ts',
       'data-uploader/src/main/skin-ingest.ts',
       'data-uploader/src/main/asset-package-ingest.ts',
+      'data-uploader/src/main/blueprint-ingest.ts',
+      'data-uploader/src/lib/blueprint/',
       'data-uploader/src/lib/asset-package.ts',
       'supabase/functions/ingest-skins/',
     ],

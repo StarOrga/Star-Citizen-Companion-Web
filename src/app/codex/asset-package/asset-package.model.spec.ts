@@ -12,6 +12,9 @@ import {
   rowFromDb,
   selectablePlacements,
   type PlacementGroup,
+  isSwappable,
+  placementsForPorts,
+  scopedHotspots,
 } from './asset-package.model';
 
 export function placementFixture(over: Record<string, unknown>): Record<string, unknown> {
@@ -162,5 +165,61 @@ describe('asset-package model', () => {
     expect(plausibleBounds({ min: [-5, -2, -10], max: [5, 2, 10] })).not.toBeNull();
     expect(plausibleBounds({ min: [-283871, -83811, -322447], max: [283871, 83812, 322444] })).toBeNull();
     expect(plausibleBounds(null)).toBeNull();
+  });
+});
+
+describe('scopedHotspots / placementsForPorts', () => {
+  const swappableManifest = () => {
+    const raw = manifestFixture();
+    for (const p of raw['placements'] as Record<string, unknown>[]) {
+      if (p['id'] === 'turret') p['port'] = { minSize: 1, maxSize: 1, types: ['Turret'], flags: [], editable: true };
+    }
+    return parseManifest(raw);
+  };
+
+  it('narrows the dots to editable ports, all keeps every hotspot', () => {
+    const m = swappableManifest();
+    const swappable = scopedHotspots(m, 'swappable');
+    expect(swappable.length).toBeGreaterThan(0);
+    expect(swappable.every(isSwappable)).toBeTrue();
+    expect(scopedHotspots(m, 'all').length).toBeGreaterThan(swappable.length);
+  });
+
+  it('keeps all dots when a package has no editable port at all', () => {
+    const raw = manifestFixture();
+    for (const p of raw['placements'] as Record<string, unknown>[]) delete p['port'];
+    const m = parseManifest(raw);
+    expect(scopedHotspots(m, 'swappable').length).toBe(scopedHotspots(m, 'all').length);
+    expect(scopedHotspots(m, 'all').length).toBeGreaterThan(0);
+  });
+
+  it('resolves ports and ids case-insensitively and brings the children', () => {
+    const m = parseManifest(manifestFixture());
+    expect(placementsForPorts(m, ['TURRET'])).toEqual(['turret', 'turret/gun']);
+    expect(placementsForPorts(m, ['turret/gun'])).toEqual(['turret/gun']);
+    expect(placementsForPorts(m, ['nope'])).toEqual([]);
+  });
+
+  describe('scopedHotspots with the host\'s swappable ports', () => {
+    const pl = (id: string, portName: string, parentPort: string | null, over: Record<string, unknown> = {}) =>
+      ({ id, portName, parentPort, helperName: null, group: 'components', itemClass: 'X', itemGuid: null, itemType: null, itemSubType: null, itemSize: 1, parentClass: null, port: null, loadout: 'default', partSha256: 's', position: [0, 0, 0], rotation: [0, 0, 0, 1], ...over }) as never;
+    const manifest = (placements: unknown[]) => ({ placements }) as never;
+
+    it('one dot per port: its own, else the first part it carries; other parts are out', () => {
+      const m = manifest([
+        pl('a', 'hp_shield', null),
+        pl('mount', 'hp_gun', null, { position: null }),
+        pl('gun', 'class_2', 'mount'),
+        pl('door', 'hp_door', null),
+      ]);
+      const ids = scopedHotspots(m, 'swappable', new Set(['hp_shield', 'HP_GUN'])).map((p) => p.id);
+      expect(ids.sort()).toEqual(['a', 'gun']);
+    });
+
+    it('"all" ignores the rule, no matching port keeps every dot rather than none', () => {
+      const m = manifest([pl('a', 'hp_a', null), pl('b', 'hp_b', null)]);
+      expect(scopedHotspots(m, 'all', new Set(['hp_a'])).length).toBe(2);
+      expect(scopedHotspots(m, 'swappable', new Set(['nope'])).length).toBe(2);
+    });
   });
 });
