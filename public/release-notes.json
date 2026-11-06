@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.211.2",
+  "current": "0.211.3",
   "releases": [
+    {
+      "version": "0.211.3",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Now: while no live data flows (app not running, or live sync still off) a short note says what the page shows - your location and ship, the next step of a planned run, the latest events - with three examples."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.211.2",
       "date": "2026-11-06",

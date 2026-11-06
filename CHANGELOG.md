@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.211.3] - 2026-11-06
+
+### Added
+- HQ Now: while no live data flows (app not running, or live sync still off) a short note says what the page shows - your location and ship, the next step of a planned run, the latest events - with three examples.
+
 ## [0.211.2] - 2026-11-06
 
 ### Fixed
