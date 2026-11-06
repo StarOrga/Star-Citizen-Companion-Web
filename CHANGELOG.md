@@ -4,10 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.216.2] - 2026-11-06
+## [0.217.1] - 2026-11-06
 
 ### Fixed
 - Coming back to /verse no longer builds the moons anew, which took a noticeable moment during the page change.
+
+## [0.217.0] - 2026-11-06
+
+### Added
+- The Verse projection builds the preview panel in one sweep: its light bar runs down to build the panel and back up to write the text.
+
+### Changed
+- The planet sits higher on the Verse page, and "Mehr im Verse" now always stays visible below the panel.
+- The preview panel keeps one size for every message; long titles and texts are shortened.
+
+### Fixed
+- The light cone coming from the Galerie planet no longer looks like two crossed cones.
 
 ## [0.216.1] - 2026-11-06
 

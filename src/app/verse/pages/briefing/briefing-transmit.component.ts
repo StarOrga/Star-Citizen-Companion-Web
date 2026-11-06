@@ -6,20 +6,22 @@ import type { VerseDoor } from '../../data/verse.models';
 import { BodyCanvasDirective } from './bodies/body.directive';
 import type { BodyKind } from './bodies/body-engine';
 
-/** Charge + light cone grow out of the sending planet. */
-export const TX_CHARGE_MS = 1000;
-/** The holo is revealed top to bottom ("received"), the title stands at once. */
-export const TX_REVEAL_MS = 700;
-/** Typing speed of the holo's body. */
-export const TX_CHARS_PER_S = 45;
-/** The finished message stands this long before the next planet sends. */
-export const TX_HOLD_MS = 8000;
+/** The sender glows, then the cone creeps out and shoots to the holo (exponential). */
+export const TX_CHARGE_MS = 2400;
+/** The scan line runs down and builds the panel, plus its turn at the bottom. */
+export const TX_BUILD_MS = 1080;
+/** The scan line runs back up and writes the text into the panel. */
+export const TX_WRITE_MS = 1320;
+/** The line goes out, the cone pulls back into the planet and fades. */
+export const TX_PULL_MS = 2000;
+/** The finished message stands this long after the pull-back, before the next planet sends. */
+export const TX_HOLD_MS = 6000;
 /** Fade-out between two messages. */
-export const TX_OUT_MS = 400;
+export const TX_OUT_MS = 700;
 
 export const TX_DOORS: readonly VerseDoor[] = ['news', 'patches', 'gallery'];
 
-export type TxPhase = 'charge' | 'reveal' | 'type' | 'hold' | 'out';
+export type TxPhase = 'charge' | 'build' | 'write' | 'pull' | 'hold' | 'out';
 
 /** One message the holo receives: the area's newest item. */
 export interface TransmitItem {
@@ -39,16 +41,20 @@ export interface TransmitItem {
  * each a real anchor to its area — take turns (News → Patches → Galerie)
  * sending their newest item to the holo in the planet's surface:
  *
- *   charge   the sender's atmosphere brightens, the trapezoid light cone
- *            grows out of it, soft area waves run planet → holo (~1 s)
- *   reveal   the holo is received top to bottom, the title stands at once
- *   type     the body types at {@link TX_CHARS_PER_S} chars/s, the cone
- *            stays weak (~35 %)
- *   hold     {@link TX_HOLD_MS}, the cone fades out
+ *   charge   the sender's atmosphere glows, the light cone creeps out of it
+ *            and shoots to the panel's top edge
+ *   build    the scan line runs down, the cone's far end is that line, the
+ *            panel's glass appears exactly behind it
+ *   write    the line runs back up and writes the text, bottom to top
+ *   pull     the line goes out, the cone pulls back into the planet
+ *   hold     {@link TX_HOLD_MS}, the message stands
  *
- * No line beam, packets, impact flash, shock wave or glitch, no radar rings.
+ * The motion lives in the stylesheet: each phase runs one keyframe animation
+ * on the host, the timers here only switch the phases (concept
+ * "Verse-Projektion", design "Anbahnung 2,4 s").
+ *
  * Pointer or focus on the holo holds the relay. Reduced motion: no cone, no
- * waves, no reveal or typing — the message stands, the relay swaps it.
+ * build or write animation — the message stands, the relay swaps it.
  *
  * Away from the top of the page (`away`, briefing-dock) the relay rests:
  * no cone, no holo, no timers — back at the top it sends again.
@@ -59,12 +65,12 @@ export interface TransmitItem {
   imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
-  host: { '[class.away]': 'away()', '[class.docked]': 'docked()' },
+  host: { '[class.away]': 'away()', '[class.docked]': 'docked()', '[attr.data-phase]': 'phase()' },
   template: `
     @let c = cur();
-    <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null" [attr.data-phase]="phase()"><i class="waves"></i></span>
+    <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null"><i class="wide"><i class="fill"></i></i><i class="soft"><i class="fill"></i><i class="wave"></i></i></span>
     @for (d of doors; track d) {
-      <a class="pl" [attr.data-door]="d" [attr.data-verse-fly]="d" [class.send]="c?.door === d && (phase() === 'charge' || phase() === 'reveal')"
+      <a class="pl" [attr.data-door]="d" [attr.data-verse-fly]="d" [class.send]="c?.door === d && sending()"
          [routerLink]="'/verse/' + d" (click)="door.emit(d)">
         <canvas class="pl-gl" [scBody]="bodyOf[d]"></canvas>
         <span class="plab">{{ ('verse.gates.' + d + '.topic') | translate }}</span>
@@ -72,13 +78,13 @@ export interface TransmitItem {
     }
     @if (c) {
       @if (c.internal) {
-        <a class="holo" [attr.data-phase]="phase()" [routerLink]="c.path" [queryParams]="c.query"
+        <a class="holo" [routerLink]="c.path" [queryParams]="c.query"
            (click)="open(c)" (auxclick)="open(c)" (mouseenter)="held.set(true)" (mouseleave)="held.set(false)"
            (focusin)="held.set(true)" (focusout)="held.set(false)">
           <ng-container *ngTemplateOutlet="body; context: { $implicit: c }" />
         </a>
       } @else {
-        <a class="holo" [attr.data-phase]="phase()" [href]="c.path" target="_blank" rel="noopener noreferrer"
+        <a class="holo" [href]="c.path" target="_blank" rel="noopener noreferrer"
            (click)="open(c)" (auxclick)="open(c)" (mouseenter)="held.set(true)" (mouseleave)="held.set(false)"
            (focusin)="held.set(true)" (focusout)="held.set(false)">
           <ng-container *ngTemplateOutlet="body; context: { $implicit: c }" />
@@ -86,11 +92,13 @@ export interface TransmitItem {
       }
     }
     <ng-template #body let-c>
+      <span class="holo-glass"></span>
       <span class="holo-in">
         <span class="k">{{ ('verse.gates.' + c.door + '.topic') | translate }}</span>
         <span class="t">{{ c.title }}</span>
-        <span class="b"><span class="typed">{{ c.body.slice(0, typed()) }}</span><span class="ghost" aria-hidden="true">{{ c.body.slice(typed()) }}</span></span>
+        <span class="b">{{ c.body }}</span>
       </span>
+      <i class="holo-scan"></i>
     </ng-template>
   `,
 })
@@ -102,8 +110,6 @@ export class BriefingTransmitComponent {
   readonly docked = input(false);
   /** A planet was used (analytics). */
   readonly door = output<VerseDoor>();
-  /** True while a message stands in the holo (revealed, typing or held) — the page's "more" cue waits for it to be gone. */
-  readonly shownChange = output<boolean>();
   /** The holo was opened. */
   readonly opened = output<TransmitItem>();
 
@@ -112,7 +118,8 @@ export class BriefingTransmitComponent {
   readonly bodyOf: Readonly<Record<VerseDoor, BodyKind>> = { news: 'crusader', patches: 'arccorp', gallery: 'microtech' };
   readonly index = signal(0);
   readonly phase = signal<TxPhase>('out');
-  readonly typed = signal(0);
+  /** The projection runs: the sender's atmosphere glows. */
+  readonly sending = computed(() => ['charge', 'build', 'write', 'pull'].includes(this.phase()));
   /** Pointer / focus on the holo: the relay waits. */
   readonly held = signal(false);
   readonly cur = computed<TransmitItem | null>(() => {
@@ -120,15 +127,11 @@ export class BriefingTransmitComponent {
     return l.length ? l[this.index() % l.length] : null;
   });
 
-  /** A message is on screen: not away, not charging up, not fading out. */
-  readonly shown = computed(() => !!this.cur() && !this.away() && this.phase() !== 'out' && this.phase() !== 'charge');
-
   private readonly reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
 
   constructor() {
-    effect(() => this.shownChange.emit(this.shown()));
     effect(() => {
       const n = this.items().length;
       const away = this.away();
@@ -169,29 +172,22 @@ export class BriefingTransmitComponent {
     const c = this.cur();
     if (!c) return this.stop();
     if (this.reduced) {
-      this.typed.set(c.body.length);
       this.phase.set('hold');
       return this.later(TX_HOLD_MS, () => this.next());
     }
-    this.typed.set(0);
     this.phase.set('charge');
     this.later(TX_CHARGE_MS, () => {
-      this.phase.set('reveal');
-      this.later(TX_REVEAL_MS, () => {
-        this.phase.set('type');
-        this.type(c.body.length);
+      this.phase.set('build');
+      this.later(TX_BUILD_MS, () => {
+        this.phase.set('write');
+        this.later(TX_WRITE_MS, () => {
+          this.phase.set('pull');
+          this.later(TX_PULL_MS, () => {
+            this.phase.set('hold');
+            this.later(TX_HOLD_MS, () => this.next());
+          });
+        });
       });
-    });
-  }
-
-  private type(total: number): void {
-    if (this.typed() >= total) {
-      this.phase.set('hold');
-      return this.later(TX_HOLD_MS, () => this.next());
-    }
-    this.later(1000 / TX_CHARS_PER_S, () => {
-      this.typed.update((n) => n + 1);
-      this.type(total);
     });
   }
 
