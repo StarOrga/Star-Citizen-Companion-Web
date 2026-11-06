@@ -328,8 +328,8 @@ describe('HangarService writes and loads', () => {
           return { data: [shipRow()] };
         case 'hangar_role_loadouts':
           return { data: [setRow()] };
-        case 'hangar_concept_ships':
-          return { data: [{ id: 'c1', name: 'Idris' }] };
+        case 'search_wishlist':
+          return { data: [{ entity_kind: 'upcoming', class_name: 'idris', name: 'Idris' }] };
         default:
           return { data: { flagship_ship_class: null } };
       }
@@ -359,7 +359,7 @@ describe('HangarService writes and loads', () => {
     });
 
     it('does not fail the hangar when only the concept table is missing', async () => {
-      const { svc } = setup((call) => (call.target === 'hangar_concept_ships' ? { error: failure } : answerAll(call)));
+      const { svc } = setup((call) => (call.target === 'search_wishlist' ? { error: failure } : answerAll(call)));
 
       await svc.loadAll();
 
@@ -408,14 +408,14 @@ describe('HangarService writes and loads', () => {
 
   describe('ensureConceptShipsLoaded', () => {
     const conceptAnswer = (call: FakeCall): FakeResult =>
-      call.target === 'hangar_concept_ships' ? { data: [{ id: 'c1', name: 'Idris' }] } : { data: null };
+      call.target === 'search_wishlist' ? { data: [{ entity_kind: 'upcoming', class_name: 'idris', name: 'Idris' }] } : { data: null };
 
     it('reads the concept table only and fills the cache', async () => {
       const { svc, calls } = setup(conceptAnswer);
 
       await svc.ensureConceptShipsLoaded();
 
-      expect(calls.map((c) => c.target)).toEqual(['hangar_concept_ships']);
+      expect(calls.map((c) => c.target)).toEqual(['search_wishlist']);
       expect(svc.conceptShips().map((c) => c.name)).toEqual(['Idris']);
     });
 

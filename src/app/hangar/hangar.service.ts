@@ -199,7 +199,7 @@ export class HangarService {
           .order('updated_at', { ascending: false }),
       ]);
       // The announced-ship wishlist is part of the one wishlist table; best-effort like before.
-      void this.wishlist.ensureLoaded();
+      await this.wishlist.ensureLoaded();
       if (shipsRes.error) throw shipsRes.error;
       if (loadoutsRes.error) throw loadoutsRes.error;
       this.ships.set(((shipsRes.data ?? []) as HangarShipRow[]).map(mapHangarShip));
