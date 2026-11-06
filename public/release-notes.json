@@ -1,7 +1,61 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.214.0",
+  "current": "0.216.0",
   "releases": [
+    {
+      "version": "0.216.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admins: holding Ctrl or Alt while the feedback panel has an open text field fades the panel out, so elements behind it can be marked too. Letting go or clicking brings it back with the result."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The image popup in feedback no longer has a close button that sat cut off behind the picture. Clicking next to the picture or pressing Escape closes it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.215.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/verse takes far less computing power: the background moves at a calm 15 frames per second, and it stands still while the window has no focus, then starts again softly."
+            },
+            {
+              "title": "",
+              "text": "Switching pages no longer stutters: the starry sky is now a single image."
+            },
+            {
+              "title": "",
+              "text": "Three random stars twinkle in the sky instead of the whole sky pulsing."
+            },
+            {
+              "title": "",
+              "text": "The typing demo in the search field stops after three rounds."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.214.0",
       "date": "2026-11-06",

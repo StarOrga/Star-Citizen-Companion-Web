@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.216.0] - 2026-11-06
+
+### Added
+- Admins: holding Ctrl or Alt while the feedback panel has an open text field fades the panel out, so elements behind it can be marked too. Letting go or clicking brings it back with the result.
+
+### Removed
+- The image popup in feedback no longer has a close button that sat cut off behind the picture. Clicking next to the picture or pressing Escape closes it.
+
 ## [0.215.0] - 2026-11-06
 
 ### Changed
