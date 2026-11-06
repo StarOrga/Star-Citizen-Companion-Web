@@ -1,0 +1,89 @@
+<section data-iteration="4" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">Verse-Projektion</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261106-1229-verse-projektion/shots/after-build.jpg" alt="Der Kegel baut das Panel auf"><figcaption>Aufbau</figcaption></figure>
+    <figure class="fr-shot"><img src="20261106-1229-verse-projektion/shots/after-write.jpg" alt="Die Lichtleiste schreibt den Text"><figcaption>Text</figcaption></figure>
+  </div>
+  <p class="fr-try-auth">🔑 Nicht lokal testbar: Lokal gibt es nur den Testzugang für Claude. Auf der echten Seite siehst du es nach dem Ship, dafür im Menü ☰ den Ship auswählen.</p>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Der Lichtkegel baut das Panel jetzt in einem Zug auf, schreibt beim Hochlaufen den Text hinein und zieht sich danach langsam in den Planeten zurück.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">📐</span><span>Der Kegel endet <b>genau auf der Lichtleiste</b>, auf jeder Höhe des Panels.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🌅</span><span>Aufbau und Rückzug <b>bahnen sich 2,4 s langsam an</b> und schießen erst zum Schluss.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">➡️</span><span>Von rechts gibt es <b>keinen Doppelkegel</b> mehr.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧩 Kompatibilität</span>
+          <b class="fr-meter-value">3 / 3</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Fenstergrößen mit passendem Kegel: 1920, 1366 und Handy, Ziel alle drei (geschätzt). <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 0%; --fr-target: 80%">
+          <span class="fr-meter-name">⚡ Performance</span>
+          <b class="fr-meter-value">nicht gemessen</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Der Kegel zeichnet in gut 6 s je Meldung große Flächen neu und läuft danach nicht mehr. Auf echter Grafikkarte noch nicht gemessen, Ziel: Bewegung bleibt flüssig (geschätzt). <span class="fr-meter-verdict">▲ Messung fehlt</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_prod}}<small>Stufe 5 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="done">{{final.level_local}}</li>
+      <li data-level="5" data-state="done">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Geprüft als Einzelbilder ohne echte Grafikkarte. Den Bewegungseindruck und eine echte Galerie-Meldung kannst erst du auf der Live-Seite beurteilen, lokal kam keine Galerie-Meldung an.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 Fund unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-hover"
+          data-issue-title="[BUG] Verse holo keeps animating while the pointer is on it"
+          data-issue-type="bug"
+          data-issue-body="Pointer or focus on the holo only delays the next message; a running build, write or pull phase keeps animating. Found by the parity check of the verse projection concept."
+          data-oq-origin="found"
+          data-route-default="ignore"
+          data-route-reason="harmlos">
+        <span class="oq-label">Hover hält eine laufende Animation nicht an</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Zeigst du während des Aufbaus auf das Panel, läuft die Animation zu Ende und die Meldung bleibt danach stehen.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Vorschau-Panel auf /verse</dd>
+          <dt>{{final.fund_why}}</dt><dd>Ignorieren: harmlos, und der Wechsel zur nächsten Meldung wartet weiterhin.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul>
+      <li>Commits auf <code>claude/planet-preview-panel-layout-ebf3e8</code>; Kern: <code>briefing-transmit.component.ts</code> und <code>.scss</code>, Planetenhöhe in <code>verse-briefing-planet.scss</code>.</li>
+      <li>Tests: Typecheck und Lint ohne Fehler, Karma 36 grün (planet-zone, verse-briefing), Prod-Build grün. Volle Karma-Suite läuft erst beim Ship.</li>
+      <li>Parität (unabhängige Prüfung gegen <code>parity.md</code>, Belege in <code>shots/</code>): Zeilen 1 bis 11, 13 und 14 met; Zeile 14 nur per Code gelesen. Zeile 12 war partial und ist danach an die 0,84 s des Mocks angeglichen, nicht erneut geprüft.</li>
+      <li>Bewusste Abweichungen vom Mock: Stehzeit 6 s plus 2 s Rückzug statt rund 4,4 s, Wellen mit 20 Schritten pro Sekunde wegen der Malkosten.</li>
+      <li><code>main</code> ist seit dem Merge um #960 und #961 weiter; #960 ändert <code>briefing-dock.ts</code>, die Projektion nutzt davon nichts. Vor dem Ship wird gemergt.</li>
+    </ul>
+  </details>
+</section>
