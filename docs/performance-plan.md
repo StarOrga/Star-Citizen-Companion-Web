@@ -462,9 +462,13 @@ from the gaps. The click frame itself takes 60 to 80 ms: the router renders the 
 one animation frame, with two or three forced layouts of about 30 to 40 ms in it (the hero's
 align, the title fit, the bar's placement). Rastering the new page's 15 to 19 tiles takes
 another 70 ms or so on the GPU. No content is the single cause: without the scene, the stars,
-filters or shadows the longest frame stays at 86 to 108 ms. The next lever is rendering less
-in that frame, for instance `@defer` for the sections below the fold; `briefing-dock` measures
-the hub, so that needs a plan of its own.
+filters or shadows the longest frame stays at 86 to 108 ms.
+
+So the hub now builds in steps (`staged-build.ts`): stage and hero in the click frame, doors and
+beacons behind the next paint, the hub columns behind the one after, about 70 ms in all. A menu
+hop reveals the page 420 ms after it rendered, so none of this shows. A placeholder holds the
+page's height, and `briefing-dock` already skips a part that is not there yet. Longest gap on
+the way to /verse, mean of the hops: 113 to 63 ms, worst 133 to 89 ms.
 
 Measuring trap: a fresh browser compiles its shaders on first use. That showed up as GPU
 raster flushes of up to 258 ms on the first scroll of a browser's first page, and looked
