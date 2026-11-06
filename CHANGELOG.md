@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.214.0] - 2026-11-06
+
+### Added
+- HQ Start shows Bestand, Jetzt and Planen at fixed places, with Statistik as a quiet link below.
+- Keys 1 to 4 jump to Bestand, Jetzt, Planen and Statistik; a tooltip names them after a long hover.
+- The installed app offers shortcuts to Bestand and Jetzt.
+- "Route öffnen" on Start opens exactly that saved route on Planen.
+
+### Changed
+- The HQ pages now run Start, Bestand, Jetzt, Planen, Statistik.
+- A patch that touches your ships or sets takes the title of the HQ hero.
+- While the game runs, Jetzt shows the next step of your first planned Einsatz, and no button without one.
+- The app button says "SCC-App downloaden" until the app is known on the account or in this browser.
+- The hint to the next page looks like the one in the Verse and stands back while the page runs on below the screen.
+- HQ texts say "Route" instead of "Weg".
+
+### Removed
+- The first-visit steps, the friends line, the patch line and the chips on HQ Start. Friend requests stay on the social page.
+
 ## [0.213.1] - 2026-11-06
 
 ### Fixed
