@@ -1,4 +1,4 @@
-import { LIVE_PRESENCE_MAX_AGE_MS, formatLocationName, isGameLive, presenceAt, sessionEnded } from './hq-live.util';
+import { LIVE_PRESENCE_MAX_AGE_MS, disconnectedInSession, formatLocationName, isGameLive, presenceAt, sessionEndedSince } from './hq-live.util';
 
 describe('formatLocationName', () => {
   it('drops the body prefix and spaces out camelCase', () => {
@@ -34,11 +34,44 @@ describe('isGameLive', () => {
     expect(isGameLive(null, [], now)).toBeFalse();
   });
 
-  it('is false when the newest session event says the game ended', () => {
-    const events = [{ type: 'session.quit' }, { type: 'session.joined' }];
-    expect(sessionEnded(events)).toBeTrue();
+  const ago = (ms: number): string => new Date(now - ms).toISOString();
+
+  it('is false when the game ended after the last life sign', () => {
+    const events = [
+      { type: 'session.quit', at: ago(500) },
+      { type: 'session.joined', at: ago(60_000) },
+    ];
+    expect(sessionEndedSince(events, now - 1000)).toBeTrue();
     expect(isGameLive(state(true, 1000), events, now)).toBeFalse();
-    expect(isGameLive(state(true, 1000), [{ type: 'qt.arrived' }, { type: 'session.joined' }], now)).toBeTrue();
+  });
+
+  it('is true for a running session whose join event was never uploaded', () => {
+    // The app attached to the log after the join: only the previous session's end is in the feed.
+    const events = [{ type: 'qt.arrived', at: ago(5000) }, { type: 'session.quit', at: ago(86_400_000) }];
+    expect(isGameLive(state(true, 1000), events, now)).toBeTrue();
+  });
+
+  it('is true after a joined session and on a new life sign after a quit', () => {
+    expect(isGameLive(state(true, 1000), [{ type: 'session.joined', at: ago(500) }], now)).toBeTrue();
+    expect(isGameLive(state(true, 1000), [{ type: 'session.quit', at: ago(2000) }], now)).toBeTrue();
+  });
+
+  it('is false while disconnected in this session, true again after the rejoin', () => {
+    const inSession = {
+      ...state(true, 1000),
+      sessionStartedAt: ago(600_000),
+      lastDisconnect: { is30k: true, at: ago(60_000) },
+    };
+    expect(disconnectedInSession(inSession)).toBeTrue();
+    expect(isGameLive(inSession, [], now)).toBeFalse();
+    const rejoined = { ...inSession, lastDisconnect: { ...inSession.lastDisconnect, recapConsumed: true } };
+    expect(isGameLive(rejoined, [], now)).toBeTrue();
+  });
+
+  it('ignores a disconnect of an earlier session and a state without a session start', () => {
+    const lastDisconnect = { at: ago(900_000) };
+    expect(isGameLive({ ...state(true, 1000), sessionStartedAt: ago(600_000), lastDisconnect }, [], now)).toBeTrue();
+    expect(isGameLive({ ...state(true, 1000), lastDisconnect }, [], now)).toBeTrue();
   });
 });
 

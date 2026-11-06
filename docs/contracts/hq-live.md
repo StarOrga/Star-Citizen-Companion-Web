@@ -85,6 +85,13 @@ every 60 s, writes each time while the game runs and once when it stops. The web
 as current only while `gameRunning` is true and `at` is younger than 3 minutes; a missing or stale
 `presence` means no signal (app closed, crashed, or older than this contract).
 
+The life sign outranks older session events: replay events are never published, so when the app
+attaches to the log of a running game the `session.joined` never arrives and the previous session's
+`session.quit` stays the newest session event. Only a `session.quit` / `disconnect` newer than
+`presence.at` ends live, and so does `state.lastDisconnect` when its `at` is not before
+`state.sessionStartedAt` and `recapConsumed` is not set (the client is back in the menu, the process
+still runs).
+
 ### `hq_inventory_snapshots` PK (user_id, location)
 
 `location text, system text|null, source text, taken_at timestamptz, item_count int`. A new
