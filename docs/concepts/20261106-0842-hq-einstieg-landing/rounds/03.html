@@ -1,0 +1,316 @@
+<section data-iteration="3" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone" data-orientations="portrait" data-tab-label="Runde 3">
+<style>
+.d3-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #84a0b6; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b;
+  position: relative; display: block; width: 100%; height: 100%; min-height: 760px; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 60% 34% at 80% 3%, rgba(120, 190, 220, 0.2), transparent 70%), radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 34%, #040a11 64%, #02070d 100%); }
+.d3-app *, .d3-app *::before, .d3-app *::after { box-sizing: border-box; }
+.d3-grid { position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image: linear-gradient(rgba(82, 193, 230, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 193, 230, 0.05) 1px, transparent 1px); background-size: 64px 64px; }
+.d3-mh { position: absolute; z-index: 2; inset: 44px 0 auto 0; height: 40px; display: flex; justify-content: center; }
+.d3-brand { max-width: calc(50% - 190px); position: absolute; left: 24px; top: 0; display: flex; align-items: center; gap: 12px; height: 40px; text-align: left; }
+.d3-mark { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, var(--a) 9% 22%, transparent 24% 40%, rgba(82, 193, 230, 0.55) 42% 48%, transparent 50%); }
+.d3-wm { display: grid; }
+.d3-wm b { font: 700 15px/1.25 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.d3-wm small { font: 9px/1.4 Orbitron, system-ui, sans-serif; letter-spacing: 0.42em; text-transform: uppercase; color: var(--a); }
+.d3-nav { position: relative; display: flex; }
+.d3-nav span { display: flex; align-items: center; justify-content: center; width: 112px; height: 40px; font: 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg2); }
+.d3-nav .on { color: var(--fg); text-shadow: 0 0 18px rgba(82, 193, 230, 0.55); }
+.d3-nav i { position: absolute; bottom: 2px; left: 260px; width: 40px; height: 2px; border-radius: 2px; background: var(--a); box-shadow: 0 0 12px var(--a); }
+.d3-acc { position: absolute; right: 96px; top: 0; display: flex; align-items: center; gap: 8px; height: 40px; }
+.d3-apps { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 20px; background: #123246; color: var(--fg2); font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.d3-av { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: #123246; color: var(--a); font-weight: 600; }
+.d3-rail { position: absolute; z-index: 2; left: 14px; top: 42%; display: flex; flex-direction: column; gap: 12px; }
+.d3-rail i { display: block; width: 12px; height: 2px; border-radius: 2px; background: rgba(159, 179, 200, 0.45); }
+.d3-rail i.on { width: 22px; background: var(--a); box-shadow: 0 0 10px var(--a); }
+.d3-head { position: absolute; z-index: 1; left: 0; right: 0; bottom: calc(70% + 24px); }
+.d3-kick { margin: 0; font: 500 11.5px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--a); }
+.d3-title { margin: 12px 0 0; font: 500 50px/1.1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: var(--fg); text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7); }
+.d3-below { position: absolute; z-index: 1; top: 30%; left: 0; right: 0; margin-inline: auto; display: flex; flex-direction: column; align-items: center; width: min(100% - 96px, 1120px); }
+.d3-cap { display: flex; align-items: center; gap: 10px; width: min(640px, 100%); height: 60px; padding: 0 20px; border: 1px solid transparent; border-radius: 999px; background: rgba(0, 0, 0, 0.28); color: var(--fg2); font-size: 14.7px; text-align: left; box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.25), 0 0 18px rgba(82, 193, 230, 0.12); }
+.d3-cap svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--a); stroke-width: 1.8; stroke-linecap: round; }
+.d3-cap span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.d3-cap kbd { padding: 2px 7px; border: 1px solid var(--line); border-radius: 5px; background: rgba(159, 179, 200, 0.1); font: 11px Inter, system-ui, sans-serif; color: var(--fg2); }
+.d3-area { width: 100%; margin-top: 48px; }
+.d3-after { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 22px; font-size: 13px; color: var(--fg2); }
+.d3-after a { color: var(--fg2); text-decoration: none; }
+.d3-after a:hover { color: var(--a); }
+.d3-after a b { font-weight: 500; color: var(--fg); }
+.d3-cue { position: absolute; z-index: 2; left: 50%; bottom: 14px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--fg2); font: 500 11px/1 Inter, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
+.d3-cue::after { content: ""; width: 9px; height: 9px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
+.d3-bottom { display: none; }
+/* Side tiles */
+.d3-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.d3-tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 176px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(10, 28, 40, 0.8); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d3-tile:hover { border-color: var(--a); }
+.d3-tile.next { border-color: var(--a); box-shadow: 0 0 22px rgba(82, 193, 230, 0.18); }
+.d3-tile > span, .d3-now > span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg3); }
+.d3-tile b, .d3-now b { font: 500 18px/1.25 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d3-tile small, .d3-now small { font-size: 13px; color: var(--fg2); }
+.d3-tile em { margin-top: auto; padding-top: 6px; font-style: normal; color: var(--a); }
+.d3-warn { color: var(--warn); }
+.d3-live { display: inline-flex; align-items: center; gap: 7px; color: var(--ok); }
+.d3-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+/* Centre element: Jetzt */
+.d3-now { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 12px 10px; border: 0; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; }
+.d3-now em { margin-top: 6px; font-style: normal; color: var(--a); }
+.d3-hint { position: relative; margin-top: 6px; color: var(--fg2); font-size: 13.5px; font-style: normal; cursor: help; border-bottom: 1px dotted var(--fg3); }
+.d3-tip { position: absolute; z-index: 5; bottom: calc(100% + 8px); left: 50%; translate: -50% 0; width: 250px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #061724; color: var(--fg); font-size: 12.5px; line-height: 1.4; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.d3-hint:hover .d3-tip { opacity: 1; }
+/* Take 1: open, no frame */
+.d3-open::before, .d3-open::after { content: ""; position: absolute; top: 12%; bottom: 12%; width: 1px; background: linear-gradient(180deg, transparent, rgba(82, 193, 230, 0.45), transparent); }
+.d3-open::before { left: 0; } .d3-open::after { right: 0; }
+.d3-open b { font-size: 24px; }
+.d3-open.on b { color: var(--ok); text-shadow: 0 0 18px rgba(95, 214, 152, 0.4); }
+/* Take 2: round scope */
+.d3-scope { justify-self: center; width: 232px; height: 232px; margin-block: -28px 0; padding: 24px; border-radius: 50%; background: radial-gradient(circle, rgba(82, 193, 230, 0.06) 0 35%, transparent 36%), radial-gradient(circle, rgba(10, 32, 46, 0.92) 0 69%, transparent 70%); box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.4), inset 0 0 0 26px rgba(82, 193, 230, 0.03), inset 0 0 0 27px rgba(82, 193, 230, 0.18), 0 0 26px rgba(82, 193, 230, 0.12); }
+.d3-scope b { font-size: 16px; }
+.d3-scope.on { box-shadow: inset 0 0 0 1px rgba(95, 214, 152, 0.7), inset 0 0 0 26px rgba(95, 214, 152, 0.04), inset 0 0 0 27px rgba(95, 214, 152, 0.28), 0 0 30px rgba(95, 214, 152, 0.2); }
+/* Take 3: bridge, side consoles lean in */
+.d3-bridge { perspective: 900px; }
+.d3-bridge .d3-t-bestand { transform: rotateY(14deg); transform-origin: right center; }
+.d3-bridge .d3-t-planen { transform: rotateY(-14deg); transform-origin: left center; }
+.d3-console { padding: 16px; border: 1px solid rgba(82, 193, 230, 0.4); border-radius: 18px 18px 6px 6px; background: linear-gradient(180deg, rgba(18, 50, 70, 0.75), rgba(6, 23, 36, 0.92)); box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45); }
+.d3-console b { font-size: 22px; }
+.d3-console.on { border-color: var(--ok); box-shadow: 0 0 24px rgba(95, 214, 152, 0.18), 0 16px 32px rgba(0, 0, 0, 0.45); }
+@container device (max-width: 520px) {
+  .d3-app { min-height: 100%; }
+  .d3-mh { inset: 14px 0 auto 0; } .d3-nav, .d3-rail, .d3-cue, .d3-apps { display: none; }
+  .d3-brand { left: 14px; max-width: none; } .d3-acc { right: 14px; } .d3-wm b { font-size: 11px; letter-spacing: 0.08em; } .d3-mark { width: 24px; height: 24px; }
+  .d3-title { font-size: 28px; }
+  .d3-below { width: calc(100% - 32px); } .d3-cap kbd { display: none; } .d3-area { margin-top: 20px; }
+  .d3-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .d3-now { grid-column: 1 / -1; grid-row: 1; }
+  .d3-scope { width: 176px; height: 176px; margin-block: 0; padding: 12px; } .d3-scope b { font-size: 14px; }
+  .d3-bridge { perspective: none; } .d3-bridge .d3-tile { transform: none; }
+  .d3-tile { min-height: 124px; padding: 12px; } .d3-tile b { font-size: 14px; } .d3-tile small { font-size: 12px; } .d3-tile em { font-size: 12.5px; }
+  .d3-open b, .d3-console b { font-size: 18px; }
+  .d3-after { margin-top: 10px; }
+  .d3-bottom { position: absolute; z-index: 2; inset: auto 0 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 10px 4px; border-top: 1px solid var(--line); background: rgba(6, 23, 36, 0.95); font-size: 11.5px; color: var(--fg2); }
+  .d3-bottom b { font-weight: 600; color: var(--a); }
+}
+</style>
+  <section data-design="offen" data-nav-label="Jetzt: offen ohne Rahmen" data-design-active="true" data-design-motto="Jetzt steht offen, ohne Rahmen" data-design-traits="Mitte ohne Kachelrahmen|Zwei feine Linien trennen die Seiten|Am wenigsten Effekt" data-design-icon="compass" data-design-color="#6fe0c8" data-design-improved="Bestand links, Jetzt in der Mitte, Planen rechts; Statistik nur noch als Textlink; Überspringen und Freunde-Zeile entfernt">
+    <section id="j1-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand next" type="button" data-screen-link="j1-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><div class="d3-now d3-open"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j1-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="j1-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand" type="button" data-screen-link="j1-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d3-now d3-open"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j1-busy"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div><div class="d3-after"><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-j1-a1" data-anno-side="bottom" data-anno-target=".d3-hint" style="--anno-x:50%;--anno-y:56%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-j1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-j1-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-j1-a1" data-anno-bubble="r3-j1-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Immer eine Aktion, hier als Hinweis mit Tooltip</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-j1-a1" aria-expanded="false" aria-controls="anno-bubble-r3-j1-a1"><span class="anno-bubble-question">Der Hinweis „SCC-App starten“ ist nicht klickbar und erklärt sich im Tooltip, wie du es wolltest. Die Fläche führt aber trotzdem zur Seite Jetzt, wo der echte Startknopf liegt. Passt das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r3-j1-a1" data-annotation="r3-j1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r3-j1-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="r3-j1-a2" data-anno-side="bottom" data-anno-target=".d3-t-planen" style="--anno-x:76%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-j1-a2" aria-expanded="false" aria-controls="anno-bubble-r3-j1-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r3-j1-a2" data-anno-bubble="r3-j1-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Überschrift wie beim ersten Besuch, Aktion Jetzt planen</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-j1-a2" aria-expanded="false" aria-controls="anno-bubble-r3-j1-a2"><span class="anno-bubble-question">Ich lese deine zwei Rückmeldungen so: Überschrift „Noch nichts geplant“ wie beim ersten Besuch, die Aktion heißt „Jetzt planen ›“. Richtig verstanden?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r3-j1-a2" data-annotation="r3-j1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r3-j1-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="j1-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand" type="button" data-screen-link="j1-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d3-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></button><div class="d3-now d3-open"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j1-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button></div></div><div class="d3-after"><a href="#">4.3.1 · S3-Repeater −8 % · betrifft Bounty v3 ›</a><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-j1-a3" data-anno-side="right" data-anno-target=".d3-after" style="--anno-x:50%;--anno-y:76%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-j1-a3" aria-expanded="false" aria-controls="anno-bubble-r3-j1-a3" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-j1-a3" data-anno-bubble="r3-j1-a3" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Freunde-Zeile entfernt</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-j1-a3" aria-expanded="false" aria-controls="anno-bubble-r3-j1-a3"><span class="anno-bubble-question">Die Patch-Zeile steht noch unter den Kacheln, deine Runde 2 hat dazu nichts gesagt. Behalten, oder soll sie in die Bestand-Kachel wandern, weil sie deine Sets betrifft?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r3-j1-a3" data-annotation="r3-j1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r3-j1-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="j1-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d3-now d3-open on"><span>Jetzt</span><b>New Babbage</b><small><span class="d3-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></div><button class="d3-tile d3-t-planen" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Weg öffnen ›</em></button></div></div><div class="d3-after"><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+  <section data-design="scope" data-nav-label="Jetzt: rundes Instrument" hidden data-design-motto="Jetzt als rundes Instrument" data-design-traits="Runde Form statt Rechteck|Ring wird grün, wenn das Spiel läuft|Weniger Platz für Text" data-design-icon="gauge" data-design-color="#52d6c0" data-design-improved="Bestand links, Jetzt in der Mitte, Planen rechts; Statistik nur noch als Textlink; Überspringen und Freunde-Zeile entfernt">
+    <section id="j2-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand next" type="button" data-screen-link="j2-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><div class="d3-now d3-scope"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j2-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="j2-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand" type="button" data-screen-link="j2-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d3-now d3-scope"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j2-busy"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div><div class="d3-after"><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="j2-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand" type="button" data-screen-link="j2-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d3-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></button><div class="d3-now d3-scope"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j2-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button></div></div><div class="d3-after"><a href="#">4.3.1 · S3-Repeater −8 % · betrifft Bounty v3 ›</a><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="j2-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row"><button class="d3-tile d3-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d3-now d3-scope on"><span>Jetzt</span><b>New Babbage</b><small><span class="d3-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></div><button class="d3-tile d3-t-planen" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Weg öffnen ›</em></button></div></div><div class="d3-after"><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-j2-a1" data-anno-side="bottom" data-anno-target=".d3-scope" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-j2-a1" aria-expanded="false" aria-controls="anno-bubble-r3-j2-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-j2-a1" data-anno-bubble="r3-j2-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Rundes Instrument statt Kachel</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-j2-a1" aria-expanded="false" aria-controls="anno-bubble-r3-j2-a1"><span class="anno-bubble-question">Der Ring leuchtet grün, solange das Spiel läuft. Trägt die runde Form auch längere Ortsnamen wie „Port Tressler“?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r3-j2-a1" data-annotation="r3-j2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r3-j2-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-design="bruecke" data-nav-label="Jetzt: Brücke mit Konsolen" hidden data-design-motto="Brücke mit Mittelkonsole" data-design-traits="Seitenkacheln neigen sich zur Mitte|Mitte wirkt wie eine Konsole|Am stärksten im Spiel-Look" data-design-icon="rocket" data-design-color="#f0c27b" data-design-improved="Bestand links, Jetzt in der Mitte, Planen rechts; Statistik nur noch als Textlink; Überspringen und Freunde-Zeile entfernt">
+    <section id="j3-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row d3-bridge"><button class="d3-tile d3-t-bestand next" type="button" data-screen-link="j3-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><div class="d3-now d3-console"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j3-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="j3-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row d3-bridge"><button class="d3-tile d3-t-bestand" type="button" data-screen-link="j3-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d3-now d3-console"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j3-busy"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div><div class="d3-after"><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r3-j3-a1" data-anno-side="top" data-anno-target=".d3-console" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r3-j3-a1" aria-expanded="false" aria-controls="anno-bubble-r3-j3-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r3-j3-a1" data-anno-bubble="r3-j3-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Neigung statt flacher Kacheln</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r3-j3-a1" aria-expanded="false" aria-controls="anno-bubble-r3-j3-a1"><span class="anno-bubble-question">Die Seitenkacheln neigen sich wie Stationen auf einer Schiffsbrücke zur Mitte. Passt das zum HQ, oder ist es dir zu verspielt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r3-j3-a1" data-annotation="r3-j3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r3-j3-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="j3-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row d3-bridge"><button class="d3-tile d3-t-bestand" type="button" data-screen-link="j3-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d3-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></button><div class="d3-now d3-console"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><i class="d3-hint">SCC-App starten<span class="d3-tip">Startet über die SCC-App auf deinem PC. Falls du sie nicht mehr hast: Unter Apps oben rechts kannst du sie erneut herunterladen.</span></i></div><button class="d3-tile d3-t-planen" type="button" data-screen-link="j3-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button></div></div><div class="d3-after"><a href="#">4.3.1 · S3-Repeater −8 % · betrifft Bounty v3 ›</a><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="j3-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d3-app"><div class="d3-grid"></div>
+        <header class="d3-mh"><div class="d3-brand"><i class="d3-mark"></i><div class="d3-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d3-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d3-acc"><span class="d3-apps">Apps</span><span class="d3-av">J</span></div></header>
+        <div class="d3-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d3-head"><p class="d3-kick">Dein HQ</p><h2 class="d3-title">Hauptquartier</h2></div>
+        <div class="d3-below"><div class="d3-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d3-area"><div class="d3-row d3-bridge"><button class="d3-tile d3-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d3-now d3-console on"><span>Jetzt</span><b>New Babbage</b><small><span class="d3-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></div><button class="d3-tile d3-t-planen" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Weg öffnen ›</em></button></div></div><div class="d3-after"><a href="#"><b>14 Missionen</b> in dieser Woche · Statistik ›</a></div></div>
+        <div class="d3-cue">Bestand</div>
+        <div class="d3-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+  <section data-view="hq-reihenfolge-3" data-view-kind="analysis" data-analysis="full" data-nav-label="Wege und Anordnung" hidden>
+    <section id="r3-brief" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Kreativer heißt hier: nicht die Plätze ändern, sondern die Wege dorthin. Studien warnen vor Oberflächen, die sich umsortieren, und empfehlen stabile Plätze mit zusätzlichen Einstiegen.</p>
+      <p data-briefing-why>Das passt zu deinem Wunsch nach festen Plätzen und bedient trotzdem beide Spielertypen.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"0","unit":"Plätze","label":"ändern sich durch die neuen Einstiege"}'>0 Plätze</div>
+      <a data-briefing-topic="r3-t1" data-share="100">Wege und Anordnung</a>
+      <p data-briefing-duration>≈ 2 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Plätze"}'></div></div>
+        <div data-slot="long"><p>Grenze der Recherche: Die Forschung ist belegt, die Produktbeispiele nur teilweise. Steam, Destiny und ähnliche Apps konnte ich nicht prüfen und nenne sie deshalb nicht.</p></div>
+      </div>
+    </section>
+    <section id="r3-t1" data-topic data-nav-label="Wege und Anordnung">
+      <div data-alevel="2" data-title="Wege und Anordnung">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Erst die Wege hinein, dann die Lage der Seiten."}'></div></div>
+        <div data-slot="long"><p>Zwei Fragen: welche zusätzlichen Einstiege es gibt und wie die Seiten unter Start liegen.</p></div>
+      </div>
+    <section id="r3-entry" data-nav-label="Mehr Wege hinein" data-decision="r3-entry" data-decision-mode="multi" data-label="Zusätzliche Einstiege ins HQ" data-rec="resume shortcuts" data-rec-why="Beide ändern keinen Platz und bringen jeden Spielertyp direkt zu seiner Seite. Sie sind außerdem klein." data-applies-to="die Wege ins HQ, die Anordnung bleibt fest" data-finding="f-r3-entry">
+      <p data-applies>Gilt für: die Wege ins HQ, die Anordnung bleibt fest</p>
+      <p data-situation>Die Forschung spricht gegen umsortieren: Wechselnde Plätze brechen die räumliche Erinnerung. Als sicher gilt ein zusätzlicher Einstieg, während alles an seinem festen Platz bleibt.</p>
+      <h3 data-question>Welche zusätzlichen Einstiege soll das HQ bekommen?</h3>
+      <p data-stakes>Wie schnell Bestand- und Jetzt-Spieler ohne Umstellen an ihr Ziel kommen.</p>
+      <div data-options>
+        <label data-opt="resume" data-recommended><input type="checkbox" name="dm-r3-entry.resume" checked><span data-opt-label>„Weiter bei …“ auf Start</span><span data-opt-consequence>Eine Zeile merkt sich deine letzte Seite, z. B. „Weiter bei Bestand ›“. Start bleibt neutral und nichts springt von allein.</span></label>
+        <label data-opt="shortcuts" data-recommended><input type="checkbox" name="dm-r3-entry.shortcuts" checked><span data-opt-label>Direkt von außen starten</span><span data-opt-consequence>App-Shortcuts der PWA und die SCC-App führen direkt zu Bestand oder Jetzt. Nur installiert, auf iOS nicht.</span></label>
+        <label data-opt="land"><input type="checkbox" name="dm-r3-entry.land"><span data-opt-label>Direkt auf der letzten Seite öffnen</span><span data-opt-consequence>Wie „Last visited page“ in Notion. Spart einen Klick, aber Start ist seltener zu sehen und die Suche dort auch.</span></label>
+        <label data-opt="ask"><input type="checkbox" name="dm-r3-entry.ask"><span data-opt-label>Einmal fragen: „Wo startest du?“</span><span data-opt-consequence>Eine Frage beim ersten Besuch. Wird danach zur versteckten Einstellung und veraltet, wenn sich dein Spielen ändert.</span></label>
+        <label data-opt="keys"><input type="checkbox" name="dm-r3-entry.keys"><span data-opt-label>Tasten für die Seiten</span><span data-opt-consequence>1 bis 4 oder Strg K mit Seitennamen. Sehr schnell für Vielnutzer, für alle anderen unsichtbar.</span></label>
+      </div>
+      <textarea data-comment="r3-entry-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-entry-none" value=""><input type="hidden" name="dm-r3-entry-hes" value=""><input type="hidden" name="dm-r3-entry-touched" value=""><input type="hidden" name="dm-r3-entry-issue" value=""><input type="hidden" name="dm-r3-entry-epic" value="">
+      <div data-alevel="3" data-title="Mehr Wege hinein"><div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Weiter bei … und Start von außen."}'></div></div><div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Fester Platz plus zusätzlicher Einstieg statt Umsortieren."}'></div><p>Geprüft: <a href="https://www.nngroup.com/articles/spatial-memory/" target="_blank" rel="noopener noreferrer">NN/g: Spatial Memory</a>, <a href="https://www.nngroup.com/articles/customization-personalization/" target="_blank" rel="noopener noreferrer">NN/g: Customization vs. Personalization</a>, <a href="https://www.cs.ubc.ca/labs/edapt/papers/findlater2004.pdf" target="_blank" rel="noopener noreferrer">Findlater und McGrenere 2004</a>, <a href="https://kgajos.seas.harvard.edu/papers/AIMag09-AUIs.pdf" target="_blank" rel="noopener noreferrer">Findlater und Gajos 2009</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/How_to/Expose_common_actions_as_shortcuts" target="_blank" rel="noopener noreferrer">MDN: App-Shortcuts</a>. „Last visited page“ kenne ich nur aus einer Anleitung, nicht aus Notions eigener Hilfe: <a href="https://www.landmarklabs.co/notion-tutorials/open-on-startup-notion" target="_blank" rel="noopener noreferrer">Anleitung zu Notion: Open on start</a>. Die Studien behandeln Menüs und Oberflächen allgemein, keine Companion-Apps. Die Übertragung aufs HQ ist meine Schlussfolgerung.</p></div></div>
+    </section>
+    <section id="r3-layout" data-nav-label="Seiten im Raum" data-decision="r3-layout" data-decision-mode="chain" data-label="Anordnung der Seiten unter Start" data-rec="match" data-rec-why="Dann gilt auf Start und beim Scrollen dieselbe Folge, und dein gewählter Einstieg mit Bestand bleibt erhalten." data-applies-to="Scrollfolge, Rail, Bottom-Bar und den Pfeil auf Start" data-finding="f-r3-layout">
+      <p data-applies>Gilt für: Scrollfolge, Rail, Bottom-Bar und den Pfeil auf Start</p>
+      <p data-situation>Deine Antworten passen nicht ganz zusammen: Als Folge hast du Bestand, Planen, Jetzt gewählt, auf Start willst du aber Bestand links, Jetzt in der Mitte, Planen rechts.</p>
+      <h3 data-question>Wie liegen die Seiten unter Start, wenn Jetzt in der Mitte steht?</h3>
+      <p data-stakes>Ob Start und Seiten dieselbe Reihenfolge erzählen, und wie groß der Umbau wird.</p>
+      <div data-options>
+        <label data-opt="match" data-recommended><input type="radio" name="dm-r3-layout" value="match" checked><span data-opt-label>Scrollen wie auf Start</span><ol data-opt-steps><li>Start</li><li>Bestand</li><li data-step-new>Jetzt</li><li data-step-new>Planen</li><li>Statistik</li></ol><span data-opt-consequence>Von links nach rechts ist gleich von oben nach unten. Planen rückt ans Ende der Aufgaben.</span></label>
+        <label data-opt="stock"><input type="radio" name="dm-r3-layout" value="stock"><span data-opt-label>Deine Folge bleibt</span><ol data-opt-steps><li>Start</li><li>Bestand</li><li>Planen</li><li>Jetzt</li><li>Statistik</li></ol><span data-opt-consequence>Wie in Runde 2 gewählt. Auf Start steht Jetzt aber vor Planen, beim Scrollen danach.</span></label>
+        <label data-opt="stations"><input type="radio" name="dm-r3-layout" value="stations"><span data-opt-label>Stationen: links, rechts, vorn</span><ol data-opt-steps><li data-step-new>Bestand links</li><li data-step-new>Start und Jetzt</li><li data-step-new>Planen rechts</li></ol><span data-opt-consequence>Die Seiten liegen nebeneinander, es gibt kein Erstes mehr. Hebt D1 und D5 auf, ist der größte Umbau und auf dem Handy am schwierigsten.</span></label>
+      </div>
+      <textarea data-comment="r3-layout-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r3-layout-none" value=""><input type="hidden" name="dm-r3-layout-hes" value=""><input type="hidden" name="dm-r3-layout-touched" value=""><input type="hidden" name="dm-r3-layout-issue" value=""><input type="hidden" name="dm-r3-layout-epic" value="">
+      <div data-alevel="3" data-title="Seiten im Raum"><div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Scrollen wie auf Start."}'></div></div><div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Bestand · Jetzt · Planen · Statistik"}'></div><p>Die Mocks dieser Runde zeigen diese Folge schon im Pfeil und in der Bottom-Bar. Deep-Links wie /hq#jetzt bleiben in allen drei Fällen gültig. Beim Stations-Modell ist die Form ein Spiel-Vorbild, zum Beispiel Cockpit-Panels links und rechts. Einen Beleg, dass das im Web gut funktioniert, habe ich nicht gefunden.</p></div></div>
+    </section>
+    </section>
+  </section>
+</section>

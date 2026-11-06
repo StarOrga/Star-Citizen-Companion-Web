@@ -74,5 +74,106 @@
       }
     },
     "submission_id": "sub-mw4p0wdh-147dmwjm"
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": "drei",
+    "decisions": [
+      {
+        "id": "r2-model",
+        "label": "Umgang mit verschiedenen Spielern",
+        "mode": "single",
+        "value": "",
+        "rec": "tiles",
+        "none": true,
+        "note": "ne, da noch kreativer werden!  bzw. best practices dir ansehen!"
+      },
+      {
+        "id": "r2-default",
+        "label": "Standardfolge der HQ-Seiten",
+        "mode": "chain",
+        "value": "stock",
+        "rec": "prep",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "r2-word",
+        "label": "Text statt Nichts offen",
+        "mode": "wording",
+        "value": "Jetzt Planen! Lieber machen",
+        "choice": "custom",
+        "rec": "w1",
+        "none": false,
+        "note": ""
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw4pjbdo4cnf",
+        "design": "drei",
+        "screen": "k4-first",
+        "x": 50.5,
+        "y": 67.8,
+        "target": "button.d2-skip \"Überspringen\"",
+        "text": "ich glaube übersprignen benötigen wir jetzt nicht mehr!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4pjvwiko57",
+        "design": "drei",
+        "screen": "k4-quiet",
+        "x": 28.3,
+        "y": 44.2,
+        "target": "b \"Alles beisammen\"",
+        "text": "da gefällt mir das lieber von erster besuch!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4pk2fqf3p2",
+        "design": "drei",
+        "screen": "k4-quiet",
+        "x": 48.4,
+        "y": 63.7,
+        "target": "button.d2-strip \"Statistik14 Missionenin dieser Woche\"",
+        "text": "Das könnte auch einfach unauffälliger darunter zentriert stehen, Statistik bruach tkeine so große aufmerksamkeit, reicht ala text link oder so.",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4pkw73abfb",
+        "design": "drei",
+        "screen": "k4-busy",
+        "x": 66.2,
+        "y": 47.2,
+        "target": "b \"Kein Live-Signal\"",
+        "text": "jetzt würde ich in der mitte anzeigene, vlltt. aber nicht als solche kaachel?! Bestand würde ich links machen, planen rechts!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4ply3gfyrw",
+        "design": "drei",
+        "screen": "k4-busy",
+        "x": 53,
+        "y": 67.2,
+        "target": "a \"1 Einsatz von Freunden geteilt ›\"",
+        "text": "die zeile hier unten bruacht es nicht denke ich",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4pmq5xfydu",
+        "design": "drei",
+        "screen": "k4-quiet",
+        "x": 63.2,
+        "y": 56,
+        "target": "button.d2-tile.d2-t-jetzt \"JetztKein Live-SignalZuletzt: New Babbag\"",
+        "text": "Vllt. immer eine cta, aber hier dann SCC App starten als hinweis und nicht anklickbar, im tooltip gern die info auch, dass man apps öffnen kann um es sich erneut herunterzuladen von dem text cta",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": "devops learn warum in der übersicht mir nix an inhalten in den kacheln  gut angezeigt wird!"
+    },
+    "submission_id": "sub-mw4qduir-vqch2zxt"
   }
 ]
