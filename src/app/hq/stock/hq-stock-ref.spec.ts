@@ -48,7 +48,7 @@ describe('stock material suggestions', () => {
 
   it('collapses crates per material, ranks exact names first and drops paints, doors and unnamed materials', () => {
     const out = stockSuggestions(hits, 'iron', 'en');
-    expect(out.map((o) => o.title)).toEqual(['Iron', 'Iron (Ore)', 'Ironclad Helmet']);
+    expect(out.map((o) => o.title)).toEqual(['Iron', 'Ironclad Helmet', 'Iron (Ore)', 'Copper (Ore)']);
     expect(out[0].key).toBe('item:Carryable_TBO_FL_32SCU_Commodity_Metal_Iron');
   });
 

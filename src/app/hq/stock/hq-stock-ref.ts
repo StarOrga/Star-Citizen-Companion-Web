@@ -130,7 +130,7 @@ export function stockSuggestions(hits: readonly PolySearchHit[], rawTerm: string
       .sort((a, b) => matchRank(a.title, term) - matchRank(b.title, term) || a.h.classNameSlug.localeCompare(b.h.classNameSlug));
     const best = titled[0];
     const rep = [...g.hits].sort((a, b) => a.classNameSlug.localeCompare(b.classNameSlug))[0];
-    const title = g.ore && !/ore/i.test(best.title) ? `${best.title} (Ore)` : best.title;
+    const title = g.ore && !/\bore\b/i.test(best.title) ? `${best.title} (Ore)` : best.title;
     // A hit by the other language's name ("Eisen" for the iron crates) matches through any sibling.
     const rank = Math.min(...titled.map((x) => matchRank(x.title, term)));
     out.push({ key: encodeStockRef('item', rep.classNameSlug), kind: 'item', title, rank });
