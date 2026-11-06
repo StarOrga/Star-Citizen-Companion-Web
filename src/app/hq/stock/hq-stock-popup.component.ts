@@ -11,7 +11,7 @@ import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.compon
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService, snapshotAge } from '../data/hq-inventory.service';
-import { formatLocationName, readLocation } from '../now/hq-live.util';
+import { formatLocationName, placeLabel, readLocation } from '../now/hq-live.util';
 import { HqLiveService } from '../now/hq-live.service';
 import { placeOfName } from '../plan/map/hq-places';
 import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-stock-find';
@@ -389,7 +389,7 @@ export class HqStockPopupComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  protected readonly placeName = formatLocationName;
+  protected readonly placeName = (n: string): string => placeLabel(n, this.translate.getCurrentLang());
   protected readonly cats: readonly StockCategory[] = STOCK_CATEGORIES;
 
   protected readonly modeOptions: readonly ScSegmentOption[] = [
@@ -452,7 +452,7 @@ export class HqStockPopupComponent implements OnInit {
     [...new Set(this.inv.items().map((i) => i.location))]
       .filter((l) => !isPlaceFree(l))
       .sort((a, b) => a.localeCompare(b))
-      .map((l) => ({ value: l, labelKey: '', label: formatLocationName(l) })),
+      .map((l) => ({ value: l, labelKey: '', label: this.placeName(l) })),
   );
 
   constructor() {

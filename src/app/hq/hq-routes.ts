@@ -8,6 +8,7 @@
  *   `v`    — on /codex/ship/:className: the personal variant (hangar config id) to show.
  *   `mine` — on /codex/:kind/:className: open the entity in "my copy" mode (flag, empty value).
  *   `einsatz` — on /hq#planen: open Planen on the route of this saved Einsatz.
+ *   `list` — on /hq#planen: open the wish / Nachschub popup on that tab (`wish` | `nachschub`).
  */
 
 export const HQ_ROOT = '/hq';
@@ -26,6 +27,21 @@ export type HqPageId = (typeof HQ_PAGES)[number];
 export interface HqPageLink {
   commands: string[];
   fragment: string | undefined;
+  queryParams?: Record<string, string>;
+}
+
+/** Query param that opens the wish / Nachschub popup of Planen on one tab. */
+export const HQ_LIST_PARAM = 'list';
+export type HqListTab = 'wish' | 'nachschub';
+
+/** The link that opens the wish / Nachschub popup on `tab` (`/hq?list=wish#planen`). */
+export function hqListLink(tab: HqListTab): HqPageLink {
+  return { commands: [HQ_ROOT], fragment: 'planen', queryParams: { [HQ_LIST_PARAM]: tab } };
+}
+
+/** The tab a `list` query value names; null for none / unknown. */
+export function hqListTabOf(v: string | null | undefined): HqListTab | null {
+  return v === 'wish' || v === 'nachschub' ? v : null;
 }
 
 export function hqPage(page: HqPageId): HqPageLink {

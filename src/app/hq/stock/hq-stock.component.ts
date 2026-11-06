@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -8,7 +8,7 @@ import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqStatsService } from '../data/hq-stats.service';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { hqHangar, hqLocker, hqShip } from '../hq-routes';
-import { formatLocationName } from '../now/hq-live.util';
+import { placeLabel } from '../now/hq-live.util';
 import { StockCategory, buildOverview } from './hq-stock-model';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 import { HqStockSharedComponent } from './hq-stock-shared.component';
@@ -232,7 +232,8 @@ const STALE_SHOWN = 3;
   ],
 })
 export class HqStockComponent implements OnInit {
-  readonly placeName = formatLocationName;
+  private readonly tr = inject(TranslateService);
+  readonly placeName = (n: string): string => placeLabel(n, this.tr.getCurrentLang());
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
   readonly inv = inject(HqInventoryService);

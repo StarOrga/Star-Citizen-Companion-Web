@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { HQ_LIST_PARAM, hqListTabOf, type HqListTab } from '../hq-routes';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -63,6 +66,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   imports: [
     TranslatePipe,
     RouterLink,
+    ScActionDirective,
     ScStepComponent,
     ScTristateComponent,
     ScTooltipDirective,
@@ -89,7 +93,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
             {{ 'hq.plan.switch.how' | translate }}
           </button>
         </div>
-        <button type="button" class="sc-btn nach" aria-haspopup="dialog" (click)="suppliesOpen.set(true)">
+        <button type="button" scAction tier="secondary" class="nach" aria-haspopup="dialog" (click)="openSupplies('nachschub')">
           {{ 'hq.supplies.button' | translate }} <b class="mono">{{ supplies.open().length }}</b>
         </button>
       }
@@ -259,7 +263,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     }
 
     @if (suppliesOpen()) {
-      <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
+      <sc-hq-supplies-popup [startTab]="suppliesTab()" (closed)="suppliesOpen.set(false)" />
     }
   `,
   styles: [
@@ -355,6 +359,19 @@ export class HqPlanComponent {
   protected readonly shapes = STEP_SHAPES;
   protected readonly view = signal<PlanView>('what');
   protected readonly suppliesOpen = signal(false);
+  protected readonly suppliesTab = signal<HqListTab>('nachschub');
+  private readonly listRoute = inject(ActivatedRoute);
+
+  /** `/hq?list=wish#planen` (the item path's anchors): open the popup on that tab. */
+  private readonly listParam = this.listRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
+    const tab = hqListTabOf(q.get(HQ_LIST_PARAM));
+    if (tab) this.openSupplies(tab);
+  });
+
+  protected openSupplies(tab: HqListTab): void {
+    this.suppliesTab.set(tab);
+    this.suppliesOpen.set(true);
+  }
   /** The saved route "Route öffnen" asked for: marked in the list. */
   protected readonly focusedRoute = signal<string | null>(null);
   private handledRoute: { id: string } | null = null;

@@ -11,10 +11,16 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { hqHangar, hqSet, hqShip } from '../hq/hq-routes';
+import { HqLink, hqHangar, hqSet, personalItemLink, personalShipLink } from '../hq/hq-routes';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
+import { WishlistStore } from '../hq/data/wishlist.store';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
+import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
+import { flagshipFirst } from './flagship-first';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
-import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { normalizeSearch, rankBySearch } from '../codex/codex-search';
@@ -29,6 +35,7 @@ import { HangarImportComponent } from './hangar-import.component';
 import { HangarService } from './hangar.service';
 import {
   ConceptShip,
+  HangarShipConfig,
   HangarShip,
   ROLE_LOADOUT_ROLES,
   RoleLoadoutItem,
@@ -70,6 +77,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     LoadoutSharePanelComponent,
     ScSelectComponent,
     ScTooltipDirective,
+    ScActionDirective,
+    ItemPathComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -129,7 +138,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       @if (hangar.pinnedShips().length > 0) {
         <div class="pinned-strip">
           @for (s of hangar.pinnedShips(); track s.id) {
-            <a class="hero sc-card" [routerLink]="shipRoute(s.id)">
+            <a class="hero sc-card" [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">
               <span class="rank">#{{ s.pinnedRank }}</span>
               <div class="hero-thumb">
                 <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
@@ -165,11 +174,11 @@ const SEARCH_DEBOUNCE_MS = 250;
           <a class="db-browse" routerLink="/codex/upcoming">{{ 'hangar.drawingBoard.browse' | translate }} →</a>
         </header>
 
-        @if (hangar.conceptShips().length === 0) {
+        @if (wishlist.upcoming().length === 0) {
           <p class="hint db-empty">{{ 'hangar.drawingBoard.empty' | translate }}</p>
         } @else {
           <div class="db-scroll">
-            @for (c of hangar.conceptShips(); track c.id) {
+            @for (c of wishlist.upcoming(); track c.id) {
               @if (announcedFor(c); as a) {
                 <a class="db-tile" [routerLink]="['/codex/upcoming', a.id]">
                   <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: conceptArt(c) }" />
@@ -234,8 +243,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                 @if (inHangar(r.classNameSlug)) {
                   <span class="already">{{ 'hangar.add.already' | translate }}</span>
                 } @else {
-                  <button class="sc-btn tiny" type="button" (click)="add(r, 'owned')">{{ 'hangar.add.owned' | translate }}</button>
-                  <button class="sc-btn tiny ghost" type="button" (click)="add(r, 'wishlist')">{{ 'hangar.add.wishlist' | translate }}</button>
+                  <sc-item-path kind="ship" [className]="r.classNameSlug" [name]="shipName(r)" level="tertiary" />
                 }
               </li>
             }
@@ -259,12 +267,12 @@ const SEARCH_DEBOUNCE_MS = 250;
           </div>
         } @else {
           <div class="grid">
-            @for (s of hangar.ships(); track s.id) {
+            @for (s of fleet(); track s.id) {
               <!-- The card frame holds the link and, as its siblings, the
                    flagship toggle and the Codex link: no interactive content
                    nested in an <a> (the toggle used to sit inside it). -->
               <div class="card fleet-card">
-              <a class="fleet-link" [routerLink]="shipRoute(s.id)">
+              <a class="fleet-link" [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">
                 <div class="thumb">
                   <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
                     <sc-codex-icon class="thumb-icon" kind="ship" />
@@ -274,8 +282,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                   <h3 class="name">{{ s.customName || displayName(s) }}</h3>
                   <div class="card-top-right">
                     @if (isFlagship(s)) {
-                      <span class="flag-badge" [scTooltip]="'hangar.flagship.badge' | translate" scTooltipTier="label"
-                            [attr.aria-label]="'hangar.flagship.badge' | translate">★</span>
+                      <span class="flag-mark">{{ 'hangar.flagship.mark' | translate }}</span>
                     }
                     @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
                   </div>
@@ -300,67 +307,53 @@ const SEARCH_DEBOUNCE_MS = 250;
                 <a class="codex-link" [routerLink]="['/codex', 'ship', s.shipClassName]">
                   {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
                 </a>
+                <button type="button" scAction tier="tertiary" [attr.aria-expanded]="managing() === s.id" (click)="toggleManage(s)">
+                  <span>{{ 'hangar.manage.toggle' | translate }}</span>
+                </button>
               </div>
+              @if (managing() === s.id) {
+                <div class="manage">
+                  <div class="m-row">
+                    <input class="m-in" type="text" maxlength="80" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)"
+                           (keyup.enter)="saveName(s)" [attr.aria-label]="'hangar.detail.rename' | translate"
+                           [attr.placeholder]="'hangar.detail.rename' | translate" />
+                    <button type="button" scAction tier="secondary" (click)="saveName(s)"><span>{{ 'hangar.detail.save' | translate }}</span></button>
+                  </div>
+                  <div class="m-row">
+                    <textarea class="m-in m-notes" rows="3" maxlength="2000" [ngModel]="notesDraft()" (ngModelChange)="notesDraft.set($event)"
+                              [attr.aria-label]="'hangar.detail.notes' | translate" [attr.placeholder]="'hangar.detail.notesPlaceholder' | translate"></textarea>
+                    <button type="button" scAction tier="secondary" (click)="saveNotes(s)"><span>{{ 'hangar.detail.save' | translate }}</span></button>
+                  </div>
+                  <div class="m-row">
+                    <span class="m-label">{{ 'hangar.detail.pinLabel' | translate }}</span>
+                    <sc-select class="m-pin" [options]="pinOptions" [value]="s.pinnedRank ? '' + s.pinnedRank : null" placeholderLabel="—"
+                               [ariaLabel]="'hangar.detail.pinLabel' | translate" (valueChange)="setPin(s, $event)" />
+                  </div>
+                  <div class="m-variants">
+                    <span class="m-label">{{ 'hangar.manage.variants' | translate }}</span>
+                    @for (c of variantsOf(s); track c.id) {
+                      <div class="m-var">
+                        <a class="m-var-name" [routerLink]="variantLink(s, c).commands" [queryParams]="variantLink(s, c).queryParams">{{ c.name }}</a>
+                        <span class="badge">{{ 'hangar.roles.' + c.role | translate }}</span>
+                        @if (c.isActive) {
+                          <span class="badge">{{ 'hangar.manage.active' | translate }}</span>
+                        } @else {
+                          <button type="button" scAction tier="tertiary" (click)="activate(s, c)"><span>{{ 'hangar.configs.activate' | translate }}</span></button>
+                        }
+                        <button type="button" scAction tier="tertiary" tone="danger" (click)="deleteConfig(c)"><span>{{ 'hangar.configs.delete' | translate }}</span></button>
+                      </div>
+                    } @empty {
+                      <p class="hint">{{ 'hangar.manage.noVariants' | translate }}</p>
+                    }
+                  </div>
+                  <div class="m-row">
+                    <button type="button" scAction tier="tertiary" tone="danger" (click)="removeShip(s)"><span>{{ 'hangar.detail.remove' | translate }}</span></button>
+                  </div>
+                </div>
+              }
               </div>
             }
           </div>
-        }
-      </div>
-
-      <!-- Concept-ship wishlist (#135) — unreleased ships, no catalog entry -->
-      <div class="concepts">
-        <h2>{{ 'hangar.concept.title' | translate }}</h2>
-        <p class="hint">{{ 'hangar.concept.hint' | translate }}</p>
-
-        <form class="concept-form" (submit)="addConcept($event)">
-          <input type="text" class="text-input" name="name" required maxlength="80"
-                 [(ngModel)]="conceptName"
-                 [attr.placeholder]="'hangar.concept.namePlaceholder' | translate"
-                 [attr.aria-label]="'hangar.concept.namePlaceholder' | translate" />
-          <input type="text" class="text-input" name="manufacturer" maxlength="60"
-                 [(ngModel)]="conceptManufacturer"
-                 [attr.placeholder]="'hangar.concept.manufacturerPlaceholder' | translate"
-                 [attr.aria-label]="'hangar.concept.manufacturerPlaceholder' | translate" />
-          <input type="url" class="text-input wide" name="rsiUrl"
-                 [(ngModel)]="conceptRsiUrl"
-                 (ngModelChange)="onConceptUrlInput()"
-                 [class.invalid]="conceptUrlError()"
-                 [attr.aria-invalid]="conceptUrlError() ? 'true' : null"
-                 [attr.placeholder]="'hangar.concept.urlPlaceholder' | translate"
-                 [attr.aria-label]="'hangar.concept.urlPlaceholder' | translate" />
-          <button type="submit" class="sc-btn" [disabled]="!conceptName.trim() || conceptSaving()">
-            {{ 'hangar.concept.add' | translate }}
-          </button>
-        </form>
-        @if (conceptUrlError()) {
-          <p class="concept-url-error" role="alert">{{ 'hangar.concept.urlError' | translate }}</p>
-        }
-
-        @if (hangar.conceptShips().length === 0) {
-          <p class="hint">{{ 'hangar.concept.empty' | translate }}</p>
-        } @else {
-          <ul class="concept-list">
-            @for (c of hangar.conceptShips(); track c.id) {
-              <li class="sc-card concept-row">
-                <div class="concept-main">
-                  <strong>{{ c.name }}</strong>
-                  @if (c.manufacturer) { <span class="concept-mfr">{{ c.manufacturer }}</span> }
-                  <span class="badge preliminary">{{ 'hangar.concept.preliminary' | translate }}</span>
-                </div>
-                <div class="concept-actions">
-                  @if (c.rsiUrl) {
-                    <!-- User-supplied URL: bound as a plain href, never innerHTML. -->
-                    <a class="concept-link" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
-                      {{ 'hangar.concept.pledgeLink' | translate }}
-                    </a>
-                  }
-                  <button type="button" class="concept-remove" (click)="removeConcept(c.id)"
-                          [attr.aria-label]="'hangar.concept.remove' | translate"
-                          [scTooltip]="'hangar.concept.remove' | translate">✕</button>
-                </div>
-              </li>
-            }
-          </ul>
         }
       </div>
 
@@ -562,7 +555,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hero h3 { margin: 0; font-size: 1.05rem; }
     .hero-sub { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
-    .sc-card h2, .fleet h2, .loadouts h2, .concepts h2 { margin: 0 0 10px; font-size: 1rem; }
+    .sc-card h2, .fleet h2, .loadouts h2 { margin: 0 0 10px; font-size: 1rem; }
 
     /* "Auf dem Reissbrett" strip (#130) — the watched announced ships, at the
        top of the hangar. Same art-first tile language as the Codex rail, with
@@ -629,33 +622,6 @@ const SEARCH_DEBOUNCE_MS = 250;
       pointer-events: none;
     }
 
-    /* Concept-ship wishlist (#135) */
-    .concepts .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0 0 10px; }
-    .concept-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .concept-form .text-input {
-      flex: 1 1 160px; min-width: 140px; padding: 8px 12px;
-      background: var(--sc-bg-1); color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border); border-radius: 4px; font: inherit; font-size: max(0.9rem, var(--sc-fs-input));
-    }
-    .concept-form .text-input.wide { flex: 2 1 240px; }
-    .concept-form .text-input:focus { outline: none; border-color: var(--sc-accent); }
-    .concept-form .text-input.invalid { border-color: var(--sc-danger); }
-    .concept-url-error { margin: -4px 0 12px; color: var(--sc-danger); font-size: 0.8rem; }
-    .concept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-    .concept-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
-    .concept-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
-    .concept-mfr { color: var(--sc-fg-2); font-size: 0.8rem; }
-    .badge.preliminary {
-      font-size: max(0.6rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; text-transform: uppercase;
-      letter-spacing: 0.06em; background: rgba(255, 170, 60, 0.14); color: #f0b35c;
-      border: 1px solid color-mix(in srgb, #f0b35c 45%, transparent);
-    }
-    .concept-actions { display: flex; align-items: center; gap: 12px; }
-    .concept-link { color: var(--sc-accent); font-size: 0.8rem; }
-    .concept-remove {
-      background: transparent; border: 0; color: var(--sc-fg-2); cursor: pointer; font-size: 0.85rem;
-    }
-    .concept-remove:hover { color: var(--sc-danger); }
     .add-ship { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
     .search-row { display: flex; }
     .search { flex: 1; padding: 9px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.9rem, var(--sc-fs-input)); }
@@ -693,6 +659,19 @@ const SEARCH_DEBOUNCE_MS = 250;
       font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; align-self: flex-start;
       transition: color 0.16s, border-color 0.16s, background 0.16s; }
     .flag-toggle:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
+    .flag-mark { color: var(--sc-warning, #ffc14d); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
+    .manage { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); padding: var(--sc-space-3, 12px); border-top: 1px solid var(--sc-border); }
+    .m-row { display: flex; gap: var(--sc-space-2, 8px); align-items: center; flex-wrap: wrap; }
+    .m-in { flex: 1 1 12rem; min-width: 0; min-height: 40px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--sc-border);
+      background: var(--sc-bg-1); color: var(--sc-fg-0); font: inherit; }
+    .m-in:focus { outline: none; border-color: var(--sc-accent); }
+    .m-notes { resize: vertical; }
+    .m-label { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .m-pin { min-width: 6rem; }
+    .m-variants { display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); }
+    .m-var { display: flex; gap: var(--sc-space-2, 8px); align-items: center; flex-wrap: wrap; }
+    .m-var-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; color: var(--sc-accent); }
+    @media (pointer: coarse) { .m-in { min-height: 48px; } }
     .flag-toggle.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d);
       background: color-mix(in srgb, var(--sc-warning, #ffc14d) 16%, transparent); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
@@ -787,10 +766,100 @@ export class HangarDashboardComponent implements OnInit {
    * the default for a host that binds nothing (specs, embeds).
    */
   readonly section = input<'all' | 'hangar' | 'locker'>('all');
+  private readonly ownership = inject(HqOwnershipService);
+  protected readonly wishlist = inject(WishlistStore);
+  private readonly confirmDialog = inject(ScConfirmService);
+  private readonly forkGuard = inject(CodexHoloForkGuard);
+
+  /** Flagship first (E6), otherwise the hangar's own order. */
+  readonly fleet = computed(() => flagshipFirst(this.hangar.ships(), (c) => this.hangar.isFlagship(c)));
+
+  // The HQ ship row's manage panel: what the old hangar detail page did (D9).
+  readonly managing = signal<string | null>(null);
+  readonly nameDraft = signal('');
+  readonly notesDraft = signal('');
+  readonly pinOptions: ScSelectOption[] = [
+    { value: '1', labelKey: '', label: '#1' },
+    { value: '2', labelKey: '', label: '#2' },
+    { value: '3', labelKey: '', label: '#3' },
+  ];
+
+  toggleManage(s: HangarShip): void {
+    if (this.managing() === s.id) {
+      this.managing.set(null);
+      return;
+    }
+    this.nameDraft.set(s.customName ?? '');
+    this.notesDraft.set(s.notes ?? '');
+    this.managing.set(s.id);
+  }
+
+  variantsOf(s: HangarShip): HangarShipConfig[] {
+    return this.ownership.configsForShip(s.id);
+  }
+
+  variantLink(s: HangarShip, c: HangarShipConfig): HqLink {
+    return personalShipLink(s.shipClassName, c.id);
+  }
+
+  async saveName(s: HangarShip): Promise<void> {
+    await this.hangar.updateShip(s.id, { customName: this.nameDraft().trim() || null });
+  }
+
+  async saveNotes(s: HangarShip): Promise<void> {
+    await this.hangar.updateShip(s.id, { notes: this.notesDraft().trim() || null });
+  }
+
+  async setPin(s: HangarShip, value: string | null): Promise<void> {
+    await this.hangar.pinShip(s.id, value ? (Number(value) as 1 | 2 | 3) : null);
+  }
+
+  async activate(s: HangarShip, c: HangarShipConfig): Promise<void> {
+    if ((await this.forkGuard.ensureEditable(c)) === 'cancelled') return;
+    if (await this.hangar.activateConfig(c.id, s.id)) {
+      this.ownership.invalidate();
+      void this.ownership.ensureLoaded();
+    }
+  }
+
+  async deleteConfig(c: HangarShipConfig): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      titleKey: 'hangar.configs.deleteConfirm.title',
+      messageKey: 'hangar.configs.deleteConfirm.body',
+      params: { name: c.name },
+      confirmKey: 'hangar.configs.delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    if (await this.hangar.deleteConfig(c.id)) {
+      this.ownership.invalidate();
+      void this.ownership.ensureLoaded();
+    }
+  }
+
+  async removeShip(s: HangarShip): Promise<void> {
+    // Variants hang off the ship with ON DELETE CASCADE: the question names how many go with it.
+    const n = this.variantsOf(s).length;
+    const ok = await this.confirmDialog.confirm({
+      titleKey: 'hangar.detail.removeConfirm.title',
+      messageKey: n === 0 ? 'hangar.detail.removeConfirm.bodyNone' : n === 1 ? 'hangar.detail.removeConfirm.bodyOne' : 'hangar.detail.removeConfirm.bodyMany',
+      params: { name: s.customName || s.shipClassName, count: n },
+      confirmKey: 'hangar.detail.remove',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    if (await this.hangar.removeShip(s.id)) {
+      if (this.managing() === s.id) this.managing.set(null);
+      this.ownership.invalidate();
+    }
+  }
   readonly hangarLink = hqHangar;
 
-  shipRoute(id: string): string[] {
-    return hqShip(id);
+  /** The ship's own page is the personal Codex view (its active variant), not a hangar detail page. */
+  shipLink(s: HangarShip): HqLink {
+    const cfgs = this.ownership.configsForShip(s.id);
+    const cfg = cfgs.find((c) => c.isActive) ?? cfgs[0];
+    return cfg ? personalShipLink(s.shipClassName, cfg.id) : personalItemLink('ship', s.shipClassName);
   }
 
   setRoute(id: string): string[] {
@@ -883,6 +952,8 @@ export class HangarDashboardComponent implements OnInit {
     // with artwork and an in-app target, so a dead proxy must not delay (or
     // fail) the hangar itself. One CDN-cached GET, shared with the Codex.
     void this.rsi.ensureLoaded();
+    void this.wishlist.ensureLoaded();
+    void this.ownership.ensureLoaded();
     await Promise.all([this.hangar.loadAll(), this.codex.loadCurrentBuild()]);
     await this.refreshCards();
   }
@@ -956,60 +1027,8 @@ export class HangarDashboardComponent implements OnInit {
     this.searchTimer = setTimeout(() => void this.runSearch(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
-  async add(r: CodexListRow, status: 'owned' | 'wishlist'): Promise<void> {
-    const ship = await this.hangar.addShip(r.classNameSlug, status);
-    if (ship) {
-      const cards = new Map(this.cards());
-      cards.set(r.classNameSlug, r);
-      this.cards.set(cards);
-    }
-  }
-
   // Import panel visibility (#136).
   readonly importOpen = signal(false);
-
-  // ── concept-ship wishlist (#135) ────────────────────────────────────────────
-  conceptName = '';
-  conceptManufacturer = '';
-  conceptRsiUrl = '';
-  readonly conceptSaving = signal(false);
-
-  /** Inline validation error for the optional RSI link (feedback f7d3bd9a). */
-  readonly conceptUrlError = signal(false);
-
-  /** Clear the RSI-link error as soon as the user edits the field again. */
-  onConceptUrlInput(): void {
-    if (this.conceptUrlError()) this.conceptUrlError.set(false);
-  }
-
-  async addConcept(e: Event): Promise<void> {
-    e.preventDefault();
-    if (!this.conceptName.trim() || this.conceptSaving()) return;
-    // The link is optional, but if one is given it must be an official RSI
-    // pledge-ship URL. Fail loudly here instead of silently dropping it — the
-    // service normalizes and the DB CHECK gates, but the user deserves to know.
-    if (this.conceptRsiUrl.trim() && !isValidRsiPledgeShipUrl(this.conceptRsiUrl)) {
-      this.conceptUrlError.set(true);
-      return;
-    }
-    this.conceptUrlError.set(false);
-    this.conceptSaving.set(true);
-    const created = await this.hangar.addConceptShip({
-      name: this.conceptName,
-      manufacturer: this.conceptManufacturer,
-      rsiUrl: this.conceptRsiUrl,
-    });
-    if (created) {
-      this.conceptName = '';
-      this.conceptManufacturer = '';
-      this.conceptRsiUrl = '';
-    }
-    this.conceptSaving.set(false);
-  }
-
-  async removeConcept(id: string): Promise<void> {
-    await this.hangar.removeConceptShip(id);
-  }
 
   onNewLoadoutRoleChange(value: string | null): void {
     if (value) this.newLoadoutRole.set(value as RoleLoadoutRole);

@@ -22,7 +22,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ItemPathService, PLACE_BLUEPRINTS, PLACE_WITH_ME, type ItemPathState, type PathResult, type PathStep } from '../../hq/data/item-path.service';
-import { hqPage, hqShip, type HqPageLink } from '../../hq/hq-routes';
+import { hqListLink, hqPage, hqShip, type HqPageLink } from '../../hq/hq-routes';
 import { ScActionDirective } from '../action/sc-action.directive';
 import { ScDialogDirective } from '../dialog/sc-dialog.directive';
 import { ScConfirmService } from '../dialog/sc-confirm.service';
@@ -158,7 +158,7 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
                 <ng-container [ngTemplateOutlet]="hint" />
               </div>
               <div class="rp-f">
-                <a class="alink" [routerLink]="links().wish.commands" [fragment]="links().wish.fragment" (click)="onLink($event)">{{ 'itemPath.pop.viewWish' | translate }}</a>
+                <a class="alink" [routerLink]="links().wish.commands" [fragment]="links().wish.fragment" [queryParams]="links().wish.queryParams" (click)="onLink($event)">{{ 'itemPath.pop.viewWish' | translate }}</a>
                 <button type="button" class="txt quiet" (click)="removeOpen()">{{ 'itemPath.pop.remove' | translate }}</button>
               </div>
             }
@@ -175,7 +175,7 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
                 </span>
               </div>
               <div class="rp-f">
-                <a class="alink" [routerLink]="links().nachschub.commands" [fragment]="links().nachschub.fragment" (click)="onLink($event)">{{ 'itemPath.pop.viewNachschub' | translate }}</a>
+                <a class="alink" [routerLink]="links().nachschub.commands" [fragment]="links().nachschub.fragment" [queryParams]="links().nachschub.queryParams" (click)="onLink($event)">{{ 'itemPath.pop.viewNachschub' | translate }}</a>
                 <button type="button" class="txt quiet" (click)="removeOpen()">{{ 'itemPath.pop.remove' | translate }}</button>
               </div>
             }
@@ -439,8 +439,8 @@ export class ItemPathComponent implements OnDestroy {
   readonly links = computed<Record<PathStep, HqPageLink>>(() => {
     const id = this.state().hangarShipId;
     return {
-      wish: hqPage('planen'),
-      nachschub: hqPage('planen'),
+      wish: hqListLink('wish'),
+      nachschub: hqListLink('nachschub'),
       inventar: hqPage('bestand'),
       hangar: { commands: id ? hqShip(id) : hqPage('start').commands, fragment: undefined },
     };
