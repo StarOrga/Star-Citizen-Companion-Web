@@ -15,6 +15,7 @@ import { RoleService } from '../auth/role.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
 import { FeedbackComposerSeedService } from '../feedback/feedback-composer-seed.service';
+import { FeedbackPeekService } from '../feedback/feedback-peek.service';
 import { FeedbackSpotService } from '../feedback/feedback-spot.service';
 import { draftScopes } from '../feedback/feedback-draft.types';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
@@ -44,7 +45,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <div class="fab-root" #fabRoot>
+      <div class="fab-root" #fabRoot [class.peeking]="peek.peeking()">
         @if (mounted()) {
           <!-- “sc-sheet” (styles.scss): a docked corner window above 720px, a
                full-bleed sheet below it. On a 375px phone the docked panel was
@@ -194,6 +195,16 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       gap: 14px;
     }
 
+    /* Hold Ctrl/Alt: the whole launcher dissolves and passes pointer events
+       through so the page behind can be hovered and referenced (#313). Not
+       display/visibility: focus and the draft stay in the composer. */
+    .fab-root { transition: opacity 0.18s ease; }
+    .fab-root.peeking { opacity: 0; pointer-events: none; }
+    .fab-root.peeking * { pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .fab-root { transition: none; }
+    }
+
     .fab {
       display: inline-flex;
       align-items: center;
@@ -337,6 +348,7 @@ export class FeedbackFabComponent {
   private readonly panelNav = inject(PanelNavigationService);
   private readonly seeds = inject(FeedbackComposerSeedService);
   private readonly spots = inject(FeedbackSpotService);
+  readonly peek = inject(FeedbackPeekService);
   private readonly fabRoot = viewChild<ElementRef<HTMLElement>>('fabRoot');
 
   /**
