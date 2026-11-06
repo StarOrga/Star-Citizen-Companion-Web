@@ -59,6 +59,8 @@ No chat. Strings <= 200 chars.
 |------|--------|
 | `shop.purchase` | `kind` buy/sell, `price` = TOTAL line amount, `unitPrice` = price / quantity, `quantity`, `item`, `shop`, `result` |
 | `contract.completed` | `name`, `missionId` |
+| `contract.failed`, `contract.abandoned` | event existence |
+| `vehicle.destroyed` | `ship` |
 | `incapacitated`, `crime.crimestat_increased`, `insurance.claim_complete`, `blueprint.received` | event existence (+ data as in gamelog.md) |
 | `refinery.complete` | `count`, `location` |
 

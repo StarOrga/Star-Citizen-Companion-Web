@@ -29,8 +29,20 @@ function setup(preferences: boolean, own: { wishes?: unknown[]; open?: unknown[]
 }
 
 describe('MerklisteService "Zuletzt geoeffnet" (D7)', () => {
-  beforeEach(() => localStorage.removeItem(RECENT_ROWS_KEY));
-  afterEach(() => localStorage.removeItem(RECENT_ROWS_KEY));
+  beforeEach(() => {
+    localStorage.removeItem(RECENT_ROWS_KEY);
+    localStorage.setItem('sc.consent', JSON.stringify({ preferences: true, statistics: false }));
+  });
+  afterEach(() => {
+    localStorage.removeItem(RECENT_ROWS_KEY);
+    localStorage.removeItem('sc.consent');
+  });
+
+  it('writes nothing without the preferences consent', () => {
+    localStorage.setItem('sc.consent', JSON.stringify({ preferences: false, statistics: false }));
+    noteOpenedPage({ kind: 'ship', className: 'AEGS_Gladius', title: 'Gladius', manufacturerCode: 'AEGS' });
+    expect(localStorage.getItem(RECENT_ROWS_KEY)).toBeNull();
+  });
 
   it('an opened Codex page shows in the panel without the search having opened it', async () => {
     const svc = setup(false);

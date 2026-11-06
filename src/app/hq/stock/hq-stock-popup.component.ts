@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { humanizeClassName } from '../../codex/codex-format';
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +18,7 @@ import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.compon
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService, snapshotAge } from '../data/hq-inventory.service';
-import { formatLocationName, placeLabel, readLocation } from '../now/hq-live.util';
+import { formatLocationName, lastDestroyedAt, placeLabel, readLocation } from '../now/hq-live.util';
 import { HqLiveService } from '../now/hq-live.service';
 import { placeOfName } from '../plan/map/hq-places';
 import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-stock-find';
@@ -55,7 +56,7 @@ export interface StockStart {
 @Component({
   selector: 'sc-hq-stock-popup',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, ItemPathComponent],
+  imports: [TranslatePipe, DatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, ItemPathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-overlay-frame [heading]="'hq.stock.popup.title' | translate" [popup]="true" (closed)="closed.emit()">
@@ -163,7 +164,10 @@ export interface StockStart {
                           <span class="t">{{ s.name }}</span>
                         }
                       </span>
-                      <span class="qty">{{ s.location }} · <span class="age" [class.stale]="s.stale">{{ s.age }}</span></span>
+                      <span class="qty">
+                        @if (s.destroyedAt) { <span class="lost">{{ 'hq.stock.destroyed' | translate: { at: (s.destroyedAt | date: 'short') } }}</span> · }
+                        {{ s.location }} · <span class="age" [class.stale]="s.stale">{{ s.age }}</span>
+                      </span>
                     </li>
                   }
                 </ul>
@@ -347,6 +351,7 @@ export interface StockStart {
         border-radius: var(--sc-radius); padding: var(--sc-space-2, 8px); min-height: 2.75rem; box-sizing: border-box; width: 100%;
       }
       input:focus-visible, .chip:focus-visible, .list:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .lost { color: var(--sc-warning); }
       .chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px); }
       .chip {
         min-height: 32px; padding: 0 var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 999px;
@@ -477,6 +482,7 @@ export class HqStockPopupComponent implements OnInit {
       const a = snapshotAge(s.taken_at);
       return {
         ref: s.ship_ref,
+        destroyedAt: lastDestroyedAt(this.live.events(), ship?.shipClassName ?? s.ship_ref, Date.now()),
         shipId: ship?.id ?? null,
         name: ship?.customName || humanizeClassName(ship?.shipClassName ?? s.ship_ref),
         location: s.location,

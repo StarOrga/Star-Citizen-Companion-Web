@@ -9,7 +9,7 @@ import { HQ_STATS_RANGES, HqStatsService } from '../data/hq-stats.service';
 import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqSparkComponent } from './hq-spark.component';
 
-export type HqTileId = 'auec' | 'missions' | 'deaths' | 'crimestat' | 'refinery' | 'blueprints';
+export type HqTileId = 'auec' | 'missions' | 'contracts' | 'deaths' | 'crimestat' | 'refinery' | 'blueprints';
 
 export interface HqTile {
   id: HqTileId;
@@ -22,10 +22,12 @@ export interface HqTile {
   kind: 'bars' | 'line';
   buckets: string[];
   empty: boolean;
+  /** The value is worse than it should be: `--sc-warning`, a comparison is not an error. */
+  warn?: boolean;
 }
 
 /**
- * HQ page "Statistik" (D40): six tiles with a mini preview each, a 7/30/90 day switch and a
+ * HQ page "Statistik" (D40): seven tiles with a mini preview each, a 7/30/90 day switch and a
  * detail dialog per tile. Nothing recorded in the range shows PREVIEW tiles (sample curves, marked
  * as such) under an overlay that leads to the SCC-App - never a wall of zeros (feedback
  * 2026-11-02). A failed load is an error state with retry. Last page: the footer follows it.
@@ -85,7 +87,7 @@ export interface HqTile {
         <ul class="tiles" [attr.aria-busy]="svc.loading()">
           @for (t of tiles(); track t.id) {
             <li>
-              <button type="button" class="tile" [class.zero]="t.empty" (click)="open(t.id, $event)">
+              <button type="button" class="tile" [class.zero]="t.empty" [class.warn]="t.warn" (click)="open(t.id, $event)">
                 <span class="t-name">{{ 'hq.stats.tile.' + t.id + '.name' | translate }}</span>
                 <span class="t-value">{{ t.value }}</span>
                 <span class="t-sub">{{ t.sub }}</span>
@@ -173,6 +175,7 @@ export interface HqTile {
       .t-sub { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); min-height: 1.2em; }
       .t-spark { height: 2.4rem; margin-top: var(--sc-space-2, 8px); }
       .tile.zero .t-value { color: var(--sc-fg-2); }
+      .tile.warn .t-value { color: var(--sc-warning); }
       .t-more { color: var(--sc-accent); font-size: max(0.8rem, var(--sc-fs-floor)); }
       /* Preview: sample tiles, plainly marked, under the overlay that says how they fill. */
       .preview { position: relative; display: grid; }
@@ -270,6 +273,7 @@ export class HqStatsComponent implements OnInit {
     return [
       t('auec', '+' + this.fmt(184250), this.i18n.instant('hq.stats.tile.auec.sub', { earned: this.fmt(412000), spent: this.fmt(227750) }), wave(14, 40, 30), { kind: 'line' }),
       t('missions', this.fmt(23), this.i18n.instant('hq.stats.tile.missions.sub', { n: this.fmt(5.4) }), wave(14, 2, 2, 1)),
+      t('contracts', '82 %', this.i18n.instant('hq.stats.tile.contracts.sub', { failed: this.fmt(3), abandoned: this.fmt(2) }), wave(14, 2, 2, 1), { series2: wave(14, 0, 1, 5), kind: 'line' }),
       t('deaths', `${this.fmt(4)} / ${this.fmt(2)}`, this.i18n.instant('hq.stats.tile.deaths.sub'), wave(14, 1, 1, 3), { series2: wave(14, 1, 1, 6), kind: 'line' }),
       t('crimestat', this.fmt(1), this.i18n.instant('hq.stats.tile.crimestat.sub'), wave(14, 0, 1, 4)),
       t('refinery', this.fmt(3), this.i18n.instant('hq.stats.tile.refinery.sub'), wave(14, 1, 1, 2)),
@@ -288,9 +292,13 @@ export class HqStatsComponent implements OnInit {
       id, value: v, sub, series, series2: null, kind: 'bars', buckets: keys(p), empty: zero, ...extra,
     });
     const dc = s.deaths_claims;
+    const ct = s.contracts;
+    const lost = ct.failed + ct.abandoned;
+    const finished = s.missions.total + lost;
     return [
       t('auec', sign(s.auec.net), this.i18n.instant('hq.stats.tile.auec.sub', { earned: this.fmt(s.auec.earned), spent: this.fmt(s.auec.spent) }), s.auec.series, vals(s.auec.series), s.auec.earned === 0 && s.auec.spent === 0, { kind: 'line' }),
       t('missions', this.fmt(s.missions.total), this.i18n.instant('hq.stats.tile.missions.sub', { n: perWeek }), s.missions.series, vals(s.missions.series), s.missions.total === 0),
+      t('contracts', finished ? `${Math.round((s.missions.total / finished) * 100)} %` : '–', this.i18n.instant('hq.stats.tile.contracts.sub', { failed: this.fmt(ct.failed), abandoned: this.fmt(ct.abandoned) }), s.missions.series, vals(s.missions.series), finished === 0, { series2: vals(ct.series), kind: 'line', warn: lost > s.missions.total }),
       t('deaths', `${this.fmt(dc.deaths)} / ${this.fmt(dc.claims)}`, this.i18n.instant('hq.stats.tile.deaths.sub'), dc.series, dc.series.map((x) => x.deaths), dc.deaths === 0 && dc.claims === 0, { series2: dc.series.map((x) => x.claims), kind: 'line' }),
       t('crimestat', this.fmt(s.crimestat.total), this.i18n.instant('hq.stats.tile.crimestat.sub'), s.crimestat.series, vals(s.crimestat.series), s.crimestat.total === 0),
       t('refinery', this.fmt(s.refinery.total), this.i18n.instant('hq.stats.tile.refinery.sub'), s.refinery.series, vals(s.refinery.series), s.refinery.total === 0),

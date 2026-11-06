@@ -1,4 +1,14 @@
-import { LIVE_PRESENCE_MAX_AGE_MS, disconnectedInSession, formatLocationName, isGameLive, presenceAt, sessionEndedSince } from './hq-live.util';
+import {
+  LIVE_PRESENCE_MAX_AGE_MS,
+  SHIP_DESTROYED_MAX_AGE_MS,
+  disconnectedInSession,
+  formatLocationName,
+  isGameLive,
+  lastDestroyedAt,
+  presenceAt,
+  readZones,
+  sessionEndedSince,
+} from './hq-live.util';
 
 describe('formatLocationName', () => {
   it('drops the body prefix and spaces out camelCase', () => {
@@ -72,6 +82,53 @@ describe('isGameLive', () => {
     const lastDisconnect = { at: ago(900_000) };
     expect(isGameLive({ ...state(true, 1000), sessionStartedAt: ago(600_000), lastDisconnect }, [], now)).toBeTrue();
     expect(isGameLive({ ...state(true, 1000), lastDisconnect }, [], now)).toBeTrue();
+  });
+});
+
+describe('readZones', () => {
+  const ev = (...types: string[]) => types.map((type) => ({ type }));
+
+  it('lets the newest event of each family decide and lists the important zones first', () => {
+    expect(readZones(ev('armistice.entered', 'armistice.exited', 'session.joined'))).toEqual(['armistice']);
+    expect(readZones(ev('monitored.down', 'armistice.entered', 'restricted.entered', 'session.joined'))).toEqual([
+      'restricted',
+      'commDown',
+      'armistice',
+    ]);
+    expect(readZones(ev('monitored.restored', 'monitored.down', 'session.joined'))).toEqual(['monitored']);
+    expect(readZones(ev('monitored.exited', 'session.joined'))).toEqual(['unmonitored']);
+  });
+
+  it('never carries a zone over from before the session start', () => {
+    expect(readZones(ev('session.joined', 'armistice.entered'))).toBeNull();
+    expect(readZones(ev('qt.arrived', 'session.joined', 'restricted.entered'))).toBeNull();
+    expect(readZones(ev('session.quit', 'armistice.entered'))).toBeNull();
+  });
+
+  it('is unknown when the session left every zone or has no zone event', () => {
+    expect(readZones(ev('armistice.exited', 'armistice.entered', 'session.joined'))).toBeNull();
+    expect(readZones([])).toBeNull();
+  });
+});
+
+describe('lastDestroyedAt', () => {
+  const now = Date.parse('2026-11-05T12:00:00.000Z');
+  const destroyed = (ship: unknown, ageMs: number) => ({
+    type: 'vehicle.destroyed',
+    data: { ship } as Record<string, unknown>,
+    at: new Date(now - ageMs).toISOString(),
+  });
+
+  it('matches the ship class, also with an entity number on the log name', () => {
+    const newest = destroyed('ANVL_Hornet_F7A_Mk2_1234567', 1000);
+    expect(lastDestroyedAt([newest, destroyed('ANVL_Hornet_F7A_Mk2', 5000)], 'anvl_hornet_f7a_mk2', now)).toBe(newest.at);
+  });
+
+  it('ignores other ships, other events, a missing name and an old loss', () => {
+    expect(lastDestroyedAt([destroyed('RSI_Aurora', 1000)], 'ANVL_Hornet_F7A_Mk2', now)).toBeNull();
+    expect(lastDestroyedAt([{ ...destroyed('RSI_Aurora', 1000), type: 'qt.arrived' }], 'RSI_Aurora', now)).toBeNull();
+    expect(lastDestroyedAt([destroyed(null, 1000)], 'RSI_Aurora', now)).toBeNull();
+    expect(lastDestroyedAt([destroyed('RSI_Aurora', SHIP_DESTROYED_MAX_AGE_MS + 1)], 'RSI_Aurora', now)).toBeNull();
   });
 });
 
