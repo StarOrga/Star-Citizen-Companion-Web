@@ -555,6 +555,10 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
       }
 
       <!-- ── Details drawer (everything with no other home) ──────────── -->
+      <!-- Basics, not an appendix (d-drawer): description, where to buy, deck plan and
+           variants stand open below the first screen; the drawer keeps raw data and settings. -->
+      <div class="holo-open" id="holo-open"><ng-content select="[htOpen]" /></div>
+
       <section class="holo-details mobile-data" [scFeedbackSpot]="'feedbackSpot.details'">
         <div class="sh">
           <button type="button" class="details-toggle" (click)="detailsOpen.set(!detailsOpen())"
@@ -751,6 +755,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   }
   .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
   .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .holo-open { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .holo-open:empty { display: none; }
   .holo-details .sh { margin-bottom: 0; flex-wrap: wrap; }
   .details-toggle { background: none; border: 1px solid var(--l2); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; padding: 5px 12px; min-height: var(--sc-tap-min, 32px);
   font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; transition: color 160ms ease, border-color 160ms ease; }
@@ -1325,7 +1331,15 @@ export class CodexHoloStageComponent {
     });
 
     effect(() => {
-      if (this.openDetails()) untracked(() => this.detailsOpen.set(true));
+      if (this.openDetails()) {
+        untracked(() => {
+          if (typeof requestAnimationFrame !== 'function') return;
+          requestAnimationFrame(() => {
+            const host: HTMLElement = this.host.nativeElement;
+            (host.querySelector('#bezugsquelle') ?? host.querySelector('.holo-open'))?.scrollIntoView({ behavior: 'auto', block: 'start' });
+          });
+        });
+      }
     });
 
     // Fetch the model while the arrival plays, so 3D never opens on a blank frame.

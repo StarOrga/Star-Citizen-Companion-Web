@@ -513,7 +513,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         .sig .lab { max-inline-size: 64px; white-space: normal; line-height: 1.15; }
       }
       @media (max-width: 640px) {
-        .holo-strip { position: fixed; inset-inline: 0; inset-block-end: var(--holo-strip-lift, 0px); border-radius: 12px 12px 0 0; }
+        .holo-strip { position: fixed; inset-inline: 0 var(--sc-fab-clear-inline); /* ends before the launcher lane */ inset-block-end: var(--holo-strip-lift, 0px); border-radius: 12px 12px 0 0; }
         .hs-row { min-block-size: 52px; }
         /* The narrowest phones: symbol + class + the three perspectives; the page's Signatur tile keeps those values. */
         @media (max-width: 430px) { .sig, .sig + .fade { display: none; } .fade { display: none; } }

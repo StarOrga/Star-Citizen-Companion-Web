@@ -177,7 +177,7 @@ import { HeightVarDirective } from '../shared/height-var.directive';
 import type { DockPosition } from './codex-power';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { buildKpiStrip, buildKpiStripForKeys, KpiStripCell } from './codex-kpi-sets';
-import { isPassiveShield } from './codex-power';
+import { isPassiveShield, withPowerSignature } from './codex-power';
 import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
 import { CodexEnergyDockComponent } from './codex-energy-dock.component';
@@ -937,6 +937,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                  rendered in both branches, on the SAME signals/methods as the
                  classic view (item B "present, not hidden behind a code
                  path"). -->
+            <div htOpen class="ho-wrap">
             <div class="holo-details-pickers">
               @if (editionOptions().length > 1) {
                 <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
@@ -965,9 +966,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 <div aria-hidden="true"></div>
               }
             }
-            <ng-container [ngTemplateOutlet]="tailLoadout" />
             <ng-container [ngTemplateOutlet]="descriptionCard" />
             <ng-container [ngTemplateOutlet]="whereToBuy" />
+            </div>
+            <ng-container [ngTemplateOutlet]="tailLoadout" />
             @if (recipeView(); as rv) {
               <sc-codex-recipe-card [recipe]="rv" />
             }
@@ -1149,6 +1151,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     <sc-share-button />
   `,
   styles: [`
+    .ho-wrap { display: flex; flex-direction: column; gap: 12px; }
     .foreign-note { margin: 0 0 12px; padding: 10px 14px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); border-left: 3px solid var(--sc-warning); }
     .personal-uses { margin: 0 0 12px; }
     :host { display: block; }
@@ -3353,18 +3356,21 @@ export class CodexDetailComponent implements OnInit {
   // overwriting the choice (`RankResult.scope` vs. this signal).
   // Signed in, the account's copy (profiles.ui_prefs) wins once it has loaded,
   // so the choice follows the user to another browser.
-  readonly rankScope = signal<RankScope>(readRankScopePref('role'));
+  /** The stored/picked group; null = never chosen. */
+  readonly rankScopeChosen = signal<RankScope | null>(readRankScopePref(null));
+  /** Never chosen: Alle in the classic card (untouched), Karriere/Rolle in the Holotable. A stored choice applies to both. */
+  readonly rankScope = computed<RankScope>(() => this.rankScopeChosen() ?? (this.holoView() ? 'role' : 'all'));
   private readonly accountPrefs = inject(AccountPrefsService);
   private readonly rankScopeFromAccount = effect(() => {
     const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
-    if (fromAccount && fromAccount !== untracked(this.rankScope)) {
-      this.rankScope.set(fromAccount);
+    if (fromAccount && fromAccount !== untracked(this.rankScopeChosen)) {
+      this.rankScopeChosen.set(fromAccount);
       writeRankScopePref(fromAccount);
     }
   });
 
   setRankScope(scope: RankScope): void {
-    this.rankScope.set(scope);
+    this.rankScopeChosen.set(scope);
     writeRankScopePref(scope);
     this.accountPrefs.set(RANK_SCOPE_ACCOUNT_KEY, scope);
   }
@@ -3426,12 +3432,16 @@ export class CodexDetailComponent implements OnInit {
    * lacks those, which left `cargo` null for every hull, so Transport was
    * always reported "disabled" and the stage's Einsatz effect never switched.
    */
-  private readonly rankKpiSheet = computed(() =>
-    computeKpiSheet(
-      this.draftSummaryOccupants(),
-      rankTargetShipInput(this.kind() === 'ship' ? (this.detail()?.payload as ShipPayload | undefined) : null),
-    ),
-  );
+  private readonly rankKpiSheet = computed(() => {
+    const payload = this.kind() === 'ship' ? (this.detail()?.payload as ShipPayload | undefined) : undefined;
+    const occ = this.draftSummaryOccupants();
+    return withPowerSignature(
+      computeKpiSheet(occ, rankTargetShipInput(payload)),
+      occ,
+      (payload?.stats ?? null) as Record<string, Record<string, unknown>> | null,
+      this.build()?.schemaVersion ?? null,
+    );
+  });
 
   /** The class the ship's career maps to (axis list default, strip label). */
   readonly rankShipClass = computed<RankClassId>(() =>

@@ -841,7 +841,8 @@
     },
     "editionPicker": {
       "label": "Variant",
-      "standard": "Standard"
+      "standard": "Standard",
+      "count": "{{count}} editions"
     },
     "holo": {
       "noGeometry": "No silhouette",

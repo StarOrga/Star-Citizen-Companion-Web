@@ -1,11 +1,12 @@
 import { LocationStrategy } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Injector, computed, effect, inject, input, output, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
 import { formatEquippedStat } from '../codex-equipped-stats';
 import type { EquippedStat } from '../codex-equipped-stats';
 import { displayItemName } from '../codex-format';
+import { CodexService, manufacturerLabel, toLang } from '../codex.service';
 import type { CodexKind } from '../codex.service';
 import { ICON_PATHS } from '../codex-category-icon.component';
 import type { ShipModuleSection } from '../ship-module-sections';
@@ -184,7 +185,7 @@ function chipSize(pin: StagePin): number | null {
             }
             <small>{{ 'codex.holo.stage.previewTitle' | translate }}</small>
             <ul>
-              <li><span>{{ 'codex.holo.stage.previewMaker' | translate }}</span>{{ part.manufacturerCode ?? '—' }}</li>
+              <li><span>{{ 'codex.holo.stage.previewMaker' | translate }}</span>{{ maker(part.manufacturerCode) ?? '—' }}</li>
               <li><span>{{ 'codex.holo.stage.previewFitted' | translate }}</span>{{ shipName() || '—' }}</li>
               <li><span>{{ 'codex.holo.stage.previewBuy' | translate }}</span>—</li>
               <li><span>{{ 'codex.holo.stage.previewAlternatives' | translate }}</span>—</li>
@@ -205,9 +206,11 @@ function chipSize(pin: StagePin): number | null {
               </div>
               <div class="insp-actions">
                 @if (!readOnly()) {
-                  <button type="button" class="btn quiet" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
+                  <button type="button" class="btn quiet ico" [scTooltip]="('codex.swap.open' | translate) + ': ' + (mount.name ? itemName(mount.name) : '')" scTooltipTier="label"
+                          [attr.aria-label]="('codex.swap.open' | translate) + ': ' + (mount.name ? itemName(mount.name) : '')" (click)="swapRequested.emit(it)">⇄</button>
                 }
-                <button type="button" class="btn quiet" (click)="inspected.emit(it)">{{ 'codex.inspect.openStats' | translate }}</button>
+                <button type="button" class="btn quiet ico" [scTooltip]="('codex.inspect.openStats' | translate) + ': ' + (mount.name ? itemName(mount.name) : '')" scTooltipTier="label"
+                        [attr.aria-label]="('codex.inspect.openStats' | translate) + ': ' + (mount.name ? itemName(mount.name) : '')" (click)="inspected.emit(it)">≡</button>
               </div>
             </div>
           }
@@ -229,10 +232,12 @@ function chipSize(pin: StagePin): number | null {
               }
               <div class="insp-actions">
                 @if ((kid.className || kid.rawTypes.length > 0) && !readOnly()) {
-                  <button type="button" class="btn quiet" (click)="swapRequested.emit(childTarget(it, kid))">⇄ {{ 'codex.swap.open' | translate }}</button>
+                  <button type="button" class="btn quiet ico" [scTooltip]="('codex.swap.open' | translate) + ': ' + (kid.name ? itemName(kid.name) : '')" scTooltipTier="label"
+                          [attr.aria-label]="('codex.swap.open' | translate) + ': ' + (kid.name ? itemName(kid.name) : '')" (click)="swapRequested.emit(childTarget(it, kid))">⇄</button>
                 }
                 @if (kid.className) {
-                  <button type="button" class="btn quiet" (click)="inspected.emit(childTarget(it, kid))">{{ 'codex.inspect.openStats' | translate }}</button>
+                  <button type="button" class="btn quiet ico" [scTooltip]="('codex.inspect.openStats' | translate) + ': ' + (kid.name ? itemName(kid.name) : '')" scTooltipTier="label"
+                          [attr.aria-label]="('codex.inspect.openStats' | translate) + ': ' + (kid.name ? itemName(kid.name) : '')" (click)="inspected.emit(childTarget(it, kid))">≡</button>
                 }
               </div>
             </div>
@@ -379,6 +384,7 @@ function chipSize(pin: StagePin): number | null {
     .act-status.err { color: var(--sc-danger); }
     .insp-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .insp-actions:empty { display: none; }
+    .insp-kid .btn.ico { min-inline-size: var(--sc-tap-min, 32px); min-block-size: var(--sc-tap-min, 32px); padding-inline: 8px; }
     .swap { flex: 1 1 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: max(38px, var(--sc-tap-min, 0px)); border: 1px solid var(--sc-accent); border-radius: 7px;
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); cursor: pointer; font: inherit; font-size: max(13px, var(--f)); font-weight: 600; transition: background 160ms ease; }
     .swap:hover { background: color-mix(in srgb, var(--sc-accent) 28%, transparent); }
@@ -478,6 +484,35 @@ export class CodexHoloInspectorComponent {
   readonly rowFocus = output<PlacementRow | null>();
   readonly rowEye = output<string>();
 
+  /** Manufacturer code -> name, from the codex facet read (cached per kind by the service). */
+  private readonly makerNames = signal<Readonly<Record<string, string>>>({});
+  private readonly makerKinds = new Set<string>();
+  private readonly makerLoad = effect(() => {
+    const part = this.focusPart();
+    if (!part) return;
+    const kinds = new Set<CodexKind>();
+    for (const k of [part.kind, part.mount?.kind, ...part.others.map((o) => o.kind)]) if (k) kinds.add(k);
+    for (const kind of kinds) {
+      if (this.makerKinds.has(kind)) continue;
+      this.makerKinds.add(kind);
+      const lang = toLang(this.injector.get(TranslateService).getCurrentLang());
+      void this.injector.get(CodexService).facetValues(kind).then((fv) => {
+        if (!fv) return;
+        const next = { ...this.makerNames() };
+        for (const m of fv.manufacturers) {
+          const label = manufacturerLabel({ manufacturerCode: m.code, payload: { manufacturer: { name: m.name } } }, lang);
+          if (label && label !== m.code) next[m.code] = label;
+        }
+        this.makerNames.set(next);
+      }).catch(() => undefined);
+    }
+  });
+
+  /** The maker's name where the data has it, else its code. */
+  maker(code: string | null | undefined): string | null {
+    return code ? (this.makerNames()[code] ?? code) : null;
+  }
+
   readonly focusPart = computed<PartFocus | null>(() => {
     const it = this.target();
     return it ? partFocusOf(it, this.section()) : null;
@@ -564,7 +599,7 @@ export class CodexHoloInspectorComponent {
 
   partMeta(part: PartFocus): string {
     const size = part.size != null ? `S${part.size}` : null;
-    return [size, part.typeLabel, part.manufacturerCode].filter((x): x is string => !!x).join(' · ');
+    return [size, part.typeLabel, this.maker(part.manufacturerCode)].filter((x): x is string => !!x).join(' · ');
   }
 
   /** The part's values: its size and grade, then what the extract knows about it. */
@@ -577,11 +612,11 @@ export class CodexHoloInspectorComponent {
   }
 
   kidMeta(kid: LayoutChild): string {
-    return [kid.manufacturerCode, kid.typeLabel, kid.port].filter((x): x is string => !!x).join(' · ');
+    return [this.maker(kid.manufacturerCode), kid.typeLabel, kid.port].filter((x): x is string => !!x).join(' · ');
   }
 
   meta(slot: LayoutSlot): string {
-    return [slot.manufacturerCode, slot.typeLabel, slot.port].filter((x): x is string => !!x).join(' · ');
+    return [this.maker(slot.manufacturerCode), slot.typeLabel, slot.port].filter((x): x is string => !!x).join(' · ');
   }
 
   fmtStat(stat: EquippedStat): string {

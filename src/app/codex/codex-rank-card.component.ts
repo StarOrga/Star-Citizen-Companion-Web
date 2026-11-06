@@ -126,12 +126,12 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
       <!-- Below three axes there is no shape to draw: the bars say it all. -->
       @if (ready() && result()!.axes.length >= 3) {
         <div class="rank-col-radar">
-          <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="copy().radarAria | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
+          <svg class="radar" [style.max-width.px]="holo() ? 270 : null" [attr.viewBox]="holo() ? '-34 -6 268 212' : '0 0 200 200'" [attr.aria-label]="copy().radarAria | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
             <g class="rings" aria-hidden="true">
               @for (ring of rings; track ring) {
                 <polygon [attr.points]="ringPoints(ring, result()!.axes.length)" />
               }
-              @for (spoke of spokePoints(result()!.axes.length); track spoke) {
+              @for (spoke of spokePoints(result()!.axes.length); track $index) {
                 <line x1="100" y1="100" [attr.x2]="spoke.x" [attr.y2]="spoke.y" />
               }
             </g>
@@ -145,7 +145,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
               <line class="connector" [class.up]="c.up" [class.down]="!c.up" [attr.x1]="c.x1" [attr.y1]="c.y1" [attr.x2]="c.x2" [attr.y2]="c.y2" />
             }
             @for (cap of axisCaptions(); track cap.key) {
-              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
+              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="cap.anchor" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
             }
           </svg>
           <dl class="sr-only axis-mirror">
@@ -612,19 +612,23 @@ export class CodexRankCardComponent {
     () => this.result()?.axes.filter((a) => a.norm != null).length ?? 0,
   );
 
-  readonly axisCaptions = computed<{ key: string; labelKey: string; axisLabelKey: string; x: number; y: number; gap: boolean; trend: 'up' | 'down' | null }[]>(() => {
+  readonly axisCaptions = computed<{ key: string; labelKey: string; axisLabelKey: string; x: number; y: number; anchor: 'start' | 'middle' | 'end'; gap: boolean; trend: 'up' | 'down' | null }[]>(() => {
     const r = this.result();
     if (!r) return [];
     const n = r.axes.length;
     const cx = 100, cy = 100, r2 = 92;
+    const holo = this.holo();
     return r.axes.map((a, i) => {
       const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
       return {
         key: a.key,
         axisLabelKey: a.labelKey,
         labelKey: a.norm == null ? 'codex.rank.gapAxis' : a.labelKey,
-        x: cx + r2 * Math.cos(angle),
-        y: cy + r2 * Math.sin(angle),
+        // Holotable: a label hanging at the vertex collided with it. Side labels sit
+        // beside the vertex and grow away from the shape, top/bottom ones clear it vertically.
+        x: cx + (holo ? (Math.abs(Math.cos(angle)) > 0.3 ? 90 : 96) : r2) * Math.cos(angle) + (holo ? Math.sign(Math.cos(angle)) * (Math.abs(Math.cos(angle)) > 0.3 ? 5 : 0) : 0),
+        y: cy + (holo ? 96 : r2) * Math.sin(angle) + (holo ? (Math.sin(angle) > 0.3 ? 4 : Math.sin(angle) < -0.3 ? -2 : 2) : 0),
+        anchor: !holo || Math.abs(Math.cos(angle)) <= 0.3 ? 'middle' : Math.cos(angle) > 0 ? 'start' : 'end',
         gap: a.norm == null,
         trend: a.delta == null || Math.abs(a.delta) < 1 ? null : a.delta > 0 ? 'up' : 'down',
       };

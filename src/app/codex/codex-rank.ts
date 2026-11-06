@@ -628,7 +628,10 @@ export function parseRankScopePref(v: unknown): RankScope | null {
 
 /** `fallback`: the group before the user ever picked one ("all" for the classic
  * card, "role" in the Holotable). */
-export function readRankScopePref(fallback: RankScope = 'all'): RankScope {
+export function readRankScopePref(): RankScope;
+export function readRankScopePref(fallback: null): RankScope | null;
+export function readRankScopePref(fallback: RankScope): RankScope;
+export function readRankScopePref(fallback: RankScope | null = 'all'): RankScope | null {
   try {
     return parseRankScopePref(localStorage.getItem(RANK_SCOPE_PREF_KEY)) ?? fallback;
   } catch {
@@ -654,9 +657,10 @@ export function writeRankScopePref(scope: RankScope): void {
 // v2: the cohort drops salvage wrecks, sentries, probes and nameless records
 // (archive audit 2026-09-25) — a v1 entry holds the old fleet.
 // v3: every member carries its `role` (the third comparison group).
+// v5: the sheets carry ir / emMax from the power model (withPowerSignature).
 // v4: a cohort with a failed payload chunk is never cached (holodeck polish 2026-10-08) —
 // a v3 entry may hold such a half-fleet.
-const COHORT_CACHE_PREFIX = 'scc-codex-rank:v4';
+const COHORT_CACHE_PREFIX = 'scc-codex-rank:v5';
 
 export function cohortCacheKey(buildId: string, scope: RankScope, discriminator = ''): string {
   return `${COHORT_CACHE_PREFIX}:${buildId}:${scope}${discriminator ? `:${discriminator}` : ''}`;

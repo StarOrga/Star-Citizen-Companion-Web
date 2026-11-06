@@ -624,6 +624,22 @@ describe('CodexHoloStageComponent one panel (concept glas3)', () => {
     expect(stage.style.getPropertyValue('--holo-e')).toBe('var(--sc-mission-stealth)');
   });
 
+  it('a picked Einsatz on a ship of that class still shows: its own label, symbol hue and the lit parts', async () => {
+    const f = await setup({ primaryModuleSections: sections });
+    const c = f.componentInstance;
+    f.componentRef.setInput('rankShipClass', 'combat');
+    f.detectChanges();
+    expect(c.missionLabelKey()).toBe('codex.rank.class.combat');
+    f.componentRef.setInput('activeMissionId', 'combat');
+    f.detectChanges();
+    expect(c.missionLabelKey()).toBe('codex.mission.combat');
+    expect(c.missionLabelKey()).not.toBe(c.rankClassLabel());
+    expect(c.missionHue()).toBe('var(--sc-mission-combat)');
+    expect([...c.relevantPorts()!].sort()).toEqual(['hp_gun', 'hp_shield']);
+    const stage = (f.nativeElement as HTMLElement).querySelector('.holo-stage') as HTMLElement;
+    expect(stage.getAttribute('data-mission')).toBe('combat');
+  });
+
   it('a ship opens on its class: the strip names it, the rank profile follows the class', async () => {
     const f = await setup({ primaryModuleSections: sections });
     const c = f.componentInstance;
