@@ -78,7 +78,13 @@ Rounds 1 and 2 above are built on the branch as well; the implement click covere
 - Group name: the ship's class.
 - Ship actions: split between the panel and the open block.
 
-Not built: fullscreen 3D in phone landscape.
+Close-out follow-ups, routed by the owner to "build now" (2026-11-06):
+
+- Phone landscape: the 3D view is a fixed overlay with a close button, no Fullscreen API (iPhone Safari lacks it). Turning the phone again brings it back.
+- Hexagon radius: square root on the holotable only. The rim stays 100 % of the group (95th percentile), the rings stay on 33 and 67 %, the numbers stay linear. This was my call: revert it in `radial()` in `codex-rank-card.component.ts` if it reads wrong.
+- Part panel makers: a slot without a kind resolves through the component facet.
+
+Filed: idle and true max EM (#967), hull variants counted once (#968). Dropped: where the ship actions sit.
 
 ## Rejected, do not re-propose without saying so
 
