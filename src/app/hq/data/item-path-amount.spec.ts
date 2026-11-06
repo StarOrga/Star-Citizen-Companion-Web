@@ -147,7 +147,7 @@ describe('ItemPathService - exact amounts of blueprint material', () => {
       await svc.addToNachschub('blueprint', 'BP_Y', 'Scattergun', 1); // also needs Agricium
       await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
       const before = supplies.items().map((i) => [i.name, i.qty, i.amount, i.forClassName]);
-      expect(supplies.open().length).toBe(5);
+      expect(supplies.open().length).toBe(6);
 
       const res = svc.removeFromNachschub('blueprint', 'BP_X');
       expect(res.key).toBe('itemPath.done.nachschubOffMaterial');
@@ -160,7 +160,7 @@ describe('ItemPathService - exact amounts of blueprint material', () => {
       expect(supplies.openLinesFor('Frame_Alu').length).toBe(0);
 
       await res.undo!();
-      expect(supplies.open().length).toBe(5);
+      expect(supplies.open().length).toBe(6);
       expect(supplies.items().map((i) => [i.name, i.qty, i.amount, i.forClassName])).toEqual(before);
     });
 

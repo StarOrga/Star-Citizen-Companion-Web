@@ -89,7 +89,7 @@ describe('HqSuppliesPopupComponent', () => {
     const store = [...el.querySelectorAll<HTMLButtonElement>('.place button')].find((b) => b.textContent?.includes('hq.supplies.place.store'))!;
     store.click();
     const path = TestBed.inject(ItemPathService) as unknown as ReturnType<typeof fakeItemPath>;
-    expect(path.moveToInventar).toHaveBeenCalledWith('item', 'qd_s1', 'Quantum drive', 'Bei mir', 2);
+    expect(path.moveToInventar).toHaveBeenCalledWith('item', 'qd_s1', 'Quantum drive', 'Bei mir', 2, jasmine.objectContaining({ unit: 'pcs' }));
 
     await new Promise((r) => setTimeout(r));
     f.detectChanges();

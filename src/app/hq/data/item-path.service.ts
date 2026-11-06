@@ -232,7 +232,7 @@ export class ItemPathService {
       const lines = this.supplies.openLinesFor(className);
       nachschubUnit = lines[0]?.unit ?? null;
       // Lines of the other kind of quantity (pieces vs SCU) are not added to the first one's.
-      nachschubQty = roundAmount(lines.filter((l) => l.unit === nachschubUnit).reduce((n, l) => n + lineAmount(l), 0));
+      nachschubQty = roundAmount(lines.filter((l) => (l.unit ?? null) === nachschubUnit).reduce((n, l) => n + lineAmount(l), 0));
     }
     if (!places.length) places = NO_PLACES as PathPlace[];
     return {
