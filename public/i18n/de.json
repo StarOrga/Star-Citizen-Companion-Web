@@ -5531,7 +5531,17 @@
         "unit": "Einheit",
         "pcs": "Stück",
         "location": "Ort",
-        "save": "Eintragen"
+        "save": "Eintragen",
+        "suggestions": "Vorschläge aus dem Codex",
+        "unknown": "Gibt es nicht – wähle einen Eintrag aus den Vorschlägen.",
+        "linked": "Mit dem Codex verknüpft.",
+        "kind": {
+          "ship": "Schiff",
+          "item": "Gegenstand",
+          "component": "Komponente",
+          "weapon": "Waffe",
+          "ammunition": "Munition"
+        }
       }
     },
     "app": {
@@ -5593,7 +5603,9 @@
     }
   },
   "verse": {
-    "areaFoot": { "aria": "Bereich wechseln" },
+    "areaFoot": {
+      "aria": "Bereich wechseln"
+    },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",

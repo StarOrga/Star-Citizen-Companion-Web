@@ -1,6 +1,18 @@
 import { formatLocationName } from '../now/hq-live.util';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CodexService, toLang } from '../../codex/codex.service';
+import { hitTitle } from '../../codex/search/codex-search-model';
+import { toErrorKey } from '../../core/describe-error';
+import { HqInventoryItemRow } from '../data/hq-db.types';
+import { StockTarget, encodeStockRef, stockTarget } from './hq-stock-ref';
+
+interface StockSuggestion {
+  key: string;
+  kind: 'ship' | 'item' | 'component' | 'weapon' | 'ammunition';
+  title: string;
+}
+const STOCK_PICK_KINDS: readonly string[] = ['ship', 'item', 'component', 'weapon', 'ammunition'];
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
@@ -178,7 +190,10 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
                   <p class="sub">{{ 'hq.stock.lager.materials' | translate }}</p>
                   <ul class="items">
                     @for (i of loc.materials; track i.name) {
-                      <li><span>{{ i.name }}</span><span class="qty">{{ i.qty }} SCU</span></li>
+                      <li>
+                        @if (target(i); as t) { <a class="entry" [routerLink]="t.commands" [queryParams]="t.queryParams">{{ i.name }}</a> } @else { <span>{{ i.name }}</span> }
+                        <span class="qty">{{ i.qty }} SCU</span>
+                      </li>
                     }
                   </ul>
                 }
@@ -186,7 +201,10 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
                   <p class="sub">{{ 'hq.stock.lager.pieces' | translate }}</p>
                   <ul class="items">
                     @for (i of loc.pieces; track i.name) {
-                      <li><span>{{ i.name }}</span><span class="qty">{{ i.qty }}×</span></li>
+                      <li>
+                        @if (target(i); as t) { <a class="entry" [routerLink]="t.commands" [queryParams]="t.queryParams">{{ i.name }}</a> } @else { <span>{{ i.name }}</span> }
+                        <span class="qty">{{ i.qty }}×</span>
+                      </li>
                     }
                   </ul>
                 }
@@ -222,10 +240,51 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
         <form class="capture card" (submit)="$event.preventDefault(); add()" aria-labelledby="hq-stock-capture">
           <h4 id="hq-stock-capture">{{ 'hq.stock.capture.title' | translate }}</h4>
           <div class="row">
-            <label>
-              <span>{{ 'hq.stock.capture.item' | translate }}</span>
-              <input name="item" [(ngModel)]="item" maxlength="160" autocomplete="off" [placeholder]="'hq.stock.capture.itemHint' | translate" />
-            </label>
+            <div class="field picker">
+              <label for="hq-stock-item">{{ 'hq.stock.capture.item' | translate }}</label>
+              <input
+                id="hq-stock-item"
+                name="item"
+                role="combobox"
+                aria-autocomplete="list"
+                [attr.aria-expanded]="listOpen()"
+                aria-controls="hq-stock-suggest"
+                [attr.aria-activedescendant]="activeIndex() >= 0 ? 'hq-stock-opt-' + activeIndex() : null"
+                aria-describedby="hq-stock-item-msg"
+                [ngModel]="itemText()"
+                (ngModelChange)="onItemInput($event)"
+                (keydown)="onItemKey($event)"
+                (blur)="closeList()"
+                maxlength="160"
+                autocomplete="off"
+                [placeholder]="'hq.stock.capture.itemHint' | translate"
+              />
+              @if (listOpen()) {
+                <ul class="suggest" id="hq-stock-suggest" role="listbox" [attr.aria-label]="'hq.stock.capture.suggestions' | translate">
+                  @for (o of suggestions(); track o.key; let idx = $index) {
+                    <li
+                      role="option"
+                      [id]="'hq-stock-opt-' + idx"
+                      [class.active]="idx === activeIndex()"
+                      [attr.aria-selected]="idx === activeIndex()"
+                      (mousedown)="$event.preventDefault(); pick(o)"
+                    >
+                      <span class="opt-name">{{ o.title }}</span>
+                      <span class="opt-kind">{{ 'hq.stock.capture.kind.' + o.kind | translate }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+              <p id="hq-stock-item-msg" class="msg" role="status">
+                @if (unknown()) {
+                  {{ 'hq.stock.capture.unknown' | translate }}
+                } @else if (searchError(); as k) {
+                  {{ k | translate }}
+                } @else if (picked()) {
+                  {{ 'hq.stock.capture.linked' | translate }}
+                }
+              </p>
+            </div>
             <label class="qty-f">
               <span>{{ 'hq.stock.capture.qty' | translate }}</span>
               <input name="qty" type="number" min="0.01" step="any" inputmode="decimal" [(ngModel)]="qty" />
@@ -306,6 +365,15 @@ import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-st
         font: inherit; color: var(--sc-fg); background: var(--sc-bg-0, var(--sc-bg-1)); border: 1px solid var(--sc-border);
         border-radius: var(--sc-radius); padding: var(--sc-space-2, 8px); min-height: 2.75rem; box-sizing: border-box; width: 100%;
       }
+      .picker { position: relative; flex: 1 1 10rem; }
+      .picker > label { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .msg { margin: 0; min-height: 1.2em; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .suggest { position: absolute; z-index: 5; inset-inline: 0; top: 100%; margin: 0; padding: var(--sc-space-1, 4px); list-style: none; max-height: min(18rem, 40dvh); overflow-y: auto; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); }
+      .suggest li { display: flex; justify-content: space-between; gap: var(--sc-space-3, 12px); padding: var(--sc-space-2, 8px); min-height: 2.75rem; align-items: center; cursor: pointer; border-radius: var(--sc-radius); }
+      .suggest li:hover, .suggest li.active { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+      .opt-name { min-width: 0; overflow-wrap: anywhere; color: var(--sc-fg-0); }
+      .opt-kind { flex: none; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+      .entry { min-width: 0; overflow-wrap: anywhere; }
       .warn { margin: 0; color: var(--sc-warning); }
     `,
   ],
@@ -378,7 +446,25 @@ export class HqStockComponent implements OnInit {
     return this.translate.instant(g.stops === 1 ? 'hq.stock.find.summaryOne' : 'hq.stock.find.summaryMany', p);
   }
 
-  item = '';
+  /** Picker state: the typed text, the suggestions for it, and the one the reader chose. */
+  readonly itemText = signal('');
+  readonly suggestions = signal<StockSuggestion[]>([]);
+  readonly picked = signal<StockSuggestion | null>(null);
+  readonly activeIndex = signal(-1);
+  readonly open = signal(false);
+  readonly searchError = signal<string | null>(null);
+  /** The term the suggestions answer; null while a search is pending. */
+  private readonly answeredFor = signal<string | null>(null);
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchSeq = 0;
+  private readonly codex = inject(CodexService);
+
+  readonly listOpen = computed(() => this.open() && this.suggestions().length > 0);
+  /** Text typed, searched, and nothing in the Codex matches it. */
+  readonly unknown = computed(() => {
+    const t = this.itemText().trim();
+    return !!t && !this.picked() && this.answeredFor() === t && this.suggestions().length === 0 && !this.searchError();
+  });
   qty: number | null = 1;
   location = '';
   readonly unit = signal<'pcs' | 'scu'>('pcs');
@@ -435,15 +521,109 @@ export class HqStockComponent implements OnInit {
     return this.translate.instant(`hq.stock.age.${unit}`, { n });
   }
 
+  /** Owned ships only: a ship entry leads to the reader's own copy when there is one. */
+  private readonly ownedShips = computed(() => this.hangar.ships().filter((s) => s.status === 'owned'));
+
+  target(i: Pick<HqInventoryItemRow, 'name' | 'class_name'>): StockTarget | null {
+    return stockTarget(i.name, i.class_name, this.ownedShips());
+  }
+
+  onItemInput(v: string): void {
+    this.itemText.set(v);
+    this.searchError.set(null);
+    const t = v.trim();
+    const p = this.picked();
+    if (p && p.title !== t) this.picked.set(null);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchSeq++;
+    if (!t) {
+      this.suggestions.set([]);
+      this.answeredFor.set(null);
+      this.open.set(false);
+      return;
+    }
+    if (p && p.title === t) return;
+    this.answeredFor.set(null);
+    this.open.set(true);
+    const seq = this.searchSeq;
+    this.searchTimer = setTimeout(() => void this.runSearch(t, seq), 220);
+  }
+
+  private async runSearch(t: string, seq: number): Promise<void> {
+    try {
+      const res = await this.codex.searchAll(t, 6);
+      if (seq !== this.searchSeq) return;
+      const lang = toLang(this.translate.getCurrentLang() ?? this.translate.getFallbackLang());
+      const seen = new Set<string>();
+      const out: StockSuggestion[] = [];
+      for (const h of res.hits) {
+        if (!STOCK_PICK_KINDS.includes(h.kind)) continue;
+        const kind = h.kind as StockSuggestion['kind'];
+        const key = encodeStockRef(kind, h.classNameSlug);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ key, kind, title: hitTitle(h, lang) });
+        if (out.length >= 8) break;
+      }
+      this.suggestions.set(out);
+      this.activeIndex.set(-1);
+      // An exact name typed in full is the entry: no click needed.
+      const exact = out.find((o) => o.title.toLowerCase() === t.toLowerCase());
+      if (exact) this.picked.set(exact);
+      this.answeredFor.set(t);
+    } catch (err) {
+      if (seq !== this.searchSeq) return;
+      this.suggestions.set([]);
+      this.searchError.set(toErrorKey('hq', 'stock.search', err));
+    }
+  }
+
+  pick(o: StockSuggestion): void {
+    this.searchSeq++;
+    this.picked.set(o);
+    this.itemText.set(o.title);
+    this.answeredFor.set(o.title);
+    this.open.set(false);
+    this.activeIndex.set(-1);
+  }
+
+  closeList(): void {
+    this.open.set(false);
+  }
+
+  onItemKey(e: KeyboardEvent): void {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' && n) {
+      e.preventDefault();
+      this.open.set(true);
+      this.activeIndex.set((this.activeIndex() + 1) % n);
+    } else if (e.key === 'ArrowUp' && n) {
+      e.preventDefault();
+      this.open.set(true);
+      this.activeIndex.set((this.activeIndex() - 1 + n) % n);
+    } else if (e.key === 'Enter' && this.listOpen() && this.activeIndex() >= 0) {
+      e.preventDefault();
+      this.pick(this.suggestions()[this.activeIndex()]);
+    } else if (e.key === 'Escape' && this.open()) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.open.set(false);
+    }
+  }
+
   valid(): boolean {
-    return !!this.item.trim() && !!this.location.trim() && Number(this.qty) > 0;
+    return !!this.picked() && this.picked()!.title === this.itemText().trim() && !!this.location.trim() && Number(this.qty) > 0;
   }
 
   async add(): Promise<void> {
-    if (!this.valid()) return;
-    const ok = await this.inv.addManual(this.location, this.item, Number(this.qty), this.unit());
+    const p = this.picked();
+    if (!this.valid() || !p) return;
+    const ok = await this.inv.addManual(this.location, p.title, Number(this.qty), this.unit(), p.key);
     if (ok) {
-      this.item = '';
+      this.itemText.set('');
+      this.picked.set(null);
+      this.suggestions.set([]);
+      this.answeredFor.set(null);
       this.qty = 1;
     }
   }
