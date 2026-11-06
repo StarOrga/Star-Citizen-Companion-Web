@@ -11,6 +11,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
@@ -24,6 +25,7 @@ import { CodexLandingCodexPaneComponent } from './landing/codex-landing-codex-pa
 import { CodexLandingNewsComponent } from './landing/codex-landing-news.component';
 import { CLAIM_MS, ClaimCursor, buildClaims } from './landing/codex-landing-claims';
 import { PauseOffscreenDirective } from '../shared/pause-offscreen.directive';
+import { IndexWheelGate, atPageEnd, wheelBelongsToInner } from './landing/codex-landing-scroll';
 
 /** One rotation step (brief A4: ≈ 8 s per category). */
 export const ROTATION_MS = 8000;
@@ -34,9 +36,11 @@ export const CODEX_LIST_ITEMS = 5;
  * The Codex landing (concept 2026-10-30-codex-holo-buehne, round 4 "Zugewandte
  * Kante"): one viewport, no page scroll on desktop. Hero with the category's
  * claims and the staged search; the holotable in the centre with the newest
- * flight-ready item per category in rotation; "Weitere Werte" left and the
- * Codex list right, both light panes whose glowing edges face the hologram and
- * stand in the light the table spills across the floor. Nothing personal.
+ * flight-ready item per category in rotation; the Codex list left (where the
+ * index keeps its area tree) and "Weitere Werte" right, both light panes whose
+ * glowing edges face the screen edge and stand in the light the table spills
+ * across the floor. Wheeling on past the page end opens the Codex index.
+ * Nothing personal.
  *
  * The rotation advances every {@link ROTATION_MS}; it holds while a category
  * is held, a paint preview is open, the hero is hovered/focused, the tab is
@@ -72,6 +76,7 @@ export class CodexLandingComponent {
   protected readonly data = inject(CodexLandingDataService);
   private readonly translate = inject(TranslateService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly router = inject(Router);
   readonly shellOn = inject(BetaService).isEnabled('shell');
   protected readonly rotationMs = ROTATION_MS;
   private readonly lang = this.translate.currentLang;
@@ -209,10 +214,29 @@ export class CodexLandingComponent {
       window.addEventListener(STAGE_SLOT_MOVED, measure);
       window.addEventListener('resize', measure, { passive: true });
       const lates = [300, 1000].map((ms) => setTimeout(measure, ms));
+
+      // Desktop: the landing is one viewport; wheeling on past its end opens the index.
+      const desktop = typeof matchMedia === 'function' ? matchMedia('(min-width: 721px)') : null;
+      const gate = new IndexWheelGate();
+      let leaving = false;
+      const onWheel = (ev: WheelEvent) => {
+        if (leaving || !desktop?.matches || ev.defaultPrevented || ev.ctrlKey) return;
+        if (wheelBelongsToInner(ev.target, this.host) || !atPageEnd()) {
+          gate.reset();
+          return;
+        }
+        const dy = ev.deltaMode === 1 ? ev.deltaY * 40 : ev.deltaMode === 2 ? ev.deltaY * window.innerHeight : ev.deltaY;
+        if (!gate.push(dy, ev.timeStamp)) return;
+        leaving = true;
+        void this.router.navigate(['/codex/index']).finally(() => (leaving = false));
+      };
+      window.addEventListener('wheel', onWheel, { passive: true });
+
       destroyRef.onDestroy(() => {
         ro?.disconnect();
         window.removeEventListener(STAGE_SLOT_MOVED, measure);
         window.removeEventListener('resize', measure);
+        window.removeEventListener('wheel', onWheel);
         lates.forEach(clearTimeout);
       });
     });
