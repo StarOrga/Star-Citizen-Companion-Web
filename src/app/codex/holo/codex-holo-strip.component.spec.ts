@@ -208,12 +208,12 @@ describe('CodexHoloStripComponent', () => {
 
   it('the default Einsatz names the class and the group, any other its own word', async () => {
     const fixture = await setup();
-    fixture.componentRef.setInput('defaultLabelKey', 'codex.rank.class.cargo');
+    fixture.componentRef.setInput('defaultLabelKey', 'codex.rank.class.transport');
     fixture.componentRef.setInput('cohortLabel', '21 × Mittlerer Frachter');
     fixture.componentRef.setInput('active', 'all');
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.einsatz .val')!.textContent).toContain('codex.rank.class.cargo');
+    expect(el.querySelector('.einsatz .val')!.textContent).toContain('codex.rank.class.transport');
     expect(el.querySelector('.einsatz .val svg')).not.toBeNull();
     expect(el.querySelector('.einsatz .sub')!.textContent).toContain('21 × Mittlerer Frachter');
     fixture.componentRef.setInput('active', 'combat');

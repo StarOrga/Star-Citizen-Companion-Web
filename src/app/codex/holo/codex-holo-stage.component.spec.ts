@@ -333,7 +333,6 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
   it('a raw-port pin (no loadout sections) still gives the inspector a target — but no dead swap button', async () => {
     const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
     const c = fixture.componentInstance;
-    c.rightCollapsed.set(false);
     c.inspectPin('hardpoint_gun_left');
     fixture.detectChanges();
     const target = c.inspectorTarget();
@@ -350,7 +349,6 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
       primaryModuleSections: [{ section: 'weapons', slots: [slot('hardpoint_gun_left', 'Laser Cannon')] }],
     });
     const c = fixture.componentInstance;
-    c.rightCollapsed.set(false);
     c.inspectPin('hardpoint_gun_left');
     fixture.detectChanges();
     expect(c.inspectorIsRawPort()).toBe(false);
@@ -631,11 +629,11 @@ describe('CodexHoloStageComponent one panel (concept glas3)', () => {
     const c = f.componentInstance;
     const asked: string[] = [];
     c.rankProfileChange.subscribe((p) => asked.push(p));
-    f.componentRef.setInput('rankShipClass', 'cargo');
+    f.componentRef.setInput('rankShipClass', 'transport');
     f.detectChanges();
-    expect(c.rankClassLabel()).toBe('codex.rank.class.cargo');
-    expect(c.missionSegments().find((m) => m.id === 'all')!.labelKey).toBe('codex.rank.class.cargo');
-    expect(asked[asked.length - 1]).toBe('class:cargo' as never);
+    expect(c.rankClassLabel()).toBe('codex.rank.class.transport');
+    expect(c.missionSegments().find((m) => m.id === 'all')!.labelKey).toBe('codex.rank.class.transport');
+    expect(asked[asked.length - 1]).toBe('transport');
   });
 
   it('a later ship arrives short: no hero wait, the values are there at once', fakeAsync(() => {

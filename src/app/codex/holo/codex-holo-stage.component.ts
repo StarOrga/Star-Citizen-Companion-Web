@@ -2002,8 +2002,13 @@ export class CodexHoloStageComponent {
     }
     const hasSlot = (port: string | null | undefined): boolean =>
       !!port && this.allSections().some((s) => s.slots.some((sl) => (sl.rawPort ?? sl.port) === port));
-    const parent = this.assetViewer()?.byId().get(sel.id)?.parentPort;
-    const slotPort = hasSlot(sel.portName) ? sel.portName : hasSlot(parent) ? parent! : null;
+    // A gun on its mount: the slot belongs to the nearest ancestor that has one (parentPort is the parent's id).
+    let slotPort: string | null = hasSlot(sel.portName) ? sel.portName : null;
+    const byId = this.assetViewer()?.byId();
+    for (let up = byId?.get(sel.id)?.parentPort; !slotPort && up; up = byId?.get(up)?.parentPort) {
+      const port = byId?.get(up)?.portName;
+      if (hasSlot(port)) slotPort = port!;
+    }
     this.looseSelection.set(slotPort ? null : sel);
     this.viewerSelection.set(sel.id);
     this.panelTab.set('parts');

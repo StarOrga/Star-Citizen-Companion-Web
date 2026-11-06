@@ -854,7 +854,6 @@
         "holoHint": "Holotable view"
       },
       "stage": {
-        "railToggle": "Collapse/expand rail",
         "einordnung": "Standing",
         "cohortLink": "View all ships",
         "view3d": "3D",
@@ -1041,10 +1040,7 @@
         }
       },
       "components": {
-        "title": "Components in the model",
-        "hint": "Tap or click to mark · Esc clears",
-        "unknownPosition": "Position in model unknown",
-        "groupCount": "{{count}} installed · {{located}} in model"
+        "unknownPosition": "Position in model unknown"
       },
       "shared": {
         "loading": "Loading the shared loadout …",

@@ -854,7 +854,6 @@
         "holoHint": "Holotisch-Ansicht"
       },
       "stage": {
-        "railToggle": "Leiste ein-/ausklappen",
         "einordnung": "Einordnung",
         "cohortLink": "Alle Schiffe ansehen",
         "view3d": "3D",
@@ -1041,10 +1040,7 @@
         }
       },
       "components": {
-        "title": "Komponenten im Modell",
-        "hint": "Antippen oder klicken markiert · Esc löst",
-        "unknownPosition": "Position im Modell unbekannt",
-        "groupCount": "{{count}} verbaut · {{located}} im Modell"
+        "unknownPosition": "Position im Modell unbekannt"
       },
       "shared": {
         "loading": "Geteiltes Loadout wird geladen …",

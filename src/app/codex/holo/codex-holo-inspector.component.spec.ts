@@ -178,7 +178,7 @@ describe('CodexHoloInspectorComponent', () => {
       const labels = Array.from(root(f).querySelectorAll('.act button span')).map((s) => s.textContent);
       expect(labels).toEqual(['codex.holo.stage.iconWishlist', 'codex.holo.stage.iconSupply', 'codex.holo.stage.iconStock']);
       (root(f).querySelector('.act button') as HTMLButtonElement).click();
-      await f.whenStable();
+      await new Promise((r) => setTimeout(r));
       expect(icon).toHaveBeenCalledTimes(1);
       expect(icon.calls.first().args[0]).toBe('wishlist');
       f.detectChanges();
