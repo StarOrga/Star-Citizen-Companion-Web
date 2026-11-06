@@ -100,6 +100,7 @@ describe('HqStockComponent', () => {
   });
 
   async function type(fixture: ReturnType<typeof mount>['fixture'], text: string) {
+    await fixture.whenStable();
     const input = (fixture.nativeElement as HTMLElement).querySelector('#hq-stock-item') as HTMLInputElement;
     input.value = text;
     input.dispatchEvent(new Event('input'));
