@@ -1,7 +1,10 @@
 import { Injectable, Injector, Signal, computed, inject, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
+import { CodexService } from '../../codex/codex.service';
+import { cleanLocaleValue, humanizeClassName } from '../../codex/codex-format';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { toErrorKey } from '../../core/describe-error';
+import { logWarn } from '../../core/log';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { HqLiveService } from '../now/hq-live.service';
@@ -49,8 +52,11 @@ import { HqInventoryService } from './hq-inventory.service';
  *   PLACE_WITH_ME (A8).
  *
  * Blueprints (A9): all three stops. Inventar = "collected", stored as a stock row at
- * PLACE_BLUEPRINTS. Nachschub = a plain line until mission data exists; pass
- * `opts.stepKind = 'mission'` / `opts.meta` to attach the mission ("Zum Einsatz").
+ * PLACE_BLUEPRINTS. Nachschub = the blueprint line PLUS its material: every ingredient with a class
+ * name becomes a line of its own (`hq_supplies` has no material column; the ingredient's class name
+ * makes the line findable like any item). The blueprint line itself stays plain: no table links a
+ * blueprint to the mission that awards it (`missionSource` is always null in the extractor, R5), so
+ * nobody passes `opts.stepKind = 'mission'` yet; the option stays for the day that data exists.
  */
 
 /** Stored location of "Bei mir" (replaces the old "Ortsfrei" label). */
@@ -91,6 +97,41 @@ export interface PathResult {
 
 export interface NachschubOpts {
   stepKind?: StepKind | null;
+}
+
+/** One ingredient of a blueprint as a Nachschub line. */
+export interface MaterialLine {
+  className: string;
+  name: string;
+  entityKind: string | null;
+  /** Whole pieces: the recipe counts SCU (0.36), `hq_supplies.qty` is an integer >= 1. */
+  qty: number;
+}
+
+/**
+ * The ingredients of a recipe as Nachschub lines: unresolved slots (no class name) are skipped,
+ * the same material in two slots is one line, amounts round up to whole pieces (at least 1).
+ */
+export function materialLines(
+  ingredients: readonly { ingredientClassName: string | null; nameLocalized: string | null; entityKind: string | null; quantity: number }[],
+): MaterialLine[] {
+  const out = new Map<string, MaterialLine & { scu: number }>();
+  for (const ing of ingredients) {
+    const cls = ing.ingredientClassName?.trim();
+    if (!cls) continue;
+    const key = cls.toLowerCase();
+    const have = out.get(key);
+    const scu = (have?.scu ?? 0) + Math.max(0, ing.quantity || 0);
+    out.set(key, {
+      className: cls,
+      name: have?.name ?? (cleanLocaleValue(ing.nameLocalized) || humanizeClassName(cls)),
+      // A material the catalog cannot place is stocked like an item, so its line can be fetched and stored too.
+      entityKind: have?.entityKind ?? ing.entityKind ?? 'item',
+      qty: Math.max(1, Math.ceil(scu - 1e-9)),
+      scu,
+    });
+  }
+  return [...out.values()].map(({ scu: _scu, ...line }) => line);
 }
 
 const NO_PLACES: readonly PathPlace[] = [];
@@ -216,13 +257,25 @@ export class ItemPathService {
 
   // ── Nachschub ──────────────────────────────────────────────────────────────
 
-  /** A wished item moves into Nachschub (A5): the wish disappears, undo restores it and the line. */
+  /**
+   * A wished item moves into Nachschub (A5): the wish disappears, undo restores it and the line.
+   * A blueprint brings its material along (A9): one extra line per ingredient, undone together.
+   */
   async addToNachschub(kind: string, className: string, name: string, qty = 1, opts: NachschubOpts = {}): Promise<PathResult> {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
     if (!stepsOf(kind).includes('nachschub')) return fail('itemPath.err.unavailable');
+    const materials = kind === 'blueprint' ? await this.materialsOf(className) : [];
     const wasWished = this.wishlist.has(kind, className, name);
     const line = this.supplies.addLine(name, qty, { entityKind: kind, className, stepKind: opts.stepKind ?? null, source: 'search' });
     if (!line) return fail('itemPath.err.listFull');
+    const added: { id: string; prevQty: number }[] = [line];
+    for (const m of materials) {
+      const l = this.supplies.addLine(m.name, m.qty, { entityKind: m.entityKind, className: m.className, source: 'search' });
+      if (l) added.push(l);
+    }
+    const revertAll = (): void => {
+      for (const l of added) this.revertLine(l.id, l.prevQty);
+    };
     if (wasWished) {
       let removed: boolean;
       try {
@@ -232,20 +285,32 @@ export class ItemPathService {
       }
       if (!removed) {
         // The move is atomic for the reader: a wish that cannot go keeps the line out too.
-        this.revertLine(line.id, line.prevQty);
+        revertAll();
         return fail('itemPath.err.failed');
       }
     }
+    const withMaterial = added.length > 1;
     return {
       ok: true,
-      key: wasWished ? 'itemPath.done.moved' : 'itemPath.done.nachschub',
-      params: { name },
+      key: wasWished ? (withMaterial ? 'itemPath.done.movedMaterial' : 'itemPath.done.moved') : withMaterial ? 'itemPath.done.nachschubMaterial' : 'itemPath.done.nachschub',
+      params: { name, n: added.length - 1 },
       undo: async () => {
-        this.revertLine(line.id, line.prevQty);
+        revertAll();
         if (wasWished) await this.wishlist.add(kind, className, name);
         return { ok: true, key: 'itemPath.done.undone', params: { name } };
       },
     };
+  }
+
+  /** The recipe's material; an unreadable recipe leaves the blueprint line plain. */
+  private async materialsOf(className: string): Promise<MaterialLine[]> {
+    try {
+      const detail = await this.injector.get(CodexService).getBlueprint(className);
+      return materialLines(detail?.ingredients ?? []);
+    } catch (err) {
+      logWarn('itemPath', 'blueprint material unavailable', err);
+      return [];
+    }
   }
 
   setNachschubQty(kind: string, className: string, qty: number): PathResult {

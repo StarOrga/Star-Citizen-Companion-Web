@@ -6974,6 +6974,8 @@
       "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",
       "nachschub": "„{{name}}“ ist im Nachschub",
       "moved": "„{{name}}“ ist jetzt im Nachschub, nicht mehr auf der Wunschliste",
+      "nachschubMaterial": "„{{name}}“ ist im Nachschub, dazu {{n}} Material",
+      "movedMaterial": "„{{name}}“ ist jetzt im Nachschub, dazu {{n}} Material, nicht mehr auf der Wunschliste",
       "nachschubOff": "„{{name}}“ ist nicht mehr im Nachschub",
       "qty": "„{{name}}“: {{qty}} im Nachschub",
       "nachholen": "{{qty}} × „{{name}}“ wieder im Nachschub",

@@ -38,11 +38,14 @@ import {
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { noteOpenedPage } from '../shell/merkliste/merkliste-opened';
+import { pathLevelFor } from './path-level.util';
 
 @Component({
   selector: 'sc-blueprint-detail',
   standalone: true,
-  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCategoryIconComponent, ClassChipComponent],
+  imports: [ItemPathComponent, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCategoryIconComponent, ClassChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -70,6 +73,8 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
             <h1 class="entity-name">{{ displayName() }}</h1>
             @if (outputEntity()?.manufacturerCode; as mfr) { <p class="sc-detail-mfr">{{ mfr }}</p> }
             <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
+            <!-- All three stops (wish, Nachschub with its material, Inventar as "collected"). -->
+            <sc-item-path class="path" kind="blueprint" [className]="detail()!.classNameSlug" [name]="displayName()" [level]="pathLevel()" />
             @if (facts().length > 0) {
               <ul class="sc-detail-facts">
                 @for (f of facts(); track f.label) {
@@ -198,6 +203,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
     .skel-card { min-height: 200px; }
     .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.55; max-width: var(--sc-measure); }
     .ing-cls { align-self: flex-start; }
+    .path { margin-top: 4px; }
 
     .ingredient-list { display: flex; flex-direction: column; gap: 8px; }
     .ing-unit { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--sc-fg-2); }
@@ -251,6 +257,8 @@ export class BlueprintDetailComponent implements OnInit {
       labelKey: 'codex.kinds.blueprint', link: '/codex/index', queryParams: { kind: 'blueprint' },
     });
   });
+  /** The full path form when the reader came from Planen or a set, the pill otherwise (D2). */
+  protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
   readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
@@ -422,6 +430,7 @@ export class BlueprintDetailComponent implements OnInit {
       const result = await this.svc.getBlueprint(className);
       if (seq !== this.loadSeq) return;
       this.detail.set(result);
+      if (result) noteOpenedPage({ kind: 'blueprint', className: result.classNameSlug, title: this.displayName(), manufacturerCode: null });
       void this.resolveOutput(seq);
     } catch (err) {
       if (seq !== this.loadSeq) return;
