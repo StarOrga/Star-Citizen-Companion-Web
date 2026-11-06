@@ -159,6 +159,10 @@ import { buildPlanSets } from './plan/hq-plan-needs';
       .tab[aria-selected='true'] { color: var(--sc-accent); border-bottom-color: var(--sc-accent); }
       .tab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       .line { flex-wrap: wrap; }
+      @media (max-width: 720px) {
+        .line .check { flex: 1 1 100%; }
+        .line .rm { margin-inline-start: auto; }
+      }
       .place { flex: 1 1 100%; display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); padding: var(--sc-space-3, 12px); border-radius: 8px;
         background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
       .place-title { color: var(--sc-fg-1); }

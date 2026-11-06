@@ -5018,6 +5018,9 @@
     }
   },
   "share": {
+    "label": "Link teilen",
+    "copied": "Link kopiert",
+    "failed": "Kopieren nicht erlaubt",
     "title": "Set teilen",
     "hint": "Teile dieses Set mit Freunden oder über einen Link.",
     "loading": "Wird geladen …",

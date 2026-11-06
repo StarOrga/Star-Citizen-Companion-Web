@@ -5018,6 +5018,9 @@
     }
   },
   "share": {
+    "label": "Share link",
+    "copied": "Link copied",
+    "failed": "Copying not allowed",
     "title": "Share set",
     "hint": "Share this set with friends, or behind a link.",
     "loading": "Loading …",

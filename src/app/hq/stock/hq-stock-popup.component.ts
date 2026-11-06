@@ -1,3 +1,4 @@
+import { humanizeClassName } from '../../codex/codex-format';
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -476,7 +477,7 @@ export class HqStockPopupComponent implements OnInit {
       return {
         ref: s.ship_ref,
         shipId: ship?.id ?? null,
-        name: ship?.customName || ship?.shipClassName || s.ship_ref,
+        name: ship?.customName || humanizeClassName(ship?.shipClassName ?? s.ship_ref),
         location: s.location,
         stale: a.stale,
         age: this.translate.instant(`hq.stock.age.${a.unit}`, { n: a.n }),

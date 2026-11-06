@@ -605,7 +605,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .size-tag { font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; padding: 1px 6px; border-radius: 4px;
       color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .tag.eq { font-size: max(0.54rem, var(--sc-fs-floor)); text-transform: uppercase; padding: 0 5px; border-radius: 3px;
+    .tag.eq { white-space: nowrap; font-size: max(0.54rem, var(--sc-fs-floor)); text-transform: uppercase; padding: 0 5px; border-radius: 3px;
       color: var(--sc-accent); border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, transparent);
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
 

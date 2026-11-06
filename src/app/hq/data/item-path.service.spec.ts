@@ -14,6 +14,8 @@ interface Stock { location: string; name: string; class_name: string | null; qty
 
 interface Ingredient { ingredientClassName: string | null; nameLocalized: string | null; entityKind: string | null; quantity: number }
 
+let syncFails = false;
+
 function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; recipe?: Ingredient[] | 'fails' } = {}) {
   const wished = new Set<string>();
   const lines: Line[] = [];
@@ -26,7 +28,10 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; re
     add: async (k: string, c: string) => (wished.add(wk(k, c)), true),
     remove: async (k: string, c: string) => (wished.delete(wk(k, c)), true),
   };
+  syncFails = false;
   const supplies = {
+    sync: async () => undefined,
+    syncError: () => (syncFails ? 'errors.hq.syncSupplies' : null),
     addLine: (name: string, qty: number, meta: { className?: string | null }) => {
       const cls = meta.className ?? '';
       const same = lines.find((l) => !l.done && l.className === cls);
@@ -126,6 +131,16 @@ describe('ItemPathService', () => {
     stock.set([{ location: 'Lorville', name: 'Gold', class_name: 'item:Gold', qty: 3, unit: 'pcs' }]);
     expect(svc.read('item', 'Gold').inventarQty).toBe(3);
     expect(svc.read('item', 'Gold').places).toEqual([{ location: 'Lorville', qty: 3 }]);
+  });
+
+  it('A5: a push that fails keeps the wish and takes the line back out', async () => {
+    const { svc, wished, lines } = setup();
+    await svc.addWish('item', 'rifle_01', 'Gewehr');
+    syncFails = true;
+    const res = await svc.addToNachschub('item', 'rifle_01', 'Gewehr', 2);
+    expect(res.ok).toBeFalse();
+    expect(wished.has('item:rifle_01')).toBeTrue();
+    expect(lines.length).toBe(0);
   });
 
   it('A5: Nachschub moves the wish and the toast undo restores it', async () => {

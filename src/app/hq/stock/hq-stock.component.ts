@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
+import { humanizeClassName } from '../../codex/codex-format';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService } from '../data/hq-inventory.service';
@@ -136,7 +137,7 @@ const STALE_SHOWN = 3;
             <ul class="favs wide-only">
               @for (s of favourites(); track s.id) {
                 <li>
-                  <a [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">{{ s.customName || s.shipClassName }}</a>
+                  <a [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">{{ s.customName || shipTitle(s.shipClassName) }}</a>
                   @if (hangar.isFlagship(s.shipClassName)) { <span class="flag-mark">{{ 'hangar.flagship.mark' | translate }}</span> }
                 </li>
               }
@@ -242,6 +243,7 @@ export class HqStockComponent implements OnInit {
   readonly placeName = (n: string): string => placeLabel(n, this.tr.getCurrentLang());
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
+  protected readonly shipTitle = humanizeClassName;
   readonly inv = inject(HqInventoryService);
   private readonly stats = inject(HqStatsService);
   private readonly ownership = inject(HqOwnershipService);

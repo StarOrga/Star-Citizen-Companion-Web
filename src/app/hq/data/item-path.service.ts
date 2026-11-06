@@ -303,6 +303,12 @@ export class ItemPathService {
       for (const l of added) this.revertLine(l);
     };
     if (wasWished) {
+      // The line reaches the server first: a push that fails must not cost the reader the wish.
+      await this.supplies.sync();
+      if (this.supplies.syncError()) {
+        revertAll();
+        return fail('itemPath.err.failed');
+      }
       let removed: boolean;
       try {
         removed = await this.wishlist.remove(kind, className, name);
