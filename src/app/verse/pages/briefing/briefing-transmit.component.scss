@@ -74,8 +74,10 @@
 // The first message simply stands (input `stands`).
 :host(.stands) .holo { animation: holo-stand 0.35s ease-out backwards; }
 @keyframes holo-stand { from { opacity: 0; } }
-// Nothing shows yet: nothing to click either.
+// Nothing shows yet: nothing to click either. During the entrance the host's own float-in
+// takes the place of tx-out, so the holo is hidden here as well.
 :host([data-phase='out']) .holo { pointer-events: none; }
+:host(.waits) .holo { visibility: hidden; }
 
 // ── Planets ─────────────────────────────────────────────────────────────
 .pl {

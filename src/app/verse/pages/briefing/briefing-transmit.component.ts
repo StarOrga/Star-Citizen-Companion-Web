@@ -68,7 +68,7 @@ export interface TransmitItem {
   imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
-  host: { '[class.away]': 'away()', '[class.docked]': 'docked()', '[class.stands]': 'standing()', '[attr.data-phase]': 'phase()' },
+  host: { '[class.away]': 'away()', '[class.docked]': 'docked()', '[class.stands]': 'standing()', '[class.waits]': 'hold()', '[attr.data-phase]': 'phase()' },
   template: `
     @let c = cur();
     <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null"><i class="wide"><i class="fill"></i></i><i class="soft"><i class="fill"></i><i class="wave"></i></i></span>

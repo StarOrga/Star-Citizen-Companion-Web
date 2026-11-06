@@ -696,7 +696,8 @@ export class VerseBriefingComponent {
     };
     timers.push(setTimeout(show, CALM_WAIT_MS));
     effect(() => {
-      if (this.api.digest() || this.api.digestState() !== 'loading') untracked(show);
+      const state = this.api.digestState();
+      if (this.api.digest() || state === 'ready' || state === 'error') untracked(show);
     }, { injector: this.injector });
   }
 
