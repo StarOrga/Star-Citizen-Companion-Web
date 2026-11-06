@@ -3,7 +3,6 @@ import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { logWarn } from '../../core/log';
 import { normalizeShipName } from '../../codex/upcoming-ships.service';
-import type { ConceptShip } from '../../hangar/hangar.types';
 
 /** One row of `search_wishlist` - the single wishlist table (migration 20261106140000). */
 export interface WishRow {
@@ -45,14 +44,6 @@ export class WishlistStore {
 
   /** key -> row, for O(1) `has`. */
   readonly byKey = computed(() => new Map(this.rows().map((r) => [wishKey(r.kind, r.className, r.name), r] as const)));
-
-  /** Announced-ship wishes in the shape the old concept wishlist had (id = class_name). */
-  readonly upcoming = computed<ConceptShip[]>(() =>
-    this.rows()
-      .filter((r) => r.kind === 'upcoming')
-      .map((r) => ({ id: r.className, name: r.name ?? r.className, manufacturer: r.manufacturer, rsiUrl: r.rsiUrl, notes: r.notes, createdAt: r.createdAt }))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-  );
 
   has(kind: string, className: string, name?: string | null): boolean {
     return this.byKey().has(wishKey(kind, className, name));

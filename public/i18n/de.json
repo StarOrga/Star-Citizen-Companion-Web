@@ -497,8 +497,6 @@
         "title": "Keine Treffer",
         "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Filter lösen."
       },
-      "conceptBadge": "Konzept",
-      "notFlightReady": "Noch nicht flugfähig",
       "role": {
         "combat": "Kampf",
         "exploration": "Erkundung",
@@ -3979,12 +3977,6 @@
         "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
       },
       "cta": "Anmelden und Hangar öffnen"
-    },
-    "drawingBoard": {
-      "title": "Auf dem Reißbrett",
-      "note": "Wunschliste — noch nicht flugfähig",
-      "browse": "Reißbrett öffnen",
-      "empty": "Du hast noch kein angekündigtes Schiff auf der Wunschliste."
     },
     "import": {
       "open": "Importieren…",

@@ -781,8 +781,11 @@ export class FusionSearchComponent {
   /** The 70 hints of the empty field (i18n array, current language). */
   readonly hints = signal<SearchHint[]>([]);
 
+  /** "gemerkt" / "fehlt mir" / "lager": the reader's own set only, so no app pages beside it. */
+  private readonly ownSetOnly = computed(() => this.chips().some((c) => c.filter.wished || c.filter.needed || c.filter.ownOnly));
+
   private readonly places = computed(() =>
-    this.hasText() ? matchPlaces(this.engine.input(), this.context(), (p) => this.t.instant(p.labelKey)).slice(0, PLACES_SHOWN) : [],
+    this.hasText() && !this.ownSetOnly() ? matchPlaces(this.engine.input(), this.context(), (p) => this.t.instant(p.labelKey)).slice(0, PLACES_SHOWN) : [],
   );
 
   /** The groups as drawn: own first, the outside group after the catalog, patches / gallery / pages last. */

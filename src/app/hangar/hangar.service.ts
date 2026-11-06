@@ -4,15 +4,7 @@ import { AnalyticsService } from '../core/analytics.service';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { WishlistStore } from '../hq/data/wishlist.store';
-import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
-// One normalizer for "is this the same ship name", shared with the RSI
-// ship-matrix feed: the announced-ship page looks a concept-wishlist row up by
-// name, and two slightly different spellings of that rule would silently show
-// "not watched" for a ship the user just added.
-import { normalizeShipName } from '../codex/upcoming-ships.service';
 import {
-  ConceptShip,
   ConfigLoadoutEntry,
   HangarRoleLoadout,
   HangarRoleLoadoutRow,
@@ -32,9 +24,6 @@ import {
   mapHangarShipConfig,
   mapPeekedSharedLoadout,
 } from './hangar.types';
-
-/** Name length cap of an announced-ship wish (the `search_wishlist.name` column of the one wishlist table). */
-const CONCEPT_NAME_MAX = 80;
 
 /** i18n key for an adopt RPC that answered without a usable config. */
 const ADOPT_FAILED = 'hangar.errors.adoptFailed';
@@ -63,12 +52,9 @@ export class HangarService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly analytics = inject(AnalyticsService);
-  private readonly wishlist = inject(WishlistStore);
 
   readonly ships = signal<HangarShip[]>([]);
   readonly roleLoadouts = signal<HangarRoleLoadout[]>([]);
-  /** Announced-ship wishlist: lives in the one wishlist table now (`WishlistStore`). */
-  readonly conceptShips = this.wishlist.upcoming;
   readonly loading = signal(false);
   /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
@@ -162,9 +148,6 @@ export class HangarService {
       .sort((a, b) => (a.pinnedRank ?? 9) - (b.pinnedRank ?? 9)),
   );
   readonly ownedCount = computed(() => this.ships().filter((s) => s.status === 'owned').length);
-  readonly wishlistCount = computed(
-    () => this.ships().filter((s) => s.status === 'wishlist').length,
-  );
 
   private get userId(): string | null {
     return this.auth.user()?.id ?? null;
@@ -198,8 +181,6 @@ export class HangarService {
           .select('*')
           .order('updated_at', { ascending: false }),
       ]);
-      // The announced-ship wishlist is part of the one wishlist table; best-effort like before.
-      await this.wishlist.ensureLoaded();
       if (shipsRes.error) throw shipsRes.error;
       if (loadoutsRes.error) throw loadoutsRes.error;
       this.ships.set(((shipsRes.data ?? []) as HangarShipRow[]).map(mapHangarShip));
@@ -248,61 +229,6 @@ export class HangarService {
 
   shipByClassName(shipClassName: string): HangarShip | null {
     return this.ships().find((s) => s.shipClassName === shipClassName) ?? null;
-  }
-
-  // ── announced-ship wishlist (one wishlist table, WishlistStore) ────────────────────────────────────────────
-
-  /**
-   * Load JUST the concept-ship wishlist, once per session.
-   *
-   * The Codex's announced-ship page needs the watch state ("is this already on
-   * my fleet list?") without dragging the whole hangar — ships, role loadouts
-   * and the flagship sync — behind it. Idempotent and dedupes concurrent
-   * callers; `loadAll` flips the same flag, so the two never fetch twice.
-   */
-  ensureConceptShipsLoaded(): Promise<void> {
-    return this.wishlist.ensureLoaded();
-  }
-
-  /**
-   * The wishlist row for a ship NAME, compared the way the RSI feed normalizes
-   * names. Backs the announced-ship page's watch toggle, where the only stable
-   * handle between the matrix entry and the (catalog-less) wishlist row is the
-   * name itself.
-   */
-  conceptShipByName(name: string | null | undefined): ConceptShip | null {
-    const norm = normalizeShipName(name ?? '');
-    if (!norm) return null;
-    return this.conceptShips().find((c) => normalizeShipName(c.name) === norm) ?? null;
-  }
-
-  async addConceptShip(input: {
-    name: string;
-    manufacturer?: string;
-    rsiUrl?: string;
-    notes?: string;
-  }): Promise<ConceptShip | null> {
-    // The column CHECKs `char_length(trim(name)) between 1 and 80`; clamp here so a
-    // long matrix name comes back as a wishlist entry instead of a raw 23514.
-    const name = input.name.trim().slice(0, CONCEPT_NAME_MAX);
-    if (!this.userId || !name) return null;
-    // Defence in depth (feedback f7d3bd9a): a link is user-supplied and later rendered as an
-    // href, so only an official RSI pledge-ship URL is ever persisted (the DB CHECK is the gate).
-    const rsiUrl = normalizeRsiPledgeShipUrl(input.rsiUrl);
-    const ok = await this.wishlist.add({ kind: 'upcoming', className: name, name, manufacturer: input.manufacturer, rsiUrl, notes: input.notes });
-    if (!ok) {
-      this.error.set(toErrorKey('hangar', 'addConceptShip', new Error('wishlist add failed'), { name }));
-      return null;
-    }
-    this.analytics.capture('hangar_concept_ship_added', { has_rsi_url: !!rsiUrl });
-    return this.conceptShipByName(name);
-  }
-
-  async removeConceptShip(id: string): Promise<boolean> {
-    const entry = this.conceptShips().find((c) => c.id === id);
-    const ok = await this.wishlist.remove('upcoming', id, entry?.name);
-    if (!ok) this.error.set(toErrorKey('hangar', 'removeConceptShip', new Error('wishlist remove failed'), { id }));
-    return ok;
   }
 
   shipById(id: string): HangarShip | null {

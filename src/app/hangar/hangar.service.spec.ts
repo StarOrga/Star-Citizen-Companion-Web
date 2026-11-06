@@ -328,22 +328,20 @@ describe('HangarService writes and loads', () => {
           return { data: [shipRow()] };
         case 'hangar_role_loadouts':
           return { data: [setRow()] };
-        case 'search_wishlist':
-          return { data: [{ entity_kind: 'upcoming', class_name: 'idris', name: 'Idris' }] };
         default:
           return { data: { flagship_ship_class: null } };
       }
     };
 
-    it('fills ships, sets and concept ships from their tables', async () => {
+    it('fills ships and sets from their tables', async () => {
       const { svc, calls } = setup(answerAll);
 
       await svc.loadAll();
 
       expect(svc.ships().map((s) => s.id)).toEqual(['ship-1']);
       expect(svc.roleLoadouts().map((l) => l.id)).toEqual(['set-1']);
-      expect(svc.conceptShips().map((c) => c.name)).toEqual(['Idris']);
-      expect(calls.filter((c) => c.target === 'hangar_ships').length).toBe(1);
+      // The hangar reads its own two tables and nothing else: wishes live in `search_wishlist` (WishlistStore).
+      expect(calls.map((c) => c.target).filter((t) => t !== 'profiles').sort()).toEqual(['hangar_role_loadouts', 'hangar_ships']);
       expect(svc.loading()).toBeFalse();
       expect(svc.error()).toBeNull();
     });
@@ -356,16 +354,6 @@ describe('HangarService writes and loads', () => {
       expect(svc.error()).toBe('errors.forbidden');
       expect(svc.loading()).toBeFalse();
       expect(svc.ships()).toEqual([]);
-    });
-
-    it('does not fail the hangar when only the concept table is missing', async () => {
-      const { svc } = setup((call) => (call.target === 'search_wishlist' ? { error: failure } : answerAll(call)));
-
-      await svc.loadAll();
-
-      expect(svc.error()).toBeNull();
-      expect(svc.ships().length).toBe(1);
-      expect(svc.conceptShips()).toEqual([]);
     });
 
     it('clears a previous error on the next load', async () => {
@@ -403,64 +391,6 @@ describe('HangarService writes and loads', () => {
       await svc.loadAll();
       await svc.loadAll();
       expect(calls.filter((c) => c.target === 'hangar_ships').length).toBe(2);
-    });
-  });
-
-  describe('ensureConceptShipsLoaded', () => {
-    const conceptAnswer = (call: FakeCall): FakeResult =>
-      call.target === 'search_wishlist' ? { data: [{ entity_kind: 'upcoming', class_name: 'idris', name: 'Idris' }] } : { data: null };
-
-    it('reads the concept table only and fills the cache', async () => {
-      const { svc, calls } = setup(conceptAnswer);
-
-      await svc.ensureConceptShipsLoaded();
-
-      expect(calls.map((c) => c.target)).toEqual(['search_wishlist']);
-      expect(svc.conceptShips().map((c) => c.name)).toEqual(['Idris']);
-    });
-
-    it('is idempotent once loaded for this user', async () => {
-      const { svc, calls } = setup(conceptAnswer);
-      await svc.ensureConceptShipsLoaded();
-      await svc.ensureConceptShipsLoaded();
-      expect(calls.length).toBe(1);
-    });
-
-    it('bundles two concurrent calls into one query', async () => {
-      let release!: () => void;
-      const gate = new Promise<void>((r) => (release = r));
-      const { svc, calls } = setup(async (call) => {
-        await gate;
-        return conceptAnswer(call);
-      });
-
-      const first = svc.ensureConceptShipsLoaded();
-      const second = svc.ensureConceptShipsLoaded();
-      expect(second).toBe(first);
-      release();
-      await Promise.all([first, second]);
-
-      expect(calls.length).toBe(1);
-    });
-
-    it('degrades silently on failure — no error banner, and it retries next time', async () => {
-      let fail = true;
-      const { svc, calls } = setup((call) => (fail ? { error: failure } : conceptAnswer(call)));
-
-      await svc.ensureConceptShipsLoaded();
-      expect(svc.error()).toBeNull();
-      expect(svc.conceptShips()).toEqual([]);
-
-      fail = false;
-      await svc.ensureConceptShipsLoaded();
-      expect(calls.length).toBe(2);
-      expect(svc.conceptShips().length).toBe(1);
-    });
-
-    it('does nothing when signed out', async () => {
-      const { svc, calls } = setup(conceptAnswer, null);
-      await svc.ensureConceptShipsLoaded();
-      expect(calls).toEqual([]);
     });
   });
 });

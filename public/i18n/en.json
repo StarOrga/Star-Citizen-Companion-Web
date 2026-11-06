@@ -497,8 +497,6 @@
         "title": "No matches",
         "body": "No upcoming ship matches the search and filter — shorten the term or drop the filter."
       },
-      "conceptBadge": "Concept",
-      "notFlightReady": "Not flight-ready yet",
       "role": {
         "combat": "Combat",
         "exploration": "Exploration",
@@ -3979,12 +3977,6 @@
         "text": "Pin ships and components side by side and compare the numbers that matter."
       },
       "cta": "Sign in to open your hangar"
-    },
-    "drawingBoard": {
-      "title": "On the drawing board",
-      "note": "Wishlist — not flight-ready yet",
-      "browse": "Open the drawing board",
-      "empty": "You have no announced ship on your wishlist yet."
     },
     "import": {
       "open": "Import…",
