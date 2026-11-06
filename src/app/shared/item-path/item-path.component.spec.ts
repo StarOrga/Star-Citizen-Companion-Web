@@ -55,6 +55,62 @@ function setup(o: Opts = {}) {
   return { fixture, el, node, click, settle, popover, path, signIn, confirm, toast: TestBed.inject(UndoToastService) };
 }
 
+describe('ItemPathComponent: a mission step (A9)', () => {
+  afterEach(() => {
+    TestBed.inject(UndoToastService).flush();
+    document.querySelector('.cdk-overlay-container')?.replaceChildren();
+  });
+
+  const withMission = (o: Opts = {}) => {
+    const t = setup({ kind: 'blueprint', ...o });
+    t.fixture.componentRef.setInput('stepKind', 'mission');
+    t.fixture.componentRef.setInput('missionLink', ['/codex', 'mission', 'contract_Best']);
+    t.fixture.detectChanges();
+    return t;
+  };
+
+  it('the empty node writes the line as a mission step', async () => {
+    const t = withMission();
+    await t.click(t.node('nachschub'));
+    expect(t.path.addToNachschub).toHaveBeenCalledWith('blueprint', 'cls', 'Helm', 1, { stepKind: 'mission' });
+  });
+
+  it('the Nachschub popover offers the mission as a real anchor', async () => {
+    const t = withMission({ state: { nachschubQty: 2 } });
+    await t.click(t.node('nachschub'));
+    t.fixture.detectChanges();
+    const a = t.popover()!.querySelector<HTMLAnchorElement>('a.to-mission')!;
+    expect(a.getAttribute('href')).toBe('/codex/mission/contract_Best');
+  });
+
+  it('without a mission the popover stays as it was', async () => {
+    const t = setup({ kind: 'blueprint', state: { nachschubQty: 2 } });
+    await t.click(t.node('nachschub'));
+    t.fixture.detectChanges();
+    expect(t.popover()!.querySelector('a.to-mission')).toBeNull();
+  });
+
+  it('ensureNachschubStep adds once and never asks to sign in', async () => {
+    const t = withMission();
+    await t.fixture.componentInstance.ensureNachschubStep();
+    expect(t.path.addToNachschub).toHaveBeenCalledTimes(1);
+    expect(t.signIn.ensure).not.toHaveBeenCalled();
+  });
+
+  it('ensureNachschubStep leaves a filled stop alone', async () => {
+    const t = withMission({ state: { nachschubQty: 1 } });
+    await t.fixture.componentInstance.ensureNachschubStep();
+    expect(t.path.addToNachschub).not.toHaveBeenCalled();
+  });
+
+  it('ensureNachschubStep leaves a signed-out reader alone', async () => {
+    const t = withMission({ state: { signedIn: false } });
+    await t.fixture.componentInstance.ensureNachschubStep();
+    expect(t.path.addToNachschub).not.toHaveBeenCalled();
+    expect(t.signIn.ensure).not.toHaveBeenCalled();
+  });
+});
+
 describe('ItemPathComponent', () => {
   afterEach(() => {
     TestBed.inject(UndoToastService).flush();
