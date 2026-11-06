@@ -8,6 +8,7 @@ import {
   groupChannelBuilds,
   liveVersionOf,
   newestHotfixDate,
+  patchVersionPlan,
   versionOfTitle,
   waveOfTitle,
 } from './channels.ts';
@@ -86,4 +87,22 @@ test('groupChannelBuilds: Evocati runs only until a PTU reaches its version; a s
   assert.ok(!withPtu.find((b) => b.channel === 'evocati')!.running);
   assert.ok(withPtu.find((b) => b.channel === 'ptu')!.running);
   assert.equal(newestHotfixDate([]), null);
+});
+
+test('patchVersionPlan: LIVE from the threads, PTU only while a build runs', () => {
+  const rows = [th(1, 'Star Citizen Alpha 4.10.2 LIVE Patch Notes', 5), th(2, 'Star Citizen Alpha 4.10.3 PTU Patch Notes', 1)];
+  const running = groupChannelBuilds(rows, NOW, new Map());
+  assert.deepEqual(patchVersionPlan(rows, running), {
+    upsert: [{ channel: 'live', version: '4.10.2' }, { channel: 'ptu', version: '4.10.3' }],
+    clear: [],
+  });
+});
+
+test('patchVersionPlan: no running PTU clears the row, an unreadable list touches nothing', () => {
+  const rows = [th(1, 'Star Citizen Alpha 4.10.3 LIVE Patch Notes', 1), th(2, 'Star Citizen Alpha 4.10.3 PTU Patch Notes', 9)];
+  assert.deepEqual(patchVersionPlan(rows, groupChannelBuilds(rows, NOW, new Map())), {
+    upsert: [{ channel: 'live', version: '4.10.3' }],
+    clear: ['ptu'],
+  });
+  assert.deepEqual(patchVersionPlan([], []), { upsert: [], clear: [] });
 });

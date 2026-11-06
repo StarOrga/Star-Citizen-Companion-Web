@@ -53,6 +53,9 @@ import {
 } from './briefing/briefing.model';
 import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { DockState, wireDock } from './briefing/briefing-dock';
+import { channelBuildItems, plannedPatchItem, patchTitleParts, withLiveVersion } from './briefing/briefing-patch-title';
+import { PatchTeaserService } from './briefing/briefing-patch-teaser.service';
+import { RoadmapService } from '../../news/roadmap.service';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
@@ -252,13 +255,32 @@ export class VerseBriefingComponent {
     const seen = this.api.seen();
     // The top list first; the rest of the digest (rank order) fills what the dedupe removed.
     const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
-    const candidates = themesFirst([...this.top(), ...rest, ...this.feedNews()]);
+    const channels = withLiveVersion(this.api.digest()?.patch?.channels, this.roadmap.roadmap()?.liveVersion, this.teasers.liveVersion());
+    const planned = plannedPatchItem(this.roadmap.roadmap()?.next, channels);
+    const have = new Set(rest.map((i) => i.key));
+    const builds = channelBuildItems(this.api.digest()?.patch?.channelInfo, have);
+    const candidates = themesFirst([...this.top(), ...rest, ...builds, ...(planned ? [planned] : []), ...this.feedNews()]);
     return uniqueStories(candidates, (i) => verseItemLink(i.url), linkKey, HERO_STORIES).map(({ item, link }) => ({
-      item,
+      item: this.withPatchTitle(item, channels),
       link,
       unseen: !seen.has(item.key),
     }));
   });
+
+  /**
+   * A patch story's headline names its channel and the full version
+   * ("LIVE · Neues in 4.10.3"); an AI teaser replaces "Neues in …" where one
+   * exists. Only the title text changes, the hero's layout stays.
+   */
+  private withPatchTitle(item: VerseDigestItem, channels: Readonly<Record<string, string>> | null): VerseDigestItem {
+    this.lang();
+    const lang = this.translate.getCurrentLang() || 'de';
+    const parts = patchTitleParts(item, channels, this.teasers.teasers(), lang);
+    if (!parts) return item;
+    const channel = this.translate.instant(`verse.briefing.patchChannel.${parts.channel}`);
+    const key = parts.teaser ? 'verse.briefing.patchTeaser' : parts.channel === 'planned' ? 'verse.briefing.patchNewPlanned' : 'verse.briefing.patchNew';
+    return { ...item, title: this.translate.instant(key, { channel, version: parts.version, teaser: parts.teaser }) };
+  }
 
   /** All auto motion on the stage (hero rotation, moon relay, glows) holds while true. */
   readonly paused = signal(false);
@@ -390,6 +412,8 @@ export class VerseBriefingComponent {
   );
   readonly hubPatchImage = computed(() => patchImage(this.news.patchLines()));
   private readonly galleryFill = inject(BriefingGalleryFillService);
+  private readonly teasers = inject(PatchTeaserService);
+  private readonly roadmap = inject(RoadmapService);
   readonly hubGallery = computed(() => fillGallery(this.api.digest()?.items ?? [], this.galleryFill.items()));
   readonly liveDays = computed(() => this.status()?.live.days ?? null);
   /** The sun leads to the LIVE patch's status. */
@@ -461,6 +485,9 @@ export class VerseBriefingComponent {
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
     void this.api.loadSeen();
     if (this.shell()) void this.galleryFill.load();
+    void this.teasers.load();
+    void this.teasers.loadLive();
+    void this.roadmap.loadRoadmap();
     if (!this.news.feed() && !this.news.loading()) void this.news.refresh(true);
 
     effect(() => {

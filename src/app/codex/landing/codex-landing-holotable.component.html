@@ -9,7 +9,7 @@
         <a class="holo" [routerLink]="it.detailRoute"
            [attr.aria-label]="'codex.landing.holo.open' | translate: { name: it.name }">
           <span class="form">
-            @if (it.kind === 'ship' && !no3d().has(it.className)) {
+            @if (!flat()) {
               @defer (on immediate) {
                 <sc-ship-skin-viewer class="viewer" [shipId]="it.className" [embedded]="true" [holo]="true"
                                      [still]="still()" [hardpointPorts]="anchorRefs()" [anchorsOnly]="true" [fallbackPositions]="it.anchorPositions ?? null"
@@ -19,7 +19,14 @@
                 <span class="viewer" aria-hidden="true"></span>
               }
             } @else {
-              <span class="sil" aria-hidden="true"><sc-codex-icon [kind]="it.kind" /></span>
+              <span class="sil" aria-hidden="true" [style.left.%]="figure().rect.x" [style.top.%]="figure().rect.y"
+                    [style.width.%]="figure().rect.w" [style.height.%]="figure().rect.h">
+                @if (figure().sil; as s) {
+                  <svg [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" focusable="false"><path [attr.d]="s.path" /></svg>
+                } @else {
+                  <sc-codex-icon [kind]="it.kind" />
+                }
+              </span>
             }
             <span class="grain" aria-hidden="true"></span>
             <span class="band" aria-hidden="true"></span>
@@ -69,7 +76,7 @@
           <div class="k-head">
             <p class="k-eye">
               <span class="k-tick" aria-hidden="true"></span>
-              <span>{{ (it.fresh === false ? 'codex.landing.holo.newest' : 'codex.landing.holo.newIn') | translate }}</span>
+              <span>{{ eyebrowKey(it) | translate }}</span>
               <span class="k-sep" aria-hidden="true">·</span>
               <span>{{ label(it.category) | translate }}</span>
               @if (it.eyebrow.manufacturer) {

@@ -59,6 +59,8 @@ describe('ShellComponent menu navigation', () => {
   let recoveryReload: jasmine.Spy;
   let recoveryDismiss: jasmine.Spy;
 
+  afterEach(() => localStorage.removeItem('sc.beta'));
+
   function setup(admin = false) {
     isAdmin = signal(admin);
     loadFailed = signal(false);
@@ -77,6 +79,7 @@ describe('ShellComponent menu navigation', () => {
           provide: AuthService,
           useValue: {
             ready: () => false,
+            isAuthenticated: () => false,
             realUser: () => null,
             user: signal(null),
             signOut: () => Promise.resolve(),
@@ -146,6 +149,34 @@ describe('ShellComponent menu navigation', () => {
     expect(hrefs).toContain('/settings');
     expect(hrefs).toContain('/social');
     expect(hrefs).toContain('/admin/api-tokens');
+  });
+
+  it('puts the Admin hub into the account menu: red, admin-only in words, next to API-Tokens', () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
+    const fixture = setup(true);
+    openMenu(fixture);
+    const items = Array.from(
+      fixture.nativeElement.querySelectorAll('.dropdown a.dropdown-item'),
+    ) as HTMLAnchorElement[];
+    const hrefs = items.map((a) => a.getAttribute('href'));
+    const hub = items[hrefs.indexOf('/admin/hub')];
+    expect(hub).withContext('Admin hub as a real anchor').toBeTruthy();
+    expect(hub.classList.contains('elevated')).toBeTrue();
+    expect(hub.querySelector('.di-tag')?.textContent?.trim()).toBe('nav.adminOnly');
+    expect(hrefs.indexOf('/admin/api-tokens')).toBe(hrefs.indexOf('/admin/hub') + 1);
+  });
+
+  it('shows a plain viewer no Admin entry in the account menu', () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
+    const fixture = setup(false);
+    openMenu(fixture);
+    expect(fixture.nativeElement.querySelector('.dropdown a[href^="/admin"]')).toBeNull();
+  });
+
+  it('leaves the legacy topbar menu without the hub entry (it has its own admin links)', () => {
+    const fixture = setup(true);
+    openMenu(fixture);
+    expect(fixture.nativeElement.querySelector('.dropdown a[href="/admin/hub"]')).toBeNull();
   });
 
   it('shows the open-request count on the Social entry and the account icon, in the normal accent', () => {

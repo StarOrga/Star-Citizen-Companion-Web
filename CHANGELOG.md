@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.213.0] - 2026-11-06
+
+### Added
+- Verse hero: the title names the channel and the full version ("LIVE · Neues in 4.10.2"), planned patches can appear in the rotation, and a generated teaser title replaces it once one exists.
+- Codex landing: categories run across the top with the active one always named, a list click opens the entry on the holotable, and only the arrow leaves for the sub-page. Non-ships get a silhouette too.
+- HQ Stock: the page is one overview with quick links; search, filters, views by place, name or amount, the Codex picker and the capture form live in a popup with rows loading while you scroll.
+- patch_versions is now kept current by the daily patch sampling, so the public API and the digest report LIVE and PTU versions.
+
+### Changed
+- Admin moves into the account menu on desktop and phone.
+- Phones show the same elements as desktop; Codex tool pages keep a filter button.
+- New standard icons for wishlist, restock and stock.
+
+### Fixed
+- Clicking a recent search term and leaving no longer jumps to the Codex landing.
+- The open account menu lies over the beta chip instead of under it.
+
 ## [0.212.0] - 2026-11-06
 
 ### Added
