@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.216.0",
+  "current": "0.216.1",
   "releases": [
+    {
+      "version": "0.216.1",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Less stutter when scrolling /verse and when changing pages to and from it."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.216.0",
       "date": "2026-11-06",

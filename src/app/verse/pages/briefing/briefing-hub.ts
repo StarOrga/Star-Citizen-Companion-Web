@@ -186,8 +186,18 @@ export function kickerVersion(channels: Readonly<Record<string, string>> | null 
   return channels?.['live'] || line;
 }
 
+/** The holo has one fixed size: its title takes at most this many characters (two lines at every width). */
+export const HOLO_TITLE_MAX = 64;
+/** The holo's body: at most this many characters (two lines on desktop, three on phones). */
+export const HOLO_BODY_MAX = 110;
+
+/** Shortens the holo's title to its two lines at a word boundary. */
+export function holoTitle(text: string | null | undefined): string {
+  return holoBody(text, HOLO_TITLE_MAX);
+}
+
 /** Shortens the holo's body to two calm lines at a word boundary. */
-export function holoBody(text: string | null | undefined, max = 110): string {
+export function holoBody(text: string | null | undefined, max = HOLO_BODY_MAX): string {
   const t = (text ?? '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
   const cut = t.slice(0, max);

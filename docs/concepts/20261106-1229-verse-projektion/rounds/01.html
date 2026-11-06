@@ -1,0 +1,450 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-tab-label="Runde 1" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"faecher"}</script>
+<style>
+@property --d1r { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d1s { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d1p { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d1w { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d1o { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d1q { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d1a { syntax: '<number>'; inherits: true; initial-value: 0; }
+@keyframes d1-run {
+  0% { --d1r: 1; --d1s: 0; --d1p: 0; --d1w: 0; --d1o: 0; --d1q: 0; --d1a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  1.5% { --d1r: .96; --d1s: 0; --d1p: 0; --d1w: 0; --d1o: 1; --d1q: 0; --d1a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  6% { --d1r: 0; --d1s: 0; --d1p: 0; --d1w: 0; --d1o: 1; --d1q: 1; --d1a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  15.5% { --d1r: 0; --d1s: 1; --d1p: 1; --d1w: 0; --d1o: 1; --d1q: 1; --d1a: 1; animation-timing-function: linear; }
+  17% { --d1r: 0; --d1s: 1; --d1p: 1; --d1w: 0; --d1o: 1; --d1q: 1; --d1a: 1; animation-timing-function: cubic-bezier(.35,0,.45,1); }
+  30% { --d1r: 0; --d1s: 0; --d1p: 1; --d1w: 1; --d1o: 1; --d1q: 1; --d1a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  31.5% { --d1r: 0; --d1s: 0; --d1p: 1; --d1w: 1; --d1o: 1; --d1q: 0; --d1a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  36% { --d1r: 1; --d1s: 0; --d1p: 1; --d1w: 1; --d1o: 0; --d1q: 0; --d1a: 1; animation-timing-function: linear; }
+  93% { --d1r: 1; --d1s: 0; --d1p: 1; --d1w: 1; --d1o: 0; --d1q: 0; --d1a: 1; animation-timing-function: ease-in; }
+  99%, 100% { --d1r: 1; --d1s: 0; --d1p: 1; --d1w: 1; --d1o: 0; --d1q: 0; --d1a: 0; }
+}
+.d1-pj-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 640px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d1-pj-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 1910 / 950)); aspect-ratio: 1910 / 950; overflow: hidden; color: #dbeaf3; font-family: Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 42% 34% at 20% 26%, rgba(32, 96, 150, .34), transparent 70%), radial-gradient(ellipse 30% 30% at 84% 16%, rgba(72, 40, 110, .3), transparent 70%), linear-gradient(#030a12, #04121d 62%, #03101a); }
+.d1-pj-stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 12% 18%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 27% 41%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 38% 9%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 46% 52%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 58% 22%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 66% 44%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 74% 12%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 91% 37%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 5% 49%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 96% 55%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 18% 58%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 79% 60%, #9fc6dc, transparent 100%); }
+.d1-pj-world { position: absolute; left: 50%; top: 31.5cqw; width: 160cqw; aspect-ratio: 1; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(circle at 56% 1%, #17394c 0, #0d2535 5%, #081926 11%, #05121c 20%, #040d15 40%, #030a10 70%); box-shadow: 0 -.1cqw .9cqw rgba(82, 193, 230, .3), inset 0 .25cqw .9cqw rgba(150, 225, 255, .22); }
+.d1-pj-city { position: absolute; left: 0; right: 0; bottom: 0; height: 11cqw; opacity: .7; background-image: radial-gradient(.14cqw .14cqw at 21% 62%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 23% 70%, #ffd9a0, transparent), radial-gradient(.12cqw .12cqw at 19% 80%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 72% 58%, #ffd9a0, transparent), radial-gradient(.14cqw .14cqw at 75% 72%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 80% 84%, #ffd9a0, transparent); }
+.d1-pj-bar { position: absolute; z-index: 6; left: 0; right: 0; top: 0; height: 4.2cqw; display: flex; align-items: center; justify-content: center; gap: 2.6cqw; font: .82cqw/1 Orbitron, sans-serif; letter-spacing: .16em; color: #8fa9b8; }
+.d1-pj-bar b { color: #eaf4fa; font-weight: 500; }
+.d1-pj-brand { position: absolute; left: 3.4cqw; top: 1.5cqw; font-size: .74cqw; color: #eaf4fa; font-weight: 700; }
+.d1-pj-kick { position: absolute; z-index: 5; left: 0; right: 0; top: 8.9cqw; font-size: .62cqw; letter-spacing: .3em; color: #52c1e6; }
+.d1-pj-title { position: absolute; z-index: 5; left: 0; right: 0; top: 10.2cqw; font: 500 2.6cqw/1.2 Orbitron, sans-serif; color: #f0f7fb; }
+.d1-pj-find { position: absolute; z-index: 5; left: 33.2cqw; width: 33.6cqw; top: 15cqw; height: 3cqw; box-sizing: border-box; display: flex; align-items: center; padding: 0 1.2cqw; font-size: .8cqw; color: #8fa9b8; text-align: left; border: 1px solid rgba(82, 193, 230, .4); border-radius: 1.5cqw; background: rgba(4, 14, 22, .7); }
+.d1-pj-pl { position: absolute; z-index: 4; border-radius: 50%; translate: -50% -50%; box-shadow: inset -.7cqw -.5cqw 1.2cqw rgba(0, 0, 0, .75), 0 0 .5cqw rgba(150, 225, 255, .35); }
+.d1-pj-pl i { position: absolute; left: 50%; top: calc(100% + .45cqw); translate: -50% 0; font: normal .62cqw/1 Inter, sans-serif; letter-spacing: .2em; color: #b6cad6; }
+.d1-pj-pl-n { left: 10.7cqw; top: 31.7cqw; width: 6.07cqw; height: 6.07cqw; background: linear-gradient(174deg, #e9d3c6 8%, #c88f7a 22%, #eadcd2 34%, #b77e6c 46%, #e6d4c8 58%, #a87663 72%, #7a5448 92%); }
+.d1-pj-pl-p { left: 21.2cqw; top: 28.4cqw; width: 4.4cqw; height: 4.4cqw; background: radial-gradient(circle at 30% 80%, #e8912f, transparent 28%), radial-gradient(circle at 60% 30%, #a08560, #6d5a40 70%); }
+.d1-pj-pl-g { left: 85cqw; top: 28.4cqw; width: 6.07cqw; height: 6.07cqw; background: radial-gradient(circle at 34% 32%, #eef6fb, #b6cfe0 34%, #7f9db3 58%, #3b5266 86%); }
+.d1-pj-cue { position: absolute; z-index: 6; left: 0; right: 0; top: 46.1cqw; font-size: .66cqw; letter-spacing: .24em; color: #b6cad6; }
+.d1-pj-cue::after { content: ''; display: block; width: .55cqw; height: .55cqw; margin: .34cqw auto 0; rotate: 45deg; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; }
+.d1-pj-fx { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.d1-pj-rig { position: absolute; inset: 0; --Px: 10.7; --Py: 31.7; --T: 34.92; --fd: 90deg;
+  --sc: calc(40 / (40 - 4.12 * var(--d1s)));
+  --yy: calc(var(--T) + 8.45 * var(--d1s) * var(--sc));
+  --hw: calc(17 * var(--sc));
+  --lx0: calc(50 - var(--hw)); --rx0: calc(50 + var(--hw));
+  --lx: calc(var(--lx0) + (var(--Px) - var(--lx0)) * var(--d1r));
+  --rx: calc(var(--rx0) + (var(--Px) - var(--rx0)) * var(--d1r));
+  --y: calc(var(--yy) + (var(--Py) - var(--yy)) * var(--d1r));
+  --beam: polygon(calc(var(--Px) * 1cqw) calc((var(--Py) - .3) * 1cqw), calc(var(--rx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--lx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--Px) * 1cqw) calc((var(--Py) + .3) * 1cqw));
+  animation: d1-run 9s linear infinite; }
+.d1-pj-gal { --Px: 85; --Py: 28.4; --fd: -90deg; }
+.d1-pj-slow { animation-duration: 34s; }
+.d1-pj-beam { position: absolute; inset: 0; clip-path: var(--beam); opacity: var(--d1o); }
+.d1-pj-holo { position: absolute; z-index: 4; left: 33cqw; top: 34.92cqw; width: 34cqw; height: 9.4cqw; display: block; transform: perspective(40cqw) rotateX(26deg); transform-origin: 50% 0; text-decoration: none; color: inherit; cursor: pointer; opacity: var(--d1a); }
+.d1-pj-surface { position: absolute; inset: 0; clip-path: inset(0 0 calc((1 - var(--d1p)) * 100%) 0); }
+.d1-pj-text { position: absolute; inset: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: .8cqw 1cqw; color: #bfeeff; text-shadow: 0 0 .6cqw rgba(82, 193, 230, .75); clip-path: inset(calc((1 - var(--d1w)) * 100%) -1cqw -.4cqw -1cqw); }
+.d1-pj-k { display: block; font-size: .66cqw; letter-spacing: .3em; color: #52c1e6; }
+.d1-pj-t { display: block; margin: .45cqw 0; font: 1.4cqw/1.25 Orbitron, sans-serif; color: #e8ffff; }
+.d1-pj-b { display: block; font-size: .88cqw; line-height: 1.35; }
+.d1-pj-scan { position: absolute; left: 0; right: 0; top: calc(var(--d1s) * 100%); height: 2px; margin-top: -1px; opacity: var(--d1q); background: linear-gradient(90deg, rgba(190, 240, 255, .25), #eaffff 12%, #eaffff 88%, rgba(190, 240, 255, .25)); box-shadow: 0 0 .7cqw rgba(120, 220, 255, .9); }
+
+/* A: soft volumetric light with two sharp edges and dust in it */
+.d1-pj-glow { position: absolute; inset: 0; filter: blur(.9cqw); opacity: .5; }
+.d1-pj-beam { background: radial-gradient(circle at calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), rgba(190, 238, 255, .5), rgba(110, 205, 240, .2) 26cqw, rgba(82, 193, 230, .07) 52cqw); }
+.d1-pj-dust { position: absolute; inset: 0; clip-path: var(--beam); opacity: var(--d1o); background-image: radial-gradient(.07cqw .07cqw at 20% 30%, #eaffff, transparent), radial-gradient(.05cqw .05cqw at 70% 60%, #eaffff, transparent), radial-gradient(.06cqw .06cqw at 45% 80%, #bfeeff, transparent), radial-gradient(.05cqw .05cqw at 85% 15%, #eaffff, transparent); background-size: 9cqw 5cqw; animation: d1-drift 14s linear infinite; }
+@keyframes d1-drift { to { background-position: 18cqw 5cqw; } }
+.d1-pj-edge { position: absolute; inset: 0; opacity: var(--d1o); background: linear-gradient(var(--fd), rgba(220, 248, 255, .9) 34cqw, rgba(190, 240, 255, .12) 62cqw); }
+.d1-pj-edge-l { clip-path: polygon(calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), calc(var(--lx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--lx) * 1cqw) calc((var(--y) + .16) * 1cqw)); }
+.d1-pj-edge-r { clip-path: polygon(calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), calc(var(--rx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--rx) * 1cqw) calc((var(--y) + .16) * 1cqw)); }
+.d1-pj-surface { background: linear-gradient(rgba(10, 34, 50, .72), rgba(5, 18, 28, .6)); border-top: 1px solid rgba(190, 240, 255, .75); border-bottom: 1px solid rgba(82, 193, 230, .35); box-shadow: inset 0 1.4cqw 2.2cqw -1.2cqw rgba(120, 220, 255, .35); }
+.d1-pj-surface::before, .d1-pj-surface::after { content: ''; position: absolute; top: 0; bottom: 0; width: 1.3cqw; border: 1px solid rgba(190, 240, 255, .55); border-width: 0 0 0 1px; }
+.d1-pj-surface::before { left: 0; background: linear-gradient(90deg, rgba(120, 220, 255, .1), transparent); }
+.d1-pj-surface::after { right: 0; border-width: 0 1px 0 0; background: linear-gradient(-90deg, rgba(120, 220, 255, .1), transparent); }
+@property --d2r { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d2s { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d2p { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d2w { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d2o { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d2q { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d2a { syntax: '<number>'; inherits: true; initial-value: 0; }
+@keyframes d2-run {
+  0% { --d2r: 1; --d2s: 0; --d2p: 0; --d2w: 0; --d2o: 0; --d2q: 0; --d2a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  1.5% { --d2r: .96; --d2s: 0; --d2p: 0; --d2w: 0; --d2o: 1; --d2q: 0; --d2a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  6% { --d2r: 0; --d2s: 0; --d2p: 0; --d2w: 0; --d2o: 1; --d2q: 1; --d2a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  15.5% { --d2r: 0; --d2s: 1; --d2p: 1; --d2w: 0; --d2o: 1; --d2q: 1; --d2a: 1; animation-timing-function: linear; }
+  17% { --d2r: 0; --d2s: 1; --d2p: 1; --d2w: 0; --d2o: 1; --d2q: 1; --d2a: 1; animation-timing-function: steps(11, end); }
+  30% { --d2r: 0; --d2s: 0; --d2p: 1; --d2w: 1; --d2o: 1; --d2q: 1; --d2a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  31.5% { --d2r: 0; --d2s: 0; --d2p: 1; --d2w: 1; --d2o: 1; --d2q: 0; --d2a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  36% { --d2r: 1; --d2s: 0; --d2p: 1; --d2w: 1; --d2o: 0; --d2q: 0; --d2a: 1; animation-timing-function: linear; }
+  93% { --d2r: 1; --d2s: 0; --d2p: 1; --d2w: 1; --d2o: 0; --d2q: 0; --d2a: 1; animation-timing-function: ease-in; }
+  99%, 100% { --d2r: 1; --d2s: 0; --d2p: 1; --d2w: 1; --d2o: 0; --d2q: 0; --d2a: 0; }
+}
+.d2-pj-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 640px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d2-pj-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 1910 / 950)); aspect-ratio: 1910 / 950; overflow: hidden; color: #dbeaf3; font-family: Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 42% 34% at 20% 26%, rgba(32, 96, 150, .34), transparent 70%), radial-gradient(ellipse 30% 30% at 84% 16%, rgba(72, 40, 110, .3), transparent 70%), linear-gradient(#030a12, #04121d 62%, #03101a); }
+.d2-pj-stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 12% 18%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 27% 41%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 38% 9%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 46% 52%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 58% 22%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 66% 44%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 74% 12%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 91% 37%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 5% 49%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 96% 55%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 18% 58%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 79% 60%, #9fc6dc, transparent 100%); }
+.d2-pj-world { position: absolute; left: 50%; top: 31.5cqw; width: 160cqw; aspect-ratio: 1; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(circle at 56% 1%, #17394c 0, #0d2535 5%, #081926 11%, #05121c 20%, #040d15 40%, #030a10 70%); box-shadow: 0 -.1cqw .9cqw rgba(82, 193, 230, .3), inset 0 .25cqw .9cqw rgba(150, 225, 255, .22); }
+.d2-pj-city { position: absolute; left: 0; right: 0; bottom: 0; height: 11cqw; opacity: .7; background-image: radial-gradient(.14cqw .14cqw at 21% 62%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 23% 70%, #ffd9a0, transparent), radial-gradient(.12cqw .12cqw at 19% 80%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 72% 58%, #ffd9a0, transparent), radial-gradient(.14cqw .14cqw at 75% 72%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 80% 84%, #ffd9a0, transparent); }
+.d2-pj-bar { position: absolute; z-index: 6; left: 0; right: 0; top: 0; height: 4.2cqw; display: flex; align-items: center; justify-content: center; gap: 2.6cqw; font: .82cqw/1 Orbitron, sans-serif; letter-spacing: .16em; color: #8fa9b8; }
+.d2-pj-bar b { color: #eaf4fa; font-weight: 500; }
+.d2-pj-brand { position: absolute; left: 3.4cqw; top: 1.5cqw; font-size: .74cqw; color: #eaf4fa; font-weight: 700; }
+.d2-pj-kick { position: absolute; z-index: 5; left: 0; right: 0; top: 8.9cqw; font-size: .62cqw; letter-spacing: .3em; color: #52c1e6; }
+.d2-pj-title { position: absolute; z-index: 5; left: 0; right: 0; top: 10.2cqw; font: 500 2.6cqw/1.2 Orbitron, sans-serif; color: #f0f7fb; }
+.d2-pj-find { position: absolute; z-index: 5; left: 33.2cqw; width: 33.6cqw; top: 15cqw; height: 3cqw; box-sizing: border-box; display: flex; align-items: center; padding: 0 1.2cqw; font-size: .8cqw; color: #8fa9b8; text-align: left; border: 1px solid rgba(82, 193, 230, .4); border-radius: 1.5cqw; background: rgba(4, 14, 22, .7); }
+.d2-pj-pl { position: absolute; z-index: 4; border-radius: 50%; translate: -50% -50%; box-shadow: inset -.7cqw -.5cqw 1.2cqw rgba(0, 0, 0, .75), 0 0 .5cqw rgba(150, 225, 255, .35); }
+.d2-pj-pl i { position: absolute; left: 50%; top: calc(100% + .45cqw); translate: -50% 0; font: normal .62cqw/1 Inter, sans-serif; letter-spacing: .2em; color: #b6cad6; }
+.d2-pj-pl-n { left: 10.7cqw; top: 31.7cqw; width: 6.07cqw; height: 6.07cqw; background: linear-gradient(174deg, #e9d3c6 8%, #c88f7a 22%, #eadcd2 34%, #b77e6c 46%, #e6d4c8 58%, #a87663 72%, #7a5448 92%); }
+.d2-pj-pl-p { left: 21.2cqw; top: 28.4cqw; width: 4.4cqw; height: 4.4cqw; background: radial-gradient(circle at 30% 80%, #e8912f, transparent 28%), radial-gradient(circle at 60% 30%, #a08560, #6d5a40 70%); }
+.d2-pj-pl-g { left: 85cqw; top: 28.4cqw; width: 6.07cqw; height: 6.07cqw; background: radial-gradient(circle at 34% 32%, #eef6fb, #b6cfe0 34%, #7f9db3 58%, #3b5266 86%); }
+.d2-pj-cue { position: absolute; z-index: 6; left: 0; right: 0; top: 46.1cqw; font-size: .66cqw; letter-spacing: .24em; color: #b6cad6; }
+.d2-pj-cue::after { content: ''; display: block; width: .55cqw; height: .55cqw; margin: .34cqw auto 0; rotate: 45deg; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; }
+.d2-pj-fx { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.d2-pj-rig { position: absolute; inset: 0; --Px: 10.7; --Py: 31.7; --T: 34.92; --fd: 90deg;
+  --sc: calc(40 / (40 - 4.12 * var(--d2s)));
+  --yy: calc(var(--T) + 8.45 * var(--d2s) * var(--sc));
+  --hw: calc(17 * var(--sc));
+  --lx0: calc(50 - var(--hw)); --rx0: calc(50 + var(--hw));
+  --lx: calc(var(--lx0) + (var(--Px) - var(--lx0)) * var(--d2r));
+  --rx: calc(var(--rx0) + (var(--Px) - var(--rx0)) * var(--d2r));
+  --y: calc(var(--yy) + (var(--Py) - var(--yy)) * var(--d2r));
+  --beam: polygon(calc(var(--Px) * 1cqw) calc((var(--Py) - .3) * 1cqw), calc(var(--rx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--lx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--Px) * 1cqw) calc((var(--Py) + .3) * 1cqw));
+  animation: d2-run 9s linear infinite; }
+.d2-pj-gal { --Px: 85; --Py: 28.4; --fd: -90deg; }
+.d2-pj-slow { animation-duration: 34s; }
+.d2-pj-beam { position: absolute; inset: 0; clip-path: var(--beam); opacity: var(--d2o); }
+.d2-pj-holo { position: absolute; z-index: 4; left: 33cqw; top: 34.92cqw; width: 34cqw; height: 9.4cqw; display: block; transform: perspective(40cqw) rotateX(26deg); transform-origin: 50% 0; text-decoration: none; color: inherit; cursor: pointer; opacity: var(--d2a); }
+.d2-pj-surface { position: absolute; inset: 0; clip-path: inset(0 0 calc((1 - var(--d2p)) * 100%) 0); }
+.d2-pj-text { position: absolute; inset: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: .8cqw 1cqw; color: #bfeeff; text-shadow: 0 0 .6cqw rgba(82, 193, 230, .75); clip-path: inset(calc((1 - var(--d2w)) * 100%) -1cqw -.4cqw -1cqw); }
+.d2-pj-k { display: block; font-size: .66cqw; letter-spacing: .3em; color: #52c1e6; }
+.d2-pj-t { display: block; margin: .45cqw 0; font: 1.4cqw/1.25 Orbitron, sans-serif; color: #e8ffff; }
+.d2-pj-b { display: block; font-size: .88cqw; line-height: 1.35; }
+.d2-pj-scan { position: absolute; left: 0; right: 0; top: calc(var(--d2s) * 100%); height: 2px; margin-top: -1px; opacity: var(--d2q); background: linear-gradient(90deg, rgba(190, 240, 255, .25), #eaffff 12%, #eaffff 88%, rgba(190, 240, 255, .25)); box-shadow: 0 0 .7cqw rgba(120, 220, 255, .9); }
+
+/* B: a fan of fine single rays, panel of scan rows, text arrives row by row */
+.d2-pj-beam { background: radial-gradient(circle at calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), rgba(82, 193, 230, .16), rgba(82, 193, 230, .05) 50cqw); }
+.d2-pj-rays { position: absolute; inset: 0; clip-path: var(--beam); opacity: var(--d2o); background: repeating-conic-gradient(from 0deg at calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), rgba(190, 240, 255, .36) 0 .16deg, transparent .16deg .7deg); -webkit-mask-image: linear-gradient(var(--fd), #000 34cqw, rgba(0, 0, 0, .25) 64cqw); mask-image: linear-gradient(var(--fd), #000 34cqw, rgba(0, 0, 0, .25) 64cqw); }
+.d2-pj-pulse { position: absolute; inset: 0; clip-path: var(--beam); opacity: var(--d2o); background: repeating-radial-gradient(circle at calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), transparent calc((var(--d2pz) - 8) * 1cqw), rgba(200, 244, 255, .24) calc((var(--d2pz) - 2) * 1cqw), transparent calc(var(--d2pz) * 1cqw)); animation: d2-pulse 1.1s linear infinite; }
+@property --d2pz { syntax: '<number>'; inherits: true; initial-value: 0; }
+@keyframes d2-pulse { from { --d2pz: 0; } to { --d2pz: 8; } }
+.d2-pj-surface { background: repeating-linear-gradient(rgba(82, 193, 230, .2) 0 .1cqw, transparent .1cqw .34cqw); border-top: 1px solid rgba(82, 193, 230, .6); border-bottom: 1px solid rgba(82, 193, 230, .3); -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+.d2-pj-text { text-shadow: .05cqw 0 0 rgba(255, 110, 150, .25), -.05cqw 0 0 rgba(90, 220, 255, .4), 0 0 .6cqw rgba(82, 193, 230, .75); }
+.d2-pj-scan { height: 1.1cqw; margin-top: -.55cqw; background: linear-gradient(transparent, rgba(190, 240, 255, .28) 44%, #eaffff 50%, rgba(190, 240, 255, .28) 56%, transparent); box-shadow: none; }
+@property --d3r { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d3s { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d3p { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d3w { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d3o { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d3q { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --d3a { syntax: '<number>'; inherits: true; initial-value: 0; }
+@keyframes d3-run {
+  0% { --d3r: 1; --d3s: 0; --d3p: 0; --d3w: 0; --d3o: 0; --d3q: 0; --d3a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  1.5% { --d3r: .96; --d3s: 0; --d3p: 0; --d3w: 0; --d3o: 1; --d3q: 0; --d3a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  6% { --d3r: 0; --d3s: 0; --d3p: 0; --d3w: 0; --d3o: 1; --d3q: 1; --d3a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  15.5% { --d3r: 0; --d3s: 1; --d3p: 1; --d3w: 0; --d3o: 1; --d3q: 1; --d3a: 1; animation-timing-function: linear; }
+  17% { --d3r: 0; --d3s: 1; --d3p: 1; --d3w: 0; --d3o: 1; --d3q: 1; --d3a: 1; animation-timing-function: cubic-bezier(.35,0,.45,1); }
+  30% { --d3r: 0; --d3s: 0; --d3p: 1; --d3w: 1; --d3o: 1; --d3q: 1; --d3a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  31.5% { --d3r: 0; --d3s: 0; --d3p: 1; --d3w: 1; --d3o: 1; --d3q: 0; --d3a: 1; animation-timing-function: cubic-bezier(.45,.05,.3,1); }
+  36% { --d3r: 1; --d3s: 0; --d3p: 1; --d3w: 1; --d3o: 0; --d3q: 0; --d3a: 1; animation-timing-function: linear; }
+  93% { --d3r: 1; --d3s: 0; --d3p: 1; --d3w: 1; --d3o: 0; --d3q: 0; --d3a: 1; animation-timing-function: ease-in; }
+  99%, 100% { --d3r: 1; --d3s: 0; --d3p: 1; --d3w: 1; --d3o: 0; --d3q: 0; --d3a: 0; }
+}
+.d3-pj-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 640px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d3-pj-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 1910 / 950)); aspect-ratio: 1910 / 950; overflow: hidden; color: #dbeaf3; font-family: Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 42% 34% at 20% 26%, rgba(32, 96, 150, .34), transparent 70%), radial-gradient(ellipse 30% 30% at 84% 16%, rgba(72, 40, 110, .3), transparent 70%), linear-gradient(#030a12, #04121d 62%, #03101a); }
+.d3-pj-stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 12% 18%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 27% 41%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 38% 9%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 46% 52%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 58% 22%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 66% 44%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 74% 12%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 91% 37%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 5% 49%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 96% 55%, #cfe7f5, transparent 100%), radial-gradient(1px 1px at 18% 58%, #9fc6dc, transparent 100%), radial-gradient(1px 1px at 79% 60%, #9fc6dc, transparent 100%); }
+.d3-pj-world { position: absolute; left: 50%; top: 31.5cqw; width: 160cqw; aspect-ratio: 1; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(circle at 56% 1%, #17394c 0, #0d2535 5%, #081926 11%, #05121c 20%, #040d15 40%, #030a10 70%); box-shadow: 0 -.1cqw .9cqw rgba(82, 193, 230, .3), inset 0 .25cqw .9cqw rgba(150, 225, 255, .22); }
+.d3-pj-city { position: absolute; left: 0; right: 0; bottom: 0; height: 11cqw; opacity: .7; background-image: radial-gradient(.14cqw .14cqw at 21% 62%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 23% 70%, #ffd9a0, transparent), radial-gradient(.12cqw .12cqw at 19% 80%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 72% 58%, #ffd9a0, transparent), radial-gradient(.14cqw .14cqw at 75% 72%, #ffd9a0, transparent), radial-gradient(.1cqw .1cqw at 80% 84%, #ffd9a0, transparent); }
+.d3-pj-bar { position: absolute; z-index: 6; left: 0; right: 0; top: 0; height: 4.2cqw; display: flex; align-items: center; justify-content: center; gap: 2.6cqw; font: .82cqw/1 Orbitron, sans-serif; letter-spacing: .16em; color: #8fa9b8; }
+.d3-pj-bar b { color: #eaf4fa; font-weight: 500; }
+.d3-pj-brand { position: absolute; left: 3.4cqw; top: 1.5cqw; font-size: .74cqw; color: #eaf4fa; font-weight: 700; }
+.d3-pj-kick { position: absolute; z-index: 5; left: 0; right: 0; top: 8.9cqw; font-size: .62cqw; letter-spacing: .3em; color: #52c1e6; }
+.d3-pj-title { position: absolute; z-index: 5; left: 0; right: 0; top: 10.2cqw; font: 500 2.6cqw/1.2 Orbitron, sans-serif; color: #f0f7fb; }
+.d3-pj-find { position: absolute; z-index: 5; left: 33.2cqw; width: 33.6cqw; top: 15cqw; height: 3cqw; box-sizing: border-box; display: flex; align-items: center; padding: 0 1.2cqw; font-size: .8cqw; color: #8fa9b8; text-align: left; border: 1px solid rgba(82, 193, 230, .4); border-radius: 1.5cqw; background: rgba(4, 14, 22, .7); }
+.d3-pj-pl { position: absolute; z-index: 4; border-radius: 50%; translate: -50% -50%; box-shadow: inset -.7cqw -.5cqw 1.2cqw rgba(0, 0, 0, .75), 0 0 .5cqw rgba(150, 225, 255, .35); }
+.d3-pj-pl i { position: absolute; left: 50%; top: calc(100% + .45cqw); translate: -50% 0; font: normal .62cqw/1 Inter, sans-serif; letter-spacing: .2em; color: #b6cad6; }
+.d3-pj-pl-n { left: 10.7cqw; top: 31.7cqw; width: 6.07cqw; height: 6.07cqw; background: linear-gradient(174deg, #e9d3c6 8%, #c88f7a 22%, #eadcd2 34%, #b77e6c 46%, #e6d4c8 58%, #a87663 72%, #7a5448 92%); }
+.d3-pj-pl-p { left: 21.2cqw; top: 28.4cqw; width: 4.4cqw; height: 4.4cqw; background: radial-gradient(circle at 30% 80%, #e8912f, transparent 28%), radial-gradient(circle at 60% 30%, #a08560, #6d5a40 70%); }
+.d3-pj-pl-g { left: 85cqw; top: 28.4cqw; width: 6.07cqw; height: 6.07cqw; background: radial-gradient(circle at 34% 32%, #eef6fb, #b6cfe0 34%, #7f9db3 58%, #3b5266 86%); }
+.d3-pj-cue { position: absolute; z-index: 6; left: 0; right: 0; top: 46.1cqw; font-size: .66cqw; letter-spacing: .24em; color: #b6cad6; }
+.d3-pj-cue::after { content: ''; display: block; width: .55cqw; height: .55cqw; margin: .34cqw auto 0; rotate: 45deg; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; }
+.d3-pj-fx { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.d3-pj-rig { position: absolute; inset: 0; --Px: 10.7; --Py: 31.7; --T: 34.92; --fd: 90deg;
+  --sc: calc(40 / (40 - 4.12 * var(--d3s)));
+  --yy: calc(var(--T) + 8.45 * var(--d3s) * var(--sc));
+  --hw: calc(17 * var(--sc));
+  --lx0: calc(50 - var(--hw)); --rx0: calc(50 + var(--hw));
+  --lx: calc(var(--lx0) + (var(--Px) - var(--lx0)) * var(--d3r));
+  --rx: calc(var(--rx0) + (var(--Px) - var(--rx0)) * var(--d3r));
+  --y: calc(var(--yy) + (var(--Py) - var(--yy)) * var(--d3r));
+  --beam: polygon(calc(var(--Px) * 1cqw) calc((var(--Py) - .3) * 1cqw), calc(var(--rx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--lx) * 1cqw) calc(var(--y) * 1cqw), calc(var(--Px) * 1cqw) calc((var(--Py) + .3) * 1cqw));
+  animation: d3-run 9s linear infinite; }
+.d3-pj-gal { --Px: 85; --Py: 28.4; --fd: -90deg; }
+.d3-pj-slow { animation-duration: 34s; }
+.d3-pj-beam { position: absolute; inset: 0; clip-path: var(--beam); opacity: var(--d3o); }
+.d3-pj-holo { position: absolute; z-index: 4; left: 33cqw; top: 34.92cqw; width: 34cqw; height: 9.4cqw; display: block; transform: perspective(40cqw) rotateX(26deg); transform-origin: 50% 0; text-decoration: none; color: inherit; cursor: pointer; opacity: var(--d3a); }
+.d3-pj-surface { position: absolute; inset: 0; clip-path: inset(0 0 calc((1 - var(--d3p)) * 100%) 0); }
+.d3-pj-text { position: absolute; inset: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: .8cqw 1cqw; color: #bfeeff; text-shadow: 0 0 .6cqw rgba(82, 193, 230, .75); clip-path: inset(calc((1 - var(--d3w)) * 100%) -1cqw -.4cqw -1cqw); }
+.d3-pj-k { display: block; font-size: .66cqw; letter-spacing: .3em; color: #52c1e6; }
+.d3-pj-t { display: block; margin: .45cqw 0; font: 1.4cqw/1.25 Orbitron, sans-serif; color: #e8ffff; }
+.d3-pj-b { display: block; font-size: .88cqw; line-height: 1.35; }
+.d3-pj-scan { position: absolute; left: 0; right: 0; top: calc(var(--d3s) * 100%); height: 2px; margin-top: -1px; opacity: var(--d3q); background: linear-gradient(90deg, rgba(190, 240, 255, .25), #eaffff 12%, #eaffff 88%, rgba(190, 240, 255, .25)); box-shadow: 0 0 .7cqw rgba(120, 220, 255, .9); }
+
+/* C: four sharp lasers to the panel's corners, the panel frame between them */
+.d3-pj-beam { background: linear-gradient(90deg, rgba(150, 225, 255, .07), rgba(150, 225, 255, .07)); }
+.d3-pj-laser { position: absolute; inset: 0; opacity: var(--d3o); background: linear-gradient(var(--fd), rgba(235, 252, 255, .95) 34cqw, rgba(190, 240, 255, .14) 62cqw); }
+.d3-pj-laser-tl { clip-path: polygon(calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), calc((33 + (var(--Px) - 33) * var(--d3r)) * 1cqw) calc((var(--T) + (var(--Py) - var(--T)) * var(--d3r)) * 1cqw), calc((33 + (var(--Px) - 33) * var(--d3r)) * 1cqw) calc((var(--T) + (var(--Py) - var(--T)) * var(--d3r) + .1) * 1cqw)); }
+.d3-pj-laser-tr { clip-path: polygon(calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), calc((67 + (var(--Px) - 67) * var(--d3r)) * 1cqw) calc((var(--T) + (var(--Py) - var(--T)) * var(--d3r)) * 1cqw), calc((67 + (var(--Px) - 67) * var(--d3r)) * 1cqw) calc((var(--T) + (var(--Py) - var(--T)) * var(--d3r) + .1) * 1cqw)); }
+.d3-pj-rig { --fsc: calc(40 / (40 - 4.12 * var(--d3p))); --fy: calc(var(--T) + 8.45 * var(--d3p) * var(--fsc)); --fl: calc(50 - 17 * var(--fsc)); --fr: calc(50 + 17 * var(--fsc));
+  --flx: calc(var(--fl) + (var(--Px) - var(--fl)) * var(--d3r)); --frx: calc(var(--fr) + (var(--Px) - var(--fr)) * var(--d3r)); --fyy: calc(var(--fy) + (var(--Py) - var(--fy)) * var(--d3r)); }
+.d3-pj-laser-bl { clip-path: polygon(calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), calc(var(--flx) * 1cqw) calc(var(--fyy) * 1cqw), calc(var(--flx) * 1cqw) calc((var(--fyy) + .1) * 1cqw)); }
+.d3-pj-laser-br { clip-path: polygon(calc(var(--Px) * 1cqw) calc(var(--Py) * 1cqw), calc(var(--frx) * 1cqw) calc(var(--fyy) * 1cqw), calc(var(--frx) * 1cqw) calc((var(--fyy) + .1) * 1cqw)); }
+.d3-pj-surface { background: linear-gradient(rgba(82, 193, 230, .1), rgba(82, 193, 230, .03)); outline: 1px solid rgba(190, 240, 255, .7); outline-offset: -1px; }
+.d3-pj-pin { position: absolute; width: .42cqw; height: .42cqw; border-radius: 50%; background: #eaffff; box-shadow: 0 0 .5cqw rgba(150, 230, 255, 1); translate: -50% -50%; opacity: calc(var(--d3a) * max(var(--d3q), var(--d3w))); }
+.d3-pj-pin-tl { left: 0; top: 0; } .d3-pj-pin-tr { left: 100%; top: 0; } .d3-pj-pin-bl { left: 0; top: calc(var(--d3p) * 100%); } .d3-pj-pin-br { left: 100%; top: calc(var(--d3p) * 100%); }
+
+</style>
+  <section data-design="faecher" data-nav-label="Lichtkegel weich" data-design-active="true" data-design-motto="Lichtkegel wie aus einem Projektor" data-design-traits="Weiches Licht mit zwei scharfen Kanten|Staub schwebt im Kegel|Panel aus dunklem Glas" data-design-icon="sun">
+    <section id="faecher-ablauf" data-nav-label="Ablauf" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-pj-screen"><div class="d1-pj-stage">
+  <i class="d1-pj-stars"></i><div class="d1-pj-world"></div><i class="d1-pj-city"></i>
+  <div class="d1-pj-bar"><span class="d1-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d1-pj-kick">PATCHES</div><div class="d1-pj-title">LIVE · Neues in 4.10.2</div><div class="d1-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d1-pj-pl d1-pj-pl-n"><i>NEWS</i></div><div class="d1-pj-pl d1-pj-pl-p"><i>PATCHES</i></div><div class="d1-pj-pl d1-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d1-pj-rig">
+    <div class="d1-pj-fx"><div class="d1-pj-glow"><i class="d1-pj-beam"></i></div><i class="d1-pj-beam"></i><i class="d1-pj-dust"></i><i class="d1-pj-edge d1-pj-edge-l"></i><i class="d1-pj-edge d1-pj-edge-r"></i></div>
+    <a class="d1-pj-holo" data-screen-link="faecher-zeitlupe">
+      <span class="d1-pj-surface"></span>
+      <span class="d1-pj-text"><span class="d1-pj-k">NEWS</span><span class="d1-pj-t">Cargo Hauling – Day 1 vs. Day 432 | Star Citizen</span><span class="d1-pj-b">It isn't hoarding if it's cargo hauling, right? Wie sich das Cargo-Gameplay seit dem ersten Tag verändert hat.</span></span>
+      <i class="d1-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d1-pj-cue">MEHR IM VERSE</div>
+</div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="faecher-a1" data-anno-side="left" data-anno-target=".d1-pj-dust" style="--anno-x:50%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="faecher-a1" aria-expanded="false" aria-controls="anno-bubble-faecher-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-faecher-a1" data-anno-bubble="faecher-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="faecher-a1" aria-expanded="false" aria-controls="anno-bubble-faecher-a1"><span class="anno-bubble-question">Staub im Lichtkegel: gibt er dem Licht Tiefe oder lenkt er ab? Er läuft nur, solange der Kegel steht.</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-faecher-a1" data-annotation="faecher-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Durch die klaren linien in dem lichtkegel ist es so naja, unwirklich. Der staub selber in die gleiche richtung macht irgnedwie keinen sinn, eher impulse oder so... wie radarwellen </textarea><div class="attach-slot" data-attach-slot="anno-faecher-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="faecher-a2" data-anno-side="right" data-anno-target=".d1-pj-surface" style="--anno-x:72%;--anno-y:76%">
+  <button class="anno-pin" type="button" data-anno-pin="faecher-a2" aria-expanded="false" aria-controls="anno-bubble-faecher-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-faecher-a2" data-anno-bubble="faecher-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="faecher-a2" aria-expanded="false" aria-controls="anno-bubble-faecher-a2"><span class="anno-bubble-question">Das Panel ist hier dunkles Glas, damit die Schrift auf dem Planeten gut lesbar ist. Passt das, oder soll der Planet stärker durchscheinen?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-faecher-a2" data-annotation="faecher-a2" data-attachable placeholder="{{anno.answer_placeholder}}">ist schon gut, aber ich muss das auf der echten seit emit voller planeten simulation und co. sehen. also nimm nochmal den echten background :) auch von den planeten selber den kleinen</textarea><div class="attach-slot" data-attach-slot="anno-faecher-a2"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="faecher-a3" data-anno-side="top" data-anno-target=".d1-pj-text" style="--anno-x:50%;--anno-y:80%">
+  <button class="anno-pin" type="button" data-anno-pin="faecher-a3" aria-expanded="false" aria-controls="anno-bubble-faecher-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-faecher-a3" data-anno-bubble="faecher-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="faecher-a3" aria-expanded="false" aria-controls="anno-bubble-faecher-a3"><span class="anno-bubble-question">Der Streifen schreibt den Text beim Hochlaufen von unten nach oben, der Titel erscheint also zuletzt. Das Tippen entfällt. Ist das so gewollt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-faecher-a3" data-annotation="faecher-a3" data-attachable placeholder="{{anno.answer_placeholder}}">Ja genau, das tippen entfällt ist ok </textarea><div class="attach-slot" data-attach-slot="anno-faecher-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="faecher-zeitlupe" data-nav-label="Zeitlupe" data-screen hidden data-screen-fit="full">
+      <div class="d1-pj-screen"><div class="d1-pj-stage">
+  <i class="d1-pj-stars"></i><div class="d1-pj-world"></div><i class="d1-pj-city"></i>
+  <div class="d1-pj-bar"><span class="d1-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d1-pj-kick">PATCHES</div><div class="d1-pj-title">LIVE · Neues in 4.10.2</div><div class="d1-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d1-pj-pl d1-pj-pl-n"><i>NEWS</i></div><div class="d1-pj-pl d1-pj-pl-p"><i>PATCHES</i></div><div class="d1-pj-pl d1-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d1-pj-rig d1-pj-slow">
+    <div class="d1-pj-fx"><div class="d1-pj-glow"><i class="d1-pj-beam"></i></div><i class="d1-pj-beam"></i><i class="d1-pj-dust"></i><i class="d1-pj-edge d1-pj-edge-l"></i><i class="d1-pj-edge d1-pj-edge-r"></i></div>
+    <a class="d1-pj-holo" data-screen-link="faecher-galerie">
+      <span class="d1-pj-surface"></span>
+      <span class="d1-pj-text"><span class="d1-pj-k">NEWS</span><span class="d1-pj-t">Cargo Hauling – Day 1 vs. Day 432 | Star Citizen</span><span class="d1-pj-b">It isn't hoarding if it's cargo hauling, right? Wie sich das Cargo-Gameplay seit dem ersten Tag verändert hat.</span></span>
+      <i class="d1-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d1-pj-cue">MEHR IM VERSE</div>
+</div></div>
+    </section>
+    <section id="faecher-galerie" data-nav-label="Galerie sendet" data-screen hidden data-screen-fit="full">
+      <div class="d1-pj-screen"><div class="d1-pj-stage">
+  <i class="d1-pj-stars"></i><div class="d1-pj-world"></div><i class="d1-pj-city"></i>
+  <div class="d1-pj-bar"><span class="d1-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d1-pj-kick">PATCHES</div><div class="d1-pj-title">LIVE · Neues in 4.10.2</div><div class="d1-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d1-pj-pl d1-pj-pl-n"><i>NEWS</i></div><div class="d1-pj-pl d1-pj-pl-p"><i>PATCHES</i></div><div class="d1-pj-pl d1-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d1-pj-rig d1-pj-gal">
+    <div class="d1-pj-fx"><div class="d1-pj-glow"><i class="d1-pj-beam"></i></div><i class="d1-pj-beam"></i><i class="d1-pj-dust"></i><i class="d1-pj-edge d1-pj-edge-l"></i><i class="d1-pj-edge d1-pj-edge-r"></i></div>
+    <a class="d1-pj-holo" data-screen-link="faecher-ablauf">
+      <span class="d1-pj-surface"></span>
+      <span class="d1-pj-text"><span class="d1-pj-k">GALERIE</span><span class="d1-pj-t">Polaris im Anflug auf Orison bei Sonnenuntergang</span><span class="d1-pj-b">Neues Bild aus der Community-Galerie, diese Woche am häufigsten gemerkt.</span></span>
+      <i class="d1-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d1-pj-cue">MEHR IM VERSE</div>
+</div></div>
+    </section>
+  </section>
+  <section data-design="raster" data-nav-label="Strahlenfächer" hidden data-design-motto="Strahlenfächer aus feinen Einzellinien" data-design-traits="Kegel aus vielen einzelnen Strahlen|Panel aus sichtbaren Scan-Zeilen|Text erscheint Zeile für Zeile" data-design-icon="gauge">
+    <section id="raster-ablauf" data-nav-label="Ablauf" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d2-pj-screen"><div class="d2-pj-stage">
+  <i class="d2-pj-stars"></i><div class="d2-pj-world"></div><i class="d2-pj-city"></i>
+  <div class="d2-pj-bar"><span class="d2-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d2-pj-kick">PATCHES</div><div class="d2-pj-title">LIVE · Neues in 4.10.2</div><div class="d2-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d2-pj-pl d2-pj-pl-n"><i>NEWS</i></div><div class="d2-pj-pl d2-pj-pl-p"><i>PATCHES</i></div><div class="d2-pj-pl d2-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d2-pj-rig">
+    <div class="d2-pj-fx"><i class="d2-pj-beam"></i><i class="d2-pj-rays"></i><i class="d2-pj-pulse"></i></div>
+    <a class="d2-pj-holo" data-screen-link="raster-zeitlupe">
+      <span class="d2-pj-surface"></span>
+      <span class="d2-pj-text"><span class="d2-pj-k">NEWS</span><span class="d2-pj-t">Cargo Hauling – Day 1 vs. Day 432 | Star Citizen</span><span class="d2-pj-b">It isn't hoarding if it's cargo hauling, right? Wie sich das Cargo-Gameplay seit dem ersten Tag verändert hat.</span></span>
+      <i class="d2-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d2-pj-cue">MEHR IM VERSE</div>
+</div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="raster-a1" data-anno-side="left" data-anno-target=".d2-pj-rays" style="--anno-x:50%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="raster-a1" aria-expanded="false" aria-controls="anno-bubble-raster-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-raster-a1" data-anno-bubble="raster-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="raster-a1" aria-expanded="false" aria-controls="anno-bubble-raster-a1"><span class="anno-bubble-question">Wie dicht dürfen die Einzelstrahlen sein? Dichter wirkt der Fächer ruhiger, weiter wirkt er technischer.</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-raster-a1" data-annotation="raster-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-raster-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="raster-a2" data-anno-side="right" data-anno-target=".d2-pj-surface" style="--anno-x:72%;--anno-y:76%">
+  <button class="anno-pin" type="button" data-anno-pin="raster-a2" aria-expanded="false" aria-controls="anno-bubble-raster-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-raster-a2" data-anno-bubble="raster-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="raster-a2" aria-expanded="false" aria-controls="anno-bubble-raster-a2"><span class="anno-bubble-question">Das Panel hat keine Glasfläche, nur Scan-Zeilen, und läuft seitlich aus. Bleibt die Schrift auf dem Planeten für dich gut lesbar?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-raster-a2" data-annotation="raster-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-raster-a2"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="raster-a3" data-anno-side="top" data-anno-target=".d2-pj-scan" style="--anno-x:50%;--anno-y:80%">
+  <button class="anno-pin" type="button" data-anno-pin="raster-a3" aria-expanded="false" aria-controls="anno-bubble-raster-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-raster-a3" data-anno-bubble="raster-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="raster-a3" aria-expanded="false" aria-controls="anno-bubble-raster-a3"><span class="anno-bubble-question">Der Streifen ist hier ein breites Band und der Text springt in Stufen mit. Ist das Radar-Gefühl richtig oder schon zu unruhig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-raster-a3" data-annotation="raster-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-raster-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="raster-zeitlupe" data-nav-label="Zeitlupe" data-screen hidden data-screen-fit="full">
+      <div class="d2-pj-screen"><div class="d2-pj-stage">
+  <i class="d2-pj-stars"></i><div class="d2-pj-world"></div><i class="d2-pj-city"></i>
+  <div class="d2-pj-bar"><span class="d2-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d2-pj-kick">PATCHES</div><div class="d2-pj-title">LIVE · Neues in 4.10.2</div><div class="d2-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d2-pj-pl d2-pj-pl-n"><i>NEWS</i></div><div class="d2-pj-pl d2-pj-pl-p"><i>PATCHES</i></div><div class="d2-pj-pl d2-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d2-pj-rig d2-pj-slow">
+    <div class="d2-pj-fx"><i class="d2-pj-beam"></i><i class="d2-pj-rays"></i><i class="d2-pj-pulse"></i></div>
+    <a class="d2-pj-holo" data-screen-link="raster-galerie">
+      <span class="d2-pj-surface"></span>
+      <span class="d2-pj-text"><span class="d2-pj-k">NEWS</span><span class="d2-pj-t">Cargo Hauling – Day 1 vs. Day 432 | Star Citizen</span><span class="d2-pj-b">It isn't hoarding if it's cargo hauling, right? Wie sich das Cargo-Gameplay seit dem ersten Tag verändert hat.</span></span>
+      <i class="d2-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d2-pj-cue">MEHR IM VERSE</div>
+</div></div>
+    </section>
+    <section id="raster-galerie" data-nav-label="Galerie sendet" data-screen hidden data-screen-fit="full">
+      <div class="d2-pj-screen"><div class="d2-pj-stage">
+  <i class="d2-pj-stars"></i><div class="d2-pj-world"></div><i class="d2-pj-city"></i>
+  <div class="d2-pj-bar"><span class="d2-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d2-pj-kick">PATCHES</div><div class="d2-pj-title">LIVE · Neues in 4.10.2</div><div class="d2-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d2-pj-pl d2-pj-pl-n"><i>NEWS</i></div><div class="d2-pj-pl d2-pj-pl-p"><i>PATCHES</i></div><div class="d2-pj-pl d2-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d2-pj-rig d2-pj-gal">
+    <div class="d2-pj-fx"><i class="d2-pj-beam"></i><i class="d2-pj-rays"></i><i class="d2-pj-pulse"></i></div>
+    <a class="d2-pj-holo" data-screen-link="raster-ablauf">
+      <span class="d2-pj-surface"></span>
+      <span class="d2-pj-text"><span class="d2-pj-k">GALERIE</span><span class="d2-pj-t">Polaris im Anflug auf Orison bei Sonnenuntergang</span><span class="d2-pj-b">Neues Bild aus der Community-Galerie, diese Woche am häufigsten gemerkt.</span></span>
+      <i class="d2-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d2-pj-cue">MEHR IM VERSE</div>
+</div></div>
+    </section>
+  </section>
+  <section data-design="laser" data-nav-label="Eck-Laser" hidden data-design-motto="Vier Laser spannen das Panel auf" data-design-traits="Vier scharfe Laser statt Lichtfläche|Panel hat einen klaren Rahmen|Laser enden sichtbar in den Ecken" data-design-icon="compass">
+    <section id="laser-ablauf" data-nav-label="Ablauf" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d3-pj-screen"><div class="d3-pj-stage">
+  <i class="d3-pj-stars"></i><div class="d3-pj-world"></div><i class="d3-pj-city"></i>
+  <div class="d3-pj-bar"><span class="d3-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d3-pj-kick">PATCHES</div><div class="d3-pj-title">LIVE · Neues in 4.10.2</div><div class="d3-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d3-pj-pl d3-pj-pl-n"><i>NEWS</i></div><div class="d3-pj-pl d3-pj-pl-p"><i>PATCHES</i></div><div class="d3-pj-pl d3-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d3-pj-rig">
+    <div class="d3-pj-fx"><i class="d3-pj-beam"></i><i class="d3-pj-laser d3-pj-laser-tl"></i><i class="d3-pj-laser d3-pj-laser-tr"></i><i class="d3-pj-laser d3-pj-laser-bl"></i><i class="d3-pj-laser d3-pj-laser-br"></i></div>
+    <a class="d3-pj-holo" data-screen-link="laser-zeitlupe">
+      <span class="d3-pj-surface"></span><i class="d3-pj-pin d3-pj-pin-tl"></i><i class="d3-pj-pin d3-pj-pin-tr"></i><i class="d3-pj-pin d3-pj-pin-bl"></i><i class="d3-pj-pin d3-pj-pin-br"></i>
+      <span class="d3-pj-text"><span class="d3-pj-k">NEWS</span><span class="d3-pj-t">Cargo Hauling – Day 1 vs. Day 432 | Star Citizen</span><span class="d3-pj-b">It isn't hoarding if it's cargo hauling, right? Wie sich das Cargo-Gameplay seit dem ersten Tag verändert hat.</span></span>
+      <i class="d3-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d3-pj-cue">MEHR IM VERSE</div>
+</div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="laser-a1" data-anno-side="left" data-anno-target=".d3-pj-laser-bl" style="--anno-x:50%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="laser-a1" aria-expanded="false" aria-controls="anno-bubble-laser-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-laser-a1" data-anno-bubble="laser-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="laser-a1" aria-expanded="false" aria-controls="anno-bubble-laser-a1"><span class="anno-bubble-question">Vier Laser landen genau auf den Panel-Ecken. Reicht dir diese Andeutung als Projektion, oder fehlt dir dann die Lichtfläche?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-laser-a1" data-annotation="laser-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-laser-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="laser-a2" data-anno-side="right" data-anno-target=".d3-pj-surface" style="--anno-x:72%;--anno-y:76%">
+  <button class="anno-pin" type="button" data-anno-pin="laser-a2" aria-expanded="false" aria-controls="anno-bubble-laser-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-laser-a2" data-anno-bubble="laser-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="laser-a2" aria-expanded="false" aria-controls="anno-bubble-laser-a2"><span class="anno-bubble-question">Der Rahmen ist hier komplett sichtbar und bleibt nach dem Aufbau stehen. Soll er stehen bleiben oder mit den Lasern verschwinden?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-laser-a2" data-annotation="laser-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-laser-a2"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="laser-a3" data-anno-side="right" data-anno-target=".d3-pj-pin-br" style="--anno-x:66%;--anno-y:86%">
+  <button class="anno-pin" type="button" data-anno-pin="laser-a3" aria-expanded="false" aria-controls="anno-bubble-laser-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-laser-a3" data-anno-bubble="laser-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="laser-a3" aria-expanded="false" aria-controls="anno-bubble-laser-a3"><span class="anno-bubble-question">Die Lichtpunkte in den Ecken bleiben als einziger Rest der Projektion stehen. Gut als Detail oder überflüssig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-laser-a3" data-annotation="laser-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-laser-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="laser-zeitlupe" data-nav-label="Zeitlupe" data-screen hidden data-screen-fit="full">
+      <div class="d3-pj-screen"><div class="d3-pj-stage">
+  <i class="d3-pj-stars"></i><div class="d3-pj-world"></div><i class="d3-pj-city"></i>
+  <div class="d3-pj-bar"><span class="d3-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d3-pj-kick">PATCHES</div><div class="d3-pj-title">LIVE · Neues in 4.10.2</div><div class="d3-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d3-pj-pl d3-pj-pl-n"><i>NEWS</i></div><div class="d3-pj-pl d3-pj-pl-p"><i>PATCHES</i></div><div class="d3-pj-pl d3-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d3-pj-rig d3-pj-slow">
+    <div class="d3-pj-fx"><i class="d3-pj-beam"></i><i class="d3-pj-laser d3-pj-laser-tl"></i><i class="d3-pj-laser d3-pj-laser-tr"></i><i class="d3-pj-laser d3-pj-laser-bl"></i><i class="d3-pj-laser d3-pj-laser-br"></i></div>
+    <a class="d3-pj-holo" data-screen-link="laser-galerie">
+      <span class="d3-pj-surface"></span><i class="d3-pj-pin d3-pj-pin-tl"></i><i class="d3-pj-pin d3-pj-pin-tr"></i><i class="d3-pj-pin d3-pj-pin-bl"></i><i class="d3-pj-pin d3-pj-pin-br"></i>
+      <span class="d3-pj-text"><span class="d3-pj-k">NEWS</span><span class="d3-pj-t">Cargo Hauling – Day 1 vs. Day 432 | Star Citizen</span><span class="d3-pj-b">It isn't hoarding if it's cargo hauling, right? Wie sich das Cargo-Gameplay seit dem ersten Tag verändert hat.</span></span>
+      <i class="d3-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d3-pj-cue">MEHR IM VERSE</div>
+</div></div>
+    </section>
+    <section id="laser-galerie" data-nav-label="Galerie sendet" data-screen hidden data-screen-fit="full">
+      <div class="d3-pj-screen"><div class="d3-pj-stage">
+  <i class="d3-pj-stars"></i><div class="d3-pj-world"></div><i class="d3-pj-city"></i>
+  <div class="d3-pj-bar"><span class="d3-pj-brand">STAR CITIZEN COMPANION</span><b>VERSE</b><span>CODEX</span><span>HQ</span></div>
+  <div class="d3-pj-kick">PATCHES</div><div class="d3-pj-title">LIVE · Neues in 4.10.2</div><div class="d3-pj-find">Suche in Schiffen, Patches, News …</div>
+  <div class="d3-pj-pl d3-pj-pl-n"><i>NEWS</i></div><div class="d3-pj-pl d3-pj-pl-p"><i>PATCHES</i></div><div class="d3-pj-pl d3-pj-pl-g"><i>GALERIE</i></div>
+  <div class="d3-pj-rig d3-pj-gal">
+    <div class="d3-pj-fx"><i class="d3-pj-beam"></i><i class="d3-pj-laser d3-pj-laser-tl"></i><i class="d3-pj-laser d3-pj-laser-tr"></i><i class="d3-pj-laser d3-pj-laser-bl"></i><i class="d3-pj-laser d3-pj-laser-br"></i></div>
+    <a class="d3-pj-holo" data-screen-link="laser-ablauf">
+      <span class="d3-pj-surface"></span><i class="d3-pj-pin d3-pj-pin-tl"></i><i class="d3-pj-pin d3-pj-pin-tr"></i><i class="d3-pj-pin d3-pj-pin-bl"></i><i class="d3-pj-pin d3-pj-pin-br"></i>
+      <span class="d3-pj-text"><span class="d3-pj-k">GALERIE</span><span class="d3-pj-t">Polaris im Anflug auf Orison bei Sonnenuntergang</span><span class="d3-pj-b">Neues Bild aus der Community-Galerie, diese Woche am häufigsten gemerkt.</span></span>
+      <i class="d3-pj-scan"></i>
+    </a>
+    </div>
+  <div class="d3-pj-cue">MEHR IM VERSE</div>
+</div></div>
+    </section>
+  </section>
+</section>

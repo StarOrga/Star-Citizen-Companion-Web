@@ -1,0 +1,77 @@
+{
+  "iterations": [
+    {
+      "iteration": 1,
+      "action": "iterate",
+      "favorite": "faecher",
+      "annotations": [
+        {
+          "id": "faecher-a1",
+          "screen": "faecher-ablauf",
+          "design": "faecher",
+          "question": "Staub im Lichtkegel: gibt er dem Licht Tiefe oder lenkt er ab? Er läuft nur, solange der Kegel steht.",
+          "answer": "Durch die klaren linien in dem lichtkegel ist es so naja, unwirklich. Der staub selber in die gleiche richtung macht irgnedwie keinen sinn, eher impulse oder so... wie radarwellen"
+        },
+        {
+          "id": "faecher-a2",
+          "screen": "faecher-ablauf",
+          "design": "faecher",
+          "question": "Das Panel ist hier dunkles Glas, damit die Schrift auf dem Planeten gut lesbar ist. Passt das, oder soll der Planet stärker durchscheinen?",
+          "answer": "ist schon gut, aber ich muss das auf der echten seit emit voller planeten simulation und co. sehen. also nimm nochmal den echten background :) auch von den planeten selber den kleinen"
+        },
+        {
+          "id": "faecher-a3",
+          "screen": "faecher-ablauf",
+          "design": "faecher",
+          "question": "Der Streifen schreibt den Text beim Hochlaufen von unten nach oben, der Titel erscheint also zuletzt. Das Tippen entfällt. Ist das so gewollt?",
+          "answer": "Ja genau, das tippen entfällt ist ok"
+        }
+      ],
+      "submitted_at": "2026-11-06T11:44:07.137Z"
+    },
+    {
+      "iteration": 2,
+      "action": "iterate",
+      "favorite": "sammeln",
+      "annotations": [
+        {
+          "id": "sammeln-a1",
+          "screen": "sammeln-ablauf",
+          "design": "sammeln",
+          "question": "Der Kegel ist am Panel am hellsten statt am Planeten. Wirkt das wie Licht, das dort ankommt, oder eher falsch herum?",
+          "answer": "Ja, der effekt darf noch etwas sträker sein für den kegel!"
+        }
+      ],
+      "userPins": [
+        {
+          "id": "up-mw4x27lupuh3",
+          "screen": "sammeln-ablauf",
+          "target": "div.d6-pj-rig \"NEWSCargo Hauling – Day 1 vs. Day 432 | \"",
+          "text": "Der lichtkegel darf ruhig noch etwas dezenter und schwächer sein ein ticken. Das aufbauen und wegziehen des lichtkegels vom planeten zum panel sollte auch noch etwas exponentialität rein bekommen und langsamer anbahnen oder so..."
+        },
+        {
+          "id": "up-mw4x3qomac0w",
+          "screen": "sammeln-ablauf",
+          "target": "i.d6-pj-scan",
+          "text": "finde die lichtleiiste am pnael super!"
+        }
+      ],
+      "submitted_at": "2026-11-06T11:55:42.083Z"
+    },
+    {
+      "iteration": 3,
+      "action": "implement",
+      "favorite": "langsam",
+      "annotations": [],
+      "userPins": [
+        {
+          "id": "up-mw4xrzhti3lv",
+          "screen": "langsam-galerie",
+          "target": "div.d8-pj-rig.d8-pj-gal \"GALERIEPolaris im Anflug auf Orison bei \"",
+          "text": "hier ist der kegel irgendwie ein doppelkegel gegensieetig zueinander gestellt  von rechts bitte fixen!"
+        }
+      ],
+      "submitted_at": "2026-11-06T12:14:38.249Z"
+    }
+  ]
+}
