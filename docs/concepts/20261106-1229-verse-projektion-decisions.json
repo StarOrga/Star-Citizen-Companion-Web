@@ -1,0 +1,33 @@
+{
+  "iterations": [
+    {
+      "iteration": 1,
+      "action": "iterate",
+      "favorite": "faecher",
+      "annotations": [
+        {
+          "id": "faecher-a1",
+          "screen": "faecher-ablauf",
+          "design": "faecher",
+          "question": "Staub im Lichtkegel: gibt er dem Licht Tiefe oder lenkt er ab? Er läuft nur, solange der Kegel steht.",
+          "answer": "Durch die klaren linien in dem lichtkegel ist es so naja, unwirklich. Der staub selber in die gleiche richtung macht irgnedwie keinen sinn, eher impulse oder so... wie radarwellen"
+        },
+        {
+          "id": "faecher-a2",
+          "screen": "faecher-ablauf",
+          "design": "faecher",
+          "question": "Das Panel ist hier dunkles Glas, damit die Schrift auf dem Planeten gut lesbar ist. Passt das, oder soll der Planet stärker durchscheinen?",
+          "answer": "ist schon gut, aber ich muss das auf der echten seit emit voller planeten simulation und co. sehen. also nimm nochmal den echten background :) auch von den planeten selber den kleinen"
+        },
+        {
+          "id": "faecher-a3",
+          "screen": "faecher-ablauf",
+          "design": "faecher",
+          "question": "Der Streifen schreibt den Text beim Hochlaufen von unten nach oben, der Titel erscheint also zuletzt. Das Tippen entfällt. Ist das so gewollt?",
+          "answer": "Ja genau, das tippen entfällt ist ok"
+        }
+      ],
+      "submitted_at": "2026-11-06T11:44:07.137Z"
+    }
+  ]
+}
