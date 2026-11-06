@@ -6300,15 +6300,17 @@
   },
   "beta": {
     "aria": "Neue Ansicht (β)",
-    "switchFor": "Neue Ansicht für {{area}}",
     "area": {
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Seiten-Rahmen"
     },
+    "staffOnly": "Nur Team",
+    "fab": {
+      "admin": "Beta-Schalter (Admin)",
+      "collaborator": "Beta-Schalter (Collaborator)"
+    },
     "chip": {
-      "admin": "Admin",
-      "collaborator": "Collaborator",
       "title": "Beta-Bereiche",
       "note": "Nur für Admins und Collaborators sichtbar."
     }

@@ -6300,15 +6300,17 @@
   },
   "beta": {
     "aria": "New view (β)",
-    "switchFor": "New view for {{area}}",
     "area": {
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Page shell"
     },
+    "staffOnly": "Team only",
+    "fab": {
+      "admin": "Beta switch (admin)",
+      "collaborator": "Beta switch (collaborator)"
+    },
     "chip": {
-      "admin": "Admin",
-      "collaborator": "Collaborator",
       "title": "Beta areas",
       "note": "Visible to admins and collaborators only."
     }

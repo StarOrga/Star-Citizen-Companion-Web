@@ -299,7 +299,6 @@ export class ShellChromeService {
     if (this.easeTimer) clearTimeout(this.easeTimer);
     this.easeTimer = null;
     for (const el of this.dockTargets) this.paint(el, next, glide);
-    this.paintChip(next);
     if (next < 1) {
       this.fullState.set(false);
     } else if (glide) {
@@ -324,12 +323,6 @@ export class ShellChromeService {
     if (glide) el.setAttribute('data-ease', '');
     else el.removeAttribute('data-ease');
     el.style.setProperty('--sc-dock-p', String(p));
-  }
-
-  private paintChip(p: number): void {
-    if (typeof document === 'undefined') return;
-    const chip = document.querySelector<HTMLElement>('sc-beta-chip');
-    chip?.style.setProperty('--sc-dock-p', String(p));
   }
 
   /** The section in view on a long page (null = none). */

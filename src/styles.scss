@@ -156,9 +156,7 @@
 html:has([data-layout]) {
   --sc-page-gutter: var(--sc-rand);
   --sc-content-max: min(max(80rem, 67vw), 200vh);
-  /* B never runs under the β chip (it publishes --sc-chip-lane): the docked
-     subheader has always kept clear of it, and B must stay its width. */
-  --sc-b-gutter: max(var(--sc-rand), var(--sc-chip-lane, 0px));
+  --sc-b-gutter: var(--sc-rand);
   --sc-b-w: min(100% - 2 * var(--sc-b-gutter), var(--sc-content-max));
   --sc-dock-w: var(--sc-b-w);
   /* 16px up to a 1440px-tall window, then 1/90 of the height, at most 32px.
@@ -180,17 +178,6 @@ html:has([data-layout]) body { font-size: 0.9375rem; }
   syntax: '<number>';
   inherits: true;
   initial-value: 0;
-}
-/* The β chip stands in a small row under apps + profile while the main header
-   is expanded (desktop) and glides back into the bar's lane as it docks. */
-@media (min-width: 721px) {
-  sc-beta-chip .chip-wrap.chip-wrap {
-    top: calc(
-      (var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + var(--sc-fab-inset) + 46px) * (1 - var(--sc-dock-p, 1)) +
-        (var(--sc-imp-banner-h, 0px) + 6px + (var(--sc-bar-h) - var(--sc-space-2) - var(--_h)) / 2) * var(--sc-dock-p, 1)
-    );
-    right: calc(max(var(--sc-fab-inset), env(safe-area-inset-right)) * (1 - var(--sc-dock-p, 1)) + max(var(--sc-space-3), env(safe-area-inset-right)) * var(--sc-dock-p, 1));
-  }
 }
 @media (max-width: 720px) {
   :root { --sc-page-gutter: 16px; }
@@ -238,11 +225,9 @@ html:has([data-layout]) body { font-size: 0.9375rem; }
   /* SUBHEADER SKIN "Satinkante" (concept 2026-10-28 header/subheader, round 8 d2):
      the staged search and the docked subheader are one element in one skin. */
   --sc-sub-h: 60px;
-  /* Content width of the main header row and the subheader: the page frame, and
-     never under the β chip (--sc-chip-lane, published by the chip), kept centred. */
-  /* The docked subheader capsule: the content width, centred, never under the β chip. */
-  --sc-dock-w: min(100% - 2 * max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)), var(--sc-content-max));
-  --sc-chrome-w: min(100% - 2 * max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)), var(--sc-page-max) - 2 * var(--sc-page-gutter));
+  /* Content width of the main header row and the subheader: the page frame, kept centred. */
+  --sc-dock-w: min(100% - 2 * var(--sc-page-gutter), var(--sc-content-max));
+  --sc-chrome-w: min(100% - 2 * var(--sc-page-gutter), var(--sc-page-max) - 2 * var(--sc-page-gutter));
   --sc-sub-radius: 5px;
   --sc-sub-fill: linear-gradient(180deg, #0a1d2b, #061724);
   --sc-sub-edge: linear-gradient(160deg, rgba(200, 236, 250, 0.7) 0%, rgba(80, 125, 148, 0.45) 30%, rgba(30, 58, 74, 0.5) 60%, rgba(140, 200, 225, 0.55) 100%);
@@ -517,6 +502,8 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   --sc-fab-lane: calc(var(--sc-fab-inset) + var(--sc-fab-size));
   /* Breathing room between the launcher and whatever sits beside it. */
   --sc-fab-gutter: 12px;
+  /* The β FAB (shell/corners/beta-fab) stands one lane above the launcher; toasts clear it. */
+  --sc-beta-fab-lane: calc(max(44px, var(--sc-tap-min, 44px)) + var(--sc-space-2));
   /* The docked feedback window's width. The board inside it caps its search
      field at this size wherever it has more room (the /admin/feedback page,
      the maximized panel), so "large" never means "a search bar across the
@@ -558,8 +545,9 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   --sc-fab-clear-inline: calc(var(--sc-fab-lane) + var(--sc-fab-gutter));
   --sc-fab-clear-block: calc(var(--sc-float-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
   /* Where a bottom-right toast sits (star / undo toast). The same as
-     --sc-fab-clear-block, except on a phone with the shell bar at the bottom. */
-  --sc-toast-bottom: var(--sc-fab-clear-block);
+     --sc-fab-clear-block, plus the β FAB's lane, and on a phone with the shell bar at the bottom
+     it sits above the share button's lane too. */
+  --sc-toast-bottom: calc(var(--sc-fab-clear-block) + var(--sc-beta-fab-lane));
 }
 @media (max-width: 720px) {
   :root {
@@ -569,10 +557,12 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
     --sc-fab-gutter: 10px;
     /* Shell beta: the bar stack is published (--sc-bar-stack-h), toasts ride above it and
        above the share button's lane. Without the bar the -999px fallback loses the max(). */
-    --sc-toast-bottom: max(
+    --sc-beta-fab-bottom: max(
       var(--sc-fab-clear-block),
       calc(var(--sc-bar-stack-h, -999px) + var(--sc-float-bottom) + var(--sc-space-3) + max(var(--sc-tap-min, 0px), 44px) + var(--sc-space-2))
     );
+    /* The β FAB stacks above the share button's lane; toasts ride above the β FAB. */
+    --sc-toast-bottom: calc(var(--sc-beta-fab-bottom) + var(--sc-beta-fab-lane));
   }
 }
 
