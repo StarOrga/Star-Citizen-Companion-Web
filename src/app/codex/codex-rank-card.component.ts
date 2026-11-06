@@ -652,7 +652,7 @@ export class CodexRankCardComponent {
 
   ringPoints(ring: number, n: number): string {
     if (n === 0) return '';
-    const cx = 100, cy = 100, r = 80 * (ring / 3);
+    const cx = 100, cy = 100, r = 80 * this.radial((ring / 3) * 100);
     return Array.from({ length: n }, (_, i) => {
       const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
       return `${(cx + r * Math.cos(angle)).toFixed(1)},${(cy + r * Math.sin(angle)).toFixed(1)}`;
@@ -669,10 +669,20 @@ export class CodexRankCardComponent {
   }
 
   /** One `x,y` vertex for axis `i` of `n` at `percentile` (0-100). */
+  /**
+   * Scale value (0..100) -> share of the radius. The holotable draws a square-root
+   * scale: the rim stays 100 % of the group, the rings stay on 33 and 67 %, and a
+   * light fighter at 3 % of an outlier-heavy group no longer collapses onto the
+   * centre. The numbers (`norm`, `delta`) stay linear; the classic card stays linear.
+   */
+  private radial(value: number): number {
+    return this.holo() ? Math.sqrt(value / 100) : value / 100;
+  }
+
   vertexAt(percentile: number, i: number, n: number): string {
     const cx = 100, cy = 100, r = 80;
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const radius = (Math.max(0, Math.min(100, percentile)) / 100) * r;
+    const radius = this.radial(Math.max(0, Math.min(100, percentile))) * r;
     return `${(cx + radius * Math.cos(angle)).toFixed(1)},${(cy + radius * Math.sin(angle)).toFixed(1)}`;
   }
 }

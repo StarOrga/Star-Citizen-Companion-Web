@@ -942,6 +942,7 @@
         "iconStock": "Stock",
         "previewTitle": "Detail page preview",
         "previewMaker": "Manufacturer",
+        "fullscreenExit": "Close fullscreen",
         "previewFitted": "Fitted to",
         "previewBuy": "Where to buy",
         "previewAlternatives": "Alternatives",
@@ -1351,7 +1352,7 @@
         "of": "All {{name}}"
       },
       "noMiningData": "Mining and salvage output: no data",
-      "rimNote": "Outside = close to the group best (95 %). Stronger values end at the rim.",
+      "rimNote": "Outside = close to the group best (95 %), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67 %.",
       "betterThan": "Better than {{n}} %"
     },
     "detail": {

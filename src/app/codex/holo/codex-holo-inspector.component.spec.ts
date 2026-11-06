@@ -5,6 +5,7 @@ import { signal } from '@angular/core';
 import type { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
 import { SearchWishlistService } from '../search/search-wishlist.service';
 import { SearchRowActionsService } from '../../shell/fusion-bar/search-row-actions.service';
+import { CodexService } from '../codex.service';
 import { CodexHoloInspectorComponent, partFocusOf } from './codex-holo-inspector.component';
 import type { PinGroup, StagePin } from './codex-holo-model';
 import type { PlacementRow } from '../asset-package/asset-package-viewer.component';
@@ -107,6 +108,18 @@ describe('CodexHoloInspectorComponent', () => {
       const stats = Array.from({ length: 9 }, (_, i) => ({ labelKey: `k${i}`, value: i, format: 'dec' as const }));
       const f = setup({ target: target(slot({ stats })) });
       expect(root(f).querySelectorAll('.insp-stats dd').length).toBe(6);
+    });
+
+    it('resolves the maker of a slot without a kind through the component facet', async () => {
+      const facetValues = jasmine.createSpy('facetValues').and.resolveTo({
+        manufacturers: [{ code: 'AEG', name: { en: 'Aegis Dynamics', de: 'Aegis Dynamics' } }],
+      });
+      TestBed.overrideProvider(CodexService, { useValue: { facetValues } });
+      const f = setup({ target: target(slot({ name: 'Regulus', manufacturerCode: 'AEG', kind: null })) });
+      await f.whenStable();
+      f.detectChanges();
+      expect(facetValues).toHaveBeenCalledWith('component');
+      expect(f.componentInstance.maker('AEG')).toBe('Aegis Dynamics');
     });
 
     it('names an empty bay through the slot label key', () => {

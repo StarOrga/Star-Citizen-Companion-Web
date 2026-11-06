@@ -492,12 +492,15 @@ export class CodexHoloInspectorComponent {
     if (!part) return;
     const kinds = new Set<CodexKind>();
     for (const k of [part.kind, part.mount?.kind, ...part.others.map((o) => o.kind)]) if (k) kinds.add(k);
+    // A slot often arrives without a kind (a power plant from the module sheet):
+    // the component facet still knows its maker's name.
+    if (part.manufacturerCode) kinds.add('component');
     for (const kind of kinds) {
       if (this.makerKinds.has(kind)) continue;
       this.makerKinds.add(kind);
       const lang = toLang(this.injector.get(TranslateService).getCurrentLang());
       void this.injector.get(CodexService).facetValues(kind).then((fv) => {
-        if (!fv) return;
+        if (!fv) { this.makerKinds.delete(kind); return; }
         const next = { ...this.makerNames() };
         for (const m of fv.manufacturers) {
           const label = manufacturerLabel({ manufacturerCode: m.code, payload: { manufacturer: { name: m.name } } }, lang);

@@ -47,6 +47,29 @@ describe('CodexHoloTableComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  describe('phone on its side', () => {
+    function withLandscape(matches: boolean): void {
+      const real = window.matchMedia.bind(window);
+      spyOn(window, 'matchMedia').and.callFake((q: string) =>
+        q.includes('max-height: 500px') ? ({ matches, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(q));
+    }
+    const frame = (f: ComponentFixture<CodexHoloTableComponent>) => (f.nativeElement as HTMLElement).querySelector('.silhouette-frame')!;
+
+    it('3D takes the whole screen and the close button ends it', () => {
+      withLandscape(true);
+      const f = setup({ viewMode: '3d' });
+      expect(frame(f).classList).toContain('phone-full');
+      (f.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.full-close')!.click();
+      f.detectChanges();
+      expect(frame(f).classList).not.toContain('phone-full');
+    });
+
+    it('stays in the page when the phone is upright', () => {
+      withLandscape(false);
+      expect(frame(setup({ viewMode: '3d' })).classList).not.toContain('phone-full');
+    });
+  });
+
   describe('pins per phase', () => {
     for (const phase of ['wait', 'hero'] as HoloPhase[]) {
       it(`renders no pins while the arrival is in phase "${phase}"`, () => {

@@ -151,7 +151,12 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     '[class.offscreen]': 'offscreen()',
   },
   template: `
-    <div class="silhouette-frame" #frame [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
+    <div class="silhouette-frame" #frame [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'" [class.phone-full]="phoneFull()">
+      @if (phoneFull()) {
+        <button type="button" class="full-close" [attr.aria-label]="'codex.holo.stage.fullscreenExit' | translate" [scTooltip]="'codex.holo.stage.fullscreenExit' | translate" (click)="fullDismissed.set(true)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      }
       <div class="rings" aria-hidden="true"><i class="sweep"></i></div>
       <!-- Projection layer over everything on the surface: scanlines and a
            slow interference band, masked to the table's light cone. -->
@@ -646,6 +651,13 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     @media (orientation: landscape) and (max-width: 1000px) and (max-height: 600px) {
       .silhouette-frame { min-height: 320px; }
     }
+    /* A phone on its side: a fixed overlay, because iPhone Safari has no Fullscreen API.
+       Above the feedback launcher (1400), below dialogs and overlays (1500). */
+    .silhouette-frame.phone-full { position: fixed; inset: 0; z-index: 1450; min-height: 0; width: auto; background: var(--sc-bg-0); }
+    .full-close { position: absolute; z-index: 5; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
+      width: 48px; height: 48px; display: grid; place-items: center; padding: 0; cursor: pointer; border-radius: 50%; color: var(--sc-fg);
+      background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); }
+    .full-close:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     @media (max-width: 640px) {
       .silhouette-frame, .mode-viewer { min-height: 320px; }
       .silhouette-frame { --pin-inset: 36px; }
@@ -728,6 +740,11 @@ export class CodexHoloTableComponent {
   /** The projection surface's size in CSS px (0 until measured). */
   readonly frameW = signal(0);
   readonly frameH = signal(0);
+  /** A phone on its side: the 3D view takes the whole screen until it is closed. */
+  private readonly phoneLandscape = signal(false);
+  /** Closed by the reader; turning the phone again brings it back. */
+  readonly fullDismissed = signal(false);
+  readonly phoneFull = computed(() => this.viewMode() === '3d' && this.phoneLandscape() && !this.fullDismissed());
   /** Touch pointer: leader labels are full tap targets, fewer fit a column. */
   private readonly coarse = signal(typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
   /** The port under the pointer / focus HERE — lights its pin and its label
@@ -779,6 +796,13 @@ export class CodexHoloTableComponent {
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const destroyRef = inject(DestroyRef);
+    if (typeof matchMedia === 'function') {
+      const landscape = matchMedia('(orientation: landscape) and (max-width: 1000px) and (max-height: 500px)');
+      const syncLandscape = () => { this.phoneLandscape.set(landscape.matches); this.fullDismissed.set(false); };
+      syncLandscape();
+      landscape.addEventListener('change', syncLandscape);
+      destroyRef.onDestroy(() => landscape.removeEventListener('change', syncLandscape));
+    }
     afterNextRender(() => {
       const frame = this.frameRef()?.nativeElement;
       if (!frame) return;

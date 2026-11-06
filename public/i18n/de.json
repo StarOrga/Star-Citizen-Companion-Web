@@ -942,6 +942,7 @@
         "iconStock": "Bestand",
         "previewTitle": "Vorschau der Detailseite",
         "previewMaker": "Hersteller",
+        "fullscreenExit": "Vollbild schließen",
         "previewFitted": "Verbaut in",
         "previewBuy": "Wo zu kaufen",
         "previewAlternatives": "Passende Alternativen",
@@ -1351,7 +1352,7 @@
         "of": "Alle {{name}}"
       },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
-      "rimNote": "Außen = fast bester Wert der Gruppe (95 %). Stärkere Werte enden am Rand.",
+      "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
       "betterThan": "Besser als {{n}} %"
     },
     "detail": {
