@@ -32,8 +32,14 @@
   // The stage footer (cinematic layout) lies over the bottom of the page.
   padding-bottom: var(--cx-pb);
   box-sizing: border-box;
+  // The hologram's drifting scan band travels far below its box while it fades;
+  // clipped at the landing's bottom it never stretches the document.
+  overflow-y: clip;
 }
-:host(:not(.shell)) .landing { height: calc(100dvh - var(--cx-top, 0px) - 32px); }
+// Shell off: the classic footer (padding 12 + 36 badge + 1 border = 61 px) is a
+// real row below the page, so the landing leaves room for it and the whole
+// page fits the viewport without a sliver of scroll.
+:host(:not(.shell)) .landing { height: calc(100dvh - var(--cx-top, 0px) - 32px - 61px); }
 
 // ── Hero: Verse spacing; StageHeroDirective sets the height (STAGE_FIELD_TOP). ──
 .hero {

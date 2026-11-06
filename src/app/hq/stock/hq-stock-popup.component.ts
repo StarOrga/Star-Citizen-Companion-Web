@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effec
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { CodexService, toLang } from '../../codex/codex.service';
+import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
 import { hqShip } from '../hq-routes';
 import { OverlayFrameComponent } from '../../shared/overlay-frame/overlay-frame.component';
@@ -13,12 +15,14 @@ import { formatLocationName, readLocation } from '../now/hq-live.util';
 import { HqLiveService } from '../now/hq-live.service';
 import { placeOfName } from '../plan/map/hq-places';
 import { StockGroup, StockSort, StockUnit, findStock, stockNames } from './hq-stock-find';
+import { StockSuggestion, StockTarget, stockSuggestions, stockTarget } from './hq-stock-ref';
 import {
   NO_FILTER,
   STOCK_CATEGORIES,
   STOCK_PAGE,
   StockCategory,
   StockFilter,
+  StockItem,
   StockView,
   filterStock,
   isPlaceFree,
@@ -113,7 +117,9 @@ export interface StockStart {
                   } @else {
                     <li class="row">
                       <span class="nm">
-                        @if (l.showName) { <span class="t">{{ l.row.name }}</span> }
+                        @if (l.showName) {
+                          @if (target(l.row); as t) { <a class="t entry" [routerLink]="t.commands" [queryParams]="t.queryParams">{{ l.row.name }}</a> } @else { <span class="t">{{ l.row.name }}</span> }
+                        }
                         @if (l.showPlace) { <span class="place" [class.t]="!l.showName">{{ l.row.location.trim() ? placeName(l.row.location) : ('hq.stock.free' | translate) }}</span> }
                       </span>
                       <span class="qty">{{ l.row.qty }} {{ unitLabel(l.row.unit) }}</span>
@@ -224,10 +230,51 @@ export interface StockStart {
           <form class="capture" (submit)="$event.preventDefault(); add()" aria-labelledby="hq-stock-capture">
             <h3 id="hq-stock-capture">{{ 'hq.stock.capture.title' | translate }}</h3>
             <div class="row-f">
-              <label>
-                <span>{{ 'hq.stock.capture.item' | translate }}</span>
-                <input name="item" [(ngModel)]="item" maxlength="160" autocomplete="off" [placeholder]="'hq.stock.capture.itemHint' | translate" />
-              </label>
+              <div class="field picker">
+                <label for="hq-stock-item">{{ 'hq.stock.capture.item' | translate }}</label>
+                <input
+                  id="hq-stock-item"
+                  name="item"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  [attr.aria-expanded]="listOpen()"
+                  aria-controls="hq-stock-suggest"
+                  [attr.aria-activedescendant]="activeIndex() >= 0 ? 'hq-stock-opt-' + activeIndex() : null"
+                  aria-describedby="hq-stock-item-msg"
+                  [ngModel]="itemText()"
+                  (ngModelChange)="onItemInput($event)"
+                  (keydown)="onItemKey($event)"
+                  (blur)="closeList()"
+                  maxlength="160"
+                  autocomplete="off"
+                  [placeholder]="'hq.stock.capture.itemHint' | translate"
+                />
+                @if (listOpen()) {
+                  <ul class="suggest" id="hq-stock-suggest" role="listbox" [attr.aria-label]="'hq.stock.capture.suggestions' | translate">
+                    @for (o of suggestions(); track o.key; let idx = $index) {
+                      <li
+                        role="option"
+                        [id]="'hq-stock-opt-' + idx"
+                        [class.active]="idx === activeIndex()"
+                        [attr.aria-selected]="idx === activeIndex()"
+                        (mousedown)="$event.preventDefault(); pick(o)"
+                      >
+                        <span class="opt-name">{{ o.title }}</span>
+                        <span class="opt-kind">{{ 'hq.stock.capture.kind.' + o.kind | translate }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+                <p id="hq-stock-item-msg" class="msg" role="status">
+                  @if (unknown()) {
+                    {{ 'hq.stock.capture.unknown' | translate }}
+                  } @else if (searchError(); as k) {
+                    {{ k | translate }}
+                  } @else if (picked()) {
+                    {{ 'hq.stock.capture.linked' | translate }}
+                  }
+                </p>
+              </div>
               <label class="qty-f">
                 <span>{{ 'hq.stock.capture.qty' | translate }}</span>
                 <input name="qty" type="number" min="0.01" step="any" inputmode="decimal" [(ngModel)]="qty" />
@@ -265,6 +312,15 @@ export interface StockStart {
       .muted { color: var(--sc-fg-2); margin: 0; }
       .ok { margin: 0; color: var(--sc-accent); }
       .warn { margin: 0; color: var(--sc-warning); }
+      .picker { position: relative; flex: 1 1 10rem; display: grid; gap: var(--sc-space-1, 4px); }
+      .picker > label { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .msg { margin: 0; min-height: 1.2em; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .suggest { position: absolute; z-index: 5; inset-inline: 0; top: calc(100% - 1.2em); margin: 0; padding: var(--sc-space-1, 4px); list-style: none; max-height: min(18rem, 40dvh); overflow-y: auto; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: var(--sc-radius); }
+      .suggest li { display: flex; justify-content: space-between; gap: var(--sc-space-3, 12px); padding: var(--sc-space-2, 8px); min-height: 2.75rem; align-items: center; cursor: pointer; }
+      .suggest li:hover, .suggest li.active { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+      .opt-name { min-width: 0; overflow-wrap: anywhere; color: var(--sc-fg-0); }
+      .opt-kind { flex: none; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+      .entry { min-width: 0; overflow-wrap: anywhere; }
       .state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sc-space-2, 8px); }
       .state p { margin: 0; }
       input {
@@ -493,21 +549,125 @@ export class HqStockPopupComponent implements OnInit {
   }
 
   // --- capture -------------------------------------------------------------
-  protected item = '';
+  /** Picker state: the typed text, the Codex suggestions for it, and the one the reader chose. */
+  protected readonly itemText = signal('');
+  readonly suggestions = signal<StockSuggestion[]>([]);
+  protected readonly picked = signal<StockSuggestion | null>(null);
+  protected readonly activeIndex = signal(-1);
+  private readonly listWanted = signal(false);
+  protected readonly searchError = signal<string | null>(null);
+  /** The term the suggestions answer; null while a search is pending. */
+  private readonly answeredFor = signal<string | null>(null);
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchSeq = 0;
+  private readonly codex = inject(CodexService);
+  protected readonly listOpen = computed(() => this.listWanted() && this.suggestions().length > 0);
+  /** Text typed, searched, and nothing in the Codex matches it. */
+  protected readonly unknown = computed(() => {
+    const t = this.itemText().trim();
+    return !!t && !this.picked() && this.answeredFor() === t && this.suggestions().length === 0 && !this.searchError();
+  });
   protected qty: number | null = 1;
-  protected location = '';
+  location = '';
   protected readonly unit = signal<'pcs' | 'scu'>('pcs');
   protected readonly justAdded = signal(false);
 
-  protected valid(): boolean {
-    return !!this.item.trim() && !!this.location.trim() && Number(this.qty) > 0;
+  /** Owned ships only: a ship entry leads to the reader's own copy when there is one. */
+  private readonly ownedShips = computed(() => this.hangar.ships().filter((s) => s.status === 'owned'));
+
+  protected target(i: Pick<StockItem, 'name' | 'class_name'>): StockTarget | null {
+    return stockTarget(i.name, i.class_name, this.ownedShips());
   }
 
-  protected async add(): Promise<void> {
-    if (!this.valid()) return;
-    const ok = await this.inv.addManual(this.location, this.item, Number(this.qty), this.unit());
+  protected onItemInput(v: string): void {
+    this.itemText.set(v);
+    this.searchError.set(null);
+    this.justAdded.set(false);
+    const t = v.trim();
+    const p = this.picked();
+    if (p && p.title !== t) this.picked.set(null);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchSeq++;
+    if (!t) {
+      this.suggestions.set([]);
+      this.answeredFor.set(null);
+      this.listWanted.set(false);
+      return;
+    }
+    if (p && p.title === t) return;
+    this.answeredFor.set(null);
+    this.listWanted.set(true);
+    const seq = this.searchSeq;
+    this.searchTimer = setTimeout(() => void this.runSearch(t, seq), 220);
+  }
+
+  private async runSearch(t: string, seq: number): Promise<void> {
+    try {
+      const res = await this.codex.searchAll(t, 30);
+      if (seq !== this.searchSeq) return;
+      const lang = toLang(this.translate.getCurrentLang() ?? this.translate.getFallbackLang());
+      const out = stockSuggestions(res.hits, t, lang);
+      this.suggestions.set(out);
+      this.activeIndex.set(-1);
+      // An exact name typed in full is the entry: no click needed.
+      const exact = out.find((o) => o.title.toLowerCase() === t.toLowerCase());
+      if (exact) this.picked.set(exact);
+      this.answeredFor.set(t);
+    } catch (err) {
+      if (seq !== this.searchSeq) return;
+      this.suggestions.set([]);
+      this.searchError.set(toErrorKey('hq', 'stock.search', err));
+    }
+  }
+
+  pick(o: StockSuggestion): void {
+    this.searchSeq++;
+    this.picked.set(o);
+    this.itemText.set(o.title);
+    this.answeredFor.set(o.title);
+    this.listWanted.set(false);
+    this.activeIndex.set(-1);
+  }
+
+  protected closeList(): void {
+    this.listWanted.set(false);
+  }
+
+  protected onItemKey(e: KeyboardEvent): void {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' && n) {
+      e.preventDefault();
+      this.listWanted.set(true);
+      this.activeIndex.set((this.activeIndex() + 1) % n);
+    } else if (e.key === 'ArrowUp' && n) {
+      e.preventDefault();
+      this.listWanted.set(true);
+      this.activeIndex.set((this.activeIndex() - 1 + n) % n);
+    } else if (e.key === 'Enter' && this.listOpen() && this.activeIndex() >= 0) {
+      e.preventDefault();
+      this.pick(this.suggestions()[this.activeIndex()]);
+    } else if (e.key === 'Escape' && this.listWanted()) {
+      // The list closes first; only the next Escape closes the sheet.
+      e.preventDefault();
+      e.stopPropagation();
+      this.listWanted.set(false);
+    }
+  }
+
+  valid(): boolean {
+    const p = this.picked();
+    return !!p && p.title === this.itemText().trim() && !!this.location.trim() && Number(this.qty) > 0;
+  }
+
+  async add(): Promise<void> {
+    const p = this.picked();
+    if (!this.valid() || !p) return;
+    const ok = await this.inv.addManual(this.location, p.title, Number(this.qty), this.unit(), p.key);
     if (ok) {
-      this.item = '';
+      this.itemText.set('');
+      this.picked.set(null);
+      this.suggestions.set([]);
+      this.answeredFor.set(null);
       this.qty = 1;
       this.justAdded.set(true);
     }

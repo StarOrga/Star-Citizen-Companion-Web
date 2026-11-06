@@ -120,23 +120,13 @@ describe('HqStockComponent', () => {
     expect(hits.every((h) => h.classList.contains('take'))).toBeTrue();
   });
 
-  it('adds through the popup form', async () => {
+  it('opens the capture form in the popup', async () => {
     const { fixture, el, inv } = mount({ full: true });
     click(fixture, el.querySelector('.actions .sc-btn-primary')!);
     await fixture.whenStable();
     fixture.detectChanges();
-    const set = (n: string, v: string) => {
-      const i = el.querySelector(`input[name=${n}]`) as HTMLInputElement;
-      i.value = v;
-      i.dispatchEvent(new Event('input'));
-    };
-    set('item', 'Quantanium');
-    set('location', 'Area 18');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    (el.querySelector('form.capture') as HTMLFormElement).dispatchEvent(new Event('submit'));
-    await fixture.whenStable();
-    expect(inv.addManual).toHaveBeenCalledWith('Area 18', 'Quantanium', 1, 'pcs');
+    expect(el.querySelector('form.capture #hq-stock-item')).not.toBeNull();
+    expect(inv.addManual).not.toHaveBeenCalled();
   });
 
   it('renders list rows lazily: a window first, more after scrolling inside the popup', () => {
@@ -201,5 +191,11 @@ describe('HqStockComponent', () => {
     const room = 844 - 130 - 88 - 32;
     expect(h).withContext(`stock overview is ${Math.round(h)}px, room ${room}px`).toBeLessThanOrEqual(room);
     el.remove();
+  });
+
+  it('links the earned blueprints straight to the A-Z blueprint index', () => {
+    const { fixture } = mount({ full: true });
+    const a = (fixture.nativeElement as HTMLElement).querySelector('#hq-stock-earned ~ a') as HTMLAnchorElement;
+    expect(a.getAttribute('href')).toBe('/codex/index?kind=blueprint');
   });
 });

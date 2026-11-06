@@ -153,7 +153,7 @@ export interface HqTile {
   styles: [
     `
       :host { display: block; }
-      .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-3, 12px); }
+      .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-4, 16px); }
       .page-title { margin: 0; font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .state { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--sc-space-2, 8px); }
       .muted { color: var(--sc-fg-2); }

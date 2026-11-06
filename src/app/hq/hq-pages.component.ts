@@ -88,7 +88,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
       /* A follow page stands under the docked subheader: its content starts below the bar. */
       /* Its own padding already clears the bar, so it cancels the global scroll-padding: rail click,
          deep link and back/forward all land the section at the viewport top. */
-      .follow { scroll-margin-top: calc(-1 * var(--sc-bar-h, 64px)); padding-top: calc(var(--sc-bar-h, 64px) + var(--sc-space-5, 24px)); padding-bottom: var(--sc-space-6, 32px); }
+      .follow { scroll-margin-top: calc(-1 * var(--sc-bar-h, 64px)); padding-top: calc(var(--sc-bar-h, 64px) + var(--sc-space-7, 48px)); padding-bottom: var(--sc-space-6, 32px); }
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
       /* The way on stands at the viewport's bottom edge on every page; the phone bar does that job below 1024px. */

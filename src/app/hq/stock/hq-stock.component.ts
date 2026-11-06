@@ -152,9 +152,9 @@ const STALE_SHOWN = 3;
         <section class="card tile" aria-labelledby="hq-stock-earned">
           <h3 id="hq-stock-earned">{{ 'hq.stock.earned.title' | translate }}</h3>
           @if (blueprintTotal() !== null) {
-            <a class="line" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.blueprints' | translate: { n: blueprintTotal() } }}</a>
+            <a class="line" [routerLink]="['/codex', 'index']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.blueprints' | translate: { n: blueprintTotal() } }}</a>
           } @else {
-            <a class="line" [routerLink]="['/codex']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
+            <a class="line" [routerLink]="['/codex', 'index']" [queryParams]="{ kind: 'blueprint' }">{{ 'hq.stock.earned.open' | translate }} ›</a>
           }
         </section>
       </div>

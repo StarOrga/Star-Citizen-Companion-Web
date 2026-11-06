@@ -1,0 +1,96 @@
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
+import { CodexService } from '../../codex/codex.service';
+import { HangarService } from '../../hangar/hangar.service';
+import { HqInventoryService } from '../data/hq-inventory.service';
+import { HqLiveService } from '../now/hq-live.service';
+import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
+
+describe('HqStockPopupComponent: capture and links', () => {
+  type Hit = { kind: string; classNameSlug: string; nameLocalized: string };
+  type Row = { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' };
+
+  function mount(start: StockStart, opts: { hits?: Hit[]; items?: Row[] } = {}) {
+    const items = opts.items ?? [];
+    const inv = {
+      loaded: signal(true),
+      error: signal<string | null>(null),
+      snapshots: signal(items.length ? [{ location: items[0].location, taken_at: new Date().toISOString(), source: 'manual' }] : []),
+      locations: signal([]),
+      items: signal(items),
+      shipStorage: signal([]),
+      load: jasmine.createSpy('load').and.resolveTo(),
+      addManual: jasmine.createSpy('addManual').and.resolveTo(true),
+    };
+    TestBed.configureTestingModule({
+      imports: [HqStockPopupComponent],
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
+        { provide: HqInventoryService, useValue: inv },
+        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }) } },
+        { provide: CodexService, useValue: { searchAll: () => Promise.resolve({ hits: opts.hits ?? [], totals: {} }) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(HqStockPopupComponent);
+    fixture.componentRef.setInput('start', start);
+    fixture.detectChanges();
+    return { fixture, inv };
+  }
+
+  async function type(fixture: ReturnType<typeof mount>['fixture'], text: string) {
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const input = (fixture.nativeElement as HTMLElement).querySelector('#hq-stock-item') as HTMLInputElement;
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+    await new Promise((r) => setTimeout(r, 300));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  it('says it does not exist and keeps Add disabled for text without a Codex match', async () => {
+    const { fixture } = mount({ mode: 'add' });
+    const el: HTMLElement = fixture.nativeElement;
+    fixture.componentInstance.location = 'Area18';
+    await type(fixture, 'q34tqaergv');
+    expect(el.querySelector('#hq-stock-item-msg')?.textContent).toContain('hq.stock.capture.unknown');
+    expect((el.querySelector('form.capture button[type=submit]') as HTMLButtonElement).disabled).toBeTrue();
+  });
+
+  it('saves a picked suggestion with its kind and class name', async () => {
+    const { fixture, inv } = mount({ mode: 'add' }, { hits: [{ kind: 'ship', classNameSlug: 'AEGS_Idris_P', nameLocalized: 'Idris-P' }] });
+    const c = fixture.componentInstance;
+    c.location = 'Area18';
+    await type(fixture, 'Idr');
+    expect(((fixture.nativeElement as HTMLElement).querySelector('[role=option]') as HTMLElement).textContent).toContain('Idris-P');
+    c.pick(c.suggestions()[0]);
+    fixture.detectChanges();
+    expect(c.valid()).toBeTrue();
+    await c.add();
+    expect(inv.addManual).toHaveBeenCalledWith('Area18', 'Idris-P', 1, 'pcs', 'ship:AEGS_Idris_P');
+  });
+
+  it('renders a result with a target as an anchor and one without as plain text', async () => {
+    const { fixture } = mount(
+      { mode: 'browse' },
+      {
+        items: [
+          { location: 'Lorville', name: 'Gold', class_name: 'item:Gold', qty: 3, unit: 'scu' },
+          { location: 'Lorville', name: 'Notiz', class_name: null, qty: 1, unit: 'scu' },
+        ],
+      },
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const rows = [...(fixture.nativeElement as HTMLElement).querySelectorAll('li.row')];
+    const gold = rows.find((r) => r.textContent?.includes('Gold'));
+    const note = rows.find((r) => r.textContent?.includes('Notiz'));
+    expect(gold?.querySelector('a.entry')?.getAttribute('href')).toBe('/codex/item/Gold');
+    expect(note?.querySelector('a')).toBeNull();
+  });
+});
