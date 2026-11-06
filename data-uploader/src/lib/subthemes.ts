@@ -89,7 +89,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // ("All rooms" / "Other rooms"); ships without decks get just that one.
     // 10: #842 — cargoScu / cargoStatus follow a cargo item's own stock fit
     // and count ore pods; no hull is "unmeasured" for a missing grid anymore.
-    revision: 10,
+    // 11: payload.sizeClass (S1-S6 from the vehicle's AttachDef.Size) for the
+    // Codex index size filter.
+    revision: 11,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
