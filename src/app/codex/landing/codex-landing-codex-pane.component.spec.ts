@@ -42,15 +42,15 @@ describe('Codex landing pane', () => {
   let fixture: ComponentFixture<CodexLandingCodexPaneComponent>;
   let host: HTMLElement;
 
-  /** The real pane size at 1280x720, the tightest window the landing is built for. */
-  function mount(news: { category: LandingCategory; entries: LandingCodexEntry[] }[], active: LandingCategory, current: LandingItem | null, height = 348): void {
+  /** The real pane at 1280x720, the tightest window the landing is built for. */
+  function mount(news: { category: LandingCategory; entries: LandingCodexEntry[] }[], active: LandingCategory, current: LandingItem | null, height = 400): void {
     TestBed.configureTestingModule({ imports: [CodexLandingCodexPaneComponent], providers: [provideRouter([]), provideTranslateService()] });
     const tr = TestBed.inject(TranslateService);
     tr.setTranslation('de', de as never);
     tr.use('de');
     fixture = TestBed.createComponent(CodexLandingCodexPaneComponent);
     host = fixture.nativeElement as HTMLElement;
-    host.style.cssText = `display:flex;flex-direction:column;width:257px;height:${height}px;position:absolute;left:0;top:0;`;
+    host.style.cssText = `display:flex;flex-direction:column;width:200px;height:${height}px;position:absolute;left:0;top:0;`;
     document.body.appendChild(host);
     fixture.componentRef.setInput('items', news.map((n) => item(n.category, `I_${n.category}`)));
     fixture.componentRef.setInput('codex', { patch: '4.10', categories: news.map((n) => ({ ...n, count: n.entries.length, announced: 0 })) });

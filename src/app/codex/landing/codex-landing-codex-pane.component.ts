@@ -23,8 +23,8 @@ export function searchQueryFor(category: LandingCategory): Params {
 
 /**
  * Rows of the entry wheel. Fixed and odd, so the entry on the table stands in
- * the middle: title, tabs, five rows and the foot fit the pane down to a
- * 1280x720 window (codex-landing-fit.spec).
+ * the middle: title, tabs, five rows and the foot fit the pane (400px, codex-landing.component.scss)
+ * down to a 1280x720 window (codex-landing-codex-pane.component.spec).
  */
 export const WHEEL_ROWS = 5;
 /** Wheel distance (px, summed) that turns the entry wheel by one row. */
