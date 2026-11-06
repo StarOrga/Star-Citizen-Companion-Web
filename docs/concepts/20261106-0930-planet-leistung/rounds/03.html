@@ -1,0 +1,82 @@
+<section data-iteration="3" data-iteration-template="free" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
+  <div class="iteration-intro">
+    <h2>Der Umbauplan</h2>
+    <p>Das ergibt sich aus deinen Antworten. Am Code ist noch nichts geändert, gebaut wird erst nach „Jetzt umsetzen“.</p>
+  </div>
+
+  <section id="plan-goal" data-nav-label="Was das bringt">
+    <h3>Was das bringt</h3>
+    <p><strong>Dein 1/10-Ziel erreicht der Plan nur ohne Fokus.</strong> Mit 15 fps sinkt die Mehrlast des sichtbaren Planeten auf etwa die Hälfte, von 29,4 auf 13,7 % eines Kerns. Das Bild bleibt dafür wie heute, wie du es gewählt hast.</p>
+    <p>Spürbar leichter wird die Seite trotzdem, weil Suchfeld und Himmel mehr ausmachen als der Planet. Grob bleiben rund 40 % der heutigen Seitenlast. Das ist eine Schätzung aus Obergrenzen und zwei Browsern, die Messung nach dem Umbau entscheidet.</p>
+  </section>
+
+  <section id="plan-scope" data-nav-label="Was gebaut wird">
+    <h3>Was gebaut wird</h3>
+    <table>
+      <thead><tr><th>Bereich</th><th>Änderung</th><th>Sichtbar?</th></tr></thead>
+      <tbody>
+        <tr><td>Planet: Takt</td><td>15 Hz statt Monitortakt im Leerlauf. Beim Scrollen und im Einzug folgt er weiter jedem Frame.</td><td>Planet gleich, Züge siehe unten</td></tr>
+        <tr><td>Planet: Pause</td><td>Hält ohne Fenster-Fokus an und läuft danach sanft dort weiter, wo er stand.</td><td>Nur ohne Fokus</td></tr>
+        <tr><td>Planet: Auflösung</td><td>Rechnet in CSS-Pixeln, Halo nur noch am Rand, Anisotropie 2.</td><td>Auf HiDPI ein etwas weicherer Rand möglich</td></tr>
+        <tr><td>Suchfeld</td><td>Das Atmen läuft über die Deckkraft eines Pseudo-Elements statt über <code>box-shadow</code>.</td><td>Nein</td></tr>
+        <tr><td>Stadtlichter</td><td>Animation läuft nur, wenn die Ebene sichtbar ist.</td><td>Nein</td></tr>
+        <tr><td>Sterne</td><td>Die große Ebene steht still, 3 kleine Sterne funkeln an immer neuen Zufallsstellen.</td><td>Ja, wie in Runde 2</td></tr>
+        <tr><td>Monde</td><td>15 statt 30 fps.</td><td>Kaum</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="plan-diff" data-nav-label="Abweichung vom Beispiel">
+    <h3>Eine Abweichung vom Beispiel in Runde 2</h3>
+    <p>Im Beispiel liefen die Züge bei 15 fps mit 30 fps. Gemessen habe ich die 15-Hz-Variante aber mit Zügen, die dem Takt folgen, also mit 15 fps. So baue ich es auch, weil die Hälfte sonst nicht belegt wäre. Die Züge bewegen sich so langsam, dass ich keinen sichtbaren Unterschied erwarte.</p>
+  </section>
+
+  <section id="plan-check" data-nav-label="Wie ich es prüfe">
+    <h3>Wie ich es prüfe</h3>
+    <ul>
+      <li>Dieselbe Messung in Edge auf deiner GPU, vorher und nachher, mit längeren Messfenstern gegen das Rauschen.</li>
+      <li>Scrollen und Einzug: Der Planet darf nicht hinterherhinken. Diese Phasen messe ich erstmals mit.</li>
+      <li>Fokus weg und zurück: kein sichtbarer Sprung, auch nach längerer Abwesenheit.</li>
+      <li>Typecheck, Build und Karma, dazu Specs für Pause, Rückkehr und Funkeln.</li>
+    </ul>
+    <p>Die Begründung „nicht umgesetzt, weil sich Pixel ändern“ in <code>docs/performance-plan.md</code> gilt damit nicht mehr, das schreibe ich dort um.</p>
+  </section>
+
+  <section id="q-plan" data-analysis="lite" data-nav-label="Letzte Frage">
+    <section id="d-pause-all" data-nav-label="Pause für alles" data-decision="d-pause-all" data-decision-mode="yesnoalt" data-label="Pause für die ganze Szene" data-rec="yes" data-rec-why="Sonst läuft neben dem Spiel weiter der größere Teil der Last." data-applies-to="shell-scene, fusion-bar, bodies, Sonne"><input type="hidden" name="dm-d-pause-all-hes" value="{&quot;ms&quot;:9762,&quot;revisits&quot;:0,&quot;median&quot;:9762}">
+      <p data-applies>Gilt für: Sonne, Monde, Funkeln und Suchfeld, wenn das Fenster nicht im Fokus ist</p>
+      <p data-situation>Die Pause gilt bisher nur für den Planeten. Der macht rund 12 % der Seitenlast aus, alles andere liefe neben Star Citizen weiter.</p>
+      <h3 data-question>Soll ohne Fokus die ganze Szene pausieren statt nur der Planet?</h3>
+      <p data-stakes>Das ist der größte mögliche Gewinn, solange du spielst.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended>
+          <input type="radio" name="dm-d-pause-all" value="yes" checked>
+          <span data-opt-label>Ja, alles pausiert</span>
+          <span data-opt-consequence>Ohne Fokus steht die ganze Szene still, bei Fokus läuft sie weich weiter.</span>
+        </label>
+        <label data-opt="no">
+          <input type="radio" name="dm-d-pause-all" value="no">
+          <span data-opt-label>Nein, nur der Planet</span>
+          <span data-opt-consequence>Der Himmel bleibt auf dem zweiten Monitor lebendig, die übrige Last bleibt.</span>
+        </label>
+        <label data-opt="alt">
+          <input type="radio" name="dm-d-pause-all" value="alt">
+          <span data-opt-label>Anders</span>
+          <input type="text" name="dm-d-pause-all-alt" placeholder="Was stattdessen?" value="">
+        </label>
+      </div>
+      <textarea data-comment="d-pause-all-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Pause für alles">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"12","unit":"%","label":"Anteil des Planeten an der Seitenlast"}'></div>
+          <p>Der Rest läuft ohne diese Entscheidung weiter.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Planet","value":26},{"label":"Alles andere","value":190}],"unit":"% eines Kerns, heute","hl":"Alles andere"}'></div>
+          <p>Der Wert ohne Fokus ist noch nicht gemessen, er kommt mit der Messung nach dem Umbau. Das betrifft nur die Zeit ohne Fokus, mit Fokus ändert sich dadurch nichts.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>

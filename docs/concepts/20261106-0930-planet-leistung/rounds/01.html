@@ -1,0 +1,273 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"also am ende gern dann eine variante mit visualisieurngen machejn, ich will mir leive hier erstmal ansehen wie der planet dann daussieht in beewegeung!","attachments":[]}}</script>
+  <div class="iteration-intro">
+    <h2>Warum der Planet teuer wirkt</h2>
+    <p>Gemessen auf deiner RTX 2080 Super am 179-Hz-Monitor. Im Repo ist noch nichts geändert.</p>
+  </div>
+
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Die Mehrlast des Planeten sinkt im Leerlauf von 29 auf 4,5, also auf etwa 1/6. Echte 1/10 lassen sich vom Messrauschen nicht trennen.</p>
+    <p data-briefing-why>Der Planet macht aber nur rund 12 % der Seitenlast aus, spürbar leichter wird /verse erst mit den CSS-Animationen.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"≈ 1/6","unit":"Planet","label":"Mehrlast im Leerlauf: 29 → 4,5 (% eines CPU-Kerns)"}'>≈ 1/6 Planet</div>
+    <a data-briefing-topic="t-planet" data-share="20">Der Planet selbst</a>
+    <a data-briefing-topic="t-page" data-share="80">Die Last drumherum</a>
+    <p data-briefing-duration>≈ 3 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"12","unit":"%","label":"Anteil des Planeten an der Seitenlast"}'></div>
+        <p>Von rund 216 % eines CPU-Kerns entfallen etwa 26 auf den Planeten.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Sterne + Stadtlichter","value":53},{"label":"fb-breathe (Suchfeld)","value":48},{"label":"Rest, ungeklärt","value":33},{"label":"Planet","value":26},{"label":"Monde","value":26},{"label":"wave + fs-demo","value":17},{"label":"Sonne","value":14}],"unit":"% eines Kerns","hl":"Planet"}'></div>
+        <p>Das ist die CPU-Last von Renderer- und GPU-Prozess auf <code>/verse</code>. Die Quellen wurden nacheinander entfernt, Mittel aus 2 Läufen in Chrome for Testing. Die Reihenfolge verschiebt die Anteile etwas.</p>
+        <p>Zusammengerechnet wäre die Seite mit allen Empfehlungen grob bei einem Drittel. Das ist eine Schätzung aus zwei Browsern und muss nach dem Umbau nachgemessen werden.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="t-planet" data-topic data-nav-label="Der Planet selbst">
+    <div data-alevel="2" data-title="Der Planet selbst">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"175","unit":"Ticks/s","label":"Seitentakt, gezeichnet wird nur mit 15 fps"}'></div>
+        <p>Teuer ist der Takt, nicht der Shader.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Ist: Takt 179 Hz","value":29.4},{"label":"Takt 15 Hz","value":13.7},{"label":"+ Shader-Spar, 0,5x","value":14.7},{"label":"5 fps, Züge 10 fps","value":6.8},{"label":"1 fps, Züge 4 fps","value":4.5}],"unit":"Mehrlast, % eines Kerns","hl":"Takt 15 Hz"}'></div>
+        <p>Mehrlast gegenüber der ruhigen Seite ohne Planet, 2 Läufe in Edge. Die Basis selbst schwankte zwischen den Läufen um rund 7, alles unter etwa 4 ist also nicht sicher trennbar.</p>
+        <p>Der Shader braucht auf deiner GPU unter 1 ms pro Frame, auch im 4K-Puffer. Halbe Auflösung und Shader-Spar brachten hier deshalb nichts Messbares. Schwache GPUs und HiDPI-Bildschirme habe ich nicht gemessen.</p>
+      </div>
+    </div>
+
+    <section id="d-rate" data-nav-label="Takt" data-decision="d-rate" data-decision-mode="single" data-label="Takt des Planeten" data-rec="one" data-rec-why="Kommt deinem Ziel am nächsten; bei sichtbarem Ruckeln ist es eine Konstante zurück zu 5 fps." data-applies-to="briefing-planet.component.ts und planet-scene.ts"><input type="hidden" name="dm-d-rate-hes" value="{&quot;ms&quot;:52817,&quot;revisits&quot;:0,&quot;median&quot;:36258}">
+      <p data-applies>Gilt für: Seitentakt, Planet-Pass und Züge im Leerlauf</p>
+      <p data-situation>Die Seite misst und sendet rund 175-mal pro Sekunde, gezeichnet wird mit 15 fps. Der Planet wandert höchstens etwa 5 px pro Sekunde (eine Umdrehung in 30 min).</p>
+      <h3 data-question>Wie oft darf sich der Planet im Leerlauf aktualisieren?</h3>
+      <p data-stakes>Am 05.11. wolltest du keine Qualitätsverluste, 1 fps verändert aber das Bild.</p>
+      <div data-options>
+        <label data-opt="one" data-recommended>
+          <input type="radio" name="dm-d-rate" value="one">
+          <span data-opt-label>1 fps, Züge 4 fps</span>
+          <span data-opt-consequence>Mehrlast etwa 1/6. Stadtlichter springen bis 5 px pro Sekunde, das kann auffallen.</span>
+        </label>
+        <label data-opt="five">
+          <input type="radio" name="dm-d-rate" value="five">
+          <span data-opt-label>5 fps, Züge 10 fps</span>
+          <span data-opt-consequence>Mehrlast etwa 1/4. Sprünge um 1 px, kaum sichtbar.</span>
+        </label>
+        <label data-opt="tick">
+          <input type="radio" name="dm-d-rate" value="tick">
+          <span data-opt-label>Nur den Takt senken</span>
+          <span data-opt-consequence>Mehrlast etwa 1/2. Planet bleibt bei 15 fps, das Bild bleibt gleich.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-rate-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Takt">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"4,5","unit":"Mehrlast","label":"bei 1 fps, gegen 29,4 heute"}'></div>
+          <p>1/10 wären rund 3, das liegt im Messrauschen.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Ist","value":29.4},{"label":"Nur Takt","value":13.7},{"label":"5 fps","value":6.8},{"label":"1 fps","value":4.5}],"unit":"Mehrlast, % eines Kerns","hl":"1 fps"}'></div>
+          <p>Gemessen ist nur der Leerlauf. Beim Scrollen und im Einzug muss der Planet weiter jedem Frame folgen, sonst hinkt er hinterher. Diese Phasen kosten also weiter so viel wie heute und sind noch nicht gemessen.</p>
+          <p>Eine noch langsamere Variante (0,5 fps ohne Züge) lag nicht besser als 1 fps, einer ihrer Läufe war zudem ein Ausreißer.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-pause" data-nav-label="Pause" data-decision="d-pause" data-decision-mode="yesnoalt" data-label="Pause ohne Fokus" data-rec="yes" data-rec-why="Ohne Tick fällt die Mehrlast des Planeten in dieser Zeit ganz weg, das ist mehr als 1/10." data-applies-to="briefing-planet.component.ts"><input type="hidden" name="dm-d-pause-hes" value="{&quot;ms&quot;:29134,&quot;revisits&quot;:0,&quot;median&quot;:36258}">
+      <p data-applies>Gilt für: den Planeten, wenn das Browserfenster nicht im Fokus ist</p>
+      <p data-situation>Heute pausiert der Planet nur im verdeckten Tab oder außerhalb des Bildes. Sichtbar auf dem zweiten Monitor neben dem Spiel läuft er voll weiter.</p>
+      <h3 data-question>Soll der Planet anhalten, solange das Fenster nicht im Fokus ist?</h3>
+      <p data-stakes>Ob /verse neben Star Citizen noch Leistung vom Planeten zieht.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended>
+          <input type="radio" name="dm-d-pause" value="yes" checked>
+          <span data-opt-label>Ja, ohne Fokus anhalten</span>
+          <span data-opt-consequence>Der Planet steht still und läuft beim Zurückkommen an der richtigen Stelle weiter.</span>
+        </label>
+        <label data-opt="no">
+          <input type="radio" name="dm-d-pause" value="no">
+          <span data-opt-label>Nein, läuft sichtbar weiter</span>
+          <span data-opt-consequence>Der Planet dreht sich auch neben dem Spiel, mit der Last aus der Takt-Frage.</span>
+        </label>
+        <label data-opt="alt">
+          <input type="radio" name="dm-d-pause" value="alt">
+          <span data-opt-label>Anders</span>
+          <input type="text" name="dm-d-pause-alt" placeholder="Was stattdessen?" value="">
+        </label>
+      </div>
+      <textarea data-comment="d-pause-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Pause">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Ticks","label":"während das Fenster keinen Fokus hat"}'></div>
+          <p>Eine Pause ist die einzige Stufe, die 1/10 sicher unterbietet.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Ist","value":29.4},{"label":"1 fps","value":4.5},{"label":"Pause (erwartet)","value":0}],"unit":"Mehrlast, % eines Kerns","hl":"Pause (erwartet)"}'></div>
+          <p>Der Pause-Wert ist abgeleitet, nicht gemessen: Ohne Tick zeichnet der Worker nichts. Die Canvas-Ebenen bleiben im Bild und werden weiter mit zusammengesetzt, solange andere Animationen laufen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-res" data-nav-label="Auflösung" data-decision="d-res" data-decision-mode="picture" data-label="Auflösung des Planeten" data-rec="css" data-rec-why="Kostet bei dir kein Pixel und spart auf HiDPI-Bildschirmen viermal so viele Pixel." data-applies-to="planet-scene.ts resize()"><input type="hidden" name="dm-d-res-hes" value="{&quot;ms&quot;:36232,&quot;revisits&quot;:1,&quot;median&quot;:36258}">
+      <p data-applies>Gilt für: die Puffergröße des Planeten, Ausschnitt in Originalgröße bei 1080p</p>
+      <p data-situation>Die Nachttextur hat nur 0,42 Texel pro Pixel, heute wird aber bis dpr 2 gerechnet. Bei dir brachte 0,5x keine messbare Ersparnis, die Lichter werden davon leicht weicher.</p>
+      <h3 data-question>In welcher Auflösung soll der Planet rechnen?</h3>
+      <p data-stakes>Das betrifft vor allem HiDPI-Bildschirme und schwache GPUs, dort ist es ungemessen.</p>
+      <div data-options>
+        <label data-opt="css" data-recommended>
+          <input type="radio" name="dm-d-res" value="css" checked>
+          <span data-opt-media><img src="data:image/webp;base64,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" alt="Planetenausschnitt in voller Auflösung" width="480" height="240"></span>
+          <span data-opt-label>Auf CSS-Pixel begrenzen</span>
+          <span data-opt-consequence>Bei dpr 1 unverändert, bei dpr 2 ein Viertel der Pixel.</span>
+        </label>
+        <label data-opt="half">
+          <input type="radio" name="dm-d-res" value="half">
+          <span data-opt-media><img src="data:image/webp;base64,UklGRjAMAABXRUJQVlA4WAoAAAAgAAAA3wEA7wAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZWUDggQgoAALBUAJ0BKuAB8AA+YTCUR6QjIiGkl8hogAwJaW7OgMT1URo/8jRvcLgfPvJ1kHrIYCpbK5zx9CJewAjYjT529aENAhwICoQEWAeTyrhjhp6vCQivv34Ao+M9BTt0uOzoVflhp6XtHza4TVKYUbepmw87xLjOMIR5qVNiwmPJJ5fxfhOG/b5i3estV/gB096XONGv3gguMVxkaNXhIgCClESWIzddiYuKmV2q2syo/Hu7TkGuOqlUZt6vtmr6bqC561pS9Qi8/sB8kMX0rjyrkkYzmdXsj/rw9sDw4mbFpF7USZOu1UyH5xeLLEf4f1/rYUP153KIXSTz2TZPtFfd74R5bglMMylcdWxcl3JAR6xeBJfWa7Us43MCgcODxirt+yKEJhu8Kd11mIMBov2WZK46CH1hPYlRLE/AcpWDfb6TADQ36tbbxwmBtfVVb0AGOYydwONk+2UxEwVVrrsaSwkpFVqMV+LTuI4AsUsvBskV+IGiFLHYtz+CIRPK2Jqd51HCxLMBmkWZaiW4RPbesnkZZyefZoX8s0W1b8z9othaZzz6C0mr3emTmBWnz0IRWNPci4TO92PJgliu2ByrlBS1kqhTSXjnASG6x00PFnBkOcnXdw3l3f9yGkEF9BA1QkoP25MLdd1m9rH8yI3ezHtkIBUb350mK4BfDtby2VivqB6mbbj50c9k8dXMG7o0V13gM0hBKu9xc6Z+UIap/QuwlxONGnaBfLSm+gd2QMyBnNGhGNTZa+9bb8hB7tfNGdNxKezf3WkCX8aGzwmfF3+iWdXj9FmckQQYvwn5EPr+XXdUxade2XLSTCkOLRZNHSgSTtjXpnqp1gW9hK/iUHtcQeV6wRMVnt6GPSnCOEtAzs3HbGzslD4F+cdRgXWD8BKjrXszaRMnPik4lQ2AAP7/GJsfDPUVPs+O7uNhTJ05wHSuvXmNI54fllAom9I/qBI9EyaNd6gdSkQz5sR2MunOSVGjlowhmQROh2vldiVpZbg/buKLIEKGHhoxp4x5fQ/VuXi3pb0N8uIQmKg8885/uM1ONXcdBSHaVkMDUmD//MZP/1ZsM4sJEMYuEI6E71wHy7Bk+OaapNLezo4wdEybvJk9rzr3FoWT7MjuvMYrZ3pcaogAAPufPzifPMYwS5H5PsHB1VdNFgt9pTGhbTjBsmFCGklFU0T7Gpe9gZSMv9JGdz9Ty9h3IIiFPLkHko9iz41b/rE/oNj7DG8aZTC3BH5dBGbIcX6iZpsEtc3oxIaXdw+FNvv3YAA1KWi4lFc1RuX4h+I3ttS2aQlboER7KHwOgYZhXlzl3QThnaYamlAGlfvgpahTONRdJOp4bC2lbv7nsex7lLTmF5m+xN4VECjHwNA37fhNJG+przLBOotHmSb4e2c4BuZoFzTwBjLm8dUDgqvemXADHLPs48hk2P8LhNacfchYcWIvd/fjJwpYC+cmpZ5nYj8YgPmRi2c5aie3/34LaXC2PgtMYuHpdpC0aUydL0Ig3iRDul+H2cHsn7S3KwfoC0+FWhkY6h9fxI27NnbVLvWo9cs7CqlCJ74r9D0pf0lDfSrCgG6dR8BWfpfHKxCd6qQK3LTJXim6OiehQFRSamwur5YQl6lO1sW3JpJsgh3En4JzNOUWhqgosWMZf5rlta0QjTjNMFZZdEQCs4XLqVJEa6qhC/tjaQNSLrRM3XVEWu2V37+ljT5Ya9BvLkQaSNMp7MmsbaeyaPd7BtcEUgfJDFtuJgPOqSBxD9geK2SZVg38b1NHwxz9wJuBd1H1J+nXhnJ6zNy/40S3jiwzT7ydv5obbs55YlJVRAj0Bq6fE9jN9WM1hddqjiU/ndhyo6WRkVMw+RuVuL9PoDZQ0LltH8rJAXoZya17VPHlXyAwZCLgB6SyO1Om5ejOyAxEEfmf5+JddjzIVyEG4MzxZvX2xQ1pTmt0xt8hVHES1RpYAe6Yvf1IW7wyX5YJUr36EwjEG/u7ErD3Ck2/CCYLw7brxlckbPEP1dhaz6iKQ4yUxx2yHjKGvBjb+3ebQvuzHkqYaEs4BORa8LqEiA32uktKE0f8Luye7TS1IfcELiNTA8SIi5JExry2OQQnWOiEHS55vuKcdoUEC8mZqrvsTpPSufI4kiYMpVl9CoC1gm0WI7FEaUS1i9HfD9Meu8kqWdbo3u0/y5tXE3mQkJdPtNPEdozCmn+3aPKX1jMMlsAWwdsKsUznSg6ZAx0EmAZOedJS0xbF31QmYyB5vagLKZSBRu1B2h33bKhLyGdmsCFKKoHKOmTZ7RnHs7iajxtOLcT14O3KT2pZObroE7DsTYx6pEfubE5iDC1gaSd4+HVa2cxNNj+ON4pYUTgj/7m3Mef2zP/nstu9pqENiMa/8LJeAFyaNGLjPvdR4mUhZ7CypSbfbLaEVJsVEi+WXgCT50rcjCN/xqHfnLVKPSnw9xqTnlLuTcKtgEP/vG8W/B13T60Mn0+YGOSIFxR8nCAtERY+PO4I9q+MB1x14abtph/amWhDOxX1KsF0G99Mq7kd19xe4PlrbJ4CB2X/4lSKta/Ck+HQbXmMo3ha/VchdYAnSgoxanXvjENeLoxnSbxV7RsRNSpzYVtJ7Mf70w3lSb2gu9yDyXXrdonCpJO20Lgm7/zL5k02HZWrGEKenEPo4M/1ObAjXd74j8q+8rbKWJLpRMJukNUDm1GdwVF3mYJTeiYtVfrTxSBnP+BBMiHkIRlNKkfslogR0yigo6Kg7+Oif36AeoM5gXRECaZ0atFW8ubQ7CNjYeJ5JX89CuqfrOZPUY0crCZrWbG0io2/zIc8GDXqNg7FHfGxWHalzrVszl2KlTqVkiT3C9DEhDqBr1OMZLWDB8hr5ex6tSOYGpYPkKtBAS7giNcyJLazuCztJNEPsMMH2q6PC/dHUrHWIdn4ba6tFR4vcDGvQlUIK0QfYKU9OPn433HEyvtQsTXH4e1mGUsuR2J7bO9Kxrv/TVWoEkYycwY4HFDyy3IexwBMflYOEBMVE5gxZY1D7fO68IJIGbBhLSpfe9YFCZK0qLtkmE+CQCeVeS6dJWThw8ILKBNyKxWiEMwu0aV4iHGo6kWrbRydTxZQmISzb5TsAlshyLNl/xIqOAMtD7NcJZUZgFgSRErIxEB+boGbXHA1XTWaxA8/HvAVWZ/nlLV+F+2xuHmsRaXas9RuVrrhAXwAuNjxkHxK7DAXz03WndWcs8O5s2MIASZ52Ng+3I7cx/ffiaTO3/Bp7MxuhrewTnXykiIlYjenC/G90HawEBudswrJ4xPcJPrioryTkPMjzkMo0cpm4gcZtoKRjji0bc5r1T9uHgs+0X8+nusEK84xBnxyhSo6ZfayHBMHsrW11VUc769anPfZuGtewzf6S2hzRRl4pdpFLQM36KNFPyiJaDLvzk20XOYglDmklWICmfQsaS7zAJEyosTTIxzN02nvM+JPr6lvF92X8Xieravlfv7IcHvhpZK02CuYbxS7NDNkNmIAAAA=" alt="Planetenausschnitt in halber Auflösung" width="480" height="240"></span>
+          <span data-opt-label>Halbe Auflösung (0,5x)</span>
+          <span data-opt-consequence>Überall ein Viertel der Pixel, Lichter und Rand leicht weicher (40,8 dB).</span>
+        </label>
+        <label data-opt="third">
+          <input type="radio" name="dm-d-res" value="third">
+          <span data-opt-media><img src="data:image/webp;base64,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" alt="Planetenausschnitt in 0,35-facher Auflösung" width="480" height="240"></span>
+          <span data-opt-label>Noch kleiner (0,35x)</span>
+          <span data-opt-consequence>Rund ein Achtel der Pixel, sichtbar weicher (36,9 dB).</span>
+        </label>
+      </div>
+      <textarea data-comment="d-res-note" placeholder="Notiz (optional)">aber bitte, dass der planet nicht abrupt los geht wenn man wieder fokus gewinnt!.</textarea>
+      <div data-alevel="3" data-title="Auflösung">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"0,42","unit":"Texel/px","label":"Nachttextur bei 1920 px Breite"}'></div>
+          <p>Mehr Pixel als CSS-Pixel bringen dem Planeten kaum Details.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Aniso 2 + Halo-Spar","value":71.3},{"label":"0,75x","value":45.5},{"label":"0,5x","value":40.8},{"label":"0,35x","value":36.9}],"unit":"dB PSNR gegen heute, höher = näher","hl":"0,5x"}'></div>
+          <p>Unabhängig von dieser Frage nehme ich zwei Spar-Änderungen ohne sichtbaren Unterschied mit: Der Halo wird nur noch am Rand berechnet, und die Anisotropie sinkt von 8 auf 2.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-page" data-topic data-nav-label="Die Last drumherum">
+    <div data-alevel="2" data-title="Die Last drumherum">
+      <div data-slot="short">
+        <div data-viz="kpi" data-viz-spec='{"value":"101","unit":"% Kern","label":"Stadtlichter, Sterne und Suchfeld zusammen"}'></div>
+        <p>Diese Animationen kosten fast die Hälfte der Seite.</p>
+      </div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Sterne + Stadtlichter","value":53},{"label":"fb-breathe","value":48},{"label":"Monde","value":26},{"label":"Planet","value":26}],"unit":"% eines Kerns","hl":"Sterne + Stadtlichter"}'></div>
+        <p>Das sind die Ersparnisse beim Entfernen, also Obergrenzen. Die Umbauten unten sind noch nicht einzeln gemessen. Der 179-Hz-Monitor verstärkt alles, weil CSS-Animationen im Monitortakt laufen.</p>
+      </div>
+    </div>
+
+    <section id="d-stars" data-nav-label="Sterne" data-decision="d-stars" data-decision-mode="single" data-label="Sterne und Stadtlichter" data-rec="static" data-rec-why="Größter einzelner Posten, und das Funkeln fällt bei einer Spanne von 0,5 bis 0,85 Deckkraft kaum auf." data-applies-to="shell-scene.component.scss"><input type="hidden" name="dm-d-stars-hes" value="{&quot;ms&quot;:36691,&quot;revisits&quot;:0,&quot;median&quot;:36258}">
+      <p data-applies>Gilt für: die Himmelsszene der App, nicht nur /verse</p>
+      <p data-situation>Zwei große Ebenen animieren endlos ihre Deckkraft. Die Stadtlichter laufen auf /verse sogar unsichtbar, ihr Elternelement hat dort Deckkraft 0. Zusammen kosten beide rund 53.</p>
+      <h3 data-question>Was soll mit dem Funkeln der nahen Sterne passieren?</h3>
+      <p data-stakes>Die Stadtlichter stoppe ich in jedem Fall, solange sie unsichtbar sind.</p>
+      <div data-options>
+        <label data-opt="static" data-recommended>
+          <input type="radio" name="dm-d-stars" value="static">
+          <span data-opt-label>Sterne stehen still</span>
+          <span data-opt-consequence>Die volle Ersparnis, der Himmel funkelt aber nicht mehr.</span>
+        </label>
+        <label data-opt="few">
+          <input type="radio" name="dm-d-stars" value="few" checked>
+          <span data-opt-label>Nur wenige Sterne funkeln</span>
+          <span data-opt-consequence>Eine Handvoll kleiner Elemente statt der ganzen Ebene. Es bleibt lebendig, die Ersparnis ist ungemessen.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-stars" value="keep">
+          <span data-opt-label>Funkeln bleibt wie heute</span>
+          <span data-opt-consequence>Der Himmel bleibt gleich, nur die unsichtbaren Stadtlichter fallen weg.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-stars-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Sterne">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"2521×1160","unit":"px","label":"animierte Sternenebene bei 1920 px Breite"}'></div>
+          <p>Die Ebene ist deutlich größer als das Fenster.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Sterne + Stadtlichter","value":53}],"unit":"% eines Kerns, gemeinsam gemessen","hl":"Sterne + Stadtlichter"}'></div>
+          <p>Beide wurden zusammen entfernt, die Aufteilung kenne ich noch nicht. Vor allem der GPU-Prozess wurde dabei entlastet, von rund 95 auf 52.</p>
+        </div>
+        <div data-example><pre>.stars.near { animation: sc-scene-twinkle 6s ease-in-out infinite; }
+.detail { opacity: var(--pose-detail, 0); }  /* auf /verse: 0 */
+.detail .lights { animation: sc-scene-city 9s ease-in-out infinite; }</pre></div>
+      </div>
+    </section>
+
+    <section id="d-breathe" data-nav-label="Suchfeld" data-decision="d-breathe" data-decision-mode="yesnoalt" data-label="Atmendes Suchfeld" data-rec="yes" data-rec-why="Hoher Ertrag ohne sichtbaren Unterschied." data-applies-to="fusion-bar.component.scss"><input type="hidden" name="dm-d-breathe-hes" value="{&quot;ms&quot;:36283,&quot;revisits&quot;:1,&quot;median&quot;:36258}">
+      <p data-applies>Gilt für: den Rand des Suchfelds, Bühne und unten angedockt</p>
+      <p data-situation>Das Suchfeld animiert einen box-shadow. Das zeichnet im Monitortakt auf dem Haupt-Thread neu, das Entfernen allein sparte rund 48 und damit fast so viel wie der ganze Himmel.</p>
+      <h3 data-question>Soll das Atmen auf eine Ebene mit Deckkraft-Animation umziehen?</h3>
+      <p data-stakes>Ob ein kleiner Lichtrand weiter so viel kostet wie der ganze Sternenhimmel.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended>
+          <input type="radio" name="dm-d-breathe" value="yes" checked>
+          <span data-opt-label>Ja, gleicher Look, billiger</span>
+          <span data-opt-consequence>Der Schatten liegt fest auf einem Pseudo-Element, nur dessen Deckkraft atmet. Das Bild bleibt gleich.</span>
+        </label>
+        <label data-opt="no">
+          <input type="radio" name="dm-d-breathe" value="no">
+          <span data-opt-label>Nein, bleibt wie heute</span>
+          <span data-opt-consequence>Rund 48 bleiben auf jeder Seite mit diesem Suchfeld stehen.</span>
+        </label>
+        <label data-opt="alt">
+          <input type="radio" name="dm-d-breathe" value="alt">
+          <span data-opt-label>Anders</span>
+          <input type="text" name="dm-d-breathe-alt" placeholder="Was stattdessen?" value="">
+        </label>
+      </div>
+      <textarea data-comment="d-breathe-note" placeholder="Notiz (optional)">die sterne die funkeln sollen immer random sein, es solll ein schönes detail sein!</textarea>
+      <div data-alevel="3" data-title="Suchfeld">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"48","unit":"% Kern","label":"Ersparnis beim Entfernen von fb-breathe"}'></div>
+          <p>Die Last sitzt vor allem im Renderer.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Renderer vorher","value":98},{"label":"Renderer nachher","value":62}],"unit":"% eines Kerns","hl":"Renderer nachher"}'></div>
+          <p>Der Umbau liefert vermutlich fast den vollen Wert, weil Deckkraft ohne Neuzeichnen auskommt. Nachgemessen wird das nach dem Umbau.</p>
+        </div>
+        <div data-example><pre>animation: fb-breathe 5s ease-in-out infinite;
+@keyframes fb-breathe { 50% { box-shadow: var(--_rim-hi); } }</pre></div>
+      </div>
+    </section>
+
+    <section id="d-moons" data-nav-label="Monde" data-decision="d-moons" data-decision-mode="single" data-label="Monde" data-rec="fifteen" data-rec-why="Halbiert die Zeichenrate bei langsamer Bewegung, das Bild bleibt ruhig." data-applies-to="bodies/body-engine.ts"><input type="hidden" name="dm-d-moons-hes" value="{&quot;ms&quot;:25393,&quot;revisits&quot;:1,&quot;median&quot;:36258}">
+      <p data-applies>Gilt für: die kleinen Himmelskörper auf /verse</p>
+      <p data-situation>Die Monde zeichnen mit 30 fps in einem eigenen Worker und kosten beim Entfernen rund 26, so viel wie der große Planet.</p>
+      <h3 data-question>Mit welcher Bildrate sollen die Monde laufen?</h3>
+      <p data-stakes>Die Monde drehen sich sichtbarer als der große Planet und vertragen weniger.</p>
+      <div data-options>
+        <label data-opt="fifteen" data-recommended>
+          <input type="radio" name="dm-d-moons" value="fifteen" checked>
+          <span data-opt-label>15 fps</span>
+          <span data-opt-consequence>Grob die Hälfte der Last (Schätzung), bei langsamer Drehung kaum sichtbar.</span>
+        </label>
+        <label data-opt="ten">
+          <input type="radio" name="dm-d-moons" value="ten">
+          <span data-opt-label>10 fps</span>
+          <span data-opt-consequence>Mehr Ersparnis, beim Hinsehen kann die Drehung ruckeln.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-moons" value="keep">
+          <span data-opt-label>30 fps bleiben</span>
+          <span data-opt-consequence>Das Bild bleibt gleich, rund 26 bleiben stehen.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-moons-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Monde">
+        <div data-slot="short">
+          <div data-viz="kpi" data-viz-spec='{"value":"26","unit":"% Kern","label":"Ersparnis ohne alle Monde"}'></div>
+          <p>Das ist die Obergrenze, die Bildraten selbst sind ungemessen.</p>
+        </div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Planet","value":26},{"label":"Monde","value":26}],"unit":"% eines Kerns","hl":"Monde"}'></div>
+          <p>Die Audit-Messung vom 05.11. fand 0 von 540 identischen Frames. Die Bewegung ist also echt, weniger Frames ändern das Bild. Damals wurde das deshalb abgelehnt, jetzt ist es deine Entscheidung.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
