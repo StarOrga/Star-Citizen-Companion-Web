@@ -70,6 +70,8 @@ export class PlanetWorkerLink implements PlanetLink {
   tick(view: PlanetView, now: number): void { this.send({ t: 'tick', view, now }); }
   draw(view: PlanetView, now: number): void { this.send({ t: 'draw', view, now }); }
   resume(now: number): void { this.send({ t: 'resume', now }); }
+  suspend(): void { this.send({ t: 'suspend' }); }
+  wake(now: number): void { this.send({ t: 'wake', now }); }
   park(): void { this.send({ t: 'park' }); }
 
   terminate(): void {

@@ -13,6 +13,8 @@ export type PlanetCommand =
   | { readonly t: 'resize'; readonly w: number; readonly h: number; readonly dpr: number }
   | { readonly t: 'tick' | 'draw'; readonly view: PlanetView; readonly now: number }
   | { readonly t: 'resume'; readonly now: number }
+  | { readonly t: 'suspend' }
+  | { readonly t: 'wake'; readonly now: number }
   | { readonly t: 'park' };
 
 /** Worker → main thread. */
@@ -145,6 +147,13 @@ export function runPlanetWorker(scope: PlanetWorkerScope): void {
         break;
       case 'resume':
         scene?.resume(m.now);
+        break;
+      case 'suspend':
+        pending = null;
+        scene?.suspend();
+        break;
+      case 'wake':
+        scene?.wake(m.now);
         break;
       case 'park':
         pending = null;

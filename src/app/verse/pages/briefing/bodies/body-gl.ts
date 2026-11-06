@@ -85,7 +85,7 @@ interface Entry {
 }
 
 const MAX_PX = 1024;
-const FRAME_MS = 1000 / 30;
+const FRAME_MS = 1000 / 15;
 const POLL_MS = 32;
 
 /**
@@ -94,7 +94,7 @@ const POLL_MS = 32;
  * of the DOM: it runs in a worker, or on the page where no worker can own a
  * canvas. Whoever owns it measures the canvases and keeps it told.
  *
- * Runs at ~30 fps while at least one attached canvas is on screen.
+ * Runs at ~15 fps while at least one attached canvas is on screen and time runs.
  */
 export class BodyStage {
   private readonly gl: WebGLRenderingContext;
@@ -160,6 +160,7 @@ export class BodyStage {
   /** The stage pause (`--sc-brief-play`): time stands, the last frame stays. */
   setPaused(paused: boolean): void {
     this.paused = paused;
+    if (!paused) this.kick();
   }
 
   /** Redraws every ready body once (resize, reduced motion). */
@@ -219,7 +220,7 @@ export class BodyStage {
   }
 
   private kick(): void {
-    if (this.hooks.still || this.frame || this.disposed) return;
+    if (this.hooks.still || this.frame || this.disposed || this.paused) return;
     if (!this.entries.some((e) => e.ready && e.visible)) return;
     this.lastNow = performance.now();
     this.frame = requestAnimationFrame((t) => this.tick(t));
@@ -228,10 +229,10 @@ export class BodyStage {
   private tick(now: number): void {
     this.frame = 0;
     const live = this.entries.filter((e) => e.ready && e.visible);
-    if (!live.length) return;
+    if (!live.length || this.paused) return; // nothing changes: kick() starts it again
     const dt = Math.min(100, now - this.lastNow);
     this.lastNow = now;
-    if (!this.paused) this.clock += dt;
+    this.clock += dt;
     if (now - this.last >= FRAME_MS - 2) {
       this.last = now;
       for (const e of live) this.draw(e, this.clock);

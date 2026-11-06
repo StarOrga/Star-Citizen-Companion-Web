@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HINT_ROTATE_MS, FusionSearchHintComponent } from './fusion-search-hint.component';
+import { WindowFocusService } from '../../core/window-focus.service';
 import { FusionSearchChipComponent } from './fusion-search-chip.component';
 import { searchContextOf } from './search-context';
 import { fakeEngine, fxGroup, fxHit, setupFusionSearch } from './fusion-search.testing';
@@ -249,6 +250,11 @@ describe('FusionSearchHintComponent (A7)', () => {
       jasmine.clock().tick(HINT_ROTATE_MS * 2);
       expect(cmp.index()).withContext('paused').toBe((first + 1) % 3);
       cmp.paused.set(false);
+      const focus = TestBed.inject(WindowFocusService);
+      focus.focused.set(false);
+      jasmine.clock().tick(HINT_ROTATE_MS * 2);
+      expect(cmp.index()).withContext('no window focus').toBe((first + 1) % 3);
+      focus.focused.set(true);
       while (!cmp.current()?.q) cmp.next();
       f.detectChanges();
       const picked: string[] = [];

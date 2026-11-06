@@ -27,6 +27,10 @@ class FakeLink implements PlanetLink {
   tick(view: PlanetView): void { this.views.push(view); }
   draw(view: PlanetView): void { this.draws.push(view); }
   resume(): void { /* the scene's business */ }
+  suspended = 0;
+  woken = 0;
+  suspend(): void { this.suspended++; }
+  wake(): void { this.woken++; }
   park(): void { this.parked++; }
   terminate(): void { this.terminated = true; }
 }
@@ -83,17 +87,48 @@ describe('BriefingPlanetComponent — worker path', () => {
     expect(f.componentInstance.gone).toBe(0);
   });
 
-  it('measures the anchor on the page every frame and passes it on, scrolled or not', async () => {
+  it('measures at 15 Hz at rest, and every frame while the planet moves on screen', async () => {
     const f = await mount();
     runFrames(16);
     const a = link!.views[0];
     expect(a.r).toBe(100);
+    expect(frames.length).withContext('at rest a timer sets the pace, not the monitor').toBe(0);
+    await new Promise((r) => setTimeout(r, 90));
+    expect(frames.length).withContext('the timer asks for the next frame').toBe(1);
     (f.nativeElement.querySelector('div') as HTMLElement).style.transform = 'translateY(40px)';
-    runFrames(32);
+    runFrames(200);
     const b = link!.views[1];
     expect(b.cy - a.cy).toBe(40);
-    runFrames(48);
+    expect(frames.length).withContext('it moved: every frame now').toBe(1);
+    runFrames(216);
     expect(link!.views.length).withContext('the loop goes on').toBe(3);
+  });
+
+  it('a scroll is followed from the next frame, without waiting for the timer', async () => {
+    await mount();
+    runFrames(16);
+    expect(frames.length).toBe(0);
+    document.dispatchEvent(new Event('scroll'));
+    expect(frames.length).toBe(1);
+  });
+
+  it('stands without focus, stays under the page, and carries on with focus', async () => {
+    await mount();
+    runFrames(16);
+    window.dispatchEvent(new Event('blur'));
+    expect(link!.suspended).toBe(1);
+    await new Promise((r) => setTimeout(r, 90));
+    expect(frames.length).withContext('no timer left running').toBe(0);
+    document.dispatchEvent(new Event('scroll'));
+    document.dispatchEvent(new Event('scroll'));
+    expect(frames.length).withContext('one redraw for a burst of scrolls').toBe(1);
+    runFrames(200);
+    expect(link!.draws.length).toBe(1);
+    expect(link!.views.length).withContext('drawn, not turned').toBe(1);
+    window.dispatchEvent(new Event('focus'));
+    expect(link!.woken).toBe(1);
+    runFrames(216);
+    expect(link!.views.length).toBe(2);
   });
 
   it('sends size and device pixel ratio, again on every resize', async () => {
@@ -116,6 +151,9 @@ describe('BriefingPlanetComponent — worker path', () => {
     window.dispatchEvent(new Event('resize'));
     expect(link!.draws.length).toBe(3);
     expect(link!.views.length).toBe(0);
+    window.dispatchEvent(new Event('blur'));
+    expect(link!.suspended).withContext('nothing runs that could stand').toBe(0);
+    window.dispatchEvent(new Event('focus'));
   });
 
   it('session re-entry: same canvases, same worker, instant, nothing compiled again', async () => {
