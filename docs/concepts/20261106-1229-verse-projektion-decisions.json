@@ -57,6 +57,21 @@
         }
       ],
       "submitted_at": "2026-11-06T11:55:42.083Z"
+    },
+    {
+      "iteration": 3,
+      "action": "implement",
+      "favorite": "langsam",
+      "annotations": [],
+      "userPins": [
+        {
+          "id": "up-mw4xrzhti3lv",
+          "screen": "langsam-galerie",
+          "target": "div.d8-pj-rig.d8-pj-gal \"GALERIEPolaris im Anflug auf Orison bei \"",
+          "text": "hier ist der kegel irgendwie ein doppelkegel gegensieetig zueinander gestellt  von rechts bitte fixen!"
+        }
+      ],
+      "submitted_at": "2026-11-06T12:14:38.249Z"
     }
   ]
 }

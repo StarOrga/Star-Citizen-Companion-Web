@@ -83,7 +83,7 @@
   pointer-events: auto;
   text-decoration: none;
   color: inherit;
-  transition: scale 0.25s, box-shadow 0.5s ease;
+  transition: scale 0.25s, box-shadow 0.3s ease;
   // The dock's scroll flight (briefing-dock) writes an inline transform from the top left.
   transform-origin: 0 0;
 }
@@ -112,7 +112,7 @@
 :host(.docked) .pl { visibility: hidden; }
 .pl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 // Charging: the sender's atmosphere brightens (a glow, no rings).
-.pl.send { box-shadow: 0 0 calc(var(--s) * 0.32) rgba(150, 225, 255, 0.6); }
+.pl.send { box-shadow: 0 0 calc(var(--s) * 0.32) rgba(150, 225, 255, 0.6); transition: scale 0.25s, box-shadow 0.84s ease-in; }
 .plab {
   position: absolute;
   left: 50%;
