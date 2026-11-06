@@ -5223,7 +5223,14 @@
         "title": "Spiel nicht erkannt — SCC-App starten",
         "hint": "Die SCC-App meldet deinen Standort und deine Aktionen live hierher.",
         "syncOffTitle": "SCC-App verbunden — noch keine Live-Daten",
-        "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel."
+        "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel.",
+        "explain": {
+          "aria": "Was Jetzt zeigt",
+          "what": "Jetzt ist dein Live-Stand aus dem Spiel: wo du gerade bist, was als Nächstes auf deinem Weg liegt und was zuletzt passiert ist.",
+          "e1": "Dein Standort und dein Schiff, z. B. „Stanton › New Babbage“.",
+          "e2": "Dein nächster Schritt aus einem geplanten Einsatz, z. B. ein Kauf oder eine Fahrt.",
+          "e3": "Die letzten Ereignisse, z. B. „Mission abgeschlossen“ oder „Quantum-Sprung beendet“."
+        }
       },
       "fresh": {
         "updated": "Live · Stand: {{at}}",
