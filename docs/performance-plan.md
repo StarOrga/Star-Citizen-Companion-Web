@@ -435,5 +435,11 @@ one of twelve took 511 ms. With everything frozen 35 is the floor of the 15 Hz c
 the three clocks (planet, moons, animations) do not tick in step, so up to 45 frames a
 second remain. Aligning them is the next lever, unmeasured.
 
+**Live, v0.215.0, 2 runs.** The real Vercel bundle in headless Edge, with the fixtures and a
+stubbed session, because /verse needs a sign-in: at rest 84, without focus 45, scrolling
+188. Menu hops usually take about 100 ms, loading 0 to 1 chunk. The first hop to the Codex
+after a start still stands for 461 to 483 ms, here and in the local run (511 ms); that hop
+was not taken apart.
+
 **Rule.** No endless animation runs at display rate on a page that is meant to stand: put
 it inside the scope of `SlowMotionService`, or give it an end.
