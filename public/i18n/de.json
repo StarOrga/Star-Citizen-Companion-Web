@@ -458,15 +458,14 @@
         "label": "Codex: neu in diesem Patch",
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
-        "count": "{{count}} neu",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",
         "openPage": "Seite öffnen: {{name}}",
-        "noneNew": "Nichts Neues in diesem Patch.",
-        "more": "+ {{count}} weitere in der Suche",
+        "more": "+ {{count}} weitere",
         "all": "Alle {{category}}",
-        "held": "gehalten"
+        "held": "gehalten",
+        "updated": "aktualisiert"
       }
     },
     "index": {
@@ -2371,7 +2370,8 @@
       "subtitleOf": "{{shown}} von {{total}} · Patch {{patch}}",
       "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} von {{total}}",
-      "subtitleAllNoPatch": "{{shown}} Einträge"
+      "subtitleAllNoPatch": "{{shown}} Einträge",
+      "freshFilter": "Neu/Aktualisiert im letzten Patch"
     },
     "contract": {
       "eyebrow": "Mission",

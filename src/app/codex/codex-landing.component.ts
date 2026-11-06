@@ -30,7 +30,6 @@ import { IndexWheelGate, atPageEnd, wheelBelongsToInner } from './landing/codex-
 /** One rotation step (brief A4: ≈ 8 s per category). */
 export const ROTATION_MS = 8000;
 /** New items listed per category in the Codex list before "+ N weitere in der Suche". */
-export const CODEX_LIST_ITEMS = 5;
 
 /**
  * The Codex landing (concept 2026-10-30-codex-holo-buehne, round 4 "Zugewandte
@@ -251,7 +250,7 @@ export class CodexLandingComponent {
 
   async load(): Promise<void> {
     this.loading.set(true);
-    const [items, codex] = await Promise.all([this.data.rotationItems(), this.data.codexNews(CODEX_LIST_ITEMS)]);
+    const [items, codex] = await Promise.all([this.data.rotationItems(), this.data.codexNews()]);
     this.items.set(items);
     this.codex.set(codex);
     this.picked.set(null);

@@ -25,11 +25,10 @@ const paint = (id: string, name: string, recencyAt: string): LandingPaint => ({
 });
 
 describe('codex-landing-data pure helpers', () => {
-  it('pickNewest prefers the first class the previous build lacked', () => {
-    expect(pickNewest(['a', 'b', 'c'], new Set(['a', 'b']))).toBe('c');
-    expect(pickNewest(['a', 'b'], new Set(['a', 'b']))).toBe('a');
-    expect(pickNewest(['a', 'b'], null)).toBe('a');
-    expect(pickNewest([], null)).toBeNull();
+  it('pickNewest prefers the first class that is new in this patch', () => {
+    expect(pickNewest(['a', 'b', 'c'], new Set(['c']))).toBe('c');
+    expect(pickNewest(['a', 'b'], new Set())).toBe('a');
+    expect(pickNewest([], new Set())).toBeNull();
   });
 
   it('topValuesFor ships: curated order, skips missing and zero, caps at 7', () => {

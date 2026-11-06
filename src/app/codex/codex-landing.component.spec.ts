@@ -67,16 +67,14 @@ class FakeData {
           { id: 'BEHR_Rifle', name: 'BEHR_Rifle', route: ['/codex', 'weapon', 'BEHR_Rifle'], announced: false },
           { id: 'KSAR_Smg', name: 'Karna SMG', route: ['/codex', 'weapon', 'KSAR_Smg'], announced: false },
         ],
-        more: 10,
         announced: 0,
       },
-      { category: 'armor', count: 8, entries: [], more: 0, announced: 0 },
-      { category: 'component', count: 31, entries: [], more: 0, announced: 0 },
+      { category: 'armor', count: 8, entries: [], announced: 0 },
+      { category: 'component', count: 31, entries: [], announced: 0 },
       {
         category: 'ship',
         count: 14,
         entries: [{ id: 'polaris', name: 'RSI Polaris', route: ['/codex', 'upcoming', 'polaris'], announced: true }],
-        more: 9,
         announced: 1,
       },
     ],
@@ -176,19 +174,18 @@ describe('CodexLandingComponent', () => {
     const pane = el.querySelector<HTMLElement>('sc-codex-landing-codex-pane')!;
     expect(pane.querySelector('.ph')!.textContent).toContain('codex.landing.codex.title');
     expect(pane.querySelectorAll('.tabs .tab').length).toBe(4);
-    expect(pane.querySelector('.open .sum')!.textContent).toContain('codex.landing.codex.count');
     const open = pane.querySelector<HTMLElement>('.open')!;
     const entries = Array.from(open.querySelectorAll<HTMLAnchorElement>('.new a.ent'));
     expect(entries.length).toBe(2);
     expect(entries[0].closest('li')!.classList).toContain('table');
     expect(entries[0].querySelector('.here')).not.toBeNull();
     expect(entries[1].querySelector('.here')).toBeNull();
-    expect(open.querySelector<HTMLAnchorElement>('a.more')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS&sort=new');
-    expect(open.querySelector<HTMLAnchorElement>('a.all')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS');
+    expect(pane.querySelector('a.more')).withContext('two entries fit the wheel').toBeNull();
+    expect(pane.querySelector<HTMLAnchorElement>('a.all')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS');
     flush();
   }));
 
-  it('ships: announced entries carry the tag, the search link is pre-filtered to "new"', fakeAsync(() => {
+  it('ships: announced entries carry the tag', fakeAsync(() => {
     const ship = item({ category: 'fpsWeapon', className: 'AEGS_Gladius', imageUrl: null });
     setup([{ ...ship, category: 'ship', kind: 'ship', detailRoute: ['/codex', 'ship', 'AEGS_Gladius'] }]);
     settle();
@@ -198,7 +195,6 @@ describe('CodexLandingComponent', () => {
     expect(entries[0].getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
     expect(entries[1].querySelector('.soon')).not.toBeNull();
     expect(entries[1].getAttribute('href')).toBe('/codex/upcoming/polaris');
-    expect(open.querySelector<HTMLAnchorElement>('a.more')!.getAttribute('href')).toBe('/codex/index?kind=ship&sort=new');
     flush();
   }));
 

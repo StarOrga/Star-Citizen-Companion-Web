@@ -192,6 +192,10 @@ export function blueprintCategoriesForGroup(
                   }
                 </span>
                 @if (!isUpcoming()) {
+                  @if (freshAvailable()) {
+                    <button type="button" class="fresh-toggle" [class.on]="patchFresh()" [attr.aria-pressed]="patchFresh()"
+                            (click)="setPatchFresh(!patchFresh())">{{ 'codex.browse.freshFilter' | translate }}</button>
+                  }
                   <div class="sort">
                     <sc-select [options]="sortSelect()" [value]="sortNew() ? 'new' : 'name'"
                                [ariaLabel]="'codex.browse.sort.label' | translate"
@@ -477,6 +481,13 @@ export function blueprintCategoriesForGroup(
     .list { padding: 0; overflow: hidden; }
     .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); }
     .count { font-size: 13px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    .fresh-toggle {
+      min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3); border: 1px solid var(--sc-border); border-radius: 999px;
+      background: none; color: var(--sc-fg-2); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer;
+    }
+    .fresh-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .fresh-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .fresh-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
     .sort { min-width: 180px; }
     .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .rows { list-style: none; margin: 0; padding: 0; }
@@ -599,6 +610,9 @@ export class CodexBrowseComponent implements OnInit {
    * Every kind the build diff covers ({@link NEW_SORT_KINDS}).
    */
   readonly sortNew = signal(false);
+  /** `?fresh=1`: only what is new or updated in the last patch. */
+  readonly patchFresh = signal(false);
+  readonly freshAvailable = computed(() => NEW_SORT_KINDS.includes(this.kind()));
   private readonly newOrder = signal<{ kind: CodexKind; order: ReadonlyMap<string, number> } | null>(null);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -850,6 +864,10 @@ export class CodexBrowseComponent implements OnInit {
     this.sortNew.set(on);
     if (on) this.loadNewOrder();
     mirrorQueryParams(this.router, this.route, this.location, { sort: on ? 'new' : null });
+  }
+
+  setPatchFresh(on: boolean): void {
+    this.patchFresh.set(on);
   }
 
   onVariantsToggle(ev: Event): void {
@@ -1250,6 +1268,7 @@ export class CodexBrowseComponent implements OnInit {
       add('fits', 'codex.filters.fits', this.fitsName() ?? this.fitsItem(), () => this.fitsItem.set(''));
     }
     if (this.kind() === 'weapon' && this.ammoOf()) add('ammo', 'codex.filters.ammo', this.ammoOf(), () => this.ammoOf.set(''));
+    if (this.patchFresh() && this.freshAvailable()) add('fresh', 'codex.browse.freshFilter', null, () => this.setPatchFresh(false));
     if (this.size()) add('size', 'codex.filters.size', 'S' + this.size(), () => this.setSize(''));
     if (this.grade()) add('grade', 'codex.filters.grade', this.grade(), () => this.setGrade(''));
     if (this.componentKind()) add('componentKind', 'codex.filters.componentKind', this.componentKind(), () => this.setComponentKind(''));
@@ -1392,6 +1411,7 @@ export class CodexBrowseComponent implements OnInit {
       this.manufacturer();
       this.fitsItem();
       this.ammoOf();
+      this.patchFresh();
       this.size();
       this.grade();
       this.componentKind();
@@ -1413,6 +1433,7 @@ export class CodexBrowseComponent implements OnInit {
         mfr: this.manufacturer() || null,
         fits: this.kind() === 'ship' ? this.fitsItem() || null : null,
         ammo: this.kind() === 'weapon' ? this.ammoOf() || null : null,
+        fresh: this.patchFresh() && this.freshAvailable() ? '1' : null,
         size: this.size() || null,
         grade: this.grade() || null,
         ck: this.componentKind() || null,
@@ -1638,6 +1659,7 @@ export class CodexBrowseComponent implements OnInit {
     if (this.category() === ARMOR_CATEGORY) take('slot', (v) => ARMOR_SLOT_IDS.includes(v) && this.armorSlot.set(v));
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
     if (q.get('v') === '1') this.includeVariants.set(true);
+    this.patchFresh.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('fresh') === '1');
     this.sortNew.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('sort') === 'new');
     if (this.sortNew()) this.loadNewOrder();
   }
@@ -1910,6 +1932,18 @@ export class CodexBrowseComponent implements OnInit {
    * A failed lookup throws into the list's error state (never an unfiltered list).
    */
   private restriction(kind: CodexKind): Promise<string[]> | undefined {
+    const lookup = this.lookupRestriction(kind);
+    if (!this.patchFresh() || !NEW_SORT_KINDS.includes(kind)) return lookup;
+    const diff = this.injector.get(CodexBuildDiffService);
+    const fresh = Promise.all([diff.addedClassNamesMemo(kind), diff.changedClassNamesMemo(kind)]).then(([a, c]) => [...new Set([...a, ...c])]);
+    if (!lookup) return fresh;
+    return Promise.all([lookup, fresh]).then(([names, f]) => {
+      const keep = new Set(f);
+      return names.filter((n) => keep.has(n));
+    });
+  }
+
+  private lookupRestriction(kind: CodexKind): Promise<string[]> | undefined {
     const fits = kind === 'ship' ? this.fitsItem() : '';
     const ammo = kind === 'weapon' ? this.ammoOf() : '';
     if (!fits && !ammo) return undefined;
