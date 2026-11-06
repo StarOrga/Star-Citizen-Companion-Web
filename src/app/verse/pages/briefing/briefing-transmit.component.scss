@@ -16,7 +16,7 @@
   // One size for every message: the texts are capped (holoTitle / holoBody) and clamped to it.
   --holo-h: max(140px, 9.4cqw);
   // Below the holo the "more" cue always keeps its lane, also on a short, wide window.
-  --cue-lane: max(68px, 3.6cqw);
+  --cue-lane: max(72px, 3.8cqw);
   --holo-top: min(67.5%, calc(100% - var(--cue-lane) - var(--holo-h)));
   --holo-lines: 2;
   position: absolute;
