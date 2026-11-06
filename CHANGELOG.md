@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.221.0] - 2026-11-06
+
+### Added
+- The Codex index opens on two columns: the area tree beside the title, the filter bar and the list on the right. The list has its own search in its head, next to the sort order.
+- Ships filter by role (Combat, Transport, Exploration, Industrial, Support, Competition, Ground, Multirole), crew (1, 2–3, 4–8, 9+) and size S1–S6. The size comes from the game data: the uploader 0.75.0 extracts it, and it shows after the next upload.
+- Ship rows show the cheapest in-game price in aUEC and how many places sell the ship. A shop button on ships, weapons, components, items and ammunition lists every in-game offer under the row, with the item path to Nachschub and a link into the plan.
+- Settings → Codex shows items you cannot use (doors, seats, displays …). They sit under "Nicht nutzbar", and the search ranks them after every usable hit.
+
+### Changed
+- The Codex landing page puts the Codex list on the left and the values on the right, with both scrollbars on the outer side. The hologram ship faces you when the page loads.
+- Scrolling on past the end of the Codex landing page (desktop) opens the Codex index.
+- The area tree follows what a player uses: ship weapons, missiles, modules and ship ammunition sit under Ships, Weapons and Ammunition are on-foot gear, components and items are split by kind, and manufacturers and blueprints have sub areas.
+- Doors, seats, displays and other game objects no longer appear in the Codex tree, lists or search unless you switch them on.
+
 ## [0.220.0] - 2026-11-06
 
 ### Added
