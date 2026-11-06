@@ -1,0 +1,98 @@
+<section data-iteration="6" data-iteration-template="free" data-final-report>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 {{final.phase}}</span>
+    <h2 class="fr-title">HQ-Einstieg: Start und Seitenfolge</h2>
+  </div>
+
+  <div class="fr-ba">
+    <figure class="fr-shot"><img src="20261106-0842-hq-einstieg-landing/shots/empty.png" alt="Der neue HQ-Start beim ersten Besuch mit Bestand, Jetzt und Planen"><figcaption>Erster Besuch</figcaption></figure>
+    <figure class="fr-shot"><img src="20261106-0842-hq-einstieg-landing/shots/live.png" alt="Der neue HQ-Start bei laufendem Spiel mit Patch-Treffer im Hero"><figcaption>Spiel läuft, Patch-Treffer</figcaption></figure>
+  </div>
+  <p class="fr-try-auth">🔑 Die Bilder zeigen eine Test-Sitzung mit Beispieldaten. Zum Ausprobieren: <code>npm start</code>, dann <code>http://127.0.0.1:4200/hq</code> mit deinem Konto und aktivem Beta-Schalter. Die Anmeldung dort habe ich nicht geprüft.</p>
+
+  <p class="fr-label">{{final.done_what}}</p>
+  <p class="fr-sentence">Der HQ-Start zeigt jetzt Bestand, Jetzt und Planen im Stil „Lichtkante“, und die Seiten laufen in der Folge Bestand, Jetzt, Planen, Statistik.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span><b>Feste Plätze</b>: Bestand links, Jetzt offen in der Mitte, Planen rechts, Tasten 1 bis 4 als Tooltip.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛰</span><span><b>Jetzt passt sich an</b>: downloaden oder starten, weiche Ringe bei laufendem Spiel, nächster Schritt nur mit Einsatz.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📰</span><span><b>News im Hero</b>: Ein Patch-Treffer steht dort, wo sonst „Hauptquartier“ steht.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">{{final.holds}}</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">🧱 Stabilität</span>
+          <b class="fr-meter-value">5660 / 5660</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Tests bestanden, Ziel alle. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 100%">
+          <span class="fr-meter-name">📐 Kompatibilität</span>
+          <b class="fr-meter-value">390 bis 1912 px</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">ohne Überlauf im Browser gemessen, Ziel Handy bis Full HD (geschätzt). Echte Geräte fehlen. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 100%; --fr-target: 92%">
+          <span class="fr-meter-name">♿ Barrierefreiheit</span>
+          <b class="fr-meter-value">48 px</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Touch-Ziele, Ziel 44 px (geschätzt). Ringe stehen still bei reduzierter Bewegung. <span class="fr-meter-verdict">✓ {{final.target_met}}</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="fr-label">Wo es vom Mock abweicht</p>
+  <ul>
+    <li><b>Live-Zeile:</b> nur „Stanton“ statt „Stanton › microTech“. Die App meldet keinen Planeten.</li>
+    <li><b>Blueprints:</b> „37 Blueprints“ statt „37 von 212“. Es gibt keine Gesamtzahl, und die Zahl folgt dem auf Statistik gewählten Zeitraum.</li>
+    <li><b>Patch-Treffer:</b> Der Name stammt aus dem technischen Klassennamen und kann roh wirken.</li>
+    <li><b>Statistik ohne Fehlerzustand:</b> Scheitert das Laden auf Start, fehlen Zahlen im Link und in der Bestand-Zeile still. Die Statistik-Seite selbst und die drei Kacheln zeigen Fehler mit Wiederholen.</li>
+  </ul>
+  <p class="fr-label">Was ich selbst entschieden habe</p>
+  <ul>
+    <li><b>Hinweis auf die nächste Seite:</b> Ohne Hintergrund läge auf langen Seiten Text darunter. Deshalb blendet er sich wie im Verse aus und erscheint, sobald das Seitenende sichtbar ist.</li>
+    <li><b>Route statt Weg:</b> auch in den übrigen HQ-Texten, sonst hieße das Ziel weiter „Dein Weg“.</li>
+    <li><b>Freundschaftsanfragen:</b> Sie verschwinden mit der Freunde-Zeile vom Start und bleiben unter <code>/social</code> beantwortbar.</li>
+    <li><b>Zwei Pins ohne Antwort:</b> nur der wichtigste Patch-Treffer ohne Wechsel; Karte zu Planen, „Route öffnen“ zur Route.</li>
+  </ul>
+
+  <div class="fr-depth">
+    <p class="fr-label">{{final.depth}}</p>
+    <p class="fr-ladder-top">{{final.level_local}}<small>{{final.level_of}}</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">{{final.level_code}}</li>
+      <li data-level="2" data-state="done">{{final.level_dry}}</li>
+      <li data-level="3" data-state="done">{{final.level_interplay}}</li>
+      <li data-level="4" data-state="done">{{final.level_local}}</li>
+      <li data-level="5" data-state="open">{{final.level_prod}}</li>
+      <li data-level="6" data-state="open">{{final.level_live}}</li>
+      <li data-level="7" data-state="you">{{final.level_accept}}</li>
+    </ol>
+    <p class="fr-ladder-foot">Lokal lief alles mit einer Test-Sitzung und Beispieldaten, nicht mit deinem Konto. Der Produktions-Build ist erfolgreich, aber noch nicht im Browser geöffnet worden.</p>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-live" data-crit="high" data-guide="">Start mit laufendem Spiel und echtem Konto ansehen</li>
+      <li data-todo-id="t-app" data-crit="mid" data-guide="">„SCC-App starten“ mit installierter App klicken</li>
+      <li data-todo-id="t-phone" data-crit="mid" data-guide="">Start auf dem Handy ansehen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul>
+      <li>Branch <code>claude/hq-concept-landing-page-05eed0</code>, nicht gepusht. Commits 39376d95 0cbbd165 4e0b0fa0 d89a2d59 26b8e005.</li>
+      <li>Kern: <code>src/app/hq/start/hq-start-tiles.component.ts</code>, <code>hq-pages.component.ts</code>, <code>hq-cue.component.ts</code>.</li>
+      <li>Gates: Typecheck, Build und Lint (0 Fehler, 206 Warnungen) grün, Karma 5660 bestanden, 1 übersprungen.</li>
+      <li>Unabhängige Prüfung A1 bis A22: erfüllt bis auf A17 (danach behoben, Hinweis blendet aus), A8 und A21 (siehe Abweichungen), A20 (Handy nur vom Builder gesehen). Hotkey-Verdacht per Spec widerlegt.</li>
+      <li>Parität und Brief: <code>parity.md</code>, <code>briefs/implement.md</code>; Spezifikation: <code>docs/concepts/hq-einstieg-ui-spec.md</code>.</li>
+    </ul>
+  </details>
+</section>
