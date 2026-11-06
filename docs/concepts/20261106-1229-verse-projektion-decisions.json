@@ -28,6 +28,35 @@
         }
       ],
       "submitted_at": "2026-11-06T11:44:07.137Z"
+    },
+    {
+      "iteration": 2,
+      "action": "iterate",
+      "favorite": "sammeln",
+      "annotations": [
+        {
+          "id": "sammeln-a1",
+          "screen": "sammeln-ablauf",
+          "design": "sammeln",
+          "question": "Der Kegel ist am Panel am hellsten statt am Planeten. Wirkt das wie Licht, das dort ankommt, oder eher falsch herum?",
+          "answer": "Ja, der effekt darf noch etwas sträker sein für den kegel!"
+        }
+      ],
+      "userPins": [
+        {
+          "id": "up-mw4x27lupuh3",
+          "screen": "sammeln-ablauf",
+          "target": "div.d6-pj-rig \"NEWSCargo Hauling – Day 1 vs. Day 432 | \"",
+          "text": "Der lichtkegel darf ruhig noch etwas dezenter und schwächer sein ein ticken. Das aufbauen und wegziehen des lichtkegels vom planeten zum panel sollte auch noch etwas exponentialität rein bekommen und langsamer anbahnen oder so..."
+        },
+        {
+          "id": "up-mw4x3qomac0w",
+          "screen": "sammeln-ablauf",
+          "target": "i.d6-pj-scan",
+          "text": "finde die lichtleiiste am pnael super!"
+        }
+      ],
+      "submitted_at": "2026-11-06T11:55:42.083Z"
     }
   ]
 }
