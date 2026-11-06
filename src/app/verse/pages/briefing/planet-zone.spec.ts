@@ -22,9 +22,9 @@ import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-acco
 import { INTRO_FLAG } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
 import {
-  holoBody, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
+  holoBody, holoTitle, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
-import { TX_CHARGE_MS, TX_CHARS_PER_S, TX_HOLD_MS, TX_OUT_MS, TX_REVEAL_MS } from './briefing-transmit.component';
+import { TX_BUILD_MS, TX_CHARGE_MS, TX_HOLD_MS, TX_OUT_MS, TX_PULL_MS, TX_WRITE_MS } from './briefing-transmit.component';
 
 @Component({ selector: 'sc-news-list', standalone: true, template: '' })
 class NewsListStub {}
@@ -77,6 +77,8 @@ describe('Verse hub — verdict + patch grid model', () => {
     expect(kickerVersion({ live: '4.3.1' }, '4.3')).toBe('4.3.1');
     expect(kickerVersion({}, '4.3')).toBe('4.3');
     expect(holoBody('a '.repeat(100)).length).toBeLessThanOrEqual(112);
+    expect(holoTitle('Cargo Hauling – Day 1').length).withContext('a short title stays whole').toBe(21);
+    expect(holoTitle('word '.repeat(40)).length).withContext('the holo has one size: long titles are capped').toBeLessThanOrEqual(66);
   });
 });
 
@@ -207,14 +209,14 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     discardPeriodicTasks();
   }));
 
-  it('transmits News → Patches → Galerie: charge, top-down reveal, typing at 45 chars/s, 8 s hold', fakeAsync(() => {
+  it('transmits News → Patches → Galerie: charge, build, write, pull back, hold', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const holo = (): HTMLElement => el.querySelector<HTMLElement>('a.holo')!;
     const phase = (): string | undefined => {
       fixture.detectChanges();
-      return holo().dataset['phase'];
+      return el.querySelector<HTMLElement>('sc-briefing-transmit')!.dataset['phase'];
     };
     const cueGone = (): boolean => {
       fixture.detectChanges();
@@ -222,21 +224,23 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
       return el.querySelector('button.more-cue')!.classList.contains('gone');
     };
     expect(phase()).toBe('charge');
-    expect(cueGone()).withContext('#1: no message on screen yet → the "more" cue stands').toBeFalse();
+    expect(cueGone()).withContext('no message on screen yet → the "more" cue stands').toBeFalse();
     expect(el.querySelector('a.pl[data-door="news"]')?.classList).toContain('send');
     tick(TX_CHARGE_MS);
-    expect(phase()).toBe('reveal');
-    expect(cueGone()).withContext('#1: a news message is visible → the cue is gone').toBeTrue();
-    tick(TX_REVEAL_MS);
-    expect(phase()).toBe('type');
-    const body = 'Short summary.';
-    tick(Math.ceil((body.length * 1000) / TX_CHARS_PER_S) + 50);
+    expect(phase()).toBe('build');
+    expect(cueGone()).withContext('the cue stands under a visible message too').toBeFalse();
+    tick(TX_BUILD_MS);
+    expect(phase()).toBe('write');
+    expect(holo().querySelector('.b')?.textContent).withContext('the whole text is there, the scan line reveals it').toBe('Short summary.');
+    tick(TX_WRITE_MS);
+    expect(phase()).toBe('pull');
+    tick(TX_PULL_MS);
     expect(phase()).toBe('hold');
-    expect(holo().querySelector('.typed')?.textContent).toBe(body);
-    expect(cueGone()).toBeTrue();
+    expect(el.querySelector('a.pl[data-door="news"]')?.classList).not.toContain('send');
+    expect(cueGone()).toBeFalse();
     tick(TX_HOLD_MS);
     expect(phase()).toBe('out');
-    expect(cueGone()).withContext('#1: faded out between two messages → the cue is back').toBeFalse();
+    expect(cueGone()).toBeFalse();
     tick(TX_OUT_MS);
     fixture.detectChanges();
     expect(holo().querySelector('.k')?.textContent).toContain('verse.gates.patches.topic');
