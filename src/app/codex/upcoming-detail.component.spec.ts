@@ -95,7 +95,7 @@ describe('UpcomingDetailComponent', () => {
 
   it('shows a failed feed as an error with a retry, never as "not found"', async () => {
     const ships = [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })];
-    const { fixture } = await setup('polaris', ships, hangarStub(), 'errors.upcoming.feed');
+    const { fixture } = await setup('polaris', ships, 'errors.upcoming.feed');
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.empty')).toBeNull();
     const retry = el.querySelector<HTMLButtonElement>('.load-err .retry');

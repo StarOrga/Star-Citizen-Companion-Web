@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ItemPathService } from '../../hq/data/item-path.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { ChangeDetectorRef, Component, input, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -82,6 +84,7 @@ async function setup(opts: {
     imports: [CodexSetComponent],
     providers: [
       provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       provideLocationMocks(),
       provideTranslateService({}),
       { provide: CodexService, useValue: opts.codex ?? makeCodexServiceStub() },
