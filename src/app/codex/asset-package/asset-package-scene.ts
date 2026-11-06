@@ -509,8 +509,9 @@ export class PackageScene {
 
   /**
    * An orbit must not swing a long hull under a gutter: when the direction
-   * changed, re-solve the distance. A distance change alone is the user's zoom
-   * (pinch): remember it. Neither happened (hover, selection): nothing moves.
+   * changed, re-solve the distance. A changed distance is the user's zoom
+   * (pinch, which can rotate a hair as well): it carries over. Neither happened
+   * (hover, selection): nothing moves.
    */
   private keepFit(): void {
     if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
@@ -518,12 +519,10 @@ export class PackageScene {
     const dist = off.length();
     if (dist <= 0) return;
     off.divideScalar(dist);
-    if (off.dot(this.lastDir) < 1 - 1e-7) {
-      this.placeAt(off.clone(), this.fittedDistance() * this.zoom);
-    } else if (Math.abs(dist - this.lastDist) > dist * 1e-4) {
-      this.zoom = dist / Math.max(this.fittedDistance(), 1e-3);
-      this.noteCamera();
-    }
+    const zoomed = Math.abs(dist - this.lastDist) > dist * 1e-4;
+    if (zoomed && this.lastDist > 0) this.zoom *= dist / this.lastDist;
+    if (off.dot(this.lastDir) < 1 - 1e-7) this.placeAt(off.clone(), this.fittedDistance() * this.zoom);
+    else if (zoomed) this.noteCamera();
   }
 
   /** Zoom by a wheel delta (positive = out), inside the controls' limits. */

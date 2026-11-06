@@ -187,10 +187,10 @@ const WHEEL_LINE_PX = 33;
           <div class="callout" role="group" [attr.data-side]="co.side"
                [style.left.px]="co.left" [style.top.px]="co.top"
                [attr.aria-label]="'codex.assetPackage.label.aria' | translate: { name: co.row.name }">
-            <b class="co-nm">{{ co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : co.row.name }}</b>
+            <b class="co-nm" [scTooltip]="co.empty ? null : co.row.name" scTooltipTier="label">{{ co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : co.row.name }}</b>
             <div class="co-v">
               @for (v of calloutValues().slice(0, 3); track v.label) {
-                <span><small>{{ v.label }}</small>{{ v.value }}</span>
+                <span [scTooltip]="v.label + ': ' + v.value" scTooltipTier="label"><small>{{ v.label }}</small>{{ v.value }}</span>
               }
               @if (co.swappable) {
                 <button type="button" class="co-swap" (click)="requestSwap()"
@@ -758,7 +758,7 @@ export class AssetPackageViewerComponent {
       untracked(() => this.scene?.setQuiet(quiet));
     });
     effect(() => {
-      if (this.barEl()) untracked(() => this.measureBar());
+      if (this.barEl() && this.table()) untracked(() => this.measureBar());
     });
     effect(() => {
       const safe = this.fullSafeArea();
