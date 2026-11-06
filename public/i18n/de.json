@@ -667,10 +667,7 @@
       "placeOne": "1 Ort",
       "places": "{{count}} Orte",
       "price": "{{price}} aUEC",
-      "toSupplies": "Zum Nachschub",
-      "inSupplies": "Im Nachschub",
-      "openPlan": "Im Plan ansehen",
-      "suppliesFull": "Nicht hinzugefügt — der Nachschub ist voll (100 Einträge)."
+      "openPlan": "Im Plan ansehen"
     },
     "itemGroup": {
       "food": "Lebensmittel & Getränke",

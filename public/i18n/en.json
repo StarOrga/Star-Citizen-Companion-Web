@@ -667,10 +667,7 @@
       "placeOne": "1 place",
       "places": "{{count}} places",
       "price": "{{price}} aUEC",
-      "toSupplies": "Add to supplies",
-      "inSupplies": "In supplies",
-      "openPlan": "Open the plan",
-      "suppliesFull": "Not added — the supplies list is full (100 entries)."
+      "openPlan": "Open the plan"
     },
     "itemGroup": {
       "food": "Food & drinks",
