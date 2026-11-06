@@ -63,6 +63,9 @@ export interface ComposeInput {
   /** The fit badge of a hit against the chip's ship (B5); null = no chip asks. */
   fit?: (hit: PolySearchHit) => SearchFit | null;
   signedIn: boolean;
+  /** The reader's wishlist / open Nachschub: filter (chips) and ranking (wished first). */
+  wished?: (hit: PolySearchHit) => boolean;
+  needed?: (hit: PolySearchHit) => boolean;
   flagshipClassName?: string | null;
   /** The reader's hangar ship id of a ship class (Montieren under a ship chip); null = none owned. */
   ownShipIdFor?: (shipClassName: string) => string | null;
@@ -72,9 +75,15 @@ export interface ComposeInput {
 }
 
 /** The chip a hit fails, or null when it is inside every chip. */
-export function failingChip(hit: PolySearchHit, chips: readonly SearchChip[]): SearchChip | null {
+export function failingChip(
+  hit: PolySearchHit,
+  chips: readonly SearchChip[],
+  own?: { wished?: (hit: PolySearchHit) => boolean; needed?: (hit: PolySearchHit) => boolean },
+): SearchChip | null {
   for (const chip of chips) {
     const f = chip.filter;
+    if (f.wished && !own?.wished?.(hit)) return chip;
+    if (f.needed && !own?.needed?.(hit)) return chip;
     if (f.groups && !f.groups.includes(hit.kind)) return chip;
     if (f.size !== undefined && hit.size !== f.size) return chip;
     if (f.grade && (hit.grade ?? '').toUpperCase() !== f.grade) return chip;
@@ -132,7 +141,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
     const inside: PolySearchHit[] = [];
     let dropped = 0;
     for (const hit of g.hits) {
-      const chip = failingChip(hit, chips);
+      const chip = failingChip(hit, chips, { wished: input.wished, needed: input.needed });
       const duplicateOfOwn = !chip && ownFirst && hit.kind === 'ship' && ownSlugs.has(hit.classNameSlug.toLowerCase());
       if (duplicateOfOwn) {
         dropped++;
@@ -149,8 +158,8 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
     }
     if (inside.length === 0) continue;
     const ordered = inside
-      .map((hit, i) => ({ hit, i, s: polyMatchScore(term, hit), k: signalOrder(signals, hit.kind, hit.classNameSlug) }))
-      .sort((a, b) => b.s - a.s || a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2] || a.i - b.i)
+      .map((hit, i) => ({ hit, i, s: polyMatchScore(term, hit), k: signalOrder(signals, hit.kind, hit.classNameSlug), w: !!input.wished?.(hit) }))
+      .sort((a, b) => Number(b.w) - Number(a.w) || b.s - a.s || a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2] || a.i - b.i)
       .map((x) => x.hit);
     // A group a chip trimmed on the client cannot promise the index total.
     const total = dropped === 0 ? Math.max(g.total, ordered.length) : ordered.length;

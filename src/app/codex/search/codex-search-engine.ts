@@ -10,6 +10,8 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { HqInventoryService } from '../../hq/data/hq-inventory.service';
+import { HqSuppliesService } from '../../hq/hq-supplies.service';
+import { SearchWishlistService } from './search-wishlist.service';
 import { NewsService } from '../../news/news.service';
 import { SearchContext, neutralContext } from '../../shell/fusion-bar/search-context';
 import { composeSearchResult } from './search-compose';
@@ -216,6 +218,8 @@ export class CodexSearchEngine {
       ownShipIdFor: signedIn
         ? (cls) => this.hangar().ships().find((s) => s.shipClassName.toLowerCase() === cls.toLowerCase())?.id ?? null
         : undefined,
+      wished: signedIn ? (hit) => this.wishlist().has(hit.kind, hit.classNameSlug, hit.nameLocalized) : undefined,
+      needed: signedIn ? this.neededFn() : undefined,
       didYouMean: this.didYouMean(),
       facets: this.facets(),
     });
@@ -326,6 +330,7 @@ export class CodexSearchEngine {
       if (!news.feed() && !news.loading()) void news.refresh(true);
       if (this.signedIn()) {
         void this.ownership().ensureLoaded();
+        this.wishlist().ensureLoaded();
         const inv = this.inventory();
         if (!inv.loaded() && !inv.loading()) void inv.load();
       }
@@ -603,6 +608,13 @@ export class CodexSearchEngine {
   private readonly hangar = (): HangarService => this.injector.get(HangarService);
   private readonly ownership = (): HqOwnershipService => this.injector.get(HqOwnershipService);
   private readonly inventory = (): HqInventoryService => this.injector.get(HqInventoryService);
+  private readonly wishlist = (): SearchWishlistService => this.injector.get(SearchWishlistService);
+  private readonly supplies = (): HqSuppliesService => this.injector.get(HqSuppliesService);
+  /** Open Nachschub lines by class name, for the "fehlt mir" filter. */
+  private readonly neededFn = (): ((hit: PolySearchHit) => boolean) => {
+    const open = new Set(this.supplies().open().map((i) => (i.className ?? '').toLowerCase()).filter(Boolean));
+    return (hit) => open.has(hit.classNameSlug.toLowerCase());
+  };
   private readonly signedIn = (): boolean => this.injector.get(AuthService).isAuthenticated();
 
   /** The reader's own data as the matcher reads it (empty while signed out). */

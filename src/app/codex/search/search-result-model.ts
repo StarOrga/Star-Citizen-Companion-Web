@@ -19,6 +19,10 @@ export interface SearchChipFilter {
   groups?: SearchGroupId[];
   /** Only these kinds of the own-data group. */
   ownKinds?: OwnRowType[];
+  /** Only hits on the reader's wishlist ("gemerkt"). */
+  wished?: boolean;
+  /** Only hits that are open in Nachschub ("fehlt mir"). */
+  needed?: boolean;
   size?: number;
   grade?: string;
   /**

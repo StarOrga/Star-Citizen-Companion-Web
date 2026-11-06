@@ -6,11 +6,9 @@ import { pinKindOf } from '../../codex/search/codex-search-model';
 import type { SearchChip, SearchCta, SearchResultRow } from '../../codex/search/search-result-model';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { toErrorKey } from '../../core/describe-error';
-import { HangarService } from '../../hangar/hangar.service';
-import { HqInventoryService } from '../../hq/data/hq-inventory.service';
+import { ItemPathService, type PathResult } from '../../hq/data/item-path.service';
 import { HqEinsatzService, missionStep } from '../../hq/data/hq-einsatz.service';
 import { HqEinsatzPickService } from '../../hq/plan/hq-einsatz-pick.service';
-import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { hqLocker } from '../../hq/hq-routes';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 
@@ -19,14 +17,21 @@ export interface RowActionResult {
   key: string;
   params?: Record<string, string | number>;
   error?: boolean;
+  /** Present where the path can take the step back (the toast offers it). */
+  undo?: () => Promise<PathResult>;
+}
+
+/** A PathResult as the row's status line: a failure keeps its own `errors.*` / `itemPath.err.*` key. */
+function fromPath(r: PathResult, doneKey: string, params: Record<string, string | number>): RowActionResult {
+  return r.ok ? { key: doneKey, params, undo: r.undo } : { key: r.key, error: true };
 }
 
 export type RowIconAction = 'wishlist' | 'lager' | 'nachschub';
 
 /** The row's catalog identity (hit rows only carry the icons). */
-function idOf(row: SearchResultRow): { kind: string; cls: string } | null {
-  if (row.type === 'hit') return { kind: row.hit.kind, cls: row.hit.classNameSlug };
-  if (row.type === 'own' && row.classNameSlug) return { kind: row.ownKind === 'item' ? 'item' : 'ship', cls: row.classNameSlug };
+function idOf(row: SearchResultRow): { kind: string; cls: string; name: string | null } | null {
+  if (row.type === 'hit') return { kind: row.hit.kind, cls: row.hit.classNameSlug, name: row.hit.nameLocalized ?? null };
+  if (row.type === 'own' && row.classNameSlug) return { kind: row.ownKind === 'item' ? 'item' : 'ship', cls: row.classNameSlug, name: row.title };
   return null;
 }
 
@@ -41,16 +46,14 @@ export class SearchRowActionsService {
   private readonly router = inject(Router);
   private readonly confirm = inject(ScConfirmService);
   private readonly codex = inject(CodexService);
-  private readonly hangar = inject(HangarService);
   private readonly wishlist = inject(SearchWishlistService);
-  private readonly inventory = inject(HqInventoryService);
-  private readonly supplies = inject(HqSuppliesService);
+  private readonly path = inject(ItemPathService);
   private readonly einsaetze = inject(HqEinsatzService);
   private readonly einsatzPick = inject(HqEinsatzPickService);
 
   isWished(row: SearchResultRow): boolean {
     const id = idOf(row);
-    return !!id && this.wishlist.has(id.kind, id.cls);
+    return !!id && this.wishlist.has(id.kind, id.cls, id.name);
   }
 
   /** Signed out: ask, then lead to the sign-in page (back here afterwards). True when signed in. */
@@ -71,15 +74,13 @@ export class SearchRowActionsService {
     try {
       switch (action) {
         case 'wishlist': {
-          const was = this.wishlist.has(id.kind, id.cls);
-          if (!(await this.wishlist.toggle(id.kind, id.cls))) return { key: 'search.done.failed', error: true };
-          return { key: was ? 'search.done.wishlistOff' : 'search.done.wishlistOn', params: { name: title } };
+          // Announced ships key on their name (the feed id is no class name): see SearchWishlistService.
+          const was = this.wishlist.has(id.kind, id.cls, title);
+          const res = was ? await this.path.removeWish(id.kind, id.cls, title) : await this.path.addWish(id.kind, id.cls, title);
+          return fromPath(res, was ? 'search.done.wishlistOff' : 'search.done.wishlistOn', { name: title });
         }
         case 'lager': {
-          if (id.kind === 'ship') {
-            if (!(await this.hangar.addShip(id.cls, 'owned'))) return { key: 'search.done.failed', error: true };
-            return { key: 'search.done.hangar', params: { name: title } };
-          }
+          if (id.kind === 'ship') return fromPath(await this.path.addToHangar(id.cls, title), 'search.done.hangar', { name: title });
           const where = await this.confirm.prompt({
             titleKey: 'search.lager.title',
             messageKey: 'search.lager.message',
@@ -89,12 +90,11 @@ export class SearchRowActionsService {
             confirmKey: 'search.lager.confirm',
           });
           if (!where?.trim()) return null;
-          if (!(await this.inventory.addManual(where, title, 1, 'pcs'))) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.lager', params: { name: title, where: where.trim() } };
+          // With the class name: that is what makes the item count as owned in search and in sets (A3).
+          return fromPath(await this.path.moveToInventar(id.kind, id.cls, title, where, 1), 'search.done.lager', { name: title, where: where.trim() });
         }
         case 'nachschub':
-          if (!this.supplies.add(title, 1, { entityKind: id.kind, className: id.cls })) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.nachschub', params: { name: title } };
+          return fromPath(await this.path.addToNachschub(id.kind, id.cls, title, 1), 'search.done.nachschub', { name: title });
       }
     } catch (err) {
       return { key: toErrorKey('search', `icon ${action}`, err), error: true };
@@ -114,8 +114,7 @@ export class SearchRowActionsService {
       switch (cta.id) {
         case 'add':
           if (!(await this.ensureSignedIn())) return null;
-          if (!(await this.hangar.addShip(id.cls, 'owned'))) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.hangar', params: { name: title } };
+          return fromPath(await this.path.addToHangar(id.cls, title), 'search.done.hangar', { name: title });
         case 'compare':
         case 'compareWith': {
           if (row.type !== 'hit') return null;
@@ -134,8 +133,7 @@ export class SearchRowActionsService {
           return null;
         case 'materialToSupply':
           if (!(await this.ensureSignedIn())) return null;
-          if (!this.supplies.add(title, 1, { entityKind: id.kind, className: id.cls })) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.nachschub', params: { name: title } };
+          return fromPath(await this.path.addToNachschub(id.kind, id.cls, title, 1), 'search.done.nachschub', { name: title });
         default:
           return null;
       }

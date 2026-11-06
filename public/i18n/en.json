@@ -5505,7 +5505,7 @@
     },
     "stock": {
       "signedOut": "Sign in to see your holdings.",
-      "free": "No place",
+      "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to storage.",
       "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
@@ -6410,6 +6410,8 @@
         "gallery": "Gallery",
         "fps": "FPS"
       },
+      "wished": "Wished",
+      "needed": "Needed",
       "section": {
         "weapons": "Weapons",
         "components": "Components",
@@ -6675,12 +6677,10 @@
         "q": "in hangar aegis"
       },
       {
-        "t": "\"stock\" shows everything you have stored",
-        "q": "stock"
+        "t": "\"stock\" before a word searches only your inventory"
       },
       {
-        "t": "\"wishlist\" shows your wishlist",
-        "q": "wishlist"
+        "t": "\"wishlist\" before a word searches only your wishlist. Wished items always come first"
       },
       {
         "t": "In the hangar \"patrol\" finds your loadout"
@@ -6693,8 +6693,7 @@
         "t": "Your own hits always come first"
       },
       {
-        "t": "\"missing\" shows your supply list",
-        "q": "missing"
+        "t": "\"missing\" before a word searches only your supplies"
       },
       {
         "t": "The search remembers where you open it"
@@ -6983,6 +6982,29 @@
         "already_friends": "You are already friends with {{name}}."
       },
       "toFriend": "{{name}}'s page"
+    }
+  },
+  "itemPath": {
+    "needSignIn": "Sign in to save this.",
+    "done": {
+      "wishOn": "\"{{name}}\" is on your wishlist",
+      "wishOff": "\"{{name}}\" is off your wishlist",
+      "nachschub": "\"{{name}}\" is in Nachschub",
+      "moved": "\"{{name}}\" moved from the wishlist to Nachschub",
+      "nachschubOff": "\"{{name}}\" is out of Nachschub",
+      "qty": "\"{{name}}\": {{qty}} in Nachschub",
+      "nachholen": "{{qty}} x \"{{name}}\" back in Nachschub",
+      "inventar": "\"{{name}}\" now lies in {{where}}",
+      "ticked": "\"{{name}}\" ticked off",
+      "hangar": "\"{{name}}\" is in your hangar",
+      "undone": "Undone"
+    },
+    "err": {
+      "failed": "That did not work. Try again.",
+      "unavailable": "This step does not exist here.",
+      "listFull": "Nachschub is full.",
+      "noLine": "There is no open Nachschub line for it.",
+      "alreadyOwned": "The ship is already in your hangar."
     }
   }
 }

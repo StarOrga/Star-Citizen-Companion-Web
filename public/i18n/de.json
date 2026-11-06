@@ -5505,7 +5505,7 @@
     },
     "stock": {
       "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
-      "free": "Ortsfrei",
+      "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Lager eingetragen.",
       "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
@@ -6410,6 +6410,8 @@
         "gallery": "Galerie",
         "fps": "FPS"
       },
+      "wished": "Gemerkt",
+      "needed": "Fehlt mir",
       "section": {
         "weapons": "Bewaffnung",
         "components": "Komponenten",
@@ -6675,12 +6677,10 @@
         "q": "im hangar aegis"
       },
       {
-        "t": "„lager“ zeigt dein ganzes Lager",
-        "q": "lager"
+        "t": "Mit „lager“ vor dem Begriff suchst du nur in deinem Inventar"
       },
       {
-        "t": "„gemerkt“ zeigt deine Wunschliste",
-        "q": "gemerkt"
+        "t": "Mit „gemerkt“ vor dem Begriff suchst du nur auf deiner Wunschliste. Gemerktes steht immer zuerst"
       },
       {
         "t": "Im Hangar findet „patrouille“ dein Loadout"
@@ -6693,8 +6693,7 @@
         "t": "Eigene Treffer stehen immer ganz oben"
       },
       {
-        "t": "„fehlt mir“ zeigt deinen Nachschub",
-        "q": "fehlt mir"
+        "t": "Mit „fehlt mir“ vor dem Begriff suchst du nur in deinem Nachschub"
       },
       {
         "t": "Die Suche merkt sich, wo du sie öffnest"
@@ -6983,6 +6982,29 @@
         "already_friends": "Ihr seid schon befreundet mit {{name}}."
       },
       "toFriend": "Seite von {{name}}"
+    }
+  },
+  "itemPath": {
+    "needSignIn": "Melde dich an, um das zu speichern.",
+    "done": {
+      "wishOn": "„{{name}}“ ist auf der Wunschliste",
+      "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",
+      "nachschub": "„{{name}}“ ist im Nachschub",
+      "moved": "„{{name}}“ ist jetzt im Nachschub, nicht mehr auf der Wunschliste",
+      "nachschubOff": "„{{name}}“ ist nicht mehr im Nachschub",
+      "qty": "„{{name}}“: {{qty}} im Nachschub",
+      "nachholen": "{{qty}} × „{{name}}“ wieder im Nachschub",
+      "inventar": "„{{name}}“ liegt jetzt in {{where}}",
+      "ticked": "„{{name}}“ abgehakt",
+      "hangar": "„{{name}}“ ist im Hangar",
+      "undone": "Rückgängig gemacht"
+    },
+    "err": {
+      "failed": "Das hat nicht geklappt. Versuch es noch einmal.",
+      "unavailable": "Diesen Schritt gibt es hier nicht.",
+      "listFull": "Der Nachschub ist voll.",
+      "noLine": "Dafür gibt es keine offene Zeile im Nachschub.",
+      "alreadyOwned": "Das Schiff ist schon im Hangar."
     }
   }
 }
