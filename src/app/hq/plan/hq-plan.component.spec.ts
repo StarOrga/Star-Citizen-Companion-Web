@@ -1,3 +1,5 @@
+import { ItemPathService } from '../../hq/data/item-path.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -25,7 +27,7 @@ describe('HqPlanComponent', () => {
     TestBed.resetTestingModule();
     const fake = fakeSupabase();
     TestBed.configureTestingModule({
-      providers: [
+      providers: [ { provide: ItemPathService, useValue: fakeItemPath() },
         provideRouter([]),
         provideTranslateService(),
         fake.provider,

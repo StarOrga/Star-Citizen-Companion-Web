@@ -307,7 +307,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                 <a class="codex-link" [routerLink]="['/codex', 'ship', s.shipClassName]">
                   {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
                 </a>
-                <button type="button" scAction tier="tertiary" [attr.aria-expanded]="managing() === s.id" (click)="toggleManage(s)">
+                <button type="button" scAction tier="tertiary" [attr.aria-label]="'hangar.manage.toggle' | translate" [scTooltip]="'hangar.manage.toggle' | translate" scTooltipTier="label" [attr.aria-expanded]="managing() === s.id" (click)="toggleManage(s)">
                   <span>{{ 'hangar.manage.toggle' | translate }}</span>
                 </button>
               </div>
@@ -338,16 +338,16 @@ const SEARCH_DEBOUNCE_MS = 250;
                         @if (c.isActive) {
                           <span class="badge">{{ 'hangar.manage.active' | translate }}</span>
                         } @else {
-                          <button type="button" scAction tier="tertiary" (click)="activate(s, c)"><span>{{ 'hangar.configs.activate' | translate }}</span></button>
+                          <button type="button" scAction tier="tertiary" [attr.aria-label]="'hangar.configs.activate' | translate" [scTooltip]="'hangar.configs.activate' | translate" scTooltipTier="label" (click)="activate(s, c)"><span>{{ 'hangar.configs.activate' | translate }}</span></button>
                         }
-                        <button type="button" scAction tier="tertiary" tone="danger" (click)="deleteConfig(c)"><span>{{ 'hangar.configs.delete' | translate }}</span></button>
+                        <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hangar.configs.delete' | translate" [scTooltip]="'hangar.configs.delete' | translate" scTooltipTier="label" (click)="deleteConfig(c)"><span>{{ 'hangar.configs.delete' | translate }}</span></button>
                       </div>
                     } @empty {
                       <p class="hint">{{ 'hangar.manage.noVariants' | translate }}</p>
                     }
                   </div>
                   <div class="m-row">
-                    <button type="button" scAction tier="tertiary" tone="danger" (click)="removeShip(s)"><span>{{ 'hangar.detail.remove' | translate }}</span></button>
+                    <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hangar.detail.remove' | translate" [scTooltip]="'hangar.detail.remove' | translate" scTooltipTier="label" (click)="removeShip(s)"><span>{{ 'hangar.detail.remove' | translate }}</span></button>
                   </div>
                 </div>
               }

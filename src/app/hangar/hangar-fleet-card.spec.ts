@@ -102,10 +102,10 @@ describe('HangarDashboardComponent fleet cards', () => {
     expect(el.querySelector('.fleet-card code')).toBeNull();
   });
 
-  it('links each card into the hangar entry and into the ship\'s Codex page, with no button inside a link', async () => {
+  it('links each card into the personal Codex view and into the ship\'s Codex page, with no button inside a link', async () => {
     const { el } = await setup();
     const first = el.querySelector('.fleet-card')!;
-    expect(first.querySelector('a.fleet-link')?.getAttribute('href')).toBe('/hq/hangar/s1');
+    expect(first.querySelector('a.fleet-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius?mine=');
     expect(first.querySelector('.fleet-actions a.codex-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
     expect(first.querySelector('a button, a a')).toBeNull();
     expect(first.querySelector('.fleet-actions button.flag-toggle')).not.toBeNull();

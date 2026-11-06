@@ -1,3 +1,5 @@
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -8,7 +10,7 @@ describe('HqShellComponent', () => {
   function setup() {
     TestBed.configureTestingModule({
       imports: [HqShellComponent],
-      providers: [provideRouter([]), provideTranslateService({ fallbackLang: 'en' })],
+      providers: [ { provide: ItemPathService, useValue: fakeItemPath() },provideRouter([]), provideTranslateService({ fallbackLang: 'en' })],
     });
     const fixture = TestBed.createComponent(HqShellComponent);
     fixture.detectChanges();
@@ -22,24 +24,25 @@ describe('HqShellComponent', () => {
     expect(HQ_TABS.length).toBe(4);
   });
 
-  it('shows the supplies button with a zero counter and opens/closes the empty panel', () => {
+  it('shows the supplies button with a zero counter and opens/closes the popup on the Nachschub tab', () => {
     const fixture = setup();
     const el: HTMLElement = fixture.nativeElement;
     const btn = el.querySelector<HTMLButtonElement>('button.supplies-btn')!;
     expect(btn.querySelector('.supplies-count')?.textContent?.trim()).toBe('0');
     expect(btn.getAttribute('aria-expanded')).toBe('false');
-    expect(el.querySelector('sc-hq-supplies-panel')).toBeNull();
+    expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
 
     btn.click();
     fixture.detectChanges();
     expect(btn.getAttribute('aria-expanded')).toBe('true');
-    const panel = el.querySelector('sc-hq-supplies-panel [role="dialog"]');
+    const panel = el.querySelector('sc-hq-supplies-popup [role="dialog"]');
     expect(panel).not.toBeNull();
     expect(panel?.textContent).toContain('hq.supplies.empty');
+    expect(el.querySelectorAll('sc-hq-supplies-popup [role="tab"]').length).toBe(2);
 
-    el.querySelector<HTMLButtonElement>('sc-hq-supplies-panel button.close')!.click();
+    el.querySelector<HTMLButtonElement>('sc-hq-supplies-popup button.x')!.click();
     fixture.detectChanges();
-    expect(el.querySelector('sc-hq-supplies-panel')).toBeNull();
+    expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
   });
 });
 

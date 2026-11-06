@@ -116,7 +116,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
           <li>{{ 'hq.plan.fresh.step3' | translate }}</li>
         </ol>
         <div class="fresh-actions">
-          <button type="button" class="sc-btn sc-btn-primary" (click)="chrome.startSupplySearch()">
+          <button type="button" scAction tier="secondary" (click)="chrome.startSupplySearch()">
             {{ 'hq.plan.fresh.addSupply' | translate }}
           </button>
         </div>

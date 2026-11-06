@@ -53,8 +53,8 @@ describe('HqStockComponent', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: SupabaseClientProvider, useValue: { client: {} } },
         { provide: AuthService, useValue: { user: signal(opts.user === false ? null : { id: 'u1' }) } },
-        { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([]) } },
-        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve() } },
+        { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([]), isFlagship: (c: string) => c === 'MISC_Freelancer' } },
+        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: () => [] } },
         { provide: HqInventoryService, useValue: inv },
         { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }) } },
       ],
@@ -75,8 +75,10 @@ describe('HqStockComponent', () => {
     expect(el.querySelectorAll('.num').length).toBe(2);
     expect(el.querySelector('.totals .num b')?.textContent).toBe('3');
     expect(el.querySelector('.chip.warn')?.textContent).toContain('Lorville');
-    const fav = [...el.querySelectorAll('section a[href]')].find((a) => a.getAttribute('href')?.includes('/hq/hangar/sh1')) as HTMLAnchorElement;
-    expect(fav.getAttribute('href')).toContain('/hq/hangar/sh1');
+    const fav = [...el.querySelectorAll('section a[href]')].find((a) => a.getAttribute('href')?.includes('/codex/ship/')) as HTMLAnchorElement;
+    expect(fav.getAttribute('href')).toContain('/codex/ship/');
+    // r2-head = one: the Inventar head has a single action, Hinzufuegen.
+    expect(el.querySelectorAll('.actions button').length).toBe(1);
     expect(el.querySelectorAll('.card button').length).toBeGreaterThan(4);
     expect(el.querySelector('.card div[role=button], .card [tabindex="0"]')).toBeNull();
   });
@@ -97,17 +99,19 @@ describe('HqStockComponent', () => {
 
   it('opens "Hinzufügen" straight in the capture form, and "Wo liegt" in the finder', () => {
     const { fixture, el } = mount({ full: true });
-    click(fixture, el.querySelector('.actions .sc-btn-primary')!);
+    click(fixture, el.querySelector('.actions button')!);
     expect(el.querySelector('form.capture')).toBeTruthy();
     fixture.componentInstance.popup.set(null);
     fixture.detectChanges();
-    click(fixture, el.querySelectorAll('.actions .sc-btn')[1]);
+    fixture.componentInstance.popup.set({ mode: 'find' });
+    fixture.detectChanges();
     expect(el.querySelector('#hq-stock-find')).toBeTruthy();
   });
 
   it('finds an item, nearest first, and marks the places that make up the amount (in the popup)', () => {
     const { fixture, el } = mount({ full: true });
-    click(fixture, el.querySelectorAll('.actions .sc-btn')[1]);
+    fixture.componentInstance.popup.set({ mode: 'find' });
+    fixture.detectChanges();
     const input = el.querySelector('input[name=find-term]') as HTMLInputElement;
     input.value = 'Gold';
     input.dispatchEvent(new Event('input'));
@@ -122,7 +126,7 @@ describe('HqStockComponent', () => {
 
   it('opens the capture form in the popup', async () => {
     const { fixture, el, inv } = mount({ full: true });
-    click(fixture, el.querySelector('.actions .sc-btn-primary')!);
+    click(fixture, el.querySelector('.actions button')!);
     await fixture.whenStable();
     fixture.detectChanges();
     expect(el.querySelector('form.capture #hq-stock-item')).not.toBeNull();
@@ -131,7 +135,8 @@ describe('HqStockComponent', () => {
 
   it('renders list rows lazily: a window first, more after scrolling inside the popup', () => {
     const { fixture, el } = mount({ full: true, many: 500 });
-    click(fixture, el.querySelector('.actions .sc-btn')!);
+    fixture.componentInstance.popup.set({ mode: 'browse' });
+    fixture.detectChanges();
     const first = el.querySelectorAll('.list > ul li').length;
     expect(first).toBeLessThanOrEqual(60);
     expect(first).toBeGreaterThan(10);
@@ -144,7 +149,8 @@ describe('HqStockComponent', () => {
 
   it('switches the view: by item lists every place beneath, by amount is flat and largest first', () => {
     const { fixture, el } = mount({ full: true });
-    click(fixture, el.querySelector('.actions .sc-btn')!);
+    fixture.componentInstance.popup.set({ mode: 'browse' });
+    fixture.detectChanges();
     const seg = [...el.querySelectorAll('.bar sc-segmented button')];
     click(fixture, seg[1]);
     const heads = [...el.querySelectorAll('.list .head strong')].map((e) => e.textContent?.trim());

@@ -122,7 +122,7 @@ import { buildPlanSets } from './plan/hq-plan-needs';
                   }
                   <span class="place-acts">
                     <button type="button" scAction tier="secondary" [disabled]="!place().trim()" (click)="store(i)"><span>{{ 'hq.supplies.place.store' | translate }}</span></button>
-                    <button type="button" scAction tier="tertiary" (click)="tickOnly(i)"><span>{{ 'hq.supplies.place.tickOnly' | translate }}</span></button>
+                    <button type="button" scAction tier="tertiary" [attr.aria-label]="'hq.supplies.place.tickOnly' | translate" [scTooltip]="'hq.supplies.place.tickOnly' | translate" scTooltipTier="label" (click)="tickOnly(i)"><span>{{ 'hq.supplies.place.tickOnly' | translate }}</span></button>
                   </span>
                 </div>
               }

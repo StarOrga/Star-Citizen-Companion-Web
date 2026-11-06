@@ -4,6 +4,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { BetaService } from '../core/beta.service';
 import { humanizeClassName } from '../codex/codex-format';
+import { flagshipFirst } from '../hangar/flagship-first';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
@@ -66,7 +67,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
             <div class="chips" role="group" [attr.aria-label]="'hq.overview.recentShips' | translate">
               @for (r of recentShips(); track r.id) {
                 <button type="button" class="chip" [class.on]="r.id === s.id" [attr.aria-pressed]="r.id === s.id"
-                        (click)="pickShip(r)">{{ shipName(r) }}</button>
+                        (click)="pickShip(r)">{{ shipName(r) }}@if (isFlagship(r)) { <span class="flag-mark">{{ 'hangar.flagship.mark' | translate }}</span> }</button>
               }
             </div>
           }
@@ -156,6 +157,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
       }
       .hint { margin: 0; color: var(--sc-fg-2); }
       .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .flag-mark { margin-inline-start: var(--sc-space-2, 8px); color: var(--sc-warning); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
       .chip {
         padding: 4px 10px;
         border: 1px solid var(--sc-border);
@@ -187,7 +189,12 @@ export class HqOverviewComponent implements OnInit {
   readonly loading = computed(() => this.hangar.loading());
   readonly loadError = computed(() => this.hangar.error() ?? this.ownership.error());
 
-  readonly recentShips = computed(() => this.hangar.recentShips());
+  /** The recent ships, the flagship leading (E6) and marked with the word, no icon. */
+  readonly recentShips = computed(() => flagshipFirst(this.hangar.recentShips(), (c) => this.hangar.isFlagship(c)));
+
+  isFlagship(s: HangarShip): boolean {
+    return this.hangar.isFlagship(s.shipClassName);
+  }
   readonly recentSets = computed(() => this.hangar.recentSets());
   readonly activeShip = computed<HangarShip | null>(() => this.recentShips()[0] ?? null);
   readonly activeSet = computed(() => this.recentSets()[0] ?? null);
