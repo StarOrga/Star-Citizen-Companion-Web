@@ -3847,6 +3847,7 @@
     },
     "flagship": {
       "set": "Als Flaggschiff",
+      "unset": "Flaggschiff aufheben",
       "pinned": "Flaggschiff",
       "badge": "Dein Flaggschiff",
       "mark": "Flaggschiff"
@@ -5504,7 +5505,9 @@
         "loadingMore": "Lädt weitere …",
         "noMatch": "Nichts passt zu diesen Filtern.",
         "empty": "Noch nichts im Inventar erfasst.",
-        "ships": "Schiffe im Terminal"
+        "ships": "Schiffe im Terminal",
+        "nachholen": "Nachholen",
+        "nachholenAria": "Nachholen: {{name}}"
       },
       "retry": "Erneut versuchen",
       "ships": {

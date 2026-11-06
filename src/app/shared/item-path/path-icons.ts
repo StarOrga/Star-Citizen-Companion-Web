@@ -15,4 +15,6 @@ export const PATH_ICONS = {
   hangar: ['M3 20V10l9-6 9 6v10', 'M7 20v-7h10v7', 'M7 16h10'],
   /** Vergleichen: a balance scale (concept gegenstand-weg E4, proposed; ⇄ stays for ship switch). */
   compare: ['M12 4v16M8 20h8', 'M5 7h14', 'M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z'],
+  /** Verwalten: two sliders. */
+  manage: ['M4 7h9M17 7h3', 'M4 17h3M11 17h9', 'M15 4.5v5', 'M9 14.5v5'],
 } as const;

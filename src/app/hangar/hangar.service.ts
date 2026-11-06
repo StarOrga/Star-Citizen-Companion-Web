@@ -33,7 +33,7 @@ import {
   mapPeekedSharedLoadout,
 } from './hangar.types';
 
-/** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
+/** Name length cap of an announced-ship wish (the `search_wishlist.name` column of the one wishlist table). */
 const CONCEPT_NAME_MAX = 80;
 
 /** i18n key for an adopt RPC that answered without a usable config. */
@@ -250,7 +250,7 @@ export class HangarService {
     return this.ships().find((s) => s.shipClassName === shipClassName) ?? null;
   }
 
-  // ── concept-ship wishlist (#135) ────────────────────────────────────────────
+  // ── announced-ship wishlist (one wishlist table, WishlistStore) ────────────────────────────────────────────
 
   /**
    * Load JUST the concept-ship wishlist, once per session.

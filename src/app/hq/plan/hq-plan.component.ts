@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, e
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { HQ_LIST_PARAM, hqListTabOf, type HqListTab } from '../hq-routes';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
@@ -67,6 +68,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     TranslatePipe,
     RouterLink,
     ScActionDirective,
+    ItemPathComponent,
     ScStepComponent,
     ScTristateComponent,
     ScTooltipDirective,
@@ -203,6 +205,12 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
                   }
                 </span>
                 <span class="kind-tag">{{ 'hq.step.kind.' + n.kind | translate }}</span>
+                @if (n.className && needSources(n.className).kind; as kind) {
+                  <!-- D4: tertiary path on the need line; its click must not reach the row. -->
+                  <span class="need-path" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                    <sc-item-path [kind]="kind" [className]="n.className" [name]="n.label" />
+                  </span>
+                }
                 @if (n.status === 'done') { <span class="ready-tag">{{ 'hq.supply.ready' | translate }}</span> }
               </li>
             }
@@ -301,6 +309,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .need.sel { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); background: color-mix(in srgb, var(--sc-accent) 7%, transparent); }
       .n-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
       .n-name { overflow-wrap: anywhere; }
+      .need-path { display: inline-flex; flex: none; }
       .qty { color: var(--sc-fg-2); }
       .n-meta { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .n-link { color: inherit; text-decoration: none; }

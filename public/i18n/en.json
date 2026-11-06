@@ -3847,6 +3847,7 @@
     },
     "flagship": {
       "set": "Set as flagship",
+      "unset": "Remove flagship",
       "pinned": "Flagship",
       "badge": "Your flagship",
       "mark": "Flagship"
@@ -5504,7 +5505,9 @@
         "loadingMore": "Loading more …",
         "noMatch": "Nothing matches these filters.",
         "empty": "Nothing in your inventory yet.",
-        "ships": "Ships at terminal"
+        "ships": "Ships at terminal",
+        "nachholen": "Restock",
+        "nachholenAria": "Restock: {{name}}"
       },
       "retry": "Try again",
       "ships": {

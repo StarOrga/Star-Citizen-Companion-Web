@@ -15,6 +15,7 @@ import { HqLink, hqHangar, hqSet, personalItemLink, personalShipLink } from '../
 import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { WishlistStore } from '../hq/data/wishlist.store';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
@@ -159,7 +160,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       }
 
       <!-- "Auf dem Reissbrett" — the announced ships this user watches (#130).
-           The wishlist itself is the #135 hangar_concept_ships table; this is
+           The wishlist itself is the one `search_wishlist` table (WishlistStore, concept gegenstand-weg A2; the old concept-ship table is gone); this is
            its entrance at the TOP of the hangar, where the admin asked for it,
            while the add/remove form stays in the section further down. Every
            tile is a real anchor: into our own announced-ship page when the RSI
@@ -299,16 +300,13 @@ const SEARCH_DEBOUNCE_MS = 250;
                 </div>
               </a>
               <div class="fleet-actions">
-                <button type="button" class="flag-toggle" [class.is-flagship]="isFlagship(s)"
-                        (click)="toggleFlagship($event, s)"
-                        [attr.aria-pressed]="isFlagship(s)">
-                  {{ (isFlagship(s) ? 'hangar.flagship.pinned' : 'hangar.flagship.set') | translate }}
-                </button>
+                <!-- D4: the Hangar row carries the tertiary path (its filled Hangar stop opens the popover). -->
+                <sc-item-path kind="ship" [className]="s.shipClassName" [name]="s.customName || displayName(s)" level="tertiary" />
                 <a class="codex-link" [routerLink]="['/codex', 'ship', s.shipClassName]">
-                  {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
+                  <span>{{ 'hangar.detail.openCodex' | translate }}</span> <span aria-hidden="true">→</span>
                 </a>
-                <button type="button" scAction tier="tertiary" [attr.aria-label]="'hangar.manage.toggle' | translate" [scTooltip]="'hangar.manage.toggle' | translate" scTooltipTier="label" [attr.aria-expanded]="managing() === s.id" (click)="toggleManage(s)">
-                  <span>{{ 'hangar.manage.toggle' | translate }}</span>
+                <button type="button" scAction tier="tertiary" class="manage-btn" [attr.aria-label]="'hangar.manage.toggle' | translate" [scTooltip]="'hangar.manage.toggle' | translate" scTooltipTier="label" [attr.aria-expanded]="managing() === s.id" (click)="toggleManage(s)">
+                  <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.manage; track $index) { <path [attr.d]="d" /> }</svg>
                 </button>
               </div>
               @if (managing() === s.id) {
@@ -325,6 +323,12 @@ const SEARCH_DEBOUNCE_MS = 250;
                     <button type="button" scAction tier="secondary" (click)="saveNotes(s)"><span>{{ 'hangar.detail.save' | translate }}</span></button>
                   </div>
                   <div class="m-row">
+                    <!-- r2-flag = top: the flagship is marked once (the text mark on the card, first in the list); it is set and unset here. -->
+                    <button type="button" scAction tier="secondary" [attr.aria-pressed]="isFlagship(s)" (click)="toggleFlagship($event, s)">
+                      <span>{{ (isFlagship(s) ? 'hangar.flagship.unset' : 'hangar.flagship.set') | translate }}</span>
+                    </button>
+                  </div>
+                  <div class="m-row">
                     <span class="m-label">{{ 'hangar.detail.pinLabel' | translate }}</span>
                     <sc-select class="m-pin" [options]="pinOptions" [value]="s.pinnedRank ? '' + s.pinnedRank : null" placeholderLabel="—"
                                [ariaLabel]="'hangar.detail.pinLabel' | translate" (valueChange)="setPin(s, $event)" />
@@ -338,16 +342,16 @@ const SEARCH_DEBOUNCE_MS = 250;
                         @if (c.isActive) {
                           <span class="badge">{{ 'hangar.manage.active' | translate }}</span>
                         } @else {
-                          <button type="button" scAction tier="tertiary" [attr.aria-label]="'hangar.configs.activate' | translate" [scTooltip]="'hangar.configs.activate' | translate" scTooltipTier="label" (click)="activate(s, c)"><span>{{ 'hangar.configs.activate' | translate }}</span></button>
+                          <button type="button" scAction tier="secondary" (click)="activate(s, c)"><span>{{ 'hangar.configs.activate' | translate }}</span></button>
                         }
-                        <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hangar.configs.delete' | translate" [scTooltip]="'hangar.configs.delete' | translate" scTooltipTier="label" (click)="deleteConfig(c)"><span>{{ 'hangar.configs.delete' | translate }}</span></button>
+                        <button type="button" scAction tier="secondary" tone="danger" (click)="deleteConfig(c)"><span>{{ 'hangar.configs.delete' | translate }}</span></button>
                       </div>
                     } @empty {
                       <p class="hint">{{ 'hangar.manage.noVariants' | translate }}</p>
                     }
                   </div>
                   <div class="m-row">
-                    <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hangar.detail.remove' | translate" [scTooltip]="'hangar.detail.remove' | translate" scTooltipTier="label" (click)="removeShip(s)"><span>{{ 'hangar.detail.remove' | translate }}</span></button>
+                    <button type="button" scAction tier="secondary" tone="danger" (click)="removeShip(s)"><span>{{ 'hangar.detail.remove' | translate }}</span></button>
                   </div>
                 </div>
               }
@@ -644,22 +648,18 @@ const SEARCH_DEBOUNCE_MS = 250;
     .fleet-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
     .fleet-card:has(.fleet-link:focus-visible) { border-color: var(--sc-accent); }
     .card-sub { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .fleet-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .fleet-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+    .fleet-actions .manage-btn { margin-inline-start: auto; }
     .codex-link { color: var(--sc-accent); text-decoration: none; font-size: max(0.78rem, var(--sc-fs-floor));
-      min-height: var(--sc-tap-min); display: inline-flex; align-items: center; gap: 4px; }
+      min-height: var(--sc-tap-min); min-width: 0; display: inline-flex; align-items: center; gap: 4px; }
+    .codex-link > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .codex-link:hover { text-decoration: underline; }
     .codex-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
     .rank-sm { font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 0.82rem; }
     .card-top-right { display: flex; align-items: center; gap: 6px; }
-    .flag-badge { color: var(--sc-warning, #ffc14d); font-size: 0.92rem; line-height: 1; }
-    .flag-toggle { padding: 5px 10px; min-height: var(--sc-tap-min); border-radius: 6px; background: transparent;
-      border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: var(--sc-font-display);
-      font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; align-self: flex-start;
-      transition: color 0.16s, border-color 0.16s, background 0.16s; }
-    .flag-toggle:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
-    .flag-mark { color: var(--sc-warning, #ffc14d); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
+        .flag-mark { color: var(--sc-warning, #ffc14d); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
     .manage { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); padding: var(--sc-space-3, 12px); border-top: 1px solid var(--sc-border); }
     .m-row { display: flex; gap: var(--sc-space-2, 8px); align-items: center; flex-wrap: wrap; }
     .m-in { flex: 1 1 12rem; min-width: 0; min-height: 40px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--sc-border);
@@ -672,8 +672,6 @@ const SEARCH_DEBOUNCE_MS = 250;
     .m-var { display: flex; gap: var(--sc-space-2, 8px); align-items: center; flex-wrap: wrap; }
     .m-var-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; color: var(--sc-accent); }
     @media (pointer: coarse) { .m-in { min-height: 48px; } }
-    .flag-toggle.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d);
-      background: color-mix(in srgb, var(--sc-warning, #ffc14d) 16%, transparent); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     /* Neutral: red (--sc-accent-hot) means elevated access (CLAUDE.md). */
@@ -760,6 +758,7 @@ const SEARCH_DEBOUNCE_MS = 250;
   `],
 })
 export class HangarDashboardComponent implements OnInit {
+  protected readonly icons = PATH_ICONS;
   /**
    * Which HQ section this page renders (route data, concept 2026-10-08):
    * `hangar` = ships, `locker` = the role sets (Spind). `all` keeps both —

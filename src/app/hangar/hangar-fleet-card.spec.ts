@@ -108,6 +108,7 @@ describe('HangarDashboardComponent fleet cards', () => {
     expect(first.querySelector('a.fleet-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius?mine=');
     expect(first.querySelector('.fleet-actions a.codex-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
     expect(first.querySelector('a button, a a')).toBeNull();
-    expect(first.querySelector('.fleet-actions button.flag-toggle')).not.toBeNull();
+    expect(first.querySelector('.fleet-actions sc-item-path')).not.toBeNull();
+    expect(first.querySelector('.fleet-actions button.manage-btn')?.getAttribute('aria-label')).toBeTruthy();
   });
 });

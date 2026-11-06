@@ -8,6 +8,7 @@ import { HqLiveService } from '../now/hq-live.service';
 import { isGameLive, readLocation } from '../now/hq-live.util';
 import { HqSuppliesService } from '../hq-supplies.service';
 import type { StepKind } from '../../shared/step/sc-step.component';
+import { parseStockRef } from '../stock/hq-stock-ref';
 import { HqInventoryService } from './hq-inventory.service';
 
 /*
@@ -165,7 +166,8 @@ export class ItemPathService {
     let nachschubQty = 0;
     if (kind !== 'upcoming') {
       for (const i of this.inventory.items()) {
-        if ((i.class_name ?? '').toLowerCase() !== cls) continue;
+        // Manual entries store `<kind>:<Class>` (hq-stock-ref); the path counts them like a bare class name.
+        if ((parseStockRef(i.class_name)?.className ?? '').toLowerCase() !== cls) continue;
         const q = i.qty > 0 ? i.qty : 1;
         const have = places.find((p) => p.location === i.location);
         if (have) have.qty += q;
