@@ -5531,7 +5531,17 @@
         "unit": "Unit",
         "pcs": "Pieces",
         "location": "Place",
-        "save": "Add"
+        "save": "Add",
+        "suggestions": "Suggestions from the Codex",
+        "unknown": "Not found – pick an entry from the suggestions.",
+        "linked": "Linked to the Codex.",
+        "kind": {
+          "ship": "Ship",
+          "item": "Item",
+          "component": "Component",
+          "weapon": "Weapon",
+          "ammunition": "Ammunition"
+        }
       }
     },
     "app": {
@@ -5593,7 +5603,9 @@
     }
   },
   "verse": {
-    "areaFoot": { "aria": "Switch area" },
+    "areaFoot": {
+      "aria": "Switch area"
+    },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",
