@@ -13,10 +13,7 @@ import type { ShipModuleSection } from '../ship-module-sections';
 import type { PlacementRow } from '../asset-package/asset-package-viewer.component';
 import { resolveIcons } from '../search/search-cta';
 import type { PolyHitKind } from '../codex-poly-search';
-import type { SearchResultRow } from '../search/search-result-model';
-import { SearchWishlistService } from '../search/search-wishlist.service';
-import { RowActionResult, RowIconAction, SearchRowActionsService } from '../../shell/fusion-bar/search-row-actions.service';
-import { SEARCH_ACTION_ICONS } from '../../shell/fusion-bar/search-icons';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { PinGroup, StagePin } from './codex-holo-model';
@@ -99,7 +96,7 @@ function chipSize(pin: StagePin): number | null {
 @Component({
   selector: 'sc-codex-holo-inspector',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective, RouterLink],
+  imports: [TranslatePipe, ScTooltipDirective, RouterLink, ItemPathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as it) {
@@ -141,30 +138,10 @@ function chipSize(pin: StagePin): number | null {
               }
             </p>
           }
-          @if (iconsOf(part); as ic) {
+          @if (iconsOf(part)) {
             <div class="act">
-              @if (ic.wishlist) {
-                <button type="button" [attr.aria-pressed]="wished(part)" [scTooltip]="(wished(part) ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: itemName(part.name ?? '') }" scTooltipTier="label" (click)="runIcon('wishlist', part)">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.wishlist[0]" [attr.fill]="wished(part) ? 'currentColor' : 'none'" /></svg>
-                  <span>{{ 'codex.holo.stage.iconWishlist' | translate }}</span>
-                </button>
-              }
-              @if (ic.nachschub) {
-                <button type="button" [scTooltip]="'search.icon.nachschub' | translate: { name: itemName(part.name ?? '') }" scTooltipTier="label" (click)="runIcon('nachschub', part)">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
-                  <span>{{ 'codex.holo.stage.iconSupply' | translate }}</span>
-                </button>
-              }
-              @if (ic.lager) {
-                <button type="button" [scTooltip]="'search.icon.lager' | translate: { name: itemName(part.name ?? '') }" scTooltipTier="label" (click)="runIcon('lager', part)">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.lager; track $index) { <path [attr.d]="d" /> }</svg>
-                  <span>{{ 'codex.holo.stage.iconStock' | translate }}</span>
-                </button>
-              }
+              <sc-item-path [kind]="part.kind!" [className]="part.className!" [name]="itemName(part.name ?? '')" level="tertiary" />
             </div>
-            @if (status(); as st) {
-              <p class="act-status" [class.err]="st.error" [attr.role]="st.error ? 'alert' : 'status'">{{ st.key | translate: st.params }}</p>
-            }
           }
           @if (!isRawPort()) {
             <div class="insp-actions">
@@ -380,8 +357,6 @@ function chipSize(pin: StagePin): number | null {
     .act button[aria-pressed='true'] { border-color: var(--sc-accent); color: var(--sc-accent); }
     .act svg, .swap svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
     .act span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .act-status { margin: 0; font-size: max(11px, var(--f)); color: var(--sc-fg-1); }
-    .act-status.err { color: var(--sc-danger); }
     .insp-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .insp-actions:empty { display: none; }
     .insp-kid .btn.ico { min-inline-size: var(--sc-tap-min, 32px); min-block-size: var(--sc-tap-min, 32px); padding-inline: 8px; }
@@ -440,15 +415,11 @@ function chipSize(pin: StagePin): number | null {
   `],
 })
 export class CodexHoloInspectorComponent {
-  /** Resolved with the first selected part: a ship page that only looks never starts the hangar, stock and supply services behind the icons. */
+  /** Resolved with the first selected part: a ship page that only looks never starts the services behind it. */
   private readonly injector = inject(Injector);
-  private get actions(): SearchRowActionsService {
-    return this.injector.get(SearchRowActionsService);
-  }
   private readonly router = inject(Router);
   private readonly locationStrategy = inject(LocationStrategy);
 
-  readonly icons = SEARCH_ACTION_ICONS;
 
   readonly target = input<LayoutTarget | null>(null);
   /** The inspected part has no loadout slot behind it: nothing to swap. */
@@ -543,39 +514,11 @@ export class CodexHoloInspectorComponent {
   });
 
   /** What an icon said last ("Auf der Wunschliste"); an icon press is not silent. */
-  readonly status = signal<RowActionResult | null>(null);
-  private statusTimer: ReturnType<typeof setTimeout> | null = null;
-
-  constructor() {
-    effect(() => {
-      this.status.set(null);
-      if (this.focusPart()?.className) this.injector.get(SearchWishlistService).ensureLoaded();
-    });
-  }
-
-  private rowOf(part: PartFocus): SearchResultRow | null {
-    if (!part.className || !part.kind) return null;
-    return { type: 'hit', hit: { kind: part.kind, classNameSlug: part.className } } as unknown as SearchResultRow;
-  }
 
   iconsOf(part: PartFocus): { wishlist: boolean; lager: boolean; nachschub: boolean } | null {
     if (!part.className || !part.kind) return null;
     const ic = resolveIcons({ type: 'hit', kind: part.kind as PolyHitKind });
     return ic.wishlist || ic.lager || ic.nachschub ? ic : null;
-  }
-
-  wished(part: PartFocus): boolean {
-    const row = this.rowOf(part);
-    return !!row && this.actions.isWished(row);
-  }
-
-  async runIcon(action: RowIconAction, part: PartFocus): Promise<void> {
-    const row = this.rowOf(part);
-    if (!row) return;
-    const res = await this.actions.icon(action, row, this.itemName(part.name ?? part.className ?? ''));
-    this.status.set(res);
-    if (this.statusTimer) clearTimeout(this.statusTimer);
-    if (res) this.statusTimer = setTimeout(() => this.status.set(null), 3200);
   }
 
   itemName(name: string): string {
