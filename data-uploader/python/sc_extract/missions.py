@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 _TOKEN_RE = re.compile(r"~mission\([^)]*\)")
 _UNSET = ("<= UNINITIALIZED =>", "<= PLACEHOLDER =>")
@@ -39,7 +39,8 @@ def clean_title(text: Optional[str]) -> Optional[str]:
     segs = [g for g in re.split(r"\s+[-–—]\s+", text) if g.strip()]
     while len(segs) > 1 and segs[0].lstrip().startswith("~mission("):
         segs.pop(0)
-    s = _TOKEN_RE.sub(" ", " - ".join(segs))
+    # CIG writes line breaks as a literal backslash-n; a title has no use for them.
+    s = _TOKEN_RE.sub(" ", " - ".join(segs)).replace("\\n", " ")
     s = re.sub(r"\s+", " ", s).strip()
     s = re.sub(r"^[\s\-–—:|]+|[\s\-–—:|]+$", "", s).strip()
     return s if re.search(r"[A-Za-zÀ-ÿ]{3,}", s) else None
@@ -67,10 +68,32 @@ def _category(filename: str) -> Optional[str]:
     return "/".join(parts) or None
 
 
+def readable_text(localized: Callable[[Optional[str]], Optional[Dict[str, str]]],
+                  key: Any) -> Optional[Dict[str, str]]:
+    """The localized text of an @-key, or None when no language has readable text."""
+    if not isinstance(key, str) or not key.startswith("@"):
+        return None
+    val = localized(key)
+    if not val:
+        return None
+    # Localizer.gettext falls back to the verbatim @-key: that is no text.
+    val = {k: ("" if k != "key" and (v or "").startswith("@") else v) for k, v in val.items()}
+    if not (val.get("en") or val.get("de")):
+        return None
+    if any(u in (val.get("en") or "") for u in _UNSET):
+        return None
+    return val
+
+
 def extract_missions(df, localized: Callable[[Optional[str]], Optional[Dict[str, str]]],
                      out_dir: Path, source: Dict[str, str],
-                     on_log: Callable[[str, str], None] = lambda lvl, m: None) -> int:
-    """Write one JSON per released MissionBrokerEntry; returns the count."""
+                     on_log: Callable[[str, str], None] = lambda lvl, m: None,
+                     contracts: Iterable[Dict[str, Any]] = ()) -> int:
+    """Write one JSON per released MissionBrokerEntry; returns the count.
+
+    ``contracts``: mission objects of the career/list contracts that award a
+    blueprint (blueprint_sources.py). Same shape, so the same ingest and page.
+    """
     d = out_dir / "missions"
     d.mkdir(parents=True, exist_ok=True)
     cache: Dict[str, Any] = {}
@@ -86,18 +109,7 @@ def extract_missions(df, localized: Callable[[Optional[str]], Optional[Dict[str,
         return cache[gid] or {}
 
     def loc_text(key: Any) -> Optional[Dict[str, str]]:
-        if not isinstance(key, str) or not key.startswith("@"):
-            return None
-        val = localized(key)
-        if not val:
-            return None
-        # Localizer.gettext falls back to the verbatim @-key: that is no text.
-        val = {k: ("" if k != "key" and (v or "").startswith("@") else v) for k, v in val.items()}
-        if not (val.get("en") or val.get("de")):
-            return None
-        if any(u in (val.get("en") or "") for u in _UNSET):
-            return None
-        return val
+        return readable_text(localized, key)
 
     n = 0
     skipped = 0
@@ -170,6 +182,10 @@ def extract_missions(df, localized: Callable[[Optional[str]], Optional[Dict[str,
         }
         safe = re.sub(r"[^A-Za-z0-9_.-]", "_", class_name or r.guid)
         (d / f"{safe}.json").write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+        n += 1
+    for obj in contracts:
+        (d / f"{obj['className']}.json").write_text(
+            json.dumps({**obj, "source": source}, ensure_ascii=False), encoding="utf-8")
         n += 1
     on_log("info", f"missions: {n} released contracts ({skipped} test/unreleased/untitled skipped)")
     return n

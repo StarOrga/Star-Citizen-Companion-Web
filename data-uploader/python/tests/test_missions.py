@@ -11,6 +11,10 @@ def test_clean_title_drops_runtime_tokens_and_qualifier_segments():
     assert clean_title("Illegal Blockade - Neutralizing Nine Tails Fleet") == "Illegal Blockade - Neutralizing Nine Tails Fleet"
 
 
+def test_clean_title_drops_a_literal_line_break():
+    assert clean_title("Need Resource for Research\\n") == "Need Resource for Research"
+
+
 def test_clean_title_is_none_when_nothing_readable_is_left():
     assert clean_title("~mission(Title)") is None
     assert clean_title("~mission(Contractor|BountyTitle)") is None

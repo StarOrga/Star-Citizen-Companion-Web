@@ -514,6 +514,7 @@ class CodexExtractor:
         # one-shot counters) so the UI can draw real per-category progress.
         self.on_expected = on_expected
         self.on_log = on_log
+        self._bp_sources = None
         self.on_progress = on_progress
         self.dump_generic = dump_generic
         # Without the generic dump its slice of the bar belongs to the typed
@@ -762,7 +763,19 @@ class CodexExtractor:
         from .missions import extract_missions
 
         self._bump("missions", extract_missions(self.df, self._localized, self.out,
-                                                self.source, self.on_log))
+                                                self.source, self.on_log,
+                                                contracts=self._blueprint_sources().missions))
+
+    def _blueprint_sources(self):
+        """Contracts that award blueprints, once per run; a failure costs the link, never the run."""
+        if self._bp_sources is None:
+            from .blueprint_sources import BlueprintSources, build_blueprint_sources
+            try:
+                self._bp_sources = build_blueprint_sources(self.df, self._localized, self.on_log)
+            except Exception as exc:  # noqa: BLE001
+                self.on_log("warn", f"blueprint sources: {exc}")
+                self._bp_sources = BlueprintSources()
+        return self._bp_sources
 
     # ── blueprints ─────────────────────────────────────────────────────────────
     def extract_blueprints(self) -> None:
@@ -777,7 +790,7 @@ class CodexExtractor:
           description, entityKind, category, categoryLabel, tier, craftTimeSeconds,
           dismantleTimeSeconds, dismantleEfficiency, ingredients, outputs,
           qualityRefs, gameplayProperties, poolClassName, isDefault,
-          missionSource (always null, R5), tags, raw, source.
+          missionSource (see blueprint_sources.py), tags, raw, source.
 
         Ingredients shape (flattened; DB child table is Wave-1b's job):
           [{ className, guid, name, quantity, minQuality, role, raw }, ...]
@@ -1138,7 +1151,8 @@ class CodexExtractor:
                 "gameplayProperties": gameplay_properties,
                 "poolClassName": pool_class,
                 "isDefault": is_default,
-                "missionSource": None,  # R5: always null in v1
+                # Contracts that award it (blueprint_sources.py); null = no contract does.
+                "missionSource": self._blueprint_sources().by_blueprint.get(_strip_type_prefix(r.name)),
                 "tags": tags,
                 "raw": rv,
                 "source": self.source,
