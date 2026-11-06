@@ -74,45 +74,45 @@ describe('upcoming ships — diff', () => {
   it('reports nothing when there is no baseline yet (first-ever visit)', () => {
     const d = diffUpcoming([IDRIS, ZEUS], null, new Set());
     expect(d.added).toEqual([]);
-    expect(d.favoriteUpdates).toEqual([]);
+    expect(d.wishedUpdates).toEqual([]);
   });
 
   it('reports ships missing from the baseline as added', () => {
     const d = diffUpcoming([IDRIS, ZEUS], snapshotOf([IDRIS]), new Set());
     expect(d.added.map((s) => s.id)).toEqual(['zeus-cl']);
-    expect(d.favoriteUpdates).toEqual([]);
+    expect(d.wishedUpdates).toEqual([]);
   });
 
-  it('reports a favorited ship whose production status moved', () => {
+  it('reports a wished ship whose production status moved', () => {
     const baseline = snapshotOf([IDRIS]);
     const promoted = { ...IDRIS, productionStatus: 'flight-ready' };
     const d = diffUpcoming([promoted], baseline, new Set(['idris-p']));
     expect(d.added).toEqual([]);
-    expect(d.favoriteUpdates.map((s) => s.id)).toEqual(['idris-p']);
+    expect(d.wishedUpdates.map((s) => s.id)).toEqual(['idris-p']);
   });
 
-  it('ignores status moves on ships the user did not favorite', () => {
+  it('ignores status moves on ships the user did not wish', () => {
     const baseline = snapshotOf([IDRIS]);
     const promoted = { ...IDRIS, productionStatus: 'flight-ready' };
-    expect(diffUpcoming([promoted], baseline, new Set()).favoriteUpdates).toEqual([]);
+    expect(diffUpcoming([promoted], baseline, new Set()).wishedUpdates).toEqual([]);
   });
 
-  it('reports an added ship once, even when it is already favorited', () => {
+  it('reports an added ship once, even when it is already wished', () => {
     const d = diffUpcoming([IDRIS, ZEUS], snapshotOf([IDRIS]), new Set(['zeus-cl']));
     expect(d.added.map((s) => s.id)).toEqual(['zeus-cl']);
-    expect(d.favoriteUpdates).toEqual([]);
+    expect(d.wishedUpdates).toEqual([]);
   });
 
   it('stays quiet when nothing changed', () => {
     const d = diffUpcoming([IDRIS, ZEUS], snapshotOf([IDRIS, ZEUS]), new Set(['idris-p']));
     expect(d.added).toEqual([]);
-    expect(d.favoriteUpdates).toEqual([]);
+    expect(d.wishedUpdates).toEqual([]);
   });
 
   it('treats a missing production status as a stable empty string', () => {
     const bare = ship({ id: 'x', name: 'X' });
     expect(snapshotOf([bare])).toEqual({ x: '' });
-    expect(diffUpcoming([bare], snapshotOf([bare]), new Set(['x'])).favoriteUpdates).toEqual([]);
+    expect(diffUpcoming([bare], snapshotOf([bare]), new Set(['x'])).wishedUpdates).toEqual([]);
   });
 });
 

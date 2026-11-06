@@ -491,16 +491,11 @@
       "searchPlaceholder": "Schiff, Hersteller oder Rolle suchen…",
       "searchAria": "Kommende Schiffe durchsuchen",
       "searchClear": "Suche zurücksetzen",
-      "favoritesOnly": "Nur Favoriten",
-      "favorite": {
-        "add": "Zu Favoriten hinzufügen",
-        "remove": "Aus Favoriten entfernen"
-      },
       "newBadge": "Neu",
       "badge": "Angekündigt",
       "noMatches": {
         "title": "Keine Treffer",
-        "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
+        "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Filter lösen."
       },
       "conceptBadge": "Konzept",
       "notFlightReady": "Noch nicht flugfähig",
@@ -552,12 +547,6 @@
       "notice": {
         "concept": "RSI hat dieses Schiff angekündigt, gebaut wird es noch — im Spiel ist es nicht flugfähig. Deshalb gibt es hier keine Hardpoints, Komponenten oder Werte.",
         "flightReady": "RSI führt dieses Schiff als flugbereit, in unseren dataminten Spieldaten fehlt es aber noch — die Werte kommen mit einem der nächsten Build-Uploads."
-      },
-      "watch": {
-        "off": "Für die Flotte merken",
-        "on": "Für die Flotte gemerkt",
-        "hint": "Gemerkte Schiffe landen oben in deinem Hangar, markiert als noch nicht flugfähig.",
-        "inHangar": "Im Hangar ansehen"
       },
       "rsiLink": "Auf robertsspaceindustries.com ansehen",
       "noData": {
@@ -2556,7 +2545,7 @@
   "news": {
     "loading": "Lade…",
     "empty": "Noch keine News.",
-    "emptyFavorites": "Noch keine gemerkten Beiträge — tippe auf ☆ an einem Beitrag, um ihn hier zu sammeln.",
+    "emptyFavorites": "Noch keine Lesezeichen — setze eines mit dem Lesezeichen-Symbol an einem Beitrag, um ihn hier zu sammeln.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
     "refreshing": "Wird aktualisiert…",
@@ -2584,8 +2573,8 @@
       "patch": "Patch-Notes"
     },
     "favorite": {
-      "save": "Merken",
-      "saved": "Gemerkt"
+      "save": "Lesezeichen setzen",
+      "saved": "Mit Lesezeichen"
     },
     "share": {
       "label": "Teilen",
@@ -2909,7 +2898,7 @@
       "title": "Kommende Schiffe",
       "addedOne": "1 neues Schiff in der Schiffsmatrix",
       "addedMany": "{{count}} neue Schiffe in der Schiffsmatrix",
-      "favoritesUpdated": "{{count}} deiner Favoriten haben einen neuen Status",
+      "wishedUpdated": "{{count}} Schiffe auf deiner Wunschliste haben einen neuen Status",
       "more": "+{{count}} weitere",
       "open": "Kommende Schiffe öffnen",
       "dismiss": "Hinweis ausblenden"
@@ -3997,9 +3986,9 @@
     },
     "drawingBoard": {
       "title": "Auf dem Reißbrett",
-      "note": "Gemerkte Schiffe — noch nicht flugfähig",
+      "note": "Wunschliste — noch nicht flugfähig",
       "browse": "Reißbrett öffnen",
-      "empty": "Du hast dir noch kein angekündigtes Schiff für die Flotte gemerkt."
+      "empty": "Du hast noch kein angekündigtes Schiff auf der Wunschliste."
     },
     "import": {
       "open": "Importieren…",
@@ -4661,7 +4650,7 @@
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
-      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und gemerkte Artikel sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und Lesezeichen sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
       "acceptAll": "Alle erlauben",
       "essentialOnly": "Nur notwendige"
     },
@@ -4677,7 +4666,7 @@
       },
       "preferences": {
         "label": "Präferenzen",
-        "desc": "News-Kanalfilter, gemerkte Artikel und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+        "desc": "News-Kanalfilter, Lesezeichen und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
       },
       "statistics": {
         "label": "Statistik",
@@ -5526,7 +5515,7 @@
       "ships": {
         "title": "Schiffe",
         "count": "{{n}} im Hangar",
-        "noFavourites": "Noch keine Favoriten markiert."
+        "noFavourites": "Noch kein Flaggschiff festgelegt."
       },
       "sets": {
         "title": "Sets",
@@ -6345,11 +6334,11 @@
     "wished": "Auf der Wunschliste",
     "allWishes": "Ganze Wunschliste",
     "newsRead": "Zuletzt gelesen",
-    "newsSaved": "Gemerkte Beiträge",
+    "newsSaved": "Lesezeichen",
     "emptyRecent": "Noch nichts geöffnet.",
     "emptyWished": "Noch nichts auf der Wunschliste.",
     "emptyRead": "Noch nichts gelesen.",
-    "emptySaved": "Noch nichts gemerkt.",
+    "emptySaved": "Noch keine Lesezeichen.",
     "emptyNachschub": "Alles besorgt, nichts offen.",
     "type": {
       "all": "Alles",
@@ -6423,7 +6412,7 @@
         "gallery": "Galerie",
         "fps": "FPS"
       },
-      "wished": "Gemerkt",
+      "wished": "Wunschliste",
       "needed": "Fehlt mir",
       "section": {
         "weapons": "Bewaffnung",
@@ -6676,7 +6665,7 @@
         "t": "Mit „inventar“ vor dem Begriff suchst du nur in deinem Inventar"
       },
       {
-        "t": "Mit „gemerkt“ vor dem Begriff suchst du nur auf deiner Wunschliste. Gemerktes steht immer zuerst"
+        "t": "Mit „wunschliste“ vor dem Begriff suchst du nur auf deiner Wunschliste. Was darauf steht, kommt immer zuerst"
       },
       {
         "t": "Im Hangar findet „patrouille“ dein Loadout"

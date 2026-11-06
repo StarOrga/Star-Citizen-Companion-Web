@@ -491,16 +491,11 @@
       "searchPlaceholder": "Search ship, manufacturer or role…",
       "searchAria": "Search upcoming ships",
       "searchClear": "Clear search",
-      "favoritesOnly": "Favorites only",
-      "favorite": {
-        "add": "Add to favorites",
-        "remove": "Remove from favorites"
-      },
       "newBadge": "New",
       "badge": "Announced",
       "noMatches": {
         "title": "No matches",
-        "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
+        "body": "No upcoming ship matches the search and filter — shorten the term or drop the filter."
       },
       "conceptBadge": "Concept",
       "notFlightReady": "Not flight-ready yet",
@@ -552,12 +547,6 @@
       "notice": {
         "concept": "RSI has announced this ship but is still building it — it is not flyable in game. That is why there are no hardpoints, components or stats here.",
         "flightReady": "RSI lists this ship as flight-ready, but our datamined game data has no match for it yet — the stats arrive with one of the next build uploads."
-      },
-      "watch": {
-        "off": "Watch for my fleet",
-        "on": "Watched for my fleet",
-        "hint": "Watched ships show up at the top of your hangar, marked as not flight-ready.",
-        "inHangar": "View in the hangar"
       },
       "rsiLink": "View on robertsspaceindustries.com",
       "noData": {
@@ -2556,7 +2545,7 @@
   "news": {
     "loading": "Loading…",
     "empty": "No news yet.",
-    "emptyFavorites": "No saved posts yet — tap ☆ on any post to collect it here.",
+    "emptyFavorites": "No bookmarks yet — use the bookmark icon on any post to collect it here.",
     "errorTitle": "Could not load news",
     "lastUpdated": "Updated {{rel}}",
     "refreshing": "Refreshing…",
@@ -2584,8 +2573,8 @@
       "patch": "Patch notes"
     },
     "favorite": {
-      "save": "Save",
-      "saved": "Saved"
+      "save": "Add bookmark",
+      "saved": "Bookmarked"
     },
     "share": {
       "label": "Share",
@@ -2909,7 +2898,7 @@
       "title": "Upcoming Ships",
       "addedOne": "1 new ship on the ship matrix",
       "addedMany": "{{count}} new ships on the ship matrix",
-      "favoritesUpdated": "{{count}} of your favorites changed status",
+      "wishedUpdated": "{{count}} ships on your wishlist changed status",
       "more": "+{{count}} more",
       "open": "Open upcoming ships",
       "dismiss": "Dismiss notice"
@@ -3997,9 +3986,9 @@
     },
     "drawingBoard": {
       "title": "On the drawing board",
-      "note": "Watched ships — not flight-ready yet",
+      "note": "Wishlist — not flight-ready yet",
       "browse": "Open the drawing board",
-      "empty": "You haven't watched an announced ship for your fleet yet."
+      "empty": "You have no announced ship on your wishlist yet."
     },
     "import": {
       "open": "Import…",
@@ -4661,7 +4650,7 @@
   "consent": {
     "banner": {
       "title": "Browser storage",
-      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and saved articles, plus anonymous usage statistics. You can change this anytime in Settings.",
+      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and bookmarks, plus anonymous usage statistics. You can change this anytime in Settings.",
       "acceptAll": "Allow all",
       "essentialOnly": "Essential only"
     },
@@ -4677,7 +4666,7 @@
       },
       "preferences": {
         "label": "Preferences",
-        "desc": "News channel filter, saved articles and similar convenience state. Turning this off deletes the stored values."
+        "desc": "News channel filter, bookmarks and similar convenience state. Turning this off deletes the stored values."
       },
       "statistics": {
         "label": "Statistics",
@@ -5526,7 +5515,7 @@
       "ships": {
         "title": "Ships",
         "count": "{{n}} in the hangar",
-        "noFavourites": "No favourites marked yet."
+        "noFavourites": "No flagship set yet."
       },
       "sets": {
         "title": "Sets",
@@ -6345,11 +6334,11 @@
     "wished": "On the wishlist",
     "allWishes": "Whole wishlist",
     "newsRead": "Recently read",
-    "newsSaved": "Saved posts",
+    "newsSaved": "Bookmarked posts",
     "emptyRecent": "Nothing opened yet.",
     "emptyWished": "Nothing on the wishlist yet.",
     "emptyRead": "Nothing read yet.",
-    "emptySaved": "Nothing saved yet.",
+    "emptySaved": "No bookmarks yet.",
     "emptyNachschub": "Everything fetched, nothing open.",
     "type": {
       "all": "All",
@@ -6423,7 +6412,7 @@
         "gallery": "Gallery",
         "fps": "FPS"
       },
-      "wished": "Wished",
+      "wished": "Wishlist",
       "needed": "Needed",
       "section": {
         "weapons": "Weapons",

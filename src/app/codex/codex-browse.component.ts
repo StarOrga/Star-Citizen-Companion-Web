@@ -239,12 +239,6 @@ export function blueprintCategoriesForGroup(
                       </a>
                       <span class="acts">
                         <sc-item-path kind="upcoming" [className]="s.id" [name]="s.name" />
-                        <button type="button" class="act pin" [class.pinned]="rsi.isFavorite(s.id)"
-                                [attr.aria-pressed]="rsi.isFavorite(s.id)"
-                                [attr.aria-label]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
-                                [scTooltip]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
-                                scTooltipTier="label"
-                                (click)="rsi.toggleFavorite(s.id)">{{ rsi.isFavorite(s.id) ? '★' : '☆' }}</button>
                       </span>
                     </li>
                   }

@@ -13,15 +13,15 @@ const ship = (id: string, over: Partial<UpcomingShip> = {}): UpcomingShip => ({
 
 class FakeUpcoming {
   readonly added = signal<UpcomingShip[]>([]);
-  readonly favoriteUpdates = signal<UpcomingShip[]>([]);
-  readonly favorites = signal<ReadonlySet<string>>(new Set());
+  readonly wishedUpdates = signal<UpcomingShip[]>([]);
+  readonly wished = signal<ReadonlySet<string>>(new Set());
   readonly feed = signal<object | null>({ ships: [] });
-  readonly diff = () => ({ added: this.added(), favoriteUpdates: this.favoriteUpdates() });
-  readonly notificationCount = () => this.added().length + this.favoriteUpdates().length;
+  readonly diff = () => ({ added: this.added(), wishedUpdates: this.wishedUpdates() });
+  readonly notificationCount = () => this.added().length + this.wishedUpdates().length;
   readonly refresh = jasmine.createSpy('refresh').and.returnValue(Promise.resolve());
   readonly acknowledge = jasmine.createSpy('acknowledge');
-  isFavorite(id: string): boolean {
-    return this.favorites().has(id);
+  isWished(id: string): boolean {
+    return this.wished().has(id);
   }
 }
 
@@ -58,14 +58,14 @@ describe('UpcomingShipsNoticeComponent', () => {
     expect(svc.refresh).not.toHaveBeenCalled();
   });
 
-  it('lists added ships, marks favorites, and links to the upcoming list', () => {
+  it('lists added ships, marks wished ships, and links to the upcoming list', () => {
     svc.added.set([ship('a'), ship('b')]);
-    svc.favorites.set(new Set(['b']));
+    svc.wished.set(new Set(['b']));
     const f = render();
     expect($(f, '.notice')!.textContent).toContain('news.upcomingShips.addedMany');
     const names = Array.from(f.nativeElement.querySelectorAll('.ship .nm')).map((n) => (n as HTMLElement).textContent!.trim());
     expect(names).toEqual(['Ship a', 'Ship b']);
-    expect(f.nativeElement.querySelectorAll('.ship.fav').length).toBe(1);
+    expect(f.nativeElement.querySelectorAll('.ship.wish').length).toBe(1);
     expect($(f, 'a.cta')!.getAttribute('href')).toBe('/codex/upcoming');
   });
 
@@ -81,10 +81,10 @@ describe('UpcomingShipsNoticeComponent', () => {
     expect($(f, '.ship.more')!.textContent).toContain('news.upcomingShips.more');
   });
 
-  it('shows favorite status updates with a translated status label', () => {
-    svc.favoriteUpdates.set([ship('a', { productionStatus: 'flight-ready' })]);
+  it('shows wished-ship status updates with a translated status label', () => {
+    svc.wishedUpdates.set([ship('a', { productionStatus: 'flight-ready' })]);
     const f = render();
-    expect($(f, '.notice')!.textContent).toContain('news.upcomingShips.favoritesUpdated');
+    expect($(f, '.notice')!.textContent).toContain('news.upcomingShips.wishedUpdated');
     expect($(f, '.st')!.textContent!.trim()).toBe('codex.upcoming.status.flightReady');
   });
 
