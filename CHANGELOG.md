@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.212.0] - 2026-11-06
+
+### Added
+- HQ Stock: the item field of "Put something in storage" suggests ships, items, components, weapons and ammunition from the Codex. Text without a match says it does not exist and cannot be saved. An entry is saved with its Codex reference (kind and class name in the existing class_name column, no migration).
+- HQ Stock: entries in "Lager per Ort" with a reference are links: a ship opens your own hangar ship (else its Codex page), an item its Codex page, a bare class name from the app or log the Codex index search for its name.
+
 ## [0.211.4] - 2026-11-06
 
 ### Fixed
