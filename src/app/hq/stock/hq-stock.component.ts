@@ -2,17 +2,10 @@ import { formatLocationName } from '../now/hq-live.util';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CodexService, toLang } from '../../codex/codex.service';
-import { hitTitle } from '../../codex/search/codex-search-model';
 import { toErrorKey } from '../../core/describe-error';
 import { HqInventoryItemRow } from '../data/hq-db.types';
-import { StockTarget, encodeStockRef, stockTarget } from './hq-stock-ref';
+import { StockSuggestion, StockTarget, stockSuggestions, stockTarget } from './hq-stock-ref';
 
-interface StockSuggestion {
-  key: string;
-  kind: 'ship' | 'item' | 'component' | 'weapon' | 'ammunition';
-  title: string;
-}
-const STOCK_PICK_KINDS: readonly string[] = ['ship', 'item', 'component', 'weapon', 'ammunition'];
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
@@ -551,20 +544,10 @@ export class HqStockComponent implements OnInit {
 
   private async runSearch(t: string, seq: number): Promise<void> {
     try {
-      const res = await this.codex.searchAll(t, 6);
+      const res = await this.codex.searchAll(t, 30);
       if (seq !== this.searchSeq) return;
       const lang = toLang(this.translate.getCurrentLang() ?? this.translate.getFallbackLang());
-      const seen = new Set<string>();
-      const out: StockSuggestion[] = [];
-      for (const h of res.hits) {
-        if (!STOCK_PICK_KINDS.includes(h.kind)) continue;
-        const kind = h.kind as StockSuggestion['kind'];
-        const key = encodeStockRef(kind, h.classNameSlug);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({ key, kind, title: hitTitle(h, lang) });
-        if (out.length >= 8) break;
-      }
+      const out = stockSuggestions(res.hits, t, lang);
       this.suggestions.set(out);
       this.activeIndex.set(-1);
       // An exact name typed in full is the entry: no click needed.
