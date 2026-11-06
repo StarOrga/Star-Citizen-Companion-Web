@@ -3956,12 +3956,7 @@
       "createConfigFirst": "Erstelle oben eine Konfiguration, um das Loadout zu bearbeiten."
     },
     "picker": {
-      "searchPlaceholder": "Nach Name oder Klasse filtern…",
-      "close": "Schließen",
-      "loading": "Lädt…",
-      "empty": "Nichts gefunden.",
-      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet).",
-      "loadFailed": "Items konnten nicht geladen werden"
+      "loading": "Lädt…"
     },
     "teaser": {
       "title": "Dein persönlicher Hangar",

@@ -3956,12 +3956,7 @@
       "createConfigFirst": "Create a configuration above to start editing the loadout."
     },
     "picker": {
-      "searchPlaceholder": "Filter by name or class…",
-      "close": "Close",
-      "loading": "Loading…",
-      "empty": "Nothing found.",
-      "emptyPort": "No compatible items found in this catalog build (subset seeded).",
-      "loadFailed": "Items could not be loaded"
+      "loading": "Loading…"
     },
     "teaser": {
       "title": "Your personal hangar",
