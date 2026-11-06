@@ -1,7 +1,63 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.216.1",
+  "current": "0.217.1",
   "releases": [
+    {
+      "version": "0.217.1",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Coming back to /verse no longer builds the moons anew, which took a noticeable moment during the page change."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.217.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Verse projection builds the preview panel in one sweep: its light bar runs down to build the panel and back up to write the text."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The planet sits higher on the Verse page, and \"Mehr im Verse\" now always stays visible below the panel."
+            },
+            {
+              "title": "",
+              "text": "The preview panel keeps one size for every message; long titles and texts are shortened."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The light cone coming from the Galerie planet no longer looks like two crossed cones."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.216.1",
       "date": "2026-11-06",
