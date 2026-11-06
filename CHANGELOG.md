@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.220.0] - 2026-11-06
+
+### Added
+- Every item now has one path: wishlist, Nachschub and Inventar, with the same control on search, Codex, HQ, Hangar and friend pages. Ships end in the Hangar instead of the Inventar.
+- A filled stop shows its state and a link to the list, an empty stop adds. Besorgt asks where the item lies, and Nachholen on an Inventar row adds it to Nachschub again.
+- One bookmark in the header opens the last opened and wished items of the page's type, in News the last read and bookmarked ones, plus Nachschub.
+- Blueprints have all three stops. Their material comes along into Nachschub in exact SCU, and removing the blueprint takes it out again.
+- The uploader now extracts which missions award a blueprint. The blueprint page shows them after the next upload.
+- The search words wunschliste, fehlt mir and inventar list their own set, and wished items rank first.
+
+### Changed
+- One wishlist for everything, also for announced ships. The separate list for announced ships is gone.
+- The HQ page and step 3 are called Inventar, shared sets offer "Kopie anlegen", and the Spind tab is called Sets.
+- The star is gone from compare, announced ships, flagship, set favourite and news. Compare uses a balance scale, news a bookmark, and the flagship stands first with a text mark.
+- The old hangar detail page redirects. Rename, notes, flagship and remove live in "Verwalten" on the hangar card.
+
+### Fixed
+- Storing an item from the search counts as owned, and the wish state of announced ships lights up correctly.
+- Moving a wish to Nachschub keeps the wish when the line cannot be saved.
+- The share button shows its real label.
+- No text on the Holotable falls below the readable minimum.
+
 ## [0.219.0] - 2026-11-06
 
 ### Changed
