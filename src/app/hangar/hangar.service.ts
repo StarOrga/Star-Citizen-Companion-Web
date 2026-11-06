@@ -4,6 +4,7 @@ import { AnalyticsService } from '../core/analytics.service';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { WishlistStore } from '../hq/data/wishlist.store';
 import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 // One normalizer for "is this the same ship name", shared with the RSI
 // ship-matrix feed: the announced-ship page looks a concept-wishlist row up by
@@ -25,7 +26,6 @@ import {
   RoleLoadoutItem,
   RoleLoadoutRole,
   ShipConfigRole,
-  mapConceptShip,
   mapHangarRoleLoadout,
   mapHangarShareLink,
   mapHangarShip,
@@ -63,22 +63,16 @@ export class HangarService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly wishlist = inject(WishlistStore);
 
   readonly ships = signal<HangarShip[]>([]);
   readonly roleLoadouts = signal<HangarRoleLoadout[]>([]);
-  // Concept-ship wishlist (#135) — separate table, no catalog linkage.
-  readonly conceptShips = signal<ConceptShip[]>([]);
+  /** Announced-ship wishlist: lives in the one wishlist table now (`WishlistStore`). */
+  readonly conceptShips = this.wishlist.upcoming;
   readonly loading = signal(false);
   /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
-  // Concept-wishlist load state, so the Codex can ask for it standalone
-  // (`ensureConceptShipsLoaded`) without re-fetching what `loadAll` already
-  // has. Keyed by user id, never a bare boolean: a session swap inside one
-  // tab would otherwise leave the next user looking at the previous one's
-  // watchlist and a cache flag that says "already loaded".
-  private conceptsLoadedFor: string | null = null;
-  private conceptsInFlight: Promise<void> | null = null;
 
   // Flagship = the user's single pinned "standard ship" (a ship class name),
   // driving the Codex Bridge hero. Source of truth is
@@ -193,7 +187,7 @@ export class HangarService {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [shipsRes, loadoutsRes, conceptsRes] = await Promise.all([
+      const [shipsRes, loadoutsRes] = await Promise.all([
         this.sb.client
           .from('hangar_ships')
           .select('*')
@@ -203,25 +197,15 @@ export class HangarService {
           .from('hangar_role_loadouts')
           .select('*')
           .order('updated_at', { ascending: false }),
-        this.sb.client
-          .from('hangar_concept_ships')
-          .select('*')
-          .order('created_at', { ascending: false }),
       ]);
+      // The announced-ship wishlist is part of the one wishlist table; best-effort like before.
+      void this.wishlist.ensureLoaded();
       if (shipsRes.error) throw shipsRes.error;
       if (loadoutsRes.error) throw loadoutsRes.error;
       this.ships.set(((shipsRes.data ?? []) as HangarShipRow[]).map(mapHangarShip));
       this.roleLoadouts.set(
         ((loadoutsRes.data ?? []) as HangarRoleLoadoutRow[]).map(mapHangarRoleLoadout),
       );
-      // Best-effort: the concept table ships later than the others (migration
-      // 20260711001000) — a missing relation must not break the hangar.
-      if (!conceptsRes.error) {
-        this.conceptShips.set(
-          ((conceptsRes.data ?? []) as Record<string, unknown>[]).map(mapConceptShip),
-        );
-        this.conceptsLoadedFor = this.userId;
-      }
       // Sync the flagship now the user id is guaranteed available (the
       // constructor may have run before auth resolved). DB-first, see below.
       await this.syncFlagship();
@@ -277,28 +261,7 @@ export class HangarService {
    * callers; `loadAll` flips the same flag, so the two never fetch twice.
    */
   ensureConceptShipsLoaded(): Promise<void> {
-    const userId = this.userId;
-    if (userId && this.conceptsLoadedFor === userId) return Promise.resolve();
-    if (!this.conceptsInFlight) {
-      this.conceptsInFlight = this.loadConceptShips().finally(() => {
-        this.conceptsInFlight = null;
-      });
-    }
-    return this.conceptsInFlight;
-  }
-
-  private async loadConceptShips(): Promise<void> {
-    if (!this.userId) return;
-    const { data, error } = await this.sb.client
-      .from('hangar_concept_ships')
-      .select('*')
-      .order('created_at', { ascending: false });
-    // Best-effort like `loadAll`: this runs on a Codex page, and a missing
-    // relation or an RLS miss must degrade to "not watched", never to an error
-    // banner on a page that is really about the ship.
-    if (error) return;
-    this.conceptShips.set(((data ?? []) as Record<string, unknown>[]).map(mapConceptShip));
-    this.conceptsLoadedFor = this.userId;
+    return this.wishlist.ensureLoaded();
   }
 
   /**
@@ -319,51 +282,27 @@ export class HangarService {
     rsiUrl?: string;
     notes?: string;
   }): Promise<ConceptShip | null> {
-    const userId = this.userId;
-    // The column CHECKs `length(trim(name)) between 1 and 80`; clamp here so a
+    // The column CHECKs `char_length(trim(name)) between 1 and 80`; clamp here so a
     // long matrix name comes back as a wishlist entry instead of a raw 23514.
     const name = input.name.trim().slice(0, CONCEPT_NAME_MAX);
-    if (!userId || !name) return null;
-    const { data, error } = await this.sb.client
-      .from('hangar_concept_ships')
-      .insert({
-        user_id: userId,
-        name,
-        manufacturer: input.manufacturer?.trim() || null,
-        // Defence in depth (feedback f7d3bd9a): a concept-ship link is
-        // user-supplied and later rendered as an href, so only an official RSI
-        // pledge-ship URL is ever persisted. The form rejects a bad paste with a
-        // visible error first; anything that still gets here is stripped to
-        // null, and the DB CHECK is the gate neither layer can bypass.
-        rsi_url: normalizeRsiPledgeShipUrl(input.rsiUrl),
-        notes: input.notes?.trim() || null,
-      })
-      .select('*')
-      .single();
-    if (error) {
-      // 23505 = duplicate (user_id, name) — already wishlisted, no-op.
-      if ((error as { code?: string }).code === '23505') {
-        return this.conceptShips().find((c) => c.name === name) ?? this.conceptShipByName(name);
-      }
-      this.error.set(toErrorKey('hangar', 'addConceptShip', error, { name }));
+    if (!this.userId || !name) return null;
+    // Defence in depth (feedback f7d3bd9a): a link is user-supplied and later rendered as an
+    // href, so only an official RSI pledge-ship URL is ever persisted (the DB CHECK is the gate).
+    const rsiUrl = normalizeRsiPledgeShipUrl(input.rsiUrl);
+    const ok = await this.wishlist.add({ kind: 'upcoming', className: name, name, manufacturer: input.manufacturer, rsiUrl, notes: input.notes });
+    if (!ok) {
+      this.error.set(toErrorKey('hangar', 'addConceptShip', new Error('wishlist add failed'), { name }));
       return null;
     }
-    const concept = mapConceptShip(data as Record<string, unknown>);
-    this.conceptShips.set([concept, ...this.conceptShips()]);
-    this.analytics.capture('hangar_concept_ship_added', {
-      has_rsi_url: !!normalizeRsiPledgeShipUrl(input.rsiUrl),
-    });
-    return concept;
+    this.analytics.capture('hangar_concept_ship_added', { has_rsi_url: !!rsiUrl });
+    return this.conceptShipByName(name);
   }
 
   async removeConceptShip(id: string): Promise<boolean> {
-    const { error } = await this.sb.client.from('hangar_concept_ships').delete().eq('id', id);
-    if (error) {
-      this.error.set(toErrorKey('hangar', 'removeConceptShip', error, { id }));
-      return false;
-    }
-    this.conceptShips.set(this.conceptShips().filter((c) => c.id !== id));
-    return true;
+    const entry = this.conceptShips().find((c) => c.id === id);
+    const ok = await this.wishlist.remove('upcoming', id, entry?.name);
+    if (!ok) this.error.set(toErrorKey('hangar', 'removeConceptShip', new Error('wishlist remove failed'), { id }));
+    return ok;
   }
 
   shipById(id: string): HangarShip | null {

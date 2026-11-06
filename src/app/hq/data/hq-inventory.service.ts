@@ -187,6 +187,37 @@ export class HqInventoryService {
     }
   }
 
+  /** Adds `qty` to what already lies at `location` (addManual overwrites). */
+  async addStock(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null): Promise<boolean> {
+    const loc = location.trim();
+    const have = this.items().find((i) => i.location === loc && (i.name === item.trim() || (!!classRef && i.class_name === classRef)));
+    return this.addManual(loc, have?.name ?? item, (have?.qty ?? 0) + qty, have?.unit ?? unit, classRef ?? have?.class_name ?? null);
+  }
+
+  /** Takes `qty` back out of a place (undo of {@link addStock}); the row goes at zero. False on failure. */
+  async removeStock(location: string, item: string, qty: number, classRef: string | null = null): Promise<boolean> {
+    const loc = location.trim();
+    const have = this.items().find((i) => i.location === loc && (i.name === item.trim() || (!!classRef && i.class_name === classRef)));
+    const userId = this.auth.user()?.id;
+    if (!have || !userId) return false;
+    if (have.qty - qty > 0) return this.addManual(loc, have.name, have.qty - qty, have.unit, have.class_name);
+    this.error.set(null);
+    try {
+      const { error } = await this.sb.client
+        .from('hq_inventory_items' as never)
+        .delete()
+        .eq('user_id', userId)
+        .eq('location', loc)
+        .eq('name', have.name);
+      if (error) throw error;
+      await this.load();
+      return !this.error();
+    } catch (err) {
+      this.error.set(toErrorKey('hq', 'inventory.remove', err));
+      return false;
+    }
+  }
+
   /** "liegt in …": put `qty` of `item` into `location` (source `manual`). False on invalid input or failure. */
   async addManual(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null): Promise<boolean> {
     const loc = location.trim().slice(0, HQ_LOCATION_MAX);

@@ -145,8 +145,16 @@ export class HqSuppliesService {
   }
 
   add(name: string, qty: number, meta: SupplyMeta = {}): boolean {
+    return this.addLine(name, qty, meta) !== null;
+  }
+
+  /**
+   * Like {@link add}, but names the line it landed on: `prevQty` is the quantity before (0 for a
+   * new line), so a caller can undo exactly this. Null when the list is full or the name empty.
+   */
+  addLine(name: string, qty: number, meta: SupplyMeta = {}): { id: string; prevQty: number } | null {
     const clean = name.trim().slice(0, SUPPLY_NAME_MAX);
-    if (!clean || this.items().length >= SUPPLIES_MAX_ITEMS) return false;
+    if (!clean || this.items().length >= SUPPLIES_MAX_ITEMS) return null;
     const q = clampQty(qty);
     const setId = meta.setId ?? null;
     // Same name (case-insensitive), same set and still open: raise its quantity like a cart does.
@@ -155,7 +163,9 @@ export class HqSuppliesService {
     );
     if (same) {
       this.patch(same.id, { qty: clampQty(same.qty + q) });
-    } else {
+      return { id: same.id, prevQty: same.qty };
+    }
+    {
       const setKind = setId ? (meta.setKind ?? null) : null;
       const row: SupplyItem = {
         id: newClientId(),
@@ -174,13 +184,28 @@ export class HqSuppliesService {
         dirty: true,
       };
       this.commit([...this.rows(), row]);
+      return { id: row.id, prevQty: 0 };
     }
-    return true;
   }
 
   toggle(id: string): void {
     const i = this.items().find((x) => x.id === id);
     if (i) this.patch(id, { done: !i.done });
+  }
+
+  /** Close (`done`) or reopen a line explicitly - a toggle cannot say which way it went. */
+  setDone(id: string, done: boolean): void {
+    const i = this.items().find((x) => x.id === id);
+    if (i && i.done !== done) this.patch(id, { done });
+  }
+
+  /** Open lines of a catalog item (by class name), manual lines first. */
+  openLinesFor(className: string): SupplyItem[] {
+    const key = className.trim().toLowerCase();
+    if (!key) return [];
+    return this.open()
+      .filter((i) => (i.className ?? '').toLowerCase() === key)
+      .sort((a, b) => Number(!!a.setId) - Number(!!b.setId));
   }
 
   /** Mark a line as wanted / not wanted for its set (drives the ring fraction). */
