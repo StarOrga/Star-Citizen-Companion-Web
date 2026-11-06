@@ -87,6 +87,8 @@ import { computeKpiSheet, KpiShipInput } from './codex-loadout-stats';
 import { SummaryOccupant } from './ship-summary-panels';
 import { HoloSilhouette, parseHoloSilhouette, SilhouetteKind } from './holo-silhouette';
 import { MissileRecord, missileRecordOf } from './codex-missile';
+import { USABLE_ITEM_ATTACH_TYPES, isUsableAttachType } from './codex-area-taxonomy';
+import { CodexPrefsService } from './codex-prefs.service';
 import {
   cohortCacheKey,
   readCohortCache,
@@ -241,6 +243,10 @@ export interface CodexListFilters {
   // Restrict to these class names (the search CTAs "Passende Schiffe" ?fits= /
   // "Passende Waffen" ?ammo= resolve their reverse lookup into this list).
   classNameIn?: string[];
+  // class_name regex (PostgREST `match`) / its complement — the ammunition
+  // split into on-foot and vehicle rounds (codex-area-taxonomy).
+  classNameMatch?: string;
+  classNameNotMatch?: string;
   // ship-only facet — payload `career` keys (the RSI role filter, see
   // codex-ship-filters.ts). Ignored for other kinds.
   careerIn?: string[];
@@ -554,6 +560,7 @@ export class CodexService {
    * any build; it holds no reference back to this service, so there is no cycle.
    */
   private readonly upcoming = inject(UpcomingShipsService);
+  private readonly prefs = inject(CodexPrefsService);
   private readonly zone = inject(NgZone);
 
   /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
@@ -930,14 +937,29 @@ export class CodexService {
   }
 
   /**
+   * How many rows {@link listByKind} would find for these filters (no search,
+   * head-only) — the area tree's counts. Null on a failed read.
+   */
+  async countByKind(kind: CodexKind, filters: CodexListFilters = {}): Promise<number | null> {
+    const build = await this.buildOrThrow();
+    if (!build) return null;
+    try {
+      const { count, error } = await this.filteredListQuery(kind, build.id, filters, true);
+      return error ? null : (count ?? 0);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * The list query of one kind and build with every non-search filter of
    * {@link listByKind} applied — shared by the primary (English ILIKE) search
    * and the German-name fallback, so both honour the same filters and facets.
    */
-  private filteredListQuery(kind: CodexKind, buildId: string, filters: CodexListFilters) {
+  private filteredListQuery(kind: CodexKind, buildId: string, filters: CodexListFilters, headOnly = false) {
     let query = this.sb.client
       .from(CODEX_ENTITY_TABLES[kind])
-      .select(listSelect(kind, filters.payload), { count: 'exact' })
+      .select(headOnly ? COUNT_ONLY_SELECT : listSelect(kind, filters.payload), { count: 'exact', head: headOnly })
       .eq('build_id', buildId);
 
     // "Include variants" is the switch for the raw records — all of them.
@@ -965,6 +987,8 @@ export class CodexService {
     if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
       query = query.in('category', filters.blueprintCategoryIn);
     if (filters.classNameIn) query = query.in('class_name', filters.classNameIn.length ? filters.classNameIn : ['-']);
+    if (filters.classNameMatch) query = query.filter('class_name', 'match', filters.classNameMatch);
+    if (filters.classNameNotMatch) query = query.not('class_name', 'match', filters.classNameNotMatch);
     if (kind === 'ship') {
       if (filters.careerIn?.length) query = query.in('payload->>career', filters.careerIn);
       if (filters.crewMin != null) query = query.gte('crew_size', filters.crewMin);
@@ -1985,6 +2009,8 @@ export class CodexService {
         // Rank first, then keep the top `perKindLimit` of each kind.
         const res = await this.listByKind(kind, {
           search: q || undefined,
+          // Items a player cannot use stay out unless the reader opted in (package C).
+          ...(kind === 'item' && !this.prefs.showNonUsable() ? { attachTypeIn: [...USABLE_ITEM_ATTACH_TYPES] } : {}),
           ...(attrs.size != null ? { size: attrs.size } : {}),
           ...(attrs.grade ? { grade: attrs.grade } : {}),
           limit: perKindLimit * SEARCH_OVERFETCH,
@@ -2019,7 +2045,7 @@ export class CodexService {
     const results = await Promise.all(sources);
     // Nothing answered: an outage, not an empty archive — the caller shows an error with retry.
     if (failed.length === sources.length) throw failure;
-    const hits = rankPolyHits(q, results.flat());
+    const hits = usableFirst(rankPolyHits(q, results.flat()));
     return failed.length ? { hits, totals, distinct, read, facets, failed, failure } : { hits, totals, distinct, read, facets };
   }
 
@@ -2958,6 +2984,15 @@ function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {
     nameLocalized: (i['name_localized'] as string | null) ?? null,
     entityKind: (i['entity_kind'] as string | null) ?? null,
   };
+}
+
+/**
+ * Non-usable items (opt-in, package C) always come after every usable hit —
+ * never above one or mixed in. Stable: the ranking inside each half stays.
+ */
+export function usableFirst(hits: PolySearchHit[]): PolySearchHit[] {
+  const nonUsable = (h: PolySearchHit) => h.kind === 'item' && !isUsableAttachType(h.attachType);
+  return [...hits.filter((h) => !nonUsable(h)), ...hits.filter(nonUsable)];
 }
 
 /**

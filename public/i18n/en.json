@@ -673,6 +673,19 @@
       "role": "Role",
       "crew": "Crew"
     },
+    "itemGroup": {
+      "food": "Food & drinks",
+      "clothing": "Clothing & accessories",
+      "medical": "Medical & gadgets",
+      "attachments": "Weapon attachments",
+      "suits": "Suits & jetpacks",
+      "paints": "Paints",
+      "decor": "Decoration",
+      "misc": "Miscellaneous",
+      "nonUsable": "Not usable",
+      "missiles": "Missiles & bombs",
+      "modules": "Modules & ore pods"
+    },
     "shipRole": {
       "combat": "Combat",
       "transport": "Transport",
@@ -2309,7 +2322,8 @@
       "showResults": "Show {{count}} results",
       "areaLabel": "Area",
       "area": {
-        "armor": "Armor"
+        "armor": "Armor",
+        "shipAmmo": "Ship ammunition"
       },
       "sort": {
         "label": "Sort order",
@@ -3246,6 +3260,15 @@
         "label": "Enter sends",
         "descOn": "Enter sends the message, Shift+Enter inserts a new line. Ctrl/Cmd+Enter sends as well.",
         "descOff": "Enter inserts a new line. Sending happens only with Ctrl/Cmd+Enter or the send button."
+      }
+    },
+    "codex": {
+      "title": "Codex",
+      "hint": "What the Codex index and the search show.",
+      "showNonUsable": {
+        "label": "Show items you cannot use",
+        "descOn": "Doors, seats, displays and other game objects sit under “Not usable” and appear in the search after every usable hit.",
+        "descOff": "Doors, seats, displays and other game objects you cannot use are hidden — in the area tree, the lists and the search."
       }
     },
     "feedbackFab": {

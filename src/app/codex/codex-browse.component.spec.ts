@@ -146,7 +146,16 @@ describe('CodexBrowseComponent', () => {
       previewUrl: () => null,
       weaponFacets: jasmine.createSpy('weaponFacets').and.resolveTo(opts.weaponFacets ?? []),
       countSearchMatches: jasmine.createSpy('countSearchMatches').and.resolveTo(opts.crossCounts ?? new Map()),
-      facetValues: jasmine.createSpy('facetValues').and.resolveTo(null),
+      facetValues: jasmine.createSpy('facetValues').and.callFake(async (kind: string) =>
+        kind === 'ship' ? { manufacturers: [{ code: 'AEGS', name: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '' } }], sizes: [], grades: [], componentKinds: [] } : null),
+      countByKind: jasmine.createSpy('countByKind').and.callFake(async (kind: string, f: { attachTypeIn?: string[]; attachTypeNotIn?: string[]; classNameMatch?: string; classNameNotMatch?: string; componentKind?: string }) => {
+        if (kind === 'ammunition') return f.classNameMatch ? 70 : 170;
+        if (kind === 'component') return f.componentKind === 'Shield' ? 67 : 0;
+        if (f.attachTypeNotIn) return 9000;
+        if (f.attachTypeIn?.includes('Missile')) return 66;
+        if (f.attachTypeIn?.includes('Food')) return f.attachTypeIn.length > 3 ? 5000 : 280;
+        return 0;
+      }),
       suggestNames: jasmine.createSpy('suggestNames').and.resolveTo([]),
     };
     const hangar: Partial<HangarService> = {
@@ -223,26 +232,84 @@ describe('CodexBrowseComponent', () => {
     expect(filters.attachType).toBe('Char_Armor_Helmet');
   });
 
-  it('counts every area of the tree and opens the current path', async () => {
-    const facet = (attachType: string): WeaponFacetRow =>
-      ({ weaponClass: 'Ship', attachType, subType: null, isVariant: false }) as WeaponFacetRow;
+  it('package C: ship weapons hang under Schiffe; Waffen is on-foot only', async () => {
+    const facet = (weaponClass: string, attachType: string): WeaponFacetRow =>
+      ({ weaponClass, attachType, subType: null, isVariant: false }) as WeaponFacetRow;
     const { cmp } = await setup({
       query: { kind: 'weapon', wg: 'ship' },
-      weaponFacets: [facet('WeaponGun'), facet('WeaponGun'), facet('TractorBeam')],
+      weaponFacets: [facet('Ship', 'WeaponGun'), facet('Ship', 'WeaponGun'), facet('Ship', 'TractorBeam'), facet('FPS', 'WeaponPersonal')],
       armorCounts: new Map([['Char_Armor_Helmet', 4], ['Char_Armor_Torso', 3]]),
     });
     const tree = cmp.areaTree();
+    const ship = tree.find((n) => n.id === 'ship')!;
+    expect(ship.count).toBe(10);
+    expect(ship.open).toBeTrue();
+    expect(ship.current).toBeFalse();
+    const shipWeapons = ship.children.find((n) => n.id === 'ship-weapons')!;
+    expect(shipWeapons.count).toBe(3);
+    expect(shipWeapons.current).toBeTrue();
+    expect(shipWeapons.children.find((n) => n.id === 'ship-gun')?.count).toBe(2);
+    expect(shipWeapons.children.find((n) => n.id === 'ship-utility')?.count).toBe(1);
+    expect(ship.children.map((n) => n.id)).toEqual(['ship-weapons', 'ship-missiles', 'ship-modules', 'ship-ammo']);
     const weapon = tree.find((n) => n.id === 'weapon')!;
-    expect(weapon.count).toBe(20);
-    expect(weapon.open).toBeTrue();
-    const ship = weapon.children.find((n) => n.id === 'weapon-ship')!;
-    expect(ship.count).toBe(3);
-    expect(ship.current).toBeTrue();
-    expect(ship.children.find((n) => n.id === 'ship-gun')?.count).toBe(2);
-    expect(ship.children.find((n) => n.id === 'ship-utility')?.count).toBe(1);
-    const armor = tree.find((n) => n.id === 'armor')!;
-    expect(armor.count).toBe(7);
-    expect(tree.find((n) => n.id === 'ship')?.count).toBe(10);
+    expect(weapon.target).toEqual({ category: 'weapon', wg: 'fps' });
+    expect(weapon.children.every((n) => n.target.wg === 'fps')).toBeTrue();
+    expect(weapon.open).toBeFalse();
+    expect(tree.find((n) => n.id === 'armor')?.count).toBe(7);
+  });
+
+  it('package C: items split into player groups; the hidden bucket only with the setting on', async () => {
+    const { cmp, fixture, listByKind } = await setup({ query: { kind: 'item' } });
+    await fixture.whenStable();
+    const item = cmp.areaTree().find((n) => n.id === 'item')!;
+    expect(item.current).toBeTrue();
+    expect(item.count).toBe(5000);
+    expect(item.children.some((n) => n.id === 'ig-food')).toBeTrue();
+    expect(item.children.some((n) => n.id === 'ig-nonUsable')).toBeFalse();
+    const filters = listByKind.calls.mostRecent().args[1];
+    expect(filters.attachTypeIn).toContain('Food');
+    expect(filters.attachTypeIn).not.toContain('Door');
+    expect(filters.attachTypeIn).not.toContain('Missile');
+  });
+
+  it('package C: munition is on-foot, ship ammunition sits under Schiffe', async () => {
+    const { cmp, listByKind, fixture } = await setup({ query: { kind: 'ammunition', ag: 'vehicle' } });
+    await fixture.whenStable();
+    expect(listByKind.calls.mostRecent().args[1].classNameMatch).toBe('_S[0-9]+_');
+    const tree = cmp.areaTree();
+    expect(tree.find((n) => n.id === 'ship')!.children.find((n) => n.id === 'ship-ammo')?.current).toBeTrue();
+    expect(tree.find((n) => n.id === 'ammunition')?.current).toBeFalse();
+    cmp.applyArea(tree.find((n) => n.id === 'ammunition')!.target);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cmp.ammoGroup()).toBe('fps');
+    expect(listByKind.calls.mostRecent().args[1].classNameNotMatch).toBe('_S[0-9]+_');
+  });
+
+  it('package C: components, manufacturers and blueprints open their sub areas', async () => {
+    const { cmp, listByKind, fixture } = await setup({ query: { kind: 'component', ck: 'Shield' } });
+    await fixture.whenStable();
+    const tree = cmp.areaTree();
+    const comp = tree.find((n) => n.id === 'component')!;
+    expect(comp.children.map((n) => n.id)).toEqual(['ck-Shield']);
+    expect(comp.children[0].current).toBeTrue();
+    expect(listByKind.calls.mostRecent().args[1].componentKind).toBe('Shield');
+    const makers = tree.find((n) => n.id === 'manufacturer')!;
+    expect(makers.children.map((n) => n.label)).toEqual(['Aegis Dynamics']);
+    cmp.applyArea(makers.children[0].target);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cmp.category()).toBe('manufacturer');
+    expect(listByKind.calls.mostRecent().args[1].manufacturer).toBe('AEGS');
+    const bp = cmp.areaTree().find((n) => n.id === 'blueprint')!;
+    expect(bp.children.map((n) => n.id)).toEqual(['bg-fps', 'bg-vehicle']);
+  });
+
+  it('package C: no component kind or blueprint group control in the filter bar any more', async () => {
+    const { fixture } = await setup({ query: { kind: 'blueprint' } });
+    expect(fixture.nativeElement.querySelector('.filterbar sc-segmented[ng-reflect-aria-label]')).toBeNull();
+    const text = (fixture.nativeElement.querySelector('.filterbar') as HTMLElement | null)?.textContent ?? '';
+    expect(text).not.toContain('codex.filters.blueprintGroup');
   });
 
   it('package B: reads role + crew from the URL and filters ships by career and crew range', async () => {

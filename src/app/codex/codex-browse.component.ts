@@ -86,6 +86,19 @@ import {
   isCrewBand,
   isShipRole,
 } from './codex-ship-filters';
+import {
+  AmmoGroup,
+  COMPONENT_TREE_KINDS,
+  ITEM_GROUPS,
+  NON_USABLE_GROUP,
+  SHIP_ITEM_GROUPS,
+  ammoGroupQuery,
+  isAmmoGroup,
+  isItemGroupId,
+  itemGroup,
+  itemGroupQuery,
+} from './codex-area-taxonomy';
+import { CodexPrefsService } from './codex-prefs.service';
 
 /**
  * A row of the list: a list row after variant folding, livery grouping (FPS
@@ -449,30 +462,7 @@ export function blueprintCategoriesForGroup(
                        (valueChange)="setGrade($event ?? '')" />
           </div>
         }
-        @if (kind() === 'component' && componentKindOptions().length > 0) {
-          <div class="facet">
-            <span class="side-h">{{ 'codex.filters.componentKind' | translate }}</span>
-            <sc-select [options]="componentKindSelect()" [value]="componentKind() || null" placeholderKey="codex.filters.all"
-                       [ariaLabel]="'codex.filters.componentKind' | translate"
-                       (valueChange)="setComponentKind($event ?? '')" />
-          </div>
-        }
-        @if (kind() === 'blueprint') {
-          <div class="facet">
-            <span class="side-h">{{ 'codex.filters.blueprintGroup' | translate }}</span>
-            <sc-segmented [options]="blueprintGroupOptions" [value]="blueprintGroup() || 'all'"
-                          [ariaLabel]="'codex.filters.blueprintGroup' | translate"
-                          (valueChange)="setBlueprintGroup($event)" />
-          </div>
-          @if (blueprintCategoryOptions().length > 0) {
-            <div class="facet">
-              <span class="side-h">{{ 'blueprint.filters.category' | translate }}</span>
-              <sc-select [options]="blueprintCategorySelect()" [value]="blueprintCategory() || null" placeholderKey="codex.filters.all"
-                         [ariaLabel]="'blueprint.filters.category' | translate"
-                         (valueChange)="setBlueprintCategory($event ?? '')" />
-            </div>
-          }
-        }
+        <!-- Component kind and blueprint group/bucket are areas of the tree now (package C). -->
         @if (supportsVariants()) {
           <label class="facet check">
             <input type="checkbox" [checked]="includeVariants()" (change)="onVariantsToggle($event)" />
@@ -492,7 +482,7 @@ export function blueprintCategoriesForGroup(
             <a class="node" [class.on]="n.active" [class.current]="n.current"
                [attr.aria-current]="n.current ? 'page' : null"
                [attr.href]="n.href" (click)="onAreaClick($event, n)">
-              <span class="node-label">{{ n.labelKey | translate }}</span>
+              <span class="node-label">{{ n.label ?? (n.labelKey | translate) }}</span>
               @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
             </a>
             @if (n.open && n.children.length > 0) {
@@ -900,6 +890,9 @@ export class CodexBrowseComponent implements OnInit {
         ? 'codex.weaponGroup.' + this.weaponGroup() + '.' + this.weaponSubGroup()
         : 'codex.weaponGroup.super.' + this.weaponGroup();
     }
+    if (c === 'item' && this.itemGroup()) return 'codex.itemGroup.' + this.itemGroup();
+    if (c === 'ammunition' && this.ammoGroup() === 'vehicle') return 'codex.browse.area.shipAmmo';
+    if (c === 'component' && this.componentKind()) return 'codex.componentKind.' + this.componentKind();
     return 'codex.kinds.' + c;
   });
 
@@ -961,47 +954,157 @@ export class CodexBrowseComponent implements OnInit {
     this.setIncludeVariants((ev.target as HTMLInputElement).checked);
   }
 
-  /** The "Bereich" tree: every area with its count, the current path open. */
+  /**
+   * The current area as the tree compares it: only the keys that belong to the
+   * category. An unset weapon/ammunition group reads as the on-foot one, so
+   * "Waffen"/"Munition" stay the current node for an older link without one.
+   */
+  private readonly areaState = computed(() => {
+    const category = this.category();
+    return {
+      category,
+      wg: category === 'weapon' ? this.weaponGroup() || 'fps' : '',
+      wsg: category === 'weapon' ? this.weaponSubGroup() : '',
+      slot: category === ARMOR_CATEGORY ? this.armorSlot() : '',
+      ck: category === 'component' ? this.componentKind() : '',
+      ig: category === 'item' ? this.itemGroup() : '',
+      ag: category === 'ammunition' ? this.ammoGroup() || 'fps' : '',
+      bg: category === 'blueprint' ? this.blueprintGroup() : '',
+      bpc: category === 'blueprint' ? this.blueprintCategory() : '',
+      mfr: category === 'manufacturer' ? this.manufacturer() : '',
+    };
+  });
+
+  /** The "Bereich" tree (package C): every area with its count, the current path open. */
   readonly areaTree = computed<AreaNode[]>(() => {
-    const cat = this.category();
-    const wg = this.weaponGroup();
-    const wsg = this.weaponSubGroup();
-    const slot = this.armorSlot();
-    const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, active: boolean, current: boolean, children: AreaNode[] = []): AreaNode => ({
-      id, labelKey, count, target, active, current, open: active, children, href: this.areaHref(target),
-    });
+    const st = this.areaState();
+    const keys = ['wg', 'wsg', 'slot', 'ck', 'ig', 'ag', 'bg', 'bpc', 'mfr'] as const;
+    const isCurrent = (t: AreaTarget) =>
+      t.category === st.category && keys.every((k) => (t[k] ?? '') === st[k]);
+    const counts = this.areaCounts();
+    const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, children: AreaNode[] = [], label?: string): AreaNode => {
+      const current = isCurrent(target);
+      const active = current || children.some((c) => c.active);
+      return { id, labelKey, ...(label ? { label } : {}), count, target, active, current, open: active, children, href: this.areaHref(target) };
+    };
+    const subs = (groupId: string, category: 'weapon') =>
+      (WEAPON_SUPER_GROUPS.find((g) => g.id === groupId)?.subGroups ?? [])
+        .filter((sg) => (this.weaponGroupCount(groupId, sg.id) ?? 1) > 0)
+        .map((sg) => node(groupId + '-' + sg.id, 'codex.weaponGroup.' + groupId + '.' + sg.id, this.weaponGroupCount(groupId, sg.id), { category, wg: groupId, wsg: sg.id }));
     const out: AreaNode[] = [];
     for (const k of this.categories) {
       if (this.isComingSoon(k)) continue;
-      const on = cat === k;
-      if (k === 'weapon') {
-        const supers = WEAPON_SUPER_GROUPS.map((g) => {
-          const gOn = on && wg === g.id;
-          const subs = g.subGroups
-            .filter((s) => (this.weaponGroupCount(g.id, s.id) ?? 1) > 0)
-            .map((s) => node(g.id + '-' + s.id, 'codex.weaponGroup.' + g.id + '.' + s.id, this.weaponGroupCount(g.id, s.id), { category: 'weapon', wg: g.id, wsg: s.id }, gOn && wsg === s.id, gOn && wsg === s.id));
-          return node('weapon-' + g.id, 'codex.weaponGroup.super.' + g.id, this.weaponGroupCount(g.id), { category: 'weapon', wg: g.id }, gOn, gOn && !wsg, subs);
-        });
-        out.push(node('weapon', 'codex.kinds.weapon', this.kindCount('weapon'), { category: 'weapon' }, on, on && !wg, supers));
+      if (k === 'ship') {
+        out.push(node('ship', 'codex.kinds.ship', this.categoryCount('ship'), { category: 'ship' }, [
+          node('ship-weapons', 'codex.weaponGroup.super.ship', this.weaponGroupCount('ship'), { category: 'weapon', wg: 'ship' }, subs('ship', 'weapon')),
+          ...SHIP_ITEM_GROUPS.map((g) => node('ship-' + g.id, 'codex.itemGroup.' + g.id, counts.get('ig-' + g.id) ?? null, { category: 'item', ig: g.id })),
+          node('ship-ammo', 'codex.browse.area.shipAmmo', counts.get('ag-vehicle') ?? null, { category: 'ammunition', ag: 'vehicle' }),
+        ]));
+      } else if (k === 'weapon') {
+        out.push(node('weapon', 'codex.kinds.weapon', this.weaponGroupCount('fps'), { category: 'weapon', wg: 'fps' }, subs('fps', 'weapon')));
+      } else if (k === 'component') {
+        const kinds = COMPONENT_TREE_KINDS.filter((c) => (counts.get('ck-' + c) ?? 1) > 0);
+        out.push(node('component', 'codex.kinds.component', this.categoryCount('component'), { category: 'component' },
+          kinds.map((c) => node('ck-' + c, 'codex.componentKind.' + c, counts.get('ck-' + c) ?? null, { category: 'component', ck: c }))));
+      } else if (k === 'item') {
+        const groups = ITEM_GROUPS.filter((g) => (counts.get('ig-' + g.id) ?? 1) > 0)
+          .map((g) => node('ig-' + g.id, 'codex.itemGroup.' + g.id, counts.get('ig-' + g.id) ?? null, { category: 'item', ig: g.id }));
+        if (this.codexPrefs.showNonUsable()) {
+          groups.push(node('ig-' + NON_USABLE_GROUP, 'codex.itemGroup.' + NON_USABLE_GROUP, counts.get('ig-' + NON_USABLE_GROUP) ?? null, { category: 'item', ig: NON_USABLE_GROUP }));
+        }
+        out.push(node('item', 'codex.kinds.item', counts.get('ig-player') ?? null, { category: 'item' }, groups));
+      } else if (k === 'ammunition') {
+        out.push(node('ammunition', 'codex.kinds.ammunition', counts.get('ag-fps') ?? null, { category: 'ammunition', ag: 'fps' }));
+      } else if (k === 'manufacturer') {
+        out.push(node('manufacturer', 'codex.kinds.manufacturer', this.categoryCount('manufacturer'), { category: 'manufacturer' },
+          this.shipMakers().map((m) => node('mfr-' + m.code, '', null, { category: 'manufacturer', mfr: m.code }, [], m.label))));
+      } else if (k === 'blueprint') {
+        const cats = this.blueprintCategoryOptions();
+        const group = (g: 'fps' | 'vehicle') =>
+          node('bg-' + g, 'blueprint.group.' + g, null, { category: 'blueprint', bg: g },
+            blueprintCategoriesForGroup(g, cats).map((c) => node('bpc-' + c, '', null, { category: 'blueprint', bg: g, bpc: c }, [], this.categoryLabel(c))));
+        out.push(node('blueprint', 'codex.kinds.blueprint', this.categoryCount('blueprint'), { category: 'blueprint' }, [group('fps'), group('vehicle')]));
       } else if (k === ARMOR_CATEGORY) {
-        const counts = this.armorCounts();
+        const armor = this.armorCounts();
         const slots = ARMOR_SLOT_IDS.map((id) => {
           const at = armorAttachTypeOf(id);
-          return node('armor-' + id, 'codex.landing.paperdoll.' + id, at ? (counts.get(at) ?? null) : null, { category: ARMOR_CATEGORY, slot: id }, on && slot === id, on && slot === id);
+          return node('armor-' + id, 'codex.landing.paperdoll.' + id, at ? (armor.get(at) ?? null) : null, { category: ARMOR_CATEGORY, slot: id });
         }).filter((n) => n.count !== 0);
-        const total = counts.size ? [...counts.values()].reduce((a, b) => a + b, 0) : null;
-        out.push(node('armor', 'codex.browse.area.armor', total, { category: ARMOR_CATEGORY }, on, on && !slot, slots));
+        const total = armor.size ? [...armor.values()].reduce((a, b) => a + b, 0) : null;
+        out.push(node('armor', 'codex.browse.area.armor', total, { category: ARMOR_CATEGORY }, slots));
       } else {
-        out.push(node(k, 'codex.kinds.' + k, this.categoryCount(k), { category: k }, on, on));
+        out.push(node(k, 'codex.kinds.' + k, this.categoryCount(k), { category: k }));
       }
     }
     return out;
   });
 
+  /**
+   * Head counts for the tree's finer nodes (package C), asked once per build
+   * and only for the part of the tree that is open: a closed node shows no
+   * children, so their counts would be wasted requests.
+   */
+  private async loadAreaCounts(category: CodexCategory, showNonUsable: boolean): Promise<void> {
+    const buildId = this.svc.build()?.id ?? '';
+    if (buildId !== this.areaCountsBuild) {
+      this.areaCountsBuild = buildId;
+      this.areaCountsAsked.clear();
+      this.areaCounts.set(new Map());
+    }
+    const ask: { id: string; run: () => Promise<number | null> }[] = [];
+    const want = (id: string, run: () => Promise<number | null>) => {
+      if (!this.areaCountsAsked.has(id)) ask.push({ id, run });
+    };
+    want('ag-fps', () => this.svc.countByKind('ammunition', ammoGroupQuery('fps')));
+    want('ig-player', () => this.svc.countByKind('item', itemGroupQuery('')));
+    if (category === 'ship' || category === 'weapon' || category === 'ammunition' || category === 'item') {
+      want('ag-vehicle', () => this.svc.countByKind('ammunition', ammoGroupQuery('vehicle')));
+      for (const g of SHIP_ITEM_GROUPS) want('ig-' + g.id, () => this.svc.countByKind('item', itemGroupQuery(g.id)));
+    }
+    if (category === 'item') {
+      for (const g of ITEM_GROUPS) want('ig-' + g.id, () => this.svc.countByKind('item', itemGroupQuery(g.id)));
+      if (showNonUsable) want('ig-' + NON_USABLE_GROUP, () => this.svc.countByKind('item', itemGroupQuery(NON_USABLE_GROUP)));
+    }
+    if (category === 'component') {
+      for (const c of COMPONENT_TREE_KINDS) want('ck-' + c, () => this.svc.countByKind('component', { componentKind: c }));
+    }
+    if (!ask.length) return;
+    for (const a of ask) this.areaCountsAsked.add(a.id);
+    const results = await Promise.all(ask.map(async (a) => [a.id, await a.run().catch(() => null)] as const));
+    this.areaCounts.update((m) => {
+      const next = new Map(m);
+      for (const [id, n] of results) {
+        if (n != null) next.set(id, n);
+        else this.areaCountsAsked.delete(id); // a failed count is asked again next time
+      }
+      return next;
+    });
+  }
+
+  /** Ship manufacturers for the "Hersteller" sub list (facet values of the ship kind). */
+  private async loadShipMakers(): Promise<void> {
+    try {
+      const values = await this.svc.facetValues('ship');
+      const lang = this.dataLang();
+      this.shipMakers.set(
+        (values?.manufacturers ?? [])
+          .map((m) => ({ code: m.code, label: manufacturerLabel({ manufacturerCode: m.code, payload: { manufacturer: { name: m.name } } }, lang) ?? m.code }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+      );
+    } catch {
+      this.shipMakers.set([]);
+    }
+  }
+
   private areaHref(t: AreaTarget): string | null {
     const q = (t.category === UPCOMING_CATEGORY ? this.rsi.query() : this.searchTerm()) || null;
     const params: Record<string, string | null> =
-      t.category === UPCOMING_CATEGORY ? { q } : { kind: t.category, wg: t.wg ?? null, wsg: t.wsg ?? null, slot: t.slot ?? null, q };
+      t.category === UPCOMING_CATEGORY
+        ? { q }
+        : {
+            kind: t.category, wg: t.wg ?? null, wsg: t.wsg ?? null, slot: t.slot ?? null, ck: t.ck ?? null,
+            ig: t.ig ?? null, ag: t.ag ?? null, group: t.bg ?? null, bpc: t.bpc ?? null, mfr: t.mfr ?? null, q,
+          };
     try {
       const tree = this.router.createUrlTree(t.category === UPCOMING_CATEGORY ? ['/codex/upcoming'] : ['/codex/index'], { queryParams: params });
       return this.location.prepareExternalUrl(this.router.serializeUrl(tree));
@@ -1025,6 +1128,14 @@ export class CodexBrowseComponent implements OnInit {
       this.weaponSubGroup.set(t.wsg ?? '');
     }
     if (t.category === ARMOR_CATEGORY) this.armorSlot.set(t.slot ?? '');
+    if (t.category === 'component') this.componentKind.set(t.ck ?? '');
+    if (t.category === 'item') this.itemGroup.set(t.ig ?? '');
+    if (t.category === 'ammunition') this.ammoGroup.set(t.ag === 'fps' || t.ag === 'vehicle' ? t.ag : '');
+    if (t.category === 'blueprint') {
+      this.blueprintGroup.set(t.bg === 'fps' || t.bg === 'vehicle' ? t.bg : '');
+      this.blueprintCategory.set(t.bpc ?? '');
+    }
+    if (t.category === 'manufacturer') this.manufacturer.set(t.mfr ?? '');
   }
 
   /** Class names of the records folded into this card, for the badge tooltip. */
@@ -1099,6 +1210,18 @@ export class CodexBrowseComponent implements OnInit {
   /** Per-category record counts, from the build's weapon facet columns. */
   private readonly weaponFacets = signal<readonly WeaponFacetRow[]>([]);
   readonly includeVariants = signal(false);
+  /** Item area group (package C, codex-area-taxonomy), '' = every player item. */
+  readonly itemGroup = signal('');
+  /** Ammunition area group (package C): 'fps' under Munition, 'vehicle' under Schiffe. */
+  readonly ammoGroup = signal<AmmoGroup | ''>('');
+  /** Non-usable records shown (settings opt-in). */
+  private readonly codexPrefs = inject(CodexPrefsService);
+  /** Tree counts that need their own head query, by node id. */
+  private readonly areaCounts = signal<ReadonlyMap<string, number>>(new Map());
+  private readonly areaCountsAsked = new Set<string>();
+  private areaCountsBuild = '';
+  /** Ship manufacturers for the "Hersteller" sub list. */
+  private readonly shipMakers = signal<readonly { code: string; label: string }[]>([]);
   /** Ship-only facet (package B): RSI role, '' = all roles. */
   readonly shipRole = signal<ShipRole | ''>('');
   /** Ship-only facet (package B): crew band, '' = any crew. */
@@ -1504,6 +1627,16 @@ export class CodexBrowseComponent implements OnInit {
         else this.onSearchInput(term);
       }),
     );
+    // Package C: the tree's finer counts for the open part of the tree.
+    effect(() => {
+      const category = this.category();
+      const show = this.codexPrefs.showNonUsable();
+      const build = this.svc.build();
+      untracked(() => {
+        if (!build) return;
+        void this.loadAreaCounts(category, show);
+      });
+    });
     // Silhouettes for the rows on screen (u2), batched per page.
     effect(() => {
       const rows = this.rows();
@@ -1536,6 +1669,8 @@ export class CodexBrowseComponent implements OnInit {
       this.blueprintGroup();
       this.shipRole();
       this.crewBand();
+      this.itemGroup();
+      this.ammoGroup();
       this.runQuery(true);
     });
 
@@ -1556,6 +1691,8 @@ export class CodexBrowseComponent implements OnInit {
         wsg: this.weaponSubGroup() || null,
         bpc: this.blueprintCategory() || null,
         group: this.blueprintGroup() || null,
+        ig: this.category() === 'item' ? this.itemGroup() || null : null,
+        ag: this.kind() === 'ammunition' ? this.ammoGroup() || null : null,
         role: this.kind() === 'ship' ? this.shipRole() || null : null,
         crew: this.kind() === 'ship' ? this.crewBand() || null : null,
         slot: this.category() === ARMOR_CATEGORY ? this.armorSlot() || null : null,
@@ -1670,6 +1807,7 @@ export class CodexBrowseComponent implements OnInit {
     // UC-02: hangar membership backs the in-hangar badge on ship cards.
     void this.ownership.ensureLoaded();
     void this.loadArmorCounts();
+    void this.loadShipMakers();
     await this.loadBlueprintCategories();
     if (this.kind() === 'weapon') await this.loadWeaponFacets();
   }
@@ -1775,6 +1913,9 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.category() === ARMOR_CATEGORY) take('slot', (v) => ARMOR_SLOT_IDS.includes(v) && this.armorSlot.set(v));
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
+    if (this.category() === 'item') take('ig', (v) => isItemGroupId(v) && this.itemGroup.set(v));
+    if (this.kind() === 'ammunition') take('ag', (v) => isAmmoGroup(v) && this.ammoGroup.set(v));
+    if (this.kind() === 'manufacturer') take('mfr', (v) => this.manufacturer.set(v));
     if (this.kind() === 'ship') {
       take('role', (v) => isShipRole(v) && this.shipRole.set(v));
       take('crew', (v) => isCrewBand(v) && this.crewBand.set(v));
@@ -1901,6 +2042,8 @@ export class CodexBrowseComponent implements OnInit {
     this.blueprintGroup.set('');
     this.shipRole.set('');
     this.crewBand.set('');
+    this.itemGroup.set('');
+    this.ammoGroup.set('');
     this.kind.set(k);
     if (k === 'weapon') void this.loadWeaponFacets();
   }
@@ -2049,10 +2192,19 @@ export class CodexBrowseComponent implements OnInit {
       category: category || undefined,
       blueprintCategoryIn,
       ...(this.kind() === 'ship' ? this.shipFacetQuery() : {}),
+      ...(this.category() === 'item' ? itemGroupQuery(this.visibleItemGroup()) : {}),
+      ...(this.kind() === 'ammunition' ? ammoGroupQuery(this.ammoGroup()) : {}),
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
       offset: this.offset,
     };
+  }
+
+  /** The item group the list may show: the hidden bucket only while the setting shows it. */
+  private visibleItemGroup(): string {
+    const g = this.itemGroup();
+    if (g === NON_USABLE_GROUP && !this.codexPrefs.showNonUsable()) return '';
+    return g && (g === NON_USABLE_GROUP || itemGroup(g)) ? g : '';
   }
 
   /** Role + crew band as list filters (career keys, inclusive crew range). */
