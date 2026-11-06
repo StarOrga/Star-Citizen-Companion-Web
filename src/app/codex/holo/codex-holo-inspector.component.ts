@@ -402,23 +402,23 @@ function chipSize(pin: StagePin): number | null {
     .insp-kid.empty .insp-ident b { color: var(--sc-fg-2); font-weight: 400; }
 
     /* ── The parts as chips (the look of the old list under the model) ── */
-    .plist { display: grid; gap: 9px; min-width: 0; animation: list-in var(--holo-t-base) var(--e-out) backwards; }
+    .plist { display: grid; gap: 7px; min-width: 0; animation: list-in var(--holo-t-base) var(--e-out) backwards; }
     @keyframes list-in { from { opacity: 0; } }
     .plist-head { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: max(13px, var(--f)); color: var(--sc-fg-0); }
     .plist-head b { font-weight: 600; white-space: nowrap; }
     .plist-hint { font-size: max(10px, var(--f)); color: var(--sc-fg-2); text-align: end; }
     @media (hover: none), (pointer: coarse) { .plist-hint { display: none; } }
-    .pgroup { display: grid; gap: 5px; min-width: 0; }
+    .pgroup { display: grid; gap: 3px; min-width: 0; }
     .pg-head { font-family: inherit; text-transform: none; font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); }
     .pg-head b { font-family: var(--d); text-transform: uppercase; font-weight: 500; font-size: max(10px, var(--f)); letter-spacing: 0.09em; color: var(--sc-fg-1); }
-    .pchips { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
-    .part { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; min-height: max(28px, var(--sc-tap-min, 0px)); padding: 0 8px; box-sizing: border-box;
+    .pchips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+    .part { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; min-height: max(25px, var(--sc-tap-min, 0px)); padding: 0 7px; box-sizing: border-box;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--sc-bg-2) 55%, transparent);
       color: var(--sc-fg-0); cursor: pointer; font: inherit; font-size: max(12.5px, var(--f)); text-decoration: none; white-space: nowrap;
       transition: border-color 120ms ease, background 120ms ease, opacity 120ms ease; }
     .part i { font-family: var(--m); font-style: normal; font-weight: 600; font-size: max(11.5px, var(--f)); color: var(--holo-e, var(--sc-accent)); }
     .part.gold i { color: var(--holo-gold, var(--sc-accent)); }
-    .pname { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.15; padding-block: 2px; }
+    .pname { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.15; }
     .part:hover, .part:focus-visible, .part.active { border-color: var(--holo-e, var(--sc-accent)); background: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 20%, transparent); }
     /* Not what the picked Einsatz is about: quiet, still reachable. */
     .part.q { opacity: 0.5; }

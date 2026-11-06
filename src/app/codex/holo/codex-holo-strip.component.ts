@@ -357,7 +357,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .fade { flex: none; inline-size: 1px; margin-block: 10px; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sc-accent) 40%, transparent), transparent); }
       .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent); white-space: nowrap; }
-      .einsatz { flex: 0 0 auto; inline-size: clamp(148px, 9vw, 172px); background: none; border: 0; border-start-start-radius: 18px; font: inherit; color: inherit; text-align: start; align-items: flex-start;
+      .einsatz { flex: 0 0 auto; min-inline-size: clamp(120px, 8vw, 150px); background: none; border: 0; border-start-start-radius: 18px; font: inherit; color: inherit; text-align: start; align-items: flex-start;
         cursor: pointer; transition: background 160ms ease; }
       .einsatz .lab { color: var(--sc-fg-2); }
       .einsatz:hover, .einsatz[aria-expanded='true'] { background: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 14%, transparent); }
@@ -376,7 +376,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .mp:disabled { opacity: 0.4; cursor: not-allowed; }
       .mp:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       .einsatz .val { display: flex; align-items: center; gap: 6px; max-inline-size: 100%; font-family: var(--sc-font-display); font-size: clamp(11.5px, 0.76vw, 14.5px); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-        color: var(--holo-e, var(--sc-accent)); line-height: 1.1; overflow-wrap: anywhere; transition: color var(--holo-t-base) ease; }
+        color: var(--holo-e, var(--sc-accent)); line-height: 1.1; white-space: nowrap; transition: color var(--holo-t-base) ease; }
       .einsatz .sub { max-inline-size: 100%; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .tile-vals { display: flex; justify-content: space-between; gap: clamp(6px, 0.5vw, 9px); flex-wrap: nowrap; }
       .tv { display: flex; flex-direction: column; gap: 1px; }
@@ -513,7 +513,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         .sig .lab { max-inline-size: 64px; white-space: normal; line-height: 1.15; }
       }
       @media (max-width: 640px) {
-        .holo-strip { position: fixed; inset-inline: 0; inset-block-end: 0; border-radius: 0; }
+        .holo-strip { position: fixed; inset-inline: 0; inset-block-end: var(--holo-strip-lift, 0px); border-radius: 12px 12px 0 0; }
         .hs-row { min-block-size: 52px; }
         .seg { padding: 5px 7px; flex: 1 1 0; }
         .seg .lab .lt { display: none; }

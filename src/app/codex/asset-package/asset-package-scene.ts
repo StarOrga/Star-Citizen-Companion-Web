@@ -84,6 +84,10 @@ export function isSoftwareRenderer(renderer: THREE.WebGLRenderer): boolean {
   }
 }
 
+/** How many points of the model the safe-area fit solves against. */
+const MAX_FIT_POINTS_PER_MESH = 256;
+const MAX_FIT_POINTS = 2500;
+
 /** Soft radial falloff (white, alpha only) for the glow halo; tinted by the sprite colour. */
 function haloTexture(size = 64): THREE.DataTexture {
   const data = new Uint8Array(size * size * 4);
@@ -145,6 +149,7 @@ export class PackageScene {
 
   // Safe-area framing (holotable). Null: the classic framing, untouched.
   private safe: SafeArea | null = null;
+  private fitPoints: THREE.Vector3[] = [];
   private width = 0;
   private height = 0;
   /** The user's zoom relative to the fitted distance; 1 = exactly fitted. */
@@ -413,6 +418,7 @@ export class PackageScene {
     for (const node of this.placed.values()) box.expandByObject(node);
     if (box.isEmpty()) box.set(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
     this.contentBox.copy(box);
+    this.fitPoints = this.safe ? this.sampleFitPoints(box) : [];
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(this.tmp).length() / 2, 0.1);
     const dir = new THREE.Vector3(1, 0.55, 1.25).normalize();
@@ -440,6 +446,7 @@ export class PackageScene {
    * the distance is solved from the projected box. Null: classic framing.
    */
   setSafeArea(safe: SafeArea | null): void {
+    if (safe && !this.safe && !this.contentBox.isEmpty()) this.fitPoints = this.sampleFitPoints(this.contentBox);
     this.safe = safe;
     this.applyViewOffset();
     this.refit();
@@ -458,13 +465,44 @@ export class PackageScene {
     this.camera.setViewOffset(this.width, this.height, (s.right - s.left) / 2, (s.bottom - s.top) / 2, this.width, this.height);
   }
 
-  /** Distance at which the framed box fits the safe area, from the current viewing direction. */
+  /**
+   * Points on the model itself (hull + placed parts, inside the framed box). A
+   * hull's box corners stand far off its silhouette from a three-quarter view;
+   * fitting those leaves the model at half the safe area.
+   */
+  private sampleFitPoints(box: THREE.Box3): THREE.Vector3[] {
+    const out: THREE.Vector3[] = [];
+    const v = new THREE.Vector3();
+    const margin = box.clone().expandByScalar(box.getSize(this.tmp).length() * 0.01);
+    const take = (o: THREE.Object3D): void => {
+      o.updateWorldMatrix(true, true);
+      o.traverse((c) => {
+        const pos = (c as THREE.Mesh).isMesh ? (c as THREE.Mesh).geometry?.getAttribute('position') : null;
+        if (!pos) return;
+        const step = Math.max(1, Math.floor(pos.count / MAX_FIT_POINTS_PER_MESH));
+        for (let i = 0; i < pos.count; i += step) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(c.matrixWorld);
+          if (margin.containsPoint(v)) out.push(v.clone());
+        }
+      });
+    };
+    if (this.root) take(this.root);
+    for (const node of this.placed.values()) take(node);
+    if (out.length <= MAX_FIT_POINTS) return out;
+    const thin = Math.ceil(out.length / MAX_FIT_POINTS);
+    return out.filter((_, i) => i % thin === 0);
+  }
+
+  /** Distance at which the framed model fits the safe area, from the current viewing direction. */
   private fittedDistance(): number {
     const { min, max } = this.contentBox;
     const corners: THREE.Vector3[] = [];
-    for (const x of [min.x, max.x]) {
-      for (const y of [min.y, max.y]) {
-        for (const z of [min.z, max.z]) corners.push(new THREE.Vector3(x, y, z));
+    if (this.fitPoints.length > 0) corners.push(...this.fitPoints);
+    else {
+      for (const x of [min.x, max.x]) {
+        for (const y of [min.y, max.y]) {
+          for (const z of [min.z, max.z]) corners.push(new THREE.Vector3(x, y, z));
+        }
       }
     }
     const q = this.camera.quaternion;

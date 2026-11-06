@@ -198,18 +198,27 @@ describe('CodexHoloStripComponent', () => {
     expect(offensive.querySelector('.tv.none')!.textContent).toContain('—');
   });
 
-  it('shows no class-rank pips while the profile ranks no signature axis', async () => {
-    const fixture = await setup({ rank: true });
-    // The combat profile ranks alpha/dps/shield/agility/boost — no IR, no cross-section.
-    expect((fixture.nativeElement as HTMLElement).querySelector('.rankpips')).toBeNull();
+  it('shows no percent anywhere: no P-values, no rank pips (d-pct)', async () => {
+    const fixture = await setup();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.pct')).toBeNull();
+    expect(el.querySelector('.rankpips')).toBeNull();
+    expect(el.textContent).not.toMatch(/\bP\d+/);
   });
 
-  it('carries a percentile rank onto each tile once a rank result is supplied', async () => {
-    const fixture = await setup({ rank: true });
-    const tiles = fixture.componentInstance['perspectiveTiles']();
-    const offensive = tiles.find((t) => t.perspective === 'offensive')!;
-    expect(offensive.percentile).not.toBeNull();
-    expect(offensive.percentile!).toBeGreaterThan(50);
+  it('the default Einsatz names the class and the group, any other its own word', async () => {
+    const fixture = await setup();
+    fixture.componentRef.setInput('defaultLabelKey', 'codex.rank.class.cargo');
+    fixture.componentRef.setInput('cohortLabel', '21 × Mittlerer Frachter');
+    fixture.componentRef.setInput('active', 'all');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.einsatz .val')!.textContent).toContain('codex.rank.class.cargo');
+    expect(el.querySelector('.einsatz .val svg')).not.toBeNull();
+    expect(el.querySelector('.einsatz .sub')!.textContent).toContain('21 × Mittlerer Frachter');
+    fixture.componentRef.setInput('active', 'combat');
+    fixture.detectChanges();
+    expect(el.querySelector('.einsatz .val')!.textContent).toContain('codex.mission.combat');
   });
 
   describe('Einsatz picker', () => {

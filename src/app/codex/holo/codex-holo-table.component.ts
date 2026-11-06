@@ -393,7 +393,9 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .projection { translate: calc(var(--px) * 15px) calc(var(--py) * 15px); }
     :host(.still) .rings, :host(.still) .shipwrap, :host(.still) .projection { translate: none; transition: none; }
     /* Rings + grid + a slow sweep: the table is a live instrument even at rest. */
+    /* No frame: the rings fade out before they reach an edge. */
     .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0; transition: opacity 420ms ease;
+      -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 100%);
       background:
         repeating-radial-gradient(circle at 50% 50%, transparent 0 58px, var(--a7) 59px, transparent 60.5px),
         linear-gradient(var(--a5) 1px, transparent 1px) 0 0 / 100% 40px,

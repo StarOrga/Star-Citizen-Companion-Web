@@ -678,7 +678,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* ── Tab Einordnung ── */
   .rankbody { display: grid; gap: 10px; min-width: 0; }
   .rh { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex-wrap: wrap; }
-  .rh strong { font-size: 22px; font-weight: 500; letter-spacing: 0.02em; color: var(--sc-fg-0); line-height: 1.15; }
+  .rh strong { display: inline-block; font-size: 22px; font-weight: 500; letter-spacing: 0.02em; color: var(--sc-fg-0); line-height: 1.15; }
+  .rh strong::first-letter { text-transform: uppercase; }
   .rh span { font-family: var(--m); font-size: 14px; color: var(--sc-fg-1); }
   .statics { display: flex; gap: 18px; min-width: 0; }
   .statics div { display: grid; gap: 1px; min-width: 0; }
@@ -767,7 +768,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .switch input:checked + .track::after { transform: translateX(14px); background: var(--sc-accent); }
   .switch input:focus-visible + .track { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   /* The toast rides above the strip, whatever height the strip has. */
-  .toasts { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px); left: 50%; translate: -50% 0; z-index: 20;
+  .toasts { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px + var(--holo-strip-lift, 0px)); left: 50%; translate: -50% 0; z-index: 20;
   display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
   .draft-float { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
@@ -794,7 +795,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .holo-table ::ng-deep .silhouette-frame { min-height: calc(100dvh - 52px); }
   }
   @media (max-width: 640px) {
-  .holo-stage { padding-bottom: 72px; }
+  .holo-stage { padding-bottom: calc(72px + var(--holo-strip-lift, 0px)); }
+  /* Beta shell: the search capsule floats at the bottom edge, the strip rides above it. */
+  :host-context([data-layout]) .holo-stage { --holo-strip-lift: calc(var(--sc-float-bottom) + var(--sc-bar-h)); }
   .mobile-tabs { display: flex; }
   .switch.mobile-only { display: inline-flex; }
   .holo-topbar { flex-direction: column; align-items: stretch; }
@@ -1377,28 +1380,30 @@ export class CodexHoloStageComponent {
     afterNextRender(() => {
       const root = this.host.nativeElement;
       const stage = root.querySelector<HTMLElement>('.holo-stage');
-      const body = root.querySelector<HTMLElement>('.holo-body');
-      const measureTop = (): void => {
-        if (!stage || !body) return;
-        let scrolled = 0;
-        for (let el = body.parentElement; el; el = el.parentElement) scrolled += el.scrollTop;
-        const top = `${Math.round(body.getBoundingClientRect().top + scrolled)}px`;
-        if (stage.style.getPropertyValue('--holo-top') !== top) stage.style.setProperty('--holo-top', top);
-      };
+      const measureTop = (): void => this.measureTop();
       measureTop();
       window.addEventListener('resize', measureTop, { passive: true });
       this.destroyRef.onDestroy(() => window.removeEventListener('resize', measureTop));
       if (typeof ResizeObserver !== 'function') return;
-      const ro = new ResizeObserver((entries) => {
-        for (const e of entries) {
-          const el = e.target as HTMLElement;
+      // In the next frame: these sizes change layout, inside the callback that is a "ResizeObserver loop".
+      let raf = 0;
+      const pending = new Set<HTMLElement>();
+      const flush = (): void => {
+        raf = 0;
+        for (const el of pending) {
           const h = Math.round(el.getBoundingClientRect().height);
           if (el.matches('.holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
           else if (el.matches('.hs-row')) stage?.style.setProperty('--holo-row-h', `${h}px`);
           else if (el.matches('.below-persp')) el.style.setProperty('--persp-h', `${h}px`);
           else if (el.matches('.holo-topbar')) measureTop();
         }
+        pending.clear();
+      };
+      const ro = new ResizeObserver((entries) => {
+        for (const e of entries) pending.add(e.target as HTMLElement);
+        raf ||= requestAnimationFrame(flush);
       });
+      this.destroyRef.onDestroy(() => cancelAnimationFrame(raf));
       // The strip's inner bar, not its host: on a phone the bar is position:
       // fixed and the host collapses to 0px, which put the toast on the bar.
       for (const sel of ['sc-codex-holo-strip .holo-strip', 'sc-codex-holo-strip .hs-row', '.below-persp', '.holo-topbar']) {
@@ -1411,15 +1416,7 @@ export class CodexHoloStageComponent {
     // A shared banner above the body moves where the first screen starts.
     effect(() => {
       this.sharedBanner();
-      if (typeof requestAnimationFrame !== 'function') return;
-      untracked(() => requestAnimationFrame(() => {
-        const stage = this.host.nativeElement.querySelector<HTMLElement>('.holo-stage');
-        const body = this.host.nativeElement.querySelector<HTMLElement>('.holo-body');
-        if (!stage || !body) return;
-        let scrolled = 0;
-        for (let el = body.parentElement; el; el = el.parentElement) scrolled += el.scrollTop;
-        stage.style.setProperty('--holo-top', `${Math.round(body.getBoundingClientRect().top + scrolled)}px`);
-      }));
+      if (typeof requestAnimationFrame === 'function') untracked(() => requestAnimationFrame(() => this.measureTop()));
     });
 
     this.destroyRef.onDestroy(() => {
@@ -1460,6 +1457,18 @@ export class CodexHoloStageComponent {
     this.destroyRef.onDestroy(() => {
       if (toastTimer) clearTimeout(toastTimer);
     });
+  }
+
+  /** Where the body starts on the page, however far it is scrolled: the first screen's height follows from it. */
+  private measureTop(): void {
+    const stage = this.host.nativeElement.querySelector<HTMLElement>('.holo-stage');
+    const body = this.host.nativeElement.querySelector<HTMLElement>('.holo-body');
+    if (!stage || !body) return;
+    // Layout offsets, not the rect: the page's enter animation moves the rect for a moment.
+    let y = 0;
+    for (let el: HTMLElement | null = body; el; el = el.offsetParent as HTMLElement | null) y += el.offsetTop;
+    const top = `${Math.round(y)}px`;
+    if (stage.style.getPropertyValue('--holo-top') !== top) stage.style.setProperty('--holo-top', top);
   }
 
   readonly undoToast = signal<JournalEntry | null>(null);

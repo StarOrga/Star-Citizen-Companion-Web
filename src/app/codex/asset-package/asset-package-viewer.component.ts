@@ -246,7 +246,7 @@ const WHEEL_LINE_PX = 33;
           </div>
         }
 
-        <div #bar class="bar" role="toolbar" [attr.aria-label]="'codex.assetPackage.groupsAria' | translate">
+        <div #bar class="bar" [class.tb]="table()" role="toolbar" [attr.aria-label]="'codex.assetPackage.groupsAria' | translate">
           @for (g of groups(); track g) {
             <button type="button" class="chip" [attr.aria-pressed]="groupsOn().has(g)" (click)="toggleGroup(g)">
               {{ 'codex.assetPackage.groups.' + g | translate }}
@@ -375,11 +375,11 @@ const WHEEL_LINE_PX = 33;
       }
       .co-v {
         display: grid; align-items: end; gap: calc(3 * var(--co-u));
-        grid-template-columns: minmax(0, auto) minmax(0, auto) minmax(0, 1fr) calc(26 * var(--co-u));
+        grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) calc(26 * var(--co-u));
       }
       .co-v span {
         min-width: 0; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        font: 600 calc(13.5 * var(--co-u)) / 1.05 var(--sc-font-display);
+        font: 600 calc(12.5 * var(--co-u)) / 1.05 var(--font-monospace, monospace);
       }
       .co-v small {
         display: block; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -436,6 +436,9 @@ const WHEEL_LINE_PX = 33;
       }
       .chip[aria-pressed='true'], .chip[aria-expanded='true'] { border-color: var(--sc-accent); color: var(--sc-accent); }
       .bar-sep { align-self: center; width: 1px; height: 1rem; background: var(--sc-border); }
+      /* The holotable's row: one line down to 1366 wide. */
+      .bar.tb { gap: 5px; }
+      .bar.tb .chip { min-height: max(26px, var(--sc-tap-min, 0px)); padding-block: 0; padding-inline: 9px; font-size: max(11.5px, var(--sc-fs-floor)); white-space: nowrap; }
       .all-parts { display: inline-flex; align-items: center; gap: var(--sc-gap-1); }
       .tg { position: relative; flex: none; width: 1.375rem; height: 0.75rem; border-radius: 0.375rem; background: rgb(from var(--sc-fg-2) r g b / 0.25); }
       .tg::after {

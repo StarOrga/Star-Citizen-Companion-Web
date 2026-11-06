@@ -237,7 +237,6 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
                 </span>
                 <span class="bar-value">
                   @if (a.percentile != null && holo()) {
-                    <b class="bar-word">{{ bandKeyOf(a.percentile) | translate }}</b>
                     <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: a.percentile } }}</span>
                   } @else if (a.percentile != null) {
                     {{ a.percentile }}%
@@ -439,7 +438,12 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     /* ── Holotable variant (concept round 4–6 "Einordnung" panel): one calm
        column inside the panel's own frame — no card chrome, no header, the
        profile as a note (never a second selector), the cohort as a link. ── */
-    :host(.holo) .rank-card { grid-template-columns: 1fr; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
+    :host(.holo) .rank-card { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
+    :host(.holo) .compare-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; min-width: 0; padding: 0; border: 0; }
+    :host(.holo) .compare-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    :host(.holo) .compare-head sc-segmented { min-width: 0; }
+    :host(.holo) .compare-head ::ng-deep .seg { display: grid; grid-auto-flow: column; grid-auto-columns: auto; width: 100%; }
+    :host(.holo) .compare-head ::ng-deep .seg-btn { min-width: 0; padding-inline: 6px; font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0; text-transform: none; white-space: nowrap; }
     :host(.holo) .rank-head { display: none; }
     :host(.holo) .rank-col-radar { align-items: center; gap: 4px; }
     /* The axis captions sit on the rim and run past the 200-unit box on the
@@ -463,13 +467,12 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
     :host(.holo) .bar-list { grid-template-columns: 1fr !important; }
     :host(.holo) .bar-row { grid-template-columns: 82px 1fr 40px; }
-    :host(.holo) .bar-label { font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; }
+    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); }
     :host(.holo) .bar-value { font-family: var(--font-monospace, monospace); }
     :host(.holo) .rank-skel { height: 180px; }
-    :host(.holo) .bar-row { grid-template-columns: 82px 1fr minmax(78px, auto); }
+    :host(.holo) .bar-row { grid-template-columns: 82px minmax(0, 1fr) auto; }
     :host(.holo) .bar-value { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; text-align: right; }
-    :host(.holo) .bar-word { font-weight: 600; color: var(--sc-fg-1, inherit); font-size: max(10.5px, var(--sc-fs-floor)); }
-    :host(.holo) .bar-pct { font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+        :host(.holo) .bar-pct { font-family: var(--sc-font-body); font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-0); white-space: nowrap; }
     .rim-note { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })

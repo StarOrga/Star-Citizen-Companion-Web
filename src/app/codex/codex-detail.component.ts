@@ -282,7 +282,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <sc-page-header class="crumbrow" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
+      <sc-page-header class="crumbrow" [class.holo-on]="holoStageOn()" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
         <!-- On the Holotable these three share the ship's title row (concept glas3). -->
         @if (!holoStageOn()) {
           <div phAside class="crumb-aside">
@@ -1163,6 +1163,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .detail-page .sc-card,
     .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
     .crumbrow { margin-bottom: 10px; }
+    /* Beta shell: the trail is in the Fusion bar, the aside in the Holotable's title row, nothing is left here. */
+    @media (min-width: 721px) { :host-context([data-layout]) .crumbrow.holo-on { display: none; } }
     .crumb-aside { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
     .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: var(--holo-r); overflow: hidden; }
     .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor));

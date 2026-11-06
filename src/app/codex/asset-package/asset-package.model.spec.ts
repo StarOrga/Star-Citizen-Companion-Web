@@ -199,4 +199,27 @@ describe('scopedHotspots / placementsForPorts', () => {
     expect(placementsForPorts(m, ['turret/gun'])).toEqual(['turret/gun']);
     expect(placementsForPorts(m, ['nope'])).toEqual([]);
   });
+
+  describe('scopedHotspots with the host\'s swappable ports', () => {
+    const pl = (id: string, portName: string, parentPort: string | null, over: Record<string, unknown> = {}) =>
+      ({ id, portName, parentPort, helperName: null, group: 'components', itemClass: 'X', itemGuid: null, itemType: null, itemSubType: null, itemSize: 1, parentClass: null, port: null, loadout: 'default', partSha256: 's', position: [0, 0, 0], rotation: null, ...over }) as never;
+    const manifest = (placements: unknown[]) => ({ placements }) as never;
+
+    it('one dot per port: its own, else the first part it carries; other parts are out', () => {
+      const m = manifest([
+        pl('a', 'hp_shield', null),
+        pl('mount', 'hp_gun', null, { position: null }),
+        pl('gun', 'class_2', 'hp_gun'),
+        pl('door', 'hp_door', null),
+      ]);
+      const ids = scopedHotspots(m, 'swappable', new Set(['hp_shield', 'HP_GUN'])).map((p) => p.id);
+      expect(ids.sort()).toEqual(['a', 'gun']);
+    });
+
+    it('"all" ignores the rule, no matching port keeps every dot rather than none', () => {
+      const m = manifest([pl('a', 'hp_a', null), pl('b', 'hp_b', null)]);
+      expect(scopedHotspots(m, 'all', new Set(['hp_a'])).length).toBe(2);
+      expect(scopedHotspots(m, 'swappable', new Set(['nope'])).length).toBe(2);
+    });
+  });
 });

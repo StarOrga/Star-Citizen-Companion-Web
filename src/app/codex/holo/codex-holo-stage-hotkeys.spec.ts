@@ -238,10 +238,10 @@ describe('CodexHoloStageComponent shared-link banner (#646)', () => {
 describe('CodexHoloStageComponent Einordnung states', () => {
   let fixture: ComponentFixture<CodexHoloStageComponent>;
   afterEach(() => fixture?.destroy());
-  // Karma renders at 749px — the tablet layout starts with both rails folded.
+  // The Einordnung is a tab of the one panel.
   async function setupOpen(): Promise<ComponentFixture<CodexHoloStageComponent>> {
     const f = await setup();
-    f.componentInstance.leftCollapsed.set(false);
+    f.componentInstance.panelTab.set('rank');
     return f;
   }
 

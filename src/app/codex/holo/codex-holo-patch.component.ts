@@ -210,7 +210,7 @@ export interface HoloPatchComparisonSide {
     /* The same 40px rhythm as the search field it shares the top bar with. */
     .patch-trigger {
       display: inline-flex; align-items: center; gap: 8px;
-      min-height: max(40px, var(--sc-tap-min, 0px)); padding: 6px 12px;
+      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 3px 11px;
       border: 1px solid var(--border-default, color-mix(in srgb, var(--sc-accent) 30%, transparent)); border-radius: 4px;
       background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-1);
       font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
