@@ -936,7 +936,7 @@ export class CodexBrowseComponent implements OnInit {
   /** Number of active facets — the phone button's "(n)". */
   readonly activeFilterCount = computed(
     () =>
-      [this.manufacturer(), this.size(), this.grade(), this.componentKind(), this.blueprintCategory(), this.blueprintGroup()].filter(Boolean)
+      [this.manufacturer(), this.size(), this.grade(), this.componentKind(), this.blueprintCategory(), this.blueprintGroup(), this.shipRole(), this.crewBand()].filter(Boolean)
         .length + (this.includeVariants() ? 1 : 0),
   );
 
@@ -1099,6 +1099,15 @@ export class CodexBrowseComponent implements OnInit {
   /** Per-category record counts, from the build's weapon facet columns. */
   private readonly weaponFacets = signal<readonly WeaponFacetRow[]>([]);
   readonly includeVariants = signal(false);
+  /** Ship-only facet (package B): RSI role, '' = all roles. */
+  readonly shipRole = signal<ShipRole | ''>('');
+  /** Ship-only facet (package B): crew band, '' = any crew. */
+  readonly crewBand = signal<CrewBand | ''>('');
+  readonly shipRoles = SHIP_ROLES;
+  readonly crewSegments: readonly ScSegmentOption[] = [
+    { value: 'all', labelKey: 'codex.crewBand.all' },
+    ...CREW_BANDS.map((b) => ({ value: b, labelKey: 'codex.crewBand.' + b })),
+  ];
   /** Blueprint-only facet — raw CIG bucket, '' = all. */
   readonly blueprintCategory = signal('');
   /** Buckets actually present in the build (loaded once, data-driven). */
@@ -1319,6 +1328,8 @@ export class CodexBrowseComponent implements OnInit {
       !!this.weaponGroup() ||
       !!this.blueprintCategory() ||
       !!this.blueprintGroup() ||
+      !!this.shipRole() ||
+      !!this.crewBand() ||
       this.includeVariants(),
   );
 
@@ -1366,6 +1377,12 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.blueprintGroup()) add('blueprintGroup', 'codex.filters.blueprintGroup', this.blueprintGroup(), () => this.setBlueprintGroup(''));
     if (this.blueprintCategory()) add('blueprintCategory', 'blueprint.filters.category', this.blueprintCategory(), () => this.setBlueprintCategory(''));
+    if (this.shipRole()) {
+      add('role', 'codex.filters.role', this.t.instant('codex.shipRole.' + this.shipRole()) as string, () => this.setShipRole(''));
+    }
+    if (this.crewBand()) {
+      add('crew', 'codex.filters.crew', this.t.instant('codex.crewBand.' + this.crewBand()) as string, () => this.setCrewBand(''));
+    }
     if (this.includeVariants()) add('variants', 'fusionBar.filter.variants', null, () => this.setIncludeVariants(false));
     return out;
   });
@@ -1373,6 +1390,18 @@ export class CodexBrowseComponent implements OnInit {
   /** The bar panel's checkbox columns (beta shell, concept r8 d2-s4): the same facets as the toolbar. */
   readonly barFacets = computed<readonly BarFacet[]>(() => {
     const out: BarFacet[] = [];
+    if (this.kind() === 'ship') {
+      out.push({
+        id: 'role', labelKey: 'codex.filters.role',
+        options: SHIP_ROLES.map((r) => ({ value: r, labelKey: 'codex.shipRole.' + r })),
+        selected: this.shipRole() || null, set: (v) => this.setShipRole(v ?? ''),
+      });
+      out.push({
+        id: 'crew', labelKey: 'codex.filters.crew',
+        options: CREW_BANDS.map((b) => ({ value: b, labelKey: 'codex.crewBand.' + b })),
+        selected: this.crewBand() || null, set: (v) => this.setCrewBand(v ?? ''),
+      });
+    }
     const mfrs = this.manufacturerOptions();
     if (mfrs.length) {
       out.push({
@@ -1505,6 +1534,8 @@ export class CodexBrowseComponent implements OnInit {
       this.includeVariants();
       this.blueprintCategory();
       this.blueprintGroup();
+      this.shipRole();
+      this.crewBand();
       this.runQuery(true);
     });
 
@@ -1525,6 +1556,8 @@ export class CodexBrowseComponent implements OnInit {
         wsg: this.weaponSubGroup() || null,
         bpc: this.blueprintCategory() || null,
         group: this.blueprintGroup() || null,
+        role: this.kind() === 'ship' ? this.shipRole() || null : null,
+        crew: this.kind() === 'ship' ? this.crewBand() || null : null,
         slot: this.category() === ARMOR_CATEGORY ? this.armorSlot() || null : null,
         v: this.includeVariants() ? '1' : null,
         // Superseded by wg — a landing link's weaponClass must not linger.
@@ -1742,6 +1775,10 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.category() === ARMOR_CATEGORY) take('slot', (v) => ARMOR_SLOT_IDS.includes(v) && this.armorSlot.set(v));
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
+    if (this.kind() === 'ship') {
+      take('role', (v) => isShipRole(v) && this.shipRole.set(v));
+      take('crew', (v) => isCrewBand(v) && this.crewBand.set(v));
+    }
     if (q.get('v') === '1') this.includeVariants.set(true);
     this.sortNew.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('sort') === 'new');
     if (this.sortNew()) this.loadNewOrder();
@@ -1862,6 +1899,8 @@ export class CodexBrowseComponent implements OnInit {
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
     this.blueprintGroup.set('');
+    this.shipRole.set('');
+    this.crewBand.set('');
     this.kind.set(k);
     if (k === 'weapon') void this.loadWeaponFacets();
   }
@@ -1877,11 +1916,31 @@ export class CodexBrowseComponent implements OnInit {
   }
 
   clearSearch(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    if (this.commitTimer) clearTimeout(this.commitTimer);
     this.searchInput.set('');
     this.searchTerm.set('');
   }
 
   setManufacturer(v: string): void { this.manufacturer.set(v); }
+  setShipRole(v: string): void { this.shipRole.set(isShipRole(v) ? v : ''); }
+  setCrewBand(v: string): void { this.crewBand.set(isCrewBand(v) ? v : ''); }
+
+  /** The list search's value: the RSI feed's term on the upcoming list, else the codex term. */
+  readonly listSearchValue = computed(() => (this.isUpcoming() ? this.rsi.query() : this.searchInput()));
+
+  /** The search in the list head (package B): filters this list only, no dropdown over it. */
+  onListSearch(value: string): void {
+    if (this.isUpcoming()) {
+      this.rsi.query.set(value.trim());
+      return;
+    }
+    if (value === '') {
+      this.clearSearch();
+      return;
+    }
+    this.onSearchInput(value);
+  }
   setSize(v: string): void { this.size.set(v); }
   setGrade(v: string): void { this.grade.set(v); }
   setComponentKind(v: string): void { this.componentKind.set(v); }
@@ -1914,6 +1973,8 @@ export class CodexBrowseComponent implements OnInit {
     this.blueprintCategory.set('');
     this.blueprintGroup.set('');
     this.armorSlot.set('');
+    this.shipRole.set('');
+    this.crewBand.set('');
     this.includeVariants.set(false);
   }
 
@@ -1987,9 +2048,21 @@ export class CodexBrowseComponent implements OnInit {
       ...(this.kind() === 'weapon' ? weaponGroupQuery(this.weaponGroup(), this.weaponSubGroup()) : {}),
       category: category || undefined,
       blueprintCategoryIn,
+      ...(this.kind() === 'ship' ? this.shipFacetQuery() : {}),
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
       offset: this.offset,
+    };
+  }
+
+  /** Role + crew band as list filters (career keys, inclusive crew range). */
+  private shipFacetQuery(): Pick<CodexListFilters, 'careerIn' | 'crewMin' | 'crewMax'> {
+    const role = this.shipRole();
+    const band = this.crewBand();
+    const range = band ? CREW_BAND_RANGE[band] : null;
+    return {
+      ...(role ? { careerIn: [...SHIP_ROLE_CAREERS[role]] } : {}),
+      ...(range ? { crewMin: range.min, ...(range.max !== null ? { crewMax: range.max } : {}) } : {}),
     };
   }
 

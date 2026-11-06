@@ -669,7 +669,26 @@
       "anyGrade": "Beliebiger Grade",
       "blueprintGroup": "Bauplan-Gruppe",
       "fits": "Passt für",
-      "ammo": "Feuert"
+      "ammo": "Feuert",
+      "role": "Rolle",
+      "crew": "Crew"
+    },
+    "shipRole": {
+      "combat": "Kampf",
+      "transport": "Transport",
+      "exploration": "Erkundung",
+      "industrial": "Industrie",
+      "support": "Unterstützung",
+      "competition": "Wettkampf",
+      "ground": "Boden",
+      "multirole": "Mehrzweck"
+    },
+    "crewBand": {
+      "all": "Alle",
+      "solo": "1",
+      "small": "2–3",
+      "medium": "4–8",
+      "large": "9+"
     },
     "weaponClass": {
       "Ship": "Schiff",
@@ -2303,7 +2322,10 @@
       "subtitleOf": "{{shown}} von {{total}} · Patch {{patch}}",
       "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} von {{total}}",
-      "subtitleAllNoPatch": "{{shown}} Einträge"
+      "subtitleAllNoPatch": "{{shown}} Einträge",
+      "listSearch": "In {{area}} suchen",
+      "listSearchPh": "In {{area}} suchen …",
+      "listSearchClear": "Suche leeren"
     },
     "contract": {
       "eyebrow": "Mission",

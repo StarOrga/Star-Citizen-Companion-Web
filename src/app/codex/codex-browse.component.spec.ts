@@ -245,6 +245,48 @@ describe('CodexBrowseComponent', () => {
     expect(tree.find((n) => n.id === 'ship')?.count).toBe(10);
   });
 
+  it('package B: reads role + crew from the URL and filters ships by career and crew range', async () => {
+    const { cmp, listByKind } = await setup({ query: { kind: 'ship', role: 'industrial', crew: 'medium' } });
+    expect(cmp.shipRole()).toBe('industrial');
+    expect(cmp.crewBand()).toBe('medium');
+    const [kind, filters] = listByKind.calls.mostRecent().args;
+    expect(kind).toBe('ship');
+    expect(filters.careerIn).toEqual(['@vehicle_focus_resources']);
+    expect(filters.crewMin).toBe(4);
+    expect(filters.crewMax).toBe(8);
+  });
+
+  it('package B: an open crew band has no upper bound; an unknown role is ignored', async () => {
+    const { cmp, listByKind } = await setup({ query: { kind: 'ship', role: 'pirate', crew: 'large' } });
+    expect(cmp.shipRole()).toBe('');
+    const filters = listByKind.calls.mostRecent().args[1];
+    expect(filters.careerIn).toBeUndefined();
+    expect(filters.crewMin).toBe(9);
+    expect(filters.crewMax).toBeUndefined();
+  });
+
+  it('package B: role and crew belong to ships and reset on a kind switch', async () => {
+    const { cmp, fixture, listByKind } = await setup({ query: { kind: 'ship', role: 'combat' } });
+    expect(fixture.nativeElement.querySelectorAll('.filterbar .chip').length).toBe(8);
+    cmp.setCategory('weapon');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cmp.shipRole()).toBe('');
+    expect(listByKind.calls.mostRecent().args[1].careerIn).toBeUndefined();
+    expect(fixture.nativeElement.querySelector('.filterbar .chip')).toBeNull();
+  });
+
+  it('package B: the list head carries its own search, without a dropdown', async () => {
+    const { cmp, fixture } = await setup({ query: { kind: 'ship' } });
+    const input = fixture.nativeElement.querySelector('.list-head .ls-input') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    input.value = 'gladius';
+    input.dispatchEvent(new Event('input'));
+    expect(cmp.searchInput()).toBe('gladius');
+    cmp.onListSearch('');
+    expect(cmp.searchInput()).toBe('');
+  });
+
   it('d-filter: with the beta shell on there is no phone filter button or sheet', async () => {
     const { fixture } = await setup({ query: { kind: 'ship' }, shell: true });
     expect(fixture.nativeElement.querySelector('.filter-fab')).toBeNull();
