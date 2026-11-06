@@ -14,7 +14,7 @@ import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqCueComponent } from './hq-cue.component';
-import { wireHqPageScroll } from './hq-page-scroll';
+import { wireHqPageHotkeys, wireHqPageScroll } from './hq-page-scroll';
 import { HqNowComponent } from './now/hq-now.component';
 import { HqPageBarComponent } from './hq-page-bar.component';
 import { HqPageNavService } from './hq-page-nav.service';
@@ -28,7 +28,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
 
 /**
  * The HQ landing (beta shell, concept D1–D6): ONE route, five Verse-like scroll stages —
- * Start · Planen · Jetzt · Bestand · Statistik — as `<section id="…">`, so `/hq#planen` is a real
+ * Start · Bestand · Jetzt · Planen · Statistik — as `<section id="…">`, so `/hq#planen` is a real
  * anchor (router anchor scrolling does the deep link, back/forward and the initial landing).
  *
  * - The page in view comes from an IntersectionObserver on the viewport's middle line. It is
@@ -60,16 +60,16 @@ import { HqStockComponent } from './stock/hq-stock.component';
   template: `
     <sc-hq-rail />
     <section id="start" class="page start sc-stage-a" data-hq-page="start" [attr.aria-label]="'hq.pages.start' | translate">
-      <sc-hq-start [patchLines]="feed.patchLines()" [chips]="feed.chips()" />
+      <sc-hq-start [patch]="feed.patchHit()" />
     </section>
-    <section id="planen" class="page follow sc-below-stage" data-hq-page="planen" aria-labelledby="hq-plan-title">
-      <sc-hq-plan />
+    <section id="bestand" class="page follow sc-below-stage" data-hq-page="bestand" aria-labelledby="hq-stock-title">
+      <sc-hq-stock />
     </section>
     <section id="jetzt" class="page follow sc-below-stage" data-hq-page="jetzt" aria-labelledby="hq-now-title">
       <sc-hq-now />
     </section>
-    <section id="bestand" class="page follow sc-below-stage" data-hq-page="bestand" aria-labelledby="hq-stock-title">
-      <sc-hq-stock />
+    <section id="planen" class="page follow sc-below-stage" data-hq-page="planen" aria-labelledby="hq-plan-title">
+      <sc-hq-plan />
     </section>
     <section id="statistik" class="page follow last sc-below-stage" data-hq-page="statistik" aria-labelledby="hq-stats-title">
       <sc-hq-stats />
@@ -159,6 +159,7 @@ export class HqPagesComponent {
         this.zone,
       );
       this.destroyRef.onDestroy(unwire);
+      this.destroyRef.onDestroy(wireHqPageHotkeys((p) => this.goTo(p), this.zone));
     });
   }
 

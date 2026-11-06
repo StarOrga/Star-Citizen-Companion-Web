@@ -1,22 +1,28 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { HQ_PAGE_ICONS, HqPageNavService } from './hq-page-nav.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.service';
 
 /**
  * The left-edge quick-scroll rail (concept D4): the five HQ pages as slim vertical real
  * anchors at the page edge, outside the content column; the label shows on hover and focus, the
  * page in view carries `aria-current`. Desktop only (≥ 1024px) — narrower viewports get the
- * bottom bar ({@link HqPageBarComponent}).
+ * bottom bar ({@link HqPageBarComponent}). The page's hotkey never shows at rest: a long hover says
+ * it (info tier), the label stays as it is.
  */
 @Component({
   selector: 'sc-hq-rail',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="rail" [attr.aria-label]="'hq.rail.label' | translate">
       @for (p of nav.pages; track p) {
+        @let key = hotkey(p);
         <a class="stop" [href]="nav.href(p)" (click)="nav.go($event, p)"
+           [attr.aria-keyshortcuts]="key"
+           [scTooltip]="key ? ('hq.hotkey' | translate: { key }) : null"
+           [scTooltipDisabled]="nav.noHover"
            [attr.aria-current]="nav.active() === p ? 'page' : null"
            [attr.aria-label]="'hq.rail.goto' | translate: { page: ('hq.pages.' + p | translate) }">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons[p]" /></svg>
@@ -86,4 +92,5 @@ import { HQ_PAGE_ICONS, HqPageNavService } from './hq-page-nav.service';
 export class HqRailComponent {
   protected readonly nav = inject(HqPageNavService);
   protected readonly icons = HQ_PAGE_ICONS;
+  protected readonly hotkey = hqPageHotkey;
 }
