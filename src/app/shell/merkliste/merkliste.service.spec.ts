@@ -8,6 +8,7 @@ import { WishlistStore } from '../../hq/data/wishlist.store';
 import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { NewsService } from '../../news/news.service';
 import { RECENT_ROWS_KEY } from '../fusion-bar/search-recent-rows';
+import { noteOpenedPage } from './merkliste-opened';
 import { MerklisteService } from './merkliste.service';
 
 function setup(preferences: boolean, own: { wishes?: unknown[]; open?: unknown[]; favs?: string[] } = {}) {
@@ -34,7 +35,8 @@ describe('MerklisteService "Zuletzt geoeffnet" (D7)', () => {
     await TestBed.inject(Router).navigateByUrl('/codex/ship/AEGS_Gladius');
     expect(svc.type()).toBe('ship');
     expect(svc.recent()).toEqual([]);
-    svc.noteOpened({ kind: 'ship', className: 'AEGS_Gladius', title: 'Gladius', manufacturerCode: 'AEGS' });
+    noteOpenedPage({ kind: 'ship', className: 'AEGS_Gladius', title: 'Gladius', manufacturerCode: 'AEGS' });
+    svc.refresh(); // the panel picks the storage up when it opens
     expect(svc.recent().map((r) => r.title)).toEqual(['Gladius']);
     expect(svc.recent()[0].target?.link).toEqual(['/codex', 'ship', 'AEGS_Gladius']);
   });
@@ -42,15 +44,16 @@ describe('MerklisteService "Zuletzt geoeffnet" (D7)', () => {
   it('keeps the newest first, one row per page, and cuts by the page type', async () => {
     const svc = setup(false);
     await TestBed.inject(Router).navigateByUrl('/codex/ship/AEGS_Gladius');
-    svc.noteOpened({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
-    svc.noteOpened({ kind: 'weapon', className: 'W', title: 'W', manufacturerCode: null });
-    svc.noteOpened({ kind: 'ship', className: 'B', title: 'B', manufacturerCode: null });
-    svc.noteOpened({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
+    noteOpenedPage({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
+    noteOpenedPage({ kind: 'weapon', className: 'W', title: 'W', manufacturerCode: null });
+    noteOpenedPage({ kind: 'ship', className: 'B', title: 'B', manufacturerCode: null });
+    noteOpenedPage({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
+    svc.refresh();
     expect(svc.recent().map((r) => r.title)).toEqual(['A', 'B']);
   });
 
   it('writes the key the search writes, so a reload still shows the page', () => {
-    setup(false).noteOpened({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
+    noteOpenedPage({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
     expect(JSON.parse(localStorage.getItem(RECENT_ROWS_KEY) ?? '[]').length).toBe(1);
     TestBed.resetTestingModule();
     expect(setup(false).recent().map((r) => r.title)).toEqual(['A']);
@@ -65,9 +68,9 @@ describe('MerklisteService "Zuletzt geoeffnet" (D7)', () => {
   });
 
   it('ignores announced ships and kinds without a type', () => {
-    const svc = setup(true);
-    svc.noteOpened({ kind: 'upcoming', className: 'X', title: 'X', manufacturerCode: null });
-    svc.noteOpened({ kind: 'ammunition', className: 'Y', title: 'Y', manufacturerCode: null });
+    setup(true);
+    noteOpenedPage({ kind: 'upcoming', className: 'X', title: 'X', manufacturerCode: null });
+    noteOpenedPage({ kind: 'ammunition', className: 'Y', title: 'Y', manufacturerCode: null });
     expect(localStorage.getItem(RECENT_ROWS_KEY)).toBeNull();
   });
 });

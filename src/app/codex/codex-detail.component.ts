@@ -1,7 +1,7 @@
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { pathLevelFor } from './path-level.util';
-import { MerklisteService } from '../shell/merkliste/merkliste.service';
+import { noteOpenedPage } from '../shell/merkliste/merkliste-opened';
 import { CompareIconComponent } from './compare-icon.component';
 import { ingredientTokenOfCrate } from '../hq/stock/hq-stock-ref';
 import { logWarn } from '../core/log';
@@ -1538,7 +1538,6 @@ export class CodexDetailComponent implements OnInit {
   private readonly ownershipSvc = inject(HqOwnershipService);
   private readonly codexBeta = inject(BetaService).isEnabled('codex');
   /** The share FAB (beta shell) replaces the "Link teilen" buttons; without the beta they stay, or no link copy would be left. */
-  private readonly merkliste = inject(MerklisteService);
   protected readonly shareFab = inject(BetaService).isEnabled('shell');
   protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
   /** Everything the reader has of this entity (HQ ownership index), or null. */
@@ -2297,7 +2296,7 @@ export class CodexDetailComponent implements OnInit {
       this.detail.set(d);
       if (d) {
         // D7: every opened page counts as "Zuletzt geoeffnet", not only those opened from the search.
-        this.merkliste.noteOpened({ kind: d.kind, className: d.classNameSlug, title: this.displayName(), manufacturerCode: (d.row['manufacturer_code'] as string | null) ?? null });
+        noteOpenedPage({ kind: d.kind, className: d.classNameSlug, title: this.displayName(), manufacturerCode: (d.row['manufacturer_code'] as string | null) ?? null });
         await Promise.all([
           this.resolveLoadoutEntities(d, seq),
           this.resolveLocale(d, seq),

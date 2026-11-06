@@ -6,15 +6,12 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { WishlistStore, type WishRow } from '../../hq/data/wishlist.store';
 import { NewsService } from '../../news/news.service';
-import { hitTarget } from '../../codex/search/codex-search-model';
-import type { PolyHitKind, PolySearchHit } from '../../codex/codex-poly-search';
-import { readRecentRows, rememberRow, type StoredRow } from '../fusion-bar/search-recent-rows';
+import { readRecentRows, type StoredRow } from '../fusion-bar/search-recent-rows';
 import {
   MERK_NEWS_SHOWN,
   MERK_RECENT_SHOWN,
   MERK_WISH_SHOWN,
   merkTypeOf,
-  typeOfKind,
   recentRowsOfType,
   wishRowOfType,
   type MerkRow,
@@ -85,27 +82,6 @@ export class MerklisteService {
     this.recents.set(readRecentRows(storage()));
     this.reads.set(readReads());
     if (!this.news.feed() && this.news.favoriteIds().size > 0) void this.news.refresh(true);
-  }
-
-  /**
-   * D7 "Zuletzt geoeffnet": a Codex detail page the reader opened, from any link (the search only
-   * records what it opened itself). Same row shape, key and rules as the search writes (the rows stay
-   * on the device and the search stores them without a consent gate), so both dedupe.
-   */
-  noteOpened(o: { kind: string; className: string; title: string; manufacturerCode: string | null }): void {
-    if (!typeOfKind(o.kind) || o.kind === 'upcoming') return;
-    const hit: PolySearchHit = {
-      kind: o.kind as PolyHitKind,
-      classNameSlug: o.className,
-      nameLocalized: o.title,
-      manufacturerCode: o.manufacturerCode,
-      manufacturerName: null,
-      size: null,
-      grade: null,
-      scope: 'equipment',
-    };
-    const row = { type: 'hit', id: `hit-${hit.kind}-${hit.classNameSlug}`, hit, target: hitTarget(hit), outside: false, owned: null, fit: null, signal: { recent: true, owned: false, popular: false } } as StoredRow;
-    this.recents.set(rememberRow(storage(), readRecentRows(storage()), row));
   }
 
   private noteNewsRead(url: string): void {
