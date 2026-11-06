@@ -63,6 +63,12 @@ Layout: the Pult is the favourite (model left, one panel right with tabs); Werkb
 - The strip is always on the first screen and sticks to the bottom edge when scrolling.
 - The Einordnung with its hexagon lives in the panel and follows the Einsatz. The page shows the Einsatz subtly; Alles stays app blue, others get a quiet hue plus a symbol, never red or the warning colour.
 
+## Decided in T round 2 (2026-11-06), not built yet
+
+Glas is the favourite: no frame around the model, the panel is one sheet of glass, tabs are a sliding pill, the strip is one capsule. Gutters for callouts stay free; the model does not move while the mouse searches. Comparison group shows the group's own name ("Alle Leichten Jäger"), no term. Another Einsatz keeps other parts lit and quiets the rest. The panel head carries no Einsatz tag; the strip shows it.
+
+Owner's direction: the hexagon's axes follow the ship's class, and stay when comparing with all ships. Rim = 100 % of the group, the median sits on the same scale (the live page already does this, `groupScale`).
+
 ## Rejected, do not re-propose without saying so
 
 - Compare button on the ship page ("eher auf der Landing ... Richtung Simulation"). (S hv-s2)
