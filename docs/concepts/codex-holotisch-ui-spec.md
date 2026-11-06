@@ -69,6 +69,17 @@ Glas is the favourite: no frame around the model, the panel is one sheet of glas
 
 Owner's direction: the hexagon's axes follow the ship's class, and stay when comparing with all ships. Rim = 100 % of the group, the median sits on the same scale (the live page already does this, `groupScale`).
 
+## Decided in T round 3 and built (2026-11-06)
+
+Rounds 1 and 2 above are built on the branch as well; the implement click covered all three rounds. Details: `20261106-1207-holotisch-tiefenanalyse/briefs/implement.md`.
+
+- Hexagon axes: seven, with a profile per ship class; missions such as transport and mining keep their own axes (owner note: several missions exist).
+- Scale rim: 95th percentile of the group. Helps sustained DPS and boost; alpha and shield stay under 3 % against all ships (open, needs another scale).
+- Group name: the ship's class.
+- Ship actions: split between the panel and the open block.
+
+Not built: fullscreen 3D in phone landscape.
+
 ## Rejected, do not re-propose without saying so
 
 - Compare button on the ship page ("eher auf der Landing ... Richtung Simulation"). (S hv-s2)
