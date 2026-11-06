@@ -139,6 +139,47 @@ describe('HqPagesComponent', () => {
     expect(cue.getAttribute('href')).toBe('/hq#bestand');
   });
 
+  it('a hotkey moves the rail and the cue along with the page', () => {
+    const f = mount();
+    TestBed.tick();
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true, cancelable: true }));
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    expect(el.querySelector('sc-hq-rail a[aria-current="page"]')?.getAttribute('href')).toBe('/hq#planen');
+    expect(el.querySelector('sc-hq-cue a.more-cue')?.getAttribute('href')).toBe('/hq#statistik');
+  });
+
+  it('the cue stands back while the page in view runs on below the viewport', () => {
+    const f = mount();
+    TestBed.tick();
+    const el: HTMLElement = f.nativeElement;
+    const start = el.querySelector<HTMLElement>('[data-hq-page="start"]')!;
+    const measure = (f.componentInstance as unknown as { measureCue(): void });
+    const rect = spyOn(start, 'getBoundingClientRect').and.returnValue({ bottom: window.innerHeight + 400 } as DOMRect);
+    measure.measureCue();
+    f.detectChanges();
+    expect(el.querySelector('sc-hq-cue')?.classList).toContain('gone');
+    rect.and.returnValue({ bottom: window.innerHeight } as DOMRect);
+    measure.measureCue();
+    f.detectChanges();
+    expect(el.querySelector('sc-hq-cue')?.classList).not.toContain('gone');
+  });
+
+  it('only the URL of Planen carries the route focus', () => {
+    const f = mount();
+    const url = (f.componentInstance as unknown as { urlFor(p: string): string });
+    const before = window.location.href;
+    history.replaceState(history.state, '', '?einsatz=e1&x=1');
+    try {
+      expect(url.urlFor('planen')).toBe('/hq?einsatz=e1&x=1#planen');
+      expect(url.urlFor('bestand')).toBe('/hq?x=1#bestand');
+      history.replaceState(history.state, '', '?einsatz=e1');
+      expect(url.urlFor('start')).toBe('/hq');
+    } finally {
+      history.replaceState(history.state, '', before);
+    }
+  });
+
   it('every follow page takes the same column (the subheader width)', () => {
     const f = mount();
     const rects = ['planen', 'jetzt', 'bestand', 'statistik'].map((id) =>

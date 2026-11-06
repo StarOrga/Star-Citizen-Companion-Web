@@ -8,6 +8,7 @@ import {
   computed,
   effect,
   inject,
+  signal,
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
@@ -20,7 +21,7 @@ import { HqPageBarComponent } from './hq-page-bar.component';
 import { HqPageNavService } from './hq-page-nav.service';
 import { HqPlanComponent } from './plan/hq-plan.component';
 import { HqRailComponent } from './hq-rail.component';
-import { HQ_PAGES, HqPageId, hqPageHref, hqPageOfFragment } from './hq-routes';
+import { HQ_EINSATZ_PARAM, HQ_PAGES, HqPageId, hqPageHref, hqPageOfFragment } from './hq-routes';
 import { HqStartFeedService } from './start/hq-start-feed.service';
 import { HqStartComponent } from './start/hq-start.component';
 import { HqStatsComponent } from './stats/hq-stats.component';
@@ -75,7 +76,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
       <sc-hq-stats />
     </section>
     @if (nextPage(); as next) {
-      <sc-hq-cue class="page-cue" [target]="next" />
+      <sc-hq-cue class="page-cue" [class.gone]="!cueFree()" [target]="next" />
     }
     <sc-hq-page-bar />
   `,
@@ -92,7 +93,10 @@ import { HqStockComponent } from './stock/hq-stock.component';
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
       /* The way on stands at the viewport's bottom edge on every page; the phone bar does that job below 1024px. */
-      .page-cue { position: fixed; z-index: 3; inset-inline: 0; bottom: max(8px, 0.8vw); pointer-events: none; }
+      .page-cue { position: fixed; z-index: 3; inset-inline: 0; bottom: max(8px, 0.8vw); pointer-events: none; transition: opacity 0.25s, visibility 0.25s; }
+      /* Like the Verse cue it has no ground, so it stands back while page content lies beneath it. */
+      .page-cue.gone { opacity: 0; visibility: hidden; }
+      @media (prefers-reduced-motion: reduce) { .page-cue { transition: none; } }
       @media (min-width: 1024px) { .follow { padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-5, 24px)); } }
       @media (max-width: 1023px) { .page-cue { display: none; } }
     `,
@@ -115,7 +119,14 @@ export class HqPagesComponent {
     return HQ_PAGES[i + 1] ?? null;
   });
 
+  /** The end of the page in view is on screen, so nothing but its bottom padding lies under the cue. */
+  protected readonly cueFree = signal(true);
+
   constructor() {
+    effect(() => {
+      this.chrome.hqPage();
+      this.measureCue();
+    });
     this.chrome.setHqPage(hqPageOfFragment(this.route.snapshot.fragment) ?? 'start');
     effect(() => {
       const page = this.chrome.hqPage();
@@ -159,6 +170,7 @@ export class HqPagesComponent {
         this.zone,
       );
       this.destroyRef.onDestroy(unwire);
+      this.destroyRef.onDestroy(this.watchCue());
       this.destroyRef.onDestroy(wireHqPageHotkeys((p) => this.goTo(p), this.zone));
     });
   }
@@ -193,9 +205,45 @@ export class HqPagesComponent {
     this.host.nativeElement.style.setProperty('--hq-start-top', `${top}px`);
   }
 
+  /** A long page keeps the cue away until its end is in view: on scroll, and when its content grows. */
+  private watchCue(): () => void {
+    if (typeof window === 'undefined') return () => undefined;
+    let frame = 0;
+    const queue = (): void => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        this.measureCue();
+      });
+    };
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(queue);
+    this.zone.runOutsideAngular(() => {
+      window.addEventListener('scroll', queue, { passive: true });
+      window.addEventListener('resize', queue, { passive: true });
+      ro?.observe(this.host.nativeElement);
+    });
+    this.measureCue();
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', queue);
+      window.removeEventListener('resize', queue);
+      ro?.disconnect();
+    };
+  }
+
+  private measureCue(): void {
+    const section = this.section(this.chrome.hqPage() ?? 'start');
+    if (!section || typeof window === 'undefined') return;
+    const free = section.getBoundingClientRect().bottom <= window.innerHeight + 2;
+    if (free !== this.cueFree()) this.zone.run(() => this.cueFree.set(free));
+  }
+
   private urlFor(page: HqPageId): string {
     const base = hqPageHref(page);
-    const search = typeof window === 'undefined' ? '' : window.location.search;
+    const params = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+    // The route focus belongs to Planen; another page's URL does not carry it along.
+    if (page !== 'planen') params.delete(HQ_EINSATZ_PARAM);
+    const search = params.size ? `?${params}` : '';
     if (!search) return base;
     const [path, hash] = base.split('#');
     return hash ? `${path}${search}#${hash}` : `${path}${search}`;

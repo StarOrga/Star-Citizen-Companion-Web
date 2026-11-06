@@ -1,6 +1,6 @@
 # Contract: starting the SCC-App from the website
 
-The HQ pages offer one action, "SCC-App starten" (`src/app/desktop/scc-app-launcher.service.ts`). It opens a URL the desktop app registers for itself. If nothing answers, the website downloads the installer.
+The Jetzt and Statistik pages offer one action, "SCC-App starten" (`src/app/desktop/scc-app-launcher.service.ts`). It opens a URL the desktop app registers for itself. If nothing answers, the website downloads the installer.
 
 The HQ Start page names the action by what it knows. With no game signal on the account and no memory in this browser it says "SCC-App downloaden" and its click downloads the installer without trying the URL. With a game signal on the account or a memory in this browser it says "SCC-App starten" and works as described below.
 

@@ -328,7 +328,9 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .ein { padding: var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0); }
       .ein-head { display: flex; align-items: center; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-2, 8px); }
       .ein-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-      .ein.focus { outline: 1px solid var(--sc-accent); outline-offset: var(--sc-space-1, 4px); border-radius: var(--sc-radius, 10px); }
+      .ein.focus { outline: 1px solid var(--sc-accent); outline-offset: var(--sc-space-1, 4px); border-radius: var(--sc-radius, 10px); animation: hq-route-focus 6s ease-in forwards; }
+      /* It says "this one" on arrival, it does not stay marked for the rest of the session. */
+      @keyframes hq-route-focus { 60% { outline-color: var(--sc-accent); } 100% { outline-color: transparent; } }
       .ein-step { display: flex; align-items: center; gap: var(--sc-space-2, 8px); }
       .ein-step sc-step { flex: 1; min-width: 0; }
       @media (pointer: coarse) { .seg, .kind, .nach, .n-where.pick, .where-opt { min-height: 48px; } .rm { min-width: 48px; min-height: 48px; } }
