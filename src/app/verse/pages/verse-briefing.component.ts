@@ -196,6 +196,12 @@ export function fitTitle(h: HTMLElement): boolean {
  * moon gates). β "verse" off: the legacy landing (the Verse News list).
  */
 
+/** The hub, and the header and search that build with it: not a toast or dialog elsewhere on the page. */
+function inEntrance(a: Animation): boolean {
+  const target = a.effect instanceof KeyframeEffect ? a.effect.target : null;
+  return !!target?.closest('sc-verse-briefing, sc-main-header, sc-fusion-bar');
+}
+
 /** Lets a finite animation that has not ended reach its end within `ms`. Endless ones run on. */
 export function hurry(a: Animation, ms: number): void {
   const t = a.effect?.getComputedTiming();
@@ -229,7 +235,6 @@ export class VerseBriefingComponent {
   private readonly chrome = inject(ShellChromeService);
   private readonly windowFocus = inject(WindowFocusService);
   private readonly router = inject(Router);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -748,7 +753,7 @@ export class VerseBriefingComponent {
     this.introTimers.forEach(clearTimeout);
     this.introTimers = [];
     this.holoStands.set(true);
-    this.host.ownerDocument.getAnimations().forEach((a) => hurry(a, INTRO_SKIP_MS));
+    document.getAnimations().filter(inEntrance).forEach((a) => hurry(a, INTRO_SKIP_MS));
     this.introTimers.push(setTimeout(() => this.endIntro(), INTRO_SKIP_MS));
   }
 

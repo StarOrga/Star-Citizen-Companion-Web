@@ -1,0 +1,77 @@
+<section id="iter-2" data-iteration="2" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Der große Aufbau kommt jetzt bei jedem ersten Besuch des Tages, das Holo sendet erst nach dem Komet, und jede Eingabe beendet ihn sofort.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🌅</span><span>Der Aufbau kommt <b>auf jedem Weg</b>, auch über das Menü.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">☄️</span><span>Der <b>Komet bleibt allein</b>, das Holo sendet danach.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📖</span><span>Bei der Rückkehr ist die <b>Meldung sofort lesbar</b>.</span></li>
+      </ul>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261106-1513-verse-aufbau/shots/before.jpg" alt="Filmstreifen des ersten Besuchs vorher"><figcaption>Holo mitten im Komet</figcaption></figure>
+      <figure class="fr-shot"><img src="20261106-1513-verse-aufbau/shots/after.jpg" alt="Filmstreifen des ersten Besuchs nachher"><figcaption>Holo ab etwa 6 s, ganz zu sehen</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Im Filmstreifen steht die Seite nach der Eingabe bei 1,5 s etwa 0,5 s später, Anforderung rund 0,3 s plus Bildaufbau (geschätzt).">
+        <span class="fr-meter-name">⏭ Abbrechen</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">≈ 0,5 s</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 60%" data-tip="Längstes Bild um 3,7 s beim Öffnen auf /verse: 128 ms, über das Menü 33 ms. Anforderung: kein auffälliger Ruckler (geschätzt).">
+        <span class="fr-meter-name">🎞 Flüssigkeit</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">128 ms</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ✓ {{final.level_prod}} · ○ {{final.level_live}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+    <details class="fr-fold" data-open-questions>
+      <summary>🔍 1 {{final.funde_fold}}</summary>
+      <ul class="fr-funde">
+        <li data-oq-id="oq-frames"
+            data-issue-title="[BUG] Long frames around 3.7 s when the app opens on /verse"
+            data-issue-type="bug"
+            data-issue-body="One or two frames of up to 128 ms around 3.7 s of the entrance, in two of three runs, only when the app is opened on /verse; through the menu the longest is 33 ms. Announced on the concept page, the cause was not found. Trace the frames with the warm-browser setup from docs/performance-plan.md."
+            data-oq-origin="shortfall"
+            data-route-default="now"
+            data-route-reason="nicht-geklärt">
+          <span class="oq-label">Lange Bilder um 3,7 s</span>
+          <dl class="fr-fkv">
+            <dt>{{final.fund_what}}</dt><dd>Beim Öffnen auf /verse bis zu 128 ms, in zwei von drei Läufen. Die Ursache habe ich nicht gefunden.</dd>
+            <dt>{{final.fund_where}}</dt><dd>Großer Aufbau, nur beim Öffnen, über das Menü nicht</dd>
+            <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt — das war zugesagt, ein Trace kann es klären.</dd>
+          </dl>
+        </li>
+      </ul>
+    </details>
+
+    <details class="fr-fold">
+      <summary>🛠 {{final.dev_fold}}</summary>
+      <ul class="fr-dev">
+        <li>Branch <code>feat/verse-aufbau</code>, Entwurfs-PR #965, noch nicht gemergt</li>
+        <li><code>verse-briefing.component.ts</code>, <code>briefing-transmit.component.ts</code>, <code>styles.scss</code></li>
+        <li>CI grün bis auf Vercels Tageslimit; lokal bremste Battlefield 6 die Tests aus</li>
+        <li>Spec: <code>docs/concepts/verse-aufbau-ui-spec.md</code></li>
+      </ul>
+    </details>
+  </div>
+
+  <section data-tests hidden>
+    <ul>
+      <li data-todo-id="t-feel" data-crit="mid" data-guide="">Aufbau morgen früh live ansehen</li>
+    </ul>
+  </section>
+</section>

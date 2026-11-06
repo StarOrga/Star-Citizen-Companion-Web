@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-active data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <div class="iteration-intro">
     <h2>Der Aufbau von /verse, Besuch für Besuch</h2>
     <p>Gemessen am aktuellen Stand mit Testdaten. Noch nichts an den Animationen geändert.</p>
@@ -62,7 +63,7 @@
         </label>
       </div>
       <textarea data-comment="d-trigger-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-trigger-none" value=""><input type="hidden" name="dm-d-trigger-hes" value=""><input type="hidden" name="dm-d-trigger-touched" value=""><input type="hidden" name="dm-d-trigger-issue" value=""><input type="hidden" name="dm-d-trigger-epic" value="">
+      <input type="hidden" name="dm-d-trigger-none" value=""><input type="hidden" name="dm-d-trigger-hes" value="{&quot;ms&quot;:36152,&quot;revisits&quot;:0,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-trigger-touched" value="1"><input type="hidden" name="dm-d-trigger-issue" value=""><input type="hidden" name="dm-d-trigger-epic" value="">
       <div data-alevel="3" data-title="Auslöser">
         <div data-slot="short"><p>Gesetzt wird der Tag schon beim Wechsel, gespielt wird aber nur beim Öffnen auf /verse.</p></div>
         <div data-slot="long">
@@ -98,7 +99,7 @@
         </label>
       </div>
       <textarea data-comment="d-holo-first-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-holo-first-none" value=""><input type="hidden" name="dm-d-holo-first-hes" value=""><input type="hidden" name="dm-d-holo-first-touched" value=""><input type="hidden" name="dm-d-holo-first-issue" value=""><input type="hidden" name="dm-d-holo-first-epic" value="">
+      <input type="hidden" name="dm-d-holo-first-none" value=""><input type="hidden" name="dm-d-holo-first-hes" value="{&quot;ms&quot;:32403,&quot;revisits&quot;:0,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-holo-first-touched" value="1"><input type="hidden" name="dm-d-holo-first-issue" value=""><input type="hidden" name="dm-d-holo-first-epic" value="">
       <div data-alevel="3" data-title="Holo im Aufbau">
         <div data-slot="short"><p>Von 3,5 bis 4,2 s schreibt das Holo, der Komet fliegt, und der Name macht Platz für die Meldung.</p></div>
         <div data-slot="long">
@@ -119,7 +120,7 @@
       <p data-stakes>Wirkung beim Öffnen gegen Wartezeit an jedem Tag.</p>
       <div data-options>
         <label data-opt="trim" data-recommended>
-          <input type="radio" name="dm-d-length" value="trim" checked>
+          <input type="radio" name="dm-d-length" value="trim">
           <span data-opt-label>Auf etwa 3,2 s straffen</span>
           <span data-opt-consequence>Die Reihenfolge bleibt, Pausen und Abstände werden um ein Viertel kürzer.</span>
         </label>
@@ -129,13 +130,13 @@
           <span data-opt-consequence>Kopfzeile, Suche und Planeten kommen fast gleichzeitig, der Aufbau wirkt weniger wie Kino.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-length" value="keep">
+          <input type="radio" name="dm-d-length" value="keep" checked>
           <span data-opt-label>Bei 4,2 s bleiben</span>
           <span data-opt-consequence>Der Ablauf bleibt genau so, wie du ihn am 4.11. abgenommen hast.</span>
         </label>
       </div>
       <textarea data-comment="d-length-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-length-none" value=""><input type="hidden" name="dm-d-length-hes" value=""><input type="hidden" name="dm-d-length-touched" value=""><input type="hidden" name="dm-d-length-issue" value=""><input type="hidden" name="dm-d-length-epic" value="">
+      <input type="hidden" name="dm-d-length-none" value=""><input type="hidden" name="dm-d-length-hes" value="{&quot;ms&quot;:17309,&quot;revisits&quot;:2,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-length-touched" value="1"><input type="hidden" name="dm-d-length-issue" value=""><input type="hidden" name="dm-d-length-epic" value="">
       <div data-alevel="3" data-title="Länge">
         <div data-slot="short"><p>Die Sekunden stammen aus dem Ablaufplan und passen zur Messung ohne Bildaufnahme.</p></div>
         <div data-slot="long">
@@ -167,11 +168,11 @@
         <label data-opt="alt">
           <input type="radio" name="dm-d-skip" value="alt">
           <span data-opt-label>Anders …</span>
-          <input type="text" name="dm-d-skip-alt" placeholder="Was stattdessen?">
+          <input type="text" name="dm-d-skip-alt" placeholder="Was stattdessen?" value="">
         </label>
       </div>
       <textarea data-comment="d-skip-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-skip-none" value=""><input type="hidden" name="dm-d-skip-hes" value=""><input type="hidden" name="dm-d-skip-touched" value=""><input type="hidden" name="dm-d-skip-issue" value=""><input type="hidden" name="dm-d-skip-epic" value="">
+      <input type="hidden" name="dm-d-skip-none" value=""><input type="hidden" name="dm-d-skip-hes" value="{&quot;ms&quot;:111159,&quot;revisits&quot;:1,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-skip-touched" value="1"><input type="hidden" name="dm-d-skip-issue" value=""><input type="hidden" name="dm-d-skip-epic" value="">
       <div data-alevel="3" data-title="Abbrechen">
         <div data-slot="short"><p>Die Kopfzeile trägt bis 2,2 s das Attribut <code>inert</code>, Klicks dort gehen ins Leere.</p></div>
         <div data-slot="long">
@@ -220,7 +221,7 @@
         </label>
       </div>
       <textarea data-comment="d-reload-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-reload-none" value=""><input type="hidden" name="dm-d-reload-hes" value=""><input type="hidden" name="dm-d-reload-touched" value=""><input type="hidden" name="dm-d-reload-issue" value=""><input type="hidden" name="dm-d-reload-epic" value="">
+      <input type="hidden" name="dm-d-reload-none" value=""><input type="hidden" name="dm-d-reload-hes" value="{&quot;ms&quot;:64396,&quot;revisits&quot;:0,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-reload-touched" value="1"><input type="hidden" name="dm-d-reload-issue" value=""><input type="hidden" name="dm-d-reload-epic" value="">
       <div data-alevel="3" data-title="Neuladen">
         <div data-slot="short"><p>Im Filmstreifen bei 0,6 s: Balken und Ringe, bei 1 s das fertige Bild.</p></div>
         <div data-slot="long">
@@ -257,7 +258,7 @@
         </label>
       </div>
       <textarea data-comment="d-holo-return-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-holo-return-none" value=""><input type="hidden" name="dm-d-holo-return-hes" value=""><input type="hidden" name="dm-d-holo-return-touched" value=""><input type="hidden" name="dm-d-holo-return-issue" value=""><input type="hidden" name="dm-d-holo-return-epic" value="">
+      <input type="hidden" name="dm-d-holo-return-none" value=""><input type="hidden" name="dm-d-holo-return-hes" value="{&quot;ms&quot;:53623,&quot;revisits&quot;:1,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-holo-return-touched" value="1"><input type="hidden" name="dm-d-holo-return-issue" value=""><input type="hidden" name="dm-d-holo-return-epic" value="">
       <div data-alevel="3" data-title="Holo bei Rückkehr">
         <div data-slot="short"><p>Anbahnung 2,4 s, Panel 1,08 s, Schreiben 1,32 s: So ist es seit heute gebaut.</p></div>
         <div data-slot="long">
@@ -290,11 +291,11 @@
         <label data-opt="alt">
           <input type="radio" name="dm-d-moons" value="alt">
           <span data-opt-label>Anders …</span>
-          <input type="text" name="dm-d-moons-alt" placeholder="Was stattdessen?">
+          <input type="text" name="dm-d-moons-alt" placeholder="Was stattdessen?" value="">
         </label>
       </div>
       <textarea data-comment="d-moons-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-moons-none" value=""><input type="hidden" name="dm-d-moons-hes" value=""><input type="hidden" name="dm-d-moons-touched" value=""><input type="hidden" name="dm-d-moons-issue" value=""><input type="hidden" name="dm-d-moons-epic" value="">
+      <input type="hidden" name="dm-d-moons-none" value=""><input type="hidden" name="dm-d-moons-hes" value="{&quot;ms&quot;:6796,&quot;revisits&quot;:0,&quot;median&quot;:36152}"><input type="hidden" name="dm-d-moons-touched" value=""><input type="hidden" name="dm-d-moons-issue" value=""><input type="hidden" name="dm-d-moons-epic" value="">
       <div data-alevel="3" data-title="Planeten">
         <div data-slot="short"><p>Die Ringe sind im Filmstreifen des Neuladens bei 0,6 s zu sehen.</p></div>
         <div data-slot="long">
