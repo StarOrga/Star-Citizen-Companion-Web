@@ -144,7 +144,40 @@ where to start, and a back link returns to the hangar.
 
 `/codex/index` is the power-user escape hatch: the full filter list with kind
 tabs, every facet, a result grid, load-more paging and the compare tray. One
-click from the Bridge.
+click from the Bridge — and on a desktop, scrolling on past the end of the
+Codex landing page carries you straight into it.
+
+The page has two columns from the top: the title and the **area tree** on the
+left, the **filter bar** and the list on the right. The list head carries the
+list's own search (*Search ships …*) next to the sort order.
+
+The area tree is sorted by what a player uses:
+
+- **Ships** hold everything that goes on a ship — ship weapons, missiles &
+  bombs, modules & ore pods and ship ammunition — plus the ship manufacturers
+  as a sub-list. *Weapons* and *Ammunition* are on-foot gear only.
+- **Components** split by kind (power plant, shield, cooler, quantum drive …).
+- **Items** split by what they are: food & drinks, clothing & accessories,
+  medical & gadgets, weapon attachments, suits & jetpacks, paints, decoration,
+  and *Miscellaneous* for the rest.
+- **Blueprints** split by their group and bucket; *Upcoming* stays one line.
+
+Game objects no player can use — doors, seats, displays, panels — are hidden
+from the tree, the lists and the search. **Settings → Codex → Show items you
+cannot use** brings them back under *Not usable*; the search then ranks them
+after every usable hit, never among them.
+
+Ships filter by **role** (Combat, Transport, Exploration, Industrial, Support,
+Competition, Ground, Multirole — RSI's grouping of the game's career field),
+**crew** (1, 2–3, 4–8, 9+) and **size** (S1–S6, the game's own size class of
+the vehicle; it fills in once a build has been uploaded with Data Uploader
+0.75.0 or later). Every filter is part of the address.
+
+**Where to buy:** a ship row shows its cheapest in-game price and how many
+places sell it (*from 1,234,000 aUEC · 3 places*). The shop button on ships,
+weapons, components, items and ammunition opens every in-game offer under the
+row, with the item path to put it on your supplies and a link into the HQ plan.
+In-game prices come from UEX; the RSI pledge store stays on the ship page.
 
 Kind tabs are driven by the build manifest: a kind the current build reports as
 empty is shown greyed out with a *soon* marker, and everything the build
