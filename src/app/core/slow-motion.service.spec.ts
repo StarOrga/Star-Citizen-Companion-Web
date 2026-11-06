@@ -36,6 +36,8 @@ describe('SlowMotionService', () => {
     stop = slow.start();
     const a = only(el);
     expect(a.playState === 'paused' || a.pending).toBeTrue();
+    // Its first step ends a pending pause, whose time still follows the real clock.
+    tick(SLOW_TICK_MS);
     const t0 = Number(a.currentTime);
     tick(SLOW_TICK_MS * 3);
     expect(Number(a.currentTime) - t0).toBeCloseTo(SLOW_TICK_MS * 3, -1);
