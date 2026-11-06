@@ -3,10 +3,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../../core/modified-click.util';
-import { AuthService } from '../../auth/auth.service';
-import { HangarService } from '../../hangar/hangar.service';
-import { HqOwnershipService } from '../../hq/hq-ownership.service';
-import { HqLink, personalShipLink } from '../../hq/hq-routes';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
+import { resolveIcons } from './search-cta';
 import { CodexService } from '../codex.service';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
 import { ShipBlueprintIconComponent } from '../ship-blueprint/ship-blueprint-icon.component';
@@ -18,7 +16,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
 /**
  * The results of the ONE Codex search, rendered the same way under Ctrl+K,
  * the landing terminal and the Codex page bar: a listbox of kind groups, one
- * row per hit (icon, name, manufacturer, size/grade chips, add-to-hangar for
+ * row per hit (icon, name, manufacturer, size/grade chips, the path for
  * ships, compare pin on Codex pages) and an "all N in the index" link per
  * group. With an empty field it offers recent searches, the patch's new ships
  * and the Codex areas.
@@ -30,7 +28,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
 @Component({
   selector: 'sc-codex-search-results',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, ShipBlueprintIconComponent, ScTooltipDirective],
+  imports: [ItemPathComponent, NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, ShipBlueprintIconComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let e = engine();
@@ -146,10 +144,6 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
           }
         </div>
       }
-      @if (addFailed()) {
-        <!-- Outside the listbox: an alert inside an option breaks the combobox semantics. -->
-        <p class="state err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
-      }
       <p class="nav-hint" aria-hidden="true">
         <span class="nh-item"><kbd>↑</kbd><kbd>↓</kbd> {{ 'codex.search.bar.keys.navigate' | translate }}</span>
         <span class="nh-item"><kbd class="glyph">↵</kbd> {{ 'codex.search.bar.keys.open' | translate }}</span>
@@ -188,23 +182,8 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
               </span>
             </span>
           </a>
-          @if (o.hit.kind === 'ship' && auth.user()) {
-            <!-- Add-to-hangar needs a session (RLS self-only) — hidden for anon (#131). -->
-            @if (shipVariantLink(o.hit.classNameSlug); as l) {
-              <a class="in-hangar" [routerLink]="l.commands" [queryParams]="l.queryParams"
-                 [scTooltip]="'codex.personal.openVariant' | translate">{{ 'hangar.add.already' | translate }}</a>
-            } @else if (inHangar(o.hit.classNameSlug)) {
-              <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
-            } @else {
-              <button type="button" class="act add" (click)="addToHangar(o.hit.classNameSlug)"
-                      [disabled]="adding().has(o.hit.classNameSlug)" [attr.aria-busy]="adding().has(o.hit.classNameSlug)"
-                      [attr.aria-label]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }"
-                      [scTooltip]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }" scTooltipTier="label">
-                <svg class="add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                <span class="add-label">{{ 'codex.search.bar.addToHangar' | translate }}</span>
-              </button>
-            }
+          @if (hasPath(o.hit)) {
+            <sc-item-path [kind]="o.hit.kind" [className]="o.hit.classNameSlug" [name]="title(o.hit)" />
           }
           @if (showPin() && pinKind(o.hit); as pk) {
             <button type="button" class="act pin" [class.pinned]="codex.isPinned(pk, o.hit.classNameSlug)"
@@ -304,12 +283,8 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
       padding: 0 10px; border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent); color: var(--sc-accent);
       font-family: var(--sc-font-display); font-size: max(0.64rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase;
     }
-    .act.add { gap: 4px; }
-    .add-icon { width: 14px; height: 14px; flex: none; }
-    .act.add:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .act.pin svg { width: 18px; height: 18px; }
     .act.pin:hover, .act.pin.pinned { color: var(--sc-accent); }
-    .in-hangar { flex: 0 0 auto; margin-right: 8px; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
     .more {
       align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
@@ -382,16 +357,11 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
     /* A phone row: the ship name needs the width — the add button keeps its
        "+" and its aria-label, the word goes. */
     @media (max-width: 480px) {
-      .act.add { padding: 0; }
-      .add-label { display: none; }
-      .add-icon { width: 18px; height: 18px; }
     }
   `],
 })
 export class CodexSearchResultsComponent {
   readonly codex = inject(CodexService);
-  readonly auth = inject(AuthService);
-  private readonly hangar = inject(HangarService);
 
   readonly engine = input.required<CodexSearchEngine>();
   /** id of the listbox — the input's aria-controls. */
@@ -405,8 +375,6 @@ export class CodexSearchResultsComponent {
   /** A click ran a search in place — the host puts focus back into its field. */
   readonly searched = output<void>();
 
-  readonly adding = signal<ReadonlySet<string>>(new Set());
-  readonly addFailed = signal<string | null>(null);
 
   readonly pending = computed(() => {
     const e = this.engine();
@@ -416,116 +384,13 @@ export class CodexSearchResultsComponent {
   readonly recentOptions = computed(() => this.engine().options().filter((o) => o.type === 'recent'));
   readonly freshOptions = computed(() => this.engine().options().filter((o) => o.type === 'fresh'));
   readonly categoryOptions = computed(() => this.engine().options().filter((o) => o.type === 'category'));
-  private readonly ownership = inject(HqOwnershipService);
-
-  constructor() {
-    // The "already in hangar" marks need the hangar list — load it once, lazily.
-    if (this.auth.user()) void this.ownership.ensureLoaded();
-  }
-
-  groupOptions(kind: string): SearchOption[] {
-    return this.engine()
-      .options()
-      .filter((o) => (o.type === 'hit' && o.hit.kind === kind) || (o.type === 'more' && o.kind === kind));
-  }
-
-  /** i18n key of the "N variants folded in" hint — singular, plural, "at least". */
-  foldedKey(n: number, floor: boolean): string {
-    const base = floor ? 'codex.search.bar.foldedAtLeast' : 'codex.search.bar.folded';
-    return n === 1 ? `${base}One` : base;
-  }
-
-  optId(o: SearchOption): string {
-    return `${this.listboxId()}-${o.id}`;
-  }
-
-  isActive(o: SearchOption): boolean {
-    return this.engine().activeOption()?.id === o.id;
-  }
-
-  hover(o: SearchOption): void {
-    const i = this.indexById().get(o.id);
-    if (i != null) this.engine().setActive(i);
-  }
-
-  /**
-   * Plain left click: a recent search runs in place, anything else lets the
-   * anchor's routerLink navigate and tells the host to close. Modified and
-   * middle clicks are the browser's (new tab) and leave the search open.
-   */
-  onClick(ev: MouseEvent, o: SearchOption): void {
-    this.engine().opening(o);
-    if (!isPlainLeftClick(ev)) return;
-    if (o.type === 'recent') {
-      ev.preventDefault();
-      this.engine().searchFor(o.term);
-      this.searched.emit();
-      return;
-    }
-    this.navigated.emit();
-  }
-
-  onSuggest(ev: MouseEvent, name: string): void {
-    if (!isPlainLeftClick(ev)) return;
-    ev.preventDefault();
-    this.engine().searchFor(name);
-    this.searched.emit();
-  }
-
-  forgetRecent(): void {
-    this.engine().forgetRecent();
-    this.searched.emit();
-  }
-
-  title(hit: PolySearchHit): string {
-    return hitTitle(hit, this.engine().lang());
-  }
-
-  mfr(hit: PolySearchHit): string | null {
-    return hitManufacturer(hit, this.engine().lang());
-  }
-
-  iconKind(hit: PolySearchHit) {
-    return polyHitIconKind(hit);
-  }
-
-  isUpcoming(hit: PolySearchHit): boolean {
-    return isUpcomingHit(hit);
-  }
-
-  livery(hit: PolySearchHit): boolean {
-    return isLivery(hit);
-  }
 
   pinKind(hit: PolySearchHit) {
     return pinKindOf(hit);
   }
 
-  inHangar(classNameSlug: string): boolean {
-    return this.ownership.ownsShip(classNameSlug);
-  }
-
-  /** Signpost into the reader's own copy: their active (else first) variant of this hull. */
-  shipVariantLink(classNameSlug: string): HqLink | null {
-    const c = this.ownership.lookup(classNameSlug)?.configs[0];
-    return c ? personalShipLink(classNameSlug, c.id) : null;
-  }
-
-  async addToHangar(slug: string): Promise<void> {
-    // A second click while the insert is in flight must not add the ship twice.
-    if (this.adding().has(slug)) return;
-    this.adding.update((s) => new Set(s).add(slug));
-    this.addFailed.set(null);
-    try {
-      if (!(await this.hangar.addShip(slug, 'owned'))) this.addFailed.set(slug);
-    } catch {
-      this.addFailed.set(slug);
-    } finally {
-      this.adding.update((s) => {
-        const next = new Set(s);
-        next.delete(slug);
-        return next;
-      });
-    }
+  /** Rows with a path: equipment, ships, blueprints and announced ships. */
+  hasPath(hit: PolySearchHit): boolean {
+    return resolveIcons({ type: 'hit', kind: hit.kind }).wishlist;
   }
 }

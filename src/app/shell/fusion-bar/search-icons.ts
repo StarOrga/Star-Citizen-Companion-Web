@@ -1,3 +1,5 @@
+import { PATH_ICONS } from '../../shared/item-path/path-icons';
+
 // Line icons of the fusion search (concept 2026-11-02, B1 + B8).
 // -----------------------------------------------------------------------------
 // One stroke style for every kind: 24-unit viewBox, no fill, round joins; the
@@ -41,12 +43,12 @@ export const SEARCH_KIND_ICONS: Readonly<Record<SearchIconKind, readonly string[
   page: ['M12 2.5L21 12l-9 9.5L3 12z', 'M12 8v8M8 12h8'],
 };
 
-/** The three standard icons (r3 mock `mk-u-ib`): Wunschliste · Nachschub · Bestand (Ins Lager / In den Hangar). */
+/** The path icons (one family, shared/item-path/path-icons.ts) plus the search's own glyph. */
 export const SEARCH_ACTION_ICONS = {
-  wishlist: ['M7 4h10v16l-5-4-5 4z'],
-  lager: ['M4 8l8-4 8 4v9l-8 4-8-4z', 'M4 8l8 4 8-4M12 12v9'],
-  hangar: ['M3 20V10l9-6 9 6v10', 'M7 20v-7h10v7', 'M7 16h10'],
-  nachschub: ['M8 4h8v3H8z', 'M6 6H5v14h14V6h-1', 'M8 11h8M8 15h6'],
+  wishlist: PATH_ICONS.wish,
+  lager: PATH_ICONS.inventar,
+  hangar: PATH_ICONS.hangar,
+  nachschub: PATH_ICONS.nachschub,
   /** The "Neu in Patch" glyph after a name. */
   fresh: ['M12 3l2 6.5L20.5 12 14 14.5 12 21l-2-6.5L3.5 12 10 9.5z'],
 } as const;

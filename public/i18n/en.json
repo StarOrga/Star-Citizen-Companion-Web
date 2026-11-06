@@ -611,8 +611,6 @@
         "grade": "Grade {{grade}}",
         "livery": "Livery",
         "upcomingBadge": "Not in the game yet",
-        "addToHangarAria": "Add {{name}} to the hangar",
-        "addToHangar": "Hangar",
         "pinAria": "Compare {{name}}",
         "keys": {
           "navigate": "navigate",
@@ -5508,16 +5506,40 @@
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to storage.",
-      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
-      "totals": { "title": "Total", "items": "items", "places": "places" },
-      "places": { "title": "Largest places" },
-      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
-      "cats": { "title": "Categories" },
-      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "actions": {
+        "browse": "Browse",
+        "find": "Where is …?",
+        "add": "Add"
+      },
+      "totals": {
+        "title": "Total",
+        "items": "items",
+        "places": "places"
+      },
+      "places": {
+        "title": "Largest places"
+      },
+      "stale": {
+        "title": "Stand older than 7 days",
+        "none": "All places are up to date."
+      },
+      "cats": {
+        "title": "Categories"
+      },
+      "cat": {
+        "materials": "Raw materials",
+        "weapons": "Weapons",
+        "armor": "Armor",
+        "other": "Other"
+      },
       "popup": {
         "title": "Stock",
         "modes": "What to do",
-        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "mode": {
+          "browse": "Browse",
+          "find": "Where is …?",
+          "add": "Add"
+        },
         "search": "Search stock",
         "searchHint": "Item or place",
         "filters": "Filters",
@@ -5525,7 +5547,11 @@
         "clearPlace": "Remove place filter",
         "place": "Place",
         "viewBy": "View by",
-        "view": { "place": "By place", "name": "By item", "qty": "By amount" },
+        "view": {
+          "place": "By place",
+          "name": "By item",
+          "qty": "By amount"
+        },
         "count": "{{n}} entries",
         "results": "Stock entries",
         "loading": "Loading …",
@@ -6435,7 +6461,7 @@
       "compareWith": "Side by side",
       "compare": "Compare",
       "inSet": "In set",
-      "materialToSupply": "Materials to supplies",
+      "toMission": "To the mission",
       "atRsi": "At RSI",
       "allProducts": "All products",
       "add": "Add",
@@ -6475,13 +6501,6 @@
       "allInIndex": "Open all {{n}} in the index",
       "allInHq": "Open all {{n}} in the HQ",
       "mission": "Missions"
-    },
-    "icon": {
-      "wishlist": "Add to wishlist",
-      "wishlistOff": "Remove from wishlist",
-      "lager": "Put in stock",
-      "hangar": "Add to hangar",
-      "nachschub": "Add to supplies"
     },
     "supplyHint": "Search for the item and add it to Supplies with this icon.",
     "own": {
@@ -6525,18 +6544,8 @@
       "message": "Wishlist, stock and supplies belong to your account. Sign in to save this.",
       "confirm": "Go to sign-in"
     },
-    "lager": {
-      "title": "Put \"{{name}}\" in stock",
-      "message": "Where is it?",
-      "location": "Place (e.g. Area18, ship, hangar)",
-      "confirm": "Store"
-    },
     "done": {
-      "wishlistOn": "\"{{name}}\" is on your wishlist",
-      "wishlistOff": "\"{{name}}\" is off your wishlist",
       "hangar": "\"{{name}}\" is in your hangar",
-      "lager": "\"{{name}}\" is now stored in {{where}}",
-      "nachschub": "\"{{name}}\" is on your supply list",
       "compare": "\"{{name}}\" is in the comparison",
       "failed": "That did not work, try again in a moment",
       "einsatzAdded": "\"{{name}}\" is now a step in \"{{op}}\"",
@@ -6997,7 +7006,11 @@
       "inventar": "\"{{name}}\" now lies in {{where}}",
       "ticked": "\"{{name}}\" ticked off",
       "hangar": "\"{{name}}\" is in your hangar",
-      "undone": "Undone"
+      "undone": "Undone",
+      "inventarOff": "\"{{name}}\" is out of your inventory",
+      "inventarWithMe": "\"{{name}}\" is now with you",
+      "inventarBlueprint": "Blueprint \"{{name}}\" collected",
+      "hangarOff": "\"{{name}}\" is out of your hangar"
     },
     "err": {
       "failed": "That did not work. Try again.",
@@ -7005,6 +7018,70 @@
       "listFull": "Nachschub is full.",
       "noLine": "There is no open Nachschub line for it.",
       "alreadyOwned": "The ship is already in your hangar."
+    },
+    "hint": {
+      "notYetInGame": "not in the game yet"
+    },
+    "step": {
+      "wish": "Wishlist",
+      "nachschub": "Nachschub",
+      "inventar": "Inventory",
+      "hangar": "Hangar"
+    },
+    "node": {
+      "wish": {
+        "off": "Add to wishlist",
+        "on": "On your wishlist"
+      },
+      "nachschub": {
+        "off": "Add to Nachschub",
+        "on": "{{qty}}× in Nachschub"
+      },
+      "inventar": {
+        "off": "Add to inventory",
+        "on": "{{qty}}× in inventory"
+      },
+      "hangar": {
+        "off": "Add to hangar",
+        "on": "In your hangar"
+      }
+    },
+    "go": {
+      "wish": "Add to wishlist",
+      "nachschub": "Add to Nachschub",
+      "inventar": "Add to inventory",
+      "hangar": "Add to hangar"
+    },
+    "full": {
+      "wish": "Keep it in mind for later.",
+      "wishOn": "on the list",
+      "nachschub": "Get it now. With amount and source.",
+      "nachschubOn": "{{qty}}× open",
+      "inventar": "Got it. With place and amount.",
+      "inventarOn": "{{inv}}× in {{places}} place(s)",
+      "inventarBlueprint": "Collected. Always available.",
+      "hangar": "Got it. Already bought or earned.",
+      "hangarOn": "in your hangar",
+      "change": "Change",
+      "direct": "Go straight here"
+    },
+    "pop": {
+      "less": "Less",
+      "more": "More",
+      "remove": "Remove",
+      "viewWish": "View on the wishlist ›",
+      "viewNachschub": "View in Nachschub ›",
+      "viewInventar": "View in inventory ›",
+      "viewHangar": "View in hangar ›",
+      "whereTitle": "Where is it?",
+      "otherPlace": "Other place …",
+      "otherPlaceholder": "Enter a place",
+      "store": "Store",
+      "removeHangarTitle": "Remove from hangar?",
+      "removeHangarMessage": "\"{{name}}\" leaves your hangar along with its variants and notes."
+    },
+    "place": {
+      "withMe": "With me"
     }
   }
 }

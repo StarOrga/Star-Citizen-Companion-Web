@@ -611,8 +611,6 @@
         "grade": "Klasse {{grade}}",
         "livery": "Lackierung",
         "upcomingBadge": "Noch nicht im Spiel",
-        "addToHangarAria": "{{name}} zum Hangar hinzufügen",
-        "addToHangar": "Hangar",
         "pinAria": "{{name}} vergleichen",
         "keys": {
           "navigate": "navigieren",
@@ -5508,16 +5506,40 @@
       "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Lager eingetragen.",
-      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
-      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
-      "places": { "title": "Größte Orte" },
-      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
-      "cats": { "title": "Kategorien" },
-      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "actions": {
+        "browse": "Durchsuchen",
+        "find": "Wo liegt …?",
+        "add": "Hinzufügen"
+      },
+      "totals": {
+        "title": "Gesamt",
+        "items": "Gegenstände",
+        "places": "Orte"
+      },
+      "places": {
+        "title": "Größte Orte"
+      },
+      "stale": {
+        "title": "Stand älter als 7 Tage",
+        "none": "Alle Orte sind aktuell."
+      },
+      "cats": {
+        "title": "Kategorien"
+      },
+      "cat": {
+        "materials": "Rohstoffe",
+        "weapons": "Waffen",
+        "armor": "Rüstung",
+        "other": "Sonstiges"
+      },
       "popup": {
         "title": "Bestand",
         "modes": "Was möchtest du tun",
-        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "mode": {
+          "browse": "Durchsuchen",
+          "find": "Wo liegt …?",
+          "add": "Hinzufügen"
+        },
         "search": "Bestand durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
@@ -5525,7 +5547,11 @@
         "clearPlace": "Ortsfilter entfernen",
         "place": "Ort",
         "viewBy": "Ansicht",
-        "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
+        "view": {
+          "place": "Nach Ort",
+          "name": "Nach Gegenstand",
+          "qty": "Nach Menge"
+        },
         "count": "{{n}} Einträge",
         "results": "Bestandseinträge",
         "loading": "Lädt …",
@@ -6435,7 +6461,7 @@
       "compareWith": "Gegenüberstellen",
       "compare": "Vergleichen",
       "inSet": "In Set",
-      "materialToSupply": "Material in Nachschub",
+      "toMission": "Zur Mission",
       "atRsi": "Bei RSI",
       "allProducts": "Alle Produkte",
       "add": "Hinzufügen",
@@ -6475,13 +6501,6 @@
       "allInIndex": "Alle {{n}} im Index öffnen",
       "allInHq": "Alle {{n}} im HQ öffnen",
       "mission": "Missionen"
-    },
-    "icon": {
-      "wishlist": "Auf die Wunschliste",
-      "wishlistOff": "Von der Wunschliste nehmen",
-      "lager": "Ins Lager",
-      "hangar": "In den Hangar",
-      "nachschub": "In den Nachschub"
     },
     "supplyHint": "Such den Gegenstand und leg ihn mit diesem Symbol in den Nachschub.",
     "own": {
@@ -6525,18 +6544,8 @@
       "message": "Wunschliste, Lager und Nachschub gehören zu deinem Konto. Melde dich an, um das zu speichern.",
       "confirm": "Zur Anmeldung"
     },
-    "lager": {
-      "title": "„{{name}}“ ins Lager",
-      "message": "Wo liegt es?",
-      "location": "Ort (z. B. Area18, Schiff, Hangar)",
-      "confirm": "Einlagern"
-    },
     "done": {
-      "wishlistOn": "„{{name}}“ steht auf deiner Wunschliste",
-      "wishlistOff": "„{{name}}“ ist von der Wunschliste weg",
       "hangar": "„{{name}}“ ist in deinem Hangar",
-      "lager": "„{{name}}“ liegt jetzt in {{where}}",
-      "nachschub": "„{{name}}“ steht im Nachschub",
       "compare": "„{{name}}“ liegt im Vergleich",
       "failed": "Das hat nicht geklappt, versuch es gleich noch einmal",
       "einsatzAdded": "„{{name}}“ ist jetzt ein Schritt in „{{op}}“",
@@ -6997,7 +7006,11 @@
       "inventar": "„{{name}}“ liegt jetzt in {{where}}",
       "ticked": "„{{name}}“ abgehakt",
       "hangar": "„{{name}}“ ist im Hangar",
-      "undone": "Rückgängig gemacht"
+      "undone": "Rückgängig gemacht",
+      "inventarOff": "„{{name}}“ ist nicht mehr im Inventar",
+      "inventarWithMe": "„{{name}}“ hast du jetzt bei dir",
+      "inventarBlueprint": "Blaupause „{{name}}“ gesammelt",
+      "hangarOff": "„{{name}}“ ist nicht mehr im Hangar"
     },
     "err": {
       "failed": "Das hat nicht geklappt. Versuch es noch einmal.",
@@ -7005,6 +7018,70 @@
       "listFull": "Der Nachschub ist voll.",
       "noLine": "Dafür gibt es keine offene Zeile im Nachschub.",
       "alreadyOwned": "Das Schiff ist schon im Hangar."
+    },
+    "hint": {
+      "notYetInGame": "noch nicht im Spiel"
+    },
+    "step": {
+      "wish": "Wunschliste",
+      "nachschub": "Nachschub",
+      "inventar": "Inventar",
+      "hangar": "Hangar"
+    },
+    "node": {
+      "wish": {
+        "off": "Auf die Wunschliste",
+        "on": "Auf der Wunschliste"
+      },
+      "nachschub": {
+        "off": "In den Nachschub legen",
+        "on": "{{qty}}× im Nachschub"
+      },
+      "inventar": {
+        "off": "Ins Inventar legen",
+        "on": "{{qty}}× im Inventar"
+      },
+      "hangar": {
+        "off": "In den Hangar legen",
+        "on": "Im Hangar"
+      }
+    },
+    "go": {
+      "wish": "Auf die Wunschliste",
+      "nachschub": "In den Nachschub",
+      "inventar": "Ins Inventar",
+      "hangar": "In den Hangar"
+    },
+    "full": {
+      "wish": "Für später vormerken.",
+      "wishOn": "steht drauf",
+      "nachschub": "Jetzt holen. Mit Menge und Quelle.",
+      "nachschubOn": "{{qty}}× offen",
+      "inventar": "Hab ich. Mit Ort und Menge.",
+      "inventarOn": "{{inv}}× an {{places}} Ort(en)",
+      "inventarBlueprint": "Gesammelt. Immer verfügbar.",
+      "hangar": "Hab ich. Schon gekauft oder erspielt.",
+      "hangarOn": "steht im Hangar",
+      "change": "Ändern",
+      "direct": "Direkt hierhin"
+    },
+    "pop": {
+      "less": "Weniger",
+      "more": "Mehr",
+      "remove": "Entfernen",
+      "viewWish": "Auf der Wunschliste ansehen ›",
+      "viewNachschub": "Im Nachschub ansehen ›",
+      "viewInventar": "Im Inventar ansehen ›",
+      "viewHangar": "Im Hangar ansehen ›",
+      "whereTitle": "Wo liegt es?",
+      "otherPlace": "Anderer Ort …",
+      "otherPlaceholder": "Ort eingeben",
+      "store": "Ablegen",
+      "removeHangarTitle": "Aus dem Hangar entfernen?",
+      "removeHangarMessage": "„{{name}}“ verschwindet samt Varianten und Notizen aus deinem Hangar."
+    },
+    "place": {
+      "withMe": "Bei mir"
     }
   }
 }

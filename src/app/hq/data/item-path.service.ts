@@ -1,8 +1,9 @@
-import { Injectable, Signal, computed, inject } from '@angular/core';
+import { Injectable, Injector, Signal, computed, inject, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
+import { HqOwnershipService } from '../hq-ownership.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { isGameLive, readLocation } from '../now/hq-live.util';
 import { HqSuppliesService } from '../hq-supplies.service';
@@ -36,6 +37,13 @@ import { HqInventoryService } from './hq-inventory.service';
  *     tickOnly                   "Nur abhaken": closes the line, Inventar untouched
  *     nachholen(qty)             Inventar row "Nachholen": +qty in Nachschub, stock untouched
  *     addToHangar                ship owned (flips a wished ship); closes nothing else
+ *     changeNachschubQty(delta)  the stepper of the Nachschub popover; 0 removes the line
+ *     removeFromNachschub        all open lines of the class, undo brings them back
+ *     adjustInventar(place, d)   the stepper of the Inventar popover; a Nachschub line stays
+ *     removeFromInventar         every place of the class, undo brings them back
+ *     removeFromHangar           the hangar row; no undo (loadouts go with it), the caller asks
+ *   `ensureLoaded()`: surfaces call it once they show a state; loads once per user.
+ *   `knownPlaces()`: the reader's Inventar places, for the place popover.
  *   `currentPlaceDefault()`: live location when the game runs and the app knows it, else
  *   PLACE_WITH_ME (A8).
  *
@@ -104,7 +112,29 @@ export class ItemPathService {
   private readonly hangar = inject(HangarService);
   private readonly live = inject(HqLiveService);
 
+  private readonly injector = inject(Injector);
+
   private readonly cache = new Map<string, Signal<ItemPathState>>();
+  private loadedFor: string | null = null;
+
+  /** The stores behind `state()` hold nothing until somebody loads them. Once per user. */
+  ensureLoaded(): void {
+    const id = this.auth.user()?.id ?? null;
+    untracked(() => {
+      this.wishlist.ensureLoaded();
+      if (!id || this.loadedFor === id) return;
+      this.loadedFor = id;
+      void this.inventory.load();
+      void this.injector.get(HqOwnershipService).ensureLoaded();
+    });
+  }
+
+  /** The places the reader already uses, without the blueprint shelf. */
+  knownPlaces(): string[] {
+    const seen = new Set<string>();
+    for (const i of this.inventory.items()) if (i.location !== PLACE_BLUEPRINTS) seen.add(i.location);
+    return [...seen];
+  }
 
   /** The reader's place right now (A8): the live location while playing, else "Bei mir". */
   currentPlaceDefault(): string {
@@ -235,6 +265,30 @@ export class ItemPathService {
     };
   }
 
+  /** The stepper of the Nachschub popover: the first open line moves by `delta`, 0 removes it. */
+  changeNachschubQty(kind: string, className: string, delta: number): PathResult {
+    const line = this.supplies.openLinesFor(className)[0];
+    return this.setNachschubQty(kind, className, (line?.qty ?? 0) + delta);
+  }
+
+  /** "Entfernen": all open lines of the class leave Nachschub. */
+  removeFromNachschub(kind: string, className: string): PathResult {
+    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    const lines = this.supplies.openLinesFor(className).map((l) => ({ id: l.id, name: l.name, qty: l.qty }));
+    if (!lines.length) return fail('itemPath.err.noLine');
+    for (const l of lines) this.supplies.remove(l.id);
+    const name = lines[0].name;
+    return {
+      ok: true,
+      key: 'itemPath.done.nachschubOff',
+      params: { name },
+      undo: async () => {
+        for (const l of lines) this.supplies.add(l.name, l.qty, { entityKind: kind, className });
+        return { ok: true, key: 'itemPath.done.undone', params: { name } };
+      },
+    };
+  }
+
   /** Inventar row "Nachholen" (A7): +qty in Nachschub, the stock stays as it is. */
   nachholen(kind: string, className: string, name: string, qty = 1): PathResult {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
@@ -290,6 +344,49 @@ export class ItemPathService {
     };
   }
 
+  /** The stepper of the Inventar popover: stock at one place moves, a Nachschub line stays as it is. */
+  async adjustInventar(className: string, name: string, place: string, delta: number): Promise<PathResult> {
+    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    const n = Math.abs(Math.round(delta));
+    const write = (more: boolean): Promise<boolean> =>
+      more ? this.inventory.addStock(place, name, n, 'pcs', className) : this.inventory.removeStock(place, name, n, className);
+    try {
+      if (n && !(await write(delta > 0))) return fail(this.inventory.error() ?? 'itemPath.err.failed');
+    } catch (err) {
+      return fail(toErrorKey('itemPath', 'adjustInventar', err));
+    }
+    return {
+      ok: true,
+      key: 'itemPath.done.inventarOff',
+      params: { name },
+      undo: async () => ((await write(delta < 0)) ? { ok: true, key: 'itemPath.done.undone', params: { name } } : fail('itemPath.err.failed')),
+    };
+  }
+
+  /** "Entfernen": the item leaves every place. */
+  async removeFromInventar(kind: string, className: string, name: string): Promise<PathResult> {
+    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    const places = this.read(kind, className, name).places;
+    try {
+      for (const p of places) {
+        if (!(await this.inventory.removeStock(p.location, name, p.qty, className))) return fail(this.inventory.error() ?? 'itemPath.err.failed');
+      }
+    } catch (err) {
+      return fail(toErrorKey('itemPath', 'removeFromInventar', err));
+    }
+    return {
+      ok: true,
+      key: 'itemPath.done.inventarOff',
+      params: { name },
+      undo: async () => {
+        for (const p of places) {
+          if (!(await this.inventory.addStock(p.location, name, p.qty, 'pcs', className))) return fail('itemPath.err.failed');
+        }
+        return { ok: true, key: 'itemPath.done.undone', params: { name } };
+      },
+    };
+  }
+
   /** "Nur abhaken": the line is done, Inventar untouched. */
   tickOnly(className: string): PathResult {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
@@ -335,6 +432,19 @@ export class ItemPathService {
         return ok ? { ok: true, key: 'itemPath.done.undone', params: { name: label } } : fail('itemPath.err.failed');
       },
     };
+  }
+
+  /** The hangar row goes, and with it what hangs on it. No undo: the caller asks first. */
+  async removeFromHangar(className: string, name?: string | null): Promise<PathResult> {
+    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    const ship = this.hangar.shipByClassName(className);
+    if (!ship) return fail('itemPath.err.failed');
+    try {
+      if (!(await this.hangar.removeShip(ship.id))) return fail('itemPath.err.failed');
+    } catch (err) {
+      return fail(toErrorKey('itemPath', 'removeFromHangar', err));
+    }
+    return { ok: true, key: 'itemPath.done.hangarOff', params: { name: name ?? className } };
   }
 
   private revertLine(id: string, prevQty: number): void {

@@ -34,15 +34,15 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   // Expected ids per context, cell by cell, with every "wie Neutral" and `*` fallback resolved by hand.
   const expected: Record<CtaRowKey, (SearchCtaId | null)[]> = {
     //            owned          ship           wc             fps       ammo     bp                  upcoming  mfr           mission
-    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
     // Montieren needs the reader's own ship of the chip's class; rowOf owns none, so the cell falls back.
-    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
-    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
+    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
     // Wo verbaut? on a piece fitted nowhere falls back to the neutral cell.
-    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
-    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'materialToSupply', null, 'allProducts', 'toEinsatz'],
-    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
-    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
+    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'toMission', null, 'allProducts', 'toEinsatz'],
+    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
+    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
   };
 
   (Object.keys(expected) as CtaRowKey[]).forEach((key) => {
@@ -218,8 +218,8 @@ describe('search icons (B9)', () => {
       expect(icons(k)).toEqual({ wishlist: true, lager: true, nachschub: true });
     }
   });
-  it('a blueprint gets the wishlist only', () => {
-    expect(icons('blueprint')).toEqual({ wishlist: true, lager: false, nachschub: false });
+  it('a blueprint has all three stops (A9)', () => {
+    expect(icons('blueprint')).toEqual({ wishlist: true, lager: true, nachschub: true });
   });
   it('an announced ship can be wished for, not stored', () => {
     expect(icons('upcoming')).toEqual({ wishlist: true, lager: false, nachschub: false });

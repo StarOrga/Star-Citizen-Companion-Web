@@ -60,9 +60,7 @@ import {
   weaponSuperGroup,
 } from './codex-weapon-taxonomy';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
-import { HangarService } from '../hangar/hangar.service';
-import { HqOwnershipService } from '../hq/hq-ownership.service';
-import { HqLink, personalShipLink } from '../hq/hq-routes';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { ARMOR_CATEGORY, ARMOR_SLOT_IDS, AreaNode, AreaTarget, CodexCategory, UPCOMING_CATEGORY, armorAttachTypeOf, inferWeaponSuperGroup } from './codex-browse-params';
@@ -147,7 +145,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-browse',
   standalone: true,
-  imports: [NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
+  imports: [ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
@@ -239,6 +237,7 @@ export function blueprintCategoriesForGroup(
                         <span class="spec"><span class="soon">{{ 'codex.upcoming.badge' | translate }}</span></span>
                       </a>
                       <span class="acts">
+                        <sc-item-path kind="upcoming" [className]="s.id" [name]="s.name" />
                         <button type="button" class="act pin" [class.pinned]="rsi.isFavorite(s.id)"
                                 [attr.aria-pressed]="rsi.isFavorite(s.id)"
                                 [attr.aria-label]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
@@ -274,24 +273,7 @@ export function blueprintCategoriesForGroup(
                         </span>
                       </a>
                       <span class="acts">
-                        @if (kind() === 'ship') {
-                          @if (shipVariantLink(r.classNameSlug); as l) {
-                            <a class="act hangar-chip" [routerLink]="l.commands" [queryParams]="l.queryParams"
-                               [attr.aria-label]="'codex.personal.openVariant' | translate"
-                               [scTooltip]="'codex.personal.openVariant' | translate" scTooltipTier="label">✓</a>
-                          } @else if (inHangarSet().has(r.classNameSlug.toLowerCase())) {
-                            <span class="act hangar-chip" role="img" tabindex="0"
-                                  [attr.aria-label]="'codex.card.inHangar' | translate"
-                                  [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
-                          } @else {
-                            <button type="button" class="act hangar-add"
-                                    [disabled]="addBusy() !== null"
-                                    [attr.aria-busy]="addBusy() === r.classNameSlug"
-                                    (click)="addShipToHangar(r.classNameSlug)"
-                                    [attr.aria-label]="'codex.card.addToHangar' | translate"
-                                    [scTooltip]="'codex.card.addToHangar' | translate" scTooltipTier="label">+</button>
-                          }
-                        }
+                        <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)" />
                         <button type="button" class="act pin"
                                 [class.pinned]="isPinned(r.classNameSlug)"
                                 [attr.aria-pressed]="isPinned(r.classNameSlug)"
@@ -300,9 +282,6 @@ export function blueprintCategoriesForGroup(
                                 [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                                 scTooltipTier="label">{{ isPinned(r.classNameSlug) ? '★' : '☆' }}</button>
                       </span>
-                      @if (addFailed() === r.classNameSlug) {
-                        <p class="row-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
-                      }
                     </li>
                   }
                 </ul>
@@ -505,8 +484,10 @@ export function blueprintCategoriesForGroup(
     .spec { display: flex; align-items: baseline; gap: 12px; font-size: 12px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .size { color: var(--sc-fg-0); font-weight: 600; }
     .soon { color: var(--sc-accent); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-    .acts { flex: none; display: flex; align-items: center; gap: 4px; padding-right: 10px; opacity: 0; transition: opacity 120ms ease; }
-    .row:hover .acts, .row:focus-within .acts { opacity: 1; }
+    .acts { flex: none; display: flex; align-items: center; gap: 4px; padding-right: 10px; }
+    /* The path shows its state at all times; only the compare toggle waits for the row. */
+    .acts .act { opacity: 0; transition: opacity 120ms ease; }
+    .row:hover .acts .act, .row:focus-within .acts .act { opacity: 1; }
     .act {
       display: inline-flex; align-items: center; justify-content: center;
       width: max(32px, var(--sc-tap-min, 0px)); height: max(32px, var(--sc-tap-min, 0px));
@@ -515,9 +496,7 @@ export function blueprintCategoriesForGroup(
     }
     .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-    .act.pinned, .hangar-chip { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .act:disabled { opacity: .5; cursor: default; }
-    .row-err { position: absolute; right: 14px; bottom: 2px; margin: 0; font-size: 11px; color: var(--sc-danger); }
+    .act.pinned { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .more-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--sc-border); }
     .showing { font-size: 12px; color: var(--sc-fg-2); }
     .load-more, .reset-all, .sheet-done {
@@ -545,13 +524,13 @@ export function blueprintCategoriesForGroup(
 
     .filter-fab, .sheet, .sheet-backdrop { display: none; }
     @media (pointer: coarse) {
-      .acts { opacity: 1; }
+      .acts .act { opacity: 1; }
       .side-h, .node-ct { font-size: 12px; }
     }
     @media (max-width: 767px) {
       .layout { grid-template-columns: minmax(0, 1fr); }
       .side { display: none; }
-      .acts { opacity: 1; }
+      .acts .act { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
       .filter-fab {
@@ -577,7 +556,7 @@ export function blueprintCategoriesForGroup(
       .node { min-height: 44px; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .acts { transition: none; }
+      .acts .act { transition: none; }
     }
   `],
 })
@@ -587,7 +566,6 @@ export class CodexBrowseComponent implements OnInit {
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
-  private readonly hangar = inject(HangarService);
   readonly rsi = inject(UpcomingShipsService);
   private readonly overlayOrigin = inject(OverlayOriginService);
   private readonly chrome = inject(ShellChromeService);
@@ -646,18 +624,6 @@ export class CodexBrowseComponent implements OnInit {
     return hrefs;
   });
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
-
-  // UC-02: class names already in the hangar — a pure read-overlay over the
-  // hangar.ships() signal (no DB change), so ship cards can mark ownership.
-  private readonly ownership = inject(HqOwnershipService);
-  /** Lower-cased class names of every hangar ship (HQ ownership index). */
-  readonly inHangarSet = computed(() => this.ownership.shipClassNames());
-
-  /** Signpost into the reader's own copy: their active (else first) variant of this hull. */
-  shipVariantLink(classNameSlug: string): HqLink | null {
-    const c = this.ownership.lookup(classNameSlug)?.configs[0];
-    return c ? personalShipLink(classNameSlug, c.id) : null;
-  }
 
   /**
    * Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13)
@@ -1529,8 +1495,6 @@ export class CodexBrowseComponent implements OnInit {
     // silent: a failure just leaves the datamined renders as they were.
     void this.rsi.ensureLoaded();
     await this.svc.loadCurrentBuild();
-    // UC-02: hangar membership backs the in-hangar badge on ship cards.
-    void this.ownership.ensureLoaded();
     void this.loadArmorCounts();
     await this.loadBlueprintCategories();
     if (this.kind() === 'weapon') await this.loadWeaponFacets();
@@ -1833,27 +1797,6 @@ export class CodexBrowseComponent implements OnInit {
 
   togglePin(className: string): void {
     this.svc.togglePin(this.kind(), className);
-  }
-
-  /** Ship whose hangar add is in flight — one at a time, so a double click can't insert twice. */
-  readonly addBusy = signal<string | null>(null);
-  /** Ship whose last hangar add failed; its card says so until the next try. */
-  readonly addFailed = signal<string | null>(null);
-
-  /** UC-02: add a ship to the hangar inline, without leaving the list. */
-  async addShipToHangar(className: string): Promise<void> {
-    if (this.addBusy()) return;
-    this.addBusy.set(className);
-    this.addFailed.set(null);
-    try {
-      // A refused insert comes back as null, its reason parked in the hangar's
-      // shared error, which this page never shows — so say it at the card.
-      if (!(await this.hangar.addShip(className, 'owned'))) this.addFailed.set(className);
-    } catch {
-      this.addFailed.set(className);
-    } finally {
-      this.addBusy.set(null);
-    }
   }
 
   /** UC-10: size S1–S12 as a 0–100% bar width for at-a-glance scanning. */

@@ -4,6 +4,8 @@ import { WindowFocusService } from '../../core/window-focus.service';
 import { FusionSearchChipComponent } from './fusion-search-chip.component';
 import { searchContextOf } from './search-context';
 import { fakeEngine, fxGroup, fxHit, setupFusionSearch } from './fusion-search.testing';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
+import { ShellChromeService } from './shell-chrome.service';
 import { sizeChip } from '../../codex/search/search-query-parse';
 import { provideTranslateService } from '@ngx-translate/core';
 import type { OwnSearchResult } from '../../codex/search/search-own';
@@ -41,7 +43,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(more.getAttribute('href')).toContain('/codex/index');
   });
 
-  it('rows: the whole row is an anchor, ONE quiet CTA, a separator and three icons; no compare star (B6, B8, B12)', () => {
+  it('rows: the whole row is an anchor, ONE quiet CTA, a separator and the path rail; no compare star (B6, B8, B12)', () => {
     const engine = fakeEngine({ groups: [ships], compose: { flagshipClassName: 'AEGS_Gladius' } });
     const { el, type } = setupFusionSearch(engine);
     type('aegis re');
@@ -49,22 +51,33 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(row.querySelector('a.hit')!.getAttribute('href')).toContain('/codex/ship/');
     expect(row.querySelectorAll('.cta').length).toBe(1);
     expect(row.querySelector('.sep')).not.toBeNull();
-    const icons = [...row.querySelectorAll<HTMLButtonElement>('.ib')];
-    expect(icons.length).toBe(3);
-    expect(icons.map((i) => i.getAttribute('aria-label'))).toEqual(['search.icon.wishlist', 'search.icon.nachschub', 'search.icon.hangar']);
+    const path = row.querySelector('sc-item-path')!;
+    expect([...path.querySelectorAll<HTMLElement>('.node')].map((n) => n.dataset['step'])).toEqual(['wish', 'nachschub', 'hangar']);
+    expect(path.querySelector('.pill')).withContext('a plain search row is the tertiary level').toBeNull();
     expect(el.querySelector('.qi')).withContext('the old quick icons (pin star, new tab, copy) are gone').toBeNull();
   });
 
-  it('an icon press runs its action and does not open the row', async () => {
+  it('a press on a path node writes and does not open the row', async () => {
     const engine = fakeEngine({ groups: [ships] });
-    const { el, type, actions, cmp } = setupFusionSearch(engine);
+    const path = fakeItemPath();
+    const { el, type, cmp, fixture } = setupFusionSearch(engine, undefined, path);
     type('aegis re');
     const before = cmp.open();
-    (el.querySelector('.row .ib') as HTMLButtonElement).click();
-    await Promise.resolve();
-    expect(actions.icon).toHaveBeenCalledWith('wishlist', jasmine.objectContaining({ type: 'hit' }), 'Aegis Reclaimer');
+    (el.querySelector('.row .node') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect(path.addWish).toHaveBeenCalledWith('ship', jasmine.any(String), 'Aegis Reclaimer');
     expect(engine.calls.noteOpened).withContext('no navigation').toBe(0);
     expect(cmp.open()).toBe(before);
+  });
+
+  it('search opened from "Gegenstand suchen": the rows offer Nachschub as the pill', () => {
+    const engine = fakeEngine({ groups: [ships] });
+    const { el, type, fixture } = setupFusionSearch(engine);
+    TestBed.inject(ShellChromeService).startSupplySearch();
+    fixture.detectChanges();
+    type('aegis re');
+    const go = el.querySelector('.row sc-item-path .go')!;
+    expect(go.textContent).toContain('itemPath.go.nachschub');
   });
 
   it('patch rows and app pages carry no CTA and no icons (B10)', () => {
@@ -78,7 +91,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) {
       expect(r.querySelector('.cta')).toBeNull();
-      expect(r.querySelector('.ib')).toBeNull();
+      expect(r.querySelector('sc-item-path')).toBeNull();
     }
   });
 

@@ -50,7 +50,8 @@ import { FusionSearchChipComponent } from './fusion-search-chip.component';
 import { FusionSearchHintComponent, SearchHint } from './fusion-search-hint.component';
 import { SEARCH_ACTION_ICONS, SEARCH_KIND_ICONS, SearchIconKind } from './search-icons';
 import { RECENT_ROWS_SHOWN, StoredRow, pushRecentRow, readRecentRows } from './search-recent-rows';
-import { RowActionResult, RowIconAction, SearchRowActionsService } from './search-row-actions.service';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
+import { RowActionResult, SearchRowActionsService } from './search-row-actions.service';
 import { ShellChromeService } from './shell-chrome.service';
 import { SearchContext, SearchPlace, matchPlaces, searchContextOf } from './search-context';
 
@@ -125,7 +126,7 @@ const FITTED_SHOWN = 2;
 @Component({
   selector: 'sc-fusion-search',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchChipComponent, FusionSearchHintComponent],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchChipComponent, FusionSearchHintComponent, ItemPathComponent],
   providers: [CodexSearchEngine],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -360,34 +361,12 @@ const FITTED_SHOWN = 2;
                                 <button type="button" class="cta" [disabled]="busyRow() === r.id" (click)="runCta($event, c, r)">{{ c.labelKey | translate }}</button>
                               }
                             }
-                            @if (hasIcons(r)) {
+                            @if (r.type === 'hit' && hasIcons(r)) {
                               @if (r.cta) { <span class="sep" aria-hidden="true"></span> }
-                              @if (r.icons.wishlist) {
-                                @let on = wished(r);
-                                <button type="button" class="ib" [class.on]="on" [attr.aria-pressed]="on"
-                                        [attr.aria-label]="(on ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: nm.title }"
-                                        [scTooltip]="(on ? 'search.icon.wishlistOff' : 'search.icon.wishlist') | translate: { name: nm.title }" scTooltipTier="label"
-                                        (click)="runIcon($event, 'wishlist', r)">
-                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="actionIcons.wishlist[0]" [attr.fill]="on ? 'currentColor' : 'none'" /></svg>
-                                </button>
-                              }
-                              @if (r.icons.nachschub) {
-                                <button type="button" class="ib ib-supply"
-                                        [attr.aria-label]="'search.icon.nachschub' | translate: { name: nm.title }"
-                                        [scTooltip]="'search.icon.nachschub' | translate: { name: nm.title }" scTooltipTier="label"
-                                        (click)="runIcon($event, 'nachschub', r)">
-                                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of actionIcons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
-                                </button>
-                              }
-                              @if (r.icons.lager) {
-                                @let ship = isShipRow(r);
-                                <button type="button" class="ib"
-                                        [attr.aria-label]="(ship ? 'search.icon.hangar' : 'search.icon.lager') | translate: { name: nm.title }"
-                                        [scTooltip]="(ship ? 'search.icon.hangar' : 'search.icon.lager') | translate: { name: nm.title }" scTooltipTier="label"
-                                        (click)="runIcon($event, 'lager', r)">
-                                  <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of (ship ? actionIcons.hangar : actionIcons.lager); track $index) { <path [attr.d]="d" /> }</svg>
-                                </button>
-                              }
+                              <sc-item-path [kind]="r.hit.kind" [className]="r.hit.classNameSlug" [name]="nm.title"
+                                            [level]="chrome.supplySearch() ? 'secondary' : 'tertiary'"
+                                            [nextStep]="chrome.supplySearch() ? 'nachschub' : null"
+                                            (leave)="close()" />
                             }
                           </span>
                         }
@@ -495,7 +474,7 @@ const FITTED_SHOWN = 2;
     @keyframes fs-demo-2 { 0%, 44% { clip-path: inset(0 100% 0 0); } 54%, 66% { clip-path: inset(0 0 0 0); } 67%, 100% { clip-path: inset(0 100% 0 0); } }
     @keyframes fs-demo-3 { 0%, 68% { clip-path: inset(0 100% 0 0); } 80%, 95% { clip-path: inset(0 0 0 0); } 96%, 100% { clip-path: inset(0 100% 0 0); } }
     .input::-webkit-search-cancel-button { display: none; }
-    .close:focus-visible, .ib:focus-visible, .cta:focus-visible, .retry:focus-visible, .expand:focus-visible,
+    .close:focus-visible, .cta:focus-visible, .retry:focus-visible, .expand:focus-visible,
     .collapse:focus-visible, .sum-b:focus-visible, .dym-b:focus-visible {
       outline: 2px solid var(--sc-accent); outline-offset: 1px;
     }
@@ -627,22 +606,9 @@ const FITTED_SHOWN = 2;
     }
     .cta:disabled { opacity: 0.6; cursor: default; }
     .sep { width: 1px; height: 20px; margin: 0 4px; background: var(--sc-border); }
-    /* Three standard icons, 32 px, one line style (B8). */
-    .ib {
-      display: grid; place-items: center; width: 32px; height: 32px; padding: 0; margin: 0; border: 0; border-radius: 8px;
-      background: transparent; color: var(--sc-fg-2); cursor: pointer;
-    }
-    .row.active .ib { color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-fg-0) 5%, transparent); }
-    .ib:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
-    .ib.on { color: var(--sc-accent); }
     /* "In den Nachschub" as the task at hand: the hint names the icon, the rows mark it. */
     .supply-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 10%, transparent); color: var(--sc-fg-0); font-size: max(0.85rem, var(--sc-fs-floor)); }
     .supply-hint svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--sc-accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-    :host(.supply-intent) .ib-supply { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); box-shadow: 0 0 0 1px var(--sc-accent); animation: fs-supply-pulse 1.6s ease-in-out infinite; }
-    :host(.supply-intent) .ib-supply:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 32%, transparent); }
-    @keyframes fs-supply-pulse { 50% { box-shadow: 0 0 0 1px var(--sc-accent), 0 0 12px color-mix(in srgb, var(--sc-accent) 60%, transparent); } }
-    @media (prefers-reduced-motion: reduce) { :host(.supply-intent) .ib-supply { animation: none; } }
-    .ib svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
     .more-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .expand { border: 0; background: transparent; color: var(--sc-accent); font: inherit; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
     .expand:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
@@ -710,7 +676,6 @@ const FITTED_SHOWN = 2;
     :host(.bottom:not(.open)) .fchip { display: none; }
     @media (pointer: coarse) {
       .hint, .keys { display: none; }
-      .ib { width: 48px; height: 48px; }
       .cta { height: 44px; }
       .more, .expand, .term, .sum-b, .dym-b, button.why { min-height: 44px; }
       .xslot, .close { width: 44px; height: 44px; }
@@ -750,7 +715,7 @@ export class FusionSearchComponent {
   private readonly ownership = inject(HqOwnershipService);
   private readonly wishlist = inject(SearchWishlistService);
   private readonly hub = inject(CodexSearchHub);
-  private readonly chrome = inject(ShellChromeService);
+  protected readonly chrome = inject(ShellChromeService);
   private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
   private readonly injector = inject(Injector);
@@ -1137,14 +1102,6 @@ export class FusionSearchComponent {
 
   isSoon(r: ViewRow): boolean {
     return r.type === 'hit' && isUpcomingHit(r.hit);
-  }
-
-  isShipRow(r: ViewRow): boolean {
-    return r.type === 'hit' && r.hit.kind === 'ship';
-  }
-
-  wished(r: ViewRow): boolean {
-    return r.type !== 'place' && this.actions.isWished(r);
   }
 
   hasIcons(r: ViewRow): boolean {
@@ -1549,13 +1506,6 @@ export class FusionSearchComponent {
     } finally {
       this.busyRow.set(null);
     }
-  }
-
-  async runIcon(ev: MouseEvent, action: RowIconAction, r: ViewRow): Promise<void> {
-    ev.preventDefault();
-    ev.stopPropagation();
-    if (r.type === 'place') return;
-    this.showStatus(await this.actions.icon(action, r, this.rowName(r).title));
   }
 
   private showStatus(res: RowActionResult | null): void {

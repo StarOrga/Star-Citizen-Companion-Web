@@ -26,6 +26,8 @@ export interface CtaRow {
   /** Own-data rows: what it is, and the hangar ship / set id behind it. */
   ownKind?: OwnRowType;
   ownRefId?: string | null;
+  /** A blueprint: the mission that earns it. No source delivers this yet (A9). */
+  missionTarget?: SearchTarget | null;
   /** The row's own anchor target (Bei RSI, Bezugsquelle). */
   target?: SearchTarget | null;
   /** The reader's flagship (Gegenüberstellung in a neutral context). */
@@ -53,12 +55,12 @@ export type CtaRowKey = 'neutral' | 'chipShip' | 'chipItem' | 'hqHangar' | 'hqSt
 
 /** Round 3 `q3-matrix`, cell for cell. Order of cells = {@link CTA_COLUMNS}. */
 export const CTA_MATRIX: Readonly<Record<CtaRowKey, readonly Cell[]>> = {
-  neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+  neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
   chipShip:  ['compareWith', 'compareWith', 'mount', 'N', 'N', 'N', 'N', 'N', 'N'],
   chipItem:  ['mount', 'N', 'compareSame', 'compareSame', 'N', 'N', 'N', 'N', 'N'],
   hqHangar:  ['myLoadout', 'add', 'whereInstalled', 'inSet', 'N', 'N', 'atRsi', 'N', 'N'],
   hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'N', '-', 'N', 'N'],
-  hqPlan:    ['planOps', 'shipSource', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'N', 'N', 'toEinsatz'],
+  hqPlan:    ['planOps', 'shipSource', 'sourceOf', 'sourceOf', 'sourceOf', 'toMission', 'N', 'N', 'toEinsatz'],
   signedOut: ['-', 'add', 'fittingShips', 'N', 'N', 'N', 'atRsi', 'allProducts', 'N'],
 };
 
@@ -139,8 +141,9 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
       const set = row.ownership?.inSetIds[0];
       return set ? cta('inSet', 'link', { link: hqSet(set), queryParams: null }) : cta('inSet', 'action', null, !signedIn);
     }
-    case 'materialToSupply':
-      return cta('materialToSupply', 'action', null, !signedIn);
+    // Only where the data names the mission that earns the blueprint; no mission, no CTA.
+    case 'toMission':
+      return row.missionTarget ? cta('toMission', 'link', row.missionTarget) : null;
     case 'atRsi':
       return cta('atRsi', 'link', row.target ?? { link: ['/codex', 'upcoming'], queryParams: null });
     case 'allProducts': {
@@ -275,17 +278,17 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
 }
 
 /**
- * Which of the three standard icons (Wunschliste · Nachschub · Bestand, drawn in that order; the flag `lager` is the Bestand one) a row
- * gets. Only equipment, ships and blueprints have them; a blueprint gets the
- * Wunschliste only; `lager` on a ship means "In den Hangar"; an announced ship
- * can be wished for, not stored. Hidden, never greyed out. News, patches,
- * gallery, pages, manufacturers and the reader's own data have none.
+ * Whether a row carries the path control, and which stops it would have
+ * (Wunschliste · Nachschub · Inventar, the flag `lager` is the third one; on a
+ * ship it means Hangar). Equipment, ships and blueprints have all three (A9);
+ * an announced ship only the wish. News, patches, gallery, pages, manufacturers
+ * and the reader's own data have none.
  */
 export function resolveIcons(row: Pick<CtaRow, 'type' | 'kind'>): SearchRowIcons {
   if (row.type !== 'hit' || !row.kind) return NO_ICONS;
   if (row.kind === 'ship') return { wishlist: true, lager: true, nachschub: true };
   if (row.kind === UPCOMING_HIT_KIND) return { wishlist: true, lager: false, nachschub: false };
-  if (row.kind === 'blueprint') return { wishlist: true, lager: false, nachschub: false };
+  if (row.kind === 'blueprint') return { wishlist: true, lager: true, nachschub: true };
   if (EQUIPMENT.has(row.kind)) return { wishlist: true, lager: true, nachschub: true };
   return NO_ICONS;
 }

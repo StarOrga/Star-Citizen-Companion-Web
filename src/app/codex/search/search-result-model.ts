@@ -92,7 +92,7 @@ export type SearchCtaId =
   | 'compareWith'
   | 'compare'
   | 'inSet'
-  | 'materialToSupply'
+  | 'toMission'
   | 'atRsi'
   | 'allProducts'
   | 'add'
