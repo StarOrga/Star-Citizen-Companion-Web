@@ -21,6 +21,6 @@ Source: concept `20261106-1513-verse-aufbau`. Read this before changing how the 
 - A shorter entrance (3.2 s or 2.4 s): the owner keeps the 4.2 s accepted on 2026-11-04.
 - The full entrance on every reload: too long for each Ctrl+R.
 
-## Open
+## Measured
 
-- One or two long frames of up to 128 ms around 3.7 s when the app is opened on `/verse`, in two of three runs; not through the menu. Cause not found.
+- Sporadic long frames when the app opens on `/verse`, some runs none at all: work in the GPU process (ANGLE worker tasks, raster flushes) while the main thread is free. Dropping the blur from the arrivals brought no provable gain in 14 alternating runs on a loaded machine, so the blur stays.
