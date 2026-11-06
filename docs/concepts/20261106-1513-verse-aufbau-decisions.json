@@ -1,0 +1,77 @@
+[
+ {
+  "iteration": 1,
+  "action": "implement",
+  "decisions": [
+   {
+    "id": "d-trigger",
+    "label": "Auslöser des Aufbaus",
+    "value": "hop",
+    "rec": "hop",
+    "deviates": false,
+    "untouched": false
+   },
+   {
+    "id": "d-holo-first",
+    "label": "Holo im großen Aufbau",
+    "value": "after",
+    "rec": "after",
+    "deviates": false,
+    "untouched": false
+   },
+   {
+    "id": "d-length",
+    "label": "Länge des Aufbaus",
+    "value": "keep",
+    "rec": "trim",
+    "deviates": true,
+    "untouched": false
+   },
+   {
+    "id": "d-skip",
+    "label": "Aufbau abbrechen",
+    "value": {
+     "answer": "yes",
+     "alt": ""
+    },
+    "rec": "yes",
+    "deviates": false,
+    "untouched": false
+   },
+   {
+    "id": "d-reload",
+    "label": "Ablauf beim Neuladen",
+    "value": "together",
+    "rec": "together",
+    "deviates": false,
+    "untouched": false
+   },
+   {
+    "id": "d-holo-return",
+    "label": "Holo bei der Rückkehr",
+    "value": "stands",
+    "rec": "stands",
+    "deviates": false,
+    "untouched": false
+   },
+   {
+    "id": "d-moons",
+    "label": "Planeten beim Erscheinen",
+    "value": {
+     "answer": "yes",
+     "alt": ""
+    },
+    "rec": "yes",
+    "deviates": false,
+    "untouched": true
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "",
+    "attachments": []
+   },
+   "items": []
+  }
+ }
+]

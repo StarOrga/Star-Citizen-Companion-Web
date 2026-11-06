@@ -197,6 +197,18 @@ describe('CodexRankCardComponent - a gap axis is never invented', () => {
     expect(r).toBeLessThanOrEqual(80.01);
   });
 
+  it('the holotable draws a square-root radius, the classic card a linear one', () => {
+    const radius = () => {
+      const v = fixture.componentInstance.vertexAt(4, 0, 6).split(',').map(Number);
+      return Math.hypot(v[0] - 100, v[1] - 100);
+    };
+    expect(radius()).toBeCloseTo(3.2, 1);
+    fixture.componentRef.setInput('holo', true);
+    expect(radius()).toBeCloseTo(16, 1);
+    const rim = fixture.componentInstance.vertexAt(100, 0, 6).split(',').map(Number);
+    expect(Math.hypot(rim[0] - 100, rim[1] - 100)).toBeCloseTo(80, 1);
+  });
+
   describe('another kind than a ship', () => {
     const axisOf = (key: string) => ({
       key,

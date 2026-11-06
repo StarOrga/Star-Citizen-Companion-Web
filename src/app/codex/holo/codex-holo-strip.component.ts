@@ -15,6 +15,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  HostListener,
+  viewChild,
   afterNextRender,
   computed,
   effect,
@@ -62,10 +64,10 @@ import {
   resetPowerState,
   togglePowerGroup,
 } from '../codex-power';
-import { RankResult } from '../codex-rank';
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { CountUp } from './count-up';
+import { MISSION_ICON, missionColor } from './codex-holo-mission';
 
 const GROUP_ICON: Readonly<Record<PowerGroup, string>> = {
   weapons: 'weapon',
@@ -77,11 +79,6 @@ const GROUP_ICON: Readonly<Record<PowerGroup, string>> = {
   quantum: 'quantum',
   tractor: 'tractor',
 };
-
-/** The two rank axes that overlap {@link PowerFactKey} 1:1 — used for the
- * "class-rank pips" beside Signatur & Kühlung. `em`/`coolant` have no rank
- * axis of their own (chosen attribute: pips reflect ir+crossSection only). */
-const SIGNATURE_RANK_KEYS: readonly ('ir' | 'crossSection')[] = ['ir', 'crossSection'];
 
 const PERSPECTIVE_TILES: readonly Perspective[] = ['offensive', 'defensive', 'movement'];
 
@@ -97,8 +94,15 @@ const STRIP_TILE_ORDER: Readonly<Record<Perspective, readonly string[]>> = {
 interface PerspectiveTile {
   perspective: Perspective;
   labelKey: string;
-  percentile: number | null;
   cells: readonly KpiStripCell[];
+}
+
+/** One choice of the strip's Einsatz picker. */
+export interface StripMission {
+  id: MissionId;
+  labelKey: string;
+  sub: string;
+  disabledKey: string | null;
 }
 
 let uidSeq = 0;
@@ -115,22 +119,33 @@ export function stripMiniKey(userId: string | null | undefined): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-strip" [class.open]="expanded()" [class.mini]="mini() && !phone">
-      <div class="hs-row">
-        <div class="seg einsatz">
-          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}</span>
-          <span class="val">◈ {{ activeMissionLabel() | translate }}</span>
-          @if (rankResult(); as r) {
-            <span class="sub">{{ 'codex.holo.strip.shipCount' | translate: { n: upInt('cohort', r.cohortSize) } }}@if (r.overall != null) { · <span class="pct pulse">P{{ upInt('overall', r.overall) }}</span> }</span>
-          } @else if (rankCohortLoading()) {
-            <span class="sub gapv">{{ 'codex.kpi.gap' | translate }}</span>
+      @if (missionOpen()) {
+        <div class="mission-pop" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate" (keydown.escape)="closeMissions($event)">
+          @for (m of missions(); track m.id) {
+            <span style="display: contents" [scTooltip]="m.disabledKey ? (m.disabledKey | translate) : null" scTooltipTier="label">
+              <button type="button" class="mp" role="radio" [class.on]="m.id === active()" [attr.aria-checked]="m.id === active()"
+                      [disabled]="!!m.disabledKey" (click)="pickMission(m.id)">
+                <span class="mp-l" [style.--h]="hueOf(m.id)"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconOf(m.id)" /></svg>{{ m.labelKey | translate }}</span>
+                @if (!m.disabledKey) { <small>{{ m.sub }}</small> }
+              </button>
+            </span>
           }
         </div>
-
-        <span class="arrow" aria-hidden="true">→</span>
+      }
+      <div class="hs-row">
+        <button type="button" class="seg einsatz" #missionBtn [attr.aria-haspopup]="'true'" [attr.aria-expanded]="missionOpen()"
+                [attr.aria-label]="'codex.holo.strip.einsatzPick' | translate"
+                [scTooltip]="'codex.holo.strip.einsatzPick' | translate" scTooltipTier="label"
+                (click)="toggleMissions($event)" (keydown.escape)="missionOpen() && closeMissions($event)">
+          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}<span class="caret" aria-hidden="true">▴</span></span>
+          <span class="val"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="activeMissionIcon()" /></svg>{{ activeMissionLabel() | translate }}</span>
+          <span class="sub" [class.gapv]="!cohortLabel()">{{ cohortLabel() ?? ('codex.kpi.gap' | translate) }}</span>
+        </button>
 
         @for (tile of perspectiveTiles(); track tile.perspective) {
+          <i class="fade" aria-hidden="true"></i>
           <div class="seg tile" [attr.data-p]="tile.perspective">
-            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span>@if (tile.percentile != null) { <span class="pct">P{{ upInt('pct.' + tile.perspective, tile.percentile) }}</span> }</span>
+            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span></span>
             <div class="tile-vals">
               @for (c of tile.cells; track c.key) {
                 <span class="tv" [class.flash]="flashKeys().has(c.key)">
@@ -151,19 +166,11 @@ export function stripMiniKey(userId: string | null | undefined): string {
           </div>
         }
 
-        <span class="joint" aria-hidden="true"></span>
+        <i class="fade" aria-hidden="true"></i>
 
-        <div class="seg sig" data-p="signature">
-          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span>@if (signaturePercentile(); as p) { <span class="pct">P{{ upInt('pct.signature', p) }}</span> }</span>
-          <!-- Class-rank pips only when the active profile ranks a signature
-               axis at all — five empty pips read as "worst in class". -->
-          @if (signatureRanked()) {
-            <span class="rankpips" [attr.aria-label]="'codex.holo.strip.signatureRank' | translate: { n: signatureRankFill() }">
-              @for (n of pipFive; track n) {
-                <i [class.on]="n <= signatureRankFill()"></i>
-              }
-            </span>
-          }
+        <div class="seg tile sig" data-p="signature">
+          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span></span>
+          <div class="tile-vals">
           <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(irFact()?.value)) + '\u00a0m'" scTooltipTier="label">
             <span class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</span>
             <span class="v pulse">{{ fmtKm(up('ir', irFact()?.value)) }}<small>km</small></span>
@@ -184,6 +191,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
                 : ('codex.holo.strip.coolingValue' | translate: { used: upInt('coolUsed', sheet().coolant.used), total: upInt('coolTotal', sheet().coolant.total) })
             }}</span>
           </span>
+          </div>
         </div>
 
         <!-- Minimise (remembered per viewer): the strip folds to its Einsatz
@@ -329,11 +337,13 @@ export function stripMiniKey(userId: string | null | undefined): string {
         --p-signature: var(--holo-p-signature); }
       .holo-strip {
         padding-block-end: env(safe-area-inset-bottom, 0px);
-        background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0));
+        /* One capsule in the header's skin; its rim carries the Einsatz. */
+        background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-0)), color-mix(in srgb, var(--sc-accent) 3%, var(--sc-bg-0)));
+        border: 1px solid color-mix(in srgb, var(--holo-e, var(--sc-accent)) 28%, transparent);
         border-block-end: 0;
-        border-radius: 4px 4px 0 0;
+        border-radius: 18px 18px 0 0;
         box-shadow: 0 -10px 30px rgb(0 0 0 / 0.5);
+        transition: border-color var(--holo-t-base) ease;
         color: var(--sc-fg-0);
         font-size: max(12px, var(--sc-fs-floor));
       }
@@ -341,29 +351,37 @@ export function stripMiniKey(userId: string | null | undefined): string {
          (--sc-fab-lane in styles.scss) — where the strip reaches into that
          lane, its content stops short of it (measured, see the class). */
       .hs-row { display: flex; align-items: stretch; gap: 0; padding: 0; padding-inline-end: var(--fab-clear, 0px); overflow-x: auto;
-        scrollbar-width: none; min-block-size: 62px; }
+        scrollbar-width: none; min-block-size: 64px; }
       .hs-row::-webkit-scrollbar { display: none; }
-      .seg { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 7px 10px; min-width: 0; flex: none;
-        border-inline-end: 1px solid var(--sc-border); border-block-start: 2px solid transparent; }
-      .seg[data-p="offensive"] { border-block-start-color: var(--p-offensive); }
-      .seg[data-p="defensive"] { border-block-start-color: var(--p-defensive); }
-      .seg[data-p="movement"] { border-block-start-color: var(--p-movement); }
-      .seg[data-p="signature"] { border-block-start-color: var(--p-signature); }
-      .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor));
-        letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
-      .einsatz { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); min-inline-size: 132px; }
-      .einsatz .val { font-family: var(--sc-font-display); font-size: max(11.5px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
-      .einsatz .sub { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-      .pct { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; color: var(--sc-fg-1); letter-spacing: 0; font-size: max(9.5px, var(--sc-fs-floor)); }
-      .seg[data-p="offensive"] .pct { color: var(--p-offensive); }
-      .seg[data-p="defensive"] .pct { color: var(--p-defensive); }
-      .seg[data-p="movement"] .pct { color: var(--p-movement); }
-      .seg[data-p="signature"] .pct { color: var(--p-signature); }
-      .arrow { align-self: center; color: var(--sc-fg-2); flex: none; padding: 0 6px; }
-      .tile-vals { display: flex; gap: 10px; flex-wrap: nowrap; }
+      .seg { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 6px clamp(7px, 0.6vw, 11px); min-width: 0; flex: 1 1 auto; }
+      .fade { flex: none; inline-size: 1px; margin-block: 10px; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sc-accent) 40%, transparent), transparent); }
+      .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(9px, var(--sc-fs-floor));
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent); white-space: nowrap; }
+      .einsatz { flex: 0 0 auto; min-inline-size: clamp(120px, 8vw, 150px); background: none; border: 0; border-start-start-radius: 18px; font: inherit; color: inherit; text-align: start; align-items: flex-start;
+        cursor: pointer; transition: background 160ms ease; }
+      .einsatz .lab { color: var(--sc-fg-2); }
+      .einsatz:hover, .einsatz[aria-expanded='true'] { background: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 14%, transparent); }
+      .einsatz:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      .caret { color: var(--sc-accent); font-size: 0.8em; letter-spacing: 0; }
+      .mission-pop { position: absolute; inset-block-end: 100%; inset-inline-start: 0; margin-block-end: 6px; z-index: 5; display: grid; gap: 2px; padding: 6px; min-inline-size: 240px;
+        background: var(--sc-bg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0)); border-radius: 4px; box-shadow: 0 -10px 30px rgb(0 0 0 / 0.5); }
+      .mp { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 6px 10px; min-block-size: var(--sc-tap-min, 32px); background: none; border: 0; border-radius: 3px;
+        color: var(--sc-fg-1); font: inherit; cursor: pointer; text-align: start; }
+      .mp-l { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sc-font-display); font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; }
+      .mp-l svg { color: var(--h, currentColor); }
+      .mp-l svg, .einsatz .val svg { inline-size: 1.15em; block-size: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .mp small { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
+      .mp:hover:not(:disabled) { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+      .mp.on { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+      .mp:disabled { opacity: 0.4; cursor: not-allowed; }
+      .mp:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      .einsatz .val { display: flex; align-items: center; gap: 6px; max-inline-size: 100%; font-family: var(--sc-font-display); font-size: clamp(11.5px, 0.76vw, 14.5px); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+        color: var(--holo-e, var(--sc-accent)); line-height: 1.1; white-space: nowrap; transition: color var(--holo-t-base) ease; }
+      .einsatz .sub { max-inline-size: 100%; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tile-vals { display: flex; justify-content: space-between; gap: clamp(6px, 0.5vw, 9px); flex-wrap: nowrap; }
       .tv { display: flex; flex-direction: column; gap: 1px; }
-      .tv .k { font-family: var(--sc-font-display); font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.14em; white-space: nowrap; }
-      .tv .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; color: var(--sc-fg-0); white-space: nowrap;
+      .tv .k { font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
+      .tv .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: clamp(14px, 0.89vw, 17px); line-height: 1.1; color: var(--sc-fg-0); white-space: nowrap; letter-spacing: -0.02em;
         border-radius: 2px; transition: color 0.4s ease; }
       .tv.none .v { color: var(--sc-fg-2); }
       /* A value the pilot just changed (a swap, a revert) lights up once. */
@@ -373,26 +391,14 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .d { font-family: var(--hs-mono); font-size: max(9.5px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
       .d.up { color: var(--sc-success); }
       .d.down { color: var(--sc-warning); }
-      /* the ring joint on the colour bridge — no label (concept it.8). */
-      .joint { align-self: center; inline-size: 16px; block-size: 16px; border-radius: 50%; margin-inline: 6px;
-        border: 2px solid var(--p-signature); flex: none;
-        background: radial-gradient(circle, color-mix(in srgb, var(--p-signature) 35%, transparent), transparent 70%);
-        box-shadow: 0 0 10px color-mix(in srgb, var(--p-signature) 45%, transparent); }
-      .sig { flex-direction: row; align-items: center; gap: 10px; flex: 0 1 auto; }
-      .sig .lab { align-self: center; }
-      .rankpips { display: inline-flex; gap: 2px; align-self: center; }
-      .rankpips i { display: block; inline-size: 4px; block-size: 10px; border-radius: 1px;
-        background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); font-style: normal; }
-      .rankpips i.on { background: var(--p-signature); }
       .fact { display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
-      .fact .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; white-space: nowrap; }
+      .fact .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: clamp(14px, 0.89vw, 17px); line-height: 1.1; white-space: nowrap; letter-spacing: -0.02em; }
       .fact .v small { color: var(--sc-fg-2); margin-inline-start: 3px; font-size: max(10px, var(--sc-fs-floor)); }
       .fact[tabindex] { cursor: help; border-radius: var(--holo-r-xs); }
       .fact[tabindex]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       /* Touch: a focusable fact (tooltip in metres) reaches the tap minimum. */
       @media (pointer: coarse) { .fact[tabindex] { min-block-size: var(--sc-tap-min); min-inline-size: var(--sc-tap-min); justify-content: center; } }
-      .tip-trigger { font-family: var(--sc-font-display);
-        font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.14em; }
+      .tip-trigger { font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
       .hs-toggle {
         align-self: stretch; margin-inline-start: auto; flex: none;
         min-inline-size: var(--sc-tap-min, 44px); min-block-size: var(--sc-tap-min);
@@ -416,7 +422,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
          as a small tab — the table keeps the whole viewport. */
       .holo-strip.mini { margin-inline-start: auto; inline-size: max-content; max-inline-size: 100%; }
       .holo-strip.mini .hs-row { min-block-size: 40px; }
-      .holo-strip.mini .seg:not(.einsatz), .holo-strip.mini .arrow, .holo-strip.mini .joint, .holo-strip.mini .einsatz .sub { display: none; }
+      .holo-strip.mini .seg:not(.einsatz), .holo-strip.mini .fade, .holo-strip.mini .einsatz .sub { display: none; }
       /* Expanded: modes | pips | cooling (concept round 6 "Energie-Zeile":
          Modi links, Pips Mitte, Kühlung rechts — one instrument, one row). */
       /* Capped: a hull with many pip columns must not grow the sticky panel
@@ -500,17 +506,20 @@ export function stripMiniKey(userId: string | null | undefined): string {
       @media (max-width: 900px) {
         .tile-vals .tv + .tv { display: none; }
         .sig .fact + .fact { display: none; }
-        .arrow, .joint { display: none; }
+        .fade { display: none; }
         .seg { padding: 6px 8px; }
         .einsatz { min-inline-size: 0; }
         .einsatz .sub { display: none; }
-        .sig { gap: 8px; }
         .sig .lab { max-inline-size: 64px; white-space: normal; line-height: 1.15; }
       }
       @media (max-width: 640px) {
-        .holo-strip { position: fixed; inset-inline: 0; inset-block-end: 0; border-radius: 0; }
+        .holo-strip { position: fixed; inset-inline: 0 var(--sc-fab-clear-inline); /* ends before the launcher lane */ inset-block-end: var(--holo-strip-lift, 0px); border-radius: 12px 12px 0 0; }
         .hs-row { min-block-size: 52px; }
+        /* The narrowest phones: symbol + class + the three perspectives; the page's Signatur tile keeps those values. */
+        @media (max-width: 430px) { .sig, .sig + .fade { display: none; } .fade { display: none; } }
         .seg { padding: 5px 7px; flex: 1 1 0; }
+        .tile-vals { min-inline-size: 0; }
+        .tv .v, .fact .v { font-size: 12.5px; }
         .seg .lab .lt { display: none; }
         .seg .lab { gap: 0; }
         .tile-vals .tv .k { display: none; }
@@ -551,13 +560,40 @@ export class CodexHoloStripComponent {
   readonly active = input.required<MissionId>();
   readonly capabilities = input<ShipCapabilities | null>(null);
   readonly missionChange = output<MissionId>();
+  /** The choices of the Einsatz picker, with their lead value. */
+  readonly missions = input<readonly StripMission[]>([]);
+  readonly missionOpen = signal(false);
+  private readonly missionBtn = viewChild<ElementRef<HTMLElement>>('missionBtn');
 
-  /** Not on any of the three mirrored components — the only percentile
-   * source in the codebase is `sc-codex-rank-card`'s own `result`/`loading`
-   * inputs, reused verbatim rather than re-deriving a percentile here
-   * (chosen attribute, documented in the wave2 handoff). */
-  readonly rankResult = input<RankResult | null>(null);
-  readonly rankCohortLoading = input(false);
+  toggleMissions(ev: Event): void {
+    ev.stopPropagation();
+    this.missionOpen.update((v) => !v);
+  }
+
+  closeMissions(ev: Event): void {
+    ev.stopPropagation();
+    this.missionOpen.set(false);
+    this.missionBtn()?.nativeElement.focus({ preventScroll: true });
+  }
+
+  pickMission(id: MissionId): void {
+    this.missionOpen.set(false);
+    this.missionChange.emit(id);
+    this.missionBtn()?.nativeElement.focus({ preventScroll: true });
+  }
+
+  /** A click anywhere else closes the picker. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: Event): void {
+    if (!this.missionOpen()) return;
+    const pop = (ev.target as HTMLElement | null)?.closest?.('.mission-pop');
+    if (!pop) this.missionOpen.set(false);
+  }
+
+  /** What the default Einsatz is called: the ship's class ("Kampfschiff"). */
+  readonly defaultLabelKey = input<string | null>(null);
+  /** Who the Einsatz cell compares with ("26 × Leichter Jäger"); null while the group loads. */
+  readonly cohortLabel = input<string | null>(null);
 
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
@@ -565,7 +601,6 @@ export class CodexHoloStripComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly modes: readonly FlightMode[] = ['scm', 'nav'];
-  protected readonly pipFive = [1, 2, 3, 4, 5];
 
   private readonly uid = `holo-strip-${++uidSeq}`;
   protected readonly panelId = `${this.uid}-panel`;
@@ -614,14 +649,20 @@ export class CodexHoloStripComponent {
     return { ...base, value: override, gapKey: null };
   });
 
-  protected readonly activeMissionLabel = computed(() => missionById(this.active()).labelKey);
+  protected readonly activeMissionLabel = computed(() => (this.active() === 'all' && this.defaultLabelKey()) || missionById(this.active()).labelKey);
+  protected readonly activeMissionIcon = computed(() => MISSION_ICON[this.active()]);
+  protected iconOf(id: MissionId): string {
+    return MISSION_ICON[id];
+  }
+  protected hueOf(id: MissionId): string {
+    return missionColor(id);
+  }
 
   /** groups `cells()` (already computed against the active mission) into the
    * three mini tiles via the SAME classification `buildPerspectiveDeltas`
    * uses for the patch-Δ view — never a second, drifting grouping. */
   protected readonly perspectiveTiles = computed<PerspectiveTile[]>(() => {
     const cells = this.cells();
-    const rank = this.rankResult();
     return PERSPECTIVE_TILES.map((perspective) => {
       const keys = new Set(PERSPECTIVE_KPIS[perspective]);
       const order = STRIP_TILE_ORDER[perspective];
@@ -629,35 +670,8 @@ export class CodexHoloStripComponent {
         .filter((c) => keys.has(c.key) && c.value != null)
         .sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
         .slice(0, 3);
-      const axes = rank ? rank.axes.filter((a) => keys.has(a.key) && a.percentile != null) : [];
-      const percentile = axes.length ? Math.round(axes.reduce((s, a) => s + a.percentile!, 0) / axes.length) : null;
-      return { perspective, labelKey: `codex.holo.strip.${perspective}`, percentile, cells: tileCells };
+      return { perspective, labelKey: `codex.holo.strip.${perspective}`, cells: tileCells };
     });
-  });
-
-  /** Mean percentile of the signature axes the active rank profile carries. */
-  protected readonly signaturePercentile = computed<number | null>(() => {
-    const rank = this.rankResult();
-    if (!rank) return null;
-    const keys = new Set(PERSPECTIVE_KPIS.signature);
-    const axes = rank.axes.filter((a) => keys.has(a.key) && a.percentile != null);
-    return axes.length ? Math.round(axes.reduce((s, a) => s + a.percentile!, 0) / axes.length) : null;
-  });
-
-  /** The two rank axes that overlap the signature facts, when the active
-   * profile ranks them (ir + crossSection — see {@link SIGNATURE_RANK_KEYS}). */
-  private readonly signatureAxes = computed(() => {
-    const rank = this.rankResult();
-    return rank ? rank.axes.filter((a) => SIGNATURE_RANK_KEYS.includes(a.key as 'ir' | 'crossSection') && a.percentile != null) : [];
-  });
-  protected readonly signatureRanked = computed(() => this.signatureAxes().length > 0);
-
-  /** 0..5 pips, from the mean percentile of those axes. */
-  protected readonly signatureRankFill = computed(() => {
-    const axes = this.signatureAxes();
-    if (!axes.length) return 0;
-    const mean = axes.reduce((s, a) => s + a.percentile!, 0) / axes.length;
-    return Math.max(0, Math.min(5, Math.round(mean / 20)));
   });
 
   // ── Rolling values: a changed number runs from where it stood to where it
@@ -726,10 +740,15 @@ export class CodexHoloStripComponent {
     const root = getComputedStyle(document.documentElement);
     const lane = (parseFloat(root.getPropertyValue('--sc-fab-inset')) || 24) + (parseFloat(root.getPropertyValue('--sc-fab-size')) || 56);
     const gutter = parseFloat(root.getPropertyValue('--sc-fab-gutter')) || 12;
-    const right = el.getBoundingClientRect().right;
+    // The bar, not the host: on a phone the bar is fixed and the host collapses.
+    const box = (el.querySelector('.holo-strip') ?? el).getBoundingClientRect();
     // clientWidth, not innerWidth: the launcher's `right` inset is measured
     // from the viewport WITHOUT the page's scrollbar.
-    const clear = Math.max(0, Math.round(right - (document.documentElement.clientWidth - lane - gutter)));
+    let free = document.documentElement.clientWidth - lane - gutter;
+    // A detail page's share button rides beside the launcher, on whatever row the bar is.
+    const dock = document.querySelector('sc-share-button .dock')?.getBoundingClientRect();
+    if (dock && dock.width > 0 && dock.bottom > box.top && dock.top < box.bottom) free = Math.min(free, dock.left - gutter / 2);
+    const clear = Math.max(0, Math.round(box.right - free));
     el.style.setProperty('--fab-clear', `${clear}px`);
   }
 
@@ -765,6 +784,9 @@ export class CodexHoloStripComponent {
     });
     afterNextRender(() => {
       this.measureFabClearance();
+      // The share button arrives with the route, after this first measure.
+      const late = setTimeout(() => this.measureFabClearance(), 1500);
+      this.destroyRef.onDestroy(() => clearTimeout(late));
       const onResize = () => this.measureFabClearance();
       window.addEventListener('resize', onResize, { passive: true });
       const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;

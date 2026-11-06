@@ -19,8 +19,9 @@ import { HERO_MS, VerseBriefingComponent } from '../verse-briefing.component';
 import { WindowFocusService } from '../../../core/window-focus.service';
 import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing-beacons.component';
 import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
-import { INTRO_FLAG } from './briefing.model';
+import { INTRO_FLAG, localDay } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
+import { VERSE_STAGED_BUILD } from './staged-build';
 import {
   holoBody, holoTitle, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
@@ -140,9 +141,10 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   const feedNews = [1, 2, 3, 4, 5].map((i) => ({ id: `f${i}`, title: `News ${i}`, summary: 'Short summary.', thumbnail: null, publishedAt: '2026-10-20T10:00:00Z' }) as unknown as VerseNewsItem);
 
   beforeEach(() => {
-    localStorage.removeItem(INTRO_FLAG);
+    localStorage.setItem(INTRO_FLAG, localDay());
     TestBed.configureTestingModule({
       providers: [
+        { provide: VERSE_STAGED_BUILD, useValue: false },
         provideRouter([]),
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
@@ -186,6 +188,25 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     localStorage.removeItem(INTRO_FLAG);
   });
 
+  it('builds in steps: the stage first, then doors and beacons, the hub last, and the page keeps its height meanwhile', async () => {
+    TestBed.overrideProvider(VERSE_STAGED_BUILD, { useValue: true });
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.bstage')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-transmit, sc-briefing-beacons, sc-briefing-hub')).toBeNull();
+    expect(el.querySelector('.hub-hold')).not.toBeNull();
+    for (let i = 0; i < 40 && !el.querySelector('sc-briefing-hub'); i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      fixture.detectChanges();
+    }
+    expect(el.querySelector('sc-briefing-transmit')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-beacons')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-hub')).not.toBeNull();
+    expect(el.querySelector('.hub-hold')).toBeNull();
+    fixture.destroy();
+  });
+
   it('renders beacons, the hero title, the planets and the holo as real anchors — no moons, no for-you line, no overview links', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
@@ -209,8 +230,27 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     discardPeriodicTasks();
   }));
 
+  it('on a later visit the first message stands at once, the next planet sends', fakeAsync(() => {
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const tx = (): HTMLElement => el.querySelector<HTMLElement>('sc-briefing-transmit')!;
+    expect(tx().dataset['phase']).toBe('hold');
+    expect(tx().classList).toContain('stands');
+    tick(TX_HOLD_MS);
+    fixture.detectChanges();
+    expect(tx().dataset['phase']).toBe('out');
+    tick(TX_OUT_MS);
+    fixture.detectChanges();
+    expect(tx().dataset['phase']).toBe('charge');
+    expect(tx().classList).not.toContain('stands');
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
+
   it('transmits News → Patches → Galerie: charge, build, write, pull back, hold', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.componentInstance.holoStands.set(false);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const holo = (): HTMLElement => el.querySelector<HTMLElement>('a.holo')!;
@@ -325,6 +365,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   }));
 
   it('spells the app name in letter spans for the entrance, exposes it once, then shows the story as plain text', fakeAsync(() => {
+    localStorage.removeItem(INTRO_FLAG);
     // The shell announces the entrance at boot when the page opens on the hub.
     TestBed.inject(ShellChromeService).holdHeroIntro();
     const fixture = TestBed.createComponent(VerseBriefingComponent);

@@ -55,9 +55,30 @@ export function holoHotkeyFor(ev: KeyboardEvent, ownRoot: Element | null): HoloH
 
 export type HoloViewMode = 'holo' | '3d' | 'schema';
 
-/** V: holo → 3D → schema → holo, skipping a view the hull cannot show. */
-export function nextHoloView(current: HoloViewMode, has3d: boolean, schema: boolean): HoloViewMode {
-  const order: HoloViewMode[] = ['holo', ...(has3d ? (['3d'] as const) : []), ...(schema ? (['schema'] as const) : [])];
+/**
+ * What the table shows: the 3D model, or one of the Schema sub-views. "simple"
+ * is the top-down silhouette with leader lines to the swappable parts; top,
+ * side and front are the ship's blueprint drawing with every hardpoint on it.
+ */
+export type HoloSurface = '3d' | 'simple' | 'top' | 'side' | 'front';
+
+/** Which surfaces this hull can show ("simple" always can). */
+export interface HoloSurfaceAvailability {
+  has3d: boolean;
+  top: boolean;
+  side: boolean;
+  front: boolean;
+}
+
+/** V: 3D → Einfach → Draufsicht → Seitensicht → Frontsicht → 3D, skipping what the hull cannot show. */
+export function nextHoloSurface(current: HoloSurface, can: HoloSurfaceAvailability): HoloSurface {
+  const order: HoloSurface[] = [
+    ...(can.has3d ? (['3d'] as const) : []),
+    'simple',
+    ...(can.top ? (['top'] as const) : []),
+    ...(can.side ? (['side'] as const) : []),
+    ...(can.front ? (['front'] as const) : []),
+  ];
   const at = order.indexOf(current);
-  return order[(at + 1) % order.length] ?? 'holo';
+  return order[(at + 1) % order.length] ?? 'simple';
 }

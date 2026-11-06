@@ -65,7 +65,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
               @for (ring of rings; track ring) {
                 <polygon [attr.points]="ringPoints(ring, r.axes.length)" />
               }
-              @for (spoke of spokePoints(r.axes.length); track spoke) {
+              @for (spoke of spokePoints(r.axes.length); track $index) {
                 <line
                   x1="100" y1="100" [attr.x2]="spoke.x" [attr.y2]="spoke.y"
                   [class.gap-spoke]="r.axes[spoke.i].percentile == null"

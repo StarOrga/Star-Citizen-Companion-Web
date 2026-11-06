@@ -1,4 +1,5 @@
 import { toErrorKey } from '../core/describe-error';
+import { withPowerSignature } from './codex-power';
 import { logWarn } from '../core/log';
 import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -2234,10 +2235,13 @@ export class CodexService {
           sizeClass: null, // schema gap — see the header comment.
           career: resolveCareerLabel(payload?.career ?? null),
           role: row.role?.trim() || null,
-          sheet: computeKpiSheet(
-            this.cohortOccupantsFor(payload?.defaultLoadout ?? [], payloads, ammo),
-            this.cohortShipInput(payload),
-          ),
+          sheet: ((occ) =>
+            withPowerSignature(
+              computeKpiSheet(occ, this.cohortShipInput(payload)),
+              occ,
+              payload?.stats as Record<string, Record<string, unknown>> | null | undefined,
+              build.schemaVersion,
+            ))(this.cohortOccupantsFor(payload?.defaultLoadout ?? [], payloads, ammo)),
         });
       }
       if (i + COHORT_CHUNK < rows.length) await yieldToEventLoop();

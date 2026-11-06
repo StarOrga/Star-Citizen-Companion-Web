@@ -1084,6 +1084,13 @@ function arrive(fixture: ComponentFixture<CodexDetailComponent>): void {
   fixture.detectChanges();
 }
 
+/** The basics that stand open below the first screen (variants, actions, description, where to buy). */
+function openBlock(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
+  const open = (fixture.nativeElement as HTMLElement).querySelector('#holo-open') as HTMLElement;
+  expect(open).withContext('open block').not.toBeNull();
+  return open;
+}
+
 function openDetails(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
   const el: HTMLElement = fixture.nativeElement;
   (el.querySelector('.details-toggle') as HTMLButtonElement).click();
@@ -1148,7 +1155,7 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     const hangar = TestBed.inject(HangarService);
     let resolve!: (v: null) => void;
     const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
-    const body = openDetails(fixture);
+    const body = openBlock(fixture);
     const btn = body.querySelector('.add-hangar') as HTMLButtonElement;
     expect(btn).withContext('add-to-hangar button rendered').not.toBeNull();
 
@@ -1166,6 +1173,48 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     const alert = body.querySelector('.add-err[role="alert"]');
     expect(alert).not.toBeNull();
     expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
+  }));
+});
+
+describe('CodexDetailComponent — Holotable basics stand open (d-drawer)', () => {
+  beforeEach(() => configureSetup('ship'));
+
+  it('Beschreibung, Wo zu kaufen and the variants sit open on the page, the drawer keeps the rest', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    arrive(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    const open = el.querySelector('#holo-open') as HTMLElement;
+    expect(open.querySelector('#bezugsquelle')).withContext('where to buy, open').not.toBeNull();
+    expect(el.querySelector('.details-body')).withContext('drawer still closed').toBeNull();
+    const body = openDetails(fixture);
+    expect(body.querySelector('#bezugsquelle')).toBeNull();
+  }));
+});
+
+describe('CodexDetailComponent — rank scope default per view', () => {
+  beforeEach(() => {
+    configureSetup('ship');
+    localStorage.removeItem('sc.codex.rankScope');
+  });
+  afterEach(() => localStorage.removeItem('sc.codex.rankScope'));
+
+  it('nobody chose: Alle in the classic view, Rolle in the Holotable', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    const cmp = fixture.componentInstance;
+    cmp.holoView.set(true);
+    expect(cmp.rankScope()).toBe('role');
+    cmp.holoView.set(false);
+    expect(cmp.rankScope()).toBe('all');
+  }));
+
+  it('a stored choice applies to both views', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    const cmp = fixture.componentInstance;
+    cmp.setRankScope('career');
+    cmp.holoView.set(true);
+    expect(cmp.rankScope()).toBe('career');
+    cmp.holoView.set(false);
+    expect(cmp.rankScope()).toBe('career');
   }));
 });
 
@@ -1221,7 +1270,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
   it('offers no link form to a signed-out reader', fakeAsync(() => {
     configureCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
     const fixture = renderOnFakeClock();
-    const body = openDetails(fixture);
+    const body = openBlock(fixture);
     const labels = Array.from(body.querySelectorAll('button')).map((b) => b.textContent ?? '');
     expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
     // The RSI link itself stays: a plain anchor into a new tab.
@@ -1241,7 +1290,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     });
     const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
-    const body = openDetails(fixture);
+    const body = openBlock(fixture);
     const add = Array.from(body.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
       (b.textContent ?? '').includes('codex.shipLink.add'),
     );

@@ -100,7 +100,7 @@ describe('analysis panels', () => {
       expect(el.querySelector('.head-peek')).toBeNull();
       const rows = Array.from(el.querySelectorAll('table.analysis-table tbody tr'));
       expect(rows.length).toBe(2);
-      expect(rows[0].textContent).toContain('BEHR_LaserCannon_S3');
+      expect(rows[0].textContent).toContain('BEHR Laser Cannon');
       expect(rows[0].textContent).toContain('S3');
       expect(rows[1].textContent).toContain('—');
       expect(el.querySelector('tfoot')!.textContent).toContain(formatNumber(1636.88));

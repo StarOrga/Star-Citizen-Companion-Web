@@ -403,6 +403,15 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   --holo-p-defensive: var(--cat-game);
   --holo-p-movement: var(--cat-ai);
   --holo-p-signature: var(--accent-gold);
+  /* The Einsatz signal on the Holotable (glow, strip, dots, hexagon): quiet hues, always with a
+     symbol beside them. The default stays the accent. Never red, never the warning colour. */
+  --sc-mission-all: var(--sc-accent);
+  --sc-mission-combat: #6fd6b8;
+  --sc-mission-transport: #a9c77a;
+  --sc-mission-travel: #7fb4ff;
+  --sc-mission-stealth: #9d8cff;
+  --sc-mission-mining: #d3a6e6;
+  --sc-mission-salvage: #7fd0d8;
   --holo-gold: var(--accent-gold);
 }
 /* Last step of the gutter: on a 360-375px handset every one of these 4px is
@@ -1739,7 +1748,7 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
 }
 /* Part two: the new page's title swaps its text in place, the rest rises in
    from 22 px (mock-sw-in, 400 ms ease-out) behind it. */
-#sc-main.switch-in :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
+#sc-main.switch-in:not(:has(.bstage.intro)) :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
   animation: sc-switch-in 400ms 160ms ease-out both;
 }
 #sc-main.switch-in h1 {

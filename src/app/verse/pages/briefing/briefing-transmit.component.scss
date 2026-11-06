@@ -71,6 +71,14 @@
 }
 @keyframes tx-out { from { --tx-a: 1; } to { --tx-a: 0; } }
 
+// The first message simply stands (input `stands`).
+:host(.stands) .holo { animation: holo-stand 0.35s ease-out backwards; }
+@keyframes holo-stand { from { opacity: 0; } }
+// Nothing shows yet: nothing to click either. During the entrance the host's own float-in
+// takes the place of tx-out, so the holo is hidden here as well.
+:host([data-phase='out']) .holo { pointer-events: none; }
+:host(.waits) .holo { visibility: hidden; }
+
 // ── Planets ─────────────────────────────────────────────────────────────
 .pl {
   @include w.body;
@@ -100,9 +108,15 @@
   border-radius: 50%;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 1.2s ease-out;
 }
 .pl-gl.on { opacity: 1; }
+// The door stays empty until its planet is drawn, then comes as a whole, the canvas underneath
+// included. Without WebGL no drawing comes: after 2 s the door shows its CSS art.
+@media (prefers-reduced-motion: no-preference) {
+  .pl { animation: door-in 0.3s ease-out 2s backwards; }
+  .pl:has(.pl-gl.on) { animation: door-in 0.3s ease-out backwards; }
+}
+@keyframes door-in { from { opacity: 0; } }
 .pl:hover { scale: 1.06; }
 // Away from the top: the relay rests (no cone, no waves, no holo), the planets only fly.
 :host(.away) .pl:hover { scale: none; }

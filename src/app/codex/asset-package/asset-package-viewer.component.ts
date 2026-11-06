@@ -3,16 +3,19 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  NgZone,
   computed,
   effect,
   inject,
   input,
+  model,
   output,
   signal,
   untracked,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { LocationStrategy } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { toErrorKey } from '../../core/describe-error';
@@ -23,11 +26,25 @@ import { HOLO_FALLBACK_ACCENT, parseRgbToken } from '../ship-hologram';
 import { type Rgb, manufacturerAccent, rgbToken } from '../holo-manufacturer';
 import { AssetPackageService } from './asset-package.service';
 import type { PackageScene, ScreenPoint } from './asset-package-scene';
-import { type LabelPlacement, type Rect, type Size, cycleId, placeLabel } from './holo-overlay';
+import {
+  type CalloutPlacement,
+  type LabelPlacement,
+  MARKER_RADIUS,
+  type Rect,
+  type SafeArea,
+  type Size,
+  calloutSize,
+  cycleId,
+  fanOut,
+  placeCallout,
+  placeLabel,
+} from './holo-overlay';
 import {
   type AssetPackageManifest,
   type AssetPackageRow,
   DEFAULT_GROUPS,
+  HOTSPOT_GROUPS,
+  type HotspotScope,
   type PackagePlacement,
   type PlacementGroup,
   availableGroups,
@@ -35,9 +52,12 @@ import {
   hotspotPlacements,
   isFreeSlot,
   isPlaced,
+  isSwappable,
   listPlacements,
   placementVisible,
+  placementsForPorts,
   plausibleBounds,
+  scopedHotspots,
   selectablePlacements,
 } from './asset-package.model';
 
@@ -50,6 +70,8 @@ export interface PlacementRow {
   readonly p: PackagePlacement;
   readonly name: string;
   readonly link: readonly string[] | null;
+  /** The link as a URL, for the anchors that decide about a plain click themselves. */
+  readonly href: string | null;
   readonly visible: boolean;
   readonly free: boolean;
 }
@@ -61,11 +83,44 @@ export interface ComponentLabel extends LabelPlacement {
   readonly empty: boolean;
 }
 
+/** What the holotable learns about a selected part. */
+export interface PlacementSelection {
+  readonly id: string;
+  readonly portName: string;
+  readonly itemClass: string | null;
+  readonly swappable: boolean;
+}
+
+/** One of the callout's values, already translated by the host. */
+export interface CalloutValue {
+  readonly label: string;
+  readonly value: string;
+}
+
+/** The fixed callout beside the model, in a reserved gutter. */
+export interface PartCallout extends CalloutPlacement {
+  readonly row: PlacementRow;
+  readonly empty: boolean;
+  readonly swappable: boolean;
+}
+
+/**
+ * `classic`: the codex detail pages: hover x-rays, a click navigates, the wheel zooms.
+ * `table`: the holotable: hover lights, a click selects, Ctrl + wheel zooms, safe-area camera.
+ */
+export type ViewerInteraction = 'classic' | 'table';
+
 /** Hover grace: the pointer may travel from a hotspot to the label without losing the selection. */
 export const HOVER_GRACE_MS = 280;
 
 /** Label size before the first measurement. */
 const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
+/** Room the chip row takes before the first measurement. */
+const BAR_RESERVE_GUESS = 56;
+/** How long the wheel hint stays. */
+const WHEEL_HINT_MS = 2000;
+/** Pixels per line for a wheel that reports lines (Firefox). */
+const WHEEL_LINE_PX = 33;
 
 /**
  * Displays one pre-built 3D asset package (ship, FPS weapon, item): root GLB +
@@ -84,8 +139,8 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
   imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   host: { '[style.--holo-mfr-rgb]': 'mfrRgb()' },
   template: `
-    <div class="pkg" [class.xray]="focusIds().length > 0" [class.ready]="status() === 'ready'">
-      <canvas #canvas class="stage" aria-hidden="true"></canvas>
+    <div class="pkg" [class.ready]="status() === 'ready'">
+      <canvas #canvas class="stage" aria-hidden="true" (dblclick)="resetView()"></canvas>
 
       @if (status() === 'loading') {
         <p class="state" role="status">{{ 'codex.assetPackage.loading' | translate }}</p>
@@ -100,21 +155,57 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
         <div class="hotspots">
           @for (h of hotspots(); track h.p.id) {
             @if (h.link) {
-              <a class="hs" [class.on]="focusSet().has(h.p.id)" [routerLink]="h.link"
+              <a class="hs" [class.on]="focusSet().has(h.p.id)" [class.sel]="pinned() === h.p.id" [class.minor]="h.minor" [class.q]="h.quiet"
+                 [attr.href]="h.href" [attr.aria-current]="pinned() === h.p.id ? 'true' : null"
                  [style.left.px]="h.x" [style.top.px]="h.y"
-                 [scTooltip]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
                  [attr.aria-label]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
+                 
                  (mouseenter)="focus(h.p)" (mouseleave)="blur(h.p)" (focus)="focus(h.p)" (blur)="blur(h.p)"
-                 (click)="onActivate($event)"></a>
+                 (click)="onPick($event, h)"></a>
             } @else {
-              <span class="hs" tabindex="0" role="img" [class.on]="focusSet().has(h.p.id)"
+              <span class="hs" tabindex="0" [attr.role]="table() ? 'button' : 'img'" [class.on]="focusSet().has(h.p.id)"
+                    [class.sel]="pinned() === h.p.id" [class.minor]="h.minor" [class.q]="h.quiet"
                     [style.left.px]="h.x" [style.top.px]="h.y"
-                    [scTooltip]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
                     [attr.aria-label]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
-                    (mouseenter)="focus(h.p)" (mouseleave)="blur(h.p)" (focus)="focus(h.p)" (blur)="blur(h.p)"></span>
+                    
+                    (mouseenter)="focus(h.p)" (mouseleave)="blur(h.p)" (focus)="focus(h.p)" (blur)="blur(h.p)"
+                    (click)="onPick($event, h)" (keydown.enter)="onPick($event, h)" (keydown.space)="onPick($event, h)"></span>
             }
           }
         </div>
+
+        @if (hoverTag(); as t) {
+          <!-- Not a tooltip bubble: it must never take the pointer from the dots around it. -->
+          <span class="dot-name" [class.flip]="t.flip" [style.left.px]="t.x" [style.top.px]="t.y" aria-hidden="true">{{ t.name }}</span>
+        }
+
+        @if (callout(); as co) {
+          <svg class="leader" aria-hidden="true">
+            <line [attr.x1]="co.line.x1" [attr.y1]="co.line.y1" [attr.x2]="co.line.x2" [attr.y2]="co.line.y2" class="solid" />
+            <circle class="ring" [attr.cx]="co.anchor.x" [attr.cy]="co.anchor.y" [attr.r]="markerRadius" />
+          </svg>
+          <div class="callout" role="group" [attr.data-side]="co.side"
+               [style.left.px]="co.left" [style.top.px]="co.top"
+               [attr.aria-label]="'codex.assetPackage.label.aria' | translate: { name: co.row.name }">
+            <b class="co-nm" [scTooltip]="co.empty ? null : (calloutTitle() ?? co.row.name)" scTooltipTier="label">{{ co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : (calloutTitle() ?? co.row.name) }}</b>
+            <div class="co-v">
+              @for (v of calloutValues().slice(0, 3); track v.label) {
+                <span [scTooltip]="v.label + ': ' + v.value" scTooltipTier="label"><small>{{ v.label }}</small>{{ v.value }}</span>
+              }
+              @if (co.swappable) {
+                <button type="button" class="co-swap" (click)="requestSwap()"
+                        [attr.aria-label]="'codex.assetPackage.swap' | translate"
+                        [scTooltip]="'codex.assetPackage.swap' | translate" scTooltipTier="label">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7" /></svg>
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (wheelHint()) {
+          <p class="wheel-hint" role="status">{{ 'codex.assetPackage.zoomHint' | translate }}</p>
+        }
 
         @if (label(); as l) {
           <!-- Leader line from the component (or the empty slot) to its label. -->
@@ -155,20 +246,29 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
           </div>
         }
 
-        <div class="bar" role="toolbar" [attr.aria-label]="'codex.assetPackage.groupsAria' | translate">
+        <div #bar class="bar" [class.tb]="table()" role="toolbar" [attr.aria-label]="'codex.assetPackage.groupsAria' | translate">
           @for (g of groups(); track g) {
             <button type="button" class="chip" [attr.aria-pressed]="groupsOn().has(g)" (click)="toggleGroup(g)">
               {{ 'codex.assetPackage.groups.' + g | translate }}
             </button>
           }
-          @if (rows().length) {
+          <button type="button" class="chip reset-view" (click)="resetView()">
+            {{ 'codex.assetPackage.resetView' | translate }}
+          </button>
+          @if (rows().length && !table()) {
             <button type="button" class="chip list-toggle" [attr.aria-expanded]="listOpen()" (click)="listOpen.set(!listOpen())">
               {{ 'codex.assetPackage.parts' | translate: { count: rows().length } }}
             </button>
           }
+          @if (table()) {
+            <i class="bar-sep" aria-hidden="true"></i>
+            <button type="button" class="chip all-parts" [attr.aria-pressed]="hotspotScope() === 'all'" (click)="toggleAllParts()">
+              <span class="tg" aria-hidden="true"></span>{{ 'codex.assetPackage.allParts' | translate }}
+            </button>
+          }
         </div>
 
-        @if (listOpen()) {
+        @if (listOpen() && !table()) {
           <ul class="plist">
             @for (r of rows(); track r.p.id) {
               <li [class.off]="!r.visible" [class.on]="focusSet().has(r.p.id)">
@@ -186,8 +286,8 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
                           scTooltipTier="label"
                           (click)="togglePlacement(r.p.id)">{{ hidden().has(r.p.id) ? '○' : '●' }}</button>
                   @if (r.link) {
-                    <a class="name" [routerLink]="r.link" (mouseenter)="focus(r.p)" (mouseleave)="blur(r.p)"
-                       (focus)="focus(r.p)" (blur)="blur(r.p)" (click)="onActivate($event)">{{ r.name }}</a>
+                    <a class="name" [attr.href]="r.href" (mouseenter)="focus(r.p)" (mouseleave)="blur(r.p)"
+                       (focus)="focus(r.p)" (blur)="blur(r.p)" (click)="onPick($event, r)">{{ r.name }}</a>
                   } @else {
                     <span class="name" tabindex="0" (mouseenter)="focus(r.p)" (mouseleave)="blur(r.p)"
                           (focus)="focus(r.p)" (blur)="blur(r.p)">{{ r.name }}</span>
@@ -213,13 +313,24 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       .state.err { color: var(--sc-fg-1); }
       .hotspots { position: absolute; inset: 0; pointer-events: none; }
       .hs {
+        --hs-c: var(--holo-e, var(--sc-accent));
         position: absolute; width: 0.75rem; height: 0.75rem; margin: -0.375rem 0 0 -0.375rem;
-        border-radius: 50%; border: 1px solid var(--sc-accent); background: rgb(from var(--sc-accent) r g b / 0.25);
+        border-radius: 50%; border: 1px solid var(--hs-c); background: rgb(from var(--hs-c) r g b / 0.25);
         pointer-events: auto; transition: transform 0.15s ease, background 0.15s ease;
       }
-      .hs::after { content: ''; position: absolute; inset: -0.75rem; border-radius: 50%; }
-      .hs:hover, .hs:focus-visible, .hs.on { background: var(--sc-accent); transform: scale(1.35); outline: none; }
-      .hs:focus-visible { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--sc-accent); }
+      /* Hit area: 18px, as wide as the spacing of a fanned-out stack (holo-overlay FAN_SPACING_PX). */
+      .hs::after { content: ''; position: absolute; inset: -0.1875rem; border-radius: 50%; }
+      .hs:hover, .hs:focus-visible, .hs.on { background: var(--hs-c); transform: scale(1.35); outline: none; }
+      .hs:focus-visible { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--hs-c); }
+      /* A part that cannot be swapped: smaller dot, same hit area. The selected one is white. */
+      @media (pointer: fine) {
+        .hs.minor { width: 0.5rem; height: 0.5rem; margin: -0.25rem 0 0 -0.25rem; }
+        .hs.minor::after { inset: -0.3125rem; }
+        .hs.sel { background: var(--sc-fg-0); border-color: var(--hs-c); transform: scale(1.35); }
+      }
+      /* Not relevant to the picked Einsatz: quiet, but it still takes the pointer. */
+      .hs.q { opacity: 0.3; }
+      .hs.q:hover, .hs.q:focus-visible, .hs.q.on, .hs.q.sel { opacity: 1; }
       /* Touch: the hotspot itself is a 48px hit box (a pseudo-element extends the hit area but not
          the measured target), the 12px dot is drawn inside it. */
       @media (pointer: coarse) {
@@ -230,22 +341,73 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
         .hs::after { display: none; }
         .hs::before {
           content: ''; position: absolute; left: 50%; top: 50%; width: 0.75rem; height: 0.75rem; margin: -0.375rem 0 0 -0.375rem;
-          box-sizing: border-box; border-radius: 50%; border: 1px solid var(--sc-accent); background: rgb(from var(--sc-accent) r g b / 0.25);
+          box-sizing: border-box; border-radius: 50%; border: 1px solid var(--hs-c); background: rgb(from var(--hs-c) r g b / 0.25);
           transition: transform 0.15s ease, background 0.15s ease;
         }
         .hs:focus-visible::before, .hs.on::before { background: var(--sc-accent); transform: scale(1.35); }
         .hs:focus-visible::before { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--sc-accent); }
+        .hs.minor::before { transform: scale(0.66); }
+        .hs.sel::before { background: var(--sc-fg-0); transform: scale(1.35); }
       }
+      .dot-name {
+        position: absolute; transform: translate(0.875rem, -50%); pointer-events: none; white-space: nowrap;
+        padding: 0.125rem var(--sc-pad-1); border-radius: 0.375rem; font-size: 0.75rem; color: var(--sc-fg-0);
+        background: rgb(from var(--sc-bg-1) r g b / 0.9); border: 1px solid var(--sc-border);
+      }
+      .dot-name.flip { transform: translate(calc(-100% - 0.875rem), -50%); }
       .leader { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
       .leader line { stroke: var(--holo-mfr); stroke-width: 1.25; stroke-dasharray: 4 3; opacity: 0.9; }
       .leader .tip { fill: var(--holo-mfr); }
+      .leader line.solid { stroke: var(--sc-accent); stroke-width: 1.4; stroke-dasharray: none; opacity: 1; }
+      .leader .ring { fill: none; stroke: var(--sc-accent); stroke-width: 1.4; opacity: 0.8; }
+      /* 168 x 66 at 1920, 147 x 58 at 1440, never below 0.8 of it. */
+      .callout {
+        --co-u: clamp(0.8px, calc(0.5px + 100vw / 3840), 1px);
+        position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;
+        width: calc(168 * var(--co-u)); height: calc(66 * var(--co-u));
+        padding: calc(6 * var(--co-u)) calc(9 * var(--co-u)) calc(7 * var(--co-u));
+        border: 1px solid rgb(from var(--sc-accent) r g b / 0.55); border-radius: calc(10 * var(--co-u));
+        background: rgb(from var(--sc-bg-1) r g b / 0.82);
+      }
+      .co-nm {
+        font-size: calc(12 * var(--co-u)); line-height: 1.2; font-weight: 600; color: var(--sc-fg-0);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .co-v {
+        display: grid; align-items: end; gap: calc(3 * var(--co-u));
+        grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) calc(26 * var(--co-u));
+      }
+      .co-v span {
+        min-width: 0; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        font: 600 calc(12.5 * var(--co-u)) / 1.05 var(--font-monospace, monospace);
+      }
+      .co-v small {
+        display: block; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: calc(1 * var(--co-u)); font: 400 max(8px, calc(8.5 * var(--co-u))) / 1.15 var(--sc-font-body);
+      }
+      .co-swap {
+        grid-column: 4; position: relative; display: grid; place-items: center; padding: 0; cursor: pointer;
+        width: calc(26 * var(--co-u)); height: calc(26 * var(--co-u)); background: transparent; color: var(--sc-accent);
+        border: 1px solid rgb(from var(--sc-accent) r g b / 0.5); border-radius: calc(7 * var(--co-u));
+      }
+      .co-swap::after { content: ''; position: absolute; inset: -0.5rem; }
+      .co-swap:hover { background: rgb(from var(--sc-accent) r g b / 0.18); }
+      .co-swap:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .co-swap svg { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .wheel-hint {
+        position: absolute; left: 50%; top: var(--sc-pad-2); transform: translateX(-50%); margin: 0; pointer-events: none;
+        padding: var(--sc-pad-1) var(--sc-pad-2); border-radius: 999px; font-size: 0.8125rem; color: var(--sc-fg-1);
+        background: rgb(from var(--sc-bg-1) r g b / 0.9); border: 1px solid var(--sc-border);
+      }
       .clabel {
         position: absolute; display: flex; align-items: center; gap: var(--sc-gap-1);
         width: max-content; max-width: min(22rem, calc(100% - 1rem)); padding: var(--sc-pad-1);
-        background: rgb(from var(--sc-bg-1) r g b / 0.9); border: 1px solid var(--sc-accent);
+        background: rgb(from var(--sc-bg-1) r g b / 0.94); border: 1px solid var(--sc-accent);
         border-radius: 0.375rem; box-shadow: 0 0 0.75rem rgb(from var(--sc-accent) r g b / 0.25);
-        backdrop-filter: blur(4px);
+        /* The box only shows: it must not cover the hotspots beside it. Real controls take the pointer back. */
+        pointer-events: none;
       }
+      .clabel a.nm, .clabel .step { pointer-events: auto; }
       .clabel .txt { display: grid; flex: 1 1 auto; min-width: 0; padding: 0 var(--sc-pad-1); text-align: start; }
       .clabel .nm {
         color: var(--sc-fg-0); font-weight: 600; font-size: 0.875rem; text-decoration: none;
@@ -264,14 +426,27 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       @media (pointer: coarse) { .step { width: 3rem; height: 3rem; } }
       .bar {
         position: absolute; left: var(--sc-pad-2); right: var(--sc-pad-2); bottom: var(--sc-pad-2);
-        display: flex; flex-wrap: wrap; gap: var(--sc-gap-1);
+        display: flex; flex-wrap: wrap; gap: var(--sc-gap-1); pointer-events: none;
       }
       .chip {
+        pointer-events: auto;
         min-height: var(--sc-tap-min, 2.25rem); padding: 0 var(--sc-pad-2); border-radius: 999px;
         border: 1px solid var(--sc-border); background: rgb(from var(--sc-bg-1) r g b / 0.8);
         color: var(--sc-fg-2); font: inherit; font-size: 0.8125rem; cursor: pointer;
       }
       .chip[aria-pressed='true'], .chip[aria-expanded='true'] { border-color: var(--sc-accent); color: var(--sc-accent); }
+      .bar-sep { align-self: center; width: 1px; height: 1rem; background: var(--sc-border); }
+      /* The holotable's row: one line down to 1366 wide. */
+      .bar.tb { gap: 5px; }
+      .bar.tb .chip { min-height: max(26px, var(--sc-tap-min, 0px)); padding-block: 0; padding-inline: 9px; font-size: max(11.5px, var(--sc-fs-floor)); white-space: nowrap; }
+      .all-parts { display: inline-flex; align-items: center; gap: var(--sc-gap-1); }
+      .tg { position: relative; flex: none; width: 1.375rem; height: 0.75rem; border-radius: 0.375rem; background: rgb(from var(--sc-fg-2) r g b / 0.25); }
+      .tg::after {
+        content: ''; position: absolute; left: 0.125rem; top: 0.125rem; width: 0.5rem; height: 0.5rem; border-radius: 50%;
+        background: var(--sc-fg-2); transition: transform 0.15s ease;
+      }
+      .all-parts[aria-pressed='true'] .tg { background: rgb(from var(--sc-accent) r g b / 0.35); }
+      .all-parts[aria-pressed='true'] .tg::after { background: var(--sc-accent); transform: translateX(0.625rem); }
       .chip:focus-visible, .eye:focus-visible, .name:focus-visible, .free:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .plist {
         position: absolute; top: var(--sc-pad-2); right: var(--sc-pad-2); bottom: 3.5rem;
@@ -290,7 +465,7 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       a.name:hover { color: var(--sc-accent); }
       .meta { flex: none; color: var(--sc-fg-2); font-size: 0.75rem; }
       .free { color: var(--sc-fg-2); font-style: italic; padding-left: 2.5rem; }
-      @media (prefers-reduced-motion: reduce) { .hs, .hs::before { transition: none; } }
+      @media (prefers-reduced-motion: reduce) { .hs, .hs::before, .tg::after { transition: none; } }
     `,
   ],
 })
@@ -300,17 +475,59 @@ export class AssetPackageViewerComponent {
   readonly activePorts = input<readonly string[]>([]);
   /** Reduced motion from the host page; the OS setting is honoured as well. */
   readonly still = input(false);
+  /** Hover, click, wheel and camera behaviour; see {@link ViewerInteraction}. */
+  readonly interaction = input<ViewerInteraction>('classic');
+  /** Insets the model stays out of, CSS px (table only). The chip row is reserved on top of `bottom` by the viewer itself. */
+  readonly safeArea = input<Partial<SafeArea> | null>(null);
+  /** Which dots show (table only); the "all parts" chip writes it too. */
+  readonly hotspotScope = model<HotspotScope>('swappable');
+  /** The host's rule for what can be swapped, as raw port names (table only); null: the package's own `editable` flag. */
+  readonly swappablePorts = input<ReadonlySet<string> | null>(null);
+  /** The selected part as a raw port name or placement id; null clears it (table only). */
+  readonly selectedPort = input<string | null>(null);
+  /** Ports or placement ids that stay lit, the rest goes quiet; null or empty: nothing is quiet (table only). */
+  readonly relevantPorts = input<ReadonlySet<string> | null>(null);
+  /** Up to three values for the selected part's callout (table only). */
+  readonly calloutValues = input<readonly CalloutValue[]>([]);
+  /** The part's name as the host's panel gives it (a mount's dot speaks of its gun); null: the placement's own. */
+  readonly calloutTitle = input<string | null>(null);
+
+  /** Everything the swappable ports hold: a gun on a swappable mount can be swapped too. */
+  private readonly swappableIds = computed<ReadonlySet<string> | null>(() => {
+    const m = this.manifest();
+    const ports = this.swappablePorts();
+    return m && ports?.size ? new Set(placementsForPorts(m, ports)) : null;
+  });
+  private swappableOf(p: PackagePlacement): boolean {
+    return this.swappableIds()?.has(p.id) ?? isSwappable(p);
+  }
 
   /** A hotspot / list entry was hovered or focused: its raw port name, or null on leave. */
   readonly hovered = output<string[] | null>();
   /** Port names this package can show — drives the "locate" affordance in the host's list. */
   readonly locatable = output<string[]>();
+  /** Table: a click, keyboard or Escape changed the selected part. Not fired for a `selectedPort` change. */
+  readonly selectionChange = output<PlacementSelection | null>();
+  /** Table: the callout's swap icon. */
+  readonly swapRequested = output<PlacementSelection>();
 
   private readonly service = inject(AssetPackageService);
   private readonly codex = inject(CodexService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly labelBox = viewChild<ElementRef<HTMLElement>>('labelBox');
+  private readonly barEl = viewChild<ElementRef<HTMLElement>>('bar');
+  private readonly router = inject(Router);
+  private readonly locationStrategy = inject(LocationStrategy);
+
+  readonly table = computed(() => this.interaction() === 'table');
+  readonly markerRadius = MARKER_RADIUS;
+  readonly wheelHint = signal(false);
+  private wheelHintShown = false;
+  private wheelHintTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly barReserve = signal(BAR_RESERVE_GUESS);
+  /** Set when the anchors must be projected although the camera rests (new target, resize, load). */
+  private projectDirty = true;
 
   readonly status = signal<'loading' | 'ready' | 'error'>('loading');
   readonly errorKey = signal('errors.generic');
@@ -331,7 +548,12 @@ export class AssetPackageViewerComponent {
   private readonly labelSize = signal<Size>(LABEL_SIZE_GUESS);
   private readonly attempt = signal(0);
 
+  private readonly zone = inject(NgZone);
   private scene: PackageScene | null = null;
+  private offScreen = false;
+  private tabHidden = false;
+  private visObs: IntersectionObserver | null = null;
+  private escapeArmed = false;
   private loadToken = 0;
   private interiorLoading = false;
   private graceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -353,9 +575,43 @@ export class AssetPackageViewerComponent {
   readonly selectedId = computed(() => this.localFocus() ?? this.pinned());
   readonly focusIds = computed(() => {
     const m = this.manifest();
-    return m ? focusedPlacementIds(m, this.selectedId(), this.activePorts()) : [];
+    if (!m) return [];
+    if (!this.table()) return focusedPlacementIds(m, this.selectedId(), this.activePorts());
+    // The selection stays lit while the pointer lights another part.
+    const held = this.pinned() ? focusedPlacementIds(m, this.pinned(), []) : [];
+    return [...new Set([...held, ...focusedPlacementIds(m, this.localFocus(), this.activePorts())])];
   });
   readonly focusSet = computed(() => new Set(this.focusIds()));
+  /** Classic: every focus x-rays. Table: only a selection does, a hover never dims anything. */
+  private readonly seeThrough = computed(() => (this.table() ? this.pinned() !== null : this.focusIds().length > 0));
+
+  /** Parts the picked Einsatz leaves quiet. */
+  readonly quietIds = computed<ReadonlySet<string>>(() => {
+    const m = this.manifest();
+    const keys = this.relevantPorts();
+    if (!m || !this.table() || !keys?.size) return new Set();
+    const lit = new Set(placementsForPorts(m, keys));
+    return new Set(m.placements.filter((p) => !lit.has(p.id)).map((p) => p.id));
+  });
+
+  private readonly fullSafeArea = computed<SafeArea | null>(() => {
+    if (!this.table()) return null;
+    const s = this.safeArea();
+    return {
+      left: s?.left ?? 0,
+      right: s?.right ?? 0,
+      top: s?.top ?? 0,
+      bottom: (s?.bottom ?? 0) + this.barReserve(),
+    };
+  });
+
+  private readonly hrefs = computed(() => {
+    const out = new Map<string, string>();
+    for (const [cls, ref] of this.items()) {
+      out.set(cls, this.locationStrategy.prepareExternalUrl(this.router.serializeUrl(this.router.createUrlTree(['/codex', ref.kind, cls]))));
+    }
+    return out;
+  });
 
   /** Slots the label steps through (visible, positioned, filled hotspot or empty port). */
   readonly slots = computed(() => {
@@ -378,24 +634,77 @@ export class AssetPackageViewerComponent {
     if (!m) return [];
     const pts = this.points();
     const visible = this.visibleIds();
-    const out: (PlacementRow & { x: number; y: number })[] = [];
-    for (const p of hotspotPlacements(m)) {
+    const table = this.table();
+    const quiet = this.quietIds();
+    const shown: { p: PackagePlacement; id: string; x: number; y: number }[] = [];
+    for (const p of table ? scopedHotspots(m, this.hotspotScope(), this.swappablePorts()) : hotspotPlacements(m)) {
       const pt = pts.get(p.id);
       if (!pt?.onScreen || !visible.has(p.id)) continue;
-      out.push({ ...this.toRow(p, true), x: pt.x, y: pt.y });
+      shown.push({ p, id: p.id, x: pt.x, y: pt.y });
     }
-    return out;
+    // Stacked dots fan out around their centroid (screen position only, never hover state).
+    const fanned = fanOut(shown);
+    const out = shown.map((h) => {
+      const at = fanned.get(h.id) ?? h;
+      return { ...this.toRow(h.p, true), x: at.x, y: at.y };
+    });
+    if (table) {
+      // A part out of scope the panel points at gets its dot where it is: the others keep their places.
+      const has = new Set(shown.map((h) => h.id));
+      for (const id of this.focusIds()) {
+        const p = this.byId().get(id);
+        const pt = pts.get(id);
+        if (!p || has.has(id) || !pt?.onScreen || !visible.has(id) || !p.itemClass || !HOTSPOT_GROUPS.has(p.group)) continue;
+        out.push({ ...this.toRow(p, true), x: pt.x, y: pt.y });
+      }
+    }
+    return out.map((h) => ({ ...h, minor: table && !this.swappableOf(h.p), quiet: quiet.has(h.p.id) }));
+  });
+
+  /**
+   * Where the selected part sits on screen, CSS px inside the viewer (its dot
+   * when it has one, fanned out or not). Updates with the camera only; reading
+   * it costs nothing while the camera rests.
+   */
+  readonly selectionAnchor = computed<ScreenPoint | null>(() => {
+    const id = this.pinned();
+    if (!id) return null;
+    const dot = this.hotspots().find((h) => h.p.id === id);
+    if (dot) return { x: dot.x, y: dot.y, onScreen: true };
+    return this.points().get(id) ?? null;
+  });
+
+  /** The name beside the dot under the pointer (table: the selected part has its callout instead). */
+  readonly hoverTag = computed(() => {
+    const id = this.localFocus();
+    if (!this.table() || !id || id === this.pinned()) return null;
+    const dot = this.hotspots().find((h) => h.p.id === id);
+    return dot ? { x: dot.x, y: dot.y, name: dot.name, flip: dot.x > this.viewport().w / 2 } : null;
+  });
+
+  /** The callout in its gutter; null without a selection or when no gutter holds it. */
+  readonly callout = computed<PartCallout | null>(() => {
+    if (!this.table()) return null;
+    const id = this.pinned();
+    const p = id ? this.byId().get(id) : undefined;
+    const anchor = this.selectionAnchor();
+    const vp = this.viewport();
+    const safe = this.fullSafeArea();
+    if (!p || !anchor || !safe || vp.w <= 0 || vp.h <= 0) return null;
+    const placed = placeCallout(anchor, calloutSize(window.innerWidth), vp, safe);
+    return placed && { ...placed, row: this.toRow(p, true), empty: !p.itemClass, swappable: this.swappableOf(p) };
   });
 
   /** The placement the label describes: the viewer's own selection, else the first one the host points at. */
   readonly labelTarget = computed<PackagePlacement | null>(() => {
-    const id = this.selectedId() ?? this.focusIds()[0] ?? null;
+    const id = this.table() ? this.pinned() : (this.selectedId() ?? this.focusIds()[0] ?? null);
     const p = id ? this.byId().get(id) : undefined;
     return p && isPlaced(p) ? p : null;
   });
 
-  /** Label + leader line, laid out beside the projected hull and clamped to the viewer. */
+  /** Label + leader line, laid out beside the projected hull and clamped to the viewer. The table has its callout instead. */
   readonly label = computed<ComponentLabel | null>(() => {
+    if (this.table()) return null;
     const p = this.labelTarget();
     const vp = this.viewport();
     if (!p || vp.w <= 0 || vp.h <= 0) return null;
@@ -410,9 +719,33 @@ export class AssetPackageViewerComponent {
     destroyRef.onDestroy(() => {
       this.loadToken++;
       this.clearGrace();
+      if (this.wheelHintTimer) clearTimeout(this.wheelHintTimer);
+      this.host.nativeElement.removeEventListener('wheel', this.onWheel, { capture: true });
       this.resizeObs?.disconnect();
+      this.visObs?.disconnect();
+      document.removeEventListener('visibilitychange', this.onVisibility);
+      this.armEscape(false);
       this.scene?.dispose();
       this.scene = null;
+    });
+    this.tabHidden = document.visibilityState === 'hidden';
+    document.addEventListener('visibilitychange', this.onVisibility);
+    // Capture on the host: it covers the dots and chips over the canvas too, and
+    // it runs before OrbitControls' own listener, which cancels every wheel it sees.
+    this.zone.runOutsideAngular(() =>
+      this.host.nativeElement.addEventListener('wheel', this.onWheel, { capture: true, passive: false }),
+    );
+    if (typeof IntersectionObserver === 'function') {
+      this.visObs = new IntersectionObserver((entries) => {
+        const last = entries[entries.length - 1];
+        if (last) this.setOffScreen(!last.isIntersecting);
+      });
+      this.visObs.observe(this.host.nativeElement);
+    }
+    // Escape clears a pin / hover label only while there is one to clear.
+    effect(() => {
+      const active = this.selectedId() !== null;
+      untracked(() => this.armEscape(active));
     });
 
     effect(() => {
@@ -430,9 +763,40 @@ export class AssetPackageViewerComponent {
     });
     effect(() => {
       const ids = this.focusIds();
+      const seeThrough = this.seeThrough();
+      this.labelTarget();
       untracked(() => {
-        this.scene?.setFocus(ids);
+        this.scene?.setFocus(ids, seeThrough);
+        this.projectDirty = true;
         this.reproject();
+      });
+    });
+    effect(() => {
+      const quiet = this.quietIds();
+      untracked(() => this.scene?.setQuiet(quiet));
+    });
+    effect(() => {
+      if (this.barEl() && this.table()) untracked(() => this.measureBar());
+    });
+    effect(() => {
+      const safe = this.fullSafeArea();
+      untracked(() => this.scene?.setSafeArea(safe));
+    });
+    // The host's selection: already meant when the current pin answers to the name.
+    effect(() => {
+      const want = this.selectedPort();
+      const m = this.manifest();
+      if (!this.table()) return;
+      untracked(() => {
+        if (!want) {
+          this.pinned.set(null);
+          return;
+        }
+        const cur = this.pinned();
+        if (!m || (cur && [cur.toLowerCase(), this.byId().get(cur)?.portName.toLowerCase()].includes(want.toLowerCase()))) return;
+        const key = want.toLowerCase();
+        const hit = m.placements.find((p) => p.id.toLowerCase() === key) ?? m.placements.find((p) => p.portName.toLowerCase() === key);
+        this.pinned.set(hit?.id ?? null);
       });
     });
   }
@@ -445,9 +809,15 @@ export class AssetPackageViewerComponent {
       p,
       name: ref?.name || p.itemClass || p.portName,
       link: ref && p.itemClass ? ['/codex', ref.kind, p.itemClass] : null,
+      href: p.itemClass ? (this.hrefs().get(p.itemClass) ?? null) : null,
       visible,
       free: !p.itemClass && isFreeSlot(p),
     };
+  }
+
+  /** The list row of a placement. */
+  toRowFor(p: PackagePlacement): PlacementRow {
+    return this.toRow(p, this.visibleIds().has(p.id));
   }
 
   tipParams(r: PlacementRow): Record<string, string> {
@@ -496,6 +866,12 @@ export class AssetPackageViewerComponent {
   /** Leaving a hotspot/row: the selection lingers briefly so the pointer can reach the label. */
   blur(p: PackagePlacement): void {
     if (this.localFocus() !== p.id) return;
+    if (this.table()) {
+      // No label to travel to on the table: the light goes with the pointer.
+      this.localFocus.set(null);
+      this.hovered.emit(null);
+      return;
+    }
     this.scheduleClear();
   }
 
@@ -541,6 +917,131 @@ export class AssetPackageViewerComponent {
     this.pinned.set(null);
   }
 
+  /**
+   * A dot or list row was activated. A modified click (new tab, new window) stays
+   * the browser's. A plain one selects on the table and navigates elsewhere.
+   */
+  onPick(ev: Event, r: PlacementRow): void {
+    if (ev instanceof MouseEvent && !isPlainLeftClick(ev)) return;
+    if (this.table()) {
+      ev.preventDefault();
+      this.select(r.p);
+      return;
+    }
+    ev.preventDefault();
+    if (!r.link) return;
+    this.onActivate(ev as MouseEvent);
+    void this.router.navigate(r.link);
+  }
+
+  /** Select a part and hold it until replaced, or until Escape or the host clears it. */
+  select(p: PackagePlacement): void {
+    this.clearGrace();
+    this.setPinned(p.id);
+  }
+
+  private setPinned(id: string | null): void {
+    if (this.pinned() === id) return;
+    this.pinned.set(id);
+    if (!this.table()) return;
+    const p = id ? this.byId().get(id) : undefined;
+    this.selectionChange.emit(p ? { ...selectionOf(p), swappable: this.swappableOf(p) } : null);
+  }
+
+  /** The callout's swap icon. */
+  requestSwap(): void {
+    const id = this.pinned();
+    const p = id ? this.byId().get(id) : undefined;
+    if (p) this.swapRequested.emit({ ...selectionOf(p), swappable: this.swappableOf(p) });
+  }
+
+  toggleAllParts(): void {
+    this.hotspotScope.set(this.hotspotScope() === 'all' ? 'swappable' : 'all');
+  }
+
+  /**
+   * Current screen position of any placed part, CSS px inside the viewer, for a
+   * host that draws its own line. Null before the model is ready.
+   */
+  anchorOf(id: string): ScreenPoint | null {
+    return this.scene?.project([id]).get(id) ?? null;
+  }
+
+  /**
+   * Table: the wheel belongs to the page. It is never cancelled, so every notch
+   * scrolls, whichever element lies under the pointer; only Ctrl/Cmd + wheel
+   * (a trackpad pinch reports the same) zooms the model.
+   */
+  private readonly onWheel = (ev: WheelEvent): void => {
+    if (!this.table() || !this.scene) return;
+    ev.stopPropagation();
+    if (ev.ctrlKey || ev.metaKey) {
+      ev.preventDefault();
+      this.scene.zoomBy(ev.deltaMode === WheelEvent.DOM_DELTA_LINE ? ev.deltaY * WHEEL_LINE_PX : ev.deltaY);
+      return;
+    }
+    this.flashWheelHint();
+  };
+
+  /** Once per viewer: the first wheel without Ctrl says how to zoom. */
+  private flashWheelHint(): void {
+    if (this.wheelHintShown) return;
+    this.wheelHintShown = true;
+    this.wheelHint.set(true);
+    this.wheelHintTimer = setTimeout(() => this.wheelHint.set(false), WHEEL_HINT_MS);
+  }
+
+  /** Back to the initial camera framing (chip / double click on the model). */
+  resetView(): void {
+    const m = this.manifest();
+    if (m) this.scene?.frame(this.frameBounds(m));
+  }
+
+  private frameBounds(m: AssetPackageManifest) {
+    return plausibleBounds(m.root?.bounds);
+  }
+
+  /**
+   * Escape drops the pin / hover label. The listener sits on the document in the
+   * capture phase and only exists while a slot is selected; it swallows the key
+   * only when it really cleared something, so otherwise the stage's own Escape
+   * (close the inspector) is untouched. A dialog above the viewer owns Escape.
+   */
+  private armEscape(on: boolean): void {
+    if (on === this.escapeArmed) return;
+    this.escapeArmed = on;
+    if (on) document.addEventListener('keydown', this.onEscape, true);
+    else document.removeEventListener('keydown', this.onEscape, true);
+  }
+
+  private readonly onEscape = (ev: KeyboardEvent): void => {
+    if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+    const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"], dialog[open]');
+    const top = dialogs.item(dialogs.length - 1);
+    if (top && !top.contains(this.host.nativeElement)) return;
+    if (this.clearSelection()) ev.stopImmediatePropagation();
+  };
+
+  /** Drop pin and hover selection; true when there was one. */
+  clearSelection(): boolean {
+    if (!this.pinned() && !this.localFocus()) return false;
+    this.clearGrace();
+    this.localFocus.set(null);
+    this.setPinned(null);
+    this.hovered.emit(null);
+    return true;
+  }
+
+  private readonly onVisibility = (): void => {
+    this.tabHidden = document.visibilityState === 'hidden';
+    this.scene?.setPaused(this.offScreen || this.tabHidden);
+  };
+
+  private setOffScreen(off: boolean): void {
+    this.offScreen = off;
+    this.scene?.setPaused(this.offScreen || this.tabHidden);
+  }
+
   retry(): void {
     this.attempt.update((n) => n + 1);
   }
@@ -560,6 +1061,14 @@ export class AssetPackageViewerComponent {
     this.graceTimer = null;
   }
 
+  /** The chip row lies over the canvas: the model is framed above it. */
+  private measureBar(): void {
+    const bar = this.barEl()?.nativeElement;
+    if (!bar || !this.table()) return;
+    const reserve = bar.offsetHeight + 2 * parseFloat(getComputedStyle(bar).bottom || '0');
+    if (reserve > 0 && Math.abs(reserve - this.barReserve()) > 1) this.barReserve.set(reserve);
+  }
+
   private reducedMotion(): boolean {
     return this.still() || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
@@ -570,7 +1079,8 @@ export class AssetPackageViewerComponent {
     this.scene?.dispose();
     this.scene = null;
     this.interiorLoading = false;
-    this.pinned.set(null);
+    this.setPinned(null);
+    this.projectDirty = true;
     try {
       const m = await this.service.manifest(row.manifestSha256);
       if (token !== this.loadToken) return;
@@ -582,11 +1092,22 @@ export class AssetPackageViewerComponent {
       // Body in the app accent for every ship, accents in the manufacturer's colour.
       const accent = manufacturerAccent(row.shipId ?? row.entityClass, base);
       this.mfrRgb.set(rgbToken(accent));
-      const scene = new PackageScene(this.canvas().nativeElement, base, accent, this.reducedMotion(), () =>
-        this.reproject(),
+      // The frame loop (rAF, damping) runs outside Angular: only signal writes reach the UI.
+      const scene = this.zone.runOutsideAngular(
+        () =>
+          new PackageScene(
+            this.canvas().nativeElement,
+            base,
+            accent,
+            this.reducedMotion(),
+            () => this.reproject(),
+            (fn) => this.zone.runOutsideAngular(fn),
+          ),
       );
       this.scene = scene;
+      scene.setPaused(this.offScreen || this.tabHidden);
       this.observeSize(scene);
+      scene.setSafeArea(this.fullSafeArea());
 
       const urls = this.service.urls;
       if (m.root) await scene.setRoot(await this.service.glb(urls.root(m.kind, m.root.sha256)));
@@ -605,8 +1126,9 @@ export class AssetPackageViewerComponent {
       scene.place(m.placements);
       this.manifest.set(m);
       scene.setVisibility(this.visibleIds(), this.groupsOn().has('interior'));
-      scene.frame(plausibleBounds(m.root?.bounds));
-      scene.setFocus(this.focusIds());
+      scene.frame(this.frameBounds(m));
+      scene.setFocus(this.focusIds(), this.seeThrough());
+      scene.setQuiet(this.quietIds());
       this.status.set('ready');
       this.locatable.emit(hotspotPlacements(m).map((p) => p.portName));
       void this.resolveItems(m);
@@ -648,7 +1170,10 @@ export class AssetPackageViewerComponent {
   private observeSize(scene: PackageScene): void {
     this.resizeObs?.disconnect();
     const el = this.canvas().nativeElement;
-    const apply = () => scene.resize(el.clientWidth, el.clientHeight);
+    const apply = () => {
+      this.projectDirty = true;
+      scene.resize(el.clientWidth, el.clientHeight);
+    };
     apply();
     if (typeof ResizeObserver === 'function') {
       this.resizeObs = new ResizeObserver(apply);
@@ -658,29 +1183,38 @@ export class AssetPackageViewerComponent {
 
   /**
    * Per frame: hotspot and label anchors, the hull's screen rectangle, the
-   * viewer and label sizes. Signals only change when a value did — the look
-   * animates every frame, the camera mostly does not.
+   * viewer and label sizes. The look animates every frame, the camera mostly
+   * does not: the anchors are only projected after it moved or a target
+   * changed, and signals only change when a value did.
    */
   private reproject(): void {
     const m = this.manifest();
     const scene = this.scene;
     if (!m || !scene) return;
-    const ids = hotspotPlacements(m).map((p) => p.id);
-    const target = this.labelTarget();
-    if (target && !ids.includes(target.id)) ids.push(target.id);
-    const next = scene.project(ids);
-    if (!samePoints(this.points(), next)) this.points.set(next);
-    const sil = scene.silhouette();
-    if (!sameRect(this.silhouette(), sil)) this.silhouette.set(sil);
-    const el = this.canvas().nativeElement;
-    const vp = { w: el.clientWidth, h: el.clientHeight };
-    if (!sameSize(this.viewport(), vp)) this.viewport.set(vp);
+    if (scene.viewChanged() || this.projectDirty) {
+      this.projectDirty = false;
+      const ids = hotspotPlacements(m).map((p) => p.id);
+      const target = this.labelTarget();
+      if (target && !ids.includes(target.id)) ids.push(target.id);
+      const next = scene.project(ids);
+      if (!samePoints(this.points(), next)) this.points.set(next);
+      const sil = scene.silhouette();
+      if (!sameRect(this.silhouette(), sil)) this.silhouette.set(sil);
+      const el = this.canvas().nativeElement;
+      const vp = { w: el.clientWidth, h: el.clientHeight };
+      if (!sameSize(this.viewport(), vp)) this.viewport.set(vp);
+      this.measureBar();
+    }
     const box = this.labelBox()?.nativeElement;
     if (box) {
       const size = { w: box.offsetWidth, h: box.offsetHeight };
       if (size.w > 0 && !sameSize(this.labelSize(), size)) this.labelSize.set(size);
     }
   }
+}
+
+function selectionOf(p: PackagePlacement): PlacementSelection {
+  return { id: p.id, portName: p.portName, itemClass: p.itemClass, swappable: isSwappable(p) };
 }
 
 function typeOf(p: PackagePlacement): string {
