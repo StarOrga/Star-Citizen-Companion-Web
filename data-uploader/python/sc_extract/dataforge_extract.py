@@ -1647,6 +1647,18 @@ class CodexExtractor:
             if val is not None and math.isfinite(val):
                 flat[f"crossSection.{axis}"] = val
 
+    @staticmethod
+    def _ship_size_class(attach) -> Optional[int]:
+        """S1-S6 from the vehicle's AttachDef.Size; None when absent or out of range.
+
+        UNVERIFIED against a live build when written (no Data.p4k on the
+        authoring machine): check `payload.sizeClass` after the next upload
+        (Gladius 2, Cutlass 3, Carrack 5, Idris 6 expected). Out-of-range
+        values are dropped rather than shown as a wrong class.
+        """
+        size = _to_int(attach.get("Size")) if isinstance(attach, dict) else None
+        return size if size is not None and 1 <= size <= 6 else None
+
     def _project_ship(self, r, resolved, comps, attach) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
         vcp = _find_component(comps, "VehicleComponentParams") or {}
@@ -1678,6 +1690,9 @@ class CodexExtractor:
             # keys, resolved by the consumer through the locale tables.
             "career": vcp.get("vehicleCareer"),
             "crew": {"size": vcp.get("crewSize")},
+            # Ship size class S1-S6 (Codex index filter, 2026-11-06): the
+            # vehicle entity's own AttachDef.Size. None outside 1-6.
+            "sizeClass": self._ship_size_class(attach),
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
             "dimensions": dims,

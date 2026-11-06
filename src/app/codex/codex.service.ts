@@ -944,7 +944,8 @@ export class CodexService {
     if (!filters.includeVariants) query = applyDefaultBrowseFilters(query, kind);
 
     if (filters.manufacturer) query = query.eq('manufacturer_code', filters.manufacturer);
-    if (filters.size != null) query = query.eq('size', filters.size);
+    // Ships carry their size class (S1-S6) in the payload, every other kind in a column.
+    if (filters.size != null) query = kind === 'ship' ? query.eq('payload->>sizeClass', String(filters.size)) : query.eq('size', filters.size);
     if (filters.grade) query = query.eq('grade', filters.grade);
     if (filters.componentKind && kind === 'component')
       query = query.eq('kind', filters.componentKind);
@@ -1202,6 +1203,31 @@ export class CodexService {
     return result;
   }
 
+  /**
+   * The ship size classes (S1-S6) present in a build, ascending. They live in
+   * `payload.sizeClass` (extractor, 2026-11-06), so a build uploaded before
+   * that has none — the size facet then stays hidden. Never throws.
+   */
+  private async shipSizeClasses(buildId: string): Promise<number[]> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('codex_ships')
+        .select('sizeClass:payload->>sizeClass')
+        .eq('build_id', buildId)
+        .not('payload->>sizeClass', 'is', null)
+        .limit(1000);
+      if (error || !data) return [];
+      const sizes = new Set<number>();
+      for (const row of data as { sizeClass: string | null }[]) {
+        const n = Number(row.sizeClass);
+        if (Number.isInteger(n) && n >= 1 && n <= 6) sizes.add(n);
+      }
+      return [...sizes].sort((a, b) => a - b);
+    } catch {
+      return [];
+    }
+  }
+
   private async fetchFacetValues(buildId: string, kind: CodexKind): Promise<CodexFacetValues | null> {
     try {
       const { data, error } = await this.sb.client.rpc('codex_facet_values', {
@@ -1213,7 +1239,7 @@ export class CodexService {
       const d = data as Record<string, unknown>;
       return {
         manufacturers: ((d['manufacturers'] as unknown[]) ?? []) as CodexFacetValues['manufacturers'],
-        sizes: ((d['sizes'] as unknown[]) ?? []) as number[],
+        sizes: kind === 'ship' ? await this.shipSizeClasses(buildId) : (((d['sizes'] as unknown[]) ?? []) as number[]),
         grades: ((d['grades'] as unknown[]) ?? []) as string[],
         componentKinds: ((d['componentKinds'] as unknown[]) ?? []) as string[],
       };
