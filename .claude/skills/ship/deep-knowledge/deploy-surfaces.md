@@ -10,6 +10,17 @@ in dependency order:
   then `npx supabase db push`. Run it from the primary checkout because
   worktrees are not linked (see the migration-ledger memory). Confirm with
   `list_migrations`.
+  **A migration that drops or renames something the live frontend still reads
+  waits for production.** Before pushing it, read the merge commit's Vercel
+  status (`gh api repos/<repo>/commits/<sha>/status`). "Deployment rate limited"
+  means no production deploy comes on its own: bring the merge SHA live first
+  (`create_deployment` with target production, the limit is a rolling 24 h
+  window, so a slot frees when the oldest deployment ages out), wait until the
+  Production deployment for that SHA reports success, then push. Additive
+  migrations keep the order above, because the new frontend needs them.
+  A diff with both kinds splits them into two PRs: additive with the code, the
+  drop in a later ship. *Why:* #972 pushed a `DROP TABLE` while production was
+  rate limited, so the live site ran about 10 minutes against a missing table.
 - **Assets worker** (`cloudflare/assets-worker/**`):
   `npx wrangler deploy` in that folder, then probe one route.
 - **Edge functions**: CI deploys them (rule 3). Wait for the run and use its
