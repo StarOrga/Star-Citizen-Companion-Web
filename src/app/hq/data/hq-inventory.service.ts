@@ -188,7 +188,7 @@ export class HqInventoryService {
   }
 
   /** "liegt in …": put `qty` of `item` into `location` (source `manual`). False on invalid input or failure. */
-  async addManual(location: string, item: string, qty: number, unit: 'pcs' | 'scu'): Promise<boolean> {
+  async addManual(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null): Promise<boolean> {
     const loc = location.trim().slice(0, HQ_LOCATION_MAX);
     const name = item.trim().slice(0, HQ_ITEM_NAME_MAX);
     const q = Number(qty);
@@ -214,7 +214,7 @@ export class HqInventoryService {
       if (snap.error) throw snap.error;
       const row = await c
         .from('hq_inventory_items' as never)
-        .upsert({ user_id: userId, location: loc, name, qty: q, unit } as never, {
+        .upsert({ user_id: userId, location: loc, name, qty: q, unit, class_name: classRef?.trim().slice(0, 200) || null } as never, {
           onConflict: 'user_id,location,name',
         });
       if (row.error) throw row.error;

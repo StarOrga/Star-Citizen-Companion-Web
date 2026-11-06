@@ -222,3 +222,7 @@ verify_jwt = false
 # JWT verification OFF — getUser() in index.ts rejects anything but a signed-in user (401).
 # Same reason as ingest-bundle: the gateway cannot verify asymmetric session tokens.
 verify_jwt = false
+
+[functions.patch-teaser]
+# Service-role only (own Bearer check in index.ts), so the platform JWT gate stays off.
+verify_jwt = false

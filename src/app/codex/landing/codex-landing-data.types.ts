@@ -95,6 +95,8 @@ export interface LandingItem {
   topValues: LandingValue[];
   /** Size facts for the Kennung; a fact without data is left out. */
   facts?: LandingFact[];
+  /** Announced ship (d-announced `preview`): name and icon only, no values; the route is the upcoming page. */
+  announced?: boolean;
   /** True when the item is new in the current patch (else it is only the newest known one). */
   fresh?: boolean;
   /**

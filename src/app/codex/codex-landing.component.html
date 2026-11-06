@@ -73,6 +73,6 @@
                                 [cycleMs]="rotationMs" [(paintOpen)]="paintOpen" />
     <sc-codex-landing-codex-pane class="codex" [codex]="codex()" [items]="items()" [active]="category()"
                                  [current]="current()" [held]="held()" [paused]="paused()" [still]="still()"
-                                 [cycle]="cycle()" [cycleMs]="rotationMs" [switchNo]="switchNo()" (pick)="pick($event)" />
+                                 [cycle]="cycle()" [cycleMs]="rotationMs" [switchNo]="switchNo()" (pick)="pick($event)" (pickEntry)="pickEntry($event.category, $event.entry)" />
   </div>
 </section>

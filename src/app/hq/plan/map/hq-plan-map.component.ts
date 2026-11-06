@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { STEP_KINDS, STEP_SHAPES, ScStepComponent, type StepKind } from '../../../shared/step/sc-step.component';
+import { STEP_KINDS, STEP_SHAPES, type StepKind } from '../../../shared/step/sc-step.component';
 import { MAP_CX, MAP_CY, MAP_H, MAP_W, colorSlots, layoutSystems, qtySize, type NodeView, type SystemView } from './hq-map-layout';
 import type { MapNeed, MapPlace, PlanView, RouteStep } from './hq-map.types';
 
@@ -12,13 +12,14 @@ const MAX_GLYPHS = 4;
  * Shape = step kind (`STEP_SHAPES`, same as `sc-step`), size = amount, colour =
  * need (`colorKey`), fill = status; in "Wie" the route is numbered, travel legs
  * dashed, transport legs thick, the current step pulses (static under reduced
- * motion). Every place is a real button; on phones a list twin follows the map.
+ * motion). Every place is a real button; phones get the same map as desktop (the stage pans sideways, nodes
+ * grow to a touch target) - the former list twin is gone (batch 2026-11-05, d-exceptions).
  * The map draws exactly the needs it gets — filtering is the plan's job (D27).
  */
 @Component({
   selector: 'sc-hq-plan-map',
   standalone: true,
-  imports: [TranslatePipe, ScStepComponent],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[attr.data-view]': 'view()' },
   template: `
@@ -139,27 +140,6 @@ const MAX_GLYPHS = 4;
           </div>
         }
       </div>
-
-      <div class="twin">
-        <h3 class="twin-h">{{ 'hq.map.listTwin' | translate }}</h3>
-        @if (view() === 'how' && route()) {
-          <ol class="twin-l" role="list">
-            @for (s of route(); track s.ord) {
-              <sc-step [kind]="s.kind" [label]="s.ord + '. ' + s.label" [location]="path(s.place)" />
-            }
-          </ol>
-        } @else {
-          @for (sys of systems(); track sys.key) {
-            <h4 class="twin-s">{{ sys.name }}</h4>
-            <ul class="twin-l" role="list">
-              @for (need of sys.needs; track need.id) {
-                <sc-step [kind]="need.kind" [label]="need.label" [qty]="need.qty" [location]="path(need.place)"
-                         [state]="need.status === 'done' ? 'done' : 'todo'" />
-              }
-            </ul>
-          }
-        }
-      </div>
     </section>
   `,
   styles: [
@@ -240,12 +220,10 @@ const MAX_GLYPHS = 4;
       .li { display: inline-flex; align-items: center; gap: 5px; }
       .ln { width: 28px; height: 8px; overflow: visible; }
       .sw { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
-      .twin { display: none; }
-      .twin-h { margin: var(--sc-space-2, 8px) 0 0; font-size: max(0.85rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
-      .twin-s { margin: var(--sc-space-2, 8px) 0 0; font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-fg-2); }
-      .twin-l { margin: 0; padding: 0; list-style: none; }
-      @media (max-width: 719.98px) {
-        .twin { display: block; }
+      /* Touch: the places are the controls, so they get a finger-sized target (the stage pans sideways). */
+      @media (pointer: coarse) {
+        .node { min-width: 44px; min-height: 44px; }
+        .strip { min-height: 44px; }
       }
     `,
   ],

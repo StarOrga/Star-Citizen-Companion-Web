@@ -168,6 +168,8 @@ describe('CodexSearchBarComponent', () => {
 
   it('a click on the field chrome (not the input) still focuses the input', fakeAsync(() => {
     host.querySelector<HTMLElement>('.field')!.click();
+    // A synthetic focus() fires no focus event while the Karma page has no system focus.
+    if (!document.hasFocus()) input().dispatchEvent(new FocusEvent('focus'));
     fixture.detectChanges();
     tick();
 

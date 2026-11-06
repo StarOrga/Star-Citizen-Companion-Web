@@ -59,7 +59,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 import { ShellSceneComponent } from './scene/shell-scene.component';
 import { MainHeaderComponent } from './main-header/main-header.component';
-import { isMainHeaderPage } from './fusion-bar/fusion-bar.model';
+import { ADMIN_HUB, isMainHeaderPage } from './fusion-bar/fusion-bar.model';
 import { ShellChromeService } from './fusion-bar/shell-chrome.service';
 import { peekIntro } from '../verse/pages/briefing/briefing.model';
 import { avatarUrlOf } from './avatar-url';
@@ -240,7 +240,7 @@ import { avatarUrlOf } from './avatar-url';
       <!-- Both account menus stay mounted: the header's slides and fades into the bar
            when it compresses (scroll dock and main → subpage alike), the bar's shows
            wherever the bar is docked. The compressed header's copy is inert. -->
-      <sc-main-header>
+      <sc-main-header [class.menu-open]="menuOpen()">
         <div mhAccount class="mh-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
       </sc-main-header>
       @if (cineHeader()) {
@@ -317,6 +317,19 @@ import { avatarUrlOf } from './avatar-url';
                   <span class="di-count" aria-hidden="true">{{ requestCount() }}</span>
                 }
               </a>
+              @if (roles.isAdmin() && shellOn()) {
+                <!-- The Admin hub: in the beta shell it is NOT in the nav or the header's sub row
+                     any more (batch 2026-11-05, d-admin), this menu is its one home, desktop and
+                     phone alike. The legacy topbar keeps its own admin links. -->
+                <a
+                  class="dropdown-item elevated"
+                  role="menuitem"
+                  [routerLink]="adminHub"
+                  (click)="onMenuNavigate($event)">
+                  <span class="di-label">{{ 'nav.adminMenu' | translate }}</span>
+                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                </a>
+              }
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
                      everyone would only ever hand out a redirect. Painted in the
@@ -1070,6 +1083,8 @@ export class ShellComponent implements AfterViewInit {
   readonly codexBar = computed(() => !this.shellOn() && this.onCodexSubpage());
 
   readonly signingOut = signal(false);
+  /** The Admin hub, the first red entry of the account menu. */
+  protected readonly adminHub = ADMIN_HUB;
   readonly menuOpen = signal(false);
   /** The folded admin menu (721-1179px). */
   readonly adminMenuOpen = signal(false);

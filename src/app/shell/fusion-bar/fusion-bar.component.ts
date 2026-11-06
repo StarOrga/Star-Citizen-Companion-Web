@@ -227,7 +227,10 @@ const MAX_TOKENS = 3;
           @if (hitCount() !== null) {
             <span class="count" aria-live="polite">{{ 'fusionBar.hits' | translate: { count: hitCount() } }}</span>
           }
-          @if (toolbar()) {
+          <!-- Codex tool pages have no toolbar, only the kind switch + panel; on a phone the kind
+               switch is hidden (the panel's kind row replaces it), so the filter button is the
+               ONLY way to the panel there (found in a real phone viewport, d-filter). -->
+          @if (toolbar() || (segments() && phone())) {
             <button type="button" class="fbtn" [class.on]="panelOpen()" [attr.aria-expanded]="panelOpen()"
                     aria-controls="sc-bar-panel" (click)="togglePanel()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">

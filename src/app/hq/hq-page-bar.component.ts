@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, afterNextRender, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BetaService } from '../core/beta.service';
 import { HQ_PAGE_ICONS, HqPageNavService } from './hq-page-nav.service';
 
 /** Scroll distance (px) in one direction before the bar follows it. */
@@ -16,11 +17,12 @@ export const PAGE_BAR_SLACK_PX = 12;
   standalone: true,
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.hidden]': 'hidden()' },
+  host: { '[class.hidden]': 'hidden()', '[class.above-bar]': 'shellOn()' },
   template: `
     <nav class="bar sc-dock-phone" [attr.aria-label]="'hq.rail.label' | translate">
       @for (p of nav.pages; track p) {
         <a class="tab" [href]="nav.href(p)" (click)="nav.go($event, p)"
+           [attr.aria-label]="'hq.pages.' + p | translate"
            [attr.aria-current]="nav.active() === p ? 'page' : null">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons[p]" /></svg>
           <span>{{ 'hq.pages.' + p | translate }}</span>
@@ -71,6 +73,30 @@ export const PAGE_BAR_SLACK_PX = 12;
       .tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
       .tab[aria-current='page'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
       .tab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      /* Beta shell on a phone: the docked fusion bar stands at the bottom edge too (and under this
+         bar's left end it showed through, seen in a real phone viewport), so this bar sits on top of it. */
+      @media (max-width: 720px) {
+        /* One row above the launcher's row, so its lane is not needed: the full width, every label. */
+        :host(.above-bar) {
+          bottom: calc(var(--sc-float-bottom, 12px) + var(--sc-bar-h, 56px) + var(--sc-space-2, 8px));
+          margin-inline-end: 0;
+        }
+        /* Hidden: it must travel its own raise as well, else it peeks out under the fusion bar. */
+        :host(.above-bar.hidden) {
+          translate: 0 calc(100% + var(--sc-float-bottom, 12px) + var(--sc-bar-h, 56px) + var(--sc-space-2, 8px) + 12px);
+        }
+      }
+      /* Narrow phones: the bar shares its row with the feedback launcher's lane, so five labels
+         no longer fit and "Statistik" hung out of the panel (seen in a real phone viewport).
+         Only the current page keeps its name, the others are icons (the aria-label names them).
+         Legacy shell only: with the beta shell the bar stacks above the fusion bar at full width. */
+      @media (max-width: 480px) {
+        :host(:not(.above-bar)) .bar { display: flex; }
+        :host(:not(.above-bar)) .tab { flex: 1 1 0; min-width: 0; padding-inline: 2px; }
+        :host(:not(.above-bar)) .tab span { display: none; }
+        :host(:not(.above-bar)) .tab[aria-current='page'] { flex: 2.4 1 0; }
+        :host(:not(.above-bar)) .tab[aria-current='page'] span { display: inline; }
+      }
       @media (prefers-reduced-motion: reduce) { :host { transition: none; } }
     `,
   ],
@@ -79,6 +105,8 @@ export class HqPageBarComponent {
   protected readonly nav = inject(HqPageNavService);
   protected readonly icons = HQ_PAGE_ICONS;
   readonly hidden = signal(false);
+  /** Beta shell: the fusion bar docks at the phone's bottom edge, this bar stacks above it. */
+  protected readonly shellOn = inject(BetaService).isEnabled('shell');
 
   constructor() {
     const zone = inject(NgZone);

@@ -79,6 +79,28 @@ export function liveVersionOf(rows: ThreadRow[]): string {
 }
 
 /** A hotfix counts as "running" for this long after its newest event. */
+/** One row of public.patch_versions: the version a channel carries right now. */
+export interface PatchVersionRow { channel: 'live' | 'ptu'; version: string; }
+
+/**
+ * What public.patch_versions should hold: LIVE from the newest LIVE thread, PTU from the running
+ * PTU build. `clear` lists a channel with no running build, so an old PTU never stays "current".
+ * No LIVE thread found means the list was unreadable: nothing is written or cleared then.
+ * EPTU has no source (the threads say PTU or Evocati) and stays untouched.
+ */
+export function patchVersionPlan(
+  rows: ThreadRow[],
+  builds: readonly ChannelBuild[],
+): { upsert: PatchVersionRow[]; clear: PatchVersionRow['channel'][] } {
+  const live = liveVersionOf(rows);
+  if (!live) return { upsert: [], clear: [] };
+  const ptu = builds.find((b) => b.channel === 'ptu' && b.running)?.version ?? '';
+  return {
+    upsert: [{ channel: 'live', version: live }, ...(ptu ? [{ channel: 'ptu' as const, version: ptu }] : [])],
+    clear: ptu ? [] : ['ptu'],
+  };
+}
+
 export const HOTFIX_RUNNING_DAYS = 14;
 
 const iso = (sec: number) => new Date(sec * 1000).toISOString();

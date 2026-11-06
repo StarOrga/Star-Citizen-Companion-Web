@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -17,6 +18,8 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
+import { CodexService } from '../codex.service';
+import type { HoloSilhouette, SilhouetteKind } from '../holo-silhouette';
 import { LandingCategory, LandingItem, LandingPaint } from './codex-landing-data.types';
 import { CalloutValue, ValueComparison, compareValue, splitCallouts, valueLabel, valueText } from './codex-landing-values';
 import type { HardpointPortRef } from '../hardpoint-port-ref';
@@ -34,6 +37,47 @@ export const CATEGORY_GLYPH: Record<LandingCategory, string> = {
   component: '◈',
   tool: '⚒',
 };
+
+/**
+ * The figure area inside the hologram box (% of the box): the silhouette or
+ * icon stands fitted into it, centred, so it is never clipped by the box, the
+ * scan clip or its own glow (B2.6).
+ */
+export const FIGURE_AREA = { width: 52, height: 58 } as const;
+/** Box of the hologram in % of the air (mirrors BOX below, which is declared after use). */
+const AIR_BOX = { width: 40, height: 72 } as const;
+
+/** Silhouette table slice per rotation category. */
+export const SILHOUETTE_KIND: Record<LandingCategory, SilhouetteKind> = {
+  ship: 'ship',
+  fpsWeapon: 'weapon',
+  armor: 'armor',
+  component: 'component',
+  tool: 'weapon',
+};
+
+/** Aspect (width / height) of an SVG viewBox string, 1 when unreadable. */
+export function viewBoxAspect(viewBox: string | null | undefined): number {
+  const n = (viewBox ?? '').trim().split(/[\s,]+/).map(Number);
+  return n.length === 4 && n.every(Number.isFinite) && n[2] > 0 && n[3] > 0 ? n[2] / n[3] : 1;
+}
+
+/**
+ * Rect (x, y, width, height in % of the hologram box) of a figure of the given
+ * aspect fitted and centred into {@link FIGURE_AREA}. `air` is the air's pixel size.
+ */
+export function figureRect(aspect: number, air: { w: number; h: number }): { x: number; y: number; w: number; h: number } {
+  const boxW = (air.w * AIR_BOX.width) / 100;
+  const boxH = (air.h * AIR_BOX.height) / 100;
+  const aw = (boxW * FIGURE_AREA.width) / 100;
+  const ah = (boxH * FIGURE_AREA.height) / 100;
+  const a = aspect > 0 ? aspect : 1;
+  const fw = a >= aw / ah ? aw : ah * a;
+  const fh = a >= aw / ah ? aw / a : ah;
+  const w = (fw / boxW) * 100;
+  const h = (fh / boxH) * 100;
+  return { x: 50 - w / 2, y: 50 - h / 2, w, h };
+}
 
 /** Paint chips before the "+ N" chip (brief: show 3, then + N). */
 export const PAINT_CHIPS = 3;
@@ -116,6 +160,7 @@ export class CodexLandingHolotableComponent {
   private readonly translate = inject(TranslateService);
   private readonly lang = this.translate.currentLang;
   private readonly calloutSet = inject(CodexLandingCalloutSetService);
+  private readonly codex = inject(CodexService);
 
   readonly item = input<LandingItem | null>(null);
   readonly paints = input<readonly LandingPaint[]>([]);
@@ -135,6 +180,21 @@ export class CodexLandingHolotableComponent {
   protected readonly allPaints = signal(false);
   protected readonly preview = signal<LandingPaint | null>(null);
 
+  /** Silhouette of the item on the table (any category); null = the category icon stands in. */
+  protected readonly silhouette = signal<{ key: string; s: HoloSilhouette } | null>(null);
+  /** Pixel size of the air, for the figure's fit. */
+  protected readonly airSize = signal({ w: 900, h: 520 });
+  /** The item stands as a flat figure (silhouette / icon) instead of the 3D hull. */
+  readonly flat = computed(() => {
+    const it = this.item();
+    return !!it && !(it.kind === 'ship' && !it.announced && !this.no3d().has(it.className));
+  });
+  readonly figure = computed(() => {
+    const sil = this.silhouette();
+    const own = sil && sil.key === this.key() ? sil.s : null;
+    return { sil: own, rect: figureRect(viewBoxAspect(own?.viewBox), this.airSize()) };
+  });
+
   readonly key = computed(() => {
     const it = this.item();
     return it ? `${it.category}:${it.className}` : '';
@@ -150,6 +210,7 @@ export class CodexLandingHolotableComponent {
     const set = this.calloutSet.set();
     const { callouts } = splitCallouts(it.category, valuesForSet(it, set));
     const slots = slotsFor(callouts.length);
+    const fig = this.figure().rect;
     // A set switch on the shown item redraws at once (a short stagger), not
     // with the scan's timing. Bookkeeping only, no signal: the item key and the
     // set are both dependencies of this computed already.
@@ -158,8 +219,10 @@ export class CodexLandingHolotableComponent {
     else if (set !== this.shown.set) this.shown = { key, set, switched: true };
     const switched = this.shown.switched;
     return callouts.map((c: CalloutValue, i) => {
-      const ax = BOX.left + (c.anchor.x / 100) * BOX.width;
-      const ay = BOX.top + (c.anchor.y / 100) * BOX.height;
+      // A flat figure takes the anchors on its own body: they are fractions of the figure, not of the box (B2.8).
+      const a = this.flat() ? { x: fig.x + (c.anchor.x / 100) * fig.w, y: fig.y + (c.anchor.y / 100) * fig.h } : c.anchor;
+      const ax = BOX.left + (a.x / 100) * BOX.width;
+      const ay = BOX.top + (a.y / 100) * BOX.height;
       const y = slots[i];
       return {
         key: c.value.key,
@@ -242,6 +305,33 @@ export class CodexLandingHolotableComponent {
   private anchorRaf = 0;
 
   constructor() {
+    // Silhouette of the item on the table, any category; the icon stands in until (or without) one.
+    effect(() => {
+      const it = this.item();
+      const key = this.key();
+      untracked(() => {
+        if (!it || it.announced) return;
+        void this.codex
+          .silhouette(SILHOUETTE_KIND[it.category], it.className)
+          .then((s) => {
+            if (s && key === this.key()) this.silhouette.set({ key, s });
+          })
+          .catch(() => undefined);
+      });
+    });
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      const air = this.host.querySelector<HTMLElement>('.air');
+      if (!air || typeof ResizeObserver === 'undefined') return;
+      const measure = () => {
+        const r = air.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) this.airSize.set({ w: r.width, h: r.height });
+      };
+      measure();
+      const ro = new ResizeObserver(measure);
+      ro.observe(air);
+      destroyRef.onDestroy(() => ro.disconnect());
+    });
     // A new item: the previous model's located ports no longer apply.
     effect(() => {
       this.key();
@@ -299,6 +389,12 @@ export class CodexLandingHolotableComponent {
       }
     };
     this.anchorRaf = requestAnimationFrame(step);
+  }
+
+  /** Eyebrow key: announced ship, newest of the patch, or newest known. */
+  eyebrowKey(it: LandingItem): string {
+    if (it.announced) return 'codex.landing.holo.announced';
+    return it.fresh === false ? 'codex.landing.holo.newest' : 'codex.landing.holo.newIn';
   }
 
   label(cat: LandingCategory): string {

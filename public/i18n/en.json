@@ -325,7 +325,8 @@
         "loading": "Holotable loading …",
         "empty": "No entries for this patch yet.",
         "newIn": "New",
-        "newest": "Newest"
+        "newest": "Newest",
+        "announced": "Announced"
       },
       "category": {
         "ship": "Ship",
@@ -462,6 +463,8 @@
         "count": "{{count}} new",
         "announced": "announced",
         "onTable": "on the table",
+        "categories": "Categories",
+        "openPage": "Open page: {{name}}",
         "noneNew": "Nothing new in this patch.",
         "more": "+ {{count}} more in search",
         "all": "All {{category}}",
@@ -5358,7 +5361,6 @@
       "stepsOne": "1 step",
       "steps": "{{n}} steps",
       "unplaced": "{{n}} without a place, list only",
-      "listTwin": "As a list",
       "node": {
         "needs": "{{place}} ({{path}}): {{needs}}",
         "step": "Step {{ords}}: {{place}} ({{path}}): {{needs}}",
@@ -5462,12 +5464,40 @@
     },
     "stock": {
       "signedOut": "Sign in to see your holdings.",
+      "free": "No place",
+      "sharedBtn": "Shared by friends ({{n}})",
+      "captured": "Added to storage.",
+      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+      "totals": { "title": "Total", "items": "items", "places": "places" },
+      "places": { "title": "Largest places" },
+      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
+      "cats": { "title": "Categories" },
+      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "popup": {
+        "title": "Stock",
+        "modes": "What to do",
+        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "search": "Search stock",
+        "searchHint": "Item or place",
+        "filters": "Filters",
+        "stale": "Older than 7 days",
+        "clearPlace": "Remove place filter",
+        "place": "Place",
+        "viewBy": "View by",
+        "view": { "place": "By place", "name": "By item", "qty": "By amount" },
+        "count": "{{n}} entries",
+        "results": "Stock entries",
+        "loading": "Loading …",
+        "loadingMore": "Loading more …",
+        "noMatch": "Nothing matches these filters.",
+        "empty": "Nothing stored yet.",
+        "ships": "Ships at terminal"
+      },
       "retry": "Try again",
       "ships": {
         "title": "Ships",
         "count": "{{n}} in the hangar",
-        "noFavourites": "No favourites marked yet.",
-        "open": "Open hangar"
+        "noFavourites": "No favourites marked yet."
       },
       "sets": {
         "title": "Sets",
@@ -5485,12 +5515,8 @@
         "days": "last opened {{n}} days ago"
       },
       "lager": {
-        "title": "Storage by place",
         "empty": "Nothing stored yet. Once there is, you can search here for where it lies.",
-        "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand below.",
-        "materials": "Raw materials",
-        "pieces": "Items",
-        "placeEmpty": "Empty.",
+        "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand with “Add”.",
         "storage": "Ships at the hangar terminal"
       },
       "find": {
@@ -5531,7 +5557,17 @@
         "unit": "Unit",
         "pcs": "Pieces",
         "location": "Place",
-        "save": "Add"
+        "save": "Add",
+        "suggestions": "Suggestions from the Codex",
+        "unknown": "Not found – pick an entry from the suggestions.",
+        "linked": "Linked to the Codex.",
+        "kind": {
+          "ship": "Ship",
+          "item": "Item",
+          "component": "Component",
+          "weapon": "Weapon",
+          "ammunition": "Ammunition"
+        }
       }
     },
     "app": {
@@ -5593,7 +5629,9 @@
     }
   },
   "verse": {
-    "areaFoot": { "aria": "Switch area" },
+    "areaFoot": {
+      "aria": "Switch area"
+    },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",
@@ -5644,6 +5682,17 @@
       "loading": "Loading the briefing …",
       "allSeen": "You're up to date",
       "newSince": "new since your last visit",
+      "patchNew": "{{channel}} · New in {{version}}",
+      "patchNewPlanned": "{{channel}} · New in {{version}}",
+      "patchTeaser": "{{channel}} · {{teaser}}",
+      "patchChannel": {
+        "live": "LIVE",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "eptu": "EPTU",
+        "hotfix": "Hotfix",
+        "planned": "Planned"
+      },
       "topAria": "The newest stories",
       "storyAria": "Story {{n}}: {{title}}",
       "status": {
