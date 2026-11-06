@@ -283,38 +283,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
   template: `
     <section class="detail-page">
       <sc-page-header class="crumbrow" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
-        <div phAside class="crumb-aside">
-        @if (showModeSwitch()) {
-          <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
-            [variants]="myVariants()" [activeVariantId]="activeVariantId()" />
-        }
-        @if (kind() === 'ship' && dataPill(); as pill) {
-          <span class="prov data-pill" [class.pending]="pill.pending">
-            {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
-            @if (pill.pending) { · {{ 'codex.detail.dataPillPending' | translate }} }
-          </span>
-        } @else if (kind() === 'ship' && provenance(); as p) {
-          <span class="prov">
-            {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
-          </span>
-        }
-        @if (kind() === 'ship') {
-          <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
-            <button type="button" class="ht-btn" [class.active]="!holoView()"
-                    [scTooltip]="'codex.holo.toggle.classicHint' | translate" scTooltipTier="label"
-                    [attr.aria-pressed]="!holoView()"
-                    (click)="holoView() && toggleHoloView()">
-              {{ 'codex.holo.toggle.classic' | translate }}
-            </button>
-            <button type="button" class="ht-btn" [class.active]="holoView()"
-                    [scTooltip]="'codex.holo.toggle.holoHint' | translate" scTooltipTier="label"
-                    [attr.aria-pressed]="holoView()"
-                    (click)="!holoView() && toggleHoloView()">
-              {{ 'codex.holo.toggle.holo' | translate }}
-            </button>
+        <!-- On the Holotable these three share the ship's title row (concept glas3). -->
+        @if (!holoStageOn()) {
+          <div phAside class="crumb-aside">
+            <ng-container [ngTemplateOutlet]="shipAsideData" />
+            <ng-container [ngTemplateOutlet]="shipAsideSwitch" />
           </div>
         }
-        </div>
       </sc-page-header>
 
       @if (foreignVariant()) {
@@ -891,6 +866,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (retryRank)="retryRankCohort()"
             [rankProfile]="rankProfile()"
             [rankScope]="rankScope()"
+            [rankShipClass]="rankShipClass()"
             [rankDisabledReasons]="rankDisabledReasons()"
             [offensivePanel]="offensivePanel()"
             [defensivePanel]="defensivePanel()"
@@ -954,6 +930,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [linkCopied]="linkCopied()"
             [openDetails]="sourceLinkRequested()"
             (copyShareLink)="copyShareLink()">
+            <div htData class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideData" /></div>
+            <div htSwitch class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideSwitch" /></div>
             <!-- Details drawer content, projected into the Holotable: the
                  shared sub-components in detail/ and the shared ng-templates,
                  rendered in both branches, on the SAME signals/methods as the
@@ -1037,6 +1015,41 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" [shipSignature]="shipSignature()" (closed)="closeWeaponDetail()" />
+
+      <ng-template #shipAsideData>
+        @if (showModeSwitch()) {
+          <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
+            [variants]="myVariants()" [activeVariantId]="activeVariantId()" />
+        }
+        @if (kind() === 'ship' && dataPill(); as pill) {
+          <span class="prov data-pill" [class.pending]="pill.pending">
+            {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
+            @if (pill.pending) { · {{ 'codex.detail.dataPillPending' | translate }} }
+          </span>
+        } @else if (kind() === 'ship' && provenance(); as p) {
+          <span class="prov">
+            {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
+          </span>
+        }
+      </ng-template>
+      <ng-template #shipAsideSwitch>
+        @if (kind() === 'ship') {
+          <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
+            <button type="button" class="ht-btn" [class.active]="!holoView()"
+                    [scTooltip]="'codex.holo.toggle.classicHint' | translate" scTooltipTier="label"
+                    [attr.aria-pressed]="!holoView()"
+                    (click)="holoView() && toggleHoloView()">
+              {{ 'codex.holo.toggle.classic' | translate }}
+            </button>
+            <button type="button" class="ht-btn" [class.active]="holoView()"
+                    [scTooltip]="'codex.holo.toggle.holoHint' | translate" scTooltipTier="label"
+                    [attr.aria-pressed]="holoView()"
+                    (click)="!holoView() && toggleHoloView()">
+              {{ 'codex.holo.toggle.holo' | translate }}
+            </button>
+          </div>
+        }
+      </ng-template>
 
       <ng-template #whereToBuy>
         @if (kind() === 'item' || kind() === 'weapon' || kind() === 'ship') {
@@ -1614,6 +1627,8 @@ export class CodexDetailComponent implements OnInit {
    * stay byte-for-byte unaffected regardless of what is in storage.
    */
   readonly holoView = signal(true);
+  /** The Holotable is on screen, its title row carries the page's aside. */
+  readonly holoStageOn = computed(() => this.kind() === 'ship' && this.holoView() && !this.loading() && !this.error() && !!this.detail());
   /** Where the energy dock says it sits (null until it restored its state). */
   readonly dockPlacement = signal<{ position: DockPosition; slot: number } | null>(null);
   /** The dock lives in the Analyse column — at `slot`, or at any slot when omitted. */

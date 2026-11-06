@@ -102,10 +102,6 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
       </div>
 
 
-      @if (holo()) {
-        <p class="rolenote">◈ {{ activeProfileLabelKey() | translate }}</p>
-      }
-
       @if (result()) {
         <!-- Comparison group as the panel's head line (concept round 3, L2):
              one segmented control, a group the ship has no data for stays
@@ -121,8 +117,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
           <button
             type="button"
             class="compare-info"
-            [scTooltip]="copy().compareInfo | translate"
-            [attr.aria-label]="copy().compareInfo | translate"
+            [scTooltip]="compareInfoKey() | translate"
+            [attr.aria-label]="compareInfoKey() | translate"
           >ⓘ</button>
         </div>
       }
@@ -182,10 +178,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
           <p class="gap-note">{{ 'codex.rank.gapAxis' | translate }}</p>
-        } @else if (result()!.overall != null && holo()) {
-            <p class="verdict holo-verdict">
-              <b>{{ result()!.overall }} %</b> · {{ result()!.bandKey! | translate }}
-            </p>
+        } @else if (holo()) {
+          <!-- The panel's head says it once. -->
         } @else if (result()!.overall != null) {
             <p class="verdict">
               {{ copy().verdict | translate: { pct: result()!.overall, band: (result()!.bandKey! | translate), n: result()!.cohortSize } }}
@@ -447,13 +441,12 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
        profile as a note (never a second selector), the cohort as a link. ── */
     :host(.holo) .rank-card { grid-template-columns: 1fr; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
     :host(.holo) .rank-head { display: none; }
-    :host(.holo) .rolenote { margin: 0; text-align: center; font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor));
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
     :host(.holo) .rank-col-radar { align-items: center; gap: 4px; }
     /* The axis captions sit on the rim and run past the 200-unit box on the
        flanks ("WENDIGKEIT" lost its W); the Holotable centres the radar in a
        wide column, so they may use the margin. */
-    :host(.holo) .radar { max-width: 230px; overflow: visible; }
+    :host(.holo) .radar { max-width: 260px; overflow: visible; }
+    :host(.holo) .radar .ship { fill: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 20%, transparent); stroke: var(--holo-e, var(--sc-accent)); }
     :host(.holo) .radar text { font-size: 7px; }
     /* Touch: the holo radar is capped at 230px (scale 1.15), so 10.5-unit
        labels land on the 12px readability floor. */
@@ -466,6 +459,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .holo-verdict b { font-family: var(--font-monospace, monospace); font-weight: 400; }
     :host(.holo) .sub-head { margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor));
       letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
+    :host(.holo) .bar-fill:not(.weak) { background: var(--holo-e, var(--sc-accent)); }
     :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
     :host(.holo) .bar-list { grid-template-columns: 1fr !important; }
     :host(.holo) .bar-row { grid-template-columns: 82px 1fr 40px; }
@@ -503,6 +497,8 @@ export class CodexRankCardComponent {
   readonly roleName = input<string | null>(null);
   /** An honest line under the hexagon (Bergbau/Bergung: no data), an i18n key. */
   readonly missionNoteKey = input<string | null>(null);
+  /** The holotable's rim is the group's 95th percentile, the classic card's its best value. */
+  readonly compareInfoKey = computed(() => (this.holo() ? 'codex.rank.compare.infoHolo' : this.copy().compareInfo));
 
   private readonly translate = inject(TranslateService);
   private readonly langTick = signal(0);

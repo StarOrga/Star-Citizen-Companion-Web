@@ -255,7 +255,7 @@ const WHEEL_LINE_PX = 33;
           <button type="button" class="chip reset-view" (click)="resetView()">
             {{ 'codex.assetPackage.resetView' | translate }}
           </button>
-          @if (rows().length) {
+          @if (rows().length && !table()) {
             <button type="button" class="chip list-toggle" [attr.aria-expanded]="listOpen()" (click)="listOpen.set(!listOpen())">
               {{ 'codex.assetPackage.parts' | translate: { count: rows().length } }}
             </button>
@@ -268,7 +268,7 @@ const WHEEL_LINE_PX = 33;
           }
         </div>
 
-        @if (listOpen()) {
+        @if (listOpen() && !table()) {
           <ul class="plist">
             @for (r of rows(); track r.p.id) {
               <li [class.off]="!r.visible" [class.on]="focusSet().has(r.p.id)">
@@ -313,19 +313,20 @@ const WHEEL_LINE_PX = 33;
       .state.err { color: var(--sc-fg-1); }
       .hotspots { position: absolute; inset: 0; pointer-events: none; }
       .hs {
+        --hs-c: var(--holo-e, var(--sc-accent));
         position: absolute; width: 0.75rem; height: 0.75rem; margin: -0.375rem 0 0 -0.375rem;
-        border-radius: 50%; border: 1px solid var(--sc-accent); background: rgb(from var(--sc-accent) r g b / 0.25);
+        border-radius: 50%; border: 1px solid var(--hs-c); background: rgb(from var(--hs-c) r g b / 0.25);
         pointer-events: auto; transition: transform 0.15s ease, background 0.15s ease;
       }
       /* Hit area: 18px, as wide as the spacing of a fanned-out stack (holo-overlay FAN_SPACING_PX). */
       .hs::after { content: ''; position: absolute; inset: -0.1875rem; border-radius: 50%; }
-      .hs:hover, .hs:focus-visible, .hs.on { background: var(--sc-accent); transform: scale(1.35); outline: none; }
-      .hs:focus-visible { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--sc-accent); }
+      .hs:hover, .hs:focus-visible, .hs.on { background: var(--hs-c); transform: scale(1.35); outline: none; }
+      .hs:focus-visible { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--hs-c); }
       /* A part that cannot be swapped: smaller dot, same hit area. The selected one is white. */
       @media (pointer: fine) {
         .hs.minor { width: 0.5rem; height: 0.5rem; margin: -0.25rem 0 0 -0.25rem; }
         .hs.minor::after { inset: -0.3125rem; }
-        .hs.sel { background: var(--sc-fg-0); border-color: var(--sc-accent); transform: scale(1.35); }
+        .hs.sel { background: var(--sc-fg-0); border-color: var(--hs-c); transform: scale(1.35); }
       }
       /* Not relevant to the picked Einsatz: quiet, but it still takes the pointer. */
       .hs.q { opacity: 0.3; }
@@ -340,7 +341,7 @@ const WHEEL_LINE_PX = 33;
         .hs::after { display: none; }
         .hs::before {
           content: ''; position: absolute; left: 50%; top: 50%; width: 0.75rem; height: 0.75rem; margin: -0.375rem 0 0 -0.375rem;
-          box-sizing: border-box; border-radius: 50%; border: 1px solid var(--sc-accent); background: rgb(from var(--sc-accent) r g b / 0.25);
+          box-sizing: border-box; border-radius: 50%; border: 1px solid var(--hs-c); background: rgb(from var(--hs-c) r g b / 0.25);
           transition: transform 0.15s ease, background 0.15s ease;
         }
         .hs:focus-visible::before, .hs.on::before { background: var(--sc-accent); transform: scale(1.35); }
@@ -477,12 +478,24 @@ export class AssetPackageViewerComponent {
   readonly safeArea = input<Partial<SafeArea> | null>(null);
   /** Which dots show (table only); the "all parts" chip writes it too. */
   readonly hotspotScope = model<HotspotScope>('swappable');
+  /** The host's rule for what can be swapped, as raw port names (table only); null: the package's own `editable` flag. */
+  readonly swappablePorts = input<ReadonlySet<string> | null>(null);
   /** The selected part as a raw port name or placement id; null clears it (table only). */
   readonly selectedPort = input<string | null>(null);
   /** Ports or placement ids that stay lit, the rest goes quiet; null or empty: nothing is quiet (table only). */
   readonly relevantPorts = input<ReadonlySet<string> | null>(null);
   /** Up to three values for the selected part's callout (table only). */
   readonly calloutValues = input<readonly CalloutValue[]>([]);
+
+  /** Everything the swappable ports hold: a gun on a swappable mount can be swapped too. */
+  private readonly swappableIds = computed<ReadonlySet<string> | null>(() => {
+    const m = this.manifest();
+    const ports = this.swappablePorts();
+    return m && ports?.size ? new Set(placementsForPorts(m, ports)) : null;
+  });
+  private swappableOf(p: PackagePlacement): boolean {
+    return this.swappableIds()?.has(p.id) ?? isSwappable(p);
+  }
 
   /** A hotspot / list entry was hovered or focused: its raw port name, or null on leave. */
   readonly hovered = output<string[] | null>();
@@ -619,7 +632,7 @@ export class AssetPackageViewerComponent {
     const table = this.table();
     const quiet = this.quietIds();
     const shown: { p: PackagePlacement; id: string; x: number; y: number }[] = [];
-    for (const p of table ? scopedHotspots(m, this.hotspotScope()) : hotspotPlacements(m)) {
+    for (const p of table ? scopedHotspots(m, this.hotspotScope(), this.swappablePorts()) : hotspotPlacements(m)) {
       const pt = pts.get(p.id);
       if (!pt?.onScreen || !visible.has(p.id)) continue;
       shown.push({ p, id: p.id, x: pt.x, y: pt.y });
@@ -640,7 +653,7 @@ export class AssetPackageViewerComponent {
         out.push({ ...this.toRow(p, true), x: pt.x, y: pt.y });
       }
     }
-    return out.map((h) => ({ ...h, minor: table && !isSwappable(h.p), quiet: quiet.has(h.p.id) }));
+    return out.map((h) => ({ ...h, minor: table && !this.swappableOf(h.p), quiet: quiet.has(h.p.id) }));
   });
 
   /**
@@ -674,7 +687,7 @@ export class AssetPackageViewerComponent {
     const safe = this.fullSafeArea();
     if (!p || !anchor || !safe || vp.w <= 0 || vp.h <= 0) return null;
     const placed = placeCallout(anchor, calloutSize(window.innerWidth), vp, safe);
-    return placed && { ...placed, row: this.toRow(p, true), empty: !p.itemClass, swappable: isSwappable(p) };
+    return placed && { ...placed, row: this.toRow(p, true), empty: !p.itemClass, swappable: this.swappableOf(p) };
   });
 
   /** The placement the label describes: the viewer's own selection, else the first one the host points at. */
@@ -927,14 +940,14 @@ export class AssetPackageViewerComponent {
     this.pinned.set(id);
     if (!this.table()) return;
     const p = id ? this.byId().get(id) : undefined;
-    this.selectionChange.emit(p ? selectionOf(p) : null);
+    this.selectionChange.emit(p ? { ...selectionOf(p), swappable: this.swappableOf(p) } : null);
   }
 
   /** The callout's swap icon. */
   requestSwap(): void {
     const id = this.pinned();
     const p = id ? this.byId().get(id) : undefined;
-    if (p) this.swapRequested.emit(selectionOf(p));
+    if (p) this.swapRequested.emit({ ...selectionOf(p), swappable: this.swappableOf(p) });
   }
 
   toggleAllParts(): void {

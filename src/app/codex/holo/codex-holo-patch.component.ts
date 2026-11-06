@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 // Holotable patch chooser + Δ view (concept p2-inline/p2-table/p2-scope).
 // Self-contained: fetches its own comparison-build list and its own
 // comparison-side detail, and hands the host everything it needs to paint
@@ -17,7 +18,7 @@
 // own per-detail logic — see wave2-patch-share.md for the exact host signals
 // to adapt it from.
 import { toErrorKey } from '../../core/describe-error';
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, TemplateRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { LocaleService } from '../../core/locale/locale.service';
@@ -63,7 +64,7 @@ export interface HoloPatchComparisonSide {
 @Component({
   selector: 'sc-codex-holo-patch',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ScDatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-patch">
@@ -152,18 +153,28 @@ export interface HoloPatchComparisonSide {
       <!-- The Δ tables live in an anchored panel, never in the top bar's
            flow (wave 5 A2.6) — the bar keeps its height, the table keeps
            its ghosts/pins, and the panel can be dismissed and reopened. -->
+      @if (!dockDelta()) {
       @if (selected() && !deltaOpen()) {
         <button #deltaReopen type="button" class="delta-reopen" (click)="deltaOpen.set(true)" [attr.aria-expanded]="false">
           Δ {{ 'codex.holo.patch.deltaShow' | translate }}
         </button>
       }
-      @if (perspectives(); as groups) {
+      @if (perspectives()) {
         @if (deltaOpen()) {
           <div #deltaPanel class="delta-panel" role="region" tabindex="-1" animate.enter="pp-enter" animate.leave="pp-leave" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() }">
+            <ng-container [ngTemplateOutlet]="deltaBody" [ngTemplateOutletContext]="{ docked: false }" />
+          </div>
+        }
+      }
+      }
+
+      <!-- The comparison's body: in its anchored panel, or wherever a host docks it. -->
+      <ng-template #deltaBody let-docked="docked">
+        @if (perspectives(); as groups) {
             <div class="delta-head">
               <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
               <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
-              <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [scTooltip]="'codex.holo.patch.deltaHide' | translate">✕</button>
+              @if (!docked) { <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [scTooltip]="'codex.holo.patch.deltaHide' | translate">✕</button> }
             </div>
             <div class="delta-view">
               @for (g of groups; track g.perspective) {
@@ -187,9 +198,8 @@ export interface HoloPatchComparisonSide {
           </dl>
               </div>
             }
-          </div>
         }
-      }
+      </ng-template>
     </div>
   `,
   styles: [`
@@ -347,6 +357,10 @@ export class CodexHoloPatchComponent {
   readonly perspectives = signal<ReturnType<typeof buildPerspectiveDeltas> | null>(null);
   /** The Δ panel under the trigger — opens with a pick, dismissable, reopenable. */
   readonly deltaOpen = signal(false);
+  /** Dock the comparison in a host instead of the anchored panel: the host renders {@link deltaBody}. */
+  readonly dockDelta = input(false);
+  /** The comparison's body, for the host that docks it. */
+  readonly deltaBody = viewChild<TemplateRef<unknown>>('deltaBody');
   private readonly deltaPanel = viewChild<ElementRef<HTMLElement>>('deltaPanel');
   private readonly deltaReopen = viewChild<ElementRef<HTMLElement>>('deltaReopen');
   private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');

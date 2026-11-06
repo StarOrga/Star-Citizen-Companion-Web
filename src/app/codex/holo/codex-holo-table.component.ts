@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   input,
+  model,
   output,
   signal,
   viewChild,
@@ -29,7 +30,9 @@ import {
 import type { AssetPackageManifest } from '../asset-package/asset-package.model';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
-import { AssetPackageViewerComponent } from '../asset-package/asset-package-viewer.component';
+import { AssetPackageViewerComponent, type CalloutValue, type PlacementSelection } from '../asset-package/asset-package-viewer.component';
+import type { HotspotScope } from '../asset-package/asset-package.model';
+import { calloutGutter } from '../asset-package/holo-overlay';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { logWarn } from '../../core/log';
@@ -165,7 +168,10 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         @defer (on immediate) {
           @if (packageRow(); as row) {
             <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" [row]="row" [still]="still()"
-              [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
+              interaction="table" [safeArea]="safeArea()" [selectedPort]="selectedPart()" [swappablePorts]="swappablePorts()"
+              [relevantPorts]="relevantPorts()" [calloutValues]="calloutValues()" [(hotspotScope)]="hotspotScope"
+              [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)"
+              (selectionChange)="partSelected.emit($event)" (swapRequested)="partSwap.emit($event)" />
           } @else if (packageRow() === null) {
             <!-- Legacy path (hulls uploaded before asset packages): model-viewer + browser-side port/node join. -->
             <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
@@ -242,6 +248,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
             <button
               type="button"
               class="pin"
+              [class.q]="isQuiet(pin.portName)"
               [class.unresolved]="!pin.resolved"
               [class.gold]="pin.tone === 'gold'"
               [class.active]="lit(pin.portName)"
@@ -292,7 +299,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
             @for (l of lay.labels; track l.portName) {
               @if (pinByPort().get(l.portName); as pin) {
                 <li>
-                  <button type="button" class="ll" [class.r]="l.side === 'right'"
+                  <button type="button" class="ll" [class.r]="l.side === 'right'" [class.q]="isQuiet(l.portName)"
                           [class.gold]="pin.tone === 'gold'"
                           [class.est]="!pin.resolved"
                           [class.active]="lit(l.portName)"
@@ -367,8 +374,13 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     :host(.ph-reveal) { --sil-dur: 900ms; --sil-delay: 80ms; --glow-delay: 620ms; --orbit-dur: 820ms; --orbit-delay: 160ms;
       --pin-dur: 340ms; --pin-delay: 380ms; --pin-step: 16ms; }
     /* The table takes the height the screen has: the model grows with the window. */
-    .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; min-height: clamp(400px, calc(100dvh - 440px), 820px); z-index: 1; display: flex; align-items: center;
+    .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: clamp(320px, 56dvh, 640px); z-index: 1; display: flex; align-items: center;
       justify-content: center; overflow: hidden; container-type: size; --pin-inset: 56px; }
+    /* Desktop: the stage gives the table exactly the height the first screen has left. */
+    @media (min-width: 1001px) { .silhouette-frame { min-height: 0; } }
+    /* Not what the picked Einsatz is about: quiet, still reachable. */
+    .pin.q, .ll.q { opacity: 0.35; }
+    .pin.q:is(:hover, :focus-visible, .active, .sel), .ll.q:is(:hover, :focus-visible, .active, .sel) { opacity: 1; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
     /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
        depths and shift against each other with the pointer and the scroll —
@@ -633,7 +645,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       .silhouette-frame { min-height: 320px; }
     }
     @media (max-width: 640px) {
-      .silhouette-frame, .mode-viewer { min-height: 360px; }
+      .silhouette-frame, .mode-viewer { min-height: 320px; }
       .silhouette-frame { --pin-inset: 36px; }
       .pin-label { display: none; }
       .pin:is(.sel, .active) .pin-label { display: inline; }
@@ -649,6 +661,30 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
   `],
 })
 export class CodexHoloTableComponent {
+  /** The asset package viewer, once 3D shows one: the panel's part rows read it. */
+  readonly assetViewer = viewChild(AssetPackageViewerComponent);
+  /** The part selected on the table, as a raw port or placement id. */
+  readonly selectedPart = input<string | null>(null);
+  readonly swappablePorts = input<ReadonlySet<string> | null>(null);
+  readonly relevantPorts = input<ReadonlySet<string> | null>(null);
+  readonly calloutValues = input<readonly CalloutValue[]>([]);
+  /** Which dots the model shows; the "all parts" chip writes it. */
+  readonly hotspotScope = model<HotspotScope>('swappable');
+  readonly partSelected = output<PlacementSelection | null>();
+  readonly partSwap = output<PlacementSelection>();
+
+  /** The callout's reserved gutters left and right of the model; none where the frame cannot spare them (phones). */
+  readonly safeArea = computed(() => {
+    const w = this.frameW();
+    const gutter = typeof window === 'undefined' ? 0 : calloutGutter(window.innerWidth);
+    return w >= gutter * 2 + 280 ? { left: gutter, right: gutter, top: 4, bottom: 0 } : { left: 0, right: 0, top: 4, bottom: 0 };
+  });
+
+  isQuiet(port: string): boolean {
+    const lit = this.relevantPorts();
+    return !!lit && lit.size > 0 && !lit.has(port);
+  }
+
   readonly GENERIC_HULL = GENERIC_HULL_PATH;
   /** Document-unique id of this table's hull gradient. */
   readonly hullFillId = `holo-hull-fill-${++hullFillSeq}`;

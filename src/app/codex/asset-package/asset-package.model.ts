@@ -250,11 +250,32 @@ export const isSwappable = (p: PackagePlacement): boolean => p.port?.editable ==
  * older manifest without port data) keeps all of them: no dots at all would
  * read as a broken model.
  */
-export function scopedHotspots(m: AssetPackageManifest, scope: HotspotScope): PackagePlacement[] {
+export function scopedHotspots(m: AssetPackageManifest, scope: HotspotScope, swappablePorts?: ReadonlySet<string> | null): PackagePlacement[] {
   const all = hotspotPlacements(m);
   if (scope === 'all') return all;
-  const swappable = all.filter(isSwappable);
+  const swappable = swappablePorts?.size ? portDots(m, all, swappablePorts) : all.filter(isSwappable);
   return swappable.length ? swappable : all;
+}
+
+/**
+ * One dot per port of the host's rule (the holotable passes the same ports its
+ * Einfach view pins): the port's own placement when it has a dot, else the first
+ * dotted part it carries. A mount with its gun stays one dot, not two.
+ */
+function portDots(m: AssetPackageManifest, dots: readonly PackagePlacement[], ports: ReadonlySet<string>): PackagePlacement[] {
+  const want = new Set([...ports].map((p) => p.toLowerCase()));
+  const dotted = new Map(dots.map((d) => [d.id, d] as const));
+  const out: PackagePlacement[] = [];
+  const seen = new Set<string>();
+  for (const p of m.placements) {
+    const key = p.portName.toLowerCase();
+    if (!want.has(key) || seen.has(key)) continue;
+    const hit = dotted.get(p.id) ?? withDescendants(m, new Set([p.id])).map((id) => dotted.get(id)).find((d) => !!d);
+    if (!hit) continue;
+    seen.add(key);
+    out.push(hit);
+  }
+  return out;
 }
 
 /**

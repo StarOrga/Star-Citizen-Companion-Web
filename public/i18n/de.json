@@ -926,7 +926,28 @@
         "pinGroupOther": "Hardpoints",
         "rankLoading": "Vergleich mit der ganzen Flotte läuft … der erste Besuch pro Patch dauert einen Moment.",
         "rankFailed": "Der Flottenvergleich konnte nicht geladen werden.",
-        "rankEmpty": "Für diese Flotte gibt es noch keine Vergleichswerte."
+        "rankEmpty": "Für diese Flotte gibt es noch keine Vergleichswerte.",
+        "tab": {
+          "parts": "Bauteile",
+          "changes": "Änderungen"
+        },
+        "backToParts": "Alle Bauteile",
+        "backHint": "Zurück zur Liste (Esc)",
+        "partsTotal": "{{n}} Bauteile",
+        "partsInstalled": "{{n}} verbaut",
+        "partSize": "Größe",
+        "partGrade": "Klasse",
+        "iconWishlist": "Wunschliste",
+        "iconSupply": "Nachschub",
+        "iconStock": "Bestand",
+        "previewTitle": "Vorschau der Detailseite",
+        "previewMaker": "Hersteller",
+        "previewFitted": "Verbaut in",
+        "previewBuy": "Wo zu kaufen",
+        "previewAlternatives": "Passende Alternativen",
+        "previewOpen": "Detailseite öffnen",
+        "patchDiff": "Patch-Vergleich",
+        "patchDiffHint": "Wähle oben im Patch-Menü einen anderen Patch, dann steht hier, was sich an diesem Schiff geändert hat."
       },
       "strip": {
         "einsatz": "Einsatz",
@@ -944,7 +965,8 @@
         "collapse": "Leiste einklappen",
         "presetTag": "Preset",
         "minimize": "Leiste minimieren",
-        "restore": "Ganze Leiste einblenden"
+        "restore": "Ganze Leiste einblenden",
+        "cohortRole": "{{n}} × {{role}}"
       },
       "patch": {
         "trigger": {
@@ -1307,11 +1329,30 @@
       "compare": {
         "label": "Verglichen mit",
         "info": "Jede Achse reicht von 0 (Mitte) bis zum besten Wert der gewählten Vergleichsschiffe (Rand); die Ringe markieren 33, 67 und 100 % davon. Blau ist dieses Schiff, die gestrichelte Linie der Median der Vergleichsschiffe. Blaue Striche: besser als der Vergleich, gelbe: schwächer.",
-        "axisDelta": "{{d}} Punkte zum Vergleich"
+        "axisDelta": "{{d}} Punkte zum Vergleich",
+        "infoHolo": "Jede Achse reicht von 0 (Mitte) bis zum 95. Perzentil der gewählten Gruppe (Rand). Der Median liegt auf derselben Skala, stärkere Werte enden am Rand."
       },
-      "class": { "combat": "Kampfschiff", "transport": "Frachter", "exploration": "Erkundungsschiff", "resources": "Ressourcenschiff", "support": "Support-Schiff", "multirole": "Mehrzweckschiff", "competition": "Rennschiff" },
-      "classPlural": { "combat": "Kampfschiffe", "transport": "Frachter", "exploration": "Erkundungsschiffe", "resources": "Ressourcenschiffe", "support": "Support-Schiffe", "multirole": "Mehrzweckschiffe", "competition": "Rennschiffe" },
-      "group": { "of": "Alle {{name}}" },
+      "class": {
+        "combat": "Kampfschiff",
+        "transport": "Frachter",
+        "exploration": "Erkundungsschiff",
+        "resources": "Ressourcenschiff",
+        "support": "Support-Schiff",
+        "multirole": "Mehrzweckschiff",
+        "competition": "Rennschiff"
+      },
+      "classPlural": {
+        "combat": "Kampfschiffe",
+        "transport": "Frachter",
+        "exploration": "Erkundungsschiffe",
+        "resources": "Ressourcenschiffe",
+        "support": "Support-Schiffe",
+        "multirole": "Mehrzweckschiffe",
+        "competition": "Rennschiffe"
+      },
+      "group": {
+        "of": "Alle {{name}}"
+      },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
       "rimNote": "Außen = fast bester Wert der Gruppe (95 %). Stärkere Werte enden am Rand.",
       "betterThan": "Besser als {{n}} %"
@@ -2273,7 +2314,10 @@
         "next": "Nächster Platz",
         "close": "Auswahl aufheben",
         "emptySlot": "Freier Platz"
-      }
+      },
+      "allParts": "Alle Teile",
+      "zoomHint": "Strg + Mausrad zoomt",
+      "swap": "Bauteil tauschen"
     },
     "attachType": {
       "WeaponPersonal": "Handwaffe",
@@ -5536,16 +5580,40 @@
       "free": "Ortsfrei",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Lager eingetragen.",
-      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
-      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
-      "places": { "title": "Größte Orte" },
-      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
-      "cats": { "title": "Kategorien" },
-      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "actions": {
+        "browse": "Durchsuchen",
+        "find": "Wo liegt …?",
+        "add": "Hinzufügen"
+      },
+      "totals": {
+        "title": "Gesamt",
+        "items": "Gegenstände",
+        "places": "Orte"
+      },
+      "places": {
+        "title": "Größte Orte"
+      },
+      "stale": {
+        "title": "Stand älter als 7 Tage",
+        "none": "Alle Orte sind aktuell."
+      },
+      "cats": {
+        "title": "Kategorien"
+      },
+      "cat": {
+        "materials": "Rohstoffe",
+        "weapons": "Waffen",
+        "armor": "Rüstung",
+        "other": "Sonstiges"
+      },
       "popup": {
         "title": "Bestand",
         "modes": "Was möchtest du tun",
-        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "mode": {
+          "browse": "Durchsuchen",
+          "find": "Wo liegt …?",
+          "add": "Hinzufügen"
+        },
         "search": "Bestand durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
@@ -5553,7 +5621,11 @@
         "clearPlace": "Ortsfilter entfernen",
         "place": "Ort",
         "viewBy": "Ansicht",
-        "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
+        "view": {
+          "place": "Nach Ort",
+          "name": "Nach Gegenstand",
+          "qty": "Nach Menge"
+        },
         "count": "{{n}} Einträge",
         "results": "Bestandseinträge",
         "loading": "Lädt …",

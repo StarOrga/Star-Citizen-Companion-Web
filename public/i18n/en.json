@@ -926,7 +926,28 @@
         "pinGroupOther": "Hardpoints",
         "rankLoading": "Comparing with the whole fleet … the first visit per patch takes a moment.",
         "rankFailed": "The fleet comparison could not be loaded.",
-        "rankEmpty": "There are no comparison values for this fleet yet."
+        "rankEmpty": "There are no comparison values for this fleet yet.",
+        "tab": {
+          "parts": "Parts",
+          "changes": "Changes"
+        },
+        "backToParts": "All parts",
+        "backHint": "Back to the list (Esc)",
+        "partsTotal": "{{n}} parts",
+        "partsInstalled": "{{n}} fitted",
+        "partSize": "Size",
+        "partGrade": "Grade",
+        "iconWishlist": "Wishlist",
+        "iconSupply": "Supplies",
+        "iconStock": "Stock",
+        "previewTitle": "Detail page preview",
+        "previewMaker": "Manufacturer",
+        "previewFitted": "Fitted to",
+        "previewBuy": "Where to buy",
+        "previewAlternatives": "Alternatives",
+        "previewOpen": "Open detail page",
+        "patchDiff": "Patch comparison",
+        "patchDiffHint": "Pick another patch in the patch menu above and this shows what changed on this ship."
       },
       "strip": {
         "einsatz": "Mission",
@@ -944,7 +965,8 @@
         "collapse": "Collapse strip",
         "presetTag": "preset",
         "minimize": "Minimise the strip",
-        "restore": "Show the whole strip"
+        "restore": "Show the whole strip",
+        "cohortRole": "{{n}} × {{role}}"
       },
       "patch": {
         "trigger": {
@@ -1307,11 +1329,30 @@
       "compare": {
         "label": "Compared with",
         "info": "Each axis runs from 0 (centre) to the best value among the chosen comparison ships (rim); the rings mark 33, 67 and 100 % of it. Blue is this ship, the dashed line is the median of the comparison ships. Blue strokes: better than the comparison, yellow: weaker.",
-        "axisDelta": "{{d}} points against the comparison"
+        "axisDelta": "{{d}} points against the comparison",
+        "infoHolo": "Each axis runs from 0 (centre) to the 95th percentile of the chosen group (rim). The median sits on the same scale, stronger values end at the rim."
       },
-      "class": { "combat": "Combat ship", "transport": "Freighter", "exploration": "Exploration ship", "resources": "Resource ship", "support": "Support ship", "multirole": "Multirole ship", "competition": "Racing ship" },
-      "classPlural": { "combat": "Combat ships", "transport": "Freighters", "exploration": "Exploration ships", "resources": "Resource ships", "support": "Support ships", "multirole": "Multirole ships", "competition": "Racing ships" },
-      "group": { "of": "All {{name}}" },
+      "class": {
+        "combat": "Combat ship",
+        "transport": "Freighter",
+        "exploration": "Exploration ship",
+        "resources": "Resource ship",
+        "support": "Support ship",
+        "multirole": "Multirole ship",
+        "competition": "Racing ship"
+      },
+      "classPlural": {
+        "combat": "Combat ships",
+        "transport": "Freighters",
+        "exploration": "Exploration ships",
+        "resources": "Resource ships",
+        "support": "Support ships",
+        "multirole": "Multirole ships",
+        "competition": "Racing ships"
+      },
+      "group": {
+        "of": "All {{name}}"
+      },
       "noMiningData": "Mining and salvage output: no data",
       "rimNote": "Outside = close to the group best (95 %). Stronger values end at the rim.",
       "betterThan": "Better than {{n}} %"
@@ -2273,7 +2314,10 @@
         "next": "Next slot",
         "close": "Clear selection",
         "emptySlot": "Free slot"
-      }
+      },
+      "allParts": "All parts",
+      "zoomHint": "Ctrl + wheel to zoom",
+      "swap": "Swap component"
     },
     "attachType": {
       "WeaponPersonal": "Personal weapon",
@@ -5536,16 +5580,40 @@
       "free": "No place",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to storage.",
-      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
-      "totals": { "title": "Total", "items": "items", "places": "places" },
-      "places": { "title": "Largest places" },
-      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
-      "cats": { "title": "Categories" },
-      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "actions": {
+        "browse": "Browse",
+        "find": "Where is …?",
+        "add": "Add"
+      },
+      "totals": {
+        "title": "Total",
+        "items": "items",
+        "places": "places"
+      },
+      "places": {
+        "title": "Largest places"
+      },
+      "stale": {
+        "title": "Stand older than 7 days",
+        "none": "All places are up to date."
+      },
+      "cats": {
+        "title": "Categories"
+      },
+      "cat": {
+        "materials": "Raw materials",
+        "weapons": "Weapons",
+        "armor": "Armor",
+        "other": "Other"
+      },
       "popup": {
         "title": "Stock",
         "modes": "What to do",
-        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "mode": {
+          "browse": "Browse",
+          "find": "Where is …?",
+          "add": "Add"
+        },
         "search": "Search stock",
         "searchHint": "Item or place",
         "filters": "Filters",
@@ -5553,7 +5621,11 @@
         "clearPlace": "Remove place filter",
         "place": "Place",
         "viewBy": "View by",
-        "view": { "place": "By place", "name": "By item", "qty": "By amount" },
+        "view": {
+          "place": "By place",
+          "name": "By item",
+          "qty": "By amount"
+        },
         "count": "{{n}} entries",
         "results": "Stock entries",
         "loading": "Loading …",
