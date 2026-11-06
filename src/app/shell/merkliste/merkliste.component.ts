@@ -3,6 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../../core/modified-click.util';
+import { supplyQtyText } from '../../hq/hq-supplies.service';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { PATH_ICONS } from '../../shared/item-path/path-icons';
@@ -74,7 +75,7 @@ type Tab = 'type' | 'nachschub';
                 @if (svc.supplyLines().length) {
                   <ul class="lines">
                     @for (l of svc.supplyLines(); track l.id) {
-                      <li><span class="ln">{{ l.name }}</span><b class="qty">×{{ l.qty }}</b></li>
+                      <li><span class="ln">{{ l.name }}</span><b class="qty">{{ l.amount !== null ? qtyText(l) : '×' + l.qty }}</b></li>
                     }
                   </ul>
                 } @else {
@@ -188,6 +189,7 @@ export class MerklisteComponent {
   protected readonly panelId = 'sc-merkliste-panel';
   protected readonly wishPath = PATH_ICONS.wish[0];
   protected readonly nachschubPaths = PATH_ICONS.nachschub;
+  protected readonly qtyText = supplyQtyText;
   protected readonly open = signal(false);
   protected readonly tab = signal<Tab>('type');
   protected readonly type = this.svc.type;

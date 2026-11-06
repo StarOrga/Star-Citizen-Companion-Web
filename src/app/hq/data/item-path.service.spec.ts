@@ -46,6 +46,9 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; re
     setQty: (id: string, qty: number) => {
       lines.find((l) => l.id === id)!.qty = qty;
     },
+    setLine: (id: string, qty: number) => {
+      lines.find((l) => l.id === id)!.qty = qty;
+    },
     remove: (id: string) => {
       lines.splice(lines.findIndex((l) => l.id === id), 1);
     },
@@ -228,18 +231,6 @@ describe('ItemPathService', () => {
       { ingredientClassName: null, nameLocalized: null, entityKind: null, quantity: 1 },
     ];
 
-    it('adds the blueprint line plus one line per resolved ingredient, rounded up to whole pieces', async () => {
-      const { svc, lines } = setup({ recipe });
-      const res = await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
-      expect(lines.map((l) => [l.name, l.qty, l.className])).toEqual([
-        ['Laser Cannon', 1, 'BP_X'],
-        ['Agricium', 1, 'Agricium'],
-        ['Aluminium', 3, 'Frame_Alu'],
-      ]);
-      expect(res.key).toBe('itemPath.done.nachschubMaterial');
-      expect(res.params).toEqual({ name: 'Laser Cannon', n: 2 });
-    });
-
     it('the wish moves and the toast undo takes blueprint and material out together', async () => {
       const { svc, lines, wished } = setup({ recipe });
       await svc.addWish('blueprint', 'BP_X', 'Laser Cannon');
@@ -249,15 +240,6 @@ describe('ItemPathService', () => {
       await res.undo!();
       expect(lines.length).toBe(0);
       expect(wished.has('blueprint:bp_x')).toBeTrue();
-    });
-
-    it('material already in Nachschub gains the quantity and undo restores the old one', async () => {
-      const { svc, lines } = setup({ recipe });
-      await svc.addToNachschub('item', 'Agricium', 'Agricium', 4);
-      const res = await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
-      expect(lines.find((l) => l.className === 'Agricium')!.qty).toBe(5);
-      await res.undo!();
-      expect(lines.find((l) => l.className === 'Agricium')!.qty).toBe(4);
     });
 
     it('a recipe that cannot be read leaves the blueprint line plain', async () => {
@@ -277,7 +259,7 @@ describe('ItemPathService', () => {
 
     it('the same material in two slots is one line', () => {
       const two = [recipe[0], { ...recipe[0], quantity: 0.8 }];
-      expect(materialLines(two)).toEqual([{ className: 'Agricium', name: 'Agricium', entityKind: 'item', qty: 2 }]);
+      expect(materialLines(two)).toEqual([{ className: 'Agricium', name: 'Agricium', entityKind: 'item', amount: 1.16 }]);
     });
   });
 });

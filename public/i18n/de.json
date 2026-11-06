@@ -924,7 +924,7 @@
         "partGrade": "Klasse",
         "iconWishlist": "Wunschliste",
         "iconSupply": "Nachschub",
-        "iconStock": "Bestand",
+        "iconStock": "Inventar",
         "previewTitle": "Vorschau der Detailseite",
         "previewMaker": "Hersteller",
         "fullscreenExit": "Vollbild schließen",
@@ -2532,6 +2532,10 @@
       "output": "Ausgabe",
       "qualitySummary": "Qualitätszusammenfassung",
       "qualityNote": "Statische Basisqualitätswerte — interaktive Qualitätssimulation folgt in einem späteren Update.",
+      "missions": "Einsätze für diesen Bauplan",
+      "missionsNote": "Diese Einsätze können den Bauplan als Belohnung geben.",
+      "missionsMore": "und {{count}} weitere",
+      "toMission": "Zum Einsatz",
       "primary": "Primär",
       "unitScu": "SCU"
     }
@@ -5397,6 +5401,7 @@
     "supply": {
       "ready": "liegt bereit",
       "forSet": "für Set {{name}}",
+      "forBlueprint": "für Blueprint {{name}}",
       "wanted": "Will ich holen",
       "wantedAria": "{{name}} als gewünscht markieren",
       "importTitle": "Liste aus diesem Browser übernehmen?",
@@ -7043,6 +7048,7 @@
       "nachschubMaterial": "„{{name}}“ ist im Nachschub, dazu {{n}} Material",
       "movedMaterial": "„{{name}}“ ist jetzt im Nachschub, dazu {{n}} Material, nicht mehr auf der Wunschliste",
       "nachschubOff": "„{{name}}“ ist nicht mehr im Nachschub",
+      "nachschubOffMaterial": "„{{name}}“ und {{n}} Material sind nicht mehr im Nachschub",
       "qty": "„{{name}}“: {{qty}} im Nachschub",
       "nachholen": "{{qty}} × „{{name}}“ wieder im Nachschub",
       "inventar": "„{{name}}“ liegt jetzt in {{where}}",
@@ -7113,6 +7119,7 @@
       "remove": "Entfernen",
       "viewWish": "Auf der Wunschliste ansehen ›",
       "viewNachschub": "Im Nachschub ansehen ›",
+      "toMission": "Zum Einsatz ›",
       "viewInventar": "Im Inventar ansehen ›",
       "viewHangar": "Im Hangar ansehen ›",
       "whereTitle": "Wo liegt es?",

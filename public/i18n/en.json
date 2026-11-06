@@ -924,7 +924,7 @@
         "partGrade": "Grade",
         "iconWishlist": "Wishlist",
         "iconSupply": "Supplies",
-        "iconStock": "Stock",
+        "iconStock": "Inventory",
         "previewTitle": "Detail page preview",
         "previewMaker": "Manufacturer",
         "fullscreenExit": "Close fullscreen",
@@ -2532,6 +2532,10 @@
       "output": "Output",
       "qualitySummary": "Quality summary",
       "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
+      "missions": "Missions for this blueprint",
+      "missionsNote": "These missions can award this blueprint.",
+      "missionsMore": "and {{count}} more",
+      "toMission": "To the mission",
       "primary": "Primary",
       "unitScu": "SCU"
     }
@@ -5397,6 +5401,7 @@
     "supply": {
       "ready": "ready",
       "forSet": "for set {{name}}",
+      "forBlueprint": "for blueprint {{name}}",
       "wanted": "Want to get",
       "wantedAria": "Mark {{name}} as wanted",
       "importTitle": "Add the list from this browser?",
@@ -7043,6 +7048,7 @@
       "nachschubMaterial": "\"{{name}}\" is in Supplies, plus {{n}} materials",
       "movedMaterial": "\"{{name}}\" moved from the wishlist to Supplies, plus {{n}} materials",
       "nachschubOff": "\"{{name}}\" is out of Supplies",
+      "nachschubOffMaterial": "\"{{name}}\" and {{n}} material are out of Supplies",
       "qty": "\"{{name}}\": {{qty}} in Supplies",
       "nachholen": "{{qty}} x \"{{name}}\" back in Supplies",
       "inventar": "\"{{name}}\" now lies in {{where}}",
@@ -7113,6 +7119,7 @@
       "remove": "Remove",
       "viewWish": "View on the wishlist ›",
       "viewNachschub": "View in Supplies ›",
+      "toMission": "To the mission ›",
       "viewInventar": "View in inventory ›",
       "viewHangar": "View in hangar ›",
       "whereTitle": "Where is it?",

@@ -18,7 +18,7 @@ import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service'
 import { HqLiveService } from '../now/hq-live.service';
 import { readLocation } from '../now/hq-live.util';
 import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
-import { HqSuppliesService } from '../hq-supplies.service';
+import { HqSuppliesService, supplyQtyText } from '../hq-supplies.service';
 import { HqEinsatzCrewComponent } from '../social/hq-einsatz-crew.component';
 import { HqFriendShareComponent } from '../social/hq-friend-share.component';
 import { HqSharedEinsaetzeComponent } from '../social/hq-shared-einsaetze.component';
@@ -42,6 +42,7 @@ import {
   toggleStepKind,
   top3Selection,
   visibleNeeds,
+  type PlanNeed,
 } from './hq-plan-selection';
 import { HqPlaceTreeComponent } from './hq-place-tree.component';
 import { HqSetRingsComponent } from './hq-set-rings.component';
@@ -166,7 +167,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
                     } @else {
                       {{ n.label }}
                     }
-                    <b class="mono qty"> ×{{ n.qty }}</b>
+                    <b class="mono qty"> {{ needQty(n) }}</b>
                   </span>
                   @if (n.setName) {
                     <span class="n-meta">{{ 'hq.supply.forSet' | translate: { name: n.setName } }}</span>
@@ -352,6 +353,11 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   ],
 })
 export class HqPlanComponent {
+  /** "×2", or the exact amount of a material line ("0,36 SCU"). */
+  protected needQty(n: PlanNeed): string {
+    return n.amount != null ? supplyQtyText({ qty: n.qty, amount: n.amount }) : `×${n.qty}`;
+  }
+
   protected readonly supplies = inject(HqSuppliesService);
   protected readonly einsatz = inject(HqEinsatzService);
   private readonly hangar = inject(HangarService);

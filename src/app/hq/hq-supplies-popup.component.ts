@@ -14,7 +14,7 @@ import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqOwnershipService } from './hq-ownership.service';
 import { WishNamesService } from '../codex/search/wish-names.service';
 import { humanizeClassName } from '../codex/codex-format';
-import { HqSuppliesService, SUPPLY_QTY_MAX, SupplyItem, setKey } from './hq-supplies.service';
+import { HqSuppliesService, SUPPLY_QTY_MAX, SupplyItem, lineAmount, setKey, supplyQtyText } from './hq-supplies.service';
 import { buildPlanSets } from './plan/hq-plan-needs';
 
 /**
@@ -87,6 +87,7 @@ import { buildPlanSets } from './plan/hq-plan-needs';
               </label>
               <span class="meta">
                 @if (setName(i); as sn) { <span class="set">{{ 'hq.supply.forSet' | translate: { name: sn } }}</span> }
+                @if (i.forClassName; as bp) { <span class="set">{{ 'hq.supply.forBlueprint' | translate: { name: blueprintName(bp) } }}</span> }
                 @if (i.stepKind) { <span class="chip">{{ 'hq.step.kind.' + i.stepKind | translate }}</span> }
                 @if (i.done) { <span class="chip ready">{{ 'hq.supply.ready' | translate }}</span> }
               </span>
@@ -99,7 +100,7 @@ import { buildPlanSets } from './plan/hq-plan-needs';
               <span class="stepper" role="group" [attr.aria-label]="'hq.supplies.qtyOf' | translate: { name: i.name }">
                 <button type="button" class="step" [disabled]="i.qty <= 1" [attr.aria-label]="'hq.supplies.less' | translate"
                         [scTooltip]="'hq.supplies.less' | translate" scTooltipTier="label" (click)="svc.setQty(i.id, i.qty - 1)">−</button>
-                <b class="n mono">{{ i.qty }}</b>
+                <b class="n mono">{{ qtyText(i) }}</b>
                 <button type="button" class="step" [disabled]="i.qty >= qtyMax" [attr.aria-label]="'hq.supplies.more' | translate"
                         [scTooltip]="'hq.supplies.more' | translate" scTooltipTier="label" (click)="svc.setQty(i.id, i.qty + 1)">+</button>
               </span>
@@ -264,13 +265,13 @@ export class HqSuppliesPopupComponent {
 
   protected async store(i: SupplyItem): Promise<void> {
     if (!i.className || !i.entityKind) return;
-    this.report(await this.path.moveToInventar(i.entityKind, i.className, i.name, this.place(), i.qty));
+    this.report(await this.path.moveToInventar(i.entityKind, i.className, i.name, this.place(), lineAmount(i), { lineId: i.id, unit: i.unit ?? 'pcs' }));
     this.gotId.set(null);
   }
 
   protected tickOnly(i: SupplyItem): void {
     if (!i.className) return;
-    this.report(this.path.tickOnly(i.className));
+    this.report(this.path.tickOnly(i.className, i.id));
     this.gotId.set(null);
   }
 
@@ -308,6 +309,11 @@ export class HqSuppliesPopupComponent {
   }
 
   protected readonly qtyMax = SUPPLY_QTY_MAX;
+  protected readonly qtyText = supplyQtyText;
+
+  protected blueprintName(className: string): string {
+    return this.wishNames.nameOf('blueprint', className) || humanizeClassName(className);
+  }
 
   /** The popup makes way for the search; the frame hands the focus back first, so the search asks after it. */
   protected searchItem(): void {

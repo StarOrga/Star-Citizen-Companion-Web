@@ -20,8 +20,10 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { formatQuantity } from '../../codex/codex-format';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ItemPathService, PLACE_BLUEPRINTS, PLACE_WITH_ME, type ItemPathState, type PathResult, type PathStep } from '../../hq/data/item-path.service';
+import type { StepKind } from '../step/sc-step.component';
 import { hqListLink, hqPage, hqShip, type HqPageLink } from '../../hq/hq-routes';
 import { placeLabel } from '../../hq/now/hq-live.util';
 import { ScActionDirective } from '../action/sc-action.directive';
@@ -34,6 +36,11 @@ import { SignInAskService } from './sign-in-ask.service';
 
 export type ItemPathLevel = 'tertiary' | 'secondary' | 'primary';
 type PopMode = PathStep | 'place' | 'error';
+
+/** What "Besorgt" stores: everything still open (exact for SCU), else one piece. */
+export function besorgtQty(s: ItemPathState): number {
+  return s.nachschubQty > 0 ? s.nachschubQty : 1;
+}
 
 /** A stop has something in it. Steps run in parallel, so several can be filled at once. */
 export function isFilled(s: ItemPathState, step: PathStep): boolean {
@@ -167,14 +174,17 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
               <div class="rp-h">
                 <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
                 <b>{{ 'itemPath.step.nachschub' | translate }}</b>
-                <span class="rp-q">{{ state().nachschubQty }}×</span>
+                <span class="rp-q">{{ state().nachschubUnit === 'scu' ? nachschubText() : state().nachschubQty + '×' }}</span>
                 <span class="sp"></span>
                 <span class="st">
                   <button type="button" [attr.aria-label]="'itemPath.pop.less' | translate" (click)="stepNachschub(-1)">−</button>
-                  <b>{{ state().nachschubQty }}</b>
+                  <b>{{ nachschubText() }}</b>
                   <button type="button" [attr.aria-label]="'itemPath.pop.more' | translate" (click)="stepNachschub(1)">+</button>
                 </span>
               </div>
+              @if (missionLink(); as to) {
+                <a class="alink to-mission" [routerLink]="to" (click)="onLink($event)">{{ 'itemPath.pop.toMission' | translate }}</a>
+              }
               <div class="rp-f">
                 <a class="alink" [routerLink]="links().nachschub.commands" [fragment]="links().nachschub.fragment" [queryParams]="links().nachschub.queryParams" (click)="onLink($event)">{{ 'itemPath.pop.viewNachschub' | translate }}</a>
                 <button type="button" class="txt quiet" (click)="removeOpen()">{{ 'itemPath.pop.remove' | translate }}</button>
@@ -375,6 +385,10 @@ export class ItemPathComponent implements OnDestroy {
   readonly level = input<ItemPathLevel>('tertiary');
   /** What the pill and the full form offer as next step; null follows the state. */
   readonly nextStep = input<PathStep | null>(null);
+  /** What a new Nachschub line of this item is: a blueprint with a known mission is a mission step. */
+  readonly stepKind = input<StepKind | null>(null);
+  /** Where that step is done; the Nachschub popover offers it as a real anchor. */
+  readonly missionLink = input<readonly string[] | null>(null);
   /** A plain click on a popover anchor is leaving: a floating host can close itself. */
   readonly leave = output<void>();
 
@@ -397,6 +411,11 @@ export class ItemPathComponent implements OnDestroy {
     return placeLabel(place, this.translate.getCurrentLang());
   }
   readonly state = computed(() => this.path.state(this.kind(), this.className(), this.name())());
+  /** The Nachschub quantity as the reader reads it: "0,36 SCU" for an exact amount, else the piece count. */
+  readonly nachschubText = computed(() => {
+    const s = this.state();
+    return s.nachschubUnit === 'scu' ? `${formatQuantity(s.nachschubQty)} SCU` : String(s.nachschubQty);
+  });
   readonly busy = signal<PathStep | null>(null);
   readonly mode = signal<PopMode | null>(null);
   readonly errorKey = signal('');
@@ -419,9 +438,9 @@ export class ItemPathComponent implements OnDestroy {
         on,
         cur: i === lastOn,
         linkOn: i <= lastOn,
-        count: on && qty ? (qty > 99 ? '99+' : String(qty)) : null,
+        count: on && qty ? (qty > 99 ? '99+' : step === 'nachschub' && s.nachschubUnit === 'scu' ? formatQuantity(qty) : String(qty)) : null,
         labelKey: `itemPath.node.${step}.${on ? 'on' : 'off'}`,
-        params: { qty },
+        params: { qty: step === 'nachschub' && s.nachschubUnit === 'scu' ? `${formatQuantity(qty)} SCU` : qty },
         popover: on || (step === 'inventar' && this.kind() !== 'blueprint'),
       };
     });
@@ -438,7 +457,7 @@ export class ItemPathComponent implements OnDestroy {
     const next = this.next();
     return s.steps.map((step) => {
       const on = isFilled(s, step);
-      return { step, on, next: step === next, textKey: this.stopText(s, step, on), params: { qty: s.nachschubQty, inv: s.inventarQty, places: s.places.length } };
+      return { step, on, next: step === next, textKey: this.stopText(s, step, on), params: { qty: this.nachschubText(), inv: s.inventarQty, places: s.places.length } };
     });
   });
 
@@ -524,10 +543,25 @@ export class ItemPathComponent implements OnDestroy {
     const s = this.state();
     switch (step) {
       case 'wish': return this.path.addWish(this.kind(), this.className(), this.name());
-      case 'nachschub': return this.path.addToNachschub(this.kind(), this.className(), this.label, 1);
+      case 'nachschub': {
+        const stepKind = this.stepKind();
+        return stepKind
+          ? this.path.addToNachschub(this.kind(), this.className(), this.label, 1, { stepKind })
+          : this.path.addToNachschub(this.kind(), this.className(), this.label, 1);
+      }
       case 'hangar': return this.path.addToHangar(this.className(), this.name());
-      case 'inventar': return this.path.moveToInventar(this.kind(), this.className(), this.label, PLACE_BLUEPRINTS, Math.max(1, s.nachschubQty));
+      case 'inventar': return this.path.moveToInventar(this.kind(), this.className(), this.label, PLACE_BLUEPRINTS, besorgtQty(s), { unit: s.nachschubUnit });
     }
+  }
+
+  /**
+   * A host's "Zum Einsatz" anchor: going to the mission puts the step on the list. The anchor
+   * navigates regardless, so nobody signed out is stopped by a sign-in question on the way.
+   */
+  async ensureNachschubStep(): Promise<void> {
+    const s = this.state();
+    if (!s.signedIn || isFilled(s, 'nachschub')) return;
+    this.report(await this.write('nachschub'), null);
   }
 
   // ── popover actions ────────────────────────────────────────────────────────
@@ -538,7 +572,7 @@ export class ItemPathComponent implements OnDestroy {
     if (!where) return;
     const at = this.anchor();
     this.closePop();
-    const res = await this.path.moveToInventar(this.kind(), this.className(), this.label, where, Math.max(1, this.state().nachschubQty));
+    const res = await this.path.moveToInventar(this.kind(), this.className(), this.label, where, besorgtQty(this.state()), { unit: this.state().nachschubUnit });
     this.report(res, at);
   }
 

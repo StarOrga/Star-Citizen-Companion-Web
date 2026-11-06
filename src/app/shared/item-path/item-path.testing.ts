@@ -10,6 +10,7 @@ export function pathState(kind: string, over: Partial<ItemPathState> = {}): Item
     className: 'cls',
     wished: false,
     nachschubQty: 0,
+    nachschubUnit: null,
     inventarQty: 0,
     places: [],
     inHangar: false,

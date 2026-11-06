@@ -1,7 +1,7 @@
 import { Injectable, Injector, Signal, computed, inject, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { CodexService } from '../../codex/codex.service';
-import { cleanLocaleValue, humanizeClassName } from '../../codex/codex-format';
+import { cleanLocaleValue, formatQuantity, humanizeClassName } from '../../codex/codex-format';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
@@ -9,7 +9,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { isGameLive, readLocation } from '../now/hq-live.util';
-import { HqSuppliesService } from '../hq-supplies.service';
+import { AddedLine, HqSuppliesService, SupplyItem, SupplyUnit, lineAmount, roundAmount } from '../hq-supplies.service';
 import type { StepKind } from '../../shared/step/sc-step.component';
 import { parseStockRef } from '../stock/hq-stock-ref';
 import { HqInventoryService } from './hq-inventory.service';
@@ -53,8 +53,13 @@ import { HqInventoryService } from './hq-inventory.service';
  *
  * Blueprints (A9): all three stops. Inventar = "collected", stored as a stock row at
  * PLACE_BLUEPRINTS. Nachschub = the blueprint line PLUS its material: every ingredient with a class
- * name becomes a line of its own (`hq_supplies` has no material column; the ingredient's class name
- * makes the line findable like any item). The blueprint line itself stays plain: no table links a
+ * name becomes a line of its own, with the EXACT SCU amount (`hq_supplies.amount` + `unit`, 0.36 stays
+ * 0.36) and `for_class_name` = the blueprint. That link is the whole rule of removal: taking the
+ * blueprint out of Nachschub takes the lines that point at it along; a line added on its own, or for
+ * another blueprint, has another link (or none) and stays. Undo brings every line back. The same
+ * material from two blueprints is two lines (each removable on its own); `nachschubQty` of the
+ * material adds them up. `qty` of an amount line counts portions (one blueprint's worth = the step of
+ * the -/+ buttons). The blueprint line itself stays plain: no table links a
  * blueprint to the mission that awards it (`missionSource` is always null in the extractor, R5), so
  * nobody passes `opts.stepKind = 'mission'` yet; the option stays for the day that data exists.
  */
@@ -75,7 +80,10 @@ export interface ItemPathState {
   kind: string;
   className: string;
   wished: boolean;
+  /** Open lines of the class added up: pieces, or SCU when `nachschubUnit` is 'scu'. */
   nachschubQty: number;
+  /** 'scu' when the open lines count an exact SCU amount (a blueprint's material), else null = pieces. */
+  nachschubUnit: SupplyUnit | null;
   inventarQty: number;
   places: readonly PathPlace[];
   inHangar: boolean;
@@ -95,6 +103,12 @@ export interface PathResult {
   undo?: () => Promise<PathResult>;
 }
 
+/** `moveToInventar`: which line closes, and the unit of the quantity (default: the line's own). */
+export interface MoveOpts {
+  lineId?: string;
+  unit?: 'pcs' | 'scu' | null;
+}
+
 export interface NachschubOpts {
   stepKind?: StepKind | null;
 }
@@ -104,13 +118,13 @@ export interface MaterialLine {
   className: string;
   name: string;
   entityKind: string | null;
-  /** Whole pieces: the recipe counts SCU (0.36), `hq_supplies.qty` is an integer >= 1. */
-  qty: number;
+  /** The recipe's exact SCU (0.36); null when the recipe gives none (the line is then 1 piece). */
+  amount: number | null;
 }
 
 /**
  * The ingredients of a recipe as Nachschub lines: unresolved slots (no class name) are skipped,
- * the same material in two slots is one line, amounts round up to whole pieces (at least 1).
+ * the same material in two slots is one line with the amounts added up, exact (never rounded up).
  */
 export function materialLines(
   ingredients: readonly { ingredientClassName: string | null; nameLocalized: string | null; entityKind: string | null; quantity: number }[],
@@ -127,7 +141,7 @@ export function materialLines(
       name: have?.name ?? (cleanLocaleValue(ing.nameLocalized) || humanizeClassName(cls)),
       // A material the catalog cannot place is stocked like an item, so its line can be fetched and stored too.
       entityKind: have?.entityKind ?? ing.entityKind ?? 'item',
-      qty: Math.max(1, Math.ceil(scu - 1e-9)),
+      amount: scu > 0 ? roundAmount(scu) : null,
       scu,
     });
   }
@@ -205,6 +219,7 @@ export class ItemPathService {
     const ship = kind === 'ship' ? this.hangar.shipByClassName(className) : null;
     let places: PathPlace[] = [];
     let nachschubQty = 0;
+    let nachschubUnit: SupplyUnit | null = null;
     if (kind !== 'upcoming') {
       for (const i of this.inventory.items()) {
         // Manual entries store `<kind>:<Class>` (hq-stock-ref); the path counts them like a bare class name.
@@ -214,7 +229,10 @@ export class ItemPathService {
         if (have) have.qty += q;
         else places.push({ location: i.location, qty: q });
       }
-      nachschubQty = this.supplies.openLinesFor(className).reduce((n, l) => n + l.qty, 0);
+      const lines = this.supplies.openLinesFor(className);
+      nachschubUnit = lines[0]?.unit ?? null;
+      // Lines of the other kind of quantity (pieces vs SCU) are not added to the first one's.
+      nachschubQty = roundAmount(lines.filter((l) => l.unit === nachschubUnit).reduce((n, l) => n + lineAmount(l), 0));
     }
     if (!places.length) places = NO_PLACES as PathPlace[];
     return {
@@ -222,6 +240,7 @@ export class ItemPathService {
       className,
       wished: this.wishlist.has(kind, className, name),
       nachschubQty,
+      nachschubUnit,
       inventarQty: places.reduce((n, p) => n + p.qty, 0),
       places,
       inHangar: ship?.status === 'owned',
@@ -268,13 +287,20 @@ export class ItemPathService {
     const wasWished = this.wishlist.has(kind, className, name);
     const line = this.supplies.addLine(name, qty, { entityKind: kind, className, stepKind: opts.stepKind ?? null, source: 'search' });
     if (!line) return fail('itemPath.err.listFull');
-    const added: { id: string; prevQty: number }[] = [line];
+    const added: AddedLine[] = [line];
     for (const m of materials) {
-      const l = this.supplies.addLine(m.name, m.qty, { entityKind: m.entityKind, className: m.className, source: 'search' });
+      // One portion per blueprint asked for; the amount is that many recipes' worth, exact.
+      const l = this.supplies.addLine(m.name, qty, {
+        entityKind: m.entityKind,
+        className: m.className,
+        source: 'search',
+        forClassName: className,
+        ...(m.amount !== null ? { amount: m.amount * qty, unit: 'scu' as const } : {}),
+      });
       if (l) added.push(l);
     }
     const revertAll = (): void => {
-      for (const l of added) this.revertLine(l.id, l.prevQty);
+      for (const l of added) this.revertLine(l);
     };
     if (wasWished) {
       let removed: boolean;
@@ -313,20 +339,24 @@ export class ItemPathService {
     }
   }
 
+  /** `qty` is the line's own count: pieces, or portions on an SCU line (its amount follows). */
   setNachschubQty(kind: string, className: string, qty: number): PathResult {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
+    // A blueprint that goes takes its material along, like "Entfernen".
+    if (qty <= 0 && kind === 'blueprint') return this.removeFromNachschub(kind, className);
     const line = this.supplies.openLinesFor(className)[0];
     if (!line) return fail('itemPath.err.noLine');
-    const before = line.qty;
+    const before = { qty: line.qty, amount: line.amount };
     if (qty <= 0) this.supplies.remove(line.id);
     else this.supplies.setQty(line.id, qty);
+    const now = this.supplies.items().find((i) => i.id === line.id);
     return {
       ok: true,
       key: qty <= 0 ? 'itemPath.done.nachschubOff' : 'itemPath.done.qty',
-      params: { name: line.name, qty },
+      params: { name: line.name, qty: now && now.amount !== null ? `${formatQuantity(now.amount)} SCU` : qty },
       undo: async () => {
-        if (qty <= 0) this.supplies.add(line.name, before, { entityKind: kind, className });
-        else this.supplies.setQty(line.id, before);
+        if (qty <= 0) this.supplies.restore(line.id);
+        else this.supplies.setLine(line.id, before.qty, before.amount);
         return { ok: true, key: 'itemPath.done.undone', params: { name: line.name } };
       },
     };
@@ -338,36 +368,46 @@ export class ItemPathService {
     return this.setNachschubQty(kind, className, (line?.qty ?? 0) + delta);
   }
 
-  /** "Entfernen": all open lines of the class leave Nachschub. */
+  /**
+   * "Entfernen": all open lines of the class leave Nachschub. A blueprint also takes the material lines
+   * that were added for it (`forClassName`); lines added on their own or for another blueprint stay.
+   * Undo restores every line exactly as it was.
+   */
   removeFromNachschub(kind: string, className: string): PathResult {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
-    const lines = this.supplies.openLinesFor(className).map((l) => ({ id: l.id, name: l.name, qty: l.qty }));
+    const own = this.supplies.openLinesFor(className);
+    const material = kind === 'blueprint' ? this.supplies.openLinesForBlueprint(className).filter((m) => !own.some((o) => o.id === m.id)) : [];
+    const lines: SupplyItem[] = [...own, ...material];
     if (!lines.length) return fail('itemPath.err.noLine');
     for (const l of lines) this.supplies.remove(l.id);
-    const name = lines[0].name;
+    const name = own[0]?.name ?? lines[0].name;
     return {
       ok: true,
-      key: 'itemPath.done.nachschubOff',
-      params: { name },
+      key: material.length ? 'itemPath.done.nachschubOffMaterial' : 'itemPath.done.nachschubOff',
+      params: { name, n: material.length },
       undo: async () => {
-        for (const l of lines) this.supplies.add(l.name, l.qty, { entityKind: kind, className });
+        for (const l of lines) this.supplies.restore(l.id);
         return { ok: true, key: 'itemPath.done.undone', params: { name } };
       },
     };
   }
 
   /** Inventar row "Nachholen" (A7): +qty in Nachschub, the stock stays as it is. */
-  nachholen(kind: string, className: string, name: string, qty = 1): PathResult {
+  nachholen(kind: string, className: string, name: string, qty = 1, unit: 'pcs' | 'scu' = 'pcs'): PathResult {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
     if (!stepsOf(kind).includes('nachschub')) return fail('itemPath.err.unavailable');
-    const line = this.supplies.addLine(name, qty, { entityKind: kind, className, source: 'search' });
+    // SCU stock comes back as the same exact amount, never as pieces.
+    const exact = unit === 'scu' && qty > 0;
+    const line = exact
+      ? this.supplies.addLine(name, 1, { entityKind: kind, className, source: 'search', amount: qty, unit: 'scu' })
+      : this.supplies.addLine(name, qty, { entityKind: kind, className, source: 'search' });
     if (!line) return fail('itemPath.err.listFull');
     return {
       ok: true,
       key: 'itemPath.done.nachholen',
-      params: { name, qty },
+      params: { name, qty: exact ? `${formatQuantity(qty)} SCU` : qty },
       undo: async () => {
-        this.revertLine(line.id, line.prevQty);
+        this.revertLine(line);
         return { ok: true, key: 'itemPath.done.undone', params: { name } };
       },
     };
@@ -380,20 +420,26 @@ export class ItemPathService {
    * shrinks by `qty`). Also the inline add of an empty Inventar node: without a line only the
    * stock is written. Blueprints are collected, not counted: one row at PLACE_BLUEPRINTS.
    */
-  async moveToInventar(kind: string, className: string, name: string, place: string, qty = 1): Promise<PathResult> {
+  async moveToInventar(kind: string, className: string, name: string, place: string, qty = 1, opts: MoveOpts = {}): Promise<PathResult> {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
     if (!stepsOf(kind).includes('inventar')) return fail('itemPath.err.unavailable');
     const where = (kind === 'blueprint' ? PLACE_BLUEPRINTS : place.trim()) || this.currentPlaceDefault();
-    const n = Math.max(1, Math.round(qty));
+    const open = this.supplies.openLinesFor(className);
+    const line = (opts.lineId ? open.find((l) => l.id === opts.lineId) : undefined) ?? open[0];
+    // An SCU amount lands in Inventar as SCU (the row's unit), exact; pieces stay whole numbers.
+    const scu = (opts.unit ?? line?.unit) === 'scu';
+    const n = scu ? roundAmount(Math.max(qty, 0)) : Math.max(1, Math.round(qty));
+    if (n <= 0) return fail('itemPath.err.failed');
     try {
-      if (!(await this.inventory.addStock(where, name, n, 'pcs', className))) return fail(this.inventory.error() ?? 'itemPath.err.failed');
+      if (!(await this.inventory.addStock(where, name, n, scu ? 'scu' : 'pcs', className))) return fail(this.inventory.error() ?? 'itemPath.err.failed');
     } catch (err) {
       return fail(toErrorKey('itemPath', 'moveToInventar', err));
     }
-    const line = this.supplies.openLinesFor(className)[0];
-    const lineBefore = line ? { id: line.id, qty: line.qty } : null;
+    const lineBefore = line ? { id: line.id, qty: line.qty, amount: line.amount } : null;
     if (line) {
-      if (n >= line.qty) this.supplies.setDone(line.id, true);
+      const have = lineAmount(line);
+      if (n >= have - 1e-9) this.supplies.setDone(line.id, true);
+      else if (line.amount !== null) this.supplies.setLine(line.id, Math.max(1, Math.round((line.qty * (have - n)) / have)), roundAmount(have - n));
       else this.supplies.setQty(line.id, line.qty - n);
     }
     return {
@@ -404,7 +450,7 @@ export class ItemPathService {
         const removed = await this.inventory.removeStock(where, name, n, className);
         if (lineBefore) {
           this.supplies.setDone(lineBefore.id, false);
-          this.supplies.setQty(lineBefore.id, lineBefore.qty);
+          this.supplies.setLine(lineBefore.id, lineBefore.qty, lineBefore.amount);
         }
         return removed ? { ok: true, key: 'itemPath.done.undone', params: { name } } : fail('itemPath.err.failed');
       },
@@ -455,9 +501,10 @@ export class ItemPathService {
   }
 
   /** "Nur abhaken": the line is done, Inventar untouched. */
-  tickOnly(className: string): PathResult {
+  tickOnly(className: string, lineId?: string): PathResult {
     if (!this.auth.user()) return fail('itemPath.needSignIn');
-    const line = this.supplies.openLinesFor(className)[0];
+    const open = this.supplies.openLinesFor(className);
+    const line = (lineId ? open.find((l) => l.id === lineId) : undefined) ?? open[0];
     if (!line) return fail('itemPath.err.noLine');
     this.supplies.setDone(line.id, true);
     return {
@@ -514,9 +561,9 @@ export class ItemPathService {
     return { ok: true, key: 'itemPath.done.hangarOff', params: { name: name ?? className } };
   }
 
-  private revertLine(id: string, prevQty: number): void {
-    if (prevQty <= 0) this.supplies.remove(id);
-    else this.supplies.setQty(id, prevQty);
+  private revertLine(l: AddedLine): void {
+    if (l.prevQty <= 0) this.supplies.remove(l.id);
+    else this.supplies.setLine(l.id, l.prevQty, l.prevAmount);
   }
 }
 
