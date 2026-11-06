@@ -99,6 +99,8 @@ import {
   itemGroupQuery,
 } from './codex-area-taxonomy';
 import { CodexPrefsService } from './codex-prefs.service';
+import { BuyOption, UexShopService } from './uex-shop.service';
+import { HqSuppliesService } from '../hq/hq-supplies.service';
 
 /**
  * A row of the list: a list row after variant folding, livery grouping (FPS
@@ -316,6 +318,14 @@ export function blueprintCategoriesForGroup(
                           <span class="meta">
                             @if (rowMeta(r); as m) { <span>{{ m }}</span> }
                             @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                            @if (kind() === 'ship') {
+                              @if (shipOffers().get(r.classNameSlug); as offers) {
+                                <span class="price">
+                                  {{ 'codex.buy.from' | translate: { price: auec(offers[0].price) } }} ·
+                                  {{ (offers.length === 1 ? 'codex.buy.placeOne' : 'codex.buy.places') | translate: { count: offers.length } }}
+                                </span>
+                              }
+                            }
                           </span>
                         </span>
                         <span class="spec">
@@ -342,14 +352,68 @@ export function blueprintCategoriesForGroup(
                                     [scTooltip]="'codex.card.addToHangar' | translate" scTooltipTier="label">+</button>
                           }
                         }
+                        @if (buyable()) {
+                          <button type="button" class="act shop" [class.pinned]="buyOpen() === r.classNameSlug"
+                                  [attr.aria-expanded]="buyOpen() === r.classNameSlug"
+                                  [attr.aria-controls]="'buy-' + r.classNameSlug"
+                                  (click)="toggleBuy(r)"
+                                  [attr.aria-label]="'codex.buy.open' | translate"
+                                  [scTooltip]="'codex.buy.open' | translate" scTooltipTier="label">
+                            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              <path d="M3 4h2.5l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L21 8H6.4" />
+                              <circle cx="10" cy="19.5" r="1.4" /><circle cx="17" cy="19.5" r="1.4" />
+                            </svg>
+                          </button>
+                        }
+                        <!-- Compare (was a star — a star reads as "favourite"): two arrows, both ways. -->
                         <button type="button" class="act pin"
                                 [class.pinned]="isPinned(r.classNameSlug)"
                                 [attr.aria-pressed]="isPinned(r.classNameSlug)"
                                 (click)="togglePin(r.classNameSlug)"
                                 [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                                 [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                                scTooltipTier="label">{{ isPinned(r.classNameSlug) ? '★' : '☆' }}</button>
+                                scTooltipTier="label">
+                          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M4 8h13M14 4.5L17.5 8 14 11.5M20 16H7M10 12.5L6.5 16l3.5 3.5" />
+                          </svg>
+                        </button>
                       </span>
+                      @if (buyOpen() === r.classNameSlug) {
+                        <div class="buy" [id]="'buy-' + r.classNameSlug" role="region"
+                             [attr.aria-label]="'codex.buy.title' | translate: { name: cardName(r) }"
+                             (keydown.escape)="closeBuy(r.classNameSlug)">
+                          @if (buyOffers().get(r.classNameSlug); as offers) {
+                            @if (offers.length) {
+                              <ul class="offers" role="list">
+                                @for (o of offers; track $index) {
+                                  <li class="offer">
+                                    <span class="o-where">
+                                      <strong>{{ o.place || o.location }}</strong>
+                                      <span class="o-sub">{{ o.terminal }}@if (o.system) { · {{ o.system }} }</span>
+                                    </span>
+                                    <span class="o-price">{{ 'codex.buy.price' | translate: { price: auec(o.price) } }}</span>
+                                  </li>
+                                }
+                              </ul>
+                            } @else {
+                              <p class="buy-note">{{ 'codex.buy.none' | translate }}</p>
+                            }
+                          } @else {
+                            <p class="buy-note" role="status">{{ 'codex.buy.loading' | translate }}</p>
+                          }
+                          <div class="buy-acts">
+                            @if (inSupplies(r.classNameSlug)) {
+                              <span class="in-sup" role="status">✓ {{ 'codex.buy.inSupplies' | translate }}</span>
+                            } @else {
+                              <button type="button" class="to-sup" (click)="addToSupplies(r)">{{ 'codex.buy.toSupplies' | translate }}</button>
+                            }
+                            <a class="to-plan" routerLink="/hq" fragment="planen">{{ 'codex.buy.openPlan' | translate }}</a>
+                            @if (supplyFailed() === r.classNameSlug) {
+                              <span class="sup-err" role="alert">{{ 'codex.buy.suppliesFull' | translate }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
                       @if (addFailed() === r.classNameSlug) {
                         <p class="row-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
                       }
@@ -573,7 +637,7 @@ export function blueprintCategoriesForGroup(
     .sort { min-width: 180px; margin-left: auto; }
     .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .rows { list-style: none; margin: 0; padding: 0; }
-    .row { position: relative; display: flex; align-items: center; border-bottom: 1px solid var(--sc-border); }
+    .row { position: relative; display: flex; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--sc-border); }
     .row:last-child { border-bottom: 0; }
     .row.skel { height: 56px; }
     .row-link {
@@ -610,6 +674,32 @@ export function blueprintCategoriesForGroup(
     .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .act.pinned, .hangar-chip { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .act:disabled { opacity: .5; cursor: default; }
+    .act .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .act.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
+    .price { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    /* Package D: where to buy, inline under the row (never a floating layer over the list). */
+    .buy {
+      flex: 1 0 100%; display: flex; flex-direction: column; gap: 10px;
+      padding: 10px 14px 14px 84px; border-top: 1px dashed var(--sc-border);
+      background: color-mix(in srgb, var(--sc-accent) 4%, transparent);
+    }
+    .offers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .offer { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .o-where { display: flex; flex-direction: column; min-width: 0; }
+    .o-where strong { color: var(--sc-fg-0); font-weight: 600; overflow-wrap: anywhere; }
+    .o-sub { font-size: 12px; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .o-price { color: var(--sc-fg-0); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .buy-note { margin: 0; font-size: 13px; color: var(--sc-fg-2); }
+    .buy-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .to-sup {
+      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 4px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;
+      border: 1px solid var(--sc-accent); background: transparent; color: var(--sc-accent);
+    }
+    .to-sup:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    .to-sup:focus-visible, .to-plan:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .to-plan { font-size: 13px; color: var(--sc-accent); }
+    .in-sup { font-size: 13px; color: var(--sc-accent); }
+    .sup-err { font-size: 12px; color: var(--sc-danger); }
     .row-err { position: absolute; right: 14px; bottom: 2px; margin: 0; font-size: 11px; color: var(--sc-danger); }
     .more-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--sc-border); }
     .showing { font-size: 12px; color: var(--sc-fg-2); }
@@ -649,6 +739,7 @@ export function blueprintCategoriesForGroup(
       .acts { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
+      .buy { padding-left: 14px; }
       .filter-fab {
         display: inline-flex; align-items: center; justify-content: center;
         position: fixed; z-index: 30; left: var(--sc-space-3, 12px); right: var(--sc-fab-clear-inline);
@@ -1222,6 +1313,27 @@ export class CodexBrowseComponent implements OnInit {
   private areaCountsBuild = '';
   /** Ship manufacturers for the "Hersteller" sub list. */
   private readonly shipMakers = signal<readonly { code: string; label: string }[]>([]);
+  private readonly uex = inject(UexShopService);
+  private readonly supplies = inject(HqSuppliesService);
+  /** Package D: in-game offers per ship row (cheapest first), from one shared UEX price table. */
+  readonly shipOffers = signal<ReadonlyMap<string, BuyOption[]>>(new Map());
+  private readonly shipOffersAsked = new Set<string>();
+  /** The row whose "where to buy" panel is open. */
+  readonly buyOpen = signal<string | null>(null);
+  /** Offers per row for the open panel (ships reuse `shipOffers`); absent = loading. */
+  private readonly entityOffers = signal<ReadonlyMap<string, BuyOption[]>>(new Map());
+  readonly supplyFailed = signal<string | null>(null);
+  /** Rows of these kinds can be bought in game (UEX). */
+  readonly buyable = computed(() => ['ship', 'weapon', 'component', 'item', 'ammunition'].includes(this.kind()));
+  readonly buyOffers = computed(() => (this.kind() === 'ship' ? this.shipOffersOrEmpty() : this.entityOffers()));
+  /** Ship offers with an explicit [] for a ship UEX does not sell, so the panel can say so. */
+  private readonly shipOffersOrEmpty = computed(() => {
+    const out = new Map(this.shipOffers());
+    for (const slug of this.shipOffersDone()) if (!out.has(slug)) out.set(slug, []);
+    return out;
+  });
+  private readonly shipOffersDone = signal<ReadonlySet<string>>(new Set());
+  private readonly auecFormat = computed(() => new Intl.NumberFormat(this.dataLang() === 'de' ? 'de-DE' : 'en-US', { maximumFractionDigits: 0 }));
   /** Ship-only facet (package B): RSI role, '' = all roles. */
   readonly shipRole = signal<ShipRole | ''>('');
   /** Ship-only facet (package B): crew band, '' = any crew. */
@@ -1627,6 +1739,12 @@ export class CodexBrowseComponent implements OnInit {
         else this.onSearchInput(term);
       }),
     );
+    // Package D: in-game prices for the ship rows on screen.
+    effect(() => {
+      const rows = this.rows();
+      if (this.kind() !== 'ship') return;
+      untracked(() => void this.loadShipOffers(rows));
+    });
     // Package C: the tree's finer counts for the open part of the tree.
     effect(() => {
       const category = this.category();
@@ -2198,6 +2316,64 @@ export class CodexBrowseComponent implements OnInit {
       limit: PAGE_SIZE,
       offset: this.offset,
     };
+  }
+
+  /** An aUEC amount in the reader's number format (no currency word; the template adds "aUEC"). */
+  auec(n: number): string {
+    return this.auecFormat().format(n);
+  }
+
+  /** Offers for the ship rows on screen: one shared UEX table, matched per row (package D). */
+  private async loadShipOffers(rows: readonly CodexGridRow[]): Promise<void> {
+    const todo = rows.filter((r) => !this.shipOffersAsked.has(r.classNameSlug));
+    if (!todo.length) return;
+    for (const r of todo) this.shipOffersAsked.add(r.classNameSlug);
+    const results = await Promise.all(
+      todo.map(async (r) => [r.classNameSlug, await this.uex.shipOffers({ guid: r.guid ?? null, name: r.nameLocalized ?? this.cardName(r) })] as const),
+    );
+    this.shipOffers.update((m) => {
+      const next = new Map(m);
+      for (const [slug, offers] of results) if (offers.length) next.set(slug, offers);
+      return next;
+    });
+    this.shipOffersDone.update((done) => new Set([...done, ...results.map(([slug]) => slug)]));
+  }
+
+  /** Open/close a row's "where to buy" panel; non-ship rows fetch their offers on first open. */
+  toggleBuy(r: CodexGridRow): void {
+    const slug = r.classNameSlug;
+    this.supplyFailed.set(null);
+    if (this.buyOpen() === slug) {
+      this.buyOpen.set(null);
+      return;
+    }
+    this.buyOpen.set(slug);
+    if (this.kind() === 'ship' || this.entityOffers().has(slug)) return;
+    const kind = this.kind();
+    void this.uex.whereToBuyEntity(kind, r.nameLocalized ?? this.cardName(r)).then((offers) =>
+      this.entityOffers.update((m) => new Map(m).set(slug, offers)),
+    );
+  }
+
+  closeBuy(slug: string): void {
+    if (this.buyOpen() === slug) this.buyOpen.set(null);
+  }
+
+  /** Already an open line in the HQ Nachschub. */
+  inSupplies(slug: string): boolean {
+    const key = slug.toLowerCase();
+    return this.supplies.items().some((i) => !i.done && (i.className ?? '').toLowerCase() === key);
+  }
+
+  /** "Zum Nachschub": one line in the HQ supplies, where the plan shows the buy locations. */
+  addToSupplies(r: CodexGridRow): void {
+    const ok = this.supplies.add(this.cardName(r), 1, {
+      entityKind: this.kind(),
+      className: r.classNameSlug,
+      stepKind: 'buy',
+      source: 'search',
+    });
+    this.supplyFailed.set(ok ? null : r.classNameSlug);
   }
 
   /** The item group the list may show: the hidden bucket only while the setting shows it. */

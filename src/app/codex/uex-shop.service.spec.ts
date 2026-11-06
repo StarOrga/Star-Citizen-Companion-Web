@@ -107,4 +107,31 @@ describe('UexShopService', () => {
     expect(result.length).toBe(1);
     expect(result[0].price).toBe(1200);
   });
+  it('package D: reads every ship price in ONE request and answers each ship from it', async () => {
+    const vehicles = [
+      { id: 1, name: 'Gladius', name_full: 'Aegis Gladius', uuid: null },
+      { id: 2, name: 'Arrow', name_full: 'Anvil Arrow', uuid: null },
+    ];
+    const a = svc.shipOffers({ name: 'Aegis Gladius' });
+    await tick();
+    await flushEnvelope((u) => /resource=vehicles(&|$)/.test(u), vehicles);
+    await flushEnvelope((u) => u.includes('resource=vehicles_purchases_prices'), [
+      { id_vehicle: 1, id_terminal: 5, price_buy: 1100, price_buy_avg: null },
+      { id_vehicle: 2, id_terminal: 5, price_buy: 900, price_buy_avg: null },
+      { id_vehicle: 1, id_terminal: 5, price_buy: 1000, price_buy_avg: null },
+    ]);
+    await flushEnvelope((u) => u.includes('resource=terminals'), [
+      { id: 5, name: 'NDS', fullname: 'New Deal', nickname: null, id_star_system: 1, id_planet: null, id_city: null, id_space_station: null },
+    ]);
+    await flushEnvelope((u) => u.includes('resource=star_systems'), [{ id: 1, name: 'Stanton' }]);
+    await flushEnvelope((u) => u.includes('resource=planets'), []);
+    await flushEnvelope((u) => u.includes('resource=cities'), []);
+    await flushEnvelope((u) => u.includes('resource=space_stations'), []);
+    expect((await a).map((o) => o.price)).toEqual([1000, 1100]);
+
+    const b = await svc.shipOffers({ name: 'Anvil Arrow' });
+    http.expectNone((r) => r.url.includes('vehicles_purchases_prices'));
+    expect(b.map((o) => o.price)).toEqual([900]);
+    expect(b[0].terminal).toBe('New Deal');
+  });
 });

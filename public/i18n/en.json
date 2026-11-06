@@ -673,6 +673,20 @@
       "role": "Role",
       "crew": "Crew"
     },
+    "buy": {
+      "open": "Where to buy in game",
+      "title": "Where to buy {{name}}",
+      "loading": "Loading shops …",
+      "none": "No in-game shop known.",
+      "from": "from {{price}} aUEC",
+      "placeOne": "1 place",
+      "places": "{{count}} places",
+      "price": "{{price}} aUEC",
+      "toSupplies": "Add to supplies",
+      "inSupplies": "In supplies",
+      "openPlan": "Open the plan",
+      "suppliesFull": "Not added — the supplies list is full (100 entries)."
+    },
     "itemGroup": {
       "food": "Food & drinks",
       "clothing": "Clothing & accessories",
@@ -1566,7 +1580,7 @@
     },
     "compare": {
       "pin": "Compare",
-      "pinned": "Pinned",
+      "pinned": "In comparison",
       "tray": "Compare ({{count}})",
       "open": "Open comparison",
       "clear": "Clear",

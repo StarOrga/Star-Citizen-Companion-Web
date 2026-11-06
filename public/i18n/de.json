@@ -673,6 +673,20 @@
       "role": "Rolle",
       "crew": "Crew"
     },
+    "buy": {
+      "open": "Kauforte im Spiel",
+      "title": "Kauforte für {{name}}",
+      "loading": "Kauforte werden geladen …",
+      "none": "Kein Kaufort im Spiel bekannt.",
+      "from": "ab {{price}} aUEC",
+      "placeOne": "1 Ort",
+      "places": "{{count}} Orte",
+      "price": "{{price}} aUEC",
+      "toSupplies": "Zum Nachschub",
+      "inSupplies": "Im Nachschub",
+      "openPlan": "Im Plan ansehen",
+      "suppliesFull": "Nicht hinzugefügt — der Nachschub ist voll (100 Einträge)."
+    },
     "itemGroup": {
       "food": "Lebensmittel & Getränke",
       "clothing": "Kleidung & Accessoires",
@@ -1566,7 +1580,7 @@
     },
     "compare": {
       "pin": "Vergleichen",
-      "pinned": "Angepinnt",
+      "pinned": "Im Vergleich",
       "tray": "Vergleich ({{count}})",
       "open": "Vergleich öffnen",
       "clear": "Leeren",

@@ -124,6 +124,8 @@ export const CODEX_KINDS: readonly CodexKind[] = [
 // `payload` carries the heterogeneous per-kind JSON (typed in codex.types).
 export interface CodexListRow {
   classNameSlug: string;
+  /** Game GUID (ship rows) — matches the ship in the UEX price table. */
+  guid?: string | null;
   nameLocalized: string | null;
   manufacturerCode: string | null;
   // promoted facet columns (present depending on kind)
@@ -482,7 +484,7 @@ function batchLocaleKeys(keys: string[]): string[][] {
 
 // Columns selected per kind for the list view. Keep payload last.
 const LIST_SELECT: Record<CodexKind, string> = {
-  ship: 'class_name, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
+  ship: 'class_name, guid, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
   // `attach_type` rides along for weapons because it is the field the ship-side
   // browse taxonomy cuts its sub-categories from (codex-weapon-taxonomy).
   weapon:
@@ -2401,6 +2403,7 @@ export class CodexService {
     return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
       kind: r['kind'] as CodexKind,
       classNameSlug: r['class_name'] as string,
+    ...('guid' in r ? { guid: (r['guid'] as string | null) ?? null } : {}),
       nameLocalized: (r['name_localized'] as string | null) ?? null,
       manufacturerCode: (r['manufacturer_code'] as string | null) ?? null,
       size: (r['size'] as number | null) ?? null,

@@ -11,6 +11,8 @@ import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { BetaService } from '../core/beta.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { BuyOption, UexShopService } from './uex-shop.service';
+import { HqSuppliesService, SupplyItem } from '../hq/hq-supplies.service';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import { HoloSilhouette } from './holo-silhouette';
 import {
@@ -112,6 +114,8 @@ describe('CodexBrowseComponent', () => {
       silhouettes?: Map<string, HoloSilhouette>;
       armorCounts?: Map<string, number>;
       crossCounts?: Map<string, number>;
+      /** UEX offers per row (package D). */
+      offers?: BuyOption[];
       /** Beta shell flag; undefined = the real BetaService (shell off). */
       shell?: boolean;
     } = {},
@@ -120,7 +124,21 @@ describe('CodexBrowseComponent', () => {
     cmp: CodexBrowseComponent;
     listByKind: jasmine.Spy;
     silhouettes: jasmine.Spy;
+    uex: { shipOffers: jasmine.Spy; whereToBuyEntity: jasmine.Spy };
+    supplies: { items: ReturnType<typeof signal<SupplyItem[]>>; add: jasmine.Spy };
   }> {
+    const uex = {
+      shipOffers: jasmine.createSpy('shipOffers').and.resolveTo(opts.offers ?? []),
+      whereToBuyEntity: jasmine.createSpy('whereToBuyEntity').and.resolveTo(opts.offers ?? []),
+    };
+    const supplyItems = signal<SupplyItem[]>([]);
+    const supplies = {
+      items: supplyItems,
+      add: jasmine.createSpy('add').and.callFake((name: string, _qty: number, meta: { className?: string }) => {
+        supplyItems.update((l) => [...l, { id: 'x', name, qty: 1, done: false, className: meta.className ?? null } as SupplyItem]);
+        return true;
+      }),
+    };
     const listByKind = jasmine
       .createSpy('listByKind')
       .and.resolveTo({ rows: opts.rows ?? [], count: (opts.rows ?? []).length });
@@ -178,6 +196,8 @@ describe('CodexBrowseComponent', () => {
           ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
           : []),
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        { provide: UexShopService, useValue: uex },
+        { provide: HqSuppliesService, useValue: supplies },
         ...(opts.shell === undefined
           ? []
           : [{ provide: BetaService, useValue: { state: signal({ verse: true, codex: true, shell: opts.shell }), isEnabled: () => () => opts.shell } }]),
@@ -206,7 +226,7 @@ describe('CodexBrowseComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes };
+    return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes, uex, supplies };
   }
 
   it('reads the legacy weaponClass param as the weapon super group', async () => {
@@ -352,6 +372,49 @@ describe('CodexBrowseComponent', () => {
     expect(cmp.searchInput()).toBe('gladius');
     cmp.onListSearch('');
     expect(cmp.searchInput()).toBe('');
+  });
+
+  it('package D: ship rows show the cheapest price and how many places sell it', async () => {
+    const offer = (price: number, place: string): BuyOption => ({ price, priceAvg: null, terminal: 'New Deal', location: place, place });
+    const { fixture, uex } = await setup({
+      query: { kind: 'ship' },
+      rows: [{ ...row('AEGS_Gladius', { nameLocalized: 'Aegis Gladius' }), guid: 'g-1' }],
+      offers: [offer(1250000, 'Lorville'), offer(1300000, 'Area18')],
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(uex.shipOffers).toHaveBeenCalledWith({ guid: 'g-1', name: 'Aegis Gladius' });
+    const price = (fixture.nativeElement as HTMLElement).querySelector('.row .price')?.textContent ?? '';
+    expect(price).toContain('codex.buy.from');
+    expect(price).toContain('codex.buy.places');
+  });
+
+  it('package D: the shop button lists the offers and puts the row into the supplies once', async () => {
+    const offer: BuyOption = { price: 4200, priceAvg: null, terminal: 'Skutters', location: 'Area18 · ArcCorp', place: 'Area18' };
+    const { cmp, fixture, uex, supplies } = await setup({ query: { kind: 'weapon', wg: 'fps' }, rows: [row('behr_p4ar', { nameLocalized: 'P4-AR Rifle' })], offers: [offer] });
+    const shop = (fixture.nativeElement as HTMLElement).querySelector('.act.shop') as HTMLButtonElement;
+    expect(shop).not.toBeNull();
+    shop.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(uex.whereToBuyEntity).toHaveBeenCalledWith('weapon', 'P4-AR Rifle');
+    const panel = (fixture.nativeElement as HTMLElement).querySelector('.buy') as HTMLElement;
+    expect(panel.querySelectorAll('.offer').length).toBe(1);
+    expect(panel.querySelector('.to-plan')?.getAttribute('href')).toBe('/hq#planen');
+    (panel.querySelector('.to-sup') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(supplies.add).toHaveBeenCalledOnceWith('P4-AR Rifle', 1, jasmine.objectContaining({ className: 'behr_p4ar', stepKind: 'buy', source: 'search' }));
+    expect(cmp.inSupplies('behr_p4ar')).toBeTrue();
+    expect(panel.querySelector('.to-sup')).toBeNull();
+    expect(panel.querySelector('.in-sup')).not.toBeNull();
+  });
+
+  it('package D: compare is an icon button, not a star', async () => {
+    const { fixture } = await setup({ query: { kind: 'item' }, rows: [row('food_lemon', { nameLocalized: 'Lemon', attachType: 'Food' })] });
+    const pin = (fixture.nativeElement as HTMLElement).querySelector('.act.pin') as HTMLElement;
+    expect(pin.querySelector('svg')).not.toBeNull();
+    expect(pin.textContent).not.toContain('★');
+    expect(pin.textContent).not.toContain('☆');
   });
 
   it('d-filter: with the beta shell on there is no phone filter button or sheet', async () => {
