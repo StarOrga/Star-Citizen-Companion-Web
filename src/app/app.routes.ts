@@ -288,7 +288,7 @@ export const routes: Routes = [
             path: '',
             data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true },
             pathMatch: 'full',
-            // Beta shell: the five-page landing (Start · Planen · Jetzt · Bestand · Statistik,
+            // Beta shell: the five-page landing (Start · Bestand · Jetzt · Planen · Statistik,
             // /hq#planen …); β off: today's overview, unchanged.
             loadComponent: () => import('./hq/hq-landing.component').then((m) => m.HqLandingComponent),
           },

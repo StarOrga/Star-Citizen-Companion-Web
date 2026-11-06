@@ -8,19 +8,20 @@ import {
   computed,
   effect,
   inject,
+  signal,
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqCueComponent } from './hq-cue.component';
-import { wireHqPageScroll } from './hq-page-scroll';
+import { wireHqPageHotkeys, wireHqPageScroll } from './hq-page-scroll';
 import { HqNowComponent } from './now/hq-now.component';
 import { HqPageBarComponent } from './hq-page-bar.component';
 import { HqPageNavService } from './hq-page-nav.service';
 import { HqPlanComponent } from './plan/hq-plan.component';
 import { HqRailComponent } from './hq-rail.component';
-import { HQ_PAGES, HqPageId, hqPageHref, hqPageOfFragment } from './hq-routes';
+import { HQ_EINSATZ_PARAM, HQ_PAGES, HqPageId, hqPageHref, hqPageOfFragment } from './hq-routes';
 import { HqStartFeedService } from './start/hq-start-feed.service';
 import { HqStartComponent } from './start/hq-start.component';
 import { HqStatsComponent } from './stats/hq-stats.component';
@@ -28,7 +29,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
 
 /**
  * The HQ landing (beta shell, concept D1–D6): ONE route, five Verse-like scroll stages —
- * Start · Planen · Jetzt · Bestand · Statistik — as `<section id="…">`, so `/hq#planen` is a real
+ * Start · Bestand · Jetzt · Planen · Statistik — as `<section id="…">`, so `/hq#planen` is a real
  * anchor (router anchor scrolling does the deep link, back/forward and the initial landing).
  *
  * - The page in view comes from an IntersectionObserver on the viewport's middle line. It is
@@ -60,22 +61,22 @@ import { HqStockComponent } from './stock/hq-stock.component';
   template: `
     <sc-hq-rail />
     <section id="start" class="page start sc-stage-a" data-hq-page="start" [attr.aria-label]="'hq.pages.start' | translate">
-      <sc-hq-start [patchLines]="feed.patchLines()" [chips]="feed.chips()" />
+      <sc-hq-start [patch]="feed.patchHit()" />
     </section>
-    <section id="planen" class="page follow sc-below-stage" data-hq-page="planen" aria-labelledby="hq-plan-title">
-      <sc-hq-plan />
+    <section id="bestand" class="page follow sc-below-stage" data-hq-page="bestand" aria-labelledby="hq-stock-title">
+      <sc-hq-stock />
     </section>
     <section id="jetzt" class="page follow sc-below-stage" data-hq-page="jetzt" aria-labelledby="hq-now-title">
       <sc-hq-now />
     </section>
-    <section id="bestand" class="page follow sc-below-stage" data-hq-page="bestand" aria-labelledby="hq-stock-title">
-      <sc-hq-stock />
+    <section id="planen" class="page follow sc-below-stage" data-hq-page="planen" aria-labelledby="hq-plan-title">
+      <sc-hq-plan />
     </section>
     <section id="statistik" class="page follow last sc-below-stage" data-hq-page="statistik" aria-labelledby="hq-stats-title">
       <sc-hq-stats />
     </section>
     @if (nextPage(); as next) {
-      <sc-hq-cue class="page-cue" [target]="next" />
+      <sc-hq-cue class="page-cue" [class.gone]="!cueFree()" [target]="next" />
     }
     <sc-hq-page-bar />
   `,
@@ -92,7 +93,10 @@ import { HqStockComponent } from './stock/hq-stock.component';
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
       /* The way on stands at the viewport's bottom edge on every page; the phone bar does that job below 1024px. */
-      .page-cue { position: fixed; z-index: 3; inset-inline: 0; bottom: max(8px, 0.8vw); pointer-events: none; }
+      .page-cue { position: fixed; z-index: 3; inset-inline: 0; bottom: max(8px, 0.8vw); pointer-events: none; transition: opacity 0.25s, visibility 0.25s; }
+      /* Like the Verse cue it has no ground, so it stands back while page content lies beneath it. */
+      .page-cue.gone { opacity: 0; visibility: hidden; }
+      @media (prefers-reduced-motion: reduce) { .page-cue { transition: none; } }
       @media (min-width: 1024px) { .follow { padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-5, 24px)); } }
       @media (max-width: 1023px) { .page-cue { display: none; } }
     `,
@@ -115,7 +119,14 @@ export class HqPagesComponent {
     return HQ_PAGES[i + 1] ?? null;
   });
 
+  /** The end of the page in view is on screen, so nothing but its bottom padding lies under the cue. */
+  protected readonly cueFree = signal(true);
+
   constructor() {
+    effect(() => {
+      this.chrome.hqPage();
+      this.measureCue();
+    });
     this.chrome.setHqPage(hqPageOfFragment(this.route.snapshot.fragment) ?? 'start');
     effect(() => {
       const page = this.chrome.hqPage();
@@ -159,6 +170,8 @@ export class HqPagesComponent {
         this.zone,
       );
       this.destroyRef.onDestroy(unwire);
+      this.destroyRef.onDestroy(this.watchCue());
+      this.destroyRef.onDestroy(wireHqPageHotkeys((p) => this.goTo(p), this.zone));
     });
   }
 
@@ -192,9 +205,45 @@ export class HqPagesComponent {
     this.host.nativeElement.style.setProperty('--hq-start-top', `${top}px`);
   }
 
+  /** A long page keeps the cue away until its end is in view: on scroll, and when its content grows. */
+  private watchCue(): () => void {
+    if (typeof window === 'undefined') return () => undefined;
+    let frame = 0;
+    const queue = (): void => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        this.measureCue();
+      });
+    };
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(queue);
+    this.zone.runOutsideAngular(() => {
+      window.addEventListener('scroll', queue, { passive: true });
+      window.addEventListener('resize', queue, { passive: true });
+      ro?.observe(this.host.nativeElement);
+    });
+    this.measureCue();
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', queue);
+      window.removeEventListener('resize', queue);
+      ro?.disconnect();
+    };
+  }
+
+  private measureCue(): void {
+    const section = this.section(this.chrome.hqPage() ?? 'start');
+    if (!section || typeof window === 'undefined') return;
+    const free = section.getBoundingClientRect().bottom <= window.innerHeight + 2;
+    if (free !== this.cueFree()) this.zone.run(() => this.cueFree.set(free));
+  }
+
   private urlFor(page: HqPageId): string {
     const base = hqPageHref(page);
-    const search = typeof window === 'undefined' ? '' : window.location.search;
+    const params = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+    // The route focus belongs to Planen; another page's URL does not carry it along.
+    if (page !== 'planen') params.delete(HQ_EINSATZ_PARAM);
+    const search = params.size ? `?${params}` : '';
     if (!search) return base;
     const [path, hash] = base.split('#');
     return hash ? `${path}${search}#${hash}` : `${path}${search}`;

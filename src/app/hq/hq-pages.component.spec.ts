@@ -12,6 +12,7 @@ import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqLandingComponent } from './hq-landing.component';
 import { HqOverviewComponent } from './hq-overview.component';
 import { HqPagesComponent } from './hq-pages.component';
+import { hotkeyPage } from './hq-page-scroll';
 import { HQ_PAGES, hqPage, hqPageHref, hqPageOfFragment } from './hq-routes';
 
 @Component({ selector: 'sc-hq-pages', standalone: true, template: 'pages' })
@@ -33,7 +34,7 @@ function baseProviders(shell: boolean) {
 
 describe('hq-routes page helpers', () => {
   it('lists the five pages in scroll order and builds anchors', () => {
-    expect([...HQ_PAGES]).toEqual(['start', 'planen', 'jetzt', 'bestand', 'statistik']);
+    expect([...HQ_PAGES]).toEqual(['start', 'bestand', 'jetzt', 'planen', 'statistik']);
     expect(hqPageHref('start')).toBe('/hq');
     expect(hqPageHref('jetzt')).toBe('/hq#jetzt');
     expect(hqPage('planen')).toEqual({ commands: ['/hq'], fragment: 'planen' });
@@ -83,7 +84,7 @@ describe('HqPagesComponent', () => {
   it('renders five sections with the page ids and exactly one h1', () => {
     const el: HTMLElement = mount().nativeElement;
     const ids = Array.from(el.querySelectorAll('section.page')).map((s) => s.id);
-    expect(ids).toEqual(['start', 'planen', 'jetzt', 'bestand', 'statistik']);
+    expect(ids).toEqual(['start', 'bestand', 'jetzt', 'planen', 'statistik']);
     expect(el.querySelectorAll('h1').length).toBe(1);
     expect(el.querySelector('sc-hq-plan')).not.toBeNull();
     expect(el.querySelector('sc-hq-now')).not.toBeNull();
@@ -102,7 +103,7 @@ describe('HqPagesComponent', () => {
   it('the rail is five real anchors and marks the current page', () => {
     const f = mount();
     const links = Array.from((f.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('sc-hq-rail a'));
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/hq', '/hq#planen', '/hq#jetzt', '/hq#bestand', '/hq#statistik']);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/hq', '/hq#bestand', '/hq#jetzt', '/hq#planen', '/hq#statistik']);
     expect(links.map((a) => a.getAttribute('aria-current'))).toEqual(['page', null, null, null, null]);
     TestBed.inject(ShellChromeService).setHqPage('jetzt');
     f.detectChanges();
@@ -132,10 +133,51 @@ describe('HqPagesComponent', () => {
     expect(go.calls.mostRecent().args[0]).toContain('#bestand');
   });
 
-  it('the cue leads to Planen as a real anchor', () => {
+  it('the cue leads to Bestand, the page after Start, as a real anchor', () => {
     const el: HTMLElement = mount().nativeElement;
     const cue = el.querySelector<HTMLAnchorElement>('sc-hq-cue a.more-cue')!;
-    expect(cue.getAttribute('href')).toBe('/hq#planen');
+    expect(cue.getAttribute('href')).toBe('/hq#bestand');
+  });
+
+  it('a hotkey moves the rail and the cue along with the page', () => {
+    const f = mount();
+    TestBed.tick();
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true, cancelable: true }));
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    expect(el.querySelector('sc-hq-rail a[aria-current="page"]')?.getAttribute('href')).toBe('/hq#planen');
+    expect(el.querySelector('sc-hq-cue a.more-cue')?.getAttribute('href')).toBe('/hq#statistik');
+  });
+
+  it('the cue stands back while the page in view runs on below the viewport', () => {
+    const f = mount();
+    TestBed.tick();
+    const el: HTMLElement = f.nativeElement;
+    const start = el.querySelector<HTMLElement>('[data-hq-page="start"]')!;
+    const measure = (f.componentInstance as unknown as { measureCue(): void });
+    const rect = spyOn(start, 'getBoundingClientRect').and.returnValue({ bottom: window.innerHeight + 400 } as DOMRect);
+    measure.measureCue();
+    f.detectChanges();
+    expect(el.querySelector('sc-hq-cue')?.classList).toContain('gone');
+    rect.and.returnValue({ bottom: window.innerHeight } as DOMRect);
+    measure.measureCue();
+    f.detectChanges();
+    expect(el.querySelector('sc-hq-cue')?.classList).not.toContain('gone');
+  });
+
+  it('only the URL of Planen carries the route focus', () => {
+    const f = mount();
+    const url = (f.componentInstance as unknown as { urlFor(p: string): string });
+    const before = window.location.href;
+    history.replaceState(history.state, '', '?einsatz=e1&x=1');
+    try {
+      expect(url.urlFor('planen')).toBe('/hq?einsatz=e1&x=1#planen');
+      expect(url.urlFor('bestand')).toBe('/hq?x=1#bestand');
+      history.replaceState(history.state, '', '?einsatz=e1');
+      expect(url.urlFor('start')).toBe('/hq');
+    } finally {
+      history.replaceState(history.state, '', before);
+    }
   });
 
   it('every follow page takes the same column (the subheader width)', () => {
@@ -147,10 +189,36 @@ describe('HqPagesComponent', () => {
     expect(new Set(rects.map((r) => Math.round(r.width))).size).toBe(1);
   });
 
-  it('the first-visit block is absent while nothing is loaded for a signed-out reader, and no feed means no patch lines or chips', () => {
+  it('the first-visit block, the patch lines, the chips and the friends line are gone', () => {
     const el: HTMLElement = mount().nativeElement;
-    expect(el.querySelector('sc-hq-first-visit')).toBeNull();
-    expect(el.querySelector('.patch')).toBeNull();
-    expect(el.querySelector('.chips')).toBeNull();
+    for (const sel of ['sc-hq-first-visit', 'sc-hq-start-friends', '.patch', '.chips']) expect(el.querySelector(sel)).toBeNull();
+  });
+
+  it('hotkeys 1 to 4 jump to Bestand, Jetzt, Planen, Statistik', () => {
+    const ev = (key: string, init: KeyboardEventInit = {}) => new KeyboardEvent('keydown', { key, cancelable: true, ...init });
+    expect(['1', '2', '3', '4'].map((k) => hotkeyPage(ev(k), false))).toEqual(['bestand', 'jetzt', 'planen', 'statistik']);
+    expect(hotkeyPage(ev('5'), false)).toBeNull();
+    expect(hotkeyPage(ev('0'), false)).toBeNull();
+  });
+
+  it('hotkeys stand back for modifiers, typing and open dialogs', () => {
+    const ev = (init: KeyboardEventInit = {}) => new KeyboardEvent('keydown', { key: '1', cancelable: true, bubbles: true, ...init });
+    for (const m of ['altKey', 'ctrlKey', 'metaKey', 'shiftKey']) expect(hotkeyPage(ev({ [m]: true }), false)).withContext(m).toBeNull();
+    expect(hotkeyPage(ev(), true)).toBeNull();
+    for (const html of ['<input />', '<textarea></textarea>', '<div contenteditable="true"></div>']) {
+      const host = document.createElement('div');
+      host.innerHTML = html;
+      document.body.appendChild(host);
+      const seen: (string | null)[] = [];
+      host.addEventListener('keydown', (e) => seen.push(hotkeyPage(e as KeyboardEvent, false)));
+      host.firstElementChild!.dispatchEvent(ev());
+      host.remove();
+      expect(seen).toEqual([null]);
+    }
+  });
+
+  it('the rail stops carry their hotkey for assistive tech, Start has none', () => {
+    const links = Array.from((mount().nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('sc-hq-rail a'));
+    expect(links.map((a) => a.getAttribute('aria-keyshortcuts'))).toEqual([null, '1', '2', '3', '4']);
   });
 });

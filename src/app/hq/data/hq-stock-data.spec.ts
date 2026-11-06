@@ -6,7 +6,7 @@ import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
 import type { HqFleetPatch, HqInventoryItemRow, HqInventorySnapshotRow } from './hq-db.types';
 import { HQ_STOCK_STALE_DAYS, groupLocations, parsePreviousSnapshot, snapshotAge } from './hq-inventory.service';
-import { HqPatchService, formatPct, mapPatchLines } from './hq-patch.service';
+import { HqPatchService, mapPatchHit } from './hq-patch.service';
 import { HqStatsService, bucketKeys, normalizeStats, zeroFill } from './hq-stats.service';
 
 const NOW = Date.UTC(2026, 10, 1, 12, 0, 0); // Sunday 2026-11-01
@@ -115,23 +115,23 @@ describe('patch feed', () => {
     ],
   };
 
-  it('formats percentages with a real minus and decimal comma', () => {
-    expect(formatPct(-8)).toBe('−8 %');
-    expect(formatPct(3.5)).toBe('+3,5 %');
+  it('takes the most important hit only, the first line of the RPC, with a link to the set', () => {
+    expect(mapPatchHit(patch)).toEqual({ plan: 'Bounty v3', build: '4.3.1', name: 'S3-Repeater', pct: 8, weaker: true, link: ['/hq/hangar', 'sh1'] });
+    const fps: HqFleetPatch = { ...patch, lines: [patch.lines[1]] };
+    expect(mapPatchHit(fps)?.link).toEqual(['/hq/locker', 'f1']);
+    expect(mapPatchHit(fps)?.weaker).toBeFalse();
   });
 
-  it('maps at most two lines with links to the set', () => {
-    const lines = mapPatchLines(patch, (s) => `betrifft ${s} ›`);
-    expect(lines.length).toBe(2);
-    expect(lines[0].category).toBe('4.3.1 · S3-Repeater −8 %');
-    expect(lines[0].effect).toBe('betrifft Bounty v3 ›');
-    expect(lines[0].link).toEqual(['/hq/hangar', 'sh1']);
-    expect(lines[1].link).toEqual(['/hq/locker', 'f1']);
+  it('a hit without a set has no link, and a raw class name becomes readable', () => {
+    const hit = mapPatchHit({ build: null, previous: null, lines: [{ ...patch.lines[2], class_name: 'KLWE_Repeater_S3' }] });
+    expect(hit?.link).toBeUndefined();
+    expect(hit?.plan).toBeNull();
+    expect(hit?.name).toBe('KLWE Repeater S3');
   });
 
-  it('maps nothing / empty to no lines', () => {
-    expect(mapPatchLines(null, (s) => s)).toEqual([]);
-    expect(mapPatchLines({ build: null, previous: null, lines: [] }, (s) => s)).toEqual([]);
+  it('maps nothing / empty to no hit', () => {
+    expect(mapPatchHit(null)).toBeNull();
+    expect(mapPatchHit({ build: null, previous: null, lines: [] })).toBeNull();
   });
 
   it('feeds HqStartFeedService after load and clears on failure', async () => {
@@ -143,16 +143,14 @@ describe('patch feed', () => {
         { provide: AuthService, useValue: { user: signal<{ id: string } | null>(null) } },
       ],
     });
-    TestBed.inject(TranslateService).setTranslation('en', { hq: { patch: { affects: 'affects {{set}}' } } });
     const svc = TestBed.inject(HqPatchService);
     const feed = TestBed.inject(HqStartFeedService);
     (TestBed.inject(AuthService).user as ReturnType<typeof signal<{ id: string } | null>>).set({ id: 'u1' });
     await svc.load();
-    expect(feed.patchLines().length).toBe(2);
-    expect(feed.patchLines()[0].effect).toBe('affects Bounty v3');
+    expect(feed.patchHit()?.name).toBe('S3-Repeater');
     rpc.and.resolveTo({ data: null, error: new Error('x') });
     await svc.load();
-    expect(feed.patchLines()).toEqual([]);
+    expect(feed.patchHit()).toBeNull();
     expect(svc.error()).toBeTruthy();
   });
 });

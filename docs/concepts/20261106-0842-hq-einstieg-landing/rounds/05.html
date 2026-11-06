@@ -1,0 +1,313 @@
+<section data-iteration="5" data-iteration-template="design" data-viewports="desktop phone" data-orientations="portrait" data-tab-label="Runde 5" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Btw, in verse sitzt das nächste seite super aus, aber in hq anders und hat dann auch noch ein anderne background, bitte das von verse style mäßig nehmen auch in hq!","attachments":[{"id":"9718b35f36e1c446eadbc06009c877d4542081e4efb49d4ec49b5416df4d2006.png","name":"image.png","mime":"image/png","size":2878,"path":".claude/concepts/20261106-0842-hq-einstieg-landing/attachments/9718b35f36e1c446eadbc06009c877d4542081e4efb49d4ec49b5416df4d2006.png"},{"id":"cd137c741689ebc72225b92db3a14e62ef520d00a1eb3f006725325e5c7093ce.png","name":"image.png","mime":"image/png","size":2081,"path":".claude/concepts/20261106-0842-hq-einstieg-landing/attachments/cd137c741689ebc72225b92db3a14e62ef520d00a1eb3f006725325e5c7093ce.png"}]},"designs":{},"screens":{},"views":{}}</script>
+<style>
+.d5-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #84a0b6; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b;
+  position: relative; display: block; width: 100%; height: 100%; min-height: 760px; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 60% 34% at 80% 3%, rgba(120, 190, 220, 0.2), transparent 70%), radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 34%, #040a11 64%, #02070d 100%); }
+.d5-app *, .d5-app *::before, .d5-app *::after { box-sizing: border-box; }
+.d5-grid { position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image: linear-gradient(rgba(82, 193, 230, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 193, 230, 0.05) 1px, transparent 1px); background-size: 64px 64px; }
+.d5-mh { position: absolute; z-index: 2; inset: 44px 0 auto 0; height: 40px; display: flex; justify-content: center; }
+.d5-brand { max-width: calc(50% - 190px); position: absolute; left: 24px; top: 0; display: flex; align-items: center; gap: 12px; height: 40px; text-align: left; }
+.d5-mark { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, var(--a) 9% 22%, transparent 24% 40%, rgba(82, 193, 230, 0.55) 42% 48%, transparent 50%); }
+.d5-wm { display: grid; }
+.d5-wm b { font: 700 15px/1.25 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.d5-wm small { font: 9px/1.4 Orbitron, system-ui, sans-serif; letter-spacing: 0.42em; text-transform: uppercase; color: var(--a); }
+.d5-nav { position: relative; display: flex; }
+.d5-nav span { display: flex; align-items: center; justify-content: center; width: 112px; height: 40px; font: 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg2); }
+.d5-nav .on { color: var(--fg); text-shadow: 0 0 18px rgba(82, 193, 230, 0.55); }
+.d5-nav i { position: absolute; bottom: 2px; left: 260px; width: 40px; height: 2px; border-radius: 2px; background: var(--a); box-shadow: 0 0 12px var(--a); }
+.d5-acc { position: absolute; right: 96px; top: 0; display: flex; align-items: center; gap: 8px; height: 40px; }
+.d5-apps { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 20px; background: #123246; color: var(--fg2); font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.d5-av { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: #123246; color: var(--a); font-weight: 600; }
+.d5-rail { position: absolute; z-index: 2; left: 14px; top: 42%; display: flex; flex-direction: column; gap: 12px; }
+.d5-rail i { display: block; width: 12px; height: 2px; border-radius: 2px; background: rgba(159, 179, 200, 0.45); }
+.d5-rail i.on { width: 22px; background: var(--a); box-shadow: 0 0 10px var(--a); }
+.d5-head { position: absolute; z-index: 1; left: 0; right: 0; bottom: calc(70% + 24px); }
+.d5-kick { margin: 0; font: 500 11.5px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--a); }
+.d5-title { margin: 12px 0 0; font: 500 50px/1.1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: var(--fg); text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7); }
+.d5-below { position: absolute; z-index: 1; top: 30%; left: 0; right: 0; margin-inline: auto; display: flex; flex-direction: column; align-items: center; width: min(100% - 96px, 1120px); }
+.d5-cap { display: flex; align-items: center; gap: 10px; width: min(640px, 100%); height: 60px; padding: 0 20px; border: 1px solid transparent; border-radius: 999px; background: rgba(0, 0, 0, 0.28); color: var(--fg2); font-size: 14.7px; text-align: left; box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.25), 0 0 18px rgba(82, 193, 230, 0.12); }
+.d5-cap svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--a); stroke-width: 1.8; stroke-linecap: round; }
+.d5-cap span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.d5-cap kbd { padding: 2px 7px; border: 1px solid var(--line); border-radius: 5px; background: rgba(159, 179, 200, 0.1); font: 11px Inter, system-ui, sans-serif; color: var(--fg2); }
+.d5-area { width: 100%; margin-top: 48px; }
+.d5-after { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 22px; font-size: 13px; color: var(--fg2); }
+.d5-after a { color: var(--fg2); text-decoration: none; }
+.d5-after a:hover { color: var(--a); }
+.d5-after a b { font-weight: 500; color: var(--fg); }
+.d5-cue { position: absolute; z-index: 2; left: 50%; bottom: 14px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--fg2); font: 500 11px/1 Inter, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
+.d5-cue::after { content: ""; width: 9px; height: 9px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
+.d5-bottom { display: none; }
+/* Side tiles */
+.d5-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.d5-tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 176px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(10, 28, 40, 0.8); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d5-tile:hover { border-color: var(--a); }
+.d5-tile.next { border-color: var(--a); box-shadow: 0 0 22px rgba(82, 193, 230, 0.18); }
+.d5-tile > span, .d5-now > span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg3); }
+.d5-tile b, .d5-now b { font: 500 18px/1.25 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d5-tile small, .d5-now small { font-size: 13px; color: var(--fg2); }
+.d5-tile em { margin-top: auto; padding-top: 6px; font-style: normal; color: var(--a); }
+.d5-warn { color: var(--warn); }
+.d5-live { display: inline-flex; align-items: center; gap: 7px; color: var(--ok); }
+.d5-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+/* Centre element: Jetzt */
+.d5-now { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 12px 10px; border: 0; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; }
+.d5-now em { margin-top: 6px; font-style: normal; color: var(--a); }
+.d5-hint { position: relative; margin-top: 6px; color: var(--fg2); font-size: 13.5px; font-style: normal; cursor: help; border-bottom: 1px dotted var(--fg3); }
+.d5-tip { position: absolute; z-index: 5; bottom: calc(100% + 8px); left: 50%; translate: -50% 0; width: 250px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #061724; color: var(--fg); font-size: 12.5px; line-height: 1.4; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.d5-hint:hover .d5-tip { opacity: 1; }
+/* Take 1: open, no frame */
+.d5-open::before, .d5-open::after { content: ""; position: absolute; top: 12%; bottom: 12%; width: 1px; background: linear-gradient(180deg, transparent, rgba(82, 193, 230, 0.45), transparent); }
+.d5-open::before { left: 0; } .d5-open::after { right: 0; }
+.d5-open b { font-size: 24px; }
+.d5-open.on b { color: var(--ok); text-shadow: 0 0 18px rgba(95, 214, 152, 0.4); }
+/* Take 2: round scope */
+.d5-scope { justify-self: center; width: 232px; height: 232px; margin-block: -28px 0; padding: 24px; border-radius: 50%; background: radial-gradient(circle, rgba(82, 193, 230, 0.06) 0 35%, transparent 36%), radial-gradient(circle, rgba(10, 32, 46, 0.92) 0 69%, transparent 70%); box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.4), inset 0 0 0 26px rgba(82, 193, 230, 0.03), inset 0 0 0 27px rgba(82, 193, 230, 0.18), 0 0 26px rgba(82, 193, 230, 0.12); }
+.d5-scope b { font-size: 16px; }
+.d5-scope.on { box-shadow: inset 0 0 0 1px rgba(95, 214, 152, 0.7), inset 0 0 0 26px rgba(95, 214, 152, 0.04), inset 0 0 0 27px rgba(95, 214, 152, 0.28), 0 0 30px rgba(95, 214, 152, 0.2); }
+/* Take 3: bridge, side consoles lean in */
+.d5-bridge { perspective: 900px; }
+.d5-bridge .d5-t-bestand { transform: rotateY(14deg); transform-origin: right center; }
+.d5-bridge .d5-t-planen { transform: rotateY(-14deg); transform-origin: left center; }
+.d5-console { padding: 16px; border: 1px solid rgba(82, 193, 230, 0.4); border-radius: 18px 18px 6px 6px; background: linear-gradient(180deg, rgba(18, 50, 70, 0.75), rgba(6, 23, 36, 0.92)); box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45); }
+.d5-console b { font-size: 22px; }
+.d5-console.on { border-color: var(--ok); box-shadow: 0 0 24px rgba(95, 214, 152, 0.18), 0 16px 32px rgba(0, 0, 0, 0.45); }
+@container device (max-width: 520px) {
+  .d5-app { min-height: 100%; }
+  .d5-mh { inset: 14px 0 auto 0; } .d5-nav, .d5-rail, .d5-cue, .d5-apps { display: none; }
+  .d5-brand { left: 14px; max-width: none; } .d5-acc { right: 14px; } .d5-wm b { font-size: 11px; letter-spacing: 0.08em; } .d5-mark { width: 24px; height: 24px; }
+  .d5-title { font-size: 28px; }
+  .d5-below { width: calc(100% - 32px); } .d5-cap kbd { display: none; } .d5-area { margin-top: 20px; }
+  .d5-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .d5-now { grid-column: 1 / -1; grid-row: 1; }
+  .d5-scope { width: 176px; height: 176px; margin-block: 0; padding: 12px; } .d5-scope b { font-size: 14px; }
+  .d5-bridge { perspective: none; } .d5-bridge .d5-tile { transform: none; }
+  .d5-tile { min-height: 124px; padding: 12px; } .d5-tile b { font-size: 14px; } .d5-tile small { font-size: 12px; } .d5-tile em { font-size: 12.5px; }
+  .d5-open b, .d5-console b { font-size: 18px; }
+  .d5-after { margin-top: 10px; }
+  .d5-bottom { position: absolute; z-index: 2; inset: auto 0 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 10px 4px; border-top: 1px solid var(--line); background: rgba(6, 23, 36, 0.95); font-size: 11.5px; color: var(--fg2); }
+  .d5-bottom b { font-weight: 600; color: var(--a); }
+}
+
+/* The live HQ scene: deep navy, faint atmosphere, a few warm city lights. */
+.d5-app { background:
+  radial-gradient(ellipse 7% 2.2% at 18.5% 63%, rgba(240, 190, 120, 0.3), transparent 72%),
+  radial-gradient(ellipse 7% 2.2% at 61% 68%, rgba(240, 190, 120, 0.22), transparent 72%),
+  radial-gradient(ellipse 6% 2% at 79.5% 58%, rgba(240, 190, 120, 0.14), transparent 72%),
+  radial-gradient(ellipse 34% 26% at 18% 8%, rgba(36, 110, 150, 0.2), transparent 72%),
+  radial-gradient(ellipse 26% 20% at 88% 0%, rgba(90, 60, 130, 0.18), transparent 72%),
+  linear-gradient(180deg, #04151f 0%, #03101a 45%, #020b12 100%); }
+.d5-grid { opacity: 0.35; background-image: radial-gradient(rgba(190, 225, 245, 0.5) 0.6px, transparent 0.8px), repeating-linear-gradient(180deg, rgba(120, 190, 225, 0.03) 0 1px, transparent 1px 7px); background-size: 180px 130px, 100% 7px; }
+.d5-title a { color: inherit; text-decoration: none; }
+.d5-title a:hover { color: var(--a); }
+/* Rail with the real page icons */
+.d5-rail { top: 50%; translate: 0 -50%; left: 16px; gap: 4px; }
+.d5-rail i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: none; color: var(--fg2); box-shadow: none; }
+.d5-rail i.on { width: 36px; background: none; color: var(--a); box-shadow: none; }
+.d5-ico { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.d5-rail .d5-ico { width: 20px; height: 20px; }
+.d5-cue { bottom: 12px; padding: 8px 16px 6px; border: 1px solid rgba(82, 193, 230, 0.16); border-radius: 8px; background: rgba(10, 32, 46, 0.72); }
+/* Centre: Jetzt, open, no frame */
+.d5-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+.d5-now { position: relative; isolation: isolate; align-self: stretch; justify-content: center; gap: 4px; min-height: 216px; padding: 8px; cursor: default; }
+.d5-now::before, .d5-now::after { content: ""; position: absolute; z-index: -1; left: 50%; top: 50%; width: 208px; height: 208px; margin: -104px 0 0 -104px; border-radius: 50%; border: 1px solid rgba(159, 179, 200, 0.12); }
+.d5-now::after { width: 152px; height: 152px; margin: -76px 0 0 -76px; }
+.d5-now-k { display: inline-flex; align-items: center; gap: 7px; color: var(--fg3); font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.d5-now-k .d5-ico { width: 16px; height: 16px; }
+.d5-now b { margin-top: 8px; font: 500 25px/1.2 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d5-now small { font-size: 13px; color: var(--fg2); }
+.d5-sys { font-size: 12.5px; letter-spacing: 0.04em; color: var(--fg3); }
+.d5-now.on .d5-now-k { color: var(--ok); }
+.d5-now.on::before, .d5-now.on::after { border-color: rgba(95, 214, 152, 0.34); animation: d5-pulse 4.5s ease-out infinite; }
+.d5-now.on::after { animation-delay: 1.5s; }
+.d5-now.on b { text-shadow: 0 0 22px rgba(95, 214, 152, 0.35); }
+@keyframes d5-pulse { 0% { transform: scale(0.82); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.22); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .d5-now.on::before, .d5-now.on::after { animation: none; opacity: 0.8; } }
+.d5-go { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin-top: 10px; padding: 0 14px; border: 1px solid rgba(82, 193, 230, 0.55); border-radius: 999px; background: rgba(10, 32, 46, 0.75); color: var(--a); font: 500 13.5px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.d5-go:hover { background: rgba(82, 193, 230, 0.14); }
+.d5-go .d5-tip { top: auto; bottom: calc(100% + 8px); text-align: left; }
+.d5-go:hover .d5-tip { opacity: 1; }
+/* Side elements: shared content */
+.d5-side { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 5px; min-width: 0; min-height: 148px; padding: 16px 18px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d5-side-k { display: flex; align-items: center; gap: 8px; color: var(--a); font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.d5-side-k .d5-ico { width: 18px; height: 18px; }
+.d5-side-k kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--fg3); font: 10.5px Inter, system-ui, sans-serif; letter-spacing: 0; }
+.d5-side b { margin-top: 6px; font: 500 18px/1.25 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d5-side small { font-size: 13px; color: var(--fg2); }
+.d5-side em { margin-top: auto; padding-top: 8px; font-style: normal; color: var(--a); }
+/* Take 1: light edge, no box, text leans to the centre */
+.d5-edge::before { content: ""; position: absolute; z-index: -1; inset: 0; border-top: 1px solid rgba(130, 215, 245, 0.55); background: linear-gradient(180deg, rgba(82, 193, 230, 0.09), transparent 72%); }
+.d5-edge.left { text-align: right; align-items: flex-end; }
+.d5-edge.left .d5-side-k { flex-direction: row-reverse; }
+.d5-edge.left .d5-side-k kbd { margin: 0 auto 0 0; }
+.d5-edge.next::before { border-top-color: var(--a); background: linear-gradient(180deg, rgba(82, 193, 230, 0.2), transparent 80%); }
+.d5-edge:hover::before { background: linear-gradient(180deg, rgba(82, 193, 230, 0.18), transparent 80%); }
+.d5-stat { display: inline-flex; align-items: center; gap: 8px; }
+.d5-stat .d5-ico { width: 15px; height: 15px; color: var(--a); }
+.d5-stat kbd { padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--fg3); font: 10.5px Inter, system-ui, sans-serif; }
+@container device (max-width: 520px) {
+  .d5-title { font-size: 25px; }
+  .d5-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .d5-now { grid-column: 1 / -1; grid-row: 1; min-height: 132px; } .d5-now::before, .d5-now::after { width: 124px; height: 124px; margin: -62px 0 0 -62px; } .d5-now::after { width: 88px; height: 88px; margin: -44px 0 0 -44px; }
+  .d5-now b { margin-top: 2px; font-size: 18px; } .d5-go { min-height: 44px; margin-top: 6px; }
+  .d5-side { min-height: 124px; padding: 12px; } .d5-side b { font-size: 14px; } .d5-side small { font-size: 12px; } .d5-side-k kbd, .d5-stat kbd { display: none; }
+  .d5-edge.left { text-align: left; align-items: flex-start; } .d5-edge.left .d5-side-k { flex-direction: row; }
+  .d5-plate.left::before, .d5-plate.right::before { transform: none; }
+}
+
+/* Whole tile goes to its page; an own target inside sits above that link. */
+.d5-tile { position: relative; }
+.d5-stretch { position: absolute; inset: 0; z-index: 1; border-radius: 4px; }
+.d5-stretch:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
+.d5-own { position: relative; z-index: 2; }
+a.d5-own { color: var(--a); text-decoration: none; }
+a.d5-own:hover { text-decoration: underline; text-underline-offset: 3px; }
+.d5-side { cursor: default; }
+.d5-now { cursor: pointer; }
+.d5-now .d5-go { z-index: 2; }
+.d5-side:hover .d5-side-k, .d5-now:hover .d5-now-k { color: var(--a); }
+/* Hotkey hint: only after a long hover, same delay as the info tooltips */
+.d5-key { position: absolute; z-index: 6; left: 50%; bottom: calc(100% + 6px); translate: -50% 0; padding: 5px 9px; border: 1px solid var(--line); border-radius: 6px; background: #061724; color: var(--fg); font: 12px/1.2 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.12s 0s; }
+.d5-tile:hover > .d5-key, .d5-stat:hover > .d5-key { opacity: 1; transition-delay: 1.5s; }
+.d5-tile:has(.d5-own:hover) > .d5-key, .d5-tile:has(.d5-go:hover) > .d5-key { opacity: 0; transition-delay: 0s; }
+.d5-stat { position: relative; }
+.d5-app .d5-tile > span.d5-key, .d5-app .d5-stat > span.d5-key, .d5-app .d5-rail span.d5-key { color: var(--fg); font: 12px/1.2 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+.d5-rail { pointer-events: auto; z-index: 4; }
+.d5-rail i { position: relative; cursor: pointer; }
+.d5-rail i:hover { color: var(--a); }
+.d5-rail .d5-key { left: calc(100% + 8px); bottom: auto; top: 50%; translate: 0 -50%; }
+.d5-rail i:hover > .d5-key { opacity: 1; transition-delay: 1.5s; }
+/* Calmer live centre: soft blurred rings well behind the text */
+.d5-now.on::before, .d5-now.on::after { border: 5px solid rgba(95, 214, 152, 0.16); filter: blur(7px); animation: d5-breathe 7s ease-in-out infinite; }
+.d5-now.on::after { border-color: rgba(95, 214, 152, 0.1); animation-delay: 3.5s; }
+.d5-now.on b { text-shadow: none; }
+@keyframes d5-breathe { 0%, 100% { transform: scale(0.94); opacity: 0.35; } 50% { transform: scale(1.06); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .d5-now.on::before, .d5-now.on::after { animation: none; opacity: 0.6; } }
+.d5-go .d5-tip { z-index: 7; }
+@container device (max-width: 520px) { .d5-key { display: none; } .d5-row { align-items: stretch; } }
+</style>
+  <section data-design="kante" data-nav-label="Lichtkante" data-design-active="true" data-design-improved="Hotkeys nur als Tooltip nach langem Hovern, Download oder Start je nach bekannter App, weiche Ringe, Karte und Route getrennt, Route statt Weg">
+    <section id="s1-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d5-app"><div class="d5-grid"></div>
+        <header class="d5-mh"><div class="d5-brand"><i class="d5-mark"></i><div class="d5-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d5-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d5-acc"><span class="d5-apps">Apps</span><span class="d5-av">J</span></div></header>
+        <div class="d5-rail"><i class="on"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg><span class="d5-key">Start</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg><span class="d5-key">Bestand · Hotkey: 1</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg><span class="d5-key">Jetzt · Hotkey: 2</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg><span class="d5-key">Planen · Hotkey: 3</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span class="d5-key">Statistik · Hotkey: 4</span></i></div>
+        <div class="d5-head"><p class="d5-kick">Dein HQ</p><h2 class="d5-title">Hauptquartier</h2></div>
+        <div class="d5-below"><div class="d5-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d5-area"><div class="d5-row"><div class="d5-side d5-edge d5-tile left d5-s-bestand next"><span class="d5-key">Hotkey: 1</span><a class="d5-stretch" href="#" aria-label="Bestand" data-screen-link="s1-known"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em><a class="d5-own" href="#">RSI-Hangar holen ›</a></em></div><div class="d5-now d5-tile"><span class="d5-key">Hotkey: 2</span><a class="d5-stretch" href="#" aria-label="Jetzt" data-screen-link="s1-known"></a><span class="d5-now-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><button class="d5-go" type="button">SCC-App downloaden<span class="d5-tip">Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „SCC-App starten“.</span></button></div><div class="d5-side d5-edge d5-tile right d5-s-planen"><span class="d5-key">Hotkey: 3</span><a class="d5-stretch" href="#" aria-label="Planen" data-screen-link="s1-known"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></div></div></div></div>
+        <div class="d5-cue">Bestand</div>
+        <div class="d5-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-a1" data-anno-side="bottom" data-anno-target=".d5-go" style="--anno-x:50%;--anno-y:54%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-a1" aria-expanded="false" aria-controls="anno-bubble-r5-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-a1" data-anno-bubble="r5-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Download statt Start, wenn die App unbekannt ist</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-a1" aria-expanded="false" aria-controls="anno-bubble-r5-a1"><span class="anno-bubble-question">Noch nie verbunden: Der Knopf heißt „SCC-App downloaden“ und lädt beim Klick direkt. Der Hinweis auf den Start steckt im Tooltip. Passt das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r5-a1" data-annotation="r5-a1" data-attachable placeholder="{{anno.answer_placeholder}}">ja</textarea><div class="attach-slot" data-attach-slot="anno-r5-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s1-known" data-nav-label="App bekannt" data-screen hidden data-screen-fit="full">
+      <div class="d5-app"><div class="d5-grid"></div>
+        <header class="d5-mh"><div class="d5-brand"><i class="d5-mark"></i><div class="d5-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d5-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d5-acc"><span class="d5-apps">Apps</span><span class="d5-av">J</span></div></header>
+        <div class="d5-rail"><i class="on"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg><span class="d5-key">Start</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg><span class="d5-key">Bestand · Hotkey: 1</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg><span class="d5-key">Jetzt · Hotkey: 2</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg><span class="d5-key">Planen · Hotkey: 3</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span class="d5-key">Statistik · Hotkey: 4</span></i></div>
+        <div class="d5-head"><p class="d5-kick">Dein HQ</p><h2 class="d5-title">Hauptquartier</h2></div>
+        <div class="d5-below"><div class="d5-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d5-area"><div class="d5-row"><div class="d5-side d5-edge d5-tile left d5-s-bestand"><span class="d5-key">Hotkey: 1</span><a class="d5-stretch" href="#" aria-label="Bestand" data-screen-link="s1-newbrowser"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></div><div class="d5-now d5-tile"><span class="d5-key">Hotkey: 2</span><a class="d5-stretch" href="#" aria-label="Jetzt" data-screen-link="s1-newbrowser"></a><span class="d5-now-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d5-go" type="button">SCC-App starten<span class="d5-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><div class="d5-side d5-edge d5-tile right d5-s-planen"><span class="d5-key">Hotkey: 3</span><a class="d5-stretch" href="#" aria-label="Planen" data-screen-link="s1-newbrowser"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></div></div></div><div class="d5-after"><a class="d5-stat" href="#"><span class="d5-key">Hotkey: 4</span><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span></a></div></div>
+        <div class="d5-cue">Bestand</div>
+        <div class="d5-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="s1-newbrowser" data-nav-label="Neuer Browser" data-screen hidden data-screen-fit="full">
+      <div class="d5-app"><div class="d5-grid"></div>
+        <header class="d5-mh"><div class="d5-brand"><i class="d5-mark"></i><div class="d5-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d5-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d5-acc"><span class="d5-apps">Apps</span><span class="d5-av">J</span></div></header>
+        <div class="d5-rail"><i class="on"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg><span class="d5-key">Start</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg><span class="d5-key">Bestand · Hotkey: 1</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg><span class="d5-key">Jetzt · Hotkey: 2</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg><span class="d5-key">Planen · Hotkey: 3</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span class="d5-key">Statistik · Hotkey: 4</span></i></div>
+        <div class="d5-head"><p class="d5-kick">Dein HQ</p><h2 class="d5-title">Hauptquartier</h2></div>
+        <div class="d5-below"><div class="d5-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d5-area"><div class="d5-row"><div class="d5-side d5-edge d5-tile left d5-s-bestand"><span class="d5-key">Hotkey: 1</span><a class="d5-stretch" href="#" aria-label="Bestand" data-screen-link="s1-busy"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></div><div class="d5-now d5-tile"><span class="d5-key">Hotkey: 2</span><a class="d5-stretch" href="#" aria-label="Jetzt" data-screen-link="s1-busy"></a><span class="d5-now-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d5-go" type="button">SCC-App downloaden<span class="d5-tip">Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „SCC-App starten“.</span></button></div><div class="d5-side d5-edge d5-tile right d5-s-planen"><span class="d5-key">Hotkey: 3</span><a class="d5-stretch" href="#" aria-label="Planen" data-screen-link="s1-busy"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></div></div></div><div class="d5-after"><a class="d5-stat" href="#"><span class="d5-key">Hotkey: 4</span><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span></a></div></div>
+        <div class="d5-cue">Bestand</div>
+        <div class="d5-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-a2" data-anno-side="bottom" data-anno-target=".d5-go" style="--anno-x:50%;--anno-y:56%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-a2" aria-expanded="false" aria-controls="anno-bubble-r5-a2" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-a2" data-anno-bubble="r5-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Dein Fall als eigener Zustand</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-a2" aria-expanded="false" aria-controls="anno-bubble-r5-a2"><span class="anno-bubble-question">So wirkt deine Regel auf einem neuen Browser: Oben steht „Zuletzt: New Babbage“, darunter „downloaden“. Das widerspricht sich, denn die App lief ja schon. Mein Vorschlag: Hat das Konto ein Spielsignal, heißt es „starten“. Antwortet die App nicht, kommt der Download trotzdem. Einverstanden, oder bleibt es beim Download?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r5-a2" data-annotation="r5-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Ok, das können wir auch so machen! 
+</textarea><div class="attach-slot" data-attach-slot="anno-r5-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s1-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d5-app"><div class="d5-grid"></div>
+        <header class="d5-mh"><div class="d5-brand"><i class="d5-mark"></i><div class="d5-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d5-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d5-acc"><span class="d5-apps">Apps</span><span class="d5-av">J</span></div></header>
+        <div class="d5-rail"><i class="on"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg><span class="d5-key">Start</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg><span class="d5-key">Bestand · Hotkey: 1</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg><span class="d5-key">Jetzt · Hotkey: 2</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg><span class="d5-key">Planen · Hotkey: 3</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span class="d5-key">Statistik · Hotkey: 4</span></i></div>
+        <div class="d5-head"><p class="d5-kick">Bounty v3 · Neu in 4.3.1</p><h2 class="d5-title"><a href="#">S3-Repeater 8 % schwächer.</a></h2></div>
+        <div class="d5-below"><div class="d5-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d5-area"><div class="d5-row"><div class="d5-side d5-edge d5-tile left d5-s-bestand"><span class="d5-key">Hotkey: 1</span><a class="d5-stretch" href="#" aria-label="Bestand" data-screen-link="s1-live"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand</span><b>23 Schiffe</b><small><span class="d5-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></div><div class="d5-now d5-tile"><span class="d5-key">Hotkey: 2</span><a class="d5-stretch" href="#" aria-label="Jetzt" data-screen-link="s1-live"></a><span class="d5-now-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d5-go" type="button">SCC-App starten<span class="d5-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><div class="d5-side d5-edge d5-tile right d5-s-planen"><span class="d5-key">Hotkey: 3</span><a class="d5-stretch" href="#" aria-label="Planen" data-screen-link="s1-live"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em><a class="d5-own" href="#">Route öffnen ›</a></em></div></div></div><div class="d5-after"><a class="d5-stat" href="#"><span class="d5-key">Hotkey: 4</span><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span></a></div></div>
+        <div class="d5-cue">Bestand</div>
+        <div class="d5-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-a3" data-anno-side="right" data-anno-target=".d5-title a" style="--anno-x:50%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-a3" aria-expanded="false" aria-controls="anno-bubble-r5-a3" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-a3" data-anno-bubble="r5-a3" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> News im Hero</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-a3" aria-expanded="false" aria-controls="anno-bubble-r5-a3"><span class="anno-bubble-question">Noch offen aus der letzten Runde: Soll der Hero bei zwei Patch-Treffern wie im Verse-Hero wechseln, oder bleibt der wichtigste stehen?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r5-a3" data-annotation="r5-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r5-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s1-live" data-nav-label="Live mit Einsatz" data-screen hidden data-screen-fit="full">
+      <div class="d5-app"><div class="d5-grid"></div>
+        <header class="d5-mh"><div class="d5-brand"><i class="d5-mark"></i><div class="d5-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d5-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d5-acc"><span class="d5-apps">Apps</span><span class="d5-av">J</span></div></header>
+        <div class="d5-rail"><i class="on"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg><span class="d5-key">Start</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg><span class="d5-key">Bestand · Hotkey: 1</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg><span class="d5-key">Jetzt · Hotkey: 2</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg><span class="d5-key">Planen · Hotkey: 3</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span class="d5-key">Statistik · Hotkey: 4</span></i></div>
+        <div class="d5-head"><p class="d5-kick">Dein HQ</p><h2 class="d5-title">Hauptquartier</h2></div>
+        <div class="d5-below"><div class="d5-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d5-area"><div class="d5-row"><div class="d5-side d5-edge d5-tile left d5-s-bestand"><span class="d5-key">Hotkey: 1</span><a class="d5-stretch" href="#" aria-label="Bestand" data-screen-link="s1-livefree"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></div><div class="d5-now d5-tile on"><span class="d5-key">Hotkey: 2</span><a class="d5-stretch" href="#" aria-label="Jetzt" data-screen-link="s1-livefree"></a><span class="d5-now-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Live</span><span class="d5-sys">Stanton › microTech</span><b>New Babbage</b><small>Cutlass Black</small><button class="d5-go" type="button">S3-Repeater kaufen ›<span class="d5-tip">Nächster Schritt deines ersten geplanten Einsatzes.</span></button></div><div class="d5-side d5-edge d5-tile right d5-s-planen"><span class="d5-key">Hotkey: 3</span><a class="d5-stretch" href="#" aria-label="Planen" data-screen-link="s1-livefree"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em><a class="d5-own" href="#">Route öffnen ›</a></em></div></div></div><div class="d5-after"><a class="d5-stat" href="#"><span class="d5-key">Hotkey: 4</span><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span></a></div></div>
+        <div class="d5-cue">Bestand</div>
+        <div class="d5-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-a4" data-anno-side="bottom" data-anno-target=".d5-now" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-a4" aria-expanded="false" aria-controls="anno-bubble-r5-a4" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-a4" data-anno-bubble="r5-a4" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Ringe weich und dezent</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-a4" aria-expanded="false" aria-controls="anno-bubble-r5-a4"><span class="anno-bubble-question">Die Ringe sind jetzt weichgezeichnet, schwächer und atmen in 7 statt 4,5 Sekunden. Ist der Blick jetzt ruhig genug?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r5-a4" data-annotation="r5-a4" data-attachable placeholder="{{anno.answer_placeholder}}">Sehr gut, ein wenig deutlicher dürfen sie schon klein wenig</textarea><div class="attach-slot" data-attach-slot="anno-r5-a4"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="r5-a5" data-anno-side="left" data-anno-target=".d5-s-planen" style="--anno-x:76%;--anno-y:46%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-a5" aria-expanded="false" aria-controls="anno-bubble-r5-a5" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r5-a5" data-anno-bubble="r5-a5" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Karte und Route getrennt</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-a5" aria-expanded="false" aria-controls="anno-bubble-r5-a5"><span class="anno-bubble-question">Die Fläche führt neutral zu Planen, „Route öffnen“ öffnet direkt diese Route. Beides sind echte Links, also auch per Mittelklick nutzbar. So gemeint?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r5-a5" data-annotation="r5-a5" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r5-a5"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s1-livefree" data-nav-label="Live ohne Einsatz" data-screen hidden data-screen-fit="full">
+      <div class="d5-app"><div class="d5-grid"></div>
+        <header class="d5-mh"><div class="d5-brand"><i class="d5-mark"></i><div class="d5-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d5-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d5-acc"><span class="d5-apps">Apps</span><span class="d5-av">J</span></div></header>
+        <div class="d5-rail"><i class="on"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg><span class="d5-key">Start</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg><span class="d5-key">Bestand · Hotkey: 1</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg><span class="d5-key">Jetzt · Hotkey: 2</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg><span class="d5-key">Planen · Hotkey: 3</span></i><i><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span class="d5-key">Statistik · Hotkey: 4</span></i></div>
+        <div class="d5-head"><p class="d5-kick">Dein HQ</p><h2 class="d5-title">Hauptquartier</h2></div>
+        <div class="d5-below"><div class="d5-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d5-area"><div class="d5-row"><div class="d5-side d5-edge d5-tile left d5-s-bestand"><span class="d5-key">Hotkey: 1</span><a class="d5-stretch" href="#" aria-label="Bestand"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></div><div class="d5-now d5-tile on"><span class="d5-key">Hotkey: 2</span><a class="d5-stretch" href="#" aria-label="Jetzt"></a><span class="d5-now-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Live</span><span class="d5-sys">Stanton › microTech</span><b>New Babbage</b><small>Cutlass Black</small></div><div class="d5-side d5-edge d5-tile right d5-s-planen"><span class="d5-key">Hotkey: 3</span><a class="d5-stretch" href="#" aria-label="Planen"></a><span class="d5-side-k"><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></div></div></div><div class="d5-after"><a class="d5-stat" href="#"><span class="d5-key">Hotkey: 4</span><svg class="d5-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span></a></div></div>
+        <div class="d5-cue">Bestand</div>
+        <div class="d5-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r5-a6" data-anno-side="bottom" data-anno-target=".d5-now" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r5-a6" aria-expanded="false" aria-controls="anno-bubble-r5-a6" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r5-a6" data-anno-bubble="r5-a6" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Kein Knopf ohne Einsatz</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r5-a6" aria-expanded="false" aria-controls="anno-bubble-r5-a6"><span class="anno-bubble-question">Ohne geplanten Einsatz fehlt der Knopf in der Mitte ganz, wie von dir beschrieben. Mit Einsatz zeigt er dessen nächsten Schritt. Stimmt das so?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r5-a6" data-annotation="r5-a6" data-attachable placeholder="{{anno.answer_placeholder}}">ja genau
+</textarea><div class="attach-slot" data-attach-slot="anno-r5-a6"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+</section>
