@@ -248,3 +248,133 @@ function relax(items: readonly FanInput[], pos: Map<string, Pt>, spacing: number
   }
   items.forEach((it, i) => pos.set(it.id, pts[i]));
 }
+
+/** Insets in CSS px the model must stay out of (the holotable's callout gutters, the chip row). */
+export interface SafeArea {
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
+/** Air between the model's projected box and the safe area's edge. */
+export const FIT_PADDING = 8;
+/** The model keeps at least this share of the canvas, however wide the gutters are. */
+const MIN_SAFE_SHARE = 0.15;
+
+/** Scale insets down when they would leave the model less than {@link MIN_SAFE_SHARE} of an axis. */
+export function usableSafeArea(safe: SafeArea, viewport: Size): SafeArea {
+  const axis = (a: number, b: number, size: number): [number, number] => {
+    const lo = Math.max(a, 0);
+    const hi = Math.max(b, 0);
+    const room = size * (1 - MIN_SAFE_SHARE);
+    const k = lo + hi > room && lo + hi > 0 ? room / (lo + hi) : 1;
+    return [lo * k, hi * k];
+  };
+  const [left, right] = axis(safe.left, safe.right, viewport.w);
+  const [top, bottom] = axis(safe.top, safe.bottom, viewport.h);
+  return { left, right, top, bottom };
+}
+
+export interface Vec3Like {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+/** The camera's unit axes in world space. */
+export interface ViewBasis {
+  readonly right: Vec3Like;
+  readonly up: Vec3Like;
+  /** Towards the camera. */
+  readonly back: Vec3Like;
+}
+
+const dotDiff = (a: Vec3Like, o: Vec3Like, b: Vec3Like) => (a.x - o.x) * b.x + (a.y - o.y) * b.y + (a.z - o.z) * b.z;
+
+/**
+ * The smallest camera distance from the pivot along the view axis at which every
+ * corner projects inside the safe area, with the pivot on the safe area's
+ * centre (the scene shifts it there with a view offset). Exact, not a fixed
+ * scale: a corner at (x, y) with depth d - z lands at x * f / (d - z) pixels
+ * from the centre, which solves for d per corner and axis.
+ */
+export function fitDistance(
+  corners: readonly Vec3Like[],
+  pivot: Vec3Like,
+  basis: ViewBasis,
+  fovDeg: number,
+  viewport: Size,
+  safe: SafeArea,
+  padding = FIT_PADDING,
+): number {
+  const f = viewport.h / 2 / Math.tan((fovDeg * Math.PI) / 360);
+  const halfW = Math.max((viewport.w - safe.left - safe.right) / 2 - padding, 1);
+  const halfH = Math.max((viewport.h - safe.top - safe.bottom) / 2 - padding, 1);
+  let d = 0;
+  for (const c of corners) {
+    const z = dotDiff(c, pivot, basis.back);
+    d = Math.max(
+      d,
+      z + (Math.abs(dotDiff(c, pivot, basis.right)) * f) / halfW,
+      z + (Math.abs(dotDiff(c, pivot, basis.up)) * f) / halfH,
+    );
+  }
+  return d;
+}
+
+/** Radius of the ring around the selected dot; the leader line stops at it. */
+export const MARKER_RADIUS = 13;
+/** Gap between the callout and the safe area's edge. */
+const CALLOUT_GAP = 12;
+
+/**
+ * The callout's fixed size at a window width: 168 x 66 from 1920 up, 147 x 58
+ * at 1440, never below 0.8 of it. The viewer's CSS (--co-u) computes the same;
+ * a host sizes its gutters with {@link calloutGutter}.
+ */
+export function calloutSize(windowWidth: number): Size {
+  const u = clamp(0.5 + windowWidth / 3840, 0.8, 1);
+  return { w: 168 * u, h: 66 * u };
+}
+
+/** Gutter width that holds the callout at a window width. */
+export function calloutGutter(windowWidth: number): number {
+  return Math.ceil(calloutSize(windowWidth).w) + CALLOUT_GAP + LABEL_MARGIN;
+}
+
+export interface CalloutPlacement extends LabelPlacement {
+  /** Centre of the marker ring (the anchor, clamped into the viewer). */
+  readonly anchor: Pt;
+}
+
+/**
+ * Place the callout inside a reserved gutter: the one on the anchor's side,
+ * else the other. Only line and marker reach over the model. Null when neither
+ * gutter holds the box (narrow layouts have none: the panel carries it alone).
+ */
+export function placeCallout(anchor: Pt, box: Size, viewport: Size, safe: SafeArea, margin = LABEL_MARGIN): CalloutPlacement | null {
+  const a: Pt = { x: clamp(anchor.x, 0, viewport.w), y: clamp(anchor.y, 0, viewport.h) };
+  const fitsLeft = safe.left >= box.w + margin;
+  const fitsRight = safe.right >= box.w + margin;
+  if (!fitsLeft && !fitsRight) return null;
+  const centre = (safe.left + viewport.w - safe.right) / 2;
+  const side: 'left' | 'right' = (a.x < centre ? fitsLeft : !fitsRight) ? 'left' : 'right';
+  const left =
+    side === 'left'
+      ? Math.max(safe.left - box.w - CALLOUT_GAP, margin)
+      : Math.min(viewport.w - safe.right + CALLOUT_GAP, viewport.w - box.w - margin);
+  const top = clamp(a.y - box.h / 2, margin, viewport.h - box.h - margin);
+  const x2 = side === 'left' ? left + box.w : left;
+  const y2 = top + box.h / 2;
+  // The line starts at the marker ring, not under the dot.
+  const len = Math.hypot(x2 - a.x, y2 - a.y) || 1;
+  const k = Math.min(MARKER_RADIUS / len, 1);
+  return {
+    left,
+    top,
+    side,
+    anchor: a,
+    line: { x1: a.x + (x2 - a.x) * k, y1: a.y + (y2 - a.y) * k, x2, y2 },
+  };
+}

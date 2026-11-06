@@ -23,9 +23,9 @@ import * as THREE from 'three';
 import type { Rgb } from './holo-manufacturer';
 
 export type { Rgb } from './holo-manufacturer';
-export type HoloRole = 'hull' | 'part' | 'interior' | 'focus';
+export type HoloRole = 'hull' | 'part' | 'interior' | 'focus' | 'quiet';
 
-const ROLES: readonly HoloRole[] = ['hull', 'part', 'interior', 'focus'];
+const ROLES: readonly HoloRole[] = ['hull', 'part', 'interior', 'focus', 'quiet'];
 
 /** Crease angle for panel/character lines on a normal-sized hull: below it a seam is "smooth surface". */
 export const HOLO_CREASE_DEG = 30;
@@ -56,6 +56,10 @@ export const HOLO_DIM_FILL = 0.65;
 export const HOLO_DIM_EDGE_COLOR = 0.78;
 /** Crease-line alpha factor of everything that is not the focus. */
 export const HOLO_DIM_EDGE_ALPHA = 0.8;
+/** Brightness of a part that is not relevant to the picked Einsatz (`part` is 1.1). */
+export const HOLO_QUIET_LEVEL = 0.42;
+/** Crease-line factor of such a part. */
+export const HOLO_QUIET_EDGE = 0.4;
 /** Duration of the opacity / dim change when the focus switches on or off, seconds. */
 export const HOLO_TWEEN_S = 0.14;
 
@@ -226,7 +230,9 @@ void main() {
 }
 `;
 
-const ROLE_LEVEL: Record<HoloRole, number> = { hull: 1, part: 1.1, interior: 0.6, focus: 1 };
+const ROLE_LEVEL: Record<HoloRole, number> = { hull: 1, part: 1.1, interior: 0.6, focus: 1, quiet: HOLO_QUIET_LEVEL };
+/** Crease-line opacity per role: the interior and quiet parts recede. */
+const edgeOpacity = (role: HoloRole) => HOLO_EDGE_OPACITY * (role === 'interior' ? 0.5 : role === 'quiet' ? HOLO_QUIET_EDGE : 1);
 
 /** Mark on a LineSegments child this module added. */
 const EDGE_FLAG = 'holoEdges';
@@ -360,7 +366,7 @@ export class HoloLook {
           uFocusRadius: this.shared.uFocusRadius,
           uColor: { value: edgeColor.clone() },
           uAccent: { value: this.accentColor.clone() },
-          uOpacity: { value: HOLO_EDGE_OPACITY * (role === 'interior' ? 0.5 : 1) },
+          uOpacity: { value: edgeOpacity(role) },
           uGlow: { value: focus ? 1 : 0 },
         },
         transparent: true,
@@ -493,8 +499,7 @@ export class HoloLook {
       fill.needsUpdate = true;
     }
     // Lines keep a floor so an x-rayed hull still reads as a wireframe ghost.
-    const base = HOLO_EDGE_OPACITY * (role === 'interior' ? 0.5 : 1);
-    this.line(role).uniforms['uOpacity'].value = base * Math.max(opacity, 0.45);
+    this.line(role).uniforms['uOpacity'].value = edgeOpacity(role) * Math.max(opacity, 0.45);
   }
 
   /** Dim everything that is not a focus (hull, other parts). */

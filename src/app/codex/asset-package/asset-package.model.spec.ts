@@ -12,6 +12,9 @@ import {
   rowFromDb,
   selectablePlacements,
   type PlacementGroup,
+  isSwappable,
+  placementsForPorts,
+  scopedHotspots,
 } from './asset-package.model';
 
 export function placementFixture(over: Record<string, unknown>): Record<string, unknown> {
@@ -162,5 +165,38 @@ describe('asset-package model', () => {
     expect(plausibleBounds({ min: [-5, -2, -10], max: [5, 2, 10] })).not.toBeNull();
     expect(plausibleBounds({ min: [-283871, -83811, -322447], max: [283871, 83812, 322444] })).toBeNull();
     expect(plausibleBounds(null)).toBeNull();
+  });
+});
+
+describe('scopedHotspots / placementsForPorts', () => {
+  const swappableManifest = () => {
+    const raw = manifestFixture();
+    for (const p of raw['placements'] as Record<string, unknown>[]) {
+      if (p['id'] === 'turret') p['port'] = { minSize: 1, maxSize: 1, types: ['Turret'], flags: [], editable: true };
+    }
+    return parseManifest(raw);
+  };
+
+  it('narrows the dots to editable ports, all keeps every hotspot', () => {
+    const m = swappableManifest();
+    const swappable = scopedHotspots(m, 'swappable');
+    expect(swappable.length).toBeGreaterThan(0);
+    expect(swappable.every(isSwappable)).toBeTrue();
+    expect(scopedHotspots(m, 'all').length).toBeGreaterThan(swappable.length);
+  });
+
+  it('keeps all dots when a package has no editable port at all', () => {
+    const raw = manifestFixture();
+    for (const p of raw['placements'] as Record<string, unknown>[]) delete p['port'];
+    const m = parseManifest(raw);
+    expect(scopedHotspots(m, 'swappable').length).toBe(scopedHotspots(m, 'all').length);
+    expect(scopedHotspots(m, 'all').length).toBeGreaterThan(0);
+  });
+
+  it('resolves ports and ids case-insensitively and brings the children', () => {
+    const m = parseManifest(manifestFixture());
+    expect(placementsForPorts(m, ['TURRET'])).toEqual(['turret', 'turret/gun']);
+    expect(placementsForPorts(m, ['turret/gun'])).toEqual(['turret/gun']);
+    expect(placementsForPorts(m, ['nope'])).toEqual([]);
   });
 });

@@ -239,6 +239,24 @@ export function hotspotPlacements(m: AssetPackageManifest): PackagePlacement[] {
   return m.placements.filter((p) => isPlaced(p) && !!p.itemClass && HOTSPOT_GROUPS.has(p.group));
 }
 
+/** Which dots the holotable shows: the parts a pilot can swap, or every placed part. */
+export type HotspotScope = 'swappable' | 'all';
+
+/** The port takes another component in the game's own loadout editor. */
+export const isSwappable = (p: PackagePlacement): boolean => p.port?.editable === true;
+
+/**
+ * The dots of a scope. A package without any editable port (FPS weapon, or an
+ * older manifest without port data) keeps all of them: no dots at all would
+ * read as a broken model.
+ */
+export function scopedHotspots(m: AssetPackageManifest, scope: HotspotScope): PackagePlacement[] {
+  const all = hotspotPlacements(m);
+  if (scope === 'all') return all;
+  const swappable = all.filter(isSwappable);
+  return swappable.length ? swappable : all;
+}
+
 /**
  * Slots the component label can step through: positioned and either a filled
  * hotspot or an empty, fittable port (shown as its ring marker).
@@ -294,12 +312,25 @@ export function focusedPlacementIds(
 ): string[] {
   const seeds = new Set<string>();
   if (localFocus) seeds.add(localFocus);
-  else if (activePorts.length) {
-    const want = new Set(activePorts.map((p) => p.toLowerCase()));
-    for (const p of m.placements) {
-      if (want.has(p.portName.toLowerCase()) || want.has(p.id.toLowerCase())) seeds.add(p.id);
-    }
+  else if (activePorts.length) return placementsForPorts(m, activePorts);
+  return withDescendants(m, seeds);
+}
+
+/**
+ * The placements a set of raw port names or placement ids means (exact match,
+ * case-insensitive, no fuzzy join), children included: a relevant turret
+ * brings its guns.
+ */
+export function placementsForPorts(m: AssetPackageManifest, ports: Iterable<string>): string[] {
+  const want = new Set([...ports].map((p) => p.toLowerCase()));
+  const seeds = new Set<string>();
+  for (const p of m.placements) {
+    if (want.has(p.portName.toLowerCase()) || want.has(p.id.toLowerCase())) seeds.add(p.id);
   }
+  return withDescendants(m, seeds);
+}
+
+function withDescendants(m: AssetPackageManifest, seeds: ReadonlySet<string>): string[] {
   if (seeds.size === 0) return [];
   const out: string[] = [];
   const byId = new Map(m.placements.map((x) => [x.id, x] as const));

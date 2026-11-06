@@ -1,10 +1,11 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { AssetPackageViewerComponent, HOVER_GRACE_MS } from './asset-package-viewer.component';
 import { AssetPackageService } from './asset-package.service';
 import { CodexService } from '../codex.service';
 import { parseManifest, type AssetPackageRow } from './asset-package.model';
+import { calloutSize } from './holo-overlay';
 import { manifestFixture, placementFixture } from './asset-package.model.spec';
 
 const ROW: AssetPackageRow = {
@@ -232,6 +233,224 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
     expect(c.localFocus()).toBeNull();
     expect(outer).toHaveBeenCalledTimes(2);
     document.removeEventListener('keydown', outer);
+  });
+
+  describe('table interaction', () => {
+    function table(raw: Record<string, unknown> = manifestFixture()) {
+      const made = create(raw);
+      made.fixture.componentRef.setInput('interaction', 'table');
+      made.c['items'].set(new Map([['POWR_A', { kind: 'component', name: 'Regulus' }]]));
+      return made;
+    }
+
+    it('a hover lights the part without the see-through, a selection turns it on and holds', () => {
+      const { c } = table();
+      const seen: unknown[] = [];
+      c.selectionChange.subscribe((v) => seen.push(v?.id ?? null));
+      const pp = c.manifest()!.placements[0];
+      c.focus(pp);
+      expect(c.focusIds()).toEqual([pp.id]);
+      expect(c['seeThrough']()).toBeFalse();
+      c.blur(pp);
+      expect(c.focusIds()).toEqual([]);
+
+      c.onPick(new MouseEvent('click', { button: 0, cancelable: true }), c.toRowFor(pp));
+      expect(c.pinned()).toBe(pp.id);
+      expect(c['seeThrough']()).toBeTrue();
+      expect(seen).toEqual([pp.id]);
+      // The pointer goes on to a neighbour: the selection and its see-through stay, both are lit.
+      const other = c.manifest()!.placements[1];
+      c.focus(other);
+      expect(c.focusIds()).toContain(pp.id);
+      expect(c.focusIds()).toContain(other.id);
+      c.blur(other);
+      expect(c.pinned()).toBe(pp.id);
+      expect(c.clearSelection()).toBeTrue();
+      expect(seen).toEqual([pp.id, null]);
+    });
+
+    it('a plain click on a dot selects instead of navigating, a modified click stays the browser\'s', async () => {
+      const { fixture, c } = table();
+      project(c, ['hardpoint_power_plant']);
+      c.status.set('ready');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const nav = spyOn(TestBed.inject(Router), 'navigate');
+      const a = (fixture.nativeElement as HTMLElement).querySelector('a.hs') as HTMLAnchorElement;
+      expect(a.getAttribute('href')).toBe('/codex/component/POWR_A');
+      expect(a.getAttribute('title')).toBeNull();
+
+      const ctrl = new MouseEvent('click', { button: 0, ctrlKey: true, cancelable: true, bubbles: true });
+      // Keep Karma's page: only the viewer's own reaction is under test here.
+      const stop = (ev: Event) => ev.preventDefault();
+      a.parentElement!.addEventListener('click', stop);
+      a.dispatchEvent(ctrl);
+      a.parentElement!.removeEventListener('click', stop);
+      expect(c.pinned()).toBeNull();
+
+      const plain = new MouseEvent('click', { button: 0, cancelable: true, bubbles: true });
+      a.dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(c.pinned()).toBe('hardpoint_power_plant');
+      expect(nav).not.toHaveBeenCalled();
+    });
+
+    it('names the hovered dot with a tag that never takes the pointer, not a tooltip bubble', async () => {
+      const { fixture, c } = table();
+      project(c, ['hardpoint_power_plant']);
+      c.status.set('ready');
+      c.focus(c.byId().get('hardpoint_power_plant')!);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const tag = (fixture.nativeElement as HTMLElement).querySelector('.dot-name') as HTMLElement;
+      expect(tag.textContent).toContain('Regulus');
+      expect(getComputedStyle(tag).pointerEvents).toBe('none');
+      c.select(c.byId().get('hardpoint_power_plant')!);
+      expect(c.hoverTag()).toBeNull();
+    });
+
+    it('takes the selection from the host by port or id and does not echo it', () => {
+      const { fixture, c } = table();
+      const seen: unknown[] = [];
+      c.selectionChange.subscribe((v) => seen.push(v));
+      fixture.componentRef.setInput('selectedPort', 'HARDPOINT_POWER_PLANT');
+      fixture.detectChanges();
+      expect(c.pinned()).toBe('hardpoint_power_plant');
+      fixture.componentRef.setInput('selectedPort', null);
+      fixture.detectChanges();
+      expect(c.pinned()).toBeNull();
+      expect(seen).toEqual([]);
+    });
+
+    function withSwappable(): Record<string, unknown> {
+      const raw = manifestFixture();
+      const list = raw['placements'] as Record<string, unknown>[];
+      for (const p of list) if (p['id'] === 'hardpoint_power_plant') p['port'] = { minSize: 1, maxSize: 1, types: ['PowerPlant'], flags: [], editable: true };
+      return raw;
+    }
+
+    it('shows swappable dots by default; the chip at the end of the row shows all', async () => {
+      const { fixture, c } = table(withSwappable());
+      const ids = c.manifest()!.placements.filter((p) => p.position && p.itemClass).map((p) => p.id);
+      project(c, ids);
+      c.status.set('ready');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(c.hotspots().map((h) => h.p.id)).toEqual(['hardpoint_power_plant']);
+      const el: HTMLElement = fixture.nativeElement;
+      const chips = el.querySelectorAll('.bar .chip');
+      const toggle = chips[chips.length - 1] as HTMLButtonElement;
+      expect(toggle.classList).toContain('all-parts');
+      expect(toggle.getAttribute('aria-pressed')).toBe('false');
+      toggle.click();
+      expect(c.hotspotScope()).toBe('all');
+      expect(c.hotspots().length).toBeGreaterThan(1);
+      expect(c.hotspots().filter((h) => h.minor).length).toBe(c.hotspots().length - 1);
+    });
+
+    it('gives an out-of-scope part the panel points at a dot, without moving the others', () => {
+      const { fixture, c } = table(withSwappable());
+      const ids = c.manifest()!.placements.filter((p) => p.position && p.itemClass).map((p) => p.id);
+      project(c, ids);
+      const before = c.hotspots().map((h) => [h.p.id, h.x, h.y]);
+      const other = ids.find((id) => id !== 'hardpoint_power_plant')!;
+      fixture.componentRef.setInput('selectedPort', other);
+      fixture.detectChanges();
+      const after = c.hotspots();
+      expect(after.length).toBeGreaterThan(before.length);
+      expect(after.slice(0, before.length).map((h) => [h.p.id, h.x, h.y])).toEqual(before as never);
+    });
+
+    it('keeps relevant parts lit and quiet ones reachable', async () => {
+      const { fixture, c } = table();
+      const ids = c.manifest()!.placements.filter((p) => p.position && p.itemClass).map((p) => p.id);
+      project(c, ids);
+      fixture.componentRef.setInput('hotspotScope', 'all');
+      fixture.componentRef.setInput('relevantPorts', new Set(['turret']));
+      c.status.set('ready');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(c.quietIds().has('turret')).toBeFalse();
+      expect(c.quietIds().has('turret/gun')).toBeFalse();
+      expect(c.quietIds().has('hardpoint_power_plant')).toBeTrue();
+      const quiet = (fixture.nativeElement as HTMLElement).querySelector('.hs.q') as HTMLElement;
+      expect(quiet).not.toBeNull();
+      expect(getComputedStyle(quiet).pointerEvents).toBe('auto');
+      fixture.componentRef.setInput('relevantPorts', new Set());
+      expect(c.quietIds().size).toBe(0);
+    });
+
+    it('sets the callout in a gutter, fixed, and offers the swap only on a swappable port', async () => {
+      const { fixture, c } = table(withSwappable());
+      project(c, ['hardpoint_power_plant']);
+      fixture.componentRef.setInput('safeArea', { left: 190, right: 190 });
+      fixture.componentRef.setInput('calloutValues', [{ label: 'Size', value: 'S1' }]);
+      fixture.detectChanges();
+      c.select(c.byId().get('hardpoint_power_plant')!);
+      c.status.set('ready');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const co = c.callout()!;
+      expect(c.label()).toBeNull();
+      expect(co.left + calloutSize(window.innerWidth).w).toBeLessThanOrEqual(190);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.callout .co-nm')!.textContent).toContain('Regulus');
+      const swaps: unknown[] = [];
+      c.swapRequested.subscribe((v) => swaps.push(v.id));
+      (el.querySelector('.co-swap') as HTMLButtonElement).click();
+      expect(swaps).toEqual(['hardpoint_power_plant']);
+      // No gutter (phone): the panel carries it alone, the anchor stays readable.
+      fixture.componentRef.setInput('safeArea', null);
+      expect(c.callout()).toBeNull();
+      expect(c.selectionAnchor()).not.toBeNull();
+    });
+
+    function wheel(init: WheelEventInit): WheelEvent {
+      return new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true, composed: true, ...init });
+    }
+
+    it('leaves a wheel without Ctrl to the page and hints once; Ctrl + wheel zooms', fakeAsync(() => {
+      const { fixture, c } = table();
+      const zoomBy = jasmine.createSpy('zoomBy');
+      c['scene'] = { zoomBy, dispose: () => undefined, setFocus: () => undefined, setPaused: () => undefined } as never;
+      const host: HTMLElement = fixture.nativeElement;
+      const orbit = jasmine.createSpy('orbit');
+      const canvas = host.querySelector('canvas')!;
+      canvas.addEventListener('wheel', orbit);
+
+      const plain = wheel({});
+      canvas.dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBeFalse();
+      expect(orbit).not.toHaveBeenCalled();
+      expect(zoomBy).not.toHaveBeenCalled();
+      expect(c.wheelHint()).toBeTrue();
+      tick(5000);
+      expect(c.wheelHint()).toBeFalse();
+      canvas.dispatchEvent(wheel({}));
+      expect(c.wheelHint()).toBeFalse();
+
+      const ctrl = wheel({ ctrlKey: true });
+      canvas.dispatchEvent(ctrl);
+      expect(ctrl.defaultPrevented).toBeTrue();
+      expect(zoomBy).toHaveBeenCalledOnceWith(100);
+      c['scene'] = null;
+    }));
+
+    it('the classic viewer leaves the wheel, the click and the hover x-ray alone', () => {
+      const { fixture, c } = create();
+      const pp = c.manifest()!.placements[0];
+      c.focus(pp);
+      expect(c['seeThrough']()).toBeTrue();
+      c['scene'] = { zoomBy: () => undefined, dispose: () => undefined, setFocus: () => undefined, setPaused: () => undefined } as never;
+      const plain = wheel({});
+      const canvas = (fixture.nativeElement as HTMLElement).querySelector('canvas')!;
+      const orbit = jasmine.createSpy('orbit');
+      canvas.addEventListener('wheel', orbit);
+      canvas.dispatchEvent(plain);
+      expect(orbit).toHaveBeenCalled();
+      expect(c.wheelHint()).toBeFalse();
+      c['scene'] = null;
+    });
   });
 
   it('fans stacked hotspots apart, has no tooltip bubble and offers a reset-view chip', () => {

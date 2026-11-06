@@ -1,4 +1,4 @@
-import { FAN_SPACING_PX, LABEL_GAP, LABEL_MARGIN, cycleId, fanOut, placeLabel, rectOf, ringPose } from './holo-overlay';
+import { FAN_SPACING_PX, LABEL_GAP, LABEL_MARGIN, cycleId, fanOut, placeLabel, rectOf, ringPose, FIT_PADDING, type SafeArea, type Vec3Like, type ViewBasis, fitDistance, calloutGutter, calloutSize, placeCallout, usableSafeArea } from './holo-overlay';
 
 const VP = { w: 1000, h: 600 };
 const LABEL = { w: 200, h: 50 };
@@ -155,5 +155,112 @@ describe('fanOut (stacked hotspots)', () => {
   it('chains: A near B near C is one stack', () => {
     const m = fanOut(dots([0, 0], [9, 0], [18, 0]));
     expect(minDist(m)).toBeGreaterThanOrEqual(FAN_SPACING_PX - 0.01);
+  });
+});
+
+describe('fitDistance', () => {
+  // Looking straight down -z, so the projection below is the camera's own.
+  const basis: ViewBasis = { right: { x: 1, y: 0, z: 0 }, up: { x: 0, y: 1, z: 0 }, back: { x: 0, y: 0, z: 1 } };
+  const box = (x: number, y: number, z: number): Vec3Like[] => {
+    const out: Vec3Like[] = [];
+    for (const a of [-x, x]) for (const b of [-y, y]) for (const c of [-z, z]) out.push({ x: a, y: b, z: c });
+    return out;
+  };
+  const pivot = { x: 0, y: 0, z: 0 };
+  const FOV = 35;
+
+  function extent(corners: Vec3Like[], d: number, h: number) {
+    const f = h / 2 / Math.tan((FOV * Math.PI) / 360);
+    let px = 0;
+    let py = 0;
+    for (const c of corners) {
+      px = Math.max(px, (Math.abs(c.x) * f) / (d - c.z));
+      py = Math.max(py, (Math.abs(c.y) * f) / (d - c.z));
+    }
+    return { px, py };
+  }
+
+  const canvases = [{ w: 1286, h: 850 }, { w: 960, h: 670 }, { w: 700, h: 700 }];
+  const gutters: SafeArea = { left: 190, right: 190, top: 0, bottom: 60 };
+  const hulls = { wide: box(30, 3, 8), long: box(4, 3, 40), tall: box(4, 20, 4), cube: box(5, 5, 5) };
+
+  for (const vp of canvases) {
+    for (const [name, corners] of Object.entries(hulls)) {
+      it(`fits a ${name} hull into the safe area of ${vp.w} x ${vp.h}, and touches its limit`, () => {
+        const d = fitDistance(corners, pivot, basis, FOV, vp, gutters);
+        const { px, py } = extent(corners, d, vp.h);
+        const halfW = (vp.w - gutters.left - gutters.right) / 2 - FIT_PADDING;
+        const halfH = (vp.h - gutters.top - gutters.bottom) / 2 - FIT_PADDING;
+        expect(px).toBeLessThanOrEqual(halfW + 1e-6);
+        expect(py).toBeLessThanOrEqual(halfH + 1e-6);
+        // Solved, not a fixed scale: one axis sits right at its limit.
+        expect(Math.max(px / halfW, py / halfH)).toBeCloseTo(1, 5);
+      });
+    }
+  }
+
+  it('wider gutters push the camera back', () => {
+    const narrow = fitDistance(hulls.wide, pivot, basis, FOV, canvases[0], { left: 0, right: 0, top: 0, bottom: 0 });
+    const wide = fitDistance(hulls.wide, pivot, basis, FOV, canvases[0], gutters);
+    expect(wide).toBeGreaterThan(narrow);
+  });
+});
+
+describe('usableSafeArea', () => {
+  it('passes sane insets and scales absurd ones so the model keeps room', () => {
+    const vp = { w: 1000, h: 500 };
+    const ok: SafeArea = { left: 190, right: 190, top: 0, bottom: 60 };
+    expect(usableSafeArea(ok, vp)).toEqual(ok);
+    const s = usableSafeArea({ left: 600, right: 600, top: 0, bottom: 0 }, vp);
+    expect(1000 - s.left - s.right).toBeCloseTo(150, 5);
+    expect(s.left).toBeCloseTo(s.right, 5);
+  });
+});
+
+describe('placeCallout', () => {
+  const vp = { w: 1200, h: 800 };
+  const box = { w: 168, h: 66 };
+  const safe: SafeArea = { left: 190, right: 190, top: 0, bottom: 60 };
+
+  it('stays inside the gutter on the anchor side, whatever the anchor does', () => {
+    for (const [x, y] of [[300, 400], [590, 5], [100, 790], [-50, 400]]) {
+      const c = placeCallout({ x, y }, box, vp, safe)!;
+      expect(c.side).toBe('left');
+      expect(c.left + box.w).toBeLessThanOrEqual(safe.left);
+      expect(c.top).toBeGreaterThanOrEqual(0);
+      expect(c.top + box.h).toBeLessThanOrEqual(vp.h);
+    }
+    const r = placeCallout({ x: 900, y: 400 }, box, vp, safe)!;
+    expect(r.side).toBe('right');
+    expect(r.left).toBeGreaterThanOrEqual(vp.w - safe.right);
+    expect(r.left + box.w).toBeLessThanOrEqual(vp.w);
+  });
+
+  it('uses the other gutter when its own is too small, none when both are', () => {
+    expect(placeCallout({ x: 300, y: 400 }, box, vp, { ...safe, left: 40 })!.side).toBe('right');
+    expect(placeCallout({ x: 300, y: 400 }, box, vp, { ...safe, left: 0, right: 0 })).toBeNull();
+  });
+
+  it('starts the line at the marker ring and ends it on the box', () => {
+    const c = placeCallout({ x: 300, y: 400 }, box, vp, safe)!;
+    expect(Math.hypot(c.line.x1 - 300, c.line.y1 - 400)).toBeCloseTo(13, 5);
+    expect(c.line.x2).toBe(c.left + box.w);
+  });
+});
+
+describe('calloutSize', () => {
+  it('is 168 x 66 at 1920 and above, scales down gently, and the gutter holds it', () => {
+    expect(calloutSize(1920)).toEqual({ w: 168, h: 66 });
+    expect(calloutSize(2560)).toEqual({ w: 168, h: 66 });
+    expect(calloutSize(1440).w).toBeCloseTo(147, 5);
+    expect(calloutSize(1440).h).toBeCloseTo(57.75, 5);
+    expect(calloutSize(600).w).toBeCloseTo(134.4, 5);
+    for (const w of [1024, 1366, 1440, 1920]) {
+      const vp = { w: 1000, h: 700 };
+      const gutter = calloutGutter(w);
+      const c = placeCallout({ x: 100, y: 300 }, calloutSize(w), vp, { left: gutter, right: gutter, top: 0, bottom: 0 });
+      expect(c).not.toBeNull();
+      expect(c!.left + calloutSize(w).w).toBeLessThanOrEqual(gutter);
+    }
   });
 });

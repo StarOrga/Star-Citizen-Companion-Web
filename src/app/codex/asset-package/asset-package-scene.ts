@@ -23,7 +23,7 @@ import {
   type HoloRole,
   type Rgb,
 } from '../holo-look';
-import { type Rect, rectOf, ringPose } from './holo-overlay';
+import { type Rect, type SafeArea, fitDistance, rectOf, ringPose, usableSafeArea } from './holo-overlay';
 
 export type { Rgb } from '../holo-look';
 
@@ -102,6 +102,10 @@ function haloTexture(size = 64): THREE.DataTexture {
   return tex;
 }
 
+function sameMatrix(a: THREE.Matrix4, b: THREE.Matrix4): boolean {
+  return a.elements.every((v, i) => Math.abs(v - b.elements[i]) < 1e-5);
+}
+
 export class PackageScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
@@ -126,12 +130,29 @@ export class PackageScene {
   private readonly anchors = new Map<string, THREE.Vector3>();
   private readonly geometries = new Set<THREE.BufferGeometry>();
   private focused = new Set<string>();
+  /** Parts not relevant to the picked Einsatz: quieter, still there. */
+  private quiet: ReadonlySet<string> = new Set();
+  /** Current look role per placed node, so a role change only touches what changed. */
+  private readonly roles = new Map<string, HoloRole>();
+  /** Hull see-through. Follows the focus unless the caller says otherwise (holotable: selection only). */
+  private seeThrough = false;
   /** Box of everything framed (hull + placed parts): its projection is the label's "silhouette". */
   private readonly contentBox = new THREE.Box3();
   private frameId = 0;
   private disposed = false;
   private paused = false;
   private readonly tmp = new THREE.Vector3();
+
+  // Safe-area framing (holotable). Null: the classic framing, untouched.
+  private safe: SafeArea | null = null;
+  private width = 0;
+  private height = 0;
+  /** The user's zoom relative to the fitted distance; 1 = exactly fitted. */
+  private zoom = 1;
+  private readonly lastDir = new THREE.Vector3();
+  private lastDist = 0;
+  private readonly seenView = new THREE.Matrix4();
+  private readonly seenProjection = new THREE.Matrix4();
 
   // Highlight markers: glow halos (focused anchors) and empty-slot rings.
   private readonly haloTex = haloTexture();
@@ -293,8 +314,8 @@ export class PackageScene {
    * interior layer on, the hull alone turns glassy so the cabin reads.
    */
   private applyOpacity(): void {
-    const xray = this.focused.size > 0;
-    for (const role of ['hull', 'part', 'interior'] as const) {
+    const xray = this.seeThrough;
+    for (const role of ['hull', 'part', 'interior', 'quiet'] as const) {
       let opacity = 1;
       if (xray) opacity = role === 'hull' ? HOLO_XRAY_HULL_OPACITY : HOLO_XRAY_PART_OPACITY;
       else if (this.interiorOn && role === 'hull') opacity = HULL_OPACITY_INTERIOR;
@@ -308,15 +329,13 @@ export class PackageScene {
   /**
    * Highlight: the focused placements render as lit models in the accent
    * inside a glow cloud; a focused empty slot shows its ring marker instead.
+   * The x-ray over the hull comes with any focus by default; the holotable
+   * keeps it for a selection (a hover only lights).
    */
-  setFocus(ids: readonly string[]): void {
-    const next = new Set(ids);
-    for (const [id, node] of this.placed) {
-      const on = next.has(id);
-      if (on === this.focused.has(id)) continue;
-      this.look.setRole(node, on ? 'focus' : 'part', on ? ORDER_FOCUS : 0);
-    }
-    this.focused = next;
+  setFocus(ids: readonly string[], seeThrough = ids.length > 0): void {
+    this.focused = new Set(ids);
+    this.seeThrough = seeThrough;
+    this.applyRoles();
     const points = ids.map((id) => this.anchors.get(id)).filter((p): p is THREE.Vector3 => !!p);
     this.look.setFocusPoints(points);
     this.syncMarkers(
@@ -324,6 +343,22 @@ export class PackageScene {
       ids.filter((id) => !this.placed.has(id) && this.anchors.has(id)).map((id) => this.anchors.get(id)!),
     );
     this.applyOpacity();
+  }
+
+  /** Mark the parts that stay quiet (another Einsatz); they keep their place and their hotspot. */
+  setQuiet(ids: ReadonlySet<string>): void {
+    this.quiet = ids;
+    this.applyRoles();
+    this.requestRender();
+  }
+
+  private applyRoles(): void {
+    for (const [id, node] of this.placed) {
+      const role: HoloRole = this.focused.has(id) ? 'focus' : this.quiet.has(id) ? 'quiet' : 'part';
+      if ((this.roles.get(id) ?? 'part') === role) continue;
+      this.roles.set(id, role);
+      this.look.setRole(node, role, role === 'focus' ? ORDER_FOCUS : 0);
+    }
   }
 
   /** One halo per glow point, one ring per empty slot (pooled). */
@@ -380,9 +415,12 @@ export class PackageScene {
     this.contentBox.copy(box);
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(this.tmp).length() / 2, 0.1);
-    // The bounding sphere overestimates a flat, long hull; 0.8 fills the stage.
-    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
     const dir = new THREE.Vector3(1, 0.55, 1.25).normalize();
+    // Orientation first: the safe-area fit solves against the camera's axes.
+    this.camera.position.copy(center).addScaledVector(dir, radius);
+    this.camera.lookAt(center);
+    // The bounding sphere overestimates a flat, long hull; 0.8 fills the stage.
+    const dist = this.safe ? Math.max(this.fittedDistance(), 0.1) : (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
     this.camera.position.copy(center).addScaledVector(dir, dist);
     this.camera.near = Math.max(dist / 200, 0.01);
     this.camera.far = dist * 20;
@@ -391,15 +429,141 @@ export class PackageScene {
     this.controls.minDistance = radius * 0.3;
     this.controls.maxDistance = dist * 4;
     this.controls.update();
+    this.zoom = 1;
+    this.noteCamera();
+    this.requestRender();
+  }
+
+  /**
+   * Keep the model out of these insets (CSS px): the camera's centre moves to
+   * the middle of what is left (view offset, so orbiting pivots there too) and
+   * the distance is solved from the projected box. Null: classic framing.
+   */
+  setSafeArea(safe: SafeArea | null): void {
+    this.safe = safe;
+    this.applyViewOffset();
+    this.refit();
+  }
+
+  private usable(): SafeArea {
+    return usableSafeArea(this.safe ?? { left: 0, right: 0, top: 0, bottom: 0 }, { w: this.width, h: this.height });
+  }
+
+  private applyViewOffset(): void {
+    if (!this.safe || this.width <= 0 || this.height <= 0) {
+      this.camera.clearViewOffset();
+      return;
+    }
+    const s = this.usable();
+    this.camera.setViewOffset(this.width, this.height, (s.right - s.left) / 2, (s.bottom - s.top) / 2, this.width, this.height);
+  }
+
+  /** Distance at which the framed box fits the safe area, from the current viewing direction. */
+  private fittedDistance(): number {
+    const { min, max } = this.contentBox;
+    const corners: THREE.Vector3[] = [];
+    for (const x of [min.x, max.x]) {
+      for (const y of [min.y, max.y]) {
+        for (const z of [min.z, max.z]) corners.push(new THREE.Vector3(x, y, z));
+      }
+    }
+    const q = this.camera.quaternion;
+    return fitDistance(
+      corners,
+      this.contentBox.getCenter(new THREE.Vector3()),
+      {
+        right: new THREE.Vector3(1, 0, 0).applyQuaternion(q),
+        up: new THREE.Vector3(0, 1, 0).applyQuaternion(q),
+        back: new THREE.Vector3(0, 0, 1).applyQuaternion(q),
+      },
+      this.camera.fov,
+      { w: this.width, h: this.height },
+      this.usable(),
+    );
+  }
+
+  /** Put the camera at this distance from the orbit centre, widening the limits it would run into. */
+  private placeAt(dir: THREE.Vector3, distance: number): void {
+    this.camera.position.copy(this.controls.target).addScaledVector(dir, distance);
+    if (distance * 4 > this.controls.maxDistance) {
+      this.controls.maxDistance = distance * 4;
+      this.camera.far = this.controls.maxDistance * 5;
+      this.camera.updateProjectionMatrix();
+    }
+    this.noteCamera();
+  }
+
+  private noteCamera(): void {
+    const off = this.tmp.copy(this.camera.position).sub(this.controls.target);
+    this.lastDist = off.length();
+    this.lastDir.copy(off).divideScalar(this.lastDist || 1);
+  }
+
+  /** Re-solve the distance for the current view, keeping the user's zoom (safe-area mode only). */
+  private refit(): void {
+    if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
+    const dir = this.tmp.copy(this.camera.position).sub(this.controls.target).normalize().clone();
+    this.placeAt(dir, this.fittedDistance() * this.zoom);
+    this.requestRender();
+  }
+
+  /**
+   * An orbit must not swing a long hull under a gutter: when the direction
+   * changed, re-solve the distance. A distance change alone is the user's zoom
+   * (pinch): remember it. Neither happened (hover, selection): nothing moves.
+   */
+  private keepFit(): void {
+    if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
+    const off = this.tmp.copy(this.camera.position).sub(this.controls.target);
+    const dist = off.length();
+    if (dist <= 0) return;
+    off.divideScalar(dist);
+    if (off.dot(this.lastDir) < 1 - 1e-7) {
+      this.placeAt(off.clone(), this.fittedDistance() * this.zoom);
+    } else if (Math.abs(dist - this.lastDist) > dist * 1e-4) {
+      this.zoom = dist / Math.max(this.fittedDistance(), 1e-3);
+      this.noteCamera();
+    }
+  }
+
+  /** Zoom by a wheel delta (positive = out), inside the controls' limits. */
+  zoomBy(delta: number): void {
+    if (this.contentBox.isEmpty()) return;
+    const off = this.tmp.copy(this.camera.position).sub(this.controls.target);
+    const dist = off.length();
+    if (dist <= 0) return;
+    const next = THREE.MathUtils.clamp(dist * Math.exp(delta * 0.0015), this.controls.minDistance, this.controls.maxDistance);
+    this.camera.position.copy(this.controls.target).addScaledVector(off.divideScalar(dist), next);
+    this.zoom = next / Math.max(this.fittedDistance(), 1e-3);
+    this.noteCamera();
+    this.controls.update();
     this.requestRender();
   }
 
   resize(width: number, height: number): void {
     if (width <= 0 || height <= 0) return;
+    this.width = width;
+    this.height = height;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.applyViewOffset();
+    this.refit();
     this.requestRender();
+  }
+
+  /**
+   * True once after the camera really moved since the last call. The look can
+   * animate every frame with a resting camera; projecting 120 anchors is only
+   * worth it when this says so.
+   */
+  viewChanged(): boolean {
+    this.camera.updateMatrixWorld();
+    // Not exact: OrbitControls' spherical round trip jitters the low bits on every update.
+    if (sameMatrix(this.seenView, this.camera.matrixWorld) && sameMatrix(this.seenProjection, this.camera.projectionMatrix)) return false;
+    this.seenView.copy(this.camera.matrixWorld);
+    this.seenProjection.copy(this.camera.projectionMatrix);
+    return true;
   }
 
   /** CSS-pixel position of each anchor (placement origin). */
@@ -453,6 +617,7 @@ export class PackageScene {
     this.frameId = this.outsideZone(() => requestAnimationFrame(() => {
       this.frameId = 0;
       const moving = this.controls.enableDamping && this.controls.update();
+      this.keepFit();
       const t = this.elapsed();
       this.look.tick(t);
       this.poseRings(t);
