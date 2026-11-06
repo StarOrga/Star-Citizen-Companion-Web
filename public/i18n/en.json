@@ -6325,7 +6325,7 @@
   },
   "merkliste": {
     "title": "Bookmarks",
-    "aria": "Bookmarks, {{count}} entries",
+    "aria": "Bookmarks, {{count}} in all: {{wishes}} on the wishlist, {{supply}} open in Supplies, {{posts}} saved posts",
     "nachschub": "Supplies",
     "openNachschub": "Open supplies",
     "recent": "Recently opened",

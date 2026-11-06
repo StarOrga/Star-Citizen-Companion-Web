@@ -5,6 +5,10 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { CodexService } from '../../codex/codex.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
+import { ItemPathService } from '../data/item-path.service';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
+import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
+import { fakeItemPath, fakeSignIn } from '../../shared/item-path/item-path.testing';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 
@@ -14,6 +18,7 @@ describe('HqStockPopupComponent: capture and links', () => {
 
   function mount(start: StockStart, opts: { hits?: Hit[]; items?: Row[] } = {}) {
     const items = opts.items ?? [];
+    const path = fakeItemPath();
     const inv = {
       loaded: signal(true),
       error: signal<string | null>(null),
@@ -31,6 +36,8 @@ describe('HqStockPopupComponent: capture and links', () => {
         provideTranslateService(),
         { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
         { provide: HqInventoryService, useValue: inv },
+        { provide: ItemPathService, useValue: path },
+        { provide: SignInAskService, useValue: fakeSignIn() },
         { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }) } },
         { provide: CodexService, useValue: { searchAll: () => Promise.resolve({ hits: opts.hits ?? [], totals: {} }) } },
       ],
@@ -38,7 +45,7 @@ describe('HqStockPopupComponent: capture and links', () => {
     const fixture = TestBed.createComponent(HqStockPopupComponent);
     fixture.componentRef.setInput('start', start);
     fixture.detectChanges();
-    return { fixture, inv };
+    return { fixture, inv, path };
   }
 
   async function type(fixture: ReturnType<typeof mount>['fixture'], text: string) {
@@ -92,5 +99,58 @@ describe('HqStockPopupComponent: capture and links', () => {
     const note = rows.find((r) => r.textContent?.includes('Notiz'));
     expect(gold?.querySelector('a.entry')?.getAttribute('href')).toBe('/codex/item/Gold');
     expect(note?.querySelector('a')).toBeNull();
+  });
+
+  it('gives each row with a class name the tertiary path and a Nachholen action; a row without one has neither', async () => {
+    const { fixture } = mount(
+      { mode: 'browse' },
+      {
+        items: [
+          { location: 'Lorville', name: 'Gold', class_name: 'item:Gold', qty: 3, unit: 'scu' },
+          { location: 'Lorville', name: 'Notiz', class_name: null, qty: 1, unit: 'scu' },
+        ],
+      },
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const rows = [...(fixture.nativeElement as HTMLElement).querySelectorAll('li.row')];
+    const gold = rows.find((r) => r.textContent?.includes('Gold'))!;
+    const note = rows.find((r) => r.textContent?.includes('Notiz'))!;
+    expect(gold.querySelector('sc-item-path')).not.toBeNull();
+    expect(gold.querySelector('button.again.sc-action--secondary')).not.toBeNull();
+    expect(note.querySelector('sc-item-path')).toBeNull();
+    expect(note.querySelector('.again')).toBeNull();
+  });
+
+  it('Nachholen puts the quantity back into Nachschub through the path service and offers an undo; stock is not written', async () => {
+    const { fixture, inv, path } = mount(
+      { mode: 'browse' },
+      { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'Medpen_01', qty: 4, unit: 'pcs' }] },
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('li.row button.again') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(path.nachholen).toHaveBeenCalledOnceWith('item', 'Medpen_01', 'Medpen', 4);
+    expect(inv.addManual).not.toHaveBeenCalled();
+    const toast = TestBed.inject(UndoToastService);
+    expect(toast.current()?.messageKey).toBe('itemPath.done.nachholen');
+    toast.undo();
+    expect(el.querySelector('[role=alert].warn')).toBeNull();
+  });
+
+  it('Nachholen shows the failure inline when the path refuses', async () => {
+    const { fixture, path } = mount(
+      { mode: 'browse' },
+      { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'Medpen_01', qty: 1, unit: 'pcs' }] },
+    );
+    path.nachholen.and.returnValue({ ok: false, key: 'itemPath.err.listFull' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('li.row button.again') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('[role=alert].warn')?.textContent).toContain('itemPath.err.listFull');
   });
 });

@@ -6325,7 +6325,7 @@
   },
   "merkliste": {
     "title": "Merkliste",
-    "aria": "Merkliste, {{count}} Einträge",
+    "aria": "Merkliste, {{count}} insgesamt: {{wishes}} auf der Wunschliste, {{supply}} offen im Nachschub, {{posts}} gemerkte Beiträge",
     "nachschub": "Nachschub",
     "openNachschub": "Nachschub öffnen",
     "recent": "Zuletzt geöffnet",

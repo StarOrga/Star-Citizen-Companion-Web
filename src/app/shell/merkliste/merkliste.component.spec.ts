@@ -13,6 +13,8 @@ function mount(over: Partial<Record<string, unknown>> = {}) {
   const svc = {
     count: signal(3),
     supplyOpen: signal(1),
+    wishCount: signal(2),
+    bookmarkCount: signal(0),
     type: signal<string | null>('ship'),
     recent: signal<MerkRow[]>([row('a', 'Cutter Scout')]),
     wishedShown: signal<MerkRow[]>([row('b', 'Zeus')]),

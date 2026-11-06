@@ -38,6 +38,7 @@ export function fakeItemPath(start?: Partial<ItemPathState>) {
     moveToInventar: jasmine.createSpy('moveToInventar').and.resolveTo(ok('itemPath.done.inventar')),
     adjustInventar: jasmine.createSpy('adjustInventar').and.resolveTo(ok('itemPath.done.inventarOff')),
     removeFromInventar: jasmine.createSpy('removeFromInventar').and.resolveTo(ok('itemPath.done.inventarOff')),
+    nachholen: jasmine.createSpy('nachholen').and.returnValue(ok('itemPath.done.nachholen')),
     addToHangar: jasmine.createSpy('addToHangar').and.resolveTo(ok('itemPath.done.hangar')),
     removeFromHangar: jasmine.createSpy('removeFromHangar').and.resolveTo({ ok: true, key: 'itemPath.done.hangarOff' }),
   };
