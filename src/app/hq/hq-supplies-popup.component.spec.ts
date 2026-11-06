@@ -113,4 +113,20 @@ describe('HqSuppliesPopupComponent', () => {
     const rows = [...el.querySelectorAll('li.line .name-txt')].map((n) => n.textContent?.trim());
     expect(rows).toEqual(['Aegis Avenger Stalker']);
   });
+
+  it('a blueprint line on a mission step links to the blueprint; a plain click leaves, Ctrl+click stays', () => {
+    TestBed.inject(HqSuppliesService).add('AMRS Laser Cannon', 1, { entityKind: 'blueprint', className: 'BP_CRAFT_X', stepKind: 'mission' });
+    const f = TestBed.createComponent(HqSuppliesPopupComponent);
+    let closed = 0;
+    f.componentInstance.closed.subscribe(() => closed++);
+    f.detectChanges();
+    const a = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a.chip-link')!;
+    expect(a.getAttribute('href')).toBe('/codex/blueprint/BP_CRAFT_X');
+    const guard = (e: Event) => e.preventDefault();
+    a.addEventListener('click', guard);
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    expect(closed).toBe(0);
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(closed).toBe(1);
+  });
 });

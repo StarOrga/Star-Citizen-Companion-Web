@@ -59,9 +59,9 @@ import { HqInventoryService } from './hq-inventory.service';
  * another blueprint, has another link (or none) and stays. Undo brings every line back. The same
  * material from two blueprints is two lines (each removable on its own); `nachschubQty` of the
  * material adds them up. `qty` of an amount line counts portions (one blueprint's worth = the step of
- * the -/+ buttons). The blueprint line itself stays plain: no table links a
- * blueprint to the mission that awards it (`missionSource` is always null in the extractor, R5), so
- * nobody passes `opts.stepKind = 'mission'` yet; the option stays for the day that data exists.
+ * the -/+ buttons). The blueprint line stays plain until the build carries `missionSource`
+ * (`codex/blueprint-missions.ts`, filled by the uploader): then "Zum Einsatz" on the blueprint page
+ * passes `opts.stepKind = 'mission'`, and the line links back to that page from the popup.
  */
 
 /** Stored location of "Bei mir" (replaces the old "Ortsfrei" label). */

@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { isPlainLeftClick } from '../core/modified-click.util';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { OverlayFrameComponent } from '../shared/overlay-frame/overlay-frame.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -30,7 +32,7 @@ import { buildPlanSets } from './plan/hq-plan-needs';
 @Component({
   selector: 'sc-hq-supplies-popup',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, ScTooltipDirective, ScActionDirective, OverlayFrameComponent],
+  imports: [TranslatePipe, FormsModule, RouterLink, ScTooltipDirective, ScActionDirective, OverlayFrameComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-overlay-frame [heading]="'hq.supplies.title' | translate" [popup]="true" (closed)="closed.emit()">
@@ -88,7 +90,11 @@ import { buildPlanSets } from './plan/hq-plan-needs';
               <span class="meta">
                 @if (setName(i); as sn) { <span class="set">{{ 'hq.supply.forSet' | translate: { name: sn } }}</span> }
                 @if (i.forClassName; as bp) { <span class="set">{{ 'hq.supply.forBlueprint' | translate: { name: blueprintName(bp) } }}</span> }
-                @if (i.stepKind) { <span class="chip">{{ 'hq.step.kind.' + i.stepKind | translate }}</span> }
+                @if (i.stepKind === 'mission' && i.entityKind === 'blueprint' && i.className) {
+                  <a class="chip chip-link" [routerLink]="['/codex/blueprint', i.className]" (click)="leaveOnPlainClick($event)">{{ 'hq.step.kind.mission' | translate }}</a>
+                } @else if (i.stepKind) {
+                  <span class="chip">{{ 'hq.step.kind.' + i.stepKind | translate }}</span>
+                }
                 @if (i.done) { <span class="chip ready">{{ 'hq.supply.ready' | translate }}</span> }
               </span>
               @if (i.setId) {
@@ -176,6 +182,8 @@ import { buildPlanSets } from './plan/hq-plan-needs';
       .line.done .name-txt { color: var(--sc-fg-2); text-decoration: line-through; }
       .meta { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 0 1 auto; }
       .set { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .chip-link { color: var(--sc-accent); text-decoration: none; }
+      .chip-link:hover, .chip-link:focus-visible { border-color: var(--sc-accent); }
       .chip { padding: 0 8px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .chip.ready { color: var(--sc-accent); border-color: var(--sc-accent); }
       .wanted { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; cursor: pointer; }
@@ -207,6 +215,11 @@ export class HqSuppliesPopupComponent {
   private readonly wishNames = inject(WishNamesService);
   private readonly translate = inject(TranslateService);
   readonly closed = output<void>();
+
+  /** A plain click on a link leaves the popup with it; Ctrl/⌘/middle click keeps it open. */
+  protected leaveOnPlainClick(ev: MouseEvent): void {
+    if (isPlainLeftClick(ev)) this.closed.emit();
+  }
 
   /** Which tab opens first (`/hq?list=wish#planen` opens the wishlist). */
   readonly startTab = input<HqListTab>('nachschub');
