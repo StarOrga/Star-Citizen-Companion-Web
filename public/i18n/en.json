@@ -7055,9 +7055,6 @@
       "store": "Put down",
       "removeHangarTitle": "Remove from hangar?",
       "removeHangarMessage": "“{{name}}” is deleted along with its variants, their shares with friends and its notes. This cannot be undone."
-    },
-    "place": {
-      "withMe": "With me"
     }
   }
 }

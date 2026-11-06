@@ -19,10 +19,11 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ItemPathService, PLACE_BLUEPRINTS, PLACE_WITH_ME, type ItemPathState, type PathResult, type PathStep } from '../../hq/data/item-path.service';
 import { hqListLink, hqPage, hqShip, type HqPageLink } from '../../hq/hq-routes';
+import { placeLabel } from '../../hq/now/hq-live.util';
 import { ScActionDirective } from '../action/sc-action.directive';
 import { ScDialogDirective } from '../dialog/sc-dialog.directive';
 import { ScConfirmService } from '../dialog/sc-confirm.service';
@@ -191,7 +192,7 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
                 <ul class="rp-places">
                   @for (p of state().places; track p.location) {
                     <li>
-                      <span class="pn">{{ p.location === withMe ? ('itemPath.place.withMe' | translate) : p.location }}</span>
+                      <span class="pn">{{ placeText(p.location) }}</span>
                       <span class="st">
                         <button type="button" [attr.aria-label]="'itemPath.pop.less' | translate" (click)="stepPlace(p.location, -1)">−</button>
                         <b>{{ p.qty }}</b>
@@ -224,7 +225,7 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
               </div>
               <div class="places">
                 @for (p of placeOptions(); track p; let first = $first) {
-                  <button type="button" class="place" [class.on]="first" (click)="choosePlace(p)">{{ p === withMe ? ('itemPath.place.withMe' | translate) : p }}</button>
+                  <button type="button" class="place" [class.on]="first" (click)="choosePlace(p)">{{ placeText(p) }}</button>
                 }
                 <button type="button" class="place" [class.on]="otherOpen()" [attr.aria-expanded]="otherOpen()" (click)="openOther()">{{ 'itemPath.pop.otherPlace' | translate }}</button>
               </div>
@@ -389,7 +390,12 @@ export class ItemPathComponent implements OnDestroy {
   private readonly placeInput = viewChild<ElementRef<HTMLInputElement>>('placeInput');
 
   readonly icons = PATH_ICONS;
-  readonly withMe = PLACE_WITH_ME;
+  private readonly translate = inject(TranslateService);
+
+  /** A stored place as the reader sees it ("Bei mir" shows as "With me" in EN, ingame names are tidied). */
+  placeText(place: string): string {
+    return placeLabel(place, this.translate.getCurrentLang());
+  }
   readonly state = computed(() => this.path.state(this.kind(), this.className(), this.name())());
   readonly busy = signal<PathStep | null>(null);
   readonly mode = signal<PopMode | null>(null);
@@ -611,10 +617,16 @@ export class ItemPathComponent implements OnDestroy {
     if (!undo) return;
     this.toast.offer({
       messageKey: this.toastKey(res),
-      messageParams: res.params,
+      messageParams: this.toastParams(res),
       commit: () => undefined,
       onUndo: () => void undo().then((back) => { if (!back.ok) this.showError(back.key, at); }),
     });
+  }
+
+  /** The toast's `where` is a stored place; it is shown the way the popover shows it. */
+  private toastParams(res: PathResult): PathResult['params'] {
+    const where = res.params?.['where'];
+    return typeof where === 'string' ? { ...res.params, where: this.placeText(where) } : res.params;
   }
 
   /** "liegt jetzt in Bei mir" reads wrong: the two fixed places have their own sentence. */

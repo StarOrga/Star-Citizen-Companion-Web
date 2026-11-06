@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { ItemPathService, stepsOf } from '../../hq/data/item-path.service';
 import { ScConfirmService } from '../dialog/sc-confirm.service';
 import { UndoToastService } from '../undo-toast/undo-toast.service';
@@ -15,6 +15,7 @@ interface Opts {
   nextStep?: PathStep | null;
   state?: Partial<ItemPathState>;
   signedIn?: boolean;
+  lang?: string;
 }
 
 function setup(o: Opts = {}) {
@@ -31,6 +32,7 @@ function setup(o: Opts = {}) {
       { provide: ScConfirmService, useValue: confirm },
     ],
   });
+  if (o.lang) TestBed.inject(TranslateService).use(o.lang);
   const fixture = TestBed.createComponent(ItemPathComponent);
   fixture.componentRef.setInput('kind', o.kind ?? 'item');
   fixture.componentRef.setInput('className', 'cls');
@@ -158,11 +160,24 @@ describe('ItemPathComponent', () => {
       expect(path.moveToInventar).not.toHaveBeenCalled();
       const places = [...popover()!.querySelectorAll<HTMLButtonElement>('.place')];
       expect(places[0].classList).toContain('on');
-      expect(places[0].textContent).toContain('itemPath.place.withMe');
+      expect(places[0].textContent).toContain('Bei mir');
       expect(places[1].textContent).toContain('Area 18');
       await click(places[1]);
       expect(path.moveToInventar).toHaveBeenCalledWith('item', 'cls', 'Helm', 'Area 18', 3);
       expect(popover()).toBeNull();
+    });
+
+    it('shows the stored place "Bei mir" as "With me" in EN, in the place popover and in the Inventar popover', async () => {
+      const { node, click, popover } = setup({ lang: 'en', state: { nachschubQty: 3, inventarQty: 0 } });
+      await click(node('inventar'));
+      expect([...popover()!.querySelectorAll('.place')][0].textContent).toContain('With me');
+      expect(popover()!.textContent).not.toContain('Bei mir');
+    });
+
+    it('lists a stored "Bei mir" row as "With me" in EN', async () => {
+      const { node, click, popover } = setup({ lang: 'en', state: { inventarQty: 2, places: [{ location: 'Bei mir', qty: 2 }] } });
+      await click(node('inventar'));
+      expect(popover()!.querySelector('.rp-places .pn')!.textContent).toContain('With me');
     });
 
     it('"Anderer Ort" asks for a free place', async () => {

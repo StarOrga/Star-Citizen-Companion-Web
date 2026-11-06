@@ -258,7 +258,7 @@ import { avatarUrlOf } from './avatar-url';
       </sc-fusion-bar>
       @if (chrome.suppliesPopup()) {
         <!-- Opened from the header bookmark panel; the HQ pages keep their own openers. -->
-        <sc-hq-supplies-popup (closed)="chrome.closeSupplies()" />
+        <sc-hq-supplies-popup [startTab]="chrome.suppliesPopup()?.tab === 'wishlist' ? 'wish' : 'nachschub'" (closed)="chrome.closeSupplies()" />
       }
     }
 

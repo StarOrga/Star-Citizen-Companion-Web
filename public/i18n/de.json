@@ -7055,9 +7055,6 @@
       "store": "Ablegen",
       "removeHangarTitle": "Aus dem Hangar entfernen?",
       "removeHangarMessage": "„{{name}}“ wird samt Varianten, deren Freigaben für Freunde und Notizen gelöscht. Das lässt sich nicht rückgängig machen."
-    },
-    "place": {
-      "withMe": "Bei mir"
     }
   }
 }
