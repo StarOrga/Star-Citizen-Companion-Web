@@ -1,11 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
   RANK_PROFILES,
+  RankClassId,
   RankProfileId,
+  rankClassPluralKey,
+  rankGroupName,
+  rankProfileById,
   RankAxisResult,
   RankResult,
   RankScope,
+  rankBandOf,
 } from './codex-rank';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -97,7 +103,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
 
 
       @if (holo()) {
-        <p class="rolenote">◈ {{ 'codex.holo.stage.profileNote' | translate: { profile: (activeProfileLabelKey() | translate) } }}</p>
+        <p class="rolenote">◈ {{ activeProfileLabelKey() | translate }}</p>
       }
 
       @if (result()) {
@@ -158,10 +164,16 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
             <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="8" x2="10" y2="2" class="sw-up" /></svg></dt>
             <dd><b class="up">{{ copy().legendBetter | translate }}</b></dd>
             <dt aria-hidden="true"><svg class="sw" viewBox="0 0 28 10"><line x1="1" y1="5" x2="27" y2="5" class="sw-compare" /></svg></dt>
-            <dd>{{ copy().legendCompare | translate: { group: (activeScopeLabelKey() | translate), n: result()!.cohortSize } }}</dd>
+            <dd>{{ copy().legendCompare | translate: { group: activeScopeLabel(), n: result()!.cohortSize } }}</dd>
             <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="2" x2="10" y2="8" class="sw-down" /></svg></dt>
             <dd><b class="down">{{ copy().legendWorse | translate }}</b></dd>
           </dl>
+          @if (holo()) {
+            <p class="rim-note">{{ 'codex.rank.rimNote' | translate }}</p>
+            @if (missionNoteKey(); as note) {
+              <p class="rim-note">{{ note | translate }}</p>
+            }
+          }
         </div>
       }
 
@@ -230,7 +242,10 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
                   }
                 </span>
                 <span class="bar-value">
-                  @if (a.percentile != null) {
+                  @if (a.percentile != null && holo()) {
+                    <b class="bar-word">{{ bandKeyOf(a.percentile) | translate }}</b>
+                    <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: a.percentile } }}</span>
+                  } @else if (a.percentile != null) {
                     {{ a.percentile }}%
                   } @else {
                     <span class="gap-dash"
@@ -457,6 +472,11 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .bar-label { font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; }
     :host(.holo) .bar-value { font-family: var(--font-monospace, monospace); }
     :host(.holo) .rank-skel { height: 180px; }
+    :host(.holo) .bar-row { grid-template-columns: 82px 1fr minmax(78px, auto); }
+    :host(.holo) .bar-value { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; text-align: right; }
+    :host(.holo) .bar-word { font-weight: 600; color: var(--sc-fg-1, inherit); font-size: max(10.5px, var(--sc-fs-floor)); }
+    :host(.holo) .bar-pct { font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .rim-note { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })
 export class CodexRankCardComponent {
@@ -477,6 +497,24 @@ export class CodexRankCardComponent {
   /** Holotable "Einordnung" variant — see the `:host(.holo)` rules. */
   readonly holo = input(false);
 
+  /** Holotable: the ship's class and its resolved role label name the groups
+   * ("Alle Kampfschiffe", "Alle Leichten Jäger") instead of Karriere/Rolle. */
+  readonly shipClass = input<RankClassId | null>(null);
+  readonly roleName = input<string | null>(null);
+  /** An honest line under the hexagon (Bergbau/Bergung: no data), an i18n key. */
+  readonly missionNoteKey = input<string | null>(null);
+
+  private readonly translate = inject(TranslateService);
+  private readonly langTick = signal(0);
+  constructor() {
+    this.translate.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => this.langTick.update((n) => n + 1));
+  }
+
+  /** Percentile → the existing band word key (unteres Viertel / im Mittelfeld / oberes Viertel). */
+  bandKeyOf(percentile: number): string {
+    return `codex.rank.band.${rankBandOf(percentile)}`;
+  }
+
   /** The profile chips; empty = no chip row (a kind with one fixed set of axes). */
   readonly profiles = input<readonly { id: RankProfileId; labelKey: string }[]>(RANK_PROFILES);
   /** The comparison groups the head toggle offers. */
@@ -485,7 +523,7 @@ export class CodexRankCardComponent {
   readonly copy = input<RankCardCopy>(SHIP_COPY);
 
   readonly activeProfileLabelKey = computed<string>(
-    () => RANK_PROFILES.find((p) => p.id === this.profile())?.labelKey ?? RANK_PROFILES[0].labelKey,
+    () => rankProfileById(this.profile()).labelKey,
   );
 
   /** The scope the result was ACTUALLY built with — a remembered group the
@@ -494,10 +532,34 @@ export class CodexRankCardComponent {
 
   readonly scopeChoices = computed<ScSegmentOption[]>(() => {
     const available = this.result()?.scopeAvailable;
+    const names = this.holoScopeNames();
     return this.scopes().map((s) => {
       const off = !!available && !available[s.id];
-      return { value: s.id, labelKey: s.labelKey, titleKey: off ? s.reasonKey : undefined, disabled: off };
+      return { value: s.id, labelKey: s.labelKey, label: names?.[s.id], titleKey: off ? s.reasonKey : undefined, disabled: off };
     });
+  });
+
+  /** Holo group names; null = classic wording. Role/career fall back to a
+   * neutral phrase ("Gleiche Art"), never to the words Karriere/Rolle. */
+  private readonly holoScopeNames = computed<Partial<Record<RankScope, string>> | null>(() => {
+    if (!this.holo()) return null;
+    this.langTick();
+    const t = this.translate;
+    const alle = (name: string) => t.instant('codex.rank.group.of', { name });
+    const cls = this.shipClass();
+    const role = this.roleName();
+    return {
+      all: t.instant('codex.rank.scope.all'),
+      career: cls ? alle(t.instant(rankClassPluralKey(cls))) : t.instant('codex.rank.scope.careerHolo'),
+      role: role ? alle(rankGroupName(role, t.getCurrentLang() || 'de')) : t.instant('codex.rank.scope.roleHolo'),
+    };
+  });
+
+  readonly activeScopeLabel = computed<string>(() => {
+    const names = this.holoScopeNames();
+    const scope = this.activeScope();
+    this.langTick();
+    return names?.[scope] ?? this.translate.instant(this.activeScopeLabelKey());
   });
 
   readonly activeScopeLabelKey = computed<string>(

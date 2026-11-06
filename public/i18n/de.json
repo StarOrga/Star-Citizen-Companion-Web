@@ -890,7 +890,6 @@
         "staticCrew": "Crew",
         "staticMass": "Masse",
         "staticCargo": "Laderaum",
-        "profileNote": "{{profile}}-Profil",
         "strengthsWeaknesses": "Stärken · Schwächen",
         "top3": "Top 3 · zuletzt gesehen & Hangar",
         "portsCount": "{{n}} Ports",
@@ -1257,19 +1256,29 @@
       "profile": {
         "combat": "Kampf",
         "defense": "Verteidigung",
-        "transport": "Transport"
+        "transport": "Transport",
+        "exploration": "Erkundung",
+        "resources": "Ressourcen",
+        "support": "Support",
+        "multirole": "Multirole",
+        "competition": "Wettkampf",
+        "travel": "Reisen",
+        "stealth": "Schleichen"
       },
       "scope": {
         "sizeClass": "Gleiche Größenklasse",
         "all": "Alle Schiffe",
         "career": "Karriere",
-        "role": "Rolle"
+        "role": "Rolle",
+        "careerHolo": "Gleiche Klasse",
+        "roleHolo": "Gleiche Art"
       },
       "disabled": {
         "noCargo": "Dieses Schiff hat keinen Laderaum",
         "noData": "Für dieses Profil fehlen in diesem Build die Werte",
         "noCareer": "Für dieses Schiff ist keine Karriere hinterlegt.",
-        "noRole": "Für dieses Schiff ist keine Rolle hinterlegt."
+        "noRole": "Für dieses Schiff ist keine Rolle hinterlegt.",
+        "smallGroup": "Diese Gruppe ist zu klein, der Vergleich wurde erweitert."
       },
       "axis": {
         "alpha": "ALPHA",
@@ -1286,14 +1295,26 @@
         "cargo": "FRACHT",
         "quantumRange": "QUANTUM-REICHWEITE",
         "scm": "SCM",
-        "mass": "MASSE"
+        "mass": "MASSE",
+        "maxSpeed": "MAXIMAL",
+        "quantumSpeed": "Q-TEMPO",
+        "spool": "SPOOL",
+        "ir": "IR",
+        "emIdle": "EM RUHE",
+        "emMax": "EM MAX"
       },
       "nShipsOfRole": "{{n}} Schiffe der gleichen Rolle",
       "compare": {
         "label": "Verglichen mit",
         "info": "Jede Achse reicht von 0 (Mitte) bis zum besten Wert der gewählten Vergleichsschiffe (Rand); die Ringe markieren 33, 67 und 100 % davon. Blau ist dieses Schiff, die gestrichelte Linie der Median der Vergleichsschiffe. Blaue Striche: besser als der Vergleich, gelbe: schwächer.",
         "axisDelta": "{{d}} Punkte zum Vergleich"
-      }
+      },
+      "class": { "combat": "Kampfschiff", "transport": "Frachter", "exploration": "Erkundungsschiff", "resources": "Ressourcenschiff", "support": "Support-Schiff", "multirole": "Mehrzweckschiff", "competition": "Rennschiff" },
+      "classPlural": { "combat": "Kampfschiffe", "transport": "Frachter", "exploration": "Erkundungsschiffe", "resources": "Ressourcenschiffe", "support": "Support-Schiffe", "multirole": "Mehrzweckschiffe", "competition": "Rennschiffe" },
+      "group": { "of": "Alle {{name}}" },
+      "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
+      "rimNote": "Außen = fast bester Wert der Gruppe (95 %). Stärkere Werte enden am Rand.",
+      "betterThan": "Besser als {{n}} %"
     },
     "detail": {
       "manufacturer": "Hersteller",

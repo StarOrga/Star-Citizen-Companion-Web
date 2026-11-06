@@ -890,7 +890,6 @@
         "staticCrew": "Crew",
         "staticMass": "Mass",
         "staticCargo": "Cargo",
-        "profileNote": "{{profile}} profile",
         "strengthsWeaknesses": "Strengths · weaknesses",
         "top3": "Top 3 · recently viewed & hangar",
         "portsCount": "{{n}} ports",
@@ -1257,19 +1256,29 @@
       "profile": {
         "combat": "Combat",
         "defense": "Defence",
-        "transport": "Transport"
+        "transport": "Transport",
+        "exploration": "Exploration",
+        "resources": "Resources",
+        "support": "Support",
+        "multirole": "Multirole",
+        "competition": "Competition",
+        "travel": "Travel",
+        "stealth": "Stealth"
       },
       "scope": {
         "sizeClass": "Same size class",
         "all": "All ships",
         "career": "Career",
-        "role": "Role"
+        "role": "Role",
+        "careerHolo": "Same class",
+        "roleHolo": "Same type"
       },
       "disabled": {
         "noCargo": "This ship has no cargo hold",
         "noData": "This build carries no values for this profile",
         "noCareer": "No career is recorded for this ship.",
-        "noRole": "No role is recorded for this ship."
+        "noRole": "No role is recorded for this ship.",
+        "smallGroup": "This group is too small, the comparison was widened."
       },
       "axis": {
         "alpha": "ALPHA",
@@ -1286,14 +1295,26 @@
         "cargo": "CARGO",
         "quantumRange": "QUANTUM RANGE",
         "scm": "SCM",
-        "mass": "MASS"
+        "mass": "MASS",
+        "maxSpeed": "MAX SPEED",
+        "quantumSpeed": "QT SPEED",
+        "spool": "SPOOL",
+        "ir": "IR",
+        "emIdle": "EM IDLE",
+        "emMax": "EM MAX"
       },
       "nShipsOfRole": "{{n}} ships of the same role",
       "compare": {
         "label": "Compared with",
         "info": "Each axis runs from 0 (centre) to the best value among the chosen comparison ships (rim); the rings mark 33, 67 and 100 % of it. Blue is this ship, the dashed line is the median of the comparison ships. Blue strokes: better than the comparison, yellow: weaker.",
         "axisDelta": "{{d}} points against the comparison"
-      }
+      },
+      "class": { "combat": "Combat ship", "transport": "Freighter", "exploration": "Exploration ship", "resources": "Resource ship", "support": "Support ship", "multirole": "Multirole ship", "competition": "Racing ship" },
+      "classPlural": { "combat": "Combat ships", "transport": "Freighters", "exploration": "Exploration ships", "resources": "Resource ships", "support": "Support ships", "multirole": "Multirole ships", "competition": "Racing ships" },
+      "group": { "of": "All {{name}}" },
+      "noMiningData": "Mining and salvage output: no data",
+      "rimNote": "Outside = close to the group best (95 %). Stronger values end at the rim.",
+      "betterThan": "Better than {{n}} %"
     },
     "detail": {
       "manufacturer": "Manufacturer",

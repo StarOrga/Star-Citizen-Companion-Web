@@ -189,7 +189,11 @@ import {
   RankShipInput,
   RANK_SCOPE_ACCOUNT_KEY,
   parseRankScopePref,
+  rankClassOfCareer,
   rankProfileDisabledReason,
+  rankTargetShipInput,
+  RANK_MIN_GROUP,
+  RankClassId,
   readRankScopePref,
   rankShip,
   resolveCareerLabel,
@@ -3332,7 +3336,7 @@ export class CodexDetailComponent implements OnInit {
   // overwriting the choice (`RankResult.scope` vs. this signal).
   // Signed in, the account's copy (profiles.ui_prefs) wins once it has loaded,
   // so the choice follows the user to another browser.
-  readonly rankScope = signal<RankScope>(readRankScopePref());
+  readonly rankScope = signal<RankScope>(readRankScopePref('role'));
   private readonly accountPrefs = inject(AccountPrefsService);
   private readonly rankScopeFromAccount = effect(() => {
     const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
@@ -3396,19 +3400,45 @@ export class CodexDetailComponent implements OnInit {
     const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
     const roleRaw = this.detail()?.row?.['role'];
     const role = typeof roleRaw === 'string' && roleRaw.trim() ? roleRaw.trim() : null;
-    return { className, sizeClass: null, career, role, sheet: this.currentKpiSheet() };
+    return { className, sizeClass: null, career, role, sheet: this.rankKpiSheet() };
   });
+
+  /**
+   * The target's sheet for the ranking: built from the SAME ship input as the
+   * cohort sheets (hull, armor, cargo included). The strip's `kpiShipInput`
+   * lacks those, which left `cargo` null for every hull, so Transport was
+   * always reported "disabled" and the stage's Einsatz effect never switched.
+   */
+  private readonly rankKpiSheet = computed(() =>
+    computeKpiSheet(
+      this.draftSummaryOccupants(),
+      rankTargetShipInput(this.kind() === 'ship' ? (this.detail()?.payload as ShipPayload | undefined) : null),
+    ),
+  );
+
+  /** The class the ship's career maps to (axis list default, strip label). */
+  readonly rankShipClass = computed<RankClassId>(() =>
+    rankClassOfCareer((this.detail()?.payload as ShipPayload | undefined)?.career ?? null),
+  );
 
   readonly rankResult = computed<RankResult | null>(() => {
     const target = this.rankShipInput();
     const cohort = this.rankCohort();
     if (!target || !cohort) return null;
-    return rankShip(target, cohort, { profile: this.rankProfile(), scope: this.rankScope() });
+    // Holotable: rim at the group's 95th percentile, a "Karriere" group is the
+    // class, a group under RANK_MIN_GROUP widens (role -> class -> all).
+    // The classic card keeps the best-value rim and the raw career.
+    const holo = this.holoView();
+    return rankShip(target, cohort, {
+      profile: this.rankProfile(),
+      scope: this.rankScope(),
+      ...(holo ? { rim: 'p95' as const, careerByClass: true, minGroup: RANK_MIN_GROUP } : {}),
+    });
   });
 
   readonly rankDisabledReasons = computed<Partial<Record<RankProfileId, string | null>>>(() => {
     if (this.kind() !== 'ship') return {};
-    const cargo = this.currentKpiSheet().cargo ?? null;
+    const cargo = this.rankKpiSheet().cargo ?? null;
     const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
     const input = { className: this.shipClassName(), sizeClass: null, career, sheet: { cargo } };
     return {
