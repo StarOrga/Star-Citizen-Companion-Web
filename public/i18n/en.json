@@ -3857,10 +3857,12 @@
       "wishlist": "Wishlist"
     },
     "flagship": {
-      "set": "★ Set as flagship",
-      "pinned": "★ Flagship",
-      "badge": "Your flagship"
+      "set": "Set as flagship",
+      "pinned": "Flagship",
+      "badge": "Your flagship",
+      "mark": "Flagship"
     },
+    "manage": { "toggle": "Manage", "variants": "Variants", "noVariants": "No variant yet. Create one on the ship's Codex page.", "active": "Active", "openVariant": "View variant" },
     "status": {
       "owned": "Owned",
       "wishlist": "Wishlist"
@@ -3870,8 +3872,6 @@
       "placeholder": "Search the catalog by name or class…",
       "noResults": "No ships found.",
       "already": "In hangar",
-      "owned": "Owned",
-      "wishlist": "Wishlist",
       "searchFailed": "Catalog search failed"
     },
     "fleet": {
@@ -3909,8 +3909,6 @@
       "save": "Save",
       "rename": "Rename",
       "pinLabel": "Pin",
-      "moveToWishlist": "Move to wishlist",
-      "moveToOwned": "Mark as owned",
       "openCodex": "Codex entry",
       "remove": "Remove",
       "notes": "Notes",
@@ -4002,19 +4000,6 @@
       "note": "Watched ships — not flight-ready yet",
       "browse": "Open the drawing board",
       "empty": "You haven't watched an announced ship for your fleet yet."
-    },
-    "concept": {
-      "title": "Concept wishlist",
-      "hint": "Ships that are not in the game (yet) have no codex entry — track them here with a link to the pledge page. Specs are preliminary until release.",
-      "namePlaceholder": "Ship name (e.g. Polaris)",
-      "manufacturerPlaceholder": "Manufacturer (optional)",
-      "urlPlaceholder": "RSI pledge link (optional)",
-      "add": "Add to wishlist",
-      "empty": "No concept ships on your wishlist yet.",
-      "preliminary": "Concept — preliminary",
-      "pledgeLink": "Pledge page",
-      "remove": "Remove",
-      "urlError": "Please use an official RSI pledge-ship link, e.g. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad — or leave the field empty."
     },
     "import": {
       "open": "Import…",
@@ -5117,7 +5102,12 @@
       "title": "Supplies",
       "close": "Close supplies",
       "empty": "Nothing on the supplies list yet.",
-      "emptyHint": "Search for an item and add it to Supplies: Plan then shows where to get it and how to get there."
+      "emptyHint": "Search for an item and add it to Supplies: Plan then shows where to get it and how to get there.",
+      "tabsAria": "Lists",
+      "tabs": { "wish": "Wishlist", "nachschub": "Supplies" },
+      "wish": { "empty": "Nothing on the wishlist yet.", "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.", "toNachschub": "To Supplies", "remove": "Take {{name}} off the wishlist", "notYet": "not in the game yet" },
+      "got": "Got it",
+      "place": { "title": "Where is it now?", "other": "Other place …", "otherPlaceholder": "Enter a place", "store": "Store", "tickOnly": "Just tick off" }
     },
     "ops": {
       "title": "Ops",
@@ -6346,6 +6336,31 @@
       }
     }
   },
+  "merkliste": {
+    "title": "Bookmarks",
+    "aria": "Bookmarks, {{count}} entries",
+    "nachschub": "Supplies",
+    "openNachschub": "Open supplies",
+    "recent": "Recently opened",
+    "wished": "On the wishlist",
+    "allWishes": "Whole wishlist",
+    "newsRead": "Recently read",
+    "newsSaved": "Saved posts",
+    "emptyRecent": "Nothing opened yet.",
+    "emptyWished": "Nothing on the wishlist yet.",
+    "emptyRead": "Nothing read yet.",
+    "emptySaved": "Nothing saved yet.",
+    "emptyNachschub": "Everything fetched, nothing open.",
+    "type": {
+      "all": "All",
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components",
+      "item": "Items",
+      "blueprint": "Blueprints",
+      "news": "News"
+    }
+  },
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Download apps",
@@ -7050,7 +7065,7 @@
       "otherPlaceholder": "Enter a place",
       "store": "Store",
       "removeHangarTitle": "Remove from hangar?",
-      "removeHangarMessage": "\"{{name}}\" leaves your hangar along with its variants and notes."
+      "removeHangarMessage": "“{{name}}” is deleted along with its variants, their shares with friends and its notes. This cannot be undone."
     },
     "place": {
       "withMe": "With me"

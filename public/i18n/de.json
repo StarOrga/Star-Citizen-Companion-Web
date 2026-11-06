@@ -3857,10 +3857,12 @@
       "wishlist": "Wunschliste"
     },
     "flagship": {
-      "set": "★ Als Flaggschiff",
-      "pinned": "★ Flaggschiff",
-      "badge": "Dein Flaggschiff"
+      "set": "Als Flaggschiff",
+      "pinned": "Flaggschiff",
+      "badge": "Dein Flaggschiff",
+      "mark": "Flaggschiff"
     },
+    "manage": { "toggle": "Verwalten", "variants": "Varianten", "noVariants": "Noch keine Variante. Im Codex-Eintrag des Schiffs legst du sie an.", "active": "Aktiv", "openVariant": "Variante ansehen" },
     "status": {
       "owned": "Im Besitz",
       "wishlist": "Wunschliste"
@@ -3870,8 +3872,6 @@
       "placeholder": "Katalog nach Name oder Klasse durchsuchen…",
       "noResults": "Keine Schiffe gefunden.",
       "already": "Im Hangar",
-      "owned": "Besitz",
-      "wishlist": "Wunschliste",
       "searchFailed": "Katalogsuche fehlgeschlagen"
     },
     "fleet": {
@@ -3909,8 +3909,6 @@
       "save": "Speichern",
       "rename": "Umbenennen",
       "pinLabel": "Pin",
-      "moveToWishlist": "Auf Wunschliste",
-      "moveToOwned": "Als Besitz markieren",
       "openCodex": "Codex-Eintrag",
       "remove": "Entfernen",
       "notes": "Notizen",
@@ -4002,19 +4000,6 @@
       "note": "Gemerkte Schiffe — noch nicht flugfähig",
       "browse": "Reißbrett öffnen",
       "empty": "Du hast dir noch kein angekündigtes Schiff für die Flotte gemerkt."
-    },
-    "concept": {
-      "title": "Concept-Wunschliste",
-      "hint": "Schiffe, die (noch) nicht im Spiel sind, haben keinen Codex-Eintrag — tracke sie hier mit Link zur Pledge-Seite. Specs sind bis zum Release vorläufig.",
-      "namePlaceholder": "Schiffsname (z. B. Polaris)",
-      "manufacturerPlaceholder": "Hersteller (optional)",
-      "urlPlaceholder": "RSI-Pledge-Link (optional)",
-      "add": "Zur Wunschliste",
-      "empty": "Noch keine Concept-Schiffe auf deiner Wunschliste.",
-      "preliminary": "Concept — vorläufig",
-      "pledgeLink": "Pledge-Seite",
-      "remove": "Entfernen",
-      "urlError": "Bitte einen offiziellen RSI-Pledge-Schiffslink verwenden, z. B. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad — oder das Feld leer lassen."
     },
     "import": {
       "open": "Importieren…",
@@ -5117,7 +5102,12 @@
       "title": "Nachschub",
       "close": "Nachschub schließen",
       "empty": "Noch nichts auf der Nachschub-Liste.",
-      "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst."
+      "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst.",
+      "tabsAria": "Listen",
+      "tabs": { "wish": "Wunschliste", "nachschub": "Nachschub" },
+      "wish": { "empty": "Noch nichts auf der Wunschliste.", "emptyHint": "Such einen Gegenstand oder ein Schiff und leg es auf die Wunschliste. Von hier wandert es mit einem Klick in den Nachschub.", "toNachschub": "In den Nachschub", "remove": "{{name}} von der Wunschliste nehmen", "notYet": "noch nicht im Spiel" },
+      "got": "Besorgt",
+      "place": { "title": "Wo liegt es jetzt?", "other": "Anderer Ort …", "otherPlaceholder": "Ort eingeben", "store": "Ablegen", "tickOnly": "Nur abhaken" }
     },
     "ops": {
       "title": "Einsätze",
@@ -6346,6 +6336,31 @@
       }
     }
   },
+  "merkliste": {
+    "title": "Merkliste",
+    "aria": "Merkliste, {{count}} Einträge",
+    "nachschub": "Nachschub",
+    "openNachschub": "Nachschub öffnen",
+    "recent": "Zuletzt geöffnet",
+    "wished": "Auf der Wunschliste",
+    "allWishes": "Ganze Wunschliste",
+    "newsRead": "Zuletzt gelesen",
+    "newsSaved": "Gemerkte Beiträge",
+    "emptyRecent": "Noch nichts geöffnet.",
+    "emptyWished": "Noch nichts auf der Wunschliste.",
+    "emptyRead": "Noch nichts gelesen.",
+    "emptySaved": "Noch nichts gemerkt.",
+    "emptyNachschub": "Alles besorgt, nichts offen.",
+    "type": {
+      "all": "Alles",
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten",
+      "item": "Gegenstände",
+      "blueprint": "Blaupausen",
+      "news": "News"
+    }
+  },
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Apps herunterladen",
@@ -7050,7 +7065,7 @@
       "otherPlaceholder": "Ort eingeben",
       "store": "Ablegen",
       "removeHangarTitle": "Aus dem Hangar entfernen?",
-      "removeHangarMessage": "„{{name}}“ verschwindet samt Varianten und Notizen aus deinem Hangar."
+      "removeHangarMessage": "„{{name}}“ wird samt Varianten, deren Freigaben für Freunde und Notizen gelöscht. Das lässt sich nicht rückgängig machen."
     },
     "place": {
       "withMe": "Bei mir"
