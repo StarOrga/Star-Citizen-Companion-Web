@@ -318,7 +318,6 @@
       },
       "holo": {
         "label": "Holotable",
-        "open": "Open {{name}}",
         "rotation": "Choose a category",
         "next": "Click: resume",
         "hold": "Click: hold",
@@ -440,8 +439,7 @@
       },
       "values": {
         "key": "Key values",
-        "more": "More values",
-        "open": "{{label}} {{value}}: open {{name}}",
+        "more": "Data sheet",
         "legend": "Class average",
         "toPage": "To the {{name}} page"
       },

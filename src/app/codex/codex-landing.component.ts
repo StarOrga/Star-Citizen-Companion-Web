@@ -37,7 +37,7 @@ export const CODEX_LIST_ITEMS = 5;
  * Kante"): one viewport, no page scroll on desktop. Hero with the category's
  * claims and the staged search; the holotable in the centre with the newest
  * flight-ready item per category in rotation; the Codex list left (where the
- * index keeps its area tree) and "Weitere Werte" right, both light panes whose
+ * index keeps its area tree) and the data sheet right, both light panes whose
  * glowing edges face the screen edge and stand in the light the table spills
  * across the floor. Wheeling on past the page end opens the Codex index.
  * Nothing personal.

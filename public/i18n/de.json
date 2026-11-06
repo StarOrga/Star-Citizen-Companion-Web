@@ -318,7 +318,6 @@
       },
       "holo": {
         "label": "Holotisch",
-        "open": "{{name}} öffnen",
         "rotation": "Kategorie wählen",
         "next": "Klick: weiter",
         "hold": "Klick: halten",
@@ -440,8 +439,7 @@
       },
       "values": {
         "key": "Kennwerte",
-        "more": "Weitere Werte",
-        "open": "{{label}} {{value}}: {{name}} öffnen",
+        "more": "Datenblatt",
         "legend": "Klassenschnitt",
         "toPage": "Zur {{name}}-Seite"
       },

@@ -125,13 +125,13 @@ describe('CodexLandingComponent', () => {
 
   const piece = () => el.querySelector<HTMLElement>('.piece:not(.leaving)')!;
 
-  it('renders hero, Kennung + hologram as anchors, Codex list with keybindings last and nothing removed coming back', fakeAsync(() => {
+  it('renders hero, Kennung + hologram without links, Codex list with keybindings last and nothing removed coming back', fakeAsync(() => {
     setup(three());
     settle();
     expect(el.querySelector('h1')).not.toBeNull();
     expect(el.querySelector('[scStageSearch]')).not.toBeNull();
-    expect(piece().querySelector<HTMLAnchorElement>('a.k-name')!.getAttribute('href')).toBe('/codex/weapon/BEHR_Rifle');
-    expect(piece().querySelector<HTMLAnchorElement>('a.holo')!.getAttribute('href')).toBe('/codex/weapon/BEHR_Rifle');
+    // The table only shows: the way to the page is the data sheet's button.
+    expect(piece().querySelector('a.k-name, a.holo, a.c-value')).toBeNull();
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('sc-codex-landing-codex-pane a'));
     expect(links[links.length - 1].getAttribute('href')).toBe('/codex/keybinds');
     expect(el.querySelector<HTMLAnchorElement>('sc-codex-landing-values-pane a.go')!.getAttribute('href')).toBe('/codex/weapon/BEHR_Rifle');
@@ -288,7 +288,7 @@ describe('CodexLandingComponent', () => {
     settle();
     const calls = piece().querySelectorAll('.call');
     expect(calls.length).toBe(1);
-    expect(calls[0].querySelector('.c-value')!.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
+    expect(calls[0].querySelector('a')).toBeNull();
     expect(calls[0].querySelector('.c-cmp.worse')).withContext('worse than its class').not.toBeNull();
     expect(piece().querySelectorAll('.leaders path').length).toBe(1);
     const bars = el.querySelectorAll('sc-codex-landing-values-pane .row:not(.callout)');

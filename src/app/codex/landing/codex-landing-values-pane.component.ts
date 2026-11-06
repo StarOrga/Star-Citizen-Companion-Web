@@ -17,7 +17,7 @@ interface BarRow {
 }
 
 /**
- * "Weitere Werte" (round 4, design "Zugewandte Kante"): a light pane with no
+ * The data sheet (round 4, design "Zugewandte Kante"): a light pane with no
  * box, only a glowing edge on its outer side, projected out of the screen edge. Bars for the
  * values that are not callouts (value vs. class mean, the mean as a yellow
  * tick), then the way to the detail page. Re-scans its content on every

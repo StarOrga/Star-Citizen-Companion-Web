@@ -12,7 +12,6 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -143,7 +142,6 @@ interface CalloutView {
   selector: 'sc-codex-landing-holotable',
   standalone: true,
   imports: [
-    RouterLink,
     TranslatePipe,
     ScDialogDirective,
     ScTooltipDirective,
