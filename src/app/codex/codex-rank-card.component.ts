@@ -443,7 +443,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .compare-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     :host(.holo) .compare-head sc-segmented { min-width: 0; }
     :host(.holo) .compare-head ::ng-deep .seg { display: grid; grid-auto-flow: column; grid-auto-columns: auto; width: 100%; }
-    :host(.holo) .compare-head ::ng-deep .seg-btn { min-width: 0; padding-inline: 6px; font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0; text-transform: none; white-space: nowrap; }
+    :host(.holo) .compare-head ::ng-deep .seg-btn { min-width: 0; padding-inline: 5px; font-size: max(10.5px, var(--sc-fs-floor)); line-height: 1.1; letter-spacing: 0; text-transform: none; white-space: normal; }
     :host(.holo) .rank-head { display: none; }
     :host(.holo) .rank-col-radar { align-items: center; gap: 4px; }
     /* The axis captions sit on the rim and run past the 200-unit box on the
@@ -467,7 +467,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
     :host(.holo) .bar-list { grid-template-columns: 1fr !important; }
     :host(.holo) .bar-row { grid-template-columns: 82px 1fr 40px; }
-    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); }
+    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; }
     :host(.holo) .bar-value { font-family: var(--font-monospace, monospace); }
     :host(.holo) .rank-skel { height: 180px; }
     :host(.holo) .bar-row { grid-template-columns: 82px minmax(0, 1fr) auto; }
