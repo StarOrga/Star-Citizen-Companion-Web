@@ -324,7 +324,7 @@ function chipSize(pin: StagePin): number | null {
     .btn:hover, .btn:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); }
     .empty { display: grid; place-items: center; text-align: center; gap: 8px; color: var(--sc-fg-2); padding: 40px 10px; font-size: max(12px, var(--f)); }
     .empty b { font-size: max(11px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-1); font-weight: 400; }
-    .mut { margin: 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
+    .mut { margin: 0; font-size: max(12px, var(--f)); color: var(--sc-fg-2); }
 
     /* ── The selected part ── */
     .inspector { display: grid; gap: 10px; min-width: 0; animation: insp-in var(--holo-t-base) var(--e-out) backwards; }
@@ -397,7 +397,7 @@ function chipSize(pin: StagePin): number | null {
       border: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--sc-bg-2) 55%, transparent);
       color: var(--sc-fg-0); cursor: pointer; font: inherit; font-size: max(12.5px, var(--f)); text-decoration: none; white-space: nowrap;
       transition: border-color 120ms ease, background 120ms ease, opacity 120ms ease; }
-    .part i { font-family: var(--m); font-style: normal; font-weight: 600; font-size: max(11.5px, var(--f)); color: var(--holo-e, var(--sc-accent)); }
+    .part i { font-family: var(--m); font-style: normal; font-weight: 600; font-size: max(12px, var(--f)); color: var(--holo-e, var(--sc-accent)); }
     .part.gold i { color: var(--holo-gold, var(--sc-accent)); }
     .pname { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.15; }
     .part:hover, .part:focus-visible, .part.active { border-color: var(--holo-e, var(--sc-accent)); background: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 20%, transparent); }
