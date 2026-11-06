@@ -87,6 +87,42 @@ export class CodexBuildDiffService {
     return hit;
   }
 
+  /**
+   * Class names present in both of the two newest LIVE builds whose numeric
+   * payload leaves differ ("aktualisiert"), from `codex_changed_class_names` —
+   * read once per build and kind. Best-effort: kinds outside
+   * {@link NEW_SORT_KINDS}, no previous build, a missing function or any
+   * failure yield `[]` (no paged fallback: the answer is precomputed
+   * server-side, there is nothing to page).
+   */
+  changedClassNamesMemo(kind: CodexKind): Promise<string[]> {
+    const key = `changed:${this.codex.build()?.id ?? ''}:${kind}`;
+    let hit = this.namesMemo.get(key);
+    if (!hit) {
+      hit = this.changedClassNames(kind);
+      this.namesMemo.set(key, hit);
+    }
+    return hit;
+  }
+
+  private async changedClassNames(kind: CodexKind): Promise<string[]> {
+    if (!NEW_SORT_KINDS.includes(kind)) return [];
+    try {
+      const builds = await this.codex.recentLiveBuilds(2);
+      if (builds.length < 2) return [];
+      const { data, error } = await this.sb.client.rpc('codex_changed_class_names', {
+        p_kind: kind,
+        p_current: builds[0].id,
+        p_previous: builds[1].id,
+      });
+      if (error) throw error;
+      return ((data ?? []) as string[]).filter((cn) => !!cn);
+    } catch (error) {
+      logWarn('codex', `build diff (changed ${kind}) failed`, error);
+      return [];
+    }
+  }
+
   private async addedClassNames(kind: CodexKind): Promise<string[]> {
     const table = DIFF_TABLE[kind as keyof typeof DIFF_TABLE];
     if (!table) return [];
