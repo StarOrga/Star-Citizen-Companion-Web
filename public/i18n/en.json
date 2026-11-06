@@ -5506,40 +5506,16 @@
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to storage.",
-      "actions": {
-        "browse": "Browse",
-        "find": "Where is …?",
-        "add": "Add"
-      },
-      "totals": {
-        "title": "Total",
-        "items": "items",
-        "places": "places"
-      },
-      "places": {
-        "title": "Largest places"
-      },
-      "stale": {
-        "title": "Stand older than 7 days",
-        "none": "All places are up to date."
-      },
-      "cats": {
-        "title": "Categories"
-      },
-      "cat": {
-        "materials": "Raw materials",
-        "weapons": "Weapons",
-        "armor": "Armor",
-        "other": "Other"
-      },
+      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+      "totals": { "title": "Total", "items": "items", "places": "places" },
+      "places": { "title": "Largest places" },
+      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
+      "cats": { "title": "Categories" },
+      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
       "popup": {
         "title": "Stock",
         "modes": "What to do",
-        "mode": {
-          "browse": "Browse",
-          "find": "Where is …?",
-          "add": "Add"
-        },
+        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
         "search": "Search stock",
         "searchHint": "Item or place",
         "filters": "Filters",
@@ -5547,11 +5523,7 @@
         "clearPlace": "Remove place filter",
         "place": "Place",
         "viewBy": "View by",
-        "view": {
-          "place": "By place",
-          "name": "By item",
-          "qty": "By amount"
-        },
+        "view": { "place": "By place", "name": "By item", "qty": "By amount" },
         "count": "{{n}} entries",
         "results": "Stock entries",
         "loading": "Loading …",

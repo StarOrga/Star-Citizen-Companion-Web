@@ -385,6 +385,80 @@ export class CodexSearchResultsComponent {
   readonly freshOptions = computed(() => this.engine().options().filter((o) => o.type === 'fresh'));
   readonly categoryOptions = computed(() => this.engine().options().filter((o) => o.type === 'category'));
 
+  groupOptions(kind: string): SearchOption[] {
+    return this.engine()
+      .options()
+      .filter((o) => (o.type === 'hit' && o.hit.kind === kind) || (o.type === 'more' && o.kind === kind));
+  }
+
+  /** i18n key of the "N variants folded in" hint — singular, plural, "at least". */
+  foldedKey(n: number, floor: boolean): string {
+    const base = floor ? 'codex.search.bar.foldedAtLeast' : 'codex.search.bar.folded';
+    return n === 1 ? `${base}One` : base;
+  }
+
+  optId(o: SearchOption): string {
+    return `${this.listboxId()}-${o.id}`;
+  }
+
+  isActive(o: SearchOption): boolean {
+    return this.engine().activeOption()?.id === o.id;
+  }
+
+  hover(o: SearchOption): void {
+    const i = this.indexById().get(o.id);
+    if (i != null) this.engine().setActive(i);
+  }
+
+  /**
+   * Plain left click: a recent search runs in place, anything else lets the
+   * anchor's routerLink navigate and tells the host to close. Modified and
+   * middle clicks are the browser's (new tab) and leave the search open.
+   */
+  onClick(ev: MouseEvent, o: SearchOption): void {
+    this.engine().opening(o);
+    if (!isPlainLeftClick(ev)) return;
+    if (o.type === 'recent') {
+      ev.preventDefault();
+      this.engine().searchFor(o.term);
+      this.searched.emit();
+      return;
+    }
+    this.navigated.emit();
+  }
+
+  onSuggest(ev: MouseEvent, name: string): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.engine().searchFor(name);
+    this.searched.emit();
+  }
+
+  forgetRecent(): void {
+    this.engine().forgetRecent();
+    this.searched.emit();
+  }
+
+  title(hit: PolySearchHit): string {
+    return hitTitle(hit, this.engine().lang());
+  }
+
+  mfr(hit: PolySearchHit): string | null {
+    return hitManufacturer(hit, this.engine().lang());
+  }
+
+  iconKind(hit: PolySearchHit) {
+    return polyHitIconKind(hit);
+  }
+
+  isUpcoming(hit: PolySearchHit): boolean {
+    return isUpcomingHit(hit);
+  }
+
+  livery(hit: PolySearchHit): boolean {
+    return isLivery(hit);
+  }
+
   pinKind(hit: PolySearchHit) {
     return pinKindOf(hit);
   }

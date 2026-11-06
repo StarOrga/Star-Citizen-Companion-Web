@@ -5506,40 +5506,16 @@
       "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Lager eingetragen.",
-      "actions": {
-        "browse": "Durchsuchen",
-        "find": "Wo liegt …?",
-        "add": "Hinzufügen"
-      },
-      "totals": {
-        "title": "Gesamt",
-        "items": "Gegenstände",
-        "places": "Orte"
-      },
-      "places": {
-        "title": "Größte Orte"
-      },
-      "stale": {
-        "title": "Stand älter als 7 Tage",
-        "none": "Alle Orte sind aktuell."
-      },
-      "cats": {
-        "title": "Kategorien"
-      },
-      "cat": {
-        "materials": "Rohstoffe",
-        "weapons": "Waffen",
-        "armor": "Rüstung",
-        "other": "Sonstiges"
-      },
+      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
+      "places": { "title": "Größte Orte" },
+      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
+      "cats": { "title": "Kategorien" },
+      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
       "popup": {
         "title": "Bestand",
         "modes": "Was möchtest du tun",
-        "mode": {
-          "browse": "Durchsuchen",
-          "find": "Wo liegt …?",
-          "add": "Hinzufügen"
-        },
+        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
         "search": "Bestand durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
@@ -5547,11 +5523,7 @@
         "clearPlace": "Ortsfilter entfernen",
         "place": "Ort",
         "viewBy": "Ansicht",
-        "view": {
-          "place": "Nach Ort",
-          "name": "Nach Gegenstand",
-          "qty": "Nach Menge"
-        },
+        "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
         "count": "{{n}} Einträge",
         "results": "Bestandseinträge",
         "loading": "Lädt …",
