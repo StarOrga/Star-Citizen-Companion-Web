@@ -377,5 +377,178 @@
         "slotNotes": {}
       }
     ]
+  },
+  {
+    "iteration": 2,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "r2-click",
+        "label": "Klick auf einen Punkt",
+        "value": "fillpop",
+        "rec": "fillpop",
+        "note": ""
+      },
+      {
+        "id": "r2-name",
+        "label": "Wort für den dritten Schritt",
+        "value": "Inventar",
+        "rec": "w1",
+        "note": ""
+      },
+      {
+        "id": "r2-merk",
+        "label": "Welche Merkliste",
+        "value": "panel",
+        "rec": "panel",
+        "note": ""
+      },
+      {
+        "id": "r2-flag",
+        "label": "Flaggschiff ohne Stern",
+        "value": "top",
+        "rec": "top",
+        "note": ""
+      },
+      {
+        "id": "r2-head",
+        "label": "Inventar-Kopf",
+        "value": "one",
+        "rec": "one",
+        "note": ""
+      },
+      {
+        "id": "r2-bp",
+        "label": "Blaupause im Nachschub",
+        "value": "mission",
+        "rec": "mission",
+        "note": ""
+      },
+      {
+        "id": "r2-roll",
+        "label": "Umstellung der ganzen App",
+        "value": "two",
+        "rec": "two",
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r2-bah-place-q1",
+        "screen": "r2-bah-place",
+        "design": "bahn",
+        "question": "Soll „Bei mir“ der Standardort sein, oder bleibt es der zuletzt benutzte Ort?",
+        "answer": "mein standort"
+      },
+      {
+        "id": "r2-bah-item-q1",
+        "screen": "r2-bah-item",
+        "design": "bahn",
+        "question": "Der runde Knopf steht heute nur mit der Shell-Beta auf Codex-Seiten. Soll er ab jetzt für alle sichtbar sein?",
+        "improved": "„Link teilen“ wird der runde Knopf",
+        "answer": "nur beta!"
+      },
+      {
+        "id": "r2-bah-ship-q1",
+        "screen": "r2-bah-ship",
+        "design": "bahn",
+        "question": "Schiffe kauft man oft per Pledge und überspringt den Nachschub. Reicht dafür der dritte Punkt?",
+        "improved": "Pille zeigt den nächsten Schritt",
+        "answer": "Ja, das reicht"
+      },
+      {
+        "id": "r2-bah-bp-q1",
+        "screen": "r2-bah-bp",
+        "design": "bahn",
+        "question": "Nachschub heißt hier: erarbeiten. Liest du „Über Mission“ so, oder erwartest du hier Material?",
+        "improved": "Drei Halte statt zwei",
+        "answer": "Das material natürlich auch"
+      },
+      {
+        "id": "r2-bah-stock-q1",
+        "screen": "r2-bah-stock",
+        "design": "bahn",
+        "question": "„Durchsuchen“ steckt in den Zahlen, „Wo liegt …?“ in der Suche oben. Findest du beides dort?",
+        "improved": "Im Kopf nur noch ein Knopf",
+        "answer": "passt"
+      },
+      {
+        "id": "r2-bah-stock-q2",
+        "screen": "r2-bah-stock",
+        "design": "bahn",
+        "question": "„Bei mir“ ersetzt das heutige „Ortsfrei“. Richtig so, oder ist das etwas anderes?",
+        "answer": "Ja gut"
+      },
+      {
+        "id": "r2-bah-wish-q1",
+        "screen": "r2-bah-wish",
+        "design": "bahn",
+        "question": "Das angekündigte Schiff hat keinen nächsten Schritt, bis es im Spiel ist. Reicht der Hinweis?",
+        "answer": "ja"
+      },
+      {
+        "id": "r2-mer-v2-ships-q1",
+        "screen": "r2-mer-v2-ships",
+        "design": "merkliste",
+        "question": "Größtes Risiko: Die Leiste nimmt jeder Seite 48 px, auch dem vollen Holotisch. Ist das ständige Sehen das wert?",
+        "answer": "jain, wir haben ja andere sieten aufbau, zeig das ganze nochmal mit der korrekten seite inkl breite und elementen!"
+      },
+      {
+        "id": "r2-mer-v3-ships-q1",
+        "screen": "r2-mer-v3-ships",
+        "design": "merkliste",
+        "question": "Größtes Risiko: Wer öffnet eine leere Suche, um Gemerktes zu finden? Würdest du hier nachsehen?",
+        "answer": "ja eigentlich schon zumindest priorisiert wenn ich suche"
+      },
+      {
+        "id": "r2-bau-ship-q1",
+        "screen": "r2-bau-ship",
+        "design": "baustein",
+        "question": "„Schiff wechseln“ trägt heute auch ⇄. Das kollidiert mit Vergleichen, also wird es der Link „Schiffe“. Einverstanden?",
+        "answer": "dann nehmen wir das eher für wechseln, was könntne wir für vergleichen nehmen?"
+      },
+      {
+        "id": "r2-bau-ship-q2",
+        "screen": "r2-bau-ship",
+        "design": "baustein",
+        "question": "„Werksausstattung“ ist hier nur ein Icon mit Tooltip. Eindeutig genug, oder braucht es Text?",
+        "answer": "Hä, heute ist das doch viel mehr so ein schiff seite in codex!"
+      },
+      {
+        "id": "r2-bau-list-q1",
+        "screen": "r2-bau-list",
+        "design": "baustein",
+        "question": "+ und ✓ stecken jetzt im dritten Punkt der Bahn. Fehlt dir der direkte Hangar-Knopf?",
+        "answer": "Anderes vergleicehn icon"
+      },
+      {
+        "id": "r2-bau-plan-q1",
+        "screen": "r2-bau-plan",
+        "design": "baustein",
+        "question": "Der Umschalter bleibt, weil er keine Aktion ist. Nur der Nachschub wird Pille. Reicht dir das als Änderung?",
+        "answer": "ok, starten wir mal damit"
+      },
+      {
+        "id": "r2-bau-news-q1",
+        "screen": "r2-bau-news",
+        "design": "baustein",
+        "question": "In News bleibt es „Merken“, nur das Zeichen wird Lesezeichen. So wie du es meintest?",
+        "answer": "Merken, wir brauchen dazu glaube ich keinen begriff"
+      },
+      {
+        "id": "r2-bau-set-q1",
+        "screen": "r2-bau-set",
+        "design": "baustein",
+        "question": "„Speichern“ bleibt der einzige Primärknopf, alles andere tritt zurück. Stimmt die Gewichtung?",
+        "answer": "ja gut!"
+      },
+      {
+        "id": "r2-bau-admin-q1",
+        "screen": "r2-bau-admin",
+        "design": "baustein",
+        "question": "Rot heißt erhöhter Zugriff, und hier ist jeder Knopf Admin. Rot überall, oder nur am Primärknopf?",
+        "answer": "ja ok erstmal"
+      }
+    ]
   }
 ]
