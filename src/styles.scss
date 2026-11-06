@@ -1748,7 +1748,7 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
 }
 /* Part two: the new page's title swaps its text in place, the rest rises in
    from 22 px (mock-sw-in, 400 ms ease-out) behind it. */
-#sc-main.switch-in :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
+#sc-main.switch-in:not(:has(.bstage.intro)) :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
   animation: sc-switch-in 400ms 160ms ease-out both;
 }
 #sc-main.switch-in h1 {

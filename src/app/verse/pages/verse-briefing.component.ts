@@ -15,7 +15,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { AppNoticeComponent } from '../../desktop/app-notice.component';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
@@ -95,6 +95,13 @@ export const INTRO_BUILD_MS = 3600;
 export const INTRO_PLANET_WAIT_MS = 7000;
 /** Into the finale: the comet has landed, the hero switches from the app's name to the first story. */
 export const INTRO_SWITCH_MS = 800;
+/** A reader's input ends the entrance: everything still on its way arrives within this time. */
+export const INTRO_SKIP_MS = 300;
+/** A reload shows the stars until the hub's story is there, at most this long. */
+export const CALM_WAIT_MS = 800;
+/** Length of the hub's fade-in after a reload (verse-briefing-planet.scss, .calm). */
+const CALM_FADE_MS = 400;
+
 /** Into the finale: the constellation finished building, the entrance is over. */
 export const INTRO_FINALE_MS = 2800;
 
@@ -189,6 +196,20 @@ export function fitTitle(h: HTMLElement): boolean {
  * moon gates). β "verse" off: the legacy landing (the Verse News list).
  */
 
+/** The hub, and the header and search that build with it: not a toast or dialog elsewhere on the page. */
+function inEntrance(a: Animation): boolean {
+  const target = a.effect instanceof KeyframeEffect ? a.effect.target : null;
+  return !!target?.closest('sc-verse-briefing, sc-main-header, sc-fusion-bar');
+}
+
+/** Lets a finite animation that has not ended reach its end within `ms`. Endless ones run on. */
+export function hurry(a: Animation, ms: number): void {
+  const t = a.effect?.getComputedTiming();
+  if (!t || t.iterations === Infinity || a.playState === 'finished') return;
+  const left = Number(t.endTime) - Number(a.currentTime ?? 0);
+  if (left > ms) a.playbackRate = left / ms;
+}
+
 @Component({
   selector: 'sc-verse-briefing',
   standalone: true,
@@ -213,6 +234,7 @@ export class VerseBriefingComponent {
   private readonly translate = inject(TranslateService);
   private readonly chrome = inject(ShellChromeService);
   private readonly windowFocus = inject(WindowFocusService);
+  private readonly router = inject(Router);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -223,10 +245,10 @@ export class VerseBriefingComponent {
   readonly top = this.api.topItems;
 
   /**
-   * Claimed only when the cinematic actually renders. On the β stage the full
-   * entrance plays only when the shell announced it at boot (the page OPENED on
-   * the hub — first visit of the session or a reload): reaching the hub from
-   * another page shows it at once instead of hiding and re-showing the header.
+   * Claimed only when the cinematic actually renders: the first visit of the
+   * day plays the full entrance, whichever way the reader came. Opened on the hub,
+   * the shell announced it at boot and header and search are part of it; through
+   * the menu they already stand and only the scene builds.
    */
   readonly intro: IntroMode = this.enabled() ? this.decideIntro() : 'short';
   readonly introSeconds = INTRO_SECONDS[this.intro];
@@ -512,6 +534,7 @@ export class VerseBriefingComponent {
     });
     inject(DestroyRef).onDestroy(() => this.stopTracking?.());
 
+    this.startCalm();
     afterNextRender(() => {
       let cancel = (): void => undefined;
       const next = (): void => {
@@ -644,6 +667,10 @@ export class VerseBriefingComponent {
   readonly titleIntro = signal(false);
   /** The app's name stands in the hero while the entrance builds up; the first story takes over in the finale. */
   readonly brand = signal(false);
+  /** The holo's first message stands at once. On the day's entrance it is sent, after the comet. */
+  readonly holoStands = signal(this.intro !== 'full');
+  /** A reload's hub: waiting behind the stars, then fading in; null once it stands. */
+  readonly calm = signal<'wait' | 'in' | null>(null);
   /** The entrance's last beat: the comet flies in and lights the constellation. */
   readonly finale = signal(false);
   /** The hero title needed more than two lines even at the smallest size: it is cut with an ellipsis. */
@@ -653,9 +680,30 @@ export class VerseBriefingComponent {
   private planetSettled = false;
 
   private decideIntro(): IntroMode {
-    const claimed = claimIntro();
-    if (!this.shell()) return claimed;
-    return claimed === 'full' && this.chrome.heroIntro()?.hold === true ? 'full' : 'short';
+    return claimIntro();
+  }
+
+  /**
+   * A reload (the page opened here, the day's entrance already seen): stars first, then
+   * the hub fades in as one once its story is there, or after {@link CALM_WAIT_MS}.
+   * Inside the app the stage has its own menu switch.
+   */
+  private startCalm(): void {
+    if (!this.shell() || !this.enabled() || this.intro !== 'short' || this.router.navigated) return;
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    this.calm.set('wait');
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    this.destroyRef.onDestroy(() => timers.forEach(clearTimeout));
+    const show = (): void => {
+      if (this.calm() !== 'wait') return;
+      this.calm.set('in');
+      timers.push(setTimeout(() => this.calm.set(null), CALM_FADE_MS));
+    };
+    timers.push(setTimeout(show, CALM_WAIT_MS));
+    effect(() => {
+      const state = this.api.digestState();
+      if (this.api.digest() || state === 'ready' || state === 'error') untracked(show);
+    }, { injector: this.injector });
   }
 
   /** Starts the entrance on a full visit (never under reduced motion); otherwise the final state shows at once. */
@@ -668,8 +716,9 @@ export class VerseBriefingComponent {
     }
     this.titleIntro.set(true);
     this.brand.set(true);
-    // The shell reveals its main header (1.9 s) and search field (2.3 s) in step with it.
-    this.chrome.startHeroIntro(1, true);
+    // Opened on the hub: the shell reveals its main header (1.9 s) and search field (2.3 s) in step with it.
+    if (this.chrome.heroIntro()?.hold) this.chrome.startHeroIntro(1, true);
+    this.armIntroSkip();
     this.introTimers.push(
       setTimeout(() => {
         this.builtUp = true;
@@ -679,8 +728,41 @@ export class VerseBriefingComponent {
     );
     this.destroyRef.onDestroy(() => {
       this.introTimers.forEach(clearTimeout);
+      this.disarmIntroSkip();
       this.chrome.endHeroIntro();
     });
+  }
+
+  private disarmIntroSkip: () => void = () => undefined;
+
+  /** Any input ends the entrance. It is not consumed: the click or scroll still does what it does. */
+  private armIntroSkip(): void {
+    const onInput = (e: Event): void => {
+      if (e instanceof KeyboardEvent && ['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+      this.skipIntro();
+    };
+    const events = ['pointerdown', 'wheel', 'keydown'];
+    const options = { capture: true, passive: true };
+    events.forEach((n) => window.addEventListener(n, onInput, options));
+    this.disarmIntroSkip = () => events.forEach((n) => window.removeEventListener(n, onInput, options));
+  }
+
+  /** Whatever is still on its way (delays included) hurries to its end, then the entrance is over. */
+  private skipIntro(): void {
+    this.disarmIntroSkip();
+    this.introTimers.forEach(clearTimeout);
+    this.introTimers = [];
+    this.holoStands.set(true);
+    document.getAnimations().filter(inEntrance).forEach((a) => hurry(a, INTRO_SKIP_MS));
+    this.introTimers.push(setTimeout(() => this.endIntro(), INTRO_SKIP_MS));
+  }
+
+  private endIntro(): void {
+    this.disarmIntroSkip();
+    this.brand.set(false);
+    this.finale.set(false);
+    this.titleIntro.set(false);
+    this.chrome.endHeroIntro();
   }
 
   /** Planet output: it stands (drawn) or will not come (no WebGL) — the finale may follow. */
@@ -699,11 +781,7 @@ export class VerseBriefingComponent {
     this.finale.set(true);
     this.introTimers.push(
       setTimeout(() => this.brand.set(false), INTRO_SWITCH_MS),
-      setTimeout(() => {
-        this.finale.set(false);
-        this.titleIntro.set(false);
-        this.chrome.endHeroIntro();
-      }, INTRO_FINALE_MS),
+      setTimeout(() => this.endIntro(), INTRO_FINALE_MS),
     );
   }
 
