@@ -1012,6 +1012,12 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   :host(.searching) .account {
     display: none;
   }
+  // The route line is a later sibling of the capsule and fixed at the top; the capsule is an isolated
+  // stacking context, so without its own layer the route line paints OVER the account (bookmark, Apps,
+  // avatar) it is meant to carry at its right end.
+  .cap {
+    z-index: 1;
+  }
   // No avatar under the thumb: the account sits at the route line's right end,
   // clear of the β chip's lane (the bar itself keeps clear of the feedback launcher).
   .cap > .account,

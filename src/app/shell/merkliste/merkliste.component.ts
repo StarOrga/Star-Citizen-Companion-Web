@@ -171,7 +171,11 @@ type Tab = 'type' | 'nachschub';
           bottom: calc(var(--sc-float-bottom) + var(--sc-fab-clear-block, 0px));
           max-height: calc(100vh - 120px); max-height: calc(100dvh - 120px);
         }
-        .tab, .trigger { min-height: 44px; }
+      }
+      /* Touch floor of the gate: 48 px (a 44 px value measures 43), by pointer, not by width, so tablets pass too. */
+      @media (pointer: coarse), (max-width: 749px) {
+        .tab { min-height: 48px; }
+        .trigger { min-height: 48px; min-width: 48px; justify-content: center; }
       }
     `,
   ],

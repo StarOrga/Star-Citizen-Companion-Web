@@ -160,7 +160,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       }
 
       <!-- "Auf dem Reissbrett" — the announced ships this user watches (#130).
-           The wishlist itself is the one `search_wishlist` table (WishlistStore, concept gegenstand-weg A2; the old concept-ship table is gone); this is
+           The wishlist itself is the one search_wishlist table (WishlistStore, concept gegenstand-weg A2; the old concept-ship table is gone); this is
            its entrance at the TOP of the hangar, where the admin asked for it,
            while the add/remove form stays in the section further down. Every
            tile is a real anchor: into our own announced-ship page when the RSI

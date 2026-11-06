@@ -742,6 +742,21 @@ export class CodexHoloStripComponent {
   private restoredFor: string | null = null;
 
   constructor() {
+    // The share FAB shares the bottom-right corner with the strip's own end (its minimise control):
+    // the strip publishes its height, the FAB rides above it. On a phone the fixed bar stack carries it.
+    afterNextRender(() => {
+      const el = this.host.nativeElement;
+      if (this.phone || typeof ResizeObserver === 'undefined') return;
+      const root = el.ownerDocument.documentElement;
+      const publish = (): void => root.style.setProperty('--sc-share-lift', `${Math.round(el.getBoundingClientRect().height) + 8}px`);
+      const ro = new ResizeObserver(publish);
+      ro.observe(el);
+      publish();
+      this.destroyRef.onDestroy(() => {
+        ro.disconnect();
+        root.style.removeProperty('--sc-share-lift');
+      });
+    });
     effect(() => {
       const shipKey = this.shipClassName();
       this.userId();
