@@ -59,6 +59,9 @@ export class FeedbackPeekService {
     const bare = (e.key === 'Control' || e.key === 'Alt') && !e.shiftKey && !e.metaKey;
     // AltGr: Windows reports it as Ctrl+Alt, the key itself is "AltGraph".
     const altGr = e.key === 'AltGraph' || e.getModifierState?.('AltGraph') === true;
+    // A held modifier keeps firing keydown (repeat): only a fresh press may arm
+    // the dissolve, and a repeat must not end it either.
+    if (bare && e.repeat) return;
     if (!bare || altGr) {
       this.end();
       return;

@@ -121,4 +121,31 @@ describe('FeedbackPeekService (hold Ctrl/Alt to dissolve the panel)', () => {
     detachComposer = null;
     expect(peek.peeking()).toBeFalse();
   }));
+
+  it('does not dissolve again from key repeats after the pick click', fakeAsync(() => {
+    key('keydown', 'Control', { ctrlKey: true });
+    tick(PEEK_DELAY_MS);
+    expect(peek.peeking()).toBeTrue();
+    peek.end();
+    expect(peek.peeking()).toBeFalse();
+    key('keydown', 'Control', { ctrlKey: true, repeat: true });
+    key('keydown', 'Control', { ctrlKey: true, repeat: true });
+    tick(PEEK_DELAY_MS * 3);
+    expect(peek.peeking()).toBeFalse();
+  }));
+
+  it('repeats during the wait change nothing; a fresh press after keyup dissolves again', fakeAsync(() => {
+    key('keydown', 'Alt', { altKey: true });
+    tick(60);
+    key('keydown', 'Alt', { altKey: true, repeat: true });
+    tick(PEEK_DELAY_MS - 60);
+    expect(peek.peeking()).toBeTrue();
+    key('keydown', 'Alt', { altKey: true, repeat: true });
+    expect(peek.peeking()).toBeTrue();
+    key('keyup', 'Alt');
+    expect(peek.peeking()).toBeFalse();
+    key('keydown', 'Alt', { altKey: true });
+    tick(PEEK_DELAY_MS);
+    expect(peek.peeking()).toBeTrue();
+  }));
 });
