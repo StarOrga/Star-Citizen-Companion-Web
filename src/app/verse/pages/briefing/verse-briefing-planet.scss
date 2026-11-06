@@ -379,5 +379,10 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   .step, .tl, .title2, .find { transition: none; }
 }
 
+// A reload: stars first, then the hub as one (startCalm, CALM_FADE_MS).
+.bstage.calm-wait .scn { opacity: 0; }
+.bstage.calm-in .scn { animation: calm-in 0.4s ease-out backwards; }
+@keyframes calm-in { from { opacity: 0; } }
+
 // The hub is still on its way (staged-build): the page already has its final height.
 .hub-hold { height: 100dvh; }

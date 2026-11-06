@@ -58,6 +58,9 @@ export interface TransmitItem {
  *
  * Away from the top of the page (`away`, briefing-dock) the relay rests:
  * no cone, no holo, no timers — back at the top it sends again.
+ *
+ * `hold` keeps it from starting while the entrance plays. With `stands` the
+ * first message is simply there when the relay starts, the next planet sends.
  */
 @Component({
   selector: 'sc-briefing-transmit',
@@ -65,7 +68,7 @@ export interface TransmitItem {
   imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
-  host: { '[class.away]': 'away()', '[class.docked]': 'docked()', '[attr.data-phase]': 'phase()' },
+  host: { '[class.away]': 'away()', '[class.docked]': 'docked()', '[class.stands]': 'standing()', '[class.waits]': 'hold()', '[attr.data-phase]': 'phase()' },
   template: `
     @let c = cur();
     <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null"><i class="wide"><i class="fill"></i></i><i class="soft"><i class="fill"></i><i class="wave"></i></i></span>
@@ -108,6 +111,10 @@ export class BriefingTransmitComponent {
   readonly away = input(false);
   /** The planets landed in the hub heads: they hide, the heads show their own. */
   readonly docked = input(false);
+  /** The hub's entrance plays: nothing is sent yet. */
+  readonly hold = input(false);
+  /** The first message stands at once instead of being projected. */
+  readonly stands = input(false);
   /** A planet was used (analytics). */
   readonly door = output<VerseDoor>();
   /** The holo was opened. */
@@ -120,6 +127,8 @@ export class BriefingTransmitComponent {
   readonly phase = signal<TxPhase>('out');
   /** The projection runs: the sender's atmosphere glows. */
   readonly sending = computed(() => ['charge', 'build', 'write', 'pull'].includes(this.phase()));
+  /** The first message is standing, not yet the next planet's turn. */
+  readonly standing = signal(false);
   /** Pointer / focus on the holo: the relay waits. */
   readonly held = signal(false);
   readonly cur = computed<TransmitItem | null>(() => {
@@ -130,11 +139,12 @@ export class BriefingTransmitComponent {
   private readonly reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
+  private first = true;
 
   constructor() {
     effect(() => {
       const n = this.items().length;
-      const away = this.away();
+      const away = this.away() || this.hold();
       untracked(() => {
         if (away) {
           this.stop();
@@ -171,6 +181,14 @@ export class BriefingTransmitComponent {
   private run(): void {
     const c = this.cur();
     if (!c) return this.stop();
+    const first = this.first;
+    this.first = false;
+    if (first && this.stands() && !this.reduced) {
+      this.standing.set(true);
+      this.phase.set('hold');
+      return this.later(TX_HOLD_MS, () => this.next());
+    }
+    this.standing.set(false);
     if (this.reduced) {
       this.phase.set('hold');
       return this.later(TX_HOLD_MS, () => this.next());
