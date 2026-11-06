@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.217.3",
+  "current": "0.218.0",
   "releases": [
+    {
+      "version": "0.218.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The entrance on /verse now plays on your first visit of the day whichever way you come, not only when the app opens there. Coming through the menu, the header and search already stand."
+            },
+            {
+              "title": "",
+              "text": "The holo sends after the comet instead of at the same time, and on later visits its first message is readable right away."
+            },
+            {
+              "title": "",
+              "text": "Any click, scroll or key ends the entrance."
+            },
+            {
+              "title": "",
+              "text": "A reload shows the stars, then fades the hub in as one, without a placeholder bar. The planets fade in once they are drawn, without an empty ring first."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.217.3",
       "date": "2026-11-06",
