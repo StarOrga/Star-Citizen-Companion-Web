@@ -167,7 +167,8 @@ export class BodyEngine {
     if (!this.backend || e.added) return;
     e.added = true;
     this.backend.add(e, e.canvas.clientWidth, devicePixelRatio);
-    this.checkPause();
+    // Not read here: this runs while a new page renders, where it forced one more style pass per body.
+    this.armPauseCheck();
   }
 
   private waitForWorker(worker: Worker): void {

@@ -17,6 +17,8 @@ describe('SlowMotionService', () => {
   const only = (el: Element): CSSAnimation => el.getAnimations()[0] as CSSAnimation;
 
   beforeEach(() => {
+    // A spec that ran earlier may have left it: it pauses these animations from the stylesheet.
+    document.documentElement.classList.remove('sc-unfocused');
     host = document.body.appendChild(document.createElement('div'));
     style = document.head.appendChild(document.createElement('style'));
     style.textContent = '@keyframes sm-test { to { opacity: 0.5; } }';
@@ -27,6 +29,7 @@ describe('SlowMotionService', () => {
 
   afterEach(() => {
     stop?.();
+    document.documentElement.classList.remove('sc-unfocused');
     host.remove();
     style.remove();
   });

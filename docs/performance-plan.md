@@ -455,6 +455,17 @@ with real public data. Frame times over 33 ms while gliding: about 3 to 1 per gl
 glide's p95 stays at about 16 ms, so at 179 Hz every twentieth frame still takes three
 refreshes, and each hop to or from /verse keeps one or two frames of 80 to 100 ms.
 
+What a hop's long frames hold, traced per gap: the moons' engine used to start anew on every
+visit (worker, WebGL context, shaders), 144 to 152 ms in the worker, which held the GPU process
+while the new page was rastered; it now stays five minutes after the last body and is gone
+from the gaps. The click frame itself takes 60 to 80 ms: the router renders the new page in
+one animation frame, with two or three forced layouts of about 30 to 40 ms in it (the hero's
+align, the title fit, the bar's placement). Rastering the new page's 15 to 19 tiles takes
+another 70 ms or so on the GPU. No content is the single cause: without the scene, the stars,
+filters or shadows the longest frame stays at 86 to 108 ms. The next lever is rendering less
+in that frame, for instance `@defer` for the sections below the fold; `briefing-dock` measures
+the hub, so that needs a plan of its own.
+
 Measuring trap: a fresh browser compiles its shaders on first use. That showed up as GPU
 raster flushes of up to 258 ms on the first scroll of a browser's first page, and looked
 like a cost of whichever variant ran first. Warm the browser with one page before comparing.
