@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { WindowFocusService } from '../../core/window-focus.service';
 
 /** One hint of the empty field: the line, and the example a click puts into the field (none for key hints). */
 export interface SearchHint {
@@ -80,8 +81,9 @@ export class FusionSearchHintComponent {
   constructor() {
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
+    const focus = inject(WindowFocusService);
     const timer = setInterval(() => {
-      if (!this.paused()) this.tick.update((t) => t + 1);
+      if (!this.paused() && focus.focused()) this.tick.update((t) => t + 1);
     }, HINT_ROTATE_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }

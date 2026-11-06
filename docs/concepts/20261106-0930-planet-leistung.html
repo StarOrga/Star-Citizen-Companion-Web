@@ -2546,7 +2546,11 @@ body:has(.draft-offline-strip:not([hidden])) .upin-hint { bottom: 4.75rem; }
 body.upin-armed section[data-screen][data-screen-active="true"],
 body.upin-armed section[data-screen][data-screen-active="true"] * { cursor: crosshair !important; }
 .upin-host { position: relative; }
-.upin-layer { position: absolute; inset: 0; pointer-events: none; z-index: 30; }
+/* !important: the layer is appended as a child of the mock's own root, so a
+   mock rule such as `.app > * { position: relative }` would otherwise win. The
+   layer then falls into the flow at the end of the mock with no height, and
+   every pin lands at the bottom of the page, whatever y was clicked. */
+.upin-layer { position: absolute !important; inset: 0 !important; pointer-events: none; z-index: 30 !important; }
 .upin {
   --upin-color: #d2a8ff;
   /* A saved note shows its text in the SAME bubble an auto annotation uses
@@ -2594,7 +2598,7 @@ body.upin-armed section[data-screen][data-screen-active="true"] * { cursor: cros
    (z-index 40) — nothing draws over the editor. Every other note, auto and
    own, dims per note via body[data-note-editing] (templates-design-css.md),
    never by fading a whole layer, so both kinds look the same. */
-.upin-layer:has(.upin[data-editing="true"]) { z-index: 45; }
+.upin-layer:has(.upin[data-editing="true"]) { z-index: 45 !important; }
 .upin[data-editing="true"] { z-index: 4; }
 .upin-editor-head { font-size: 0.72rem; color: var(--text-secondary, #8b949e); margin-bottom: 0.35rem; }
 .upin-editor textarea {
@@ -4842,6 +4846,7 @@ html:not([data-template="design"]) .map-scroll { max-height: 80vh; }
 #neural-bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: .38; }
 html[data-theme="light"] #neural-bg { opacity: .24; }
 html[data-template="design"] #neural-bg { display: none; }
+html[data-template="design"] body[data-view-active="true"]:has(section[data-view-kind="analysis"][data-view-active="true"]) #neural-bg { display: block; }
 @media print { #neural-bg { display: none; } }
 
 /* The bar is no longer the round switcher — the 🕘 rounds chip + list in
@@ -4944,10 +4949,12 @@ html:has(section[data-analysis]) { scroll-padding-top: 60px; }
 .concept-content:has(section[data-analysis="full"][data-active]) > header .subtitle { display: none; }
 .concept-content:has(section[data-analysis="full"][data-active]) > header h1 { margin: 0.25rem 0 0.25rem; }
 .an-enh:not(.an-lite) { overflow: hidden; padding-bottom: 28px; }
-.an-chat { position: relative; flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable both-edges; display: flex; flex-direction: column; padding-bottom: 28px; scroll-padding-bottom: 28px; }
+.an-chat { position: relative; flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable both-edges; display: flex; flex-direction: column; padding-inline: 8px; padding-bottom: 28px; scroll-padding-bottom: 28px; }
 .an-chat > *, .an-chat .an-stage { flex: 0 0 auto; }   /* a stage inside a display:contents topic is a flex item too: it must never shrink below its content */
 .an-chat > .an-foot-brief { margin-top: auto; }
 .an-enh:not([data-an-stage="brief"]):not(.an-lite) { padding-top: 12px; }
+/* a design view runs edge to edge under the fixed variant bar: every stage keeps the chrome's top reserve, not only the briefing */
+section[data-view].an-enh:not(.an-lite) { padding-top: var(--chrome-safe-top, 5.75rem); }
 .an-enh [data-topic] { display: contents; }
 .an-enh .an-off { display: none !important; }
 .an-enh [data-alevel], .an-stores { display: none; }
@@ -5052,6 +5059,13 @@ html[data-theme="light"] .an-kind { color: var(--an-ac); }
    display:none (.an-wait), so it never reserves an empty area the chat could scroll to,
    and the chat glides down only as far as the message that just entered (glide). */
 .an-wait { display: none !important; }
+/* a message is still held back: dots at the bubbles' left edge, kept in view while the message above is long */
+.an-typing { position: sticky; bottom: 6px; display: flex; gap: 5px; width: max-content; margin: 16px 0 0 42px; padding: 10px 14px; border-radius: 4px 14px 14px 14px; background: var(--an-s1); }
+.an-typing > i { width: 7px; height: 7px; border-radius: 50%; background: var(--an-b2); animation: an-typing 1.2s ease-in-out infinite; }
+.an-typing > i:nth-child(2) { animation-delay: .16s; }
+.an-typing > i:nth-child(3) { animation-delay: .32s; }
+@keyframes an-typing { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .an-typing > i { animation: none; opacity: .7; } }
 .an-enter { animation: an-in 1.35s cubic-bezier(.22,.8,.24,1) both; }
 .an-enter > .an-bub, .an-enter > .an-ans { animation: an-read 3.6s ease-out both; }
 .an-pulse { animation: an-pulse 1.1s ease-in-out 1; }
@@ -5107,8 +5121,17 @@ html[data-theme="light"] .an-tagw { color: var(--an-ac); }
 .an-send svg { width: 22px; height: 22px; fill: currentColor; }
 .an-send:hover:not(:disabled) { filter: brightness(1.1); }
 .an-sent .an-send { animation: an-fade .4s ease-out 1; }
-.an-comp-msg { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); padding: 8px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--an-b1) 45%, transparent); background: var(--an-s1); color: var(--an-tx); font-size: 13px; line-height: 1.4; z-index: 7; }
-.an-comp-msg[hidden] { display: none; }
+/* sent notes: chat messages right before the Weiter row. Pen and x lie over the message on hover, so a short note needs no room for them */
+.an-notes { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-top: 14px; }
+.an-notes[hidden] { display: none; }
+.an-note-m { position: relative; white-space: pre-wrap; overflow-wrap: anywhere; }
+.an-note-m .an-tagw { height: auto; padding: 0 7px; }
+.an-note-acts { position: absolute; top: 50%; right: 6px; display: flex; gap: 12px; opacity: 0; pointer-events: none; transform: translateY(-50%); transition: opacity .12s ease; }
+.an-note-m:hover .an-note-acts, .an-note-m:focus-within .an-note-acts { opacity: 1; pointer-events: auto; }
+.an-note-b { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--an-bd2); border-radius: 50%; background: var(--an-s2); color: var(--an-tx); cursor: pointer; }
+.an-note-b svg { width: 18px; height: 18px; fill: currentColor; }
+.an-note-b:hover, .an-note-b:focus-visible { background: var(--an-s1); border-color: var(--an-b2); }
+@media (hover: none) { .an-note-m { padding-right: 104px; } .an-note-acts { opacity: 1; pointer-events: auto; } }
 
 /* ---------- briefing + closing: the cool blue of devops concepts, no type colour of their own ---------- */
 .an-brief { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; padding-top: 24px; text-align: center; }
@@ -6273,7 +6296,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </script>
 </section>
 
-<section data-iteration="3" data-iteration-template="free" id="iter-3" data-active>
+<section data-iteration="3" data-iteration-template="free" data-baked id="iter-3" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <div class="iteration-intro">
     <h2>Der Umbauplan</h2>
     <p>Das ergibt sich aus deinen Antworten. Am Code ist noch nichts geändert, gebaut wird erst nach „Jetzt umsetzen“.</p>
@@ -6318,29 +6342,29 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </section>
 
   <section id="q-plan" data-analysis="lite" data-nav-label="Letzte Frage">
-    <section id="d-pause-all" data-nav-label="Pause für alles" data-decision="d-pause-all" data-decision-mode="yesnoalt" data-label="Pause für die ganze Szene" data-rec="yes" data-rec-why="Sonst läuft neben dem Spiel weiter der größere Teil der Last." data-applies-to="shell-scene, fusion-bar, bodies, Sonne">
+    <section id="d-pause-all" data-nav-label="Pause für alles" data-decision="d-pause-all" data-decision-mode="yesnoalt" data-label="Pause für die ganze Szene" data-rec="yes" data-rec-why="Sonst läuft neben dem Spiel weiter der größere Teil der Last." data-applies-to="shell-scene, fusion-bar, bodies, Sonne"><input type="hidden" name="dm-d-pause-all-hes" value="{&quot;ms&quot;:9762,&quot;revisits&quot;:0,&quot;median&quot;:9762}" disabled>
       <p data-applies>Gilt für: Sonne, Monde, Funkeln und Suchfeld, wenn das Fenster nicht im Fokus ist</p>
       <p data-situation>Die Pause gilt bisher nur für den Planeten. Der macht rund 12 % der Seitenlast aus, alles andere liefe neben Star Citizen weiter.</p>
       <h3 data-question>Soll ohne Fokus die ganze Szene pausieren statt nur der Planet?</h3>
       <p data-stakes>Das ist der größte mögliche Gewinn, solange du spielst.</p>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-pause-all" value="yes" checked>
+          <input type="radio" name="dm-d-pause-all" value="yes" checked disabled>
           <span data-opt-label>Ja, alles pausiert</span>
           <span data-opt-consequence>Ohne Fokus steht die ganze Szene still, bei Fokus läuft sie weich weiter.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-pause-all" value="no">
+          <input type="radio" name="dm-d-pause-all" value="no" disabled>
           <span data-opt-label>Nein, nur der Planet</span>
           <span data-opt-consequence>Der Himmel bleibt auf dem zweiten Monitor lebendig, die übrige Last bleibt.</span>
         </label>
         <label data-opt="alt">
-          <input type="radio" name="dm-d-pause-all" value="alt">
+          <input type="radio" name="dm-d-pause-all" value="alt" disabled>
           <span data-opt-label>Anders</span>
-          <input type="text" name="dm-d-pause-all-alt" placeholder="Was stattdessen?">
+          <input type="text" name="dm-d-pause-all-alt" placeholder="Was stattdessen?" value="" readonly disabled>
         </label>
       </div>
-      <textarea data-comment="d-pause-all-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-pause-all-note" placeholder="Notiz (optional)" readonly disabled></textarea>
       <div data-alevel="3" data-title="Pause für alles">
         <div data-slot="short">
           <div data-viz="kpi" data-viz-spec='{"value":"12","unit":"%","label":"Anteil des Planeten an der Seitenlast"}'></div>
@@ -6353,6 +6377,125 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
   </section>
+</section>
+
+<section data-iteration="4" data-iteration-template="free" data-final-report id="iter-4" data-active>
+  <div class="fr-head">
+    <span class="fr-phase">🏁 Abschluss</span>
+    <h2 class="fr-title">Hintergrund-Planet und Szene auf /verse entlasten</h2>
+  </div>
+
+  <ol class="fr-flow">
+    <li>Fenster im Vordergrund: Planet und Monde laufen mit 15 Bildern pro Sekunde, beim Scrollen folgt der Planet weiter flüssig.</li>
+    <li>Fenster ohne Fokus: Planet, Monde, Szene und Textwechsel stehen still.</li>
+    <li>Fokus zurück: Der Planet läuft in anderthalb Sekunden sanft an, ohne Sprung.</li>
+  </ol>
+
+  <p class="fr-label">Was getan wurde</p>
+  <p class="fr-sentence">Die Seite braucht ohne Fokus 80 % weniger und sichtbar 32 % weniger Rechenleistung, das Ziel von einem Zehntel ist damit aber nicht erreicht.</p>
+
+  <div class="fr-cols">
+    <div class="fr-card">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🖱️</span><span>Der <b>Menüwechsel hakt nicht mehr</b>: Ursache war der Sternenhimmel, nicht das Nachladen.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🌙</span><span>Ohne Fokus <b>steht die ganze Szene still</b> und läuft danach sanft weiter.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">✨</span><span>Drei Sterne <b>funkeln zufällig</b>, statt dass der ganze Himmel dauernd neu gemalt wird.</span></li>
+      </ul>
+    </div>
+    <div class="fr-card">
+      <p class="fr-label">Was es aushält</p>
+      <div class="fr-meters">
+        <div class="fr-meter" data-met="false" style="--fr-tested: 80%; --fr-target: 90%">
+          <span class="fr-meter-name">🌙 Rechenlast ohne Fokus</span>
+          <b class="fr-meter-value">193 → 38</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">In % eines Kerns, also 80 % weniger, dein Ziel waren 90 %. <span class="fr-meter-verdict">▲ 10 Prozentpunkte fehlen bis Ziel</span></p>
+        </div>
+        <div class="fr-meter" data-met="false" style="--fr-tested: 32%; --fr-target: 90%">
+          <span class="fr-meter-name">🪐 Rechenlast sichtbar</span>
+          <b class="fr-meter-value">188 → 128</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Der Planet selbst kostet noch etwa die Hälfte, der Rest liegt in der übrigen Seite. Ziel 90 % weniger. <span class="fr-meter-verdict">▲ 58 Prozentpunkte fehlen bis Ziel</span></p>
+        </div>
+        <div class="fr-meter" data-met="true" style="--fr-tested: 85%; --fr-target: 83%">
+          <span class="fr-meter-name">🖱️ Stocken nach Menüklick</span>
+          <b class="fr-meter-value">595 → 91 ms</b>
+          <div class="fr-meter-bar" aria-hidden="true"></div>
+          <p class="fr-meter-context">Längste Bildlücke, Ziel unter 100 ms (geschätzt). <span class="fr-meter-verdict">✓ Ziel erreicht</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth">
+    <p class="fr-label">Prüftiefe</p>
+    <p class="fr-ladder-top">Prod-Build geprüft<small>Stufe 5 von 7</small></p>
+    <ol class="fr-ladder">
+      <li data-level="1" data-state="done">Code-Check</li>
+      <li data-level="2" data-state="done">Trockentest</li>
+      <li data-level="3" data-state="done">Zusammenspiel</li>
+      <li data-level="4" data-state="done">Lokal durchgespielt</li>
+      <li data-level="5" data-state="done">Prod-Build geprüft</li>
+      <li data-level="6" data-state="open">Live vertestet</li>
+      <li data-level="7" data-state="you">Von dir abgenommen</li>
+    </ol>
+    <p class="fr-ladder-foot">Gemessen in Edge ohne Fenster, auf der echten Grafikkarte. Die von dir verlangte Messung auf der Live-Version mache ich direkt nach dem Ship. Firefox und Safari sind nicht geprüft.</p>
+  </div>
+
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-rest"
+          data-issue-title="[CHORE] Find the remaining idle load of /verse with nothing animated"
+          data-issue-type="chore"
+          data-issue-body="Found while measuring the planet concept of 2026-11-06. With every animation cancelled and all canvases but the planet removed, /verse still costs about 58 % of a core in headless Edge with a real GPU, and about 75 % is left over in the full page at rest. No long tasks explain it; the cost sits in renderer and GPU compositing. This is what stands between the page and the 1/10 target. Start by profiling the layers with the method in docs/performance-plan.md section 7 and in the memory note on real-GPU measurement. Done when the remainder is attributed to named layers and a cut is proposed."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht Concept">
+        <span class="oq-label">Grundlast der Seite ohne Animationen</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Auch wenn nichts mehr animiert ist, bleibt rund drei Viertel eines Kerns Last, und genau die trennt die Seite vom Zehntel.</dd>
+          <dt>Wo</dt><dd>/verse, Darstellung der Ebenen</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue, die Ursache ist noch nicht eingegrenzt.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-demo"
+          data-issue-title="[CHORE] Stop the search placeholder demo after a few loops"
+          data-issue-type="chore"
+          data-issue-body="The typing demo in the empty search field (fs-demo keyframes in src/app/shell/fusion-bar/fusion-search.component.ts) animates clip-path forever, which repaints on the main thread on every page. Let it run three loops of its 8 s cycle, then leave the plain placeholder standing; it starts again on the next page load. Keep the pause without window focus."
+          data-issue-module="shell"
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Tipp-Demo im Suchfeld läuft endlos</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Die Tipp-Animation im leeren Suchfeld läuft dauerhaft und muss jedes Mal neu gemalt werden. Sie würde nach drei Durchgängen stehen bleiben.</dd>
+          <dt>Wo</dt><dd>Suchleiste, auf jeder Seite</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt, eine kleine Änderung im Repo.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-feel" data-crit="mid" data-guide="">Planet bei 15 Bildern pro Sekunde ansehen</li>
+      <li data-todo-id="t-wake" data-crit="mid" data-guide="">Sanftes Anlaufen beim Fensterwechsel ansehen</li>
+    </ul>
+  </section>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/background-planet-perf-d4f26b</code>, Commits <code>701febaa</code>, <code>67f85e28</code>, <code>1d2bca6f</code> und die Abnahme-Korrekturen</li>
+      <li><code>briefing-planet.component.ts</code>, <code>window-focus.service.ts</code>, <code>_starfield.scss</code></li>
+      <li>Karma, Lint und Prod-Build sind gelaufen; Budget-Warnungen: <code>fusion-bar</code> +1,11 kB, <code>shell-scene</code> +190 B (beide durch diesen Umbau), <code>holotable</code> bestand schon</li>
+      <li>Der erste Karma-Lauf hatte 3 rote Specs, davon 2 ungeklärt (Log verloren), alle Läufe danach grün</li>
+      <li>Abnahme: unabhängiger Prüfer, alle Punkte erfüllt; Atem-Glühen minimal enger als vorher (mittlere Abweichung 0,56 von 255)</li>
+    </ul>
+  </details>
 </section>
 </main>
     </div>
@@ -6444,7 +6587,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
         <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
 <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
-<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Runde 3</button>
+<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false" aria-controls="iter-3">Runde 3</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="4" aria-selected="true" aria-controls="iter-4">Abschlussbericht</button>
 </nav>
 
         <!-- Section TOC — auto-populated from EVERY top-level <section id="..."
@@ -18403,7 +18547,8 @@ function updateStatusSteps(data) {
   const ctx = cv.getContext('2d');
   if (!ctx) return;
   const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const off = () => document.documentElement.dataset.template === 'design';
+  const off = () => document.documentElement.dataset.template === 'design'
+    && !(document.body.dataset.viewActive === 'true' && document.querySelector('section[data-view-kind="analysis"][data-view-active="true"]'));
   // Back -> front: drawn size, share of cells, tissue alpha, parallax depth, depth-of-field blur.
   const PLANES = [{ s: 0.55, share: 0.42, a: 0.45, z: 0.35, blur: 1.6 }, { s: 0.8, share: 0.34, a: 0.7, z: 0.65, blur: 0.6 }, { s: 1.1, share: 0.24, a: 1, z: 1, blur: 0 }];
   const PAD = 40;
@@ -18600,6 +18745,8 @@ function updateStatusSteps(data) {
   document.addEventListener('visibilitychange', kick);
   document.addEventListener('iteration:changed', kick);
   if (window.MutationObserver) new MutationObserver(() => { color(); layers = PLANES.map((_, p) => paintPlane(p)); kick(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-template'] });
+  // Opening an analysis view of a design round wakes the loop (off() stopped it).
+  if (window.MutationObserver) new MutationObserver(kick).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-view-active'] });
   color(); build(); kick();
 })();
 
@@ -20064,22 +20211,106 @@ function collectModeDecisions(scope) {
     const st = inst.stages[inst.idx], store = storeOf(inst, st), text = compText(inst.comp.ed);
     inst.comp.ed.dataset.empty = !text && !inst.tag ? '1' : '';
     if (!store || frozen(inst)) return;
-    const val = text ? (inst.tag ? '[' + inst.tag + '] ' : '') + text : '';
+    const msgs = msgsOf(st, store);
+    // A blank line separates messages in the store, so a paragraph break inside a draft holds a no-break space.
+    const draft = text.trim() ? (inst.tag ? '[' + inst.tag + '] ' : '') + text.trim().replace(/\n\s*\n/g, '\n \n') : '';
+    writeMsgs(st, store, draft ? msgs.concat(draft) : msgs);
+  }
+  /** The sent messages of a stage, parsed again whenever the store changed from outside. */
+  function msgsOf(st, store) {
+    if (st.msgSig !== store.value) {
+      st.msgs = String(store.value || '').split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+      st.msgSig = store.value;
+    }
+    return st.msgs;
+  }
+  function writeMsgs(st, store, list) {
+    const val = list.join('\n\n');
+    st.msgSig = val;
     if (store.value !== val) { store.value = val; fire(store); }
   }
-  /** Loads the open stage's note into the composer (a leading "[tag] " becomes the tag again). */
-  function loadComposer(inst, st) {
-    const store = storeOf(inst, st), ed = inst.comp.ed;
-    if (inst.comp.msg) inst.comp.msg.hidden = true;
-    let v = store ? store.value : '';
-    const m = TAGRE.exec(v);
-    ed.textContent = '';
-    ed.dataset.ph = L('Notiz an devops … (optional)', 'Note to devops … (optional)');   // a question with "Keine passt" re-sets it (syncDecision)
+  function clearComposer(inst) {
+    inst.comp.ed.textContent = '';
     inst.tag = '';
-    if (m) { v = v.slice(m[0].length); }
-    if (v) ed.appendChild(document.createTextNode(v));
-    paintTag(inst, m ? m[1] : '');
-    ed.dataset.empty = !v && !inst.tag ? '1' : '';
+    inst.comp.ed.dataset.empty = '1';
+  }
+  /** The draft is already in the store: parsing it again makes it a sent message. */
+  function commitDraft(st) { st.msgSig = null; }
+  /** The stage's chat messages, right before its Weiter row. */
+  function renderNotes(inst, st) {
+    const store = storeOf(inst, st);
+    if (!store) return;
+    let box = st.notes;
+    if (!box) {
+      box = st.notes = h('div', 'an-notes');
+      const foot = st.el.querySelector('.an-foot');
+      if (foot) foot.parentNode.insertBefore(box, foot); else st.el.appendChild(box);
+    }
+    box.textContent = '';
+    const editable = !frozen(inst);
+    msgsOf(st, store).forEach((m, i) => {
+      const row = h('div', 'an-bub-me an-note-m'), tag = TAGRE.exec(m);
+      if (tag) row.appendChild(h('span', 'an-tagw', tag[1]));
+      row.appendChild(document.createTextNode(tag ? m.slice(tag[0].length) : m));
+      if (editable) {
+        const acts = h('div', 'an-note-acts');
+        acts.append(noteBtn(L('Nachricht bearbeiten', 'Edit message'), NOTE_PEN, () => editNote(inst, st, i)),
+          noteBtn(L('Nachricht löschen', 'Delete message'), NOTE_X, () => deleteNote(inst, st, i)));
+        row.appendChild(acts);
+      }
+      box.appendChild(row);
+    });
+    box.hidden = !box.firstChild;
+  }
+  const NOTE_PEN = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>';
+  const NOTE_X = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+  function noteBtn(label, icon, onClick) {
+    const b = btn('an-note-b');
+    b.innerHTML = icon;
+    b.setAttribute('aria-label', label);
+    tip(b, label);
+    b.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+    return b;
+  }
+  /** Pen: the message goes back into the composer. A draft already there is sent first, so it is not overwritten. */
+  function editNote(inst, st, i) {
+    const store = storeOf(inst, st);
+    if (!store || frozen(inst)) return;
+    composeSync(inst);
+    const list = msgsOf(st, store).slice(), m = list[i];
+    if (compText(inst.comp.ed)) { commitDraft(st); clearComposer(inst); }
+    const all = msgsOf(st, store).slice();
+    all.splice(i, 1);
+    st.msgs = all;
+    writeMsgs(st, store, all);
+    const tag = TAGRE.exec(m), text = tag ? m.slice(tag[0].length) : m;
+    inst.comp.ed.textContent = '';
+    if (text) inst.comp.ed.appendChild(document.createTextNode(text));
+    paintTag(inst, tag ? tag[1] : '');
+    composeSync(inst);
+    renderNotes(inst, st);
+    focusComposer(inst);
+  }
+  function deleteNote(inst, st, i) {
+    const store = storeOf(inst, st);
+    if (!store || frozen(inst)) return;
+    const draft = compText(inst.comp.ed), list = msgsOf(st, store).slice();
+    list.splice(i, 1);
+    st.msgs = list;
+    writeMsgs(st, store, list);
+    if (draft) composeSync(inst);
+    renderNotes(inst, st);
+  }
+  /** Opens a stage in the composer: its sent notes stand in the chat, the field is empty. An unsent draft of
+   *  the stage left becomes a message there; a draft of this same stage stays while typing goes on. */
+  function loadComposer(inst, st) {
+    const store = storeOf(inst, st), ed = inst.comp.ed, prev = inst.compSt, draft = compText(ed);
+    const keep = prev === st && draft && store && st.msgSig === store.value;
+    if (prev && prev !== st && draft) { commitDraft(prev); renderNotes(inst, prev); }
+    inst.compSt = st;
+    ed.dataset.ph = L('Notiz an devops … (optional)', 'Note to devops … (optional)');   // a question with "Keine passt" re-sets it (syncDecision)
+    if (!keep) clearComposer(inst);
+    renderNotes(inst, st);
     ed.contentEditable = frozen(inst) ? 'false' : 'true';
     inst.comp.att.hidden = !(st.kind === 'dec' && st.el.querySelector('.attach-btn'));
   }
@@ -20090,7 +20321,7 @@ function collectModeDecisions(scope) {
     const sel = window.getSelection && window.getSelection();
     if (sel && document.createRange) { const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
   }
-  /** Send: a note WITH a tag stays on the stage; one WITHOUT advances (not on briefing / closing). */
+  /** Send: the text becomes a chat message on this stage. It moves on only under "Keine passt", where the message IS the answer. */
   function sendNote(inst) {
     composeSync(inst);
     const st = inst.stages[inst.idx], text = compText(inst.comp.ed);
@@ -20105,24 +20336,14 @@ function collectModeDecisions(scope) {
     }
     if (st.kind === 'dec' && !storeOf(inst, st)) return false;   // no storage target: never advance and drop the note
     inst.comp.el.classList.remove('an-sent'); void inst.comp.el.offsetWidth; inst.comp.el.classList.add('an-sent');
-    // Only a question advances (an untagged note accepts the current choice / recommendation); briefing, topic intro and closing never do.
-    if (!inst.tag && st.kind === 'dec') { markTouched(st.el); step(inst, 1); }
-    else showSaved(inst, st);
+    commitDraft(st);
+    clearComposer(inst);
+    renderNotes(inst, st);
+    if (st.kind !== 'dec') { glide(inst, st.notes); return true; }
+    markTouched(st.el);
+    if ((ctl1(st.el, 'dm-' + decId(st.el) + '-none') || {}).value === '1') step(inst, 1);
+    else glide(inst, st.el.querySelector(':scope > .an-m-a'));
     return true;
-  }
-  /** A note that does not move the page on still needs an answer: the send must never look like nothing happened. */
-  function showSaved(inst, st) {
-    const c = inst.comp;
-    if (!c.msg) {
-      c.msg = h('div', 'an-comp-msg');
-      c.msg.setAttribute('role', 'status');
-      c.el.appendChild(c.msg);
-    }
-    c.msg.textContent = L('Notiz gespeichert, sie geht mit der nächsten Runde an devops.', 'Note saved, it goes to devops with the next round.')
-      + (st.kind === 'dec' ? ' ' + L('Sie bleibt bei dieser Frage, „Weiter“ geht zur nächsten.', 'It stays on this question, "Next" moves on.') : '');
-    c.msg.hidden = false;
-    clearTimeout(c.msgTimer);
-    c.msgTimer = setTimeout(() => { c.msg.hidden = true; }, 5000);
   }
   /** Empty send / Enter on a question: ONE stage forward, never more. A stage that is still entering simply
    *  shows in full (go() ends the enter sequence); a second send within SEND_GAP ms (the new stage is not
@@ -20150,12 +20371,14 @@ function collectModeDecisions(scope) {
     if (frozen(inst) || e.target.closest('button, a, input, label, [role="button"], .an-tabs')) return;
     const sel = window.getSelection && window.getSelection();
     if (sel && String(sel).trim()) return;
-    const st = inst.stages[inst.idx], t = e.target;
+    const t = e.target;
+    // The chat keeps answered questions above: the tag names the question that was clicked, not the open one (#1057).
+    const st = inst.stages.find(s => s.el.contains(t)) || inst.stages[inst.idx];
     let label = '';
     if (st.kind === 'dec') {
       const no = L('Frage ', 'Question ') + stageNo(inst, st);
-      if (t.closest('.an-m-find .an-bub')) label = L('Befund · ', 'Finding · ') + no;
-      else if (t.closest('.an-m-q .an-bub')) label = no;
+      if (t.closest('.an-m-find')) label = L('Befund · ', 'Finding · ') + no;
+      else if (t.closest('.an-m-q')) label = no;
     } else if (st.kind === 'topic' && t.closest('.an-topic')) label = L('Thema ', 'Topic ') + st.group.label;
     if (!label) return;
     setTag(inst, label);
@@ -20620,7 +20843,7 @@ function collectModeDecisions(scope) {
     if (d.__none) {
       const on = (ctl1(d, 'dm-' + id + '-none') || {}).value === '1';
       d.__none.setAttribute('aria-pressed', on ? 'true' : 'false');
-      d.__none.textContent = on ? '✓ ' + L('Keine passt — deine Antwort steht im Notizfeld unten', 'None fits — your answer is in the note field below') : NONE_TXT();
+      d.__none.textContent = on ? '✓ ' + L('Keine passt — schreib deine Antwort unten ins Notizfeld', 'None fits — write your answer in the note field below') : NONE_TXT();
       d.classList.toggle('an-is-none', on);
       const i0 = instances.find(i => i.root.contains(d));
       // Only the OPEN question owns the composer's placeholder (refresh() syncs every decision).
@@ -20726,8 +20949,7 @@ function collectModeDecisions(scope) {
       refresh(inst);
       const st = inst.stages[inst.idx], store = storeOf(inst, st);
       if (!st || !store || !inst.comp) return;
-      const want = store.value || '', have = compText(inst.comp.ed);
-      if (want !== (have ? (inst.tag ? '[' + inst.tag + '] ' : '') + have : '')) loadComposer(inst, st);
+      if (st.msgSig !== store.value) loadComposer(inst, st);
     });
   }
   /** Writes every record now (the collect path calls this before reading dm-{id}-hes). */
@@ -20801,6 +21023,7 @@ function collectModeDecisions(scope) {
     inst.timers.forEach(clearTimeout);
     inst.timers = [];
     inst.root.querySelectorAll('.an-wait, .an-enter').forEach(n => n.classList.remove('an-wait', 'an-enter'));
+    inst.root.querySelectorAll('.an-typing').forEach(n => n.remove());
     // The chat is a history: the questions already answered stay above (finding + question + the user's answer as
     // their own right-aligned message), so the user can always scroll back; only the open stage is shown in full.
     const k0 = inst.seq.indexOf(st);
@@ -20905,11 +21128,12 @@ function collectModeDecisions(scope) {
   /** First visit of a question: finding now, then each next message once the one before it can have been read
    *  (dwellMs), the answer block (+ "Als Nächstes") last.
    *  A message that has not entered is display:none, so no empty area waits below; each entry
-   *  glides the chat down just far enough to show it - unless the user scrolled (user scroll wins). */
+   *  glides the chat down just far enough to show it - unless the user scrolled (user scroll wins).
+   *  While one is still held back, typing dots stand below the last one: a pause never reads as the end. */
   // Reading pace, counted in letters so long German words do not skew it. Brysbaert 2019 (J. Memory and Language 109):
   // 238 wpm x 4.6 letters (non-fiction) = 260 wpm x 4.2 letters (fiction) = about 1,095 letters/min = 18.25/s.
-  // +10 %: an average reader who reads a little faster, no speed reader. Figures are from English text; no German value exists.
-  const READ_LPS = 18.25 * 1.1, DWELL_MIN = 1200, DWELL_MAX = 20000;
+  // +25 %: an average reader who reads a good bit faster, no speed reader. Figures are from English text; no German value exists.
+  const READ_LPS = 18.25 * 1.25, DWELL_MIN = 1200, DWELL_MAX = 20000;
   function dwellMs(el) {
     const letters = (el.textContent.match(/[\p{L}\p{N}]/gu) || []).length;
     return clamp(Math.round(letters / READ_LPS * 1000), DWELL_MIN, DWELL_MAX);
@@ -20920,6 +21144,14 @@ function collectModeDecisions(scope) {
     const tail = [inst.peekDn];
     parts.slice(1).concat(tail).forEach(n => n.classList.add('an-wait'));
     parts[0].classList.add('an-enter');
+    let typing = null;
+    if (parts.length > 1) {
+      typing = h('div', 'an-typing');
+      typing.setAttribute('role', 'status');
+      typing.setAttribute('aria-label', L('Es kommt noch etwas', 'More is coming'));
+      typing.append(h('i'), h('i'), h('i'));
+      parts[0].after(typing);
+    }
     let at = 0;
     parts.slice(1).forEach((n, i) => {
       at += dwellMs(parts[i]);
@@ -20927,7 +21159,8 @@ function collectModeDecisions(scope) {
         if (inst.stages[inst.idx] !== st) return;
         n.classList.remove('an-wait');
         n.classList.add('an-enter');
-        if (n === parts[parts.length - 1]) tail.forEach(t => t.classList.remove('an-wait'));
+        if (n === parts[parts.length - 1]) { typing.remove(); tail.forEach(t => t.classList.remove('an-wait')); }
+        else n.after(typing);
         glide(inst, n, parts[Math.min(i + 1, 1)]);   // the answer never pushes the question out of view
       }, at));
     });
@@ -21185,7 +21418,7 @@ function collectModeDecisions(scope) {
     const inst = visibleInst(e.target);
     if (!inst) return;
     const t = e.target, tag0 = t.tagName, type = (t.type || '').toLowerCase();
-    const typing = tag0 === 'TEXTAREA' || tag0 === 'SELECT' || (tag0 === 'INPUT' && !/^(radio|checkbox|range|button|submit)$/.test(type)) || t.isContentEditable;
+    const typing = tag0 === 'TEXTAREA' || tag0 === 'SELECT' || (tag0 === 'INPUT' && !/^(radio|checkbox|range|button|submit)$/.test(type)) || t.isContentEditable || !!(t.closest && t.closest('.an-comp-ed'));
     const st = inst.stages[inst.idx], d = st && st.kind === 'dec' ? st.el : null;
     if (typing) {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); e.stopPropagation(); step(inst, e.shiftKey ? -1 : 1); }
@@ -22058,6 +22291,8 @@ function createConceptVoice(env) {
     doc.querySelectorAll('textarea:not([data-attachable]):not([data-engine-store]):not([data-voice-skip]):not([hidden]), input[type="text"]:not([tabindex="-1"]):not([data-voice-skip])').forEach(f => {
       if (f.dataset.voiceMount || f.readOnly || f.closest('[hidden], .an-vh, .an-comp, [data-analysis-store]')) return;
       if (f.classList.contains('map-state')) return;
+      // A field inside a screen is part of the mock, not a concept field (#1051).
+      if (f.closest('[data-screen]') && !f.closest('[data-anno-layer], .upin-editor')) return;
       f.dataset.voiceMount = '1';
       const b = micButton('voice-btn voice-btn-solo');
       f.insertAdjacentElement('afterend', b);
