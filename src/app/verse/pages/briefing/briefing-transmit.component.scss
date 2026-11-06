@@ -19,17 +19,57 @@
   --cue-lane: max(72px, 3.8cqw);
   --holo-top: min(67.5%, calc(100% - var(--cue-lane) - var(--holo-h)));
   --holo-lines: 2;
+  // The tilt as numbers, so the cone can follow the panel's edges exactly: how far the bottom
+  // comes towards the viewer (height * sin / perspective) and how much height stays (cos).
+  --holo-near: 0.103;
+  --holo-cos: 0.899;
+  // The projection's progress: where the scan line is (s, 0 = top), how far the cone is pulled
+  // back into its planet (r), glass (p) and text (w) built, cone (o) and line (q) strength,
+  // the panel's own fade (a). Each phase animates them, the cone and the panel only read them.
+  --tx-s: 0; --tx-r: 1; --tx-p: 0; --tx-w: 0; --tx-o: 0; --tx-q: 0; --tx-a: 1;
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
 }
 
-@property --wave {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
+@property --wave { syntax: '<number>'; inherits: false; initial-value: 0; }
+@property --tx-s { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --tx-r { syntax: '<number>'; inherits: true; initial-value: 1; }
+@property --tx-p { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --tx-w { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --tx-o { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --tx-q { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --tx-a { syntax: '<number>'; inherits: true; initial-value: 1; }
+
+// ── The projection, phase by phase (the timers in the component switch them) ──
+:host([data-phase='charge']) { animation: tx-charge 2400ms linear both; }
+:host([data-phase='build']) { --tx-r: 0; --tx-o: 1; --tx-q: 1; animation: tx-build 1080ms linear both; }
+:host([data-phase='write']) { --tx-r: 0; --tx-o: 1; --tx-q: 1; --tx-p: 1; animation: tx-write 1320ms cubic-bezier(0.35, 0, 0.45, 1) both; }
+:host([data-phase='pull']) { --tx-p: 1; --tx-w: 1; animation: tx-pull 2000ms linear both; }
+:host([data-phase='hold']) { --tx-p: 1; --tx-w: 1; }
+:host([data-phase='out']) { --tx-p: 1; --tx-w: 1; animation: tx-out 700ms ease-in both; }
+// Exponential: the cone hardly moves at first, then shoots.
+@keyframes tx-charge {
+  0% { --tx-r: 1; --tx-o: 0; --tx-q: 0; animation-timing-function: ease-in; }
+  35% { --tx-r: 1; --tx-o: 1; --tx-q: 0; animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0); }
+  100% { --tx-r: 0; --tx-o: 1; --tx-q: 1; }
 }
+@keyframes tx-build {
+  0% { --tx-s: 0; --tx-p: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.3, 1); }
+  83.3%, 100% { --tx-s: 1; --tx-p: 1; }
+}
+@keyframes tx-write {
+  from { --tx-s: 1; --tx-w: 0; }
+  to { --tx-s: 0; --tx-w: 1; }
+}
+@keyframes tx-pull {
+  0% { --tx-r: 0; --tx-o: 1; --tx-q: 1; }
+  7% { --tx-r: 0; --tx-o: 1; --tx-q: 0; animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0); }
+  85% { --tx-r: 1; --tx-o: 1; --tx-q: 0; animation-timing-function: ease-out; }
+  100% { --tx-r: 1; --tx-o: 0; --tx-q: 0; }
+}
+@keyframes tx-out { from { --tx-a: 1; } to { --tx-a: 0; } }
 
 // ── Planets ─────────────────────────────────────────────────────────────
 .pl {
@@ -87,45 +127,52 @@
 }
 .pl:hover .plab { color: var(--sc-fg-0); }
 
-// ── Light cone: a trapezoid, narrow in the sender's atmosphere, wide at the holo ──
+// ── Light cone: from the sender to the scan line, whose width it takes at every height ──
 .cone {
   --px: var(--news-x);
   --py: var(--news-y);
+  --ps: var(--news-s);
+  --sc: calc(1 / (1 - var(--holo-near) * var(--tx-s)));
+  // The far end: the scan line, pulled back to the planet by r.
+  --y0: calc(var(--holo-top) + var(--holo-h) * var(--holo-cos) * var(--tx-s) * var(--sc));
+  --hw: calc(var(--holo-w) / 2 * var(--sc));
+  --y: calc(var(--y0) + (var(--py) - var(--y0)) * var(--tx-r));
+  --lx: calc(50% - var(--hw) + (var(--px) - 50% + var(--hw)) * var(--tx-r));
+  --rx: calc(50% + var(--hw) + (var(--px) - 50% - var(--hw)) * var(--tx-r));
+  // Corner order: the near corner first, or the outline crosses itself into a double cone.
+  --x1: var(--rx);
+  --x2: var(--lx);
+  --beam: polygon(var(--px) calc(var(--py) - var(--ps) * 0.18), var(--x1) var(--y), var(--x2) var(--y), var(--px) calc(var(--py) + var(--ps) * 0.18));
+  --at: circle at var(--px) var(--py);
+  display: none;
   position: absolute;
   inset: 0;
   z-index: 2;
+  contain: strict;
   pointer-events: none;
-  opacity: 0;
-  transform: scale(0.04);
-  transform-origin: var(--px) var(--py);
-  clip-path: polygon(calc(var(--px) - 1%) var(--py), calc(var(--px) + 1%) var(--py),
-    calc(50% + var(--holo-w) / 2) var(--holo-top), calc(50% - var(--holo-w) / 2) var(--holo-top));
-  background: radial-gradient(circle at var(--px) var(--py), rgba(82, 193, 230, 0.36), rgba(82, 193, 230, 0.06) 60%);
-  transition: opacity 0.6s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  opacity: var(--tx-o);
 }
-.cone[data-door='patches'] { --px: var(--patches-x); --py: var(--patches-y); }
-.cone[data-door='gallery'] { --px: var(--gallery-x); --py: var(--gallery-y); }
-.cone[data-phase='charge'], .cone[data-phase='reveal'] { opacity: 0.85; transform: none; }
-.cone[data-phase='type'] { opacity: 0.35; transform: none; }
-.cone[data-phase='hold'] { opacity: 0; transform: none; transition: opacity 1.4s ease; }
-.cone[data-phase='out'] { transition: none; }
-// Soft area waves: wide, low-contrast bands running planet → holo, 1.6 s each.
-.waves {
-  position: absolute;
-  inset: 0;
-  background: repeating-radial-gradient(circle at var(--px) var(--py),
-    rgba(170, 232, 255, 0) calc(var(--wave) - 6.4cqw), rgba(170, 232, 255, 0) calc(var(--wave) - 4.2cqw),
-    rgba(170, 232, 255, 0.26) calc(var(--wave) - 2.2cqw), rgba(170, 232, 255, 0) var(--wave));
-  // Repainting this window-sized gradient every frame cost about half a core, also while the
-  // cone stood invisible. It only runs in the phases that show it.
-  animation: wave 1.6s linear infinite paused;
+.cone[data-door='patches'] { --px: var(--patches-x); --py: var(--patches-y); --ps: var(--patches-s); }
+.cone[data-door='gallery'] { --px: var(--gallery-x); --py: var(--gallery-y); --ps: var(--gallery-s); --x1: var(--lx); --x2: var(--rx); }
+// Only while it runs: it repaints window-sized layers, and nothing of it shows in between.
+:host([data-phase='charge']) .cone, :host([data-phase='build']) .cone, :host([data-phase='write']) .cone, :host([data-phase='pull']) .cone { display: block; }
+.wide, .soft, .fill, .wave { position: absolute; inset: 0; display: block; }
+.wide { filter: blur(1.1cqw); opacity: 0.5; }
+.soft { filter: blur(0.28cqw); }
+// Almost dark at the planet, the light gathers at the panel.
+.fill {
+  clip-path: var(--beam);
+  background: radial-gradient(var(--at), rgba(150, 225, 255, 0.015), rgba(120, 215, 250, 0.05) 14cqw, rgba(135, 222, 252, 0.13) 28cqw,
+    rgba(150, 228, 255, 0.25) 40cqw, rgba(150, 228, 255, 0.17) 62cqw);
 }
-.cone[data-phase='charge'] .waves,
-.cone[data-phase='reveal'] .waves,
-.cone[data-phase='type'] .waves {
+// Soft radar waves, sender to panel. Stepped: at this contrast 20 repaints a second look the same as 60.
+.wave {
+  clip-path: var(--beam);
+  background: repeating-radial-gradient(var(--at), transparent calc((var(--wave) - 1) * 15cqw), rgba(205, 245, 255, 0.11) calc((var(--wave) - 0.4) * 15cqw), transparent calc(var(--wave) * 15cqw));
+  animation: wave 2.6s steps(52) infinite;
   animation-play-state: var(--sc-brief-play, running);
 }
-@keyframes wave { from { --wave: 0px; } to { --wave: 6.4cqw; } }
+@keyframes wave { from { --wave: 0; } to { --wave: 1; } }
 
 // ── Holo: in the planet's surface, tilted, no box ───────────────────────
 .holo {
@@ -142,8 +189,43 @@
   text-decoration: none;
   color: inherit;
   pointer-events: auto;
+  opacity: var(--tx-a);
 }
+// Nothing to click before the panel stands.
+:host([data-phase='charge']) .holo { pointer-events: none; }
 .holo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+// The dark glass; it appears exactly behind the scan line.
+.holo-glass {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 calc((1 - var(--tx-p)) * 100%) 0);
+  background: linear-gradient(rgba(10, 34, 50, 0.72), rgba(5, 18, 28, 0.6));
+  border-top: 1px solid rgba(190, 240, 255, 0.75);
+  border-bottom: 1px solid rgba(82, 193, 230, 0.35);
+  box-shadow: inset 0 1.4cqw 2.2cqw -1.2cqw rgba(120, 220, 255, 0.35);
+}
+.holo-glass::before, .holo-glass::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.3cqw;
+  border: 0 solid rgba(190, 240, 255, 0.55);
+}
+.holo-glass::before { left: 0; border-left-width: 1px; background: linear-gradient(90deg, rgba(120, 220, 255, 0.1), transparent); }
+.holo-glass::after { right: 0; border-right-width: 1px; background: linear-gradient(-90deg, rgba(120, 220, 255, 0.1), transparent); }
+// The light bar: the cone's far end. Lights up only as the cone lands.
+.holo-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--tx-s) * 100%);
+  height: 2.6cqw;
+  margin-top: -1.3cqw;
+  pointer-events: none;
+  opacity: calc(var(--tx-q) * var(--tx-q) * var(--tx-q) * var(--tx-q));
+  background: linear-gradient(transparent, rgba(150, 228, 255, 0.16) 40%, #eaffff 49%, #eaffff 51%, rgba(150, 228, 255, 0.16) 60%, transparent);
+}
 .holo-in {
   position: relative;
   box-sizing: border-box;
@@ -155,10 +237,8 @@
   padding: 0.8cqw 1cqw;
   color: #bfeeff;
   text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 0.6cqw rgba(82, 193, 230, 0.75);
-  background: repeating-linear-gradient(rgba(82, 193, 230, 0.07) 0 0.12cqw, transparent 0.12cqw 0.36cqw);
-  border-top: 1px solid rgba(82, 193, 230, 0.5);
-  border-bottom: 1px solid rgba(82, 193, 230, 0.2);
-  transition: opacity 0.4s ease;
+  // Written bottom to top, behind the rising line.
+  clip-path: inset(calc((1 - var(--tx-w)) * 100%) -1cqw -0.4cqw -1cqw);
 }
 .holo:hover .holo-in { color: #e8ffff; }
 .k { display: block; flex: none; font-size: max(10px, 0.66cqw); letter-spacing: 0.3em; text-transform: uppercase; color: var(--sc-accent); }
@@ -186,25 +266,6 @@
   font-size: max(12px, 0.88cqw);
   line-height: 1.35;
 }
-.ghost { color: transparent; text-shadow: none; }
-
-// Reception: revealed vertically, top to bottom, a scan edge leading.
-.holo[data-phase='charge'] .holo-in { clip-path: inset(0 0 100% 0); }
-.holo[data-phase='reveal'] .holo-in { animation: recv 0.7s linear both; }
-.holo[data-phase='reveal'] .holo-in::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(190, 240, 255, 0.95), transparent);
-  box-shadow: 0 0 10px rgba(82, 193, 230, 0.8);
-  animation: scan 0.7s linear both;
-}
-.holo[data-phase='out'] .holo-in { opacity: 0; }
-@keyframes recv { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-@keyframes scan { from { top: 0; } to { top: 100%; } }
-
 // Phones: planets along the rim, the holo nearly full width.
 @media (max-width: 720px) {
   :host {
@@ -215,6 +276,8 @@
     --holo-h: 140px;
     --holo-top: 72%;
     --holo-lines: 3;
+    --holo-near: 0.072;
+    --holo-cos: 0.951;
   }
   .holo { transform: translateX(-50%) perspective(600px) rotateX(18deg); }
   .holo-in { padding: 8px 10px; }
@@ -222,10 +285,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cone { display: none; }
-  .pl, .holo-in { transition: none; }
-  .holo .holo-in, .holo .holo-in::after { animation: none !important; clip-path: none !important; }
-  .holo[data-phase='out'] .holo-in { opacity: 1; }
+  :host, :host([data-phase]) { --tx-p: 1; --tx-w: 1; --tx-a: 1; animation: none; }
+  :host([data-phase]) .cone { display: none; }
+  .pl { transition: none; }
 }
 
 // cx-dim: every text over the planet and the stars gets the page's dark halo.
