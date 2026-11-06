@@ -21,6 +21,7 @@ import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing
 import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
 import { INTRO_FLAG } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
+import { VERSE_STAGED_BUILD } from './staged-build';
 import {
   holoBody, holoTitle, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
@@ -143,6 +144,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     localStorage.removeItem(INTRO_FLAG);
     TestBed.configureTestingModule({
       providers: [
+        { provide: VERSE_STAGED_BUILD, useValue: false },
         provideRouter([]),
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
@@ -184,6 +186,25 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     localStorage.removeItem(INTRO_FLAG);
+  });
+
+  it('builds in steps: the stage first, then doors and beacons, the hub last, and the page keeps its height meanwhile', async () => {
+    TestBed.overrideProvider(VERSE_STAGED_BUILD, { useValue: true });
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.bstage')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-transmit, sc-briefing-beacons, sc-briefing-hub')).toBeNull();
+    expect(el.querySelector('.hub-hold')).not.toBeNull();
+    for (let i = 0; i < 40 && !el.querySelector('sc-briefing-hub'); i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      fixture.detectChanges();
+    }
+    expect(el.querySelector('sc-briefing-transmit')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-beacons')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-hub')).not.toBeNull();
+    expect(el.querySelector('.hub-hold')).toBeNull();
+    fixture.destroy();
   });
 
   it('renders beacons, the hero title, the planets and the holo as real anchors — no moons, no for-you line, no overview links', fakeAsync(() => {
