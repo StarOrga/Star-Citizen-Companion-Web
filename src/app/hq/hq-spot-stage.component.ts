@@ -107,7 +107,8 @@ import { hqHangar, hqLocker, hqSet } from './hq-routes';
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 0;
-        height: 400px;
+        /* Gives way on a short screen, so the overview and its footer still fit. */
+        height: clamp(240px, calc(100dvh - 700px), 400px);
         border-radius: 4px;
         overflow: hidden;
         border: 1px solid var(--sc-border);

@@ -124,7 +124,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
   styles: [
     `
       :host { display: flex; flex-direction: column; gap: 16px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; }
       .tile { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
       .tile-eyebrow {
         margin: 0;
