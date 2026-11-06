@@ -929,7 +929,7 @@ html:has(.routed-content > router-outlet:last-child) {
   body::before {
     inset: -8% -24% -8% -8%;
     opacity: 0.55;
-    @include boot-stars.field(170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
+    @include boot-stars.field-image(170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
   }
   body::after {
     content: '';
@@ -938,7 +938,7 @@ html:has(.routed-content > router-outlet:last-child) {
     z-index: -1;
     pointer-events: none;
     opacity: 0.85;
-    @include boot-stars.field(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
+    @include boot-stars.field-image(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
   }
 }
 /* The splash (index.html) lets the sky through; its ring and word wait 1.2 s, so a

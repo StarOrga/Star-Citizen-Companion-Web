@@ -118,6 +118,13 @@ describe('Shell scene — component', () => {
     expect(el.querySelector('.detail .lights')!.getAnimations().length).toBe(1);
   });
 
+  it('paints the stars as one image: gradient layers held up every frame after a menu click', () => {
+    const near = (fixture.nativeElement as HTMLElement).querySelector('.stars.near')!;
+    const bg = getComputedStyle(near).backgroundImage;
+    expect(bg.startsWith('url(')).toBeTrue();
+    expect(bg).not.toContain('radial-gradient(1');
+  });
+
   it('renders nothing with the shell beta off', () => {
     shellOn.set(false);
     fixture.detectChanges();
