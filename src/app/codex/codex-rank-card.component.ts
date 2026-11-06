@@ -10,6 +10,53 @@ import {
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
+/** The strings that name what is being compared. A ship page passes nothing. */
+export interface RankCardCopy {
+  /** Cohort line by scope; `{{n}}` = cohort size, `{{k}}` = the size-class input. */
+  cohort: Partial<Record<RankScope, string>>;
+  verdict: string;
+  percentileTooltip: string;
+  radarAria: string;
+  legendCompare: string;
+  legendBetter: string;
+  legendWorse: string;
+  compareInfo: string;
+  /** The footnote under the bars. */
+  note: string;
+}
+
+export interface RankCardScope {
+  id: RankScope;
+  labelKey: string;
+  /** Tooltip while the group is unavailable. */
+  reasonKey: string;
+}
+
+const SHIP_COPY: RankCardCopy = {
+  cohort: {
+    sizeClass: 'codex.rank.nShipsOfSizeClass',
+    career: 'codex.rank.nShipsOfCareer',
+    role: 'codex.rank.nShipsOfRole',
+    all: 'codex.rank.nShips',
+  },
+  verdict: 'codex.rank.verdict',
+  percentileTooltip: 'codex.rank.percentileTooltip',
+  radarAria: 'codex.rank.radarAria',
+  legendCompare: 'codex.rank.legend.compare',
+  legendBetter: 'codex.rank.legend.better',
+  legendWorse: 'codex.rank.legend.worse',
+  compareInfo: 'codex.rank.compare.info',
+  note: 'codex.rank.lensNote',
+};
+
+/** The groups the head toggle offers, in this order. Size class stays out
+ * until the schema carries it (#523). */
+const SHIP_SCOPES: readonly RankCardScope[] = [
+  { id: 'all', labelKey: 'codex.rank.scope.all', reasonKey: '' },
+  { id: 'career', labelKey: 'codex.rank.scope.career', reasonKey: 'codex.rank.disabled.noCareer' },
+  { id: 'role', labelKey: 'codex.rank.scope.role', reasonKey: 'codex.rank.disabled.noRole' },
+];
+
 /**
  * "Einordnung" — the right half of the masthead (MASTER §3). Purely
  * presentational: every number comes in through `result`, computed by the
@@ -38,15 +85,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </h2>
         @if (result()) {
           <p class="cohort-line">
-            @if (result()!.scope === 'sizeClass' && sizeClass() != null) {
-              {{ 'codex.rank.nShipsOfSizeClass' | translate: { n: result()!.cohortSize, k: sizeClass() } }}
-            } @else if (result()!.scope === 'career') {
-              {{ 'codex.rank.nShipsOfCareer' | translate: { n: result()!.cohortSize } }}
-            } @else if (result()!.scope === 'role') {
-              {{ 'codex.rank.nShipsOfRole' | translate: { n: result()!.cohortSize } }}
-            } @else {
-              {{ 'codex.rank.nShips' | translate: { n: result()!.cohortSize } }}
-            }
+            {{ cohortLineKey() | translate: { n: result()!.cohortSize, k: sizeClass() } }}
           </p>
         } @else {
           <p class="cohort-line gap">{{ 'codex.kpi.gap' | translate }}</p>
@@ -73,15 +112,16 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
           <button
             type="button"
             class="compare-info"
-            [scTooltip]="'codex.rank.compare.info' | translate"
-            [attr.aria-label]="'codex.rank.compare.info' | translate"
+            [scTooltip]="copy().compareInfo | translate"
+            [attr.aria-label]="copy().compareInfo | translate"
           >ⓘ</button>
         </div>
       }
 
-      @if (ready()) {
+      <!-- Below three axes there is no shape to draw: the bars say it all. -->
+      @if (ready() && result()!.axes.length >= 3) {
         <div class="rank-col-radar">
-          <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="'codex.rank.radarAria' | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
+          <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="copy().radarAria | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
             <g class="rings" aria-hidden="true">
               @for (ring of rings; track ring) {
                 <polygon [attr.points]="ringPoints(ring, result()!.axes.length)" />
@@ -113,11 +153,11 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             <dt aria-hidden="true"><svg class="sw" viewBox="0 0 28 10"><rect x="1" y="2" width="26" height="6" rx="2" class="sw-ship-fill" /><line x1="1" y1="5" x2="27" y2="5" class="sw-ship" /></svg></dt>
             <dd>{{ 'codex.rank.legend.ship' | translate: { name: shipName() } }}</dd>
             <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="8" x2="10" y2="2" class="sw-up" /></svg></dt>
-            <dd><b class="up">{{ 'codex.rank.legend.better' | translate }}</b></dd>
+            <dd><b class="up">{{ copy().legendBetter | translate }}</b></dd>
             <dt aria-hidden="true"><svg class="sw" viewBox="0 0 28 10"><line x1="1" y1="5" x2="27" y2="5" class="sw-compare" /></svg></dt>
-            <dd>{{ 'codex.rank.legend.compare' | translate: { group: (activeScopeLabelKey() | translate), n: result()!.cohortSize } }}</dd>
+            <dd>{{ copy().legendCompare | translate: { group: (activeScopeLabelKey() | translate), n: result()!.cohortSize } }}</dd>
             <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="2" x2="10" y2="8" class="sw-down" /></svg></dt>
-            <dd><b class="down">{{ 'codex.rank.legend.worse' | translate }}</b></dd>
+            <dd><b class="down">{{ copy().legendWorse | translate }}</b></dd>
           </dl>
         </div>
       }
@@ -133,21 +173,21 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             </p>
         } @else if (result()!.overall != null) {
             <p class="verdict">
-              {{ 'codex.rank.verdict' | translate: { pct: result()!.overall, band: (result()!.bandKey! | translate), n: result()!.cohortSize } }}
+              {{ copy().verdict | translate: { pct: result()!.overall, band: (result()!.bandKey! | translate), n: result()!.cohortSize } }}
               <button
                 type="button"
                 class="tip"
                 [attr.aria-describedby]="'rank-pct-tip'"
               >{{ 'codex.rank.percentile' | translate }} ⓘ</button>
-              <span id="rank-pct-tip" class="pct-tip" role="tooltip">{{ 'codex.rank.percentileTooltip' | translate }}</span>
+              <span id="rank-pct-tip" class="pct-tip" role="tooltip">{{ copy().percentileTooltip | translate }}</span>
             </p>
         } @else {
           <p class="verdict gap">{{ 'codex.kpi.gap' | translate }}</p>
         }
 
-      @if (!holo()) {
+      @if (!holo() && profiles().length > 0) {
       <div class="profile-row" role="radiogroup" [attr.aria-label]="'codex.rank.profileLabel' | translate">
-        @for (p of profiles; track p.id) {
+        @for (p of profiles(); track p.id) {
           <span
             class="chip-wrap"
             [scTooltip]="disabledReason(p.id) ? (disabledReason(p.id)! | translate) : null"
@@ -202,7 +242,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             }
           </ul>
           @if (!holo()) {
-            <p class="lens-note">{{ 'codex.rank.lensNote' | translate }}</p>
+            <p class="lens-note">{{ copy().note | translate }}</p>
           }
         }
       </div>
@@ -419,7 +459,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 export class CodexRankCardComponent {
   readonly shipName = input.required<string>();
   readonly sizeClass = input<number | null>(null);
-  readonly result = input<RankResult | null>(null);
+  readonly result = input<RankResult<string> | null>(null);
   readonly loading = input(false);
 
   /** The card has a cohort to draw: radar, bars and the lens note all render. */
@@ -434,19 +474,16 @@ export class CodexRankCardComponent {
   /** Holotable "Einordnung" variant — see the `:host(.holo)` rules. */
   readonly holo = input(false);
 
-  readonly profiles = RANK_PROFILES;
+  /** The profile chips; empty = no chip row (a kind with one fixed set of axes). */
+  readonly profiles = input<readonly { id: RankProfileId; labelKey: string }[]>(RANK_PROFILES);
+  /** The comparison groups the head toggle offers. */
+  readonly scopes = input<readonly RankCardScope[]>(SHIP_SCOPES);
+  /** Everything that names what is compared; the default is the ship wording. */
+  readonly copy = input<RankCardCopy>(SHIP_COPY);
 
   readonly activeProfileLabelKey = computed<string>(
     () => RANK_PROFILES.find((p) => p.id === this.profile())?.labelKey ?? RANK_PROFILES[0].labelKey,
   );
-
-  /** The groups the head toggle offers, in this order. Size class stays out
-   * until the schema carries it (#523). */
-  private static readonly SCOPES: readonly { id: RankScope; labelKey: string; reasonKey: string }[] = [
-    { id: 'all', labelKey: 'codex.rank.scope.all', reasonKey: '' },
-    { id: 'career', labelKey: 'codex.rank.scope.career', reasonKey: 'codex.rank.disabled.noCareer' },
-    { id: 'role', labelKey: 'codex.rank.scope.role', reasonKey: 'codex.rank.disabled.noRole' },
-  ];
 
   /** The scope the result was ACTUALLY built with — a remembered group the
    * ship has no data for shows as "Alle" here, never as a fake filter. */
@@ -454,15 +491,22 @@ export class CodexRankCardComponent {
 
   readonly scopeChoices = computed<ScSegmentOption[]>(() => {
     const available = this.result()?.scopeAvailable;
-    return CodexRankCardComponent.SCOPES.map((s) => {
+    return this.scopes().map((s) => {
       const off = !!available && !available[s.id];
       return { value: s.id, labelKey: s.labelKey, titleKey: off ? s.reasonKey : undefined, disabled: off };
     });
   });
 
   readonly activeScopeLabelKey = computed<string>(
-    () => CodexRankCardComponent.SCOPES.find((s) => s.id === this.activeScope())?.labelKey ?? 'codex.rank.scope.all',
+    () => this.scopes().find((s) => s.id === this.activeScope())?.labelKey ?? this.scopes()[0]?.labelKey ?? '',
   );
+
+  /** The cohort line of the active group; a sizeClass scope without a class reads as "all". */
+  readonly cohortLineKey = computed<string>(() => {
+    const scope = this.result()?.scope ?? 'all';
+    const usable = scope !== 'sizeClass' || this.sizeClass() != null;
+    return (usable ? this.copy().cohort[scope] : null) ?? this.copy().cohort.all ?? '';
+  });
 
   pickScope(scope: RankScope): void {
     if (scope !== this.activeScope()) this.scopeChange.emit(scope);
@@ -523,7 +567,7 @@ export class CodexRankCardComponent {
     });
   });
 
-  private polygonOf(pick: (a: RankAxisResult) => number | null): string {
+  private polygonOf(pick: (a: RankAxisResult<string>) => number | null): string {
     const r = this.result();
     if (!r) return '';
     const n = r.axes.length;

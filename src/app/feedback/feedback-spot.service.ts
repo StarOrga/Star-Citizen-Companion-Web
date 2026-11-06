@@ -59,12 +59,15 @@ export class FeedbackSpotService {
   private readonly _spots = signal<readonly FeedbackSpot[]>([]);
   private readonly _panels = signal<ReadonlyMap<FeedbackPanelOwner, OpenPanel>>(new Map());
   private targets: FeedbackLineTarget[] = [];
+  private readonly _composers = signal(0);
   private lastTouched: FeedbackLineTarget | null = null;
 
   /** Every marked section currently in the DOM, in registration order. */
   readonly spots = this._spots.asReadonly();
   /** A feedback panel is open. */
   readonly open = computed(() => this._panels().size > 0);
+  /** How many composers are mounted (open new-topic / reply boxes). */
+  readonly composerCount = this._composers.asReadonly();
   /** The admin click capture is armed (admin signed in) — the composer shows its hint. */
   readonly captureActive = signal(false);
 
@@ -100,8 +103,10 @@ export class FeedbackSpotService {
   /** A composer mounted. Returns the detach function. */
   attachTarget(target: FeedbackLineTarget): () => void {
     this.targets.push(target);
+    this._composers.set(this.targets.length);
     return () => {
       this.targets = this.targets.filter((t) => t !== target);
+      this._composers.set(this.targets.length);
       if (this.lastTouched === target) this.lastTouched = null;
     };
   }

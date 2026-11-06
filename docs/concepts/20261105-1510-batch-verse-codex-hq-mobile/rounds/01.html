@@ -1,0 +1,393 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Plan und Fragen" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Btw, rechts bei der analyse sind scrollbar abschneidend zu den chatinhalten - dabei sollte ein ganz kleines bisschen platz ist. \n\nSeieh anbei, das frage label z. B. funktioniert nicht immer, unklar, wwann es rein kommt und dann auch noch falschen link...","attachments":[{"id":"265e62eca6292cd214fa95cc01a13bcd9bba7d92c41a898a0fd5d4b88fd2e522.png","name":"image.png","mime":"image/png","size":494655,"path":".claude/concepts/20261105-1510-batch-verse-codex-hq-mobile/attachments/265e62eca6292cd214fa95cc01a13bcd9bba7d92c41a898a0fd5d4b88fd2e522.png"}]}}</script>
+  <div class="iteration-intro">
+    <h2>Sieben Notizen, ein Plan</h2>
+    <p>Klare Punkte sind eingeplant, hier stehen nur die Fragen, die deine Antwort brauchen.</p>
+  </div>
+
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Alle sieben Notizen sind gegen den aktuellen Code geprüft und in fünf Bündel geteilt; nichts davon ist unmachbar.</p>
+    <p data-briefing-why>Offen sind nur Inhalt und Gestaltung beim Verse-Hero, beim Bestand-Popup und bei den Handy-Abweichungen.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"7 von 7","unit":"Notizen","label":"im Plan"}'>7 von 7 Notizen</div>
+    <a data-briefing-topic="t-verse" data-share="30">Verse und Codex</a>
+    <a data-briefing-topic="t-stock" data-share="30">HQ-Bestand</a>
+    <a data-briefing-topic="t-phone" data-share="40">Handy-Beta</a>
+    <p data-briefing-duration>≈ 5 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"5","unit":"Bündel","label":"parallel umsetzbar"}'></div></div>
+      <div data-slot="long">
+        <ul class="plan-list">
+          <li><b>#1 Verse-Hero:</b> Bündel B1, Inhalt offen.</li>
+          <li><b>#2 Codex-Liste und Kategorien:</b> B2. Klick legt den Eintrag auf den Tisch, nur der Pfeil öffnet die Unterseite.</li>
+          <li><b>#3 Icon und Silhouette:</b> B2. Icon kleiner und nie abgeschnitten, Silhouette auch für Waffen, Rüstung, Komponenten und Items, wenn vorhanden.</li>
+          <li><b>#4 Icon-Reihenfolge:</b> B3. Wunschliste, Nachschub, Bestand.</li>
+          <li><b>#5 Suche verlassen:</b> B3. Alle Wege werden per Test belegt, Rausgehen bleibt an der Stelle.</li>
+          <li><b>#6 Handy-Audit:</b> B5 nach den anderen Bündeln, Ausnahmen offen.</li>
+          <li><b>#7 Bestand als Popup:</b> B4, Gestaltung offen.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="t-verse" data-topic data-nav-label="Verse und Codex">
+    <div data-alevel="2" data-title="Verse und Codex">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der Hero zeigt heute nur die Patch-Linie, die Liste führt sofort weg."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Hero","value":"Titel = 4.10, kein Text"},{"label":"Codex-Liste","value":"Klick verlässt die Seite"},{"label":"Holotisch","value":"3D nur bei Schiffen"}]}'></div>
+        <p>Beide Flächen zeigen zu wenig von dem, was gerade neu ist. Die Datenquellen dafür gibt es größtenteils schon.</p>
+      </div>
+    </div>
+
+    <section id="d-hero" data-nav-label="Hero-Inhalt" data-decision="d-hero" data-decision-mode="picture" data-label="Inhalt des Patches-Hero" data-rec="ai" data-rec-why="Der Titel allein bleibt nüchtern, und die Quellen für einen echten Satz sind schon da." data-applies-to="Verse-Hero, Patches" data-finding="f-hero"><input type="hidden" name="dm-d-hero-hes" value="{&quot;ms&quot;:58499,&quot;revisits&quot;:2,&quot;median&quot;:97129}"><input type="hidden" name="dm-d-hero-none" value="1">
+      <p data-applies>Gilt für: Verse-Hero, Patches</p>
+      <p data-situation>Der Digest setzt als Titel nur die Patch-Linie („4.10“) und als Text nichts. Deshalb wirkt der Hero leer.</p>
+      <h3 data-question>Was soll der Patches-Hero zeigen?</h3>
+      <p data-stakes>Mit KI-Text kommen eine Migration und ein Edge-Lauf je neuem Patch dazu.</p>
+      <div data-options>
+        <label data-opt="ai" data-recommended>
+          <input type="radio" name="dm-d-hero" value="ai">
+          <span data-opt-media><svg viewBox="0 0 240 110" role="img" aria-label="Skizze: Kanal, Titel und ein KI-Satz"><rect x="88" y="8" width="64" height="16" rx="8" fill="none" stroke="currentColor"/><text x="120" y="20" text-anchor="middle" font-size="9" fill="currentColor">LIVE</text><text x="120" y="48" text-anchor="middle" font-size="17" fill="currentColor">Neues in 4.10.3</text><text x="120" y="72" text-anchor="middle" font-size="9" fill="currentColor">Stabilere Server, neue Boomtube-Varianten,</text><text x="120" y="86" text-anchor="middle" font-size="9" fill="currentColor">überarbeitete Fracht-Missionen.</text></svg></span>
+          <span data-opt-label>Titel, Kanal und KI-Satz zeigen</span>
+          <span data-opt-consequence>Fest begrenzte Länge; fehlt der Text, bleibt der Titel allein stehen.</span>
+        </label>
+        <label data-opt="plain">
+          <input type="radio" name="dm-d-hero" value="plain">
+          <span data-opt-media><svg viewBox="0 0 240 110" role="img" aria-label="Skizze: nur Kanal und Titel"><rect x="88" y="20" width="64" height="16" rx="8" fill="none" stroke="currentColor"/><text x="120" y="32" text-anchor="middle" font-size="9" fill="currentColor">LIVE</text><text x="120" y="66" text-anchor="middle" font-size="17" fill="currentColor">Neues in 4.10.3</text></svg></span>
+          <span data-opt-label>Nur Titel und Kanal zeigen</span>
+          <span data-opt-consequence>Schnell gebaut und ohne KI-Kosten, sagt aber nichts über den Inhalt.</span>
+        </label>
+        <label data-opt="bullets">
+          <input type="radio" name="dm-d-hero" value="bullets">
+          <span data-opt-media><svg viewBox="0 0 240 110" role="img" aria-label="Skizze: Titel und Stichpunkte aus den Patchnotes"><text x="120" y="24" text-anchor="middle" font-size="15" fill="currentColor">Neues in 4.10.3 · LIVE</text><text x="44" y="52" font-size="9" fill="currentColor">• Server-Stabilität</text><text x="44" y="68" font-size="9" fill="currentColor">• Neue FPS-Waffen</text><text x="44" y="84" font-size="9" fill="currentColor">• Fracht-Missionen</text></svg></span>
+          <span data-opt-label>Stichpunkte aus den Patchnotes zeigen</span>
+          <span data-opt-consequence>Ohne KI und wörtlich von RSI, aber roher und höher im Hero.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-hero-note" placeholder="Notiz (optional)">[Frage 1] Nein, es soll so bleiben wie heute der hero, eldiglich der text im textteil des heroes soll angepasst werden! Dort dann das wort live rein und entweder Neues zu... oder gern auch einen ki generierten teaser titel dafür...</textarea>
+      <div data-alevel="3" data-title="Hero-Inhalt">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Titel und Text kommen aus dem Digest, der Text ist bei Patches immer leer."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"verse_digest()","value":"title = patch_line, summary = null"},{"label":"Hero","value":"zeigt 4.10"}]}'></div>
+          <p>Die volle Version und die Kanäle sind vorhanden: <code>channels.live</code> und die Tabelle <code>patch_channel_builds</code> mit Hotfix, PTU und Evocati. Es fehlt nur die Verbindung zum Hero.</p>
+        </div>
+        <div data-example><pre>select 'patch:' || p.patch_line, 'patch', p.patch_line,
+       '/verse/patches/' || p.patch_line, null, null, ...
+-- 20261025121000_verse_digest_gallery_per_series.sql:31</pre></div>
+      </div>
+    </section>
+
+    <section id="d-future" data-nav-label="Künftige Patches" data-decision="d-future" data-decision-mode="single" data-label="Quelle für künftige Patches" data-rec="roadmap" data-rec-why="Die Funktion rsi-roadmap liefert schon, was für den aktuellen und den nächsten Patch geplant ist." data-applies-to="Verse-Hero, künftige Patches" data-finding="f-future"><input type="hidden" name="dm-d-future-hes" value="{&quot;ms&quot;:18527,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Verse-Hero, Patches</p>
+      <p data-situation>Für 4.11 oder 5.0 gibt es noch keinen Build-Vergleich. Die vorhandene Funktion <code>rsi-roadmap</code> liest aber die RSI-Roadmap und die Patchnotes.</p>
+      <h3 data-question>Worauf soll sich der Text zu künftigen Patches stützen?</h3>
+      <p data-stakes>Roadmap-Inhalte sind Pläne von RSI und können sich noch ändern.</p>
+      <div data-options>
+        <label data-opt="roadmap" data-recommended>
+          <input type="radio" name="dm-d-future" value="roadmap" checked>
+          <span data-opt-label>Roadmap und Patchnotes nutzen</span>
+          <span data-opt-consequence>4.11 und 5.0 erscheinen früh, klar als „geplant“ gekennzeichnet.</span>
+        </label>
+        <label data-opt="channels">
+          <input type="radio" name="dm-d-future" value="channels">
+          <span data-opt-label>Erst ab Evocati oder PTU zeigen</span>
+          <span data-opt-consequence>Nur was wirklich läuft, dafür keine Vorschau auf ferne Patches.</span>
+        </label>
+        <label data-opt="live">
+          <input type="radio" name="dm-d-future" value="live">
+          <span data-opt-label>Nur den LIVE-Patch zeigen</span>
+          <span data-opt-consequence>Am einfachsten, deckt deinen Wunsch nach künftigen Patches aber nicht ab.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-future-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Künftige Patches">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Quellen sind da, nur eine reicht über laufende Builds hinaus."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Roadmap","value":"geplant"},{"label":"Evocati / PTU","value":"läuft im Test"},{"label":"LIVE","value":"veröffentlicht"}]}'></div>
+          <p>Die vorhandene KI-Funktion <code>codex-patch-summary</code> arbeitet nur mit Build-Diffs. Für Patches ohne Build bräuchte sie eine zweite Eingabe, und genau die liefert <code>rsi-roadmap</code>. Der Inhalt der Antworten ist noch nicht live geprüft.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-announced" data-nav-label="Angekündigte Schiffe" data-decision="d-announced" data-decision-mode="single" data-label="Klick auf angekündigte Schiffe" data-rec="preview" data-rec-why="So verhält sich jeder Eintrag der Liste gleich, wie du es in Notiz 2 wolltest." data-applies-to="Codex-Landing, Liste Neu in x" data-finding="f-announced"><input type="hidden" name="dm-d-announced-hes" value="{&quot;ms&quot;:51266,&quot;revisits&quot;:3,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Codex-Landing, Liste „Neu in x“</p>
+      <p data-situation>Ein Klick legt künftig jeden Eintrag auf den Holotisch. Angekündigte Schiffe haben aber nur eine Upcoming-Seite und eventuell keine Tischdaten.</p>
+      <h3 data-question>Was passiert beim Klick auf ein angekündigtes Schiff?</h3>
+      <div data-options>
+        <label data-opt="preview" data-recommended>
+          <input type="radio" name="dm-d-announced" value="preview">
+          <span data-opt-label>Mit vorhandenen Daten auf den Tisch legen</span>
+          <span data-opt-consequence>Name und Kategorie-Icon, ohne Werte; der Pfeil öffnet die Upcoming-Seite.</span>
+        </label>
+        <label data-opt="navigate">
+          <input type="radio" name="dm-d-announced" value="navigate">
+          <span data-opt-label>Direkt zur Upcoming-Seite wechseln</span>
+          <span data-opt-consequence>Weniger Aufwand, aber diese Einträge verhalten sich anders als der Rest.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-announced-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Angekündigte Schiffe">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der Tisch lädt bisher nur das neueste Item je Kategorie."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Heute","value":"neuestes Item je Kategorie"},{"label":"Neu","value":"beliebiger Eintrag per id"}]}'></div>
+          <p>Ein Listeneintrag trägt nur id, Name, Route und das Merkmal „angekündigt“. Das Nachladen per id entsteht in Bündel B2 ohnehin; offen ist nur der Fall ohne Codex-Daten.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-tabs" data-nav-label="Kategorie-Leiste" data-decision="d-tabs" data-decision-mode="picture" data-label="Kategorie-Leiste" data-rec="active" data-rec-why="Fünf Namen passen bei rund 300 px nicht in eine Zeile, Icons plus aktiver Name schon." data-applies-to="Codex-Landing, Liste Neu in x" data-finding="f-tabs"><input type="hidden" name="dm-d-tabs-hes" value="{&quot;ms&quot;:123420,&quot;revisits&quot;:5,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Codex-Landing, Liste „Neu in x“</p>
+      <p data-situation>Die Liste ist im Screenshot rund 300 px breit. „Raumschiffe, FPS-Waffen, Rüstung, Komponenten, Werkzeuge“ passen so mit Icons nicht lesbar nebeneinander.</p>
+      <h3 data-question>Wie soll die horizontale Kategorie-Leiste aussehen?</h3>
+      <div data-options>
+        <label data-opt="active" data-recommended>
+          <input type="radio" name="dm-d-tabs" value="active" checked>
+          <span data-opt-media><svg viewBox="0 0 240 70" role="img" aria-label="Skizze: vier Icons und die aktive Kategorie mit Namen"><circle cx="20" cy="35" r="9" fill="none" stroke="currentColor"/><rect x="38" y="21" width="96" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="52" cy="35" r="7" fill="none" stroke="currentColor"/><text x="64" y="39" font-size="10" fill="currentColor">FPS-Waffen</text><circle cx="152" cy="35" r="9" fill="none" stroke="currentColor"/><circle cx="182" cy="35" r="9" fill="none" stroke="currentColor"/><circle cx="212" cy="35" r="9" fill="none" stroke="currentColor"/></svg></span>
+          <span data-opt-label>Icons zeigen, aktive Kategorie mit Namen</span>
+          <span data-opt-consequence>Passt in Deutsch und Englisch; die Namen der anderen stehen im Tooltip.</span>
+        </label>
+        <label data-opt="two-rows">
+          <input type="radio" name="dm-d-tabs" value="two-rows">
+          <span data-opt-media><svg viewBox="0 0 240 70" role="img" aria-label="Skizze: alle Kategorien mit Namen in zwei Zeilen"><text x="8" y="26" font-size="9" fill="currentColor">Raumschiffe</text><text x="84" y="26" font-size="9" fill="currentColor">FPS-Waffen</text><text x="160" y="26" font-size="9" fill="currentColor">Rüstung</text><text x="8" y="50" font-size="9" fill="currentColor">Komponenten</text><text x="84" y="50" font-size="9" fill="currentColor">Werkzeuge</text></svg></span>
+          <span data-opt-label>Alle Namen in zwei Zeilen zeigen</span>
+          <span data-opt-consequence>Alles sofort lesbar, kostet aber Höhe in der Liste.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-tabs-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Kategorie-Leiste">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≈ 300","unit":"px","label":"Breite der Liste"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Raumschiffe","value":11},{"label":"FPS-Waffen","value":10},{"label":"Rüstung","value":7},{"label":"Komponenten","value":11},{"label":"Werkzeuge","value":9}],"unit":" Zeichen"}'></div>
+          <p>Der Wert ist aus dem Screenshot abgelesen, nicht im Browser gemessen. Die endgültige Passform prüft Bündel B2 in beiden Sprachen.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-stock" data-topic data-nav-label="HQ-Bestand">
+    <div data-alevel="2" data-title="HQ-Bestand">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Alles liegt heute auf einer Seite, deshalb wird sie scrollbar."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Heute","value":"Karten, Suche, Lager, Formular auf einer Seite"},{"label":"Neu","value":"Übersicht plus Popup"}]}'></div>
+        <p>Das Popup kann auf dem vorhandenen <code>sc-overlay-frame</code> aufbauen, wie schon der Nachschub. Offen ist, was wohin wandert.</p>
+      </div>
+    </div>
+
+    <section id="d-sc" data-nav-label="Vorbild" data-decision="d-sc" data-decision-mode="single" data-label="Bedeutung von ähnlich zu sc" data-rec="app" data-rec-why="Die App-Suche hat Filter-Chips und Trefferzeilen schon gebaut, das Popup wirkt damit vertraut." data-applies-to="Bestand-Popup" data-finding="f-sc"><input type="hidden" name="dm-d-sc-hes" value="{&quot;ms&quot;:311364,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Bestand-Popup</p>
+      <p data-situation>Du schreibst „eine suche mit filtern ähnlich zu sc“. Das lässt sich als das Spiel oder als die Suche dieser App lesen.</p>
+      <h3 data-question>Welches Vorbild meinst du für Suche und Filter?</h3>
+      <div data-options>
+        <label data-opt="app" data-recommended>
+          <input type="radio" name="dm-d-sc" value="app" checked>
+          <span data-opt-label>Die Suche von SC Companion</span>
+          <span data-opt-consequence>Gleiche Chips und Zeilen wie im Suchfeld oben.</span>
+        </label>
+        <label data-opt="game">
+          <input type="radio" name="dm-d-sc" value="game">
+          <span data-opt-label>Das Ingame-Inventar von Star Citizen</span>
+          <span data-opt-consequence>Kategorie-Spalten und Raster wie im Spiel, mehr neue Oberfläche.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-sc-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Vorbild">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der Begriff „sc“ ist in deiner Notiz doppeldeutig."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="text" data-viz-spec='{"text":"Originalnotiz: „dort eine suche mit filtern ähnlich zu sc mit lazy loading und grundsortierung nach ort bzw. ortsfrei“."}'></div>
+          <p>Die Antwort bestimmt den Aufwand von Bündel B4 am stärksten.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-overview" data-nav-label="Übersicht" data-decision="d-overview" data-decision-mode="multi" data-label="Inhalt der Bestand-Übersicht" data-rec="totals places recent ships" data-rec-why="Das beantwortet die häufigsten Fragen, passt in einen Bildschirm und bleibt ohne Scrollen." data-applies-to="HQ, Seite Bestand" data-finding="f-overview"><input type="hidden" name="dm-d-overview-hes" value="{&quot;ms&quot;:134081,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: HQ, Seite Bestand</p>
+      <p data-situation>Die Seite darf nicht mehr scrollen. Sie zeigt nur noch eine Übersicht, deren Schnelllinks das Popup vorgefiltert öffnen.</p>
+      <h3 data-question>Was gehört auf die Bestand-Übersicht?</h3>
+      <div data-options>
+        <label data-opt="totals"><input type="checkbox" name="dm-d-overview.totals" checked><span data-opt-label>Summen zeigen</span><span data-opt-consequence>Anzahl Items und Orte, ein Klick öffnet alles.</span></label>
+        <label data-opt="places"><input type="checkbox" name="dm-d-overview.places" checked><span data-opt-label>Größte Orte verlinken</span><span data-opt-consequence>Die fünf vollsten Orte plus „ortsfrei“ als Filter.</span></label>
+        <label data-opt="recent"><input type="checkbox" name="dm-d-overview.recent" checked><span data-opt-label>Veraltete Orte verlinken</span><span data-opt-consequence>Orte, deren Stand älter als sieben Tage ist.</span></label>
+        <label data-opt="ships"><input type="checkbox" name="dm-d-overview.ships" checked><span data-opt-label>Schiffe, Sets und Erspieltes behalten</span><span data-opt-consequence>Die drei vorhandenen Karten bleiben auf der Seite.</span></label>
+        <label data-opt="cats"><input type="checkbox" name="dm-d-overview.cats" checked><span data-opt-label>Kategorien verlinken</span><span data-opt-consequence>Braucht eine neue Zuordnung, weil Items heute nur Namen tragen.</span></label>
+      </div>
+      <textarea data-comment="d-overview-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Übersicht">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Daten für Summen, Orte und Alter liegen schon im Inventar-Dienst."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Bleibt","value":"Schiffe, Sets, Erspieltes"},{"label":"Neu","value":"Schnelllinks"},{"label":"Wandert","value":"Lagerliste ins Popup"}]}'></div>
+          <p>Ein Stand ab sieben Tagen ist heute schon als Warnung markiert. Ob Items für Kategorien eine eigene Zuordnung brauchen, ist nur aus den Zeilenfeldern (Name, Klasse, Menge, Einheit) abgeleitet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-views" data-nav-label="Ansichten" data-decision="d-views" data-decision-mode="multi" data-label="Ansichten im Popup" data-rec="place name qty" data-rec-why="Diese drei gehen mit den vorhandenen Daten und decken Suchen und Aufräumen ab." data-applies-to="Bestand-Popup" data-finding="f-views"><input type="hidden" name="dm-d-views-hes" value="{&quot;ms&quot;:32073,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Bestand-Popup</p>
+      <p data-situation>Die Grundsortierung ist laut Notiz „nach Ort bzw. ortsfrei“. Du möchtest aber auch andere Ansichten.</p>
+      <h3 data-question>Welche Ansichten soll das Popup anbieten?</h3>
+      <div data-options>
+        <label data-opt="place"><input type="checkbox" name="dm-d-views.place" checked><span data-opt-label>Nach Ort gruppieren (Standard)</span><span data-opt-consequence>Ortsfreie Items bilden eine eigene Gruppe.</span></label>
+        <label data-opt="name"><input type="checkbox" name="dm-d-views.name" checked><span data-opt-label>Nach Item zusammenfassen</span><span data-opt-consequence>Ein Item, darunter alle Orte mit Mengen.</span></label>
+        <label data-opt="qty"><input type="checkbox" name="dm-d-views.qty" checked><span data-opt-label>Nach Menge sortieren</span><span data-opt-consequence>Zeigt, wovon am meisten da ist.</span></label>
+        <label data-opt="age"><input type="checkbox" name="dm-d-views.age"><span data-opt-label>Nach Alter des Stands sortieren</span><span data-opt-consequence>Hilft beim Aktualisieren alter Orte.</span></label>
+      </div>
+      <textarea data-comment="d-views-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Ansichten">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Alle Zeilen sind schon im Client, Lazy Loading betrifft nur das Rendern."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Laden","value":"alle Zeilen auf einmal"},{"label":"Rendern","value":"nur der sichtbare Abschnitt"}]}'></div>
+          <p>Der Inventar-Dienst lädt heute alle Zeilen in einem Abruf. Lazy Loading heißt deshalb zunächst: nachrendern beim Scrollen im Popup. Echtes Nachladen vom Server wäre ein Umbau des Dienstes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-forms" data-nav-label="Hinzufügen" data-decision="d-forms" data-decision-mode="single" data-label="Ort für Hinzufügen und Wo liegt" data-rec="both" data-rec-why="Dein Auslöser war das Hinzufügen; im Popup scrollt nur noch das Popup, nie die Seite." data-applies-to="HQ, Seite Bestand und Popup" data-finding="f-forms"><input type="hidden" name="dm-d-forms-hes" value="{&quot;ms&quot;:84831,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: HQ, Seite Bestand und Popup</p>
+      <p data-situation>Auf der Seite stehen auch „Wo liegt …?“ und das Formular zum Erfassen eines Items. Das Hinzufügen macht die Seite heute scrollbar.</p>
+      <h3 data-question>Wohin wandern Erfassen und „Wo liegt …?“?</h3>
+      <div data-options>
+        <label data-opt="both" data-recommended>
+          <input type="radio" name="dm-d-forms" value="both" checked>
+          <span data-opt-label>Beide ins Popup verschieben</span>
+          <span data-opt-consequence>Die Seite bleibt reine Übersicht, ein Button öffnet „Hinzufügen“ direkt.</span>
+        </label>
+        <label data-opt="find-stays">
+          <input type="radio" name="dm-d-forms" value="find-stays">
+          <span data-opt-label>„Wo liegt …?“ als Feld auf der Seite lassen</span>
+          <span data-opt-consequence>Schneller Zugriff; die Treffer öffnen das Popup, Erfassen wandert hinein.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-forms-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Hinzufügen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"„Wo liegt …?“ und Erfassen hängen heute direkt in der Seite."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Wo liegt …?","value":"hq-stock-find.ts"},{"label":"Erfassen","value":"Formular in hq-stock.component.ts"},{"label":"Ziel","value":"Popup-Komponente"}]}'></div>
+          <p>Die Suchlogik ist schon eine eigene Datei und lässt sich unverändert im Popup nutzen. Das Formular zieht ohne neue Daten mit um.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-phone" data-topic data-nav-label="Handy-Beta">
+    <div data-alevel="2" data-title="Handy-Beta">
+      <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Im Code weichen zwei Stellen klar vom Desktop ab, die meisten übrigen sind Anpassungen."}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Angleichen","value":"Admin, Index-Filter"},{"label":"Deine Wahl","value":"Reihenfolge der Codex-Landing"},{"label":"Zu prüfen","value":"Leisten am unteren Rand"}]}'></div>
+        <p>Das Audit stammt nur aus dem Code: Im Browser kam es nicht über die Login-Seite hinaus. Zustände nach dem Login, Abstände und Überlappungen sind also nicht gesehen. Galerie, Explorer, Tastenbelegung, FPS und Upcoming fehlen noch.</p>
+      </div>
+    </div>
+
+    <section id="d-admin" data-nav-label="Admin-Eintrag" data-decision="d-admin" data-decision-mode="single" data-label="Admin-Eintrag am Handy" data-rec="subrow" data-rec-why="So bleibt Admin wie am Desktop ein eigener roter Eintrag außerhalb der normalen Navigation." data-applies-to="Hauptkopf am Handy" data-finding="f-admin"><input type="hidden" name="dm-d-admin-hes" value="{&quot;ms&quot;:109427,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Hauptkopf am Handy</p>
+      <p data-situation>Am Desktop steht Admin als eigener roter Eintrag unter dem Account. Am Handy ist es der fünfte Platz in der Navigation neben Verse, Codex und HQ.</p>
+      <h3 data-question>Wo soll der Admin-Eintrag am Handy stehen?</h3>
+      <div data-options>
+        <label data-opt="subrow" data-recommended>
+          <input type="radio" name="dm-d-admin" value="subrow">
+          <span data-opt-label>Eigene rote Zeile unter dem Account</span>
+          <span data-opt-consequence>Wie am Desktop; die Navigation behält nur die normalen Bereiche.</span>
+        </label>
+        <label data-opt="account">
+          <input type="radio" name="dm-d-admin" value="account" checked>
+          <span data-opt-label>Ins Account-Menü verschieben</span>
+          <span data-opt-consequence>Spart Platz im Kopf, ist aber einen Tipp weiter weg und anders als am Desktop.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-admin" value="keep">
+          <span data-opt-label>In der Navigation lassen</span>
+          <span data-opt-consequence>Keine Änderung; Admin bleibt ein gleichrangiger Bereich am Handy.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-admin-note" placeholder="Notiz (optional)">[Frage 1]  Lass usn das dgenerell ins accoutn menü verschieben! das admin menüpunkt!</textarea>
+      <div data-alevel="3" data-title="Admin-Eintrag">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Unterzeile ist am Handy ausgeblendet, stattdessen erscheint ein fünfter Platz."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Desktop","value":"Unterzeile unter dem Account"},{"label":"Handy","value":"fünfter Platz in der Navigation"}]}'></div>
+          <p>Das Account-Menü ist auf beiden Formaten identisch und enthält für Admins auch die API-Tokens. Schreib in die Notiz, falls du mit „Admin-Sachen“ noch etwas anderes meinst.</p>
+        </div>
+        <div data-example><pre>main-header.component.ts:84-94    Unterzeile mit Admin
+main-header.component.ts:274-279  .slot.adm wird am Handy angezeigt
+main-header.component.ts:333-335  .subrow wird am Handy ausgeblendet</pre></div>
+      </div>
+    </section>
+
+    <section id="d-filter" data-nav-label="Index-Filter" data-decision="d-filter" data-decision-mode="single" data-label="Filter im Codex-Index am Handy" data-rec="bar" data-rec-why="Der Filter-Button der Leiste gibt es auf beiden Formaten, ein zweiter Weg ist überflüssig." data-applies-to="Codex-Index am Handy" data-finding="f-filter"><input type="hidden" name="dm-d-filter-hes" value="{&quot;ms&quot;:175294,&quot;revisits&quot;:3,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Codex-Index am Handy</p>
+      <p data-situation>Am Handy hat der Index zwei Filter-Einstiege: den Button der unteren Leiste und einen eigenen breiten „Filter (n)“-Button, der laut CSS an derselben Stelle sitzt.</p>
+      <h3 data-question>Welcher Filter-Einstieg bleibt am Handy?</h3>
+      <div data-options>
+        <label data-opt="bar" data-recommended>
+          <input type="radio" name="dm-d-filter" value="bar" checked>
+          <span data-opt-label>Nur den Button der Leiste behalten</span>
+          <span data-opt-consequence>Ein Weg wie am Desktop; alle Filter müssen dafür im Leisten-Panel erreichbar sein.</span>
+        </label>
+        <label data-opt="fab">
+          <input type="radio" name="dm-d-filter" value="fab">
+          <span data-opt-label>Nur den breiten Button behalten</span>
+          <span data-opt-consequence>Auffälliger, aber die Leiste verhält sich dann auf dieser Seite anders.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-filter-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Index-Filter">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Einstiege","label":"für denselben Filter"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="compare" data-viz-spec='{"before":{"label":"Handy","value":2},"after":{"label":"Ziel","value":1},"unit":" Einstiege"}'></div>
+          <p>Der breite Button und die untere Leiste nutzen beide <code>--sc-float-bottom</code>. Ob sie sich tatsächlich überlappen, ist nicht beobachtet; Bündel B5 prüft das am Gerätemaß.</p>
+        </div>
+        <div data-example><pre>codex-browse.component.ts:543-575  .filter-fab und Sheet
+fusion-bar.component.ts:222-235    Filter der Leiste</pre></div>
+      </div>
+    </section>
+
+    <section id="d-landing" data-nav-label="Landing-Reihenfolge" data-decision="d-landing" data-decision-mode="single" data-label="Reihenfolge der Codex-Landing am Handy" data-rec="table-first" data-rec-why="Der Holotisch ist der Kern der Seite, die News-Marke gehört nicht vor den Titel." data-applies-to="Codex-Landing am Handy" data-finding="f-landing"><input type="hidden" name="dm-d-landing-hes" value="{&quot;ms&quot;:27430,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: Codex-Landing am Handy</p>
+      <p data-situation>Am Desktop steht der Titel in der Mitte, Werte links, Liste rechts. Am Handy folgen untereinander: News-Marke, Titel, Holotisch, Werte, Liste.</p>
+      <h3 data-question>In welcher Reihenfolge soll die Landing am Handy stehen?</h3>
+      <div data-options>
+        <label data-opt="table-first" data-recommended>
+          <input type="radio" name="dm-d-landing" value="table-first" checked>
+          <span data-opt-label>Titel, Holotisch, Liste, Werte, News-Marke</span>
+          <span data-opt-consequence>Passt zu Notiz 2: Die Liste steuert direkt darüber den Tisch.</span>
+        </label>
+        <label data-opt="values-first">
+          <input type="radio" name="dm-d-landing" value="values-first">
+          <span data-opt-label>Titel, Holotisch, Werte, Liste, News-Marke</span>
+          <span data-opt-consequence>Werte bleiben beim Item, die Liste rutscht nach unten.</span>
+        </label>
+        <label data-opt="keep">
+          <input type="radio" name="dm-d-landing" value="keep">
+          <span data-opt-label>Reihenfolge lassen</span>
+          <span data-opt-consequence>Keine Änderung; die News-Marke bleibt ganz oben.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-landing-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Landing-Reihenfolge">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Reihenfolge am Handy kommt aus einer einzigen Spaltenregel."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"1","value":"News-Marke"},{"label":"2","value":"Titel"},{"label":"3","value":"Holotisch"},{"label":"4","value":"Werte"},{"label":"5","value":"Liste"}]}'></div>
+          <p>Die Spaltenregel liegt in <code>codex-landing.component.scss:161-176</code>. Diese Datei gehört zu Bündel B2, die Umstellung läuft deshalb dort mit.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-exceptions" data-nav-label="Ausnahmen" data-decision="d-exceptions" data-decision-mode="multi" data-label="Erlaubte Handy-Ausnahmen" data-rec="bar hqbar stage admin-table" data-rec-why="Diese vier sind für Daumen und schmale Breite gebaut; ein Angleichen würde das Handy schlechter machen." data-applies-to="Gesamte Handy-Beta" data-finding="f-exceptions"><input type="hidden" name="dm-d-exceptions-hes" value="{&quot;ms&quot;:112188,&quot;revisits&quot;:0,&quot;median&quot;:97129}">
+      <p data-applies>Gilt für: gesamte Handy-Beta</p>
+      <p data-situation>Die übrigen Abweichungen sind gewollte Anpassungen an schmale Breite. Du wolltest nur wenige Ausnahmen, deshalb stehen die sichtbarsten hier zur Wahl.</p>
+      <h3 data-question>Welche Handy-Abweichungen dürfen bleiben?</h3>
+      <p data-context>Abgewählte Punkte gleicht Bündel B5 an den Desktop an.</p>
+      <div data-options>
+        <label data-opt="bar"><input type="checkbox" name="dm-d-exceptions.bar" checked><span data-opt-label>Subheader als untere Leiste behalten</span><span data-opt-consequence>Suche und Filter am Daumen; Kategorien liegen im Filter-Panel.</span></label>
+        <label data-opt="hqbar"><input type="checkbox" name="dm-d-exceptions.hqbar" checked><span data-opt-label>HQ-Tabs unten statt Seitenleiste behalten</span><span data-opt-consequence>Gleiche fünf Einträge in gleicher Reihenfolge.</span></label>
+        <label data-opt="stage"><input type="checkbox" name="dm-d-exceptions.stage" checked><span data-opt-label>Verse-Bühne gestapelt behalten</span><span data-opt-consequence>Monde als Zeilen, die Seite scrollt normal.</span></label>
+        <label data-opt="admin-table"><input type="checkbox" name="dm-d-exceptions.admin-table" checked><span data-opt-label>Admin-Tabelle als Karten behalten</span><span data-opt-consequence>Kein seitliches Scrollen in der Nutzerliste.</span></label>
+        <label data-opt="plan-list"><input type="checkbox" name="dm-d-exceptions.plan-list"><span data-opt-label>Planen-Karte als Textliste behalten</span><span data-opt-consequence>Nur mit Vorbehalt: Gleicher Inhalt wie die Karte ist noch nicht geprüft.</span></label>
+      </div>
+      <textarea data-comment="d-exceptions-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Ausnahmen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die meisten geprüften Abweichungen sind Layout-Anpassungen, keine fehlenden Elemente."}'></div></div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Angleichen","value":"Admin, Index-Filter"},{"label":"Prüfen","value":"HQ-Tabs und Leiste am unteren Rand"},{"label":"Anpassung","value":"Rest"}]}'></div>
+          <p>HQ-Tabs und Suchleiste stehen beide am unteren Rand; ob sie sich stören, muss Bündel B5 am Gerätemaß prüfen. Du hast geschrieben, die Seite sehe „sehr anders“ aus. Dieser Eindruck ist mit einer Code-Prüfung nicht voll belegbar, deshalb nennt B5 alles, was erst im Browser auffällt.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>

@@ -104,7 +104,8 @@ describe('HqPlanMapComponent', () => {
     expect(ords).toEqual(['1', '2']);
     expect(el.querySelectorAll('.sys.open .leg').length).toBe(1);
     expect(el.querySelectorAll('.node.current').length).toBe(1);
-    expect(el.querySelectorAll('.twin sc-step').length).toBe(route.length);
+    // Phones show this map too: no list twin any more, the map is the only view.
+    expect(el.querySelector('.twin')).toBeNull();
   });
 
   it('emits the place when a node is pressed', () => {

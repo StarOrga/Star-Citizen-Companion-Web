@@ -1,4 +1,5 @@
 @use 'sass:list';
+@use 'sass:math';
 @use 'sass:string';
 
 // An irregular star field as one background tile. A tile with one star per
@@ -26,5 +27,31 @@
     $layers: list.append($layers, string.unquote("radial-gradient(#{$size} #{$size} at #{$x}px #{$y}px,#{$color},#0000)"), $separator: comma);
   }
   background-image: $layers;
+  background-size: #{$w}px #{$h}px;
+}
+
+/// The same field as `field` (same seed, same spots, same soft dots), as one SVG image.
+/// Hundreds of gradient layers are painted again whenever their layer is rastered, which
+/// held every frame back for 630 ms on average after a menu click (51 ms with this
+/// image, 2026-11-06). An image is rastered once, and stays sharp at any pixel density.
+/// Colours must be literal here; a `var()` cannot reach into an image.
+@mixin field-image($count, $w, $h, $seed, $sizes, $colors) {
+  $defs: '';
+  @for $c from 1 through list.length($colors) {
+    $hex: string.slice('#{list.nth($colors, $c)}', 2);
+    $defs: $defs + "<radialGradient id='s#{$c}'><stop stop-color='%23#{$hex}'/><stop offset='1' stop-color='%23#{$hex}' stop-opacity='0'/></radialGradient>";
+  }
+  $dots: '';
+  $s: $seed;
+  @for $i from 1 through $count {
+    $s: -next($s);
+    $x: $s % $w;
+    $s: -next($s);
+    $y: $s % $h;
+    $r: math.div(list.nth($sizes, ($i % list.length($sizes)) + 1), 1px);
+    $c: ($i % list.length($colors)) + 1;
+    $dots: $dots + "<circle cx='#{$x}' cy='#{$y}' r='#{$r}' fill='url(%23s#{$c})'/>";
+  }
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='#{$w}' height='#{$h}'>#{$defs}#{$dots}</svg>");
   background-size: #{$w}px #{$h}px;
 }

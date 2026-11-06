@@ -92,9 +92,18 @@ legacy `SC_GATE_EMAIL`/`SC_GATE_PASSWORD`, then the Credential Manager entry.
   `browser_close` and navigate again. A session that started before this was
   merged has no init page at all — the MCP read its env at startup.
 - **The Desktop Browser pane is separate.** `mcp__Claude_Browser__*` keeps its own
-  storage per origin — today the admin's own session on `127.0.0.1:4200`. The
-  admin can sign in once on `sc-companion.vercel.app` there for pane checks on
-  live. The devops browsertest gate still only recognises Playwright.
+  storage per origin and may be signed out on `localhost` / `127.0.0.1` (seen
+  2026-11-06). The admin can sign in once on `sc-companion.vercel.app` there for
+  pane checks on live. The devops browsertest gate still only recognises Playwright.
+- **Never hand the admin a local URL to look at.** The local sign-in is the test
+  account, for Claude's browsers only; the admin has no account there. "Sieh es dir
+  an" means the live site after a ship, never `127.0.0.1:4200` or a dev port, also
+  in a concept's try-it link. Say so instead of offering the link.
+- **Standalone script, no Playwright MCP in the session:** install `playwright-core`
+  in the scratchpad, run the script from the repo root (the init page checks the
+  cwd), `require('scripts/playwright/test-session.cjs')` and call it with `{ page }`.
+  The new stages need `localStorage['sc.beta']` with `verse` and `shell` set, or the
+  old shell renders.
 
 ## Limits
 

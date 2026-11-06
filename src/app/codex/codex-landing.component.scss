@@ -27,13 +27,20 @@
   flex-direction: column;
   height: calc(100vh - var(--cx-top, 0px) - var(--sc-space-6));
   height: calc(100dvh - var(--cx-top, 0px) - var(--sc-space-6));
-  min-height: 560px;
+  // Low enough for a laptop at 125 % (about 730 px): no sliver of scroll there.
+  min-height: 480px;
   container-type: inline-size;
   // The stage footer (cinematic layout) lies over the bottom of the page.
   padding-bottom: var(--cx-pb);
   box-sizing: border-box;
+  // The hologram's drifting scan band travels far below its box while it fades;
+  // clipped at the landing's bottom it never stretches the document.
+  overflow-y: clip;
 }
-:host(:not(.shell)) .landing { height: calc(100dvh - var(--cx-top, 0px) - 32px); }
+// Shell off: the classic footer (padding 12 + 36 badge + 1 border = 61 px) is a
+// real row below the page, so the landing leaves room for it and the whole
+// page fits the viewport without a sliver of scroll.
+:host(:not(.shell)) .landing { height: calc(100dvh - var(--cx-top, 0px) - 32px - 61px); }
 
 // ── Hero: Verse spacing; StageHeroDirective sets the height (STAGE_FIELD_TOP). ──
 .hero {
@@ -166,13 +173,14 @@
   // never let the page scroll sideways (mobile gate).
   .landing { height: auto; min-height: 0; padding-bottom: calc(var(--sc-float-bottom, 0px) + var(--sc-space-4)); gap: var(--sc-space-3); overflow-x: clip; }
   :host(:not(.shell)) .landing { height: auto; }
-  .hero { order: 1; padding-inline: 0; }
+  .hero { order: 0; padding-inline: 0; }
   .title { font-size: 24px; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
-  .news { order: 0; align-self: flex-end; }
-  .stage { order: 2; flex: 0 0 auto; gap: var(--sc-space-3); margin-top: 0; }
-  .holotable { flex: 0 0 auto; height: 460px; }
+  // Phone order (d-landing table-first): title, holotable, list, values, news mark.
+  .news { order: 3; align-self: flex-end; }
+  .stage { order: 1; flex: 0 0 auto; gap: var(--sc-space-3); margin-top: 0; }
+  .holotable { order: 1; flex: 0 0 auto; height: 460px; }
+  .codex { order: 2; }
   .values { order: 3; }
-  .codex { order: 4; }
   .floor { display: none; }
 }

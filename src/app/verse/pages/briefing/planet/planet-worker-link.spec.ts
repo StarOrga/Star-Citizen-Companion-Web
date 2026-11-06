@@ -95,11 +95,15 @@ describe('Verse planet — worker link', () => {
     l.tick(view, 10);
     l.draw(view, 11);
     l.resume(12);
-    expect(w.sent.slice(-4)).toEqual([
+    l.suspend();
+    l.wake(13);
+    expect(w.sent.slice(-6)).toEqual([
       { t: 'resize', w: 800, h: 600, dpr: 1.5 },
       { t: 'tick', view, now: 10 },
       { t: 'draw', view, now: 11 },
       { t: 'resume', now: 12 },
+      { t: 'suspend' },
+      { t: 'wake', now: 13 },
     ]);
   }));
 

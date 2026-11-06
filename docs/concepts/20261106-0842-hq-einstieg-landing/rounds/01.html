@@ -1,0 +1,488 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone" data-tab-label="Runde 1" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"ich kann keine custom speech bubbles überall setzen!","attachments":[{"id":"34313a3e18d505fdf6167ba211bb4f616f92946a4a8ac632dc4e7798dabb8475.png","name":"image.png","mime":"image/png","size":636811,"path":".claude/concepts/20261106-0842-hq-einstieg-landing/attachments/34313a3e18d505fdf6167ba211bb4f616f92946a4a8ac632dc4e7798dabb8475.png"}]},"designs":{"lage":"Die hero card muss visuell genauso sein wie auf den anderen seiten! Die darf nciht anders aussehen. \nDann gern darunter die 4 kacheln dürfen gern etwas absstand bekommen!"},"screens":{},"views":{},"favorite":"lage"}</script>
+<style>
+.d1-hqe-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #84a0b6; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b; --gold: #f5c94d;
+  position: relative; display: flex; flex-direction: column; width: 100%; min-height: 100%; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 60% 34% at 80% 3%, rgba(120, 190, 220, 0.2), transparent 70%), radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 34%, #040a11 64%, #02070d 100%); }
+.d1-hqe-app *, .d1-hqe-app *::before, .d1-hqe-app *::after { box-sizing: border-box; }
+.d1-hqe-app::after { content: ""; position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image: linear-gradient(rgba(82, 193, 230, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 193, 230, 0.05) 1px, transparent 1px); background-size: 64px 64px; }
+.d1-hqe-app > * { position: relative; z-index: 1; }
+.d1-hqe-mh { display: flex; align-items: center; justify-content: space-between; flex: none; height: 64px; margin-top: 48px; padding: 0 96px 0 24px; }
+.d1-hqe-brand { font: 600 12px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.08em; text-align: left; }
+.d1-hqe-brand small { display: block; color: var(--a); font-size: 10px; letter-spacing: 0.2em; }
+.d1-hqe-nav { display: flex; gap: 8px; }
+.d1-hqe-nav span { width: 104px; padding: 10px 0; font: 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; color: var(--fg2); }
+.d1-hqe-nav .on { color: var(--fg); border-bottom: 2px solid var(--a); text-shadow: 0 0 18px rgba(82, 193, 230, 0.55); }
+.d1-hqe-acc { display: flex; gap: 10px; }
+.d1-hqe-acc i { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); }
+.d1-hqe-rail { position: absolute; z-index: 2; left: 14px; top: 42%; display: flex; flex-direction: column; gap: 12px; }
+.d1-hqe-rail i { display: block; width: 12px; height: 2px; border-radius: 2px; background: rgba(159, 179, 200, 0.45); }
+.d1-hqe-rail i.on { width: 22px; background: var(--a); box-shadow: 0 0 10px var(--a); }
+.d1-hqe-stage { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(100% - 64px, 1040px); margin: 0 auto; padding: 44px 0 92px; }
+.d1-hqe-kick { margin: 0; font: 500 11px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--a); }
+.d1-hqe-title { margin: 0; font: 500 48px/1.1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: #f2fbff; }
+.d1-hqe-patch { margin: 0; padding: 0; list-style: none; color: var(--fg2); }
+.d1-hqe-patch b { font-weight: 400; color: var(--fg); }
+.d1-hqe-search { display: flex; align-items: center; gap: 10px; width: min(640px, 100%); height: 56px; padding: 0 18px; border: 1px solid rgba(200, 236, 250, 0.4); border-radius: 14px; background: linear-gradient(180deg, #0a1d2b, #061724); color: var(--fg3); text-align: left; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45); }
+.d1-hqe-search svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.d1-hqe-chips { padding: 0 26px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.d1-hqe-chips > span { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg2); }
+.d1-hqe-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: rgba(10, 28, 40, 0.7); color: var(--fg); font: inherit; cursor: pointer; }
+.d1-hqe-chip:hover { border-color: var(--a); color: var(--a); }
+.d1-hqe-line { margin: 0; font-size: 13px; color: var(--a); }
+.d1-hqe-promise { margin: 0; max-width: 620px; color: var(--fg2); }
+.d1-hqe-steps { padding: 0 26px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.d1-hqe-step { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 14px 6px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(10, 28, 40, 0.7); }
+.d1-hqe-step i { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; font-style: normal; font-weight: 600; color: var(--fg2); }
+.d1-hqe-go { display: inline-flex; align-items: center; justify-content: center; min-width: 180px; padding: 11px 20px; border: 1px solid var(--a); border-radius: 8px; background: var(--a); color: #062030; font: 600 14px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.d1-hqe-skip { border: 0; background: none; color: var(--fg2); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.d1-hqe-mins { font-size: 12.5px; color: var(--fg2); }
+.d1-hqe-acts { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.d1-hqe-cue { position: absolute; z-index: 2; left: 50%; bottom: 14px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--fg2); font: 500 11px/1 Inter, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
+.d1-hqe-cue::after { content: ""; width: 9px; height: 9px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
+.d1-hqe-bottom { display: none; }
+/* Next step */
+.d1-hqe-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 28px; align-items: center; width: min(640px, 100%); padding: 20px 24px; border: 1px solid rgba(82, 193, 230, 0.45); border-radius: 14px; background: rgba(10, 32, 46, 0.86); text-align: left; box-shadow: 0 0 26px rgba(82, 193, 230, 0.12); }
+.d1-hqe-next > span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--a); }
+.d1-hqe-next h3 { grid-column: 1; margin: 2px 0 0; font: 500 22px/1.25 Orbitron, system-ui, sans-serif; color: #f2fbff; }
+.d1-hqe-next p { grid-column: 1; margin: 0; color: var(--fg2); }
+.d1-hqe-next .d1-hqe-go { grid-column: 2; grid-row: 1 / span 3; min-width: 150px; }
+.d1-hqe-ticks { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--fg2); }
+.d1-hqe-ticks i { width: 28px; height: 3px; border-radius: 2px; background: rgba(159, 179, 200, 0.3); }
+.d1-hqe-ticks i.on { background: var(--a); }
+.d1-hqe-live { display: inline-flex; align-items: center; gap: 7px; color: var(--ok); font-size: 12.5px; }
+.d1-hqe-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+/* Tiles */
+.d1-hqe-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: 100%; }
+.d1-hqe-tile { display: flex; flex-direction: column; gap: 6px; min-height: 150px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(10, 28, 40, 0.8); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d1-hqe-tile:hover { border-color: var(--a); }
+.d1-hqe-tile.hot { border-color: var(--ok); box-shadow: 0 0 22px rgba(95, 214, 152, 0.14); }
+.d1-hqe-tile > span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg3); }
+.d1-hqe-tile b { font: 500 19px/1.25 Orbitron, system-ui, sans-serif; color: #f2fbff; }
+.d1-hqe-tile small { font-size: 13px; color: var(--fg2); }
+.d1-hqe-tile em { margin-top: auto; font-style: normal; color: var(--a); }
+.d1-hqe-tile .warn { color: var(--warn); }
+/* Ship stage */
+.d1-hqe-shipwrap { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.d1-hqe-ship { width: min(560px, 100%); height: 210px; fill: none; stroke: var(--a); stroke-width: 1.2; filter: drop-shadow(0 0 12px rgba(82, 193, 230, 0.5)); }
+.d1-hqe-ship.none { stroke: var(--fg3); stroke-dasharray: 5 6; filter: none; }
+.d1-hqe-shipname { margin: -6px 0 0; padding: 0 34px; font: 500 42px/1.1 Orbitron, system-ui, sans-serif; color: #f2fbff; }
+.d1-hqe-loadout { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 6px 0 0; padding: 0 30px; color: var(--fg2); }
+.d1-hqe-loadout b { font-weight: 500; color: var(--fg); }
+.d1-hqe-favs { padding: 0 26px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.d1-hqe-favs .d1-hqe-chip::before { content: "★"; margin-right: 6px; color: var(--gold); }
+@container device (max-width: 520px) {
+  .d1-hqe-mh { margin-top: 0; padding-inline: 14px; } .d1-hqe-nav, .d1-hqe-rail, .d1-hqe-cue { display: none; }
+  .d1-hqe-stage { width: calc(100% - 32px); padding: 20px 0 84px; }
+  .d1-hqe-title, .d1-hqe-shipname { font-size: 30px; }
+  .d1-hqe-next { grid-template-columns: minmax(0, 1fr); } .d1-hqe-next .d1-hqe-go { grid-column: 1; grid-row: auto; margin-top: 8px; }
+  .d1-hqe-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .d1-hqe-tile { min-height: 124px; } .d1-hqe-tile b { font-size: 15px; }
+  .d1-hqe-ship { height: 120px; }
+  .d1-hqe-bottom { position: absolute; z-index: 2; inset: auto 0 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 10px 4px; border-top: 1px solid var(--line); background: rgba(6, 23, 36, 0.95); font-size: 11.5px; color: var(--fg2); }
+  .d1-hqe-bottom b { font-weight: 600; color: var(--a); }
+}
+</style>
+  <section data-design="heute" data-nav-label="Heute: Titel und Suche" data-design-active="true" data-design-motto="Landing wie sie heute ist" data-design-traits="Nur Titel und Suche, wenn nichts ansteht|Chips statt einer klaren nächsten Aktion|Kein Live-Stand aus dem Spiel" data-design-icon="home" data-design-color="#9fb3c8">
+    <section id="h0-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><p class="d1-hqe-promise">Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.</p>
+          <div class="d1-hqe-steps"><div class="d1-hqe-step"><i>1</i>RSI-Hangar holen</div><div class="d1-hqe-step"><i>2</i>SCC-App starten</div><div class="d1-hqe-step"><i>3</i>Ersten Einsatz planen</div></div>
+          <div class="d1-hqe-acts"><button class="d1-hqe-go" type="button" data-screen-link="h0-quiet">Los geht's</button><button class="d1-hqe-skip" type="button" data-screen-link="h0-quiet">Überspringen</button><span class="d1-hqe-mins">≈ 4 Minuten</span></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h0-a1" data-anno-side="right" data-anno-target=".d1-hqe-steps" style="--anno-x:50%;--anno-y:58%">
+  <button class="anno-pin" type="button" data-anno-pin="h0-a1" aria-expanded="false" aria-controls="anno-bubble-h0-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-h0-a1" data-anno-bubble="h0-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h0-a1" aria-expanded="false" aria-controls="anno-bubble-h0-a1"><span class="anno-bubble-question">Im Mock von Runde 5 (Urteil „perfekt!“) hatten die Schritte Beschreibung und eine „Danach“-Zeile, gebaut sind drei Pillen. Reichen die Pillen, oder sollen die Karten zurück?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h0-a1" data-annotation="h0-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h0-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="h0-a2" data-anno-side="right" data-anno-target=".d1-hqe-go" style="--anno-x:50%;--anno-y:72%">
+  <button class="anno-pin" type="button" data-anno-pin="h0-a2" aria-expanded="false" aria-controls="anno-bubble-h0-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-h0-a2" data-anno-bubble="h0-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h0-a2" aria-expanded="false" aria-controls="anno-bubble-h0-a2"><span class="anno-bubble-question">„Los geht's“ führt immer zum Hangar, auch wenn Schritt 1 schon erledigt ist. Das halte ich für einen Fehler. Siehst du das auch so?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h0-a2" data-annotation="h0-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h0-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h0-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h0-a3" data-anno-side="right" data-anno-target=".d1-hqe-stage" style="--anno-x:50%;--anno-y:34%">
+  <button class="anno-pin" type="button" data-anno-pin="h0-a3" aria-expanded="false" aria-controls="anno-bubble-h0-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-h0-a3" data-anno-bubble="h0-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h0-a3" aria-expanded="false" aria-controls="anno-bubble-h0-a3"><span class="anno-bubble-question">Ohne Einsatz, Nachschub und Patch-Treffer bleiben nur Titel und Suche, auch wenn dein Hangar voll ist. Fühlt sich das für dich leer an oder angenehm ruhig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h0-a3" data-annotation="h0-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h0-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h0-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><ul class="d1-hqe-patch"><li>4.3.1 · <b>S3-Repeater −8 %</b></li><li><b>betrifft Bounty v3 ›</b></li></ul><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><nav class="d1-hqe-chips"><span>Jetzt wichtig</span><button class="d1-hqe-chip" type="button">Bounty v3 · Einsatz ×5</button><button class="d1-hqe-chip" type="button">Liegt bereit: 2 Teile</button></nav><p class="d1-hqe-line">1 Einsatz von Freunden geteilt ›</p></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h0-a4" data-anno-side="right" data-anno-target=".d1-hqe-chips" style="--anno-x:50%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="h0-a4" aria-expanded="false" aria-controls="anno-bubble-h0-a4" aria-label="{{anno.pin_label}}">4</button>
+  <div class="anno-bubble" id="anno-bubble-h0-a4" data-anno-bubble="h0-a4" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h0-a4" aria-expanded="false" aria-controls="anno-bubble-h0-a4"><span class="anno-bubble-question">Die Chips zeigen kommende Einsätze und was bereitliegt, höchstens vier. Sagen sie dir, was du als Nächstes tun sollst?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h0-a4" data-annotation="h0-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h0-a4"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-design="naechster" data-nav-label="Karte: nächster Schritt" hidden data-design-motto="Karte nennt den nächsten Schritt" data-design-traits="Eine große Karte mit einer Aktion|Inhalt wechselt mit Lage und Live-Stand|Suche bleibt im Hero, Chips rücken unter die Karte" data-design-icon="compass" data-design-color="#6fe0c8">
+    <section id="h1-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><p class="d1-hqe-promise">Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.</p>
+          <div class="d1-hqe-next"><span>Schritt 1 von 3</span><h3>RSI-Hangar holen</h3><p>Deine Schiffe und Pakete über die Browser-Erweiterung.</p><button class="d1-hqe-go" type="button" data-screen-link="h1-quiet">Los geht's</button></div>
+          <div class="d1-hqe-ticks"><i class="on"></i><i></i><i></i><span>≈ 4 Minuten</span></div><button class="d1-hqe-skip" type="button" data-screen-link="h1-quiet">Überspringen</button></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h1-a1" data-anno-side="right" data-anno-target=".d1-hqe-next" style="--anno-x:50%;--anno-y:62%">
+  <button class="anno-pin" type="button" data-anno-pin="h1-a1" aria-expanded="false" aria-controls="anno-bubble-h1-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-h1-a1" data-anno-bubble="h1-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h1-a1" aria-expanded="false" aria-controls="anno-bubble-h1-a1"><span class="anno-bubble-question">Nur der nächste offene Schritt ist sichtbar, die übrigen stehen als Fortschrittsstriche darunter. Oder willst du alle drei Schritte auf einen Blick sehen?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h1-a1" data-annotation="h1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h1-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h1-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-next"><span>Als Nächstes</span><h3>Was fehlt dir noch?</h3><p>Such, was dir fehlt, und leg es in den Nachschub.</p><button class="d1-hqe-go" type="button" data-screen-link="h1-busy">Gegenstand suchen</button></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h1-a2" data-anno-side="right" data-anno-target=".d1-hqe-next" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="h1-a2" aria-expanded="false" aria-controls="anno-bubble-h1-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-h1-a2" data-anno-bubble="h1-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h1-a2" aria-expanded="false" aria-controls="anno-bubble-h1-a2"><span class="anno-bubble-question">Wer nichts offen hat, bekommt trotzdem eine Karte. Ist das ein guter Anstoß, oder drängt es dich zu etwas, das du gerade nicht willst?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h1-a2" data-annotation="h1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h1-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h1-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><ul class="d1-hqe-patch"><li>4.3.1 · <b>S3-Repeater −8 %</b></li><li><b>betrifft Bounty v3 ›</b></li></ul><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-next"><span>Als Nächstes · Bounty v3 · Einsatz ×5</span><h3>S3-Repeater kaufen</h3><p>Area18, Center Mass · Schritt 1 von 5</p><button class="d1-hqe-go" type="button" data-screen-link="h1-live">Weg öffnen</button></div><nav class="d1-hqe-chips"><span>Jetzt wichtig</span><button class="d1-hqe-chip" type="button">Bounty v3 · Einsatz ×5</button><button class="d1-hqe-chip" type="button">Liegt bereit: 2 Teile</button></nav><p class="d1-hqe-line">1 Einsatz von Freunden geteilt ›</p></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h1-a3" data-anno-side="right" data-anno-target=".d1-hqe-next" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="h1-a3" aria-expanded="false" aria-controls="anno-bubble-h1-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-h1-a3" data-anno-bubble="h1-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h1-a3" aria-expanded="false" aria-controls="anno-bubble-h1-a3"><span class="anno-bubble-question">Wer gewinnt, wenn mehreres ansteht? Mein Vorschlag: Spiel läuft → Einsatz mit nächstem Schritt → Nachschub bereit → Patch-Treffer. Passt die Rangfolge?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h1-a3" data-annotation="h1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h1-a3"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="h1-a4" data-anno-side="right" data-anno-target=".d1-hqe-chips" style="--anno-x:50%;--anno-y:68%">
+  <button class="anno-pin" type="button" data-anno-pin="h1-a4" aria-expanded="false" aria-controls="anno-bubble-h1-a4" aria-label="{{anno.pin_label}}">4</button>
+  <div class="anno-bubble" id="anno-bubble-h1-a4" data-anno-bubble="h1-a4" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h1-a4" aria-expanded="false" aria-controls="anno-bubble-h1-a4"><span class="anno-bubble-question">Die Chips bleiben als zweite Reihe unter der Karte. Behalten, oder zeigt die Karte schon genug?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h1-a4" data-annotation="h1-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h1-a4"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h1-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-next"><span class="d1-hqe-live">Live · Stanton › New Babbage</span><h3>Hier gibt es 2 Dinge für dich</h3><p>Nächster Schritt: S3-Repeater kaufen, Cutlass Black.</p><button class="d1-hqe-go" type="button">Zu Jetzt</button></div><nav class="d1-hqe-chips"><span>Jetzt wichtig</span><button class="d1-hqe-chip" type="button">Bounty v3 · Einsatz ×5</button><button class="d1-hqe-chip" type="button">Liegt bereit: 2 Teile</button></nav></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h1-a5" data-anno-side="right" data-anno-target=".d1-hqe-next" style="--anno-x:50%;--anno-y:46%">
+  <button class="anno-pin" type="button" data-anno-pin="h1-a5" aria-expanded="false" aria-controls="anno-bubble-h1-a5" aria-label="{{anno.pin_label}}">5</button>
+  <div class="anno-bubble" id="anno-bubble-h1-a5" data-anno-bubble="h1-a5" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h1-a5" aria-expanded="false" aria-controls="anno-bubble-h1-a5"><span class="anno-bubble-question">Die Karte wiederholt den Anfang von Jetzt. Reicht dir dieser Kurzstand auf Start, wenn das Spiel läuft?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h1-a5" data-annotation="h1-a5" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h1-a5"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-design="lage" data-nav-label="Kacheln: Stand je Seite" hidden data-design-motto="Kacheln zeigen jede Folgeseite" data-design-traits="Vier Kacheln, eine je Folgeseite|Zeigt immer etwas, auch ohne Einsatz|Keine einzelne Hauptaktion" data-design-icon="grid" data-design-color="#b49bff">
+    <section id="h2-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><p class="d1-hqe-promise">Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort. <span class="d1-hqe-mins">≈ 4 Minuten</span></p>
+          <div class="d1-hqe-tiles"><button class="d1-hqe-tile" type="button" data-screen-link="h2-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Ersten Einsatz planen ›</em></button><button class="d1-hqe-tile" type="button"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><em>SCC-App starten ›</em></button><button class="d1-hqe-tile" type="button" data-screen-link="h2-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><button class="d1-hqe-tile" type="button"><span>Statistik</span><b>Noch keine Daten</b><small>Füllt sich, sobald du spielst.</small></button></div>
+          <button class="d1-hqe-skip" type="button" data-screen-link="h2-quiet">Überspringen</button></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h2-a1" data-anno-side="bottom" data-anno-target=".d1-hqe-tiles" style="--anno-x:50%;--anno-y:58%">
+  <button class="anno-pin" type="button" data-anno-pin="h2-a1" aria-expanded="false" aria-controls="anno-bubble-h2-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-h2-a1" data-anno-bubble="h2-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h2-a1" aria-expanded="false" aria-controls="anno-bubble-h2-a1"><span class="anno-bubble-question">Die drei Startschritte stecken hier in den Kacheln, ohne Nummern. Findest du so den Anfang, oder fehlt dir die feste Abfolge?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h2-a1" data-annotation="h2-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Ne, das ist perfekt!</textarea><div class="attach-slot" data-attach-slot="anno-h2-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h2-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-tiles"><button class="d1-hqe-tile" type="button" data-screen-link="h2-busy"><span>Planen</span><b>Nichts offen</b><small>Kein Nachschub, kein Einsatz.</small><em>Gegenstand suchen ›</em></button><button class="d1-hqe-tile" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d1-hqe-tile" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d1-hqe-tile" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h2-a2" data-anno-side="bottom" data-anno-target=".d1-hqe-tile:first-child" style="--anno-x:30%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="h2-a2" aria-expanded="false" aria-controls="anno-bubble-h2-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-h2-a2" data-anno-bubble="h2-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h2-a2" aria-expanded="false" aria-controls="anno-bubble-h2-a2"><span class="anno-bubble-question">Welche eine Zahl oder Aussage soll jede Kachel tragen? Vorschlag steht in den Kacheln, korrigier, was dir nichts sagt.</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h2-a2" data-annotation="h2-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Nichts offen sollte besser formuliert werden!</textarea><div class="attach-slot" data-attach-slot="anno-h2-a2"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="h2-a3" data-anno-side="bottom" data-anno-target=".d1-hqe-tile:last-child" style="--anno-x:84%;--anno-y:62%">
+  <button class="anno-pin" type="button" data-anno-pin="h2-a3" aria-expanded="false" aria-controls="anno-bubble-h2-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-h2-a3" data-anno-bubble="h2-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h2-a3" aria-expanded="false" aria-controls="anno-bubble-h2-a3"><span class="anno-bubble-question">Braucht Statistik eine Kachel auf Start, oder reichen drei Kacheln und Statistik bleibt nur eine Folgeseite?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h2-a3" data-annotation="h2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h2-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h2-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><ul class="d1-hqe-patch"><li>4.3.1 · <b>S3-Repeater −8 %</b></li><li><b>betrifft Bounty v3 ›</b></li></ul><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-tiles"><button class="d1-hqe-tile" type="button" data-screen-link="h2-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button><button class="d1-hqe-tile" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d1-hqe-tile" type="button"><span>Bestand</span><b>23 Schiffe</b><small><span class="warn">Lagerstand 9 Tage alt</span></small></button><button class="d1-hqe-tile" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div><p class="d1-hqe-line">1 Einsatz von Freunden geteilt ›</p></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h2-a4" data-anno-side="bottom" data-anno-target=".d1-hqe-tiles" style="--anno-x:50%;--anno-y:58%">
+  <button class="anno-pin" type="button" data-anno-pin="h2-a4" aria-expanded="false" aria-controls="anno-bubble-h2-a4" aria-label="{{anno.pin_label}}">4</button>
+  <div class="anno-bubble" id="anno-bubble-h2-a4" data-anno-bubble="h2-a4" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h2-a4" aria-expanded="false" aria-controls="anno-bubble-h2-a4"><span class="anno-bubble-question">Die Chips gehen in den Kacheln auf, es gibt keine Reihe „Jetzt wichtig“ mehr. Einverstanden?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h2-a4" data-annotation="h2-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h2-a4"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h2-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><p class="d1-hqe-kick">Dein HQ</p><h2 class="d1-hqe-title">Hauptquartier</h2><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-tiles"><button class="d1-hqe-tile hot" type="button"><span>Jetzt</span><b>New Babbage</b><small><span class="d1-hqe-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></button><button class="d1-hqe-tile" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small></button><button class="d1-hqe-tile" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d1-hqe-tile" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h2-a5" data-anno-side="bottom" data-anno-target=".d1-hqe-tile.hot" style="--anno-x:16%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="h2-a5" aria-expanded="false" aria-controls="anno-bubble-h2-a5" aria-label="{{anno.pin_label}}">5</button>
+  <div class="anno-bubble" id="anno-bubble-h2-a5" data-anno-bubble="h2-a5" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h2-a5" aria-expanded="false" aria-controls="anno-bubble-h2-a5"><span class="anno-bubble-question">Bei laufendem Spiel rückt die Jetzt-Kachel nach vorn und leuchtet. Hilft das, oder soll jede Kachel ihren festen Platz behalten?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h2-a5" data-annotation="h2-a5" data-attachable placeholder="{{anno.answer_placeholder}}">Sollte eher festen Platz halten, aber das stellt mir die frage ob man wirklcih vier gleichwertigew Kacheln macht oder sie anders verschachelt, da gern nochmal varianten aufzeigen </textarea><div class="attach-slot" data-attach-slot="anno-h2-a5"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-design="schiff" data-nav-label="Bühne: dein Schiff" hidden data-design-motto="Schiff steht auf der Bühne" data-design-traits="Aktives Schiff groß auf der Bühne|Schiffsname ersetzt den Titel|Lebt von den Hangar-Daten" data-design-icon="rocket" data-design-color="#f0c27b">
+    <section id="h3-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><div class="d1-hqe-shipwrap"><p class="d1-hqe-kick">Dein HQ</p><svg class="d1-hqe-ship none" viewBox="0 0 560 210" aria-hidden="true"><path d="M280 14 L306 74 L392 104 L520 132 L524 148 L396 146 L330 160 L312 196 L280 180 L248 196 L230 160 L164 146 L36 148 L40 132 L168 104 L254 74 Z"/><path d="M280 14 V180 M254 74 L306 74 M168 104 L230 160 M392 104 L330 160"/></svg><h2 class="d1-hqe-title">Hauptquartier</h2></div><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div>
+          <div class="d1-hqe-steps"><div class="d1-hqe-step"><i>1</i>RSI-Hangar holen</div><div class="d1-hqe-step"><i>2</i>SCC-App starten</div><div class="d1-hqe-step"><i>3</i>Ersten Einsatz planen</div></div>
+          <div class="d1-hqe-acts"><button class="d1-hqe-go" type="button" data-screen-link="h3-quiet">Los geht's</button><button class="d1-hqe-skip" type="button" data-screen-link="h3-quiet">Überspringen</button></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h3-a1" data-anno-side="right" data-anno-target=".d1-hqe-ship" style="--anno-x:50%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="h3-a1" aria-expanded="false" aria-controls="anno-bubble-h3-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-h3-a1" data-anno-bubble="h3-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h3-a1" aria-expanded="false" aria-controls="anno-bubble-h3-a1"><span class="anno-bubble-question">Die leere Schiffssilhouette wartet auf den Hangar-Import. Motiviert dich das, oder wirkt es wie ein Ladefehler?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h3-a1" data-annotation="h3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h3-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h3-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><div class="d1-hqe-shipwrap"><p class="d1-hqe-kick">Dein HQ · Aktives Schiff</p><svg class="d1-hqe-ship" viewBox="0 0 560 210" aria-hidden="true"><path d="M280 14 L306 74 L392 104 L520 132 L524 148 L396 146 L330 160 L312 196 L280 180 L248 196 L230 160 L164 146 L36 148 L40 132 L168 104 L254 74 Z"/><path d="M280 14 V180 M254 74 L306 74 M168 104 L230 160 M392 104 L330 160"/></svg><h2 class="d1-hqe-shipname">Cutlass Black</h2><p class="d1-hqe-loadout"><span>Variante <b>Bounty v3</b></span><span>FPS-Set <b>Sturm</b></span></p></div><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><div class="d1-hqe-favs"><button class="d1-hqe-chip" type="button">Cutlass Black</button><button class="d1-hqe-chip" type="button">Carrack</button><button class="d1-hqe-chip" type="button">Prospector</button></div></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h3-a2" data-anno-side="right" data-anno-target=".d1-hqe-shipname" style="--anno-x:50%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="h3-a2" aria-expanded="false" aria-controls="anno-bubble-h3-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-h3-a2" data-anno-bubble="h3-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h3-a2" aria-expanded="false" aria-controls="anno-bubble-h3-a2"><span class="anno-bubble-question">Welches Schiff steht hier? Vorschlag: im Spiel das aktuelle, sonst das zuletzt geflogene, sonst der erste Favorit. Passt das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h3-a2" data-annotation="h3-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h3-a2"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="h3-a3" data-anno-side="right" data-anno-target=".d1-hqe-favs" style="--anno-x:50%;--anno-y:74%">
+  <button class="anno-pin" type="button" data-anno-pin="h3-a3" aria-expanded="false" aria-controls="anno-bubble-h3-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-h3-a3" data-anno-bubble="h3-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h3-a3" aria-expanded="false" aria-controls="anno-bubble-h3-a3"><span class="anno-bubble-question">Die drei Favoriten-Schiffe wechseln das Schiff auf der Bühne. Willst du das auf Start, oder gehört das in den Bestand?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h3-a3" data-annotation="h3-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h3-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h3-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><div class="d1-hqe-shipwrap"><p class="d1-hqe-kick">Dein HQ · Aktives Schiff</p><svg class="d1-hqe-ship" viewBox="0 0 560 210" aria-hidden="true"><path d="M280 14 L306 74 L392 104 L520 132 L524 148 L396 146 L330 160 L312 196 L280 180 L248 196 L230 160 L164 146 L36 148 L40 132 L168 104 L254 74 Z"/><path d="M280 14 V180 M254 74 L306 74 M168 104 L230 160 M392 104 L330 160"/></svg><h2 class="d1-hqe-shipname">Cutlass Black</h2><p class="d1-hqe-loadout"><span>Variante <b>Bounty v3</b></span><span>FPS-Set <b>Sturm</b></span></p></div><ul class="d1-hqe-patch"><li>4.3.1 · <b>S3-Repeater −8 %</b></li><li><b>betrifft Bounty v3 ›</b></li></ul><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><nav class="d1-hqe-chips"><span>Jetzt wichtig</span><button class="d1-hqe-chip" type="button" data-screen-link="h3-live">Bounty v3 · Einsatz ×5</button><button class="d1-hqe-chip" type="button">Liegt bereit: 2 Teile</button></nav><p class="d1-hqe-line">1 Einsatz von Freunden geteilt ›</p></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h3-a4" data-anno-side="right" data-anno-target=".d1-hqe-patch" style="--anno-x:50%;--anno-y:48%">
+  <button class="anno-pin" type="button" data-anno-pin="h3-a4" aria-expanded="false" aria-controls="anno-bubble-h3-a4" aria-label="{{anno.pin_label}}">4</button>
+  <div class="anno-bubble" id="anno-bubble-h3-a4" data-anno-bubble="h3-a4" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h3-a4" aria-expanded="false" aria-controls="anno-bubble-h3-a4"><span class="anno-bubble-question">Für den Schiffsnamen weicht der Titel „Hauptquartier“. Bleibt für dich klar, dass du im HQ bist?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h3-a4" data-annotation="h3-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h3-a4"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h3-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d1-hqe-app">
+        <header class="d1-hqe-mh"><div class="d1-hqe-brand">Star Citizen Companion<small>Alpha</small></div><nav class="d1-hqe-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><div class="d1-hqe-acc"><i></i><i></i></div></header>
+        <div class="d1-hqe-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d1-hqe-stage"><div class="d1-hqe-shipwrap"><p class="d1-hqe-kick">Dein HQ · Aktives Schiff</p><svg class="d1-hqe-ship" viewBox="0 0 560 210" aria-hidden="true"><path d="M280 14 L306 74 L392 104 L520 132 L524 148 L396 146 L330 160 L312 196 L280 180 L248 196 L230 160 L164 146 L36 148 L40 132 L168 104 L254 74 Z"/><path d="M280 14 V180 M254 74 L306 74 M168 104 L230 160 M392 104 L330 160"/></svg><h2 class="d1-hqe-shipname">Cutlass Black</h2><p class="d1-hqe-loadout"><span>Variante <b>Bounty v3</b></span><span>FPS-Set <b>Sturm</b></span><span class="d1-hqe-live">Live · Stanton › New Babbage</span></p></div><div class="d1-hqe-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiff, Item, Mission oder Ort suchen …</span></div><nav class="d1-hqe-chips"><span>Jetzt wichtig</span><button class="d1-hqe-chip" type="button">Bounty v3 · Einsatz ×5</button><button class="d1-hqe-chip" type="button">Liegt bereit: 2 Teile</button></nav></div>
+        <div class="d1-hqe-cue">Planen</div>
+        <div class="d1-hqe-bottom"><b>Start</b><span>Planen</span><span>Jetzt</span><span>Bestand</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h3-a5" data-anno-side="right" data-anno-target=".d1-hqe-loadout" style="--anno-x:50%;--anno-y:46%">
+  <button class="anno-pin" type="button" data-anno-pin="h3-a5" aria-expanded="false" aria-controls="anno-bubble-h3-a5" aria-label="{{anno.pin_label}}">5</button>
+  <div class="anno-bubble" id="anno-bubble-h3-a5" data-anno-bubble="h3-a5" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h3-a5" aria-expanded="false" aria-controls="anno-bubble-h3-a5"><span class="anno-bubble-question">Der Live-Stand steht als kleine Zeile am Schiff. Reicht das, oder muss bei laufendem Spiel mehr auf die Bühne?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h3-a5" data-annotation="h3-a5" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h3-a5"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-view="hq-reihenfolge" data-view-kind="analysis" data-analysis="full" data-nav-label="Reihenfolge" hidden>
+    <section id="d1-hqe-brief" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Die Startschritte laufen gegen die Seitenfolge: Hangar auf Seite 4, App auf Seite 3, Einsatz auf Seite 2.</p>
+      <p data-briefing-why>Neue Nutzer lernen die Seiten rückwärts, und ohne SCC-App trifft man auf dem Weg nach unten früh auf eine Bitte statt auf Inhalt.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"4 → 3 → 2","unit":"","label":"Seitenposition der drei Startschritte"}'>4 → 3 → 2</div>
+      <a data-briefing-topic="d1-hqe-t1" data-share="100">Seiten und Startschritte</a>
+      <p data-briefing-duration>≈ 3 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4 → 3 → 2","unit":""}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Start · Planen · Jetzt · Bestand · Statistik"}'></div><p>Das ist die Seitenfolge von heute, festgelegt am 30.10. (D1). Die Fragen gelten für jede Landing-Variante.</p></div>
+      </div>
+    </section>
+    <section id="d1-hqe-t1" data-topic data-nav-label="Seiten und Startschritte">
+      <div data-alevel="2" data-title="Seiten und Startschritte">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Seitenfolge und Startschritte passen heute nicht zusammen."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Vier Fragen: Seitenfolge, laufendes Spiel, Startschritte, Hauptknopf."}'></div><p>Sie bauen nicht auf einer Landing-Variante auf. Du kannst sie beantworten, ohne dich dort festzulegen.</p></div>
+      </div>
+    <section id="q-order" data-nav-label="Seitenfolge" data-decision="q-order" data-decision-mode="chain" data-label="Reihenfolge der HQ-Seiten" data-rec="prep" data-rec-why="Erst was ohne SCC-App funktioniert, dann was sie braucht: vorbereiten, spielen, auswerten." data-applies-to="die Scroll-Reihenfolge von /hq, Rail und Bottom-Bar" data-finding="f-q-order">
+      <p data-applies>Gilt für: die Scroll-Reihenfolge von /hq, Rail und Bottom-Bar</p>
+      <p data-situation>Heute: Start · Planen · Jetzt · Bestand · Statistik. Jetzt steht mittendrin und bittet ohne SCC-App nur um den Start der App, Bestand kommt erst danach.</p>
+      <h3 data-question>In welcher Reihenfolge stehen die Seiten unter Start?</h3>
+      <p data-stakes>Wohin der Pfeil am Seitenende führt und was neue Nutzer zuerst sehen.</p>
+      <div data-options>
+        <label data-opt="prep" data-recommended><input type="radio" name="dm-q-order" value="prep"><span data-opt-label>Vorbereiten, spielen, auswerten</span><ol data-opt-steps><li>Start</li><li>Planen</li><li data-step-new>Bestand</li><li data-step-new>Jetzt</li><li>Statistik</li></ol><span data-opt-consequence>Die zwei Seiten, die Live-Daten brauchen, stehen zusammen am Ende.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-q-order" value="keep"><span data-opt-label>So lassen wie vereinbart</span><ol data-opt-steps><li>Start</li><li>Planen</li><li>Jetzt</li><li>Bestand</li><li>Statistik</li></ol><span data-opt-consequence>Kein Umbau. Bestand bleibt hinter der App-Bitte von Jetzt.</span></label>
+        <label data-opt="stock"><input type="radio" name="dm-q-order" value="stock"><span data-opt-label>Erst dein Bestand</span><ol data-opt-steps><li>Start</li><li data-step-new>Bestand</li><li>Planen</li><li>Jetzt</li><li>Statistik</li></ol><span data-opt-consequence>Passt zum ersten Schritt, drückt aber Planen für jeden Rückkehrer nach hinten.</span></label>
+        <label data-opt="live"><input type="radio" name="dm-q-order" value="live"><span data-opt-label>Erst das Spiel</span><ol data-opt-steps><li>Start</li><li data-step-new>Jetzt</li><li>Planen</li><li>Bestand</li><li>Statistik</li></ol><span data-opt-consequence>Im Spiel schnell da, ohne SCC-App ist die zweite Seite eine Bitte.</span></label>
+      </div>
+      <textarea data-comment="q-order-note" placeholder="Notiz (optional)">Denk nochmal drüber nach, ich weiß eingie spieler würden gern erstmal immer bestand haben, dann planen. Andere jetzt vorne stehend, dann bestand... Ich bin unsicher ob wir nicht nochmal rethinken müssen ..</textarea>
+      <input type="hidden" name="dm-q-order-none" value="1"><input type="hidden" name="dm-q-order-hes" value="{&quot;ms&quot;:146535,&quot;revisits&quot;:1,&quot;median&quot;:38522}"><input type="hidden" name="dm-q-order-touched" value="1"><input type="hidden" name="dm-q-order-issue" value=""><input type="hidden" name="dm-q-order-epic" value="">
+      <div data-alevel="3" data-title="Seitenfolge">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Bestand vor Jetzt, Planen bleibt vorn."}'></div></div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Planen","value":0},{"label":"Bestand (Hangar)","value":0},{"label":"Jetzt","value":1},{"label":"Statistik","value":1}],"unit":"","text":"1 = die Seite braucht Live-Daten der SCC-App, um Inhalt zu zeigen."}'></div><p>Das widerspricht D1 aus dem Concept vom 30.10. nur in einem Tausch. Deep-Links wie /hq#jetzt bleiben gültig. Der Bau ist klein: HQ_PAGES, die Sektionen und die Tests.</p></div>
+      </div>
+    </section>
+    <section id="q-live" data-nav-label="Laufendes Spiel" data-decision="q-live" data-decision-mode="single" data-label="Einstieg bei laufendem Spiel" data-rec="fixed" data-rec-why="Eine feste Reihenfolge bleibt im Muskelgedächtnis, und der Live-Stand kommt trotzdem auf Start." data-applies-to="den Einstieg über /hq, solange das Spiel läuft" data-finding="f-q-live">
+      <p data-applies>Gilt für: den Einstieg über /hq, solange das Spiel läuft</p>
+      <p data-situation>Start zeigt heute nichts aus dem Spiel, auch wenn die SCC-App live meldet. Der Live-Stand steht nur auf Jetzt.</p>
+      <h3 data-question>Was passiert beim Öffnen von /hq, wenn das Spiel läuft?</h3>
+      <p data-stakes>Ob die Seiten immer am selben Platz stehen.</p>
+      <div data-options>
+        <label data-opt="fixed" data-recommended><input type="radio" name="dm-q-live" value="fixed" checked><span data-opt-label>Start bleibt, zeigt den Live-Stand</span><span data-opt-consequence>Reihenfolge bleibt fest. Ein Klick führt zu Jetzt.</span></label>
+        <label data-opt="land"><input type="radio" name="dm-q-live" value="land"><span data-opt-label>Direkt auf Jetzt landen</span><span data-opt-consequence>Spart einen Klick, Start und Suche werden übersprungen.</span></label>
+        <label data-opt="move"><input type="radio" name="dm-q-live" value="move"><span data-opt-label>Jetzt rückt an zweite Stelle</span><span data-opt-consequence>Passt zur Lage, aber Rail und Pfeil ändern sich je nach Spielstand.</span></label>
+      </div>
+      <textarea data-comment="q-live-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q-live-none" value=""><input type="hidden" name="dm-q-live-hes" value="{&quot;ms&quot;:45960,&quot;revisits&quot;:0,&quot;median&quot;:38522}"><input type="hidden" name="dm-q-live-touched" value="1"><input type="hidden" name="dm-q-live-issue" value=""><input type="hidden" name="dm-q-live-epic" value="">
+      <div data-alevel="3" data-title="Laufendes Spiel">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Reihenfolge fest, Live-Stand auf Start."}'></div></div>
+        <div data-slot="long"><p>Nach deiner Seitenfolge ist das die zweite Frage zur Ordnung: ob sie fest bleibt. Der Live-Stand kommt aus derselben Quelle wie die Seite Jetzt, dafür ist kein neuer Datenweg nötig.</p></div>
+      </div>
+    </section>
+    <section id="q-steps" data-nav-label="Startschritte" data-decision="q-steps" data-decision-mode="chain" data-label="Reihenfolge der Startschritte" data-rec="value" data-rec-why="Planen funktioniert ohne App; die 485-MB-Installation kommt so erst, wenn der Nutzen schon sichtbar ist." data-applies-to="die drei Schritte beim ersten Besuch" data-finding="f-q-steps">
+      <p data-applies>Gilt für: die drei Schritte beim ersten Besuch</p>
+      <p data-situation>Die Schritte führen heute zu Bestand (Hangar), Jetzt und Planen, also Seite 4, 3, 2: gegen die Scrollrichtung. Die SCC-App (Installer rund 485 MB) kommt als zweiter Schritt.</p>
+      <h3 data-question>In welcher Folge führen wir neue Nutzer durch den Start?</h3>
+      <p data-stakes>Wann die große Installation kommt und was davor schon funktioniert.</p>
+      <div data-options>
+        <label data-opt="value" data-recommended><input type="radio" name="dm-q-steps" value="value" checked><span data-opt-label>Nutzen vor Installation</span><ol data-opt-steps><li>RSI-Hangar holen</li><li data-step-new>Ersten Einsatz planen</li><li data-step-new>SCC-App starten</li></ol><span data-opt-consequence>Erst ein Ergebnis, dann die Installation. Live-Daten fehlen bis zum Schluss.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-q-steps" value="keep"><span data-opt-label>So lassen wie vereinbart</span><ol data-opt-steps><li>RSI-Hangar holen</li><li>SCC-App starten</li><li>Ersten Einsatz planen</li></ol><span data-opt-consequence>Kein Umbau. Wer nicht installieren will, steckt früher fest.</span></label>
+      </div>
+      <textarea data-comment="q-steps-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q-steps-none" value=""><input type="hidden" name="dm-q-steps-hes" value="{&quot;ms&quot;:20962,&quot;revisits&quot;:1,&quot;median&quot;:38522}"><input type="hidden" name="dm-q-steps-touched" value="1"><input type="hidden" name="dm-q-steps-issue" value=""><input type="hidden" name="dm-q-steps-epic" value="">
+      <div data-alevel="3" data-title="Startschritte">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: App als letzter Schritt."}'></div></div>
+        <div data-slot="long"><p>D9 aus dem Concept vom 30.10. legt die heutige Folge fest. Jeder Schritt bleibt einzeln anklickbar, die Folge bestimmt nur Nummer und Vorschlag.</p></div>
+      </div>
+    </section>
+    <section id="q-go" data-nav-label="Los geht's" data-decision="q-go" data-decision-mode="yesnoalt" data-label="Ziel von Los geht's" data-rec="yes" data-rec-why="Sonst schickt der Knopf nach erledigtem Hangar-Schritt erneut zum Hangar." data-applies-to="den Hauptknopf beim ersten Besuch" data-finding="f-q-go">
+      <p data-applies>Gilt für: den Hauptknopf beim ersten Besuch</p>
+      <p data-situation>„Los geht's“ führt fest zum Hangar. Der Block bleibt, bis alle drei Schritte erledigt sind, also auch dann, wenn der Hangar längst da ist.</p>
+      <h3 data-question>Soll „Los geht's“ zum nächsten offenen Schritt führen?</h3>
+      <p data-stakes>Ob der Knopf nach dem ersten Schritt noch weiterhilft.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-go" value="yes" checked><span data-opt-label>Ja, zum nächsten offenen Schritt</span><span data-opt-consequence>Der Knopf bleibt bis zum letzten Schritt nützlich.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-go" value="no"><span data-opt-label>Nein, bleibt beim Hangar</span><span data-opt-consequence>Keine Änderung. Nach Schritt 1 führt er zurück zum Erledigten.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-go" value="alt"><span data-opt-label>Anders …</span><span data-opt-consequence>Schreib unten, wohin er führen soll.</span></label>
+      </div>
+      <input type="text" name="dm-q-go-alt" value=""><textarea data-comment="q-go-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-q-go-none" value=""><input type="hidden" name="dm-q-go-hes" value="{&quot;ms&quot;:31084,&quot;revisits&quot;:0,&quot;median&quot;:38522}"><input type="hidden" name="dm-q-go-touched" value="1"><input type="hidden" name="dm-q-go-issue" value=""><input type="hidden" name="dm-q-go-epic" value="">
+      <div data-alevel="3" data-title="Los geht's">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: nächster offener Schritt."}'></div></div>
+        <div data-slot="long"><p>So steht es in hq-first-visit.component.ts: goLink ist fest auf den Hangar gesetzt, die Schritte selbst kennen ihren Stand bereits. Die Änderung ist klein und hängt nicht an einer Landing-Variante.</p></div>
+      </div>
+    </section>
+    </section>
+  </section>
+</section>

@@ -76,6 +76,8 @@ describe('BriefingHubComponent — news accordion', () => {
     const css = getComputedStyle((fixture.nativeElement as HTMLElement).querySelector('.acc-i.open .acc-a')!);
     expect(css.overflow).toBe('hidden');
     expect(css.borderTopLeftRadius).toBe('6px');
+    const img = getComputedStyle((fixture.nativeElement as HTMLElement).querySelector('.acc-i.open .acc-img')!);
+    expect(parseFloat(img.top)).toBeGreaterThan(0);
   });
 
   it('animates for exactly as long as the hover intent waits', () => {

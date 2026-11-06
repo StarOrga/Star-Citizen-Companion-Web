@@ -76,6 +76,7 @@
   --o: 0;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --acc-t: 1.5s; // ACC_TRANSITION_MS (briefing-accordion.ts)
+  --g: calc((var(--row) - 3.4 * var(--u)) / 2); // the thumbnail's gap to the divider lines, kept by the open image
   position: relative;
   height: calc(var(--row) + var(--o) * (var(--feat) - var(--row)));
   border-top: 1px solid color-mix(in srgb, var(--sc-accent) 12%, transparent);
@@ -89,7 +90,8 @@
 .acc-a::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: var(--g) 0;
+  border-radius: 4px;
   background: linear-gradient(transparent 50%, rgba(4, 11, 19, 0.88));
   opacity: var(--o);
   transition: opacity var(--acc-t);
@@ -98,9 +100,9 @@
 .acc-img {
   position: absolute;
   left: 0;
-  top: calc((var(--row) - 3.4 * var(--u)) / 2 * (1 - var(--o)));
+  top: var(--g);
   width: calc(5.6 * var(--u) + var(--o) * (100% - 5.6 * var(--u)));
-  height: calc(3.4 * var(--u) + var(--o) * (100% - 3.4 * var(--u)));
+  height: calc(3.4 * var(--u) + var(--o) * (100% - 3.4 * var(--u) - 2 * var(--g)));
   border-radius: 4px;
   transition: top var(--acc-t) var(--ease), width var(--acc-t) var(--ease), height var(--acc-t) var(--ease), transform 0.3s ease;
 }
@@ -111,7 +113,7 @@
   z-index: 1;
   left: calc(6.4 * var(--u) - var(--o) * 5.2 * var(--u));
   right: max(8px, calc(0.8 * var(--u)));
-  bottom: calc(50% - 1.3em + var(--o) * (1.3em - 50% + max(10px, 1.1 * var(--u))));
+  bottom: calc(50% - 1.3em + var(--o) * (1.3em - 50% + max(10px, 1.1 * var(--u)) + var(--g)));
   font-size: max(13px, calc(0.78 * var(--u) + var(--o) * 0.22 * var(--u)));
   font-weight: 600;
   line-height: 1.25;

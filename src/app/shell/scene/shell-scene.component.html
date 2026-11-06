@@ -4,7 +4,7 @@
        [style.--scene-move]="moveMs() ? moveMs() + 'ms' : null" [style.--pose-sky]="pose().sky"
        [style.--pose-sky-o]="pose().skyOpacity" [style.--pose-detail]="pose().detail" [style.--pose-ground]="pose().ground"
        [style.--pose-plane]="pose().plane" [style.--pose-dim]="pose().dim">
-    <div class="sky"><div class="neb"></div><div class="stars"></div><div class="stars near"></div></div>
+    <div class="sky" #sky><div class="neb"></div><div class="stars"></div><div class="stars near"></div></div>
     <!-- Verse subpage: the page's planet glows faintly where its emblem stands. -->
     <div class="halo"></div>
     <!-- Codex: the holo glow the camera turns towards. -->

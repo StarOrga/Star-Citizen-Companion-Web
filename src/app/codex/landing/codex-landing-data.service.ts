@@ -342,6 +342,7 @@ export class CodexLandingDataService {
 
   private newestCache = new Map<string, Promise<LandingItem | null>>();
   private poolCache = new Map<string, Promise<CategoryPool>>();
+  private byClassCache = new Map<string, Promise<LandingItem | null>>();
 
   // ── newest item per category ───────────────────────────────────────────────
 
@@ -429,10 +430,36 @@ export class CodexLandingDataService {
   }
 
   private async loadNewest(category: LandingCategory): Promise<LandingItem | null> {
-    const kind = KIND_OF[category];
-    const { rows, fresh, previous } = await this.pool(category);
-    const className = pickNewest(rows.map((r) => r.classNameSlug), previous);
+    const pool = await this.pool(category);
+    const className = pickNewest(pool.rows.map((r) => r.classNameSlug), pool.previous);
     if (!className) return null;
+    return this.buildItem(category, className, pool);
+  }
+
+  /**
+   * A chosen entry of the Codex list on the table (B2.1): the same item card
+   * as the newest one, by class name. Memoised per build + category + entry;
+   * null when the entry is not in the category's pool or has no detail row.
+   */
+  itemByClass(category: LandingCategory, className: string): Promise<LandingItem | null> {
+    const key = `${this.codex.build()?.id ?? ''}:${category}:${className}`;
+    let hit = this.byClassCache.get(key);
+    if (!hit) {
+      hit = this.pool(category)
+        .then((pool) => (pool.rows.some((r) => r.classNameSlug === className) ? this.buildItem(category, className, pool) : null))
+        .catch((err) => {
+          this.byClassCache.delete(key);
+          logWarn('codex-landing', 'entry on the table failed', { category, className, error: err });
+          return null;
+        });
+      this.byClassCache.set(key, hit);
+    }
+    return hit;
+  }
+
+  private async buildItem(category: LandingCategory, className: string, pool: CategoryPool): Promise<LandingItem | null> {
+    const kind = KIND_OF[category];
+    const { rows, fresh } = pool;
     const detail = await this.codex.getDetail(kind, className);
     if (!detail) return null;
     const lang = toLang(this.translate.getCurrentLang() || this.translate.getFallbackLang());

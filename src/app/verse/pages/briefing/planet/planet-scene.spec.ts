@@ -1,6 +1,6 @@
 import { fakeAsync, tick } from '@angular/core/testing';
-import { CONTEXT_LOST_GRACE_MS, PlanetDrawer, PlanetScene, PlanetStatus, PlanetView } from './planet-scene';
-import { project, sph } from './planet-world';
+import { CONTEXT_LOST_GRACE_MS, PlanetDrawer, PlanetScene, PlanetStatus, PlanetView, WAKE_RAMP_MS } from './planet-scene';
+import { DAY_MS, project, sph } from './planet-world';
 
 function drawer(): PlanetDrawer & { draw: jasmine.Spy; clear: jasmine.Spy } {
   return { draw: jasmine.createSpy('draw'), clear: jasmine.createSpy('clear'), dispose: jasmine.createSpy('dispose') } as never;
@@ -48,15 +48,80 @@ describe('Verse planet — scene', () => {
     expect(first.draw).toHaveBeenCalledTimes(3);
   });
 
-  it('forwards the device pixel ratio, capped at 2, and redraws after a resize', () => {
+  it('stays at CSS pixels on a dense screen, and redraws after a resize', () => {
     const s = scene();
     s.resize(300, 100, 3);
-    expect([gl.width, gl.height, trains.width, trains.height]).toEqual([600, 200, 600, 200]);
+    expect([gl.width, gl.height, trains.width, trains.height]).toEqual([300, 100, 300, 100]);
     s.draw(view, 1000);
     s.resize(300, 100, 1);
     s.draw(view, 1001);
     expect(first.draw).toHaveBeenCalledTimes(2);
     expect(first.draw.calls.mostRecent().args[1]).toBe(1);
+  });
+
+  describe('pause without focus', () => {
+    const TURN = (Math.PI * 2) / DAY_MS;
+    const clock = (ms: number) => (Date.now as jasmine.Spy).and.returnValue(ms);
+    /** The rotation the next draw uses (a new cy forces the pass past its 15 fps gate). */
+    let cy = 0;
+    const rotAt = (s: PlanetScene) => {
+      s.draw({ ...view, cy: 200 + ++cy }, 1000 + cy);
+      return first.draw.calls.mostRecent().args[0].rot as number;
+    };
+
+    it('stands while suspended, and does not jump on wake', () => {
+      const s = scene();
+      clock(60_000);
+      const before = rotAt(s);
+      expect(before).toBeCloseTo(60_000 * TURN, 6);
+      s.suspend();
+      clock(120_000);
+      expect(rotAt(s)).withContext('time passes, the turn stands').toBeCloseTo(before, 9);
+      s.wake(0);
+      expect(rotAt(s)).withContext('no jump on the way back').toBeCloseTo(before, 9);
+    });
+
+    it('comes up to speed softly, then runs at full speed', () => {
+      const s = scene();
+      clock(60_000);
+      const start = rotAt(s);
+      s.suspend();
+      clock(120_000);
+      s.wake(0);
+      clock(120_000 + WAKE_RAMP_MS / 2);
+      const halfway = rotAt(s) - start;
+      expect(halfway).toBeCloseTo((WAKE_RAMP_MS / 8) * 3 * TURN, 6);
+      expect(halfway).withContext('slower than full speed').toBeLessThan((WAKE_RAMP_MS / 2) * TURN);
+      clock(120_000 + WAKE_RAMP_MS);
+      const ramped = rotAt(s) - start;
+      expect(ramped).toBeCloseTo((WAKE_RAMP_MS / 2) * TURN, 6);
+      clock(120_000 + WAKE_RAMP_MS + 10_000);
+      expect(rotAt(s) - start - ramped).withContext('full speed from here on').toBeCloseTo(10_000 * TURN, 6);
+    });
+
+    it('a second pause during the soft start keeps the turn continuous', () => {
+      const s = scene();
+      clock(60_000);
+      s.suspend();
+      clock(120_000);
+      s.wake(0);
+      clock(120_000 + 500);
+      const paused = rotAt(s);
+      s.suspend();
+      clock(200_000);
+      s.wake(0);
+      expect(rotAt(s)).toBeCloseTo(paused, 9);
+    });
+
+    it('the next visit starts from the wall clock again', () => {
+      const s = scene();
+      clock(60_000);
+      s.suspend();
+      clock(120_000);
+      s.wake(0);
+      s.clear();
+      expect(rotAt(s)).toBeCloseTo(120_000 * TURN, 6);
+    });
   });
 
   it('draws nothing below the viewport, and once more when disc and halo left upwards', () => {

@@ -1,0 +1,364 @@
+<section data-iteration="4" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone" data-orientations="portrait" data-tab-label="Runde 4" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"kante","userPins":[{"id":"up-mw4rh3t9l1m1","design":"kante","screen":"s1-first","x":27.6,"y":47.8,"target":"kbd \"1\"","text":"hotkeys, nur wenn man lange hovered als tooltip! Und aauch Hotkey: davor!","attachments":[]},{"id":"up-mw4rkyles9b3","design":"kante","screen":"s1-live","x":64.7,"y":58,"target":"em \"Weg öffnen ›\"","text":"Route statt weg ist besser ;)","attachments":[]},{"id":"up-mw4rl7gb903k","design":"kante","screen":"s1-live","x":64.7,"y":46.9,"target":"span.d4-side-k \"Planen3\"","text":"wenn ich auf die karte klicke, gehe ich davon aus, dass dann der punkt planen aufgeht neutral ggü. route öffnen genau diese route schon öffnet","attachments":[]},{"id":"up-mw4rna2l37l0","design":"kante","screen":"s1-first","x":50.7,"y":58.5,"target":"button.d4-go \"SCC-App startenÖffnet die SCC-App auf de\"","text":"wenn gerade nicht verbunden => noch nie verbunden oder schon mal verbunden aber noch nicht in diesem browser kontext lokal clientseitig gespeichert, dann sollte scc app downloaden dort stehen und bei klick direkt downloaden!","attachments":[]}]}</script>
+<style>
+.d4-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #84a0b6; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b;
+  position: relative; display: block; width: 100%; height: 100%; min-height: 760px; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 60% 34% at 80% 3%, rgba(120, 190, 220, 0.2), transparent 70%), radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 34%, #040a11 64%, #02070d 100%); }
+.d4-app *, .d4-app *::before, .d4-app *::after { box-sizing: border-box; }
+.d4-grid { position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image: linear-gradient(rgba(82, 193, 230, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 193, 230, 0.05) 1px, transparent 1px); background-size: 64px 64px; }
+.d4-mh { position: absolute; z-index: 2; inset: 44px 0 auto 0; height: 40px; display: flex; justify-content: center; }
+.d4-brand { max-width: calc(50% - 190px); position: absolute; left: 24px; top: 0; display: flex; align-items: center; gap: 12px; height: 40px; text-align: left; }
+.d4-mark { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, var(--a) 9% 22%, transparent 24% 40%, rgba(82, 193, 230, 0.55) 42% 48%, transparent 50%); }
+.d4-wm { display: grid; }
+.d4-wm b { font: 700 15px/1.25 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.d4-wm small { font: 9px/1.4 Orbitron, system-ui, sans-serif; letter-spacing: 0.42em; text-transform: uppercase; color: var(--a); }
+.d4-nav { position: relative; display: flex; }
+.d4-nav span { display: flex; align-items: center; justify-content: center; width: 112px; height: 40px; font: 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg2); }
+.d4-nav .on { color: var(--fg); text-shadow: 0 0 18px rgba(82, 193, 230, 0.55); }
+.d4-nav i { position: absolute; bottom: 2px; left: 260px; width: 40px; height: 2px; border-radius: 2px; background: var(--a); box-shadow: 0 0 12px var(--a); }
+.d4-acc { position: absolute; right: 96px; top: 0; display: flex; align-items: center; gap: 8px; height: 40px; }
+.d4-apps { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 20px; background: #123246; color: var(--fg2); font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.d4-av { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: #123246; color: var(--a); font-weight: 600; }
+.d4-rail { position: absolute; z-index: 2; left: 14px; top: 42%; display: flex; flex-direction: column; gap: 12px; }
+.d4-rail i { display: block; width: 12px; height: 2px; border-radius: 2px; background: rgba(159, 179, 200, 0.45); }
+.d4-rail i.on { width: 22px; background: var(--a); box-shadow: 0 0 10px var(--a); }
+.d4-head { position: absolute; z-index: 1; left: 0; right: 0; bottom: calc(70% + 24px); }
+.d4-kick { margin: 0; font: 500 11.5px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--a); }
+.d4-title { margin: 12px 0 0; font: 500 50px/1.1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: var(--fg); text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7); }
+.d4-below { position: absolute; z-index: 1; top: 30%; left: 0; right: 0; margin-inline: auto; display: flex; flex-direction: column; align-items: center; width: min(100% - 96px, 1120px); }
+.d4-cap { display: flex; align-items: center; gap: 10px; width: min(640px, 100%); height: 60px; padding: 0 20px; border: 1px solid transparent; border-radius: 999px; background: rgba(0, 0, 0, 0.28); color: var(--fg2); font-size: 14.7px; text-align: left; box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.25), 0 0 18px rgba(82, 193, 230, 0.12); }
+.d4-cap svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--a); stroke-width: 1.8; stroke-linecap: round; }
+.d4-cap span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.d4-cap kbd { padding: 2px 7px; border: 1px solid var(--line); border-radius: 5px; background: rgba(159, 179, 200, 0.1); font: 11px Inter, system-ui, sans-serif; color: var(--fg2); }
+.d4-area { width: 100%; margin-top: 48px; }
+.d4-after { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 22px; font-size: 13px; color: var(--fg2); }
+.d4-after a { color: var(--fg2); text-decoration: none; }
+.d4-after a:hover { color: var(--a); }
+.d4-after a b { font-weight: 500; color: var(--fg); }
+.d4-cue { position: absolute; z-index: 2; left: 50%; bottom: 14px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--fg2); font: 500 11px/1 Inter, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
+.d4-cue::after { content: ""; width: 9px; height: 9px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
+.d4-bottom { display: none; }
+/* Side tiles */
+.d4-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.d4-tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 176px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(10, 28, 40, 0.8); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d4-tile:hover { border-color: var(--a); }
+.d4-tile.next { border-color: var(--a); box-shadow: 0 0 22px rgba(82, 193, 230, 0.18); }
+.d4-tile > span, .d4-now > span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg3); }
+.d4-tile b, .d4-now b { font: 500 18px/1.25 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d4-tile small, .d4-now small { font-size: 13px; color: var(--fg2); }
+.d4-tile em { margin-top: auto; padding-top: 6px; font-style: normal; color: var(--a); }
+.d4-warn { color: var(--warn); }
+.d4-live { display: inline-flex; align-items: center; gap: 7px; color: var(--ok); }
+.d4-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+/* Centre element: Jetzt */
+.d4-now { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 12px 10px; border: 0; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; }
+.d4-now em { margin-top: 6px; font-style: normal; color: var(--a); }
+.d4-hint { position: relative; margin-top: 6px; color: var(--fg2); font-size: 13.5px; font-style: normal; cursor: help; border-bottom: 1px dotted var(--fg3); }
+.d4-tip { position: absolute; z-index: 5; bottom: calc(100% + 8px); left: 50%; translate: -50% 0; width: 250px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #061724; color: var(--fg); font-size: 12.5px; line-height: 1.4; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.d4-hint:hover .d4-tip { opacity: 1; }
+/* Take 1: open, no frame */
+.d4-open::before, .d4-open::after { content: ""; position: absolute; top: 12%; bottom: 12%; width: 1px; background: linear-gradient(180deg, transparent, rgba(82, 193, 230, 0.45), transparent); }
+.d4-open::before { left: 0; } .d4-open::after { right: 0; }
+.d4-open b { font-size: 24px; }
+.d4-open.on b { color: var(--ok); text-shadow: 0 0 18px rgba(95, 214, 152, 0.4); }
+/* Take 2: round scope */
+.d4-scope { justify-self: center; width: 232px; height: 232px; margin-block: -28px 0; padding: 24px; border-radius: 50%; background: radial-gradient(circle, rgba(82, 193, 230, 0.06) 0 35%, transparent 36%), radial-gradient(circle, rgba(10, 32, 46, 0.92) 0 69%, transparent 70%); box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.4), inset 0 0 0 26px rgba(82, 193, 230, 0.03), inset 0 0 0 27px rgba(82, 193, 230, 0.18), 0 0 26px rgba(82, 193, 230, 0.12); }
+.d4-scope b { font-size: 16px; }
+.d4-scope.on { box-shadow: inset 0 0 0 1px rgba(95, 214, 152, 0.7), inset 0 0 0 26px rgba(95, 214, 152, 0.04), inset 0 0 0 27px rgba(95, 214, 152, 0.28), 0 0 30px rgba(95, 214, 152, 0.2); }
+/* Take 3: bridge, side consoles lean in */
+.d4-bridge { perspective: 900px; }
+.d4-bridge .d4-t-bestand { transform: rotateY(14deg); transform-origin: right center; }
+.d4-bridge .d4-t-planen { transform: rotateY(-14deg); transform-origin: left center; }
+.d4-console { padding: 16px; border: 1px solid rgba(82, 193, 230, 0.4); border-radius: 18px 18px 6px 6px; background: linear-gradient(180deg, rgba(18, 50, 70, 0.75), rgba(6, 23, 36, 0.92)); box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45); }
+.d4-console b { font-size: 22px; }
+.d4-console.on { border-color: var(--ok); box-shadow: 0 0 24px rgba(95, 214, 152, 0.18), 0 16px 32px rgba(0, 0, 0, 0.45); }
+@container device (max-width: 520px) {
+  .d4-app { min-height: 100%; }
+  .d4-mh { inset: 14px 0 auto 0; } .d4-nav, .d4-rail, .d4-cue, .d4-apps { display: none; }
+  .d4-brand { left: 14px; max-width: none; } .d4-acc { right: 14px; } .d4-wm b { font-size: 11px; letter-spacing: 0.08em; } .d4-mark { width: 24px; height: 24px; }
+  .d4-title { font-size: 28px; }
+  .d4-below { width: calc(100% - 32px); } .d4-cap kbd { display: none; } .d4-area { margin-top: 20px; }
+  .d4-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .d4-now { grid-column: 1 / -1; grid-row: 1; }
+  .d4-scope { width: 176px; height: 176px; margin-block: 0; padding: 12px; } .d4-scope b { font-size: 14px; }
+  .d4-bridge { perspective: none; } .d4-bridge .d4-tile { transform: none; }
+  .d4-tile { min-height: 124px; padding: 12px; } .d4-tile b { font-size: 14px; } .d4-tile small { font-size: 12px; } .d4-tile em { font-size: 12.5px; }
+  .d4-open b, .d4-console b { font-size: 18px; }
+  .d4-after { margin-top: 10px; }
+  .d4-bottom { position: absolute; z-index: 2; inset: auto 0 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 10px 4px; border-top: 1px solid var(--line); background: rgba(6, 23, 36, 0.95); font-size: 11.5px; color: var(--fg2); }
+  .d4-bottom b { font-weight: 600; color: var(--a); }
+}
+
+/* The live HQ scene: deep navy, faint atmosphere, a few warm city lights. */
+.d4-app { background:
+  radial-gradient(ellipse 7% 2.2% at 18.5% 63%, rgba(240, 190, 120, 0.3), transparent 72%),
+  radial-gradient(ellipse 7% 2.2% at 61% 68%, rgba(240, 190, 120, 0.22), transparent 72%),
+  radial-gradient(ellipse 6% 2% at 79.5% 58%, rgba(240, 190, 120, 0.14), transparent 72%),
+  radial-gradient(ellipse 34% 26% at 18% 8%, rgba(36, 110, 150, 0.2), transparent 72%),
+  radial-gradient(ellipse 26% 20% at 88% 0%, rgba(90, 60, 130, 0.18), transparent 72%),
+  linear-gradient(180deg, #04151f 0%, #03101a 45%, #020b12 100%); }
+.d4-grid { opacity: 0.35; background-image: radial-gradient(rgba(190, 225, 245, 0.5) 0.6px, transparent 0.8px), repeating-linear-gradient(180deg, rgba(120, 190, 225, 0.03) 0 1px, transparent 1px 7px); background-size: 180px 130px, 100% 7px; }
+.d4-title a { color: inherit; text-decoration: none; }
+.d4-title a:hover { color: var(--a); }
+/* Rail with the real page icons */
+.d4-rail { top: 50%; translate: 0 -50%; left: 16px; gap: 4px; }
+.d4-rail i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: none; color: var(--fg2); box-shadow: none; }
+.d4-rail i.on { width: 36px; background: none; color: var(--a); box-shadow: none; }
+.d4-ico { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.d4-rail .d4-ico { width: 20px; height: 20px; }
+.d4-cue { bottom: 12px; padding: 8px 16px 6px; border: 1px solid rgba(82, 193, 230, 0.16); border-radius: 8px; background: rgba(10, 32, 46, 0.72); }
+/* Centre: Jetzt, open, no frame */
+.d4-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+.d4-now { position: relative; isolation: isolate; align-self: stretch; justify-content: center; gap: 4px; min-height: 216px; padding: 8px; cursor: default; }
+.d4-now::before, .d4-now::after { content: ""; position: absolute; z-index: -1; left: 50%; top: 50%; width: 208px; height: 208px; margin: -104px 0 0 -104px; border-radius: 50%; border: 1px solid rgba(159, 179, 200, 0.12); }
+.d4-now::after { width: 152px; height: 152px; margin: -76px 0 0 -76px; }
+.d4-now-k { display: inline-flex; align-items: center; gap: 7px; color: var(--fg3); font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.d4-now-k .d4-ico { width: 16px; height: 16px; }
+.d4-now b { margin-top: 8px; font: 500 25px/1.2 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d4-now small { font-size: 13px; color: var(--fg2); }
+.d4-sys { font-size: 12.5px; letter-spacing: 0.04em; color: var(--fg3); }
+.d4-now.on .d4-now-k { color: var(--ok); }
+.d4-now.on::before, .d4-now.on::after { border-color: rgba(95, 214, 152, 0.34); animation: d4-pulse 4.5s ease-out infinite; }
+.d4-now.on::after { animation-delay: 1.5s; }
+.d4-now.on b { text-shadow: 0 0 22px rgba(95, 214, 152, 0.35); }
+@keyframes d4-pulse { 0% { transform: scale(0.82); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.22); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .d4-now.on::before, .d4-now.on::after { animation: none; opacity: 0.8; } }
+.d4-go { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin-top: 10px; padding: 0 14px; border: 1px solid rgba(82, 193, 230, 0.55); border-radius: 999px; background: rgba(10, 32, 46, 0.75); color: var(--a); font: 500 13.5px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.d4-go:hover { background: rgba(82, 193, 230, 0.14); }
+.d4-go .d4-tip { top: auto; bottom: calc(100% + 8px); text-align: left; }
+.d4-go:hover .d4-tip { opacity: 1; }
+/* Side elements: shared content */
+.d4-side { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 5px; min-width: 0; min-height: 148px; padding: 16px 18px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d4-side-k { display: flex; align-items: center; gap: 8px; color: var(--a); font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.d4-side-k .d4-ico { width: 18px; height: 18px; }
+.d4-side-k kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--fg3); font: 10.5px Inter, system-ui, sans-serif; letter-spacing: 0; }
+.d4-side b { margin-top: 6px; font: 500 18px/1.25 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d4-side small { font-size: 13px; color: var(--fg2); }
+.d4-side em { margin-top: auto; padding-top: 8px; font-style: normal; color: var(--a); }
+/* Take 1: light edge, no box, text leans to the centre */
+.d4-edge::before { content: ""; position: absolute; z-index: -1; inset: 0; border-top: 1px solid rgba(130, 215, 245, 0.55); background: linear-gradient(180deg, rgba(82, 193, 230, 0.09), transparent 72%); }
+.d4-edge.left { text-align: right; align-items: flex-end; }
+.d4-edge.left .d4-side-k { flex-direction: row-reverse; }
+.d4-edge.left .d4-side-k kbd { margin: 0 auto 0 0; }
+.d4-edge.next::before { border-top-color: var(--a); background: linear-gradient(180deg, rgba(82, 193, 230, 0.2), transparent 80%); }
+.d4-edge:hover::before { background: linear-gradient(180deg, rgba(82, 193, 230, 0.18), transparent 80%); }
+/* Take 2: consoles lean in, only the plate is tilted, so the text stays sharp */
+.d4-tilt { perspective: 900px; }
+.d4-plate::before { content: ""; position: absolute; z-index: -1; inset: 0; border: 1px solid rgba(130, 215, 245, 0.3); border-radius: 12px; background: linear-gradient(180deg, rgba(18, 54, 76, 0.72), rgba(6, 23, 36, 0.82)); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42); transition: border-color 0.2s; }
+.d4-plate.left::before { transform: perspective(700px) rotateY(16deg); transform-origin: right center; }
+.d4-plate.right::before { transform: perspective(700px) rotateY(-16deg); transform-origin: left center; }
+.d4-plate.next::before, .d4-plate:hover::before { border-color: var(--a); }
+/* Take 3: HUD brackets like the holotable panels in the Codex */
+.d4-hud::before { content: ""; position: absolute; z-index: -1; inset: 0; background:
+  linear-gradient(var(--a), var(--a)) 0 0 / 18px 1px no-repeat, linear-gradient(var(--a), var(--a)) 0 0 / 1px 18px no-repeat,
+  linear-gradient(var(--a), var(--a)) 100% 0 / 18px 1px no-repeat, linear-gradient(var(--a), var(--a)) 100% 0 / 1px 18px no-repeat,
+  linear-gradient(var(--a), var(--a)) 0 100% / 18px 1px no-repeat, linear-gradient(var(--a), var(--a)) 0 100% / 1px 18px no-repeat,
+  linear-gradient(var(--a), var(--a)) 100% 100% / 18px 1px no-repeat, linear-gradient(var(--a), var(--a)) 100% 100% / 1px 18px no-repeat,
+  repeating-linear-gradient(180deg, rgba(82, 193, 230, 0.05) 0 1px, transparent 1px 4px), rgba(6, 26, 38, 0.5); opacity: 0.78; }
+.d4-hud.next::before, .d4-hud:hover::before { opacity: 1; box-shadow: 0 0 20px rgba(82, 193, 230, 0.16); }
+.d4-stat { display: inline-flex; align-items: center; gap: 8px; }
+.d4-stat .d4-ico { width: 15px; height: 15px; color: var(--a); }
+.d4-stat kbd { padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--fg3); font: 10.5px Inter, system-ui, sans-serif; }
+@container device (max-width: 520px) {
+  .d4-title { font-size: 25px; }
+  .d4-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .d4-now { grid-column: 1 / -1; grid-row: 1; min-height: 132px; } .d4-now::before, .d4-now::after { width: 124px; height: 124px; margin: -62px 0 0 -62px; } .d4-now::after { width: 88px; height: 88px; margin: -44px 0 0 -44px; }
+  .d4-now b { margin-top: 2px; font-size: 18px; } .d4-go { min-height: 44px; margin-top: 6px; }
+  .d4-side { min-height: 124px; padding: 12px; } .d4-side b { font-size: 14px; } .d4-side small { font-size: 12px; } .d4-side-k kbd, .d4-stat kbd { display: none; }
+  .d4-edge.left { text-align: left; align-items: flex-start; } .d4-edge.left .d4-side-k { flex-direction: row; }
+  .d4-plate.left::before, .d4-plate.right::before { transform: none; }
+}
+</style>
+  <section data-design="kante" data-nav-label="Seiten: Lichtkante" data-design-active="true" data-design-motto="Lichtkante statt Kasten" data-design-traits="Kein Kasten, nur eine Kante oben|Text läuft zur Mitte hin|Am leichtesten neben dem offenen Jetzt" data-design-icon="sparkles" data-design-color="#6fe0c8" data-design-improved="News im Hero, echte Icons, Hintergrund wie live, Jetzt überarbeitet und pulsierend, SCC-App starten als echter Knopf">
+    <section id="s1-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-edge left d4-s-bestand next" type="button" data-screen-link="s1-quiet"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-edge right d4-s-planen" type="button" data-screen-link="s1-quiet"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="s1-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-edge left d4-s-bestand" type="button" data-screen-link="s1-busy"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-edge right d4-s-planen" type="button" data-screen-link="s1-busy"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r4-s1-a1" data-anno-side="bottom" data-anno-target=".d4-go" style="--anno-x:50%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="r4-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r4-s1-a1" data-anno-bubble="r4-s1-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> SCC-App starten als echter Knopf</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r4-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a1"><span class="anno-bubble-question">Ja, das geht und ist schon gebaut: Die Website öffnet die App über star-citizen-companion://open, ohne Antwort startet der Download. Deshalb ist es hier wieder ein echter Knopf statt eines Hinweises. So richtig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r4-s1-a1" data-annotation="r4-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Perfekt!
+Genauso!
+</textarea><div class="attach-slot" data-attach-slot="anno-r4-s1-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="r4-s1-a2" data-anno-side="top" data-anno-target=".d4-s-bestand kbd" style="--anno-x:30%;--anno-y:46%">
+  <button class="anno-pin" type="button" data-anno-pin="r4-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r4-s1-a2" data-anno-bubble="r4-s1-a2" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Tasten aus deiner Auswahl</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r4-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a2"><span class="anno-bubble-question">Die kleinen Tasten 1 bis 4 springen zu Bestand, Jetzt, Planen und Statistik. Sollen sie dauerhaft sichtbar sein oder erst beim Überfahren?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r4-s1-a2" data-annotation="r4-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Sollte eher im tooltip der seitenmenüs sein, als auch hier von den drei kacheln aber mit long dealy
+</textarea><div class="attach-slot" data-attach-slot="anno-r4-s1-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s1-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Bounty v3 · Neu in 4.3.1</p><h2 class="d4-title"><a href="#">S3-Repeater 8 % schwächer.</a></h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-edge left d4-s-bestand" type="button" data-screen-link="s1-live"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small><span class="d4-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-edge right d4-s-planen" type="button" data-screen-link="s1-live"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r4-s1-a3" data-anno-side="right" data-anno-target=".d4-title a" style="--anno-x:50%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="r4-s1-a3" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a3" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r4-s1-a3" data-anno-bubble="r4-s1-a3" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> News statt Hauptquartier im Hero</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r4-s1-a3" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a3"><span class="anno-bubble-question">Die News stehen jetzt im Hero wie auf Codex. Der Titel kommt aus der Patch-Zeile und führt zum Bounty-Set. Passt der Text so, und soll bei zwei Treffern wie im Verse-Hero gewechselt werden?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r4-s1-a3" data-annotation="r4-s1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r4-s1-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s1-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-edge left d4-s-bestand" type="button"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d4-now on"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Live</span><span class="d4-sys">Stanton › microTech</span><b>New Babbage</b><small>Cutlass Black</small><button class="d4-go" type="button">S3-Repeater kaufen ›</button></div><button class="d4-side d4-edge right d4-s-planen" type="button"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Weg öffnen ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r4-s1-a4" data-anno-side="bottom" data-anno-target=".d4-now" style="--anno-x:50%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r4-s1-a4" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a4" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r4-s1-a4" data-anno-bubble="r4-s1-a4" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Langsames Pulsieren statt starrem Ring</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r4-s1-a4" aria-expanded="false" aria-controls="anno-bubble-r4-s1-a4"><span class="anno-bubble-question">Jetzt ist überarbeitet: Ort groß, System darüber, zwei grüne Ringe pulsieren langsam, solange das Spiel verbunden ist. Gefällt dir das besser?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r4-s1-a4" data-annotation="r4-s1-a4" data-attachable placeholder="{{anno.answer_placeholder}}">Finde ich super! Allerdings 
+Ich gehe davon aus S3 Repeater kaufen ist der aktuelel / erste geplante Einsatz, wenn keiner vorhanden, daann dort einfach kein cta button! 
+
+Mir ist es irgendwie zu unruhig wohin ich fokussieren soll, vllt. die ringe dahinter irgendwie weichzeichnen und noch etwas dezenter? </textarea><div class="attach-slot" data-attach-slot="anno-r4-s1-a4"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-design="konsole" data-nav-label="Seiten: geneigte Konsolen" hidden data-design-motto="Geneigte Konsolen, scharfer Text" data-design-traits="Der 3D-Effekt bleibt|Nur die Platte kippt, der Text nicht|Am meisten Körper neben dem Jetzt" data-design-icon="rocket" data-design-color="#f0c27b" data-design-improved="News im Hero, echte Icons, Hintergrund wie live, Jetzt überarbeitet und pulsierend, SCC-App starten als echter Knopf">
+    <section id="s2-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row d4-tilt"><button class="d4-side d4-plate left d4-s-bestand next" type="button" data-screen-link="s2-quiet"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-plate right d4-s-planen" type="button" data-screen-link="s2-quiet"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r4-s2-a1" data-anno-side="bottom" data-anno-target=".d4-s-bestand" style="--anno-x:76%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r4-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r4-s2-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r4-s2-a1" data-anno-bubble="r4-s2-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Text bleibt beim 3D-Effekt scharf</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r4-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r4-s2-a1"><span class="anno-bubble-question">Der 3D-Effekt, den du mochtest, ohne Unschärfe: Nur die Platte kippt, der Text bleibt flach und scharf. Ist die Neigung richtig stark, und ist die Fläche jetzt weniger bullig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r4-s2-a1" data-annotation="r4-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r4-s2-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s2-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row d4-tilt"><button class="d4-side d4-plate left d4-s-bestand" type="button" data-screen-link="s2-busy"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-plate right d4-s-planen" type="button" data-screen-link="s2-busy"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="s2-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Bounty v3 · Neu in 4.3.1</p><h2 class="d4-title"><a href="#">S3-Repeater 8 % schwächer.</a></h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row d4-tilt"><button class="d4-side d4-plate left d4-s-bestand" type="button" data-screen-link="s2-live"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small><span class="d4-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-plate right d4-s-planen" type="button" data-screen-link="s2-live"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="s2-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row d4-tilt"><button class="d4-side d4-plate left d4-s-bestand" type="button"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d4-now on"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Live</span><span class="d4-sys">Stanton › microTech</span><b>New Babbage</b><small>Cutlass Black</small><button class="d4-go" type="button">S3-Repeater kaufen ›</button></div><button class="d4-side d4-plate right d4-s-planen" type="button"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Weg öffnen ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+  <section data-design="hud" data-nav-label="Seiten: HUD-Klammern" hidden data-design-motto="HUD-Klammern wie der Holotisch" data-design-traits="Nur Eckklammern und feine Scanlinien|Greift die Panels aus dem Codex auf|Am stärksten im Hologramm-Look" data-design-icon="shield" data-design-color="#b49bff" data-design-improved="News im Hero, echte Icons, Hintergrund wie live, Jetzt überarbeitet und pulsierend, SCC-App starten als echter Knopf">
+    <section id="s3-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-hud left d4-s-bestand next" type="button" data-screen-link="s3-quiet"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-hud right d4-s-planen" type="button" data-screen-link="s3-quiet"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="s3-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-hud left d4-s-bestand" type="button" data-screen-link="s3-busy"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-hud right d4-s-planen" type="button" data-screen-link="s3-busy"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Jetzt planen ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r4-s3-a1" data-anno-side="bottom" data-anno-target=".d4-s-planen" style="--anno-x:76%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r4-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r4-s3-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r4-s3-a1" data-anno-bubble="r4-s3-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Stil aus dem Codex übernommen</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r4-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r4-s3-a1"><span class="anno-bubble-question">Die Klammern greifen die Seitenpanels vom Codex-Holotisch auf. Passt diese Verwandtschaft, oder soll das HQ eigenständiger wirken?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r4-s3-a1" data-annotation="r4-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r4-s3-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="s3-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Bounty v3 · Neu in 4.3.1</p><h2 class="d4-title"><a href="#">S3-Repeater 8 % schwächer.</a></h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-hud left d4-s-bestand" type="button" data-screen-link="s3-live"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small><span class="d4-warn">Lagerstand 9 Tage alt</span></small><em>Bestand ansehen ›</em></button><div class="d4-now"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small><button class="d4-go" type="button">SCC-App starten<span class="d4-tip">Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.</span></button></div><button class="d4-side d4-hud right d4-s-planen" type="button" data-screen-link="s3-live"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="s3-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d4-app"><div class="d4-grid"></div>
+        <header class="d4-mh"><div class="d4-brand"><i class="d4-mark"></i><div class="d4-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d4-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d4-acc"><span class="d4-apps">Apps</span><span class="d4-av">J</span></div></header>
+        <div class="d4-rail" aria-hidden="true"><i class="on"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5M6 10v9h12v-9"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg></i><i><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg></i></div>
+        <div class="d4-head"><p class="d4-kick">Dein HQ</p><h2 class="d4-title">Hauptquartier</h2></div>
+        <div class="d4-below"><div class="d4-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d4-area"><div class="d4-row"><button class="d4-side d4-hud left d4-s-bestand" type="button"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8"/></svg>Bestand<kbd>1</kbd></span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small><em>Bestand ansehen ›</em></button><div class="d4-now on"><span class="d4-now-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>Live</span><span class="d4-sys">Stanton › microTech</span><b>New Babbage</b><small>Cutlass Black</small><button class="d4-go" type="button">S3-Repeater kaufen ›</button></div><button class="d4-side d4-hud right d4-s-planen" type="button"><span class="d4-side-k"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3"/></svg>Planen<kbd>3</kbd></span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Weg öffnen ›</em></button></div></div><div class="d4-after"><a class="d4-stat" href="#"><svg class="d4-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-7"/></svg><span><b>14 Missionen</b> in dieser Woche · Statistik ›</span><kbd>4</kbd></a></div></div>
+        <div class="d4-cue">Bestand</div>
+        <div class="d4-bottom"><b>Start</b><span>Bestand</span><span>Jetzt</span><span>Planen</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+</section>

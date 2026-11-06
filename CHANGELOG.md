@@ -4,6 +4,116 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.217.0] - 2026-11-06
+
+### Added
+- The Verse projection builds the preview panel in one sweep: its light bar runs down to build the panel and back up to write the text.
+
+### Changed
+- The planet sits higher on the Verse page, and "Mehr im Verse" now always stays visible below the panel.
+- The preview panel keeps one size for every message; long titles and texts are shortened.
+
+### Fixed
+- The light cone coming from the Galerie planet no longer looks like two crossed cones.
+
+## [0.216.1] - 2026-11-06
+
+### Fixed
+- Less stutter when scrolling /verse and when changing pages to and from it.
+
+## [0.216.0] - 2026-11-06
+
+### Added
+- Admins: holding Ctrl or Alt while the feedback panel has an open text field fades the panel out, so elements behind it can be marked too. Letting go or clicking brings it back with the result.
+
+### Removed
+- The image popup in feedback no longer has a close button that sat cut off behind the picture. Clicking next to the picture or pressing Escape closes it.
+
+## [0.215.0] - 2026-11-06
+
+### Changed
+- /verse takes far less computing power: the background moves at a calm 15 frames per second, and it stands still while the window has no focus, then starts again softly.
+- Switching pages no longer stutters: the starry sky is now a single image.
+- Three random stars twinkle in the sky instead of the whole sky pulsing.
+- The typing demo in the search field stops after three rounds.
+
+## [0.214.0] - 2026-11-06
+
+### Added
+- HQ Start shows Bestand, Jetzt and Planen at fixed places, with Statistik as a quiet link below.
+- Keys 1 to 4 jump to Bestand, Jetzt, Planen and Statistik; a tooltip names them after a long hover.
+- The installed app offers shortcuts to Bestand and Jetzt.
+- "Route öffnen" on Start opens exactly that saved route on Planen.
+
+### Changed
+- The HQ pages now run Start, Bestand, Jetzt, Planen, Statistik.
+- A patch that touches your ships or sets takes the title of the HQ hero.
+- While the game runs, Jetzt shows the next step of your first planned Einsatz, and no button without one.
+- The app button says "SCC-App downloaden" until the app is known on the account or in this browser.
+- The hint to the next page looks like the one in the Verse and stands back while the page runs on below the screen.
+- HQ texts say "Route" instead of "Weg".
+
+### Removed
+- The first-visit steps, the friends line, the patch line and the chips on HQ Start. Friend requests stay on the social page.
+
+## [0.213.1] - 2026-11-06
+
+### Fixed
+- About, HQ, Hangar and the Codex landing fit a desktop screen with their footer, without a few pixels of scroll.
+
+## [0.213.0] - 2026-11-06
+
+### Added
+- Verse hero: the title names the channel and the full version ("LIVE · Neues in 4.10.2"), planned patches can appear in the rotation, and a generated teaser title replaces it once one exists.
+- Codex landing: categories run across the top with the active one always named, a list click opens the entry on the holotable, and only the arrow leaves for the sub-page. Non-ships get a silhouette too.
+- HQ Stock: the page is one overview with quick links; search, filters, views by place, name or amount, the Codex picker and the capture form live in a popup with rows loading while you scroll.
+- patch_versions is now kept current by the daily patch sampling, so the public API and the digest report LIVE and PTU versions.
+
+### Changed
+- Admin moves into the account menu on desktop and phone.
+- Phones show the same elements as desktop; Codex tool pages keep a filter button.
+- New standard icons for wishlist, restock and stock.
+
+### Fixed
+- Clicking a recent search term and leaving no longer jumps to the Codex landing.
+- The open account menu lies over the beta chip instead of under it.
+
+## [0.212.0] - 2026-11-06
+
+### Added
+- HQ Stock: the item field of "Put something in storage" suggests ships, items, components, weapons and ammunition from the Codex. Text without a match says it does not exist and cannot be saved. An entry is saved with its Codex reference (kind and class name in the existing class_name column, no migration).
+- HQ Stock: entries in "Lager per Ort" with a reference are links: a ship opens your own hangar ship (else its Codex page), an item its Codex page, a bare class name from the app or log the Codex index search for its name.
+
+## [0.211.4] - 2026-11-06
+
+### Fixed
+- HQ Stock: "Blueprints in the Codex" now opens the blueprint list (all blueprints, A to Z) instead of the Codex landing page.
+
+## [0.211.3] - 2026-11-06
+
+### Added
+- HQ Now: while no live data flows (app not running, or live sync still off) a short note says what the page shows - your location and ship, the next step of a planned run, the latest events - with three examples.
+
+## [0.211.2] - 2026-11-06
+
+### Fixed
+- HQ: the page headings (Now, Plan, Stock, Stats) sit further below the sub-bar (48 px instead of 24 px), and the gap under the heading is the same 16 px on every page.
+
+## [0.211.1] - 2026-11-06
+
+### Fixed
+- The Codex front page now fits the window without a sliver of scrolling just to reach the footer; the hologram's scan band no longer stretches the page below it.
+
+## [0.211.0] - 2026-11-06
+
+### Added
+- Missile pages open like ship pages: the 3D model, one-word keywords, a comparison against other missiles and a data block. Damage, speed, agility and range appear once a build is uploaded with the new uploader (0.73.3).
+
+## [0.210.3] - 2026-11-06
+
+### Fixed
+- Verse hub: the opened news image keeps the same gap to the divider lines above and below as a collapsed row's thumbnail.
+
 ## [0.210.2] - 2026-11-05
 
 ### Fixed

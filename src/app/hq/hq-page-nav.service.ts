@@ -1,7 +1,7 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
-import { HQ_PAGES, HqPageId, hqPageHref } from './hq-routes';
+import { HQ_EINSATZ_PARAM, HQ_PAGES, HqPageId, hqPageHref } from './hq-routes';
 
 /** Icon paths (24×24 box, stroke) of the five pages: rail and phone bottom bar. */
 export const HQ_PAGE_ICONS: Readonly<Record<HqPageId, string>> = {
@@ -11,6 +11,12 @@ export const HQ_PAGE_ICONS: Readonly<Record<HqPageId, string>> = {
   bestand: 'M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8',
   statistik: 'M5 20V11M12 20V5M19 20v-7',
 };
+
+/** The digit that jumps to a page: its place after Start (Bestand 1 … Statistik 4). Start has none. */
+export function hqPageHotkey(page: HqPageId): number | null {
+  const i = HQ_PAGES.indexOf(page);
+  return i > 0 ? i : null;
+}
 
 /**
  * The glue between the five navigation surfaces (rail, phone bar, cue) and the landing that
@@ -25,6 +31,10 @@ export class HqPageNavService {
   private handler: ((page: HqPageId) => void) | null = null;
 
   readonly pages = HQ_PAGES;
+  /** No hover and no hardware keyboard to speak of: hotkey hints stay away. */
+  readonly noHover = typeof matchMedia === 'function' && matchMedia('(hover: none), (pointer: coarse)').matches;
+  /** The saved Einsatz whose route Planen should open (from the URL or a plain click on "Route öffnen"). */
+  readonly routeFocus = signal<{ id: string } | null>(routeFromUrl());
   /** The page in view (Start when the landing has not reported one yet). */
   readonly active = computed<HqPageId>(() => this.chrome.hqPage() ?? 'start');
 
@@ -45,10 +55,24 @@ export class HqPageNavService {
     this.handler?.(page);
   }
 
+  /** `(click)` of an anchor that opens exactly one route; a modified click follows its href. */
+  openRoute(ev: MouseEvent, id: string): void {
+    if (!this.handler || !isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.routeFocus.set({ id });
+    this.handler('planen');
+  }
+
   /** `(click)` of every page anchor. */
   go(ev: MouseEvent, page: HqPageId): void {
     if (!this.handler || !isPlainLeftClick(ev)) return;
     ev.preventDefault();
     this.handler(page);
   }
+}
+
+function routeFromUrl(): { id: string } | null {
+  if (typeof window === 'undefined') return null;
+  const id = new URLSearchParams(window.location.search).get(HQ_EINSATZ_PARAM);
+  return id ? { id } : null;
 }

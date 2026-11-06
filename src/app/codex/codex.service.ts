@@ -86,6 +86,7 @@ import { carriedByPort, stockLoadoutClassNames } from './stock-loadout';
 import { computeKpiSheet, KpiShipInput } from './codex-loadout-stats';
 import { SummaryOccupant } from './ship-summary-panels';
 import { HoloSilhouette, parseHoloSilhouette, SilhouetteKind } from './holo-silhouette';
+import { MissileRecord, missileRecordOf } from './codex-missile';
 import {
   cohortCacheKey,
   readCohortCache,
@@ -2071,6 +2072,35 @@ export class CodexService {
       out.set(row.classNameSlug, row);
     }
     return out;
+  }
+
+  /** {@link getMissileCohort}'s answer, per build. A failed read is not kept. */
+  private missileCohort: { buildId: string; records: MissileRecord[] } | null = null;
+
+  /**
+   * Every missile, torpedo and rocket of the current build with the values the
+   * comparison needs — payload for the numbers, silhouette for the measurements.
+   * Nameless records (test articles, an outpost's AA round) are no peers. A
+   * missing silhouette only leaves that record's measurements absent.
+   */
+  async getMissileCohort(): Promise<MissileRecord[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    if (this.missileCohort?.buildId === build.id) return this.missileCohort.records;
+    const { data, error } = await this.sb.client
+      .from(CODEX_ENTITY_TABLES.item)
+      .select('class_name, name_localized, sub_type, size, attach_type, payload')
+      .eq('build_id', build.id)
+      .eq('attach_type', 'Missile')
+      .not('name_localized', 'is', null);
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    const silhouettes = await this.silhouettes('item', rows.map((row) => String(row['class_name'])));
+    const records = rows.map((row) =>
+      missileRecordOf(row, row['payload'], silhouettes.get(String(row['class_name']))),
+    );
+    this.missileCohort = { buildId: build.id, records };
+    return records;
   }
 
   /**

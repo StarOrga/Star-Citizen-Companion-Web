@@ -19,6 +19,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
+import { WindowFocusService } from '../../core/window-focus.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../news/news.service';
@@ -51,8 +52,11 @@ import {
   splitChars,
   uniqueStories,
 } from './briefing/briefing.model';
-import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
+import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, holoTitle, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { DockState, wireDock } from './briefing/briefing-dock';
+import { channelBuildItems, plannedPatchItem, patchTitleParts, withLiveVersion } from './briefing/briefing-patch-title';
+import { PatchTeaserService } from './briefing/briefing-patch-teaser.service';
+import { RoadmapService } from '../../news/roadmap.service';
 import { VerseItemLink, verseItemLink } from './verse-item-link';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { StageSearchDirective } from '../../shell/fusion-bar/stage-search.directive';
@@ -207,6 +211,7 @@ export class VerseBriefingComponent {
   private readonly votes = inject(PatchStabilityVotesService);
   private readonly translate = inject(TranslateService);
   private readonly chrome = inject(ShellChromeService);
+  private readonly windowFocus = inject(WindowFocusService);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -252,13 +257,32 @@ export class VerseBriefingComponent {
     const seen = this.api.seen();
     // The top list first; the rest of the digest (rank order) fills what the dedupe removed.
     const rest = [...(this.api.digest()?.items ?? [])].sort((x, y) => x.rank - y.rank);
-    const candidates = themesFirst([...this.top(), ...rest, ...this.feedNews()]);
+    const channels = withLiveVersion(this.api.digest()?.patch?.channels, this.roadmap.roadmap()?.liveVersion, this.teasers.liveVersion());
+    const planned = plannedPatchItem(this.roadmap.roadmap()?.next, channels);
+    const have = new Set(rest.map((i) => i.key));
+    const builds = channelBuildItems(this.api.digest()?.patch?.channelInfo, have);
+    const candidates = themesFirst([...this.top(), ...rest, ...builds, ...(planned ? [planned] : []), ...this.feedNews()]);
     return uniqueStories(candidates, (i) => verseItemLink(i.url), linkKey, HERO_STORIES).map(({ item, link }) => ({
-      item,
+      item: this.withPatchTitle(item, channels),
       link,
       unseen: !seen.has(item.key),
     }));
   });
+
+  /**
+   * A patch story's headline names its channel and the full version
+   * ("LIVE · Neues in 4.10.3"); an AI teaser replaces "Neues in …" where one
+   * exists. Only the title text changes, the hero's layout stays.
+   */
+  private withPatchTitle(item: VerseDigestItem, channels: Readonly<Record<string, string>> | null): VerseDigestItem {
+    this.lang();
+    const lang = this.translate.getCurrentLang() || 'de';
+    const parts = patchTitleParts(item, channels, this.teasers.teasers(), lang);
+    if (!parts) return item;
+    const channel = this.translate.instant(`verse.briefing.patchChannel.${parts.channel}`);
+    const key = parts.teaser ? 'verse.briefing.patchTeaser' : parts.channel === 'planned' ? 'verse.briefing.patchNewPlanned' : 'verse.briefing.patchNew';
+    return { ...item, title: this.translate.instant(key, { channel, version: parts.version, teaser: parts.teaser }) };
+  }
 
   /** All auto motion on the stage (hero rotation, moon relay, glows) holds while true. */
   readonly paused = signal(false);
@@ -390,6 +414,8 @@ export class VerseBriefingComponent {
   );
   readonly hubPatchImage = computed(() => patchImage(this.news.patchLines()));
   private readonly galleryFill = inject(BriefingGalleryFillService);
+  private readonly teasers = inject(PatchTeaserService);
+  private readonly roadmap = inject(RoadmapService);
   readonly hubGallery = computed(() => fillGallery(this.api.digest()?.items ?? [], this.galleryFill.items()));
   readonly liveDays = computed(() => this.status()?.live.days ?? null);
   /** The sun leads to the LIVE patch's status. */
@@ -412,7 +438,7 @@ export class VerseBriefingComponent {
     const dn = newestFor('news', digest, none);
     if (n) {
       out.push({
-        key: `news:${n.id}`, door: 'news', title: n.title, body: holoBody(n.summary || t('verse.gates.news.hook')),
+        key: `news:${n.id}`, door: 'news', title: holoTitle(n.title), body: holoBody(n.summary || t('verse.gates.news.hook')),
         internal: true, path: '/verse/news', query: { item: n.id },
       });
     } else if (dn) {
@@ -425,7 +451,7 @@ export class VerseBriefingComponent {
     if (p) out.push(this.txItem(p, 'patches', pHook));
     else if (lv) {
       out.push({
-        key: `patch:${lv.version}`, door: 'patches', title: t('verse.hub.patchTitle', { v: lv.version }), body: holoBody(pHook),
+        key: `patch:${lv.version}`, door: 'patches', title: holoTitle(t('verse.hub.patchTitle', { v: lv.version })), body: holoBody(pHook),
         internal: true, path: `/verse/patches/${lv.line}`, query: null,
       });
     }
@@ -436,8 +462,6 @@ export class VerseBriefingComponent {
 
   /** The scroll flight stage → hub (briefing-dock): where the page stands, and whether the planets fly. */
   readonly dock = signal<DockState>('top');
-  /** A message stands in the holo: the "more" cue is hidden meanwhile (#1). */
-  readonly newsShown = signal(false);
   readonly dockFlying = signal(false);
 
   /** Pointer / focus on the hero title: the auto switch holds. */
@@ -461,6 +485,9 @@ export class VerseBriefingComponent {
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
     void this.api.loadSeen();
     if (this.shell()) void this.galleryFill.load();
+    void this.teasers.load();
+    void this.teasers.loadLive();
+    void this.roadmap.loadRoadmap();
     if (!this.news.feed() && !this.news.loading()) void this.news.refresh(true);
 
     effect(() => {
@@ -529,12 +556,13 @@ export class VerseBriefingComponent {
       const line = this.hubLive()?.line;
       if (on() && line) untracked(() => this.votes.ensure(line));
     });
-    // Auto switch every HERO_MS; any switch (chevron or auto) restarts the clock.
+    // Auto switch every HERO_MS; any switch (chevron or auto) restarts the clock. Without the
+    // window's focus it stands still with the rest of the background, and gets a full turn after.
     effect((onCleanup) => {
       const n = this.stories().length;
       this.index();
       // The first story gets its full turn once it takes over from the app's name.
-      if (!on() || this.heroHold() || this.brand() || n < 2) return;
+      if (!on() || !this.windowFocus.focused() || this.heroHold() || this.brand() || n < 2) return;
       const id = setTimeout(() => this.advance(), HERO_MS);
       onCleanup(() => clearTimeout(id));
     });
@@ -574,7 +602,7 @@ export class VerseBriefingComponent {
   private txItem(item: VerseDigestItem, door: VerseDoor, fallback: string): TransmitItem {
     const l = verseItemLink(item.url);
     return {
-      key: item.key, door, title: item.title, body: holoBody(item.summary || fallback),
+      key: item.key, door, title: holoTitle(item.title), body: holoBody(item.summary || fallback),
       internal: l?.internal ?? true, path: l?.path ?? `/verse/${door}`, query: (l?.query as Record<string, string> | null) ?? null,
     };
   }

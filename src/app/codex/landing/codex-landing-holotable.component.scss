@@ -96,11 +96,16 @@ a.holo {
 .viewer ::ng-deep .stage { height: 100%; min-height: 0; background: transparent; }
 .viewer ::ng-deep model-viewer { width: 100%; height: 100%; }
 .sil {
-  position: absolute; inset: 6% 16%; display: grid; place-items: center;
+  // Position and size come from the figure's fitted rect (inline); never clipped, the glow may spill.
+  position: absolute; display: grid; place-items: center; overflow: visible;
   color: var(--holo);
   filter: drop-shadow(0 0 2px rgba(190, 240, 255, 0.95)) drop-shadow(0 0 14px rgba(82, 193, 230, 0.6));
 }
 .sil sc-codex-icon { width: 100%; height: 100%; }
+.sil > svg { width: 100%; height: 100%; overflow: visible; }
+.sil > svg path {
+  fill: rgba(143, 227, 255, 0.1); stroke: var(--holo); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linejoin: round;
+}
 // A hologram is never tinted: the category colour of the icon gives way to holo light.
 .sil sc-codex-icon ::ng-deep svg {
   color: var(--holo) !important; width: 100%; height: 100%; max-width: none; max-height: none; stroke-width: 0.55px;

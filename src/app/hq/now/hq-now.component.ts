@@ -49,6 +49,14 @@ const PRESENCE_TICK_MS = 30_000;
       <section class="connect">
         <span class="connect-title">{{ (appConnected() ? 'hq.now.connect.syncOffTitle' : 'hq.now.connect.title') | translate }}</span>
         <span class="muted">{{ (appConnected() ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</span>
+        <div class="explain" role="group" [attr.aria-label]="'hq.now.connect.explain.aria' | translate">
+          <p class="explain-what">{{ 'hq.now.connect.explain.what' | translate }}</p>
+          <ul class="explain-list">
+            <li>{{ 'hq.now.connect.explain.e1' | translate }}</li>
+            <li>{{ 'hq.now.connect.explain.e2' | translate }}</li>
+            <li>{{ 'hq.now.connect.explain.e3' | translate }}</li>
+          </ul>
+        </div>
         <sc-hq-app-launch class="connect-go" />
       </section>
     } @else {
@@ -138,7 +146,7 @@ const PRESENCE_TICK_MS = 30_000;
   styles: [
     `
       :host { display: block; }
-      .page-title { margin: 0 0 var(--sc-space-3, 12px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
+      .page-title { margin: 0 0 var(--sc-space-4, 16px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .muted { color: var(--sc-fg-2); }
       .err { color: var(--sc-danger); }
       .top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sc-space-3, 12px); }
@@ -170,6 +178,10 @@ const PRESENCE_TICK_MS = 30_000;
       }
       .connect-title { font-weight: 600; font-size: 1.15rem; color: var(--sc-accent); }
       .fresh { margin: var(--sc-space-1, 4px) 0 0; color: var(--sc-fg-2); font-size: 0.8125rem; }
+      .explain { margin-top: var(--sc-space-3, 12px); color: var(--sc-fg-2); font-size: 0.9rem; }
+      .explain-what { margin: 0 0 var(--sc-space-1, 4px); }
+      .explain-list { list-style: disc; margin: 0; padding-left: var(--sc-space-5, 20px); }
+      .explain-list li { display: list-item; padding: 0; border: 0; }
       .connect-go { margin-top: var(--sc-space-3, 12px); }
       .toast {
         position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px);

@@ -325,7 +325,8 @@
         "loading": "Holotisch lädt …",
         "empty": "Für diesen Patch liegen noch keine Einträge vor.",
         "newIn": "Neu",
-        "newest": "Neueste"
+        "newest": "Neueste",
+        "announced": "Angekündigt"
       },
       "category": {
         "ship": "Schiff",
@@ -462,6 +463,8 @@
         "count": "{{count}} neu",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
+        "categories": "Kategorien",
+        "openPage": "Seite öffnen: {{name}}",
         "noneNew": "Nichts Neues in diesem Patch.",
         "more": "+ {{count}} weitere in der Suche",
         "all": "Alle {{category}}",
@@ -2316,6 +2319,116 @@
       "patch": "Patch",
       "placeholderHint": "‹…› setzt das Spiel erst beim Annehmen ein (Ort, Auftraggeber, Ziel).",
       "notFound": "Diese Mission gibt es im aktuellen LIVE-Build nicht."
+    },
+    "missile": {
+      "keywordsLabel": "Kurzprofil",
+      "scopeOff": "Zu wenige Vergleichswaffen in dieser Gruppe.",
+      "scope": {
+        "all": "Alle",
+        "kind": "Art",
+        "size": "Größe",
+        "signal": "Signal"
+      },
+      "axis": {
+        "damage": "SCHADEN",
+        "speed": "TEMPO",
+        "agility": "WENDIGKEIT",
+        "range": "REICHWEITE",
+        "lockTime": "AUFSCHALTUNG",
+        "lifetime": "FLUGZEIT",
+        "size": "GRÖSSE",
+        "length": "LÄNGE",
+        "width": "BREITE"
+      },
+      "rank": {
+        "nAll": "{{n}} Lenkwaffen",
+        "nKind": "{{n}} Lenkwaffen der gleichen Art",
+        "nSize": "{{n}} Lenkwaffen der Größe {{k}}",
+        "nSignal": "{{n}} Lenkwaffen mit dem gleichen Zielsignal",
+        "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Lenkwaffen.",
+        "percentileTooltip": "Der Wert sagt, wo diese Waffe im Vergleichsfeld steht. 50 % ist genau die Mitte. Größe und Maße sind keine Wertung: länger heißt nur länger.",
+        "radarAria": "Netzdiagramm der Perzentile von {{name}} gegenüber {{n}} Lenkwaffen",
+        "legendCompare": "Median {{group}} · {{n}} Lenkwaffen",
+        "legendAbove": "über Median",
+        "legendBelow": "unter Median",
+        "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum höchsten Wert der gewählten Vergleichswaffen (Rand). Blau ist diese Waffe, die gestrichelte Linie der Median der Gruppe.",
+        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten."
+      },
+      "data": {
+        "title": "Waffendaten",
+        "combatMissing": "Schaden, Geschwindigkeit, Wendigkeit, Reichweite und Aufschaltzeit fehlen noch im aktuellen Datenstand. Sie erscheinen hier, sobald die Extraktion sie liefert."
+      },
+      "group": {
+        "warhead": "Gefechtskopf",
+        "flight": "Flug",
+        "guidance": "Lenkung",
+        "build": "Bauform"
+      },
+      "stat": {
+        "signal": "Zielsignal",
+        "category": "Art",
+        "size": "Größe",
+        "length": "Länge",
+        "width": "Breite",
+        "damage": "Schaden",
+        "speed": "Geschwindigkeit",
+        "agility": "Wendigkeit",
+        "range": "Reichweite",
+        "lifetime": "Flugzeit",
+        "lockTime": "Aufschaltzeit",
+        "blastRadius": "Explosionsradius",
+        "armTime": "Scharfschaltzeit",
+        "lockAngle": "Aufschaltwinkel"
+      },
+      "signal": {
+        "ir": "Infrarot",
+        "em": "Elektromagnetisch",
+        "cs": "Querschnitt"
+      },
+      "category": {
+        "missile": "Lenkrakete",
+        "torpedo": "Torpedo",
+        "rocket": "Rakete",
+        "ground": "Bodenfahrzeug-Rakete"
+      },
+      "keyword": {
+        "ir": "Infrarot",
+        "em": "Elektromagnetisch",
+        "cs": "Querschnitt",
+        "missile": "Lenkrakete",
+        "torpedo": "Torpedo",
+        "rocket": "Rakete",
+        "ground": "Bodenfahrzeug",
+        "light": "Leicht",
+        "medium": "Mittel",
+        "heavy": "Schwer",
+        "compact": "Kompakt",
+        "long": "Lang",
+        "hardHitting": "Wuchtig",
+        "fast": "Schnell",
+        "agile": "Wendig",
+        "longRange": "Weitreichend",
+        "quickLock": "Schnellaufschaltung"
+      },
+      "keywordTip": {
+        "ir": "Verfolgt die Infrarot-Signatur des Ziels.",
+        "em": "Verfolgt die elektromagnetische Signatur des Ziels.",
+        "cs": "Verfolgt den Radarquerschnitt des Ziels.",
+        "missile": "Geführt von Schiffen aus.",
+        "torpedo": "Schwere Lenkwaffe gegen große Ziele.",
+        "rocket": "Als Rakete geführt.",
+        "ground": "Für Bodenfahrzeuge.",
+        "light": "Größe 1 bis 3.",
+        "medium": "Größe 4 bis 6.",
+        "heavy": "Größe 7 und darüber.",
+        "compact": "Im kürzesten Viertel ihrer Art und Größe.",
+        "long": "Im längsten Viertel ihrer Art und Größe.",
+        "hardHitting": "Im stärksten Viertel ihrer Art beim Schaden.",
+        "fast": "Im schnellsten Viertel ihrer Art.",
+        "agile": "Im wendigsten Viertel ihrer Art.",
+        "longRange": "Im reichweitenstärksten Viertel ihrer Art.",
+        "quickLock": "Im schnellsten Viertel ihrer Art beim Aufschalten."
+      }
     }
   },
   "blueprint": {
@@ -4715,7 +4828,6 @@
     "image": "Anhang",
     "enlarge": "Bild vergrößern",
     "enlargeNamed": "Bild vergrößern: {{name}}",
-    "close": "Bild schließen",
     "remove": "Bild entfernen",
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild",
@@ -5062,17 +5174,63 @@
     "start": {
       "kicker": "Dein HQ",
       "title": "Hauptquartier",
-      "important": "Jetzt wichtig"
+      "loading": "Lädt …",
+      "retry": "Erneut versuchen",
+      "patch": {
+        "eyebrow": "{{plan}} · Neu in {{build}}",
+        "eyebrowPlan": "{{plan}} · Neu im Patch",
+        "eyebrowBuild": "Neu in {{build}}",
+        "eyebrowPlain": "Neu im Patch",
+        "weaker": "{{name}} {{pct}} % schwächer.",
+        "stronger": "{{name}} {{pct}} % stärker."
+      },
+      "bestand": {
+        "empty": "Noch keine Schiffe",
+        "emptyHint": "Schiffe, Sets und Lager.",
+        "import": "RSI-Hangar holen",
+        "ships": "{{n}} Schiffe",
+        "shipsOne": "1 Schiff",
+        "sets": "{{n}} Sets",
+        "setsOne": "1 Set",
+        "blueprints": "{{n}} Blueprints",
+        "blueprintsOne": "1 Blueprint",
+        "stale": "Lagerstand {{n}} Tage alt",
+        "open": "Bestand ansehen"
+      },
+      "now": {
+        "live": "Live",
+        "none": "Spiel nicht erkannt",
+        "noneHint": "Live-Stand aus dem Spiel.",
+        "off": "Kein Live-Signal",
+        "last": "Zuletzt: {{place}}, {{ago}}.",
+        "lastTime": "Zuletzt: {{ago}}.",
+        "nextTip": "Nächster Schritt deines ersten geplanten Einsatzes.",
+        "step": {
+          "buy": "{{label}} kaufen",
+          "mission": "Mission: {{label}}",
+          "mine": "{{label}} abbauen",
+          "refine": "{{label}} raffinieren",
+          "craft": "{{label}} craften",
+          "transport": "{{label}} transportieren",
+          "pickup": "{{label}} abholen"
+        }
+      },
+      "planen": {
+        "empty": "Noch nichts geplant",
+        "emptyHint": "Aus Nachschub wird eine Route.",
+        "go": "Jetzt planen",
+        "count": "{{n}} offen",
+        "needs": "{{n}} im Nachschub",
+        "route": "Route öffnen"
+      },
+      "stats": {
+        "missions": "{{n}} Missionen",
+        "missionsOne": "1 Mission",
+        "week": "in dieser Woche",
+        "open": "Statistik"
+      }
     },
-    "first": {
-      "promise": "Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.",
-      "step1": "RSI-Hangar holen",
-      "step2": "SCC-App starten",
-      "step3": "Ersten Einsatz planen",
-      "go": "Los geht's",
-      "skip": "Überspringen",
-      "duration": "≈ 4 Minuten"
-    },
+    "hotkey": "Hotkey: {{key}}",
     "step": {
       "kind": {
         "buy": "Kaufen",
@@ -5113,7 +5271,14 @@
         "title": "Spiel nicht erkannt — SCC-App starten",
         "hint": "Die SCC-App meldet deinen Standort und deine Aktionen live hierher.",
         "syncOffTitle": "SCC-App verbunden — noch keine Live-Daten",
-        "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel."
+        "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel.",
+        "explain": {
+          "aria": "Was Jetzt zeigt",
+          "what": "Jetzt ist dein Live-Stand aus dem Spiel: wo du gerade bist, was als Nächstes auf deiner Route liegt und was zuletzt passiert ist.",
+          "e1": "Dein Standort und dein Schiff, z. B. „Stanton › New Babbage“.",
+          "e2": "Dein nächster Schritt aus einem geplanten Einsatz, z. B. ein Kauf oder eine Fahrt.",
+          "e3": "Die letzten Ereignisse, z. B. „Mission abgeschlossen“ oder „Quantum-Sprung beendet“."
+        }
       },
       "fresh": {
         "updated": "Live · Stand: {{at}}",
@@ -5126,7 +5291,7 @@
         "ship": "Schiff:"
       },
       "path": {
-        "title": "Dein Weg",
+        "title": "Deine Route",
         "empty": "Kein aktiver Einsatz. Plane einen unter Planen."
       },
       "missions": {
@@ -5152,16 +5317,16 @@
         "custom": "Eigene Auswahl"
       },
       "empty": "Nichts auszuwählen. Markiere in Nachschub, was du holen willst.",
-      "route": "Dein Weg",
-      "routeEmpty": "Noch kein Weg. Wähle unter „Was brauche ich“ aus, was du holen willst.",
+      "route": "Deine Route",
+      "routeEmpty": "Noch keine Route. Wähle unter „Was brauche ich“ aus, was du holen willst.",
       "saveEinsatz": "Als Einsatz speichern",
       "retry": "Erneut versuchen",
       "fresh": {
         "title": "Noch nichts zu planen",
-        "text": "Planen macht aus deinem Nachschub einen Weg: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
+        "text": "Planen macht aus deinem Nachschub eine Route: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
         "step1": "Such, was dir fehlt, und leg es in den Nachschub.",
         "step2": "Wähle hier, was davon als Nächstes dran ist.",
-        "step3": "Unter „Wie komme ich hin“ entsteht der Weg – speicher ihn als Einsatz.",
+        "step3": "Unter „Wie komme ich hin“ entsteht die Route – speicher sie als Einsatz.",
         "addSupply": "Gegenstand suchen"
       },
       "source": {
@@ -5197,7 +5362,6 @@
     "supply": {
       "ready": "liegt bereit",
       "forSet": "für Set {{name}}",
-      "setReady": "Set {{name}} liegt bereit",
       "wanted": "Will ich holen",
       "wantedAria": "{{name}} als gewünscht markieren",
       "importTitle": "Liste aus diesem Browser übernehmen?",
@@ -5241,7 +5405,6 @@
       "stepsOne": "1 Schritt",
       "steps": "{{n}} Schritte",
       "unplaced": "{{n}} ohne Ort, nur in der Liste",
-      "listTwin": "Als Liste",
       "node": {
         "needs": "{{place}} ({{path}}): {{needs}}",
         "step": "Schritt {{ords}}: {{place}} ({{path}}): {{needs}}",
@@ -5278,9 +5441,6 @@
         "community": "Community",
         "ocr": "Aus einem Screenshot"
       }
-    },
-    "patch": {
-      "affects": "betrifft {{set}} ›"
     },
     "stats": {
       "range": {
@@ -5345,12 +5505,40 @@
     },
     "stock": {
       "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
+      "free": "Ortsfrei",
+      "sharedBtn": "Von Freunden geteilt ({{n}})",
+      "captured": "Im Lager eingetragen.",
+      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
+      "places": { "title": "Größte Orte" },
+      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
+      "cats": { "title": "Kategorien" },
+      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "popup": {
+        "title": "Bestand",
+        "modes": "Was möchtest du tun",
+        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "search": "Bestand durchsuchen",
+        "searchHint": "Gegenstand oder Ort",
+        "filters": "Filter",
+        "stale": "Älter als 7 Tage",
+        "clearPlace": "Ortsfilter entfernen",
+        "place": "Ort",
+        "viewBy": "Ansicht",
+        "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
+        "count": "{{n}} Einträge",
+        "results": "Bestandseinträge",
+        "loading": "Lädt …",
+        "loadingMore": "Lädt weitere …",
+        "noMatch": "Nichts passt zu diesen Filtern.",
+        "empty": "Noch nichts im Lager erfasst.",
+        "ships": "Schiffe im Terminal"
+      },
       "retry": "Erneut versuchen",
       "ships": {
         "title": "Schiffe",
         "count": "{{n}} im Hangar",
-        "noFavourites": "Noch keine Favoriten markiert.",
-        "open": "Zum Hangar"
+        "noFavourites": "Noch keine Favoriten markiert."
       },
       "sets": {
         "title": "Sets",
@@ -5368,12 +5556,8 @@
         "days": "zuletzt geöffnet vor {{n}} Tagen"
       },
       "lager": {
-        "title": "Lager per Ort",
         "empty": "Noch nichts im Lager erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
-        "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es unten von Hand ein.",
-        "materials": "Rohstoffe",
-        "pieces": "Gegenstände",
-        "placeEmpty": "Leer.",
+        "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
         "storage": "Schiffe im Hangar-Terminal"
       },
       "find": {
@@ -5414,7 +5598,17 @@
         "unit": "Einheit",
         "pcs": "Stück",
         "location": "Ort",
-        "save": "Eintragen"
+        "save": "Eintragen",
+        "suggestions": "Vorschläge aus dem Codex",
+        "unknown": "Gibt es nicht – wähle einen Eintrag aus den Vorschlägen.",
+        "linked": "Mit dem Codex verknüpft.",
+        "kind": {
+          "ship": "Schiff",
+          "item": "Gegenstand",
+          "component": "Komponente",
+          "weapon": "Waffe",
+          "ammunition": "Munition"
+        }
       }
     },
     "app": {
@@ -5425,15 +5619,13 @@
       "noResponse": "Die SCC-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
       "download": "SCC-App herunterladen",
+      "downloadCta": "SCC-App downloaden",
+      "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
+      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „SCC-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipLaunch": "Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "close": "Schließen"
     },
     "friends": {
-      "sharedLine": "{{n}} Einsatz von Freunden geteilt",
-      "requests": {
-        "title": "Freundschaftsanfragen ({{n}})",
-        "accept": "Annehmen",
-        "decline": "Ablehnen"
-      },
       "share": {
         "open": "Mit Freunden teilen",
         "hint": "Nur zum Ansehen. Bei einer Gruppe bekommen später hinzugefügte Mitglieder ebenfalls Zugriff.",
@@ -5476,7 +5668,9 @@
     }
   },
   "verse": {
-    "areaFoot": { "aria": "Bereich wechseln" },
+    "areaFoot": {
+      "aria": "Bereich wechseln"
+    },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",
@@ -5527,6 +5721,17 @@
       "loading": "Briefing wird geladen …",
       "allSeen": "Du bist auf dem Stand",
       "newSince": "neu seit deinem letzten Besuch",
+      "patchNew": "{{channel}} · Neues in {{version}}",
+      "patchNewPlanned": "{{channel}} · Neues zu {{version}}",
+      "patchTeaser": "{{channel}} · {{teaser}}",
+      "patchChannel": {
+        "live": "LIVE",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "eptu": "EPTU",
+        "hotfix": "Hotfix",
+        "planned": "Geplant"
+      },
       "topAria": "Die neuesten Geschichten",
       "storyAria": "Geschichte {{n}}: {{title}}",
       "status": {

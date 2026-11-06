@@ -325,7 +325,8 @@
         "loading": "Holotable loading …",
         "empty": "No entries for this patch yet.",
         "newIn": "New",
-        "newest": "Newest"
+        "newest": "Newest",
+        "announced": "Announced"
       },
       "category": {
         "ship": "Ship",
@@ -462,6 +463,8 @@
         "count": "{{count}} new",
         "announced": "announced",
         "onTable": "on the table",
+        "categories": "Categories",
+        "openPage": "Open page: {{name}}",
         "noneNew": "Nothing new in this patch.",
         "more": "+ {{count}} more in search",
         "all": "All {{category}}",
@@ -2316,6 +2319,116 @@
       "patch": "Patch",
       "placeholderHint": "‹…› is filled in by the game when you accept (location, contractor, target).",
       "notFound": "This mission is not in the current LIVE build."
+    },
+    "missile": {
+      "keywordsLabel": "Quick profile",
+      "scopeOff": "Too few weapons to compare with in this group.",
+      "scope": {
+        "all": "All",
+        "kind": "Kind",
+        "size": "Size",
+        "signal": "Signal"
+      },
+      "axis": {
+        "damage": "DAMAGE",
+        "speed": "SPEED",
+        "agility": "AGILITY",
+        "range": "RANGE",
+        "lockTime": "LOCK",
+        "lifetime": "FLIGHT TIME",
+        "size": "SIZE",
+        "length": "LENGTH",
+        "width": "WIDTH"
+      },
+      "rank": {
+        "nAll": "{{n}} guided weapons",
+        "nKind": "{{n}} guided weapons of the same kind",
+        "nSize": "{{n}} guided weapons of size {{k}}",
+        "nSignal": "{{n}} guided weapons with the same tracking signal",
+        "verdict": "{{pct}} % — {{band}} against {{n}} guided weapons.",
+        "percentileTooltip": "The value says where this weapon sits in the comparison field. 50 % is the exact middle. Size and measurements are no verdict: longer only means longer.",
+        "radarAria": "Radar chart of the percentiles of {{name}} against {{n}} guided weapons",
+        "legendCompare": "Median {{group}} · {{n}} guided weapons",
+        "legendAbove": "above median",
+        "legendBelow": "below median",
+        "compareInfo": "Each axis runs from 0 (centre) to the highest value among the chosen weapons (rim). Blue is this weapon, the dashed line the group's median.",
+        "note": "Compares only what the game data holds for this weapon."
+      },
+      "data": {
+        "title": "Weapon data",
+        "combatMissing": "Damage, speed, agility, range and lock time are not in the current data yet. They appear here as soon as the extract carries them."
+      },
+      "group": {
+        "warhead": "Warhead",
+        "flight": "Flight",
+        "guidance": "Guidance",
+        "build": "Build"
+      },
+      "stat": {
+        "signal": "Tracking signal",
+        "category": "Kind",
+        "size": "Size",
+        "length": "Length",
+        "width": "Width",
+        "damage": "Damage",
+        "speed": "Speed",
+        "agility": "Agility",
+        "range": "Range",
+        "lifetime": "Flight time",
+        "lockTime": "Lock time",
+        "blastRadius": "Blast radius",
+        "armTime": "Arming time",
+        "lockAngle": "Lock angle"
+      },
+      "signal": {
+        "ir": "Infrared",
+        "em": "Electromagnetic",
+        "cs": "Cross section"
+      },
+      "category": {
+        "missile": "Guided missile",
+        "torpedo": "Torpedo",
+        "rocket": "Rocket",
+        "ground": "Ground vehicle missile"
+      },
+      "keyword": {
+        "ir": "Infrared",
+        "em": "Electromagnetic",
+        "cs": "Cross section",
+        "missile": "Missile",
+        "torpedo": "Torpedo",
+        "rocket": "Rocket",
+        "ground": "Ground vehicle",
+        "light": "Light",
+        "medium": "Medium",
+        "heavy": "Heavy",
+        "compact": "Compact",
+        "long": "Long",
+        "hardHitting": "Hard-hitting",
+        "fast": "Fast",
+        "agile": "Agile",
+        "longRange": "Long-range",
+        "quickLock": "Quick-lock"
+      },
+      "keywordTip": {
+        "ir": "Tracks the target's infrared signature.",
+        "em": "Tracks the target's electromagnetic signature.",
+        "cs": "Tracks the target's cross section.",
+        "missile": "Fired from ships.",
+        "torpedo": "Heavy guided weapon against large targets.",
+        "rocket": "Filed as a rocket.",
+        "ground": "For ground vehicles.",
+        "light": "Size 1 to 3.",
+        "medium": "Size 4 to 6.",
+        "heavy": "Size 7 and above.",
+        "compact": "In the shortest quarter of its kind and size.",
+        "long": "In the longest quarter of its kind and size.",
+        "hardHitting": "In the top quarter of its kind for damage.",
+        "fast": "In the fastest quarter of its kind.",
+        "agile": "In the most agile quarter of its kind.",
+        "longRange": "In the longest-ranged quarter of its kind.",
+        "quickLock": "In the quickest-locking quarter of its kind."
+      }
     }
   },
   "blueprint": {
@@ -4715,7 +4828,6 @@
     "image": "Attachment",
     "enlarge": "Enlarge image",
     "enlargeNamed": "Enlarge image: {{name}}",
-    "close": "Close image",
     "remove": "Remove image",
     "prev": "Previous image",
     "next": "Next image",
@@ -5062,17 +5174,63 @@
     "start": {
       "kicker": "Your HQ",
       "title": "Headquarters",
-      "important": "Important now"
+      "loading": "Loading …",
+      "retry": "Try again",
+      "patch": {
+        "eyebrow": "{{plan}} · New in {{build}}",
+        "eyebrowPlan": "{{plan}} · New in this patch",
+        "eyebrowBuild": "New in {{build}}",
+        "eyebrowPlain": "New in this patch",
+        "weaker": "{{name}} {{pct}} % weaker.",
+        "stronger": "{{name}} {{pct}} % stronger."
+      },
+      "bestand": {
+        "empty": "No ships yet",
+        "emptyHint": "Ships, sets and storage.",
+        "import": "Get RSI hangar",
+        "ships": "{{n}} ships",
+        "shipsOne": "1 ship",
+        "sets": "{{n}} sets",
+        "setsOne": "1 set",
+        "blueprints": "{{n}} blueprints",
+        "blueprintsOne": "1 blueprint",
+        "stale": "Stock count {{n}} days old",
+        "open": "View holdings"
+      },
+      "now": {
+        "live": "Live",
+        "none": "Game not detected",
+        "noneHint": "Live status from the game.",
+        "off": "No live signal",
+        "last": "Last seen: {{place}}, {{ago}}.",
+        "lastTime": "Last seen: {{ago}}.",
+        "nextTip": "Next step of your first planned deployment.",
+        "step": {
+          "buy": "Buy {{label}}",
+          "mission": "Mission: {{label}}",
+          "mine": "Mine {{label}}",
+          "refine": "Refine {{label}}",
+          "craft": "Craft {{label}}",
+          "transport": "Transport {{label}}",
+          "pickup": "Pick up {{label}}"
+        }
+      },
+      "planen": {
+        "empty": "Nothing planned yet",
+        "emptyHint": "Supplies turn into a route.",
+        "go": "Plan now",
+        "count": "{{n}} open",
+        "needs": "{{n}} in supplies",
+        "route": "Open route"
+      },
+      "stats": {
+        "missions": "{{n}} missions",
+        "missionsOne": "1 mission",
+        "week": "this week",
+        "open": "Stats"
+      }
     },
-    "first": {
-      "promise": "Your hangar, your sets, your next ops. In one place.",
-      "step1": "Fetch your RSI hangar",
-      "step2": "Start the SCC app",
-      "step3": "Plan your first op",
-      "go": "Let's go",
-      "skip": "Skip",
-      "duration": "≈ 4 minutes"
-    },
+    "hotkey": "Hotkey: {{key}}",
     "step": {
       "kind": {
         "buy": "Buy",
@@ -5113,7 +5271,14 @@
         "title": "Game not detected — start the SCC app",
         "hint": "The SCC app reports your location and actions here, live.",
         "syncOffTitle": "SCC app connected — no live data yet",
-        "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game."
+        "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game.",
+        "explain": {
+          "aria": "What Now shows",
+          "what": "Now is your live state from the game: where you are, what comes next on your route, and what happened last.",
+          "e1": "Your location and ship, e.g. \"Stanton › New Babbage\".",
+          "e2": "Your next step from a planned run, e.g. a purchase or a trip.",
+          "e3": "The latest events, e.g. \"Mission completed\" or \"Quantum jump finished\"."
+        }
       },
       "fresh": {
         "updated": "Live · as of {{at}}",
@@ -5126,7 +5291,7 @@
         "ship": "Ship:"
       },
       "path": {
-        "title": "Your path",
+        "title": "Your route",
         "empty": "No active operation. Plan one under Plan."
       },
       "missions": {
@@ -5197,7 +5362,6 @@
     "supply": {
       "ready": "ready",
       "forSet": "for set {{name}}",
-      "setReady": "Set {{name}} is ready",
       "wanted": "Want to get",
       "wantedAria": "Mark {{name}} as wanted",
       "importTitle": "Add the list from this browser?",
@@ -5241,7 +5405,6 @@
       "stepsOne": "1 step",
       "steps": "{{n}} steps",
       "unplaced": "{{n}} without a place, list only",
-      "listTwin": "As a list",
       "node": {
         "needs": "{{place}} ({{path}}): {{needs}}",
         "step": "Step {{ords}}: {{place}} ({{path}}): {{needs}}",
@@ -5278,9 +5441,6 @@
         "community": "Community",
         "ocr": "From a screenshot"
       }
-    },
-    "patch": {
-      "affects": "affects {{set}} ›"
     },
     "stats": {
       "range": {
@@ -5345,12 +5505,40 @@
     },
     "stock": {
       "signedOut": "Sign in to see your holdings.",
+      "free": "No place",
+      "sharedBtn": "Shared by friends ({{n}})",
+      "captured": "Added to storage.",
+      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+      "totals": { "title": "Total", "items": "items", "places": "places" },
+      "places": { "title": "Largest places" },
+      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
+      "cats": { "title": "Categories" },
+      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "popup": {
+        "title": "Stock",
+        "modes": "What to do",
+        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "search": "Search stock",
+        "searchHint": "Item or place",
+        "filters": "Filters",
+        "stale": "Older than 7 days",
+        "clearPlace": "Remove place filter",
+        "place": "Place",
+        "viewBy": "View by",
+        "view": { "place": "By place", "name": "By item", "qty": "By amount" },
+        "count": "{{n}} entries",
+        "results": "Stock entries",
+        "loading": "Loading …",
+        "loadingMore": "Loading more …",
+        "noMatch": "Nothing matches these filters.",
+        "empty": "Nothing stored yet.",
+        "ships": "Ships at terminal"
+      },
       "retry": "Try again",
       "ships": {
         "title": "Ships",
         "count": "{{n}} in the hangar",
-        "noFavourites": "No favourites marked yet.",
-        "open": "Open hangar"
+        "noFavourites": "No favourites marked yet."
       },
       "sets": {
         "title": "Sets",
@@ -5368,12 +5556,8 @@
         "days": "last opened {{n}} days ago"
       },
       "lager": {
-        "title": "Storage by place",
         "empty": "Nothing stored yet. Once there is, you can search here for where it lies.",
-        "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand below.",
-        "materials": "Raw materials",
-        "pieces": "Items",
-        "placeEmpty": "Empty.",
+        "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand with “Add”.",
         "storage": "Ships at the hangar terminal"
       },
       "find": {
@@ -5414,7 +5598,17 @@
         "unit": "Unit",
         "pcs": "Pieces",
         "location": "Place",
-        "save": "Add"
+        "save": "Add",
+        "suggestions": "Suggestions from the Codex",
+        "unknown": "Not found – pick an entry from the suggestions.",
+        "linked": "Linked to the Codex.",
+        "kind": {
+          "ship": "Ship",
+          "item": "Item",
+          "component": "Component",
+          "weapon": "Weapon",
+          "ammunition": "Ammunition"
+        }
       }
     },
     "app": {
@@ -5425,15 +5619,13 @@
       "noResponse": "The SCC app didn't respond. Start it by hand or download it again.",
       "retry": "Already installed? Start again",
       "download": "Download SCC app",
+      "downloadCta": "Download SCC App",
+      "downloadStarted": "The download is running (about 500 MB). Run the setup afterwards.",
+      "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start SCC App”. You can always find it again under Apps at the top right.",
+      "tipLaunch": "Opens the SCC App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
       "close": "Close"
     },
     "friends": {
-      "sharedLine": "{{n}} Einsatz shared by friends",
-      "requests": {
-        "title": "Friend requests ({{n}})",
-        "accept": "Accept",
-        "decline": "Decline"
-      },
       "share": {
         "open": "Share with friends",
         "hint": "View only. For a group, members added later get access too.",
@@ -5476,7 +5668,9 @@
     }
   },
   "verse": {
-    "areaFoot": { "aria": "Switch area" },
+    "areaFoot": {
+      "aria": "Switch area"
+    },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",
@@ -5527,6 +5721,17 @@
       "loading": "Loading the briefing …",
       "allSeen": "You're up to date",
       "newSince": "new since your last visit",
+      "patchNew": "{{channel}} · New in {{version}}",
+      "patchNewPlanned": "{{channel}} · New in {{version}}",
+      "patchTeaser": "{{channel}} · {{teaser}}",
+      "patchChannel": {
+        "live": "LIVE",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "eptu": "EPTU",
+        "hotfix": "Hotfix",
+        "planned": "Planned"
+      },
       "topAria": "The newest stories",
       "storyAria": "Story {{n}}: {{title}}",
       "status": {
