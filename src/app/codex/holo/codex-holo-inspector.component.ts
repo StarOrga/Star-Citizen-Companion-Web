@@ -332,12 +332,12 @@ function chipSize(pin: StagePin): number | null {
     :host { display: grid; gap: 10px; align-content: start; min-width: 0;
       --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
       --e-out: var(--holo-e-out); --hair: color-mix(in srgb, var(--sc-accent) 24%, transparent); }
-    .btn, .empty b, .insp-stats dt, .pg-head { font-family: var(--d); text-transform: uppercase; }
+    .empty b, .insp-stats dt, .pg-head { font-family: var(--d); text-transform: uppercase; }
     .lnk { background: none; border: none; padding: 0; color: var(--sc-accent); cursor: pointer; font: inherit;
       font-size: max(11px, var(--f)); min-height: var(--sc-tap-min, 24px); justify-self: start; }
     .lnk:hover { text-decoration: underline; }
     .btn { min-height: var(--sc-tap-min, 28px); padding: 3px 8px; border-radius: 3px; border: 1px solid var(--hair); background: none;
-      color: var(--sc-fg-1); cursor: pointer; font-size: max(9.5px, var(--f)); letter-spacing: 0.08em;
+      color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--f));
       transition: border-color 160ms ease, color 160ms ease; }
     .btn:hover, .btn:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); }
     .empty { display: grid; place-items: center; text-align: center; gap: 8px; color: var(--sc-fg-2); padding: 40px 10px; font-size: max(12px, var(--f)); }
@@ -354,7 +354,7 @@ function chipSize(pin: StagePin): number | null {
     .back:focus-visible, .lnk:focus-visible, .swap:focus-visible, .act button:focus-visible, .more:focus-visible, .part:focus-visible, .eye:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .n { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-fg-2); }
     .pn { display: grid; gap: 1px; min-width: 0; }
-    .pn h2 { margin: 0; font-size: 19px; font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; line-height: 1.2; }
+    .pn h2 { margin: 0; font-family: var(--sc-font-body); font-size: 19px; font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; line-height: 1.2; }
     .pn small { font-size: max(12px, var(--f)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
     .inspector-patch-delta { margin: 0; font-size: max(11px, var(--f)); color: var(--sc-accent); font-family: var(--m); overflow-wrap: anywhere; }
     .inspector-patch-delta.unresolved { color: var(--sc-fg-2); font-style: italic; }

@@ -353,6 +353,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             [swappablePorts]="swappablePorts()"
             [relevantPorts]="relevantPorts()"
             [calloutValues]="calloutValues()"
+            [calloutTitle]="calloutTitle()"
             [(hotspotScope)]="hotspotScope"
             [patchPortPins]="patchPortPins()"
             [displayName]="displayName()"
@@ -698,6 +699,10 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; transition: color 160ms ease; }
   .cohort-link:hover { color: var(--sc-accent); }
   .patchdiff { display: grid; gap: 8px; min-width: 0; }
+  .patchdiff ::ng-deep .delta-table { font-size: max(11px, var(--f)); }
+  .patchdiff ::ng-deep .delta-table th, .patchdiff ::ng-deep .delta-table td { padding: 4px 3px; }
+  .patchdiff ::ng-deep .delta-head { flex-wrap: wrap; }
+  .patchdiff ::ng-deep .admin-schema-row { box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; }
   .patchhint { margin: 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
 
   /* Schema's sub-views: one calm row under the table head. */
@@ -1986,6 +1991,12 @@ export class CodexHoloStageComponent {
     if (part.size != null) out.push({ label: this.t.instant('codex.holo.stage.partSize'), value: `S${part.size}` });
     for (const st of part.stats.slice(0, 3 - out.length)) out.push({ label: this.t.instant(st.labelKey), value: formatEquippedStat(st) });
     return out;
+  });
+
+  readonly calloutTitle = computed<string | null>(() => {
+    const it = this.inspectorTarget();
+    const name = it ? partFocusOf(it, this.inspectedSection()).name : null;
+    return name ? displayItemName(name) : null;
   });
 
   closeInspector(): void {

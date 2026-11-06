@@ -187,7 +187,7 @@ const WHEEL_LINE_PX = 33;
           <div class="callout" role="group" [attr.data-side]="co.side"
                [style.left.px]="co.left" [style.top.px]="co.top"
                [attr.aria-label]="'codex.assetPackage.label.aria' | translate: { name: co.row.name }">
-            <b class="co-nm" [scTooltip]="co.empty ? null : co.row.name" scTooltipTier="label">{{ co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : co.row.name }}</b>
+            <b class="co-nm" [scTooltip]="co.empty ? null : (calloutTitle() ?? co.row.name)" scTooltipTier="label">{{ co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : (calloutTitle() ?? co.row.name) }}</b>
             <div class="co-v">
               @for (v of calloutValues().slice(0, 3); track v.label) {
                 <span [scTooltip]="v.label + ': ' + v.value" scTooltipTier="label"><small>{{ v.label }}</small>{{ v.value }}</span>
@@ -489,6 +489,8 @@ export class AssetPackageViewerComponent {
   readonly relevantPorts = input<ReadonlySet<string> | null>(null);
   /** Up to three values for the selected part's callout (table only). */
   readonly calloutValues = input<readonly CalloutValue[]>([]);
+  /** The part's name as the host's panel gives it (a mount's dot speaks of its gun); null: the placement's own. */
+  readonly calloutTitle = input<string | null>(null);
 
   /** Everything the swappable ports hold: a gun on a swappable mount can be swapped too. */
   private readonly swappableIds = computed<ReadonlySet<string> | null>(() => {

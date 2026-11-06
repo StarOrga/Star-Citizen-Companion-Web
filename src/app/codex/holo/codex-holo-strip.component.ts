@@ -136,7 +136,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         <button type="button" class="seg einsatz" #missionBtn [attr.aria-haspopup]="'true'" [attr.aria-expanded]="missionOpen()"
                 [attr.aria-label]="'codex.holo.strip.einsatzPick' | translate"
                 [scTooltip]="'codex.holo.strip.einsatzPick' | translate" scTooltipTier="label"
-                (click)="toggleMissions($event)">
+                (click)="toggleMissions($event)" (keydown.escape)="missionOpen() && closeMissions($event)">
           <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}<span class="caret" aria-hidden="true">▴</span></span>
           <span class="val"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="activeMissionIcon()" /></svg>{{ activeMissionLabel() | translate }}</span>
           <span class="sub" [class.gapv]="!cohortLabel()">{{ cohortLabel() ?? ('codex.kpi.gap' | translate) }}</span>
@@ -515,7 +515,11 @@ export function stripMiniKey(userId: string | null | undefined): string {
       @media (max-width: 640px) {
         .holo-strip { position: fixed; inset-inline: 0; inset-block-end: var(--holo-strip-lift, 0px); border-radius: 12px 12px 0 0; }
         .hs-row { min-block-size: 52px; }
+        /* The narrowest phones: symbol + class + the three perspectives; the page's Signatur tile keeps those values. */
+        @media (max-width: 430px) { .sig, .sig + .fade { display: none; } .fade { display: none; } }
         .seg { padding: 5px 7px; flex: 1 1 0; }
+        .tile-vals { min-inline-size: 0; }
+        .tv .v, .fact .v { font-size: 12.5px; }
         .seg .lab .lt { display: none; }
         .seg .lab { gap: 0; }
         .tile-vals .tv .k { display: none; }
@@ -736,10 +740,15 @@ export class CodexHoloStripComponent {
     const root = getComputedStyle(document.documentElement);
     const lane = (parseFloat(root.getPropertyValue('--sc-fab-inset')) || 24) + (parseFloat(root.getPropertyValue('--sc-fab-size')) || 56);
     const gutter = parseFloat(root.getPropertyValue('--sc-fab-gutter')) || 12;
-    const right = el.getBoundingClientRect().right;
+    // The bar, not the host: on a phone the bar is fixed and the host collapses.
+    const box = (el.querySelector('.holo-strip') ?? el).getBoundingClientRect();
     // clientWidth, not innerWidth: the launcher's `right` inset is measured
     // from the viewport WITHOUT the page's scrollbar.
-    const clear = Math.max(0, Math.round(right - (document.documentElement.clientWidth - lane - gutter)));
+    let free = document.documentElement.clientWidth - lane - gutter;
+    // A detail page's share button rides beside the launcher, on whatever row the bar is.
+    const dock = document.querySelector('sc-share-button .dock')?.getBoundingClientRect();
+    if (dock && dock.width > 0 && dock.bottom > box.top && dock.top < box.bottom) free = Math.min(free, dock.left - gutter / 2);
+    const clear = Math.max(0, Math.round(box.right - free));
     el.style.setProperty('--fab-clear', `${clear}px`);
   }
 
@@ -775,6 +784,9 @@ export class CodexHoloStripComponent {
     });
     afterNextRender(() => {
       this.measureFabClearance();
+      // The share button arrives with the route, after this first measure.
+      const late = setTimeout(() => this.measureFabClearance(), 1500);
+      this.destroyRef.onDestroy(() => clearTimeout(late));
       const onResize = () => this.measureFabClearance();
       window.addEventListener('resize', onResize, { passive: true });
       const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;

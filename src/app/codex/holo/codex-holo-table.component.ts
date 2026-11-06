@@ -169,7 +169,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
           @if (packageRow(); as row) {
             <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" [row]="row" [still]="still()"
               interaction="table" [safeArea]="safeArea()" [selectedPort]="selectedPart()" [swappablePorts]="swappablePorts()"
-              [relevantPorts]="relevantPorts()" [calloutValues]="calloutValues()" [(hotspotScope)]="hotspotScope"
+              [relevantPorts]="relevantPorts()" [calloutValues]="calloutValues()" [calloutTitle]="calloutTitle()" [(hotspotScope)]="hotspotScope"
               [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)"
               (selectionChange)="partSelected.emit($event)" (swapRequested)="partSwap.emit($event)" />
           } @else if (packageRow() === null) {
@@ -670,6 +670,7 @@ export class CodexHoloTableComponent {
   readonly swappablePorts = input<ReadonlySet<string> | null>(null);
   readonly relevantPorts = input<ReadonlySet<string> | null>(null);
   readonly calloutValues = input<readonly CalloutValue[]>([]);
+  readonly calloutTitle = input<string | null>(null);
   /** Which dots the model shows; the "all parts" chip writes it. */
   readonly hotspotScope = model<HotspotScope>('swappable');
   readonly partSelected = output<PlacementSelection | null>();
