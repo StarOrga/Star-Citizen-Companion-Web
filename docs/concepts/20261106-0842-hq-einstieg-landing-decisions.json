@@ -341,5 +341,34 @@
       "general": ""
     },
     "submission_id": "sub-mw4rqkj0-mqv1i85q"
+  },
+  {
+    "iteration": 5,
+    "action": "implement",
+    "favorite": null,
+    "decisions": [],
+    "annotations": [
+      {
+        "id": "r5-a1",
+        "answer": "ja"
+      },
+      {
+        "id": "r5-a2",
+        "answer": "Ok, das können wir auch so machen!"
+      },
+      {
+        "id": "r5-a4",
+        "answer": "Sehr gut, ein wenig deutlicher dürfen sie schon klein wenig"
+      },
+      {
+        "id": "r5-a6",
+        "answer": "ja genau"
+      }
+    ],
+    "userPins": [],
+    "comments": {
+      "general": "Btw, in verse sitzt das nächste seite super aus, aber in hq anders und hat dann auch noch ein anderne background, bitte das von verse style mäßig nehmen auch in hq!"
+    },
+    "submission_id": "sub-mw4s5vbw-ctbhbr37"
   }
 ]
