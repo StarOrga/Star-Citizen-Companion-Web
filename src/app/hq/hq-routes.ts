@@ -20,7 +20,7 @@ export const hqOps = '/hq/ops';
  * The five HQ pages of the beta landing (`/hq`): one route, five scroll stages.
  * Start is `/hq`, the others are fragments (`/hq#planen`). Order = scroll order.
  */
-export const HQ_PAGES = ['start', 'bestand', 'jetzt', 'planen', 'statistik'] as const;
+export const HQ_PAGES = ['start', 'inventar', 'jetzt', 'planen', 'statistik'] as const;
 export type HqPageId = (typeof HQ_PAGES)[number];
 
 /** A router link to one HQ page: `[routerLink]="l.commands" [fragment]="l.fragment"`. */
@@ -58,9 +58,13 @@ export function hqEinsatzHref(id: string): string {
   return `${HQ_ROOT}?${HQ_EINSATZ_PARAM}=${encodeURIComponent(id)}#planen`;
 }
 
-/** The page a URL fragment names; null for none / unknown (Start is "no fragment"). */
+/** Fragments that older links carry for a page that has since been renamed (`#bestand` is Inventar). */
+const HQ_FRAGMENT_ALIASES: Readonly<Record<string, HqPageId>> = { bestand: 'inventar' };
+
+/** The page a URL fragment names; null for none / unknown (Start is "no fragment"). Old aliases still resolve. */
 export function hqPageOfFragment(fragment: string | null | undefined): HqPageId | null {
   const f = (fragment ?? '').replace(/^#/, '');
+  if (Object.prototype.hasOwnProperty.call(HQ_FRAGMENT_ALIASES, f)) return HQ_FRAGMENT_ALIASES[f];
   return (HQ_PAGES as readonly string[]).includes(f) ? (f as HqPageId) : null;
 }
 

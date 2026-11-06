@@ -45,7 +45,7 @@ export function ownMoreTarget(rows: readonly OwnMatch[], term: string): SearchTa
   const qp = q ? { q } : null;
   const first = rows[0]?.ownKind;
   if (first === 'set') return { link: [hqLocker], queryParams: qp };
-  if (first === 'item') return { link: ['/hq'], queryParams: qp, fragment: 'bestand' };
+  if (first === 'item') return { link: ['/hq'], queryParams: qp, fragment: 'inventar' };
   return { link: [hqHangar], queryParams: qp };
 }
 
@@ -124,7 +124,7 @@ export function searchOwn(
         {
           type: 'own', id: `own-item-${found.length}`, ownKind: 'item', title: it.name, ownName: null,
           subtitle: it.location || null, classNameSlug: it.class_name, qty: it.qty,
-          target: { link: ['/hq'], queryParams: { q: it.name }, fragment: 'bestand' },
+          target: { link: ['/hq'], queryParams: { q: it.name }, fragment: 'inventar' },
         },
         [it.name],
         [it.class_name],

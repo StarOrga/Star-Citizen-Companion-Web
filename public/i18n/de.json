@@ -1008,7 +1008,7 @@
         "readOnlyHint": "Das ist ein geteiltes Loadout. Übernimm es, um einen eigenen Link zu teilen.",
         "revokeConfirm": {
           "title": "Diesen Link nicht mehr teilen?",
-          "body": "Über diesen Link kann niemand das Loadout mehr übernehmen. Wer ihm schon folgt, bleibt verbunden."
+          "body": "Über diesen Link kann niemand mehr eine Kopie des Loadouts anlegen. Wer ihm schon folgt, bleibt verbunden."
         }
       },
       "components": {
@@ -1020,7 +1020,7 @@
       "shared": {
         "loading": "Geteiltes Loadout wird geladen …",
         "banner": "Geteilt von {{owner}} — „{{name}}“. Übernimm es, um es zu bearbeiten.",
-        "adopt": "Übernehmen & bearbeiten",
+        "adopt": "Kopie anlegen & bearbeiten",
         "unavailable": "Dieses geteilte Loadout ist nicht verfügbar — der Link ist ungültig, abgelaufen, zurückgezogen oder gehört zu einem anderen Schiff. Der Tisch zeigt das Standard-Loadout.",
         "loadError": "Das geteilte Loadout konnte nicht geladen werden.",
         "exit": "Zurück zu meinem Loadout",
@@ -4046,11 +4046,11 @@
       "loading": "Wird geladen …",
       "by": "von {{name}}",
       "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
-      "adopt": "Übernehmen",
-      "adopting": "Wird übernommen …",
-      "adoptHint": "In den eigenen Hangar übernehmen",
+      "adopt": "Kopie anlegen",
+      "adopting": "Kopie wird angelegt …",
+      "adoptHint": "Als Kopie in den eigenen Hangar legen",
       "adoptError": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
-      "loginToAdopt": "Anmelden zum Übernehmen",
+      "loginToAdopt": "Anmelden, um eine Kopie anzulegen",
       "aboutCta": "Was ist SC Companion?",
       "unavailable": {
         "title": "Dieses Loadout ist nicht verfügbar",
@@ -4060,7 +4060,7 @@
       "loadError": "Das geteilte Loadout konnte nicht geladen werden"
     },
     "errors": {
-      "adoptFailed": "Das geteilte Loadout konnte nicht übernommen werden."
+      "adoptFailed": "Von dem geteilten Loadout konnte keine Kopie angelegt werden."
     }
   },
   "quickSearch": {
@@ -5082,7 +5082,7 @@
     "tabsAria": "HQ-Bereiche",
     "tabs": {
       "overview": "Übersicht",
-      "locker": "Spind",
+      "locker": "Sets",
       "hangar": "Hangar",
       "ops": "Einsätze"
     },
@@ -5127,7 +5127,7 @@
       "opsEmpty": "Noch keine Einsätze geplant.",
       "suppliesEmpty": "Nichts zu besorgen.",
       "noShip": "Noch kein Schiff im Hangar.",
-      "noSet": "Noch kein Set im Spind.",
+      "noSet": "Noch kein Set angelegt.",
       "setupHangar": "Hangar einrichten",
       "createSet": "Set anlegen",
       "openCodex": "Im Codex ansehen",
@@ -5142,7 +5142,7 @@
       }
     },
     "locker": {
-      "title": "Spind",
+      "title": "Sets",
       "subtitle": "Deine FPS-Sets für jede Rolle.",
       "details": "Details",
       "detailsAria": "Details zu {{name}} im Codex"
@@ -5151,7 +5151,7 @@
       "start": "Start",
       "planen": "Planen",
       "jetzt": "Jetzt",
-      "bestand": "Bestand",
+      "inventar": "Inventar",
       "statistik": "Statistik",
       "empty": "{{page}}: Hier entsteht gerade etwas Neues."
     },
@@ -5174,7 +5174,7 @@
       },
       "bestand": {
         "empty": "Noch keine Schiffe",
-        "emptyHint": "Schiffe, Sets und Lager.",
+        "emptyHint": "Schiffe, Sets und Inventar.",
         "import": "RSI-Hangar holen",
         "ships": "{{n}} Schiffe",
         "shipsOne": "1 Schiff",
@@ -5182,8 +5182,8 @@
         "setsOne": "1 Set",
         "blueprints": "{{n}} Blueprints",
         "blueprintsOne": "1 Blueprint",
-        "stale": "Lagerstand {{n}} Tage alt",
-        "open": "Bestand ansehen"
+        "stale": "Inventarstand {{n}} Tage alt",
+        "open": "Inventar ansehen"
       },
       "now": {
         "live": "Live",
@@ -5492,10 +5492,10 @@
       }
     },
     "stock": {
-      "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
+      "signedOut": "Melde dich an, um dein Inventar zu sehen.",
       "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
-      "captured": "Im Lager eingetragen.",
+      "captured": "Im Inventar eingetragen.",
       "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
       "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
       "places": { "title": "Größte Orte" },
@@ -5503,10 +5503,10 @@
       "cats": { "title": "Kategorien" },
       "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
       "popup": {
-        "title": "Bestand",
+        "title": "Inventar",
         "modes": "Was möchtest du tun",
         "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
-        "search": "Bestand durchsuchen",
+        "search": "Inventar durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
         "stale": "Älter als 7 Tage",
@@ -5515,11 +5515,11 @@
         "viewBy": "Ansicht",
         "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
         "count": "{{n}} Einträge",
-        "results": "Bestandseinträge",
+        "results": "Inventareinträge",
         "loading": "Lädt …",
         "loadingMore": "Lädt weitere …",
         "noMatch": "Nichts passt zu diesen Filtern.",
-        "empty": "Noch nichts im Lager erfasst.",
+        "empty": "Noch nichts im Inventar erfasst.",
         "ships": "Schiffe im Terminal"
       },
       "retry": "Erneut versuchen",
@@ -5544,7 +5544,7 @@
         "days": "zuletzt geöffnet vor {{n}} Tagen"
       },
       "lager": {
-        "empty": "Noch nichts im Lager erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
+        "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
         "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
         "storage": "Schiffe im Hangar-Terminal"
       },
@@ -5557,17 +5557,17 @@
         "sort": "Sortierung",
         "nearest": "Am nächsten",
         "most": "Am meisten",
-        "yours": "Dein Bestand",
+        "yours": "Dein Inventar",
         "here": "Du bist in {{place}}",
         "whereAmI": "Wo bist du gerade?",
         "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die SCC-App oder wähle einen Ort.",
         "prompt": "Gib ein, was du suchst. Darunter siehst du, wo es liegt.",
-        "noHit": "Nichts davon im Lager. Vielleicht in der anderen Einheit?",
+        "noHit": "Nichts davon im Inventar. Vielleicht in der anderen Einheit?",
         "take": "{{n}} holen",
         "summaryOne": "Reicht: {{want}} {{unit}} an einem Ort.",
         "summaryMany": "Reicht zusammen: {{want}} {{unit}} aus {{stops}} Orten.",
-        "summaryShort": "Reicht nicht: {{total}} von {{want}} {{unit}} im Lager.",
-        "summaryTotal": "{{total}} {{unit}} im Lager.",
+        "summaryShort": "Reicht nicht: {{total}} von {{want}} {{unit}} im Inventar.",
+        "summaryTotal": "{{total}} {{unit}} im Inventar.",
         "pcsUnit": "Stück",
         "tier": {
           "here": "Hier",
@@ -5578,7 +5578,7 @@
         }
       },
       "capture": {
-        "title": "Etwas einlagern",
+        "title": "Etwas ins Inventar legen",
         "item": "Gegenstand oder Rohstoff",
         "itemHint": "z. B. Quantanium",
         "locationHint": "z. B. Area 18",
@@ -5644,8 +5644,8 @@
         "noSlot": "Kein Platz"
       },
       "stock": {
-        "adopt": "In meinen Bestand übernehmen",
-        "adopted": "Übernommen",
+        "adopt": "Kopie anlegen",
+        "adopted": "Kopie angelegt",
         "kindSet": "Set",
         "kindVariant": "Variante · {{ship}}"
       },
@@ -6243,7 +6243,7 @@
       "hq": "Mein HQ",
       "hqPlan": "Planen",
       "hqNow": "Jetzt",
-      "hqStock": "Bestand",
+      "hqStock": "Inventar",
       "hqStats": "Statistik"
     },
     "placeholder": {
@@ -6255,10 +6255,10 @@
       "ship": "Komponenten, Waffen, Schiffe …",
       "codexDetail": "Im Codex suchen …",
       "fps": "Waffen, Rüstungen, Ausrüstung …",
-      "hq": "Hangar, Spind, Schiffe …",
+      "hq": "Hangar, Sets, Schiffe …",
       "hqPlan": "Set, Teil oder Ort für deinen Einsatz …",
       "hqNow": "Schiff, Ort oder Teil …",
-      "hqStock": "In deinem Bestand suchen …",
+      "hqStock": "In deinem Inventar suchen …",
       "hqStats": "Schiff oder Set …"
     },
     "search": {
@@ -6292,7 +6292,7 @@
       "patches": "Patches",
       "gallery": "Galerie",
       "hangar": "Hangar",
-      "spind": "Spind",
+      "spind": "Sets",
       "hq": "HQ-Übersicht",
       "keybinds": "Keybinds",
       "upcoming": "Angekündigte Schiffe",
@@ -6428,7 +6428,7 @@
       "section": {
         "weapons": "Bewaffnung",
         "components": "Komponenten",
-        "stock": "Bestand",
+        "stock": "Inventar",
         "hangar": "Hangar",
         "sets": "Sets"
       },
@@ -6452,7 +6452,7 @@
       "atRsi": "Bei RSI",
       "allProducts": "Alle Produkte",
       "add": "Hinzufügen",
-      "whereStored": "Wo gelagert?",
+      "whereStored": "Wo liegt es?",
       "whereInstalled": "Wo verbaut?",
       "planOps": "Einsatz planen",
       "sourceOf": "Bezugsquelle",
@@ -6477,7 +6477,7 @@
       "noSize": "Größe {{size}} außerhalb S{{min}}–S{{max}}"
     },
     "group": {
-      "own": "Aus deinem Bestand",
+      "own": "Aus deinem Inventar",
       "patch": "Patches",
       "gallery": "Galerie",
       "opened": "Zuletzt geöffnet",
@@ -6493,11 +6493,11 @@
     "own": {
       "ship": "dein Schiff",
       "fitted": "auf deinem Schiff verbaut",
-      "lager": "im Lager",
+      "lager": "im Inventar",
       "sets": "in {{n}} Sets",
       "config": "dein Loadout auf „{{ship}}“",
       "set": "dein Set",
-      "qty": "{{n}}× im Lager",
+      "qty": "{{n}}× im Inventar",
       "fittedOn": "{{n}} auf „{{name}}“",
       "fittedMoreOne": "+1 weiteres Schiff",
       "fittedMore": "+{{n}} weitere Schiffe",
@@ -6528,7 +6528,7 @@
     },
     "signIn": {
       "title": "Anmelden?",
-      "message": "Wunschliste, Lager und Nachschub gehören zu deinem Konto. Melde dich an, um das zu speichern.",
+      "message": "Wunschliste, Inventar und Nachschub gehören zu deinem Konto. Melde dich an, um das zu speichern.",
       "confirm": "Zur Anmeldung"
     },
     "done": {
@@ -6673,7 +6673,7 @@
         "q": "im hangar aegis"
       },
       {
-        "t": "Mit „lager“ vor dem Begriff suchst du nur in deinem Inventar"
+        "t": "Mit „inventar“ vor dem Begriff suchst du nur in deinem Inventar"
       },
       {
         "t": "Mit „gemerkt“ vor dem Begriff suchst du nur auf deiner Wunschliste. Gemerktes steht immer zuerst"
@@ -6682,8 +6682,8 @@
         "t": "Im Hangar findet „patrouille“ dein Loadout"
       },
       {
-        "t": "„im lager s3“ zeigt, was du in Größe 3 hast",
-        "q": "im lager s3"
+        "t": "„im inventar s3“ zeigt, was du in Größe 3 hast",
+        "q": "im inventar s3"
       },
       {
         "t": "Eigene Treffer stehen immer ganz oben"
@@ -6711,7 +6711,7 @@
         "q": "s4"
       },
       {
-        "t": "Im Bestand: „laser“ zeigt erst dein Lager",
+        "t": "Im Inventar: „laser“ zeigt erst dein Inventar",
         "q": "laser"
       },
       {

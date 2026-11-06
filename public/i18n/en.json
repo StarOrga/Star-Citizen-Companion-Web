@@ -1005,10 +1005,10 @@
         "linksLoading": "Loading your links …",
         "linksError": "Your links could not be loaded.",
         "activeLinks": "Active links ({{n}})",
-        "readOnlyHint": "This is a shared loadout. Adopt it to share a link of your own.",
+        "readOnlyHint": "This is a shared loadout. Create a copy to share a link of your own.",
         "revokeConfirm": {
           "title": "Stop sharing this link?",
-          "body": "Nobody can adopt the loadout through this link any more. Recipients who already follow it stay connected."
+          "body": "Nobody can create a copy of the loadout through this link any more. Recipients who already follow it stay connected."
         }
       },
       "components": {
@@ -1019,12 +1019,12 @@
       },
       "shared": {
         "loading": "Loading the shared loadout …",
-        "banner": "Shared by {{owner}} — “{{name}}”. Adopt it to edit.",
-        "adopt": "Adopt to edit",
+        "banner": "Shared by {{owner}} — “{{name}}”. Create a copy to edit it.",
+        "adopt": "Create a copy to edit",
         "unavailable": "This shared loadout is not available — the link is invalid, expired, revoked or for another ship. The table shows the stock loadout.",
         "loadError": "The shared loadout could not be loaded.",
         "exit": "Back to my loadout",
-        "readOnlyHint": "Shared loadout — read-only. Adopt it to change or save it."
+        "readOnlyHint": "Shared loadout — read-only. Create a copy to change or save it."
       }
     },
     "empty": {
@@ -4046,11 +4046,11 @@
       "loading": "Loading …",
       "by": "by {{name}}",
       "emptyLoadout": "Nothing is set in this loadout yet.",
-      "adopt": "Adopt",
-      "adopting": "Adopting …",
+      "adopt": "Create a copy",
+      "adopting": "Creating the copy …",
       "adoptHint": "Add to your own hangar",
       "adoptError": "That didn't work. Please try again.",
-      "loginToAdopt": "Sign in to adopt",
+      "loginToAdopt": "Sign in to create a copy",
       "aboutCta": "What is SC Companion?",
       "unavailable": {
         "title": "This loadout is not available",
@@ -4060,7 +4060,7 @@
       "loadError": "The shared loadout could not be loaded"
     },
     "errors": {
-      "adoptFailed": "The shared loadout could not be adopted."
+      "adoptFailed": "A copy of the shared loadout could not be created."
     }
   },
   "quickSearch": {
@@ -5082,7 +5082,7 @@
     "tabsAria": "HQ sections",
     "tabs": {
       "overview": "Overview",
-      "locker": "Locker",
+      "locker": "Sets",
       "hangar": "Hangar",
       "ops": "Ops"
     },
@@ -5107,7 +5107,7 @@
       "tabs": { "wish": "Wishlist", "nachschub": "Supplies" },
       "wish": { "empty": "Nothing on the wishlist yet.", "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.", "toNachschub": "To Supplies", "remove": "Take {{name}} off the wishlist", "notYet": "not in the game yet" },
       "got": "Got it",
-      "place": { "title": "Where is it now?", "other": "Other place …", "otherPlaceholder": "Enter a place", "store": "Store", "tickOnly": "Just tick off" }
+      "place": { "title": "Where is it now?", "other": "Other place …", "otherPlaceholder": "Enter a place", "store": "Put down", "tickOnly": "Just tick off" }
     },
     "ops": {
       "title": "Ops",
@@ -5127,7 +5127,7 @@
       "opsEmpty": "No ops planned yet.",
       "suppliesEmpty": "Nothing to fetch.",
       "noShip": "No ship in your hangar yet.",
-      "noSet": "No set in your locker yet.",
+      "noSet": "No set created yet.",
       "setupHangar": "Set up hangar",
       "createSet": "Create a set",
       "openCodex": "View in codex",
@@ -5142,7 +5142,7 @@
       }
     },
     "locker": {
-      "title": "Locker",
+      "title": "Sets",
       "subtitle": "Your FPS sets for every role.",
       "details": "Details",
       "detailsAria": "{{name}} details in the codex"
@@ -5151,7 +5151,7 @@
       "start": "Start",
       "planen": "Plan",
       "jetzt": "Now",
-      "bestand": "Holdings",
+      "inventar": "Inventory",
       "statistik": "Stats",
       "empty": "{{page}}: something new is being built here."
     },
@@ -5174,7 +5174,7 @@
       },
       "bestand": {
         "empty": "No ships yet",
-        "emptyHint": "Ships, sets and storage.",
+        "emptyHint": "Ships, sets and inventory.",
         "import": "Get RSI hangar",
         "ships": "{{n}} ships",
         "shipsOne": "1 ship",
@@ -5182,8 +5182,8 @@
         "setsOne": "1 set",
         "blueprints": "{{n}} blueprints",
         "blueprintsOne": "1 blueprint",
-        "stale": "Stock count {{n}} days old",
-        "open": "View holdings"
+        "stale": "Inventory count {{n}} days old",
+        "open": "View inventory"
       },
       "now": {
         "live": "Live",
@@ -5492,10 +5492,10 @@
       }
     },
     "stock": {
-      "signedOut": "Sign in to see your holdings.",
+      "signedOut": "Sign in to see your inventory.",
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
-      "captured": "Added to storage.",
+      "captured": "Added to your inventory.",
       "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
       "totals": { "title": "Total", "items": "items", "places": "places" },
       "places": { "title": "Largest places" },
@@ -5503,10 +5503,10 @@
       "cats": { "title": "Categories" },
       "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
       "popup": {
-        "title": "Stock",
+        "title": "Inventory",
         "modes": "What to do",
         "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
-        "search": "Search stock",
+        "search": "Search inventory",
         "searchHint": "Item or place",
         "filters": "Filters",
         "stale": "Older than 7 days",
@@ -5515,11 +5515,11 @@
         "viewBy": "View by",
         "view": { "place": "By place", "name": "By item", "qty": "By amount" },
         "count": "{{n}} entries",
-        "results": "Stock entries",
+        "results": "Inventory entries",
         "loading": "Loading …",
         "loadingMore": "Loading more …",
         "noMatch": "Nothing matches these filters.",
-        "empty": "Nothing stored yet.",
+        "empty": "Nothing in your inventory yet.",
         "ships": "Ships at terminal"
       },
       "retry": "Try again",
@@ -5544,7 +5544,7 @@
         "days": "last opened {{n}} days ago"
       },
       "lager": {
-        "empty": "Nothing stored yet. Once there is, you can search here for where it lies.",
+        "empty": "Nothing in your inventory yet. Once there is, you can search here for where it lies.",
         "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand with “Add”.",
         "storage": "Ships at the hangar terminal"
       },
@@ -5557,17 +5557,17 @@
         "sort": "Sort order",
         "nearest": "Nearest",
         "most": "Most",
-        "yours": "Your stock",
+        "yours": "Your inventory",
         "here": "You are in {{place}}",
         "whereAmI": "Where are you right now?",
         "unknownHere": "Without your location we sort by amount. Start the SCC app or pick a place.",
         "prompt": "Enter what you are looking for. Below you see where it lies.",
-        "noHit": "None of that in storage. Maybe in the other unit?",
+        "noHit": "None of that in your inventory. Maybe in the other unit?",
         "take": "take {{n}}",
         "summaryOne": "Enough: {{want}} {{unit}} in one place.",
         "summaryMany": "Enough together: {{want}} {{unit}} from {{stops}} places.",
-        "summaryShort": "Not enough: {{total}} of {{want}} {{unit}} in storage.",
-        "summaryTotal": "{{total}} {{unit}} in storage.",
+        "summaryShort": "Not enough: {{total}} of {{want}} {{unit}} in your inventory.",
+        "summaryTotal": "{{total}} {{unit}} in your inventory.",
         "pcsUnit": "pcs",
         "tier": {
           "here": "Here",
@@ -5578,7 +5578,7 @@
         }
       },
       "capture": {
-        "title": "Put something in storage",
+        "title": "Add something to your inventory",
         "item": "Item or raw material",
         "itemHint": "e.g. Quantanium",
         "locationHint": "e.g. Area 18",
@@ -5644,8 +5644,8 @@
         "noSlot": "No slot"
       },
       "stock": {
-        "adopt": "Add to my stock",
-        "adopted": "Adopted",
+        "adopt": "Create a copy",
+        "adopted": "Copy created",
         "kindSet": "Set",
         "kindVariant": "Variant · {{ship}}"
       },
@@ -6243,7 +6243,7 @@
       "hq": "My HQ",
       "hqPlan": "Plan",
       "hqNow": "Now",
-      "hqStock": "Holdings",
+      "hqStock": "Inventory",
       "hqStats": "Stats"
     },
     "placeholder": {
@@ -6255,10 +6255,10 @@
       "ship": "Components, weapons, ships …",
       "codexDetail": "Search the Codex …",
       "fps": "Weapons, armour, gear …",
-      "hq": "Hangar, locker, ships …",
+      "hq": "Hangar, sets, ships …",
       "hqPlan": "A set, part or place for your op …",
       "hqNow": "Ship, place or part …",
-      "hqStock": "Search your holdings …",
+      "hqStock": "Search your inventory …",
       "hqStats": "Ship or set …"
     },
     "search": {
@@ -6292,7 +6292,7 @@
       "patches": "Patches",
       "gallery": "Gallery",
       "hangar": "Hangar",
-      "spind": "Locker",
+      "spind": "Sets",
       "hq": "HQ overview",
       "keybinds": "Keybinds",
       "upcoming": "Announced ships",
@@ -6428,7 +6428,7 @@
       "section": {
         "weapons": "Weapons",
         "components": "Components",
-        "stock": "Stock",
+        "stock": "Inventory",
         "hangar": "Hangar",
         "sets": "Sets"
       },
@@ -6452,7 +6452,7 @@
       "atRsi": "At RSI",
       "allProducts": "All products",
       "add": "Add",
-      "whereStored": "Where stored?",
+      "whereStored": "Where is it?",
       "whereInstalled": "Where fitted?",
       "planOps": "Plan mission",
       "sourceOf": "Where to get",
@@ -6493,11 +6493,11 @@
     "own": {
       "ship": "your ship",
       "fitted": "fitted on your ship",
-      "lager": "in stock",
+      "lager": "in inventory",
       "sets": "in {{n}} sets",
       "config": "your loadout on \"{{ship}}\"",
       "set": "your set",
-      "qty": "{{n}}× in stock",
+      "qty": "{{n}}× in inventory",
       "fittedOn": "{{n}} on \"{{name}}\"",
       "fittedMoreOne": "+1 more ship",
       "fittedMore": "+{{n}} more ships",
@@ -6528,7 +6528,7 @@
     },
     "signIn": {
       "title": "Sign in?",
-      "message": "Wishlist, stock and supplies belong to your account. Sign in to save this.",
+      "message": "Wishlist, inventory and supplies belong to your account. Sign in to save this.",
       "confirm": "Go to sign-in"
     },
     "done": {
@@ -6673,7 +6673,7 @@
         "q": "in hangar aegis"
       },
       {
-        "t": "\"stock\" before a word searches only your inventory"
+        "t": "\"inventory\" before a word searches only your inventory"
       },
       {
         "t": "\"wishlist\" before a word searches only your wishlist. Wished items always come first"
@@ -6682,8 +6682,8 @@
         "t": "In the hangar \"patrol\" finds your loadout"
       },
       {
-        "t": "\"in stock s3\" shows what you have in size 3",
-        "q": "in stock s3"
+        "t": "\"in inventory s3\" shows what you have in size 3",
+        "q": "in inventory s3"
       },
       {
         "t": "Your own hits always come first"
@@ -6711,7 +6711,7 @@
         "q": "s4"
       },
       {
-        "t": "In your stock: \"laser\" shows your storage first",
+        "t": "In your inventory: \"laser\" shows your inventory first",
         "q": "laser"
       },
       {
@@ -7063,7 +7063,7 @@
       "whereTitle": "Where is it?",
       "otherPlace": "Other place …",
       "otherPlaceholder": "Enter a place",
-      "store": "Store",
+      "store": "Put down",
       "removeHangarTitle": "Remove from hangar?",
       "removeHangarMessage": "“{{name}}” is deleted along with its variants, their shares with friends and its notes. This cannot be undone."
     },

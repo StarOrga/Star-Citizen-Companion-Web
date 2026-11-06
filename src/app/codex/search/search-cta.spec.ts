@@ -11,7 +11,7 @@ function ctxFor(key: CtaRowKey): SearchContext {
     case 'chipShip': return searchContextOf('/codex/ship/AEGS_Gladius');
     case 'chipItem': return searchContextOf('/codex/weapon/BEHR_Rifle');
     case 'hqHangar': return searchContextOf('/hq/hangar');
-    case 'hqStock': return searchContextOf('/hq', 'bestand');
+    case 'hqStock': return searchContextOf('/hq', 'inventar');
     case 'hqPlan': return searchContextOf('/hq', 'planen');
     default: return searchContextOf('/codex');
   }

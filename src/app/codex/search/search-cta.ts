@@ -153,7 +153,7 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
     case 'add':
       return cta('add', 'action', null, !signedIn);
     case 'whereStored':
-      return cta('whereStored', 'link', { link: ['/hq'], queryParams: null, fragment: 'bestand' });
+      return cta('whereStored', 'link', { link: ['/hq'], queryParams: null, fragment: 'inventar' });
     case 'planOps':
       return cta('planOps', 'link', { link: ['/hq', 'ops'], queryParams: null });
     case 'sourceOf':

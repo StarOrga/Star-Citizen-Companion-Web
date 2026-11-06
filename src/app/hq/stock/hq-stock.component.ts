@@ -33,7 +33,7 @@ const STALE_SHOWN = 3;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
-      <h2 class="page-title" id="hq-stock-title">{{ 'hq.pages.bestand' | translate }}</h2>
+      <h2 class="page-title" id="hq-stock-title">{{ 'hq.pages.inventar' | translate }}</h2>
       @if (auth.user()) {
         <div class="actions">
           <!-- r2-head = one: a single primary. Browse is the number tiles, "Wo liegt ...?" the fusion search. -->

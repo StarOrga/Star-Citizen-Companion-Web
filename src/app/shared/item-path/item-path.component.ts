@@ -441,7 +441,7 @@ export class ItemPathComponent implements OnDestroy {
     return {
       wish: hqListLink('wish'),
       nachschub: hqListLink('nachschub'),
-      inventar: hqPage('bestand'),
+      inventar: hqPage('inventar'),
       hangar: { commands: id ? hqShip(id) : hqPage('start').commands, fragment: undefined },
     };
   });

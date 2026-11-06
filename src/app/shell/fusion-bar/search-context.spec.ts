@@ -109,11 +109,11 @@ describe('search-context · HQ pages (exclusion)', () => {
   it('keeps the plain HQ context for Start and the sub routes', () => {
     expect(searchContextOf('/hq', null).key).toBe('hq');
     expect(searchContextOf('/hq', 'start').key).toBe('hq');
-    expect(searchContextOf('/hq/hangar', 'bestand').key).toBe('hq');
+    expect(searchContextOf('/hq/hangar', 'inventar').key).toBe('hq');
   });
 
   it('derives one context per landing page, with a chip label each', () => {
-    const keys = (['planen', 'jetzt', 'bestand', 'statistik'] as const).map((p) => searchContextOf('/hq', p));
+    const keys = (['planen', 'jetzt', 'inventar', 'statistik'] as const).map((p) => searchContextOf('/hq', p));
     expect(keys.map((c) => c.key)).toEqual(['hqPlan', 'hqNow', 'hqStock', 'hqStats']);
     expect(keys.map((c) => c.labelKey)).toEqual([
       'fusionBar.ctx.hqPlan',
@@ -125,7 +125,7 @@ describe('search-context · HQ pages (exclusion)', () => {
   });
 
   it('never hard-filters: an excluded group stays, collapsed to one row with its "all N" link', () => {
-    const ctx = searchContextOf('/hq', 'bestand');
+    const ctx = searchContextOf('/hq', 'inventar');
     expect(ctx.exclude).toContain('upcoming');
     const groups = [group('upcoming', 4, 9), group('ship', 4, 4), group('weapon', 4, 4)];
     const out = weightGroups(groups, ctx, () => false, () => ({ commands: ['/x'] }) as never);
@@ -137,7 +137,7 @@ describe('search-context · HQ pages (exclusion)', () => {
   });
 
   it('ranks deprioritized kinds after neutral ones and before excluded ones', () => {
-    const ctx = searchContextOf('/hq', 'bestand');
+    const ctx = searchContextOf('/hq', 'inventar');
     const out = weightGroups([group('upcoming', 1), group('component', 1), group('blueprint', 1)], ctx);
     expect(out.map((w) => w.group.kind)).toEqual(['blueprint', 'component', 'upcoming']);
   });

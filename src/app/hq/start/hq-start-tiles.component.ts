@@ -57,8 +57,8 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
   template: `
     <div class="row">
       <div class="tile side edge left" data-tile="bestand" [class.next]="stock() === 'empty'">
-        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'bestand' }" />
-        <span class="side-k"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bestand" /></svg>{{ 'hq.pages.bestand' | translate }}</span>
+        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'inventar' }" />
+        <span class="side-k"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.inventar" /></svg>{{ 'hq.pages.inventar' | translate }}</span>
         @switch (stock()) {
           @case ('loading') {
             <small role="status">{{ 'hq.start.loading' | translate }}</small>

@@ -128,7 +128,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
   });
 
   it('chips: always shown in the field; ⌫ at the start removes the last chip (C3, C5)', () => {
-    const engine = fakeEngine({ groups: [weapons], context: searchContextOf('/hq', 'bestand') });
+    const engine = fakeEngine({ groups: [weapons], context: searchContextOf('/hq', 'inventar') });
     const { el, field, key, fixture } = setupFusionSearch(engine);
     expect(el.querySelectorAll('sc-fusion-search-chip').length).toBe(1);
     field.setSelectionRange(0, 0);
