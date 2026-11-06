@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.211.3",
+  "current": "0.211.4",
   "releases": [
+    {
+      "version": "0.211.4",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Stock: \"Blueprints in the Codex\" now opens the blueprint list (all blueprints, A to Z) instead of the Codex landing page."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.211.3",
       "date": "2026-11-06",
