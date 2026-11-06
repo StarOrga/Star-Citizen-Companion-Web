@@ -15,6 +15,18 @@
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
+  "shortcuts": [
+    {
+      "name": "Holdings",
+      "url": "hq#bestand",
+      "icons": [{ "src": "icons/brand/scc-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Now",
+      "url": "hq#jetzt",
+      "icons": [{ "src": "icons/brand/scc-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "icons/brand/scc-mark.svg",

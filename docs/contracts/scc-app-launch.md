@@ -1,6 +1,8 @@
 # Contract: starting the SCC-App from the website
 
-The HQ pages offer one action, "SCC-App starten" (`src/app/desktop/scc-app-launcher.service.ts`). It opens a URL the desktop app registers for itself. If nothing answers, the website downloads the installer.
+The Jetzt and Statistik pages offer one action, "SCC-App starten" (`src/app/desktop/scc-app-launcher.service.ts`). It opens a URL the desktop app registers for itself. If nothing answers, the website downloads the installer.
+
+The HQ Start page names the action by what it knows. With no game signal on the account and no memory in this browser it says "SCC-App downloaden" and its click downloads the installer without trying the URL. With a game signal on the account or a memory in this browser it says "SCC-App starten" and works as described below.
 
 ## URL
 
@@ -27,5 +29,7 @@ A browser does not report whether a scheme has a handler. The website waits 2.5 
 | Focus changed | Says the app is starting and remembers this for the browser |
 | No change, and the app never answered in this browser | Starts the installer download and says so |
 | No change, but the app answered here before | Starts nothing and offers the download |
+
+The memory in this browser (`sc.sccApp.launchedBefore`) is set when the app answers a launch and when the website sees the game running on the account through the app's live signal.
 
 The website's CSP must keep the scheme in `frame-src` (`vercel.json`), because the URL is opened through a hidden frame.

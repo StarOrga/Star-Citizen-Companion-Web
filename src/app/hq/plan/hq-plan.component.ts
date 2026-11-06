@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
@@ -8,12 +8,13 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
 import { HqEinsatzService, einsatzBadge } from '../data/hq-einsatz.service';
 import { HqOwnershipService } from '../hq-ownership.service';
+import { HqPageNavService } from '../hq-page-nav.service';
+import { PAGE_GLIDE_MS } from '../hq-page-scroll';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { readLocation } from '../now/hq-live.util';
 import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
 import { HqSuppliesService } from '../hq-supplies.service';
-import { HqStartFeedService } from '../start/hq-start-feed.service';
 import { HqEinsatzCrewComponent } from '../social/hq-einsatz-crew.component';
 import { HqFriendShareComponent } from '../social/hq-friend-share.component';
 import { HqSharedEinsaetzeComponent } from '../social/hq-shared-einsaetze.component';
@@ -227,7 +228,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
           } @else {
             <ul class="ein-list">
               @for (e of einsatz.items(); track e.id) {
-                <li class="ein">
+                <li class="ein" [class.focus]="focusedRoute() === e.id" [attr.data-einsatz]="e.id">
                   <div class="ein-head">
                     <strong class="ein-title">{{ e.title }}</strong>
                     <span class="badge" [scTooltip]="badge(e).multi ? ('hq.einsatz.stepsTooltip' | translate: { n: badge(e).n }) : null">
@@ -327,6 +328,9 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .ein { padding: var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0); }
       .ein-head { display: flex; align-items: center; gap: var(--sc-space-3, 12px); margin-bottom: var(--sc-space-2, 8px); }
       .ein-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+      .ein.focus { outline: 1px solid var(--sc-accent); outline-offset: var(--sc-space-1, 4px); border-radius: var(--sc-radius, 10px); animation: hq-route-focus 6s ease-in forwards; }
+      /* It says "this one" on arrival, it does not stay marked for the rest of the session. */
+      @keyframes hq-route-focus { 60% { outline-color: var(--sc-accent); } 100% { outline-color: transparent; } }
       .ein-step { display: flex; align-items: center; gap: var(--sc-space-2, 8px); }
       .ein-step sc-step { flex: 1; min-width: 0; }
       @media (pointer: coarse) { .seg, .kind, .nach, .n-where.pick, .where-opt { min-height: 48px; } .rm { min-width: 48px; min-height: 48px; } }
@@ -339,7 +343,8 @@ export class HqPlanComponent {
   protected readonly einsatz = inject(HqEinsatzService);
   private readonly hangar = inject(HangarService);
   private readonly ownership = inject(HqOwnershipService);
-  private readonly feed = inject(HqStartFeedService);
+  private readonly nav = inject(HqPageNavService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly confirm = inject(ScConfirmService);
   private readonly i18n = inject(TranslateService);
   private readonly live = inject(HqLiveService);
@@ -350,6 +355,9 @@ export class HqPlanComponent {
   protected readonly shapes = STEP_SHAPES;
   protected readonly view = signal<PlanView>('what');
   protected readonly suppliesOpen = signal(false);
+  /** The saved route "Route öffnen" asked for: marked in the list. */
+  protected readonly focusedRoute = signal<string | null>(null);
+  private handledRoute: { id: string } | null = null;
 
   protected readonly sets = computed(() =>
     buildPlanSets(this.hangar.ships(), this.ownership.configs(), this.hangar.roleLoadouts(), this.supplies.items()),
@@ -427,29 +435,25 @@ export class HqPlanComponent {
         .map((s) => s.className as string);
       untracked(() => this.sourcesSvc.ensure(wanted));
     });
-    // "Jetzt wichtig" chips on Start: upcoming Einsaetze, then a set whose Nachschub is all ready.
+    // "Route öffnen" (Start tile, Jetzt button, a shared URL): Wie, on exactly this saved route.
+    let scroll: ReturnType<typeof setTimeout> | undefined;
     effect(() => {
-      const upcoming = this.einsatz.upcoming().slice(0, 3).map((e) => ({
-        id: `einsatz-${e.id}`,
-        label: einsatzBadge(e).multi ? `${e.title} ×${e.steps.length}` : e.title,
-        link: ['/hq'],
-        fragment: 'planen',
-      }));
-      const ready = this.sets()
-        .filter((s) => {
-          const own = this.needs().filter((n) => n.setKey === s.key && n.wanted);
-          return own.length > 0 && own.every((n) => n.status === 'done');
-        })
-        .slice(0, 1)
-        .map((s) => ({
-          id: `supply-ready-${s.key}`,
-          label: this.i18n.instant('hq.supply.setReady', { name: s.name }),
-          link: ['/hq'],
-          fragment: 'planen',
-        }));
-      this.feed.chips.set([...upcoming, ...ready].slice(0, 4));
+      const focus = this.nav.routeFocus();
+      if (!focus || !this.einsatz.items().some((e) => e.id === focus.id)) return;
+      untracked(() => {
+        if (this.handledRoute === focus) return;
+        this.handledRoute = focus;
+        this.focusedRoute.set(focus.id);
+        this.view.set('how');
+        clearTimeout(scroll);
+        // After the glide to this page: a second scroll would cancel it.
+        scroll = setTimeout(
+          () => this.host.querySelector(`[data-einsatz="${CSS.escape(focus.id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+          PAGE_GLIDE_MS,
+        );
+      });
     });
-    destroyRef.onDestroy(() => this.feed.chips.set([]));
+    destroyRef.onDestroy(() => clearTimeout(scroll));
   }
 
   protected needSources(className: string | null) {

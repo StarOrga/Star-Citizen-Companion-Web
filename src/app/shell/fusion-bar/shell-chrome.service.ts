@@ -115,7 +115,7 @@ export class ShellChromeService {
   readonly pageSearch = computed<((term: string) => void) | null>(() => this.pageSearchOwners().at(-1)?.apply ?? null);
 
   /**
-   * The HQ page in view on the beta landing (`/hq`: start · planen · jetzt · bestand · statistik),
+   * The HQ page in view on the beta landing (`/hq`: start · bestand · jetzt · planen · statistik),
    * or null off the landing. Published by `HqPagesComponent` from its visible section. The bar
    * condenses by scroll depth as on every main page (each page is a full viewport, so a follow
    * page always stands under the docked subheader); this signal drives what depends on the PAGE:

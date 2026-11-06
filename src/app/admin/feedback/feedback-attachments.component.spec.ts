@@ -41,7 +41,6 @@ describe('FeedbackAttachmentsComponent', () => {
         image: 'Attachment',
         enlarge: 'Enlarge image',
         enlargeNamed: 'Enlarge image: {{name}}',
-        close: 'Close image',
         remove: 'Remove image',
         prev: 'Previous image',
         next: 'Next image',
@@ -119,6 +118,21 @@ describe('FeedbackAttachmentsComponent', () => {
     cmp.close();
     fixture.detectChanges();
     expect(cmp.current()).toBeNull();
+    expect(lightbox()).toBeNull();
+  });
+
+  it('has no close button; a click outside the picture closes, a click inside does not', async () => {
+    await setup();
+    thumbs()[0].click();
+    fixture.detectChanges();
+    expect(lightbox()?.querySelector('.lb-close')).toBeNull();
+
+    lightbox()?.querySelector<HTMLElement>('.lb-frame')?.click();
+    fixture.detectChanges();
+    expect(lightbox()).not.toBeNull();
+
+    lightbox()?.click();
+    fixture.detectChanges();
     expect(lightbox()).toBeNull();
   });
 

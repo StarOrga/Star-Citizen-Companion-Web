@@ -316,8 +316,9 @@ cache the same page blocks about 1.3 s, most of it app boot.
 | Bodies off screen | already paused by IntersectionObserver | Nothing to do |
 | 2D copy per body | under 0.1 ms per body on the main thread | Kept: one context needs it |
 
-Not taken, because pixels would change: a slower planet pass, a smaller canvas,
-drawing the surface once and compositing the aurora over it.
+Not taken then, because pixels would change: a slower planet pass, a smaller canvas,
+drawing the surface once and compositing the aurora over it. Section 7 reopens the
+smaller canvas. The planet pass stays at 15 fps, the owner's choice after seeing it live.
 
 **Texture size (GL-7).** The disc is `160vw` wide, so r = 0.8 x viewport width, and
 1:1 at the disc's centre takes W = 2 pi r. There is no 8k asset.
@@ -356,3 +357,107 @@ instead of 4-6 s, while the page stays usable.
 **Service worker:** the worker files are `worker-*.js` in the dist root. If
 `ngsw-config.json` narrows `/*.js`, they need a rule of their own. Without one they
 still load online; offline the page draws the planet itself.
+
+## 7. What the page costs at rest (concept 2026-11-06 "Planet-Leistung")
+
+Concept and decisions: `docs/concepts/20261106-0930-planet-leistung/`.
+
+**Method.** Production build with the fixtures of section 1, real GPU (RTX 2080 Super,
+Direct3D 11), 1920x1000. Load is the CPU of the renderer and GPU processes in % of one
+core (`SystemInfo.getProcessInfo` over the browser CDP session). Headless Edge has the
+real GPU and about 150 rAF/s, and opens no window. A visible window needs
+`--disable-features=CalculateNativeWinOcclusion`: covered, its rAF drops to 1/s. Check
+that the planet's measures per second look right before trusting a row. Between runs the
+base moves by about 7.
+
+**Findings.**
+
+- The planet's shader is cheap on this GPU: under 1 ms a frame, even at 4K. Its cost
+  was the page following the monitor: about 175 measures and messages a second for 15
+  pictures.
+- The planet was about 12 % of the page. Removing sources one by one shifts the shares:
+  a source can hide behind another that keeps the same frames alive (`wave` looked like
+  9 first and turned out to be about 54 once the others were gone).
+- Menu clicks: `.stars` carried 226 radial-gradient layers. After a click, frames stood
+  for 630 ms on average, with no long task and no blocking script, so the wait was in
+  raster. Without the gradients the longest gap was 51 ms. A `will-change` or a sky
+  without its flight did not help. `field-image` draws the same spots as one SVG image
+  (largest difference 9 of 255, on the stars' edges only).
+
+**Result, same session, 2 rounds each (headless Edge).**
+
+| | Before | After |
+|---|---|---|
+| /verse at rest | 188 | 128 |
+| /verse without window focus | 193 | 38 |
+| Scrolling | 240 | 226 |
+| Longest frame gap after a menu click, average | 595 ms | 91 ms |
+| Page measures per second at rest | 349 | 28 |
+
+The planet alone on a quiet page: +28 before. After: the page with it went from 70.8 to
+57.7, and the difference to the page without it reads +4.3, which understates it, because
+the twinkling stars keep compositor frames alive in that base. The tick test of the
+concept (+13.7) is the better figure. A sixth to a half of before, not a tenth, except
+without focus, where it does not run at all.
+
+**Rules that follow.**
+
+- At rest a timer sets the planet's pace. It is followed every frame only while it moves
+  on screen; the loop finds that out by itself, so the entrance and the shake need no hook.
+- Never animate `box-shadow`, a custom property in a gradient or a window-sized layer in
+  an infinite loop. Opacity on a small layer of its own does the same job.
+- Never many gradient layers for a static picture: use one image.
+- An animation under `opacity: 0` still costs its frames.
+
+**The remainder: frames, not layers.** With every animation frozen and only the planet
+and the moons at 15 Hz, /verse costs 35. With nothing but the three 5 px stars running
+and no planet, it costs 68. Filters, `backdrop-filter`, blend modes and `will-change` make
+no measurable difference. One running animation of any size makes the browser produce and
+draw whole frames at the display's rate, so the load follows from how often anything moves.
+Pausing one group at a time shows almost nothing (fb-breathe, the sun's parts: 0 to 5),
+because the others keep the same frames alive; "about 75 with nothing animated" above was
+wrong, the earlier test had left the stars and transitions running.
+
+`SlowMotionService` therefore advances the endless animations of the scene, the fusion bar
+and the briefing at 15 Hz by hand, and the stars with them. `fs-demo` runs three loops and
+then stands.
+
+| | Before | After section 7 | With the 15 Hz clock |
+|---|---|---|---|
+| /verse at rest | 199 | 128 | 86 |
+| /verse without window focus | 204 | 38 | 39 |
+| Scrolling | 213 | 226 | 164 |
+| Frame gap after a menu click, average of all hops | 1313 ms | not comparable | 146 ms |
+
+The "before" column here is the same build as above, measured again in the later run; 188
+to 199 at rest shows the spread between runs. A menu hop now usually takes about 100 ms;
+one of twelve took 511 ms. With everything frozen 35 is the floor of the 15 Hz canvases, and
+the three clocks (planet, moons, animations) do not tick in step, so up to 45 frames a
+second remain. Aligning them is the next lever, unmeasured.
+
+**Live, v0.215.0, 2 runs.** The real Vercel bundle in headless Edge, with the fixtures and a
+stubbed session, because /verse needs a sign-in: at rest 84, without focus 45, scrolling
+188. Menu hops usually take about 100 ms, loading 0 to 1 chunk. The first hop to the Codex
+after a start still stands for 461 to 483 ms, here and in the local run (511 ms); that hop
+was not taken apart.
+
+**Stutter on /verse (owner's report on v0.215.0).** On a wide screen a wheel notch makes the
+page glide by script, so every scroll frame runs on the main thread and any main-thread
+work shows. `--dock` was written on the page's host in each of those frames, though one
+element reads it: about 10 ms of forced style with 5.6 ms to spare at 179 Hz. It now sits on
+that element. The first version of `SlowMotionService` polled `getAnimations()` once a
+second, a forced recalculation of 12 ms, once 74 ms right after a page change; it now listens
+to `animationstart` and reads its holds inside a frame.
+
+Longest frame gap, same browser, warm shaders, 2 rounds, v0.215.0 against this change:
+gliding 133 to 95 ms, leaving /verse 356 to 111 ms, entering it 206 to 117 ms, slightly less
+with real public data. Frame times over 33 ms while gliding: about 3 to 1 per glide. A
+glide's p95 stays at about 16 ms, so at 179 Hz every twentieth frame still takes three
+refreshes, and each hop to or from /verse keeps one or two frames of 80 to 100 ms.
+
+Measuring trap: a fresh browser compiles its shaders on first use. That showed up as GPU
+raster flushes of up to 258 ms on the first scroll of a browser's first page, and looked
+like a cost of whichever variant ran first. Warm the browser with one page before comparing.
+
+**Rule.** No endless animation runs at display rate on a page that is meant to stand: put
+it inside the scope of `SlowMotionService`, or give it an end.

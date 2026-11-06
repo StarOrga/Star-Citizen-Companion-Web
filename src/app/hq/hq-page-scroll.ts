@@ -1,5 +1,6 @@
 import { NgZone } from '@angular/core';
 import { glideEase, inScroller, keyDirection, typing } from '../verse/pages/briefing/briefing-dock';
+import { HQ_PAGES, HqPageId } from './hq-routes';
 
 /** Length of a glide from one HQ page to the next. */
 export const PAGE_GLIDE_MS = 700;
@@ -152,4 +153,29 @@ export function wireHqPageScroll(sections: () => readonly HTMLElement[], zone: N
     window.removeEventListener('scroll', onScroll);
     window.removeEventListener('scrollend', onScrollEnd);
   };
+}
+
+const OPEN_DIALOG = '[role="dialog"], [role="alertdialog"], [aria-modal="true"], dialog[open]';
+
+function dialogOpen(): boolean {
+  return Array.from(document.querySelectorAll(OPEN_DIALOG)).some((d) => d.checkVisibility?.() ?? true);
+}
+
+/** The page a key press jumps to: digits 1 to 4, never with a modifier, while typing or under a dialog. */
+export function hotkeyPage(e: KeyboardEvent, underDialog: boolean = dialogOpen()): HqPageId | null {
+  if (e.defaultPrevented || e.repeat || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return null;
+  if (!/^[1-4]$/.test(e.key) || underDialog || typing(e.target as Element | null)) return null;
+  return HQ_PAGES[Number(e.key)] ?? null;
+}
+
+/** Hotkeys 1 to 4 on the landing: Bestand, Jetzt, Planen, Statistik. */
+export function wireHqPageHotkeys(go: (page: HqPageId) => void, zone: NgZone): () => void {
+  const onKey = (e: KeyboardEvent): void => {
+    const page = hotkeyPage(e);
+    if (!page) return;
+    e.preventDefault();
+    zone.run(() => go(page));
+  };
+  zone.runOutsideAngular(() => window.addEventListener('keydown', onKey));
+  return () => window.removeEventListener('keydown', onKey);
 }

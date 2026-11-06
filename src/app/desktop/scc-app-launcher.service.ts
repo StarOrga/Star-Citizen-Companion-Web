@@ -1,4 +1,4 @@
-import { DOCUMENT, Injectable, inject } from '@angular/core';
+import { DOCUMENT, Injectable, inject, signal } from '@angular/core';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 
 /** The URL the SCC-App registers for itself, see docs/contracts/scc-app-launch.md. */
@@ -24,6 +24,8 @@ const LAUNCHED_BEFORE_KEY = 'sc.sccApp.launchedBefore';
 export class SccAppLauncherService {
   private readonly doc = inject(DOCUMENT);
   private inflight: Promise<boolean> | null = null;
+  /** {@link launchedBefore} as a signal, so a button can follow it. */
+  readonly remembered = signal(this.launchedBefore());
 
   /** Tries to start the app. Resolves true once something took the focus, false when nothing did. */
   launch(): Promise<boolean> {
@@ -33,7 +35,7 @@ export class SccAppLauncherService {
     return this.inflight;
   }
 
-  /** Whether the app has answered a launch from this browser before. */
+  /** Whether this browser has seen the app: it answered a launch, or its live signal came in here. */
   launchedBefore(): boolean {
     try {
       return localStorage.getItem(LAUNCHED_BEFORE_KEY) === '1';
@@ -95,7 +97,9 @@ export class SccAppLauncherService {
     });
   }
 
-  private rememberLaunch(): void {
+  /** Marks the app as known to this browser. */
+  rememberLaunch(): void {
+    this.remembered.set(true);
     try {
       localStorage.setItem(LAUNCHED_BEFORE_KEY, '1');
     } catch {

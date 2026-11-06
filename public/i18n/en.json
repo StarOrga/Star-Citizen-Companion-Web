@@ -4835,7 +4835,6 @@
     "image": "Attachment",
     "enlarge": "Enlarge image",
     "enlargeNamed": "Enlarge image: {{name}}",
-    "close": "Close image",
     "remove": "Remove image",
     "prev": "Previous image",
     "next": "Next image",
@@ -5182,17 +5181,63 @@
     "start": {
       "kicker": "Your HQ",
       "title": "Headquarters",
-      "important": "Important now"
+      "loading": "Loading …",
+      "retry": "Try again",
+      "patch": {
+        "eyebrow": "{{plan}} · New in {{build}}",
+        "eyebrowPlan": "{{plan}} · New in this patch",
+        "eyebrowBuild": "New in {{build}}",
+        "eyebrowPlain": "New in this patch",
+        "weaker": "{{name}} {{pct}} % weaker.",
+        "stronger": "{{name}} {{pct}} % stronger."
+      },
+      "bestand": {
+        "empty": "No ships yet",
+        "emptyHint": "Ships, sets and storage.",
+        "import": "Get RSI hangar",
+        "ships": "{{n}} ships",
+        "shipsOne": "1 ship",
+        "sets": "{{n}} sets",
+        "setsOne": "1 set",
+        "blueprints": "{{n}} blueprints",
+        "blueprintsOne": "1 blueprint",
+        "stale": "Stock count {{n}} days old",
+        "open": "View holdings"
+      },
+      "now": {
+        "live": "Live",
+        "none": "Game not detected",
+        "noneHint": "Live status from the game.",
+        "off": "No live signal",
+        "last": "Last seen: {{place}}, {{ago}}.",
+        "lastTime": "Last seen: {{ago}}.",
+        "nextTip": "Next step of your first planned deployment.",
+        "step": {
+          "buy": "Buy {{label}}",
+          "mission": "Mission: {{label}}",
+          "mine": "Mine {{label}}",
+          "refine": "Refine {{label}}",
+          "craft": "Craft {{label}}",
+          "transport": "Transport {{label}}",
+          "pickup": "Pick up {{label}}"
+        }
+      },
+      "planen": {
+        "empty": "Nothing planned yet",
+        "emptyHint": "Supplies turn into a route.",
+        "go": "Plan now",
+        "count": "{{n}} open",
+        "needs": "{{n}} in supplies",
+        "route": "Open route"
+      },
+      "stats": {
+        "missions": "{{n}} missions",
+        "missionsOne": "1 mission",
+        "week": "this week",
+        "open": "Stats"
+      }
     },
-    "first": {
-      "promise": "Your hangar, your sets, your next ops. In one place.",
-      "step1": "Fetch your RSI hangar",
-      "step2": "Start the SCC app",
-      "step3": "Plan your first op",
-      "go": "Let's go",
-      "skip": "Skip",
-      "duration": "≈ 4 minutes"
-    },
+    "hotkey": "Hotkey: {{key}}",
     "step": {
       "kind": {
         "buy": "Buy",
@@ -5236,7 +5281,7 @@
         "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game.",
         "explain": {
           "aria": "What Now shows",
-          "what": "Now is your live state from the game: where you are, what comes next on your path, and what happened last.",
+          "what": "Now is your live state from the game: where you are, what comes next on your route, and what happened last.",
           "e1": "Your location and ship, e.g. \"Stanton › New Babbage\".",
           "e2": "Your next step from a planned run, e.g. a purchase or a trip.",
           "e3": "The latest events, e.g. \"Mission completed\" or \"Quantum jump finished\"."
@@ -5253,7 +5298,7 @@
         "ship": "Ship:"
       },
       "path": {
-        "title": "Your path",
+        "title": "Your route",
         "empty": "No active operation. Plan one under Plan."
       },
       "missions": {
@@ -5324,7 +5369,6 @@
     "supply": {
       "ready": "ready",
       "forSet": "for set {{name}}",
-      "setReady": "Set {{name}} is ready",
       "wanted": "Want to get",
       "wantedAria": "Mark {{name}} as wanted",
       "importTitle": "Add the list from this browser?",
@@ -5404,9 +5448,6 @@
         "community": "Community",
         "ocr": "From a screenshot"
       }
-    },
-    "patch": {
-      "affects": "affects {{set}} ›"
     },
     "stats": {
       "range": {
@@ -5585,15 +5626,13 @@
       "noResponse": "The SCC app didn't respond. Start it by hand or download it again.",
       "retry": "Already installed? Start again",
       "download": "Download SCC app",
+      "downloadCta": "Download SCC App",
+      "downloadStarted": "The download is running (about 500 MB). Run the setup afterwards.",
+      "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start SCC App”. You can always find it again under Apps at the top right.",
+      "tipLaunch": "Opens the SCC App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
       "close": "Close"
     },
     "friends": {
-      "sharedLine": "{{n}} Einsatz shared by friends",
-      "requests": {
-        "title": "Friend requests ({{n}})",
-        "accept": "Accept",
-        "decline": "Decline"
-      },
       "share": {
         "open": "Share with friends",
         "hint": "View only. For a group, members added later get access too.",

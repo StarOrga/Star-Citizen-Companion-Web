@@ -7,7 +7,6 @@ import { FriendsService } from '../../social/friends.service';
 import { emptyGraph } from '../../social/friends.types';
 import { SocialService } from '../../social/social.service';
 import { SharedEinsatz } from '../../social/social.types';
-import { HqStartFriendsComponent } from '../start/hq-start-friends.component';
 import { HqFriendShareComponent, audienceOf } from './hq-friend-share.component';
 import { HqSharedEinsaetzeComponent } from './hq-shared-einsaetze.component';
 
@@ -64,31 +63,6 @@ describe('audienceOf', () => {
     expect(audienceOf('g:xyz')).toEqual({ groupId: 'xyz' });
     expect(audienceOf(null)).toBeNull();
     expect(audienceOf('abc')).toBeNull();
-  });
-});
-
-describe('HqStartFriendsComponent', () => {
-  it('renders nothing without requests and without shared Einsaetze', async () => {
-    setup(friendsMock(), socialMock());
-    const f = TestBed.createComponent(HqStartFriendsComponent);
-    f.detectChanges();
-    await f.whenStable();
-    f.detectChanges();
-    expect((f.nativeElement as HTMLElement).children.length).toBe(0);
-  });
-
-  it('shows a card with the name as an anchor to the friend page and accepts in one click', async () => {
-    const friends = friendsMock({ ...emptyGraph(), incoming: [edge('u2', 'Ada', 'ada')] });
-    setup(friends, socialMock());
-    const f = TestBed.createComponent(HqStartFriendsComponent);
-    f.detectChanges();
-    await f.whenStable();
-    f.detectChanges();
-    const el = f.nativeElement as HTMLElement;
-    const a = el.querySelector('a.who') as HTMLAnchorElement;
-    expect(a.getAttribute('href')).toBe('/social/ada');
-    (el.querySelector('.acts button') as HTMLButtonElement).click();
-    expect(friends.respond).toHaveBeenCalledWith('r-u2', true);
   });
 });
 

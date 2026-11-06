@@ -1,0 +1,413 @@
+<section data-iteration="2" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone" data-orientations="portrait" data-tab-label="Runde 2" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"devops learn warum in der übersicht mir nix an inhalten in den kacheln  gut angezeigt wird!","attachments":[{"id":"93eccb50e911f3cbb1117fa70261749ec237f23ab950c491e109100cbbc83399.png","name":"image.png","mime":"image/png","size":396842,"path":".claude/concepts/20261106-0842-hq-einstieg-landing/attachments/93eccb50e911f3cbb1117fa70261749ec237f23ab950c491e109100cbbc83399.png"}]},"designs":{},"screens":{},"views":{},"favorite":"drei","userPins":[{"id":"up-mw4pjbdo4cnf","design":"drei","screen":"k4-first","x":50.5,"y":67.8,"target":"button.d2-skip \"Überspringen\"","text":"ich glaube übersprignen benötigen wir jetzt nicht mehr!","attachments":[]},{"id":"up-mw4pjvwiko57","design":"drei","screen":"k4-quiet","x":28.3,"y":44.2,"target":"b \"Alles beisammen\"","text":"da gefällt mir das lieber von erster besuch!","attachments":[]},{"id":"up-mw4pk2fqf3p2","design":"drei","screen":"k4-quiet","x":48.4,"y":63.7,"target":"button.d2-strip \"Statistik14 Missionenin dieser Woche\"","text":"Das könnte auch einfach unauffälliger darunter zentriert stehen, Statistik bruach tkeine so große aufmerksamkeit, reicht ala text link oder so.","attachments":[]},{"id":"up-mw4pkw73abfb","design":"drei","screen":"k4-busy","x":66.2,"y":47.2,"target":"b \"Kein Live-Signal\"","text":"jetzt würde ich in der mitte anzeigene, vlltt. aber nicht als solche kaachel?! Bestand würde ich links machen, planen rechts!","attachments":[]},{"id":"up-mw4ply3gfyrw","design":"drei","screen":"k4-busy","x":53,"y":67.2,"target":"a \"1 Einsatz von Freunden geteilt ›\"","text":"die zeile hier unten bruacht es nicht denke ich","attachments":[]},{"id":"up-mw4pmq5xfydu","design":"drei","screen":"k4-quiet","x":63.2,"y":56,"target":"button.d2-tile.d2-t-jetzt \"JetztKein Live-SignalZuletzt: New Babbag\"","text":"Vllt. immer eine cta, aber hier dann SCC App starten als hinweis und nicht anklickbar, im tooltip gern die info auch, dass man apps öffnen kann um es sich erneut herunterzuladen von dem text cta","attachments":[]}]}</script>
+<style>
+.d2-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #84a0b6; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b;
+  position: relative; display: block; width: 100%; height: 100%; min-height: 100%; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 14px/1.45 Inter, system-ui, "Segoe UI", sans-serif; text-align: center;
+  background: radial-gradient(ellipse 60% 34% at 80% 3%, rgba(120, 190, 220, 0.2), transparent 70%), radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 34%, #040a11 64%, #02070d 100%); }
+.d2-app *, .d2-app *::before, .d2-app *::after { box-sizing: border-box; }
+.d2-grid { position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image: linear-gradient(rgba(82, 193, 230, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 193, 230, 0.05) 1px, transparent 1px); background-size: 64px 64px; }
+/* Header as measured on the live site (shell/main-header). */
+.d2-mh { position: absolute; z-index: 2; inset: 44px 0 auto 0; height: 40px; display: flex; justify-content: center; }
+.d2-brand { position: absolute; left: 24px; top: 0; display: flex; align-items: center; gap: 12px; height: 40px; text-align: left; }
+.d2-mark { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, var(--a) 9% 22%, transparent 24% 40%, rgba(82, 193, 230, 0.55) 42% 48%, transparent 50%); }
+.d2-wm { display: grid; }
+.d2-wm b { font: 700 15px/1.25 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.d2-wm small { font: 9px/1.4 Orbitron, system-ui, sans-serif; letter-spacing: 0.42em; text-transform: uppercase; color: var(--a); }
+.d2-nav { position: relative; display: flex; }
+.d2-nav span { display: flex; align-items: center; justify-content: center; width: 112px; height: 40px; font: 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg2); }
+.d2-nav .on { color: var(--fg); text-shadow: 0 0 18px rgba(82, 193, 230, 0.55); }
+.d2-nav i { position: absolute; bottom: 2px; left: 260px; width: 40px; height: 2px; border-radius: 2px; background: var(--a); box-shadow: 0 0 12px var(--a); }
+.d2-acc { position: absolute; right: 96px; top: 0; display: flex; align-items: center; gap: 8px; height: 40px; }
+.d2-apps { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 20px; background: #123246; color: var(--fg2); font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.d2-av { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: #123246; color: var(--a); font-weight: 600; }
+.d2-rail { position: absolute; z-index: 2; left: 14px; top: 42%; display: flex; flex-direction: column; gap: 12px; }
+.d2-rail i { display: block; width: 12px; height: 2px; border-radius: 2px; background: rgba(159, 179, 200, 0.45); }
+.d2-rail i.on { width: 22px; background: var(--a); box-shadow: 0 0 10px var(--a); }
+/* Hero exactly as on Codex and Verse: same type, field top at 30 % of the viewport. */
+.d2-head { position: absolute; z-index: 1; left: 0; right: 0; bottom: calc(70% + 24px); }
+.d2-kick { margin: 0; font: 500 11.5px/1.4 Inter, system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--a); }
+.d2-title { margin: 12px 0 0; font: 500 50px/1.1 Orbitron, system-ui, sans-serif; letter-spacing: 0.02em; color: var(--fg); text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7); }
+.d2-below { position: absolute; z-index: 1; top: 30%; left: 50%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; width: min(100% - 96px, 1120px); }
+.d2-cap { display: flex; align-items: center; gap: 10px; width: min(640px, 100%); height: 60px; padding: 0 20px; border: 1px solid transparent; border-radius: 999px; background: rgba(0, 0, 0, 0.28); color: var(--fg2); font-size: 14.7px; text-align: left; box-shadow: inset 0 0 0 1px rgba(82, 193, 230, 0.25), 0 0 18px rgba(82, 193, 230, 0.12); }
+.d2-cap svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--a); stroke-width: 1.8; stroke-linecap: round; }
+.d2-cap span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.d2-cap kbd { padding: 2px 7px; border: 1px solid var(--line); border-radius: 5px; background: rgba(159, 179, 200, 0.1); font: 11px Inter, system-ui, sans-serif; color: var(--fg2); }
+.d2-area { width: 100%; margin-top: 48px; }
+.d2-after { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 24px; margin-top: 20px; font-size: 13px; color: var(--fg2); }
+.d2-after a { color: var(--a); text-decoration: none; }
+.d2-skip { margin-top: 20px; padding: 4px 8px; border: 0; background: none; color: var(--fg2); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.d2-cue { position: absolute; z-index: 2; left: 50%; bottom: 14px; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--fg2); font: 500 11px/1 Inter, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
+.d2-cue::after { content: ""; width: 9px; height: 9px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
+.d2-bottom { display: none; }
+/* Tiles */
+.d2-tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(10, 28, 40, 0.8); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d2-tile:hover { border-color: var(--a); }
+.d2-tile.next { border-color: var(--a); box-shadow: 0 0 22px rgba(82, 193, 230, 0.18); }
+.d2-tile.hot { border-color: var(--ok); box-shadow: 0 0 22px rgba(95, 214, 152, 0.14); }
+.d2-tile > span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg3); }
+.d2-tile b { font: 500 18px/1.25 Orbitron, system-ui, sans-serif; color: var(--fg); }
+.d2-tile small { font-size: 13px; color: var(--fg2); }
+.d2-tile em { margin-top: auto; padding-top: 6px; font-style: normal; color: var(--a); }
+.d2-warn { color: var(--warn); }
+.d2-live { display: inline-flex; align-items: center; gap: 7px; color: var(--ok); }
+.d2-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(95, 214, 152, 0.18); }
+.d2-more { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--fg2); }
+.d2-more li { padding-left: 12px; border-left: 2px solid rgba(82, 193, 230, 0.4); }
+.d2-even { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.d2-even .d2-tile { min-height: 164px; }
+.d2-bento { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 134px 134px; gap: 20px; }
+.d2-bento .big { grid-row: 1 / span 2; }
+.d2-bento .big b { font-size: 24px; }
+.d2-bento .wide { grid-column: 2 / span 2; }
+.d2-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.d2-group { padding: 12px; border: 1px solid rgba(159, 179, 200, 0.14); border-radius: 18px; background: rgba(4, 14, 22, 0.5); }
+.d2-group > h3 { margin: 2px 6px 12px; font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--a); text-align: left; }
+.d2-group > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.d2-group .d2-tile { min-height: 148px; }
+.d2-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.d2-three .d2-tile { min-height: 156px; }
+.d2-strip { display: flex; align-items: center; gap: 16px; width: 100%; margin-top: 16px; padding: 10px 18px; border: 1px solid var(--line); border-radius: 999px; background: rgba(10, 28, 40, 0.6); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.d2-strip:hover { border-color: var(--a); }
+.d2-strip span { font: 600 10.5px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg3); }
+.d2-strip b { font-weight: 600; }
+.d2-strip small { margin-left: auto; color: var(--fg2); font-size: 13px; }
+@container device (max-width: 520px) {
+  .d2-mh { inset: 14px 0 auto 0; } .d2-nav, .d2-rail, .d2-cue, .d2-apps { display: none; }
+  .d2-brand { left: 14px; } .d2-acc { right: 14px; } .d2-wm b { font-size: 11px; letter-spacing: 0.08em; } .d2-mark { width: 24px; height: 24px; }
+  .d2-title { font-size: 28px; }
+  .d2-below { width: calc(100% - 32px); } .d2-cap kbd { display: none; } .d2-area { margin-top: 24px; }
+  .d2-even, .d2-three { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .d2-even .d2-tile, .d2-three .d2-tile { min-height: 112px; }
+  .d2-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; gap: 12px; } .d2-bento .big, .d2-bento .wide { grid-column: 1 / -1; grid-row: auto; } .d2-bento .big b { font-size: 18px; } .d2-bento .d2-more { display: none; }
+  .d2-groups { grid-template-columns: minmax(0, 1fr); gap: 10px; } .d2-group { padding: 8px; } .d2-group .d2-tile { min-height: 92px; padding: 10px 12px; } .d2-group > h3 { margin-bottom: 8px; }
+  .d2-tile { padding: 12px; } .d2-tile b { font-size: 14px; } .d2-tile small { font-size: 12px; } .d2-tile em { font-size: 12.5px; }
+  .d2-after, .d2-skip { margin-top: 10px; }
+  .d2-bottom { position: absolute; z-index: 2; inset: auto 0 0 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 10px 4px; border-top: 1px solid var(--line); background: rgba(6, 23, 36, 0.95); font-size: 11.5px; color: var(--fg2); }
+  .d2-bottom b { font-weight: 600; color: var(--a); }
+}
+</style>
+  <section data-design="lage" data-nav-label="Vier gleiche Kacheln" data-design-active="true" data-design-motto="Vier gleich große Kacheln" data-design-traits="Alle vier Seiten gleich laut|Kein Einstieg wird bevorzugt|Am ruhigsten zu überblicken" data-design-icon="grid" data-design-color="#b49bff" data-design-improved="Hero wie auf Codex und Verse, mehr Abstand zwischen Suche und Kacheln, feste Plätze, neuer Text statt „Nichts offen“">
+    <section id="k1-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-even"><button class="d2-tile d2-t-planen" type="button" data-screen-link="k1-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Ersten Einsatz planen ›</em></button><button class="d2-tile d2-t-bestand next" type="button" data-screen-link="k1-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><em>SCC-App starten ›</em></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>Noch keine Daten</b><small>Füllt sich, sobald du spielst.</small></button></div></div><button class="d2-skip" type="button" data-screen-link="k1-quiet">Überspringen</button></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k1-a1" data-anno-side="right" data-anno-target=".d2-cap" style="--anno-x:50%;--anno-y:34%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k1-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k1-a1" data-anno-bubble="r2-k1-a1" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Hero wie auf Codex und Verse</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k1-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a1"><span class="anno-bubble-question">Der Hero ist jetzt nach den auf Codex gemessenen Werten gebaut: Schrift, Suchfeld und dessen Höhe bei 30 % des Fensters. Stimmt er so mit den anderen Seiten überein?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k1-a1" data-annotation="r2-k1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k1-a1"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="r2-k1-a2" data-anno-side="bottom" data-anno-target=".d2-t-bestand" style="--anno-x:50%;--anno-y:60%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k1-a2" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k1-a2" data-anno-bubble="r2-k1-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k1-a2" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a2"><span class="anno-bubble-question">Der nächste offene Schritt leuchtet, passend zu deiner Folge Hangar → Einsatz → App. Ersetzt das den Knopf „Los geht's“, oder fehlt er dir?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k1-a2" data-annotation="r2-k1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k1-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k1-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-even"><button class="d2-tile d2-t-planen" type="button" data-screen-link="k1-busy"><span>Planen</span><b>Alles beisammen</b><small>Kein Nachschub und kein Einsatz offen.</small><em>Gegenstand suchen ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k1-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="k1-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-even"><button class="d2-tile d2-t-planen" type="button" data-screen-link="k1-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k1-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d2-warn">Lagerstand 9 Tage alt</span></small></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div><div class="d2-after"><span>4.3.1 · S3-Repeater −8 % · <a href="#">betrifft Bounty v3 ›</a></span><a href="#">1 Einsatz von Freunden geteilt ›</a></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k1-a3" data-anno-side="right" data-anno-target=".d2-after" style="--anno-x:50%;--anno-y:76%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k1-a3" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a3" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k1-a3" data-anno-bubble="r2-k1-a3" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Patch-Zeilen aus dem Hero genommen</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k1-a3" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a3"><span class="anno-bubble-question">Damit der Hero überall gleich bleibt, stehen die Patch-Zeilen nicht mehr unter dem Titel, sondern unter den Kacheln. Das weicht von D8 ab. Einverstanden?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k1-a3" data-annotation="r2-k1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k1-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k1-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-even"><button class="d2-tile d2-t-planen" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small></button><button class="d2-tile d2-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d2-tile d2-t-jetzt hot" type="button"><span>Jetzt</span><b>New Babbage</b><small><span class="d2-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k1-a4" data-anno-side="bottom" data-anno-target=".d2-t-jetzt" style="--anno-x:60%;--anno-y:60%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k1-a4" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a4" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k1-a4" data-anno-bubble="r2-k1-a4" data-open="false">
+    <p class="anno-bubble-improved"><strong>{{design.change_improved}}</strong> Feste Plätze auch bei laufendem Spiel</p>
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k1-a4" aria-expanded="false" aria-controls="anno-bubble-r2-k1-a4"><span class="anno-bubble-question">Die Jetzt-Kachel bleibt auf ihrem Platz und bekommt nur den grünen Rand. Reicht dir das als Signal?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k1-a4" data-annotation="r2-k1-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k1-a4"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+  <section data-design="bento" data-nav-label="Planen groß, drei klein" hidden data-design-motto="Planen groß, drei kleiner" data-design-traits="Planen trägt den nächsten Schritt|Klare Rangfolge der Seiten|Statistik schmal und breit" data-design-icon="layers" data-design-color="#6fe0c8">
+    <section id="k2-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-bento"><button class="d2-tile d2-t-planen big" type="button" data-screen-link="k2-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><ul class="d2-more"><li>Such, was dir fehlt, und leg es in den Nachschub.</li><li>Daraus entsteht dein Weg als Einsatz.</li></ul><em>Ersten Einsatz planen ›</em></button><button class="d2-tile d2-t-bestand next" type="button" data-screen-link="k2-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><em>SCC-App starten ›</em></button><button class="d2-tile d2-t-statistik wide" type="button"><span>Statistik</span><b>Noch keine Daten</b><small>Füllt sich, sobald du spielst.</small></button></div></div><button class="d2-skip" type="button" data-screen-link="k2-quiet">Überspringen</button></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="k2-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-bento"><button class="d2-tile d2-t-planen big" type="button" data-screen-link="k2-busy"><span>Planen</span><b>Alles beisammen</b><small>Kein Nachschub und kein Einsatz offen.</small><ul class="d2-more"><li>Such, was dir als Nächstes fehlt.</li><li>Daraus entsteht dein nächster Einsatz.</li></ul><em>Gegenstand suchen ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k2-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d2-tile d2-t-statistik wide" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k2-a1" data-anno-side="bottom" data-anno-target=".d2-t-planen" style="--anno-x:34%;--anno-y:60%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k2-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k2-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k2-a1" data-anno-bubble="r2-k2-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k2-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k2-a1"><span class="anno-bubble-question">Planen ist die große Kachel, weil dort die nächste Aktion liegt. Wer mit Bestand oder Jetzt startet, sieht dadurch einen anderen Schwerpunkt. Stört dich das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k2-a1" data-annotation="r2-k2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k2-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k2-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-bento"><button class="d2-tile d2-t-planen big" type="button" data-screen-link="k2-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><ul class="d2-more"><li>Als Nächstes: S3-Repeater kaufen, Area18</li><li>Danach: Transportieren nach New Babbage</li></ul><em>Liegt bereit: 2 Teile ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k2-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d2-warn">Lagerstand 9 Tage alt</span></small></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d2-tile d2-t-statistik wide" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div><div class="d2-after"><span>4.3.1 · S3-Repeater −8 % · <a href="#">betrifft Bounty v3 ›</a></span><a href="#">1 Einsatz von Freunden geteilt ›</a></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k2-a2" data-anno-side="bottom" data-anno-target=".d2-more" style="--anno-x:34%;--anno-y:58%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k2-a2" aria-expanded="false" aria-controls="anno-bubble-r2-k2-a2" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k2-a2" data-anno-bubble="r2-k2-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k2-a2" aria-expanded="false" aria-controls="anno-bubble-r2-k2-a2"><span class="anno-bubble-question">Die große Kachel zeigt die nächsten zwei Schritte. Sind zwei richtig, oder soll es nur der nächste sein?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k2-a2" data-annotation="r2-k2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k2-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k2-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-bento"><button class="d2-tile d2-t-planen big" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><ul class="d2-more"><li>Als Nächstes: S3-Repeater kaufen, hier in der Nähe</li><li>Danach: Transportieren nach Area18</li></ul></button><button class="d2-tile d2-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d2-tile d2-t-jetzt hot" type="button"><span>Jetzt</span><b>New Babbage</b><small><span class="d2-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></button><button class="d2-tile d2-t-statistik wide" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+  <section data-design="gruppen" data-nav-label="Zwei Gruppen" hidden data-design-motto="Zwei Gruppen statt vier Kacheln" data-design-traits="Sortiert nach Vor und Aus dem Spiel|Ohne Spiel ist rechts sofort als Gruppe leer|Kacheln kleiner, dafür verschachtelt" data-design-icon="cube" data-design-color="#f0c27b">
+    <section id="k3-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-groups"><section class="d2-group"><h3>Vor dem Spiel</h3><div><button class="d2-tile d2-t-planen" type="button" data-screen-link="k3-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Ersten Einsatz planen ›</em></button><button class="d2-tile d2-t-bestand next" type="button" data-screen-link="k3-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button></div></section><section class="d2-group"><h3>Aus dem Spiel</h3><div><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><em>SCC-App starten ›</em></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>Noch keine Daten</b><small>Füllt sich, sobald du spielst.</small></button></div></section></div></div><button class="d2-skip" type="button" data-screen-link="k3-quiet">Überspringen</button></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k3-a2" data-anno-side="bottom" data-anno-target=".d2-groups" style="--anno-x:50%;--anno-y:60%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k3-a2" aria-expanded="false" aria-controls="anno-bubble-r2-k3-a2" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k3-a2" data-anno-bubble="r2-k3-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k3-a2" aria-expanded="false" aria-controls="anno-bubble-r2-k3-a2"><span class="anno-bubble-question">Beim ersten Besuch ist die rechte Gruppe fast leer, bis die SCC-App läuft. Ist das ehrlich und ruhig, oder wirkt es unfertig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k3-a2" data-annotation="r2-k3-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k3-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k3-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-groups"><section class="d2-group"><h3>Vor dem Spiel</h3><div><button class="d2-tile d2-t-planen" type="button" data-screen-link="k3-busy"><span>Planen</span><b>Alles beisammen</b><small>Kein Nachschub und kein Einsatz offen.</small><em>Gegenstand suchen ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k3-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button></div></section><section class="d2-group"><h3>Aus dem Spiel</h3><div><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></section></div></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k3-a1" data-anno-side="top" data-anno-target=".d2-group h3" style="--anno-x:30%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k3-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k3-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k3-a1" data-anno-bubble="r2-k3-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k3-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k3-a1"><span class="anno-bubble-question">Tragen „Vor dem Spiel“ und „Aus dem Spiel“ für dich? Bestand kann auch Spieldaten enthalten, zum Beispiel Lager und Blueprints.</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k3-a1" data-annotation="r2-k3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k3-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k3-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-groups"><section class="d2-group"><h3>Vor dem Spiel</h3><div><button class="d2-tile d2-t-planen" type="button" data-screen-link="k3-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k3-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d2-warn">Lagerstand 9 Tage alt</span></small></button></div></section><section class="d2-group"><h3>Aus dem Spiel</h3><div><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></section></div></div><div class="d2-after"><span>4.3.1 · S3-Repeater −8 % · <a href="#">betrifft Bounty v3 ›</a></span><a href="#">1 Einsatz von Freunden geteilt ›</a></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="k3-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-groups"><section class="d2-group"><h3>Vor dem Spiel</h3><div><button class="d2-tile d2-t-planen" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small></button><button class="d2-tile d2-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button></div></section><section class="d2-group"><h3>Aus dem Spiel</h3><div><button class="d2-tile d2-t-jetzt hot" type="button"><span>Jetzt</span><b>New Babbage</b><small><span class="d2-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></button><button class="d2-tile d2-t-statistik" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></section></div></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+  <section data-design="drei" data-nav-label="Drei Kacheln, eine Leiste" hidden data-design-motto="Drei Kacheln, Statistik als Leiste" data-design-traits="Statistik nur noch eine schmale Leiste|Drei Aufgaben stehen im Vordergrund|Am wenigsten Fläche unter dem Hero" data-design-icon="chart" data-design-color="#f5c94d">
+    <section id="k4-first" data-nav-label="Erster Besuch" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-three"><button class="d2-tile d2-t-planen" type="button" data-screen-link="k4-quiet"><span>Planen</span><b>Noch nichts geplant</b><small>Aus Nachschub wird ein Weg.</small><em>Ersten Einsatz planen ›</em></button><button class="d2-tile d2-t-bestand next" type="button" data-screen-link="k4-quiet"><span>Bestand</span><b>Noch keine Schiffe</b><small>Schiffe, Sets und Lager.</small><em>RSI-Hangar holen ›</em></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Spiel nicht erkannt</b><small>Live-Stand aus dem Spiel.</small><em>SCC-App starten ›</em></button></div><button class="d2-strip" type="button"><span>Statistik</span><b>Noch keine Daten</b><small>Füllt sich, sobald du spielst.</small></button></div><button class="d2-skip" type="button" data-screen-link="k4-quiet">Überspringen</button></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="k4-quiet" data-nav-label="Nichts steht an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-three"><button class="d2-tile d2-t-planen" type="button" data-screen-link="k4-busy"><span>Planen</span><b>Alles beisammen</b><small>Kein Nachschub und kein Einsatz offen.</small><em>Gegenstand suchen ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k4-busy"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button></div><button class="d2-strip" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="r2-k4-a1" data-anno-side="bottom" data-anno-target=".d2-strip" style="--anno-x:50%;--anno-y:70%">
+  <button class="anno-pin" type="button" data-anno-pin="r2-k4-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k4-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-r2-k4-a1" data-anno-bubble="r2-k4-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="r2-k4-a1" aria-expanded="false" aria-controls="anno-bubble-r2-k4-a1"><span class="anno-bubble-question">Statistik ist Rückblick und keine Aufgabe, deshalb nur eine Leiste. Trägt diese eine Zeile genug, oder fehlt dir eine Kachel?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r2-k4-a1" data-annotation="r2-k4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r2-k4-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="k4-busy" data-nav-label="Es steht etwas an" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-three"><button class="d2-tile d2-t-planen" type="button" data-screen-link="k4-live"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small><em>Liegt bereit: 2 Teile ›</em></button><button class="d2-tile d2-t-bestand" type="button" data-screen-link="k4-live"><span>Bestand</span><b>23 Schiffe</b><small><span class="d2-warn">Lagerstand 9 Tage alt</span></small></button><button class="d2-tile d2-t-jetzt" type="button"><span>Jetzt</span><b>Kein Live-Signal</b><small>Zuletzt: New Babbage, vor 2 Tagen.</small></button></div><button class="d2-strip" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div><div class="d2-after"><span>4.3.1 · S3-Repeater −8 % · <a href="#">betrifft Bounty v3 ›</a></span><a href="#">1 Einsatz von Freunden geteilt ›</a></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+    <section id="k4-live" data-nav-label="Spiel läuft" data-screen hidden data-screen-fit="full">
+      <div class="d2-app"><div class="d2-grid"></div>
+        <header class="d2-mh"><div class="d2-brand"><i class="d2-mark"></i><div class="d2-wm"><b>Star Citizen Companion</b><small>Alpha</small></div></div><nav class="d2-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span><i></i></nav><div class="d2-acc"><span class="d2-apps">Apps</span><span class="d2-av">J</span></div></header>
+        <div class="d2-rail" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="d2-head"><p class="d2-kick">Dein HQ</p><h2 class="d2-title">Hauptquartier</h2></div>
+        <div class="d2-below"><div class="d2-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Schiffe, Waffen, Missionen …</span><kbd>Strg K</kbd><kbd>/</kbd></div><div class="d2-area"><div class="d2-three"><button class="d2-tile d2-t-planen" type="button"><span>Planen</span><b>3 offen</b><small>Bounty v3 · Einsatz ×5</small></button><button class="d2-tile d2-t-bestand" type="button"><span>Bestand</span><b>23 Schiffe</b><small>4 Sets · 37 von 212 Blueprints</small></button><button class="d2-tile d2-t-jetzt hot" type="button"><span>Jetzt</span><b>New Babbage</b><small><span class="d2-live">Live · Cutlass Black</span></small><em>S3-Repeater kaufen ›</em></button></div><button class="d2-strip" type="button"><span>Statistik</span><b>14 Missionen</b><small>in dieser Woche</small></button></div></div>
+        <div class="d2-cue">Planen</div>
+        <div class="d2-bottom"><b>Start</b><span>Planen</span><span>Bestand</span><span>Jetzt</span><span>Statistik</span></div>
+      </div>
+    </section>
+  </section>
+  <section data-view="hq-reihenfolge-2" data-view-kind="analysis" data-analysis="full" data-nav-label="Reihenfolge neu" hidden>
+    <section id="r2-brief" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Du kennst Spieler, die mit Bestand einsteigen, und andere, die mit Jetzt einsteigen. Eine einzige Scrollfolge kann nicht beide zuerst bedienen.</p>
+      <p data-briefing-why>Mit den Kacheln gibt es einen zweiten Weg zur eigenen Seite, deshalb muss die Folge vielleicht gar nicht mehr alles tragen.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"1 Klick","unit":"","label":"von Start zu jeder Seite, in jeder Reihenfolge"}'>1 Klick</div>
+      <a data-briefing-topic="r2-t1" data-share="100">Reihenfolge neu gedacht</a>
+      <p data-briefing-duration>≈ 3 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1 Klick","unit":""}'></div></div>
+        <div data-slot="long"><p>Aus Runde 1 stehen fest: Start bleibt beim laufenden Spiel der Einstieg, die Startschritte laufen Hangar → Einsatz → App, und der nächste offene Schritt wird angesteuert. Offen ist nur noch die Seitenfolge.</p></div>
+      </div>
+    </section>
+    <section id="r2-t1" data-topic data-nav-label="Reihenfolge neu gedacht">
+      <div data-alevel="2" data-title="Reihenfolge neu gedacht">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Erst klären, wie viel die Folge tragen muss, dann welche es wird."}'></div></div>
+        <div data-slot="long"><p>Drei Fragen: wie wir beide Spielertypen bedienen, welche Folge als Standard gilt, und ein Text für die Planen-Kachel.</p></div>
+      </div>
+    <section id="r2-model" data-nav-label="Zwei Spielertypen" data-decision="r2-model" data-decision-mode="single" data-label="Umgang mit verschiedenen Spielern" data-rec="tiles" data-rec-why="Die Kacheln bringen jeden in einem Klick zur eigenen Seite. Das braucht keine Einstellung und lässt sich später noch ergänzen." data-applies-to="Rail, Scrollfolge und die Kacheln auf Start" data-finding="f-r2-model">
+      <p data-applies>Gilt für: Rail, Scrollfolge und die Kacheln auf Start</p>
+      <p data-situation>Du kennst Spieler, die mit Bestand starten wollen, und andere, die mit Jetzt starten wollen. Eine feste Scrollfolge bedient nie beide. Nutzungszahlen je HQ-Seite habe ich dazu nicht ausgewertet.</p>
+      <h3 data-question>Wie bedienen wir Spieler, die unterschiedlich einsteigen?</h3>
+      <p data-stakes>Ob das HQ eine neue Einstellung bekommt oder sogar seinen Aufbau ändert.</p>
+      <div data-options>
+        <label data-opt="tiles" data-recommended><input type="radio" name="dm-r2-model" value="tiles"><span data-opt-label>Eine Folge, die Kacheln springen</span><span data-opt-consequence>Jeder klickt auf Start direkt seine Seite an. Die Scrollfolge zählt nur noch für alle, die durchscrollen.</span></label>
+        <label data-opt="own"><input type="radio" name="dm-r2-model" value="own"><span data-opt-label>Reihenfolge je Konto einstellbar</span><span data-opt-consequence>Kacheln lassen sich sortieren, Rail und Pfeil folgen. Passt für beide Typen, kostet aber eine Einstellung, die nur wenige finden.</span></label>
+        <label data-opt="hub"><input type="radio" name="dm-r2-model" value="hub"><span data-opt-label>Start wird zur Drehscheibe</span><span data-opt-consequence>Die Seiten werden eigene Routen ohne Durchscrollen. Hebt D1 und D5 auf und ist der größte Umbau.</span></label>
+      </div>
+      <textarea data-comment="r2-model-note" placeholder="Notiz (optional)">ne, da noch kreativer werden!  bzw. best practices dir ansehen!</textarea>
+      <input type="hidden" name="dm-r2-model-none" value="1"><input type="hidden" name="dm-r2-model-hes" value="{&quot;ms&quot;:74372,&quot;revisits&quot;:0,&quot;median&quot;:66057}"><input type="hidden" name="dm-r2-model-touched" value="1"><input type="hidden" name="dm-r2-model-issue" value=""><input type="hidden" name="dm-r2-model-epic" value="">
+      <div data-alevel="3" data-title="Zwei Spielertypen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: eine Folge, Kacheln als Sprung."}'></div></div>
+        <div data-slot="long"><p>Das ist die Frage hinter deiner Unsicherheit: Vielleicht muss nicht die Folge besser werden, sondern ihr Gewicht kleiner. Automatisch umsortieren nach Nutzung habe ich weggelassen, weil es deinen festen Plätzen widerspricht.</p></div>
+      </div>
+    </section>
+    <section id="r2-default" data-nav-label="Standardfolge" data-decision="r2-default" data-decision-mode="chain" data-label="Standardfolge der HQ-Seiten" data-rec="prep" data-rec-why="Sie stellt alles Spielunabhängige nach vorn und passt damit zu deinen Startschritten: erst ein Ergebnis, dann die Installation." data-applies-to="die Folge, die jeder sieht, der nichts umstellt" data-finding="f-r2-default">
+      <p data-applies>Gilt für: die Folge, die jeder sieht, der nichts umstellt</p>
+      <p data-situation>Auch mit Kacheln braucht es eine Folge für Kacheln, Rail und Pfeil. Deine beiden Beispiele stehen hier als eigene Wege, die Empfehlung aus Runde 1 bleibt dazwischen.</p>
+      <h3 data-question>Welche Folge sehen alle, die nichts umstellen?</h3>
+      <p data-stakes>Anordnung der Kacheln, Rail, Bottom-Bar und das Ziel des Pfeils auf Start.</p>
+      <div data-options>
+        <label data-opt="prep" data-recommended><input type="radio" name="dm-r2-default" value="prep"><span data-opt-label>Vorbereiten, spielen, auswerten</span><ol data-opt-steps><li>Start</li><li>Planen</li><li data-step-new>Bestand</li><li data-step-new>Jetzt</li><li>Statistik</li></ol><span data-opt-consequence>Ohne SCC-App liegt erst am Ende eine Bitte. In den Mocks dieser Runde so angeordnet.</span></label>
+        <label data-opt="stock"><input type="radio" name="dm-r2-default" value="stock" checked><span data-opt-label>Erst was du hast</span><ol data-opt-steps><li>Start</li><li data-step-new>Bestand</li><li>Planen</li><li>Jetzt</li><li>Statistik</li></ol><span data-opt-consequence>Dein erstes Beispiel. Passt zum Hangar als erstem Schritt, Planen rückt nach hinten.</span></label>
+        <label data-opt="live"><input type="radio" name="dm-r2-default" value="live"><span data-opt-label>Erst das Spiel</span><ol data-opt-steps><li>Start</li><li data-step-new>Jetzt</li><li data-step-new>Bestand</li><li data-step-new>Planen</li><li>Statistik</li></ol><span data-opt-consequence>Dein zweites Beispiel. Stark im Spiel, ohne SCC-App ist die zweite Seite eine Bitte.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-r2-default" value="keep"><span data-opt-label>So lassen wie heute</span><ol data-opt-steps><li>Start</li><li>Planen</li><li>Jetzt</li><li>Bestand</li><li>Statistik</li></ol><span data-opt-consequence>Kein Umbau. Bestand bleibt hinter Jetzt.</span></label>
+      </div>
+      <textarea data-comment="r2-default-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-default-none" value=""><input type="hidden" name="dm-r2-default-hes" value="{&quot;ms&quot;:40248,&quot;revisits&quot;:0,&quot;median&quot;:66057}"><input type="hidden" name="dm-r2-default-touched" value="1"><input type="hidden" name="dm-r2-default-issue" value=""><input type="hidden" name="dm-r2-default-epic" value="">
+      <div data-alevel="3" data-title="Standardfolge">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Planen, Bestand, Jetzt, Statistik."}'></div></div>
+        <div data-slot="long"><p>Nach deiner ersten Antwort zählt diese Folge umso weniger, je stärker die Kacheln den Sprung übernehmen. Deep-Links wie /hq#jetzt bleiben in jedem Fall gültig.</p></div>
+      </div>
+    </section>
+    <section id="r2-word" data-nav-label="Text statt Nichts offen" data-decision="r2-word" data-decision-mode="wording" data-label="Text statt Nichts offen" data-rec="w1" data-rec-why="Es klingt nach Erfolg statt nach Leere und bleibt auch wahr, wenn noch nie etwas geplant wurde." data-applies-to="die Planen-Kachel, wenn nichts offen ist" data-finding="f-r2-word">
+      <p data-applies>Gilt für: die Planen-Kachel, wenn nichts offen ist</p>
+      <p data-situation>„Nichts offen“ war dir zu schwach. Der Zustand heißt: kein Nachschub und kein Einsatz offen. Die Zeile darunter und der Link „Gegenstand suchen“ bleiben.</p>
+      <h3 data-question>Wie soll die Planen-Kachel diesen Zustand nennen?</h3>
+      <p data-stakes>Nur dieser eine Text in DE, die englische Fassung folgt dem Sinn.</p>
+      <div data-options>
+        <label data-opt="w1" data-recommended><input type="radio" name="dm-r2-word" value="w1" data-text="Alles beisammen"><span data-opt-label>Alles beisammen</span><span data-opt-consequence>Klingt nach erledigt und ruhig.</span></label>
+        <label data-opt="w2"><input type="radio" name="dm-r2-word" value="w2" data-text="Bereit für den nächsten Einsatz"><span data-opt-label>Bereit für den nächsten Einsatz</span><span data-opt-consequence>Blickt nach vorn, ist aber lang für eine Kachel.</span></label>
+        <label data-opt="w3"><input type="radio" name="dm-r2-word" value="w3" data-text="Was kommt als Nächstes?"><span data-opt-label>Was kommt als Nächstes?</span><span data-opt-consequence>Lädt zur Aktion ein, ist aber keine Statusangabe.</span></label>
+        <label data-opt="custom"><input type="radio" name="dm-r2-word" value="custom" checked><span data-opt-label>Eigener Text</span><span data-opt-consequence>Schreib ihn ins Feld darunter.</span></label>
+      </div>
+      <input type="text" name="dm-r2-word-text" value="Jetzt Planen! Lieber machen" placeholder="Eigener Text">
+      <textarea data-comment="r2-word-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-word-none" value=""><input type="hidden" name="dm-r2-word-hes" value="{&quot;ms&quot;:66057,&quot;revisits&quot;:0,&quot;median&quot;:66057}"><input type="hidden" name="dm-r2-word-touched" value="1"><input type="hidden" name="dm-r2-word-issue" value=""><input type="hidden" name="dm-r2-word-epic" value="">
+      <div data-alevel="3" data-title="Text statt Nichts offen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Alles beisammen."}'></div></div>
+        <div data-slot="long"><p>Die Mocks dieser Runde zeigen „Alles beisammen“. Dieser Text ersetzt nur die Überschrift der Kachel, sonst ändert sich an der Kachel nichts.</p></div>
+      </div>
+    </section>
+    </section>
+  </section>
+</section>

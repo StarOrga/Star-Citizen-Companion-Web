@@ -1,3 +1,17 @@
+// The field's breath. Animating box-shadow repainted on the main thread at the monitor's
+// refresh (about 48 % of a core on /verse at 179 Hz); the same light on its own layer only
+// changes opacity, which the compositor does alone.
+@mixin breath {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: var(--_rim-breath);
+  opacity: 0;
+  animation: fb-breathe 5s ease-in-out infinite;
+}
+
 // The subheader of the beta shell — skin "Satinkante" (concept 2026-10-28,
 // round 8 d2): 60px, 5px radius, a gradient metal edge, a satin top sheen, one
 // light trace when it docks. Skin colours are tokens (styles.scss, "SUBHEADER SKIN").
@@ -136,13 +150,18 @@
   background: var(--sc-well);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 25%, transparent),
     0 0 18px color-mix(in srgb, var(--sc-accent) 12%, transparent);
-  animation: fb-breathe 5s ease-in-out infinite;
+}
+:host([data-mode='stage']) .cap::after {
+  @include breath;
+}
+:host([data-mode='stage']) .cap:has(.input:focus)::after {
+  animation: none;
+  opacity: 0;
 }
 :host([data-mode='stage']) .skin {
   display: none;
 }
 :host([data-mode='stage']) .cap:has(.input:focus) {
-  animation: none;
   box-shadow: var(--_rim-hi);
 }
 // One light trace around the frame: on docking and on the stage entrance, then gone.
@@ -507,6 +526,9 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   // The breathing field's bright state (peak of the breath, focused, open).
   --_rim-hi: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent),
     0 0 26px color-mix(in srgb, var(--sc-accent) 22%, transparent);
+  // What the breath lays over the resting rim to reach that state (25 % + 27 % = 45 %, 12 % + 11 % = 22 %).
+  --_rim-breath: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 27%, transparent),
+    0 0 26px color-mix(in srgb, var(--sc-accent) 11%, transparent);
 }
 :host(:not([data-mode='stage'])) ::ng-deep .search:not(.bottom) .field,
 :host(:not([data-mode='stage'])) ::ng-deep .search.bottom.open .field {
@@ -515,15 +537,21 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   background: var(--sc-well);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 25%, transparent),
     0 0 18px color-mix(in srgb, var(--sc-accent) 12%, transparent);
-  animation: fb-breathe 5s ease-in-out infinite;
+  position: relative;
+}
+:host(:not([data-mode='stage'])) ::ng-deep .search.bottom.open .field::after {
+  @include breath;
 }
 :host(:not([data-mode='stage'])) ::ng-deep .search .field.focused {
-  animation: none;
   box-shadow: var(--_rim-hi);
+}
+:host(:not([data-mode='stage'])) ::ng-deep .search .field.focused::after {
+  animation: none;
+  opacity: 0;
 }
 @keyframes fb-breathe {
   50% {
-    box-shadow: var(--_rim-hi);
+    opacity: 1;
   }
 }
 // Schwebende Karte: the results card floats ~10px under the bar (the field sits

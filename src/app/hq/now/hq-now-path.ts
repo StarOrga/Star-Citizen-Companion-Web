@@ -1,5 +1,5 @@
 import { InjectionToken, Signal, computed, inject } from '@angular/core';
-import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { Einsatz, HqEinsatzService } from '../data/hq-einsatz.service';
 import { StepKind } from '../../shared/step/sc-step.component';
 
 /** One step of the main path (the active Einsatz, open steps in order). */
@@ -8,6 +8,11 @@ export interface HqNowStep {
   label: string;
   qty: number | null;
   location: string | null;
+}
+
+/** The current Einsatz of a list soonest first: the active one, else the first planned. */
+export function currentEinsatz(upcoming: readonly Einsatz[]): Einsatz | null {
+  return upcoming.find((e) => e.status === 'active') ?? upcoming[0] ?? null;
 }
 
 /**
@@ -19,9 +24,7 @@ export const HQ_NOW_PATH = new InjectionToken<Signal<readonly HqNowStep[]>>('HQ_
   factory: () => {
     const einsatz = inject(HqEinsatzService);
     return computed(() => {
-      const list = einsatz.upcoming();
-      const current = list.find((e) => e.status === 'active') ?? list[0];
-      return (current?.steps ?? [])
+      return (currentEinsatz(einsatz.upcoming())?.steps ?? [])
         .filter((s) => s.state === 'todo')
         .map((s) => ({ kind: s.kind, label: s.label, qty: s.qty, location: s.location }));
     });

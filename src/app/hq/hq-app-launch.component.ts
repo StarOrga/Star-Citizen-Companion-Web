@@ -1,11 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SccAppLauncherService } from '../desktop/scc-app-launcher.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
-type LaunchStatus = 'idle' | 'starting' | 'started' | 'downloading' | 'noResponse';
+type LaunchStatus = 'idle' | 'starting' | 'started' | 'downloading' | 'downloadStarted' | 'noResponse';
 
 const STARTED_HINT_MS = 6000;
 
@@ -17,21 +18,28 @@ const STARTED_HINT_MS = 6000;
  *
  * A real anchor at the installer: a modified click, the context menu or a failed script all still
  * reach the download. Only the plain left click tries the app first.
+ *
+ * `mode="download"` is the same action for a browser and an account that have never seen the app:
+ * it says "downloaden" and its plain click downloads right away (HQ Start, Jetzt tile).
  */
 @Component({
   selector: 'sc-hq-app-launch',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (canInstall()) {
       <a
-        class="sc-btn sc-btn-primary go"
+        class="go"
+        [class.sc-btn]="look() === 'primary'"
+        [class.sc-btn-primary]="look() === 'primary'"
+        [class.pill]="look() === 'pill'"
         [href]="url"
+        [scTooltip]="tip() ? (tip() | translate) : null"
         rel="noopener noreferrer"
         [attr.aria-busy]="status() === 'starting'"
         (click)="onClick($event)"
-      >{{ 'hq.app.launch' | translate }}</a>
+      >{{ (mode() === 'download' ? 'hq.app.downloadCta' : 'hq.app.launch') | translate }}</a>
       <div class="live" role="status">
         @if (status() !== 'idle') {
           <div class="hint">
@@ -55,6 +63,15 @@ const STARTED_HINT_MS = 6000;
       /* Only Angular's comment anchors left (cannot install): take no room. */
       :host:empty { display: none; }
       .go { display: inline-flex; align-items: center; min-height: var(--sc-tap-min, 44px); text-decoration: none; }
+      .pill {
+        min-height: 36px; padding: 0 14px;
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, transparent); border-radius: 999px;
+        background: color-mix(in srgb, var(--sc-bg-1) 75%, transparent); color: var(--sc-accent);
+        font: 500 max(0.84rem, var(--sc-fs-floor)) / 1 var(--sc-font-body);
+      }
+      .pill:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+      .pill:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      @media (pointer: coarse) { .pill { min-height: 48px; } }
       .hint {
         position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px);
         display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px);
@@ -72,6 +89,15 @@ export class HqAppLaunchComponent {
   readonly canInstall = inject(DesktopCapabilityService).canInstall;
   readonly url = SCC_INSTALLER_URL;
   readonly status = signal<LaunchStatus>('idle');
+  /** `download`: never tries to start the app, the plain click downloads. */
+  readonly mode = input<'launch' | 'download'>('launch');
+  readonly look = input<'primary' | 'pill'>('primary');
+  /** Explains the action and where the Apps menu keeps it (info tier). */
+  readonly tipped = input(false);
+  protected readonly tip = computed(() => {
+    if (!this.tipped()) return '';
+    return this.mode() === 'download' ? 'hq.app.tipDownload' : 'hq.app.tipLaunch';
+  });
 
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -82,7 +108,15 @@ export class HqAppLaunchComponent {
   onClick(ev: MouseEvent): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
-    void this.start();
+    if (this.mode() === 'download') this.download();
+    else void this.start();
+  }
+
+  private download(): void {
+    clearTimeout(this.hideTimer);
+    this.launcher.downloadInstaller();
+    this.status.set('downloadStarted');
+    this.hideTimer = setTimeout(() => this.status.set('idle'), STARTED_HINT_MS);
   }
 
   async start(): Promise<void> {

@@ -8,7 +8,7 @@ import { fakeSupabase } from '../../testing/fake-supabase';
 import { EINSATZ_CACHE_KEY, HqEinsatzService as EinsatzServiceToken } from '../data/hq-einsatz.service';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { SUPPLIES_CACHE_KEY, SUPPLIES_STORAGE_KEY, HqSuppliesService } from '../hq-supplies.service';
-import { HqStartFeedService } from '../start/hq-start-feed.service';
+import { HqPageNavService } from '../hq-page-nav.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HqPlanComponent } from './hq-plan.component';
 import { PLAN_SELECTION_KEY } from './hq-plan-selection';
@@ -121,11 +121,17 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('sc-hq-supplies-popup')).not.toBeNull();
   });
 
-  it('feeds the Start chips from upcoming Einsaetze and clears them on destroy', () => {
-    const { f } = make();
-    const feed = TestBed.inject(HqStartFeedService);
-    expect(feed.chips()).toEqual([]);
-    f.destroy();
-    expect(feed.chips()).toEqual([]);
+  it('"Route öffnen" opens Wie on exactly this saved route', () => {
+    const { f, el } = make();
+    const row = (id: string, title: string) => ({ id, title, status: 'planned', steps: [], deletedAt: null });
+    const a = row('e1', 'Bounty v3');
+    const b = row('e2', 'Second');
+    (TestBed.inject(EinsatzServiceToken) as unknown as { rows: { set(v: unknown[]): void } }).rows.set([a, b]);
+    f.detectChanges();
+    expect(el.querySelector('.ein')).toBeNull();
+    TestBed.inject(HqPageNavService).routeFocus.set({ id: b.id });
+    f.detectChanges();
+    expect(el.querySelector(`[data-einsatz="${b.id}"]`)?.classList).toContain('focus');
+    expect(el.querySelector(`[data-einsatz="${a.id}"]`)?.classList).not.toContain('focus');
   });
 });

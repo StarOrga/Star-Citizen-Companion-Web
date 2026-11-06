@@ -4835,7 +4835,6 @@
     "image": "Anhang",
     "enlarge": "Bild vergrößern",
     "enlargeNamed": "Bild vergrößern: {{name}}",
-    "close": "Bild schließen",
     "remove": "Bild entfernen",
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild",
@@ -5182,17 +5181,63 @@
     "start": {
       "kicker": "Dein HQ",
       "title": "Hauptquartier",
-      "important": "Jetzt wichtig"
+      "loading": "Lädt …",
+      "retry": "Erneut versuchen",
+      "patch": {
+        "eyebrow": "{{plan}} · Neu in {{build}}",
+        "eyebrowPlan": "{{plan}} · Neu im Patch",
+        "eyebrowBuild": "Neu in {{build}}",
+        "eyebrowPlain": "Neu im Patch",
+        "weaker": "{{name}} {{pct}} % schwächer.",
+        "stronger": "{{name}} {{pct}} % stärker."
+      },
+      "bestand": {
+        "empty": "Noch keine Schiffe",
+        "emptyHint": "Schiffe, Sets und Lager.",
+        "import": "RSI-Hangar holen",
+        "ships": "{{n}} Schiffe",
+        "shipsOne": "1 Schiff",
+        "sets": "{{n}} Sets",
+        "setsOne": "1 Set",
+        "blueprints": "{{n}} Blueprints",
+        "blueprintsOne": "1 Blueprint",
+        "stale": "Lagerstand {{n}} Tage alt",
+        "open": "Bestand ansehen"
+      },
+      "now": {
+        "live": "Live",
+        "none": "Spiel nicht erkannt",
+        "noneHint": "Live-Stand aus dem Spiel.",
+        "off": "Kein Live-Signal",
+        "last": "Zuletzt: {{place}}, {{ago}}.",
+        "lastTime": "Zuletzt: {{ago}}.",
+        "nextTip": "Nächster Schritt deines ersten geplanten Einsatzes.",
+        "step": {
+          "buy": "{{label}} kaufen",
+          "mission": "Mission: {{label}}",
+          "mine": "{{label}} abbauen",
+          "refine": "{{label}} raffinieren",
+          "craft": "{{label}} craften",
+          "transport": "{{label}} transportieren",
+          "pickup": "{{label}} abholen"
+        }
+      },
+      "planen": {
+        "empty": "Noch nichts geplant",
+        "emptyHint": "Aus Nachschub wird eine Route.",
+        "go": "Jetzt planen",
+        "count": "{{n}} offen",
+        "needs": "{{n}} im Nachschub",
+        "route": "Route öffnen"
+      },
+      "stats": {
+        "missions": "{{n}} Missionen",
+        "missionsOne": "1 Mission",
+        "week": "in dieser Woche",
+        "open": "Statistik"
+      }
     },
-    "first": {
-      "promise": "Dein Hangar, deine Sets, deine nächsten Einsätze. An einem Ort.",
-      "step1": "RSI-Hangar holen",
-      "step2": "SCC-App starten",
-      "step3": "Ersten Einsatz planen",
-      "go": "Los geht's",
-      "skip": "Überspringen",
-      "duration": "≈ 4 Minuten"
-    },
+    "hotkey": "Hotkey: {{key}}",
     "step": {
       "kind": {
         "buy": "Kaufen",
@@ -5236,7 +5281,7 @@
         "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel.",
         "explain": {
           "aria": "Was Jetzt zeigt",
-          "what": "Jetzt ist dein Live-Stand aus dem Spiel: wo du gerade bist, was als Nächstes auf deinem Weg liegt und was zuletzt passiert ist.",
+          "what": "Jetzt ist dein Live-Stand aus dem Spiel: wo du gerade bist, was als Nächstes auf deiner Route liegt und was zuletzt passiert ist.",
           "e1": "Dein Standort und dein Schiff, z. B. „Stanton › New Babbage“.",
           "e2": "Dein nächster Schritt aus einem geplanten Einsatz, z. B. ein Kauf oder eine Fahrt.",
           "e3": "Die letzten Ereignisse, z. B. „Mission abgeschlossen“ oder „Quantum-Sprung beendet“."
@@ -5253,7 +5298,7 @@
         "ship": "Schiff:"
       },
       "path": {
-        "title": "Dein Weg",
+        "title": "Deine Route",
         "empty": "Kein aktiver Einsatz. Plane einen unter Planen."
       },
       "missions": {
@@ -5279,16 +5324,16 @@
         "custom": "Eigene Auswahl"
       },
       "empty": "Nichts auszuwählen. Markiere in Nachschub, was du holen willst.",
-      "route": "Dein Weg",
-      "routeEmpty": "Noch kein Weg. Wähle unter „Was brauche ich“ aus, was du holen willst.",
+      "route": "Deine Route",
+      "routeEmpty": "Noch keine Route. Wähle unter „Was brauche ich“ aus, was du holen willst.",
       "saveEinsatz": "Als Einsatz speichern",
       "retry": "Erneut versuchen",
       "fresh": {
         "title": "Noch nichts zu planen",
-        "text": "Planen macht aus deinem Nachschub einen Weg: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
+        "text": "Planen macht aus deinem Nachschub eine Route: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
         "step1": "Such, was dir fehlt, und leg es in den Nachschub.",
         "step2": "Wähle hier, was davon als Nächstes dran ist.",
-        "step3": "Unter „Wie komme ich hin“ entsteht der Weg – speicher ihn als Einsatz.",
+        "step3": "Unter „Wie komme ich hin“ entsteht die Route – speicher sie als Einsatz.",
         "addSupply": "Gegenstand suchen"
       },
       "source": {
@@ -5324,7 +5369,6 @@
     "supply": {
       "ready": "liegt bereit",
       "forSet": "für Set {{name}}",
-      "setReady": "Set {{name}} liegt bereit",
       "wanted": "Will ich holen",
       "wantedAria": "{{name}} als gewünscht markieren",
       "importTitle": "Liste aus diesem Browser übernehmen?",
@@ -5404,9 +5448,6 @@
         "community": "Community",
         "ocr": "Aus einem Screenshot"
       }
-    },
-    "patch": {
-      "affects": "betrifft {{set}} ›"
     },
     "stats": {
       "range": {
@@ -5585,15 +5626,13 @@
       "noResponse": "Die SCC-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
       "download": "SCC-App herunterladen",
+      "downloadCta": "SCC-App downloaden",
+      "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
+      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „SCC-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipLaunch": "Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "close": "Schließen"
     },
     "friends": {
-      "sharedLine": "{{n}} Einsatz von Freunden geteilt",
-      "requests": {
-        "title": "Freundschaftsanfragen ({{n}})",
-        "accept": "Annehmen",
-        "decline": "Ablehnen"
-      },
       "share": {
         "open": "Mit Freunden teilen",
         "hint": "Nur zum Ansehen. Bei einer Gruppe bekommen später hinzugefügte Mitglieder ebenfalls Zugriff.",

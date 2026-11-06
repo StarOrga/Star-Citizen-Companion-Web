@@ -5,7 +5,7 @@ import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 import { HqAppLaunchComponent } from './hq-app-launch.component';
 
 describe('HqAppLaunchComponent', () => {
-  function mount(answered: boolean, launchedBefore = false) {
+  function mount(answered: boolean, launchedBefore = false, mode: 'launch' | 'download' = 'launch') {
     const launcher = {
       launch: jasmine.createSpy('launch').and.resolveTo(answered),
       launchedBefore: () => launchedBefore,
@@ -15,6 +15,7 @@ describe('HqAppLaunchComponent', () => {
       providers: [provideTranslateService(), { provide: SccAppLauncherService, useValue: launcher }],
     });
     const f = TestBed.createComponent(HqAppLaunchComponent);
+    f.componentRef.setInput('mode', mode);
     f.detectChanges();
     return { f, launcher };
   }
@@ -77,6 +78,22 @@ describe('HqAppLaunchComponent', () => {
     anchor(f).dispatchEvent(ev);
     expect(leftToBrowser).toBeTrue();
     expect(launcher.launch).not.toHaveBeenCalled();
+  });
+
+  it('download mode says downloaden and downloads on a plain click without trying the app', async () => {
+    const { f, launcher } = mount(false, false, 'download');
+    expect(anchor(f).textContent).toContain('hq.app.downloadCta');
+    const ev = await clickPlain(f);
+    expect(ev.defaultPrevented).toBeTrue();
+    expect(launcher.launch).not.toHaveBeenCalled();
+    expect(launcher.downloadInstaller).toHaveBeenCalledTimes(1);
+    expect(f.componentInstance.status()).toBe('downloadStarted');
+    f.componentInstance.dismiss();
+  });
+
+  it('download mode stays a real anchor at the installer', () => {
+    const { f } = mount(false, false, 'download');
+    expect(anchor(f).getAttribute('href')).toBe(SCC_INSTALLER_URL);
   });
 
   it('closes the hint', async () => {
