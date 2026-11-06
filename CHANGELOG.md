@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.218.0] - 2026-11-06
+
+### Changed
+- The entrance on /verse now plays on your first visit of the day whichever way you come, not only when the app opens there. Coming through the menu, the header and search already stand.
+- The holo sends after the comet instead of at the same time, and on later visits its first message is readable right away.
+- Any click, scroll or key ends the entrance.
+- A reload shows the stars, then fades the hub in as one, without a placeholder bar. The planets fade in once they are drawn, without an empty ring first.
+
 ## [0.217.3] - 2026-11-06
 
 ### Fixed
