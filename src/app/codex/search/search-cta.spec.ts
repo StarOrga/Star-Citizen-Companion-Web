@@ -33,16 +33,17 @@ function rowOf(col: (typeof CTA_COLUMNS)[number], extra: Partial<CtaRow> = {}): 
 describe('search CTA matrix (round 3, q3-matrix)', () => {
   // Expected ids per context, cell by cell, with every "wie Neutral" and `*` fallback resolved by hand.
   const expected: Record<CtaRowKey, (SearchCtaId | null)[]> = {
+    // A blueprint has a CTA only where its mission is known (below); no row names one yet.
     //            owned          ship           wc             fps       ammo     bp                  upcoming  mfr           mission
-    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
+    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
     // Montieren needs the reader's own ship of the chip's class; rowOf owns none, so the cell falls back.
-    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
-    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
+    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
+    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
     // Wo verbaut? on a piece fitted nowhere falls back to the neutral cell.
-    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
-    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'toMission', null, 'allProducts', 'toEinsatz'],
-    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
-    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'toMission', 'atRsi', 'allProducts', 'toEinsatz'],
+    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
+    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', null, null, 'allProducts', 'toEinsatz'],
+    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', null, 'atRsi', 'allProducts', 'toEinsatz'],
+    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
   };
 
   (Object.keys(expected) as CtaRowKey[]).forEach((key) => {
@@ -55,6 +56,13 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
         expect(cta?.id ?? null).toBe(expected[key][i]);
       });
     });
+  });
+
+  it('Zur Mission: a link, and only where the row names the mission (A9)', () => {
+    const target = { link: ['/codex', 'missions', 'm1'], queryParams: null };
+    const cta = resolveCta(searchContextOf('/codex'), rowOf('blueprint', { missionTarget: target }), true);
+    expect(cta).toEqual(jasmine.objectContaining({ id: 'toMission', type: 'link', target }));
+    expect(resolveCta(searchContextOf('/codex'), rowOf('blueprint'), true)).toBeNull();
   });
 
   it('matrix table has one cell per column in every row', () => {

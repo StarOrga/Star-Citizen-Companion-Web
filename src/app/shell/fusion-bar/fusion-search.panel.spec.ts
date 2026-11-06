@@ -60,11 +60,11 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
   it('a press on a path node writes and does not open the row', async () => {
     const engine = fakeEngine({ groups: [ships] });
     const path = fakeItemPath();
-    const { el, type, cmp, fixture } = setupFusionSearch(engine, undefined, path);
+    const { el, type, cmp } = setupFusionSearch(engine, undefined, path);
     type('aegis re');
     const before = cmp.open();
     (el.querySelector('.row .node') as HTMLButtonElement).click();
-    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r));
     expect(path.addWish).toHaveBeenCalledWith('ship', jasmine.any(String), 'Aegis Reclaimer');
     expect(engine.calls.noteOpened).withContext('no navigation').toBe(0);
     expect(cmp.open()).toBe(before);

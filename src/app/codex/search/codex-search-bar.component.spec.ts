@@ -1,3 +1,5 @@
+import { ItemPathService } from '../../hq/data/item-path.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -29,6 +31,7 @@ describe('CodexSearchBarComponent', () => {
     TestBed.configureTestingModule({
       imports: [CodexSearchBarComponent],
       providers: [
+        { provide: ItemPathService, useValue: fakeItemPath() },
         provideNoShipBlueprints(),
         provideRouter([{ path: '**', children: [] }]),
         provideTranslateService({ fallbackLang: 'en' }),

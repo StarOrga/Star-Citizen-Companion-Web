@@ -41,7 +41,8 @@ function setup(o: Opts = {}) {
   const el = fixture.nativeElement as HTMLElement;
   const node = (step: PathStep) => el.querySelector<HTMLButtonElement>(`.node[data-step="${step}"]`)!;
   const settle = async () => {
-    await fixture.whenStable();
+    // Not whenStable: the undo toast holds a 6 s window open in the zone.
+    await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
   };
   const click = async (b: HTMLElement) => {

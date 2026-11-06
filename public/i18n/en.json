@@ -6970,11 +6970,11 @@
     "done": {
       "wishOn": "\"{{name}}\" is on your wishlist",
       "wishOff": "\"{{name}}\" is off your wishlist",
-      "nachschub": "\"{{name}}\" is in Nachschub",
-      "moved": "\"{{name}}\" moved from the wishlist to Nachschub",
-      "nachschubOff": "\"{{name}}\" is out of Nachschub",
-      "qty": "\"{{name}}\": {{qty}} in Nachschub",
-      "nachholen": "{{qty}} x \"{{name}}\" back in Nachschub",
+      "nachschub": "\"{{name}}\" is in Supplies",
+      "moved": "\"{{name}}\" moved from the wishlist to Supplies",
+      "nachschubOff": "\"{{name}}\" is out of Supplies",
+      "qty": "\"{{name}}\": {{qty}} in Supplies",
+      "nachholen": "{{qty}} x \"{{name}}\" back in Supplies",
       "inventar": "\"{{name}}\" now lies in {{where}}",
       "ticked": "\"{{name}}\" ticked off",
       "hangar": "\"{{name}}\" is in your hangar",
@@ -6987,8 +6987,8 @@
     "err": {
       "failed": "That did not work. Try again.",
       "unavailable": "This step does not exist here.",
-      "listFull": "Nachschub is full.",
-      "noLine": "There is no open Nachschub line for it.",
+      "listFull": "Supplies is full.",
+      "noLine": "There is no open Supplies line for it.",
       "alreadyOwned": "The ship is already in your hangar."
     },
     "hint": {
@@ -6996,7 +6996,7 @@
     },
     "step": {
       "wish": "Wishlist",
-      "nachschub": "Nachschub",
+      "nachschub": "Supplies",
       "inventar": "Inventory",
       "hangar": "Hangar"
     },
@@ -7006,8 +7006,8 @@
         "on": "On your wishlist"
       },
       "nachschub": {
-        "off": "Add to Nachschub",
-        "on": "{{qty}}× in Nachschub"
+        "off": "Add to Supplies",
+        "on": "{{qty}}× in Supplies"
       },
       "inventar": {
         "off": "Add to inventory",
@@ -7020,7 +7020,7 @@
     },
     "go": {
       "wish": "Add to wishlist",
-      "nachschub": "Add to Nachschub",
+      "nachschub": "Add to Supplies",
       "inventar": "Add to inventory",
       "hangar": "Add to hangar"
     },
@@ -7042,7 +7042,7 @@
       "more": "More",
       "remove": "Remove",
       "viewWish": "View on the wishlist ›",
-      "viewNachschub": "View in Nachschub ›",
+      "viewNachschub": "View in Supplies ›",
       "viewInventar": "View in inventory ›",
       "viewHangar": "View in hangar ›",
       "whereTitle": "Where is it?",
