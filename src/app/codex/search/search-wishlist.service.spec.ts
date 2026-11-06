@@ -75,9 +75,27 @@ describe('search words for own data (A10)', () => {
     expect(parseQuery('lager s3 laser').chips.some((c) => c.filter.ownKinds?.[0] === 'item')).toBeTrue();
   });
 
-  it('the word alone stays plain text (nothing to filter yet)', () => {
-    expect(parseQuery('gemerkt').chips.length).toBe(0);
-    expect(parseQuery('gemerkt').rest).toBe('gemerkt');
+  it('A10: every own word alone is a chip with an empty term, so it lists exactly its set', () => {
+    for (const [text, key] of [['gemerkt', 'wished'], ['wunschliste', 'wished'], ['fehlt mir', 'needed'], ['needed', 'needed'], ['lager', 'ownOnly'], ['inventar', 'ownOnly']] as const) {
+      const p = parseQuery(text);
+      expect(p.rest).withContext(text).toBe('');
+      expect(p.chips.length).withContext(text).toBe(1);
+      expect((p.chips[0].filter as Record<string, unknown>)[key]).withContext(text).toBeTruthy();
+    }
+  });
+
+  it('A10: "im inventar" is one phrase, and only the stock word means "my data only"', () => {
+    expect(parseQuery('im inventar rakete').rest).toBe('rakete');
+    expect(parseQuery('im inventar rakete').chips[0].filter.ownOnly).toBeTrue();
+    expect(parseQuery('gemerkt aegis').chips[0].filter.ownOnly).toBeUndefined();
+  });
+
+  it('A10: the wishlist stores the name of every kind, not only of announced ships', async () => {
+    const { svc, rows } = setup();
+    await svc.add('item', 'MISL_S01_IR_VNCL_Arrow', 'Arrow-I-Rakete');
+    expect(rows()[0].name).toBe('Arrow-I-Rakete');
+    await svc.add('upcoming', 'idris', 'Idris');
+    expect(rows()[1].name).toBe('Idris');
   });
 
   it('the wished chip drops hits that are not on the list', () => {

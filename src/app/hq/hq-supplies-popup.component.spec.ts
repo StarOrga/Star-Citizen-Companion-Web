@@ -93,5 +93,8 @@ describe('HqSuppliesPopupComponent', () => {
     f.detectChanges();
     const tick = [...el.querySelectorAll<HTMLButtonElement>('.place button')].find((b) => b.textContent?.includes('hq.supplies.place.tickOnly'));
     expect(tick).toBeTruthy();
+    // A text action is a pill, never the icon-only tertiary: it used to overflow its 32 px box and sit on "Ablegen".
+    expect(tick!.classList.contains('sc-action--secondary')).toBeTrue();
+    expect(store.classList.contains('sc-action--secondary')).toBeTrue();
   });
 });

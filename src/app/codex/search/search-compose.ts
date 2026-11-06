@@ -144,7 +144,9 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
   let filteredOut = 0;
   const outsideHits: { hit: PolySearchHit; chip: SearchChip; score: number }[] = [];
   const catalog: SearchResultGroup[] = [];
-  for (const g of input.groups) {
+  // "lager" / "inventar": the reader's own data only, whatever groups the caller read.
+  const ownOnlyChips = chips.some((c) => c.filter.ownOnly);
+  for (const g of ownOnlyChips ? [] : input.groups) {
     const inside: PolySearchHit[] = [];
     let dropped = 0;
     for (const hit of g.hits) {

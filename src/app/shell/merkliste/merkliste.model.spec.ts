@@ -35,4 +35,11 @@ describe('merkliste model', () => {
     expect(wishRowOfType({ kind: 'weapon', className: 'w', name: null, manufacturer: null }, 'ship')).toBeNull();
     expect(wishRowOfType({ kind: 'weapon', className: 'w', name: null, manufacturer: null }, null)?.type).toBe('weapon');
   });
+
+  it('titles a wished entry with its stored name, else the resolved catalog name, never the raw class name', () => {
+    const w = { kind: 'item', className: 'MISL_S01_IR_VNCL_Arrow', name: null, manufacturer: null };
+    expect(wishRowOfType({ ...w, name: 'Arrow-I-Rakete' }, null, () => 'Other')!.title).toBe('Arrow-I-Rakete');
+    expect(wishRowOfType(w, null, () => 'Arrow-I-Rakete')!.title).toBe('Arrow-I-Rakete');
+    expect(wishRowOfType(w, null, () => null)!.title).not.toContain('MISL_S01');
+  });
 });

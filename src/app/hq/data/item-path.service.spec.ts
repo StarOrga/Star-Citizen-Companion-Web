@@ -1,17 +1,20 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../../auth/auth.service';
+import { CodexService } from '../../codex/codex.service';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqSuppliesService, type SupplyItem } from '../hq-supplies.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqInventoryService } from './hq-inventory.service';
-import { ItemPathService, PLACE_WITH_ME, stepsOf } from './item-path.service';
+import { ItemPathService, PLACE_WITH_ME, materialLines, stepsOf } from './item-path.service';
 
 interface Line { id: string; name: string; qty: number; done: boolean; className: string }
 interface Stock { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' }
 
-function setup(opts: { user?: boolean; live?: Record<string, unknown> | null } = {}) {
+interface Ingredient { ingredientClassName: string | null; nameLocalized: string | null; entityKind: string | null; quantity: number }
+
+function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; recipe?: Ingredient[] | 'fails' } = {}) {
   const wished = new Set<string>();
   const lines: Line[] = [];
   const stock = signal<Stock[]>([]);
@@ -80,6 +83,15 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null } =
       { provide: HqInventoryService, useValue: inventory },
       { provide: HangarService, useValue: hangar },
       { provide: HqLiveService, useValue: { state: () => opts.live ?? null, events: () => [] } },
+      {
+        provide: CodexService,
+        useValue: {
+          getBlueprint: async (cls: string) => {
+            if (opts.recipe === 'fails') throw new Error('offline');
+            return opts.recipe ? { classNameSlug: cls, row: {}, ingredients: opts.recipe } : null;
+          },
+        },
+      },
     ],
   });
   return { svc: TestBed.inject(ItemPathService), wished, lines, stock, ships };
@@ -207,5 +219,65 @@ describe('ItemPathService', () => {
     expect((await svc.addWish('item', 'a', 'A')).key).toBe('itemPath.needSignIn');
     expect((await svc.addToNachschub('item', 'a', 'A')).ok).toBeFalse();
     expect(wished.size + lines.length).toBe(0);
+  });
+
+  describe('A9: a blueprint brings its material to Nachschub', () => {
+    const recipe: Ingredient[] = [
+      { ingredientClassName: 'Agricium', nameLocalized: 'Agricium', entityKind: null, quantity: 0.36 },
+      { ingredientClassName: 'Frame_Alu', nameLocalized: 'Aluminium', entityKind: 'item', quantity: 2.4 },
+      { ingredientClassName: null, nameLocalized: null, entityKind: null, quantity: 1 },
+    ];
+
+    it('adds the blueprint line plus one line per resolved ingredient, rounded up to whole pieces', async () => {
+      const { svc, lines } = setup({ recipe });
+      const res = await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
+      expect(lines.map((l) => [l.name, l.qty, l.className])).toEqual([
+        ['Laser Cannon', 1, 'BP_X'],
+        ['Agricium', 1, 'Agricium'],
+        ['Aluminium', 3, 'Frame_Alu'],
+      ]);
+      expect(res.key).toBe('itemPath.done.nachschubMaterial');
+      expect(res.params).toEqual({ name: 'Laser Cannon', n: 2 });
+    });
+
+    it('the wish moves and the toast undo takes blueprint and material out together', async () => {
+      const { svc, lines, wished } = setup({ recipe });
+      await svc.addWish('blueprint', 'BP_X', 'Laser Cannon');
+      const res = await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
+      expect(res.key).toBe('itemPath.done.movedMaterial');
+      expect(wished.size).toBe(0);
+      await res.undo!();
+      expect(lines.length).toBe(0);
+      expect(wished.has('blueprint:bp_x')).toBeTrue();
+    });
+
+    it('material already in Nachschub gains the quantity and undo restores the old one', async () => {
+      const { svc, lines } = setup({ recipe });
+      await svc.addToNachschub('item', 'Agricium', 'Agricium', 4);
+      const res = await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
+      expect(lines.find((l) => l.className === 'Agricium')!.qty).toBe(5);
+      await res.undo!();
+      expect(lines.find((l) => l.className === 'Agricium')!.qty).toBe(4);
+    });
+
+    it('a recipe that cannot be read leaves the blueprint line plain', async () => {
+      const { svc, lines } = setup({ recipe: 'fails' });
+      const res = await svc.addToNachschub('blueprint', 'BP_X', 'Laser Cannon', 1);
+      expect(res.ok).toBeTrue();
+      expect(res.key).toBe('itemPath.done.nachschub');
+      expect(lines.length).toBe(1);
+    });
+
+    it('an item brings no material, and a material the catalog cannot place is stocked like an item', async () => {
+      const { svc, lines } = setup({ recipe });
+      await svc.addToNachschub('item', 'rifle', 'Gewehr', 1);
+      expect(lines.length).toBe(1);
+      expect(materialLines(recipe).find((m) => m.className === 'Agricium')!.entityKind).toBe('item');
+    });
+
+    it('the same material in two slots is one line', () => {
+      const two = [recipe[0], { ...recipe[0], quantity: 0.8 }];
+      expect(materialLines(two)).toEqual([{ className: 'Agricium', name: 'Agricium', entityKind: 'item', qty: 2 }]);
+    });
   });
 });

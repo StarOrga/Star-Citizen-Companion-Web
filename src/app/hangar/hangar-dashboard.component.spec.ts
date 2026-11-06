@@ -100,6 +100,23 @@ describe('HangarDashboardComponent role loadouts', () => {
   });
   afterEach(() => localStorage.clear());
 
+  describe('D9: the old concept-wishlist mechanism is gone', () => {
+    it('has no Reissbrett strip; the wishlist chip is a count that links to the wish tab', async () => {
+      const { el } = await setup();
+      expect(el.querySelector('.drawing-board')).toBeNull();
+      expect(el.querySelector('.db-tile')).toBeNull();
+      const chip = el.querySelector<HTMLAnchorElement>('a.count-chip');
+      expect(chip).not.toBeNull();
+      expect(chip!.getAttribute('href')).toContain('list=wish');
+      expect(chip!.getAttribute('href')).toContain('#planen');
+    });
+
+    it('reads no wishlist table and never the old concept-ship table', async () => {
+      const { calls } = await setup();
+      expect(calls.some((c) => c.target === 'hangar_concept_ships')).toBeFalse();
+    });
+  });
+
   describe('create', () => {
     it('creates the set with the typed name and the chosen role, then clears the field', async () => {
       write = () => ({ data: setRow('set-2', 'Boarding') });

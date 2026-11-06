@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { ConsentService } from '../../core/consent.service';
 import { HangarService } from '../../hangar/hangar.service';
+import { WishNamesService } from '../../codex/search/wish-names.service';
 import { WishlistStore } from '../../hq/data/wishlist.store';
 import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { NewsService } from '../../news/news.service';
@@ -11,7 +12,7 @@ import { RECENT_ROWS_KEY } from '../fusion-bar/search-recent-rows';
 import { noteOpenedPage } from './merkliste-opened';
 import { MerklisteService } from './merkliste.service';
 
-function setup(preferences: boolean, own: { wishes?: unknown[]; open?: unknown[]; favs?: string[] } = {}) {
+function setup(preferences: boolean, own: { wishes?: unknown[]; open?: unknown[]; favs?: string[]; names?: Record<string, string> } = {}, asked: string[][] = []) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([{ path: '**', children: [] }]),
@@ -21,6 +22,7 @@ function setup(preferences: boolean, own: { wishes?: unknown[]; open?: unknown[]
       { provide: HqSuppliesService, useValue: { open: signal(own.open ?? []) } },
       { provide: NewsService, useValue: { feed: signal(null), favoriteIds: signal(new Set<string>(own.favs ?? [])), itemById: () => null, refresh: () => Promise.resolve() } },
       { provide: ConsentService, useValue: { preferencesAllowed: signal(preferences) } },
+      { provide: WishNamesService, useValue: { request: (c: string[]) => asked.push(c), nameOf: (_k: string, c: string) => own.names?.[c] ?? null } },
     ],
   });
   return TestBed.inject(MerklisteService);
@@ -72,5 +74,15 @@ describe('MerklisteService "Zuletzt geoeffnet" (D7)', () => {
     noteOpenedPage({ kind: 'upcoming', className: 'X', title: 'X', manufacturerCode: null });
     noteOpenedPage({ kind: 'ammunition', className: 'Y', title: 'Y', manufacturerCode: null });
     expect(localStorage.getItem(RECENT_ROWS_KEY)).toBeNull();
+  });
+});
+
+describe('MerklisteService wished names (D7)', () => {
+  it('a wish without a stored name shows the catalog name, and its class is asked for once resolvable', async () => {
+    const asked: string[][] = [];
+    const svc = setup(false, { wishes: [{ kind: 'item', className: 'MISL_S01_IR_VNCL_Arrow', name: null, manufacturer: null }, { kind: 'item', className: 'Named', name: 'Gespeichert', manufacturer: null }], names: { MISL_S01_IR_VNCL_Arrow: 'Arrow-I-Rakete' } }, asked);
+    await TestBed.inject(Router).navigateByUrl('/codex/index?kind=item');
+    expect(svc.wished().map((r) => r.title)).toEqual(['Arrow-I-Rakete', 'Gespeichert']);
+    expect(asked.flat()).toEqual(['MISL_S01_IR_VNCL_Arrow']);
   });
 });

@@ -5,6 +5,8 @@ import { BehaviorSubject } from 'rxjs';
 import { BlueprintDetailComponent } from './blueprint-detail.component';
 import { BlueprintDetail, CodexService } from './codex.service';
 import { CodexBlueprintIngredient } from './codex.types';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 
 const MICROSAT = 'BP_CRAFT_Carryable_2H_FL_MissionItem_Microsatellite_a';
 
@@ -57,6 +59,7 @@ async function setup(
       provideTranslateService(),
       provideRouter([]),
       { provide: CodexService, useValue: { getBlueprint, ...extra } as Partial<CodexService> },
+      { provide: ItemPathService, useValue: fakeItemPath() },
       {
         provide: ActivatedRoute,
         useValue: { paramMap: new BehaviorSubject(convertToParamMap({ className: detail.classNameSlug })) },
@@ -87,6 +90,18 @@ function quantities(fixture: ComponentFixture<BlueprintDetailComponent>, rowSele
     (q.querySelector('.q') ?? q).textContent!.trim(),
   );
 }
+
+describe('BlueprintDetailComponent — path (A9)', () => {
+  it('carries the path control with all three stops: wish, Nachschub, Inventar', async () => {
+    const fixture = await setup(blueprint([ingredient(0, 'Agricium', 0.36)]));
+    const el: HTMLElement = fixture.nativeElement;
+    const paths = el.querySelectorAll('sc-item-path');
+    expect(paths.length).toBe(1);
+    expect(Array.from(paths[0].querySelectorAll('.node')).map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+    // Not from Planen or a set: the pill, with the next step as its button.
+    expect(paths[0].querySelector('.pill .go')).not.toBeNull();
+  });
+});
 
 describe('BlueprintDetailComponent — quantities', () => {
   it('names an ingredient once and puts the SCU unit on its amount (audit L29)', async () => {
