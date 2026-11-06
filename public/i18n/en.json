@@ -5223,7 +5223,14 @@
         "title": "Game not detected — start the SCC app",
         "hint": "The SCC app reports your location and actions here, live.",
         "syncOffTitle": "SCC app connected — no live data yet",
-        "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game."
+        "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game.",
+        "explain": {
+          "aria": "What Now shows",
+          "what": "Now is your live state from the game: where you are, what comes next on your path, and what happened last.",
+          "e1": "Your location and ship, e.g. \"Stanton › New Babbage\".",
+          "e2": "Your next step from a planned run, e.g. a purchase or a trip.",
+          "e3": "The latest events, e.g. \"Mission completed\" or \"Quantum jump finished\"."
+        }
       },
       "fresh": {
         "updated": "Live · as of {{at}}",

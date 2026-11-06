@@ -63,6 +63,20 @@ describe('HqNowComponent', () => {
     expect(el.querySelector('.connect .muted')?.textContent).toContain('hq.now.connect.syncOffHint');
   });
 
+  it('explains what Jetzt shows with three examples in both connect states', () => {
+    for (const conn of ['never', 'connected'] as ConnectionState[]) {
+      TestBed.resetTestingModule();
+      const el = mount(fakeLive(null), conn).nativeElement as HTMLElement;
+      expect(el.querySelector('.connect .explain-what')?.textContent).toContain('hq.now.connect.explain.what');
+      expect(el.querySelectorAll('.connect .explain-list li').length).toBe(3);
+    }
+  });
+
+  it('shows no explanation once live data flows', () => {
+    const el = mount(fakeLive({ location: { name: 'Lorville', system: null } })).nativeElement as HTMLElement;
+    expect(el.querySelector('.explain')).toBeNull();
+  });
+
   const presence = (ageMs: number, gameRunning = true) => ({
     gameRunning,
     at: new Date(Date.now() - ageMs).toISOString(),
