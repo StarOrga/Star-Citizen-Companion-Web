@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
+import { setNumberLocale } from '../../codex/codex-format';
 import { ItemPathService, stepsOf } from '../../hq/data/item-path.service';
 import { ScConfirmService } from '../dialog/sc-confirm.service';
 import { UndoToastService } from '../undo-toast/undo-toast.service';
@@ -133,6 +134,21 @@ describe('ItemPathComponent', () => {
       expect(node('wish').querySelector('.n')).toBeNull();
     });
 
+    it('an SCU amount shows exact in the bullet and in the Nachschub popover (0,36 SCU),', async () => {
+      try {
+        setNumberLocale('de-DE');
+        const { node, click, path, popover } = setup({ state: { nachschubQty: 0.36, nachschubUnit: 'scu' } });
+        expect(node('nachschub').querySelector('.n')!.textContent).toBe('0,36');
+        await click(node('nachschub'));
+        const pop = popover()!;
+        expect(pop.querySelector('.rp-q')!.textContent).toContain('0,36 SCU');
+        expect(pop.querySelector('.st b')!.textContent).toContain('0,36 SCU');
+        expect(path.moveToInventar).not.toHaveBeenCalled();
+      } finally {
+        setNumberLocale(null);
+      }
+    });
+
     it('the last filled stop is current and the links up to it light up', () => {
       const { el, node } = setup({ state: { nachschubQty: 2 } });
       expect(node('nachschub').classList).toContain('cur');
@@ -219,7 +235,7 @@ describe('ItemPathComponent', () => {
       expect(places[0].textContent).toContain('Bei mir');
       expect(places[1].textContent).toContain('Area 18');
       await click(places[1]);
-      expect(path.moveToInventar).toHaveBeenCalledWith('item', 'cls', 'Helm', 'Area 18', 3);
+      expect(path.moveToInventar).toHaveBeenCalledWith('item', 'cls', 'Helm', 'Area 18', 3, { unit: null });
       expect(popover()).toBeNull();
     });
 
@@ -246,7 +262,7 @@ describe('ItemPathComponent', () => {
       input.value = ' Lorville ';
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
       await settle();
-      expect(path.moveToInventar).toHaveBeenCalledWith('item', 'cls', 'Helm', 'Lorville', 1);
+      expect(path.moveToInventar).toHaveBeenCalledWith('item', 'cls', 'Helm', 'Lorville', 1, { unit: null });
     });
 
     it('filled Inventar lists its places with steppers; a step leaves the Nachschub line alone', async () => {
