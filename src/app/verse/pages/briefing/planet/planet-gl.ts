@@ -79,12 +79,16 @@ void main(){
   vec3 aurC = mix(vec3(0.37, 0.88, 0.69), uAccent, 0.45);
   // Anti-aliased limb: the disc covers the pixel by its distance to the edge (1 px ramp).
   float cover = clamp((1.0 - r) * uR + 0.5, 0.0, 1.0);
-  vec4 o = halo(d, r, aurC);
+  // Inside the disc the halo adds nothing: it costs an atan and three noises per pixel.
+  vec4 o = cover < 1.0 ? halo(d, r, aurC) : vec4(0.0);
   vec3 s = cover > 0.0 ? surface(d * min(1.0, 0.9995 / r), aurC) : vec3(0.0);
   vec3 pm = o.rgb * o.a * (1.0 - cover) + s * cover;
   float a = o.a * (1.0 - cover) + cover;
   gl_FragColor = vec4(pm / max(a, 1e-4), a);
 }`;
+
+/** 8 against 2 differs by 71 dB on the visible band, far below what an eye resolves. */
+const MAX_ANISOTROPY = 2;
 
 export interface PlanetFrame {
   /** Planet centre and radius in CSS pixels of the canvas. */
@@ -121,7 +125,7 @@ export class PlanetRenderer {
     // the GPU process, and asked after each texture it waited for that texture's
     // upload and mipmaps to finish — the longest task left on the page after
     // the world stopped being generated here (profiled 2026-11-03).
-    this.anisoLevel = this.aniso ? Math.min(8, gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number) : 1;
+    this.anisoLevel = this.aniso ? Math.min(MAX_ANISOTROPY, gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number) : 1;
     gl.attachShader(prog, this.shader(gl.VERTEX_SHADER, VS));
     gl.attachShader(prog, this.shader(gl.FRAGMENT_SHADER, FS(deriv)));
     this.mipmaps = deriv;

@@ -485,8 +485,8 @@ const FITTED_SHOWN = 2;
       font-size: max(0.92rem, var(--sc-fs-input, 1rem)); color: var(--sc-fg-0);
     }
     .demo-ph, .demo-t { position: absolute; left: 0; white-space: nowrap; }
-    .demo-ph { color: var(--sc-fg-2); animation: fs-demo-ph 8s ease-out infinite; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    .demo-t { clip-path: inset(0 100% 0 0); animation: 8s steps(var(--n, 10)) infinite; }
+    .demo-ph { color: var(--sc-fg-2); animation: fs-demo-ph 8s ease-out 3; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .demo-t { clip-path: inset(0 100% 0 0); animation: 8s steps(var(--n, 10)) 3; }
     .demo-t:nth-child(2) { animation-name: fs-demo-1; }
     .demo-t:nth-child(3) { animation-name: fs-demo-2; }
     .demo-t:nth-child(4) { animation-name: fs-demo-3; }

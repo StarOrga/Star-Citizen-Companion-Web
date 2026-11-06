@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.215.0] - 2026-11-06
+
+### Changed
+- /verse takes far less computing power: the background moves at a calm 15 frames per second, and it stands still while the window has no focus, then starts again softly.
+- Switching pages no longer stutters: the starry sky is now a single image.
+- Three random stars twinkle in the sky instead of the whole sky pulsing.
+- The typing demo in the search field stops after three rounds.
+
 ## [0.214.0] - 2026-11-06
 
 ### Added

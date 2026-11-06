@@ -16,6 +16,7 @@ import { VerseApiService } from '../../data/verse-api.service';
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { VerseDigest, VerseDigestItem } from '../../data/verse.models';
 import { HERO_MS, VerseBriefingComponent } from '../verse-briefing.component';
+import { WindowFocusService } from '../../../core/window-focus.service';
 import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing-beacons.component';
 import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
 import { INTRO_FLAG } from './briefing.model';
@@ -265,6 +266,30 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     fixture.detectChanges();
     el.querySelectorAll<HTMLButtonElement>('.hrow button.step')[0].click();
     expect(title()).toBe('/verse/news?item=n1');
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
+
+  it('holds the hero without the window focus, and gives it a full turn when focus returns', fakeAsync(() => {
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const focus = TestBed.inject(WindowFocusService);
+    const title = (): string | null | undefined => {
+      fixture.detectChanges();
+      return el.querySelector('.hrow a.tl')?.getAttribute('href');
+    };
+    expect(title()).toBe('/verse/news?item=n1');
+    focus.focused.set(false);
+    fixture.detectChanges();
+    tick(HERO_MS * 2);
+    expect(title()).withContext('no focus').toBe('/verse/news?item=n1');
+    focus.focused.set(true);
+    fixture.detectChanges();
+    tick(HERO_MS - 1);
+    expect(title()).withContext('full turn').toBe('/verse/news?item=n1');
+    tick(1);
+    expect(title()).toBe('/verse/patches/4.3');
     fixture.destroy();
     discardPeriodicTasks();
   }));

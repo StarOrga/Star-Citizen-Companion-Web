@@ -116,7 +116,14 @@
   background: repeating-radial-gradient(circle at var(--px) var(--py),
     rgba(170, 232, 255, 0) calc(var(--wave) - 6.4cqw), rgba(170, 232, 255, 0) calc(var(--wave) - 4.2cqw),
     rgba(170, 232, 255, 0.26) calc(var(--wave) - 2.2cqw), rgba(170, 232, 255, 0) var(--wave));
-  animation: wave 1.6s linear infinite;
+  // Repainting this window-sized gradient every frame cost about half a core, also while the
+  // cone stood invisible. It only runs in the phases that show it.
+  animation: wave 1.6s linear infinite paused;
+}
+.cone[data-phase='charge'] .waves,
+.cone[data-phase='reveal'] .waves,
+.cone[data-phase='type'] .waves {
+  animation-play-state: var(--sc-brief-play, running);
 }
 @keyframes wave { from { --wave: 0px; } to { --wave: 6.4cqw; } }
 

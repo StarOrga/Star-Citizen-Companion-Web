@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ViewEncapsulation, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
+import { SlowMotionService } from '../../core/slow-motion.service';
+import { WindowFocusService } from '../../core/window-focus.service';
 import { POSES, SceneKind, SceneMode, flightMs, isSubPage, sceneOf, sceneStep } from './scene.model';
+import { SPARKLE_COUNT, StarSparkle } from './star-sparkle';
 import { VerseWorld, verseWorldOf } from '../../verse/shared/verse-world';
 
 /** Reduced-motion check; a field so specs can swap it. */
@@ -35,6 +38,11 @@ export function sceneReducedMotion(): boolean {
 export class ShellSceneComponent {
   private readonly router = inject(Router);
   readonly on = inject(BetaService).isEnabled('shell');
+  private readonly skyEl = viewChild<ElementRef<HTMLElement>>('sky');
+  private readonly focus = inject(WindowFocusService);
+  private readonly slow = inject(SlowMotionService);
+  private readonly zone = inject(NgZone);
+  private sparkle: StarSparkle | null = null;
 
   readonly scene = signal<SceneKind>(sceneOf(this.router.url));
   readonly mode = signal<SceneMode>('still');
@@ -56,7 +64,24 @@ export class ShellSceneComponent {
     const sub = this.router.events.subscribe((e) => {
       if (e instanceof NavigationEnd) this.apply(e.urlAfterRedirects);
     });
-    inject(DestroyRef).onDestroy(() => sub.unsubscribe());
+    const stopFocus = this.focus.onChange((focused) => (focused ? this.sparkle?.resume() : this.sparkle?.pause()));
+    const stopSlow = this.reducedMotion() ? null : this.slow.start();
+    inject(DestroyRef).onDestroy(() => {
+      sub.unsubscribe();
+      stopFocus();
+      stopSlow?.();
+      this.sparkle?.stop();
+    });
+    effect(() => {
+      const sky = this.skyEl()?.nativeElement;
+      untracked(() => {
+        this.sparkle?.stop();
+        this.sparkle = null;
+        if (!sky || this.reducedMotion() || typeof sky.animate !== 'function') return;
+        this.sparkle = this.zone.runOutsideAngular(() => new StarSparkle(sky, SPARKLE_COUNT, Math.random, (a) => this.slow.adopt(a)));
+        if (!this.focus.focused()) this.sparkle.pause();
+      });
+    });
   }
 
   /** One navigation: decide the step, set the pose. Exposed for the spec. */

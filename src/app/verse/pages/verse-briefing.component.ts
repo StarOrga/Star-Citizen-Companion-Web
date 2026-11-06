@@ -19,6 +19,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
+import { WindowFocusService } from '../../core/window-focus.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
 import { NewsService, VerseNewsItem } from '../../news/news.service';
@@ -210,6 +211,7 @@ export class VerseBriefingComponent {
   private readonly votes = inject(PatchStabilityVotesService);
   private readonly translate = inject(TranslateService);
   private readonly chrome = inject(ShellChromeService);
+  private readonly windowFocus = inject(WindowFocusService);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -554,12 +556,13 @@ export class VerseBriefingComponent {
       const line = this.hubLive()?.line;
       if (on() && line) untracked(() => this.votes.ensure(line));
     });
-    // Auto switch every HERO_MS; any switch (chevron or auto) restarts the clock.
+    // Auto switch every HERO_MS; any switch (chevron or auto) restarts the clock. Without the
+    // window's focus it stands still with the rest of the background, and gets a full turn after.
     effect((onCleanup) => {
       const n = this.stories().length;
       this.index();
       // The first story gets its full turn once it takes over from the app's name.
-      if (!on() || this.heroHold() || this.brand() || n < 2) return;
+      if (!on() || !this.windowFocus.focused() || this.heroHold() || this.brand() || n < 2) return;
       const id = setTimeout(() => this.advance(), HERO_MS);
       onCleanup(() => clearTimeout(id));
     });

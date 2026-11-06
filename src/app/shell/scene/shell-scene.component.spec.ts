@@ -105,6 +105,26 @@ describe('Shell scene — component', () => {
     TestBed.resetTestingModule();
   });
 
+  it('animates no window-sized layer at rest: stars and hidden city lights stand still', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.stars.near')!.getAnimations()).withContext('stars').toEqual([]);
+    expect(el.querySelector('.detail .lights')!.getAnimations()).withContext('lights on the Verse').toEqual([]);
+  });
+
+  it('shows the city lights moving only over the night surface', async () => {
+    await router.navigateByUrl('/hq');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.detail .lights')!.getAnimations().length).toBe(1);
+  });
+
+  it('paints the stars as one image: gradient layers held up every frame after a menu click', () => {
+    const near = (fixture.nativeElement as HTMLElement).querySelector('.stars.near')!;
+    const bg = getComputedStyle(near).backgroundImage;
+    expect(bg.startsWith('url(')).toBeTrue();
+    expect(bg).not.toContain('radial-gradient(1');
+  });
+
   it('renders nothing with the shell beta off', () => {
     shellOn.set(false);
     fixture.detectChanges();

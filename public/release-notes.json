@@ -1,7 +1,75 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.213.1",
+  "current": "0.214.0",
   "releases": [
+    {
+      "version": "0.214.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Start shows Bestand, Jetzt and Planen at fixed places, with Statistik as a quiet link below."
+            },
+            {
+              "title": "",
+              "text": "Keys 1 to 4 jump to Bestand, Jetzt, Planen and Statistik; a tooltip names them after a long hover."
+            },
+            {
+              "title": "",
+              "text": "The installed app offers shortcuts to Bestand and Jetzt."
+            },
+            {
+              "title": "",
+              "text": "\"Route öffnen\" on Start opens exactly that saved route on Planen."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The HQ pages now run Start, Bestand, Jetzt, Planen, Statistik."
+            },
+            {
+              "title": "",
+              "text": "A patch that touches your ships or sets takes the title of the HQ hero."
+            },
+            {
+              "title": "",
+              "text": "While the game runs, Jetzt shows the next step of your first planned Einsatz, and no button without one."
+            },
+            {
+              "title": "",
+              "text": "The app button says \"SCC-App downloaden\" until the app is known on the account or in this browser."
+            },
+            {
+              "title": "",
+              "text": "The hint to the next page looks like the one in the Verse and stands back while the page runs on below the screen."
+            },
+            {
+              "title": "",
+              "text": "HQ texts say \"Route\" instead of \"Weg\"."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The first-visit steps, the friends line, the patch line and the chips on HQ Start. Friend requests stay on the social page."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.213.1",
       "date": "2026-11-06",
