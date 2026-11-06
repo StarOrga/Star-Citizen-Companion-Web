@@ -9,8 +9,8 @@ import { HqLiveService } from '../now/hq-live.service';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 
 describe('HqStockPopupComponent: capture and links', () => {
-  type Hit = { kind: string; classNameSlug: string; nameLocalized: string };
-  type Row = { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' };
+  interface Hit { kind: string; classNameSlug: string; nameLocalized: string }
+  interface Row { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' }
 
   function mount(start: StockStart, opts: { hits?: Hit[]; items?: Row[] } = {}) {
     const items = opts.items ?? [];
