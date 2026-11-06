@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.213.0",
+  "current": "0.213.1",
   "releases": [
+    {
+      "version": "0.213.1",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "About, HQ, Hangar and the Codex landing fit a desktop screen with their footer, without a few pixels of scroll."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.213.0",
       "date": "2026-11-06",
