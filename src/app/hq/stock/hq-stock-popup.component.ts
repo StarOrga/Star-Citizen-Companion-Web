@@ -447,7 +447,8 @@ export class HqStockPopupComponent implements OnInit {
   protected pathOf(row: Pick<StockItem, 'class_name'>): { kind: string; className: string } | null {
     const ref = parseStockRef(row.class_name);
     if (!ref || ref.kind === 'ship') return null;
-    return { kind: ref.kind ?? 'item', className: ref.className };
+    // The path writes bare class names; a blueprint is recognisable by its own prefix.
+    return { kind: ref.kind ?? (ref.className.startsWith('BP_') ? 'blueprint' : 'item'), className: ref.className };
   }
 
   /** A7 "Nachholen": the quantity goes back to Nachschub, the stock stays. */

@@ -375,7 +375,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .mp.on { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
       .mp:disabled { opacity: 0.4; cursor: not-allowed; }
       .mp:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-      .einsatz .val { display: flex; align-items: center; gap: 6px; max-inline-size: 100%; font-family: var(--sc-font-display); font-size: clamp(11.5px, 0.76vw, 14.5px); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      .einsatz .val { display: flex; align-items: center; gap: 6px; max-inline-size: 100%; font-family: var(--sc-font-display); font-size: clamp(12px, 0.76vw, 14.5px); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
         color: var(--holo-e, var(--sc-accent)); line-height: 1.1; white-space: nowrap; transition: color var(--holo-t-base) ease; }
       .einsatz .sub { max-inline-size: 100%; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .tile-vals { display: flex; justify-content: space-between; gap: clamp(6px, 0.5vw, 9px); flex-wrap: nowrap; }

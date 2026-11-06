@@ -65,9 +65,12 @@ export class WishlistStore {
     if (this.loadedFor === uid) return this.inFlight ?? Promise.resolve();
     this.loadedFor = uid;
     this.loaded.set(false);
+    this.rows.set([]);
     this.inFlight = (async () => {
       try {
         const { data, error } = await this.sb.client.from('search_wishlist' as never).select('*');
+        // The session changed while this ran: these are someone else's wishes.
+        if (this.loadedFor !== uid) return;
         if (error) {
           this.loadedFor = null; // try again on the next call
           return;
@@ -75,10 +78,10 @@ export class WishlistStore {
         this.rows.set(((data ?? []) as Record<string, unknown>[]).map(mapWishRow));
         this.loaded.set(true);
       } catch (err) {
-        this.loadedFor = null;
+        if (this.loadedFor === uid) this.loadedFor = null;
         logWarn('wishlist', 'load failed', err);
       } finally {
-        this.inFlight = null;
+        if (this.loadedFor === uid || this.loadedFor === null) this.inFlight = null;
       }
     })();
     return this.inFlight;
