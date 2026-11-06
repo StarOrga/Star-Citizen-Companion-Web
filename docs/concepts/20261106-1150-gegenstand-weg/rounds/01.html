@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone" data-tab-label="Runde 1">
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop phone" data-tab-label="Runde 1" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"bahn","userPins":[{"id":"up-mw4wuv9qlujf","design":"bahn","screen":"bah-item","x":69.2,"y":18.2,"target":"span.d1-gw-pill \"Auf die Wunschliste\"","text":"Finde ich richtig gut!","attachments":[]},{"id":"up-mw4wv7j8v83e","design":"bahn","screen":"bah-item","x":28.5,"y":27.1,"target":"button.d1-gw-pin \"Link teilen\"","text":"Link teilen sollte immer rechts unten das teilen fab sein! wie bei schiffne auch!","attachments":[]},{"id":"up-mw4wvnuc71id","design":"bahn","screen":"bah-ship","x":70,"y":18.5,"target":"span.d1-gw-pill \"In den Nachschub\"","text":"Genau je nachdem wo man ist die action nochmal als button hervorgehoben!","attachments":[]},{"id":"up-mw4wwvobiqiy","design":"bahn","screen":"bah-full","x":51.7,"y":29,"target":"p \"Jetzt holen. Mit Menge und Route.\"","text":"mit route? das macht keinen sinn","attachments":[]},{"id":"up-mw4wxxjvt386","design":"bahn","screen":"bah-stock","x":64,"y":13.8,"target":"button.d1-gw-btn \"Wo liegt?\"","text":"Die drei buttons hier oben, weiß ich noch nict..","attachments":[]}]}</script>
 <style>
 .d1-gw-app { --a:#52c1e6; --fg:#e8ebed; --fg2:#9fb3c8; --fg3:#84a0b6; --line:rgba(159,179,200,.22); --ok:#5fd698; --warn:#f0c27b;
   position:relative; display:flex; flex-direction:column; width:100%; min-height:100%; box-sizing:border-box; overflow:hidden; color:var(--fg);
@@ -181,14 +182,15 @@
   <button class="anno-pin" type="button" data-anno-pin="bah-a1" aria-expanded="false" aria-controls="anno-bubble-bah-a1" aria-label="{{anno.pin_label}}">1</button>
   <div class="anno-bubble" id="anno-bubble-bah-a1" data-anno-bubble="bah-a1" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="bah-a1" aria-expanded="false" aria-controls="anno-bubble-bah-a1"><span class="anno-bubble-question">Drei verbundene Punkte statt drei loser Icons: Liest du daran sofort „das ist ein Weg“, oder wirkt es wie ein Ladebalken?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-bah-a1" data-annotation="bah-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-bah-a1"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-bah-a1" data-annotation="bah-a1" data-attachable placeholder="{{anno.answer_placeholder}}">Mega Idee! voir allem dann auch noch mit dne bullets wie viele drin sind. Wobei ist dann klar, das ich dort sie dem hinzufüge vs denke ich vllt. das wenn ich auf bestand dann klicke ich meine im bestand ansehen kann? WIe gehen wir damit um? 
+</textarea><div class="attach-slot" data-attach-slot="anno-bah-a1"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="bah-a2" data-anno-side="bottom" data-anno-target=".d1-gw-chip" style="--anno-x:78%;--anno-y:14%">
   <button class="anno-pin" type="button" data-anno-pin="bah-a2" aria-expanded="false" aria-controls="anno-bubble-bah-a2" aria-label="{{anno.pin_label}}">2</button>
   <div class="anno-bubble" id="anno-bubble-bah-a2" data-anno-bubble="bah-a2" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="bah-a2" aria-expanded="false" aria-controls="anno-bubble-bah-a2"><span class="anno-bubble-question">Spaltenkopf mit den drei Namen über den Punkten: Hilft er, oder reicht der Tooltip beim Hover?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-bah-a2" data-annotation="bah-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-bah-a2"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-bah-a2" data-annotation="bah-a2" data-attachable placeholder="{{anno.answer_placeholder}}">Ja hilft, aber da er länger ist als die drei unda uch teilweise suchergebnisse anderes erfordern... irgendwie schwierig, bleiben wir vllt. doch eher bei tooltips .</textarea><div class="attach-slot" data-attach-slot="anno-bah-a2"></div></div>
   </div>
 </div></div></div></section>
 <section id="bah-item" data-nav-label="Codex: Gegenstand" data-screen hidden data-screen-fit="full"><div class="d1-gw-app"><header class="d1-gw-top"><span class="d1-gw-brand">STAR CITIZEN<small>COMPANION</small></span><nav class="d1-gw-nav"><span class="on">CODEX</span><span class="">VERSE</span><span class="">HQ</span></nav><span class="d1-gw-right"><button class="d1-gw-tray" type="button" data-screen-link="bah-plan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M8.5 7.5L12 11l3.5-3.5"/><path d="M4 13h5l1.5 2.5h3L15 13h5v7H4z"/></svg><b>3</b></button><i class="d1-gw-av"></i></span></header>
@@ -199,7 +201,8 @@
   <button class="anno-pin" type="button" data-anno-pin="bah-a3" aria-expanded="false" aria-controls="anno-bubble-bah-a3" aria-label="{{anno.pin_label}}">3</button>
   <div class="anno-bubble" id="anno-bubble-bah-a3" data-anno-bubble="bah-a3" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="bah-a3" aria-expanded="false" aria-controls="anno-bubble-bah-a3"><span class="anno-bubble-question">Sekundäre Form: Weg plus nächster Schritt als Text. Fällt sie genug auf, ohne die Seite anzuschreien?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-bah-a3" data-annotation="bah-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-bah-a3"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-bah-a3" data-annotation="bah-a3" data-attachable placeholder="{{anno.answer_placeholder}}">Ja!
+</textarea><div class="attach-slot" data-attach-slot="anno-bah-a3"></div></div>
   </div>
 </div></div></div></section>
 <section id="bah-ship" data-nav-label="Codex: Schiff" data-screen hidden data-screen-fit="full"><div class="d1-gw-app"><header class="d1-gw-top"><span class="d1-gw-brand">STAR CITIZEN<small>COMPANION</small></span><nav class="d1-gw-nav"><span class="on">CODEX</span><span class="">VERSE</span><span class="">HQ</span></nav><span class="d1-gw-right"><button class="d1-gw-tray" type="button" data-screen-link="bah-plan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M8.5 7.5L12 11l3.5-3.5"/><path d="M4 13h5l1.5 2.5h3L15 13h5v7H4z"/></svg><b>3</b></button><i class="d1-gw-av"></i></span></header>
@@ -488,7 +491,7 @@
       </div>
       
       <textarea data-comment="d1-gw-modell-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-modell-none" value=""><input type="hidden" name="dm-d1-gw-modell-hes" value=""><input type="hidden" name="dm-d1-gw-modell-touched" value=""><input type="hidden" name="dm-d1-gw-modell-issue" value=""><input type="hidden" name="dm-d1-gw-modell-epic" value="">
+      <input type="hidden" name="dm-d1-gw-modell-none" value=""><input type="hidden" name="dm-d1-gw-modell-hes" value="{&quot;ms&quot;:18359,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-modell-touched" value=""><input type="hidden" name="dm-d1-gw-modell-issue" value=""><input type="hidden" name="dm-d1-gw-modell-epic" value="">
       <div data-alevel="3" data-title="Schritte: parallel oder eins">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: mehrere zugleich."}'></div></div>
         <div data-slot="long"><p>Die Daten liegen schon so vor: <code>search_wishlist</code>, <code>hq_supplies</code> und <code>hq_inventory</code> sind unabhängig. Es fehlt nur eine Sicht, die sie je Gegenstand zusammenzieht.</p></div>
@@ -507,7 +510,7 @@
       </div>
       
       <textarea data-comment="d1-gw-wn-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-wn-none" value=""><input type="hidden" name="dm-d1-gw-wn-hes" value=""><input type="hidden" name="dm-d1-gw-wn-touched" value=""><input type="hidden" name="dm-d1-gw-wn-issue" value=""><input type="hidden" name="dm-d1-gw-wn-epic" value="">
+      <input type="hidden" name="dm-d1-gw-wn-none" value=""><input type="hidden" name="dm-d1-gw-wn-hes" value="{&quot;ms&quot;:15364,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-wn-touched" value=""><input type="hidden" name="dm-d1-gw-wn-issue" value=""><input type="hidden" name="dm-d1-gw-wn-epic" value="">
       <div data-alevel="3" data-title="Von Wunschliste zu Nachschub">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Der Wunsch wandert weiter."}'></div></div>
         <div data-slot="long"><p>Das Konzept vom 2. November hielt fest, dass aus dem Merken Nachschub oder ein Einsatz folgt. Gebaut wurde nur das Icon. In <code>search-row-actions.service.ts</code> gibt es keinen Übergang.</p></div>
@@ -526,7 +529,7 @@
       </div>
       
       <textarea data-comment="d1-gw-nb-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-nb-none" value=""><input type="hidden" name="dm-d1-gw-nb-hes" value=""><input type="hidden" name="dm-d1-gw-nb-touched" value=""><input type="hidden" name="dm-d1-gw-nb-issue" value=""><input type="hidden" name="dm-d1-gw-nb-epic" value="">
+      <input type="hidden" name="dm-d1-gw-nb-none" value=""><input type="hidden" name="dm-d1-gw-nb-hes" value="{&quot;ms&quot;:12396,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-nb-touched" value=""><input type="hidden" name="dm-d1-gw-nb-issue" value=""><input type="hidden" name="dm-d1-gw-nb-epic" value="">
       <div data-alevel="3" data-title="Von Nachschub zu Bestand">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Ort abfragen, dann einlagern."}'></div></div>
         <div data-slot="long"><p><code>HqSuppliesService.toggle</code> setzt nur <code>done</code>; <code>clearDone</code> löscht. Nur der Live-Pfad <code>tickByClassName</code> hakt aus dem Spiel ab, schreibt aber ebenfalls nichts in den Bestand.</p></div>
@@ -546,7 +549,7 @@ hq-supplies.service.ts:202  clearDone(): setzt deletedAt</pre></div>
       </div>
       
       <textarea data-comment="d1-gw-skip-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-skip-none" value=""><input type="hidden" name="dm-d1-gw-skip-hes" value=""><input type="hidden" name="dm-d1-gw-skip-touched" value=""><input type="hidden" name="dm-d1-gw-skip-issue" value=""><input type="hidden" name="dm-d1-gw-skip-epic" value="">
+      <input type="hidden" name="dm-d1-gw-skip-none" value=""><input type="hidden" name="dm-d1-gw-skip-hes" value="{&quot;ms&quot;:36128,&quot;revisits&quot;:1,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-skip-touched" value="1"><input type="hidden" name="dm-d1-gw-skip-issue" value=""><input type="hidden" name="dm-d1-gw-skip-epic" value="">
       <div data-alevel="3" data-title="Direkt in den Bestand">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Popover am Icon."}'></div></div>
         <div data-slot="long"><p>Bug unabhängig davon: Die Suche ruft <code>addManual(where, title, 1, 'pcs')</code> ohne Klassenbezug auf. Das Fenster im HQ übergibt ihn. Aus der Suche Eingelagertes zählt deshalb weder in der Suche als „im Lager“ noch im Set als vorhanden.</p></div>
@@ -567,7 +570,7 @@ codex-search-engine.ts:638         zählt nur Einträge mit class_name</pre></di
       </div>
       
       <textarea data-comment="d1-gw-back-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-back-none" value=""><input type="hidden" name="dm-d1-gw-back-hes" value=""><input type="hidden" name="dm-d1-gw-back-touched" value=""><input type="hidden" name="dm-d1-gw-back-issue" value=""><input type="hidden" name="dm-d1-gw-back-epic" value="">
+      <input type="hidden" name="dm-d1-gw-back-none" value=""><input type="hidden" name="dm-d1-gw-back-hes" value="{&quot;ms&quot;:15108,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-back-touched" value=""><input type="hidden" name="dm-d1-gw-back-issue" value=""><input type="hidden" name="dm-d1-gw-back-epic" value="">
       <div data-alevel="3" data-title="Der Weg zurück">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: „Nachholen“ am Bestand."}'></div></div>
         <div data-slot="long"><p>Die Mocks zeigen „Nachholen“ an jeder Bestandszeile. Das ist eine tertiäre Aktion mit Text, weil das Icon allein in einer Liste von Mengen nicht eindeutig wäre.</p></div>
@@ -591,7 +594,7 @@ codex-search-engine.ts:638         zählt nur Einträge mit class_name</pre></di
       </div>
       
       <textarea data-comment="d1-gw-ship-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-ship-none" value=""><input type="hidden" name="dm-d1-gw-ship-hes" value=""><input type="hidden" name="dm-d1-gw-ship-touched" value=""><input type="hidden" name="dm-d1-gw-ship-issue" value=""><input type="hidden" name="dm-d1-gw-ship-epic" value="">
+      <input type="hidden" name="dm-d1-gw-ship-none" value=""><input type="hidden" name="dm-d1-gw-ship-hes" value="{&quot;ms&quot;:19955,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-ship-touched" value="1"><input type="hidden" name="dm-d1-gw-ship-issue" value=""><input type="hidden" name="dm-d1-gw-ship-epic" value="">
       <div data-alevel="3" data-title="Schiffe auf dem Weg">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: drei Halte, der letzte heißt Hangar."}'></div></div>
         <div data-slot="long"><p><code>resolveIcons</code> gibt Schiffen alle drei Icons, <code>hangar.addShip(cls, 'owned')</code> schreibt sofort. Es gibt keine Rückfrage und keinen sichtbaren Besitz-Zustand am Icon.</p></div>
@@ -608,8 +611,8 @@ codex-search-engine.ts:638         zählt nur Einträge mit class_name</pre></di
         <label data-opt="two"><input type="radio" name="dm-d1-gw-up" value="two"><span data-opt-label>Zwei Speicher behalten, nur den Fehler beheben</span><span data-opt-consequence>Keine Migration. Du siehst weiter zwei Listen mit verschiedenen Namen.</span></label>
       </div>
       
-      <textarea data-comment="d1-gw-up-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-up-none" value=""><input type="hidden" name="dm-d1-gw-up-hes" value=""><input type="hidden" name="dm-d1-gw-up-touched" value=""><input type="hidden" name="dm-d1-gw-up-issue" value=""><input type="hidden" name="dm-d1-gw-up-epic" value="">
+      <textarea data-comment="d1-gw-up-note" placeholder="Notiz (optional)">Der andere mecahnismus und die hangar detailseite sind alt! Das brauchne wir so nicht mehr, btite volllästndig ablösen!</textarea>
+      <input type="hidden" name="dm-d1-gw-up-none" value=""><input type="hidden" name="dm-d1-gw-up-hes" value="{&quot;ms&quot;:30446,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-up-touched" value="1"><input type="hidden" name="dm-d1-gw-up-issue" value=""><input type="hidden" name="dm-d1-gw-up-epic" value="">
       <div data-alevel="3" data-title="Angekündigte Schiffe">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: eine Wunschliste."}'></div></div>
         <div data-slot="long"><p>Echter Fehler in der Suche: Bei angekündigten Schiffen leuchtet das Icon nie, weil <code>keys()</code> nur <code>ship:</code>-Schlüssel füllt. Ein zweiter Klick entfernt den Wunsch und meldet trotzdem „steht auf deiner Wunschliste“. Aus dem Code abgeleitet, nicht im Browser nachgestellt.</p></div>
@@ -624,12 +627,12 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       <h3 data-question>Wie nimmt eine Blaupause am Weg teil?</h3>
       <p data-stakes>Was „Material in Nachschub“ wirklich tut.</p>
       <div data-options>
-        <label data-opt="mat" data-recommended><input type="radio" name="dm-d1-gw-bp" value="mat" checked><span data-opt-label>Zwei Halte: Wunsch und Material im Nachschub</span><span data-opt-consequence>Der zweite Halt legt die echten Materialien als Zeilen an, so wie „Fehlendes in Nachschub“ beim Set.</span></label>
+        <label data-opt="mat" data-recommended><input type="radio" name="dm-d1-gw-bp" value="mat"><span data-opt-label>Zwei Halte: Wunsch und Material im Nachschub</span><span data-opt-consequence>Der zweite Halt legt die echten Materialien als Zeilen an, so wie „Fehlendes in Nachschub“ beim Set.</span></label>
         <label data-opt="wish"><input type="radio" name="dm-d1-gw-bp" value="wish"><span data-opt-label>Nur Wunsch, Material bleibt eigene Aktion</span><span data-opt-consequence>Weniger Umbau. Die CTA bleibt, tut aber weiter nur das Halbe.</span></label>
       </div>
       
-      <textarea data-comment="d1-gw-bp-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-bp-none" value=""><input type="hidden" name="dm-d1-gw-bp-hes" value=""><input type="hidden" name="dm-d1-gw-bp-touched" value=""><input type="hidden" name="dm-d1-gw-bp-issue" value=""><input type="hidden" name="dm-d1-gw-bp-epic" value="">
+      <textarea data-comment="d1-gw-bp-note" placeholder="Notiz (optional)">aber blueprints kann man ja auch fix sammeln, die sind dann auch im bestand und immer verüfgbar, wunschliste kann man sie ja draufpacken und ddan konkret in den nachschub nehemn wenn man will und nachschub bedeutet letztlich, dass man um den blueprint zu erhalten ja bestimmte einsätze machen muss bzw. eine mission. Also kann urhig alle drei haben!</textarea>
+      <input type="hidden" name="dm-d1-gw-bp-none" value="1"><input type="hidden" name="dm-d1-gw-bp-hes" value="{&quot;ms&quot;:84956,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-bp-touched" value="1"><input type="hidden" name="dm-d1-gw-bp-issue" value=""><input type="hidden" name="dm-d1-gw-bp-epic" value="">
       <div data-alevel="3" data-title="Blaupausen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Der zweite Halt holt das Material."}'></div></div>
         <div data-slot="long"><p>Beide CTA-Wege in <code>search-row-actions.service.ts:135</code> rufen <code>supplies.add(title, 1, …)</code> mit dem Titel der Blaupause auf. Materialien werden nicht aufgelöst.</p></div>
@@ -648,7 +651,7 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       </div>
       
       <textarea data-comment="d1-gw-qty-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-qty-none" value=""><input type="hidden" name="dm-d1-gw-qty-hes" value=""><input type="hidden" name="dm-d1-gw-qty-touched" value=""><input type="hidden" name="dm-d1-gw-qty-issue" value=""><input type="hidden" name="dm-d1-gw-qty-epic" value="">
+      <input type="hidden" name="dm-d1-gw-qty-none" value=""><input type="hidden" name="dm-d1-gw-qty-hes" value="{&quot;ms&quot;:16100,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-qty-touched" value=""><input type="hidden" name="dm-d1-gw-qty-issue" value=""><input type="hidden" name="dm-d1-gw-qty-epic" value="">
       <div data-alevel="3" data-title="Nachschub-Klick und Menge">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: ×n am Icon, Mengenwahl im Popover."}'></div></div>
         <div data-slot="long"><p><code>HqSuppliesService.add</code> erhöht bei gleichem Namen die Menge (Zeile 153ff). Das ist für Warenkörbe üblich, aber nur mit sichtbarer Menge verständlich.</p></div>
@@ -666,7 +669,7 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       </div>
       
       <textarea data-comment="d1-gw-friend-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-friend-none" value=""><input type="hidden" name="dm-d1-gw-friend-hes" value=""><input type="hidden" name="dm-d1-gw-friend-touched" value=""><input type="hidden" name="dm-d1-gw-friend-issue" value=""><input type="hidden" name="dm-d1-gw-friend-epic" value="">
+      <input type="hidden" name="dm-d1-gw-friend-none" value=""><input type="hidden" name="dm-d1-gw-friend-hes" value="{&quot;ms&quot;:30766,&quot;revisits&quot;:1,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-friend-touched" value="1"><input type="hidden" name="dm-d1-gw-friend-issue" value=""><input type="hidden" name="dm-d1-gw-friend-epic" value="">
       <div data-alevel="3" data-title="Von Freunden übernehmen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: „Kopie anlegen“."}'></div></div>
         <div data-slot="long"><p>Das Wort „übernehmen“ steht neunmal in <code>de.json</code>, mit mindestens drei verschiedenen Bedeutungen.</p></div>
@@ -685,14 +688,14 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       <h3 data-question>Wie heißt der dritte Schritt für Gegenstände?</h3>
       <p data-stakes>Rund 30 Texte in DE und EN.</p>
       <div data-options>
-        <label data-opt="w1" data-recommended><input type="radio" name="dm-d1-gw-name" value="w1" checked data-text="In den Bestand"><span data-opt-label>In den Bestand</span><span data-opt-consequence>Passt zur HQ-Seite. „Lager“ bleibt nur für den Ort, Schiffe sagen „In den Hangar“.</span></label>
+        <label data-opt="w1" data-recommended><input type="radio" name="dm-d1-gw-name" value="w1" data-text="In den Bestand"><span data-opt-label>In den Bestand</span><span data-opt-consequence>Passt zur HQ-Seite. „Lager“ bleibt nur für den Ort, Schiffe sagen „In den Hangar“.</span></label>
         <label data-opt="w2"><input type="radio" name="dm-d1-gw-name" value="w2" data-text="Ins Lager"><span data-opt-label>Ins Lager</span><span data-opt-consequence>Klingt konkreter, widerspricht aber der Seite „Bestand“.</span></label>
         <label data-opt="w3"><input type="radio" name="dm-d1-gw-name" value="w3" data-text="Einlagern"><span data-opt-label>Einlagern</span><span data-opt-consequence>Kurzes Verb, aber schwer in Tooltips mit Namen zu bauen.</span></label>
-        <label data-opt="custom"><input type="radio" name="dm-d1-gw-name" value="custom"><span data-opt-label>Eigener Text</span><span data-opt-consequence>Schreib ihn ins Feld darunter.</span></label>
+        <label data-opt="custom"><input type="radio" name="dm-d1-gw-name" value="custom" checked><span data-opt-label>Eigener Text</span><span data-opt-consequence>Schreib ihn ins Feld darunter.</span></label>
       </div>
       <input type="text" name="dm-d1-gw-name-text" value="" placeholder="Eigener Text">
-      <textarea data-comment="d1-gw-name-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-name-none" value=""><input type="hidden" name="dm-d1-gw-name-hes" value=""><input type="hidden" name="dm-d1-gw-name-touched" value=""><input type="hidden" name="dm-d1-gw-name-issue" value=""><input type="hidden" name="dm-d1-gw-name-epic" value="">
+      <textarea data-comment="d1-gw-name-note" placeholder="Notiz (optional)">Genr hier immer auf ein wording gehen, Gegen lager spricht, dass man das nicht verbindet wenn man es nur hat und nicht irgendwo in den frachtaufzug oder so gelegt hat sondern einfach bei sich hat. bestand klingt irgendwie zu logistisch für spezialisten verständlich.. bessere idee?</textarea>
+      <input type="hidden" name="dm-d1-gw-name-none" value=""><input type="hidden" name="dm-d1-gw-name-hes" value="{&quot;ms&quot;:93787,&quot;revisits&quot;:1,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-name-touched" value="1"><input type="hidden" name="dm-d1-gw-name-issue" value=""><input type="hidden" name="dm-d1-gw-name-epic" value="">
       <div data-alevel="3" data-title="Name des dritten Schritts">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: „In den Bestand“."}'></div></div>
         <div data-slot="long"><p>Treffer in <code>de.json</code>: Bestand 13, Lager 15, Spind 5, übernehmen 9, gemerkt 8, Wunschliste 16, Nachschub 24.</p></div>
@@ -710,8 +713,10 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
         <label data-opt="keep"><input type="radio" name="dm-d1-gw-star" value="keep"><span data-opt-label>Alles lassen, nur den Text klarer machen</span><span data-opt-consequence>Kein Umbau, der Stern bleibt mehrdeutig.</span></label>
       </div>
       
-      <textarea data-comment="d1-gw-star-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-star-none" value=""><input type="hidden" name="dm-d1-gw-star-hes" value=""><input type="hidden" name="dm-d1-gw-star-touched" value=""><input type="hidden" name="dm-d1-gw-star-issue" value=""><input type="hidden" name="dm-d1-gw-star-epic" value="">
+      <textarea data-comment="d1-gw-star-note" placeholder="Notiz (optional)">Merken? Wozu noch merken, dann doch gleich imer ala wunschliste, auch bei zukünftigen schiffen!? Außer bei news, da kann es gern lesezeichen favorit bleiben.
+Denk bzgl. flagschiff in hangar listen nochmal nach wie man das markieren kann. Will nicht zu viele icons. Vllt. lass uns doch egal wo man ist eine art merkliste einführen, sprich lesezeichen icon und je nach kontext kann man dort schnell hinspringen. So könnte man dort auch die letzten 3 elemented des typs sehen die man aufgemacht hat (schiffe oder news usw.) und auch die die man sich gemekrt hat dieses typs... Aber lass uns das nochmal mehr visuell und tatsächlich refinen, das find eich nohc uz unsausgegoren um direkt damit zu starnten  
+Dann nehme nwir den stern komplett raus.</textarea>
+      <input type="hidden" name="dm-d1-gw-star-none" value=""><input type="hidden" name="dm-d1-gw-star-hes" value="{&quot;ms&quot;:233843,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-star-touched" value="1"><input type="hidden" name="dm-d1-gw-star-issue" value=""><input type="hidden" name="dm-d1-gw-star-epic" value="">
       <div data-alevel="3" data-title="Der Stern">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Vergleichen und Merken raus aus dem Stern."}'></div></div>
         <div data-slot="long"><p>Stellen im Code: <code>codex-detail.component.ts:459</code> (Vergleichen), <code>upcoming-detail.component.ts:110</code> (Merken), <code>de.json:3863</code> (Flaggschiff), <code>de.json:2561</code> (Favorit).</p></div>
@@ -730,7 +735,7 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       </div>
       
       <textarea data-comment="d1-gw-wishpage-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-wishpage-none" value=""><input type="hidden" name="dm-d1-gw-wishpage-hes" value=""><input type="hidden" name="dm-d1-gw-wishpage-touched" value=""><input type="hidden" name="dm-d1-gw-wishpage-issue" value=""><input type="hidden" name="dm-d1-gw-wishpage-epic" value="">
+      <input type="hidden" name="dm-d1-gw-wishpage-none" value=""><input type="hidden" name="dm-d1-gw-wishpage-hes" value="{&quot;ms&quot;:15232,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-wishpage-touched" value="1"><input type="hidden" name="dm-d1-gw-wishpage-issue" value=""><input type="hidden" name="dm-d1-gw-wishpage-epic" value="">
       <div data-alevel="3" data-title="Wo die Wunschliste lebt">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Reiter neben Nachschub."}'></div></div>
         <div data-slot="long"><p>Schiffe zeigt zwar der Hangar, nur eben getrennt. Die Suche könnte zusätzlich „gemerkt“ echt auswerten, das ist dann kein eigener Ort, sondern ein Filter.</p></div>
@@ -749,7 +754,7 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       </div>
       
       <textarea data-comment="d1-gw-global-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-global-none" value=""><input type="hidden" name="dm-d1-gw-global-hes" value=""><input type="hidden" name="dm-d1-gw-global-touched" value=""><input type="hidden" name="dm-d1-gw-global-issue" value=""><input type="hidden" name="dm-d1-gw-global-epic" value="">
+      <input type="hidden" name="dm-d1-gw-global-none" value=""><input type="hidden" name="dm-d1-gw-global-hes" value="{&quot;ms&quot;:27495,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-global-touched" value="1"><input type="hidden" name="dm-d1-gw-global-issue" value=""><input type="hidden" name="dm-d1-gw-global-epic" value="">
       <div data-alevel="3" data-title="Zugang von überall">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Icon in der Kopfzeile."}'></div></div>
         <div data-slot="long"><p>Das alte <code>HqSuppliesPanelComponent</code> zeigt ohne Beta immer nur den leeren Zustand. Es kann bei jeder Variante entfallen.</p></div>
@@ -762,13 +767,13 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
       <h3 data-question>Wie weit soll die Regel Primär, Sekundär, Tertiär jetzt gelten?</h3>
       <p data-stakes>Umfang der Umsetzung: ein Weg oder die ganze App.</p>
       <div data-options>
-        <label data-opt="prim" data-recommended><input type="radio" name="dm-d1-gw-tiers" value="prim" checked><span data-opt-label>Baustein bauen, erst auf dem Weg einsetzen</span><span data-opt-consequence>Regel in CLAUDE.md, neuer Baustein, die Seiten dieses Konzepts ziehen um. Andere folgen bei Gelegenheit.</span></label>
-        <label data-opt="all"><input type="radio" name="dm-d1-gw-tiers" value="all"><span data-opt-label>Sofort die ganze App umstellen</span><span data-opt-consequence>Einheitlich auf einen Schlag, aber großer Umbau mit vielen Konflikten zu parallelen Branches.</span></label>
+        <label data-opt="prim" data-recommended><input type="radio" name="dm-d1-gw-tiers" value="prim"><span data-opt-label>Baustein bauen, erst auf dem Weg einsetzen</span><span data-opt-consequence>Regel in CLAUDE.md, neuer Baustein, die Seiten dieses Konzepts ziehen um. Andere folgen bei Gelegenheit.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-d1-gw-tiers" value="all" checked><span data-opt-label>Sofort die ganze App umstellen</span><span data-opt-consequence>Einheitlich auf einen Schlag, aber großer Umbau mit vielen Konflikten zu parallelen Branches.</span></label>
         <label data-opt="rule"><input type="radio" name="dm-d1-gw-tiers" value="rule"><span data-opt-label>Nur als Regel festhalten, kein Baustein</span><span data-opt-consequence>Am wenigsten Arbeit, driftet aber wieder auseinander.</span></label>
       </div>
       
-      <textarea data-comment="d1-gw-tiers-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d1-gw-tiers-none" value=""><input type="hidden" name="dm-d1-gw-tiers-hes" value=""><input type="hidden" name="dm-d1-gw-tiers-touched" value=""><input type="hidden" name="dm-d1-gw-tiers-issue" value=""><input type="hidden" name="dm-d1-gw-tiers-epic" value="">
+      <textarea data-comment="d1-gw-tiers-note" placeholder="Notiz (optional)">aber zeig mir nochmnal visuell welche wesentlichen daddurch anders würden und wwas dein finales baustein design ddafür ist ?=</textarea>
+      <input type="hidden" name="dm-d1-gw-tiers-none" value=""><input type="hidden" name="dm-d1-gw-tiers-hes" value="{&quot;ms&quot;:62615,&quot;revisits&quot;:0,&quot;median&quot;:27495}"><input type="hidden" name="dm-d1-gw-tiers-touched" value="1"><input type="hidden" name="dm-d1-gw-tiers-issue" value=""><input type="hidden" name="dm-d1-gw-tiers-epic" value="">
       <div data-alevel="3" data-title="Reichweite der Aktions-Stufen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Baustein, zuerst auf dem Weg."}'></div></div>
         <div data-slot="long"><p>Regel laut deiner Beschreibung: Primär = Icon und voller Text, höchstens einmal je Seite. Sekundär = auffällig mit kurzem Text. Tertiär = nur Icon mit Tooltip, auf Touch 48 px groß. Die Zuordnung je Stelle steht in der Ansicht „Wo welche Stufe“.</p></div>
@@ -782,7 +787,7 @@ search-row-actions.service.ts:74  was = has('upcoming', cls)  // immer false</pr
     <h2>Wo gibt es den Weg, und in welcher Stufe?</h2>
     <p>Mein Vorschlag ist eingetragen, korrigier ihn. Fehlt eine Stelle, ergänze sie. Pro Seite höchstens einmal Primär.</p>
     <section data-mapping="gw_stufen" id="gw_stufen" data-nav-label="Wo welche Stufe">
-      <script type="application/json" data-mapping-spec>{"items":[{"id":"panel_row","label":"Such-Panel: Trefferzeile","group":"Suche"},{"id":"panel_intent","label":"Such-Panel: Suche aus „Gegenstand suchen“","group":"Suche"},{"id":"index_row","label":"Suchseite: Listenzeile (Codex-Index)","group":"Suche"},{"id":"index_card","label":"Suchseite: Kachel-Ansicht","group":"Suche"},{"id":"item_detail","label":"Codex: Waffe, Komponente, Rüstung","group":"Codex"},{"id":"item_detail_goal","label":"Codex: Gegenstand, aus Planen oder Set gekommen","group":"Codex"},{"id":"ship_detail","label":"Codex: Schiffseite","group":"Codex"},{"id":"holo_drawer","label":"Codex: Holotisch-Schublade","group":"Codex"},{"id":"hardpoint","label":"Codex: Loadout-Slot am Schiff","group":"Codex"},{"id":"swap_picker","label":"Codex: Tausch-Auswahl (Kandidat)","group":"Codex"},{"id":"upcoming","label":"Codex: angekündigtes Schiff","group":"Codex"},{"id":"blueprint","label":"Codex: Blaupause","group":"Codex"},{"id":"set_missing","label":"Set-Editor: „Fehlendes in Nachschub“","group":"Codex"},{"id":"set_part","label":"Set-Editor: einzelnes Teil","group":"Codex"},{"id":"hq_start","label":"HQ Start: Kachel Planen und Bestand","group":"HQ"},{"id":"hq_stock_head","label":"HQ Bestand: „In den Bestand“ im Kopf","group":"HQ"},{"id":"hq_stock_row","label":"HQ Bestand: Zeile („Nachholen“)","group":"HQ"},{"id":"hq_stale","label":"HQ Bestand: alte Lagerstände","group":"HQ"},{"id":"hq_plan_head","label":"HQ Planen: Knopf Nachschub","group":"HQ"},{"id":"hq_plan_need","label":"HQ Planen: Bedarfszeile","group":"HQ"},{"id":"hq_popup_line","label":"Nachschub-Fenster: Zeile („Besorgt“)","group":"HQ"},{"id":"hq_popup_wish","label":"Wunschliste-Reiter: Zeile („In den Nachschub“)","group":"HQ"},{"id":"hq_hangar_row","label":"HQ Hangar: Schiffszeile","group":"HQ"},{"id":"hq_ship","label":"HQ Schiff: Detailseite","group":"HQ"},{"id":"hq_live","label":"HQ Jetzt: live erkannter Fund","group":"HQ"},{"id":"shell_bar","label":"Kopfzeile: Icon mit Zahl","group":"Andere"},{"id":"friend_ship","label":"Freundes-Seite: Schiff oder Set","group":"Andere"},{"id":"mission","label":"Mission: Belohnung oder Bedarf","group":"Andere"},{"id":"news_patch","label":"News und Patches: genannte Gegenstände","group":"Andere"}],"axes":[{"id":"stufe","label":"Stufe","itemTargets":"one","columns":[{"id":"primaer","label":"Primär: alles sichtbar"},{"id":"sekundaer","label":"Sekundär: auffällig, kurzer Text"},{"id":"tertiaer","label":"Tertiär: nur Icon"},{"id":"anzeige","label":"Nur Anzeige, keine Aktion"},{"id":"nichts","label":"Gar nicht"}]}],"proposal":[["panel_row","stufe.tertiaer"],["panel_intent","stufe.sekundaer"],["index_row","stufe.tertiaer"],["index_card","stufe.tertiaer"],["item_detail","stufe.sekundaer"],["item_detail_goal","stufe.primaer"],["ship_detail","stufe.sekundaer"],["holo_drawer","stufe.tertiaer"],["hardpoint","stufe.tertiaer"],["swap_picker","stufe.tertiaer"],["upcoming","stufe.sekundaer"],["blueprint","stufe.sekundaer"],["set_missing","stufe.sekundaer"],["set_part","stufe.tertiaer"],["hq_start","stufe.anzeige"],["hq_stock_head","stufe.primaer"],["hq_stock_row","stufe.tertiaer"],["hq_stale","stufe.anzeige"],["hq_plan_head","stufe.sekundaer"],["hq_plan_need","stufe.tertiaer"],["hq_popup_line","stufe.sekundaer"],["hq_popup_wish","stufe.sekundaer"],["hq_hangar_row","stufe.tertiaer"],["hq_ship","stufe.sekundaer"],["hq_live","stufe.anzeige"],["shell_bar","stufe.tertiaer"],["friend_ship","stufe.tertiaer"],["mission","stufe.tertiaer"],["news_patch","stufe.nichts"]],"slotNotes":true,"adhocItems":true}</script>
+      <script type="application/json" data-mapping-spec>{"items":[{"id":"panel_row","label":"Such-Panel: Trefferzeile","group":"Suche"},{"id":"panel_intent","label":"Such-Panel: Suche aus „Gegenstand suchen“","group":"Suche"},{"id":"index_row","label":"Suchseite: Listenzeile (Codex-Index)","group":"Suche"},{"id":"index_card","label":"Suchseite: Kachel-Ansicht","group":"Suche"},{"id":"item_detail","label":"Codex: Waffe, Komponente, Rüstung","group":"Codex"},{"id":"item_detail_goal","label":"Codex: Gegenstand, aus Planen oder Set gekommen","group":"Codex"},{"id":"ship_detail","label":"Codex: Schiffseite","group":"Codex"},{"id":"holo_drawer","label":"Codex: Holotisch-Schublade","group":"Codex"},{"id":"hardpoint","label":"Codex: Loadout-Slot am Schiff","group":"Codex"},{"id":"swap_picker","label":"Codex: Tausch-Auswahl (Kandidat)","group":"Codex"},{"id":"upcoming","label":"Codex: angekündigtes Schiff","group":"Codex"},{"id":"blueprint","label":"Codex: Blaupause","group":"Codex"},{"id":"set_missing","label":"Set-Editor: „Fehlendes in Nachschub“","group":"Codex"},{"id":"set_part","label":"Set-Editor: einzelnes Teil","group":"Codex"},{"id":"hq_start","label":"HQ Start: Kachel Planen und Bestand","group":"HQ"},{"id":"hq_stock_head","label":"HQ Bestand: „In den Bestand“ im Kopf","group":"HQ"},{"id":"hq_stock_row","label":"HQ Bestand: Zeile („Nachholen“)","group":"HQ"},{"id":"hq_stale","label":"HQ Bestand: alte Lagerstände","group":"HQ"},{"id":"hq_plan_head","label":"HQ Planen: Knopf Nachschub","group":"HQ"},{"id":"hq_plan_need","label":"HQ Planen: Bedarfszeile","group":"HQ"},{"id":"hq_popup_line","label":"Nachschub-Fenster: Zeile („Besorgt“)","group":"HQ"},{"id":"hq_popup_wish","label":"Wunschliste-Reiter: Zeile („In den Nachschub“)","group":"HQ"},{"id":"hq_hangar_row","label":"HQ Hangar: Schiffszeile","group":"HQ"},{"id":"hq_ship","label":"HQ Schiff: Detailseite","group":"HQ"},{"id":"hq_live","label":"HQ Jetzt: live erkannter Fund","group":"HQ"},{"id":"shell_bar","label":"Kopfzeile: Icon mit Zahl","group":"Andere"},{"id":"friend_ship","label":"Freundes-Seite: Schiff oder Set","group":"Andere"},{"id":"mission","label":"Mission: Belohnung oder Bedarf","group":"Andere"},{"id":"news_patch","label":"News und Patches: genannte Gegenstände","group":"Andere"}],"axes":[{"id":"stufe","label":"Stufe","itemTargets":"one","columns":[{"id":"primaer","label":"Primär: alles sichtbar"},{"id":"sekundaer","label":"Sekundär: auffällig, kurzer Text"},{"id":"tertiaer","label":"Tertiär: nur Icon"},{"id":"anzeige","label":"Nur Anzeige, keine Aktion"},{"id":"nichts","label":"Gar nicht"}]}],"proposal":[["panel_row","stufe.tertiaer"],["panel_intent","stufe.sekundaer"],["index_row","stufe.tertiaer"],["index_card","stufe.tertiaer"],["item_detail","stufe.sekundaer"],["item_detail_goal","stufe.primaer"],["ship_detail","stufe.sekundaer"],["holo_drawer","stufe.tertiaer"],["hardpoint","stufe.tertiaer"],["swap_picker","stufe.tertiaer"],["upcoming","stufe.sekundaer"],["blueprint","stufe.sekundaer"],["set_missing","stufe.sekundaer"],["set_part","stufe.tertiaer"],["hq_start","stufe.anzeige"],["hq_stock_head","stufe.primaer"],["hq_stock_row","stufe.tertiaer"],["hq_stale","stufe.anzeige"],["hq_plan_head","stufe.sekundaer"],["hq_plan_need","stufe.tertiaer"],["hq_popup_line","stufe.sekundaer"],["hq_popup_wish","stufe.sekundaer"],["hq_hangar_row","stufe.tertiaer"],["hq_ship","stufe.sekundaer"],["hq_live","stufe.anzeige"],["shell_bar","stufe.tertiaer"],["friend_ship","stufe.tertiaer"],["mission","stufe.tertiaer"],["news_patch","stufe.nichts"]],"slotNotes":true,"adhocItems":true,"submitted":{"cells":{"stufe":[["panel_row","stufe.tertiaer"],["panel_intent","stufe.sekundaer"],["index_row","stufe.tertiaer"],["index_card","stufe.tertiaer"],["item_detail","stufe.sekundaer"],["item_detail_goal","stufe.primaer"],["ship_detail","stufe.sekundaer"],["holo_drawer","stufe.tertiaer"],["hardpoint","stufe.tertiaer"],["swap_picker","stufe.tertiaer"],["upcoming","stufe.sekundaer"],["blueprint","stufe.sekundaer"],["set_missing","stufe.sekundaer"],["set_part","stufe.tertiaer"],["hq_start","stufe.anzeige"],["hq_stock_head","stufe.primaer"],["hq_stock_row","stufe.tertiaer"],["hq_stale","stufe.anzeige"],["hq_plan_head","stufe.sekundaer"],["hq_plan_need","stufe.tertiaer"],["hq_popup_line","stufe.sekundaer"],["hq_popup_wish","stufe.sekundaer"],["hq_hangar_row","stufe.tertiaer"],["hq_ship","stufe.sekundaer"],["hq_live","stufe.anzeige"],["shell_bar","stufe.tertiaer"],["friend_ship","stufe.tertiaer"],["mission","stufe.tertiaer"],["news_patch","stufe.nichts"]]},"order":{},"adhoc":[],"slotNotes":{}}}</script>
     </section>
   </div>
 </section>
