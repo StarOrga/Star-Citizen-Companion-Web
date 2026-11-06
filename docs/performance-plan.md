@@ -316,8 +316,9 @@ cache the same page blocks about 1.3 s, most of it app boot.
 | Bodies off screen | already paused by IntersectionObserver | Nothing to do |
 | 2D copy per body | under 0.1 ms per body on the main thread | Kept: one context needs it |
 
-Not taken, because pixels would change: a slower planet pass, a smaller canvas,
-drawing the surface once and compositing the aurora over it.
+Not taken then, because pixels would change: a slower planet pass, a smaller canvas,
+drawing the surface once and compositing the aurora over it. Section 7 reopens the
+smaller canvas. The planet pass stays at 15 fps, the owner's choice after seeing it live.
 
 **Texture size (GL-7).** The disc is `160vw` wide, so r = 0.8 x viewport width, and
 1:1 at the disc's centre takes W = 2 pi r. There is no 8k asset.
@@ -356,3 +357,58 @@ instead of 4-6 s, while the page stays usable.
 **Service worker:** the worker files are `worker-*.js` in the dist root. If
 `ngsw-config.json` narrows `/*.js`, they need a rule of their own. Without one they
 still load online; offline the page draws the planet itself.
+
+## 7. What the page costs at rest (concept 2026-11-06 "Planet-Leistung")
+
+Concept and decisions: `docs/concepts/20261106-0930-planet-leistung/`.
+
+**Method.** Production build with the fixtures of section 1, real GPU (RTX 2080 Super,
+Direct3D 11), 1920x1000. Load is the CPU of the renderer and GPU processes in % of one
+core (`SystemInfo.getProcessInfo` over the browser CDP session). Headless Edge has the
+real GPU and about 150 rAF/s, and opens no window. A visible window needs
+`--disable-features=CalculateNativeWinOcclusion`: covered, its rAF drops to 1/s. Check
+that the planet's measures per second look right before trusting a row. Between runs the
+base moves by about 7.
+
+**Findings.**
+
+- The planet's shader is cheap on this GPU: under 1 ms a frame, even at 4K. Its cost
+  was the page following the monitor: about 175 measures and messages a second for 15
+  pictures.
+- The planet was about 12 % of the page. Removing sources one by one shifts the shares:
+  a source can hide behind another that keeps the same frames alive (`wave` looked like
+  9 first and turned out to be about 54 once the others were gone).
+- Menu clicks: `.stars` carried 226 radial-gradient layers. After a click, frames stood
+  for 630 ms on average, with no long task and no blocking script, so the wait was in
+  raster. Without the gradients the longest gap was 51 ms. A `will-change` or a sky
+  without its flight did not help. `field-image` draws the same spots as one SVG image
+  (largest difference 9 of 255, on the stars' edges only).
+
+**Result, same session, 2 rounds each (headless Edge).**
+
+| | Before | After |
+|---|---|---|
+| /verse at rest | 188 | 128 |
+| /verse without window focus | 193 | 38 |
+| Scrolling | 240 | 226 |
+| Longest frame gap after a menu click, average | 595 ms | 91 ms |
+| Page measures per second at rest | 349 | 28 |
+
+The planet alone on a quiet page: +28 before. After: the page with it went from 70.8 to
+57.7, and the difference to the page without it reads +4.3, which understates it, because
+the twinkling stars keep compositor frames alive in that base. The tick test of the
+concept (+13.7) is the better figure. A sixth to a half of before, not a tenth, except
+without focus, where it does not run at all.
+
+**Rules that follow.**
+
+- At rest a timer sets the planet's pace. It is followed every frame only while it moves
+  on screen; the loop finds that out by itself, so the entrance and the shake need no hook.
+- Never animate `box-shadow`, a custom property in a gradient or a window-sized layer in
+  an infinite loop. Opacity on a small layer of its own does the same job.
+- Never many gradient layers for a static picture: use one image.
+- An animation under `opacity: 0` still costs its frames.
+
+**Left.** `fs-demo` animates `clip-path` on the main thread. About 75 of the load at rest
+remain with no animation and no canvas at all in headless Edge; that remainder was not
+taken apart.
