@@ -3,8 +3,9 @@ import { InjectionToken } from '@angular/core';
 /**
  * The Verse hub builds in three steps instead of one long frame: the stage and
  * the hero first, then the doors and the beacons, then the hub columns below
- * the fold. A menu hop reveals the page 420 ms after it rendered, so all three
- * steps stand before anything shows. `false` renders everything at once.
+ * the fold. On a menu hop the page's content starts rising in 160 ms after it
+ * rendered (`sc-switch-in`), and a part that arrives later brings the same
+ * animation along, so the steps do not show. `false` renders everything at once.
  */
 export const VERSE_STAGED_BUILD = new InjectionToken<boolean>('VERSE_STAGED_BUILD', { factory: () => true });
 

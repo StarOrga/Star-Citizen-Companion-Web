@@ -466,7 +466,7 @@ filters or shadows the longest frame stays at 86 to 108 ms.
 
 So the hub now builds in steps (`staged-build.ts`): stage and hero in the click frame, doors and
 beacons behind the next paint, the hub columns behind the one after, about 70 ms in all. A menu
-hop reveals the page 420 ms after it rendered, so none of this shows. A placeholder holds the
+hop lets the content rise in from 160 ms on (`sc-switch-in`), so this does not show. A placeholder holds the
 page's height, and `briefing-dock` already skips a part that is not there yet. Longest gap on
 the way to /verse, mean of the hops: 113 to 63 ms, worst 133 to 89 ms.
 
