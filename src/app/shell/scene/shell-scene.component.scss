@@ -161,10 +161,11 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   }
 }
 
-// The Verse hub's planet runs on under the footer and past the page end; the
-// body clips it there, so the overshoot never lengthens the page (clip, not
-// hidden: no scroll container, sticky and the viewport scroll stay as they are).
-body:has(.brief-world) { overflow-y: clip; }
+// The Verse hub's planet runs on under the footer, past the page end and, on a
+// phone, past the right edge; the body clips it on both axes, so the overshoot
+// never lengthens or widens the page (clip, not hidden: no scroll container,
+// sticky and the viewport scroll stay as they are).
+body:has(.brief-world) { overflow: clip; }
 
 @keyframes sc-scene-twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
 @keyframes sc-scene-city { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }

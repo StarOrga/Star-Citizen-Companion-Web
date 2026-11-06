@@ -44,7 +44,7 @@ import {
   statusWindow,
   topReplyMetrics,
 } from './parsers.ts';
-import { ChannelBuild, groupChannelBuilds, newestHotfixDate } from './channels.ts';
+import { ChannelBuild, groupChannelBuilds, newestHotfixDate, patchVersionPlan } from './channels.ts';
 
 const RSI_BASE = 'https://robertsspaceindustries.com';
 const SPECTRUM_LIST_URL = `${RSI_BASE}/api/spectrum/forum/channel/threads`;
@@ -305,6 +305,33 @@ async function sampleChannels(rows: ThreadRow[], now: Date) {
   return out.length;
 }
 
+/**
+ * Keeps public.patch_versions current (the API's /v1/patch and the digest's channels read it).
+ * A channel's row is only written when its version changed, so detected_at stays the moment the
+ * version was first seen.
+ */
+async function writePatchVersions(rows: ThreadRow[], now: Date): Promise<number> {
+  const plan = patchVersionPlan(rows, groupChannelBuilds(rows, now, new Map()));
+  if (plan.upsert.length === 0) return 0;
+  const db = admin();
+  const { data, error } = await db.from('patch_versions').select('channel, version');
+  if (error) throw new Error(`patch_versions read: ${error.message}`);
+  const have = new Map((data ?? []).map((r: { channel: string; version: string }) => [r.channel, r.version]));
+  const changed = plan.upsert
+    .filter((r) => have.get(r.channel) !== r.version)
+    .map((r) => ({ ...r, detected_at: now.toISOString() }));
+  if (changed.length) {
+    const up = await db.from('patch_versions').upsert(changed, { onConflict: 'channel' });
+    if (up.error) throw new Error(`patch_versions upsert: ${up.error.message}`);
+  }
+  const stale = plan.clear.filter((c) => have.has(c));
+  if (stale.length) {
+    const del = await db.from('patch_versions').delete().in('channel', stale);
+    if (del.error) throw new Error(`patch_versions clear: ${del.error.message}`);
+  }
+  return changed.length + stale.length;
+}
+
 async function newestSampleAt(): Promise<{ at: number; readable: boolean }> {
   const { data, error } = await admin()
     .from('patch_stability_samples')
@@ -364,7 +391,13 @@ async function runDaily(force: boolean): Promise<Response> {
   } catch (err) {
     console.error('patch-stability: channel builds failed:', err);
   }
-  return json({ ok: true, lines: done, channelBuilds: channels });
+  let versions = 0;
+  try {
+    versions = await writePatchVersions(rows, now);
+  } catch (err) {
+    console.error(`patch-stability-sample versions: ${(err as Error).message}`);
+  }
+  return json({ ok: true, lines: done, channelBuilds: channels, patchVersions: versions });
 }
 
 /**

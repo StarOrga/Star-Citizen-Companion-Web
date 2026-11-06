@@ -333,26 +333,29 @@ export function blueprintCategoriesForGroup(
         </div>
       </div>
 
-      <!-- Phones: the facets live in a bottom sheet behind one button. -->
-      <button type="button" class="filter-fab" (click)="filtersOpen.set(true)" [attr.aria-expanded]="filtersOpen()">
-        {{ 'codex.browse.filterButton' | translate: { count: activeFilterCount() } }}
-      </button>
-      @if (filtersOpen()) {
-        <div class="sheet-backdrop" aria-hidden="true" (click)="filtersOpen.set(false)"></div>
-        <div class="sheet" scDialog role="dialog" aria-modal="true"
-             [attr.aria-label]="'codex.browse.filtersAria' | translate"
-             (scDialogEscape)="filtersOpen.set(false)">
-          <div class="sheet-head">
-            <strong>{{ 'codex.browse.filtersTitle' | translate }}</strong>
-            <button type="button" class="sheet-close" (click)="filtersOpen.set(false)"
-                    [attr.aria-label]="'codex.browse.closeFilters' | translate"
-                    [scTooltip]="'codex.browse.closeFilters' | translate" scTooltipTier="label">✕</button>
+      <!-- Phones, legacy shell only: the facets live in a bottom sheet behind one button. With the
+           beta shell the bar's own filter panel carries every facet (d-filter = bar). -->
+      @if (!shellOn()) {
+        <button type="button" class="filter-fab" (click)="filtersOpen.set(true)" [attr.aria-expanded]="filtersOpen()">
+          {{ 'codex.browse.filterButton' | translate: { count: activeFilterCount() } }}
+        </button>
+        @if (filtersOpen()) {
+          <div class="sheet-backdrop" aria-hidden="true" (click)="filtersOpen.set(false)"></div>
+          <div class="sheet" scDialog role="dialog" aria-modal="true"
+               [attr.aria-label]="'codex.browse.filtersAria' | translate"
+               (scDialogEscape)="filtersOpen.set(false)">
+            <div class="sheet-head">
+              <strong>{{ 'codex.browse.filtersTitle' | translate }}</strong>
+              <button type="button" class="sheet-close" (click)="filtersOpen.set(false)"
+                      [attr.aria-label]="'codex.browse.closeFilters' | translate"
+                      [scTooltip]="'codex.browse.closeFilters' | translate" scTooltipTier="label">✕</button>
+            </div>
+            <ng-container [ngTemplateOutlet]="facetsTpl" />
+            <button type="button" class="sheet-done" (click)="filtersOpen.set(false)">
+              {{ 'codex.browse.showResults' | translate: { count: listTotal() } }}
+            </button>
           </div>
-          <ng-container [ngTemplateOutlet]="facetsTpl" />
-          <button type="button" class="sheet-done" (click)="filtersOpen.set(false)">
-            {{ 'codex.browse.showResults' | translate: { count: listTotal() } }}
-          </button>
-        </div>
+        }
       }
 
       <sc-codex-compare-tray />
@@ -1292,6 +1295,34 @@ export class CodexBrowseComponent implements OnInit {
         id: 'componentKind', labelKey: 'codex.filters.componentKind',
         options: this.componentKindOptions().map((c) => ({ value: c, labelKey: 'codex.componentKind.' + c })),
         selected: this.componentKind() || null, set: (v) => this.setComponentKind(v ?? ''),
+      });
+    }
+    // The "Bereich" tree's deeper levels (weapon groups, armor slots) have no kind-switch row in the
+    // bar, so the panel carries them as facets: with the phone sheet gone nothing may get lost (d-filter).
+    if (this.kind() === 'weapon') {
+      out.push({
+        id: 'weaponGroup', labelKey: 'codex.weaponGroup.superAria',
+        options: WEAPON_SUPER_GROUPS.map((g) => ({ value: g.id, labelKey: 'codex.weaponGroup.super.' + g.id })),
+        selected: this.weaponGroup() || null,
+        set: (v) => {
+          this.weaponGroup.set(v ?? '');
+          this.weaponSubGroup.set('');
+        },
+      });
+      const subs = this.activeWeaponSubGroups();
+      if (this.weaponGroup() && subs?.length) {
+        out.push({
+          id: 'weaponSubGroup', labelKey: 'codex.weaponGroup.subAria',
+          options: subs.map((s) => ({ value: s.id, labelKey: 'codex.weaponGroup.' + this.weaponGroup() + '.' + s.id })),
+          selected: this.weaponSubGroup() || null, set: (v) => this.weaponSubGroup.set(v ?? ''),
+        });
+      }
+    }
+    if (this.category() === ARMOR_CATEGORY) {
+      out.push({
+        id: 'armorSlot', labelKey: 'fps.filters.armorSlot',
+        options: ARMOR_SLOT_IDS.map((id) => ({ value: id, labelKey: 'codex.landing.paperdoll.' + id })),
+        selected: this.armorSlot() || null, set: (v) => this.armorSlot.set(v ?? ''),
       });
     }
     if (this.kind() === 'blueprint') {

@@ -325,7 +325,8 @@
         "loading": "Holotisch lädt …",
         "empty": "Für diesen Patch liegen noch keine Einträge vor.",
         "newIn": "Neu",
-        "newest": "Neueste"
+        "newest": "Neueste",
+        "announced": "Angekündigt"
       },
       "category": {
         "ship": "Schiff",
@@ -462,6 +463,8 @@
         "count": "{{count}} neu",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
+        "categories": "Kategorien",
+        "openPage": "Seite öffnen: {{name}}",
         "noneNew": "Nichts Neues in diesem Patch.",
         "more": "+ {{count}} weitere in der Suche",
         "all": "Alle {{category}}",
@@ -5358,7 +5361,6 @@
       "stepsOne": "1 Schritt",
       "steps": "{{n}} Schritte",
       "unplaced": "{{n}} ohne Ort, nur in der Liste",
-      "listTwin": "Als Liste",
       "node": {
         "needs": "{{place}} ({{path}}): {{needs}}",
         "step": "Schritt {{ords}}: {{place}} ({{path}}): {{needs}}",
@@ -5462,12 +5464,40 @@
     },
     "stock": {
       "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
+      "free": "Ortsfrei",
+      "sharedBtn": "Von Freunden geteilt ({{n}})",
+      "captured": "Im Lager eingetragen.",
+      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
+      "places": { "title": "Größte Orte" },
+      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
+      "cats": { "title": "Kategorien" },
+      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "popup": {
+        "title": "Bestand",
+        "modes": "Was möchtest du tun",
+        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "search": "Bestand durchsuchen",
+        "searchHint": "Gegenstand oder Ort",
+        "filters": "Filter",
+        "stale": "Älter als 7 Tage",
+        "clearPlace": "Ortsfilter entfernen",
+        "place": "Ort",
+        "viewBy": "Ansicht",
+        "view": { "place": "Nach Ort", "name": "Nach Gegenstand", "qty": "Nach Menge" },
+        "count": "{{n}} Einträge",
+        "results": "Bestandseinträge",
+        "loading": "Lädt …",
+        "loadingMore": "Lädt weitere …",
+        "noMatch": "Nichts passt zu diesen Filtern.",
+        "empty": "Noch nichts im Lager erfasst.",
+        "ships": "Schiffe im Terminal"
+      },
       "retry": "Erneut versuchen",
       "ships": {
         "title": "Schiffe",
         "count": "{{n}} im Hangar",
-        "noFavourites": "Noch keine Favoriten markiert.",
-        "open": "Zum Hangar"
+        "noFavourites": "Noch keine Favoriten markiert."
       },
       "sets": {
         "title": "Sets",
@@ -5485,12 +5515,8 @@
         "days": "zuletzt geöffnet vor {{n}} Tagen"
       },
       "lager": {
-        "title": "Lager per Ort",
         "empty": "Noch nichts im Lager erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
-        "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es unten von Hand ein.",
-        "materials": "Rohstoffe",
-        "pieces": "Gegenstände",
-        "placeEmpty": "Leer.",
+        "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
         "storage": "Schiffe im Hangar-Terminal"
       },
       "find": {
@@ -5531,7 +5557,17 @@
         "unit": "Einheit",
         "pcs": "Stück",
         "location": "Ort",
-        "save": "Eintragen"
+        "save": "Eintragen",
+        "suggestions": "Vorschläge aus dem Codex",
+        "unknown": "Gibt es nicht – wähle einen Eintrag aus den Vorschlägen.",
+        "linked": "Mit dem Codex verknüpft.",
+        "kind": {
+          "ship": "Schiff",
+          "item": "Gegenstand",
+          "component": "Komponente",
+          "weapon": "Waffe",
+          "ammunition": "Munition"
+        }
       }
     },
     "app": {
@@ -5593,7 +5629,9 @@
     }
   },
   "verse": {
-    "areaFoot": { "aria": "Bereich wechseln" },
+    "areaFoot": {
+      "aria": "Bereich wechseln"
+    },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",
@@ -5644,6 +5682,17 @@
       "loading": "Briefing wird geladen …",
       "allSeen": "Du bist auf dem Stand",
       "newSince": "neu seit deinem letzten Besuch",
+      "patchNew": "{{channel}} · Neues in {{version}}",
+      "patchNewPlanned": "{{channel}} · Neues zu {{version}}",
+      "patchTeaser": "{{channel}} · {{teaser}}",
+      "patchChannel": {
+        "live": "LIVE",
+        "ptu": "PTU",
+        "evocati": "Evocati",
+        "eptu": "EPTU",
+        "hotfix": "Hotfix",
+        "planned": "Geplant"
+      },
       "topAria": "Die neuesten Geschichten",
       "storyAria": "Geschichte {{n}}: {{title}}",
       "status": {

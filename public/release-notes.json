@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.211.4",
+  "current": "0.212.0",
   "releases": [
+    {
+      "version": "0.212.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Stock: the item field of \"Put something in storage\" suggests ships, items, components, weapons and ammunition from the Codex. Text without a match says it does not exist and cannot be saved. An entry is saved with its Codex reference (kind and class name in the existing class_name column, no migration)."
+            },
+            {
+              "title": "",
+              "text": "HQ Stock: entries in \"Lager per Ort\" with a reference are links: a ship opens your own hangar ship (else its Codex page), an item its Codex page, a bare class name from the app or log the Codex index search for its name."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.211.4",
       "date": "2026-11-06",

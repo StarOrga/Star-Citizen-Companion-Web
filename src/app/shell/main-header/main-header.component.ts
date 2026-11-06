@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRe
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
-import { RoleService } from '../../auth/role.service';
 import { BetaService } from '../../core/beta.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
@@ -22,8 +21,7 @@ export const MAIN_NAV_SLOT_PX = 112;
  * wordmark, Alpha badge) is pinned to the top-LEFT viewport corner and apps menu
  * + profile to the top-RIGHT, both at the feedback launcher's inset
  * (`--sc-fab-inset`, plus the safe areas); the nav stands centred. The Admin
- * entry (red, in words) and the beta chip form a small row directly below apps +
- * profile, right-aligned. The header is NOT sized by the page frame.
+ * entry is not part of the header: it sits in the account menu (red, in words). The header is NOT sized by the page frame.
  *
  * Shown by the shell on the main pages (`isMainHeaderPage`) and kept mounted
  * for the whole beta shell: on every other page it stays condensed (inert,
@@ -63,34 +61,21 @@ export const MAIN_NAV_SLOT_PX = 112;
       <nav class="nav" [attr.aria-label]="'fusionBar.navAria' | translate"
            [style.--mh-slots]="areas().length">
         @for (a of areas(); track a.id) {
-          <a class="slot" [routerLink]="a.link" [class.active]="activeArea() === a.id" [class.elevated]="a.elevated"
-             [class.adm]="a.elevated"
+          <a class="slot" [routerLink]="a.link" [class.active]="activeArea() === a.id"
              [attr.aria-current]="activeArea() === a.id ? 'page' : null"
              (click)="onNav($event, a.link)">
             {{ a.labelKey | translate }}
-            @if (a.elevated) { <span class="sr-only"> ({{ 'nav.adminOnly' | translate }})</span> }
           </a>
         }
         @if (activeIndex() >= 0) {
-          <span class="ind" [class.elevated]="activeElevated()" [style.--mh-i]="activeIndex()" aria-hidden="true"></span>
+          <span class="ind" [style.--mh-i]="activeIndex()" aria-hidden="true"></span>
         }
       </nav>
     </div>
 
-    <!-- Top-right corner: apps + profile; below them the Admin entry (desktop; on a phone
-         it stays a nav slot) beside the beta chip's lane. -->
+    <!-- Top-right corner: apps + profile. Admin is not here: it lives in the account menu. -->
     <div class="account">
       <div class="acc-main"><ng-content select="[mhAccount]" /></div>
-      @if (admin(); as adm) {
-        <div class="subrow">
-          <a class="admin" [routerLink]="adm.link" [class.active]="activeArea() === adm.id"
-             [attr.aria-current]="activeArea() === adm.id ? 'page' : null"
-             (click)="onNav($event, adm.link)">
-            {{ adm.labelKey | translate }}
-            <span class="sr-only"> ({{ 'nav.adminOnly' | translate }})</span>
-          </a>
-        </div>
-      }
     </div>
   `,
   styles: [
@@ -121,6 +106,8 @@ export const MAIN_NAV_SLOT_PX = 112;
         padding-bottom: var(--sc-space-4);
         pointer-events: none;
       }
+      /* The open account menu lies over the beta chip (z-index 45), which would cover its head. */
+      :host(.menu-open) { z-index: 46; }
       /* A route change eases the progress for a moment; scrolling sets it directly. */
       :host([data-ease]) {
         transition: --sc-dock-p 1.1s var(--mh-ease);
@@ -210,37 +197,6 @@ export const MAIN_NAV_SLOT_PX = 112;
         height: var(--_item);
         opacity: clamp(0, calc((0.99 - var(--_p)) * 100), 1);
       }
-      /* Admin (red, says so in words) beside the beta chip's lane, directly under the account. */
-      .subrow {
-        position: absolute;
-        top: calc(100% + 6px);
-        right: calc(var(--sc-chip-lane, 24px) - 24px + var(--sc-space-2));
-        display: flex;
-        align-items: center;
-        min-height: max(var(--sc-tap-min), 32px);
-        white-space: nowrap;
-        opacity: clamp(0, calc(1 - var(--_p) * 3), 1);
-      }
-      .admin {
-        padding: 6px 4px;
-        font-family: var(--sc-font-display);
-        font-size: 12px;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        text-decoration: none;
-        color: var(--sc-accent-hot);
-        text-shadow: var(--mh-shadow);
-        border-radius: 8px;
-      }
-      .admin:hover,
-      .admin.active {
-        text-decoration: underline;
-        text-underline-offset: 6px;
-      }
-      .admin:focus-visible {
-        outline: 2px solid var(--sc-accent-hot);
-        outline-offset: 2px;
-      }
       /* A silent jump (route change, scroll reset): no transition at all. */
       :host(.snap),
       :host(.snap) * {
@@ -271,11 +227,6 @@ export const MAIN_NAV_SLOT_PX = 112;
         border-radius: 8px;
         transition: color 0.2s ease, text-shadow 0.2s ease;
       }
-      /* Desktop: Admin lives in the sub row under the account, not in the nav. */
-      .slot.adm,
-      .ind.elevated {
-        display: none;
-      }
       .slot:hover {
         color: var(--sc-fg-0);
       }
@@ -283,21 +234,10 @@ export const MAIN_NAV_SLOT_PX = 112;
         color: var(--sc-fg-0);
         text-shadow: 0 0 18px color-mix(in srgb, var(--sc-accent) 55%, transparent), var(--mh-shadow);
       }
-      .slot.elevated {
-        color: var(--sc-accent-hot);
-      }
-      .slot.elevated:hover,
-      .slot.elevated.active {
-        text-decoration: underline;
-        text-underline-offset: 6px;
-      }
       .brand:focus-visible,
       .slot:focus-visible {
         outline: 2px solid var(--sc-accent);
         outline-offset: 2px;
-      }
-      .slot.elevated:focus-visible {
-        outline-color: var(--sc-accent-hot);
       }
       /* One indicator that glides under the active slot on a menu switch. */
       .ind {
@@ -311,18 +251,6 @@ export const MAIN_NAV_SLOT_PX = 112;
         box-shadow: 0 0 12px var(--sc-accent);
         transition: left 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s ease;
       }
-      .ind.elevated {
-        background: var(--sc-accent-hot);
-        box-shadow: 0 0 12px var(--sc-accent-hot);
-      }
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
-      }
       /* Tablet: the wordmark yields to the nav. */
       @media (max-width: 1099px) {
         .wordmark {
@@ -330,7 +258,7 @@ export const MAIN_NAV_SLOT_PX = 112;
         }
       }
       /* Phone: brand + account on top (the beta chip keeps the corner: its lane stays free),
-         the nav as a second row of equal slots incl. Admin. The bar is at the thumb, so
+         the nav as a second row of equal slots. The bar is at the thumb, so
          nothing glides: the header just fades out as a whole. */
       @media (max-width: 720px) {
         :host {
@@ -378,12 +306,6 @@ export const MAIN_NAV_SLOT_PX = 112;
           --mh-slot: calc((100vw - var(--_x) - max(var(--_xr), var(--sc-chip-lane, 0px))) / var(--mh-slots, 4));
           transform: none;
         }
-        .slot.adm {
-          display: flex;
-        }
-        .ind.elevated {
-          display: block;
-        }
         .slot {
           font-size: 12px;
           letter-spacing: 0.14em;
@@ -394,9 +316,6 @@ export const MAIN_NAV_SLOT_PX = 112;
         .logo,
         .acc-main {
           opacity: clamp(0, calc(1 - var(--_p) * 3), 1);
-        }
-        .subrow {
-          display: none;
         }
       }
       /* Narrow phones: five equal slots cannot hold "Starscape" (a slot is ~58px
@@ -439,10 +358,6 @@ export const MAIN_NAV_SLOT_PX = 112;
           background: var(--sc-accent);
           box-shadow: 0 0 12px var(--sc-accent);
         }
-        .slot.elevated.active::after {
-          background: var(--sc-accent-hot);
-          box-shadow: 0 0 12px var(--sc-accent-hot);
-        }
         .brand {
           min-width: 0;
         }
@@ -478,26 +393,22 @@ export class MainHeaderComponent {
   /** A silent state jump (route change / scroll reset): transitions off for it. */
   readonly snap = this.chrome.snap;
   private readonly router = inject(Router);
-  private readonly roles = inject(RoleService);
   private readonly beta = inject(BetaService);
   private readonly sameRoute = inject(SameRouteRefreshService);
 
   private readonly url = signal(this.router.url);
 
-  /** Same gating as the Fusion bar's area menu. */
+  /** The nav: the public areas only. Admin (elevated) lives in the account menu, never here. */
   readonly areas = computed(() =>
     AREA_ENTRIES.filter((a) => {
+      if (a.elevated) return false;
       if (a.id === 'hq') return this.beta.state().codex;
       if (a.id === 'starscape') return !this.beta.state().verse;
-      if (a.elevated) return this.roles.isAdmin();
       return true;
     }),
   );
-  /** The elevated entry (Admin), shown in the sub row under the account; null for everyone else. */
-  readonly admin = computed(() => this.areas().find((a) => a.elevated) ?? null);
   readonly activeArea = computed(() => activeAreaOf(this.url(), !this.beta.state().verse));
   readonly activeIndex = computed(() => this.areas().findIndex((a) => a.id === this.activeArea()));
-  readonly activeElevated = computed(() => this.areas()[this.activeIndex()]?.elevated ?? false);
 
   /** The hub's first-visit intro holds the header back until its 1.9 s mark. */
   readonly introWait = computed(() => this.chrome.heroIntro()?.full === true);

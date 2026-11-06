@@ -1,4 +1,5 @@
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
+import { ingredientTokenOfCrate } from '../hq/stock/hq-stock-ref';
 import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import { AccountPrefsService } from '../core/account-prefs.service';
@@ -2542,7 +2543,8 @@ export class CodexDetailComponent implements OnInit {
   private async loadUsedInBlueprints(className: string, seq: number): Promise<void> {
     let used: BlueprintRef[] = [];
     try {
-      used = await this.svc.blueprintsUsingIngredient(className);
+      // Recipes name the plain material ("Iron"); a cargo crate stands for it.
+      used = await this.svc.blueprintsUsingIngredient(ingredientTokenOfCrate(className) ?? className);
     } catch (error) {
       logWarn('codex', 'used-in lookup failed', { className, error });
       // supplementary — a failed lookup just hides the list

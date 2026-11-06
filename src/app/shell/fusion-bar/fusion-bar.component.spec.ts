@@ -78,6 +78,25 @@ describe('FusionBarComponent', () => {
     expect(active[0].getAttribute('aria-current')).toBe('page');
   });
 
+  it('on a phone a Codex tool page without a toolbar still offers the filter button (the only way to its panel)', async () => {
+    layout.set('tool');
+    const fixture = await setup('/codex/fps');
+    const el = fixture.nativeElement as HTMLElement;
+
+    fixture.componentInstance.phone.set(false);
+    fixture.detectChanges();
+    expect(el.querySelector('.fbtn')).withContext('desktop: the kind switch opens the panel').toBeNull();
+
+    fixture.componentInstance.phone.set(true);
+    fixture.detectChanges();
+    const btn = el.querySelector('.fbtn') as HTMLButtonElement;
+    expect(btn).withContext('phone: the kind switch is hidden').not.toBeNull();
+    btn.click();
+    fixture.detectChanges();
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelector('#sc-bar-panel')).not.toBeNull();
+  });
+
   it('integrates the tool filters into the bar: tokens in the field, hit count, Filter button and the hanging panel', async () => {
     layout.set('tool');
     const fixture = await setup('/codex/index?kind=ship');
