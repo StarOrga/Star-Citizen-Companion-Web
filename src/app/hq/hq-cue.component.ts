@@ -23,7 +23,7 @@ import { HqPageId } from './hq-routes';
   styles: [
     `
       :host { display: flex; justify-content: center; }
-      /* It floats over page content, so it brings its own quiet ground. */
+      /* The Verse cue, no ground of its own. Over a page it keeps the Verse's dark halo behind the glyphs. */
       .more-cue {
         --cs: max(9px, 0.7vw);
         display: flex;
@@ -31,11 +31,11 @@ import { HqPageId } from './hq-routes';
         align-items: center;
         gap: 4px;
         min-height: 44px;
-        padding: 6px 14px;
+        padding: 4px 12px;
         pointer-events: auto;
-        border-radius: 10px;
-        background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
-        backdrop-filter: blur(6px);
+        border: 0;
+        background: none;
+        text-shadow: 0 0 0.3em color-mix(in srgb, var(--sc-bg-0) 45%, transparent);
         font: 500 max(11px, 0.66vw) / 1.3 var(--sc-font-body);
         letter-spacing: 0.24em;
         text-transform: uppercase;
@@ -60,7 +60,7 @@ import { HqPageId } from './hq-routes';
 })
 export class HqCueComponent {
   protected readonly nav = inject(HqPageNavService);
-  /** The page the cue leads to (default: Planen, the page after Start). */
-  readonly target = input<HqPageId>('planen');
+  /** The page the cue leads to (default: Bestand, the page after Start). */
+  readonly target = input<HqPageId>('bestand');
   readonly href = computed(() => this.nav.href(this.target()));
 }
