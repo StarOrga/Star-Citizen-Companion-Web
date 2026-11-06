@@ -105,6 +105,19 @@ describe('Shell scene — component', () => {
     TestBed.resetTestingModule();
   });
 
+  it('animates no window-sized layer at rest: stars and hidden city lights stand still', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.stars.near')!.getAnimations()).withContext('stars').toEqual([]);
+    expect(el.querySelector('.detail .lights')!.getAnimations()).withContext('lights on the Verse').toEqual([]);
+  });
+
+  it('shows the city lights moving only over the night surface', async () => {
+    await router.navigateByUrl('/hq');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.detail .lights')!.getAnimations().length).toBe(1);
+  });
+
   it('renders nothing with the shell beta off', () => {
     shellOn.set(false);
     fixture.detectChanges();

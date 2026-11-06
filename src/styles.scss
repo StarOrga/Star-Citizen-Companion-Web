@@ -1923,3 +1923,21 @@ html:has(sc-fusion-bar.snap) [data-stage-hero] > :not([data-stage-slot]) {
     opacity: 0;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NO WINDOW FOCUS — the background stands still (WindowFocusService)
+   Next to the game the page should cost next to nothing. Paused, not stopped:
+   on focus everything carries on from where it stood. Moons read --sc-brief-play.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.sc-unfocused {
+  --sc-brief-play: paused;
+
+  sc-shell-scene *,
+  sc-fusion-bar *,
+  sc-fusion-bar *::after,
+  sc-verse-briefing *,
+  sc-verse-briefing *::before,
+  sc-verse-briefing *::after {
+    animation-play-state: paused !important;
+  }
+}

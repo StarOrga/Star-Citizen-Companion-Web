@@ -21,6 +21,10 @@ export interface PlanetBackend {
   draw(view: PlanetView, now: number): void;
   /** The loop starts or comes back: the time since its last tick does not count. */
   resume(now: number): void;
+  /** The window lost focus: the turn stands until {@link wake}. */
+  suspend(): void;
+  /** The window is back: the turn carries on from where it stood, with a soft start. */
+  wake(now: number): void;
 }
 
 /** `unavailable`: the live planet is gone (the CSS one stands in); `restored`: it is back. */
@@ -49,6 +53,13 @@ export interface PlanetSceneOptions {
 export const CONTEXT_LOST_GRACE_MS = 3000;
 /** The shader cuts the halo off at this share of the radius (`r > 1.08` in FS). */
 const HALO_REACH = 1.08;
+/**
+ * The canvases stay at CSS pixels: the night texture has 0.42 texels per CSS pixel at
+ * 1920 wide, so a denser buffer computes more pixels without showing more detail.
+ */
+const MAX_DPR = 1;
+/** The turn takes this long to come back up to speed after a pause. */
+export const WAKE_RAMP_MS = 1500;
 
 type Train2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
@@ -80,6 +91,10 @@ export class PlanetScene implements PlanetBackend {
   private planetBlank = false;
   private lostTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  /** Wall-clock time the turn did not run (pauses, soft starts), so it never jumps. */
+  private clockOffset = 0;
+  private suspendedAt: number | null = null;
+  private wokenAt: number | null = null;
 
   constructor(private readonly o: PlanetSceneOptions) {
     this.renderer = o.renderer;
@@ -92,7 +107,7 @@ export class PlanetScene implements PlanetBackend {
   }
 
   resize(cssWidth: number, cssHeight: number, devicePixelRatio: number): void {
-    this.dpr = Math.min(2, devicePixelRatio || 1);
+    this.dpr = Math.min(MAX_DPR, devicePixelRatio || 1);
     for (const c of [this.o.glCanvas, this.o.trainCanvas]) {
       c.width = Math.round(cssWidth * this.dpr);
       c.height = Math.round(cssHeight * this.dpr);
@@ -104,6 +119,19 @@ export class PlanetScene implements PlanetBackend {
 
   resume(now: number): void {
     this.last = now;
+  }
+
+  suspend(): void {
+    this.suspendedAt ??= Date.now();
+  }
+
+  wake(now: number): void {
+    this.last = now;
+    if (this.suspendedAt === null) return;
+    const t = Date.now();
+    this.clockOffset += this.rampLag(this.suspendedAt) + (t - this.suspendedAt);
+    this.suspendedAt = null;
+    this.wokenAt = t;
   }
 
   tick(v: PlanetView, now: number): void {
@@ -142,6 +170,9 @@ export class PlanetScene implements PlanetBackend {
     this.renderer?.clear();
     this.wipeTrains();
     this.planetBlank = false;
+    // The next visit starts from the clock again: every visit shows another part of the world.
+    this.clockOffset = 0;
+    this.suspendedAt = this.wokenAt = null;
   }
 
   dispose(): void {
@@ -154,7 +185,16 @@ export class PlanetScene implements PlanetBackend {
   }
 
   private rot(): number {
-    return ((Date.now() % DAY_MS) / DAY_MS) * Math.PI * 2;
+    const t = this.suspendedAt ?? Date.now();
+    const ms = t - this.clockOffset - this.rampLag(t);
+    return ((((ms % DAY_MS) + DAY_MS) % DAY_MS) / DAY_MS) * Math.PI * 2;
+  }
+
+  /** How far the soft start has fallen behind at `t`: the speed rises linearly from 0 to 1 over the ramp. */
+  private rampLag(t: number): number {
+    if (this.wokenAt === null) return 0;
+    const e = Math.min(WAKE_RAMP_MS, t - this.wokenAt);
+    return (e * e) / (2 * WAKE_RAMP_MS);
   }
 
   private wipeTrains(): void {

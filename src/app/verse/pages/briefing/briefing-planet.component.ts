@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, output, signal } from '@angular/core';
 import { logWarn } from '../../../core/log';
+import { WindowFocusService } from '../../../core/window-focus.service';
 import { PLANET_SOURCES, PlanetSources, loadBakedPlanet, nightSize } from './planet/planet-assets';
 import { PlanetRenderer } from './planet/planet-gl';
 import { PlanetBackend, PlanetScene, PlanetStatus, PlanetView } from './planet/planet-scene';
@@ -23,7 +24,9 @@ import { generateWorld } from './planet/planet-world';
  * It draws in a worker where a worker can own a WebGL canvas (planet-worker-core),
  * so shader link and texture upload do not freeze the page; everywhere else, or
  * when that worker fails, the same scene runs right here. The page stays the
- * ruler either way: the anchor is measured here, every frame.
+ * ruler either way: the anchor is measured here. At rest that is 15 times a second,
+ * off a timer; while the planet moves on screen (scroll, resize, entrance, shake) it is
+ * every frame. Without window focus it stands (WindowFocusService) and carries on softly.
  */
 @Component({
   selector: 'sc-briefing-planet',
@@ -60,6 +63,7 @@ export class BriefingPlanetComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly zone = inject(NgZone);
   private readonly loader = inject(PLANET_SOURCES);
+  private readonly focus = inject(WindowFocusService);
   private stopped = false;
   private cleanup: (() => void)[] = [];
   /**
@@ -256,9 +260,19 @@ export class BriefingPlanetComponent {
     });
   }
 
-  /** The page's half of the animation: measures the anchor every frame and tells the planet. */
+  /**
+   * The page's half of the animation: measures the anchor and tells the planet. Following
+   * the monitor's refresh at rest cost more than drawing the planet (175 measures and
+   * messages a second at 179 Hz, for 15 pictures), so at rest a timer sets the pace, and
+   * only a planet that moves on screen is followed every frame.
+   */
   private loop(planet: PlanetBackend, glCanvas: HTMLCanvasElement, reduce: boolean): void {
     let frame = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let followUntil = 0;
+    let last: PlanetView | null = null;
+    let suspended = false;
+    let suspendedDraw = 0;
     const resize = () => planet.resize(glCanvas.clientWidth, glCanvas.clientHeight, devicePixelRatio);
     /** The planet in the canvas's own coordinates (the canvas is sticky, the anchor scrolls). */
     const geometry = (): PlanetView => {
@@ -270,32 +284,76 @@ export class BriefingPlanetComponent {
     // anyone sees, but the loop kept stepping the trains and redrawing the GL planet. It pauses
     // there and picks up again on return (dt is clamped by the scene, so the world just moves on).
     let onScreen = true;
+    const halt = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    };
     const tick = (now: number) => {
-      if (!onScreen) {
-        frame = 0;
-        return;
-      }
-      planet.tick(geometry(), now);
+      frame = 0;
+      if (!onScreen || suspended) return;
+      const v = geometry();
+      if (last && (v.cx !== last.cx || v.cy !== last.cy || v.r !== last.r)) followUntil = now + FOLLOW_MS;
+      last = v;
+      planet.tick(v, now);
+      if (now < followUntil) frame = requestAnimationFrame(tick);
+      else timer = setTimeout(() => { timer = null; frame = requestAnimationFrame(tick); }, IDLE_TICK_MS);
+    };
+    /** The planet is about to move: follow it from the next frame, not from the next timer. */
+    const follow = () => {
+      followUntil = performance.now() + FOLLOW_MS;
+      if (!onScreen || frame) return;
+      halt();
       frame = requestAnimationFrame(tick);
+    };
+    /** A paused planet still has to stay under the page; it just does not turn. */
+    const drawSuspended = () => {
+      suspendedDraw ||= requestAnimationFrame(() => {
+        suspendedDraw = 0;
+        planet.draw(geometry(), performance.now());
+      });
     };
 
     resize();
     planet.resume(performance.now());
-    const onResize = () => { resize(); if (reduce) planet.draw(geometry(), performance.now()); };
-    const onScroll = () => { if (reduce) planet.draw(geometry(), performance.now()); };
+    const onResize = () => {
+      resize();
+      if (reduce) planet.draw(geometry(), performance.now());
+      else if (suspended) drawSuspended();
+      else follow();
+    };
+    const onScroll = () => {
+      if (reduce) planet.draw(geometry(), performance.now());
+      else if (suspended) drawSuspended();
+      else follow();
+    };
     // Capture: the shell may scroll an inner element instead of the window.
     addEventListener('resize', onResize);
     document.addEventListener('scroll', onScroll, { passive: true, capture: true });
     const io = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([e]) => {
       onScreen = e.isIntersecting;
-      if (onScreen && !reduce && !frame) {
+      if (onScreen && !reduce && !suspended && !frame && timer === null) {
         planet.resume(performance.now());
         frame = requestAnimationFrame(tick);
       }
     });
     io?.observe(this.host);
+    const stopFocus = reduce ? null : this.focus.onChange((focused) => {
+      suspended = !focused;
+      if (suspended) {
+        halt();
+        planet.suspend();
+        return;
+      }
+      planet.wake(performance.now());
+      last = null;
+      if (onScreen && !frame && timer === null) frame = requestAnimationFrame(tick);
+    });
     this.cleanup.push(() => {
-      cancelAnimationFrame(frame);
+      halt();
+      cancelAnimationFrame(suspendedDraw);
+      stopFocus?.();
       io?.disconnect();
       removeEventListener('resize', onResize);
       document.removeEventListener('scroll', onScroll, { capture: true });
@@ -305,6 +363,11 @@ export class BriefingPlanetComponent {
     else frame = requestAnimationFrame(tick);
   }
 }
+
+/** The page's measuring pace at rest; the scene draws the planet at the same 15 fps. */
+const IDLE_TICK_MS = 66;
+/** After the planet last moved on screen, keep following it every frame this long. */
+const FOLLOW_MS = 250;
 
 /** The worker holding the planet, kept for the session: coming back shows the planet at once. */
 let sessionLink: PlanetLink | null = null;
