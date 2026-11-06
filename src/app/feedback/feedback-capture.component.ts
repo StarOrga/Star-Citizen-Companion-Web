@@ -3,6 +3,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackAreaService } from './feedback-area.service';
 import { captureLine, isCaptureClick, meaningfulElement, nameOf, roleOf, spotFor } from './feedback-capture.util';
+import { FeedbackPeekService } from './feedback-peek.service';
 import { FeedbackSpotService } from './feedback-spot.service';
 
 /** How long the captured element stays outlined, ms. */
@@ -55,6 +56,7 @@ export const CAPTURE_FLASH_MS = 1100;
 export class FeedbackCaptureComponent {
   private readonly roles = inject(RoleService);
   private readonly spots = inject(FeedbackSpotService);
+  private readonly peek = inject(FeedbackPeekService);
   private readonly area = inject(FeedbackAreaService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
@@ -73,9 +75,11 @@ export class FeedbackCaptureComponent {
       };
       document.addEventListener('click', onClick, true);
       document.addEventListener('mousedown', onDown, true);
+      const stopPeek = this.peek.listen();
       onCleanup(() => {
         document.removeEventListener('click', onClick, true);
         document.removeEventListener('mousedown', onDown, true);
+        stopPeek();
         this.spots.captureActive.set(false);
       });
     });

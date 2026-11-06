@@ -206,15 +206,8 @@ export interface AnnotationResult {
             role="dialog"
             aria-modal="true"
             [attr.aria-label]="img.alt || ('feedbackAttachments.image' | translate)"
+            tabindex="-1"
             (click)="$event.stopPropagation()">
-            <button
-              type="button"
-              class="lb-close"
-              (click)="close()"
-              [attr.aria-label]="'feedbackAttachments.close' | translate"
-              [scTooltip]="'feedbackAttachments.close' | translate">
-              ✕
-            </button>
             <div class="lb-stage">
               @if (displaySrc(img); as src) {
                 <img
@@ -523,16 +516,6 @@ export interface AnnotationResult {
       font-size: max(0.78rem, var(--sc-fs-floor));
       text-align: center;
     }
-    .lb-close {
-      position: absolute; top: -14px; right: -14px;
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; padding: 0;
-      border: 1px solid var(--sc-border); border-radius: 50%;
-      background: var(--sc-bg-1); color: var(--sc-fg-0);
-      font-size: 0.85rem; line-height: 1; cursor: pointer;
-    }
-    .lb-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-
     .lb-tools {
       display: flex; align-items: center; justify-content: center;
       flex-wrap: wrap; gap: 6px;
@@ -574,21 +557,12 @@ export interface AnnotationResult {
 
     /* A screenshot is the single most common thing in a feedback thread, so on a
        phone it gets the screen (admin feedback 3bc01a3d). Two things change:
-       the 16px backdrop inset shrinks to 8, and the close button comes INSIDE
-       the frame. Hung at -14px it sat in the backdrop's own padding — which is
-       fine at 1280px and is 6px from the edge of a 375px screen, i.e. under the
-       thumb's own edge-swipe zone and, on a tall image, under the status bar. */
+       the 16px backdrop inset shrinks to 8. There is no close button: a click
+       outside the picture (or Escape) closes it. */
     @media (max-width: 720px) {
       .lb-backdrop { padding: 8px; }
       .lb-img { max-width: calc(100vw - 16px); max-height: 76vh; max-height: 76dvh; }
       .lb-caption { max-width: calc(100vw - 16px); }
-      .lb-close {
-        top: 8px;
-        right: 8px;
-        background: rgba(0, 0, 0, 0.62);
-        border-color: color-mix(in srgb, var(--sc-fg-0) 35%, transparent);
-        color: var(--sc-fg-0);
-      }
     }
   `],
 })
@@ -713,8 +687,7 @@ export class FeedbackAttachmentsComponent {
     });
     this.ref = ref;
 
-    const close = ref.overlayElement.querySelector<HTMLElement>('.lb-close');
-    close?.focus();
+    ref.overlayElement.querySelector<HTMLElement>('.lb-frame')?.focus();
   }
 
   /** Backdrop click closes — except mid-mark-up, where it would discard work. */

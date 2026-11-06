@@ -3,7 +3,7 @@ import { WindowFocusService } from './window-focus.service';
 
 /** The background's frame rate, the same 15 Hz as the planet and the moons. */
 export const SLOW_TICK_MS = 66;
-const COLLECT_MS = 1000;
+const HOLD_CHECK_MS = 1000;
 /** A throttled timer must not make the background jump. */
 const MAX_STEP_MS = 250;
 /** Where endless animations are background and not feedback the user waits for. */
@@ -32,15 +32,21 @@ export class SlowMotionService {
   private readonly zone = inject(NgZone);
   private readonly driven = new Map<Animation, Driven>();
   private tickTimer: ReturnType<typeof setInterval> | null = null;
-  private collectTimer: ReturnType<typeof setInterval> | null = null;
+  private holdTimer: ReturnType<typeof setInterval> | null = null;
+  private holdFrame = 0;
   private last = 0;
 
   /** Starts the clock. Returns the function that stops it and hands every animation back. */
   start(): () => void {
     const stopFocus = this.focus.onChange((focused) => (focused ? this.run() : this.halt()));
+    const onStart = (e: Event) => this.take(e.target);
+    this.zone.runOutsideAngular(() => document.addEventListener('animationstart', onStart, true));
+    if (typeof document.getAnimations === 'function') document.getAnimations().forEach((a) => this.consider(a));
+    this.readHolds();
     if (this.focus.focused()) this.run();
     return () => {
       stopFocus();
+      document.removeEventListener('animationstart', onStart, true);
       this.halt();
       for (const a of this.driven.keys()) a.play();
       this.driven.clear();
@@ -56,17 +62,24 @@ export class SlowMotionService {
   private run(): void {
     if (this.tickTimer !== null) return;
     this.last = Date.now();
-    this.collect();
+    this.readHolds();
     this.zone.runOutsideAngular(() => {
       this.tickTimer = setInterval(() => this.tick(), SLOW_TICK_MS);
-      this.collectTimer = setInterval(() => this.collect(), COLLECT_MS);
+      this.holdTimer = setInterval(() => {
+        this.holdFrame ||= requestAnimationFrame(() => {
+          this.holdFrame = 0;
+          this.readHolds();
+        });
+      }, HOLD_CHECK_MS);
     });
   }
 
   private halt(): void {
     if (this.tickTimer !== null) clearInterval(this.tickTimer);
-    if (this.collectTimer !== null) clearInterval(this.collectTimer);
-    this.tickTimer = this.collectTimer = null;
+    if (this.holdTimer !== null) clearInterval(this.holdTimer);
+    if (this.holdFrame) cancelAnimationFrame(this.holdFrame);
+    this.tickTimer = this.holdTimer = null;
+    this.holdFrame = 0;
   }
 
   private tick(): void {
@@ -88,21 +101,28 @@ export class SlowMotionService {
     }
   }
 
-  /** Finds new endless animations, and reads again which ones their CSS holds. */
-  private collect(): void {
-    if (typeof document.getAnimations !== 'function') return;
-    for (const anim of document.getAnimations()) {
-      if (!(anim instanceof CSSAnimation) || !(anim.effect instanceof KeyframeEffect)) continue;
-      const target = anim.effect.target;
-      if (!target) continue;
-      let d = this.driven.get(anim);
-      if (!d) {
-        if (anim.effect.getComputedTiming().iterations !== Infinity || !target.closest(SCOPE)) continue;
-        anim.pause();
-        d = { held: false, end: Infinity };
-        this.driven.set(anim, d);
-      }
-      d.held = getComputedStyle(target, anim.effect.pseudoElement ?? undefined).animationPlayState.includes('paused');
+  /** A new animation has started on `target` (or one of its pseudo-elements). */
+  private take(target: EventTarget | null): void {
+    if (!(target instanceof Element) || !target.closest(SCOPE)) return;
+    for (const anim of target.getAnimations({ subtree: true })) this.consider(anim);
+  }
+
+  private consider(anim: Animation): void {
+    if (this.driven.has(anim) || !(anim instanceof CSSAnimation) || !(anim.effect instanceof KeyframeEffect)) return;
+    const target = anim.effect.target;
+    if (!target?.closest(SCOPE) || anim.effect.getComputedTiming().iterations !== Infinity) return;
+    anim.pause();
+    this.driven.set(anim, { held: false, end: Infinity });
+  }
+
+  /**
+   * Reads which animations their CSS holds. Inside a frame, where the style is computed
+   * anyway: from a timer this was a forced recalculation, once 74 ms right after a page change.
+   */
+  private readHolds(): void {
+    for (const [anim, d] of this.driven) {
+      if (!(anim instanceof CSSAnimation) || !(anim.effect instanceof KeyframeEffect) || !anim.effect.target) continue;
+      d.held = getComputedStyle(anim.effect.target, anim.effect.pseudoElement ?? undefined).animationPlayState.includes('paused');
     }
   }
 }
