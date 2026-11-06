@@ -1,5 +1,5 @@
 import { LocationStrategy } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, computed, effect, inject, input, output, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
@@ -434,8 +434,11 @@ function chipSize(pin: StagePin): number | null {
   `],
 })
 export class CodexHoloInspectorComponent {
-  private readonly actions = inject(SearchRowActionsService);
-  private readonly wishlist = inject(SearchWishlistService);
+  /** Resolved with the first selected part: a ship page that only looks never starts the hangar, stock and supply services behind the icons. */
+  private readonly injector = inject(Injector);
+  private get actions(): SearchRowActionsService {
+    return this.injector.get(SearchRowActionsService);
+  }
   private readonly router = inject(Router);
   private readonly locationStrategy = inject(LocationStrategy);
 
@@ -508,7 +511,7 @@ export class CodexHoloInspectorComponent {
   constructor() {
     effect(() => {
       this.status.set(null);
-      if (this.focusPart()?.className) this.wishlist.ensureLoaded();
+      if (this.focusPart()?.className) this.injector.get(SearchWishlistService).ensureLoaded();
     });
   }
 
