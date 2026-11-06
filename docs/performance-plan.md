@@ -435,5 +435,29 @@ one of twelve took 511 ms. With everything frozen 35 is the floor of the 15 Hz c
 the three clocks (planet, moons, animations) do not tick in step, so up to 45 frames a
 second remain. Aligning them is the next lever, unmeasured.
 
+**Live, v0.215.0, 2 runs.** The real Vercel bundle in headless Edge, with the fixtures and a
+stubbed session, because /verse needs a sign-in: at rest 84, without focus 45, scrolling
+188. Menu hops usually take about 100 ms, loading 0 to 1 chunk. The first hop to the Codex
+after a start still stands for 461 to 483 ms, here and in the local run (511 ms); that hop
+was not taken apart.
+
+**Stutter on /verse (owner's report on v0.215.0).** On a wide screen a wheel notch makes the
+page glide by script, so every scroll frame runs on the main thread and any main-thread
+work shows. `--dock` was written on the page's host in each of those frames, though one
+element reads it: about 10 ms of forced style with 5.6 ms to spare at 179 Hz. It now sits on
+that element. The first version of `SlowMotionService` polled `getAnimations()` once a
+second, a forced recalculation of 12 ms, once 74 ms right after a page change; it now listens
+to `animationstart` and reads its holds inside a frame.
+
+Longest frame gap, same browser, warm shaders, 2 rounds, v0.215.0 against this change:
+gliding 133 to 95 ms, leaving /verse 356 to 111 ms, entering it 206 to 117 ms, slightly less
+with real public data. Frame times over 33 ms while gliding: about 3 to 1 per glide. A
+glide's p95 stays at about 16 ms, so at 179 Hz every twentieth frame still takes three
+refreshes, and each hop to or from /verse keeps one or two frames of 80 to 100 ms.
+
+Measuring trap: a fresh browser compiles its shaders on first use. That showed up as GPU
+raster flushes of up to 258 ms on the first scroll of a browser's first page, and looked
+like a cost of whichever variant ran first. Warm the browser with one page before comparing.
+
 **Rule.** No endless animation runs at display rate on a page that is meant to stand: put
 it inside the scope of `SlowMotionService`, or give it an end.

@@ -210,16 +210,26 @@ export function wireDock(
     }
   };
 
+  /** Whether the doors carry a transform that has to go again. */
+  let moved = false;
   const update = (): void => {
     frame = 0;
     const doc = document.documentElement;
     const p = dockProgress(window.scrollY, doc.scrollHeight - window.innerHeight);
     const on = active();
     const st = dockState(p);
-    host.style.setProperty('--dock', p.toFixed(3));
+    // On the one element that reads it: on the host, a new value recalculated the whole page's
+    // style in every scroll frame, about 10 ms, with 5.6 ms to spare at 179 Hz.
+    host.querySelector<HTMLElement>('.more-cue')?.style.setProperty('--dock', p.toFixed(3));
+    const moving = on && st !== 'top';
+    if (!moving && !moved) {
+      if (flying() !== on || state() !== st) zone.run(() => { flying.set(on); state.set(st); });
+      return;
+    }
     const all = parts();
     clear(all);
-    if (on && st !== 'top') {
+    moved = moving;
+    if (moving) {
       const e = dockEase(p);
       // Read everything untransformed first, then write: one style pass per frame.
       const boxes = all.map((x) => (x.pl && x.lab && x.mini && x.word ? { pl: box(x.pl), lab: box(x.lab), mini: box(x.mini), word: box(x.word) } : null));
