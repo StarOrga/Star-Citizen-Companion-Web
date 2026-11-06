@@ -27,7 +27,8 @@
   flex-direction: column;
   height: calc(100vh - var(--cx-top, 0px) - var(--sc-space-6));
   height: calc(100dvh - var(--cx-top, 0px) - var(--sc-space-6));
-  min-height: 560px;
+  // Low enough for a laptop at 125 % (about 730 px): no sliver of scroll there.
+  min-height: 480px;
   container-type: inline-size;
   // The stage footer (cinematic layout) lies over the bottom of the page.
   padding-bottom: var(--cx-pb);

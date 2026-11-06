@@ -75,10 +75,16 @@ const HIGHLIGHTS = 4;
         </div>
       }
 
-      <div class="sc-card wide">
+      <div class="sc-card wide what">
         <h2>{{ 'legal.about.what.title' | translate }}</h2>
         <p>{{ 'legal.about.what.p1' | translate }}</p>
         <p>{{ 'legal.about.what.p2' | translate }}</p>
+      </div>
+
+      <div class="sc-card wide affiliation">
+        <h2>{{ 'legal.about.affiliation.title' | translate }}</h2>
+        <p>{{ 'legal.about.affiliation.p1' | translate }}</p>
+        <p class="disclaimer">{{ 'footer.trademarks' | translate }}</p>
       </div>
 
       <div class="sc-card">
@@ -98,12 +104,6 @@ const HIGHLIGHTS = 4;
         <h2>{{ 'legal.about.data.title' | translate }}</h2>
         <p>{{ 'legal.about.data.p1' | translate }}</p>
         <a routerLink="/legal/privacy">{{ 'legal.about.data.privacyLink' | translate }}</a>
-      </div>
-
-      <div class="sc-card affiliation">
-        <h2>{{ 'legal.about.affiliation.title' | translate }}</h2>
-        <p>{{ 'legal.about.affiliation.p1' | translate }}</p>
-        <p class="disclaimer">{{ 'footer.trademarks' | translate }}</p>
       </div>
 
       <div class="sc-card">
@@ -127,7 +127,10 @@ const HIGHLIGHTS = 4;
   `,
   styles: [`
     /* Layout: the shared .sc-card-page (styles.scss) — full page frame, "what
-       is this" across both columns, the other four sections paired. */
+       is this" and the affiliation across the page, the other sections side by
+       side. From 1200px each row shares: release box and earlier releases, "what
+       is this" and the affiliation, then the other three sections, so the page fits a desktop screen with
+       its footer instead of leaving a sliver of scroll. */
     h1 { margin: 0; }
     .subtitle { color: var(--sc-fg-2); margin: -8px 0 0; }
     h2 {
@@ -199,6 +202,20 @@ const HIGHLIGHTS = 4;
       border-top: 1px solid var(--sc-border);
       padding-top: 10px;
       margin-top: 12px;
+    }
+    @media (min-width: 1200px) {
+      .page { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+      .feature { padding: 20px 24px; }
+      /* Two side by side: a long release must not push the page past the screen; the link has the rest. */
+      .highlights { margin-bottom: 12px; max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .highlights li:nth-child(n + 3) { display: none; }
+      .affiliation .disclaimer { margin-top: 8px; padding-top: 8px; }
+      .page > .sc-card:not(.wide) { grid-column: span 2; }
+      .page > .feature:has(+ .earlier) { grid-column: span 4; }
+      .page > .what, .page > .affiliation { grid-column: span 3; }
+      .page > .earlier { grid-column: span 2; }
+      .page > .sc-card:not(.feature) { padding: 16px 20px; }
+      .page > .sc-card { height: 100%; box-sizing: border-box; }
     }
   `],
 })

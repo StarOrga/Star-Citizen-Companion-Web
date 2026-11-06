@@ -772,6 +772,12 @@ const SEARCH_DEBOUNCE_MS = 250;
       .grid, .pinned-strip { grid-template-columns: 1fr; }
       .count-chip strong { font-size: 1.05rem; }
     }
+    /* A full-HD browser window (about 950px): a small fleet fits with the footer
+       instead of leaving a sliver of scroll. A bigger fleet scrolls on purpose. */
+    @media (min-width: 1200px) and (max-height: 1000px) {
+      .page { gap: 12px; }
+      .card .thumb { height: 72px; --sc-img-max-h: 64px; }
+    }
   `],
 })
 export class HangarDashboardComponent implements OnInit {
