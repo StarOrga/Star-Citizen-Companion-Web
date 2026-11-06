@@ -76,6 +76,16 @@ import { CodexSearchTriggerComponent } from './search/codex-search-trigger.compo
 import { CODEX_ROOT_CRUMB, PageCrumb } from '../shared/page-header/nav-origin.service';
 import { BarFacet, BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { BetaService } from '../core/beta.service';
+import {
+  CREW_BANDS,
+  CREW_BAND_RANGE,
+  CrewBand,
+  SHIP_ROLES,
+  SHIP_ROLE_CAREERS,
+  ShipRole,
+  isCrewBand,
+  isShipRole,
+} from './codex-ship-filters';
 
 /**
  * A row of the list: a list row after variant folding, livery grouping (FPS
@@ -151,21 +161,31 @@ export function blueprintCategoriesForGroup(
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
-      <sc-page-header
-        [crumbs]="crumbs()"
-        [eyebrow]="'codex.browse.eyebrow' | translate"
-        [title]="areaLabelKey() | translate"
-        [subtitle]="subtitle()">
-        @if (!shellOn()) { <sc-codex-search-trigger phAside /> }
-        @if (!shellOn()) { <sc-codex-status-banner phAside /> }
-      </sc-page-header>
-
+      <!-- Two columns that start at the top (package B, 2026-11-06): title + area tree on the
+           left, filter bar + list on the right, so the list is not pushed below the title. -->
       <div class="layout">
-        <aside class="side" [attr.aria-label]="'codex.browse.filtersAria' | translate">
-          <ng-container [ngTemplateOutlet]="facetsTpl" />
-        </aside>
+        <div class="col-side">
+          <sc-page-header
+            class="head"
+            [crumbs]="crumbs()"
+            [eyebrow]="'codex.browse.eyebrow' | translate"
+            [title]="areaLabelKey() | translate"
+            [subtitle]="subtitle()" />
+          <aside class="side" [attr.aria-label]="'codex.browse.areaLabel' | translate">
+            <ng-container [ngTemplateOutlet]="treeTpl" />
+          </aside>
+        </div>
 
         <div class="results">
+          @if (!isUpcoming() || !shellOn()) {
+            <div class="filterbar" role="group" [attr.aria-label]="'codex.browse.filtersAria' | translate">
+              @if (!isUpcoming()) { <ng-container [ngTemplateOutlet]="filtersTpl" /> }
+              @if (!shellOn()) {
+                <span class="bar-aside"><sc-codex-search-trigger /><sc-codex-status-banner /></span>
+              }
+            </div>
+          }
+
           @if (!isUpcoming() && upcomingMatchNames(); as names) {
             <p class="upcoming-hint">
               <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
@@ -191,6 +211,23 @@ export function blueprintCategoriesForGroup(
                     {{ (listTotal() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: listTotal() } }}
                   }
                 </span>
+                <!-- Searches only this list: no suggestion dropdown over the results. -->
+                <label class="list-search">
+                  <span class="sc-sr-only">{{ 'codex.browse.listSearch' | translate: { area: (areaLabelKey() | translate) } }}</span>
+                  <svg class="ls-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" />
+                  </svg>
+                  <input class="ls-input" type="text" autocomplete="off" spellcheck="false" enterkeyhint="search"
+                         [value]="listSearchValue()"
+                         [placeholder]="'codex.browse.listSearchPh' | translate: { area: (areaLabelKey() | translate) }"
+                         (input)="onListSearch($any($event.target).value)"
+                         (keydown.escape)="onListSearch('')" />
+                  @if (listSearchValue()) {
+                    <button type="button" class="ls-clear" (click)="onListSearch('')"
+                            [attr.aria-label]="'codex.browse.listSearchClear' | translate"
+                            [scTooltip]="'codex.browse.listSearchClear' | translate" scTooltipTier="label">✕</button>
+                  }
+                </label>
                 @if (!isUpcoming()) {
                   <div class="sort">
                     <sc-select [options]="sortSelect()" [value]="sortNew() ? 'new' : 'name'"
@@ -350,7 +387,8 @@ export function blueprintCategoriesForGroup(
                       [attr.aria-label]="'codex.browse.closeFilters' | translate"
                       [scTooltip]="'codex.browse.closeFilters' | translate" scTooltipTier="label">✕</button>
             </div>
-            <ng-container [ngTemplateOutlet]="facetsTpl" />
+            <ng-container [ngTemplateOutlet]="treeTpl" />
+            @if (!isUpcoming()) { <div class="sheet-filters"><ng-container [ngTemplateOutlet]="filtersTpl" /></div> }
             <button type="button" class="sheet-done" (click)="filtersOpen.set(false)">
               {{ 'codex.browse.showResults' | translate: { count: listTotal() } }}
             </button>
@@ -361,12 +399,32 @@ export function blueprintCategoriesForGroup(
       <sc-codex-compare-tray />
     </section>
 
-    <ng-template #facetsTpl>
+    <ng-template #treeTpl>
       <nav class="tree" [attr.aria-label]="'codex.browse.areaLabel' | translate">
         <p class="side-h">{{ 'codex.browse.areaLabel' | translate }}</p>
         <ng-container [ngTemplateOutlet]="nodesTpl" [ngTemplateOutletContext]="{ $implicit: areaTree(), depth: 0 }" />
       </nav>
+    </ng-template>
+
+    <ng-template #filtersTpl>
       @if (!isUpcoming()) {
+        @if (kind() === 'ship') {
+          <div class="facet facet-role">
+            <span class="side-h">{{ 'codex.filters.role' | translate }}</span>
+            <div class="chips" role="group" [attr.aria-label]="'codex.filters.role' | translate">
+              @for (r of shipRoles; track r) {
+                <button type="button" class="chip" [class.on]="shipRole() === r" [attr.aria-pressed]="shipRole() === r"
+                        (click)="setShipRole(shipRole() === r ? '' : r)">{{ 'codex.shipRole.' + r | translate }}</button>
+              }
+            </div>
+          </div>
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.crew' | translate }}</span>
+            <sc-segmented [options]="crewSegments" [value]="crewBand() || 'all'"
+                          [ariaLabel]="'codex.filters.crew' | translate"
+                          (valueChange)="setCrewBand($event === 'all' ? '' : $event)" />
+          </div>
+        }
         @if (manufacturerOptions().length > 0) {
           <div class="facet">
             <span class="side-h">{{ 'codex.filters.manufacturer' | translate }}</span>
@@ -448,7 +506,10 @@ export function blueprintCategoriesForGroup(
   styles: [`
     :host { display: block; }
     .browse { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); padding-bottom: 80px; }
-    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--sc-space-4, 16px); align-items: start; }
+    .layout { display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: var(--sc-space-4, 16px); align-items: stretch; }
+    /* Left column: title, then the sticky area tree under it. */
+    .col-side { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); min-width: 0; }
+    .head { min-width: 0; }
     .side {
       position: sticky; top: calc(var(--sc-sticky-top, 0px) + var(--sc-space-3, 12px));
       display: flex; flex-direction: column; gap: var(--sc-space-3, 12px);
@@ -473,11 +534,53 @@ export function blueprintCategoriesForGroup(
     .reset { align-self: flex-start; background: none; border: 0; padding: 4px 0; color: var(--sc-accent); cursor: pointer; font: inherit; font-size: 13px; text-decoration: underline; }
     .reset:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-    .results { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; }
+    .results { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; align-self: start; }
+    /* The filter bar fills the space beside the title: the list starts right under it. */
+    .filterbar {
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px;
+      padding: 12px 14px; border: 1px solid var(--sc-border); border-radius: 8px;
+      background: color-mix(in srgb, var(--sc-bg-1) 70%, transparent);
+    }
+    .filterbar:empty { display: none; }
+    .filterbar .facet { min-width: 150px; }
+    .filterbar .facet.check { min-width: 0; align-self: center; }
+    .filterbar .reset { align-self: center; }
+    .bar-aside { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .facet-role { flex: 1 1 100%; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      min-height: max(30px, var(--sc-tap-min, 0px)); padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1);
+      font: inherit; font-size: 13px; cursor: pointer; transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+    }
+    .chip:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .chip.on { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
+    .chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .sheet-filters { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); }
     .list { padding: 0; overflow: hidden; }
-    .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); }
+    .list-head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); flex-wrap: wrap; }
+    .list-search {
+      position: relative; flex: 1 1 220px; display: flex; align-items: center; min-width: 0;
+    }
+    .ls-icon {
+      position: absolute; left: 10px; width: 16px; height: 16px; pointer-events: none;
+      fill: none; stroke: var(--sc-fg-2); stroke-width: 2; stroke-linecap: round;
+    }
+    .ls-input {
+      width: 100%; min-height: max(36px, var(--sc-tap-min, 0px)); padding: 6px 34px 6px 34px;
+      border: 1px solid var(--sc-border); border-radius: 6px; background: var(--sc-bg-1); color: var(--sc-fg-0);
+      font: inherit; font-size: max(13px, var(--sc-fs-input, 0px));
+    }
+    .ls-input::placeholder { color: var(--sc-fg-2); }
+    .ls-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: var(--sc-glow); }
+    .ls-clear {
+      position: absolute; right: 4px; width: 28px; height: 28px; border: 0; border-radius: 4px;
+      background: transparent; color: var(--sc-fg-2); cursor: pointer; font: inherit; font-size: 12px;
+    }
+    .ls-clear:hover { color: var(--sc-fg-0); }
+    .ls-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .count { font-size: 13px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
-    .sort { min-width: 180px; }
+    .sort { min-width: 180px; margin-left: auto; }
     .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .rows { list-style: none; margin: 0; padding: 0; }
     .row { position: relative; display: flex; align-items: center; border-bottom: 1px solid var(--sc-border); }
@@ -551,6 +654,8 @@ export function blueprintCategoriesForGroup(
     @media (max-width: 767px) {
       .layout { grid-template-columns: minmax(0, 1fr); }
       .side { display: none; }
+      .filterbar { display: none; }
+      .col-side { gap: 0; }
       .acts { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }

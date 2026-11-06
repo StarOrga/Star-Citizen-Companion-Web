@@ -241,6 +241,12 @@ export interface CodexListFilters {
   // Restrict to these class names (the search CTAs "Passende Schiffe" ?fits= /
   // "Passende Waffen" ?ammo= resolve their reverse lookup into this list).
   classNameIn?: string[];
+  // ship-only facet — payload `career` keys (the RSI role filter, see
+  // codex-ship-filters.ts). Ignored for other kinds.
+  careerIn?: string[];
+  // ship-only facet — inclusive crew range (the crew band filter). Ignored for other kinds.
+  crewMin?: number;
+  crewMax?: number;
   limit?: number;
   offset?: number;
 }
@@ -958,6 +964,11 @@ export class CodexService {
     if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
       query = query.in('category', filters.blueprintCategoryIn);
     if (filters.classNameIn) query = query.in('class_name', filters.classNameIn.length ? filters.classNameIn : ['-']);
+    if (kind === 'ship') {
+      if (filters.careerIn?.length) query = query.in('payload->>career', filters.careerIn);
+      if (filters.crewMin != null) query = query.gte('crew_size', filters.crewMin);
+      if (filters.crewMax != null) query = query.lte('crew_size', filters.crewMax);
+    }
     return query;
   }
 
