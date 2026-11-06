@@ -56,6 +56,8 @@ describe('body engine — worker path', () => {
     canvas.style.setProperty('--sc-brief-play', 'paused');
     e.attach(canvas, 'sun');
     expect(w.of('add').length).toBe(1);
+    expect(w.of('paused')).withContext('not read while the page renders').toEqual([]);
+    tick(600);
     expect(w.of('paused')).toEqual([{ t: 'paused', paused: true }]);
     canvas.style.setProperty('--sc-brief-play', 'running');
     tick(600);
