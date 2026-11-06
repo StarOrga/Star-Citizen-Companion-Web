@@ -104,9 +104,12 @@ export interface HoloPerspectiveView {
             }
           </div>
         }
-        <button type="button" class="tile-expand" (click)="toggleOpen(tile.id)" [attr.aria-expanded]="isOpen(tile.id)">
-          {{ (isOpen(tile.id) ? 'codex.holo.stage.allValuesHide' : 'codex.holo.stage.allValues') | translate }}
-        </button>
+        <!-- Bewegung and Signatur read the same full ship panel: offered once. -->
+        @if (tile.id !== 'signature') {
+          <button type="button" class="tile-expand" (click)="toggleOpen(tile.id)" [attr.aria-expanded]="isOpen(tile.id)">
+            {{ (isOpen(tile.id) ? 'codex.holo.stage.allValuesHide' : 'codex.holo.stage.allValues') | translate }}
+          </button>
+        }
         @if (isOpen(tile.id)) {
           <div class="tile-full" animate.leave="fold-leave">
             @if (tile.id === 'offensive') {

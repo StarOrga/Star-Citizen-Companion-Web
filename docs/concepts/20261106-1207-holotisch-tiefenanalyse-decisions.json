@@ -1,0 +1,752 @@
+[
+ {
+  "iteration": "1",
+  "action": "iterate",
+  "favorite": "pult",
+  "decisions": [
+   {
+    "id": "d-hover",
+    "label": "Hover-Stärke",
+    "mode": "picture",
+    "value": "both",
+    "rec": "both",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "3D-Modell",
+    "finding": "f-hover",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 18472,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-click",
+    "label": "Klick aufs Bauteil",
+    "mode": "single",
+    "value": "inspect",
+    "rec": "inspect",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "3D-Modell",
+    "finding": "f-click",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 14468,
+     "noteWords": 0,
+     "revisits": 1,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-dots",
+    "label": "Welche Punkte",
+    "mode": "single",
+    "value": "all",
+    "rec": "main",
+    "deviates": true,
+    "none": false,
+    "untouched": false,
+    "note": "Default soll dort stehen nur tauschbare teile und wenn man es toggled sieht man alle teile. gern irgendwo unten verstehecken doer mit der leiste mergen wo man ja teil arten anklicken kann",
+    "appliesTo": "3D-Modell",
+    "finding": "f-dots",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 55654,
+     "noteWords": 32,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-wheel",
+    "label": "Mausrad",
+    "mode": "single",
+    "value": "ctrl",
+    "rec": "ctrl",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "3D-Modell",
+    "finding": "f-wheel",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 18489,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-bar",
+    "label": "Leiste im Schema",
+    "mode": "single",
+    "value": "all",
+    "rec": "all",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Schema-Ansichten",
+    "finding": "f-bar",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 98151,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-lens",
+    "label": "Start-Einsatz",
+    "mode": "single",
+    "value": "career",
+    "rec": "career",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "alle Schiffe",
+    "finding": "f-lens",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 15129,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-cohort",
+    "label": "Vergleichsgruppe",
+    "mode": "single",
+    "value": "role",
+    "rec": "role",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "Karriere Rolle, Einsatz - das wording ist inkonsistent. Eigentlich haben wir ja gesagt Einsatz kann alles sein oder ein komnbinierter EInsatz x5. Also Einsatz ist für mich das richtige wording für den zweck. Dann igbt es ja noch gleicher karriere - aber heißt das bei rsi wirklich karriere? Dann ok! (Also Jäger vs leichter jäger oder abfangjäger oder wie das auch heißt)\n\nOder was heißt rolle karriere usw...",
+    "appliesTo": "Einordnung",
+    "finding": "f-cohort",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 144841,
+     "noteWords": 68,
+     "revisits": 1,
+     "flagged": true
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-mining",
+    "label": "Bergbau und Bergung",
+    "mode": "single",
+    "value": "honest",
+    "rec": "honest",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Einsätze Bergbau und Bergung",
+    "finding": "f-mining",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 45667,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-pct",
+    "label": "Prozentzahl",
+    "mode": "single",
+    "value": "words",
+    "rec": "words",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Panel, Kacheln, Einordnung",
+    "finding": "f-pct",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 21057,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-lists",
+    "label": "Listen unterm Modell",
+    "mode": "single",
+    "value": "drop",
+    "rec": "drop",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "Die haben wir ja shcon rechts in der liste wenn man nix angeklickt hat und alle bauteile sieht. Diese darf gern ähnlciher zu der liste ursprünglich unten aussehen, wie irgendwie hübscher war als die panel auflistung",
+    "appliesTo": "3D-Ansicht",
+    "finding": "f-lists",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 53693,
+     "noteWords": 36,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-arrival",
+    "label": "Ankunft",
+    "mode": "single",
+    "value": "short",
+    "rec": "short",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Schiffswechsel",
+    "finding": "f-arrival",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 17956,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-start",
+    "label": "Start auf dem Phone",
+    "mode": "single",
+    "value": "simple",
+    "rec": "simple",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Phone",
+    "finding": "f-start",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 13137,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-drawer",
+    "label": "Details-Schublade",
+    "mode": "single",
+    "value": "open",
+    "rec": "open",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "3D auf phone kann  ruhig auch fullscreen querformat oder so sein!",
+    "appliesTo": "Details",
+    "finding": "f-drawer",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 36279,
+     "noteWords": 11,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   },
+   {
+    "id": "d-tiles",
+    "label": "Kacheln und Panel",
+    "mode": "single",
+    "value": "keep",
+    "rec": "read",
+    "deviates": true,
+    "none": false,
+    "untouched": false,
+    "note": "[Befund · Frage 5] wir soillten dann im nächsten schritt den utneren teil stärker refinen, aber erstmal bleiben wir beim ersten seeite ohne scrollen, wie das final aussehen soll",
+    "appliesTo": "Perspektiven-Kacheln",
+    "finding": "f-tiles",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 48597,
+     "noteWords": 25,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "v-analysis"
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "devops learn warum wenn ich 1 2 3 in den vairanten auswähle nciht die subvairanten seite die gleiche bleibt wenn das ja wie hier wirklich design varianten sind mit exakt gleichen scope!? Aktuell wird immer die I subvariante seite ausgewählt!\n\nbitte lass uns nur über die beta seite sprechen also das beta seitenlayout wenn wir diese design variatnen embeedenen.",
+    "attachments": []
+   },
+   "items": [
+    {
+     "id": "d-dots-note",
+     "text": "Default soll dort stehen nur tauschbare teile und wenn man es toggled sieht man alle teile. gern irgendwo unten verstehecken doer mit der leiste mergen wo man ja teil arten anklicken kann",
+     "attachments": []
+    },
+    {
+     "id": "d-cohort-note",
+     "text": "Karriere Rolle, Einsatz - das wording ist inkonsistent. Eigentlich haben wir ja gesagt Einsatz kann alles sein oder ein komnbinierter EInsatz x5. Also Einsatz ist für mich das richtige wording für den zweck. Dann igbt es ja noch gleicher karriere - aber heißt das bei rsi wirklich karriere? Dann ok! (Also Jäger vs leichter jäger oder abfangjäger oder wie das auch heißt)\n\nOder was heißt rolle karriere usw...",
+     "attachments": []
+    },
+    {
+     "id": "d-lists-note",
+     "text": "Die haben wir ja shcon rechts in der liste wenn man nix angeklickt hat und alle bauteile sieht. Diese darf gern ähnlciher zu der liste ursprünglich unten aussehen, wie irgendwie hübscher war als die panel auflistung",
+     "attachments": []
+    },
+    {
+     "id": "d-drawer-note",
+     "text": "3D auf phone kann  ruhig auch fullscreen querformat oder so sein!",
+     "attachments": []
+    },
+    {
+     "id": "d-tiles-note",
+     "text": "[Befund · Frage 5] wir soillten dann im nächsten schritt den utneren teil stärker refinen, aber erstmal bleiben wir beim ersten seeite ohne scrollen, wie das final aussehen soll",
+     "attachments": []
+    }
+   ],
+   "designs": {},
+   "screens": {},
+   "views": {}
+  },
+  "userPins": [
+   {
+    "id": "up-mw4w5gtuemiv",
+    "design": "pult",
+    "screen": "p-s1",
+    "x": 4.3,
+    "y": 66.8,
+    "target": "div.hx-stage \"WaffenRaketenKomponentenInnenraum\"",
+    "text": "Ich finde besonder sugt aber auch wic htigvb, dass es vertikal immer auf eine seite passt! Beachte aber horizontal das wir ja auf einer subseite sind die nicht die volle breite nach designvorschriften haben darf, sondern nur die des subheader panels, daher gern nochmal das \"embedded\" in der realen seite anzeigen wo subheader und ränder platz einnehmen etc.",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4w6wpf69mz",
+    "design": "pult",
+    "screen": "p-s1",
+    "x": 3,
+    "y": 94.7,
+    "target": "b \"◈ Alles\"",
+    "text": "Die Leiste hier unten will ich auch immer direkt auf der ersten seite angezeigt bekommen. Sie  soill dann sobald ich scrolle am unteren bidlschirmrand kleebn bleiebn sodass ich sie immer habe. Lass sie uns auch im nächsten schritt nochmal refinen, wie sie optimal den platz horizontal ausnutzt und wie sie aufgepeppt werden kann!",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4w84nlkoy2",
+    "design": "pult",
+    "screen": "p-s1",
+    "x": 17.2,
+    "y": 86.8,
+    "target": "span.off \"Innenraum\"",
+    "text": "sehr gut mit der auswahl hier",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4w8axr66i9",
+    "design": "pult",
+    "screen": "p-s1",
+    "x": 68.6,
+    "y": 49.1,
+    "target": "div.hx-stage \"WaffenRaketenKomponentenInnenraum\"",
+    "text": "Links  und rechts des 3d modells ergibt sich damit genügend platz, dass dort ggf. callouts angeziegt werden, diese dürfen nämlich unter keinen umständen überlappen mit dem 3D Modell und also das panel, striche und markierungen natürlich schon. und sollten immer gleich breite und hoch sein!",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4w9v6zn83d",
+    "design": "pult",
+    "screen": "p-s3",
+    "x": 62.5,
+    "y": 12.9,
+    "target": "div.hx-title \"Aegis Dynamics · Leichter JägerGLADIUS4.\"",
+    "text": "Irgendwie ist mir das ganze noch zu schwergewichtig, ggf. wegen den doppelrahmen etc. und weil mir die vorstlelung fehlt wie das in die echte seite jimit subheader usw. passt.",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4waf5ndlyx",
+    "design": "pult",
+    "screen": "p-s3",
+    "x": 88.2,
+    "y": 16.7,
+    "target": "button \"Einordnung\"",
+    "text": "Hier wechseln finde ich sehr gut! Wirkt wie man es auswählt noch etwas lahm altmodisch langweilgi",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4wdw9wrjv0",
+    "design": "pult",
+    "screen": "p-s3",
+    "x": 85.4,
+    "y": 23.6,
+    "target": "button.hx-row \"‹ Alle Bauteile\"",
+    "text": "Das ist schon super und sollte auch mehr infos enthalten, aber auch die mgölichkeit in diese komponente reinzuspringen also deren detailssiete. Ich würde trotzdem noch callouts machen die rudimentär sagen wie es heißt, die drei top werte und dann den bauteil tauschen button gern ikonografiert. Hier soll dann gern etwas mehr stehen eine vorschau der dteail siete auf die man wechseln kann.",
+    "attachments": []
+   },
+   {
+    "id": "up-mw4wfid7pg2z",
+    "design": "pult",
+    "screen": "p-s2",
+    "x": 88.9,
+    "y": 32.9,
+    "target": "div.hx-pb \"Crew1Masse48,55 tLaderaum— Stärken · Sch\"",
+    "text": "Die derzeitige einordnung sollte sich hier wiederfinden, Gern polished, gern opitimiert, aber das hexagon ist z.B. genial. wobei dort gern abhängig von der auswahl unten des panels was gerade der einsatz ist. Bzgl. einsatz sollte die seite sich auch irgendwie ganz dezent leicht anpassen visuell, damit man überall sofort sieht, das s man gerade ieinsatz alles gvs einsatz kampf ausgewählt hat udnd somit andere punkte im 3d modell, andere einordnung usw. alles angezeigt wird. \nAlles gleich scc blau ist fein, janderes kann gern farblich oder mit symbolen oder wie auch immer dezent aufgezeigt werden .",
+    "attachments": []
+   }
+  ]
+ },
+ {
+  "iteration": "2",
+  "action": "iterate",
+  "favorite": "glas",
+  "decisions": [
+   {
+    "id": "r2-keep-bar",
+    "label": "Keine Einsatz-Leiste, auch nicht im Schema",
+    "evaluation": "include",
+    "view": "r2-v-done",
+    "note": ""
+   },
+   {
+    "id": "r2-keep-lens",
+    "label": "Schiff startet mit dem Einsatz seiner Karriere",
+    "evaluation": "include",
+    "view": "r2-v-done",
+    "note": ""
+   },
+   {
+    "id": "r2-d2-words",
+    "label": "Vergleichsgruppe, Wörter",
+    "mode": "single",
+    "value": "names",
+    "rec": "names",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Einordnung im Panel",
+    "finding": "r2-f-words",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 36523,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r2-v-analysis"
+   },
+   {
+    "id": "r2-d2-effect",
+    "label": "Was der Einsatz am Modell ändert",
+    "mode": "single",
+    "value": "lift",
+    "rec": "lift",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "3D-Modell",
+    "finding": "r2-f-effect",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 49844,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r2-v-analysis"
+   },
+   {
+    "id": "r2-d2-alles",
+    "label": "Was Alles bedeutet",
+    "mode": "single",
+    "value": "overall",
+    "rec": "overall",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Einsatz Alles",
+    "finding": "r2-f-alles",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 16859,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r2-v-analysis"
+   },
+   {
+    "id": "r2-d2-room",
+    "label": "Platz für Callouts",
+    "mode": "single",
+    "value": "reserve",
+    "rec": "reserve",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "3D-Modell und Callouts",
+    "finding": "r2-f-room",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 13687,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r2-v-analysis"
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "",
+    "attachments": []
+   },
+   "items": [],
+   "designs": {},
+   "screens": {},
+   "views": {}
+  },
+  "userPins": [
+   {
+    "id": "up-mw50kaetshpx",
+    "design": "glas",
+    "screen": "a-s2",
+    "x": 69.5,
+    "y": 69,
+    "target": "div.hy-pc \"‹ Alle BauteileAllesMantis GT-220 Gatlin\"",
+    "text": "oder bauteil auf die wunschliste bzw. in den nachschub?",
+    "attachments": []
+   },
+   {
+    "id": "up-mw50l0g3qg95",
+    "design": "glas",
+    "screen": "a-s3",
+    "x": 68,
+    "y": 37.9,
+    "target": "button.hy-grp \"Verglichen mitAlle Leichten Jäger▾\"",
+    "text": "schlau, einfach das bennenen statt irgendeine künstliche bezeichnung!",
+    "attachments": []
+   },
+   {
+    "id": "up-mw50lao0b9vz",
+    "design": "glas",
+    "screen": "a-s3",
+    "x": 68.1,
+    "y": 52.4,
+    "target": "polygon.val",
+    "text": "Btw, ich erwarte wenn das das ganze hexagon immer 100% abbildet in der jeweiligen Gruppe ausgewählt, sprich auch der median orientiert sich dann bzgl. der vergelichsgruppe an x % und damit ist dieser x% vom rand weg, weil der äußerste ring 100%  sind in der vreegleeichsgruppe, bitte das noch schcekn und gg.f umsetzen!",
+    "attachments": []
+   },
+   {
+    "id": "up-mw50myobpi8t",
+    "design": "glas",
+    "screen": "a-s3",
+    "x": 73.4,
+    "y": 27.8,
+    "target": "span.hy-et \"Alles\"",
+    "text": "was heißt hier alles?",
+    "attachments": []
+   },
+   {
+    "id": "up-mw50n30pfgpd",
+    "design": "glas",
+    "screen": "a-s3",
+    "x": 64.9,
+    "y": 28.3,
+    "target": "b \"Kampf-Profil\"",
+    "text": "Warum kampfproifl? lass uns lieber das ganze hexagon je nach klasse andere werte haben, sprich bei jägern diese werte, bei bergbau jene werte, bei frachter xyz werte usw. und wenn man vergleichen mit allen lässt, dann bleibt dieser dimensionsbezug unten im hexagon!",
+    "attachments": []
+   },
+   {
+    "id": "up-mw50pcgxxtf7",
+    "design": "glas",
+    "screen": "a-s4",
+    "x": 72.5,
+    "y": 28.2,
+    "target": "span.hy-et \"Schleichen\"",
+    "text": "ich denke das haben wir ja schon unten gut abgebildet schleichen",
+    "attachments": []
+   },
+   {
+    "id": "up-mw50po4pq2kb",
+    "design": "glas",
+    "screen": "a-s5",
+    "x": 59.7,
+    "y": 47.4,
+    "target": "small \"Dauer-DPS\"",
+    "text": "sieht gut aus gern noch etwas kompakter",
+    "attachments": []
+   }
+  ]
+ },
+ {
+  "iteration": "3",
+  "action": "implement",
+  "favorite": null,
+  "decisions": [
+   {
+    "id": "r3-keep-class",
+    "label": "Kein eigenes Hexagon für Alles",
+    "evaluation": "include",
+    "view": "r3-v-done",
+    "note": ""
+   },
+   {
+    "id": "r3-keep-start",
+    "label": "Start-Einsatz entfällt als eigenes Thema",
+    "evaluation": "include",
+    "view": "r3-v-done",
+    "note": ""
+   },
+   {
+    "id": "r3-axes",
+    "label": "Achsen je Klasse",
+    "mode": "single",
+    "value": "seven",
+    "rec": "seven",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "Wir haben doch mehrere einsätze oder nicht? Transport, Bergbau usw...",
+    "appliesTo": "Hexagon aller Schiffe",
+    "finding": "r3-f-axes",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 345559,
+     "noteWords": 10,
+     "revisits": 1,
+     "flagged": false
+    },
+    "view": "r3-v-analysis"
+   },
+   {
+    "id": "r3-rim",
+    "label": "Was der Rand bedeutet",
+    "mode": "single",
+    "value": "p95",
+    "rec": "p95",
+    "deviates": false,
+    "none": false,
+    "untouched": true,
+    "note": "",
+    "appliesTo": "Hexagon aller Schiffe",
+    "finding": "r3-f-rim",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 73784,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r3-v-analysis"
+   },
+   {
+    "id": "r3-name",
+    "label": "Name für Alles",
+    "mode": "single",
+    "value": "class",
+    "rec": "class",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Einsatz in der unteren Leiste",
+    "finding": "r3-f-name",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 13775,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r3-v-analysis"
+   },
+   {
+    "id": "r3-actions",
+    "label": "Aktionen am Bauteil",
+    "mode": "single",
+    "value": "split",
+    "rec": "split",
+    "deviates": false,
+    "none": false,
+    "untouched": false,
+    "note": "",
+    "appliesTo": "Callout und Panel",
+    "finding": "r3-f-actions",
+    "issue": false,
+    "epic": "",
+    "hesitation": {
+     "ms": 14734,
+     "noteWords": 0,
+     "revisits": 0,
+     "flagged": false
+    },
+    "view": "r3-v-analysis"
+   }
+  ],
+  "comments": {
+   "general": {
+    "text": "",
+    "attachments": []
+   },
+   "items": [
+    {
+     "id": "r3-axes-note",
+     "text": "Wir haben doch mehrere einsätze oder nicht? Transport, Bergbau usw...",
+     "attachments": []
+    }
+   ],
+   "designs": {},
+   "screens": {},
+   "views": {}
+  },
+  "userPins": []
+ }
+]

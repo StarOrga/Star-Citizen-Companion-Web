@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, input, untracked, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
-import { formatNumber } from './codex-format';
+import { displayItemName, formatNumber } from './codex-format';
 import { DefensivePanel, OffensivePanel } from './codex-loadout-stats';
 
 /** Panel-local collapse: opens by default, resets whenever the mission asks it to fold. */
@@ -181,7 +181,7 @@ const PANEL_STYLES = `
               <tbody>
                 @for (r of p.weaponRows; track $index) {
                   <tr>
-                    <td>{{ r.className }}</td>
+                    <td>{{ itemName(r.className) }}</td>
                     <td>{{ r.size != null ? 'S' + r.size : '—' }}</td>
                     @if (p.hasAlphaColumn) { <td>{{ r.alpha != null ? num(r.alpha) : '—' }}</td> }
                     @if (p.hasDpsColumn) { <td>{{ r.sustainedDps != null ? num(r.sustainedDps) : '—' }}</td> }
@@ -264,6 +264,11 @@ const PANEL_STYLES = `
   styles: [PANEL_STYLES],
 })
 export class CodexOffensivePanelComponent {
+  /** A weapon row names the gun, never its raw class. */
+  itemName(className: string): string {
+    return displayItemName(className);
+  }
+
   readonly panel = input.required<OffensivePanel | null>();
   readonly startCollapsed = input<boolean>(false);
   readonly open = useCollapse(() => this.startCollapsed());

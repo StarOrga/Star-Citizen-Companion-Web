@@ -181,7 +181,7 @@ import { HeightVarDirective } from '../shared/height-var.directive';
 import type { DockPosition } from './codex-power';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { buildKpiStrip, buildKpiStripForKeys, KpiStripCell } from './codex-kpi-sets';
-import { isPassiveShield } from './codex-power';
+import { isPassiveShield, withPowerSignature } from './codex-power';
 import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
 import { CodexEnergyDockComponent } from './codex-energy-dock.component';
@@ -193,7 +193,11 @@ import {
   RankShipInput,
   RANK_SCOPE_ACCOUNT_KEY,
   parseRankScopePref,
+  rankClassOfCareer,
   rankProfileDisabledReason,
+  rankTargetShipInput,
+  RANK_MIN_GROUP,
+  RankClassId,
   readRankScopePref,
   rankShip,
   resolveCareerLabel,
@@ -282,40 +286,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <sc-page-header class="crumbrow" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
-        <div phAside class="crumb-aside">
-        @if (showModeSwitch()) {
-          <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
-            [variants]="myVariants()" [activeVariantId]="activeVariantId()" />
-        }
-        @if (kind() === 'ship' && dataPill(); as pill) {
-          <span class="prov data-pill" [class.pending]="pill.pending">
-            {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
-            @if (pill.pending) { · {{ 'codex.detail.dataPillPending' | translate }} }
-          </span>
-        } @else if (kind() === 'ship' && provenance(); as p) {
-          <span class="prov">
-            {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
-          </span>
-        }
-        @if (detail(); as d) {
-          <sc-item-path [kind]="d.kind" [className]="d.classNameSlug" [name]="displayName()" [level]="pathLevel()" />
-        }
-        @if (kind() === 'ship') {
-          <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
-            <button type="button" class="ht-btn" [class.active]="!holoView()"
-                    [attr.aria-pressed]="!holoView()"
-                    (click)="holoView() && toggleHoloView()">
-              {{ 'codex.holo.toggle.classic' | translate }}
-            </button>
-            <button type="button" class="ht-btn" [class.active]="holoView()"
-                    [attr.aria-pressed]="holoView()"
-                    (click)="!holoView() && toggleHoloView()">
-              {{ 'codex.holo.toggle.holo' | translate }}
-            </button>
+      <sc-page-header class="crumbrow" [class.holo-on]="holoStageOn()" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
+        <!-- On the Holotable these three share the ship's title row (concept glas3). -->
+        @if (!holoStageOn()) {
+          <div phAside class="crumb-aside">
+            <ng-container [ngTemplateOutlet]="shipAsideData" />
+            <ng-container [ngTemplateOutlet]="shipAsideSwitch" />
           </div>
         }
-        </div>
       </sc-page-header>
 
       @if (foreignVariant()) {
@@ -748,38 +726,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           </section>
         }
 
-        @if (kind() === 'item' || kind() === 'weapon' || kind() === 'ship') {
-          <section class="sc-card block" [attr.id]="kind() === 'ship' ? shipSourceFragment : null">
-            <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
-            @if (buyLoading()) {
-              <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
-            } @else if (buyError()) {
-              <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
-            } @else if (buyOptions().length === 0) {
-              <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
-            } @else {
-              <table class="buy-table">
-                <thead>
-                  <tr>
-                    <th>{{ 'codex.detail.whereToBuyPrice' | translate }}</th>
-                    <th>{{ 'codex.detail.whereToBuyTerminal' | translate }}</th>
-                    <th>{{ 'codex.detail.whereToBuyLocation' | translate }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (opt of buyOptions(); track opt.terminal + opt.price) {
-                    <tr>
-                      <td class="buy-price">{{ fmt(opt.price) }} aUEC</td>
-                      <td>{{ opt.terminal }}</td>
-                      <td class="muted">{{ opt.location }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
-            <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
-          </section>
-        }
+        <ng-container [ngTemplateOutlet]="whereToBuy" />
 
         <!-- ── Ammunition: damage + ballistics ───────────────────── -->
         @if (damage().length > 0) {
@@ -925,6 +872,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (retryRank)="retryRankCohort()"
             [rankProfile]="rankProfile()"
             [rankScope]="rankScope()"
+            [rankShipClass]="rankShipClass()"
             [rankDisabledReasons]="rankDisabledReasons()"
             [offensivePanel]="offensivePanel()"
             [defensivePanel]="defensivePanel()"
@@ -986,12 +934,16 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (sheetChange)="powerSheet.set($event)"
             (arrivedShip)="onHoloArrived($event)"
             [linkCopied]="linkCopied()"
+            [openDetails]="sourceLinkRequested()"
             (copyShareLink)="copyShareLink()">
+            <div htData class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideData" /></div>
+            <div htSwitch class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideSwitch" /></div>
             <!-- Details drawer content, projected into the Holotable: the
                  shared sub-components in detail/ and the shared ng-templates,
                  rendered in both branches, on the SAME signals/methods as the
                  classic view (item B "present, not hidden behind a code
                  path"). -->
+            <div htOpen class="ho-wrap">
             <div class="holo-details-pickers">
               @if (editionOptions().length > 1) {
                 <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
@@ -1019,8 +971,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 <div aria-hidden="true"></div>
               }
             }
-            <ng-container [ngTemplateOutlet]="tailLoadout" />
             <ng-container [ngTemplateOutlet]="descriptionCard" />
+            <ng-container [ngTemplateOutlet]="whereToBuy" />
+            </div>
+            <ng-container [ngTemplateOutlet]="tailLoadout" />
             @if (recipeView(); as rv) {
               <sc-codex-recipe-card [recipe]="rv" />
             }
@@ -1068,6 +1022,79 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" [shipSignature]="shipSignature()" (closed)="closeWeaponDetail()" />
+
+      <ng-template #shipAsideData>
+        @if (showModeSwitch()) {
+          <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
+            [variants]="myVariants()" [activeVariantId]="activeVariantId()" />
+        }
+        @if (kind() === 'ship' && dataPill(); as pill) {
+          <span class="prov data-pill" [class.pending]="pill.pending">
+            {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
+            @if (pill.pending) { · {{ 'codex.detail.dataPillPending' | translate }} }
+          </span>
+        } @else if (kind() === 'ship' && provenance(); as p) {
+          <span class="prov">
+            {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
+          </span>
+        }
+      </ng-template>
+      <ng-template #shipAsideSwitch>
+        @if (detail(); as d) {
+          <sc-item-path [kind]="d.kind" [className]="d.classNameSlug" [name]="displayName()" [level]="pathLevel()" />
+        }
+        @if (kind() === 'ship') {
+          <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
+            <button type="button" class="ht-btn" [class.active]="!holoView()"
+                    [scTooltip]="'codex.holo.toggle.classicHint' | translate" scTooltipTier="label"
+                    [attr.aria-pressed]="!holoView()"
+                    (click)="holoView() && toggleHoloView()">
+              {{ 'codex.holo.toggle.classic' | translate }}
+            </button>
+            <button type="button" class="ht-btn" [class.active]="holoView()"
+                    [scTooltip]="'codex.holo.toggle.holoHint' | translate" scTooltipTier="label"
+                    [attr.aria-pressed]="holoView()"
+                    (click)="!holoView() && toggleHoloView()">
+              {{ 'codex.holo.toggle.holo' | translate }}
+            </button>
+          </div>
+        }
+      </ng-template>
+
+      <ng-template #whereToBuy>
+        @if (kind() === 'item' || kind() === 'weapon' || kind() === 'ship') {
+          <section class="sc-card block" [attr.id]="kind() === 'ship' ? shipSourceFragment : null">
+            <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
+            @if (buyLoading()) {
+              <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
+            } @else if (buyError()) {
+              <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
+            } @else if (buyOptions().length === 0) {
+              <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
+            } @else {
+              <table class="buy-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'codex.detail.whereToBuyPrice' | translate }}</th>
+                    <th>{{ 'codex.detail.whereToBuyTerminal' | translate }}</th>
+                    <th>{{ 'codex.detail.whereToBuyLocation' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (opt of buyOptions(); track opt.terminal + opt.price) {
+                    <tr>
+                      <td class="buy-price">{{ fmt(opt.price) }} aUEC</td>
+                      <td>{{ opt.terminal }}</td>
+                      <td class="muted">{{ opt.location }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+            <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
+          </section>
+        }
+      </ng-template>
 
       <!-- Shared by the classic view and the Holotable drawer, which renders
            them into its projected details (same view, so these rules stay
@@ -1132,6 +1159,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     <sc-share-button />
   `,
   styles: [`
+    .ho-wrap { display: flex; flex-direction: column; gap: 12px; }
     .foreign-note { margin: 0 0 12px; padding: 10px 14px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); border-left: 3px solid var(--sc-warning); }
     .personal-uses { margin: 0 0 12px; }
     :host { display: block; }
@@ -1146,6 +1174,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .detail-page .sc-card,
     .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
     .crumbrow { margin-bottom: 10px; }
+    /* Beta shell: the trail is in the Fusion bar, the aside in the Holotable's title row, nothing is left here. */
+    @media (min-width: 721px) { :host-context([data-layout]) .crumbrow.holo-on { display: none; } }
     .crumb-aside { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
     .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: var(--holo-r); overflow: hidden; }
     .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor));
@@ -1501,6 +1531,10 @@ export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   readonly shipSourceFragment = SHIP_SOURCE_FRAGMENT;
+  /** The search CTA "Bezugsquelle" led here: the Holotable keeps that section in its drawer. */
+  sourceLinkRequested(): boolean {
+    return this.route.snapshot.fragment === SHIP_SOURCE_FRAGMENT;
+  }
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly t = inject(TranslateService);
@@ -1609,6 +1643,8 @@ export class CodexDetailComponent implements OnInit {
    * stay byte-for-byte unaffected regardless of what is in storage.
    */
   readonly holoView = signal(true);
+  /** The Holotable is on screen, its title row carries the page's aside. */
+  readonly holoStageOn = computed(() => this.kind() === 'ship' && this.holoView() && !this.loading() && !this.error() && !!this.detail());
   /** Where the energy dock says it sits (null until it restored its state). */
   readonly dockPlacement = signal<{ position: DockPosition; slot: number } | null>(null);
   /** The dock lives in the Analyse column — at `slot`, or at any slot when omitted. */
@@ -3098,8 +3134,20 @@ export class CodexDetailComponent implements OnInit {
    * row or a marker). One signal for both directions keeps them in sync.
    */
   readonly activePorts = signal<readonly string[]>([]);
+  private activePortsLeave: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * A leave waits a moment: moving from one row or hotspot to the next crosses
+   * a gap, and the highlight must not drop out in between. Every hover source
+   * passes through here, so they all behave alike.
+   */
   setActivePorts(ports: string[] | null): void {
-    this.activePorts.set(ports ?? []);
+    clearTimeout(this.activePortsLeave);
+    if (ports?.length) {
+      this.activePorts.set(ports);
+      return;
+    }
+    if (this.activePorts().length === 0) return;
+    this.activePortsLeave = setTimeout(() => this.activePorts.set([]), 120);
   }
 
   // ── ship modules, ordered by what a pilot can configure (461288f9) ──────────
@@ -3321,18 +3369,21 @@ export class CodexDetailComponent implements OnInit {
   // overwriting the choice (`RankResult.scope` vs. this signal).
   // Signed in, the account's copy (profiles.ui_prefs) wins once it has loaded,
   // so the choice follows the user to another browser.
-  readonly rankScope = signal<RankScope>(readRankScopePref());
+  /** The stored/picked group; null = never chosen. */
+  readonly rankScopeChosen = signal<RankScope | null>(readRankScopePref(null));
+  /** Never chosen: Alle in the classic card (untouched), Karriere/Rolle in the Holotable. A stored choice applies to both. */
+  readonly rankScope = computed<RankScope>(() => this.rankScopeChosen() ?? (this.holoView() ? 'role' : 'all'));
   private readonly accountPrefs = inject(AccountPrefsService);
   private readonly rankScopeFromAccount = effect(() => {
     const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
-    if (fromAccount && fromAccount !== untracked(this.rankScope)) {
-      this.rankScope.set(fromAccount);
+    if (fromAccount && fromAccount !== untracked(this.rankScopeChosen)) {
+      this.rankScopeChosen.set(fromAccount);
       writeRankScopePref(fromAccount);
     }
   });
 
   setRankScope(scope: RankScope): void {
-    this.rankScope.set(scope);
+    this.rankScopeChosen.set(scope);
     writeRankScopePref(scope);
     this.accountPrefs.set(RANK_SCOPE_ACCOUNT_KEY, scope);
   }
@@ -3385,19 +3436,49 @@ export class CodexDetailComponent implements OnInit {
     const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
     const roleRaw = this.detail()?.row?.['role'];
     const role = typeof roleRaw === 'string' && roleRaw.trim() ? roleRaw.trim() : null;
-    return { className, sizeClass: null, career, role, sheet: this.currentKpiSheet() };
+    return { className, sizeClass: null, career, role, sheet: this.rankKpiSheet() };
   });
+
+  /**
+   * The target's sheet for the ranking: built from the SAME ship input as the
+   * cohort sheets (hull, armor, cargo included). The strip's `kpiShipInput`
+   * lacks those, which left `cargo` null for every hull, so Transport was
+   * always reported "disabled" and the stage's Einsatz effect never switched.
+   */
+  private readonly rankKpiSheet = computed(() => {
+    const payload = this.kind() === 'ship' ? (this.detail()?.payload as ShipPayload | undefined) : undefined;
+    const occ = this.draftSummaryOccupants();
+    return withPowerSignature(
+      computeKpiSheet(occ, rankTargetShipInput(payload)),
+      occ,
+      (payload?.stats ?? null) as Record<string, Record<string, unknown>> | null,
+      this.build()?.schemaVersion ?? null,
+    );
+  });
+
+  /** The class the ship's career maps to (axis list default, strip label). */
+  readonly rankShipClass = computed<RankClassId>(() =>
+    rankClassOfCareer((this.detail()?.payload as ShipPayload | undefined)?.career ?? null),
+  );
 
   readonly rankResult = computed<RankResult | null>(() => {
     const target = this.rankShipInput();
     const cohort = this.rankCohort();
     if (!target || !cohort) return null;
-    return rankShip(target, cohort, { profile: this.rankProfile(), scope: this.rankScope() });
+    // Holotable: rim at the group's 95th percentile, a "Karriere" group is the
+    // class, a group under RANK_MIN_GROUP widens (role -> class -> all).
+    // The classic card keeps the best-value rim and the raw career.
+    const holo = this.holoView();
+    return rankShip(target, cohort, {
+      profile: this.rankProfile(),
+      scope: this.rankScope(),
+      ...(holo ? { rim: 'p95' as const, careerByClass: true, minGroup: RANK_MIN_GROUP } : {}),
+    });
   });
 
   readonly rankDisabledReasons = computed<Partial<Record<RankProfileId, string | null>>>(() => {
     if (this.kind() !== 'ship') return {};
-    const cargo = this.currentKpiSheet().cargo ?? null;
+    const cargo = this.rankKpiSheet().cargo ?? null;
     const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
     const input = { className: this.shipClassName(), sizeClass: null, career, sheet: { cargo } };
     return {

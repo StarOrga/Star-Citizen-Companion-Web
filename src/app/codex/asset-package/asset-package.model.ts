@@ -239,6 +239,45 @@ export function hotspotPlacements(m: AssetPackageManifest): PackagePlacement[] {
   return m.placements.filter((p) => isPlaced(p) && !!p.itemClass && HOTSPOT_GROUPS.has(p.group));
 }
 
+/** Which dots the holotable shows: the parts a pilot can swap, or every placed part. */
+export type HotspotScope = 'swappable' | 'all';
+
+/** The port takes another component in the game's own loadout editor. */
+export const isSwappable = (p: PackagePlacement): boolean => p.port?.editable === true;
+
+/**
+ * The dots of a scope. A package without any editable port (FPS weapon, or an
+ * older manifest without port data) keeps all of them: no dots at all would
+ * read as a broken model.
+ */
+export function scopedHotspots(m: AssetPackageManifest, scope: HotspotScope, swappablePorts?: ReadonlySet<string> | null): PackagePlacement[] {
+  const all = hotspotPlacements(m);
+  if (scope === 'all') return all;
+  const swappable = swappablePorts?.size ? portDots(m, all, swappablePorts) : all.filter(isSwappable);
+  return swappable.length ? swappable : all;
+}
+
+/**
+ * One dot per port of the host's rule (the holotable passes the same ports its
+ * Einfach view pins): the port's own placement when it has a dot, else the first
+ * dotted part it carries. A mount with its gun stays one dot, not two.
+ */
+function portDots(m: AssetPackageManifest, dots: readonly PackagePlacement[], ports: ReadonlySet<string>): PackagePlacement[] {
+  const want = new Set([...ports].map((p) => p.toLowerCase()));
+  const dotted = new Map(dots.map((d) => [d.id, d] as const));
+  const out: PackagePlacement[] = [];
+  const seen = new Set<string>();
+  for (const p of m.placements) {
+    const key = p.portName.toLowerCase();
+    if (!want.has(key) || seen.has(key)) continue;
+    const hit = dotted.get(p.id) ?? withDescendants(m, new Set([p.id])).map((id) => dotted.get(id)).find((d) => !!d);
+    if (!hit) continue;
+    seen.add(key);
+    out.push(hit);
+  }
+  return out;
+}
+
 /**
  * Slots the component label can step through: positioned and either a filled
  * hotspot or an empty, fittable port (shown as its ring marker).
@@ -294,23 +333,36 @@ export function focusedPlacementIds(
 ): string[] {
   const seeds = new Set<string>();
   if (localFocus) seeds.add(localFocus);
-  else if (activePorts.length) {
-    const want = new Set(activePorts.map((p) => p.toLowerCase()));
-    for (const p of m.placements) {
-      if (want.has(p.portName.toLowerCase()) || want.has(p.id.toLowerCase())) seeds.add(p.id);
-    }
+  else if (activePorts.length) return placementsForPorts(m, activePorts);
+  return withDescendants(m, seeds);
+}
+
+/**
+ * The placements a set of raw port names or placement ids means (exact match,
+ * case-insensitive, no fuzzy join), children included: a relevant turret
+ * brings its guns.
+ */
+export function placementsForPorts(m: AssetPackageManifest, ports: Iterable<string>): string[] {
+  const want = new Set([...ports].map((p) => p.toLowerCase()));
+  const seeds = new Set<string>();
+  for (const p of m.placements) {
+    if (want.has(p.portName.toLowerCase()) || want.has(p.id.toLowerCase())) seeds.add(p.id);
   }
+  return withDescendants(m, seeds);
+}
+
+function withDescendants(m: AssetPackageManifest, seeds: ReadonlySet<string>): string[] {
   if (seeds.size === 0) return [];
   const out: string[] = [];
+  const byId = new Map(m.placements.map((x) => [x.id, x] as const));
   for (const p of m.placements) {
     let cur: PackagePlacement | undefined = p;
-    const byId = (id: string) => m.placements.find((x) => x.id === id);
     for (let guard = 0; cur && guard < 64; guard++) {
       if (seeds.has(cur.id)) {
         out.push(p.id);
         break;
       }
-      cur = cur.parentPort ? byId(cur.parentPort) : undefined;
+      cur = cur.parentPort ? byId.get(cur.parentPort) : undefined;
     }
   }
   return out;

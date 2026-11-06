@@ -8,7 +8,7 @@ three places:
 |---|---|---|
 | Codex search results (landing) | `icon` | small top view next to a ship hit |
 | Ship tiles (Codex list, Bridge lanes + hero, Hangar) | `icon` | placeholder until the store image has loaded, then cross-fades to it |
-| Ship page, Holotable → **Schema** | `full` | static top view with every hardpoint marked, side elevation under it, keyboard list |
+| Ship page, Holotable → **Schema** | `full` | static top view with every hardpoint marked, side elevation and front view under it, keyboard list |
 
 Not to be confused with the codex's crafting blueprints (`codex_blueprints`,
 `blueprint-detail.component.ts`) — those are game recipes. The web code lives
@@ -31,7 +31,7 @@ and uploads two small vector files: one file serves every size.
    - `src/lib/blueprint/glb.ts` reads the GLB with `@gltf-transform/core`
      (meshopt decoder, quantization, node transforms) into welded
      world-space triangles (0.5 mm weld grid);
-   - `src/lib/blueprint/build.ts` draws both files;
+   - `src/lib/blueprint/build.ts` draws both files (full: top + side + front, icon: top);
    - the result is cached in `<ship>/blueprint/{full,icon}.svg` +
      `meta.json`, keyed by hull sha256 and `BLUEPRINT_GENERATOR`;
    - `ingest-skins` `blueprint_sign` (R2 cost gate, presigned PUT or
@@ -49,7 +49,7 @@ were drawn without a failure while building this (fighters to the Javelin).
 
 ## Drawing algorithm (`src/lib/blueprint/geometry.ts`)
 
-Per view, at 1600 drawing units along the hull's longest side:
+Per view (top, side, front), at 1600 drawing units along the hull's longest side:
 
 1. **Depth raster** — every triangle z-buffered (nearest surface wins), plus
    every vertex stamped, so a wing seen edge-on still covers its pixels.
@@ -77,7 +77,7 @@ its own would stair-step the outline.
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 W H"
      data-sc-blueprint="1" data-lod="full|icon" data-extent-m="L B H"
      fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-  <g class="bp-view" data-view="top|side"
+  <g class="bp-view" data-view="top|side|front"
      data-projection='{"frame":"gltf-y-up-metres","m":[[…4],[…4]],"box":[x,y,w,h]}'>
     <path class="bp-hull" fill-rule="evenodd" stroke-width="2" d="M…l…z"/>
     <path class="bp-major" stroke-width="1.2" d="…"/>
@@ -87,8 +87,15 @@ its own would stair-step the outline.
 ```
 
 - Views: `top` looks down, `side` looks from starboard; **nose to the right**
-  in both, starboard down in `top`. `full` has both views stacked on the same
-  x axis, `icon` only `top`.
+  in both, starboard down in `top`. `front` (generator `sc-blueprint/2`) looks
+  from in front of the nose back at the ship: up is up and the pilot's
+  **starboard (+X) is on the LEFT** of the drawing (`u = -x`, `v = -y`, nearer
+  = smaller z; width = beam, height = hull height). `full` has the views
+  stacked in the order top, side, front on the same left edge (`box.x` = 16),
+  each in its own `box`; the front box is narrower than the top box, the
+  viewBox width is the widest box. `icon` only `top`. A reader must find a
+  view by `data-view` and tolerate a missing `front` (files drawn by
+  `sc-blueprint/1` have two views); the top and side boxes did not move.
 - `data-projection.m` maps a glTF model-space point (metres, +X starboard,
   +Y up, -Z nose — the hull GLB's and the asset package manifest's frame) to
   drawing units: `svg_x = m[0]·(x, y, z, 1)`, `svg_y = m[1]·(x, y, z, 1)`.
@@ -114,7 +121,7 @@ its own would stair-step the outline.
   ≤ 64 kB), sha256, UTF-8 and an allow-list of the generator's own markup
   (`svg`/`g`/`path`, fixed attributes, no entities, no text). A bad object no
   row links is deleted. A replaced drawing is deleted once no row links it.
-- Sizes: full ~80-135 kB, icon ~2-3 kB.
+- Sizes: full ~80-135 kB with two views (about a third more with `front`, far under the 512 kB cap), icon ~2-3 kB.
 
 ## Samples and checks
 
@@ -132,3 +139,26 @@ checks them against the commit allow-list.
 Web dev override: `localStorage['sc.shipBlueprints.devBase'] = '<folder url>/'`
 with a `ship_blueprints.json` (`[{ship_id, blueprint_path, blueprint_icon_path}]`)
 and the files those paths name (non-production builds only).
+
+## Regenerating existing ships
+
+Drawings are redrawn from the **cached hull GLBs**, no P4K extraction of the
+hulls and no re-export:
+
+- `BLUEPRINT_GENERATOR` (`build.ts`) is part of the on-disk cache key
+  (`<ship>/blueprint/meta.json`); a change invalidates every cached drawing
+  and the next skin upload redraws it from `<ship>/models/*.glb`. Bump it with
+  every change that alters a drawing (`sc-blueprint/2` = `front` view).
+- The new full SVG has a new sha, so `.blueprint-uploaded` no longer matches
+  → `blueprint_sign` (content-addressed `_blueprints/<sha>.svg`, new object) →
+  `blueprint_commit` relinks `ship_skins.blueprint_path`, the old object is
+  deleted once no row links it. `ship_skins_index` needs no change.
+- The upload only reaches the blueprint step through the **3D models step**,
+  which a run skips while the server ledger holds the `hulls` subtheme at the
+  current revision. `src/lib/subthemes.ts` therefore lists
+  `src/lib/blueprint/` and `blueprint-ingest.ts` as `hulls` sources and bumps
+  the `hulls` revision (3) with the drawing change, so every uploader on the
+  new version runs the models step once per build. The skin build reuses the
+  per-patch `skins-<patch>` cache (`skipExisting`), so only the drawings are
+  new work (~0.5-3 s per hull). Do not bump the `model3d` build recipe for a
+  drawing change: that would re-export every hull.

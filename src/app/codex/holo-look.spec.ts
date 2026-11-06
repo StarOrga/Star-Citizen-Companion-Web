@@ -5,6 +5,9 @@ import {
   HOLO_CREASE_DEG_MAX,
   HOLO_SCANLINES,
   HOLO_SWEEP,
+  HOLO_TWEEN_S,
+  HOLO_XRAY_HULL_OPACITY,
+  HOLO_DIM_FILL,
   HoloLook,
   countTriangles,
   creaseEdges,
@@ -203,5 +206,55 @@ describe('HoloLook', () => {
     expect(look.fill('hull').uniforms['uScan'].value).toBe(1);
     look.tick(3);
     expect(look.fill('hull').uniforms['uTime'].value).toBe(3);
+  });
+});
+
+describe('HoloLook focus tween', () => {
+  it('eases opacity and dim over HOLO_TWEEN_S, starting at the first tick', () => {
+    const look = new HoloLook(BASE, BASE, false, true);
+    look.tick(100);
+    look.setOpacity('hull', HOLO_XRAY_HULL_OPACITY);
+    look.setDim(true);
+    // Nothing moved yet, but the pass already flipped (no flip mid-fade).
+    expect(look.fill('hull').uniforms['uOpacity'].value).toBe(1);
+    expect(look.fill('hull').transparent).toBeTrue();
+    expect(look.tweening).toBeTrue();
+    look.tick(105);
+    expect(look.fill('hull').uniforms['uOpacity'].value).toBe(1);
+    look.tick(105 + HOLO_TWEEN_S / 2);
+    const mid = look.fill('hull').uniforms['uOpacity'].value as number;
+    expect(mid).toBeLessThan(1);
+    expect(mid).toBeGreaterThan(HOLO_XRAY_HULL_OPACITY);
+    expect(look.tweening).toBeTrue();
+    look.tick(105 + HOLO_TWEEN_S + 0.01);
+    expect(look.fill('hull').uniforms['uOpacity'].value).toBe(HOLO_XRAY_HULL_OPACITY);
+    expect(look.fill('hull').uniforms['uDim'].value).toBe(1);
+    expect(look.tweening).toBeFalse();
+    // Back to opaque: stays transparent until the fade-in ends, then flips.
+    look.setOpacity('hull', 1);
+    look.setDim(false);
+    look.tick(200);
+    look.tick(200 + HOLO_TWEEN_S / 2);
+    expect(look.fill('hull').transparent).toBeTrue();
+    look.tick(201);
+    expect(look.fill('hull').transparent).toBeFalse();
+    expect(look.fill('hull').uniforms['uDim'].value).toBe(0);
+    look.dispose();
+  });
+
+  it('is instant with reduced motion and without the opt-in', () => {
+    for (const look of [new HoloLook(BASE, BASE, true, true), new HoloLook(BASE, BASE, false)]) {
+      look.setOpacity('hull', 0.3);
+      look.setDim(true);
+      expect(look.fill('hull').uniforms['uOpacity'].value).toBe(0.3);
+      expect(look.fill('hull').uniforms['uDim'].value).toBe(1);
+      expect(look.tweening).toBeFalse();
+      look.dispose();
+    }
+  });
+
+  it('keeps the dim soft enough to read the rest of the model', () => {
+    expect(HOLO_DIM_FILL).toBeGreaterThan(0.5);
+    expect(HOLO_XRAY_HULL_OPACITY).toBeGreaterThanOrEqual(0.4);
   });
 });

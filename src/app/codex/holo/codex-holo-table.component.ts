@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   input,
+  model,
   output,
   signal,
   viewChild,
@@ -19,6 +20,7 @@ import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { ShipBlueprintSchemaComponent } from '../ship-blueprint/ship-blueprint-schema.component';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 import {
+  type BlueprintViewName,
   type ShipBlueprint,
   blueprintView,
   placeSchemaMarkers,
@@ -28,15 +30,20 @@ import {
 import type { AssetPackageManifest } from '../asset-package/asset-package.model';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
-import { AssetPackageViewerComponent } from '../asset-package/asset-package-viewer.component';
+import { AssetPackageViewerComponent, type CalloutValue, type PlacementSelection } from '../asset-package/asset-package-viewer.component';
+import type { HotspotScope } from '../asset-package/asset-package.model';
+import { calloutGutter } from '../asset-package/holo-overlay';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { logWarn } from '../../core/log';
 import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
-import { HoloPhase, PinRing, StagePin } from './codex-holo-model';
+import { HoloPhase, PinRing, StagePin, spreadStackedPins } from './codex-holo-model';
 import { LeaderLayout, layoutLeaderLabels } from './codex-holo-leader';
+
+/** Closest two schema markers may sit, in % of the drawing's long side. */
+const SCHEMA_MARKER_GAP = 3.2;
 
 /** Last-resort hull glyph (top-down, nose up, 100×100 viewBox) shown only
  * when a ship has neither a traced silhouette nor any artwork. */
@@ -144,7 +151,12 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     '[class.offscreen]': 'offscreen()',
   },
   template: `
-    <div class="silhouette-frame" #frame [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
+    <div class="silhouette-frame" #frame [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'" [class.phone-full]="phoneFull()">
+      @if (phoneFull()) {
+        <button type="button" class="full-close" [attr.aria-label]="'codex.holo.stage.fullscreenExit' | translate" [scTooltip]="'codex.holo.stage.fullscreenExit' | translate" (click)="fullDismissed.set(true)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      }
       <div class="rings" aria-hidden="true"><i class="sweep"></i></div>
       <!-- Projection layer over everything on the surface: scanlines and a
            slow interference band, masked to the table's light cone. -->
@@ -161,7 +173,10 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         @defer (on immediate) {
           @if (packageRow(); as row) {
             <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" [row]="row" [still]="still()"
-              [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
+              interaction="table" [safeArea]="safeArea()" [selectedPort]="selectedPart()" [swappablePorts]="swappablePorts()"
+              [relevantPorts]="relevantPorts()" [calloutValues]="calloutValues()" [calloutTitle]="calloutTitle()" [(hotspotScope)]="hotspotScope"
+              [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)"
+              (selectionChange)="partSelected.emit($event)" (swapRequested)="partSwap.emit($event)" />
           } @else if (packageRow() === null) {
             <!-- Legacy path (hulls uploaded before asset packages): model-viewer + browser-side port/node join. -->
             <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
@@ -176,7 +191,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       } @else if (viewMode() === 'schema' && schemaBlueprint(); as bp) {
         <!-- The ship's own blueprint with every hardpoint on it; the box map
              below stays the view for hulls without a drawing. -->
-        <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp"
+        <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp" [view]="schemaView()"
           [markers]="schemaMarkers()" [activePorts]="activePorts()" [inspectedPort]="inspectedPort()"
           (hovered)="hovered.emit($event)" (inspect)="pinInspect.emit($event)" />
       } @else if (viewMode() === 'schema' && schemaBlueprintPending()) {
@@ -238,6 +253,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
             <button
               type="button"
               class="pin"
+              [class.q]="isQuiet(pin.portName)"
               [class.unresolved]="!pin.resolved"
               [class.gold]="pin.tone === 'gold'"
               [class.active]="lit(pin.portName)"
@@ -288,7 +304,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
             @for (l of lay.labels; track l.portName) {
               @if (pinByPort().get(l.portName); as pin) {
                 <li>
-                  <button type="button" class="ll" [class.r]="l.side === 'right'"
+                  <button type="button" class="ll" [class.r]="l.side === 'right'" [class.q]="isQuiet(l.portName)"
                           [class.gold]="pin.tone === 'gold'"
                           [class.est]="!pin.resolved"
                           [class.active]="lit(l.portName)"
@@ -362,8 +378,14 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     /* The arrival's slow timing — the SAME animations, only later and longer. */
     :host(.ph-reveal) { --sil-dur: 900ms; --sil-delay: 80ms; --glow-delay: 620ms; --orbit-dur: 820ms; --orbit-delay: 160ms;
       --pin-dur: 340ms; --pin-delay: 380ms; --pin-step: 16ms; }
-    .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; z-index: 1; display: flex; align-items: center;
+    /* The table takes the height the screen has: the model grows with the window. */
+    .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: clamp(320px, 56dvh, 640px); z-index: 1; display: flex; align-items: center;
       justify-content: center; overflow: hidden; container-type: size; --pin-inset: 56px; }
+    /* Desktop: the stage gives the table exactly the height the first screen has left. */
+    @media (min-width: 1001px) { .silhouette-frame { min-height: 0; } }
+    /* Not what the picked Einsatz is about: quiet, still reachable. */
+    .pin.q, .ll.q { opacity: 0.35; }
+    .pin.q:is(:hover, :focus-visible, .active, .sel), .ll.q:is(:hover, :focus-visible, .active, .sel) { opacity: 1; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
     /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
        depths and shift against each other with the pointer and the scroll —
@@ -376,7 +398,9 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .projection { translate: calc(var(--px) * 15px) calc(var(--py) * 15px); }
     :host(.still) .rings, :host(.still) .shipwrap, :host(.still) .projection { translate: none; transition: none; }
     /* Rings + grid + a slow sweep: the table is a live instrument even at rest. */
+    /* No frame: the rings fade out before they reach an edge. */
     .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0; transition: opacity 420ms ease;
+      -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 100%);
       background:
         repeating-radial-gradient(circle at 50% 50%, transparent 0 58px, var(--a7) 59px, transparent 60.5px),
         linear-gradient(var(--a5) 1px, transparent 1px) 0 0 / 100% 40px,
@@ -627,8 +651,15 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     @media (orientation: landscape) and (max-width: 1000px) and (max-height: 600px) {
       .silhouette-frame { min-height: 320px; }
     }
+    /* A phone on its side: a fixed overlay, because iPhone Safari has no Fullscreen API.
+       Above the feedback launcher (1400), below dialogs and overlays (1500). */
+    .silhouette-frame.phone-full { position: fixed; inset: 0; z-index: 1450; min-height: 0; width: auto; background: var(--sc-bg-0); }
+    .full-close { position: absolute; z-index: 5; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
+      width: 48px; height: 48px; display: grid; place-items: center; padding: 0; cursor: pointer; border-radius: 50%; color: var(--sc-fg);
+      background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); }
+    .full-close:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     @media (max-width: 640px) {
-      .silhouette-frame, .mode-viewer { min-height: 360px; }
+      .silhouette-frame, .mode-viewer { min-height: 320px; }
       .silhouette-frame { --pin-inset: 36px; }
       .pin-label { display: none; }
       .pin:is(.sel, .active) .pin-label { display: inline; }
@@ -644,6 +675,31 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
   `],
 })
 export class CodexHoloTableComponent {
+  /** The asset package viewer, once 3D shows one: the panel's part rows read it. */
+  readonly assetViewer = viewChild(AssetPackageViewerComponent);
+  /** The part selected on the table, as a raw port or placement id. */
+  readonly selectedPart = input<string | null>(null);
+  readonly swappablePorts = input<ReadonlySet<string> | null>(null);
+  readonly relevantPorts = input<ReadonlySet<string> | null>(null);
+  readonly calloutValues = input<readonly CalloutValue[]>([]);
+  readonly calloutTitle = input<string | null>(null);
+  /** Which dots the model shows; the "all parts" chip writes it. */
+  readonly hotspotScope = model<HotspotScope>('swappable');
+  readonly partSelected = output<PlacementSelection | null>();
+  readonly partSwap = output<PlacementSelection>();
+
+  /** The callout's reserved gutters left and right of the model; none where the frame cannot spare them (phones). */
+  readonly safeArea = computed(() => {
+    const w = this.frameW();
+    const gutter = typeof window === 'undefined' ? 0 : calloutGutter(window.innerWidth);
+    return w >= gutter * 2 + 280 ? { left: gutter, right: gutter, top: 4, bottom: 0 } : { left: 0, right: 0, top: 4, bottom: 0 };
+  });
+
+  isQuiet(port: string): boolean {
+    const lit = this.relevantPorts();
+    return !!lit && lit.size > 0 && !lit.has(port);
+  }
+
   readonly GENERIC_HULL = GENERIC_HULL_PATH;
   /** Document-unique id of this table's hull gradient. */
   readonly hullFillId = `holo-hull-fill-${++hullFillSeq}`;
@@ -658,6 +714,10 @@ export class CodexHoloTableComponent {
   /** The preloaded arrival image, only while the arrival shows it. */
   readonly heroSrc = input<string | null>(null);
   readonly viewMode = input<'holo' | '3d' | 'schema'>('holo');
+  /** Which drawing the schema shows. */
+  readonly schemaView = input<BlueprintViewName>('top');
+  /** Every pin, for the schema's labels and numbers; the canvas's own `pins` may be a subset. */
+  readonly labelPins = input<readonly StagePin[] | null>(null);
   readonly shipClassName = input('');
   readonly hardpointPortRefs = input<readonly HardpointPortRef[]>([]);
   readonly hardpointFrame = input<HardpointFrame | null>(null);
@@ -680,6 +740,11 @@ export class CodexHoloTableComponent {
   /** The projection surface's size in CSS px (0 until measured). */
   readonly frameW = signal(0);
   readonly frameH = signal(0);
+  /** A phone on its side: the 3D view takes the whole screen until it is closed. */
+  private readonly phoneLandscape = signal(false);
+  /** Closed by the reader; turning the phone again brings it back. */
+  readonly fullDismissed = signal(false);
+  readonly phoneFull = computed(() => this.viewMode() === '3d' && this.phoneLandscape() && !this.fullDismissed());
   /** Touch pointer: leader labels are full tap targets, fewer fit a column. */
   private readonly coarse = signal(typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
   /** The port under the pointer / focus HERE — lights its pin and its label
@@ -731,6 +796,13 @@ export class CodexHoloTableComponent {
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const destroyRef = inject(DestroyRef);
+    if (typeof matchMedia === 'function') {
+      const landscape = matchMedia('(orientation: landscape) and (max-width: 1000px) and (max-height: 500px)');
+      const syncLandscape = () => { this.phoneLandscape.set(landscape.matches); this.fullDismissed.set(false); };
+      syncLandscape();
+      landscape.addEventListener('change', syncLandscape);
+      destroyRef.onDestroy(() => landscape.removeEventListener('change', syncLandscape));
+    }
     afterNextRender(() => {
       const frame = this.frameRef()?.nativeElement;
       if (!frame) return;
@@ -824,14 +896,27 @@ export class CodexHoloTableComponent {
    */
   readonly schemaMarkers = computed(() => {
     const bp = this.schemaBlueprint();
-    const top = bp ? blueprintView(bp, 'top') : null;
-    if (!top) return [];
+    const view = bp ? (blueprintView(bp, this.schemaView()) ?? blueprintView(bp, 'top')) : null;
+    if (!view) return [];
     const m = this.schemaManifest();
     const hardpoints = m ? schemaHardpointsFromManifest(m) : schemaHardpointsFromPayload(this.hardpointMarkers());
-    return placeSchemaMarkers(
-      top,
+    const markers = placeSchemaMarkers(
+      view,
       hardpoints,
-      this.pins().map((p) => ({ portName: p.portName, label: p.label, index: p.index })),
+      (this.labelPins() ?? this.pins()).map((p) => ({ portName: p.portName, label: p.label, index: p.index })),
     );
+    // Seen from the side or the front many hardpoints share one spot: fan them
+    // out so each stays a target of its own (the list keeps the exact order).
+    const long = Math.max(view.box.w, view.box.h);
+    const toPct = (v: number, origin: number) => ((v - origin) / long) * 100;
+    const fanned = spreadStackedPins(
+      markers.map((m) => ({ x: toPct(m.x, view.box.x), y: toPct(m.y, view.box.y) })),
+      SCHEMA_MARKER_GAP,
+    );
+    return markers.map((m, i) => ({
+      ...m,
+      x: view.box.x + (fanned[i].x / 100) * long,
+      y: view.box.y + (fanned[i].y / 100) * long,
+    }));
   });
 }

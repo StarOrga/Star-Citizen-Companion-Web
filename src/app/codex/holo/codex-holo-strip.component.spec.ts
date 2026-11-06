@@ -198,17 +198,72 @@ describe('CodexHoloStripComponent', () => {
     expect(offensive.querySelector('.tv.none')!.textContent).toContain('—');
   });
 
-  it('shows no class-rank pips while the profile ranks no signature axis', async () => {
-    const fixture = await setup({ rank: true });
-    // The combat profile ranks alpha/dps/shield/agility/boost — no IR, no cross-section.
-    expect((fixture.nativeElement as HTMLElement).querySelector('.rankpips')).toBeNull();
+  it('shows no percent anywhere: no P-values, no rank pips (d-pct)', async () => {
+    const fixture = await setup();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.pct')).toBeNull();
+    expect(el.querySelector('.rankpips')).toBeNull();
+    expect(el.textContent).not.toMatch(/\bP\d+/);
   });
 
-  it('carries a percentile rank onto each tile once a rank result is supplied', async () => {
-    const fixture = await setup({ rank: true });
-    const tiles = fixture.componentInstance['perspectiveTiles']();
-    const offensive = tiles.find((t) => t.perspective === 'offensive')!;
-    expect(offensive.percentile).not.toBeNull();
-    expect(offensive.percentile!).toBeGreaterThan(50);
+  it('the default Einsatz names the class and the group, any other its own word', async () => {
+    const fixture = await setup();
+    fixture.componentRef.setInput('defaultLabelKey', 'codex.rank.class.transport');
+    fixture.componentRef.setInput('cohortLabel', '21 × Mittlerer Frachter');
+    fixture.componentRef.setInput('active', 'all');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.einsatz .val')!.textContent).toContain('codex.rank.class.transport');
+    expect(el.querySelector('.einsatz .val svg')).not.toBeNull();
+    expect(el.querySelector('.einsatz .sub')!.textContent).toContain('21 × Mittlerer Frachter');
+    fixture.componentRef.setInput('active', 'combat');
+    fixture.detectChanges();
+    expect(el.querySelector('.einsatz .val')!.textContent).toContain('codex.mission.combat');
+  });
+
+  describe('Einsatz picker', () => {
+    const MISSIONS = [
+      { id: 'all' as const, labelKey: 'codex.mission.all', sub: '17 Ports', disabledKey: null },
+      { id: 'combat' as const, labelKey: 'codex.mission.combat', sub: '119 Alpha', disabledKey: null },
+      { id: 'mining' as const, labelKey: 'codex.mission.mining', sub: '', disabledKey: 'codex.mission.disabled' },
+    ];
+
+    it('opens from the strip, picks, closes and gives the focus back', async () => {
+      const fixture = await setup();
+      fixture.componentRef.setInput('missions', MISSIONS);
+      const picked: string[] = [];
+      fixture.componentInstance.missionChange.subscribe((m) => picked.push(m));
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const btn = el.querySelector<HTMLButtonElement>('button.einsatz')!;
+      expect(el.querySelector('.mission-pop')).toBeNull();
+      btn.click();
+      fixture.detectChanges();
+      const rows = Array.from(el.querySelectorAll<HTMLButtonElement>('.mission-pop .mp'));
+      expect(rows.length).toBe(3);
+      expect(rows[1].getAttribute('aria-checked')).toBe('true');
+      expect(rows[2].disabled).toBeTrue();
+      rows[0].click();
+      fixture.detectChanges();
+      expect(picked).toEqual(['all']);
+      expect(el.querySelector('.mission-pop')).toBeNull();
+    });
+
+    it('closes on Escape and on a click elsewhere', async () => {
+      const fixture = await setup();
+      fixture.componentRef.setInput('missions', MISSIONS);
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      el.querySelector<HTMLButtonElement>('button.einsatz')!.click();
+      fixture.detectChanges();
+      el.querySelector('.mission-pop')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      expect(el.querySelector('.mission-pop')).toBeNull();
+      el.querySelector<HTMLButtonElement>('button.einsatz')!.click();
+      fixture.detectChanges();
+      document.body.click();
+      fixture.detectChanges();
+      expect(el.querySelector('.mission-pop')).toBeNull();
+    });
   });
 });

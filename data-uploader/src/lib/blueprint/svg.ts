@@ -5,7 +5,7 @@
  * and re-draw it with its own styles instead of trusting markup:
  *
  *   <svg data-sc-blueprint="1" data-lod="full|icon" viewBox="0 0 W H" …>
- *     <g class="bp-view" data-view="top|side" data-projection="{…}">
+ *     <g class="bp-view" data-view="top|side|front" data-projection="{…}">
  *       <path class="bp-hull"  d="…"/>   outer silhouette + holes (even-odd)
  *       <path class="bp-major" d="…"/>   main lines (contours, sharp creases)
  *       <path class="bp-minor" d="…"/>   detail lines (soft creases, panel borders)
@@ -28,7 +28,7 @@ export const BLUEPRINT_FORMAT = 1;
 export type Projection = [[number, number, number, number], [number, number, number, number]];
 
 export interface SvgView {
-  view: 'top' | 'side';
+  view: 'top' | 'side' | 'front';
   /** Box the view occupies in the viewBox. */
   box: { x: number; y: number; w: number; h: number };
   projection: Projection;

@@ -1,9 +1,9 @@
 /**
  * Blueprint drawings: the pure geometry half (docs/blueprint.md).
  *
- * A ship hull (welded triangles, glTF Y-up metres) becomes two orthographic
- * line drawings: `top` (looking down, nose to the right) and `side` (from
- * starboard, nose to the right). Each view is
+ * A ship hull (welded triangles, glTF Y-up metres) becomes three orthographic
+ * line drawings: `top` (looking down, nose to the right), `side` (from
+ * starboard, nose to the right) and `front` (from the nose, up is up). Each view is
  *
  *   1. a depth raster (z-buffer) of every triangle, nearest surface wins,
  *   2. the outer silhouette, traced from the raster's coverage mask
@@ -23,21 +23,26 @@ export interface TriMesh {
   indices: Uint32Array;
 }
 
-export type ViewName = 'top' | 'side';
+export type ViewName = 'top' | 'side' | 'front';
 
 /**
  * Model point -> view coordinates. `u` runs to the right (nose), `v` runs down
  * the drawing, `d` grows toward the viewer.
  *   top:  u = -z, v = x  (starboard down), d = y (viewer above)
  *   side: u = -z, v = -y (up is up),       d = x (viewer at starboard)
+ *   front: u = -x, v = -y, d = -z (viewer in front of the nose, looking aft):
+ *         the pilot's starboard (+x) is on the viewer's LEFT, up is up.
  */
 export function viewCoords(view: ViewName, x: number, y: number, z: number): [number, number, number] {
-  return view === 'top' ? [-z, x, y] : [-z, -y, x];
+  if (view === 'top') return [-z, x, y];
+  if (view === 'side') return [-z, -y, x];
+  return [-x, -y, -z];
 }
 
 /** Unit vector toward the viewer, in model space. */
 function viewerDir(view: ViewName): [number, number, number] {
-  return view === 'top' ? [0, 1, 0] : [1, 0, 0];
+  if (view === 'top') return [0, 1, 0];
+  return view === 'side' ? [1, 0, 0] : [0, 0, -1];
 }
 
 export interface Extent {
@@ -70,7 +75,11 @@ export interface ViewWindow {
 }
 
 export function viewWindow(view: ViewName, e: Extent): ViewWindow {
-  // u = -z for both views; v = x (top) or -y (side).
+  // front: u = -x, v = -y.
+  if (view === 'front') {
+    return { view, uMin: -e.max[0], vMin: -e.max[1], uSpan: e.max[0] - e.min[0], vSpan: e.max[1] - e.min[1] };
+  }
+  // u = -z for top and side; v = x (top) or -y (side).
   const uMin = -e.max[2];
   const uSpan = e.max[2] - e.min[2];
   if (view === 'top') return { view, uMin, vMin: e.min[0], uSpan, vSpan: e.max[0] - e.min[0] };
@@ -417,7 +426,10 @@ export function featureLines(
   // the same pixels (the top and bottom rim of a vertical wall), only the
   // nearer one is kept.
   const cand: { s: number; major: boolean; depth: number }[] = [];
-  const dir = r.win.view === 'top' ? 1 : 0;
+  // Model axis the viewer sits on, and its sign: the nearer end of an edge
+  // is the one with the larger `sign * coordinate` (front: viewer at -z).
+  const dir = r.win.view === 'top' ? 1 : r.win.view === 'side' ? 0 : 2;
+  const sign = r.win.view === 'front' ? -1 : 1;
   for (let s = 0; s < ea.length; s++) {
     let kind: LineKind | null = null;
     const n = cnt[s]!;
@@ -436,7 +448,7 @@ export function featureLines(
       kind = 'minor';
     }
     if (!kind) continue;
-    cand.push({ s, major: kind === 'major', depth: Math.max(p[3 * ea[s]! + dir]!, p[3 * eb[s]! + dir]!) });
+    cand.push({ s, major: kind === 'major', depth: Math.max(sign * p[3 * ea[s]! + dir]!, sign * p[3 * eb[s]! + dir]!) });
   }
   cand.sort((a, b) => Number(b.major) - Number(a.major) || b.depth - a.depth || a.s - b.s);
   const taken = new Uint8Array(r.w * r.h);

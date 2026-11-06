@@ -75,4 +75,32 @@ describe('AssetPackageService', () => {
     await Promise.all([svc.glb('u/_parts/s.glb'), svc.glb('u/_parts/s.glb')]);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
+
+  describe('preloadShip', () => {
+    const rowOf = (manifest: string) => ({ kind: 'ship', entity_class: 'AEGS_Gladius', ship_id: 'AEGS_Gladius', manifest_sha256: manifest });
+
+    it('caches row, manifest, root and part bytes, once per ship', async () => {
+      const { svc } = setup({ data: [rowOf('m1')], error: null });
+      fetchSpy.and.callFake((url: string) =>
+        Promise.resolve(url.includes('_manifests/') ? new Response(JSON.stringify(manifestFixture())) : new Response(new ArrayBuffer(8))),
+      );
+      expect(await svc.preloadShip('AEGS_Gladius')).toBeTrue();
+      const calls = fetchSpy.calls.count();
+      expect(calls).toBeGreaterThan(2);
+      expect(await svc.preloadShip('AEGS_Gladius')).toBeTrue();
+      expect(fetchSpy.calls.count()).toBe(calls);
+      // The viewer's own load is now a cache hit.
+      const urls = fetchSpy.calls.allArgs().map((a) => String(a[0])).filter((u) => u.endsWith('.glb'));
+      await svc.glb(urls[0]);
+      expect(fetchSpy.calls.count()).toBe(calls);
+    });
+
+    it('is false without a package and false (not thrown) on failure', async () => {
+      const none = setup({ data: [], error: null });
+      expect(await none.svc.preloadShip('NOPE')).toBeFalse();
+      TestBed.resetTestingModule();
+      const bad = setup({ data: null, error: { message: 'boom' } });
+      expect(await bad.svc.preloadShip('AEGS_Gladius')).toBeFalse();
+    });
+  });
 });
