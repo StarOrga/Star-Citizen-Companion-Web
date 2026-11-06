@@ -40,6 +40,7 @@ import { BriefingHubComponent } from './briefing/briefing-hub.component';
 import { BriefingPlanetComponent } from './briefing/briefing-planet.component';
 import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
+import { VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint } from './briefing/staged-build';
 import {
   BriefingStatus,
   IntroMode,
@@ -216,6 +217,8 @@ export class VerseBriefingComponent {
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
   readonly total = STARS_PER_PATCH;
+  /** How far the hub has built: 0 stage and hero, 1 doors and beacons, 2 the columns below (staged-build). */
+  readonly buildStep = signal(inject(VERSE_STAGED_BUILD) ? 0 : VERSE_BUILD_STEPS);
 
   readonly top = this.api.topItems;
 
@@ -508,6 +511,19 @@ export class VerseBriefingComponent {
       });
     });
     inject(DestroyRef).onDestroy(() => this.stopTracking?.());
+
+    afterNextRender(() => {
+      let cancel = (): void => undefined;
+      const next = (): void => {
+        if (this.buildStep() >= VERSE_BUILD_STEPS) return;
+        cancel = afterPaint(() => {
+          this.buildStep.update((s) => s + 1);
+          next();
+        });
+      };
+      next();
+      this.destroyRef.onDestroy(() => cancel());
+    });
 
     // One viewport: the stage is 100dvh minus whatever chrome sits above it
     // (topbar height differs per width, banners come and go), measured here

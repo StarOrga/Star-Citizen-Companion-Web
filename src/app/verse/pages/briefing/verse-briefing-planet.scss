@@ -378,3 +378,6 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
   .t-in { animation: none; }
   .step, .tl, .title2, .find { transition: none; }
 }
+
+// The hub is still on its way (staged-build): the page already has its final height.
+.hub-hold { height: 100dvh; }

@@ -19,6 +19,7 @@ import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SWITCH_MS,
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
+import { VERSE_STAGED_BUILD } from './staged-build';
 import {
   INTRO_FLAG,
   localDay,
@@ -205,6 +206,7 @@ describe('Verse briefing — component', () => {
     cancels.length = 0;
     TestBed.configureTestingModule({
       providers: [
+        { provide: VERSE_STAGED_BUILD, useValue: false },
         provideRouter([]),
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
