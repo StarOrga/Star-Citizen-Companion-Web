@@ -3,7 +3,7 @@
 // Planets, light cone and holo, positioned in the stage box (cqw = stage
 // width, % tops = fractions of its height; the mock's 16:9 stage is 56.25 cqw
 // high, so a mock top of 34 cqw is 60.4 %). Mock centres: News (6.5 | 34),
-// Patches (17 | 30), Galerie (85 | 30); holo top 41.4 cqw, 34 cqw wide.
+// Patches (17 | 30), Galerie (85 | 30); the holo is 34 cqw wide and one fixed height.
 :host {
   // Patches' left edge sits under the (theoretical) left edge of the sub-header
   // incl. search — never further left than the mock's 17 % — and News keeps the
@@ -13,7 +13,12 @@
   --patches-x: max(17%, calc((100% - var(--sc-chrome-w, 100%)) / 2 + var(--patches-s) / 2)); --patches-y: 53.3%; --patches-s: max(4.4cqw, 40px);
   --gallery-x: 85%; --gallery-y: 53.3%; --gallery-s: max(6cqw, 52px);
   --holo-w: 34cqw;
-  --holo-top: 73.6%;
+  // One size for every message: the texts are capped (holoTitle / holoBody) and clamped to it.
+  --holo-h: max(140px, 9.4cqw);
+  // Below the holo the "more" cue always keeps its lane, also on a short, wide window.
+  --cue-lane: max(68px, 3.6cqw);
+  --holo-top: min(67.5%, calc(100% - var(--cue-lane) - var(--holo-h)));
+  --holo-lines: 2;
   position: absolute;
   inset: 0;
   z-index: 3;
@@ -122,6 +127,7 @@
   left: 50%;
   top: var(--holo-top);
   width: var(--holo-w);
+  height: var(--holo-h);
   transform: translateX(-50%) perspective(40cqw) rotateX(26deg);
   transform-origin: 50% 0;
   display: block;
@@ -133,7 +139,12 @@
 .holo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 .holo-in {
   position: relative;
-  display: block;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  overflow: hidden;
   padding: 0.8cqw 1cqw;
   color: #bfeeff;
   text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 0.6cqw rgba(82, 193, 230, 0.75);
@@ -143,16 +154,31 @@
   transition: opacity 0.4s ease;
 }
 .holo:hover .holo-in { color: #e8ffff; }
-.k { display: block; font-size: max(10px, 0.66cqw); letter-spacing: 0.3em; text-transform: uppercase; color: var(--sc-accent); }
+.k { display: block; flex: none; font-size: max(10px, 0.66cqw); letter-spacing: 0.3em; text-transform: uppercase; color: var(--sc-accent); }
 .t {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  flex: none;
+  overflow: hidden;
   margin: 0.45cqw 0;
+  line-height: 1.25;
   font-family: var(--sc-font-display, Orbitron, sans-serif);
   font-size: max(15px, 1.4cqw);
   color: #e8ffff;
   overflow-wrap: anywhere;
 }
-.b { display: block; min-height: 2.6em; font-size: max(12px, 0.88cqw); line-height: 1.35; }
+.b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--holo-lines);
+  line-clamp: var(--holo-lines);
+  flex: none;
+  overflow: hidden;
+  font-size: max(12px, 0.88cqw);
+  line-height: 1.35;
+}
 .ghost { color: transparent; text-shadow: none; }
 
 // Reception: revealed vertically, top to bottom, a scan edge leading.
@@ -179,7 +205,9 @@
     --patches-x: 32%; --patches-y: 56%; --patches-s: 38px;
     --gallery-x: 86%; --gallery-y: 56%; --gallery-s: 46px;
     --holo-w: 88%;
+    --holo-h: 140px;
     --holo-top: 72%;
+    --holo-lines: 3;
   }
   .holo { transform: translateX(-50%) perspective(600px) rotateX(18deg); }
   .holo-in { padding: 8px 10px; }

@@ -51,7 +51,7 @@ import {
   splitChars,
   uniqueStories,
 } from './briefing/briefing.model';
-import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, kickerVersion, patchImage } from './briefing/briefing-hub';
+import { HUB_NEWS, hubChannel, hubChannels, fillGallery, holoBody, holoTitle, kickerVersion, patchImage } from './briefing/briefing-hub';
 import { DockState, wireDock } from './briefing/briefing-dock';
 import { channelBuildItems, plannedPatchItem, patchTitleParts, withLiveVersion } from './briefing/briefing-patch-title';
 import { PatchTeaserService } from './briefing/briefing-patch-teaser.service';
@@ -436,7 +436,7 @@ export class VerseBriefingComponent {
     const dn = newestFor('news', digest, none);
     if (n) {
       out.push({
-        key: `news:${n.id}`, door: 'news', title: n.title, body: holoBody(n.summary || t('verse.gates.news.hook')),
+        key: `news:${n.id}`, door: 'news', title: holoTitle(n.title), body: holoBody(n.summary || t('verse.gates.news.hook')),
         internal: true, path: '/verse/news', query: { item: n.id },
       });
     } else if (dn) {
@@ -449,7 +449,7 @@ export class VerseBriefingComponent {
     if (p) out.push(this.txItem(p, 'patches', pHook));
     else if (lv) {
       out.push({
-        key: `patch:${lv.version}`, door: 'patches', title: t('verse.hub.patchTitle', { v: lv.version }), body: holoBody(pHook),
+        key: `patch:${lv.version}`, door: 'patches', title: holoTitle(t('verse.hub.patchTitle', { v: lv.version })), body: holoBody(pHook),
         internal: true, path: `/verse/patches/${lv.line}`, query: null,
       });
     }
@@ -460,8 +460,6 @@ export class VerseBriefingComponent {
 
   /** The scroll flight stage → hub (briefing-dock): where the page stands, and whether the planets fly. */
   readonly dock = signal<DockState>('top');
-  /** A message stands in the holo: the "more" cue is hidden meanwhile (#1). */
-  readonly newsShown = signal(false);
   readonly dockFlying = signal(false);
 
   /** Pointer / focus on the hero title: the auto switch holds. */
@@ -601,7 +599,7 @@ export class VerseBriefingComponent {
   private txItem(item: VerseDigestItem, door: VerseDoor, fallback: string): TransmitItem {
     const l = verseItemLink(item.url);
     return {
-      key: item.key, door, title: item.title, body: holoBody(item.summary || fallback),
+      key: item.key, door, title: holoTitle(item.title), body: holoBody(item.summary || fallback),
       internal: l?.internal ?? true, path: l?.path ?? `/verse/${door}`, query: (l?.query as Record<string, string> | null) ?? null,
     };
   }

@@ -21,7 +21,7 @@ import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-acco
 import { INTRO_FLAG } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
 import {
-  holoBody, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
+  holoBody, holoTitle, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
 import { TX_CHARGE_MS, TX_CHARS_PER_S, TX_HOLD_MS, TX_OUT_MS, TX_REVEAL_MS } from './briefing-transmit.component';
 
@@ -76,6 +76,8 @@ describe('Verse hub — verdict + patch grid model', () => {
     expect(kickerVersion({ live: '4.3.1' }, '4.3')).toBe('4.3.1');
     expect(kickerVersion({}, '4.3')).toBe('4.3');
     expect(holoBody('a '.repeat(100)).length).toBeLessThanOrEqual(112);
+    expect(holoTitle('Cargo Hauling – Day 1').length).withContext('a short title stays whole').toBe(21);
+    expect(holoTitle('word '.repeat(40)).length).withContext('the holo has one size: long titles are capped').toBeLessThanOrEqual(66);
   });
 });
 
@@ -221,21 +223,21 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
       return el.querySelector('button.more-cue')!.classList.contains('gone');
     };
     expect(phase()).toBe('charge');
-    expect(cueGone()).withContext('#1: no message on screen yet → the "more" cue stands').toBeFalse();
+    expect(cueGone()).withContext('no message on screen yet → the "more" cue stands').toBeFalse();
     expect(el.querySelector('a.pl[data-door="news"]')?.classList).toContain('send');
     tick(TX_CHARGE_MS);
     expect(phase()).toBe('reveal');
-    expect(cueGone()).withContext('#1: a news message is visible → the cue is gone').toBeTrue();
+    expect(cueGone()).withContext('the cue stands under a visible message too').toBeFalse();
     tick(TX_REVEAL_MS);
     expect(phase()).toBe('type');
     const body = 'Short summary.';
     tick(Math.ceil((body.length * 1000) / TX_CHARS_PER_S) + 50);
     expect(phase()).toBe('hold');
     expect(holo().querySelector('.typed')?.textContent).toBe(body);
-    expect(cueGone()).toBeTrue();
+    expect(cueGone()).toBeFalse();
     tick(TX_HOLD_MS);
     expect(phase()).toBe('out');
-    expect(cueGone()).withContext('#1: faded out between two messages → the cue is back').toBeFalse();
+    expect(cueGone()).toBeFalse();
     tick(TX_OUT_MS);
     fixture.detectChanges();
     expect(holo().querySelector('.k')?.textContent).toContain('verse.gates.patches.topic');

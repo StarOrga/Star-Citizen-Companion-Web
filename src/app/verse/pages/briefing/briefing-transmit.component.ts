@@ -102,8 +102,6 @@ export class BriefingTransmitComponent {
   readonly docked = input(false);
   /** A planet was used (analytics). */
   readonly door = output<VerseDoor>();
-  /** True while a message stands in the holo (revealed, typing or held) — the page's "more" cue waits for it to be gone. */
-  readonly shownChange = output<boolean>();
   /** The holo was opened. */
   readonly opened = output<TransmitItem>();
 
@@ -120,15 +118,11 @@ export class BriefingTransmitComponent {
     return l.length ? l[this.index() % l.length] : null;
   });
 
-  /** A message is on screen: not away, not charging up, not fading out. */
-  readonly shown = computed(() => !!this.cur() && !this.away() && this.phase() !== 'out' && this.phase() !== 'charge');
-
   private readonly reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
 
   constructor() {
-    effect(() => this.shownChange.emit(this.shown()));
     effect(() => {
       const n = this.items().length;
       const away = this.away();

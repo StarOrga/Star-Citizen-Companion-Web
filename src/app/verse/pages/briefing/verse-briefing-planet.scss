@@ -6,22 +6,24 @@
 // The mock is a 16:9 stage (100 × 56.25 cqw). Here the stage is one viewport
 // (100dvh minus the chrome above it); horizontal sizes stay in cqw of the
 // stage, vertical positions become fractions of its height: the hero centres
-// in the upper two thirds, the planet's rim starts at exactly two thirds.
+// in the space above the planet, whose rim starts at 60 % of the stage so the
+// holo and the "more" cue both fit below it (phones: two thirds, no cue there).
 
 :host:has(.bstage) {
   // Phones carry the Fusion bar at the bottom: the stage's picture sits above it.
   --lift: 0px;
   --stage-h: max(520px, calc(100vh - var(--brief-chrome, 94px)));
   --stage-h: max(520px, calc(100dvh - var(--brief-chrome, 94px)));
-  --rim: calc((var(--stage-h) - var(--lift)) * 2 / 3);
+  --rim: calc((var(--stage-h) - var(--lift)) * 0.6);
   position: relative;
   isolation: isolate;
   @media (max-width: 720px) {
     --lift: calc(var(--sc-bar-stack-h, var(--sc-bar-h, 56px)) + var(--sc-float-bottom, 0px));
+    --rim: calc((var(--stage-h) - var(--lift)) * 2 / 3);
   }
 }
 
-// ── The big planet: bottom third of the stage, radius 80 % of the width ──
+// ── The big planet: bottom of the stage, radius 80 % of the width ──
 // It runs on under the footer to the page's last pixel: the clip reaches a
 // full viewport past the page, and the body clips it at its own bottom edge
 // (shell-scene.component.scss), so the overshoot never adds scroll height.
@@ -107,7 +109,7 @@
 .hero-wrap {
   position: absolute;
   inset: 0 0 auto;
-  height: 66.67%;
+  height: 60%;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -252,7 +254,7 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 }
 // It fades with the scroll and is gone at the bottom (briefing-dock sets --dock).
 .more-cue { opacity: clamp(0, 1 - var(--dock, 0) * 2.5, 1); transition: opacity 0.4s ease, visibility 0s; }
-// Gone while a news message stands in the holo (it would crowd it) and at the bottom of the page.
+// Always there at the top of the page, also under a message; gone only at the bottom.
 .more-cue.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s ease, visibility 0s 0.4s; }
 .more-cue:hover .chev, .more-cue:focus-visible .chev { color: var(--sc-accent); }
 .more-cue:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 6px; }
