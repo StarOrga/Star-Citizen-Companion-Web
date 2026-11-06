@@ -128,8 +128,8 @@ export interface StockStart {
                         @if (l.showPlace) { <span class="place" [class.t]="!l.showName">{{ l.row.location.trim() ? placeName(l.row.location) : ('hq.stock.free' | translate) }}</span> }
                       </span>
                       @if (pathOf(l.row); as p) {
-                        <!-- D4: tertiary path + "Nachholen" (A7). Own wrapper so a click here never reaches the row. -->
-                        <span class="row-acts" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                        <!-- D4: tertiary path + "Nachholen" (A7); the row has no click handler of its own. -->
+                        <span class="row-acts">
                           <sc-item-path [kind]="p.kind" [className]="p.className" [name]="l.row.name" />
                           <button scAction tier="secondary" type="button" class="again" [attr.aria-label]="'hq.stock.popup.nachholenAria' | translate: { name: l.row.name }" (click)="nachholen(l.row)">
                             <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>

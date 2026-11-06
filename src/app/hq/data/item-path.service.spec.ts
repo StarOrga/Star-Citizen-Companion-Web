@@ -106,6 +106,13 @@ describe('ItemPathService', () => {
     expect(s.places).toEqual([{ location: 'Port Olisar', qty: 2 }]);
   });
 
+  it('counts a manual stock entry stored as <kind>:<Class> like a bare class name', () => {
+    const { svc, stock } = setup();
+    stock.set([{ location: 'Lorville', name: 'Gold', class_name: 'item:Gold', qty: 3, unit: 'pcs' }]);
+    expect(svc.read('item', 'Gold').inventarQty).toBe(3);
+    expect(svc.read('item', 'Gold').places).toEqual([{ location: 'Lorville', qty: 3 }]);
+  });
+
   it('A5: Nachschub moves the wish and the toast undo restores it', async () => {
     const { svc, wished, lines } = setup();
     await svc.addWish('item', 'rifle_01', 'Gewehr');

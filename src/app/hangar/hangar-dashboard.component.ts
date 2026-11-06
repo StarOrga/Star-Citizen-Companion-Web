@@ -650,6 +650,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .card-sub { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .fleet-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
     .fleet-actions .manage-btn { margin-inline-start: auto; }
+    /* An opened Verwalten panel grows its own card only; the neighbours keep their height. */
+    .fleet-card { align-self: start; }
     .codex-link { color: var(--sc-accent); text-decoration: none; font-size: max(0.78rem, var(--sc-fs-floor));
       min-height: var(--sc-tap-min); min-width: 0; display: inline-flex; align-items: center; gap: 4px; }
     .codex-link > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

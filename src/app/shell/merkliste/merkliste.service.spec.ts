@@ -49,14 +49,11 @@ describe('MerklisteService "Zuletzt geoeffnet" (D7)', () => {
     expect(svc.recent().map((r) => r.title)).toEqual(['A', 'B']);
   });
 
-  it('writes to the device only when preferences are allowed', () => {
-    const off = setup(false);
-    off.noteOpened({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
-    expect(localStorage.getItem(RECENT_ROWS_KEY)).toBeNull();
-    TestBed.resetTestingModule();
-    const on = setup(true);
-    on.noteOpened({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
+  it('writes the key the search writes, so a reload still shows the page', () => {
+    setup(false).noteOpened({ kind: 'ship', className: 'A', title: 'A', manufacturerCode: null });
     expect(JSON.parse(localStorage.getItem(RECENT_ROWS_KEY) ?? '[]').length).toBe(1);
+    TestBed.resetTestingModule();
+    expect(setup(false).recent().map((r) => r.title)).toEqual(['A']);
   });
 
   it('the number on the icon is the sum of what the tooltip names, and the icon has nothing to show at 0', () => {

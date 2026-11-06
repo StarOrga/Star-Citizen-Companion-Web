@@ -67,8 +67,6 @@ export class MerklisteService {
   readonly type = computed<MerkType | null>(() => merkTypeOf(this.url()));
 
   private readonly recents = signal<StoredRow[]>(readRecentRows(storage()));
-  /** Pages opened in this session: kept in memory even when the reader has not allowed storing preferences. */
-  private readonly opened = signal<StoredRow[]>([]);
   private readonly reads = signal<ReadEntry[]>(readReads());
 
   constructor() {
@@ -91,8 +89,8 @@ export class MerklisteService {
 
   /**
    * D7 "Zuletzt geoeffnet": a Codex detail page the reader opened, from any link (the search only
-   * records what it opened itself). Same row shape and key as the search writes, so both dedupe.
-   * Written to the device only when preferences are allowed (like the read log); this session always.
+   * records what it opened itself). Same row shape, key and rules as the search writes (the rows stay
+   * on the device and the search stores them without a consent gate), so both dedupe.
    */
   noteOpened(o: { kind: string; className: string; title: string; manufacturerCode: string | null }): void {
     if (!typeOfKind(o.kind) || o.kind === 'upcoming') return;
@@ -107,8 +105,7 @@ export class MerklisteService {
       scope: 'equipment',
     };
     const row = { type: 'hit', id: `hit-${hit.kind}-${hit.classNameSlug}`, hit, target: hitTarget(hit), outside: false, owned: null, fit: null, signal: { recent: true, owned: false, popular: false } } as StoredRow;
-    this.opened.update((l) => [row, ...l.filter((r) => r.id !== row.id)].slice(0, 6));
-    if (this.consent.preferencesAllowed()) this.recents.set(rememberRow(storage(), readRecentRows(storage()), row));
+    this.recents.set(rememberRow(storage(), readRecentRows(storage()), row));
   }
 
   private noteNewsRead(url: string): void {
@@ -144,9 +141,7 @@ export class MerklisteService {
   readonly recent = computed<MerkRow[]>(() => {
     const type = this.type();
     if (type === 'news') return [];
-    const seen = new Set<string>();
-    const merged = [...this.opened(), ...this.recents()].filter((r) => !seen.has(r.id) && !!seen.add(r.id));
-    return recentRowsOfType(merged, type).slice(0, MERK_RECENT_SHOWN);
+    return recentRowsOfType(this.recents(), type).slice(0, MERK_RECENT_SHOWN);
   });
   readonly wished = computed<MerkRow[]>(() => {
     const type = this.type();

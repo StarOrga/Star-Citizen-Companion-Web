@@ -206,8 +206,8 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
                 </span>
                 <span class="kind-tag">{{ 'hq.step.kind.' + n.kind | translate }}</span>
                 @if (n.className && needSources(n.className).kind; as kind) {
-                  <!-- D4: tertiary path on the need line; its click must not reach the row. -->
-                  <span class="need-path" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                  <!-- D4: tertiary path on the need line, a sibling of the Codex anchor (never inside it); the line itself has no click handler. -->
+                  <span class="need-path">
                     <sc-item-path [kind]="kind" [className]="n.className" [name]="n.label" />
                   </span>
                 }
