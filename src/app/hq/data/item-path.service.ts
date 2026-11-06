@@ -192,7 +192,7 @@ export class ItemPathService {
     const line = this.supplies.addLine(name, qty, { entityKind: kind, className, stepKind: opts.stepKind ?? null, source: 'search' });
     if (!line) return fail('itemPath.err.listFull');
     if (wasWished) {
-      let removed = false;
+      let removed: boolean;
       try {
         removed = await this.wishlist.remove(kind, className, name);
       } catch {
@@ -200,7 +200,7 @@ export class ItemPathService {
       }
       if (!removed) {
         // The move is atomic for the reader: a wish that cannot go keeps the line out too.
-        this.revertLine(line.id, line.prevQty, qty);
+        this.revertLine(line.id, line.prevQty);
         return fail('itemPath.err.failed');
       }
     }
@@ -209,7 +209,7 @@ export class ItemPathService {
       key: wasWished ? 'itemPath.done.moved' : 'itemPath.done.nachschub',
       params: { name },
       undo: async () => {
-        this.revertLine(line.id, line.prevQty, qty);
+        this.revertLine(line.id, line.prevQty);
         if (wasWished) await this.wishlist.add(kind, className, name);
         return { ok: true, key: 'itemPath.done.undone', params: { name } };
       },
@@ -246,7 +246,7 @@ export class ItemPathService {
       key: 'itemPath.done.nachholen',
       params: { name, qty },
       undo: async () => {
-        this.revertLine(line.id, line.prevQty, qty);
+        this.revertLine(line.id, line.prevQty);
         return { ok: true, key: 'itemPath.done.undone', params: { name } };
       },
     };
@@ -337,7 +337,7 @@ export class ItemPathService {
     };
   }
 
-  private revertLine(id: string, prevQty: number, _added?: number): void {
+  private revertLine(id: string, prevQty: number): void {
     if (prevQty <= 0) this.supplies.remove(id);
     else this.supplies.setQty(id, prevQty);
   }
