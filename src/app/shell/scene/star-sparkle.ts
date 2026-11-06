@@ -27,7 +27,13 @@ export class StarSparkle {
   private stopped = false;
   private paused = false;
 
-  constructor(private readonly host: HTMLElement, private readonly count = SPARKLE_COUNT, private readonly rnd: () => number = Math.random) {
+  /** `adopt` takes over the clock of each star (SlowMotionService); without it the browser runs them. */
+  constructor(
+    private readonly host: HTMLElement,
+    private readonly count = SPARKLE_COUNT,
+    private readonly rnd: () => number = Math.random,
+    private readonly adopt?: (anim: Animation) => void,
+  ) {
     this.fill();
   }
 
@@ -41,7 +47,7 @@ export class StarSparkle {
   resume(): void {
     if (this.stopped || !this.paused) return;
     this.paused = false;
-    for (const a of this.running) a.play();
+    if (!this.adopt) for (const a of this.running) a.play();
     this.fill();
   }
 
@@ -79,6 +85,7 @@ export class StarSparkle {
       [{ opacity: 0, transform: 'scale(0.5)' }, { opacity: peak, transform: 'scale(1.1)' }, { opacity: 0, transform: 'scale(0.5)' }],
       { duration: DURATION_MIN_MS + this.rnd() * DURATION_SPAN_MS, easing: 'ease-in-out' },
     );
+    this.adopt?.(anim);
     this.running.add(anim);
     const done = () => {
       this.running.delete(anim);

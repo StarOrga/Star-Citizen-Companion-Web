@@ -409,6 +409,31 @@ without focus, where it does not run at all.
 - Never many gradient layers for a static picture: use one image.
 - An animation under `opacity: 0` still costs its frames.
 
-**Left.** `fs-demo` animates `clip-path` on the main thread. About 75 of the load at rest
-remain with no animation and no canvas at all in headless Edge; that remainder was not
-taken apart.
+**The remainder: frames, not layers.** With every animation frozen and only the planet
+and the moons at 15 Hz, /verse costs 35. With nothing but the three 5 px stars running
+and no planet, it costs 68. Filters, `backdrop-filter`, blend modes and `will-change` make
+no measurable difference. One running animation of any size makes the browser produce and
+draw whole frames at the display's rate, so the load follows from how often anything moves.
+Pausing one group at a time shows almost nothing (fb-breathe, the sun's parts: 0 to 5),
+because the others keep the same frames alive; "about 75 with nothing animated" above was
+wrong, the earlier test had left the stars and transitions running.
+
+`SlowMotionService` therefore advances the endless animations of the scene, the fusion bar
+and the briefing at 15 Hz by hand, and the stars with them. `fs-demo` runs three loops and
+then stands.
+
+| | Before | After section 7 | With the 15 Hz clock |
+|---|---|---|---|
+| /verse at rest | 199 | 128 | 86 |
+| /verse without window focus | 204 | 38 | 39 |
+| Scrolling | 213 | 226 | 164 |
+| Frame gap after a menu click, average of all hops | 1313 ms | not comparable | 146 ms |
+
+The "before" column here is the same build as above, measured again in the later run; 188
+to 199 at rest shows the spread between runs. A menu hop now usually takes about 100 ms;
+one of twelve took 511 ms. With everything frozen 35 is the floor of the 15 Hz canvases, and
+the three clocks (planet, moons, animations) do not tick in step, so up to 45 frames a
+second remain. Aligning them is the next lever, unmeasured.
+
+**Rule.** No endless animation runs at display rate on a page that is meant to stand: put
+it inside the scope of `SlowMotionService`, or give it an end.
