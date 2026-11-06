@@ -48,6 +48,21 @@ Baseline fixes, reversible and not contested:
 - Where to buy also lives in the details drawer; the search CTA "Bezugsquelle" opens it there.
 - Pins and the inspector list name the gun, not its mount.
 
+## Decided in T round 1 (2026-11-06), not built yet
+
+Layout: the Pult is the favourite (model left, one panel right with tabs); Werkbank and Bühne are out. Scope until it is final: the first screen without scrolling, always fitting vertically, inside the subheader's width. The lower part follows afterwards.
+
+- Hover does not dim; a click shows the hull see-through. A click opens the panel and holds; Ctrl and middle click open the Codex page.
+- Dots: swappable parts by default; a toggle in the chip row shows all parts.
+- Wheel scrolls the page, Ctrl zooms.
+- No Einsatz bar anywhere; the strip picks. Start Einsatz follows the career (owner did not touch this, recommendation stands).
+- Compare with the same role first. Percent reads "Besser als N %", once per value, not in the strip.
+- Bergbau and Bergung say honestly that the data is missing. Short arrival on a hull change. Phone starts on Einfach, may open 3D fullscreen in landscape. Details drawer opens from the panel.
+- Lists under the model go; the panel list takes over their grouped chip look.
+- Callouts sit left or right of the model, never over it; only line and marker touch it. Same width and height: name, three top values, icon button to swap. The panel adds more values and a preview of the part's detail page with a real link.
+- The strip is always on the first screen and sticks to the bottom edge when scrolling.
+- The Einordnung with its hexagon lives in the panel and follows the Einsatz. The page shows the Einsatz subtly; Alles stays app blue, others get a quiet hue plus a symbol, never red or the warning colour.
+
 ## Rejected, do not re-propose without saying so
 
 - Compare button on the ship page ("eher auf der Landing ... Richtung Simulation"). (S hv-s2)
