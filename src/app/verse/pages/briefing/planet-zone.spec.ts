@@ -365,6 +365,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   }));
 
   it('spells the app name in letter spans for the entrance, exposes it once, then shows the story as plain text', fakeAsync(() => {
+    localStorage.removeItem(INTRO_FLAG);
     // The shell announces the entrance at boot when the page opens on the hub.
     TestBed.inject(ShellChromeService).holdHeroIntro();
     const fixture = TestBed.createComponent(VerseBriefingComponent);
