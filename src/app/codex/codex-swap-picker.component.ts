@@ -1,4 +1,5 @@
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { searchMatcher } from './codex-search';
 import { logWarn } from '../core/log';
 import {
@@ -175,7 +176,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
+  imports: [ItemPathComponent, TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
@@ -363,6 +364,12 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                             </span>
                             <span class="pick-meta">{{ metaLine(c) }}</span>
                           </span>
+                          @if (c.kind && c.className) {
+                            <!-- Tertiary path; a click here must not equip the row. -->
+                            <span class="pick-path" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                              <sc-item-path [kind]="c.kind" [className]="c.className" [name]="c.name" />
+                            </span>
+                          }
                           @if (shell()) {
                             <!-- Real anchor to the item's own page; the row click equips. -->
                             <a class="pick-detail" [routerLink]="['/codex', c.kind, c.className]"
@@ -583,6 +590,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-row.cur td.c-name { background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
 
     td.c-name { padding: 4px 5px; }
+    .pick-path { display: inline-flex; margin-inline-start: auto; }
     .pick-detail { position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center;
       min-width: 28px; min-height: max(28px, var(--sc-tap-min)); border-radius: 6px; color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); text-decoration: none; }

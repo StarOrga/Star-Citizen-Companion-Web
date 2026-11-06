@@ -1000,6 +1000,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
                   [options]="skinPickerOptions()" [current]="currentLivery()" />
               }
+              <sc-item-path kind="ship" [className]="detail()!.classNameSlug" [name]="displayName()" />
               <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
               <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
               <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
