@@ -19,6 +19,10 @@ export interface SearchChipFilter {
   groups?: SearchGroupId[];
   /** Only these kinds of the own-data group. */
   ownKinds?: OwnRowType[];
+  /** Only hits on the reader's wishlist ("gemerkt"). */
+  wished?: boolean;
+  /** Only hits that are open in Nachschub ("fehlt mir"). */
+  needed?: boolean;
   size?: number;
   grade?: string;
   /**
@@ -26,6 +30,8 @@ export interface SearchChipFilter {
    * catalog groups still follow with their HQ CTAs. Orders, never filters (concept t-s2).
    */
   ownFirst?: boolean;
+  /** The typed word "lager" / "inventar": the reader's own data ONLY, no catalog, patch, gallery or mission group. */
+  ownOnly?: boolean;
   /** "Passt auf X": the page names a ship / weapon / item the rows are checked against (B5). */
   compatWith?: { kind: 'ship' | 'weapon' | 'component' | 'item'; className: string };
 }
@@ -88,7 +94,7 @@ export type SearchCtaId =
   | 'compareWith'
   | 'compare'
   | 'inSet'
-  | 'materialToSupply'
+  | 'toMission'
   | 'atRsi'
   | 'allProducts'
   | 'add'

@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { By } from '@angular/platform-browser';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
@@ -147,7 +149,7 @@ describe('CodexSwapPickerComponent', () => {
     svc = new ServiceStub();
     await TestBed.configureTestingModule({
       imports: [CodexSwapPickerComponent],
-      providers: [provideTranslateService({}), { provide: CodexService, useValue: withBuild(svc) }, MISSING_SWAP_RPC],
+      providers: [{ provide: ItemPathService, useValue: fakeItemPath() }, provideTranslateService({}), { provide: CodexService, useValue: withBuild(svc) }, MISSING_SWAP_RPC],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexSwapPickerComponent);
   });
@@ -637,7 +639,7 @@ describe('CodexSwapPickerComponent — part-type filter (E-main-gap #40, MEDIUM-
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [CodexSwapPickerComponent],
-      providers: [provideTranslateService({}), { provide: CodexService, useValue: withBuild(stub) }, MISSING_SWAP_RPC],
+      providers: [{ provide: ItemPathService, useValue: fakeItemPath() }, provideTranslateService({}), { provide: CodexService, useValue: withBuild(stub) }, MISSING_SWAP_RPC],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexSwapPickerComponent);
   }

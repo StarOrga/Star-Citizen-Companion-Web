@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { UpcomingShip, UpcomingShipsService } from '../codex/upcoming-ships.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
 
 /** How many ship names the notice spells out before collapsing into "+N more". */
 const NAME_LIMIT = 6;
@@ -40,8 +41,8 @@ const NAME_LIMIT = 6;
           </p>
           <ul class="ships">
             @for (ship of addedShown(); track ship.id) {
-              <li class="ship" [class.fav]="isFavorite(ship)">
-                @if (isFavorite(ship)) { <span class="star" aria-hidden="true">★</span> }
+              <li class="ship" [class.wish]="isWished(ship)">
+                @if (isWished(ship)) { <svg class="sc-action-icon is-filled" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="wishPath" /></svg> }
                 <span class="nm">{{ ship.name }}</span>
               </li>
             }
@@ -51,14 +52,14 @@ const NAME_LIMIT = 6;
           </ul>
         }
 
-        @if (favoriteUpdates().length > 0) {
+        @if (wishedUpdates().length > 0) {
           <p class="line">
-            <strong>{{ 'news.upcomingShips.favoritesUpdated' | translate: { count: favoriteUpdates().length } }}</strong>
+            <strong>{{ 'news.upcomingShips.wishedUpdated' | translate: { count: wishedUpdates().length } }}</strong>
           </p>
           <ul class="ships">
-            @for (ship of favoriteUpdates(); track ship.id) {
-              <li class="ship fav">
-                <span class="star" aria-hidden="true">★</span>
+            @for (ship of wishedUpdates(); track ship.id) {
+              <li class="ship wish">
+                <svg class="sc-action-icon is-filled" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="wishPath" /></svg>
                 <span class="nm">{{ ship.name }}</span>
                 @if (ship.productionStatus) { <span class="st">{{ statusLabel(ship) | translate }}</span> }
               </li>
@@ -84,8 +85,9 @@ const NAME_LIMIT = 6;
     .ships { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
     .ship { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: var(--sc-bg-2); font-size: max(0.75rem, var(--sc-fs-floor)); }
-    .ship.fav { border-color: color-mix(in srgb, var(--sc-accent) 44%, transparent); }
-    .ship .star { color: var(--sc-accent); }
+    .ship.wish { border-color: color-mix(in srgb, var(--sc-accent) 44%, transparent); }
+    .ship .sc-action-icon { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .ship .sc-action-icon.is-filled { fill: color-mix(in srgb, var(--sc-accent) 28%, transparent); }
     .ship .st { color: var(--sc-fg-2); font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.04em; }
     .ship.more { color: var(--sc-fg-2); background: transparent; border-style: dashed; }
     .cta { align-self: flex-start; margin-top: 2px; color: var(--sc-accent); text-decoration: none;
@@ -97,7 +99,8 @@ export class UpcomingShipsNoticeComponent implements OnInit {
   private readonly svc = inject(UpcomingShipsService);
 
   readonly added = computed(() => this.svc.diff().added);
-  readonly favoriteUpdates = computed(() => this.svc.diff().favoriteUpdates);
+  readonly wishedUpdates = computed(() => this.svc.diff().wishedUpdates);
+  protected readonly wishPath = PATH_ICONS.wish[0];
   readonly count = this.svc.notificationCount;
 
   readonly addedShown = computed(() => this.added().slice(0, NAME_LIMIT));
@@ -108,8 +111,8 @@ export class UpcomingShipsNoticeComponent implements OnInit {
     if (!this.svc.feed()) void this.svc.refresh(true);
   }
 
-  isFavorite(ship: UpcomingShip): boolean {
-    return this.svc.isFavorite(ship.id);
+  isWished(ship: UpcomingShip): boolean {
+    return this.svc.isWished(ship.id);
   }
 
   dismiss(): void {

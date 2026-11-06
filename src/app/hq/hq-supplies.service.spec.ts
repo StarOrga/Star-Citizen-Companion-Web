@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../auth/auth.service';
+import { setNumberLocale } from '../codex/codex-format';
 import { FakeCall, FakeResult, chainArgs, fakeSupabase } from '../testing/fake-supabase';
 import type { HqSupplyRow } from './data/hq-db.types';
 import {
@@ -10,6 +11,7 @@ import {
   SUPPLIES_STORAGE_KEY,
   SUPPLY_QTY_MAX,
   suppliesCacheKey,
+  supplyQtyText,
 } from './hq-supplies.service';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 
@@ -311,6 +313,101 @@ describe('HqSuppliesService', () => {
       s.add('B', 1, { className: 'X', setKind: 'fps', setId: 'f1', wanted: true });
       const id = s.tickByClassName('x', 1);
       expect(s.items().find((i) => i.id === id)?.name).toBe('B');
+    });
+  });
+
+  describe('exact amounts (SCU) and the blueprint link', () => {
+    it('keeps 0.36 SCU exact, scales it with the portions and never rounds it', () => {
+      const s = make();
+      s.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X', className: 'Agricium' });
+      const l = s.items()[0];
+      expect([l.qty, l.amount, l.unit, l.forClassName]).toEqual([1, 0.36, 'scu', 'BP_X']);
+      s.setQty(l.id, 3);
+      expect(s.items()[0].amount).toBe(1.08);
+      s.setQty(l.id, 1);
+      expect(s.items()[0].amount).toBe(0.36);
+    });
+
+    it('adds the same material of the same blueprint up in SCU, keeps another blueprint and a pieces line apart', () => {
+      const s = make();
+      s.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X' });
+      s.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X' });
+      s.addLine('Agricium', 1, { amount: 0.5, unit: 'scu', forClassName: 'BP_Y' });
+      s.addLine('Agricium', 2);
+      expect(s.items().map((i) => [i.qty, i.amount, i.forClassName])).toEqual([
+        [2, 0.72, 'BP_X'],
+        [1, 0.5, 'BP_Y'],
+        [2, null, null],
+      ]);
+      expect(s.openLinesForBlueprint('bp_x').length).toBe(1);
+    });
+
+    it('shows the amount locale-aware: 0,36 SCU in German, 0.36 SCU in English', () => {
+      const s = make();
+      s.addLine('Agricium', 1, { amount: 0.36, unit: 'scu' });
+      try {
+        setNumberLocale('de-DE');
+        expect(supplyQtyText(s.items()[0])).toBe('0,36 SCU');
+        setNumberLocale('en-US');
+        expect(supplyQtyText(s.items()[0])).toBe('0.36 SCU');
+      } finally {
+        setNumberLocale(null);
+      }
+      s.add('Shield', 2);
+      expect(supplyQtyText(s.items()[1])).toBe('2');
+    });
+
+    it('restore() brings a removed line back', () => {
+      const s = make();
+      s.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X' });
+      const id = s.items()[0].id;
+      s.remove(id);
+      expect(s.items().length).toBe(0);
+      s.restore(id);
+      expect(s.items()[0].amount).toBe(0.36);
+    });
+
+    it('pushes the new columns only on lines that have them (rows without them write what they always did)', async () => {
+      const s = make();
+      await s.sync();
+      s.add('Shield', 2);
+      s.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X' });
+      fake.calls.length = 0;
+      await s.sync();
+      const sent = chainArgs(fake.calls.find((c) => c.target === 'hq_supplies' && chainArgs(c, 'upsert'))!, 'upsert')![0] as Record<string, unknown>[];
+      const shield = sent.find((r) => r['name'] === 'Shield')!;
+      const agri = sent.find((r) => r['name'] === 'Agricium')!;
+      expect('amount' in shield || 'unit' in shield || 'for_class_name' in shield).toBeFalse();
+      expect([agri['amount'], agri['unit'], agri['for_class_name']]).toEqual([0.36, 'scu', 'BP_X']);
+    });
+
+    it('reads the columns back from the server (numeric may arrive as a string) and tolerates rows without them', async () => {
+      server = [
+        serverRow('a', { amount: 0.36, unit: 'scu', for_class_name: 'BP_X' }),
+        serverRow('b', { amount: '1.5' as unknown as number, unit: 'scu' }),
+        serverRow('c'),
+        serverRow('d', { amount: 4, unit: 'pcs' }),
+      ];
+      const s = make();
+      await s.sync();
+      const by = (id: string) => s.items().find((i) => i.id === id)!;
+      expect([by('a').amount, by('a').unit, by('a').forClassName]).toEqual([0.36, 'scu', 'BP_X']);
+      expect(by('b').amount).toBe(1.5);
+      expect([by('c').amount, by('c').unit, by('c').forClassName]).toEqual([null, null, null]);
+      expect(by('d').amount).toBeNull();
+    });
+
+    it('the signed-out list and its import into an account keep amount, unit and blueprint link', async () => {
+      const s0 = make(false);
+      s0.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X', className: 'Agricium' });
+      const stored = JSON.parse(localStorage.getItem(SUPPLIES_STORAGE_KEY)!);
+      expect([stored[0].amount, stored[0].unit, stored[0].forClassName]).toEqual([0.36, 'scu', 'BP_X']);
+      const s = make();
+      await flush();
+      await s.sync();
+      expect(confirmCalls).toBe(1);
+      expect(server.map((r) => [r.name, r.amount, r.unit, r.for_class_name])).toEqual([['Agricium', 0.36, 'scu', 'BP_X']]);
+      expect(s.items()[0].amount).toBe(0.36);
     });
   });
 });

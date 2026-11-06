@@ -55,6 +55,28 @@ describe('parseMissions', () => {
     assert.equal(rows[0].giver_name, null);
   });
 
+  it('takes a career contract that awards a blueprint, with the reward list in the payload', () => {
+    const [row] = parseMissions([{
+      className: 'contract_Foxwell_Patrol_Easy',
+      guid: 'c1ba4b80-96ff-ae15-d5a3-64786eb06582',
+      title: { en: 'Routine Patrol', de: '' },
+      titleClean: { en: 'Routine Patrol', de: null },
+      type: { className: 'Mercenary', name: { en: 'Mercenary', de: 'Söldner' } },
+      giver: { name: { en: 'Foxwell' }, className: null },
+      location: { className: 'StantonStar', name: { en: 'Stanton' }, locality: null },
+      reward: null,
+      lawful: true,
+      category: 'contract/foxwellenforcement_patrol',
+      blueprintRewards: [{ pool: 'BP_MISSIONREWARD_FoxwellEnforcement_Patrol', chance: 1, blueprints: ['BP_CRAFT_A'] }],
+    }], B);
+    assert.equal(row.class_name, 'contract_Foxwell_Patrol_Easy');
+    assert.equal(row.title, 'Routine Patrol');
+    assert.equal(row.giver_name, 'Foxwell');
+    assert.equal(row.location_name, 'Stanton');
+    assert.equal(row.reward_amount, null);
+    assert.equal(row.payload.blueprintRewards[0].blueprints[0], 'BP_CRAFT_A');
+  });
+
   it('is empty for junk input and dedupes class names', () => {
     assert.deepEqual(parseMissions(null, B), []);
     assert.equal(parseMissions([body, body], B).length, 1);

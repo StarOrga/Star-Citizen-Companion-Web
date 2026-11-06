@@ -11,6 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { NgTemplateOutlet } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
@@ -307,7 +308,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [FeedbackSpotDirective, TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
+  imports: [ItemPathComponent, FeedbackSpotDirective, TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.calm]': 'calm()' },
   template: `
@@ -584,6 +585,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                        so — a thruster is as worth reading as a gun. The swap
                        action stays on the rows that actually have a choice. -->
                   @if (row.slot.className) {
+                    @if (row.slot.kind) {
+                      <sc-item-path [kind]="row.slot.kind" [className]="row.slot.className" [name]="row.slot.name" />
+                    }
                     <button type="button" class="slot-swap" (click)="inspectRow(row)"
                             [attr.aria-label]="'codex.inspect.openStats' | translate"
                             [scTooltip]="'codex.inspect.openStats' | translate" scTooltipTier="label">ⓘ</button>
@@ -679,6 +683,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                  before (feedback dbdb2ffe: *"von den Waffen
                                  fehlt es komplett"*) — the mount's ⓘ describes
                                  the mount, which is not the thing that shoots. -->
+                            @if (kid.kind) {
+                              <sc-item-path [kind]="kid.kind" [className]="kid.className" [name]="kid.name" />
+                            }
                             <button type="button" class="slot-swap kid-swap" (click)="inspectChild(row, kid)"
                                     [attr.aria-label]="'codex.inspect.openStats' | translate"
                                     [scTooltip]="'codex.inspect.openStats' | translate" scTooltipTier="label">ⓘ</button>

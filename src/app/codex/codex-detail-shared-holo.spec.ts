@@ -1,6 +1,8 @@
 // #646 — a shared link (`?shared=`) and an own config (`?config=`) on the
 // Holotable, on the real page with the same Nomad fixture/stub shape as
 // codex-detail-holo-toggle.spec.ts.
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, flush, flushMicrotasks } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -177,6 +179,7 @@ function setup(
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       provideTranslateService({}),
       { provide: CodexService, useValue: makeCodexServiceStub() },
       {

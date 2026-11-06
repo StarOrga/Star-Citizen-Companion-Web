@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -64,7 +65,7 @@ export interface GearSlotRow {
 @Component({
   selector: 'sc-codex-set-gear',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ItemPathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="gear" aria-labelledby="set-gear-title">
@@ -106,6 +107,9 @@ export interface GearSlotRow {
                 @let dl = detailLink(r.kind, r.className);
                 <a class="gear-detail" [routerLink]="dl.commands" [queryParams]="dl.queryParams"
                    [attr.aria-label]="'hq.locker.detailsAria' | translate: { name: r.name }">{{ 'hq.locker.details' | translate }}</a>
+              }
+              @if (r.className && r.kind) {
+                <sc-item-path [kind]="r.kind" [className]="r.className" [name]="r.name" />
               }
               @if (r.className) {
                 <!-- One write at a time: every clear waits while one is in flight. -->

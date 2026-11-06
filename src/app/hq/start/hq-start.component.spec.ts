@@ -121,7 +121,7 @@ describe('HqStartTilesComponent', () => {
 
   it('each tile is one real anchor to its page, never nesting an own target', async () => {
     const { el, tile } = await mount({ ships: 0, upcoming: [einsatz('e1', 'Bounty v3', [step('S3')])] });
-    expect(tile('bestand').querySelector('a.stretch')?.getAttribute('href')).toBe('/hq#bestand');
+    expect(tile('bestand').querySelector('a.stretch')?.getAttribute('href')).toBe('/hq#inventar');
     expect(tile('jetzt').querySelector('a.stretch')?.getAttribute('href')).toBe('/hq#jetzt');
     expect(tile('planen').querySelector('a.stretch')?.getAttribute('href')).toBe('/hq#planen');
     expect(el.querySelector('a a')).toBeNull();

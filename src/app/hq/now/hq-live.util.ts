@@ -106,3 +106,12 @@ export function dayKey(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/**
+ * A stored place as the reader sees it. The DB stores the literal `Bei mir` (PLACE_WITH_ME); in EN
+ * it displays as `With me`. Everything else goes through {@link formatLocationName}.
+ */
+export function placeLabel(name: string, lang: string | null | undefined): string {
+  if (name.trim() === 'Bei mir' && (lang ?? '').toLowerCase().startsWith('en')) return 'With me';
+  return formatLocationName(name);
+}

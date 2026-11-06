@@ -8,6 +8,7 @@ import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { FriendsService } from './friends.service';
 import { humanizeClassName } from '../codex/codex-format';
 import { REPORT_CATEGORIES, REPORT_REASON_MAX, ReportCategory, edgeLabel, isValidReportReason } from './friends.types';
@@ -26,7 +27,7 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
 @Component({
   selector: 'sc-social-friend',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, RouterLink, PageHeaderComponent, SocialCompareComponent, ScTooltipDirective, NgTemplateOutlet, ScSelectComponent],
+  imports: [TranslatePipe, ScDatePipe, RouterLink, PageHeaderComponent, SocialCompareComponent, ScTooltipDirective, NgTemplateOutlet, ScSelectComponent, ItemPathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -141,6 +142,7 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
                       <span>{{ s.custom_name || pretty(s.ship_class_name) }}</span>
                       @if (s.custom_name) { <span class="hint">{{ pretty(s.ship_class_name) }}</span> }
                       @if (s.status === 'wishlist') { <span class="tag">{{ 'social.friendPage.wishlist' | translate }}</span> }
+                      <sc-item-path class="path" kind="ship" [className]="s.ship_class_name" [name]="pretty(s.ship_class_name)" />
                     </li>
                   }
                 </ul>
@@ -156,7 +158,7 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
     <ng-template #sharedList let-s="s">
       <ul class="shared">
         @for (l of s.loadouts; track l.share_id) { <li><span class="kind">{{ 'social.friendPage.kindSet' | translate }}</span> {{ l.name }}</li> }
-        @for (c of s.ship_configs; track c.share_id) { <li><span class="kind">{{ 'social.friendPage.kindVariant' | translate }}</span> {{ c.name }}</li> }
+        @for (c of s.ship_configs; track c.share_id) { <li><span class="kind">{{ 'social.friendPage.kindVariant' | translate }}</span> {{ c.name }}<sc-item-path class="path" kind="ship" [className]="c.ship_class_name" [name]="pretty(c.ship_class_name)" /></li> }
         @for (e of s.einsaetze; track e.einsatz_id) { <li><span class="kind">{{ 'social.friendPage.kindEinsatz' | translate }}</span> {{ e.title }}</li> }
       </ul>
     </ng-template>
@@ -188,6 +190,7 @@ type View = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error'; key: st
       color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--sc-font-display);
     }
     .tag { color: var(--sc-warning); }
+    .path { margin-inline-start: auto; }
     .flagship { margin: 0 0 6px; }
     @media (pointer: coarse) { .actions .sc-btn { min-height: 48px; } }
   `],

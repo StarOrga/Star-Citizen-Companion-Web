@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { signal } from '@angular/core';
 import type { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
-import { SearchWishlistService } from '../search/search-wishlist.service';
-import { SearchRowActionsService } from '../../shell/fusion-bar/search-row-actions.service';
+import { ItemPathService } from '../../hq/data/item-path.service';
+import { fakeItemPath, fakeSignIn } from '../../shared/item-path/item-path.testing';
+import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
 import { CodexService } from '../codex.service';
 import { CodexHoloInspectorComponent, partFocusOf } from './codex-holo-inspector.component';
 import type { PinGroup, StagePin } from './codex-holo-model';
@@ -70,18 +70,15 @@ const GROUPS: PinGroup[] = [
 ];
 
 describe('CodexHoloInspectorComponent', () => {
-  const icon = jasmine.createSpy('icon');
 
   function setup(inputs: Record<string, unknown> = {}): ComponentFixture<CodexHoloInspectorComponent> {
-    icon.calls.reset();
-    icon.and.resolveTo({ key: 'search.done.wishlistOn', params: { name: 'x' } });
     TestBed.configureTestingModule({
       imports: [CodexHoloInspectorComponent],
       providers: [
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
-        { provide: SearchRowActionsService, useValue: { icon, isWished: () => false } },
-        { provide: SearchWishlistService, useValue: { ensureLoaded: () => undefined, keys: signal(new Set()) } },
+        { provide: ItemPathService, useValue: fakeItemPath() },
+        { provide: SignInAskService, useValue: fakeSignIn() },
       ],
     });
     const fixture = TestBed.createComponent(CodexHoloInspectorComponent);
@@ -186,16 +183,13 @@ describe('CodexHoloInspectorComponent', () => {
       expect(paths).toEqual([['a.b']]);
     });
 
-    it('offers the three standard icons in the search order and runs them through its service', async () => {
+    it('carries the path control with its stops, and writes through it', async () => {
       const f = setup({ target: target() });
-      const labels = Array.from(root(f).querySelectorAll('.act button span')).map((s) => s.textContent);
-      expect(labels).toEqual(['codex.holo.stage.iconWishlist', 'codex.holo.stage.iconSupply', 'codex.holo.stage.iconStock']);
-      (root(f).querySelector('.act button') as HTMLButtonElement).click();
+      const nodes = Array.from(root(f).querySelectorAll<HTMLButtonElement>('.act sc-item-path .node'));
+      expect(nodes.map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+      nodes[0].click();
       await new Promise((r) => setTimeout(r));
-      expect(icon).toHaveBeenCalledTimes(1);
-      expect(icon.calls.first().args[0]).toBe('wishlist');
-      f.detectChanges();
-      expect(root(f).querySelector('.act-status')!.textContent).toContain('search.done.wishlistOn');
+      expect(TestBed.inject(ItemPathService).addWish).toHaveBeenCalledTimes(1);
     });
 
     it('previews the detail page with a real anchor, a missing line reads as a dash', () => {

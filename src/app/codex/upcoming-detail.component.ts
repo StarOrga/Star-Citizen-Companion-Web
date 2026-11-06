@@ -13,7 +13,8 @@ import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { BetaService } from '../core/beta.service';
-import { HangarService } from '../hangar/hangar.service';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { pathLevelFor } from './path-level.util';
 import { OverlayFrameComponent } from '../shared/overlay-frame/overlay-frame.component';
 import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import {
@@ -32,7 +33,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
  * Why this exists (feedback #130): every "Auf dem Reißbrett" tile used to be a
  * one-way door out of the app, straight onto robertsspaceindustries.com. The
  * Codex now gets first refusal: the tile lands here, this page shows everything
- * the RSI ship-matrix told us, offers "für die Flotte merken", and keeps the
+ * the RSI ship-matrix told us, offers the wishlist path (`sc-item-path`, only the wish stop), and keeps the
  * RSI pledge page as a clearly labelled SECONDARY link rather than the only
  * destination.
  *
@@ -40,13 +41,13 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
  * our datamined `codex_ships` has no row for — the honest page says so instead
  * of faking hardpoints and stats.
  *
- * "Merken" writes to `hangar_concept_ships` (the existing #135 wishlist), whose
- * only handle on a catalog-less hull is the NAME. No new table, no new schema.
+ * The wish is written to the one wishlist, whose only handle on a catalog-less hull
+ * is the NAME. No second store.
  */
 @Component({
   selector: 'sc-upcoming-detail',
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, ItemPathComponent, 
     NgTemplateOutlet,
     OverlayFrameComponent,
     NeuroFieldDirective,
@@ -99,17 +100,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
             <p class="notice">{{ noticeKey() | translate }}</p>
 
             <div class="actions">
-              <button
-                type="button"
-                class="sc-btn watch"
-                [class.sc-btn-primary]="!watched()"
-                [disabled]="watchPending()"
-                [attr.aria-pressed]="watched()"
-                (click)="toggleWatch()"
-              >
-                <span class="watch-glyph" aria-hidden="true">{{ watched() ? '★' : '☆' }}</span>
-                {{ (watched() ? 'codex.upcomingDetail.watch.on' : 'codex.upcomingDetail.watch.off') | translate }}
-              </button>
+              <sc-item-path kind="upcoming" [className]="s.id" [name]="s.name" [level]="pathLevel()" />
 
               @if (s.rsiUrl) {
                 <!-- Secondary, never the primary destination any more (#130). -->
@@ -120,17 +111,6 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
               }
             </div>
 
-            <p class="watch-hint">
-              @if (watched()) {
-                <a class="hangar-link" routerLink="/hq/hangar">{{ 'codex.upcomingDetail.watch.inHangar' | translate }}</a>
-              } @else {
-                {{ 'codex.upcomingDetail.watch.hint' | translate }}
-              }
-            </p>
-
-            @if (hangar.error(); as err) {
-              <p class="err" role="alert">{{ err | translate }}</p>
-            }
           </div>
         </article>
 
@@ -202,10 +182,6 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
     .actions .sc-btn { cursor: pointer; text-decoration: none; }
     .actions .ghost { color: var(--sc-fg-1); border-color: var(--sc-border); }
     .actions .ghost:hover { background: var(--sc-bg-2); color: var(--sc-fg-0); box-shadow: none; }
-    .watch-glyph { font-size: 1rem; line-height: 1; }
-    .watch-hint { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .hangar-link { color: var(--sc-accent); text-decoration: none; }
-    .hangar-link:hover { text-decoration: underline; }
 
 
 
@@ -246,10 +222,9 @@ export class UpcomingDetailComponent implements OnInit {
   roleLabel(value: string | null): string {
     return upcomingRoleLabel(value, (k) => this.translate.instant(k));
   }
-  readonly hangar = inject(HangarService);
+  protected readonly pathLevel = computed(() => pathLevelFor(this.navOrigin));
 
   readonly loading = signal(true);
-  readonly watchPending = signal(false);
   readonly retrying = signal(false);
   /** The feed failed and holds no ships: an error with a retry, never the not-found page. */
   readonly feedError = computed(() => (this.rsi.feed() ? null : this.rsi.error()));
@@ -279,10 +254,6 @@ export class UpcomingDetailComponent implements OnInit {
       ? 'codex.upcomingDetail.notice.concept'
       : 'codex.upcomingDetail.notice.flightReady',
   );
-
-  /** The wishlist row for this hull, or null — drives the toggle's two states. */
-  readonly watchEntry = computed(() => this.hangar.conceptShipByName(this.ship()?.name));
-  readonly watched = computed(() => this.watchEntry() !== null);
 
   readonly facts = computed(() => {
     const s = this.ship();
@@ -317,34 +288,7 @@ export class UpcomingDetailComponent implements OnInit {
     this.shipId.set(this.route.snapshot.paramMap.get('id') ?? '');
     // Both are best-effort by contract: a dead RSI proxy renders the not-found
     // state, an unreadable wishlist renders "not watched". Neither throws here.
-    await Promise.all([this.rsi.ensureLoaded(), this.hangar.ensureConceptShipsLoaded()]);
+    await this.rsi.ensureLoaded();
     this.loading.set(false);
-  }
-
-  /**
-   * Add/remove this hull on the fleet wishlist. Guarded against a double click
-   * because both directions are a round trip and the button reflects server
-   * state, not an optimistic guess.
-   */
-  async toggleWatch(): Promise<void> {
-    const s = this.ship();
-    if (!s || this.watchPending()) return;
-    this.watchPending.set(true);
-    try {
-      const entry = this.watchEntry();
-      if (entry) {
-        await this.hangar.removeConceptShip(entry.id);
-      } else {
-        await this.hangar.addConceptShip({
-          name: s.name,
-          manufacturer: s.manufacturer ?? undefined,
-          // Stripped to null by the pledge-link allowlist unless it is an
-          // official /pledge/ships/<slug>/<Name> url — see rsi-pledge-link.util.
-          rsiUrl: s.rsiUrl ?? undefined,
-        });
-      }
-    } finally {
-      this.watchPending.set(false);
-    }
   }
 }

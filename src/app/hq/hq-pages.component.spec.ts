@@ -34,15 +34,21 @@ function baseProviders(shell: boolean) {
 
 describe('hq-routes page helpers', () => {
   it('lists the five pages in scroll order and builds anchors', () => {
-    expect([...HQ_PAGES]).toEqual(['start', 'bestand', 'jetzt', 'planen', 'statistik']);
+    expect([...HQ_PAGES]).toEqual(['start', 'inventar', 'jetzt', 'planen', 'statistik']);
     expect(hqPageHref('start')).toBe('/hq');
     expect(hqPageHref('jetzt')).toBe('/hq#jetzt');
     expect(hqPage('planen')).toEqual({ commands: ['/hq'], fragment: 'planen' });
     expect(hqPage('start').fragment).toBeUndefined();
-    expect(hqPageOfFragment('bestand')).toBe('bestand');
+    expect(hqPageOfFragment('inventar')).toBe('inventar');
     expect(hqPageOfFragment('#statistik')).toBe('statistik');
     expect(hqPageOfFragment('nope')).toBeNull();
     expect(hqPageOfFragment(null)).toBeNull();
+  });
+
+  it('keeps the old #bestand fragment working as an alias of the Inventar page', () => {
+    expect(hqPageOfFragment('bestand')).toBe('inventar');
+    expect(hqPageOfFragment('#bestand')).toBe('inventar');
+    expect(hqPageHref('inventar')).toBe('/hq#inventar');
   });
 });
 
@@ -84,7 +90,7 @@ describe('HqPagesComponent', () => {
   it('renders five sections with the page ids and exactly one h1', () => {
     const el: HTMLElement = mount().nativeElement;
     const ids = Array.from(el.querySelectorAll('section.page')).map((s) => s.id);
-    expect(ids).toEqual(['start', 'bestand', 'jetzt', 'planen', 'statistik']);
+    expect(ids).toEqual(['start', 'inventar', 'jetzt', 'planen', 'statistik']);
     expect(el.querySelectorAll('h1').length).toBe(1);
     expect(el.querySelector('sc-hq-plan')).not.toBeNull();
     expect(el.querySelector('sc-hq-now')).not.toBeNull();
@@ -103,7 +109,7 @@ describe('HqPagesComponent', () => {
   it('the rail is five real anchors and marks the current page', () => {
     const f = mount();
     const links = Array.from((f.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('sc-hq-rail a'));
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/hq', '/hq#bestand', '/hq#jetzt', '/hq#planen', '/hq#statistik']);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/hq', '/hq#inventar', '/hq#jetzt', '/hq#planen', '/hq#statistik']);
     expect(links.map((a) => a.getAttribute('aria-current'))).toEqual(['page', null, null, null, null]);
     TestBed.inject(ShellChromeService).setHqPage('jetzt');
     f.detectChanges();
@@ -115,7 +121,7 @@ describe('HqPagesComponent', () => {
     const f = mount();
     const location = TestBed.inject(Location);
     const go = spyOn(location, 'go').and.callThrough();
-    const link = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('sc-hq-rail a[href="/hq#bestand"]')!;
+    const link = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('sc-hq-rail a[href="/hq#inventar"]')!;
     // A listener registered after the component's own sees whether it already took the click;
     // it then cancels the click so the browser never opens a real tab in the Karma page.
     let preventedByComponent: boolean | null = null;
@@ -130,13 +136,13 @@ describe('HqPagesComponent', () => {
     link.dispatchEvent(plain);
     expect(plain.defaultPrevented).toBeTrue();
     expect(go).toHaveBeenCalledTimes(1);
-    expect(go.calls.mostRecent().args[0]).toContain('#bestand');
+    expect(go.calls.mostRecent().args[0]).toContain('#inventar');
   });
 
   it('the cue leads to Bestand, the page after Start, as a real anchor', () => {
     const el: HTMLElement = mount().nativeElement;
     const cue = el.querySelector<HTMLAnchorElement>('sc-hq-cue a.more-cue')!;
-    expect(cue.getAttribute('href')).toBe('/hq#bestand');
+    expect(cue.getAttribute('href')).toBe('/hq#inventar');
   });
 
   it('a hotkey moves the rail and the cue along with the page', () => {
@@ -172,7 +178,7 @@ describe('HqPagesComponent', () => {
     history.replaceState(history.state, '', '?einsatz=e1&x=1');
     try {
       expect(url.urlFor('planen')).toBe('/hq?einsatz=e1&x=1#planen');
-      expect(url.urlFor('bestand')).toBe('/hq?x=1#bestand');
+      expect(url.urlFor('inventar')).toBe('/hq?x=1#inventar');
       history.replaceState(history.state, '', '?einsatz=e1');
       expect(url.urlFor('start')).toBe('/hq');
     } finally {
@@ -182,7 +188,7 @@ describe('HqPagesComponent', () => {
 
   it('every follow page takes the same column (the subheader width)', () => {
     const f = mount();
-    const rects = ['planen', 'jetzt', 'bestand', 'statistik'].map((id) =>
+    const rects = ['planen', 'jetzt', 'inventar', 'statistik'].map((id) =>
       (f.nativeElement as HTMLElement).querySelector(`#${id}`)!.getBoundingClientRect(),
     );
     expect(new Set(rects.map((r) => Math.round(r.left))).size).toBe(1);
@@ -196,7 +202,7 @@ describe('HqPagesComponent', () => {
 
   it('hotkeys 1 to 4 jump to Bestand, Jetzt, Planen, Statistik', () => {
     const ev = (key: string, init: KeyboardEventInit = {}) => new KeyboardEvent('keydown', { key, cancelable: true, ...init });
-    expect(['1', '2', '3', '4'].map((k) => hotkeyPage(ev(k), false))).toEqual(['bestand', 'jetzt', 'planen', 'statistik']);
+    expect(['1', '2', '3', '4'].map((k) => hotkeyPage(ev(k), false))).toEqual(['inventar', 'jetzt', 'planen', 'statistik']);
     expect(hotkeyPage(ev('5'), false)).toBeNull();
     expect(hotkeyPage(ev('0'), false)).toBeNull();
   });

@@ -1,86 +1,72 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
-import { SupabaseClientProvider } from '../../core/supabase.client';
 import { logWarn } from '../../core/log';
 import { HangarService } from '../../hangar/hangar.service';
-
-const key = (kind: string, cls: string): string => `${kind}:${cls.toLowerCase()}`;
+import { WishlistStore, wishKey } from '../../hq/data/wishlist.store';
 
 /**
- * The search's Wunschliste (concept 2026-11-02, B11). Ships are the hangar's
- * own wishlist status (`hangar_ships.status = 'wishlist'`); every other kind
- * lands in the lean `search_wishlist` table. Never the Nachschub storage.
+ * The one wishlist, as the search and every surface read it. Ships of the live
+ * catalog are the hangar's own wishlist status (`hangar_ships.status = 'wishlist'`);
+ * every other kind - and announced ships (`kind = 'upcoming'`, keyed on their
+ * name because the feed has no class name) - lives in `search_wishlist`
+ * (`WishlistStore`). Never the Nachschub storage.
  *
- * Read once per session after sign-in; a missing table (not deployed yet)
- * degrades silently to an empty list and a failed toggle returns false.
+ * Read once per session after sign-in; a missing table degrades silently to an
+ * empty list and a failed toggle returns false.
  */
 @Injectable({ providedIn: 'root' })
 export class SearchWishlistService {
-  private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly hangar = inject(HangarService);
+  private readonly store = inject(WishlistStore);
 
-  private readonly rows = signal<ReadonlySet<string>>(new Set());
-  private loadedFor: string | null = null;
-
-  /** Kinds + class names on the list (ships from the hangar). */
+  /** Wish keys: kinds + class names on the list (live ships from the hangar, announced ships by folded name). */
   readonly keys = computed<ReadonlySet<string>>(() => {
-    const out = new Set(this.rows());
-    for (const s of this.hangar.ships()) if (s.status === 'wishlist') out.add(key('ship', s.shipClassName));
+    const out = new Set(this.store.byKey().keys());
+    for (const s of this.hangar.ships()) if (s.status === 'wishlist') out.add(wishKey('ship', s.shipClassName));
     return out;
   });
 
-  has(kind: string, className: string): boolean {
-    return this.keys().has(key(kind, className));
+  /** Number of wished entries (all kinds). */
+  readonly count = computed(() => this.keys().size);
+
+  /** `name` matters for announced ships (`upcoming`): their feed id is no stable key, the name is. */
+  has(kind: string, className: string, name?: string | null): boolean {
+    return this.keys().has(wishKey(kind, className, name));
   }
 
   /** Load the non-ship rows once per signed-in user. */
   ensureLoaded(): void {
-    const uid = this.auth.user()?.id ?? null;
-    if (!uid || this.loadedFor === uid) return;
-    this.loadedFor = uid;
-    void (async () => {
-      try {
-        const { data, error } = await this.sb.client.from('search_wishlist' as never).select('entity_kind, class_name');
-        if (error) return;
-        const rows = (data ?? []) as { entity_kind: string; class_name: string }[];
-        this.rows.set(new Set(rows.map((r) => key(r.entity_kind, r.class_name))));
-      } catch {
-        /* not deployed yet: an empty list */
-      }
-    })();
+    void this.store.ensureLoaded();
   }
 
-  /** Put an entry on the list or take it off. True when it worked. */
-  async toggle(kind: string, className: string): Promise<boolean> {
+  /** Put an entry on the list or take it off. True when the list now shows the other state. */
+  async toggle(kind: string, className: string, name?: string | null): Promise<boolean> {
     if (!this.auth.user()) return false;
-    if (kind === 'ship' || kind === 'upcoming') return this.toggleShip(className);
-    const k = key(kind, className);
-    const on = this.rows().has(k);
-    try {
-      const table = this.sb.client.from('search_wishlist' as never);
-      const { error } = on
-        ? await table.delete().eq('entity_kind', kind).eq('class_name', className)
-        : await table.insert({ entity_kind: kind, class_name: className } as never);
-      if (error) {
-        logWarn('search', 'wishlist toggle failed', error);
-        return false;
-      }
-      const next = new Set(this.rows());
-      if (on) next.delete(k);
-      else next.add(k);
-      this.rows.set(next);
-      return true;
-    } catch (err) {
-      logWarn('search', 'wishlist toggle failed', err);
-      return false;
-    }
+    return this.has(kind, className, name) ? this.remove(kind, className, name) : this.add(kind, className, name);
   }
 
-  private async toggleShip(className: string): Promise<boolean> {
-    const ship = this.hangar.shipByClassName(className);
-    if (ship?.status === 'wishlist') return this.hangar.removeShip(ship.id);
-    if (ship) return false; // owned already: nothing to wish for
-    return !!(await this.hangar.addShip(className, 'wishlist'));
+  async add(kind: string, className: string, name?: string | null): Promise<boolean> {
+    if (!this.auth.user()) return false;
+    if (this.has(kind, className, name)) return true;
+    if (kind === 'ship') {
+      const ship = this.hangar.shipByClassName(className);
+      if (ship) return false; // owned already: nothing to wish for
+      return !!(await this.hangar.addShip(className, 'wishlist'));
+    }
+    // The name is stored for every kind, so the Merkliste and the lists show "Arrow-I-Rakete", not the class name.
+    const ok = await this.store.add({ kind, className, name: name?.trim() || (kind === 'upcoming' ? className : null) });
+    if (!ok) logWarn('search', 'wishlist add failed', { kind });
+    return ok;
+  }
+
+  async remove(kind: string, className: string, name?: string | null): Promise<boolean> {
+    if (!this.auth.user()) return false;
+    if (kind === 'ship') {
+      const ship = this.hangar.shipByClassName(className);
+      if (ship?.status !== 'wishlist') return !ship; // owned: not ours to remove
+      return this.hangar.removeShip(ship.id);
+    }
+    return this.store.remove(kind, className, name);
   }
 }

@@ -30,7 +30,7 @@ interface RingRow {
         @for (r of rows(); track r.set.key) {
           <li class="ring" [class.on]="r.selected > 0">
             <sc-tristate [value]="r.fraction" [label]="r.set.name" (toggled)="setToggled.emit(r.set.key)" />
-            <span class="name">{{ r.set.name }}@if (r.set.favorite) { <span class="fav" aria-hidden="true"> ★</span> }</span>
+            <span class="name">{{ r.set.name }}</span>
             <span class="hint">
               @if (r.reach === 'full') { {{ 'hq.set.reach.full' | translate }} }
               @else if (r.reach === 'partial') { {{ 'hq.set.reach.partial' | translate }} }
@@ -62,7 +62,6 @@ interface RingRow {
       .ring.on { border-color: var(--sc-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
       sc-tristate { grid-area: ring; }
       .name { grid-area: name; color: var(--sc-fg); overflow-wrap: anywhere; }
-      .fav { color: var(--sc-accent); }
       .hint { grid-area: hint; min-height: 1.2em; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       @media (prefers-reduced-motion: reduce) { .ring { transition: none; } }
     `,

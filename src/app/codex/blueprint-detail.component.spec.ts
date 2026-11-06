@@ -1,10 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
 import { BlueprintDetailComponent } from './blueprint-detail.component';
 import { BlueprintDetail, CodexService } from './codex.service';
 import { CodexBlueprintIngredient } from './codex.types';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { type FakeItemPath, fakeItemPath, fakeSignIn } from '../shared/item-path/item-path.testing';
+import { SignInAskService } from '../shared/item-path/sign-in-ask.service';
+import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
 
 const MICROSAT = 'BP_CRAFT_Carryable_2H_FL_MissionItem_Microsatellite_a';
 
@@ -55,8 +60,12 @@ async function setup(
     imports: [BlueprintDetailComponent],
     providers: [
       provideTranslateService(),
-      provideRouter([]),
+      // The page's anchors really navigate here: to a stub, on a mock location.
+      provideRouter([{ path: '**', children: [] }]),
+      provideLocationMocks(),
       { provide: CodexService, useValue: { getBlueprint, ...extra } as Partial<CodexService> },
+      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: SignInAskService, useValue: fakeSignIn() },
       {
         provide: ActivatedRoute,
         useValue: { paramMap: new BehaviorSubject(convertToParamMap({ className: detail.classNameSlug })) },
@@ -87,6 +96,108 @@ function quantities(fixture: ComponentFixture<BlueprintDetailComponent>, rowSele
     (q.querySelector('.q') ?? q).textContent!.trim(),
   );
 }
+
+describe('BlueprintDetailComponent — path (A9)', () => {
+  it('carries the path control with all three stops: wish, Nachschub, Inventar', async () => {
+    const fixture = await setup(blueprint([ingredient(0, 'Agricium', 0.36)]));
+    const el: HTMLElement = fixture.nativeElement;
+    const paths = el.querySelectorAll('sc-item-path');
+    expect(paths.length).toBe(1);
+    expect(Array.from(paths[0].querySelectorAll('.node')).map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+    // Not from Planen or a set: the pill, with the next step as its button.
+    expect(paths[0].querySelector('.pill .go')).not.toBeNull();
+  });
+});
+
+describe('BlueprintDetailComponent — mission (A9)', () => {
+  const withMission = (): BlueprintDetail => {
+    const d = blueprint([ingredient(0, 'Agricium', 0.36)]);
+    d.row['payload'] = {
+      className: MICROSAT,
+      missionSource: {
+        total: 3,
+        missions: [
+          { className: 'contract_Best', title: { en: 'Routine Patrol', de: '' }, giver: { en: 'Foxwell', de: '' }, location: { en: 'Stanton', de: 'Stanton' } },
+          { className: 'contract_Next', title: { en: 'Second Patrol', de: '' }, giver: null, location: null },
+        ],
+      },
+    };
+    return d;
+  };
+  // Not whenStable: the undo toast holds a 6 s window open in the zone.
+  const tick = () => new Promise((r) => setTimeout(r));
+  afterEach(() => TestBed.inject(UndoToastService).flush());
+  const pathOf = () => TestBed.inject(ItemPathService) as unknown as FakeItemPath;
+  const pill = (f: ComponentFixture<BlueprintDetailComponent>) => (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a.to-mission');
+  // preventDefault: a modified click on a real anchor would open a real tab in the test browser.
+  const click = (a: HTMLAnchorElement, init: MouseEventInit = {}) => {
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
+    a.addEventListener('click', (e) => e.preventDefault(), { once: true });
+    a.dispatchEvent(ev);
+  };
+
+  it('stays plain without data: no block, no anchor, a plain Nachschub step', async () => {
+    const fixture = await setup(blueprint([ingredient(0, 'Agricium', 0.36)]));
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.missions')).toBeNull();
+    expect(pill(fixture)).toBeNull();
+    el.querySelector<HTMLButtonElement>('.node[data-step="nachschub"]')!.click();
+    await tick();
+    expect(pathOf().addToNachschub.calls.mostRecent().args.length).toBe(4);
+  });
+
+  it('shows the missions as real anchors to their pages', async () => {
+    const fixture = await setup(withMission());
+    const el: HTMLElement = fixture.nativeElement;
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.mission-row a.ing-name'));
+    expect(links.map((a) => a.textContent!.trim())).toEqual(['Routine Patrol', 'Second Patrol']);
+    expect(links[0].getAttribute('href')).toBe('/codex/mission/contract_Best');
+    expect(pill(fixture)!.getAttribute('href')).toBe('/codex/mission/contract_Best');
+    expect(el.querySelector('.mission-meta')!.textContent).toContain('Foxwell · Stanton');
+    expect(el.querySelector('.mission-more')).not.toBeNull();
+  });
+
+  it('a plain click on Zum Einsatz creates the mission step', async () => {
+    const fixture = await setup(withMission());
+    click(pill(fixture)!);
+    await tick();
+    expect(pathOf().addToNachschub).toHaveBeenCalledTimes(1);
+    const args = pathOf().addToNachschub.calls.mostRecent().args;
+    expect(args[0]).toBe('blueprint');
+    expect(args[1]).toBe(MICROSAT);
+    expect(args[4]).toEqual({ stepKind: 'mission' });
+  });
+
+  it('a modified click only opens the tab, it writes nothing', async () => {
+    const fixture = await setup(withMission());
+    click(pill(fixture)!, { ctrlKey: true });
+    await tick();
+    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
+  });
+
+  it('does not add a second line when the step is already there', async () => {
+    const fixture = await setup(withMission());
+    pathOf().current.set({ nachschubQty: 1 });
+    click(pill(fixture)!);
+    await tick();
+    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
+  });
+
+  it('asks nobody signed out: the anchor just navigates', async () => {
+    const fixture = await setup(withMission());
+    pathOf().current.set({ signedIn: false });
+    click(pill(fixture)!);
+    await tick();
+    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
+  });
+
+  it('the path control marks its own Nachschub step as a mission step', async () => {
+    const fixture = await setup(withMission());
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.node[data-step="nachschub"]')!.click();
+    await tick();
+    expect(pathOf().addToNachschub.calls.mostRecent().args[4]).toEqual({ stepKind: 'mission' });
+  });
+});
 
 describe('BlueprintDetailComponent — quantities', () => {
   it('names an ingredient once and puts the SCU unit on its amount (audit L29)', async () => {

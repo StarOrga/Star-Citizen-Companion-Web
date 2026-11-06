@@ -4,14 +4,7 @@ import { AnalyticsService } from '../core/analytics.service';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
-// One normalizer for "is this the same ship name", shared with the RSI
-// ship-matrix feed: the announced-ship page looks a concept-wishlist row up by
-// name, and two slightly different spellings of that rule would silently show
-// "not watched" for a ship the user just added.
-import { normalizeShipName } from '../codex/upcoming-ships.service';
 import {
-  ConceptShip,
   ConfigLoadoutEntry,
   HangarRoleLoadout,
   HangarRoleLoadoutRow,
@@ -25,16 +18,12 @@ import {
   RoleLoadoutItem,
   RoleLoadoutRole,
   ShipConfigRole,
-  mapConceptShip,
   mapHangarRoleLoadout,
   mapHangarShareLink,
   mapHangarShip,
   mapHangarShipConfig,
   mapPeekedSharedLoadout,
 } from './hangar.types';
-
-/** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
-const CONCEPT_NAME_MAX = 80;
 
 /** i18n key for an adopt RPC that answered without a usable config. */
 const ADOPT_FAILED = 'hangar.errors.adoptFailed';
@@ -47,7 +36,7 @@ const UNIQUE_VIOLATION = '23505';
  * `implement-brief.md` §17): the top 3 ships/sets the user picked, most recent
  * first. Local-only preference data, same class of storage as `flagshipKey`
  * below (no `ConsentService` gate — this mirrors the existing flagship cache,
- * not the `preferencesAllowed()`-gated favorites in `upcoming-ships.service.ts`).
+ * not the `preferencesAllowed()`-gated baseline in `upcoming-ships.service.ts`).
  */
 const RECENT_MAX = 3;
 const RECENT_SHIPS_KEY = 'sc-companion.hangar.recentShipClassNames';
@@ -66,19 +55,10 @@ export class HangarService {
 
   readonly ships = signal<HangarShip[]>([]);
   readonly roleLoadouts = signal<HangarRoleLoadout[]>([]);
-  // Concept-ship wishlist (#135) — separate table, no catalog linkage.
-  readonly conceptShips = signal<ConceptShip[]>([]);
   readonly loading = signal(false);
   /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
-  // Concept-wishlist load state, so the Codex can ask for it standalone
-  // (`ensureConceptShipsLoaded`) without re-fetching what `loadAll` already
-  // has. Keyed by user id, never a bare boolean: a session swap inside one
-  // tab would otherwise leave the next user looking at the previous one's
-  // watchlist and a cache flag that says "already loaded".
-  private conceptsLoadedFor: string | null = null;
-  private conceptsInFlight: Promise<void> | null = null;
 
   // Flagship = the user's single pinned "standard ship" (a ship class name),
   // driving the Codex Bridge hero. Source of truth is
@@ -168,9 +148,6 @@ export class HangarService {
       .sort((a, b) => (a.pinnedRank ?? 9) - (b.pinnedRank ?? 9)),
   );
   readonly ownedCount = computed(() => this.ships().filter((s) => s.status === 'owned').length);
-  readonly wishlistCount = computed(
-    () => this.ships().filter((s) => s.status === 'wishlist').length,
-  );
 
   private get userId(): string | null {
     return this.auth.user()?.id ?? null;
@@ -193,7 +170,7 @@ export class HangarService {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [shipsRes, loadoutsRes, conceptsRes] = await Promise.all([
+      const [shipsRes, loadoutsRes] = await Promise.all([
         this.sb.client
           .from('hangar_ships')
           .select('*')
@@ -203,10 +180,6 @@ export class HangarService {
           .from('hangar_role_loadouts')
           .select('*')
           .order('updated_at', { ascending: false }),
-        this.sb.client
-          .from('hangar_concept_ships')
-          .select('*')
-          .order('created_at', { ascending: false }),
       ]);
       if (shipsRes.error) throw shipsRes.error;
       if (loadoutsRes.error) throw loadoutsRes.error;
@@ -214,14 +187,6 @@ export class HangarService {
       this.roleLoadouts.set(
         ((loadoutsRes.data ?? []) as HangarRoleLoadoutRow[]).map(mapHangarRoleLoadout),
       );
-      // Best-effort: the concept table ships later than the others (migration
-      // 20260711001000) — a missing relation must not break the hangar.
-      if (!conceptsRes.error) {
-        this.conceptShips.set(
-          ((conceptsRes.data ?? []) as Record<string, unknown>[]).map(mapConceptShip),
-        );
-        this.conceptsLoadedFor = this.userId;
-      }
       // Sync the flagship now the user id is guaranteed available (the
       // constructor may have run before auth resolved). DB-first, see below.
       await this.syncFlagship();
@@ -264,106 +229,6 @@ export class HangarService {
 
   shipByClassName(shipClassName: string): HangarShip | null {
     return this.ships().find((s) => s.shipClassName === shipClassName) ?? null;
-  }
-
-  // ── concept-ship wishlist (#135) ────────────────────────────────────────────
-
-  /**
-   * Load JUST the concept-ship wishlist, once per session.
-   *
-   * The Codex's announced-ship page needs the watch state ("is this already on
-   * my fleet list?") without dragging the whole hangar — ships, role loadouts
-   * and the flagship sync — behind it. Idempotent and dedupes concurrent
-   * callers; `loadAll` flips the same flag, so the two never fetch twice.
-   */
-  ensureConceptShipsLoaded(): Promise<void> {
-    const userId = this.userId;
-    if (userId && this.conceptsLoadedFor === userId) return Promise.resolve();
-    if (!this.conceptsInFlight) {
-      this.conceptsInFlight = this.loadConceptShips().finally(() => {
-        this.conceptsInFlight = null;
-      });
-    }
-    return this.conceptsInFlight;
-  }
-
-  private async loadConceptShips(): Promise<void> {
-    if (!this.userId) return;
-    const { data, error } = await this.sb.client
-      .from('hangar_concept_ships')
-      .select('*')
-      .order('created_at', { ascending: false });
-    // Best-effort like `loadAll`: this runs on a Codex page, and a missing
-    // relation or an RLS miss must degrade to "not watched", never to an error
-    // banner on a page that is really about the ship.
-    if (error) return;
-    this.conceptShips.set(((data ?? []) as Record<string, unknown>[]).map(mapConceptShip));
-    this.conceptsLoadedFor = this.userId;
-  }
-
-  /**
-   * The wishlist row for a ship NAME, compared the way the RSI feed normalizes
-   * names. Backs the announced-ship page's watch toggle, where the only stable
-   * handle between the matrix entry and the (catalog-less) wishlist row is the
-   * name itself.
-   */
-  conceptShipByName(name: string | null | undefined): ConceptShip | null {
-    const norm = normalizeShipName(name ?? '');
-    if (!norm) return null;
-    return this.conceptShips().find((c) => normalizeShipName(c.name) === norm) ?? null;
-  }
-
-  async addConceptShip(input: {
-    name: string;
-    manufacturer?: string;
-    rsiUrl?: string;
-    notes?: string;
-  }): Promise<ConceptShip | null> {
-    const userId = this.userId;
-    // The column CHECKs `length(trim(name)) between 1 and 80`; clamp here so a
-    // long matrix name comes back as a wishlist entry instead of a raw 23514.
-    const name = input.name.trim().slice(0, CONCEPT_NAME_MAX);
-    if (!userId || !name) return null;
-    const { data, error } = await this.sb.client
-      .from('hangar_concept_ships')
-      .insert({
-        user_id: userId,
-        name,
-        manufacturer: input.manufacturer?.trim() || null,
-        // Defence in depth (feedback f7d3bd9a): a concept-ship link is
-        // user-supplied and later rendered as an href, so only an official RSI
-        // pledge-ship URL is ever persisted. The form rejects a bad paste with a
-        // visible error first; anything that still gets here is stripped to
-        // null, and the DB CHECK is the gate neither layer can bypass.
-        rsi_url: normalizeRsiPledgeShipUrl(input.rsiUrl),
-        notes: input.notes?.trim() || null,
-      })
-      .select('*')
-      .single();
-    if (error) {
-      // 23505 = duplicate (user_id, name) — already wishlisted, no-op.
-      if ((error as { code?: string }).code === '23505') {
-        return this.conceptShips().find((c) => c.name === name) ?? this.conceptShipByName(name);
-      }
-      this.error.set(toErrorKey('hangar', 'addConceptShip', error, { name }));
-      return null;
-    }
-    const concept = mapConceptShip(data as Record<string, unknown>);
-    this.conceptShips.set([concept, ...this.conceptShips()]);
-    this.analytics.capture('hangar_concept_ship_added', {
-      has_rsi_url: !!normalizeRsiPledgeShipUrl(input.rsiUrl),
-    });
-    return concept;
-  }
-
-  async removeConceptShip(id: string): Promise<boolean> {
-    const { error } = await this.sb.client.from('hangar_concept_ships').delete().eq('id', id);
-    if (error) {
-      this.error.set(toErrorKey('hangar', 'removeConceptShip', error, { id }));
-      return false;
-    }
-    this.conceptShips.set(this.conceptShips().filter((c) => c.id !== id));
-    return true;
   }
 
   shipById(id: string): HangarShip | null {

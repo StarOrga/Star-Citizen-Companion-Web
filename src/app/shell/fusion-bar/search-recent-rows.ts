@@ -35,7 +35,12 @@ export function pushRecentRow(storage: Storage | null, list: readonly StoredRow[
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { cta, icons, ...rest } = row;
   const stored = (row.type === 'hit' ? { ...rest, outside: false, fit: null } : rest) as StoredRow;
-  const next = [stored, ...list.filter((r) => r.id !== row.id)].slice(0, RECENT_ROWS_MAX);
+  return rememberRow(storage, list, stored);
+}
+
+/** Put an already-stored row first and write the list; the page the reader opened writes the same shape the search does. */
+export function rememberRow(storage: Storage | null, list: readonly StoredRow[], stored: StoredRow): StoredRow[] {
+  const next = [stored, ...list.filter((r) => r.id !== stored.id)].slice(0, RECENT_ROWS_MAX);
   try {
     storage?.setItem(RECENT_ROWS_KEY, JSON.stringify(next));
   } catch {

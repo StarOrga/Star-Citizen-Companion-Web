@@ -131,6 +131,20 @@ export class ShellChromeService {
   /** Counts the requests: the search focuses itself on every new one. */
   readonly supplySearchRequest = signal(0);
 
+  /**
+   * The HQ supplies popup (`sc-hq-supplies-popup`) opened from the header's bookmark panel. The shell
+   * renders it once; `tab` is the tab the opener wants (the popup reads it when it has tabs).
+   */
+  readonly suppliesPopup = signal<{ tab: 'wishlist' | 'nachschub' } | null>(null);
+
+  openSupplies(tab: 'wishlist' | 'nachschub' = 'nachschub'): void {
+    this.suppliesPopup.set({ tab });
+  }
+
+  closeSupplies(): void {
+    this.suppliesPopup.set(null);
+  }
+
   startSupplySearch(): void {
     this.supplySearch.set(true);
     this.supplySearchRequest.update((n) => n + 1);

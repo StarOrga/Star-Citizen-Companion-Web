@@ -57,8 +57,8 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
   template: `
     <div class="row">
       <div class="tile side edge left" data-tile="bestand" [class.next]="stock() === 'empty'">
-        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'bestand' }" />
-        <span class="side-k"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.bestand" /></svg>{{ 'hq.pages.bestand' | translate }}</span>
+        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'inventar' }" />
+        <span class="side-k"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.inventar" /></svg>{{ 'hq.pages.inventar' | translate }}</span>
         @switch (stock()) {
           @case ('loading') {
             <small role="status">{{ 'hq.start.loading' | translate }}</small>
@@ -201,7 +201,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       a.own:focus-visible, .retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .retry { padding: 0; border: 0; background: none; color: var(--sc-accent); font: inherit; cursor: pointer; }
       .retry:hover { text-decoration: underline; text-underline-offset: 3px; }
-      .ico { flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+      .ico { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       small { font-size: max(0.8125rem, var(--sc-fs-floor)); color: var(--sc-fg-1); overflow-wrap: anywhere; }
       .warn { color: var(--sc-warning); }
       .err { color: var(--sc-danger); }

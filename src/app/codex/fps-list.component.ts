@@ -1,4 +1,5 @@
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
+import { CompareIconComponent } from './compare-icon.component';
 import { rankBySearch, searchMatcher } from './codex-search';
 import { fpsToBrowseParams } from './codex-browse-params';
 import { toErrorKey } from '../core/describe-error';
@@ -90,7 +91,7 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent],
+  imports: [CompareIconComponent, NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -369,7 +370,7 @@ interface FacetOption {
                         [attr.aria-label]="(isPinned(r) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                         [scTooltip]="(isPinned(r) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                         scTooltipTier="label">
-                  {{ isPinned(r) ? '★' : '☆' }}
+                  <sc-compare-icon [on]="isPinned(r)" />
                 </button>
                 @if (!equipInto()) {
                   <!-- L09: ordinary browsing can put a piece into a set too. -->

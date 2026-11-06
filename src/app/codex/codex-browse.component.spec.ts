@@ -1,3 +1,5 @@
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -12,7 +14,6 @@ import { RoleService } from '../auth/role.service';
 import { BetaService } from '../core/beta.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { BuyOption, UexShopService } from './uex-shop.service';
-import { HqSuppliesService, SupplyItem } from '../hq/hq-supplies.service';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import { HoloSilhouette } from './holo-silhouette';
 import {
@@ -125,19 +126,10 @@ describe('CodexBrowseComponent', () => {
     listByKind: jasmine.Spy;
     silhouettes: jasmine.Spy;
     uex: { shipOffers: jasmine.Spy; whereToBuyEntity: jasmine.Spy };
-    supplies: { items: ReturnType<typeof signal<SupplyItem[]>>; add: jasmine.Spy };
   }> {
     const uex = {
       shipOffers: jasmine.createSpy('shipOffers').and.resolveTo(opts.offers ?? []),
       whereToBuyEntity: jasmine.createSpy('whereToBuyEntity').and.resolveTo(opts.offers ?? []),
-    };
-    const supplyItems = signal<SupplyItem[]>([]);
-    const supplies = {
-      items: supplyItems,
-      add: jasmine.createSpy('add').and.callFake((name: string, _qty: number, meta: { className?: string }) => {
-        supplyItems.update((l) => [...l, { id: 'x', name, qty: 1, done: false, className: meta.className ?? null } as SupplyItem]);
-        return true;
-      }),
     };
     const listByKind = jasmine
       .createSpy('listByKind')
@@ -185,6 +177,7 @@ describe('CodexBrowseComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CodexBrowseComponent],
       providers: [
+        { provide: ItemPathService, useValue: fakeItemPath() },
         provideNoShipBlueprints(),
         provideRouter([]),
         provideLocationMocks(),
@@ -197,7 +190,6 @@ describe('CodexBrowseComponent', () => {
           : []),
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
         { provide: UexShopService, useValue: uex },
-        { provide: HqSuppliesService, useValue: supplies },
         ...(opts.shell === undefined
           ? []
           : [{ provide: BetaService, useValue: { state: signal({ verse: true, codex: true, shell: opts.shell }), isEnabled: () => () => opts.shell } }]),
@@ -212,8 +204,7 @@ describe('CodexBrowseComponent', () => {
             query: signal(''),
             ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
             refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
-            isFavorite: () => false,
-            toggleFavorite: () => undefined,
+            isWished: () => false,
             artFor: () => [] as string[],
             searchLoadedShips: () => [],
           },
@@ -226,7 +217,7 @@ describe('CodexBrowseComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes, uex, supplies };
+    return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes, uex };
   }
 
   it('reads the legacy weaponClass param as the weapon super group', async () => {
@@ -389,9 +380,9 @@ describe('CodexBrowseComponent', () => {
     expect(price).toContain('codex.buy.places');
   });
 
-  it('package D: the shop button lists the offers and puts the row into the supplies once', async () => {
+  it('package D: the shop button lists the offers; the Nachschub step is the item path', async () => {
     const offer: BuyOption = { price: 4200, priceAvg: null, terminal: 'Skutters', location: 'Area18 · ArcCorp', place: 'Area18' };
-    const { cmp, fixture, uex, supplies } = await setup({ query: { kind: 'weapon', wg: 'fps' }, rows: [row('behr_p4ar', { nameLocalized: 'P4-AR Rifle' })], offers: [offer] });
+    const { fixture, uex } = await setup({ query: { kind: 'weapon', wg: 'fps' }, rows: [row('behr_p4ar', { nameLocalized: 'P4-AR Rifle' })], offers: [offer] });
     const shop = (fixture.nativeElement as HTMLElement).querySelector('.act.shop') as HTMLButtonElement;
     expect(shop).not.toBeNull();
     shop.click();
@@ -401,12 +392,10 @@ describe('CodexBrowseComponent', () => {
     const panel = (fixture.nativeElement as HTMLElement).querySelector('.buy') as HTMLElement;
     expect(panel.querySelectorAll('.offer').length).toBe(1);
     expect(panel.querySelector('.to-plan')?.getAttribute('href')).toBe('/hq#planen');
-    (panel.querySelector('.to-sup') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(supplies.add).toHaveBeenCalledOnceWith('P4-AR Rifle', 1, jasmine.objectContaining({ className: 'behr_p4ar', stepKind: 'buy', source: 'search' }));
-    expect(cmp.inSupplies('behr_p4ar')).toBeTrue();
+    // "Zum Nachschub" is the item path's step (#972), offered in the panel as its next step.
+    const path = panel.querySelector('sc-item-path');
+    expect(path).not.toBeNull();
     expect(panel.querySelector('.to-sup')).toBeNull();
-    expect(panel.querySelector('.in-sup')).not.toBeNull();
   });
 
   it('package D: compare is an icon button, not a star', async () => {

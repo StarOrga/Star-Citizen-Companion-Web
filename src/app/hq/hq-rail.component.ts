@@ -61,7 +61,7 @@ import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.ser
         white-space: nowrap;
         transition: width 0.2s ease, color 0.2s, background-color 0.2s, border-color 0.2s;
       }
-      .stop svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+      .stop svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       .label { font-size: max(0.8rem, var(--sc-fs-floor)); letter-spacing: 0.06em; opacity: 0; transition: opacity 0.15s; }
       .stop:hover, .stop:focus-visible {
         width: 128px;

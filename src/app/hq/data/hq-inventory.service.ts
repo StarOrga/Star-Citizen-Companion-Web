@@ -51,6 +51,9 @@ export const HQ_QTY_MAX = 1_000_000_000;
 
 const DAY_MS = 86_400_000;
 
+/** Stock amounts are SCU fractions too: sums and differences are trimmed to 6 decimals (float noise). */
+const roundQty = (n: number): number => Math.round(n * 1e6) / 1e6;
+
 export type HqAgeUnit = 'minutes' | 'hours' | 'days';
 export interface HqAge {
   unit: HqAgeUnit;
@@ -183,6 +186,40 @@ export class HqInventoryService {
       return !this.error();
     } catch (err) {
       this.error.set(toErrorKey('hq', 'inventory.restore', err));
+      return false;
+    }
+  }
+
+  /** Adds `qty` to what already lies at `location` (addManual overwrites). */
+  async addStock(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null): Promise<boolean> {
+    const loc = location.trim();
+    const have = this.items().find((i) => i.location === loc && (i.name === item.trim() || (!!classRef && i.class_name === classRef)));
+    // One row holds one unit: an exact SCU amount must not land in a row counted in pieces. (A piece
+    // count on an SCU row stays the stepper's old behaviour: it adds to the row's own unit.)
+    if (have && unit === 'scu' && have.unit !== 'scu') return false;
+    return this.addManual(loc, have?.name ?? item, roundQty((have?.qty ?? 0) + qty), have?.unit ?? unit, classRef ?? have?.class_name ?? null);
+  }
+
+  /** Takes `qty` back out of a place (undo of {@link addStock}); the row goes at zero. False on failure. */
+  async removeStock(location: string, item: string, qty: number, classRef: string | null = null): Promise<boolean> {
+    const loc = location.trim();
+    const have = this.items().find((i) => i.location === loc && (i.name === item.trim() || (!!classRef && i.class_name === classRef)));
+    const userId = this.auth.user()?.id;
+    if (!have || !userId) return false;
+    if (roundQty(have.qty - qty) > 0) return this.addManual(loc, have.name, roundQty(have.qty - qty), have.unit, have.class_name);
+    this.error.set(null);
+    try {
+      const { error } = await this.sb.client
+        .from('hq_inventory_items' as never)
+        .delete()
+        .eq('user_id', userId)
+        .eq('location', loc)
+        .eq('name', have.name);
+      if (error) throw error;
+      await this.load();
+      return !this.error();
+    } catch (err) {
+      this.error.set(toErrorKey('hq', 'inventory.remove', err));
       return false;
     }
   }

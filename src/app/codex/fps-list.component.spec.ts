@@ -1,3 +1,5 @@
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Location } from '@angular/common';
@@ -95,6 +97,7 @@ describe('FpsListComponent (equip mode)', () => {
     await TestBed.configureTestingModule({
       imports: [FpsListComponent],
       providers: [
+        { provide: ItemPathService, useValue: fakeItemPath() },
         provideRouter([]),
         provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),

@@ -1,4 +1,5 @@
 import { rankBySearch } from './codex-search';
+import { CompareIconComponent } from './compare-icon.component';
 import { CodexBuildDiffService, NEW_SORT_KINDS } from './codex-build-diff.service';
 import { toErrorKey } from '../core/describe-error';
 import {
@@ -60,9 +61,7 @@ import {
   weaponSuperGroup,
 } from './codex-weapon-taxonomy';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
-import { HangarService } from '../hangar/hangar.service';
-import { HqOwnershipService } from '../hq/hq-ownership.service';
-import { HqLink, personalShipLink } from '../hq/hq-routes';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { ARMOR_CATEGORY, ARMOR_SLOT_IDS, AreaNode, AreaTarget, CodexCategory, UPCOMING_CATEGORY, armorAttachTypeOf, inferWeaponSuperGroup } from './codex-browse-params';
@@ -100,7 +99,6 @@ import {
 } from './codex-area-taxonomy';
 import { CodexPrefsService } from './codex-prefs.service';
 import { BuyOption, UexShopService } from './uex-shop.service';
-import { HqSuppliesService } from '../hq/hq-supplies.service';
 
 /**
  * A row of the list: a list row after variant folding, livery grouping (FPS
@@ -172,7 +170,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-browse',
   standalone: true,
-  imports: [NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
+  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
@@ -291,12 +289,7 @@ export function blueprintCategoriesForGroup(
                         <span class="spec"><span class="soon">{{ 'codex.upcoming.badge' | translate }}</span></span>
                       </a>
                       <span class="acts">
-                        <button type="button" class="act pin" [class.pinned]="rsi.isFavorite(s.id)"
-                                [attr.aria-pressed]="rsi.isFavorite(s.id)"
-                                [attr.aria-label]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
-                                [scTooltip]="(rsi.isFavorite(s.id) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
-                                scTooltipTier="label"
-                                (click)="rsi.toggleFavorite(s.id)">{{ rsi.isFavorite(s.id) ? '★' : '☆' }}</button>
+                        <sc-item-path kind="upcoming" [className]="s.id" [name]="s.name" />
                       </span>
                     </li>
                   }
@@ -334,24 +327,7 @@ export function blueprintCategoriesForGroup(
                         </span>
                       </a>
                       <span class="acts">
-                        @if (kind() === 'ship') {
-                          @if (shipVariantLink(r.classNameSlug); as l) {
-                            <a class="act hangar-chip" [routerLink]="l.commands" [queryParams]="l.queryParams"
-                               [attr.aria-label]="'codex.personal.openVariant' | translate"
-                               [scTooltip]="'codex.personal.openVariant' | translate" scTooltipTier="label">✓</a>
-                          } @else if (inHangarSet().has(r.classNameSlug.toLowerCase())) {
-                            <span class="act hangar-chip" role="img" tabindex="0"
-                                  [attr.aria-label]="'codex.card.inHangar' | translate"
-                                  [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
-                          } @else {
-                            <button type="button" class="act hangar-add"
-                                    [disabled]="addBusy() !== null"
-                                    [attr.aria-busy]="addBusy() === r.classNameSlug"
-                                    (click)="addShipToHangar(r.classNameSlug)"
-                                    [attr.aria-label]="'codex.card.addToHangar' | translate"
-                                    [scTooltip]="'codex.card.addToHangar' | translate" scTooltipTier="label">+</button>
-                          }
-                        }
+                        <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)" />
                         @if (buyable()) {
                           <button type="button" class="act shop" [class.pinned]="buyOpen() === r.classNameSlug"
                                   [attr.aria-expanded]="buyOpen() === r.classNameSlug"
@@ -365,18 +341,13 @@ export function blueprintCategoriesForGroup(
                             </svg>
                           </button>
                         }
-                        <!-- Compare (was a star — a star reads as "favourite"): two arrows, both ways. -->
                         <button type="button" class="act pin"
                                 [class.pinned]="isPinned(r.classNameSlug)"
                                 [attr.aria-pressed]="isPinned(r.classNameSlug)"
                                 (click)="togglePin(r.classNameSlug)"
                                 [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                                 [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                                scTooltipTier="label">
-                          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M4 8h13M14 4.5L17.5 8 14 11.5M20 16H7M10 12.5L6.5 16l3.5 3.5" />
-                          </svg>
-                        </button>
+                                scTooltipTier="label"><sc-compare-icon [on]="isPinned(r.classNameSlug)" /></button>
                       </span>
                       @if (buyOpen() === r.classNameSlug) {
                         <div class="buy" [id]="'buy-' + r.classNameSlug" role="region"
@@ -402,20 +373,12 @@ export function blueprintCategoriesForGroup(
                             <p class="buy-note" role="status">{{ 'codex.buy.loading' | translate }}</p>
                           }
                           <div class="buy-acts">
-                            @if (inSupplies(r.classNameSlug)) {
-                              <span class="in-sup" role="status">✓ {{ 'codex.buy.inSupplies' | translate }}</span>
-                            } @else {
-                              <button type="button" class="to-sup" (click)="addToSupplies(r)">{{ 'codex.buy.toSupplies' | translate }}</button>
-                            }
+                            <!-- "Zum Nachschub" is the item path's step (one path for wish, Nachschub, Inventar). -->
+                            <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)"
+                                          level="secondary" nextStep="nachschub" stepKind="buy" />
                             <a class="to-plan" routerLink="/hq" fragment="planen">{{ 'codex.buy.openPlan' | translate }}</a>
-                            @if (supplyFailed() === r.classNameSlug) {
-                              <span class="sup-err" role="alert">{{ 'codex.buy.suppliesFull' | translate }}</span>
-                            }
                           </div>
                         </div>
-                      }
-                      @if (addFailed() === r.classNameSlug) {
-                        <p class="row-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
                       }
                     </li>
                   }
@@ -662,8 +625,10 @@ export function blueprintCategoriesForGroup(
     .spec { display: flex; align-items: baseline; gap: 12px; font-size: 12px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .size { color: var(--sc-fg-0); font-weight: 600; }
     .soon { color: var(--sc-accent); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-    .acts { flex: none; display: flex; align-items: center; gap: 4px; padding-right: 10px; opacity: 0; transition: opacity 120ms ease; }
-    .row:hover .acts, .row:focus-within .acts { opacity: 1; }
+    .acts { flex: none; display: flex; align-items: center; gap: 4px; padding-right: 10px; }
+    /* The path shows its state at all times; only the compare toggle waits for the row. */
+    .acts .act { opacity: 0; transition: opacity 120ms ease; }
+    .row:hover .acts .act, .row:focus-within .acts .act { opacity: 1; }
     .act {
       display: inline-flex; align-items: center; justify-content: center;
       width: max(32px, var(--sc-tap-min, 0px)); height: max(32px, var(--sc-tap-min, 0px));
@@ -672,10 +637,9 @@ export function blueprintCategoriesForGroup(
     }
     .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-    .act.pinned, .hangar-chip { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .act:disabled { opacity: .5; cursor: default; }
+    .act.pinned { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .act .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .act.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
+    .act.shop.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
     .price { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
     /* Package D: where to buy, inline under the row (never a floating layer over the list). */
     .buy {
@@ -691,16 +655,8 @@ export function blueprintCategoriesForGroup(
     .o-price { color: var(--sc-fg-0); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .buy-note { margin: 0; font-size: 13px; color: var(--sc-fg-2); }
     .buy-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-    .to-sup {
-      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 4px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;
-      border: 1px solid var(--sc-accent); background: transparent; color: var(--sc-accent);
-    }
-    .to-sup:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
-    .to-sup:focus-visible, .to-plan:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .to-plan { font-size: 13px; color: var(--sc-accent); }
-    .in-sup { font-size: 13px; color: var(--sc-accent); }
-    .sup-err { font-size: 12px; color: var(--sc-danger); }
-    .row-err { position: absolute; right: 14px; bottom: 2px; margin: 0; font-size: 11px; color: var(--sc-danger); }
+    .to-plan:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .more-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--sc-border); }
     .showing { font-size: 12px; color: var(--sc-fg-2); }
     .load-more, .reset-all, .sheet-done {
@@ -728,7 +684,7 @@ export function blueprintCategoriesForGroup(
 
     .filter-fab, .sheet, .sheet-backdrop { display: none; }
     @media (pointer: coarse) {
-      .acts { opacity: 1; }
+      .acts .act { opacity: 1; }
       .side-h, .node-ct { font-size: 12px; }
     }
     @media (max-width: 767px) {
@@ -736,7 +692,7 @@ export function blueprintCategoriesForGroup(
       .side { display: none; }
       .filterbar { display: none; }
       .col-side { gap: 0; }
-      .acts { opacity: 1; }
+      .acts .act { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
       .buy { padding-left: 14px; }
@@ -763,7 +719,7 @@ export function blueprintCategoriesForGroup(
       .node { min-height: 44px; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .acts { transition: none; }
+      .acts .act { transition: none; }
     }
   `],
 })
@@ -773,7 +729,6 @@ export class CodexBrowseComponent implements OnInit {
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
-  private readonly hangar = inject(HangarService);
   readonly rsi = inject(UpcomingShipsService);
   private readonly overlayOrigin = inject(OverlayOriginService);
   private readonly chrome = inject(ShellChromeService);
@@ -832,18 +787,6 @@ export class CodexBrowseComponent implements OnInit {
     return hrefs;
   });
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
-
-  // UC-02: class names already in the hangar — a pure read-overlay over the
-  // hangar.ships() signal (no DB change), so ship cards can mark ownership.
-  private readonly ownership = inject(HqOwnershipService);
-  /** Lower-cased class names of every hangar ship (HQ ownership index). */
-  readonly inHangarSet = computed(() => this.ownership.shipClassNames());
-
-  /** Signpost into the reader's own copy: their active (else first) variant of this hull. */
-  shipVariantLink(classNameSlug: string): HqLink | null {
-    const c = this.ownership.lookup(classNameSlug)?.configs[0];
-    return c ? personalShipLink(classNameSlug, c.id) : null;
-  }
 
   /**
    * Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13)
@@ -1314,7 +1257,6 @@ export class CodexBrowseComponent implements OnInit {
   /** Ship manufacturers for the "Hersteller" sub list. */
   private readonly shipMakers = signal<readonly { code: string; label: string }[]>([]);
   private readonly uex = inject(UexShopService);
-  private readonly supplies = inject(HqSuppliesService);
   /** Package D: in-game offers per ship row (cheapest first), from one shared UEX price table. */
   readonly shipOffers = signal<ReadonlyMap<string, BuyOption[]>>(new Map());
   private readonly shipOffersAsked = new Set<string>();
@@ -1322,7 +1264,6 @@ export class CodexBrowseComponent implements OnInit {
   readonly buyOpen = signal<string | null>(null);
   /** Offers per row for the open panel (ships reuse `shipOffers`); absent = loading. */
   private readonly entityOffers = signal<ReadonlyMap<string, BuyOption[]>>(new Map());
-  readonly supplyFailed = signal<string | null>(null);
   /** Rows of these kinds can be bought in game (UEX). */
   readonly buyable = computed(() => ['ship', 'weapon', 'component', 'item', 'ammunition'].includes(this.kind()));
   readonly buyOffers = computed(() => (this.kind() === 'ship' ? this.shipOffersOrEmpty() : this.entityOffers()));
@@ -1922,8 +1863,6 @@ export class CodexBrowseComponent implements OnInit {
     // silent: a failure just leaves the datamined renders as they were.
     void this.rsi.ensureLoaded();
     await this.svc.loadCurrentBuild();
-    // UC-02: hangar membership backs the in-hangar badge on ship cards.
-    void this.ownership.ensureLoaded();
     void this.loadArmorCounts();
     void this.loadShipMakers();
     await this.loadBlueprintCategories();
@@ -2262,27 +2201,6 @@ export class CodexBrowseComponent implements OnInit {
     this.svc.togglePin(this.kind(), className);
   }
 
-  /** Ship whose hangar add is in flight — one at a time, so a double click can't insert twice. */
-  readonly addBusy = signal<string | null>(null);
-  /** Ship whose last hangar add failed; its card says so until the next try. */
-  readonly addFailed = signal<string | null>(null);
-
-  /** UC-02: add a ship to the hangar inline, without leaving the list. */
-  async addShipToHangar(className: string): Promise<void> {
-    if (this.addBusy()) return;
-    this.addBusy.set(className);
-    this.addFailed.set(null);
-    try {
-      // A refused insert comes back as null, its reason parked in the hangar's
-      // shared error, which this page never shows — so say it at the card.
-      if (!(await this.hangar.addShip(className, 'owned'))) this.addFailed.set(className);
-    } catch {
-      this.addFailed.set(className);
-    } finally {
-      this.addBusy.set(null);
-    }
-  }
-
   /** UC-10: size S1–S12 as a 0–100% bar width for at-a-glance scanning. */
   private buildFilters(): CodexListFilters {
     // The single-category select wins when it names a category outside the
@@ -2342,7 +2260,6 @@ export class CodexBrowseComponent implements OnInit {
   /** Open/close a row's "where to buy" panel; non-ship rows fetch their offers on first open. */
   toggleBuy(r: CodexGridRow): void {
     const slug = r.classNameSlug;
-    this.supplyFailed.set(null);
     if (this.buyOpen() === slug) {
       this.buyOpen.set(null);
       return;
@@ -2357,23 +2274,6 @@ export class CodexBrowseComponent implements OnInit {
 
   closeBuy(slug: string): void {
     if (this.buyOpen() === slug) this.buyOpen.set(null);
-  }
-
-  /** Already an open line in the HQ Nachschub. */
-  inSupplies(slug: string): boolean {
-    const key = slug.toLowerCase();
-    return this.supplies.items().some((i) => !i.done && (i.className ?? '').toLowerCase() === key);
-  }
-
-  /** "Zum Nachschub": one line in the HQ supplies, where the plan shows the buy locations. */
-  addToSupplies(r: CodexGridRow): void {
-    const ok = this.supplies.add(this.cardName(r), 1, {
-      entityKind: this.kind(),
-      className: r.classNameSlug,
-      stepKind: 'buy',
-      source: 'search',
-    });
-    this.supplyFailed.set(ok ? null : r.classNameSlug);
   }
 
   /** The item group the list may show: the hidden bucket only while the setting shows it. */

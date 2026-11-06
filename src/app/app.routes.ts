@@ -309,10 +309,11 @@ export const routes: Routes = [
               import('./hangar/hangar-import-page.component').then((m) => m.HangarImportPageComponent),
           },
           {
+            // The old hangar detail page is replaced: this sends old links to the personal Codex view.
             path: 'hangar/:id',
             data: { layout: 'content' },
             loadComponent: () =>
-              import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
+              import('./hangar/hangar-ship-redirect.component').then((m) => m.HangarShipRedirectComponent),
           },
           {
             path: 'locker',

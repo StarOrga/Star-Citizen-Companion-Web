@@ -631,7 +631,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .ht-title { display: flex; align-items: baseline; gap: 14px; min-width: 0; flex: 1 1 auto; }
   .ht-name { margin: 0; font-weight: 500; font-size: clamp(18px, 1.15vw, 22px); line-height: 1.15; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-0);
   white-space: nowrap; animation: name-in 520ms var(--e-out) backwards; }
-  .ht-kicker { min-width: 0; font-size: max(11.5px, var(--f)); letter-spacing: 0.04em; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  .ht-kicker { min-width: 0; font-size: max(12px, var(--f)); letter-spacing: 0.04em; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   animation: fade-in 480ms ease-out 120ms backwards; }
   /* Opens like a projected line: clip-path only, the row never re-lays out while the name arrives. */
   @keyframes name-in { from { opacity: 0; clip-path: inset(0 100% 0 0); } }
@@ -664,7 +664,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   box-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent) 45%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 60%, transparent);
   transform: translateX(calc(var(--i, 0) * 100%)); transition: transform 180ms var(--e-out); }
   .ptab { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 0 4px; background: none; border: 0; border-radius: 19px; cursor: pointer;
-  color: var(--sc-fg-2); font: inherit; font-size: max(11.5px, var(--f)); white-space: nowrap; transition: color 180ms ease; }
+  color: var(--sc-fg-2); font: inherit; font-size: max(12px, var(--f)); white-space: nowrap; transition: color 180ms ease; }
   .ptab svg { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .ptab:hover, .ptab.on { color: var(--sc-fg-0); }
   .ptab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
@@ -692,7 +692,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .statics .v { font-family: var(--m); font-size: 12.5px; color: var(--sc-fg-0); white-space: nowrap; }
   .sub { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); display: flex; align-items: center; gap: 8px; }
   .sub i { flex: 1; height: 1px; background: var(--hair); }
-  .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(11.5px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }
+  .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(12px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }
   .top3 a { color: var(--sc-fg-0); text-decoration: none; transition: color 160ms ease; }
   .top3 a:hover { color: var(--sc-accent); }
   /* Touch: the focusable title and the top-3 links reach the tap minimum. */
@@ -707,7 +707,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .patchdiff ::ng-deep .delta-table th, .patchdiff ::ng-deep .delta-table td { padding: 4px 3px; }
   .patchdiff ::ng-deep .delta-head { flex-wrap: wrap; }
   .patchdiff ::ng-deep .admin-schema-row { box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; }
-  .patchhint { margin: 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
+  .patchhint { margin: 0; font-size: max(12px, var(--f)); color: var(--sc-fg-2); }
 
   /* Schema's sub-views: one calm row under the table head. */
   .sub-views { position: relative; z-index: 5; flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 2px 12px 0; }

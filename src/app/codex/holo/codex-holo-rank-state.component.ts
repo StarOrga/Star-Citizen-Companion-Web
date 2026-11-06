@@ -35,7 +35,7 @@ import { TranslatePipe } from '@ngx-translate/core';
   styles: [`
     :host { display: block; }
     .rank-state { display: grid; justify-items: center; gap: 8px; padding: 18px 8px; text-align: center; border-radius: 4px;
-      border: 1px dashed color-mix(in srgb, var(--sc-accent) 30%, transparent); font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      border: 1px dashed color-mix(in srgb, var(--sc-accent) 30%, transparent); font-size: max(12px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .rank-state p { margin: 0; line-height: 1.4; }
     .rs-radar { width: 96px; height: 96px; }
     .rs-radar polygon { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke-width: 1; }

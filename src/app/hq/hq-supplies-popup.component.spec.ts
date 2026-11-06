@@ -1,3 +1,5 @@
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -5,19 +7,26 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { HangarService } from '../hangar/hangar.service';
 import { fakeSupabase } from '../testing/fake-supabase';
+import { WishNamesService } from '../codex/search/wish-names.service';
 import { HqOwnershipService } from './hq-ownership.service';
 import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
 import { HqSuppliesService, SUPPLIES_STORAGE_KEY } from './hq-supplies.service';
 
 describe('HqSuppliesPopupComponent', () => {
+  const ships = signal<unknown[]>([]);
   beforeEach(() => {
+    ships.set([]);
     localStorage.removeItem(SUPPLIES_STORAGE_KEY);
+    const path = fakeItemPath();
+    (path as unknown as Record<string, unknown>)['tickOnly'] = jasmine.createSpy('tickOnly').and.returnValue({ ok: true, key: 'itemPath.done.ticked' });
     TestBed.configureTestingModule({ providers: [
+        { provide: ItemPathService, useValue: path },
         provideRouter([]),
         provideTranslateService(),
         fakeSupabase().provider,
         { provide: AuthService, useValue: { user: signal(null) } },
-        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
+        { provide: HangarService, useValue: { ships, roleLoadouts: signal([]) } },
+        { provide: WishNamesService, useValue: { request: () => undefined, nameOf: (_k: string, c: string) => (c === 'AEGS_Avenger_Stalker' ? 'Aegis Avenger Stalker' : null) } },
         { provide: HqOwnershipService, useValue: { configs: signal([]) } },
       ], });
   });
@@ -45,6 +54,79 @@ describe('HqSuppliesPopupComponent', () => {
     expect(TestBed.inject(HqSuppliesService).open().length).toBe(0);
 
     el.querySelector<HTMLElement>('[role="dialog"]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(closed).toBe(1);
+  });
+
+  it('has the tabs Wunschliste and Nachschub; the start tab can be chosen', () => {
+    const f = TestBed.createComponent(HqSuppliesPopupComponent);
+    f.componentRef.setInput('startTab', 'wish');
+    f.detectChanges();
+    return f.whenStable().then(() => {
+      f.detectChanges();
+      const tabs = [...(f.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[role="tab"]')];
+      expect(tabs.length).toBe(2);
+      expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+      expect((f.nativeElement as HTMLElement).textContent).toContain('hq.supplies.wish.empty');
+      tabs[1].click();
+      f.detectChanges();
+      expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+    });
+  });
+
+  it('"Besorgt" asks for the place (default first), stores there, and "Nur abhaken" is the way out', async () => {
+    const f = TestBed.createComponent(HqSuppliesPopupComponent);
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    const svc = TestBed.inject(HqSuppliesService);
+    svc.add('Quantum drive', 2, { entityKind: 'item', className: 'qd_s1' });
+    f.detectChanges();
+    const got = [...el.querySelectorAll<HTMLButtonElement>('li.line button')].find((b) => b.textContent?.includes('hq.supplies.got'))!;
+    got.click();
+    f.detectChanges();
+    const chips = [...el.querySelectorAll<HTMLButtonElement>('.place .chip-btn')];
+    expect(chips[0].textContent?.trim()).toBe('Bei mir');
+    expect(chips[0].getAttribute('aria-pressed')).toBe('true');
+    const store = [...el.querySelectorAll<HTMLButtonElement>('.place button')].find((b) => b.textContent?.includes('hq.supplies.place.store'))!;
+    store.click();
+    const path = TestBed.inject(ItemPathService) as unknown as ReturnType<typeof fakeItemPath>;
+    expect(path.moveToInventar).toHaveBeenCalledWith('item', 'qd_s1', 'Quantum drive', 'Bei mir', 2, jasmine.objectContaining({ unit: 'pcs' }));
+
+    await new Promise((r) => setTimeout(r));
+    f.detectChanges();
+    got.click();
+    f.detectChanges();
+    const tick = [...el.querySelectorAll<HTMLButtonElement>('.place button')].find((b) => b.textContent?.includes('hq.supplies.place.tickOnly'));
+    expect(tick).toBeTruthy();
+    // A text action is a pill, never the icon-only tertiary: it used to overflow its 32 px box and sit on "Ablegen".
+    expect(tick!.classList.contains('sc-action--secondary')).toBeTrue();
+    expect(store.classList.contains('sc-action--secondary')).toBeTrue();
+  });
+
+  it('the wish tab is the one wishlist: wished live ships join the table rows, named, not by class name', async () => {
+    ships.set([{ id: 's1', shipClassName: 'AEGS_Avenger_Stalker', status: 'wishlist', createdAt: '2026-11-01' }, { id: 's2', shipClassName: 'AEGS_Gladius', status: 'owned', createdAt: '2026-11-01' }]);
+    const f = TestBed.createComponent(HqSuppliesPopupComponent);
+    f.componentRef.setInput('startTab', 'wish');
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    const rows = [...el.querySelectorAll('li.line .name-txt')].map((n) => n.textContent?.trim());
+    expect(rows).toEqual(['Aegis Avenger Stalker']);
+  });
+
+  it('a blueprint line on a mission step links to the blueprint; a plain click leaves, Ctrl+click stays', () => {
+    TestBed.inject(HqSuppliesService).add('AMRS Laser Cannon', 1, { entityKind: 'blueprint', className: 'BP_CRAFT_X', stepKind: 'mission' });
+    const f = TestBed.createComponent(HqSuppliesPopupComponent);
+    let closed = 0;
+    f.componentInstance.closed.subscribe(() => closed++);
+    f.detectChanges();
+    const a = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a.chip-link')!;
+    expect(a.getAttribute('href')).toBe('/codex/blueprint/BP_CRAFT_X');
+    const guard = (e: Event) => e.preventDefault();
+    a.addEventListener('click', guard);
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    expect(closed).toBe(0);
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     expect(closed).toBe(1);
   });
 });

@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleLoadoutItem } from '../../hangar/hangar.types';
@@ -49,12 +51,13 @@ export function missingParts(
 @Component({
   selector: 'sc-set-supplies',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScActionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (missing().length > 0) {
-      <button type="button" class="sc-btn add" (click)="add()">
-        {{ 'codex.set.supplies.add' | translate: { n: missing().length } }}
+      <button type="button" scAction tier="secondary" class="add" (click)="add()">
+        <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icon; track $index) { <path [attr.d]="d" /> }</svg>
+        <span>{{ 'codex.set.supplies.add' | translate: { n: missing().length } }}</span>
       </button>
     } @else if (hasParts()) {
       <span class="note">{{ 'codex.set.supplies.none' | translate }}</span>
@@ -81,6 +84,7 @@ export function missingParts(
   ],
 })
 export class SetSuppliesComponent implements OnInit {
+  protected readonly icon = PATH_ICONS.nachschub;
   private readonly supplies = inject(HqSuppliesService);
   private readonly inventory = inject(HqInventoryService);
 

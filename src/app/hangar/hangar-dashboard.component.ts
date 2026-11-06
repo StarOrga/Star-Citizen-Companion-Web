@@ -8,27 +8,28 @@ import {
   signal,
   input,
 } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { hqHangar, hqSet, hqShip } from '../hq/hq-routes';
+import { HqLink, hqHangar, hqListLink, hqSet, personalItemLink, personalShipLink } from '../hq/hq-routes';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
+import { SearchWishlistService } from '../codex/search/search-wishlist.service';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
+import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
+import { flagshipFirst } from './flagship-first';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
-import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { normalizeSearch, rankBySearch } from '../codex/codex-search';
 import { CodexCategoryIconComponent } from '../codex/codex-category-icon.component';
-import { FallbackImageComponent } from '../codex/fallback-image.component';
-import {
-  UpcomingShip,
-  UpcomingShipsService,
-  thumbnailCandidates,
-} from '../codex/upcoming-ships.service';
+import { UpcomingShipsService } from '../codex/upcoming-ships.service';
 import { HangarImportComponent } from './hangar-import.component';
 import { HangarService } from './hangar.service';
 import {
-  ConceptShip,
+  HangarShipConfig,
   HangarShip,
   ROLE_LOADOUT_ROLES,
   RoleLoadoutItem,
@@ -60,16 +61,16 @@ const SEARCH_DEBOUNCE_MS = 250;
   imports: [PageHeaderComponent, 
     NeuroFieldDirective,
     ShipTileArtComponent,
-    NgTemplateOutlet,
     FormsModule,
     RouterLink,
     TranslatePipe,
     HangarImportComponent,
     CodexCategoryIconComponent,
-    FallbackImageComponent,
     LoadoutSharePanelComponent,
     ScSelectComponent,
     ScTooltipDirective,
+    ScActionDirective,
+    ItemPathComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -101,10 +102,11 @@ const SEARCH_DEBOUNCE_MS = 250;
             <strong>{{ hangar.ownedCount() }}</strong>
             <span>{{ 'hangar.counts.owned' | translate }}</span>
           </div>
-          <div class="count-chip">
-            <strong>{{ hangar.wishlistCount() }}</strong>
+          <!-- One wishlist: wished ships, announced ones included, live in the popup's wish tab (gw-up = one). -->
+          <a class="count-chip" [routerLink]="wishLink.commands" [fragment]="wishLink.fragment" [queryParams]="wishLink.queryParams">
+            <strong>{{ wishes.count() }}</strong>
             <span>{{ 'hangar.counts.wishlist' | translate }}</span>
-          </div>
+          </a>
           <button type="button" class="sc-btn import-btn" (click)="importOpen.set(!importOpen())">
             {{ 'hangar.import.open' | translate }}
           </button>
@@ -129,7 +131,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       @if (hangar.pinnedShips().length > 0) {
         <div class="pinned-strip">
           @for (s of hangar.pinnedShips(); track s.id) {
-            <a class="hero sc-card" [routerLink]="shipRoute(s.id)">
+            <a class="hero sc-card" [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">
               <span class="rank">#{{ s.pinnedRank }}</span>
               <div class="hero-thumb">
                 <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
@@ -148,60 +150,6 @@ const SEARCH_DEBOUNCE_MS = 250;
           }
         </div>
       }
-
-      <!-- "Auf dem Reissbrett" — the announced ships this user watches (#130).
-           The wishlist itself is the #135 hangar_concept_ships table; this is
-           its entrance at the TOP of the hangar, where the admin asked for it,
-           while the add/remove form stays in the section further down. Every
-           tile is a real anchor: into our own announced-ship page when the RSI
-           feed still knows the hull, otherwise onto the stored pledge link, and
-           a hull with neither renders as a plain (non-navigating) tile rather
-           than a dead link. Always rendered, so a user with an empty watchlist
-           still finds the drawing board from here. -->
-      <section class="drawing-board">
-        <header class="db-head">
-          <h2>{{ 'hangar.drawingBoard.title' | translate }}</h2>
-          <span class="db-note">{{ 'hangar.drawingBoard.note' | translate }}</span>
-          <a class="db-browse" routerLink="/codex/upcoming">{{ 'hangar.drawingBoard.browse' | translate }} →</a>
-        </header>
-
-        @if (hangar.conceptShips().length === 0) {
-          <p class="hint db-empty">{{ 'hangar.drawingBoard.empty' | translate }}</p>
-        } @else {
-          <div class="db-scroll">
-            @for (c of hangar.conceptShips(); track c.id) {
-              @if (announcedFor(c); as a) {
-                <a class="db-tile" [routerLink]="['/codex/upcoming', a.id]">
-                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: conceptArt(c) }" />
-                </a>
-              } @else if (c.rsiUrl) {
-                <a class="db-tile" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
-                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
-                </a>
-              } @else {
-                <div class="db-tile is-static">
-                  <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
-                </div>
-              }
-            }
-          </div>
-        }
-      </section>
-
-      <ng-template #dbBody let-c let-art="art">
-        <span class="db-art" [class.icon-only]="art.length === 0">
-          <sc-fallback-image [candidates]="art" [alt]="c.name">
-            <sc-codex-icon kind="ship" />
-          </sc-fallback-image>
-        </span>
-        <span class="db-caption">
-          @if (c.manufacturer) { <span class="db-mfr">{{ c.manufacturer }}</span> }
-          <span class="db-name">{{ c.name }}</span>
-        </span>
-        <span class="db-wip" [scTooltip]="'codex.upcoming.notFlightReady' | translate">
-          {{ 'codex.upcoming.conceptBadge' | translate }}
-        </span>
-      </ng-template>
 
       <!-- Add ship -->
       <div class="sc-card add-ship">
@@ -234,8 +182,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                 @if (inHangar(r.classNameSlug)) {
                   <span class="already">{{ 'hangar.add.already' | translate }}</span>
                 } @else {
-                  <button class="sc-btn tiny" type="button" (click)="add(r, 'owned')">{{ 'hangar.add.owned' | translate }}</button>
-                  <button class="sc-btn tiny ghost" type="button" (click)="add(r, 'wishlist')">{{ 'hangar.add.wishlist' | translate }}</button>
+                  <sc-item-path kind="ship" [className]="r.classNameSlug" [name]="shipName(r)" level="tertiary" />
                 }
               </li>
             }
@@ -259,12 +206,12 @@ const SEARCH_DEBOUNCE_MS = 250;
           </div>
         } @else {
           <div class="grid">
-            @for (s of hangar.ships(); track s.id) {
+            @for (s of fleet(); track s.id) {
               <!-- The card frame holds the link and, as its siblings, the
                    flagship toggle and the Codex link: no interactive content
                    nested in an <a> (the toggle used to sit inside it). -->
               <div class="card fleet-card">
-              <a class="fleet-link" [routerLink]="shipRoute(s.id)">
+              <a class="fleet-link" [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">
                 <div class="thumb">
                   <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
                     <sc-codex-icon class="thumb-icon" kind="ship" />
@@ -274,8 +221,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                   <h3 class="name">{{ s.customName || displayName(s) }}</h3>
                   <div class="card-top-right">
                     @if (isFlagship(s)) {
-                      <span class="flag-badge" [scTooltip]="'hangar.flagship.badge' | translate" scTooltipTier="label"
-                            [attr.aria-label]="'hangar.flagship.badge' | translate">★</span>
+                      <span class="flag-mark">{{ 'hangar.flagship.mark' | translate }}</span>
                     }
                     @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
                   </div>
@@ -292,75 +238,64 @@ const SEARCH_DEBOUNCE_MS = 250;
                 </div>
               </a>
               <div class="fleet-actions">
-                <button type="button" class="flag-toggle" [class.is-flagship]="isFlagship(s)"
-                        (click)="toggleFlagship($event, s)"
-                        [attr.aria-pressed]="isFlagship(s)">
-                  {{ (isFlagship(s) ? 'hangar.flagship.pinned' : 'hangar.flagship.set') | translate }}
-                </button>
+                <!-- D4: the Hangar row carries the tertiary path (its filled Hangar stop opens the popover). -->
+                <sc-item-path kind="ship" [className]="s.shipClassName" [name]="s.customName || displayName(s)" level="tertiary" />
                 <a class="codex-link" [routerLink]="['/codex', 'ship', s.shipClassName]">
-                  {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
+                  <span>{{ 'hangar.detail.openCodex' | translate }}</span> <span aria-hidden="true">→</span>
                 </a>
+                <button type="button" scAction tier="tertiary" class="manage-btn" [attr.aria-label]="'hangar.manage.toggle' | translate" [scTooltip]="'hangar.manage.toggle' | translate" scTooltipTier="label" [attr.aria-expanded]="managing() === s.id" (click)="toggleManage(s)">
+                  <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.manage; track $index) { <path [attr.d]="d" /> }</svg>
+                </button>
               </div>
+              @if (managing() === s.id) {
+                <div class="manage">
+                  <div class="m-row">
+                    <input class="m-in" type="text" maxlength="80" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)"
+                           (keyup.enter)="saveName(s)" [attr.aria-label]="'hangar.detail.rename' | translate"
+                           [attr.placeholder]="'hangar.detail.rename' | translate" />
+                    <button type="button" scAction tier="secondary" (click)="saveName(s)"><span>{{ 'hangar.detail.save' | translate }}</span></button>
+                  </div>
+                  <div class="m-row">
+                    <textarea class="m-in m-notes" rows="3" maxlength="2000" [ngModel]="notesDraft()" (ngModelChange)="notesDraft.set($event)"
+                              [attr.aria-label]="'hangar.detail.notes' | translate" [attr.placeholder]="'hangar.detail.notesPlaceholder' | translate"></textarea>
+                    <button type="button" scAction tier="secondary" (click)="saveNotes(s)"><span>{{ 'hangar.detail.save' | translate }}</span></button>
+                  </div>
+                  <div class="m-row">
+                    <!-- r2-flag = top: the flagship is marked once (the text mark on the card, first in the list); it is set and unset here. -->
+                    <button type="button" scAction tier="secondary" [attr.aria-pressed]="isFlagship(s)" (click)="toggleFlagship($event, s)">
+                      <span>{{ (isFlagship(s) ? 'hangar.flagship.unset' : 'hangar.flagship.set') | translate }}</span>
+                    </button>
+                  </div>
+                  <div class="m-row">
+                    <span class="m-label">{{ 'hangar.detail.pinLabel' | translate }}</span>
+                    <sc-select class="m-pin" [options]="pinOptions" [value]="s.pinnedRank ? '' + s.pinnedRank : null" placeholderLabel="—"
+                               [ariaLabel]="'hangar.detail.pinLabel' | translate" (valueChange)="setPin(s, $event)" />
+                  </div>
+                  <div class="m-variants">
+                    <span class="m-label">{{ 'hangar.manage.variants' | translate }}</span>
+                    @for (c of variantsOf(s); track c.id) {
+                      <div class="m-var">
+                        <a class="m-var-name" [routerLink]="variantLink(s, c).commands" [queryParams]="variantLink(s, c).queryParams">{{ c.name }}</a>
+                        <span class="badge">{{ 'hangar.roles.' + c.role | translate }}</span>
+                        @if (c.isActive) {
+                          <span class="badge">{{ 'hangar.manage.active' | translate }}</span>
+                        } @else {
+                          <button type="button" scAction tier="secondary" (click)="activate(s, c)"><span>{{ 'hangar.configs.activate' | translate }}</span></button>
+                        }
+                        <button type="button" scAction tier="secondary" tone="danger" (click)="deleteConfig(c)"><span>{{ 'hangar.configs.delete' | translate }}</span></button>
+                      </div>
+                    } @empty {
+                      <p class="hint">{{ 'hangar.manage.noVariants' | translate }}</p>
+                    }
+                  </div>
+                  <div class="m-row">
+                    <button type="button" scAction tier="secondary" tone="danger" (click)="removeShip(s)"><span>{{ 'hangar.detail.remove' | translate }}</span></button>
+                  </div>
+                </div>
+              }
               </div>
             }
           </div>
-        }
-      </div>
-
-      <!-- Concept-ship wishlist (#135) — unreleased ships, no catalog entry -->
-      <div class="concepts">
-        <h2>{{ 'hangar.concept.title' | translate }}</h2>
-        <p class="hint">{{ 'hangar.concept.hint' | translate }}</p>
-
-        <form class="concept-form" (submit)="addConcept($event)">
-          <input type="text" class="text-input" name="name" required maxlength="80"
-                 [(ngModel)]="conceptName"
-                 [attr.placeholder]="'hangar.concept.namePlaceholder' | translate"
-                 [attr.aria-label]="'hangar.concept.namePlaceholder' | translate" />
-          <input type="text" class="text-input" name="manufacturer" maxlength="60"
-                 [(ngModel)]="conceptManufacturer"
-                 [attr.placeholder]="'hangar.concept.manufacturerPlaceholder' | translate"
-                 [attr.aria-label]="'hangar.concept.manufacturerPlaceholder' | translate" />
-          <input type="url" class="text-input wide" name="rsiUrl"
-                 [(ngModel)]="conceptRsiUrl"
-                 (ngModelChange)="onConceptUrlInput()"
-                 [class.invalid]="conceptUrlError()"
-                 [attr.aria-invalid]="conceptUrlError() ? 'true' : null"
-                 [attr.placeholder]="'hangar.concept.urlPlaceholder' | translate"
-                 [attr.aria-label]="'hangar.concept.urlPlaceholder' | translate" />
-          <button type="submit" class="sc-btn" [disabled]="!conceptName.trim() || conceptSaving()">
-            {{ 'hangar.concept.add' | translate }}
-          </button>
-        </form>
-        @if (conceptUrlError()) {
-          <p class="concept-url-error" role="alert">{{ 'hangar.concept.urlError' | translate }}</p>
-        }
-
-        @if (hangar.conceptShips().length === 0) {
-          <p class="hint">{{ 'hangar.concept.empty' | translate }}</p>
-        } @else {
-          <ul class="concept-list">
-            @for (c of hangar.conceptShips(); track c.id) {
-              <li class="sc-card concept-row">
-                <div class="concept-main">
-                  <strong>{{ c.name }}</strong>
-                  @if (c.manufacturer) { <span class="concept-mfr">{{ c.manufacturer }}</span> }
-                  <span class="badge preliminary">{{ 'hangar.concept.preliminary' | translate }}</span>
-                </div>
-                <div class="concept-actions">
-                  @if (c.rsiUrl) {
-                    <!-- User-supplied URL: bound as a plain href, never innerHTML. -->
-                    <a class="concept-link" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
-                      {{ 'hangar.concept.pledgeLink' | translate }}
-                    </a>
-                  }
-                  <button type="button" class="concept-remove" (click)="removeConcept(c.id)"
-                          [attr.aria-label]="'hangar.concept.remove' | translate"
-                          [scTooltip]="'hangar.concept.remove' | translate">✕</button>
-                </div>
-              </li>
-            }
-          </ul>
         }
       </div>
 
@@ -546,6 +481,8 @@ const SEARCH_DEBOUNCE_MS = 250;
       color: var(--sc-bg-0); background: var(--sc-accent); border-color: var(--sc-accent); }
     .teaser .cta:hover { background: transparent; color: var(--sc-accent); }
     .counts { display: flex; gap: 8px; }
+    a.count-chip { color: inherit; text-decoration: none; }
+    a.count-chip:hover, a.count-chip:focus-visible { border-color: var(--sc-accent); outline: none; }
     .count-chip { display: flex; flex-direction: column; align-items: center; padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .count-chip strong { font-family: var(--sc-font-display); font-size: 1.2rem; color: var(--sc-accent); }
     .count-chip span { font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
@@ -562,100 +499,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hero h3 { margin: 0; font-size: 1.05rem; }
     .hero-sub { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
-    .sc-card h2, .fleet h2, .loadouts h2, .concepts h2 { margin: 0 0 10px; font-size: 1rem; }
+    .sc-card h2, .fleet h2, .loadouts h2 { margin: 0 0 10px; font-size: 1rem; }
 
-    /* "Auf dem Reissbrett" strip (#130) — the watched announced ships, at the
-       top of the hangar. Same art-first tile language as the Codex rail, with
-       its own overflow-x container so the PAGE never scrolls sideways (the
-       mobile gate fails on horizontal page overflow). */
-    .drawing-board { display: flex; flex-direction: column; gap: 8px; }
-    .db-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-    .db-head h2 { margin: 0; font-size: 1rem; }
-    .db-note { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
-    .db-browse { margin-left: auto; color: var(--sc-accent); text-decoration: none; font-size: max(0.76rem, var(--sc-fs-floor)); }
-    .db-browse:hover { text-decoration: underline; }
-    .db-empty { margin: 0; }
-    .db-scroll {
-      display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
-      -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
-      padding: 2px 2px 6px; margin: 0 -2px;
-    }
-    .db-tile {
-      position: relative; flex: 0 0 196px; aspect-ratio: 16 / 9;
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
-      border-radius: 4px; border: 1px solid var(--sc-border);
-      background: radial-gradient(circle at 50% 42%, var(--sc-bg-2), var(--sc-bg-0));
-      color: inherit; text-decoration: none; scroll-snap-align: start;
-      min-height: var(--sc-tap-min, 44px);
-      transition: border-color 0.16s ease, box-shadow 0.16s ease;
-      /* sc-fallback-image owns the <img>; a bleed crop travels as custom
-         properties because they inherit across the component boundary. */
-      --sc-img-w: 100%; --sc-img-h: 100%; --sc-img-max-h: 100%;
-      --sc-img-fit: cover; --sc-img-shadow: none;
-    }
-    a.db-tile:hover, a.db-tile:focus-visible {
-      outline: none;
-      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
-      box-shadow: 0 0 18px color-mix(in srgb, var(--sc-accent) 26%, transparent);
-    }
-    .db-tile.is-static { cursor: default; }
-    .db-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-    .db-art.icon-only sc-codex-icon { width: 30%; height: 30%; opacity: 0.55; color: var(--sc-accent); transform: translateY(-14%); }
-    .db-caption {
-      position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 1px;
-      padding: 16px 10px 8px;
-      background: linear-gradient(to top, rgba(2, 8, 14, 0.92) 0%, rgba(2, 8, 14, 0.72) 46%, transparent 100%);
-    }
-    .db-mfr {
-      font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
-      letter-spacing: 0.07em; text-transform: uppercase; line-height: 1.2;
-      color: color-mix(in srgb, var(--sc-accent) 78%, #f2f7fb);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .db-name {
-      font-size: 0.8rem; font-weight: 600; line-height: 1.15; color: #f2f7fb;
-      overflow: hidden; text-overflow: ellipsis;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    }
-    /* The "not flight-ready" marker the admin asked for: a small pill in the
-       free corner, tinting rather than covering the render. */
-    .db-wip {
-      position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px;
-      font-family: var(--sc-font-display); font-size: max(0.56rem, var(--sc-fs-floor));
-      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.35;
-      color: color-mix(in srgb, var(--sc-accent) 88%, #f2f7fb);
-      background: rgba(2, 8, 14, 0.72);
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 42%, transparent);
-      pointer-events: none;
-    }
-
-    /* Concept-ship wishlist (#135) */
-    .concepts .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0 0 10px; }
-    .concept-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .concept-form .text-input {
-      flex: 1 1 160px; min-width: 140px; padding: 8px 12px;
-      background: var(--sc-bg-1); color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border); border-radius: 4px; font: inherit; font-size: max(0.9rem, var(--sc-fs-input));
-    }
-    .concept-form .text-input.wide { flex: 2 1 240px; }
-    .concept-form .text-input:focus { outline: none; border-color: var(--sc-accent); }
-    .concept-form .text-input.invalid { border-color: var(--sc-danger); }
-    .concept-url-error { margin: -4px 0 12px; color: var(--sc-danger); font-size: 0.8rem; }
-    .concept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-    .concept-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
-    .concept-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
-    .concept-mfr { color: var(--sc-fg-2); font-size: 0.8rem; }
-    .badge.preliminary {
-      font-size: max(0.6rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; text-transform: uppercase;
-      letter-spacing: 0.06em; background: rgba(255, 170, 60, 0.14); color: #f0b35c;
-      border: 1px solid color-mix(in srgb, #f0b35c 45%, transparent);
-    }
-    .concept-actions { display: flex; align-items: center; gap: 12px; }
-    .concept-link { color: var(--sc-accent); font-size: 0.8rem; }
-    .concept-remove {
-      background: transparent; border: 0; color: var(--sc-fg-2); cursor: pointer; font-size: 0.85rem;
-    }
-    .concept-remove:hover { color: var(--sc-danger); }
     .add-ship { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
     .search-row { display: flex; }
     .search { flex: 1; padding: 9px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.9rem, var(--sc-fs-input)); }
@@ -678,23 +523,32 @@ const SEARCH_DEBOUNCE_MS = 250;
     .fleet-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
     .fleet-card:has(.fleet-link:focus-visible) { border-color: var(--sc-accent); }
     .card-sub { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .fleet-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .fleet-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+    .fleet-actions .manage-btn { margin-inline-start: auto; }
+    /* An opened Verwalten panel grows its own card only; the neighbours keep their height. */
+    .fleet-card { align-self: start; }
     .codex-link { color: var(--sc-accent); text-decoration: none; font-size: max(0.78rem, var(--sc-fs-floor));
-      min-height: var(--sc-tap-min); display: inline-flex; align-items: center; gap: 4px; }
+      min-height: var(--sc-tap-min); min-width: 0; display: inline-flex; align-items: center; gap: 4px; }
+    .codex-link > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .codex-link:hover { text-decoration: underline; }
     .codex-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
     .rank-sm { font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 0.82rem; }
     .card-top-right { display: flex; align-items: center; gap: 6px; }
-    .flag-badge { color: var(--sc-warning, #ffc14d); font-size: 0.92rem; line-height: 1; }
-    .flag-toggle { padding: 5px 10px; min-height: var(--sc-tap-min); border-radius: 6px; background: transparent;
-      border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: var(--sc-font-display);
-      font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; align-self: flex-start;
-      transition: color 0.16s, border-color 0.16s, background 0.16s; }
-    .flag-toggle:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
-    .flag-toggle.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d);
-      background: color-mix(in srgb, var(--sc-warning, #ffc14d) 16%, transparent); }
+        .flag-mark { color: var(--sc-warning, #ffc14d); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
+    .manage { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); padding: var(--sc-space-3, 12px); border-top: 1px solid var(--sc-border); }
+    .m-row { display: flex; gap: var(--sc-space-2, 8px); align-items: center; flex-wrap: wrap; }
+    .m-in { flex: 1 1 12rem; min-width: 0; min-height: 40px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--sc-border);
+      background: var(--sc-bg-1); color: var(--sc-fg-0); font: inherit; }
+    .m-in:focus { outline: none; border-color: var(--sc-accent); }
+    .m-notes { resize: vertical; }
+    .m-label { color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .m-pin { min-width: 6rem; }
+    .m-variants { display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); }
+    .m-var { display: flex; gap: var(--sc-space-2, 8px); align-items: center; flex-wrap: wrap; }
+    .m-var-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; color: var(--sc-accent); }
+    @media (pointer: coarse) { .m-in { min-height: 48px; } }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     /* Neutral: red (--sc-accent-hot) means elevated access (CLAUDE.md). */
@@ -781,16 +635,108 @@ const SEARCH_DEBOUNCE_MS = 250;
   `],
 })
 export class HangarDashboardComponent implements OnInit {
+  protected readonly icons = PATH_ICONS;
   /**
    * Which HQ section this page renders (route data, concept 2026-10-08):
    * `hangar` = ships, `locker` = the role sets (Spind). `all` keeps both —
    * the default for a host that binds nothing (specs, embeds).
    */
   readonly section = input<'all' | 'hangar' | 'locker'>('all');
+  private readonly ownership = inject(HqOwnershipService);
+  protected readonly wishes = inject(SearchWishlistService);
+  protected readonly wishLink = hqListLink('wish');
+  private readonly confirmDialog = inject(ScConfirmService);
+  private readonly forkGuard = inject(CodexHoloForkGuard);
+
+  /** Flagship first (E6), otherwise the hangar's own order. */
+  readonly fleet = computed(() => flagshipFirst(this.hangar.ships(), (c) => this.hangar.isFlagship(c)));
+
+  // The HQ ship row's manage panel: what the old hangar detail page did (D9).
+  readonly managing = signal<string | null>(null);
+  readonly nameDraft = signal('');
+  readonly notesDraft = signal('');
+  readonly pinOptions: ScSelectOption[] = [
+    { value: '1', labelKey: '', label: '#1' },
+    { value: '2', labelKey: '', label: '#2' },
+    { value: '3', labelKey: '', label: '#3' },
+  ];
+
+  toggleManage(s: HangarShip): void {
+    if (this.managing() === s.id) {
+      this.managing.set(null);
+      return;
+    }
+    this.nameDraft.set(s.customName ?? '');
+    this.notesDraft.set(s.notes ?? '');
+    this.managing.set(s.id);
+  }
+
+  variantsOf(s: HangarShip): HangarShipConfig[] {
+    return this.ownership.configsForShip(s.id);
+  }
+
+  variantLink(s: HangarShip, c: HangarShipConfig): HqLink {
+    return personalShipLink(s.shipClassName, c.id);
+  }
+
+  async saveName(s: HangarShip): Promise<void> {
+    await this.hangar.updateShip(s.id, { customName: this.nameDraft().trim() || null });
+  }
+
+  async saveNotes(s: HangarShip): Promise<void> {
+    await this.hangar.updateShip(s.id, { notes: this.notesDraft().trim() || null });
+  }
+
+  async setPin(s: HangarShip, value: string | null): Promise<void> {
+    await this.hangar.pinShip(s.id, value ? (Number(value) as 1 | 2 | 3) : null);
+  }
+
+  async activate(s: HangarShip, c: HangarShipConfig): Promise<void> {
+    if ((await this.forkGuard.ensureEditable(c)) === 'cancelled') return;
+    if (await this.hangar.activateConfig(c.id, s.id)) {
+      this.ownership.invalidate();
+      void this.ownership.ensureLoaded();
+    }
+  }
+
+  async deleteConfig(c: HangarShipConfig): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      titleKey: 'hangar.configs.deleteConfirm.title',
+      messageKey: 'hangar.configs.deleteConfirm.body',
+      params: { name: c.name },
+      confirmKey: 'hangar.configs.delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    if (await this.hangar.deleteConfig(c.id)) {
+      this.ownership.invalidate();
+      void this.ownership.ensureLoaded();
+    }
+  }
+
+  async removeShip(s: HangarShip): Promise<void> {
+    // Variants hang off the ship with ON DELETE CASCADE: the question names how many go with it.
+    const n = this.variantsOf(s).length;
+    const ok = await this.confirmDialog.confirm({
+      titleKey: 'hangar.detail.removeConfirm.title',
+      messageKey: n === 0 ? 'hangar.detail.removeConfirm.bodyNone' : n === 1 ? 'hangar.detail.removeConfirm.bodyOne' : 'hangar.detail.removeConfirm.bodyMany',
+      params: { name: s.customName || s.shipClassName, count: n },
+      confirmKey: 'hangar.detail.remove',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    if (await this.hangar.removeShip(s.id)) {
+      if (this.managing() === s.id) this.managing.set(null);
+      this.ownership.invalidate();
+    }
+  }
   readonly hangarLink = hqHangar;
 
-  shipRoute(id: string): string[] {
-    return hqShip(id);
+  /** The ship's own page is the personal Codex view (its active variant), not a hangar detail page. */
+  shipLink(s: HangarShip): HqLink {
+    const cfgs = this.ownership.configsForShip(s.id);
+    const cfg = cfgs.find((c) => c.isActive) ?? cfgs[0];
+    return cfg ? personalShipLink(s.shipClassName, cfg.id) : personalItemLink('ship', s.shipClassName);
   }
 
   setRoute(id: string): string[] {
@@ -879,30 +825,14 @@ export class HangarDashboardComponent implements OnInit {
     // cost the hangar nothing — the service swallows it and the list stays
     // empty.
     void this.shares.listSharedWithMe().then((rows) => this.sharedWithMe.set(rows));
-    // The RSI feed is fire-and-forget: it only enriches the drawing-board strip
+    // The RSI feed is fire-and-forget: it only enriches the ship tiles
     // with artwork and an in-app target, so a dead proxy must not delay (or
     // fail) the hangar itself. One CDN-cached GET, shared with the Codex.
     void this.rsi.ensureLoaded();
+    this.wishes.ensureLoaded();
+    void this.ownership.ensureLoaded();
     await Promise.all([this.hangar.loadAll(), this.codex.loadCurrentBuild()]);
     await this.refreshCards();
-  }
-
-  // ── "Auf dem Reissbrett" strip (#130) ──────────────────────────────────────
-
-  /**
-   * The announced ship behind a watched concept entry, matched on the
-   * normalized name — the only handle a catalog-less hull has. `null` for a
-   * hand-typed entry the RSI matrix does not (or no longer) list; the tile then
-   * falls back to the stored pledge link.
-   */
-  announcedFor(c: ConceptShip): UpcomingShip | null {
-    return this.rsi.shipByName(c.name);
-  }
-
-  /** Ordered RSI art candidates for a watched entry; empty when unmatched. */
-  conceptArt(c: ConceptShip): string[] {
-    const a = this.announcedFor(c);
-    return a ? thumbnailCandidates(a) : [];
   }
 
   cardFor(s: HangarShip): CodexListRow | null {
@@ -956,60 +886,8 @@ export class HangarDashboardComponent implements OnInit {
     this.searchTimer = setTimeout(() => void this.runSearch(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
-  async add(r: CodexListRow, status: 'owned' | 'wishlist'): Promise<void> {
-    const ship = await this.hangar.addShip(r.classNameSlug, status);
-    if (ship) {
-      const cards = new Map(this.cards());
-      cards.set(r.classNameSlug, r);
-      this.cards.set(cards);
-    }
-  }
-
   // Import panel visibility (#136).
   readonly importOpen = signal(false);
-
-  // ── concept-ship wishlist (#135) ────────────────────────────────────────────
-  conceptName = '';
-  conceptManufacturer = '';
-  conceptRsiUrl = '';
-  readonly conceptSaving = signal(false);
-
-  /** Inline validation error for the optional RSI link (feedback f7d3bd9a). */
-  readonly conceptUrlError = signal(false);
-
-  /** Clear the RSI-link error as soon as the user edits the field again. */
-  onConceptUrlInput(): void {
-    if (this.conceptUrlError()) this.conceptUrlError.set(false);
-  }
-
-  async addConcept(e: Event): Promise<void> {
-    e.preventDefault();
-    if (!this.conceptName.trim() || this.conceptSaving()) return;
-    // The link is optional, but if one is given it must be an official RSI
-    // pledge-ship URL. Fail loudly here instead of silently dropping it — the
-    // service normalizes and the DB CHECK gates, but the user deserves to know.
-    if (this.conceptRsiUrl.trim() && !isValidRsiPledgeShipUrl(this.conceptRsiUrl)) {
-      this.conceptUrlError.set(true);
-      return;
-    }
-    this.conceptUrlError.set(false);
-    this.conceptSaving.set(true);
-    const created = await this.hangar.addConceptShip({
-      name: this.conceptName,
-      manufacturer: this.conceptManufacturer,
-      rsiUrl: this.conceptRsiUrl,
-    });
-    if (created) {
-      this.conceptName = '';
-      this.conceptManufacturer = '';
-      this.conceptRsiUrl = '';
-    }
-    this.conceptSaving.set(false);
-  }
-
-  async removeConcept(id: string): Promise<void> {
-    await this.hangar.removeConceptShip(id);
-  }
 
   onNewLoadoutRoleChange(value: string | null): void {
     if (value) this.newLoadoutRole.set(value as RoleLoadoutRole);

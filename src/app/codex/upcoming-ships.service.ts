@@ -1,10 +1,12 @@
 import { searchMatcher, searchScore } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { AuthService } from '../auth/auth.service';
 import { ConsentService } from '../core/consent.service';
+import { SearchWishlistService } from './search/search-wishlist.service';
 import { rsiVariant } from '../news/news-image-variants';
 
 /**
@@ -184,19 +186,20 @@ export interface UpcomingShipsFeed {
 
 /**
  * What the user saw the last time the upcoming list was acknowledged:
- * ship id → production status. Statuses ride along so a favorited ship that
+ * ship id → production status. Statuses ride along so a wished ship that
  * flips `in-concept` → `flight-ready` can be reported as an update, not just
  * as "still there".
  */
 export type UpcomingBaseline = Record<string, string>;
 
-/** New-since-last-look, split into "added" and "a favorite changed status". */
+/** New-since-last-look, split into "added" and "a wished ship changed status". */
 export interface UpcomingDiff {
   added: UpcomingShip[];
-  favoriteUpdates: UpcomingShip[];
+  wishedUpdates: UpcomingShip[];
 }
 
-const FAVORITES_STORAGE_KEY = 'sc-companion.upcoming.favorites';
+/** The retired local star list. Its ships move onto the wishlist once, then the key is dropped. */
+const LEGACY_FAVORITES_STORAGE_KEY = 'sc-companion.upcoming.favorites';
 const BASELINE_STORAGE_KEY = 'sc-companion.upcoming.baseline';
 
 /** Snapshot the feed for the "what did the user already see" baseline. */
@@ -209,32 +212,32 @@ export function snapshotOf(ships: readonly UpcomingShip[]): UpcomingBaseline {
 /**
  * Diff the current feed against the last acknowledged baseline.
  *
- * `added` = ships the baseline never contained. `favoriteUpdates` = favorited
- * ships that existed before but whose RSI production status moved. A ship can
+ * `added` = ships the baseline never contained. `wishedUpdates` = ships on the
+ * wishlist that existed before but whose RSI production status moved. A ship can
  * only appear in one bucket (an added ship is reported as added even when the
- * user already favorited it — the star badge carries that nuance in the UI).
+ * user already wished it).
  * A `null` baseline means "no baseline yet" → nothing is new, which is what
  * seeds a first-time visitor instead of drowning them in ~60 notifications.
  */
 export function diffUpcoming(
   ships: readonly UpcomingShip[],
   baseline: UpcomingBaseline | null,
-  favorites: ReadonlySet<string>,
+  wished: ReadonlySet<string>,
 ): UpcomingDiff {
-  if (!baseline) return { added: [], favoriteUpdates: [] };
+  if (!baseline) return { added: [], wishedUpdates: [] };
   const added: UpcomingShip[] = [];
-  const favoriteUpdates: UpcomingShip[] = [];
+  const wishedUpdates: UpcomingShip[] = [];
   for (const ship of ships) {
     const known = Object.prototype.hasOwnProperty.call(baseline, ship.id);
     if (!known) {
       added.push(ship);
       continue;
     }
-    if (favorites.has(ship.id) && baseline[ship.id] !== (ship.productionStatus ?? '')) {
-      favoriteUpdates.push(ship);
+    if (wished.has(ship.id) && baseline[ship.id] !== (ship.productionStatus ?? '')) {
+      wishedUpdates.push(ship);
     }
   }
-  return { added, favoriteUpdates };
+  return { added, wishedUpdates };
 }
 
 /**
@@ -296,6 +299,8 @@ export function searchUpcoming(
 export class UpcomingShipsService {
   private readonly http = inject(HttpClient);
   private readonly consent = inject(ConsentService);
+  private readonly auth = inject(AuthService);
+  private readonly wishlist = inject(SearchWishlistService);
   private readonly endpoint = `${environment.supabase.url}/functions/v1/rsi-upcoming-ships`;
 
   readonly feed = signal<UpcomingShipsFeed | null>(null);
@@ -305,15 +310,14 @@ export class UpcomingShipsService {
 
   /** Free-text filter for the list view; empty string = show everything. */
   readonly query = signal('');
-  /** When true the list shows only favorited ships. */
-  readonly favoritesOnly = signal(false);
 
-  /** Favorited ship ids, persisted in localStorage (preference category). */
-  readonly favoriteIds = signal<ReadonlySet<string>>(this.loadFavoritesFromStorage());
-  readonly favoriteCount = computed(() => {
-    const f = this.feed();
-    const favs = this.favoriteIds();
-    return f ? f.ships.filter((s) => favs.has(s.id)).length : 0;
+  /**
+   * Feed ids of the announced ships on the wishlist. There is no second store: the one
+   * wishlist (`SearchWishlistService`, keyed on the folded ship name) is the only truth.
+   */
+  readonly wishedIds = computed<ReadonlySet<string>>(() => {
+    const ships = this.feed()?.ships ?? [];
+    return new Set(ships.filter((s) => this.wishlist.has('upcoming', s.id, s.name)).map((s) => s.id));
   });
 
   /** Last acknowledged snapshot; `null` until the first feed seeds it. */
@@ -321,30 +325,39 @@ export class UpcomingShipsService {
 
   private readonly visible = computed(() => {
     const ships = this.feed()?.ships ?? [];
-    const favs = this.favoriteIds();
     const q = this.query();
-    const onlyFavs = this.favoritesOnly();
-    return ships.filter((s) => (!onlyFavs || favs.has(s.id)) && matchesUpcomingQuery(s, q));
+    return ships.filter((s) => matchesUpcomingQuery(s, q));
   });
 
   /** Concept ships (RSI still building them) first, then flight-ready-but-missing. */
   readonly concept = computed(() => this.visible().filter((s) => !s.flightReadyButMissing));
   readonly flightReadyMissing = computed(() => this.visible().filter((s) => s.flightReadyButMissing));
 
-  /** How many ships the current search/favorites filter hides. */
+  /** How many ships the current search filter hides. */
   readonly filteredOut = computed(() => (this.feed()?.ships.length ?? 0) - this.visible().length);
 
-  /** New ships + favorites whose status moved, since the last acknowledge. */
+  /** New ships + wished ships whose status moved, since the last acknowledge. */
   readonly diff = computed<UpcomingDiff>(() =>
-    diffUpcoming(this.feed()?.ships ?? [], this.baseline(), this.favoriteIds()),
+    diffUpcoming(this.feed()?.ships ?? [], this.baseline(), this.wishedIds()),
   );
   readonly newIds = computed(() => new Set(this.diff().added.map((s) => s.id)));
   readonly notificationCount = computed(() => {
     const d = this.diff();
-    return d.added.length + d.favoriteUpdates.length;
+    return d.added.length + d.wishedUpdates.length;
   });
 
   private refreshSeq = 0;
+  private legacyMigrated = false;
+
+  constructor() {
+    // Signed in and the feed known: the old local star list becomes wishlist entries (once).
+    effect(() => {
+      const ships = this.feed()?.ships;
+      if (!ships || !this.auth.user() || this.legacyMigrated) return;
+      this.legacyMigrated = true;
+      untracked(() => void this.migrateLegacyFavorites(ships));
+    });
+  }
   private inFlight: Promise<void> | null = null;
 
   /**
@@ -457,23 +470,9 @@ export class UpcomingShipsService {
     }
   }
 
-  isFavorite(id: string): boolean {
-    return this.favoriteIds().has(id);
-  }
-
-  /** Toggle a ship favorite; persisted across sessions. */
-  toggleFavorite(id: string): void {
-    const next = new Set(this.favoriteIds());
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    this.favoriteIds.set(next);
-    this.persistFavorites(next);
-    // Never strand the user on an empty favorites-only list.
-    if (this.favoritesOnly() && next.size === 0) this.favoritesOnly.set(false);
-  }
-
-  toggleFavoritesOnly(): void {
-    this.favoritesOnly.update((v) => !v);
+  /** Is this announced ship on the wishlist? */
+  isWished(id: string): boolean {
+    return this.wishedIds().has(id);
   }
 
   clearQuery(): void {
@@ -492,25 +491,29 @@ export class UpcomingShipsService {
     this.persistBaseline(next);
   }
 
-  private loadFavoritesFromStorage(): ReadonlySet<string> {
-    if (typeof localStorage === 'undefined') return new Set();
-    try {
-      const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
-    } catch {
-      return new Set();
-    }
-  }
-
-  private persistFavorites(set: ReadonlySet<string>): void {
-    // Preference-category storage is opt-in (#130) — skip until allowed.
-    if (!this.consent.preferencesAllowed()) return;
+  /** Move the retired star list onto the wishlist, once, and drop the old key. */
+  private async migrateLegacyFavorites(ships: readonly UpcomingShip[]): Promise<void> {
     if (typeof localStorage === 'undefined') return;
+    let ids: string[] = [];
     try {
-      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));
-    } catch { /* quota / private mode */ }
+      const raw = localStorage.getItem(LEGACY_FAVORITES_STORAGE_KEY);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      ids = Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      ids = [];
+    }
+    this.wishlist.ensureLoaded();
+    const results = await Promise.all(
+      ids.map((id) => {
+        const ship = ships.find((s) => s.id === id);
+        return ship ? this.wishlist.add('upcoming', ship.id, ship.name) : Promise.resolve(true);
+      }),
+    );
+    // A failed add keeps the key so the next session tries again.
+    if (results.every(Boolean)) {
+      try { localStorage.removeItem(LEGACY_FAVORITES_STORAGE_KEY); } catch { /* private mode */ }
+    }
   }
 
   private loadBaselineFromStorage(): UpcomingBaseline | null {

@@ -279,7 +279,7 @@ def test_blueprint_dangling_ingredient_kept(extractor: CodexExtractor,
 
 def test_blueprint_mission_source_null(extractor: CodexExtractor,
                                         tmp_path: Path) -> None:
-    """missionSource always null in v1 (R5)."""
+    """No contract awards it (the fixture has no ContractGenerator): null, never a guess."""
     extractor.extract_blueprints()
     bp = json.loads(list((tmp_path / "blueprints").glob("*.json"))[0].read_text())
     assert bp["missionSource"] is None

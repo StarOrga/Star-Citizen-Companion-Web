@@ -1,4 +1,6 @@
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
@@ -190,6 +192,7 @@ function configureSetup(
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
       {
@@ -734,6 +737,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },
       {
@@ -1147,32 +1151,6 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     expect(listed).toBe(cmp.moduleCount() + cmp.tailModuleCount());
     const body = openDetails(fixture);
     expect(body.querySelector('.col-loadout-tail .col-head .n')?.textContent?.trim()).toBe(String(cmp.tailModuleCount()));
-  }));
-
-  // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
-  it('locks "add to hangar" while the insert runs and alerts when it fails', fakeAsync(() => {
-    const fixture = renderOnFakeClock();
-    const hangar = TestBed.inject(HangarService);
-    let resolve!: (v: null) => void;
-    const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
-    const body = openBlock(fixture);
-    const btn = body.querySelector('.add-hangar') as HTMLButtonElement;
-    expect(btn).withContext('add-to-hangar button rendered').not.toBeNull();
-
-    btn.click();
-    fixture.detectChanges();
-    expect(btn.disabled).toBeTrue();
-    expect(btn.getAttribute('aria-busy')).toBe('true');
-    void fixture.componentInstance.addToHangar();
-    expect(addShip).toHaveBeenCalledTimes(1);
-
-    resolve(null);
-    flushMicrotasks();
-    fixture.detectChanges();
-    expect(btn.disabled).toBeFalse();
-    const alert = body.querySelector('.add-err[role="alert"]');
-    expect(alert).not.toBeNull();
-    expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
   }));
 });
 

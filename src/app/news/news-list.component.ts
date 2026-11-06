@@ -34,6 +34,7 @@ import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component'
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 type FeedFilter = 'all' | 'comm-link' | 'youtube' | 'spectrum' | 'patch' | 'saved';
@@ -149,8 +150,9 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                  (click)="onItemClick($event, item)">
                 {{ (isVideo(item) ? 'news.stage.watch' : 'news.stage.read') | translate }} →
               </a>
-              <button type="button" class="act fav" [class.on]="isFav(item)"
+              <button type="button" class="act fav icon-only" [class.on]="isFav(item)"
                       [attr.aria-pressed]="isFav(item)"
+                      [scTooltip]="favLabel(item) | translate" scTooltipTier="label"
                       (click)="toggleFavorite($event, item)">
                 <span class="ic" [innerHTML]="favIcon(isFav(item))"></span>
                 <span class="lbl">{{ favLabel(item) | translate }}</span>
@@ -364,9 +366,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
               @if (item.summary) { <p class="nd-summary">{{ item.summary }}</p> }
               <div class="nd-actions">
                 <button type="button" class="sc-btn" [class.on]="isFav(item)"
-                        [attr.aria-pressed]="isFav(item)" (click)="toggleFavorite($event, item)">
+                        [attr.aria-pressed]="isFav(item)" [attr.aria-label]="favLabel(item) | translate"
+                        [scTooltip]="favLabel(item) | translate" scTooltipTier="label"
+                        (click)="toggleFavorite($event, item)">
                   <span class="ic" [innerHTML]="favIcon(isFav(item))"></span>
-                  {{ favLabel(item) | translate }}
                 </button>
                 <button type="button" class="sc-btn" (click)="share($event, item)">
                   <span class="ic" [innerHTML]="shareIcon()"></span>
@@ -1177,8 +1180,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
 
   /**
    * The one wording for the saved state, used as the button label on the stage
-   * and in the detail view and as the tooltip on a stream tile. "Merken" and
-   * "Favoriten" used to name the same thing in three places.
+   * (tooltip and accessible name) on the stage, the stream tile and the detail view.
    */
   favLabel(item: VerseNewsItem): string {
     return this.isFav(item) ? 'news.favorite.saved' : 'news.favorite.save';
@@ -1302,15 +1304,15 @@ export class NewsListComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * The saved glyph — filled when saved, outlined when not. One star, drawn the
-   * same way on the stage, on a tile and in the detail view; the page used to
-   * mix the text characters ★/☆ with a "★ Merken" label baked into the
-   * translation, so the two never lined up optically.
+   * The saved glyph: the bookmark of the path family (`PATH_ICONS.wish`), filled when
+   * saved, outlined when not. News says no word for it ("Merken" is the wishlist's
+   * business, not the news'), so the glyph and its tooltip carry the whole control.
    */
   favIcon(on: boolean): SafeHtml {
-    return this.safeSvg(on
-      ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 3.6 2.6 5.28 5.83.85-4.22 4.11.996 5.8L12 16.9l-5.21 2.74.996-5.8-4.22-4.11 5.83-.85z"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="m12 3.6 2.6 5.28 5.83.85-4.22 4.11.996 5.8L12 16.9l-5.21 2.74.996-5.8-4.22-4.11 5.83-.85z"/></svg>');
+    const d = PATH_ICONS.wish[0];
+    return this.safeSvg(
+      `<svg viewBox="0 0 24 24" fill="${on ? 'currentColor' : 'none'}" fill-opacity="${on ? '0.28' : '0'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`,
+    );
   }
 
   /** The share glyph. Replaces the lone ⤴ character the stage used to carry. */
