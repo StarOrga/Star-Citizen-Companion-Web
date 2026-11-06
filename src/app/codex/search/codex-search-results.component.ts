@@ -1,3 +1,4 @@
+import { CompareIconComponent } from '../compare-icon.component';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -28,7 +29,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
 @Component({
   selector: 'sc-codex-search-results',
   standalone: true,
-  imports: [ItemPathComponent, NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, ShipBlueprintIconComponent, ScTooltipDirective],
+  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, ShipBlueprintIconComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let e = engine();
@@ -192,10 +193,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
                     [attr.aria-label]="'codex.search.bar.pinAria' | translate: { name: title(o.hit) }"
                     [scTooltip]="(codex.isPinned(pk, o.hit.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                     scTooltipTier="label">
-              <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"
-                   [attr.fill]="codex.isPinned(pk, o.hit.classNameSlug) ? 'currentColor' : 'none'">
-                <path d="M12 3 L14.7 9.2 L21.5 9.9 L16.4 14.3 L17.9 21 L12 17.4 L6.1 21 L7.6 14.3 L2.5 9.9 L9.3 9.2 Z" />
-              </svg>
+              <sc-compare-icon [on]="codex.isPinned(pk, o.hit.classNameSlug)" />
             </button>
           }
         </div>

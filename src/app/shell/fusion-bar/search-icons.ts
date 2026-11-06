@@ -36,7 +36,7 @@ export const SEARCH_KIND_ICONS: Readonly<Record<SearchIconKind, readonly string[
   manufacturer: ['M3 20V10l5 3V10l5 3V6h4v14z', 'M3 20h18'],
   config: ['M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z'],
   set: ['M6 3h12v18H6z', 'M12 3v18', 'M10 11v2M14 11v2'],
-  stock: ['M4 8l8-4 8 4v9l-8 4-8-4z', 'M4 8l8 4 8-4M12 12v9'],
+  stock: PATH_ICONS.inventar,
   patch: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3 2'],
   gallery: ['M3 5h18v14H3z', 'M3 16l5-5 4 4 3-3 6 6', 'M15.5 9.5a1.5 1.5 0 1 0 0-.01'],
   mission: ['M12 3a9 9 0 1 0 .01 0', 'M12 8a4 4 0 1 0 .01 0', 'M12 1v4M12 19v4M1 12h4M19 12h4'],

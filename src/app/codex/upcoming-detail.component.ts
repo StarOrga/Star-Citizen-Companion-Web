@@ -33,7 +33,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
  * Why this exists (feedback #130): every "Auf dem Reißbrett" tile used to be a
  * one-way door out of the app, straight onto robertsspaceindustries.com. The
  * Codex now gets first refusal: the tile lands here, this page shows everything
- * the RSI ship-matrix told us, offers "für die Flotte merken", and keeps the
+ * the RSI ship-matrix told us, offers the wishlist path (`sc-item-path`, only the wish stop), and keeps the
  * RSI pledge page as a clearly labelled SECONDARY link rather than the only
  * destination.
  *
@@ -41,8 +41,8 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
  * our datamined `codex_ships` has no row for — the honest page says so instead
  * of faking hardpoints and stats.
  *
- * "Merken" writes to `hangar_concept_ships` (the existing #135 wishlist), whose
- * only handle on a catalog-less hull is the NAME. No new table, no new schema.
+ * The wish is written to the one wishlist, whose only handle on a catalog-less hull
+ * is the NAME. No second store.
  */
 @Component({
   selector: 'sc-upcoming-detail',

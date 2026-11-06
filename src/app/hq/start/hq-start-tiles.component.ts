@@ -201,7 +201,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       a.own:focus-visible, .retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .retry { padding: 0; border: 0; background: none; color: var(--sc-accent); font: inherit; cursor: pointer; }
       .retry:hover { text-decoration: underline; text-underline-offset: 3px; }
-      .ico { flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+      .ico { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       small { font-size: max(0.8125rem, var(--sc-fs-floor)); color: var(--sc-fg-1); overflow-wrap: anywhere; }
       .warn { color: var(--sc-warning); }
       .err { color: var(--sc-danger); }

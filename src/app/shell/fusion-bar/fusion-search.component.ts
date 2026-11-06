@@ -568,7 +568,7 @@ const FITTED_SHOWN = 2;
     .hit:focus-visible::after { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     /* Leading icon: line art inline, no box, no background (r3 owner call). */
     .ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 28px; color: color-mix(in oklab, var(--sc-accent) 70%, var(--sc-fg-1)); }
-    .ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
     /* Uploader outlines are top views, nose up: turned to read nose right, like the r3 mock. */
     .ico svg.sil { width: 22px; height: 40px; stroke-width: 1.4; transform: rotate(90deg); }
     .body { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
@@ -608,7 +608,7 @@ const FITTED_SHOWN = 2;
     .sep { width: 1px; height: 20px; margin: 0 4px; background: var(--sc-border); }
     /* "In den Nachschub" as the task at hand: the hint names the icon, the rows mark it. */
     .supply-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 10%, transparent); color: var(--sc-fg-0); font-size: max(0.85rem, var(--sc-fs-floor)); }
-    .supply-hint svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--sc-accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .supply-hint svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
     .more-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .expand { border: 0; background: transparent; color: var(--sc-accent); font: inherit; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
     .expand:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }

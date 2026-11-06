@@ -2,13 +2,14 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HQ_EINSATZ_PARAM, HQ_PAGES, HqPageId, hqPageHref } from './hq-routes';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
 
 /** Icon paths (24×24 box, stroke) of the five pages: rail and phone bottom bar. */
 export const HQ_PAGE_ICONS: Readonly<Record<HqPageId, string>> = {
   start: 'M3 11.5L12 4l9 7.5M6 10v9h12v-9',
   planen: 'M4 6h16M4 12h10M4 18h6M17 14l3 3-3 3',
   jetzt: 'M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 100 6 3 3 0 000-6z',
-  inventar: 'M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8',
+  inventar: PATH_ICONS.inventar.join(' '),
   statistik: 'M5 20V11M12 20V5M19 20v-7',
 };
 

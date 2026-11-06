@@ -7,7 +7,12 @@ import { PATH_ICONS } from '../shared/item-path/path-icons';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<svg class="sc-action-icon" [class.is-filled]="on()" viewBox="0 0 24 24" aria-hidden="true">@for (d of paths; track $index) { <path [attr.d]="d" /> }</svg>`,
-  styles: [`:host { display: inline-flex; align-items: center; }`],
+  // Self-contained stroke style: the icon also sits in plain `.act` buttons outside `.sc-action`.
+  styles: [`
+    :host { display: inline-flex; align-items: center; }
+    svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    svg.is-filled { fill: color-mix(in srgb, currentColor 28%, transparent); }
+  `],
 })
 export class CompareIconComponent {
   readonly on = input(false);

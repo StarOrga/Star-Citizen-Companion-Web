@@ -13,8 +13,9 @@ export type ScActionTone = 'default' | 'hot' | 'danger';
  *   <a scAction tier="secondary" [routerLink]="...">...</a>
  *   <button scAction tier="tertiary" tone="danger" [scTooltip]="l" scTooltipTier="label" [attr.aria-label]="l">icon</button>
  *
- * Icon slot: a child `svg.sc-action-icon` (24-unit viewBox, stroke style of
- * `shell/fusion-bar/search-icons.ts`). Busy: `[busy]="true"` adds a ring,
+ * Icon slot: a child `svg.sc-action-icon` (24-unit viewBox, stroke style and
+ * glyphs of `shared/item-path/path-icons.ts`, the one icon family; the stroke itself comes from
+ * `.sc-action .sc-action-icon` in styles.scss). Busy: `[busy]="true"` adds a ring,
  * `aria-busy` and blocks clicks; `done` is the class `is-done` set by the
  * caller for the confirmation moment. Everything visual lives in the marked
  * block "ACTION (scAction)" in styles.scss.

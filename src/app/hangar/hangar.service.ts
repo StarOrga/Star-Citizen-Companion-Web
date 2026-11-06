@@ -47,7 +47,7 @@ const UNIQUE_VIOLATION = '23505';
  * `implement-brief.md` §17): the top 3 ships/sets the user picked, most recent
  * first. Local-only preference data, same class of storage as `flagshipKey`
  * below (no `ConsentService` gate — this mirrors the existing flagship cache,
- * not the `preferencesAllowed()`-gated favorites in `upcoming-ships.service.ts`).
+ * not the `preferencesAllowed()`-gated baseline in `upcoming-ships.service.ts`).
  */
 const RECENT_MAX = 3;
 const RECENT_SHIPS_KEY = 'sc-companion.hangar.recentShipClassNames';

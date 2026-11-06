@@ -70,7 +70,7 @@ export const PAGE_BAR_SLACK_PX = 12;
         text-decoration: none;
         font-size: max(0.7rem, var(--sc-fs-floor));
       }
-      .tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+      .tab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       .tab[aria-current='page'] { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
       .tab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       /* Beta shell on a phone: the docked fusion bar stands at the bottom edge too (and under this
