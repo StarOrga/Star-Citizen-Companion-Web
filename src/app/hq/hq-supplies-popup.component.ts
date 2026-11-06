@@ -12,6 +12,8 @@ import { type HqListTab } from './hq-routes';
 import { placeLabel } from './now/hq-live.util';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqOwnershipService } from './hq-ownership.service';
+import { WishNamesService } from '../codex/search/wish-names.service';
+import { humanizeClassName } from '../codex/codex-format';
 import { HqSuppliesService, SUPPLY_QTY_MAX, SupplyItem, setKey } from './hq-supplies.service';
 import { buildPlanSets } from './plan/hq-plan-needs';
 
@@ -57,14 +59,14 @@ import { buildPlanSets } from './plan/hq-plan-needs';
           <ul class="list">
             @for (w of wishRows(); track w.kind + ':' + w.className) {
               <li class="line">
-                <span class="check"><span class="name-txt">{{ w.name || w.className }}</span></span>
+                <span class="check"><span class="name-txt">{{ wishName(w) }}</span></span>
                 @if (w.kind === 'upcoming') {
                   <span class="chip">{{ 'hq.supplies.wish.notYet' | translate }}</span>
                 } @else {
                   <button type="button" scAction tier="secondary" (click)="toNachschub(w, $event)"><span>{{ 'hq.supplies.wish.toNachschub' | translate }}</span></button>
                 }
-                <button type="button" class="step rm" [attr.aria-label]="'hq.supplies.wish.remove' | translate: { name: w.name || w.className }"
-                        [scTooltip]="'hq.supplies.wish.remove' | translate: { name: w.name || w.className }" scTooltipTier="label" (click)="removeWish(w)">✕</button>
+                <button type="button" class="step rm" [attr.aria-label]="'hq.supplies.wish.remove' | translate: { name: wishName(w) }"
+                        [scTooltip]="'hq.supplies.wish.remove' | translate: { name: wishName(w) }" scTooltipTier="label" (click)="removeWish(w)">✕</button>
               </li>
             }
           </ul>
@@ -201,6 +203,7 @@ export class HqSuppliesPopupComponent {
   private readonly path = inject(ItemPathService);
   private readonly wishlist = inject(WishlistStore);
   private readonly toast = inject(UndoToastService);
+  private readonly wishNames = inject(WishNamesService);
   private readonly translate = inject(TranslateService);
   readonly closed = output<void>();
 
@@ -208,7 +211,22 @@ export class HqSuppliesPopupComponent {
   readonly startTab = input<HqListTab>('nachschub');
   protected readonly tab = signal<HqListTab>('nachschub');
 
-  protected readonly wishRows = computed<readonly WishRow[]>(() => this.wishlist.rows());
+  /** The one wishlist: the table rows (announced ships included) plus the hangar's wished live ships. */
+  protected readonly wishRows = computed<readonly WishRow[]>(() => {
+    const rows: WishRow[] = [
+      ...this.wishlist.rows(),
+      ...this.hangar.ships().filter((s) => s.status === 'wishlist').map((s): WishRow => ({
+        kind: 'ship', className: s.shipClassName, name: null, manufacturer: null, rsiUrl: null, notes: null, createdAt: s.createdAt,
+      })),
+    ];
+    // Entries stored without a name resolve from the catalog; the row shows the class name meanwhile.
+    this.wishNames.request(rows.filter((w) => !w.name && w.kind !== 'upcoming').map((w) => w.className));
+    return rows;
+  });
+
+  protected wishName(w: WishRow): string {
+    return w.name || this.wishNames.nameOf(w.kind, w.className) || humanizeClassName(w.className);
+  }
 
   /** The line whose place step is open, and what it would write. */
   protected readonly gotId = signal<string | null>(null);
@@ -258,7 +276,7 @@ export class HqSuppliesPopupComponent {
 
   protected async toNachschub(w: WishRow, ev: Event): Promise<void> {
     (ev.currentTarget as HTMLElement | null)?.blur();
-    this.report(await this.path.addToNachschub(w.kind, w.className, w.name || w.className, 1));
+    this.report(await this.path.addToNachschub(w.kind, w.className, this.wishName(w), 1));
   }
 
   protected async removeWish(w: WishRow): Promise<void> {

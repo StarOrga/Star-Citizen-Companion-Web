@@ -7,12 +7,15 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { HangarService } from '../hangar/hangar.service';
 import { fakeSupabase } from '../testing/fake-supabase';
+import { WishNamesService } from '../codex/search/wish-names.service';
 import { HqOwnershipService } from './hq-ownership.service';
 import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
 import { HqSuppliesService, SUPPLIES_STORAGE_KEY } from './hq-supplies.service';
 
 describe('HqSuppliesPopupComponent', () => {
+  const ships = signal<unknown[]>([]);
   beforeEach(() => {
+    ships.set([]);
     localStorage.removeItem(SUPPLIES_STORAGE_KEY);
     const path = fakeItemPath();
     (path as unknown as Record<string, unknown>)['tickOnly'] = jasmine.createSpy('tickOnly').and.returnValue({ ok: true, key: 'itemPath.done.ticked' });
@@ -22,7 +25,8 @@ describe('HqSuppliesPopupComponent', () => {
         provideTranslateService(),
         fakeSupabase().provider,
         { provide: AuthService, useValue: { user: signal(null) } },
-        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
+        { provide: HangarService, useValue: { ships, roleLoadouts: signal([]) } },
+        { provide: WishNamesService, useValue: { request: () => undefined, nameOf: (_k: string, c: string) => (c === 'AEGS_Avenger_Stalker' ? 'Aegis Avenger Stalker' : null) } },
         { provide: HqOwnershipService, useValue: { configs: signal([]) } },
       ], });
   });
@@ -96,5 +100,17 @@ describe('HqSuppliesPopupComponent', () => {
     // A text action is a pill, never the icon-only tertiary: it used to overflow its 32 px box and sit on "Ablegen".
     expect(tick!.classList.contains('sc-action--secondary')).toBeTrue();
     expect(store.classList.contains('sc-action--secondary')).toBeTrue();
+  });
+
+  it('the wish tab is the one wishlist: wished live ships join the table rows, named, not by class name', async () => {
+    ships.set([{ id: 's1', shipClassName: 'AEGS_Avenger_Stalker', status: 'wishlist', createdAt: '2026-11-01' }, { id: 's2', shipClassName: 'AEGS_Gladius', status: 'owned', createdAt: '2026-11-01' }]);
+    const f = TestBed.createComponent(HqSuppliesPopupComponent);
+    f.componentRef.setInput('startTab', 'wish');
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    const rows = [...el.querySelectorAll('li.line .name-txt')].map((n) => n.textContent?.trim());
+    expect(rows).toEqual(['Aegis Avenger Stalker']);
   });
 });
