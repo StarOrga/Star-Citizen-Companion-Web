@@ -206,7 +206,9 @@ const HIGHLIGHTS = 4;
     @media (min-width: 1200px) {
       .page { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
       .feature { padding: 20px 24px; }
-      .highlights { margin-bottom: 12px; }
+      /* Two side by side: a long release must not push the page past the screen; the link has the rest. */
+      .highlights { margin-bottom: 12px; max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .highlights li:nth-child(n + 3) { display: none; }
       .affiliation .disclaimer { margin-top: 8px; padding-top: 8px; }
       .page > .sc-card:not(.wide) { grid-column: span 2; }
       .page > .feature:has(+ .earlier) { grid-column: span 4; }

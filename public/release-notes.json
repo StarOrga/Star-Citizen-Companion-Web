@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.212.0",
+  "current": "0.213.0",
   "releases": [
+    {
+      "version": "0.213.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hero: the title names the channel and the full version (\"LIVE · Neues in 4.10.2\"), planned patches can appear in the rotation, and a generated teaser title replaces it once one exists."
+            },
+            {
+              "title": "",
+              "text": "Codex landing: categories run across the top with the active one always named, a list click opens the entry on the holotable, and only the arrow leaves for the sub-page. Non-ships get a silhouette too."
+            },
+            {
+              "title": "",
+              "text": "HQ Stock: the page is one overview with quick links; search, filters, views by place, name or amount, the Codex picker and the capture form live in a popup with rows loading while you scroll."
+            },
+            {
+              "title": "",
+              "text": "patch_versions is now kept current by the daily patch sampling, so the public API and the digest report LIVE and PTU versions."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin moves into the account menu on desktop and phone."
+            },
+            {
+              "title": "",
+              "text": "Phones show the same elements as desktop; Codex tool pages keep a filter button."
+            },
+            {
+              "title": "",
+              "text": "New standard icons for wishlist, restock and stock."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Clicking a recent search term and leaving no longer jumps to the Codex landing."
+            },
+            {
+              "title": "",
+              "text": "The open account menu lies over the beta chip instead of under it."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.212.0",
       "date": "2026-11-06",
