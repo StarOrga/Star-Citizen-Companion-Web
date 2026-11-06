@@ -15,10 +15,11 @@ import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
-import { INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SWITCH_MS, VerseBriefingComponent, linkKey, verseItemLink } from '../verse-briefing.component';
+import { CALM_WAIT_MS, INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SKIP_MS, INTRO_SWITCH_MS, VerseBriefingComponent, hurry, linkKey, verseItemLink } from '../verse-briefing.component';
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
+import { VERSE_STAGED_BUILD } from './staged-build';
 import {
   INTRO_FLAG,
   localDay,
@@ -205,6 +206,7 @@ describe('Verse briefing — component', () => {
     cancels.length = 0;
     TestBed.configureTestingModule({
       providers: [
+        { provide: VERSE_STAGED_BUILD, useValue: false },
         provideRouter([]),
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
@@ -416,13 +418,79 @@ describe('Verse briefing — component', () => {
       tick(10_000);
     }));
 
-    it('plays only when the shell announced it at boot; otherwise everything stands at once', fakeAsync(() => {
+    it('the first visit of the day through the menu plays the scene and leaves header and search alone', fakeAsync(() => {
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
-      expect(fixture.componentInstance.intro).toBe('short');
-      expect(stage(fixture)?.classList).not.toContain('intro');
-      expect(title(fixture)?.querySelector('.brand')).toBeNull();
+      expect(fixture.componentInstance.intro).toBe('full');
+      expect(stage(fixture)?.classList).toContain('intro');
+      expect(title(fixture)?.querySelector('.brand')).not.toBeNull();
+      expect(chrome.heroIntro()).toBeNull();
       tick(10_000);
+    }));
+
+    it('any input ends the entrance within the skip time; the first message then stands', fakeAsync(() => {
+      chrome.holdHeroIntro();
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' }));
+      tick(INTRO_SKIP_MS);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).withContext('a modifier alone is no input').toContain('intro');
+      window.dispatchEvent(new Event('pointerdown'));
+      expect(fixture.componentInstance.holoStands()).toBeTrue();
+      tick(INTRO_SKIP_MS);
+      fixture.detectChanges();
+      expect(stage(fixture)?.classList).not.toContain('intro');
+      expect(stage(fixture)?.classList).not.toContain('finale');
+      expect(title(fixture)?.querySelector('.brand')).toBeNull();
+      expect(chrome.heroIntro()).toBeNull();
+      tick(10_000);
+      expect(stage(fixture)?.classList).withContext('no comet afterwards').not.toContain('finale');
+    }));
+
+    it('sends nothing from the holo while the app name stands, then projects', fakeAsync(() => {
+      chrome.holdHeroIntro();
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      const c = fixture.componentInstance;
+      expect(c.holoStands()).toBeFalse();
+      const tx = (): HTMLElement => (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('sc-briefing-transmit')!;
+      expect(tx().dataset['phase']).withContext('nothing sent during the entrance').toBe('out');
+      tick(10_000);
+      fixture.detectChanges();
+      expect(c.brand()).toBeFalse();
+      tick(30_000);
+    }));
+
+    it('hurries a finite animation to its end within the skip time and leaves endless ones alone', () => {
+      const el = document.createElement('div');
+      document.body.appendChild(el);
+      const late = el.animate({ opacity: [0, 1] }, { duration: 500, delay: 2500 });
+      const endless = el.animate({ opacity: [0, 1] }, { duration: 500, iterations: Infinity });
+      hurry(late, 300);
+      hurry(endless, 300);
+      expect(late.playbackRate).toBeCloseTo(10, 0);
+      expect(endless.playbackRate).toBe(1);
+      late.cancel();
+      endless.cancel();
+      el.remove();
+    });
+
+    it('a reload waits behind the stars for the story, at most the calm wait, then fades in', fakeAsync(() => {
+      localStorage.setItem(INTRO_FLAG, localDay());
+      const fixture = TestBed.createComponent(VerseBriefingComponent);
+      fixture.detectChanges();
+      const c = fixture.componentInstance;
+      if (c.calm() === 'wait') {
+        expect(stage(fixture)?.classList).toContain('calm-wait');
+        tick(CALM_WAIT_MS);
+        fixture.detectChanges();
+        expect(stage(fixture)?.classList).not.toContain('calm-wait');
+      }
+      tick(10_000);
+      fixture.detectChanges();
+      expect(c.calm()).toBeNull();
+      tick(30_000);
     }));
 
     it('opens on the app name, builds up, lets the comet fly last and then hands over to the first story', fakeAsync(() => {

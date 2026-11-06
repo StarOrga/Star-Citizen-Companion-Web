@@ -28,15 +28,19 @@ import { AREA_ENTRIES } from '../../../shell/fusion-bar/fusion-bar.model';
     .foot {
       display: flex; flex-wrap: wrap; justify-content: center;
       gap: var(--sc-space-2);
-      padding: var(--sc-space-6) 0 var(--sc-float-bottom, var(--sc-space-6));
+      padding: var(--sc-space-6) 0 calc(var(--sc-verse-footer-h, 0px) + var(--sc-float-bottom, var(--sc-space-6)));
     }
     a {
       display: inline-flex; align-items: center; justify-content: center;
       min-height: 48px; padding: 0 var(--sc-space-4);
-      border: 1px solid var(--sc-border); border-radius: var(--sc-radius-pill, 999px);
-      color: var(--sc-text-muted, inherit); text-decoration: none;
+      border: 1px solid color-mix(in srgb, var(--sc-fg-0) 40%, transparent); border-radius: var(--sc-radius-pill, 999px);
+      background: color-mix(in srgb, var(--sc-bg-0) 55%, transparent);
+      color: var(--sc-fg-0); text-decoration: none;
+      transition: color 0.16s, border-color 0.16s;
     }
-    a:hover, a:focus-visible, a[aria-current] { color: var(--sc-accent); border-color: var(--sc-accent); }
+    a:hover, a:focus-visible, a[aria-current] {
+      color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 70%, transparent);
+    }
     a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   `,
 })

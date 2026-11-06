@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.217.1",
+  "current": "0.217.3",
   "releases": [
+    {
+      "version": "0.217.3",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Switching to /verse stutters less: the page now builds in steps instead of all in one long frame."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.217.2",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Coming back to /verse no longer builds the moons anew, which took a noticeable moment during the page change."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.217.1",
       "date": "2026-11-06",
