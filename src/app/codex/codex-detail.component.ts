@@ -1,4 +1,7 @@
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
+import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { pathLevelFor } from './path-level.util';
+import { CompareIconComponent } from './compare-icon.component';
 import { ingredientTokenOfCrate } from '../hq/stock/hq-stock-ref';
 import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
@@ -273,7 +276,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent, HeightVarDirective],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent, HeightVarDirective],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -293,6 +296,9 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <span class="prov">
             {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
           </span>
+        }
+        @if (detail(); as d) {
+          <sc-item-path [kind]="d.kind" [className]="d.classNameSlug" [name]="displayName()" [level]="pathLevel()" />
         }
         @if (kind() === 'ship') {
           <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
@@ -456,14 +462,16 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
             <div class="hero-actions">
               <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
-                {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
               </button>
-              <button type="button" class="pin" (click)="copyShareLink()">
-                {{ 'codex.detail.actionCopyLink' | translate }}
-                @if (linkCopied()) {
-                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
-                }
-              </button>
+              @if (!shareFab()) {
+                <button type="button" class="pin" (click)="copyShareLink()">
+                  {{ 'codex.detail.actionCopyLink' | translate }}
+                  @if (linkCopied()) {
+                    <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
+                  }
+                </button>
+              }
               <!-- L09: an on-foot piece goes into a set from its own page too. -->
               @if (fpsSetPiece(); as piece) {
                 <sc-add-to-set [className]="piece.className" [kind]="piece.kind" [subType]="piece.subType"
@@ -481,18 +489,20 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                One row, wraps on a phone. ── -->
           <div class="stage-actions">
             <button type="button" class="btn" [class.on]="isPinned()" (click)="togglePin()">
-              <span aria-hidden="true">{{ isPinned() ? '★' : '☆' }}</span>
+              <sc-compare-icon [on]="isPinned()" />
               {{ (isPinned() ? 'codex.compare.pinned' : 'codex.detail.actionCompare') | translate }}
             </button>
             <button type="button" class="btn" (click)="discardLoadoutDraft()">
               {{ 'codex.detail.actionFactoryLoadout' | translate }}
             </button>
-            <button type="button" class="btn copy" (click)="copyShareLink()">
-              {{ 'codex.detail.actionCopyLink' | translate }}
-              @if (linkCopied()) {
-                <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
-              }
-            </button>
+            @if (!shareFab()) {
+              <button type="button" class="btn copy" (click)="copyShareLink()">
+                {{ 'codex.detail.actionCopyLink' | translate }}
+                @if (linkCopied()) {
+                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
+                }
+              </button>
+            }
             <!-- Navigates, so it is an anchor and never a button (§2). -->
             <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
               {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
@@ -513,9 +523,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               <sc-codex-variant-picker class="in-toolrow" variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
                 [options]="skinPickerOptions()" [current]="currentLivery()" />
             }
-            <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" [spacer]="true"
-              [inHangar]="personalMode()" [addBusy]="addBusy()" [addFailed]="addFailed()"
-              (addToHangar)="addToHangar()" />
+            <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" [spacer]="true" />
           </div>
 
           <!-- Pin your own RSI pledge link (feedback f7d3bd9a). Private to
@@ -992,12 +1000,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
                   [options]="skinPickerOptions()" [current]="currentLivery()" />
               }
-              <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug"
-                [inHangar]="personalMode()" [addBusy]="addBusy()" [addFailed]="addFailed()"
-                (addToHangar)="addToHangar()" />
+              <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
               <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
               <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
-                {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
               </button>
             </div>
             @if (shipLinkForm.open()) {
@@ -1529,6 +1535,9 @@ export class CodexDetailComponent implements OnInit {
   readonly kind = computed(() => this.detail()?.kind ?? null);
   private readonly ownershipSvc = inject(HqOwnershipService);
   private readonly codexBeta = inject(BetaService).isEnabled('codex');
+  /** The share FAB (beta shell) replaces the "Link teilen" buttons; without the beta they stay, or no link copy would be left. */
+  protected readonly shareFab = inject(BetaService).isEnabled('shell');
+  protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
   /** Everything the reader has of this entity (HQ ownership index), or null. */
   readonly myOwnership = computed(() => this.ownershipSvc.lookup(this.detail()?.classNameSlug));
   /** Ship pages only: whether this ship is already in the user's hangar. */

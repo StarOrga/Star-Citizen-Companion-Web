@@ -22,15 +22,6 @@ import { ShipLinkFormStore } from './ship-link-form.store';
     @if (spacer()) {
       <span class="tool-spacer"></span>
     }
-    @if (!inHangar()) {
-      <button type="button" class="btn add-hangar" (click)="addToHangar.emit()"
-              [disabled]="addBusy()" [attr.aria-busy]="addBusy()">
-        {{ 'codex.personal.adopt' | translate }}
-      </button>
-      @if (addFailed()) {
-        <p class="err-inline add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
-      }
-    }
     <!-- Deep-link out to the official RSI site. We have no reliable
          per-ship RSI slug (our classNameSlug is not the RSI URL slug),
          so without a pinned link this lands on the official ships
@@ -78,7 +69,7 @@ import { ShipLinkFormStore } from './ship-link-form.store';
     .btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .btn:disabled { opacity: 0.38; cursor: not-allowed; }
     .btn.quiet { text-transform: none; letter-spacing: 0; background: transparent; }
-    .add-hangar { color: var(--sc-accent); }
+     { color: var(--sc-accent); }
   `],
 })
 export class CodexShipActionsComponent {
@@ -88,9 +79,4 @@ export class CodexShipActionsComponent {
   readonly classNameSlug = input.required<string>();
   /** Classic tool row: a flexible gap pushes the actions to the row's end. */
   readonly spacer = input(false);
-  /** Personal mode: the page already shows the reader's variant — no "In dein HQ übernehmen". */
-  readonly inHangar = input(false);
-  readonly addBusy = input(false);
-  readonly addFailed = input(false);
-  readonly addToHangar = output<void>();
 }

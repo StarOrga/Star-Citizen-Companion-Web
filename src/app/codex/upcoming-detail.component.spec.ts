@@ -4,8 +4,8 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { provideTranslateService } from '@ngx-translate/core';
 import { UpcomingDetailComponent } from './upcoming-detail.component';
 import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
-import { HangarService } from '../hangar/hangar.service';
-import { ConceptShip } from '../hangar/hangar.types';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 
 function upcomingShip(over: Partial<UpcomingShip> & { id: string; name: string }): UpcomingShip {
   return {
@@ -19,10 +19,6 @@ function upcomingShip(over: Partial<UpcomingShip> & { id: string; name: string }
     flightReadyButMissing: false,
     ...over,
   };
-}
-
-function conceptShip(name: string, id = name): ConceptShip {
-  return { id, name, manufacturer: null, rsiUrl: null, notes: null, createdAt: '' };
 }
 
 /** Only the surface UpcomingDetailComponent reads off the RSI feed service. */
@@ -41,42 +37,19 @@ function rsiStub(ships: UpcomingShip[], error: string | null = null) {
   };
 }
 
-function hangarStub(concepts: ConceptShip[] = []) {
-  const list = signal<ConceptShip[]>(concepts);
-  return {
-    error: signal<string | null>(null),
-    conceptShips: list,
-    ensureConceptShipsLoaded: jasmine.createSpy('ensureConceptShipsLoaded').and.resolveTo(undefined),
-    conceptShipByName: (name: string | null | undefined) =>
-      list().find((c) => c.name === name) ?? null,
-    addConceptShip: jasmine
-      .createSpy('addConceptShip')
-      .and.callFake(async (input: { name: string }) => {
-        const created = conceptShip(input.name, 'new-id');
-        list.set([created, ...list()]);
-        return created;
-      }),
-    removeConceptShip: jasmine.createSpy('removeConceptShip').and.callFake(async (id: string) => {
-      list.set(list().filter((c) => c.id !== id));
-      return true;
-    }),
-  };
-}
-
 describe('UpcomingDetailComponent', () => {
   async function setup(
     id: string,
     ships: UpcomingShip[],
-    hangar: ReturnType<typeof hangarStub> = hangarStub(),
     feedError: string | null = null,
-  ): Promise<{ fixture: ComponentFixture<UpcomingDetailComponent>; hangar: typeof hangar }> {
+  ): Promise<{ fixture: ComponentFixture<UpcomingDetailComponent> }> {
     TestBed.configureTestingModule({
       imports: [UpcomingDetailComponent],
       providers: [
         provideTranslateService(),
         provideRouter([]),
         { provide: UpcomingShipsService, useValue: rsiStub(ships, feedError) },
-        { provide: HangarService, useValue: hangar },
+        { provide: ItemPathService, useValue: fakeItemPath() },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id }) } } },
       ],
     });
@@ -84,7 +57,7 @@ describe('UpcomingDetailComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, hangar };
+    return { fixture };
   }
 
   afterEach(() => TestBed.resetTestingModule());
@@ -136,42 +109,11 @@ describe('UpcomingDetailComponent', () => {
     expect(el.querySelector('.entity-name')?.textContent?.trim()).toBe('RSI Polaris');
   });
 
-  it('adds the hull to the fleet wishlist on the watch toggle, and removes it again', async () => {
-    const { fixture, hangar } = await setup('polaris', [
-      upcomingShip({ id: 'polaris', name: 'RSI Polaris' }),
-    ]);
+  it('offers the item path (wish only) instead of the old watch toggle', async () => {
+    const { fixture } = await setup('polaris', [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })]);
     const el: HTMLElement = fixture.nativeElement;
-    const btn = el.querySelector<HTMLButtonElement>('button.watch')!;
-
-    expect(btn.getAttribute('aria-pressed')).toBe('false');
-    btn.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(hangar.addConceptShip).toHaveBeenCalledWith({
-      name: 'RSI Polaris',
-      manufacturer: 'Roberts Space Industries',
-      rsiUrl: 'https://robertsspaceindustries.com/en/pledge/ships/polaris/Polaris',
-    });
-    expect(el.querySelector<HTMLButtonElement>('button.watch')!.getAttribute('aria-pressed')).toBe('true');
-
-    el.querySelector<HTMLButtonElement>('button.watch')!.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(hangar.removeConceptShip).toHaveBeenCalledWith('new-id');
-    expect(el.querySelector<HTMLButtonElement>('button.watch')!.getAttribute('aria-pressed')).toBe('false');
-  });
-
-  it('starts in the watched state when the hull is already on the wishlist', async () => {
-    const { fixture } = await setup(
-      'polaris',
-      [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })],
-      hangarStub([conceptShip('RSI Polaris')]),
-    );
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector<HTMLButtonElement>('button.watch')!.getAttribute('aria-pressed')).toBe('true');
-    // Watched hulls get their route into the hangar, where the strip lives.
-    expect(el.querySelector<HTMLAnchorElement>('.hangar-link')?.getAttribute('href')).toBe('/hq/hangar');
+    expect(el.querySelector('sc-item-path')).not.toBeNull();
+    expect(el.querySelector('button.watch')).toBeNull();
   });
 
   it('says "in concept" for a hull RSI is still building and "flight-ready" for one we just have not ingested', async () => {

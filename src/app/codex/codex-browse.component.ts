@@ -1,4 +1,5 @@
 import { rankBySearch } from './codex-search';
+import { CompareIconComponent } from './compare-icon.component';
 import { CodexBuildDiffService, NEW_SORT_KINDS } from './codex-build-diff.service';
 import { toErrorKey } from '../core/describe-error';
 import {
@@ -145,7 +146,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-browse',
   standalone: true,
-  imports: [ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
+  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
@@ -280,7 +281,7 @@ export function blueprintCategoriesForGroup(
                                 (click)="togglePin(r.classNameSlug)"
                                 [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                                 [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                                scTooltipTier="label">{{ isPinned(r.classNameSlug) ? '★' : '☆' }}</button>
+                                scTooltipTier="label"><sc-compare-icon [on]="isPinned(r.classNameSlug)" /></button>
                       </span>
                     </li>
                   }
