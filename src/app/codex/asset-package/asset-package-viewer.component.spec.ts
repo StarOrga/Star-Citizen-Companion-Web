@@ -186,4 +186,67 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
     c.focus(c.manifest()!.placements[0]);
     expect(c.label()).toBeNull();
   });
+
+  it('moving from one hotspot to its neighbour retargets at once, never through "nothing"', () => {
+    const { c } = create();
+    const seen: (string[] | null)[] = [];
+    c.hovered.subscribe((v) => seen.push(v));
+    const [a, b] = c.manifest()!.placements;
+    c.focus(a);
+    c.blur(a);
+    c.focus(b);
+    expect(c.localFocus()).toBe(b.id);
+    expect(seen).toEqual([[a.portName], [b.portName]]);
+  });
+
+  it('Escape clears a pin or hover label, swallows the key only then, and ignores a dialog above', async () => {
+    const { fixture, c } = create();
+    const outer = jasmine.createSpy('outer');
+    document.addEventListener('keydown', outer);
+    const press = () => {
+      const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      document.body.dispatchEvent(ev);
+    };
+    // Nothing selected: no listener, the stage's own Escape sees the key.
+    press();
+    expect(outer).toHaveBeenCalledTimes(1);
+
+    c.step(1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    press();
+    expect(c.pinned()).toBeNull();
+    expect(outer).toHaveBeenCalledTimes(1);
+
+    c.focus(c.manifest()!.placements[0]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const dlg = document.createElement('div');
+    dlg.setAttribute('role', 'dialog');
+    document.body.appendChild(dlg);
+    press();
+    expect(c.localFocus()).not.toBeNull();
+    expect(outer).toHaveBeenCalledTimes(2);
+    dlg.remove();
+    press();
+    expect(c.localFocus()).toBeNull();
+    expect(outer).toHaveBeenCalledTimes(2);
+    document.removeEventListener('keydown', outer);
+  });
+
+  it('fans stacked hotspots apart, has no tooltip bubble and offers a reset-view chip', () => {
+    const { fixture, c } = create();
+    c['viewport'].set({ w: 1000, h: 600 });
+    const withPos = c.manifest()!.placements.filter((p) => p.position).slice(0, 2);
+    c['points'].set(new Map(withPos.map((p, i) => [p.id, { x: 400 + i * 2, y: 300, onScreen: true }] as const)));
+    c.status.set('ready');
+    fixture.detectChanges();
+    const hs = c.hotspots();
+    expect(hs.length).toBeGreaterThanOrEqual(2);
+    expect(Math.hypot(hs[0].x - hs[1].x, hs[0].y - hs[1].y)).toBeGreaterThanOrEqual(17.9);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.hs').length).toBe(hs.length);
+    el.querySelectorAll('.hs').forEach((d) => expect(d.getAttribute('aria-label')).toBeTruthy());
+    expect(el.querySelector('.bar .reset-view')).not.toBeNull();
+  });
 });

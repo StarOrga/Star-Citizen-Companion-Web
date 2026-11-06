@@ -845,7 +845,7 @@
     },
     "holo": {
       "noGeometry": "Keine Silhouette",
-      "pinUnresolved": "Position nicht bekannt",
+      "pinUnresolved": "Position geschätzt",
       "toggle": {
         "group": "Ansicht",
         "classic": "Klassisch",
@@ -856,9 +856,14 @@
       "stage": {
         "railToggle": "Leiste ein-/ausklappen",
         "einordnung": "Einordnung",
-        "cohortLink": "Kohorte ansehen",
+        "cohortLink": "Alle Schiffe ansehen",
         "view3d": "3D",
         "viewSchema": "Schema",
+        "surfaceSimple": "Einfach",
+        "surfaceTop": "Draufsicht",
+        "surfaceSide": "Seitensicht",
+        "surfaceFront": "Frontsicht",
+        "surfaceFrontPending": "Die Frontsicht kommt mit dem nächsten Daten-Upload dieses Schiffs.",
         "viewShare": "Teilen",
         "silhouetteAria": "Silhouette von {{name}}",
         "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
@@ -915,9 +920,9 @@
         "pinLabels": "Pin-Beschriftungen am Rumpf",
         "legendUnresolved": "Position geschätzt",
         "rawPortHint": "Roh-Port aus den Spieldaten — kein Bauteil zum Tauschen oder Öffnen.",
-        "eyebrowTop": "Draufsicht · {{n}} Hardpoints",
-        "eyebrow3d": "3D-Modell · ziehen zum Drehen",
-        "eyebrowSchema": "Schema · Hardpoint-Positionen",
+        "eyebrowTop": "Tauschbare Bauteile · {{n}}",
+        "eyebrow3d": "Ziehen zum Drehen",
+        "eyebrowSchema": "Alle Hardpoints",
         "pinListTitle": "Alle Hardpoints",
         "pinGroupOther": "Hardpoints",
         "rankLoading": "Vergleich mit der ganzen Flotte läuft … der erste Besuch pro Patch dauert einen Moment.",
@@ -926,6 +931,7 @@
       },
       "strip": {
         "einsatz": "Einsatz",
+        "einsatzPick": "Einsatz wählen",
         "shipCount": "{{n}} Schiffe",
         "offensive": "Offensive",
         "defensive": "Verteidigung",
@@ -2233,6 +2239,7 @@
         "interior": "Innenraum",
         "other": "Sonstiges"
       },
+      "resetView": "Ansicht zurücksetzen",
       "parts": "Teile ({{count}})",
       "show": "{{name}} einblenden",
       "hide": "{{name}} ausblenden",

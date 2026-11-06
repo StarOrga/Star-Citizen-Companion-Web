@@ -303,12 +303,14 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     expect(fixture.componentInstance.hotkeyPinCount()).toBe(10);
   });
 
-  it('the schema toggle is disabled without hardpoint coordinates and 3D is hidden without a model', async () => {
+  it('without hardpoint coordinates only the simple sub-view is on offer, and 3D is hidden without a model', async () => {
     const fixture = await setup({ hardpointFrame: null });
     const el: HTMLElement = fixture.nativeElement;
     const tts = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 .tt'));
     const schema = tts.find((b) => b.textContent!.includes('viewSchema'))!;
-    expect(schema.disabled).toBe(true);
+    expect(schema.disabled).toBe(false);
+    const subs = Array.from(el.querySelectorAll<HTMLButtonElement>('.sub-views .sv'));
+    expect(subs.map((b) => b.disabled)).toEqual([false, true, true, true]);
     expect(tts.some((b) => b.textContent!.includes('view3d'))).toBe(false);
     fixture.componentInstance.has3d.set(true);
     fixture.detectChanges();
@@ -370,12 +372,62 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     }
   });
 
+  describe('surfaces (3D | Schema with its sub-views)', () => {
+    afterEach(() => localStorage.removeItem('sc.codex.holo.surface'));
+
+    it('hides the Einsatz bar over the 3D model and keeps it on the schema', async () => {
+      const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
+      const c = fixture.componentInstance;
+      const el = fixture.nativeElement as HTMLElement;
+      fixture.detectChanges();
+      expect(el.querySelector('.rolebar')).not.toBeNull();
+      c.has3d.set(true);
+      c.pickSurface('3d');
+      fixture.detectChanges();
+      expect(c.viewMode()).toBe('3d');
+      expect(el.querySelector('.rolebar')).toBeNull();
+      expect(el.querySelector('.sub-views')).toBeNull();
+    });
+
+    it('offers the sub-views and falls back to Einfach for one the hull cannot show', async () => {
+      const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
+      const c = fixture.componentInstance;
+      const el = fixture.nativeElement as HTMLElement;
+      fixture.detectChanges();
+      const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.sub-views .sv'));
+      expect(buttons.length).toBe(4);
+      expect(buttons[0].disabled).toBeFalse();
+      expect(buttons[3].disabled).withContext('no front view without a drawing').toBeTrue();
+      c.chosenSurface.set('front');
+      expect(c.surface()).toBe('simple');
+    });
+
+    it('remembers a Schema sub-view across hulls, and 3D is the default again after picking it', async () => {
+      const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
+      const c = fixture.componentInstance;
+      c.pickSurface('simple');
+      expect(localStorage.getItem('sc.codex.holo.surface')).toBe('simple');
+      fixture.componentRef.setInput('detail', { ...detailWithPorts(['hardpoint_gun_left']), classNameSlug: 'aegs_gladius' });
+      fixture.detectChanges();
+      expect(c.chosenSurface()).toBe('simple');
+      c.pickSurface('3d');
+      expect(localStorage.getItem('sc.codex.holo.surface')).toBeNull();
+    });
+
+    it('lights the part under inspection on the table', async () => {
+      const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
+      const c = fixture.componentInstance;
+      c.inspectPin('hardpoint_gun_left');
+      expect(c.tableActivePorts()).toContain('hardpoint_gun_left');
+    });
+  });
+
   it('switching to another hull resets inspector, share popover and view mode', async () => {
     const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
     const c = fixture.componentInstance;
     c.inspectPin('hardpoint_gun_left');
     c.toggleShare();
-    c.viewMode.set('schema');
+    c.chosenSurface.set('simple');
     fixture.detectChanges();
     fixture.componentRef.setInput('detail', { ...detailWithPorts(['hardpoint_gun_left']), classNameSlug: 'aegs_gladius' });
     fixture.detectChanges();
@@ -511,7 +563,8 @@ describe('CodexHoloStageComponent sound (cx-sound)', () => {
     const fixture = await setup();
     const c = fixture.componentInstance;
     expect(c.soundOn()).toBeFalse();
-    c.toggleViewMode('3d');
+    c.has3d.set(true);
+    c.pickSurface('3d');
     expect(started.length).withContext('no sound while off').toBe(0);
   });
 
@@ -520,7 +573,8 @@ describe('CodexHoloStageComponent sound (cx-sound)', () => {
     const c = fixture.componentInstance;
     c.toggleSound();
     expect(started.length).withContext('confirmation blip').toBe(1);
-    c.toggleViewMode('3d');
+    c.has3d.set(true);
+    c.pickSurface('3d');
     expect(started.length).withContext('view switch tick').toBe(2);
     fixture.componentRef.setInput('activeMissionId', 'combat');
     fixture.detectChanges();

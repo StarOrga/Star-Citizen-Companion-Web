@@ -36,7 +36,7 @@ import {
   LayoutSlot,
   LayoutTarget,
 } from '../codex-hardpoint-layout.component';
-import { SHIP_MODULE_SECTION_ORDER, ShipModuleSection } from '../ship-module-sections';
+import { SHIP_MODULE_SECTION_ORDER, ShipModuleSection, isConfigurableSection } from '../ship-module-sections';
 import { ShipFactGroup } from '../codex-analysis-panels.component';
 import { KpiSheet, OffensivePanel, DefensivePanel } from '../codex-loadout-stats';
 import { BuildRef, PERSPECTIVE_KPIS, PERSPECTIVES, Perspective, PortOccupantMap } from '../codex-build-compare';
@@ -58,6 +58,7 @@ export type { HoloSharedBanner } from './codex-holo-shared-banner.component';
 import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
 import { CodexHoloTableComponent } from './codex-holo-table.component';
 import { CodexHoloInspectorComponent } from './codex-holo-inspector.component';
+import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.component';
 import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker, spreadStackedPins } from './codex-holo-model';
 import { anchorKey } from './codex-holo-leader';
 import { HangarShipConfig } from '../../hangar/hangar.types';
@@ -65,8 +66,10 @@ import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
-import { HoloHotkeyAction, holoHotkeyFor, holoHotkeyLabel, nextHoloView } from './codex-holo-hotkeys';
+import { HoloHotkeyAction, HoloSurface, holoHotkeyFor, holoHotkeyLabel, nextHoloSurface } from './codex-holo-hotkeys';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
+import { type BlueprintViewName, blueprintView } from '../ship-blueprint/ship-blueprint.model';
+import { AssetPackageService } from '../asset-package/asset-package.service';
 import { FeedbackSpotDirective } from '../../feedback/feedback-spot.directive';
 
 /** One perspective tile (concept round 10 "Weg B": four tiles). */
@@ -104,6 +107,8 @@ interface TopCohortShip {
 type StaticKey = 'crew' | 'mass' | 'cargo';
 
 const SOUND_PREF_KEY = 'sc.codex.holo.sound';
+/** The Schema sub-view the reader picked. No entry = the default: 3D where the hull has it. */
+const SURFACE_PREF_KEY = 'sc.codex.holo.surface';
 
 /** The holodeck's UI tones (cx-sound). */
 export type HoloTone = 'blip' | 'switch' | 'arrive';
@@ -132,6 +137,13 @@ const DENSE_PIN_COUNT = 8;
 /** Digit hotkeys cover 1–9 and 0 (= 10); the inspector hint must not
  * promise more (wave 5 B1.4). */
 const HOTKEY_PIN_MAX = 10;
+
+/** What a pin says: for a gun mount the gun it holds, the part a pilot asks about; else the occupant. */
+function pinLabel(slot: LayoutSlot | null, section: ShipModuleSection | null, raw: string): string {
+  const held = section === 'weapons' ? slot?.children?.find((c) => !!c.name) : undefined;
+  if (held?.name) return (held.count > 1 ? held.count + '× ' : '') + displayItemName(held.name);
+  return slot?.name ? displayItemName(slot.name) : (slot?.port ?? humanizeClassName(raw));
+}
 
 /** The headline key per perspective, in preference order (first with a value wins). */
 const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'][]>> = {
@@ -185,6 +197,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
     CodexHoloRankStateComponent,
     CodexHoloTableComponent,
     CodexHoloInspectorComponent,
+    CodexLoadoutSaveBarComponent,
     ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -244,7 +257,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           <div class="ph">
             <span class="ph-glyph" aria-hidden="true">◈</span>
             <span class="ph-title">{{ 'codex.holo.stage.einordnung' | translate }}</span>
-            @if (rankResult(); as r) { <span class="n">{{ r.cohortSize }}</span> }
             <span class="sp"></span>
             <button type="button" class="ic" (click)="toggleRail(leftCollapsed)"
                     [attr.aria-expanded]="!leftCollapsed()"
@@ -296,7 +308,9 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         </aside>
 
         <!-- ── Table: Einsatz header, head row, projection surface ───── -->
-        <section class="holo-panel holo-table mobile-table" [scFeedbackSpot]="'codex.holo.stage.tabTable'">
+        <section class="holo-panel holo-table mobile-table" [class.no-role]="viewMode() === '3d'" [scFeedbackSpot]="'codex.holo.stage.tabTable'">
+          <!-- Not over the 3D model: the strip below it picks the Einsatz there. -->
+          @if (viewMode() !== '3d') {
           <div class="ph role">
             <div class="rolebar" #rolebar role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
               <span class="lab">{{ 'codex.mission.label' | translate }}</span>
@@ -316,6 +330,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               <span class="ink" aria-hidden="true"></span>
             </div>
           </div>
+          }
           <div class="pb">
             <!-- Table head — ONE flow row, never absolute overlays (wave 5
                  A2.1): hangar dock | what the surface shows | view tools. -->
@@ -331,20 +346,17 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                   (open)="hangarOpen.emit()" />
               </div>
               <p class="table-eyebrow">
-                {{ eyebrowKey() | translate: { n: pins().length } }}
+                {{ eyebrowKey() | translate: { n: tablePins().length } }}
                 @if (!silhouette() && viewMode() === 'holo') {
                   <span class="no-geometry-badge" tabindex="0" [scTooltip]="'codex.holo.stage.noGeometryReason' | translate" scTooltipTier="label">· {{ 'codex.holo.noGeometry' | translate }}</span>
                 }
               </p>
               <div class="tools5" [class.open]="sharePopoverOpen()">
                 @if (has3d()) {
-                  <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" [attr.aria-keyshortcuts]="hkLabel.view" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
+                  <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" [attr.aria-keyshortcuts]="hkLabel.view" (click)="pickSurface('3d')">{{ 'codex.holo.stage.view3d' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
                 }
-                <span style="display: contents" [scTooltip]="schemaAvailable() ? null : ('codex.holo.stage.viewSchemaUnavailable' | translate)" scTooltipTier="label">
-                <button type="button" class="tt" [class.on]="viewMode() === 'schema'" [attr.aria-pressed]="viewMode() === 'schema'"
-                        [disabled]="!schemaAvailable()" [attr.aria-keyshortcuts]="hkLabel.view"
-                        (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
-                </span>
+                <button type="button" class="tt" [class.on]="viewMode() !== '3d'" [attr.aria-pressed]="viewMode() !== '3d'" [attr.aria-keyshortcuts]="hkLabel.view"
+                        (click)="pickSurface(lastSchemaSurface())">{{ 'codex.holo.stage.viewSchema' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
                 <span class="share-wrap" (keydown.escape)="closeShare($event)">
                   <button type="button" class="tt" [class.on]="sharePopoverOpen()" [attr.aria-expanded]="sharePopoverOpen()" [attr.aria-keyshortcuts]="hkLabel.share" (click)="toggleShare()">↗ {{ 'codex.holo.stage.viewShare' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.share }}</kbd></button>
                   @if (sharePopoverOpen()) {
@@ -374,8 +386,21 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               </div>
             </div>
 
+            @if (viewMode() !== '3d') {
+              <!-- Schema's sub-views. -->
+              <div class="sub-views" role="group" [attr.aria-label]="'codex.holo.stage.viewSchema' | translate">
+                @for (o of schemaOptions(); track o.id) {
+                  <span style="display: contents" [scTooltip]="o.disabledKey ? (o.disabledKey | translate) : null" scTooltipTier="label">
+                    <button type="button" class="sv" [class.on]="surface() === o.id" [attr.aria-pressed]="surface() === o.id"
+                            [disabled]="!!o.disabledKey" (click)="pickSurface(o.id)">{{ o.labelKey | translate }}</button>
+                  </span>
+                }
+              </div>
+            }
             <sc-codex-holo-table
-              [pins]="pins()"
+              [pins]="tablePins()"
+              [labelPins]="pins()"
+              [schemaView]="schemaView()"
               [orbit]="pinRing()"
               [silhouette]="silhouette()"
               [previewSilhouette]="previewSilhouette()"
@@ -488,6 +513,20 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
       <!-- Toasts above the strip: the undo (concept fb-journal: "Undo gern
            einfach als toast") and the L key's "Link kopiert" (#644). -->
       <div class="toasts">
+        <!-- Unsaved changes: above the strip, whatever the rails or the scroll position do. -->
+        @if (draftChangedCount() > 0 && !readOnly()) {
+          <sc-codex-loadout-save-bar
+            class="draft-float"
+            animate.enter="toast-enter" animate.leave="toast-leave"
+            [changed]="draftChangedCount()"
+            [saveable]="saveableCount()"
+            [saving]="saving()"
+            [error]="saveError()"
+            [inHangar]="inHangar()"
+            (save)="saveDraft.emit()"
+            (discard)="discardDraft.emit()"
+            (addAndSave)="saveDraft.emit()" />
+        }
         @if (undoToast()) {
           <div class="undo-toast" role="status" animate.enter="toast-enter" animate.leave="toast-leave">
             <span>{{ 'codex.holo.stage.journalChanged' | translate: { label: undoToastLabel() } }}</span>
@@ -544,6 +583,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         [crossSection]="crossSection()"
         [cells]="allKpiCells()"
         [active]="activeMissionId()"
+        [missions]="missionSegments()"
+        (missionChange)="missionChange.emit($event)"
         [capabilities]="shipCapabilities()"
         [rankResult]="rankResult()"
         [rankCohortLoading]="rankLoading()"
@@ -697,6 +738,16 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   background: var(--sc-accent); box-shadow: 0 0 10px var(--a55); transition: translate var(--holo-t-base) var(--e-io), width var(--holo-t-base) var(--e-io); }
   .rolebar:not([data-ink-ready]) .ink { transition: none; }
 
+  /* No Einsatz bar over the 3D model: the table body takes the whole panel. */
+  .holo-table.no-role { grid-template-rows: 1fr; }
+  /* Schema's sub-views: one calm row under the table head. */
+  .sub-views { position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 6px 12px 0; }
+  .sv { font-family: var(--d); text-transform: uppercase; font-size: max(9px, var(--f)); letter-spacing: 0.1em; padding: 3px 10px; min-height: var(--sc-tap-min, 26px);
+  background: none; border: 1px solid var(--l1); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; transition: color 160ms ease, border-color 160ms ease, background 160ms ease; }
+  .sv:hover:not(:disabled) { color: var(--sc-fg-0); border-color: var(--l2); }
+  .sv.on { color: var(--sc-accent); border-color: var(--sc-accent); background: var(--a10); }
+  .sv:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sv:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
   /* ── Table head: hangar | what the surface shows | view tools ── */
   .holo-table > .pb { padding: 0 0 8px; position: relative; display: flex; flex-direction: column; min-height: 480px; }
   .table-head { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 12px 0; min-height: 44px; }
@@ -759,6 +810,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   /* The toast rides above the strip, whatever height the strip has. */
   .toasts { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px); left: 50%; translate: -50% 0; z-index: 20;
   display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .draft-float { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
+  border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
   .undo-toast { pointer-events: auto;
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
@@ -866,6 +919,9 @@ export class CodexHoloStageComponent {
   readonly occupantsBySection = input<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(new Map());
   readonly foldedModuleSections = input<ReadonlySet<ShipModuleSection>>(new Set());
 
+  /** Open the details drawer on arrival: a link leads to something inside it. */
+  readonly openDetails = input(false);
+
   // ── Silhouette / 3D / schema (in-place, user decision 2) ──────────
   readonly silhouette = input<HoloSilhouette | null>(null);
   readonly shipClassName = input<string>('');
@@ -873,10 +929,11 @@ export class CodexHoloStageComponent {
   readonly hardpointFrame = input<HardpointFrame | null>(null);
   readonly hardpointMarkers = input<readonly HardpointMarker[]>([]);
   private readonly blueprints = inject(ShipBlueprintService);
-  /** The schema view needs a blueprint drawing or the extractor's hardpoint frame. */
-  readonly schemaAvailable = computed(
-    () => !!this.hardpointFrame() || !!this.blueprints.urls(this.shipClassName())?.full,
-  );
+  private readonly packages = inject(AssetPackageService);
+  /** The hull has a drawing: side and front exist only there. */
+  readonly drawingAvailable = computed(() => !!this.blueprints.urls(this.shipClassName())?.full);
+  /** The top view needs a blueprint drawing or the extractor's hardpoint frame. */
+  readonly schemaAvailable = computed(() => !!this.hardpointFrame() || this.drawingAvailable());
 
   // ── Einsatz bar / KPI ────────────────────────────────────────────
   /** The six band cells of the active Einsatz (kept for the lead-metric accent). */
@@ -984,14 +1041,13 @@ export class CodexHoloStageComponent {
   readonly modelPorts = signal<readonly string[]>([]);
   /** The component list's pinned highlight; survives hover-outs elsewhere. */
   readonly pinnedPorts = signal<readonly string[]>([]);
-  /** What the table lights up: the shared hover plus the pinned component. */
+  /** What the table lights up: the shared hover, the pinned component and the part under inspection. */
   readonly tableActivePorts = computed<readonly string[]>(() => {
     const pinned = this.pinnedPorts();
-    if (pinned.length === 0) return this.activePorts();
-    return [...new Set([...this.activePorts(), ...pinned])];
+    const inspected = this.inspectedPort();
+    if (pinned.length === 0 && !inspected) return this.activePorts();
+    return [...new Set([...this.activePorts(), ...pinned, ...(inspected ? [inspected] : [])])];
   });
-  /** The user picked a view for this hull — the 3D default no longer applies. */
-  private viewModeTouched = false;
 
   onModelLocatable(ports: string[]): void {
     this.modelPorts.set(ports);
@@ -1014,7 +1070,75 @@ export class CodexHoloStageComponent {
   }
   readonly leftCollapsed = signal(CodexHoloStageComponent.tabletStart());
   readonly rightCollapsed = signal(CodexHoloStageComponent.tabletStart());
-  readonly viewMode = signal<'holo' | '3d' | 'schema'>('holo');
+  /** The surface the reader chose; null = the default (3D once its model is ready). */
+  readonly chosenSurface = signal<HoloSurface | null>(null);
+  /** The default's switch to 3D has happened for this hull. */
+  private readonly auto3d = signal(false);
+  /** The model's bytes are in the cache, so 3D opens without a blank frame. */
+  private readonly model3dReady = signal(false);
+  /** This hull's drawing carries a front view (older uploads do not). */
+  private readonly frontAvailable = signal(false);
+  /** Where the Schema button leads back to. */
+  readonly lastSchemaSurface = signal<Exclude<HoloSurface, '3d'>>('simple');
+  /** What the table shows: the choice, as far as this hull can show it. */
+  readonly surface = computed<HoloSurface>(() => {
+    const c = this.chosenSurface() ?? (this.auto3d() ? '3d' : 'simple');
+    const can: Record<HoloSurface, boolean> = {
+      '3d': this.has3d(),
+      simple: true,
+      top: this.schemaAvailable(),
+      side: this.drawingAvailable(),
+      front: this.frontAvailable(),
+    };
+    return can[c] ? c : 'simple';
+  });
+  readonly viewMode = computed<'holo' | '3d' | 'schema'>(() => {
+    const s = this.surface();
+    return s === '3d' ? '3d' : s === 'simple' ? 'holo' : 'schema';
+  });
+  readonly schemaView = computed<BlueprintViewName>(() => {
+    const s = this.surface();
+    return s === 'side' || s === 'front' ? s : 'top';
+  });
+  /** Schema's sub-views with the reason a hull cannot show one. */
+  readonly schemaOptions = computed(() => {
+    const unavailable = 'codex.holo.stage.viewSchemaUnavailable';
+    const option = (id: Exclude<HoloSurface, '3d'>, labelKey: string, disabledKey: string | null) => ({ id, labelKey, disabledKey });
+    return [
+      option('simple', 'codex.holo.stage.surfaceSimple', null),
+      option('top', 'codex.holo.stage.surfaceTop', this.schemaAvailable() ? null : unavailable),
+      option('side', 'codex.holo.stage.surfaceSide', this.drawingAvailable() ? null : unavailable),
+      option('front', 'codex.holo.stage.surfaceFront', this.frontAvailable() ? null : 'codex.holo.stage.surfaceFrontPending'),
+    ];
+  });
+  /** The pins of the simple view: only what can be swapped, the list keeps the rest. */
+  readonly tablePins = computed<StagePin[]>(() => {
+    const all = this.pins();
+    const swappable = all.filter((p) => !!p.slot && !!p.section && isConfigurableSection(p.section));
+    return swappable.length > 0 ? swappable : all;
+  });
+
+  private static readSurfacePref(): HoloSurface | null {
+    try {
+      const v = localStorage.getItem(SURFACE_PREF_KEY);
+      return v === 'simple' || v === 'top' || v === 'side' || v === 'front' ? v : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** The reader picks a surface; a Schema sub-view is remembered across hulls, 3D is the default anyway. */
+  pickSurface(next: HoloSurface): void {
+    if (next !== this.surface() && this.soundOn()) this.tone('switch');
+    this.chosenSurface.set(next);
+    if (next !== '3d') this.lastSchemaSurface.set(next);
+    try {
+      if (next === '3d') localStorage.removeItem(SURFACE_PREF_KEY);
+      else localStorage.setItem(SURFACE_PREF_KEY, next);
+    } catch {
+      /* private mode: the choice lasts for this hull */
+    }
+  }
   /** True while a rail's width transition runs (clips the panels meanwhile). */
   readonly railMoving = signal(false);
   private railTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1055,8 +1179,7 @@ export class CodexHoloStageComponent {
   readonly saveErrorElsewhere = computed(() => {
     const err = this.saveError();
     if (!err) return null;
-    const barShown = this.bodyReady() && !this.rightCollapsed() && this.journal().length > 0;
-    return barShown ? null : err;
+    return this.draftChangedCount() > 0 && !this.readOnly() ? null : err;
   });
   readonly bodyReady = computed(() => this.phase() === 'reveal' || this.phase() === 'done' || this.hadBody());
 
@@ -1166,8 +1289,11 @@ export class CodexHoloStageComponent {
         this.previewFailed.set(false);
         this.inspectedPort.set(null);
         this.sharePopoverOpen.set(false);
-        this.viewMode.set('holo');
-        this.viewModeTouched = false;
+        const pref = CodexHoloStageComponent.readSurfacePref();
+        this.chosenSurface.set(pref);
+        if (pref && pref !== '3d') this.lastSchemaSurface.set(pref);
+        this.auto3d.set(false);
+        this.frontAvailable.set(false);
         this.modelPorts.set([]);
         this.pinnedPorts.set([]);
         this.undoToast.set(null);
@@ -1183,7 +1309,10 @@ export class CodexHoloStageComponent {
     effect(() => {
       const shipId = this.shipClassName();
       const seq = ++this.skinsSeq;
-      untracked(() => this.has3d.set(false));
+      untracked(() => {
+        this.has3d.set(false);
+        this.model3dReady.set(false);
+      });
       if (!shipId) return;
       void this.skins.listSkins(shipId).then(({ skins }) => {
         if (seq !== this.skinsSeq) return;
@@ -1195,12 +1324,39 @@ export class CodexHoloStageComponent {
       });
     });
 
-    // The 3D hologram leads (2026-10-02): a hull with a model opens in 3D once
-    // its arrival played, unless the user already picked a view for it.
     effect(() => {
-      if (!this.has3d() || this.phase() !== 'done') return;
+      if (this.openDetails()) untracked(() => this.detailsOpen.set(true));
+    });
+
+    // Fetch the model while the arrival plays, so 3D never opens on a blank frame.
+    effect(() => {
+      const ship = this.shipClassName();
+      if (!this.has3d() || !ship) return;
+      const seq = this.skinsSeq;
       untracked(() => {
-        if (!this.viewModeTouched && this.viewMode() === 'holo') this.viewMode.set('3d');
+        void this.packages.preloadShip(ship).then(() => {
+          if (seq === this.skinsSeq) this.model3dReady.set(true);
+        });
+      });
+    });
+
+    // The 3D hologram leads (2026-10-02): a hull with a model opens in 3D once
+    // its arrival played and the model is ready, unless the reader picked a
+    // view. Never under a pointer that is busy with a pin.
+    effect(() => {
+      if (this.chosenSurface() !== null || !this.has3d() || !this.model3dReady()) return;
+      if (this.phase() !== 'done' || this.activePorts().length > 0) return;
+      untracked(() => this.auto3d.set(true));
+    });
+
+    // Does the drawing have a front view? Asked once Schema is on screen.
+    effect(() => {
+      const ship = this.shipClassName();
+      if (this.surface() === '3d' || !this.drawingAvailable()) return;
+      untracked(() => {
+        void this.blueprints.drawing(ship, 'full').then((bp) => {
+          if (ship === this.shipClassName()) this.frontAvailable.set(!!bp && !!blueprintView(bp, 'front'));
+        });
       });
     });
 
@@ -1392,8 +1548,12 @@ export class CodexHoloStageComponent {
         this.patchChooser()?.toggle();
         break;
       case 'view':
-        this.viewModeTouched = true;
-        this.viewMode.set(nextHoloView(this.viewMode(), this.has3d(), this.schemaAvailable()));
+        this.pickSurface(nextHoloSurface(this.surface(), {
+          has3d: this.has3d(),
+          top: this.schemaAvailable(),
+          side: this.drawingAvailable(),
+          front: this.frontAvailable(),
+        }));
         break;
       case 'share':
         this.toggleShare();
@@ -1456,10 +1616,9 @@ export class CodexHoloStageComponent {
     : 'codex.holo.stage.eyebrowTop',
   );
 
-  toggleViewMode(mode: '3d' | 'schema'): void {
-    this.viewModeTouched = true;
-    this.viewMode.set(this.viewMode() === mode ? 'holo' : mode);
-    if (this.soundOn()) this.tone('switch');
+  private keepSimpleForPin(): void {
+    // Working with the pins: the default's switch to 3D must not pull them away.
+    if (this.chosenSurface() === null && this.surface() === 'simple') this.chosenSurface.set('simple');
   }
 
   private readSoundPref(): boolean {
@@ -1727,7 +1886,7 @@ export class CodexHoloStageComponent {
         const base = {
           portName: raw,
           index,
-          label: slot?.name ? displayItemName(slot.name) : (slot?.port ?? humanizeClassName(raw)),
+          label: pinLabel(slot, known?.section ?? null, raw),
           short: stat ? formatEquippedStat(stat) : slot?.statChip ?? null,
           tone: (known?.section === 'missiles' ? 'gold' : 'accent') as 'accent' | 'gold',
           slot,
@@ -1758,7 +1917,7 @@ export class CodexHoloStageComponent {
   /** Too many pins for labels beside the dots — the numbered key takes over,
    * unless the table can place anchored pins' labels in leader columns (#642,
    * decided by the table, which knows its own size). */
-  readonly dense = computed(() => this.pins().length > DENSE_PIN_COUNT);
+  readonly dense = computed(() => this.tablePins().length > DENSE_PIN_COUNT);
   readonly hasUnresolvedPins = computed(() => this.pins().some((p) => !p.resolved));
   /** The map wants a mutable array; computed once per markers change, never per CD (wave 5 B2.2). */
   readonly hardpointMarkersMutable = computed<HardpointMarker[]>(() => [...this.hardpointMarkers()]);
@@ -1812,6 +1971,7 @@ export class CodexHoloStageComponent {
   private pulseTimer: ReturnType<typeof setTimeout> | null = null;
 
   inspectPin(port: string): void {
+    this.keepSimpleForPin();
     const next = this.inspectedPort() === port ? null : port;
     this.inspectedPort.set(next);
     if (next) {

@@ -173,10 +173,9 @@ describe('CodexHoloInspectorComponent', () => {
     it('says the journal is empty without entries', () => {
       const fixture = setup();
       expect(root(fixture).querySelector('.card .mut')!.textContent).toContain('codex.holo.stage.journalEmpty');
-      expect(root(fixture).querySelector('sc-codex-loadout-save-bar')).toBeNull();
     });
 
-    it('lists entries with undo and the save bar, and reverts all paths at once', () => {
+    it('lists entries with undo, and reverts all paths at once', () => {
       const journal: JournalEntry[] = [
         { port: 'p1', label: 'Laser Cannon', state: 'changed', paths: ['x.1'] },
         { port: 'p2', label: 'Shield', state: 'pending', paths: ['x.2', 'x.3'] },
@@ -186,7 +185,6 @@ describe('CodexHoloInspectorComponent', () => {
       const reverted: string[][] = [];
       fixture.componentInstance.reverted.subscribe((p) => reverted.push(p));
       expect(el.querySelectorAll('.journal li').length).toBe(2);
-      expect(el.querySelector('sc-codex-loadout-save-bar')).not.toBeNull();
 
       el.querySelector<HTMLButtonElement>('.journal li .lnk')!.click();
       const all = Array.from(el.querySelectorAll<HTMLButtonElement>('.card > button.lnk')).pop()!;

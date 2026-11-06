@@ -145,3 +145,106 @@ export function cycleId(ids: readonly string[], current: string | null, dir: 1 |
   if (i < 0) return dir === 1 ? ids[0] : ids[ids.length - 1];
   return ids[(i + dir + ids.length) % ids.length];
 }
+
+/** Hotspots closer than this on screen (CSS px) count as one stack. */
+export const FAN_JOIN_PX = 10;
+/** Centre-to-centre distance between fanned-out dots: dot (12 px) plus a hit-area gap. */
+export const FAN_SPACING_PX = 18;
+/** Radius of the innermost ring of a fan (grows when more dots need room). */
+const FAN_R0 = 14;
+
+export interface FanInput extends Pt {
+  readonly id: string;
+}
+
+/**
+ * Pull stacked hotspots apart so each stays individually hoverable. Dots that
+ * project within `join` px of each other (chains count: A near B near C is one
+ * stack) are laid out on rings around the stack's centroid, `spacing` px apart,
+ * in input order starting at 12 o'clock. Depends on screen positions only —
+ * hover state never re-lays the fan out. Dots not in a stack keep their place.
+ * Only the DOM dot moves; the 3D anchor (and the leader line) stay where they are.
+ */
+export function fanOut(items: readonly FanInput[], join = FAN_JOIN_PX, spacing = FAN_SPACING_PX): Map<string, Pt> {
+  const out = new Map<string, Pt>();
+  const n = items.length;
+  const parent = items.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) i = parent[i] = parent[parent[i]];
+    return i;
+  };
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (Math.hypot(items[i].x - items[j].x, items[i].y - items[j].y) <= join) parent[find(j)] = find(i);
+    }
+  }
+  const stacks = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    const r = find(i);
+    const list = stacks.get(r);
+    if (list) list.push(i);
+    else stacks.set(r, [i]);
+  }
+  for (const members of stacks.values()) {
+    if (members.length === 1) {
+      const it = items[members[0]];
+      out.set(it.id, { x: it.x, y: it.y });
+      continue;
+    }
+    const cx = members.reduce((a, i) => a + items[i].x, 0) / members.length;
+    const cy = members.reduce((a, i) => a + items[i].y, 0) / members.length;
+    let placed = 0;
+    for (let ring = 0; placed < members.length; ring++) {
+      const base = FAN_R0 + ring * spacing;
+      // How many dots fit on this ring at `spacing` apart.
+      const cap = Math.max(2, Math.floor(Math.PI / Math.asin(Math.min(1, spacing / (2 * base)))));
+      const count = Math.min(cap, members.length - placed);
+      const radius = Math.max(base, count > 1 ? spacing / (2 * Math.sin(Math.PI / count)) : 0);
+      // Ring 0 hugs the chord limit (a pair sits `spacing` apart), outer rings keep their nominal radius.
+      const r = ring === 0 ? (count > 1 ? spacing / (2 * Math.sin(Math.PI / count)) : 0) : radius;
+      for (let k = 0; k < count; k++) {
+        const a = -Math.PI / 2 + (2 * Math.PI * k) / count + (ring % 2 ? Math.PI / count : 0);
+        const it = items[members[placed + k]];
+        out.set(it.id, { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+      }
+      placed += count;
+    }
+  }
+  relax(items, out, spacing);
+  return out;
+}
+
+/**
+ * Neighbouring fans (and lone dots next to a fan) may still overlap: push every
+ * pair closer than `spacing` apart, a few passes, deterministic (input order).
+ */
+function relax(items: readonly FanInput[], pos: Map<string, Pt>, spacing: number): void {
+  const pts = items.map((it) => ({ ...pos.get(it.id)! }));
+  for (let pass = 0; pass < 40; pass++) {
+    let moved = false;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        let dx = pts[j].x - pts[i].x;
+        let dy = pts[j].y - pts[i].y;
+        let d = Math.hypot(dx, dy);
+        if (d >= spacing - 0.01) continue;
+        if (d < 1e-6) {
+          const a = (i * 2.399963) % (2 * Math.PI);
+          dx = Math.cos(a);
+          dy = Math.sin(a);
+          d = 1;
+        }
+        const push = (spacing - d) / 2 + 0.01;
+        const ux = dx / d;
+        const uy = dy / d;
+        pts[i].x -= ux * push;
+        pts[i].y -= uy * push;
+        pts[j].x += ux * push;
+        pts[j].y += uy * push;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  items.forEach((it, i) => pos.set(it.id, pts[i]));
+}

@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
-import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.component';
 import { formatEquippedStat } from '../codex-equipped-stats';
 import type { EquippedStat } from '../codex-equipped-stats';
 import { displayItemName } from '../codex-format';
@@ -21,7 +20,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 @Component({
   selector: 'sc-codex-holo-inspector',
   standalone: true,
-  imports: [TranslatePipe, CodexLoadoutSaveBarComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as it) {
@@ -162,16 +161,6 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
             </li>
           }
         </ul>
-        <sc-codex-loadout-save-bar
-          class="draft-controls"
-          [changed]="draftChangedCount()"
-          [saveable]="saveableCount()"
-          [saving]="saving()"
-          [error]="saveError()"
-          [inHangar]="inHangar()"
-          (save)="saveDraft.emit()"
-          (discard)="discardDraft.emit()"
-          (addAndSave)="saveDraft.emit()" />
         <button type="button" class="lnk" (click)="reverted.emit(journalAllPaths())">
           {{ 'codex.detail.actionFactoryLoadout' | translate }}
         </button>

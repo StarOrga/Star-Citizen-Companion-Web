@@ -15,7 +15,7 @@ import type { AssetPackageManifest, PlacementGroup } from '../asset-package/asse
 import type { HardpointMarker } from '../hardpoint-map';
 
 export type BlueprintLod = 'full' | 'icon';
-export type BlueprintViewName = 'top' | 'side';
+export type BlueprintViewName = 'top' | 'side' | 'front';
 /** glTF model space, metres: +X starboard, +Y up, -Z nose. */
 export type Vec3 = readonly [number, number, number];
 type Row = readonly [number, number, number, number];
@@ -98,7 +98,7 @@ export function parseShipBlueprint(text: string, parser: DOMParser = new DOMPars
   for (const g of Array.from(root.children)) {
     if (g.localName !== 'g') continue;
     const view = g.getAttribute('data-view');
-    if (view !== 'top' && view !== 'side') continue;
+    if (view !== 'top' && view !== 'side' && view !== 'front') continue;
     const p = projectionOf(g.getAttribute('data-projection'));
     if (!p) continue;
     const hull = pathOf(g, 'bp-hull');

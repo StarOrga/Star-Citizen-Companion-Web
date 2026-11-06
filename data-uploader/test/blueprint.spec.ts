@@ -55,6 +55,8 @@ describe('blueprint geometry', () => {
   it('maps model axes to drawing axes, nose (-z) to the right', () => {
     expect(viewCoords('top', 1, 2, -3)).toEqual([3, 1, 2]);
     expect(viewCoords('side', 1, 2, -3)).toEqual([3, -2, 1]);
+    // Front: viewer at the nose looking aft — starboard (+x) is on the left, up is up, nearer = -z.
+    expect(viewCoords('front', 1, 2, -3)).toEqual([-1, -2, 3]);
   });
 
   it('rasterizes a box to its projected footprint', () => {
@@ -156,6 +158,36 @@ describe('blueprint svg', () => {
     expect(icon).toContain('class="bp-hull"');
     expect(icon).not.toContain('bp-minor');
     expect(icon.length).toBeLessThan(full.length);
+  });
+
+  it('adds a front view to the full drawing only, starboard on the left, up up', () => {
+    const res = buildBlueprints(STEPPED)!;
+    const views = (svg: string) => [...svg.matchAll(/data-view="(\w+)"/g)].map((m) => m[1]);
+    expect(views(res.full)).toEqual(['top', 'side', 'front']);
+    expect(views(res.icon)).toEqual(['top']);
+    const proj = [...res.full.matchAll(/data-projection='([^']+)'/g)].map((m) => JSON.parse(m[1]!));
+    const [top, side, front] = proj;
+    const at = (m: number[][], x: number, y: number, z: number) => [
+      m[0]![0]! * x + m[0]![1]! * y + m[0]![2]! * z + m[0]![3]!,
+      m[1]![0]! * x + m[1]![1]! * y + m[1]![2]! * z + m[1]![3]!,
+    ];
+    const [bx, by, bw, bh] = front.box as number[];
+    // Box = beam x height (4 m x 3 m), below the side view, same left edge.
+    expect(bw! / bh!).toBeCloseTo(4 / 3, 1);
+    expect(bx).toBe(top.box[0]);
+    expect(by!).toBeGreaterThanOrEqual(side.box[1] + side.box[3]);
+    // Nose centre line (x = 0) is the horizontal centre of the box.
+    expect(at(front.m, 0, 0, -5)[0]).toBeCloseTo(bx! + bw! / 2, 0);
+    // Starboard (+x) lands LEFT of port (-x).
+    expect(at(front.m, 2, 0, 0)[0]).toBeCloseTo(bx!, 0);
+    expect(at(front.m, -2, 0, 0)[0]).toBeCloseTo(bx! + bw!, 0);
+    // Up is up: the deckhouse roof (y = 2) is the top edge, the keel (y = -1) the bottom.
+    expect(at(front.m, 0, 2, 0)[1]).toBeCloseTo(by!, 0);
+    expect(at(front.m, 0, -1, 0)[1]).toBeCloseTo(by! + bh!, 0);
+    // The drawing is the view of the nose: the deckhouse front face reads as a major line inside the hull.
+    expect(res.full).toMatch(/data-view="front"[^]*?<path class="bp-hull"/);
+    // Old two-view files stay readable: the first two views are unchanged.
+    expect(top.box[1]).toBe(16);
   });
 
   it('is deterministic', () => {

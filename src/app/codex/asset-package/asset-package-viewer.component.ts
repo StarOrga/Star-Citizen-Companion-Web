@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  NgZone,
   computed,
   effect,
   inject,
@@ -23,7 +24,7 @@ import { HOLO_FALLBACK_ACCENT, parseRgbToken } from '../ship-hologram';
 import { type Rgb, manufacturerAccent, rgbToken } from '../holo-manufacturer';
 import { AssetPackageService } from './asset-package.service';
 import type { PackageScene, ScreenPoint } from './asset-package-scene';
-import { type LabelPlacement, type Rect, type Size, cycleId, placeLabel } from './holo-overlay';
+import { type LabelPlacement, type Rect, type Size, cycleId, fanOut, placeLabel } from './holo-overlay';
 import {
   type AssetPackageManifest,
   type AssetPackageRow,
@@ -84,8 +85,8 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
   imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   host: { '[style.--holo-mfr-rgb]': 'mfrRgb()' },
   template: `
-    <div class="pkg" [class.xray]="focusIds().length > 0" [class.ready]="status() === 'ready'">
-      <canvas #canvas class="stage" aria-hidden="true"></canvas>
+    <div class="pkg" [class.ready]="status() === 'ready'">
+      <canvas #canvas class="stage" aria-hidden="true" (dblclick)="resetView()"></canvas>
 
       @if (status() === 'loading') {
         <p class="state" role="status">{{ 'codex.assetPackage.loading' | translate }}</p>
@@ -102,14 +103,12 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
             @if (h.link) {
               <a class="hs" [class.on]="focusSet().has(h.p.id)" [routerLink]="h.link"
                  [style.left.px]="h.x" [style.top.px]="h.y"
-                 [scTooltip]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
                  [attr.aria-label]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
                  (mouseenter)="focus(h.p)" (mouseleave)="blur(h.p)" (focus)="focus(h.p)" (blur)="blur(h.p)"
                  (click)="onActivate($event)"></a>
             } @else {
               <span class="hs" tabindex="0" role="img" [class.on]="focusSet().has(h.p.id)"
                     [style.left.px]="h.x" [style.top.px]="h.y"
-                    [scTooltip]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
                     [attr.aria-label]="'codex.assetPackage.hotspotTip' | translate: tipParams(h)"
                     (mouseenter)="focus(h.p)" (mouseleave)="blur(h.p)" (focus)="focus(h.p)" (blur)="blur(h.p)"></span>
             }
@@ -161,6 +160,9 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
               {{ 'codex.assetPackage.groups.' + g | translate }}
             </button>
           }
+          <button type="button" class="chip reset-view" (click)="resetView()">
+            {{ 'codex.assetPackage.resetView' | translate }}
+          </button>
           @if (rows().length) {
             <button type="button" class="chip list-toggle" [attr.aria-expanded]="listOpen()" (click)="listOpen.set(!listOpen())">
               {{ 'codex.assetPackage.parts' | translate: { count: rows().length } }}
@@ -217,7 +219,8 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
         border-radius: 50%; border: 1px solid var(--sc-accent); background: rgb(from var(--sc-accent) r g b / 0.25);
         pointer-events: auto; transition: transform 0.15s ease, background 0.15s ease;
       }
-      .hs::after { content: ''; position: absolute; inset: -0.75rem; border-radius: 50%; }
+      /* Hit area: 18px, as wide as the spacing of a fanned-out stack (holo-overlay FAN_SPACING_PX). */
+      .hs::after { content: ''; position: absolute; inset: -0.1875rem; border-radius: 50%; }
       .hs:hover, .hs:focus-visible, .hs.on { background: var(--sc-accent); transform: scale(1.35); outline: none; }
       .hs:focus-visible { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 4px var(--sc-accent); }
       /* Touch: the hotspot itself is a 48px hit box (a pseudo-element extends the hit area but not
@@ -242,10 +245,12 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       .clabel {
         position: absolute; display: flex; align-items: center; gap: var(--sc-gap-1);
         width: max-content; max-width: min(22rem, calc(100% - 1rem)); padding: var(--sc-pad-1);
-        background: rgb(from var(--sc-bg-1) r g b / 0.9); border: 1px solid var(--sc-accent);
+        background: rgb(from var(--sc-bg-1) r g b / 0.94); border: 1px solid var(--sc-accent);
         border-radius: 0.375rem; box-shadow: 0 0 0.75rem rgb(from var(--sc-accent) r g b / 0.25);
-        backdrop-filter: blur(4px);
+        /* The box only shows: it must not cover the hotspots beside it. Real controls take the pointer back. */
+        pointer-events: none;
       }
+      .clabel a.nm, .clabel .step { pointer-events: auto; }
       .clabel .txt { display: grid; flex: 1 1 auto; min-width: 0; padding: 0 var(--sc-pad-1); text-align: start; }
       .clabel .nm {
         color: var(--sc-fg-0); font-weight: 600; font-size: 0.875rem; text-decoration: none;
@@ -264,9 +269,10 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       @media (pointer: coarse) { .step { width: 3rem; height: 3rem; } }
       .bar {
         position: absolute; left: var(--sc-pad-2); right: var(--sc-pad-2); bottom: var(--sc-pad-2);
-        display: flex; flex-wrap: wrap; gap: var(--sc-gap-1);
+        display: flex; flex-wrap: wrap; gap: var(--sc-gap-1); pointer-events: none;
       }
       .chip {
+        pointer-events: auto;
         min-height: var(--sc-tap-min, 2.25rem); padding: 0 var(--sc-pad-2); border-radius: 999px;
         border: 1px solid var(--sc-border); background: rgb(from var(--sc-bg-1) r g b / 0.8);
         color: var(--sc-fg-2); font: inherit; font-size: 0.8125rem; cursor: pointer;
@@ -331,7 +337,12 @@ export class AssetPackageViewerComponent {
   private readonly labelSize = signal<Size>(LABEL_SIZE_GUESS);
   private readonly attempt = signal(0);
 
+  private readonly zone = inject(NgZone);
   private scene: PackageScene | null = null;
+  private offScreen = false;
+  private tabHidden = false;
+  private visObs: IntersectionObserver | null = null;
+  private escapeArmed = false;
   private loadToken = 0;
   private interiorLoading = false;
   private graceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -378,13 +389,18 @@ export class AssetPackageViewerComponent {
     if (!m) return [];
     const pts = this.points();
     const visible = this.visibleIds();
-    const out: (PlacementRow & { x: number; y: number })[] = [];
+    const shown: { p: PackagePlacement; id: string; x: number; y: number }[] = [];
     for (const p of hotspotPlacements(m)) {
       const pt = pts.get(p.id);
       if (!pt?.onScreen || !visible.has(p.id)) continue;
-      out.push({ ...this.toRow(p, true), x: pt.x, y: pt.y });
+      shown.push({ p, id: p.id, x: pt.x, y: pt.y });
     }
-    return out;
+    // Stacked dots fan out around their centroid (screen position only, never hover state).
+    const fanned = fanOut(shown);
+    return shown.map((h) => {
+      const at = fanned.get(h.id) ?? h;
+      return { ...this.toRow(h.p, true), x: at.x, y: at.y };
+    });
   });
 
   /** The placement the label describes: the viewer's own selection, else the first one the host points at. */
@@ -411,8 +427,25 @@ export class AssetPackageViewerComponent {
       this.loadToken++;
       this.clearGrace();
       this.resizeObs?.disconnect();
+      this.visObs?.disconnect();
+      document.removeEventListener('visibilitychange', this.onVisibility);
+      this.armEscape(false);
       this.scene?.dispose();
       this.scene = null;
+    });
+    this.tabHidden = document.visibilityState === 'hidden';
+    document.addEventListener('visibilitychange', this.onVisibility);
+    if (typeof IntersectionObserver === 'function') {
+      this.visObs = new IntersectionObserver((entries) => {
+        const last = entries[entries.length - 1];
+        if (last) this.setOffScreen(!last.isIntersecting);
+      });
+      this.visObs.observe(this.host.nativeElement);
+    }
+    // Escape clears a pin / hover label only while there is one to clear.
+    effect(() => {
+      const active = this.selectedId() !== null;
+      untracked(() => this.armEscape(active));
     });
 
     effect(() => {
@@ -541,6 +574,57 @@ export class AssetPackageViewerComponent {
     this.pinned.set(null);
   }
 
+  /** Back to the initial camera framing (chip / double click on the model). */
+  resetView(): void {
+    const m = this.manifest();
+    if (m) this.scene?.frame(this.frameBounds(m));
+  }
+
+  private frameBounds(m: AssetPackageManifest) {
+    return plausibleBounds(m.root?.bounds);
+  }
+
+  /**
+   * Escape drops the pin / hover label. The listener sits on the document in the
+   * capture phase and only exists while a slot is selected; it swallows the key
+   * only when it really cleared something, so otherwise the stage's own Escape
+   * (close the inspector) is untouched. A dialog above the viewer owns Escape.
+   */
+  private armEscape(on: boolean): void {
+    if (on === this.escapeArmed) return;
+    this.escapeArmed = on;
+    if (on) document.addEventListener('keydown', this.onEscape, true);
+    else document.removeEventListener('keydown', this.onEscape, true);
+  }
+
+  private readonly onEscape = (ev: KeyboardEvent): void => {
+    if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+    const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"], dialog[open]');
+    const top = dialogs.item(dialogs.length - 1);
+    if (top && !top.contains(this.host.nativeElement)) return;
+    if (this.clearSelection()) ev.stopImmediatePropagation();
+  };
+
+  /** Drop pin and hover selection; true when there was one. */
+  clearSelection(): boolean {
+    if (!this.pinned() && !this.localFocus()) return false;
+    this.clearGrace();
+    this.localFocus.set(null);
+    this.pinned.set(null);
+    this.hovered.emit(null);
+    return true;
+  }
+
+  private readonly onVisibility = (): void => {
+    this.tabHidden = document.visibilityState === 'hidden';
+    this.scene?.setPaused(this.offScreen || this.tabHidden);
+  };
+
+  private setOffScreen(off: boolean): void {
+    this.offScreen = off;
+    this.scene?.setPaused(this.offScreen || this.tabHidden);
+  }
+
   retry(): void {
     this.attempt.update((n) => n + 1);
   }
@@ -582,10 +666,20 @@ export class AssetPackageViewerComponent {
       // Body in the app accent for every ship, accents in the manufacturer's colour.
       const accent = manufacturerAccent(row.shipId ?? row.entityClass, base);
       this.mfrRgb.set(rgbToken(accent));
-      const scene = new PackageScene(this.canvas().nativeElement, base, accent, this.reducedMotion(), () =>
-        this.reproject(),
+      // The frame loop (rAF, damping) runs outside Angular: only signal writes reach the UI.
+      const scene = this.zone.runOutsideAngular(
+        () =>
+          new PackageScene(
+            this.canvas().nativeElement,
+            base,
+            accent,
+            this.reducedMotion(),
+            () => this.reproject(),
+            (fn) => this.zone.runOutsideAngular(fn),
+          ),
       );
       this.scene = scene;
+      scene.setPaused(this.offScreen || this.tabHidden);
       this.observeSize(scene);
 
       const urls = this.service.urls;
@@ -605,7 +699,7 @@ export class AssetPackageViewerComponent {
       scene.place(m.placements);
       this.manifest.set(m);
       scene.setVisibility(this.visibleIds(), this.groupsOn().has('interior'));
-      scene.frame(plausibleBounds(m.root?.bounds));
+      scene.frame(this.frameBounds(m));
       scene.setFocus(this.focusIds());
       this.status.set('ready');
       this.locatable.emit(hotspotPlacements(m).map((p) => p.portName));

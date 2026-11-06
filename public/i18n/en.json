@@ -845,7 +845,7 @@
     },
     "holo": {
       "noGeometry": "No silhouette",
-      "pinUnresolved": "Position unknown",
+      "pinUnresolved": "Position estimated",
       "toggle": {
         "group": "View",
         "classic": "Classic",
@@ -856,9 +856,14 @@
       "stage": {
         "railToggle": "Collapse/expand rail",
         "einordnung": "Standing",
-        "cohortLink": "View cohort",
+        "cohortLink": "View all ships",
         "view3d": "3D",
         "viewSchema": "Schema",
+        "surfaceSimple": "Simple",
+        "surfaceTop": "Top view",
+        "surfaceSide": "Side view",
+        "surfaceFront": "Front view",
+        "surfaceFrontPending": "The front view arrives with this ship's next data upload.",
         "viewShare": "Share",
         "silhouetteAria": "Silhouette of {{name}}",
         "noGeometryReason": "No silhouette has been generated for this ship yet.",
@@ -915,9 +920,9 @@
         "pinLabels": "Pin labels on the hull",
         "legendUnresolved": "Position estimated",
         "rawPortHint": "Raw port from the game data — nothing to swap or open.",
-        "eyebrowTop": "Top view · {{n}} hardpoints",
-        "eyebrow3d": "3D model · drag to rotate",
-        "eyebrowSchema": "Schematic · hardpoint positions",
+        "eyebrowTop": "Swappable parts · {{n}}",
+        "eyebrow3d": "Drag to rotate",
+        "eyebrowSchema": "All hardpoints",
         "pinListTitle": "All hardpoints",
         "pinGroupOther": "Hardpoints",
         "rankLoading": "Comparing with the whole fleet … the first visit per patch takes a moment.",
@@ -926,6 +931,7 @@
       },
       "strip": {
         "einsatz": "Mission",
+        "einsatzPick": "Choose a mission",
         "shipCount": "{{n}} ships",
         "offensive": "Offensive",
         "defensive": "Defensive",
@@ -2233,6 +2239,7 @@
         "interior": "Interior",
         "other": "Other"
       },
+      "resetView": "Reset view",
       "parts": "Parts ({{count}})",
       "show": "Show {{name}}",
       "hide": "Hide {{name}}",

@@ -1,4 +1,4 @@
-import { LABEL_GAP, LABEL_MARGIN, cycleId, placeLabel, rectOf, ringPose } from './holo-overlay';
+import { FAN_SPACING_PX, LABEL_GAP, LABEL_MARGIN, cycleId, fanOut, placeLabel, rectOf, ringPose } from './holo-overlay';
 
 const VP = { w: 1000, h: 600 };
 const LABEL = { w: 200, h: 50 };
@@ -119,5 +119,41 @@ describe('cycleId', () => {
     expect(cycleId(ids, null, 1)).toBe('a');
     expect(cycleId(ids, 'zz', -1)).toBe('c');
     expect(cycleId([], 'a', 1)).toBeNull();
+  });
+});
+
+describe('fanOut (stacked hotspots)', () => {
+  const dots = (...xy: [number, number][]) => xy.map(([x, y], i) => ({ id: `p${i}`, x, y }));
+  const minDist = (m: Map<string, { x: number; y: number }>) => {
+    const v = [...m.values()];
+    let d = Infinity;
+    for (let i = 0; i < v.length; i++) for (let j = i + 1; j < v.length; j++) d = Math.min(d, Math.hypot(v[i].x - v[j].x, v[i].y - v[j].y));
+    return d;
+  };
+
+  it('leaves lone dots where they are', () => {
+    const m = fanOut(dots([10, 10], [100, 100], [10 + FAN_SPACING_PX + 30, 10]));
+    expect(m.get('p0')).toEqual({ x: 10, y: 10 });
+    expect(m.get('p2')).toEqual({ x: 10 + FAN_SPACING_PX + 30, y: 10 });
+  });
+
+  it('spreads a stack around its centroid so no two dots are closer than the spacing', () => {
+    for (const n of [2, 3, 5, 9, 34]) {
+      const items = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, x: 200 + (i % 3), y: 150 + (i % 2) }));
+      const m = fanOut(items);
+      expect(m.size).toBe(n);
+      expect(minDist(m)).toBeGreaterThanOrEqual(FAN_SPACING_PX - 0.01);
+    }
+  });
+
+  it('is stable: same input, same output', () => {
+    const a = fanOut(dots([50, 50], [52, 51], [49, 53]));
+    const b = fanOut(dots([50, 50], [52, 51], [49, 53]));
+    expect([...a]).toEqual([...b]);
+  });
+
+  it('chains: A near B near C is one stack', () => {
+    const m = fanOut(dots([0, 0], [9, 0], [18, 0]));
+    expect(minDist(m)).toBeGreaterThanOrEqual(FAN_SPACING_PX - 0.01);
   });
 });

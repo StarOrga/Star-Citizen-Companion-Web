@@ -302,15 +302,15 @@ export function focusedPlacementIds(
   }
   if (seeds.size === 0) return [];
   const out: string[] = [];
+  const byId = new Map(m.placements.map((x) => [x.id, x] as const));
   for (const p of m.placements) {
     let cur: PackagePlacement | undefined = p;
-    const byId = (id: string) => m.placements.find((x) => x.id === id);
     for (let guard = 0; cur && guard < 64; guard++) {
       if (seeds.has(cur.id)) {
         out.push(p.id);
         break;
       }
-      cur = cur.parentPort ? byId(cur.parentPort) : undefined;
+      cur = cur.parentPort ? byId.get(cur.parentPort) : undefined;
     }
   }
   return out;

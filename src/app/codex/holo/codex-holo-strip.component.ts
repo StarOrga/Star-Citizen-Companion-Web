@@ -15,6 +15,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  HostListener,
+  viewChild,
   afterNextRender,
   computed,
   effect,
@@ -101,6 +103,14 @@ interface PerspectiveTile {
   cells: readonly KpiStripCell[];
 }
 
+/** One choice of the strip's Einsatz picker. */
+export interface StripMission {
+  id: MissionId;
+  labelKey: string;
+  sub: string;
+  disabledKey: string | null;
+}
+
 let uidSeq = 0;
 
 /** Per-viewer localStorage key of the minimised strip. */
@@ -115,16 +125,32 @@ export function stripMiniKey(userId: string | null | undefined): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-strip" [class.open]="expanded()" [class.mini]="mini() && !phone">
+      @if (missionOpen()) {
+        <div class="mission-pop" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate" (keydown.escape)="closeMissions($event)">
+          @for (m of missions(); track m.id) {
+            <span style="display: contents" [scTooltip]="m.disabledKey ? (m.disabledKey | translate) : null" scTooltipTier="label">
+              <button type="button" class="mp" role="radio" [class.on]="m.id === active()" [attr.aria-checked]="m.id === active()"
+                      [disabled]="!!m.disabledKey" (click)="pickMission(m.id)">
+                <span class="mp-l">{{ m.labelKey | translate }}</span>
+                @if (!m.disabledKey) { <small>{{ m.sub }}</small> }
+              </button>
+            </span>
+          }
+        </div>
+      }
       <div class="hs-row">
-        <div class="seg einsatz">
-          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}</span>
+        <button type="button" class="seg einsatz" #missionBtn [attr.aria-haspopup]="'true'" [attr.aria-expanded]="missionOpen()"
+                [attr.aria-label]="'codex.holo.strip.einsatzPick' | translate"
+                [scTooltip]="'codex.holo.strip.einsatzPick' | translate" scTooltipTier="label"
+                (click)="toggleMissions($event)">
+          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}<span class="caret" aria-hidden="true">▴</span></span>
           <span class="val">◈ {{ activeMissionLabel() | translate }}</span>
           @if (rankResult(); as r) {
             <span class="sub">{{ 'codex.holo.strip.shipCount' | translate: { n: upInt('cohort', r.cohortSize) } }}@if (r.overall != null) { · <span class="pct pulse">P{{ upInt('overall', r.overall) }}</span> }</span>
           } @else if (rankCohortLoading()) {
             <span class="sub gapv">{{ 'codex.kpi.gap' | translate }}</span>
           }
-        </div>
+        </button>
 
         <span class="arrow" aria-hidden="true">→</span>
 
@@ -351,7 +377,21 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .seg[data-p="signature"] { border-block-start-color: var(--p-signature); }
       .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor));
         letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
-      .einsatz { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); min-inline-size: 132px; }
+      .einsatz { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); min-inline-size: 132px; font: inherit; color: inherit; text-align: start; align-items: flex-start;
+        border-block-start-style: solid; border-inline-start: 0; border-block-end: 0; cursor: pointer; transition: background 160ms ease; }
+      .einsatz:hover, .einsatz[aria-expanded='true'] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+      .einsatz:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      .caret { color: var(--sc-accent); font-size: 0.8em; letter-spacing: 0; }
+      .mission-pop { position: absolute; inset-block-end: 100%; inset-inline-start: 0; margin-block-end: 6px; z-index: 5; display: grid; gap: 2px; padding: 6px; min-inline-size: 240px;
+        background: var(--sc-bg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0)); border-radius: 4px; box-shadow: 0 -10px 30px rgb(0 0 0 / 0.5); }
+      .mp { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 6px 10px; min-block-size: var(--sc-tap-min, 32px); background: none; border: 0; border-radius: 3px;
+        color: var(--sc-fg-1); font: inherit; cursor: pointer; text-align: start; }
+      .mp-l { font-family: var(--sc-font-display); font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; }
+      .mp small { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
+      .mp:hover:not(:disabled) { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+      .mp.on { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+      .mp:disabled { opacity: 0.4; cursor: not-allowed; }
+      .mp:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       .einsatz .val { font-family: var(--sc-font-display); font-size: max(11.5px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
       .einsatz .sub { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .pct { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; color: var(--sc-fg-1); letter-spacing: 0; font-size: max(9.5px, var(--sc-fs-floor)); }
@@ -551,6 +591,35 @@ export class CodexHoloStripComponent {
   readonly active = input.required<MissionId>();
   readonly capabilities = input<ShipCapabilities | null>(null);
   readonly missionChange = output<MissionId>();
+  /** The choices of the Einsatz picker, with their lead value. */
+  readonly missions = input<readonly StripMission[]>([]);
+  readonly missionOpen = signal(false);
+  private readonly missionBtn = viewChild<ElementRef<HTMLElement>>('missionBtn');
+
+  toggleMissions(ev: Event): void {
+    ev.stopPropagation();
+    this.missionOpen.update((v) => !v);
+  }
+
+  closeMissions(ev: Event): void {
+    ev.stopPropagation();
+    this.missionOpen.set(false);
+    this.missionBtn()?.nativeElement.focus({ preventScroll: true });
+  }
+
+  pickMission(id: MissionId): void {
+    this.missionOpen.set(false);
+    this.missionChange.emit(id);
+    this.missionBtn()?.nativeElement.focus({ preventScroll: true });
+  }
+
+  /** A click anywhere else closes the picker. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: Event): void {
+    if (!this.missionOpen()) return;
+    const pop = (ev.target as HTMLElement | null)?.closest?.('.mission-pop');
+    if (!pop) this.missionOpen.set(false);
+  }
 
   /** Not on any of the three mirrored components — the only percentile
    * source in the codebase is `sc-codex-rank-card`'s own `result`/`loading`

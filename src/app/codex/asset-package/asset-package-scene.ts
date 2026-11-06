@@ -14,7 +14,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import type { Bounds, PackagePlacement } from './asset-package.model';
-import { HoloLook, HOLO_MAX_FOCUS, countTriangles, type HoloRole, type Rgb } from '../holo-look';
+import {
+  HoloLook,
+  HOLO_MAX_FOCUS,
+  HOLO_XRAY_HULL_OPACITY,
+  HOLO_XRAY_PART_OPACITY,
+  countTriangles,
+  type HoloRole,
+  type Rgb,
+} from '../holo-look';
 import { type Rect, rectOf, ringPose } from './holo-overlay';
 
 export type { Rgb } from '../holo-look';
@@ -26,8 +34,7 @@ export interface ScreenPoint {
   readonly onScreen: boolean;
 }
 
-const HULL_OPACITY_XRAY = 0.1;
-const PART_OPACITY_XRAY = 0.06;
+// X-ray opacities and the dim factor live in holo-look.ts (HOLO_XRAY_*, HOLO_DIM_*).
 const HULL_OPACITY_INTERIOR = 0.28;
 
 /** Render order: x-rayed hull/parts → glow halo → focused component on top of it. */
@@ -123,6 +130,7 @@ export class PackageScene {
   private readonly contentBox = new THREE.Box3();
   private frameId = 0;
   private disposed = false;
+  private paused = false;
   private readonly tmp = new THREE.Vector3();
 
   // Highlight markers: glow halos (focused anchors) and empty-slot rings.
@@ -139,6 +147,8 @@ export class PackageScene {
     accent: Rgb,
     reducedMotion: boolean,
     private readonly onFrame: () => void,
+    /** Runs `fn` outside Angular's zone (the frame loop must not trigger change detection). */
+    private readonly outsideZone: <T>(fn: () => T) => T = (fn) => fn(),
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     // Without a GPU (software WebGL, hardware acceleration switched off) one
@@ -163,7 +173,7 @@ export class PackageScene {
 
     // Concept-hologram look (holo-look.ts): body in the app accent, rim and
     // highlight in the manufacturer accent; focus/x-ray only flip uniforms.
-    this.look = new HoloLook(base, accent, reducedMotion);
+    this.look = new HoloLook(base, accent, reducedMotion, true);
 
     this.haloMat = new THREE.SpriteMaterial({
       map: this.haloTex,
@@ -286,7 +296,7 @@ export class PackageScene {
     const xray = this.focused.size > 0;
     for (const role of ['hull', 'part', 'interior'] as const) {
       let opacity = 1;
-      if (xray) opacity = role === 'hull' ? HULL_OPACITY_XRAY : PART_OPACITY_XRAY;
+      if (xray) opacity = role === 'hull' ? HOLO_XRAY_HULL_OPACITY : HOLO_XRAY_PART_OPACITY;
       else if (this.interiorOn && role === 'hull') opacity = HULL_OPACITY_INTERIOR;
       this.look.setOpacity(role, opacity);
     }
@@ -426,10 +436,21 @@ export class PackageScene {
     return rectOf(pts);
   }
 
+  /** Pause the frame loop (viewer off screen / tab hidden); resuming draws a frame at once. */
+  setPaused(paused: boolean): void {
+    if (this.paused === paused) return;
+    this.paused = paused;
+    if (paused && this.frameId) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = 0;
+    }
+    if (!paused) this.requestRender();
+  }
+
   /** Render on demand: one frame, continued only while damping moves the camera or the look animates. */
   requestRender(): void {
-    if (this.frameId || this.disposed) return;
-    this.frameId = requestAnimationFrame(() => {
+    if (this.frameId || this.disposed || this.paused) return;
+    this.frameId = this.outsideZone(() => requestAnimationFrame(() => {
       this.frameId = 0;
       const moving = this.controls.enableDamping && this.controls.update();
       const t = this.elapsed();
@@ -439,8 +460,8 @@ export class PackageScene {
       this.onFrame();
       // The scan band and the slot ring keep the loop alive; with reduced
       // motion the scene renders on demand only.
-      if (moving || this.look.animated) this.requestRender();
-    });
+      if (moving || this.look.animated || this.look.tweening) this.requestRender();
+    }));
   }
 
   dispose(): void {

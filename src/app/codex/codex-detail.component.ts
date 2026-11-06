@@ -297,11 +297,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         @if (kind() === 'ship') {
           <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
             <button type="button" class="ht-btn" [class.active]="!holoView()"
+                    [scTooltip]="'codex.holo.toggle.classicHint' | translate" scTooltipTier="label"
                     [attr.aria-pressed]="!holoView()"
                     (click)="holoView() && toggleHoloView()">
               {{ 'codex.holo.toggle.classic' | translate }}
             </button>
             <button type="button" class="ht-btn" [class.active]="holoView()"
+                    [scTooltip]="'codex.holo.toggle.holoHint' | translate" scTooltipTier="label"
                     [attr.aria-pressed]="holoView()"
                     (click)="!holoView() && toggleHoloView()">
               {{ 'codex.holo.toggle.holo' | translate }}
@@ -739,38 +741,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           </section>
         }
 
-        @if (kind() === 'item' || kind() === 'weapon' || kind() === 'ship') {
-          <section class="sc-card block" [attr.id]="kind() === 'ship' ? shipSourceFragment : null">
-            <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
-            @if (buyLoading()) {
-              <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
-            } @else if (buyError()) {
-              <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
-            } @else if (buyOptions().length === 0) {
-              <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
-            } @else {
-              <table class="buy-table">
-                <thead>
-                  <tr>
-                    <th>{{ 'codex.detail.whereToBuyPrice' | translate }}</th>
-                    <th>{{ 'codex.detail.whereToBuyTerminal' | translate }}</th>
-                    <th>{{ 'codex.detail.whereToBuyLocation' | translate }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (opt of buyOptions(); track opt.terminal + opt.price) {
-                    <tr>
-                      <td class="buy-price">{{ fmt(opt.price) }} aUEC</td>
-                      <td>{{ opt.terminal }}</td>
-                      <td class="muted">{{ opt.location }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
-            <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
-          </section>
-        }
+        <ng-container [ngTemplateOutlet]="whereToBuy" />
 
         <!-- ── Ammunition: damage + ballistics ───────────────────── -->
         @if (damage().length > 0) {
@@ -977,6 +948,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (sheetChange)="powerSheet.set($event)"
             (arrivedShip)="onHoloArrived($event)"
             [linkCopied]="linkCopied()"
+            [openDetails]="sourceLinkRequested()"
             (copyShareLink)="copyShareLink()">
             <!-- Details drawer content, projected into the Holotable: the
                  shared sub-components in detail/ and the shared ng-templates,
@@ -1013,6 +985,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             }
             <ng-container [ngTemplateOutlet]="tailLoadout" />
             <ng-container [ngTemplateOutlet]="descriptionCard" />
+            <ng-container [ngTemplateOutlet]="whereToBuy" />
             @if (recipeView(); as rv) {
               <sc-codex-recipe-card [recipe]="rv" />
             }
@@ -1060,6 +1033,41 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" [shipSignature]="shipSignature()" (closed)="closeWeaponDetail()" />
+
+      <ng-template #whereToBuy>
+        @if (kind() === 'item' || kind() === 'weapon' || kind() === 'ship') {
+          <section class="sc-card block" [attr.id]="kind() === 'ship' ? shipSourceFragment : null">
+            <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
+            @if (buyLoading()) {
+              <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
+            } @else if (buyError()) {
+              <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
+            } @else if (buyOptions().length === 0) {
+              <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
+            } @else {
+              <table class="buy-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'codex.detail.whereToBuyPrice' | translate }}</th>
+                    <th>{{ 'codex.detail.whereToBuyTerminal' | translate }}</th>
+                    <th>{{ 'codex.detail.whereToBuyLocation' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (opt of buyOptions(); track opt.terminal + opt.price) {
+                    <tr>
+                      <td class="buy-price">{{ fmt(opt.price) }} aUEC</td>
+                      <td>{{ opt.terminal }}</td>
+                      <td class="muted">{{ opt.location }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+            <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
+          </section>
+        }
+      </ng-template>
 
       <!-- Shared by the classic view and the Holotable drawer, which renders
            them into its projected details (same view, so these rules stay
@@ -1493,6 +1501,10 @@ export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   readonly shipSourceFragment = SHIP_SOURCE_FRAGMENT;
+  /** The search CTA "Bezugsquelle" led here: the Holotable keeps that section in its drawer. */
+  sourceLinkRequested(): boolean {
+    return this.route.snapshot.fragment === SHIP_SOURCE_FRAGMENT;
+  }
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly t = inject(TranslateService);
@@ -3085,8 +3097,20 @@ export class CodexDetailComponent implements OnInit {
    * row or a marker). One signal for both directions keeps them in sync.
    */
   readonly activePorts = signal<readonly string[]>([]);
+  private activePortsLeave: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * A leave waits a moment: moving from one row or hotspot to the next crosses
+   * a gap, and the highlight must not drop out in between. Every hover source
+   * passes through here, so they all behave alike.
+   */
   setActivePorts(ports: string[] | null): void {
-    this.activePorts.set(ports ?? []);
+    clearTimeout(this.activePortsLeave);
+    if (ports?.length) {
+      this.activePorts.set(ports);
+      return;
+    }
+    if (this.activePorts().length === 0) return;
+    this.activePortsLeave = setTimeout(() => this.activePorts.set([]), 120);
   }
 
   // ── ship modules, ordered by what a pilot can configure (461288f9) ──────────

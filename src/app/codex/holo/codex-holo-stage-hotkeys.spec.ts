@@ -9,7 +9,7 @@ import { CodexDetail, CodexService } from '../codex.service';
 import { RoleService } from '../../auth/role.service';
 import { ShipCapabilities } from '../codex-mission';
 import { isTypeToSearchKey } from '../search/codex-search-hub.service';
-import { HOLO_HOTKEYS, holoHotkeyFor, nextHoloView } from './codex-holo-hotkeys';
+import { HOLO_HOTKEYS, holoHotkeyFor, nextHoloSurface } from './codex-holo-hotkeys';
 
 const CAPS: ShipCapabilities = { hasCargo: false, hasQuantum: true, hasMining: false, hasSalvage: false };
 
@@ -62,14 +62,17 @@ describe('holo hotkeys (pure)', () => {
     expect(holoHotkeyFor(ev('v', { altKey: true }), null)).toBeNull();
   });
 
-  it('cycles holo → 3D → schema → holo, skipping a view the hull lacks', () => {
-    expect(nextHoloView('holo', true, true)).toBe('3d');
-    expect(nextHoloView('3d', true, true)).toBe('schema');
-    expect(nextHoloView('schema', true, true)).toBe('holo');
-    expect(nextHoloView('holo', false, true)).toBe('schema');
-    expect(nextHoloView('holo', true, false)).toBe('3d');
-    expect(nextHoloView('3d', true, false)).toBe('holo');
-    expect(nextHoloView('holo', false, false)).toBe('holo');
+  it('cycles 3D → Einfach → Draufsicht → Seitensicht → Frontsicht, skipping what the hull lacks', () => {
+    const all = { has3d: true, top: true, side: true, front: true };
+    expect(nextHoloSurface('3d', all)).toBe('simple');
+    expect(nextHoloSurface('simple', all)).toBe('top');
+    expect(nextHoloSurface('top', all)).toBe('side');
+    expect(nextHoloSurface('side', all)).toBe('front');
+    expect(nextHoloSurface('front', all)).toBe('3d');
+    expect(nextHoloSurface('side', { ...all, front: false })).toBe('3d');
+    expect(nextHoloSurface('simple', { has3d: true, top: false, side: false, front: false })).toBe('3d');
+    expect(nextHoloSurface('3d', { has3d: true, top: false, side: false, front: false })).toBe('simple');
+    expect(nextHoloSurface('simple', { has3d: false, top: false, side: false, front: false })).toBe('simple');
   });
 });
 
@@ -77,6 +80,7 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
   let fixture: ComponentFixture<CodexHoloStageComponent>;
   afterEach(() => {
     fixture?.destroy();
+    localStorage.removeItem('sc.codex.holo.surface');
     document.querySelectorAll('.test-dialog, .test-input').forEach((n) => n.remove());
   });
 

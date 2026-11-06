@@ -211,4 +211,50 @@ describe('CodexHoloStripComponent', () => {
     expect(offensive.percentile).not.toBeNull();
     expect(offensive.percentile!).toBeGreaterThan(50);
   });
+
+  describe('Einsatz picker', () => {
+    const MISSIONS = [
+      { id: 'all' as const, labelKey: 'codex.mission.all', sub: '17 Ports', disabledKey: null },
+      { id: 'combat' as const, labelKey: 'codex.mission.combat', sub: '119 Alpha', disabledKey: null },
+      { id: 'mining' as const, labelKey: 'codex.mission.mining', sub: '', disabledKey: 'codex.mission.disabled' },
+    ];
+
+    it('opens from the strip, picks, closes and gives the focus back', async () => {
+      const fixture = await setup();
+      fixture.componentRef.setInput('missions', MISSIONS);
+      const picked: string[] = [];
+      fixture.componentInstance.missionChange.subscribe((m) => picked.push(m));
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const btn = el.querySelector<HTMLButtonElement>('button.einsatz')!;
+      expect(el.querySelector('.mission-pop')).toBeNull();
+      btn.click();
+      fixture.detectChanges();
+      const rows = Array.from(el.querySelectorAll<HTMLButtonElement>('.mission-pop .mp'));
+      expect(rows.length).toBe(3);
+      expect(rows[1].getAttribute('aria-checked')).toBe('true');
+      expect(rows[2].disabled).toBeTrue();
+      rows[0].click();
+      fixture.detectChanges();
+      expect(picked).toEqual(['all']);
+      expect(el.querySelector('.mission-pop')).toBeNull();
+    });
+
+    it('closes on Escape and on a click elsewhere', async () => {
+      const fixture = await setup();
+      fixture.componentRef.setInput('missions', MISSIONS);
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      el.querySelector<HTMLButtonElement>('button.einsatz')!.click();
+      fixture.detectChanges();
+      el.querySelector('.mission-pop')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      expect(el.querySelector('.mission-pop')).toBeNull();
+      el.querySelector<HTMLButtonElement>('button.einsatz')!.click();
+      fixture.detectChanges();
+      document.body.click();
+      fixture.detectChanges();
+      expect(el.querySelector('.mission-pop')).toBeNull();
+    });
+  });
 });

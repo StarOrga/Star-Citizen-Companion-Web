@@ -17,7 +17,8 @@ export function blueprintSvg(lod: BlueprintLod = 'full', extra = ''): string {
     '</g>';
   const side =
     lod === 'full'
-      ? `<g class="bp-view" data-view="side" data-projection='{"frame":"gltf-y-up-metres","m":[[0,0,-10,60],[0,-10,0,80]],"box":[10,70,100,20]}'>` +
+      ? `<g class="bp-view" data-view="front" data-projection='{"frame":"gltf-y-up-metres","m":[[-10,0,0,60],[0,-10,0,120]],"box":[40,100,40,20]}'><path class="bp-hull" d="M40 100 L80 100 L80 120 Z"/></g>` +
+        `<g class="bp-view" data-view="side" data-projection='{"frame":"gltf-y-up-metres","m":[[0,0,-10,60],[0,-10,0,80]],"box":[10,70,100,20]}'>` +
         '<path class="bp-hull" fill-rule="evenodd" stroke-width="2" d="M10 70l100 0 0 20 -100 0z"/></g>'
       : '';
   return (

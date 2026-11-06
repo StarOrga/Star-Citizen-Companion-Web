@@ -42,6 +42,23 @@ export const HOLO_SWEEP = 0.2;
 /** Opacity of the crease lines. */
 export const HOLO_EDGE_OPACITY = 0.45;
 
+// Focus / x-ray tuning, in one place so the look can be A/B-compared by editing
+// a number. While something is focused the rest of the model must stay readable
+// (hovering a neighbour needs to see it): the hull is a translucent ghost, not
+// a near-invisible one.
+/** Hull opacity while a part is focused (1 = opaque). */
+export const HOLO_XRAY_HULL_OPACITY = 0.45;
+/** Opacity of the (unfocused) parts while a part is focused. */
+export const HOLO_XRAY_PART_OPACITY = 0.4;
+/** Fill colour factor of everything that is not the focus (1 = no dimming). */
+export const HOLO_DIM_FILL = 0.65;
+/** Crease-line colour factor of everything that is not the focus. */
+export const HOLO_DIM_EDGE_COLOR = 0.78;
+/** Crease-line alpha factor of everything that is not the focus. */
+export const HOLO_DIM_EDGE_ALPHA = 0.8;
+/** Duration of the opacity / dim change when the focus switches on or off, seconds. */
+export const HOLO_TWEEN_S = 0.14;
+
 export interface EdgeDetail {
   /** Crease angle (degrees). */
   readonly creaseDeg: number;
@@ -179,7 +196,7 @@ void main() {
   // Highlight: everything else dims, a glow cloud lights the hull around the
   // focus points, a focused component renders as a lit model in the accent.
   float fm = focusMask();
-  col *= mix(1.0, 0.3, uDim * (1.0 - max(fm, uGlow)));
+  col *= mix(1.0, ${HOLO_DIM_FILL.toFixed(3)}, uDim * (1.0 - max(fm, uGlow)));
   vec3 cloud = mix(uAccent, vec3(1.0), 0.3) * (0.55 + 0.35 * ndv + 0.9 * fres);
   col = mix(col, cloud, fm * 0.85 * (1.0 - uGlow));
   vec3 lit = uAccent * (0.22 + 0.78 * ndv * (0.4 + 0.6 * up));
@@ -202,9 +219,9 @@ varying vec3 vWorld;
 ${FOCUS_CHUNK}
 void main() {
   float fm = max(focusMask(), uGlow);
-  vec3 c = uColor * mix(1.0, 0.45, uDim * (1.0 - fm));
+  vec3 c = uColor * mix(1.0, ${HOLO_DIM_EDGE_COLOR.toFixed(3)}, uDim * (1.0 - fm));
   c = mix(c, mix(uAccent, vec3(1.0), 0.5), fm);
-  float a = uOpacity * mix(1.0, 0.55, uDim * (1.0 - fm));
+  float a = uOpacity * mix(1.0, ${HOLO_DIM_EDGE_ALPHA.toFixed(3)}, uDim * (1.0 - fm));
   gl_FragColor = vec4(c, mix(a, 1.0, fm));
 }
 `;
@@ -213,6 +230,55 @@ const ROLE_LEVEL: Record<HoloRole, number> = { hull: 1, part: 1.1, interior: 0.6
 
 /** Mark on a LineSegments child this module added. */
 const EDGE_FLAG = 'holoEdges';
+
+/** A value that eases to its target over {@link HOLO_TWEEN_S}; the start time is taken from the first tick (on-demand renders can be seconds apart). */
+class Eased {
+  value: number;
+  private from: number;
+  private to: number;
+  private start: number | null = null;
+  private running = false;
+
+  constructor(v: number) {
+    this.value = this.from = this.to = v;
+  }
+
+  get target(): number {
+    return this.to;
+  }
+
+  get active(): boolean {
+    return this.running;
+  }
+
+  set(to: number, animate: boolean): void {
+    if (to === this.to && (this.running || this.value === to)) return;
+    this.to = to;
+    if (!animate) {
+      this.value = this.from = to;
+      this.running = false;
+      this.start = null;
+      return;
+    }
+    this.from = this.value;
+    this.start = null;
+    this.running = true;
+  }
+
+  /** Advance to `seconds`; true while still moving. */
+  step(seconds: number): boolean {
+    if (!this.running) return false;
+    this.start ??= seconds;
+    const p = clamp01((seconds - this.start) / HOLO_TWEEN_S);
+    const e = p * p * (3 - 2 * p);
+    this.value = this.from + (this.to - this.from) * e;
+    if (p >= 1) {
+      this.value = this.to;
+      this.running = false;
+    }
+    return this.running;
+  }
+}
 
 const toColor = (c: Rgb) => new THREE.Color(c[0] / 255, c[1] / 255, c[2] / 255);
 
@@ -227,6 +293,10 @@ export class HoloLook {
   private readonly edgeCache = new Map<THREE.BufferGeometry, THREE.BufferGeometry | null>();
   /** Line detail of the fitted hull (hull + interior roles). */
   private hullDetail: EdgeDetail = FULL_DETAIL;
+  private readonly easeDim = new Eased(0);
+  private readonly easeOpacity = new Map<HoloRole, Eased>(ROLES.map((r) => [r, new Eased(1)]));
+  /** Focus / x-ray changes ease in (off: they apply instantly, as the legacy viewer expects). */
+  private readonly tweenFocus: boolean;
   // Uniform objects shared by every material, so one write reaches all roles.
   private readonly shared = {
     uDim: { value: 0 },
@@ -241,9 +311,12 @@ export class HoloLook {
   /**
    * @param base   body colour (the app accent, same for every ship)
    * @param accent manufacturer accent (rim, highlight)
+   * @param tweenFocus ease opacity / dim over {@link HOLO_TWEEN_S}; the caller must keep
+   *        rendering while {@link tweening} (never with reduced motion: instant there)
    */
-  constructor(base: Rgb, accent: Rgb, reducedMotion: boolean) {
+  constructor(base: Rgb, accent: Rgb, reducedMotion: boolean, tweenFocus = false) {
     this.animated = !reducedMotion;
+    this.tweenFocus = tweenFocus && !reducedMotion;
     this.shared.uScan.value = this.animated ? 1 : 0;
     this.tint = toColor(base);
     this.accentColor = toColor(accent);
@@ -402,9 +475,18 @@ export class HoloLook {
 
   /** Overall opacity of a role (x-ray); the fill turns transparent below 1. */
   setOpacity(role: HoloRole, opacity: number): void {
+    this.easeOpacity.get(role)!.set(opacity, this.tweenFocus);
+    this.applyOpacity(role);
+  }
+
+  private applyOpacity(role: HoloRole): void {
+    const ease = this.easeOpacity.get(role)!;
+    const opacity = ease.value;
     const fill = this.fill(role);
     fill.uniforms['uOpacity'].value = opacity;
-    const transparent = role === 'focus' || opacity < 1;
+    // Transparent from the first frame of a fade-out to the last of a fade-in,
+    // so the pass flip never lands mid-fade.
+    const transparent = role === 'focus' || opacity < 1 || ease.target < 1;
     if (fill.transparent !== transparent) {
       fill.transparent = transparent;
       fill.depthWrite = role === 'focus' || !transparent;
@@ -417,7 +499,15 @@ export class HoloLook {
 
   /** Dim everything that is not a focus (hull, other parts). */
   setDim(dim: boolean): void {
-    this.shared.uDim.value = dim ? 1 : 0;
+    this.easeDim.set(dim ? 1 : 0, this.tweenFocus);
+    this.shared.uDim.value = this.easeDim.value;
+  }
+
+  /** An opacity / dim change is still easing: keep rendering. */
+  get tweening(): boolean {
+    if (this.easeDim.active) return true;
+    for (const e of this.easeOpacity.values()) if (e.active) return true;
+    return false;
   }
 
   get dimmed(): boolean {
@@ -435,9 +525,19 @@ export class HoloLook {
     return this.shared.uFocusCount.value;
   }
 
-  /** Advance the scan (seconds). A no-op when the look is not animated. */
+  /** Advance the scan and any running focus tween (seconds). Scan: a no-op when the look is not animated. */
   tick(seconds: number): void {
     if (this.animated) this.shared.uTime.value = seconds;
+    if (!this.tweening) return;
+    if (this.easeDim.active) {
+      this.easeDim.step(seconds);
+      this.shared.uDim.value = this.easeDim.value;
+    }
+    for (const [role, e] of this.easeOpacity) {
+      if (!e.active) continue;
+      e.step(seconds);
+      this.applyOpacity(role);
+    }
   }
 
   dispose(): void {

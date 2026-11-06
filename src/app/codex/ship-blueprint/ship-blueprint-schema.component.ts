@@ -3,6 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
+  type BlueprintViewName,
   type SchemaMarker,
   type ShipBlueprint,
   blueprintView,
@@ -11,9 +12,9 @@ import {
 } from './ship-blueprint.model';
 
 /**
- * The static hardpoint schematic: the ship's blueprint seen from above (nose
- * to the right) with every hardpoint marked, the side elevation under it, and
- * the same hardpoints as a list.
+ * The static hardpoint schematic: one view of the ship's blueprint (from above,
+ * from the side or from the front) large on the sheet with every hardpoint
+ * marked, and the same hardpoints as a list.
  *
  * Mouse: hovering a marker names it (size, type) and lights it on the other
  * views of the stage; a click opens it in the inspector — the same component
@@ -27,10 +28,10 @@ import {
   imports: [TranslatePipe, ScTooltipDirective, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (top(); as t) {
+    @if (current(); as t) {
       <figure class="schema">
         <div class="sheet">
-          <svg class="plan" [attr.viewBox]="topBox()" preserveAspectRatio="xMidYMid meet" role="img"
+          <svg class="plan" [attr.viewBox]="box()" preserveAspectRatio="xMidYMid meet" role="img"
                [attr.aria-label]="'codex.shipBlueprint.schema.topAria' | translate: { count: markers().length }">
             <path class="hull" fill-rule="evenodd" [attr.d]="t.hull" />
             @if (t.minor) { <path class="minor" [attr.d]="t.minor" /> }
@@ -49,13 +50,6 @@ import {
               </g>
             }
           </svg>
-          @if (side(); as s) {
-            <svg class="elevation" [attr.viewBox]="sideBox()" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
-              <path class="hull" fill-rule="evenodd" [attr.d]="s.hull" />
-              @if (s.minor) { <path class="minor" [attr.d]="s.minor" /> }
-              @if (s.major) { <path class="major" [attr.d]="s.major" /> }
-            </svg>
-          }
         </div>
         <figcaption>
           <span class="ttl">{{ 'codex.shipBlueprint.schema.title' | translate }}</span>
@@ -94,16 +88,14 @@ import {
   styles: [`
     :host { display: flex; flex-direction: column; min-height: 0; color: var(--sc-accent); }
     .schema { margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
-    .sheet { flex: 1 1 0; min-height: 240px; display: grid; gap: 10px; grid-template-rows: minmax(0, 3fr) minmax(0, 1fr);
+    .sheet { flex: 1 1 0; min-height: 240px; display: grid; grid-template-rows: minmax(0, 1fr);
       padding: 14px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 22%, var(--sc-border));
       background:
         linear-gradient(color-mix(in srgb, var(--sc-accent) 6%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
         linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 6%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
         color-mix(in srgb, var(--sc-bg-0) 80%, transparent); }
-    /* Both views fit the sheet whatever its height: each fills its grid row, meet-scaled. */
+    /* The view fits the sheet whatever its height: it fills the grid row, meet-scaled. */
     svg { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; }
-    .sheet:not(:has(.elevation)) { grid-template-rows: minmax(0, 1fr); }
-    .elevation { opacity: 0.85; }
     path { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
     .hull { fill: color-mix(in srgb, currentColor 7%, transparent); stroke: currentColor; stroke-width: 1.5px; }
     .major { fill: none; stroke: currentColor; stroke-width: 0.9px; stroke-opacity: 0.55; }
@@ -148,9 +140,11 @@ import {
   `],
 })
 export class ShipBlueprintSchemaComponent {
-  /** The full-detail drawing (top + side). */
+  /** The full-detail drawing. */
   readonly blueprint = input.required<ShipBlueprint>();
-  /** Hardpoints already projected onto the top view (`placeSchemaMarkers`). */
+  /** The view on the sheet; a drawing without it falls back to its top view. */
+  readonly view = input<BlueprintViewName>('top');
+  /** Hardpoints already projected onto that view (`placeSchemaMarkers`). */
   readonly markers = input<readonly SchemaMarker[]>([]);
   readonly activePorts = input<readonly string[]>([]);
   readonly inspectedPort = input<string | null>(null);
@@ -159,19 +153,14 @@ export class ShipBlueprintSchemaComponent {
   /** Open this port's component info. */
   readonly inspect = output<string>();
 
-  readonly top = computed(() => blueprintView(this.blueprint(), 'top'));
-  readonly side = computed(() => blueprintView(this.blueprint(), 'side'));
-  readonly topBox = computed(() => {
-    const v = this.top();
+  readonly current = computed(() => blueprintView(this.blueprint(), this.view()) ?? blueprintView(this.blueprint(), 'top'));
+  readonly box = computed(() => {
+    const v = this.current();
     return v ? viewBoxOf(v, this.radius() * 3) : '0 0 1 1';
-  });
-  readonly sideBox = computed(() => {
-    const v = this.side();
-    return v ? viewBoxOf(v, Math.max(v.box.w, v.box.h) * 0.01) : '0 0 1 1';
   });
   /** Marker radius in drawing units: readable on a fighter and on a capital ship alike. */
   readonly radius = computed(() => {
-    const v = this.top();
+    const v = this.current();
     return v ? Math.max(v.box.w, v.box.h) * 0.012 : 1;
   });
   readonly groups = computed(() => {

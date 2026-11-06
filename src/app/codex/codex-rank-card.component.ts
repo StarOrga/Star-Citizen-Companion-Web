@@ -79,10 +79,13 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
   template: `
     <section class="rank-card" [class.sc-card]="!holo()">
       <div class="rank-head">
-        <h2>
-          <span class="glyph" aria-hidden="true">◈</span>
-          {{ 'codex.rank.header' | translate }}
-        </h2>
+        <!-- On the Holotable the rail's own head already says it. -->
+        @if (!holo()) {
+          <h2>
+            <span class="glyph" aria-hidden="true">◈</span>
+            {{ 'codex.rank.header' | translate }}
+          </h2>
+        }
         @if (result()) {
           <p class="cohort-line">
             {{ cohortLineKey() | translate: { n: result()!.cohortSize, k: sizeClass() } }}

@@ -21,7 +21,7 @@ describe('ship blueprint model', () => {
       expect(bp.lod).toBe('full');
       expect(bp.width).toBe(120);
       expect(bp.extentM).toEqual([10, 4, 2]);
-      expect(bp.views.map((v) => v.view)).toEqual(['top', 'side']);
+      expect(bp.views.map((v) => v.view)).toEqual(['top', 'front', 'side']);
       const top = blueprintView(bp, 'top')!;
       expect(top.box).toEqual({ x: 10, y: 10, w: 100, h: 40 });
       expect(top.hull).toBe('M10 10l100 0 0 40 -100 0z');

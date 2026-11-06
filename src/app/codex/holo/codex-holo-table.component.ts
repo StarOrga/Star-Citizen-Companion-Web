@@ -19,6 +19,7 @@ import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { ShipBlueprintSchemaComponent } from '../ship-blueprint/ship-blueprint-schema.component';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 import {
+  type BlueprintViewName,
   type ShipBlueprint,
   blueprintView,
   placeSchemaMarkers,
@@ -35,8 +36,11 @@ import { logWarn } from '../../core/log';
 import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
-import { HoloPhase, PinRing, StagePin } from './codex-holo-model';
+import { HoloPhase, PinRing, StagePin, spreadStackedPins } from './codex-holo-model';
 import { LeaderLayout, layoutLeaderLabels } from './codex-holo-leader';
+
+/** Closest two schema markers may sit, in % of the drawing's long side. */
+const SCHEMA_MARKER_GAP = 3.2;
 
 /** Last-resort hull glyph (top-down, nose up, 100×100 viewBox) shown only
  * when a ship has neither a traced silhouette nor any artwork. */
@@ -176,7 +180,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       } @else if (viewMode() === 'schema' && schemaBlueprint(); as bp) {
         <!-- The ship's own blueprint with every hardpoint on it; the box map
              below stays the view for hulls without a drawing. -->
-        <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp"
+        <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp" [view]="schemaView()"
           [markers]="schemaMarkers()" [activePorts]="activePorts()" [inspectedPort]="inspectedPort()"
           (hovered)="hovered.emit($event)" (inspect)="pinInspect.emit($event)" />
       } @else if (viewMode() === 'schema' && schemaBlueprintPending()) {
@@ -362,7 +366,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     /* The arrival's slow timing — the SAME animations, only later and longer. */
     :host(.ph-reveal) { --sil-dur: 900ms; --sil-delay: 80ms; --glow-delay: 620ms; --orbit-dur: 820ms; --orbit-delay: 160ms;
       --pin-dur: 340ms; --pin-delay: 380ms; --pin-step: 16ms; }
-    .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; z-index: 1; display: flex; align-items: center;
+    /* The table takes the height the screen has: the model grows with the window. */
+    .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; min-height: clamp(400px, calc(100dvh - 440px), 820px); z-index: 1; display: flex; align-items: center;
       justify-content: center; overflow: hidden; container-type: size; --pin-inset: 56px; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
     /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
@@ -658,6 +663,10 @@ export class CodexHoloTableComponent {
   /** The preloaded arrival image, only while the arrival shows it. */
   readonly heroSrc = input<string | null>(null);
   readonly viewMode = input<'holo' | '3d' | 'schema'>('holo');
+  /** Which drawing the schema shows. */
+  readonly schemaView = input<BlueprintViewName>('top');
+  /** Every pin, for the schema's labels and numbers; the canvas's own `pins` may be a subset. */
+  readonly labelPins = input<readonly StagePin[] | null>(null);
   readonly shipClassName = input('');
   readonly hardpointPortRefs = input<readonly HardpointPortRef[]>([]);
   readonly hardpointFrame = input<HardpointFrame | null>(null);
@@ -824,14 +833,27 @@ export class CodexHoloTableComponent {
    */
   readonly schemaMarkers = computed(() => {
     const bp = this.schemaBlueprint();
-    const top = bp ? blueprintView(bp, 'top') : null;
-    if (!top) return [];
+    const view = bp ? (blueprintView(bp, this.schemaView()) ?? blueprintView(bp, 'top')) : null;
+    if (!view) return [];
     const m = this.schemaManifest();
     const hardpoints = m ? schemaHardpointsFromManifest(m) : schemaHardpointsFromPayload(this.hardpointMarkers());
-    return placeSchemaMarkers(
-      top,
+    const markers = placeSchemaMarkers(
+      view,
       hardpoints,
-      this.pins().map((p) => ({ portName: p.portName, label: p.label, index: p.index })),
+      (this.labelPins() ?? this.pins()).map((p) => ({ portName: p.portName, label: p.label, index: p.index })),
     );
+    // Seen from the side or the front many hardpoints share one spot: fan them
+    // out so each stays a target of its own (the list keeps the exact order).
+    const long = Math.max(view.box.w, view.box.h);
+    const toPct = (v: number, origin: number) => ((v - origin) / long) * 100;
+    const fanned = spreadStackedPins(
+      markers.map((m) => ({ x: toPct(m.x, view.box.x), y: toPct(m.y, view.box.y) })),
+      SCHEMA_MARKER_GAP,
+    );
+    return markers.map((m, i) => ({
+      ...m,
+      x: view.box.x + (fanned[i].x / 100) * long,
+      y: view.box.y + (fanned[i].y / 100) * long,
+    }));
   });
 }

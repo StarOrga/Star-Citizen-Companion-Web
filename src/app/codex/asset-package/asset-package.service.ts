@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { environment } from '../../../environments/environment';
+import { logWarn } from '../../core/log';
 import { shipSkinsBase } from '../ship-skins.service';
 import {
   type AssetPackageKind,
@@ -140,6 +141,50 @@ export class AssetPackageService {
       this.buffers.delete(url);
       this.bufferedBytes -= e.bytes;
     }
+  }
+
+  private readonly preloads = new Map<string, Promise<boolean>>();
+  private scenePreload: Promise<unknown> | null = null;
+
+  /**
+   * Warm the cache for a ship's package: row, manifest, root GLB and every
+   * part GLB the viewer will ask for (same URLs, so `glb()` is a cache hit).
+   * Resolves true when all of it is cached, false when the ship has no package
+   * or anything failed (logged). Never throws; callers share one promise.
+   */
+  preloadShip(shipId: string): Promise<boolean> {
+    const key = shipId.toLowerCase();
+    let hit = this.preloads.get(key);
+    if (!hit) {
+      hit = this.doPreloadShip(shipId).catch((err: unknown) => {
+        logWarn('asset-package', 'preload failed', { shipId, err });
+        this.preloads.delete(key);
+        return false;
+      });
+      this.preloads.set(key, hit);
+    }
+    return hit;
+  }
+
+  private async doPreloadShip(shipId: string): Promise<boolean> {
+    const row = await this.findRow(['ship'], shipId);
+    if (!row) return false;
+    const m = await this.manifest(row.manifestSha256);
+    const shas = [...new Set(m.placements.filter((p) => p.partSha256 && p.position).map((p) => p.partSha256!))];
+    await Promise.all([
+      m.root ? this.glb(this.urls.root(m.kind, m.root.sha256)) : Promise.resolve(),
+      ...shas.map((sha) => this.glb(this.urls.part(sha))),
+    ]);
+    return true;
+  }
+
+  /** Fetch the lazy three.js scene chunk ahead of the viewer (idempotent; failures only retry later). */
+  preloadScene(): Promise<unknown> {
+    this.scenePreload ??= import('./asset-package-scene').catch((err: unknown) => {
+      this.scenePreload = null;
+      logWarn('asset-package', 'scene chunk preload failed', { err });
+    });
+    return this.scenePreload;
   }
 
   private async fetchOk(url: string): Promise<Response> {
