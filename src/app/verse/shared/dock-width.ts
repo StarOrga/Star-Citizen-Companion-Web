@@ -8,10 +8,18 @@
  * subheader width. `:host(.sc-track-dock.sc-track-page)` out-ranks the global
  * `.sc-frame > .sc-track-page` (three classes against two), whatever the
  * stylesheet order. Centring stays with the frame (`justify-self: center`).
+ *
+ * Bottom clearance: these are cinematic routes, so the shell footer is the stage
+ * footer (`.sf-stage`, footer.component.ts) and pulls itself up by
+ * `--sc-footer-h` over the end of the page. A list subpage scrolls on below the
+ * first view, so its last row (the news stream's "N more" button) sat under the
+ * footer's centred area links (admin feedback #316). The page therefore ends
+ * with the footer's height plus a gap, and the footer lands below the last row.
  */
 export const DOCK_WIDTH_STYLE = `
   :host(.sc-track-dock.sc-track-page) {
     width: var(--sc-dock-w, min(100% - 2 * var(--sc-page-gutter), var(--sc-page-max)));
+    padding-block-end: calc(var(--sc-footer-h) + var(--sc-space-5));
   }
   /* Phones: the subheader is the thumb bar, not a capsule under the beta chip - the chip lane
      (a 72px margin per side) would squeeze the page to ~230px. Normal page gutter instead. */

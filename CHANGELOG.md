@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.14] - 2026-11-07
+
+### Fixed
+- Verse News, Patches and Gallery: the end of the list keeps clear of the footer, so the news stream's "show N more" button no longer sits under the footer's area links.
+
 ## [0.225.13] - 2026-11-07
 
 ### Changed
