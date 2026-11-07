@@ -37,3 +37,14 @@ The next concept or implementation for wishlist, Nachschub, Inventar, Hangar, Sa
 - The header icon: a blend of bookmark, cart, recent, gift, "will ich / brauch ich" — the user asked for creative visual proposals.
 - Visual design of Planen package slots, Jetzt with its package, Bestand tabs incl. Sammlung and "Kürzlich aufgebraucht", the cart popup, the two-node path control with quantity.
 - Ruf data source.
+
+## Round 3 additions (design, favourite „Holo-Tafel“)
+- No word „Paket“: the thing is a „Nachschub“ (plural „Nachschübe“), held in Nachschub-Slots. No word „Besitz“: Inventar (items), Hangar (ships, vehicles), Sammlung (blueprints, news, gallery). Names are never marked as AI.
+- Header icon without count. Wunschliste section = last 3 added (type-filtered, else overall); context section = last 3 added to Inventar/Hangar/Sammlung of the type, same row look, deep link „Gesamtes Inventar“.
+- Cart: grouped, whole group selectable, larger silhouettes, red trash to remove, plus a „Passt dazu“ row with exactly 3 deterministic suggestions — mechanism and scoring in `nachschub-recommendations-research.md`.
+- Planen: delete a Nachschub (hover) or empty it with the choice „zurück auf die Wunschliste“ (checkbox, default on) or drop entirely; free slots show „+“; Einsätze are the primary structure; material in Einsatz planning is not grouped by blueprint, only labelled. „Neuer Nachschub“ is a 3-step flow (Auswählen → Zusammenfassung → Einsätze, toggle/split per item, crafting as the last Einsatz).
+- SCC-App live ticker bottom-left on every HQ page except Start (green connected / grey off, last relevant event), only once the app was ever connected.
+- Bestand: „+“ tile first for manual entries; „Kürzlich aufgebraucht“ (48 h) may be summarised. Sammlung tab keeps Blaupausen and Ruf; news and gallery show the Sammlung pattern inside their own subpages instead.
+- Codex detail page is redesigned like the ship holotable subpage (silhouette ↔ 3D toggle), keeping every info block, with a Codex and an HQ variant; other ship subpages stay untouched. Inventar node clickable to add, then shows its stepper; Inventar link jumps to the item in HQ.
+- Every page must fit the viewport without scrolling (1920×1080 and 1440×900, stress data).
+- Open: can the SCC-App deliver Ruf (reputation)? If yes, ship it there (user request, round 3).
