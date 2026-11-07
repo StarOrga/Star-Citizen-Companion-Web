@@ -1,9 +1,10 @@
+import { BetaService } from '../../core/beta.service';
 import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HqOwnershipService } from '../hq-ownership.service';
-import { HqLink, hqHangar, hqSet, personalShipLink } from '../hq-routes';
+import { HqLink, hqHangar, hqSet, ownVariantLink } from '../hq-routes';
 import { HqPatchHit, HqStartFeedService } from '../start/hq-start-feed.service';
 import type { HqFleetPatch } from './hq-db.types';
 
@@ -52,6 +53,7 @@ export class HqPatchService {
   private readonly auth = inject(AuthService);
   private readonly feed = inject(HqStartFeedService);
   private readonly ownership = inject(HqOwnershipService);
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
 
   readonly patch = signal<HqFleetPatch | null>(null);
   readonly error = signal<string | null>(null);
@@ -95,12 +97,12 @@ export class HqPatchService {
     }
   }
 
-  /** The personal Codex view of one of the reader's variants, or null when the index does not know it. */
+  /** The HQ page (shell beta) or personal Codex view of one of the reader's variants, or null when the index does not know it. */
   private variantLink(configId: string): HqLink | null {
     const cfg = this.ownership.configById(configId);
     if (!cfg) return null;
     for (const e of this.ownership.index().values()) {
-      if (e.ship?.id === cfg.hangarShipId) return personalShipLink(e.ship.shipClassName, cfg.id);
+      if (e.ship?.id === cfg.hangarShipId) return ownVariantLink(e.ship, cfg.id, this.shellBeta());
     }
     return null;
   }

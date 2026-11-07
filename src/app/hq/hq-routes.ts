@@ -5,8 +5,8 @@
  *
  * Query params owned here — none collides with the codex ones (`view`,
  * `config`, `shared`, `loadout`, `kind`):
- *   `v`    — on /codex/ship/:className: the personal variant (hangar config id) to show.
- *   `mine` — on /codex/:kind/:className: open the entity in "my copy" mode (flag, empty value).
+ *   `v`    — on /codex/ship/:className (shell beta off) and on /hq/hangar/:id: the personal variant (hangar config id) to show.
+ *   `mine` — on /codex/:kind/:className (shell beta off): open the entity in "my copy" mode (flag, empty value).
  *   `einsatz` — on /hq#planen: open Planen on the route of this saved Einsatz.
  *   `list` — on /hq#planen: open the wish / Nachschub popup on that tab (`wish` | `nachschub`).
  */
@@ -80,20 +80,41 @@ export interface HqLink {
 }
 
 /**
- * The page of one of the reader's own ships: the personal Codex view of its active (else first)
- * variant, or the ship's Codex page when it has none. `/hq/hangar/:id` only redirects here.
+ * The HQ page of one of the reader's own ships (shell beta): the Codex ship view in place under
+ * HQ ▸ Hangar, showing variant `configId` (`?v=`) or the active one when omitted.
  */
-export function ownShipLink(
-  ship: { shipClassName: string },
-  configs: readonly { id: string; isActive: boolean }[],
-): HqLink {
-  const cfg = configs.find((c) => c.isActive) ?? configs[0];
-  return cfg ? personalShipLink(ship.shipClassName, cfg.id) : personalItemLink('ship', ship.shipClassName);
+export function hqShipLink(hangarShipId: string, configId?: string | null): HqLink {
+  return { commands: [hqHangar, hangarShipId], queryParams: configId ? { [HQ_VARIANT_PARAM]: configId } : {} };
 }
 
 /**
- * Entry of the `/hq/hangar/:id` redirect (old bookmarks): for callers that hold nothing but a hangar
- * ship id. It lands on the ship's personal Codex view. Callers with the ship itself use {@link ownShipLink}.
+ * The page of one of the reader's own ships. Without the shell beta: the personal Codex view of its
+ * active (else first) variant, or the ship's Codex page when it has none. With it (`hq`): the ship's
+ * HQ page, which `/hq/hangar/:id` renders in place.
+ */
+export function ownShipLink(
+  ship: { id: string; shipClassName: string },
+  configs: readonly { id: string; isActive: boolean }[],
+  hq = false,
+): HqLink {
+  const cfg = configs.find((c) => c.isActive) ?? configs[0];
+  if (hq) return hqShipLink(ship.id, cfg?.id);
+  return cfg ? personalShipLink(ship.shipClassName, cfg.id) : personalItemLink('ship', ship.shipClassName);
+}
+
+/** One variant of one of the reader's ships: its HQ page under the shell beta, else the personal Codex view. */
+export function ownVariantLink(
+  ship: { id: string; shipClassName: string },
+  configId: string,
+  hq = false,
+): HqLink {
+  return hq ? hqShipLink(ship.id, configId) : personalShipLink(ship.shipClassName, configId);
+}
+
+/**
+ * Entry of the `/hq/hangar/:id` page for callers that hold nothing but a hangar ship id. Without the
+ * shell beta that route redirects to the ship's personal Codex view (old bookmarks), with it the route
+ * renders the ship. Callers with the ship itself use {@link ownShipLink}.
  */
 export const hangarRedirectLink = (id: string): string[] => [hqHangar, id];
 
@@ -105,7 +126,7 @@ export function personalShipLink(className: string, configId: string): HqLink {
   return { commands: ['/codex/ship', className], queryParams: { [HQ_VARIANT_PARAM]: configId } };
 }
 
-/** The codex page of an entity in "mine" mode. */
-export function personalItemLink(kind: string, className: string): HqLink {
-  return { commands: ['/codex', kind, className], queryParams: { [HQ_MINE_PARAM]: '' } };
+/** The codex page of an entity in "mine" mode; under the shell beta (`plain`) Codex has no such mode, so the plain page. */
+export function personalItemLink(kind: string, className: string, plain = false): HqLink {
+  return { commands: ['/codex', kind, className], queryParams: plain ? {} : { [HQ_MINE_PARAM]: '' } };
 }

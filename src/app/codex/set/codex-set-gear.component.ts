@@ -1,3 +1,4 @@
+import { BetaService } from '../../core/beta.service';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -318,6 +319,7 @@ export interface GearSlotRow {
 })
 export class CodexSetGearComponent {
   private readonly t = inject(TranslateService);
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
 
   /** UI language for piece names — re-derived on every language switch (see constructor). */
   private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
@@ -342,9 +344,9 @@ export class CodexSetGearComponent {
       .subscribe((e) => this.dataLang.set(toLang(e.lang)));
   }
 
-  /** The equipped piece's codex page in "mine" mode. */
+  /** The equipped piece's codex page in "mine" mode (the plain page under the shell beta). */
   detailLink(kind: string, className: string): HqLink {
-    return personalItemLink(kind, className);
+    return personalItemLink(kind, className, this.shellBeta());
   }
 
   readonly rows = computed<GearSlotRow[]>(() => {

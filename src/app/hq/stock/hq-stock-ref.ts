@@ -4,7 +4,7 @@ import type { PolySearchHit } from '../../codex/codex-poly-search';
 import { normalizeSearch } from '../../codex/codex-search';
 import { hitTitle } from '../../codex/search/codex-search-model';
 import { polyHitLink } from '../../codex/codex-poly-search';
-import { personalItemLink } from '../hq-routes';
+import { hqShipLink, personalItemLink } from '../hq-routes';
 
 /**
  * What an entry of "Lager per Ort" points at. The table has only a nullable `class_name`
@@ -34,7 +34,7 @@ export interface StockTarget {
 }
 
 /**
- * Where an entry leads: a ship the reader owns → their hangar ship, else the Codex page;
+ * Where an entry leads: a ship the reader owns → their hangar ship (`hq`: its HQ page), else the Codex page;
  * any other known kind → its Codex page; a bare class name (kind unknown) → the Codex index
  * search for the entry's name; nothing known → null (plain text).
  */
@@ -42,13 +42,16 @@ export function stockTarget(
   name: string,
   classRef: string | null | undefined,
   ownedShips: readonly { id: string; shipClassName: string }[],
+  hq = false,
 ): StockTarget | null {
   const ref = parseStockRef(classRef);
   if (!ref) return null;
   const owned = ownedShips.find((s) => s.shipClassName === ref.className);
   if (ref.kind === 'ship' || (!ref.kind && owned)) {
     return owned
-      ? { commands: personalItemLink('ship', owned.shipClassName).commands, queryParams: personalItemLink('ship', owned.shipClassName).queryParams }
+      ? hq
+        ? hqShipLink(owned.id)
+        : { commands: personalItemLink('ship', owned.shipClassName).commands, queryParams: personalItemLink('ship', owned.shipClassName).queryParams }
       : { commands: polyHitLink({ kind: 'ship', classNameSlug: ref.className }), queryParams: null };
   }
   if (ref.kind) return { commands: polyHitLink({ kind: ref.kind, classNameSlug: ref.className }), queryParams: null };

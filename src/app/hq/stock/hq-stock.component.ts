@@ -1,3 +1,4 @@
+import { BetaService } from '../../core/beta.service';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -10,7 +11,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqStatsService } from '../data/hq-stats.service';
 import { HqOwnershipService } from '../hq-ownership.service';
-import { HqLink, hqHangar, hqLocker, personalItemLink, personalShipLink } from '../hq-routes';
+import { HqLink, hqHangar, hqLocker, ownShipLink } from '../hq-routes';
 import { flagshipFirst } from '../../hangar/flagship-first';
 import type { HangarShip } from '../../hangar/hangar.types';
 import { HqLiveService } from '../now/hq-live.service';
@@ -252,6 +253,7 @@ export class HqStockComponent implements OnInit {
   private readonly stats = inject(HqStatsService);
   private readonly live = inject(HqLiveService);
   private readonly ownership = inject(HqOwnershipService);
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
 
   readonly hangarLink = hqHangar;
   readonly lockerLink = hqLocker;
@@ -284,11 +286,9 @@ export class HqStockComponent implements OnInit {
     return lastDestroyedAt(this.live.events(), shipClassName, Date.now());
   }
 
-  /** A ship's own page is the personal Codex view of its active variant. */
+  /** A ship's own page: its HQ page under the shell beta, else the personal Codex view of its active variant. */
   shipLink(s: HangarShip): HqLink {
-    const cfgs = this.ownership.configsForShip(s.id);
-    const cfg = cfgs.find((c) => c.isActive) ?? cfgs[0];
-    return cfg ? personalShipLink(s.shipClassName, cfg.id) : personalItemLink('ship', s.shipClassName);
+    return ownShipLink(s, this.ownership.configsForShip(s.id), this.shellBeta());
   }
   readonly shipLoadouts = computed(() => this.ownership.configs().length);
   /** Blueprints received in the stats range loaded elsewhere; null until the Statistik data exists. */

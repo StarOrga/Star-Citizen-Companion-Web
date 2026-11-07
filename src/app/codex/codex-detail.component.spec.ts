@@ -1392,3 +1392,101 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
     }));
   });
 });
+
+describe('CodexDetailComponent — personal mode lives in HQ under the shell beta', () => {
+  const OWN_SHIP = { id: 'sh1', shipClassName: 'CNOU_Nomad', customName: null, status: 'owned', pinnedRank: null, selectedSkinId: null, notes: null, createdAt: '', updatedAt: '' };
+
+  afterEach(() => localStorage.removeItem('sc.beta'));
+
+  function prepare(opts: {
+    shell: boolean;
+    query?: Record<string, string>;
+    host?: boolean;
+    configs?: { id: string; name: string; active: boolean }[];
+  }): { fixture: ComponentFixture<CodexDetailComponent>; nav: jasmine.Spy } {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: opts.shell }));
+    configureSetup('ship');
+    const query = convertToParamMap(opts.query ?? {});
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: {
+        paramMap: of(convertToParamMap(opts.host ? { id: 'sh1' } : { kind: 'ship', className: 'cnou_nomad' })),
+        queryParamMap: of(query),
+        snapshot: { paramMap: convertToParamMap({}), queryParamMap: query },
+      },
+    });
+    const own = { ship: OWN_SHIP, configs: opts.configs ?? [], equippedOn: [], inSets: [] };
+    const ownership = TestBed.inject(HqOwnershipService);
+    spyOn(ownership, 'lookup').and.returnValue(own as never);
+    spyOn(ownership, 'shipFor').and.returnValue(OWN_SHIP as never);
+    spyOn(ownership, 'ensureLoaded').and.resolveTo();
+    spyOn(ownership, 'configById').and.callFake(((id: string) =>
+      opts.configs?.some((c) => c.id === id)
+        ? { id, name: 'V', hangarShipId: 'sh1', isActive: true, loadout: [] }
+        : null) as never);
+    (TestBed.inject(HangarService).ships as unknown as ReturnType<typeof signal<unknown[]>>).set([OWN_SHIP]);
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    void TestBed.compileComponents();
+    const fixture = TestBed.createComponent(CodexDetailComponent);
+    if (opts.host) {
+      fixture.componentRef.setInput('hostClassName', 'cnou_nomad');
+      fixture.componentRef.setInput('hostShipId', 'sh1');
+    }
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+    return { fixture, nav };
+  }
+
+  it('Codex page: an old ?mine on an owned ship redirects to the HQ ship page', fakeAsync(() => {
+    const { nav } = prepare({ shell: true, query: { mine: '' } });
+    tick();
+    expect(nav).toHaveBeenCalledWith(['/hq/hangar', 'sh1'], { queryParams: {}, replaceUrl: true });
+  }));
+
+  it('Codex page: an old ?v= on an own variant redirects to the HQ ship page with that variant', fakeAsync(() => {
+    const { nav } = prepare({ shell: true, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }] });
+    tick();
+    expect(nav).toHaveBeenCalledWith(['/hq/hangar', 'sh1'], { queryParams: { v: 'c1' }, replaceUrl: true });
+  }));
+
+  it('Codex page: a variant that is not one of the reader own is dropped, with the note', fakeAsync(() => {
+    const { fixture, nav } = prepare({ shell: true, query: { v: 'someone-elses' } });
+    tick();
+    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ replaceUrl: true, queryParams: jasmine.objectContaining({ v: null }) }));
+    expect(fixture.componentInstance.foreignVariant()).toBeTrue();
+    expect(fixture.componentInstance.personalMode()).toBeFalse();
+  }));
+
+  it('Codex page: no personal mode, switch or own-ship actions, even for an owned ship', fakeAsync(() => {
+    const { fixture } = prepare({ shell: true, configs: [{ id: 'c1', name: 'V', active: true }] });
+    const cmp = fixture.componentInstance;
+    cmp.mineFlag.set(true);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(cmp.showModeSwitch()).toBeFalse();
+    expect(el.querySelector('sc-codex-mode-switch')).toBeNull();
+    expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+  }));
+
+  it('without the shell beta the Codex keeps its personal ?v= mode', fakeAsync(() => {
+    const { nav } = prepare({ shell: false, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }] });
+    tick();
+    expect(nav).not.toHaveBeenCalledWith(['/hq/hangar', 'sh1'], jasmine.anything());
+  }));
+
+  describe('hosted at /hq/hangar/:id', () => {
+    it('shows the personal view of the variant with own-ship actions, the variant switch and HQ crumbs', fakeAsync(() => {
+      const { fixture } = prepare({
+        shell: true, host: true, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }],
+      });
+      const cmp = fixture.componentInstance;
+      const el: HTMLElement = fixture.nativeElement;
+      expect(cmp.hqHosted()).toBeTrue();
+      expect(cmp.kind()).toBe('ship');
+      expect(cmp.personalMode()).withContext('?v= on the HQ URL opens the variant').toBeTrue();
+      expect(el.querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      expect(cmp.showModeSwitch()).toBeTrue();
+      expect(cmp.crumbs().map((c) => c.link)).toEqual(['/hq', '/hq/hangar']);
+    }));
+  });
+});

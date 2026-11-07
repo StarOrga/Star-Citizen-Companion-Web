@@ -9,6 +9,12 @@ describe('hq-stock-ref', () => {
     expect(parseStockRef(null)).toBeNull();
   });
 
+  it('shell beta: an owned ship leads to its HQ page', () => {
+    const own = [{ id: 'sh9', shipClassName: 'AEGS_Idris_P' }];
+    expect(stockTarget('Idris', 'ship:AEGS_Idris_P', own, true)).toEqual({ commands: ['/hq/hangar', 'sh9'], queryParams: {} });
+    expect(stockTarget('Idris', 'ship:AEGS_Idris_P', [], true)?.commands).toEqual(['/codex', 'ship', 'AEGS_Idris_P']);
+  });
+
   it('leads a ship to the reader\'s own copy, else the Codex page', () => {
     expect(stockTarget('Idris', 'ship:AEGS_Idris_P', owned)?.commands).toEqual(['/codex', 'ship', 'AEGS_Idris_P']);
     expect(stockTarget('Idris', 'ship:AEGS_Idris_P', [])?.commands).toEqual(['/codex', 'ship', 'AEGS_Idris_P']);
