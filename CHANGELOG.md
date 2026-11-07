@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.5] - 2026-11-07
+
+### Fixed
+- Feedback routine: the headless run is pinned to Opus with medium effort and a 5-minute prompt cache; complex topics get devops agents with higher effort.
+
 ## [0.225.4] - 2026-11-07
 
 ### Changed

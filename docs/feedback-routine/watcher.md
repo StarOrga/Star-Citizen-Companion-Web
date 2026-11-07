@@ -42,7 +42,13 @@ the instructions of the next run through a merge (concept 2026-09-13, E2a).
 
 `supervise` takes the run lock, keeps the PC awake, fast-forwards the primary
 checkout, refreshes the runner checkout `.claude/worktrees/scc-runner` (detached
-at origin/main) and starts `claude -p` there with a session id it knows. Not in
+at origin/main) and starts `claude -p` there with a session id it knows, pinned to
+`--model opus --effort medium` (env `SCC_ROUTINE_MODEL` / `SCC_ROUTINE_EFFORT`
+override it for an experiment) and with `FORCE_PROMPT_CACHING_5M=1`: the run keeps
+the prompt cache but on the 5-minute TTL, whose writes cost 1.25x instead of the
+1-hour TTL's 2x. Never `DISABLE_PROMPT_CACHING` — every turn would re-pay the
+whole context at full price. The model is pinned because the CLI default moved
+under the run (Opus until 2026-11-06, Sonnet after). Not in
 the primary: the main-branch guard reads the shell's folder, so a session on
 `main` has every git write refused, also a worker's `cd <worktree> && git commit`. A watchdog checks once
 a minute: 170 awake minutes at most, and 45 minutes without a transcript write
