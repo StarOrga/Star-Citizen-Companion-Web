@@ -436,5 +436,12 @@
         "attachments": []
       }
     ]
+  },
+  {
+    "iteration": 2,
+    "action": "final-report",
+    "implemented": true,
+    "head": "3a34185a",
+    "qa": "6043/6043 green; C26 fixed for ?mine; Rust not compiled"
   }
 ]
