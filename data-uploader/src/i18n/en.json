@@ -393,6 +393,17 @@
     "shipProgress": "Ship {{current}} / {{total}}",
     "hintBuild": "First build assembles each ship one by one — can take a few minutes per ship.",
     "hintUpload": "Transferring the 3D model files — this depends on their size.",
+    "stepPackages": {
+      "fps_weapon": "Uploading weapon packages",
+      "item": "Uploading item packages",
+      "armor": "Uploading armor packages"
+    },
+    "packageKind": {
+      "fps_weapon": "Weapons",
+      "item": "Items",
+      "armor": "Armor"
+    },
+    "hintPackages": "The ships are done — weapon, item and armor packages follow.",
     "stepUploadDone": "3D models uploaded",
     "noModels": "{{n}} ship(s) without a buildable 3D model",
     "stepUploadDonePartial": "3D models uploaded — {{n}} failed",
