@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -12,7 +13,8 @@ import { HqOwnershipService } from '../hq-ownership.service';
 import { HqLink, hqHangar, hqLocker, personalItemLink, personalShipLink } from '../hq-routes';
 import { flagshipFirst } from '../../hangar/flagship-first';
 import type { HangarShip } from '../../hangar/hangar.types';
-import { placeLabel } from '../now/hq-live.util';
+import { HqLiveService } from '../now/hq-live.service';
+import { lastDestroyedAt, placeLabel } from '../now/hq-live.util';
 import { StockCategory, buildOverview } from './hq-stock-model';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 import { HqStockSharedComponent } from './hq-stock-shared.component';
@@ -30,7 +32,7 @@ const STALE_SHOWN = 3;
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
+  imports: [TranslatePipe, DatePipe, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -139,6 +141,7 @@ const STALE_SHOWN = 3;
                 <li>
                   <a [routerLink]="shipLink(s).commands" [queryParams]="shipLink(s).queryParams">{{ s.customName || shipTitle(s.shipClassName) }}</a>
                   @if (hangar.isFlagship(s.shipClassName)) { <span class="flag-mark">{{ 'hangar.flagship.mark' | translate }}</span> }
+                  @if (destroyedAt(s.shipClassName); as at) { <span class="lost-mark">{{ 'hq.stock.destroyed' | translate: { at: (at | date: 'short') } }}</span> }
                 </li>
               }
             </ul>
@@ -203,6 +206,7 @@ const STALE_SHOWN = 3;
       a { color: var(--sc-accent); }
       a:focus-visible, button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .line { margin: 0; color: var(--sc-fg-0); }
+      .lost-mark { margin-inline-start: var(--sc-space-2, 8px); color: var(--sc-warning); font-size: max(0.75rem, var(--sc-fs-floor)); }
       .flag-mark { margin-inline-start: var(--sc-space-2, 8px); color: var(--sc-warning); font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; }
       .favs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sc-space-1, 4px) var(--sc-space-3, 12px); }
       .favs.col { flex-direction: column; }
@@ -246,6 +250,7 @@ export class HqStockComponent implements OnInit {
   protected readonly shipTitle = humanizeClassName;
   readonly inv = inject(HqInventoryService);
   private readonly stats = inject(HqStatsService);
+  private readonly live = inject(HqLiveService);
   private readonly ownership = inject(HqOwnershipService);
 
   readonly hangarLink = hqHangar;
@@ -273,6 +278,11 @@ export class HqStockComponent implements OnInit {
     const list = flag && !pinned.includes(flag) ? [flag, ...pinned] : pinned;
     return flagshipFirst(list, (c) => this.hangar.isFlagship(c));
   });
+
+  /** When this ship class was last reported destroyed. Informational: a claim event names no ship, so nothing clears it. */
+  destroyedAt(shipClassName: string): string | null {
+    return lastDestroyedAt(this.live.events(), shipClassName, Date.now());
+  }
 
   /** A ship's own page is the personal Codex view of its active variant. */
   shipLink(s: HangarShip): HqLink {

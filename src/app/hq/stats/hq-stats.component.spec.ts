@@ -38,6 +38,34 @@ describe('HqStatsComponent', () => {
     expect(el.querySelector('.overlay sc-hq-app-launch')).toBeNull();
   });
 
+  describe('contract completion tile', () => {
+    async function tile(data: Record<string, unknown>): Promise<HTMLElement> {
+      const fixture = mount(jasmine.createSpy('rpc').and.resolveTo({ data, error: null }));
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const tiles: HTMLElement[] = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button.tile'));
+      return tiles.find((t) => t.textContent?.includes('hq.stats.tile.contracts.name')) as HTMLElement;
+    }
+
+    it('shows the rate and stays neutral while completed contracts outweigh the rest', async () => {
+      const t = await tile({ missions: { total: 3, series: [] }, contracts: { failed: 1, abandoned: 0, series: [] } });
+      expect(t.querySelector('.t-value')?.textContent).toBe('75 %');
+      expect(t.classList.contains('warn')).toBeFalse();
+    });
+
+    it('warns when failed and abandoned contracts exceed the completed ones', async () => {
+      const t = await tile({ missions: { total: 1, series: [] }, contracts: { failed: 1, abandoned: 1, series: [] } });
+      expect(t.querySelector('.t-value')?.textContent).toBe('33 %');
+      expect(t.classList.contains('warn')).toBeTrue();
+    });
+
+    it('shows no rate without a finished contract', async () => {
+      const t = await tile({ auec: { earned: 10, spent: 0, net: 10, series: [] } });
+      expect(t.querySelector('.t-value')?.textContent).toBe('–');
+      expect(t.classList.contains('zero')).toBeTrue();
+    });
+  });
+
   it('shows marked, inert preview tiles under an app overlay for empty data - no wall of zeros, no error', async () => {
     const fixture = mount(jasmine.createSpy('rpc').and.resolveTo({ data: {}, error: null }));
     await fixture.whenStable();
@@ -47,8 +75,8 @@ describe('HqStatsComponent', () => {
     expect(ghost).toBeTruthy();
     expect(ghost.hasAttribute('inert')).toBeTrue();
     expect(ghost.getAttribute('aria-hidden')).toBe('true');
-    expect(ghost.querySelectorAll('.tile').length).toBe(6);
-    expect(ghost.querySelectorAll('.stamp').length).toBe(6);
+    expect(ghost.querySelectorAll('.tile').length).toBe(7);
+    expect(ghost.querySelectorAll('.stamp').length).toBe(7);
     expect(el.querySelectorAll('button.tile').length).toBe(0);
     expect(el.querySelector('.overlay sc-hq-app-launch')).toBeTruthy();
     expect(el.querySelector('.overlay a[href="/apps"]')).toBeNull();

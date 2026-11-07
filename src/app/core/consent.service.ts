@@ -12,7 +12,8 @@ import { Injectable, computed, signal } from '@angular/core';
  *    Not configurable — without these, login, language selection and a
  *    deliberately chosen keyboard mapping or UI version break.
  *  - `preferences`: convenience state (news channel filter, saved articles,
- *    favorited upcoming ships and their seen-baseline, admin UI defaults).
+ *    favorited upcoming ships and their seen-baseline, admin UI defaults, the
+ *    recently opened pages of the search).
  *    Opt-in: nothing in this category is written until the user allows it;
  *    declining purges what exists. Composer drafts used to live here and no
  *    longer do — unsent text is the user's own content, so it is stored on the
@@ -60,11 +61,27 @@ const PREFERENCE_KEYS = [
   'sc.adminFeedback.workflowScope',
   'sc.adminFeedback.workflowKind',
   'sc.userFeedback.draft',
+  // What the reader opened: search ranking and "Zuletzt geöffnet" (search-signals, search-recent-rows).
+  'sc.search.recentOpened',
+  'sc.search.recentRows',
 ] as const;
 
 // PostHog namespaces its localStorage entries `ph_<projectKey>_*`, so the exact
 // key depends on the project key. Purge by prefix instead of an exact list.
 const STATISTICS_KEY_PREFIX = 'ph_';
+
+/**
+ * localStorage for a `preferences` write, null without that consent. For code that must not inject
+ * a service; a pure list helper handed null keeps its list for this session only.
+ */
+export function preferenceStorage(): Storage | null {
+  if (readState()?.preferences !== true) return null;
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class ConsentService {

@@ -192,6 +192,7 @@ export interface HqStats {
   bucket: 'day' | 'week';
   auec: { earned: number; spent: number; net: number; series: HqStatsPoint[] };
   missions: { total: number; series: HqStatsPoint[] };
+  contracts: { failed: number; abandoned: number; series: HqStatsPoint[] };
   deaths_claims: {
     deaths: number;
     claims: number;

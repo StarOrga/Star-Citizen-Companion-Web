@@ -71,6 +71,7 @@ export function normalizeStats(raw: Partial<HqStats> | null | undefined, range: 
       series: fill(raw?.auec?.series),
     },
     missions: { total: n(raw?.missions?.total), series: fill(raw?.missions?.series) },
+    contracts: { failed: n(raw?.contracts?.failed), abandoned: n(raw?.contracts?.abandoned), series: fill(raw?.contracts?.series) },
     deaths_claims: {
       deaths: n(raw?.deaths_claims?.deaths),
       claims: n(raw?.deaths_claims?.claims),

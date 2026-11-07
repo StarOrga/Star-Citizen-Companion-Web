@@ -38,7 +38,7 @@ describe('HqStockPopupComponent: capture and links', () => {
         { provide: HqInventoryService, useValue: inv },
         { provide: ItemPathService, useValue: path },
         { provide: SignInAskService, useValue: fakeSignIn() },
-        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }) } },
+        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }), events: signal([]) } },
         { provide: CodexService, useValue: { searchAll: () => Promise.resolve({ hits: opts.hits ?? [], totals: {} }) } },
       ],
     });

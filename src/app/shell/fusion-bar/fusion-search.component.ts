@@ -49,6 +49,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { FusionSearchChipComponent } from './fusion-search-chip.component';
 import { FusionSearchHintComponent, SearchHint } from './fusion-search-hint.component';
 import { SEARCH_ACTION_ICONS, SEARCH_KIND_ICONS, SearchIconKind } from './search-icons';
+import { preferenceStorage } from '../../core/consent.service';
 import { RECENT_ROWS_SHOWN, StoredRow, pushRecentRow, readRecentRows } from './search-recent-rows';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { RowActionResult, SearchRowActionsService } from './search-row-actions.service';
@@ -1445,7 +1446,7 @@ export class FusionSearchComponent {
         return;
       }
       this.engine.noteOpened(r);
-      if (r.type === 'hit' || r.type === 'own') this.recentRows.set(pushRecentRow(storage(), this.recentRows(), r));
+      if (r.type === 'hit' || r.type === 'own') this.recentRows.set(pushRecentRow(preferenceStorage(), this.recentRows(), r));
     } else if (opt.type === 'more') this.engine.remember();
   }
 

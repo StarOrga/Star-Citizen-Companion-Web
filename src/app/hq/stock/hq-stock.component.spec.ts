@@ -56,7 +56,7 @@ describe('HqStockComponent', () => {
         { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([]), isFlagship: (c: string) => c === 'MISC_Freelancer' } },
         { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: () => [] } },
         { provide: HqInventoryService, useValue: inv },
-        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }) } },
+        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }), events: signal([]) } },
       ],
     });
     const fixture = TestBed.createComponent(HqStockComponent);

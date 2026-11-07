@@ -58,6 +58,57 @@ export function isGameLive(
   return !sessionEndedSince(eventsNewestFirst, at) && !disconnectedInSession(state);
 }
 
+export type LiveZone = 'restricted' | 'commDown' | 'armistice' | 'monitored' | 'unmonitored';
+
+/**
+ * The zones the current session's events put the player in, most important first; null = unknown.
+ * Per zone family the newest event decides. Events from before the latest session start never count,
+ * so an old session's zone cannot show as the current one.
+ */
+export function readZones(eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type'>[]): LiveZone[] | null {
+  let armistice: boolean | null = null;
+  let restricted: boolean | null = null;
+  let monitored: LiveZone | null = null;
+  for (const { type } of eventsNewestFirst) {
+    if (type === 'session.joined' || type === 'session.quit' || type === 'disconnect') break;
+    if (armistice === null && type === 'armistice.entered') armistice = true;
+    else if (armistice === null && type === 'armistice.exited') armistice = false;
+    else if (restricted === null && type === 'restricted.entered') restricted = true;
+    else if (restricted === null && type === 'restricted.exited') restricted = false;
+    else if (monitored === null && type === 'monitored.down') monitored = 'commDown';
+    else if (monitored === null && (type === 'monitored.restored' || type === 'monitored.entered')) monitored = 'monitored';
+    else if (monitored === null && type === 'monitored.exited') monitored = 'unmonitored';
+  }
+  const zones: LiveZone[] = [];
+  if (restricted) zones.push('restricted');
+  if (monitored === 'commDown') zones.push('commDown');
+  if (armistice) zones.push('armistice');
+  if (monitored && monitored !== 'commDown') zones.push(monitored);
+  return zones.length ? zones : null;
+}
+
+/** How long a destroyed ship stays marked: there is no event that says the ship is back. */
+export const SHIP_DESTROYED_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** A vehicle id from the game log may end in an entity number: `ANVL_Hornet_F7A_Mk2_123456`. */
+const shipClassKey = (name: string): string => name.trim().replace(/_\d+$/, '').toLowerCase();
+
+/** Time of the newest recent `vehicle.destroyed` for this ship class, or null. */
+export function lastDestroyedAt(
+  eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type' | 'data' | 'at'>[],
+  shipClassName: string,
+  now: number,
+): string | null {
+  const key = shipClassKey(shipClassName);
+  for (const e of eventsNewestFirst) {
+    if (e.type !== 'vehicle.destroyed') continue;
+    const ship = str(e.data?.['ship']);
+    if (!ship || shipClassKey(ship) !== key) continue;
+    return now - Date.parse(e.at) <= SHIP_DESTROYED_MAX_AGE_MS ? e.at : null;
+  }
+  return null;
+}
+
 /**
  * Readable name of a game location id: `Stanton4_NewBabbage` -> `New Babbage`. The body prefix goes
  * (the system is shown on its own), underscores and camelCase become spaces. Plain names stay as they are.

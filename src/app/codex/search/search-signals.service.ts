@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { preferenceStorage } from '../../core/consent.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { logWarn } from '../../core/log';
 import {
@@ -66,7 +67,7 @@ export class SearchSignalsService {
   /** A catalog entity was opened from the search: remember it locally, count it anonymously. */
   recordOpen(kind: string, className: string): void {
     if (!kind || !className.trim()) return;
-    this.recentOpened.set(pushRecentOpened(storage(), this.recentOpened(), kind, className));
+    this.recentOpened.set(pushRecentOpened(preferenceStorage(), this.recentOpened(), kind, className));
     void (async () => {
       try {
         await this.sb.client.rpc('search_log_open', { p_kind: kind, p_class: className });
