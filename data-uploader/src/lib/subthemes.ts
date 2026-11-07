@@ -168,7 +168,10 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 2: ground-vehicle hulls and armor/clothing asset packages.
     // 3: blueprint drawings gain the `front` view (sc-blueprint/2). The cached
     // hull GLBs are reused; only the drawings are redrawn and re-committed.
-    revision: 3,
+    // 4: FPS weapons whose .cdf model is a mesh (none_*, P8-AR, Gallant and
+    //    their variants) get packages. Cached parts are reused; only the 27
+    //    missing bodies are built.
+    revision: 4,
     phases: [],
     sources: [
       'data-uploader/python/sc_extract/assets3d/',

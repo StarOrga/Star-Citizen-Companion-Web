@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.4",
+  "current": "0.225.5",
   "releases": [
+    {
+      "version": "0.225.5",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Feedback routine: the headless run is pinned to Opus with medium effort and a 5-minute prompt cache; complex topics get devops agents with higher effort."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.4",
       "date": "2026-11-07",

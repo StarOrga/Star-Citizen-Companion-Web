@@ -213,6 +213,7 @@ class _PackageBuilder:
         classes = list(dict.fromkeys(classes))
         log("info", f"{kind}: {len(classes)} package(s) to build")
         rows: list[dict] = []
+        skipped: list[str] = []
         for i, cls in enumerate(classes):
             progress(f"{kind}-packages", current=i + 1, total=len(classes))
             try:
@@ -222,7 +223,7 @@ class _PackageBuilder:
                 log("warn", f"{cls}: {kind} package failed: {type(exc).__name__}: {exc}")
                 continue
             if res is None:
-                log("warn", f"{cls}: {kind} package skipped — no record or no geometry")
+                skipped.append(cls)
                 continue
             m = res.manifest
             pl = m["placements"]
@@ -243,12 +244,24 @@ class _PackageBuilder:
             log("info", f"{cls}: {kind} package root {row['rootBytes'] / 1e3:.0f} kB, "
                         f"{row['parts']} part(s), {row['withPart']}/{len(pl)} placements "
                         f"with geometry")
+        if skipped:
+            log("warn", skipped_summary(kind, skipped))
         return rows
 
     def summary(self) -> dict:
         return package_summary([r["parts"] for r in self.rows if "parts" in r],
                                sum(1 for r in self.rows if "ship_id" in r), len(self.rows),
                                self.store.dir, self.store.hits, self.store.misses)
+
+
+def skipped_summary(kind: str, skipped: list, shown: int = 8) -> str:
+    """One log line for every class a standalone run skipped. Paint/tint
+    variants share their base's geometry and fail with it, so one line per
+    class buried the log under copies of the same cause."""
+    names = ", ".join(skipped[:shown])
+    more = f" (+{len(skipped) - shown} more)" if len(skipped) > shown else ""
+    return (f"{kind}: {len(skipped)} package(s) skipped — no record or no geometry: "
+            f"{names}{more}")
 
 
 def _geo_key(path: str) -> str:
