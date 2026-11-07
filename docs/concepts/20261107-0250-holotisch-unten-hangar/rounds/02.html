@@ -53,8 +53,9 @@
           data-issue-body="Found while removing hqShip() (concept 20261107-0250-holotisch-unten-hangar, B3). hq-patch.service.ts builds the own-ship link from set_id, which for ship sets is a variant (config) id, not a hangar ship id. The /hq/hangar/:id redirect therefore never finds the ship and falls through to the hangar list. Pre-existing, unchanged by this concept. Fix: resolve the hangar ship (class name + variant) for the patch line and link with ownShipLink(), add a spec."
           data-oq-origin="found"
           data-route-default="now"
-          data-route-reason="im Repo">
-        <span class="oq-label">Patch-Link landet in Liste</span>
+          data-route-reason="im Repo"
+          data-routed>
+        <span class="oq-label">Patch-Link landet in Liste</span> <span class="oq-done">umgesetzt — der Patch-Hinweis öffnet die Variante des eigenen Schiffs</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Ein Patch-Eintrag zu einem eigenen Schiff öffnet die Hangar-Liste statt des Schiffs. Das war schon vorher so.</dd>
           <dt>{{final.fund_where}}</dt><dd>HQ, Patch-Änderungen an eigenen Schiffen</dd>
@@ -71,7 +72,7 @@
       <li><code>codex-holo-stage.component.ts</code>, <code>codex-own-ship-actions.component.ts</code>, <code>codex-prefs.service.ts</code></li>
       <li>Tests: 6043 grün, 1 übersprungen; typecheck, lint, build grün; Rust nicht kompiliert</li>
       <li>Unabhängige QA fand 2 rote Specs und das fehlende Panel bei <code>?mine</code> — beides behoben, im Browser bestätigt</li>
-      <li>Plugin-Issue Sprechblasen: <a href="https://github.com/JerryT2T/dotclaude/issues/1080">JerryT2T/dotclaude#1080</a></li>
+      <li>Abschluss: Patch-Link inline gebaut (eine Datei, <code>hq-patch.service.ts</code>), Spec ergänzt · Plugin-Issue Sprechblasen: <a href="https://github.com/JerryT2T/dotclaude/issues/1080">JerryT2T/dotclaude#1080</a></li>
     </ul>
   </details>
   </div>
