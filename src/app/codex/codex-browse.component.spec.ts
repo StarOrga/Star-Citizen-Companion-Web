@@ -478,6 +478,63 @@ describe('CodexBrowseComponent', () => {
     expect(armor.cmp.armorSlot()).toBe('helmet');
   });
 
+  it('#315: an open group folds in and out by its disclosure button without leaving the area', async () => {
+    const { fixture, cmp, listByKind } = await setup({ query: { kind: 'manufacturer' } });
+    const el = fixture.nativeElement as HTMLElement;
+    const row = () => el.querySelector('.side a.node[aria-current="page"]')!.closest('.node-row')!;
+    const tog = () => row().querySelector('button.node-tog') as HTMLButtonElement;
+    const makerLinks = () => Array.from(el.querySelectorAll('.side a.node')).filter((a) => (a.getAttribute('href') ?? '').includes('mfr='));
+    expect(tog().getAttribute('aria-expanded')).toBe('true');
+    expect(tog().getAttribute('aria-label')).toBeTruthy();
+    expect(makerLinks().length).toBe(1);
+    const calls = listByKind.calls.count();
+
+    tog().click();
+    fixture.detectChanges();
+    expect(tog().getAttribute('aria-expanded')).toBe('false');
+    expect(makerLinks().length).toBe(0);
+    expect(cmp.category()).toBe('manufacturer');
+    expect(listByKind.calls.count()).toBe(calls);
+
+    tog().click();
+    fixture.detectChanges();
+    expect(tog().getAttribute('aria-expanded')).toBe('true');
+    expect(makerLinks().length).toBe(1);
+  });
+
+  it('#315: a plain click on the current group folds it; a modified click is left to the browser', async () => {
+    const { fixture, cmp } = await setup({ query: { kind: 'manufacturer' } });
+    const el = fixture.nativeElement as HTMLElement;
+    const link = () => el.querySelector('.side a.node[aria-current="page"]') as HTMLAnchorElement;
+    const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    link().dispatchEvent(plain);
+    fixture.detectChanges();
+    expect(plain.defaultPrevented).toBeTrue();
+    expect(cmp.category()).toBe('manufacturer');
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+    const node = cmp.areaTree().find((n) => n.id === 'manufacturer')!;
+    const ctrl = new MouseEvent('click', { cancelable: true, button: 0, ctrlKey: true });
+    cmp.onAreaClick(ctrl, node);
+    expect(ctrl.defaultPrevented).toBeFalse();
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+  });
+
+  it('#315: a closed group opens by hand, and a new area starts from its own open path again', async () => {
+    const { fixture, cmp } = await setup({ query: { kind: 'manufacturer' } });
+    const ship = () => cmp.areaTree().find((n) => n.id === 'ship')!;
+    expect(ship().open).toBeFalse();
+    cmp.toggleNode(ship());
+    cmp.toggleNode(cmp.areaTree().find((n) => n.id === 'manufacturer')!);
+    expect(ship().open).toBeTrue();
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+    cmp.applyArea({ category: 'component' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(ship().open).toBeFalse();
+    expect(cmp.areaTree().find((n) => n.id === 'component')!.open).toBeTrue();
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+  });
+
   it('renders the tree entries as real links', async () => {
     const { fixture } = await setup({ query: { kind: 'ship' } });
     const links = Array.from(fixture.nativeElement.querySelectorAll('.side a.node')) as HTMLAnchorElement[];
