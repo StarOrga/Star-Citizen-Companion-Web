@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.221.0] - 2026-11-07
+
+### Added
+- HQ Jetzt shows your current zone while you play: restricted area, comm array down, armistice or monitored space. A zone from an earlier session never shows as current.
+- HQ Statistik has a completion rate tile with failed and abandoned contracts.
+- HQ Bestand marks a ship as last destroyed for 7 days after the SCC app reports its loss.
+
+### Changed
+- Recently opened pages in the search are stored only with the preferences consent, and declining removes them. Without a decision "Zuletzt geöffnet" stays empty.
+
 ## [0.220.1] - 2026-11-07
 
 ### Fixed
