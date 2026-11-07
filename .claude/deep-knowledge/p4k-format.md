@@ -291,14 +291,28 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
   segments without capping at capacity; Gladius demands 23.6 of 16) plus the
   per-group ceil of weapon units; the wiki's component EM already carries the
   armor factor. IR is +69 … +134 %: the wiki scales cooler IR with the coolant
-  in use, and the 4.10 extract has no consumer `coolant.consume` — an
-  extractor field, not something to fake.
+  in use. The game data cannot drive that: the extractor already exports
+  `<state>.coolant.consume`, and on LIVE 4.10.2 it is an explicit 0.0 on every
+  ship shield (66/67), quantum drive (57/58), radar (66/68) and power plant
+  (84/85); coolers only `coolant.generate` (16–65). The sole non-zero
+  consumers are the VNCL Mauler set (power plant 29, shield 6, quantum 11) and
+  a few outpost items. The wiki's coolant-in-use is its own derivation, so
+  the model keeps cooler IR at its allocated segments (follow-up probed
+  2026-11-07; no extractor change needed).
 - Carrack (wiki API `vehicles/carrack`, which is 4.10.2, not 4.9): every item
   and its em matches our loadout walk. The whole ~12,300 gap is the reactor
   term — wiki `em_per_segment` 760 = 22,800 / `power.generation_segments` 30
   times `used_segments_shields` 43.2 = 32,832, ours 22,800 × 41.4 / 46 =
   20,518. Both sources give each Reliance generation 23 (46 total); where the
-  wiki's ship-level 30 comes from is not in the per-item data. The wiki also
+  wiki's ship-level 30 comes from is not in the game data either (probed on
+  `ANVL_Carrack`, Gladius, Cutlass Black, Avenger Titan): the only ship-level
+  power definition is `SItemPortContainerComponentParams.resourceNetworkPowerPools`
+  (WeaponGun FixedPowerPool `poolSize` 8 on the Carrack, 4 on the Gladius;
+  Shield `maxItemCount` 2; the other DynamicPowerPools unbounded) — it caps
+  consumer pools, it states no generation. `EMPoolParams` is `overrideEmValue`
+  0; no 30 outside unrelated fields. The wiki's own record also holds
+  `cooling.generation_segments` 104 next to `power.generation_segments` 30, so
+  the 30 is a wiki-side value; the model keeps the summed item generation. The wiki also
   counts weapon units as segments (8 × 0.9 = 7.2, ours 8 × 0.9 / (4/3)).
 - Radars: no metre detection range; the one distance is
   `aimAssist.distanceMaxAssignment` (exported as `aimAssistRangeM`, shown as
