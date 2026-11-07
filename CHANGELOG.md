@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.12] - 2026-11-07
+
+### Added
+- Codex blueprint list: signed-in readers get an "Only mine" filter (`?own=1`) and an "I have this blueprint" toggle per row, a second way besides the SCC App to mark a blueprint as owned. Both use the HQ inventory blueprint shelf the item path already writes.
+
 ## [0.225.11] - 2026-11-07
 
 ### Fixed

@@ -2587,6 +2587,11 @@
       "tier": "Tier {{tier}}"
     },
     "recipesMissing": "No recipe ingredients were extracted for this build yet — blueprints are listed, but without their material list.",
+    "owned": {
+      "filter": "Only mine",
+      "mark": "I have this blueprint: {{name}}",
+      "unmark": "Mine – remove the mark: {{name}}"
+    },
     "role": {
       "primary": "Primary",
       "secondary": "Secondary",

@@ -62,6 +62,11 @@ import {
 } from './codex-weapon-taxonomy';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
+import { AuthService } from '../auth/auth.service';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { HqInventoryService } from '../hq/data/hq-inventory.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { ARMOR_CATEGORY, ARMOR_SLOT_IDS, AreaNode, AreaTarget, CodexCategory, UPCOMING_CATEGORY, armorAttachTypeOf, inferWeaponSuperGroup } from './codex-browse-params';
@@ -170,7 +175,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-browse',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
+  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
@@ -246,6 +251,10 @@ export function blueprintCategoriesForGroup(
                     <button type="button" class="fresh-toggle" [class.on]="patchFresh()" [attr.aria-pressed]="patchFresh()"
                             (click)="setPatchFresh(!patchFresh())">{{ 'codex.browse.freshFilter' | translate }}</button>
                   }
+                  @if (ownedAvailable()) {
+                    <button type="button" class="fresh-toggle" [class.on]="ownedOnly()" [attr.aria-pressed]="ownedOnly()"
+                            (click)="setOwnedOnly(!ownedOnly())">{{ 'blueprint.owned.filter' | translate }}</button>
+                  }
                   <div class="sort">
                     <sc-select [options]="sortSelect()" [value]="sortNew() ? 'new' : 'name'"
                                [ariaLabel]="'codex.browse.sort.label' | translate"
@@ -259,6 +268,9 @@ export function blueprintCategoriesForGroup(
               }
               @if (blueprintRecipesMissing()) {
                 <p class="partial-note">{{ 'blueprint.recipesMissing' | translate }}</p>
+              }
+              @if (ownError(); as e) {
+                <p class="partial-note own-error" role="alert">{{ e | translate }}</p>
               }
 
               @if (listLoading() && listLength() === 0) {
@@ -331,6 +343,18 @@ export function blueprintCategoriesForGroup(
                         </span>
                       </a>
                       <span class="acts">
+                        @if (ownedAvailable()) {
+                          @let owned = isOwned(r.classNameSlug);
+                          @let ownLabel = ((owned ? 'blueprint.owned.unmark' : 'blueprint.owned.mark') | translate: { name: cardName(r) });
+                          <button type="button" scAction tier="tertiary" class="own" [class.on]="owned"
+                                  [attr.aria-pressed]="owned" [busy]="ownBusy().has(r.classNameSlug)"
+                                  [attr.aria-label]="ownLabel" [scTooltip]="ownLabel" scTooltipTier="label"
+                                  (click)="toggleOwned(r.classNameSlug, cardName(r))">
+                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              @for (d of ownedIcon; track $index) { <path [attr.d]="d" /> }
+                            </svg>
+                          </button>
+                        }
                         <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)" />
                         @if (buyable()) {
                           <button type="button" class="act shop" [class.pinned]="buyOpen() === r.classNameSlug"
@@ -608,6 +632,8 @@ export function blueprintCategoriesForGroup(
     .fresh-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .fresh-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .fresh-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    .own.on { color: var(--sc-accent); }
+    .own-error { color: var(--sc-danger); }
     .sort { min-width: 180px; margin-left: auto; }
     .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .rows { list-style: none; margin: 0; padding: 0; }
@@ -754,6 +780,24 @@ export class CodexBrowseComponent implements OnInit {
   /** `?fresh=1`: only what is new or updated in the last patch. */
   readonly patchFresh = signal(false);
   readonly freshAvailable = computed(() => NEW_SORT_KINDS.includes(this.kind()));
+  private readonly auth = inject(AuthService);
+  private readonly itemPath = inject(ItemPathService);
+  /** `?own=1` (blueprints, signed in): only the blueprints the reader has. */
+  readonly ownedOnly = signal(false);
+  /** The owned filter and the "Ich habe diese" toggle: blueprint list, signed-in readers only. */
+  readonly ownedAvailable = computed(() => this.kind() === 'blueprint' && !!this.auth.user());
+  private readonly ownedBlueprints = this.itemPath.ownedBlueprints;
+  /** While the owned filter is on, the list follows every mark (a row leaves when it is unmarked). */
+  private readonly ownedKey = computed(() => (this.ownedOnly() && this.ownedAvailable() ? 'own:' + [...this.ownedBlueprints()].sort().join('|') : ''));
+  /** Case-blind lookup for the row toggle (the item path compares class names the same way). */
+  private readonly ownedLower = computed(() => new Set([...this.ownedBlueprints()].map((c) => c.toLowerCase())));
+  isOwned(className: string): boolean {
+    return this.ownedLower().has(className.toLowerCase());
+  }
+  readonly ownBusy = signal<ReadonlySet<string>>(new Set());
+  /** i18n key of the last failed "Ich habe diese" write. */
+  readonly ownError = signal<string | null>(null);
+  readonly ownedIcon = PATH_ICONS.owned;
   private readonly newOrder = signal<{ kind: CodexKind; order: ReadonlyMap<string, number> } | null>(null);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -1000,6 +1044,28 @@ export class CodexBrowseComponent implements OnInit {
 
   setPatchFresh(on: boolean): void {
     this.patchFresh.set(on);
+  }
+
+  setOwnedOnly(on: boolean): void {
+    this.ownedOnly.set(on);
+  }
+
+  /** "Ich habe diese": a second way besides the SCC App to mark a blueprint as owned (#303). */
+  async toggleOwned(className: string, name: string): Promise<void> {
+    if (this.ownBusy().has(className)) return;
+    const owned = this.isOwned(className);
+    this.ownError.set(null);
+    this.ownBusy.update((s) => new Set(s).add(className));
+    try {
+      const res = await this.itemPath.setBlueprintOwned(className, name, !owned);
+      if (!res.ok) this.ownError.set(res.key);
+    } finally {
+      this.ownBusy.update((s) => {
+        const next = new Set(s);
+        next.delete(className);
+        return next;
+      });
+    }
   }
 
   onVariantsToggle(ev: Event): void {
@@ -1561,6 +1627,7 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.kind() === 'weapon' && this.ammoOf()) add('ammo', 'codex.filters.ammo', this.ammoOf(), () => this.ammoOf.set(''));
     if (this.patchFresh() && this.freshAvailable()) add('fresh', 'codex.browse.freshFilter', null, () => this.setPatchFresh(false));
+    if (this.ownedOnly() && this.ownedAvailable()) add('own', 'blueprint.owned.filter', null, () => this.setOwnedOnly(false));
     if (this.size()) add('size', 'codex.filters.size', 'S' + this.size(), () => this.setSize(''));
     if (this.grade()) add('grade', 'codex.filters.grade', this.grade(), () => this.setGrade(''));
     if (this.componentKind()) add('componentKind', 'codex.filters.componentKind', this.componentKind(), () => this.setComponentKind(''));
@@ -1738,6 +1805,7 @@ export class CodexBrowseComponent implements OnInit {
       this.fitsItem();
       this.ammoOf();
       this.patchFresh();
+      this.ownedKey();
       this.size();
       this.grade();
       this.componentKind();
@@ -1764,6 +1832,7 @@ export class CodexBrowseComponent implements OnInit {
         fits: this.kind() === 'ship' ? this.fitsItem() || null : null,
         ammo: this.kind() === 'weapon' ? this.ammoOf() || null : null,
         fresh: this.patchFresh() && this.freshAvailable() ? '1' : null,
+        own: this.ownedOnly() && this.kind() === 'blueprint' ? '1' : null,
         size: this.size() || null,
         grade: this.grade() || null,
         ck: this.componentKind() || null,
@@ -2000,6 +2069,7 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (q.get('v') === '1') this.includeVariants.set(true);
     this.patchFresh.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('fresh') === '1');
+    this.ownedOnly.set(this.kind() === 'blueprint' && q.get('own') === '1');
     this.sortNew.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('sort') === 'new');
     if (this.sortNew()) this.loadNewOrder();
   }
@@ -2338,7 +2408,7 @@ export class CodexBrowseComponent implements OnInit {
    * A failed lookup throws into the list's error state (never an unfiltered list).
    */
   private restriction(kind: CodexKind): Promise<string[]> | undefined {
-    const lookup = this.lookupRestriction(kind);
+    const lookup = this.ownedRestriction(kind) ?? this.lookupRestriction(kind);
     if (!this.patchFresh() || !NEW_SORT_KINDS.includes(kind)) return lookup;
     const diff = this.injector.get(CodexBuildDiffService);
     const fresh = Promise.all([diff.addedClassNamesMemo(kind), diff.changedClassNamesMemo(kind)]).then(([a, c]) => [...new Set([...a, ...c])]);
@@ -2347,6 +2417,20 @@ export class CodexBrowseComponent implements OnInit {
       const keep = new Set(f);
       return names.filter((n) => keep.has(n));
     });
+  }
+
+  /** `?own=1`: the reader's blueprints; a failed Inventar read throws into the error state. */
+  private ownedRestriction(kind: CodexKind): Promise<string[]> | undefined {
+    if (kind !== 'blueprint' || !this.ownedOnly() || !this.auth.user()) return undefined;
+    return (async () => {
+      const inventory = this.injector.get(HqInventoryService);
+      if (!inventory.loaded()) {
+        await inventory.load();
+        const err = inventory.error();
+        if (err) throw new Error(err);
+      }
+      return [...this.ownedBlueprints()];
+    })();
   }
 
   private lookupRestriction(kind: CodexKind): Promise<string[]> | undefined {

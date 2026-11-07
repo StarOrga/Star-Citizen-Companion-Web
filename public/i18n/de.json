@@ -2587,6 +2587,11 @@
       "tier": "Tier {{tier}}"
     },
     "recipesMissing": "Für diesen Build wurden noch keine Rezeptzutaten extrahiert — Baupläne sind gelistet, aber ohne Materialliste.",
+    "owned": {
+      "filter": "Nur meine",
+      "mark": "Ich habe diesen Bauplan: {{name}}",
+      "unmark": "Meiner – Markierung entfernen: {{name}}"
+    },
     "role": {
       "primary": "Primär",
       "secondary": "Sekundär",
