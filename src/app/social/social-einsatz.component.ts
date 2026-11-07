@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { HqEinsatzService } from '../hq/data/hq-einsatz.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
@@ -12,13 +13,13 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
  * A shared Einsatz as the shared goal (#938). No goal entity of its own: the
  * owner picks one of their Einsatz and a friend, the friend gets the existing
  * share, and the crew view (`get_einsatz_crew`) shows slots and answers.
- * The owner sees every answer by name; a friend sees the three counts, the
- * slots and the names of friends on them (a server-side privacy rule).
+ * Every invitee sees every answer and slot by name (round 2 decision: names
+ * for all); the server hides only people blocked with the viewer.
  */
 @Component({
   selector: 'sc-social-einsatz',
   standalone: true,
-  imports: [TranslatePipe, ScSelectComponent, ScActionDirective],
+  imports: [NgTemplateOutlet, TranslatePipe, ScSelectComponent, ScActionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sc-card section" id="social-einsatz">
@@ -31,6 +32,21 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
           <button type="button" scAction tier="secondary" (click)="reload()">{{ 'errors.retry' | translate }}</button>
         </div>
       }
+
+      <ng-template #rsvpList let-crew>
+        @if (crew.rsvps && crew.rsvps.length > 0) {
+          <ul class="rsvps">
+            @for (r of crew.rsvps; track r.user_id) {
+              <li>
+                <span class="who">{{ r.display_name ?? r.username }}</span>
+                <span [class]="'ans-' + r.answer">{{ 'social.rsvp.' + r.answer | translate }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty-inline">{{ 'social.einsatz.noAnswers' | translate }}</p>
+        }
+      </ng-template>
 
       <h3>{{ 'social.einsatz.mine' | translate }}</h3>
       @if (einsatzOptions().length === 0) {
@@ -69,18 +85,7 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
           </div>
           <div class="crew" role="group" [attr.aria-label]="'social.einsatz.crew' | translate">
             <p class="counts">{{ 'social.einsatz.counts' | translate: crew.counts }}</p>
-            @if (crew.rsvps && crew.rsvps.length > 0) {
-              <ul class="rsvps">
-                @for (r of crew.rsvps; track r.user_id) {
-                  <li>
-                    <span class="who">{{ r.display_name ?? r.username }}</span>
-                    <span [class]="'ans-' + r.answer">{{ 'social.rsvp.' + r.answer | translate }}</span>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="empty-inline">{{ 'social.einsatz.noAnswers' | translate }}</p>
-            }
+            <ng-container *ngTemplateOutlet="rsvpList; context: { $implicit: crew }" />
             <ul class="slots">
               @for (s of crew.slots; track s.id) {
                 <li [class.open]="!s.taken">
@@ -103,6 +108,7 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
               <strong>{{ e.title }}</strong>
               <span class="by">{{ 'social.einsatz.from' | translate: { name: e.owner_name ?? e.owner_handle ?? '' } }}</span>
               <p class="counts">{{ 'social.einsatz.counts' | translate: e.crew.counts }}</p>
+              <ng-container *ngTemplateOutlet="rsvpList; context: { $implicit: e.crew }" />
               <ul class="slots">
                 @for (s of e.crew.slots; track s.id) {
                   <li [class.open]="!s.taken">

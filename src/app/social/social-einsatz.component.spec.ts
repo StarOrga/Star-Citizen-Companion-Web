@@ -80,6 +80,19 @@ describe('SocialEinsatzComponent', () => {
     expect(slots).toEqual(['PilotAna', 'Gunnersocial.einsatz.open']);
   });
 
+  it('an invitee sees who answered what by name, with the same list the owner sees', async () => {
+    const shared = {
+      einsatz_id: 'e9', title: 'Raid', activity: null, status: 'planned', planned_at: null, start_location: null,
+      updated_at: '', owner_id: 'o', owner_name: 'Owner', owner_handle: null, shared_at: '', steps: [],
+      crew: crew(),
+    };
+    setup({ list_friend_compare: compare, list_einsaetze_shared_with_me: () => [shared] }, []);
+    const { el } = await mount();
+    const rows = Array.from(el.querySelectorAll('.shared-row .rsvps li')).map((li) => li.textContent?.replace(/\s+/g, ' ').trim());
+    expect(rows).toEqual(['Anasocial.rsvp.yes', 'bo_testsocial.rsvp.no']);
+    expect(el.querySelector('.shared-row .slots')?.textContent).toContain('Ana');
+  });
+
   it('a friend sees counts and open slots of a shared Einsatz and can answer', async () => {
     const shared = {
       einsatz_id: 'e9', title: 'Raid', activity: null, status: 'planned', planned_at: null, start_location: null,

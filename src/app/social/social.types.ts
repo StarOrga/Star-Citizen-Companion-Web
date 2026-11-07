@@ -177,7 +177,7 @@ export interface EinsatzCrew {
   counts: Record<RsvpAnswer, number>;
   my_answer: RsvpAnswer | null;
   my_slot: string | null;
-  /** The list of who answered what. Null for everybody but the owner. */
+  /** Who answered what, by name, for every invitee (blocked pairs excluded server-side). */
   rsvps: CrewRsvp[] | null;
 }
 
