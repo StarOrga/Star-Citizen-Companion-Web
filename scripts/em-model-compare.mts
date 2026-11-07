@@ -16,7 +16,7 @@ if (!root) {
   const REF: Record<string, [string, number, number, number, number]> = {
     AEGS_Gladius: ['4.10.2', 8711, 7263, 22078, 40520],
     AEGS_Avenger_Titan: ['4.9.0', 8714, 6835, 24227, 37449],
-    ANVL_Carrack: ['4.9.0', 12828, 10732, 48822, 88462],
+    ANVL_Carrack: ['4.10.2', 12828, 10732, 48822, 88462],
     DRAK_Cutlass_Black: ['4.9.0', 6503, 6503, 18127, 39497],
   };
   const load = (cls: string): any => {

@@ -252,8 +252,10 @@ describe('cut honesty (R9)', () => {
       cutGroups: ['weapons'],
       previous: before,
     });
-    // the repeaters have EM 0 / IR 0 and no coolant — nothing moves.
-    for (const key of ['em', 'ir', 'coolant', 'crossSection'] as const) {
+    // the repeaters have EM 0 / IR 0 and no coolant — only the reactor's EM
+    // moves, because it follows the consumed load (#967 EM model).
+    expect(after.facts.find((f) => f.key === 'em')!.delta).toBeLessThan(0);
+    for (const key of ['ir', 'coolant', 'crossSection'] as const) {
       expect(after.facts.find((f) => f.key === key)!.delta)
         .withContext(key)
         .toBeNull();

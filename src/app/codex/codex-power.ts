@@ -67,8 +67,8 @@
 //     Only the numerator moves when a group is cut; the denominator is fixed by
 //     the installed coolers (B-C3).
 // F5  Signatures
-//        EM = Σ_powered items ( em.nominal × count )
-//        IR = Σ_powered items ( ir.nominal × count )
+//        EM/IR = the EM model at the current allocation (codex-em-model.ts,
+//        #967): item = nominal × assigned / full segments, reactor follows load
 //     "powered" = the item's group is neither cut nor unavailable in the active
 //     flight mode. The cross-section (CS) is hull geometry and NEVER changes
 //     with the allocation (B-C3).
@@ -81,7 +81,7 @@
 // game rule, not a number — but we never invent per-mode magnitudes.
 
 import { findStat } from '../hangar/loadout-stats';
-import { EmModelItem, EmModelRole, emModel } from './codex-em-model';
+import { EmModelItem, EmModelRole, emModel, emModelAssigned } from './codex-em-model';
 import { ArmorSignalMultipliers, armorSignalMultipliers, crossSectionAxes, findArmorPayload } from './codex-loadout-stats';
 import type { KpiSheet } from './codex-loadout-stats';
 import type { SummaryOccupant } from './ship-summary-panels';
@@ -883,8 +883,24 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   // hull armor's signal factor — the same armor item the game multiplies the
   // emissions by (#242 follow-up: Eclipse 0.6, Centurion IR 0.4, Vanguard 1.334).
   const armorSignal = armorSignalMultipliers(findArmorPayload(input.occupants));
-  const emRaw = round(powered.reduce((s, d) => s + d.emNominal, 0) * (armorSignal?.em ?? 1));
-  const irRaw = round(powered.reduce((s, d) => s + d.irNominal, 0) * (armorSignal?.ir ?? 1));
+  // #967 — the CURRENT figure from the same EM model as idle / max / quantum:
+  // each item gets its column's share (allocated / demanded) of its full
+  // segments; cut or channel-less columns are off; the reactor follows the load.
+  const columnShare = new Map<PowerColumnKey, number>();
+  for (const g of groups) {
+    columnShare.set(g.key, poweredColumns.has(g.key) ? (g.demand > 0 ? Math.min(1, g.allocated / g.demand) : 1) : -1);
+  }
+  const current = emModelAssigned(
+    entries.map((e) => {
+      const item = emModelItem(e.draw);
+      if (e.key === null) return { item, assigned: item.segments };
+      const share = columnShare.get(e.key) ?? -1;
+      return { item, assigned: share < 0 ? null : item.segments * share };
+    }),
+    armorSignal,
+  );
+  const emRaw = current.em;
+  const irRaw = current.ir;
   const hasSignature = draws.some((d) => d.emNominal > 0 || d.irNominal > 0);
   const cs = (() => {
     const axes = crossSectionAxes(
@@ -1071,38 +1087,30 @@ export function isDockPosition(v: unknown): v is DockPosition {
 /** The occupants as EM-model items (#967): role from the power group, full
  * segments = whole segments + standard units / (4/3). */
 export function emModelItems(occupants: readonly SummaryOccupant[]): EmModelItem[] {
-  const items: EmModelItem[] = [];
-  for (const occupant of occupants) {
-    if (!occupant.payload) continue;
-    const d = occupantDraw(occupant);
-    if (d.missing) continue;
-    const role: EmModelRole =
-      d.generateSegments > 0
-        ? 'powerPlant'
-        : d.group === 'shields'
-          ? 'shield'
-          : d.group === 'quantum'
-            ? 'quantum'
-            : d.group === 'coolers'
-              ? 'cooler'
-              : /_thruster_/i.test(classNameOfPayload(occupant.payload))
-                ? 'thruster'
-                : 'consumer';
-    items.push({
-      role,
-      segments: d.consumeSegments + d.consumeUnits / STANDARD_UNITS_PER_SEGMENT,
-      minFraction: d.minFraction,
-      generateSegments: d.generateSegments,
-      em: d.emNominal,
-      ir: d.irNominal,
-    });
-  }
-  return items;
+  return occupants
+    .filter((o) => !!o.payload)
+    .map((o) => occupantDraw(o))
+    .filter((d) => !d.missing)
+    .map(emModelItem);
 }
 
-function classNameOfPayload(payload: unknown): string {
-  const c = (payload as { className?: unknown } | null)?.className;
-  return typeof c === 'string' ? c : '';
+/** One draw as an EM-model item. A thruster draws no segment in the data
+ * (its EM follows throttle), so a segment-free `thrusters` draw is `thruster`. */
+export function emModelItem(d: OccupantDraw): EmModelItem {
+  const segments = d.consumeSegments + d.consumeUnits / STANDARD_UNITS_PER_SEGMENT;
+  const role: EmModelRole =
+    d.generateSegments > 0
+      ? 'powerPlant'
+      : d.group === 'shields'
+        ? 'shield'
+        : d.group === 'quantum'
+          ? 'quantum'
+          : d.group === 'coolers'
+            ? 'cooler'
+            : d.group === 'thrusters' && segments === 0
+              ? 'thruster'
+              : 'consumer';
+  return { role, segments, minFraction: d.minFraction, generateSegments: d.generateSegments, em: d.emNominal, ir: d.irNominal };
 }
 
 /**

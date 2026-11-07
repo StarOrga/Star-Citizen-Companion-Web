@@ -28,6 +28,9 @@
 //   max     — every consumer, cooler and shield at S, quantum drive off
 //   quantum — like max, but the shield off and the quantum drive on (the
 //             wiki's exclusive "Quantum" scenario)
+//   current — the strip's allocation: each item gets its column's share
+//             (allocated / demanded segments) of its full segments, cut or
+//             channel-less columns off (`emModelAssigned`)
 // `decayRate` (0.15 everywhere) is a transient after a change, not part of
 // the steady-state value, and is ignored.
 
@@ -93,12 +96,25 @@ export function emModel(
   scenario: EmModelScenario,
   armor: { em: number; ir: number } | null = null,
 ): EmModelResult {
+  return emModelAssigned(
+    items.map((item) => ({ item, assigned: assignedSegments(item, scenario) })),
+    armor,
+  );
+}
+
+/** The model at an explicit allocation: `assigned` segments per item, null = off.
+ * Reactors and thrusters ignore `assigned` (load-driven / never counted). */
+export function emModelAssigned(
+  entries: readonly { item: EmModelItem; assigned: number | null }[],
+  armor: { em: number; ir: number } | null = null,
+): EmModelResult {
+  const items = entries.map((e) => e.item);
   let em = 0;
   let ir = 0;
   let load = 0;
-  for (const item of items) {
-    if (item.role === 'powerPlant') continue;
-    const s = assignedSegments(item, scenario);
+  for (const { item, assigned } of entries) {
+    if (item.role === 'powerPlant' || item.role === 'thruster') continue;
+    const s = assigned;
     if (s === null) continue; // switched off in this scenario
     load += s;
     em += scaledSignature(item.em, item.segments, s, item.minFraction);
@@ -115,4 +131,12 @@ export function emModel(
   }
   const r = (v: number) => Math.round(v);
   return { em: r(em * (armor?.em ?? 1)), ir: r(ir * (armor?.ir ?? 1)), load, capacity };
+}
+
+/** KPI keys whose values come from this model (labelled "model" in the UI). */
+const MODEL_KPI_KEYS: ReadonlySet<string> = new Set(['ir', 'emIdle', 'emLoad', 'emMax', 'emQuantum']);
+
+/** The tooltip key for a model value — takes a KpiKey or a label key ending in one. */
+export function modelHintKey(key: string): string | null {
+  return MODEL_KPI_KEYS.has(key.slice(key.lastIndexOf('.') + 1)) ? 'codex.kpi.modelHint' : null;
 }

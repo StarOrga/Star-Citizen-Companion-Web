@@ -1,4 +1,4 @@
-import { EmModelItem, emModel, minimumSegments, scaledSignature } from './codex-em-model';
+import { EmModelItem, emModel, emModelAssigned, minimumSegments, modelHintKey, scaledSignature } from './codex-em-model';
 
 // Small fixtures shaped like the LIVE 4.10.2 extract (Gladius-like, #967).
 const radar: EmModelItem = { role: 'consumer', segments: 5, minFraction: 0.4000000059604645, generateSegments: 0, em: 1800, ir: 0 };
@@ -44,6 +44,26 @@ describe('codex EM model (#967)', () => {
     const small = { ...plant, generateSegments: 4, em: 1980 };
     const r = emModel([radar, cooler, thruster, small], 'max');
     expect(r.em).toBe(1800 + 1490 + 1980);
+  });
+
+  it('current: the same per-item rule and reactor cap at an explicit allocation', () => {
+    const r = emModelAssigned([
+      { item: radar, assigned: 4 },
+      { item: cooler, assigned: 3 },
+      { item: shield, assigned: null },
+      { item: thruster, assigned: 0 },
+      { item: { ...plant, generateSegments: 5, em: 2475 }, assigned: null },
+    ]);
+    expect(r.load).toBe(7);
+    expect(r.em).toBe(Math.round(1800 * (4 / 5) + 1490 + 2475));
+    // the scenario entry points are the same core
+    expect(emModel([radar, plant], 'max')).toEqual(emModelAssigned([{ item: radar, assigned: 5 }, { item: plant, assigned: null }]));
+  });
+
+  it('names the model tooltip for model KPIs only', () => {
+    expect(modelHintKey('emIdle')).toBe('codex.kpi.modelHint');
+    expect(modelHintKey('codex.kpi.ir')).toBe('codex.kpi.modelHint');
+    expect(modelHintKey('codex.kpi.crossSection')).toBeNull();
   });
 
   it('applies the hull armor factor to EM and IR', () => {

@@ -283,8 +283,9 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
   load = Σ assigned consumer segments; IR alike (only coolers carry IR);
   × hull armor factor. Scenarios: idle (minimum = ⌈S × minFraction⌉, shield
   and quantum off), max (all full, shield on), quantum (shield off, drive on).
-  Thrusters are left out (EM follows throttle). `emLoad` = the old default-
-  allocation sum (nominal of every powered item, uncapped reactor nominal).
+  Thrusters are left out (EM follows throttle). current (`emLoad`, the strip's
+  EM/IR fact) = the same model at the strip's allocation: each item gets its
+  column's allocated/demanded share of its full segments, cut columns off.
 - Versus StarCitizenWiki (`scripts/em-model-compare.mts <extract>`): EM is
   −11 … −25 %, almost all of it the reactor cap (the wiki sums 495 × demanded
   segments without capping at capacity; Gladius demands 23.6 of 16) plus the
@@ -292,6 +293,13 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
   armor factor. IR is +69 … +134 %: the wiki scales cooler IR with the coolant
   in use, and the 4.10 extract has no consumer `coolant.consume` — an
   extractor field, not something to fake.
+- Carrack (wiki API `vehicles/carrack`, which is 4.10.2, not 4.9): every item
+  and its em matches our loadout walk. The whole ~12,300 gap is the reactor
+  term — wiki `em_per_segment` 760 = 22,800 / `power.generation_segments` 30
+  times `used_segments_shields` 43.2 = 32,832, ours 22,800 × 41.4 / 46 =
+  20,518. Both sources give each Reliance generation 23 (46 total); where the
+  wiki's ship-level 30 comes from is not in the per-item data. The wiki also
+  counts weapon units as segments (8 × 0.9 = 7.2, ours 8 × 0.9 / (4/3)).
 - Radars: no metre detection range; the one distance is
   `aimAssist.distanceMaxAssignment` (exported as `aimAssistRangeM`, shown as
   "Range (aim assist)").

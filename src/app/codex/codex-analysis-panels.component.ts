@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, input, untracked, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { modelHintKey } from './codex-em-model';
 import { displayItemName, formatNumber } from './codex-format';
 import { DefensivePanel, OffensivePanel } from './codex-loadout-stats';
 
@@ -406,7 +407,7 @@ export interface ShipFactGroup {
           <h3 class="section-title">{{ g.titleKey | translate }}</h3>
           <dl class="fact-grid">
             @for (r of g.rows; track r.labelKey) {
-              <dt>{{ r.labelKey | translate }}</dt>
+              <dt [scTooltip]="modelHint(r.labelKey) ? (modelHint(r.labelKey)! | translate) : null">{{ r.labelKey | translate }}</dt>
               <dd>
                 @if (r.value == null && r.gapKey) {
                   <!-- Focusable anchor: the reason for the gap is the only
@@ -427,6 +428,8 @@ export interface ShipFactGroup {
   styles: [PANEL_STYLES],
 })
 export class CodexShipPanelComponent {
+  /** #967: IR / EM rows are our model — their label carries the formula. */
+  protected readonly modelHint = modelHintKey;
   readonly groups = input.required<readonly ShipFactGroup[]>();
   readonly startCollapsed = input<boolean>(false);
   readonly open = useCollapse(() => this.startCollapsed());
