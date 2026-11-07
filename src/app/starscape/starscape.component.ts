@@ -9,6 +9,7 @@ import {
   inject,
   signal,
   input,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -26,7 +27,9 @@ import {
   ringsForRole,
 } from './starscape.service';
 import { AuthService } from '../auth/auth.service';
-import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { SammlungService } from '../hq/nachschub/sammlung.service';
+import { SammlungStripComponent, SammlungStripItem } from '../shared/sammlung-strip/sammlung-strip.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
 import { RoleService } from '../auth/role.service';
 import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
@@ -110,7 +113,8 @@ const RENDER_CHUNK = 24;
     AppDownloadMenuComponent,
     StarscapeAppPromoComponent,
     StarscapeVoteButtonComponent,
-    ScSegmentedComponent,
+    ScSelectComponent,
+    SammlungStripComponent,
     LightboxComponent,
     ScTooltipDirective,
   ],
@@ -145,13 +149,17 @@ const RENDER_CHUNK = 24;
            votes" needs an account, so a signed-out visitor sees it disabled,
            with the reason as its tooltip. -->
       <div class="controls">
-        <sc-segmented
+        <sc-select
           class="source-filter"
           [options]="filterOptions()"
           [value]="svc.filter()"
           [ariaLabel]="'starscape.filter.label' | translate"
-          (valueChange)="setFilter($event)" />
+          (valueChange)="setFilter($event ?? 'all')" />
       </div>
+
+      <!-- The Sammlung pattern (concept nachschub-hq r4-d1-s7g): up-voted wallpapers count as collected. Nothing in the
+           gallery below changes. -->
+      <sc-sammlung-strip [items]="collectedItems()" [ariaLabel]="'sammlungStrip.galleryAria' | translate" />
 
       <!-- A failed page load is a dead end without a way back in: the request is
            only ever fired on mount, so a phone that lost the connection for one
@@ -373,7 +381,7 @@ const RENDER_CHUNK = 24;
     /* One row: the four-view filter. It reserves its height so the wall below
        never jumps when a view loads. */
     .controls { display: flex; align-items: center; min-height: 48px; }
-    .source-filter { max-width: 100%; }
+    .source-filter { width: min(100%, 15rem); }
 
     /* A grid of uniform cells, not CSS columns. Columns balance their height
        on every append, so a loaded page re-flowed tiles sideways and left
@@ -663,15 +671,30 @@ export class StarscapeComponent implements OnInit {
    * labels are i18n keys. "My votes" is visible but not pickable while signed
    * out, with the reason as its tooltip.
    */
-  readonly filterOptions = computed<readonly ScSegmentOption[]>(() => {
+  readonly filterOptions = computed<readonly ScSelectOption[]>(() => {
     const signedIn = this.auth.isAuthenticated();
+    const voted = this.sammlung.gallery().size;
     return STARSCAPE_FILTERS.map((f) => ({
       value: f.id,
-      labelKey: f.labelKey,
+      labelKey: f.id === 'mine' && voted > 0 ? 'starscape.filter.mineCount' : f.labelKey,
+      labelParams: { n: voted },
       disabled: f.id === 'mine' && !signedIn,
-      titleKey: f.id === 'mine' && !signedIn ? 'starscape.filter.mineSignedOut' : undefined,
     }));
   });
+
+  /** The collected strip: wallpapers the reader up-voted (the Sammlung's gallery set), newest first. */
+  private readonly sammlung = inject(SammlungService);
+  private readonly collected = signal<readonly Wallpaper[]>([]);
+  readonly collectedItems = computed<readonly SammlungStripItem[]>(() =>
+    this.collected().map((w) => ({
+      id: w.imageId,
+      title: w.title ?? w.series ?? '',
+      thumb: w.previewUrl,
+      link: [],
+      queryParams: { [DEEP_LINK_PARAM]: w.imageId },
+      queryParamsHandling: 'merge' as const,
+    })),
+  );
 
   /** Scroll marker that pulls the next page - see {@link observeSentinel}. */
   private readonly sentinel = viewChild<ElementRef<HTMLElement>>('sentinel');
@@ -723,6 +746,12 @@ export class StarscapeComponent implements OnInit {
     // profile fetch, so a collaborator's beta link appears once it does).
     effect(() => {
       void this.svc.loadRingReleases(this.allowedRings());
+    });
+    // The collected strip follows the reader's up-votes (the Sammlung's gallery set).
+    void this.sammlung.load();
+    effect(() => {
+      const ids = [...this.sammlung.gallery()];
+      untracked(() => void this.svc.loadMany(ids).then((w) => this.collected.set(w)));
     });
     // Arm the stall watch as soon as there are rows to draw.
     effect(() => {

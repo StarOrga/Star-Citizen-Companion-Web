@@ -2694,7 +2694,7 @@
   "news": {
     "loading": "Lade…",
     "empty": "Noch keine News.",
-    "emptyFavorites": "Noch keine Lesezeichen — setze eines mit dem Lesezeichen-Symbol an einem Beitrag, um ihn hier zu sammeln.",
+    "emptyFavorites": "Noch nichts gesammelt – sammle einen Beitrag mit dem Sammeln-Symbol, dann steht er hier.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
     "refreshing": "Wird aktualisiert…",
@@ -2722,8 +2722,8 @@
       "patch": "Patch-Notes"
     },
     "favorite": {
-      "save": "Lesezeichen setzen",
-      "saved": "Mit Lesezeichen"
+      "save": "Sammeln",
+      "saved": "Gesammelt"
     },
     "share": {
       "label": "Teilen",
@@ -4833,6 +4833,7 @@
       "newest": "Neueste",
       "top": "Community Top",
       "mine": "Meine Votes",
+      "mineCount": "Meine Stimmen · {{n}}",
       "mineSignedOut": "Melde dich an, um deine bewerteten Wallpaper zu sehen",
       "emptyMine": "Du hast noch kein Wallpaper bewertet. Tippe auf den Daumen bei einem Bild, dann landet es hier."
     },
@@ -7629,5 +7630,85 @@
       "add": "auf die Wunschliste",
       "dismiss": "{{name}} nicht vorschlagen"
     }
+  },
+  "pathCtl": {
+    "node": {
+      "wish": "Wunschliste",
+      "inventar": "Inventar",
+      "hangar": "Hangar",
+      "sammlung": "Sammlung"
+    },
+    "tip": {
+      "wishOff": "Auf die Wunschliste",
+      "wishOn": "{{qty}}× auf der Wunschliste · Wunschliste öffnen",
+      "inventarOff": "Ins Inventar legen",
+      "inventarOn": "{{qty}}× im Inventar · im HQ zeigen",
+      "hangarOff": "In den Hangar",
+      "hangarOn": "Im Hangar · im HQ zeigen",
+      "sammlungOff": "Zur Sammlung hinzufügen",
+      "sammlungOn": "In der Sammlung · im HQ zeigen"
+    },
+    "go": {
+      "wish": "Auf die Wunschliste",
+      "inventar": "Ins Inventar",
+      "hangar": "In den Hangar",
+      "sammlung": "Zur Sammlung"
+    },
+    "wishQty": "Wunschmenge",
+    "ownQty": {
+      "inventar": "Menge im Inventar",
+      "hangar": "Menge im Hangar",
+      "sammlung": "Menge in der Sammlung"
+    },
+    "less": "Weniger",
+    "more": "Mehr",
+    "openCart": "Wunschliste öffnen",
+    "wishOff": "Noch nicht auf der Wunschliste.",
+    "ownOn": {
+      "inventar": "{{n}}× im Inventar",
+      "hangar": "Im Hangar",
+      "sammlung": "In der Sammlung"
+    },
+    "ownOff": {
+      "inventar": "Nicht im Inventar.",
+      "hangar": "Nicht im Hangar.",
+      "sammlung": "Nicht in der Sammlung."
+    },
+    "view": {
+      "inventar": "Im Inventar ansehen",
+      "hangar": "Im Hangar ansehen",
+      "sammlung": "In der Sammlung ansehen"
+    },
+    "whereTitle": "Wo liegt es?",
+    "otherPlace": "Anderer Ort …",
+    "otherPlaceholder": "Ort eingeben",
+    "store": "Ablegen"
+  },
+  "itemStage": {
+    "aria": "Bühne: {{name}}",
+    "eyebrowSil": "Silhouette",
+    "eyebrow3d": "3D-Modell",
+    "viewAria": "Darstellung",
+    "viewSilhouette": "Silhouette",
+    "view3d": "3D-Modell",
+    "noSilhouette": "keine Silhouette",
+    "noSilhouetteReason": "Zu diesem Gegenstand liegt in diesem Build keine Silhouette vor, das Vorschaubild steht stellvertretend.",
+    "no3dReason": "Zu diesem Gegenstand liegt in diesem Build kein 3D-Modell vor.",
+    "inNachschub": "Steckt im Nachschub „{{name}}“",
+    "panelAria": "Werte und Informationen",
+    "tabsAria": "Bereiche",
+    "tab": {
+      "werte": "Werte",
+      "herstellung": "Herstellung",
+      "info": "Kaufen & Info"
+    }
+  },
+  "sammlungStrip": {
+    "title": "Gesammelt",
+    "all": "Ganze Sammlung",
+    "more": "{{n}} weitere in der Sammlung",
+    "newsAria": "Gesammelte News",
+    "galleryAria": "Gesammelte Wallpaper",
+    "votedHint": "Hochgevotete Wallpaper zählen als gesammelt."
   }
 }

@@ -2694,7 +2694,7 @@
   "news": {
     "loading": "Loading…",
     "empty": "No news yet.",
-    "emptyFavorites": "No bookmarks yet — use the bookmark icon on any post to collect it here.",
+    "emptyFavorites": "Nothing collected yet – collect a post with the collect icon and it shows up here.",
     "errorTitle": "Could not load news",
     "lastUpdated": "Updated {{rel}}",
     "refreshing": "Refreshing…",
@@ -2722,8 +2722,8 @@
       "patch": "Patch notes"
     },
     "favorite": {
-      "save": "Add bookmark",
-      "saved": "Bookmarked"
+      "save": "Collect",
+      "saved": "Collected"
     },
     "share": {
       "label": "Share",
@@ -4833,6 +4833,7 @@
       "newest": "Newest",
       "top": "Community top",
       "mine": "My votes",
+      "mineCount": "My votes · {{n}}",
       "mineSignedOut": "Sign in to see the wallpapers you voted for",
       "emptyMine": "You have not voted for a wallpaper yet. Tap the thumbs-up on an image to collect it here."
     },
@@ -7629,5 +7630,85 @@
       "add": "to the wishlist",
       "dismiss": "Do not suggest {{name}}"
     }
+  },
+  "pathCtl": {
+    "node": {
+      "wish": "Wishlist",
+      "inventar": "Inventory",
+      "hangar": "Hangar",
+      "sammlung": "Collection"
+    },
+    "tip": {
+      "wishOff": "Put on the wishlist",
+      "wishOn": "{{qty}}× on the wishlist · open the wishlist",
+      "inventarOff": "Put into the inventory",
+      "inventarOn": "{{qty}}× in the inventory · show in HQ",
+      "hangarOff": "Put into the hangar",
+      "hangarOn": "In the hangar · show in HQ",
+      "sammlungOff": "Add to the collection",
+      "sammlungOn": "In the collection · show in HQ"
+    },
+    "go": {
+      "wish": "To the wishlist",
+      "inventar": "Into the inventory",
+      "hangar": "Into the hangar",
+      "sammlung": "To the collection"
+    },
+    "wishQty": "Wished quantity",
+    "ownQty": {
+      "inventar": "Quantity in the inventory",
+      "hangar": "Quantity in the hangar",
+      "sammlung": "Quantity in the collection"
+    },
+    "less": "Less",
+    "more": "More",
+    "openCart": "Open the wishlist",
+    "wishOff": "Not on the wishlist yet.",
+    "ownOn": {
+      "inventar": "{{n}}× in the inventory",
+      "hangar": "In the hangar",
+      "sammlung": "In the collection"
+    },
+    "ownOff": {
+      "inventar": "Not in the inventory.",
+      "hangar": "Not in the hangar.",
+      "sammlung": "Not in the collection."
+    },
+    "view": {
+      "inventar": "View in the inventory",
+      "hangar": "View in the hangar",
+      "sammlung": "View in the collection"
+    },
+    "whereTitle": "Where is it?",
+    "otherPlace": "Other place …",
+    "otherPlaceholder": "Enter a place",
+    "store": "Put down"
+  },
+  "itemStage": {
+    "aria": "Stage: {{name}}",
+    "eyebrowSil": "Silhouette",
+    "eyebrow3d": "3D model",
+    "viewAria": "View",
+    "viewSilhouette": "Silhouette",
+    "view3d": "3D model",
+    "noSilhouette": "no silhouette",
+    "noSilhouetteReason": "This build has no silhouette for this item; the preview image stands in.",
+    "no3dReason": "This build has no 3D model of this item.",
+    "inNachschub": "Part of the Nachschub “{{name}}”",
+    "panelAria": "Values and information",
+    "tabsAria": "Sections",
+    "tab": {
+      "werte": "Values",
+      "herstellung": "Crafting",
+      "info": "Buy & info"
+    }
+  },
+  "sammlungStrip": {
+    "title": "Collected",
+    "all": "Whole collection",
+    "more": "{{n}} more in the collection",
+    "newsAria": "Collected news",
+    "galleryAria": "Collected wallpapers",
+    "votedHint": "Up-voted wallpapers count as collected."
   }
 }

@@ -80,6 +80,8 @@ export interface ItemPathState {
   kind: string;
   className: string;
   wished: boolean;
+  /** Wished quantity (the cart counter), 0 when not wished. */
+  wishQty: number;
   /** Open lines of the class added up: pieces, or SCU when `nachschubUnit` is 'scu'. */
   nachschubQty: number;
   /** 'scu' when the open lines count an exact SCU amount (a blueprint's material), else null = pieces. */
@@ -153,8 +155,16 @@ const NO_PLACES: readonly PathPlace[] = [];
 /** The stops a kind has. */
 export function stepsOf(kind: string): readonly PathStep[] {
   if (kind === 'upcoming') return ['wish'];
-  if (kind === 'ship') return ['wish', 'nachschub', 'hangar'];
-  return ['wish', 'nachschub', 'inventar'];
+  if (kind === 'ship') return ['wish', 'hangar'];
+  return ['wish', 'inventar'];
+}
+
+/** The word the second node carries: Hangar for ships, Sammlung for blueprints, Inventar for everything else. */
+export type OwnWord = 'inventar' | 'hangar' | 'sammlung';
+export function ownWordOf(kind: string): OwnWord | null {
+  if (kind === 'upcoming') return null;
+  if (kind === 'ship') return 'hangar';
+  return kind === 'blueprint' ? 'sammlung' : 'inventar';
 }
 
 const fail = (key: string): PathResult => ({ ok: false, key });
@@ -263,6 +273,7 @@ export class ItemPathService {
       kind,
       className,
       wished: this.wishlist.has(kind, className, name),
+      wishQty: this.wishlist.qtyOf(kind, className, name),
       nachschubQty,
       nachschubUnit,
       inventarQty: places.reduce((n, p) => n + p.qty, 0),
@@ -288,6 +299,20 @@ export class ItemPathService {
     return { ok: true, key: 'itemPath.done.wishOn', params: { name: name ?? className }, undo: () => this.removeWish(kind, className, name) };
   }
 
+  /** The cart counter of the detail page: set the wished quantity, 0 or less takes the entry off (with undo). */
+  async setWishQty(kind: string, className: string, name: string | null | undefined, qty: number): Promise<PathResult> {
+    if (!this.auth.user()) return fail('itemPath.err.failed');
+    if (qty <= 0) return this.removeWish(kind, className, name);
+    if (!this.wishlist.has(kind, className, name)) return this.addWish(kind, className, name);
+    try {
+      if (!(await this.wishlist.setQty(kind, className, name, qty))) return fail('itemPath.err.failed');
+    } catch (err) {
+      return fail(toErrorKey('itemPath', 'setWishQty', err));
+    }
+    // A counter step is its own feedback: no toast, nothing to undo.
+    return { ok: true, key: 'itemPath.done.wishQty', params: { name: name ?? className, qty } };
+  }
+
   async removeWish(kind: string, className: string, name?: string | null): Promise<PathResult> {
     if (!this.auth.user()) return fail('itemPath.err.failed');
     try {
@@ -306,7 +331,7 @@ export class ItemPathService {
    */
   async addToNachschub(kind: string, className: string, name: string, qty = 1, opts: NachschubOpts = {}): Promise<PathResult> {
     if (!this.auth.user()) return fail('itemPath.err.failed');
-    if (!stepsOf(kind).includes('nachschub')) return fail('itemPath.err.unavailable');
+    if (kind === 'upcoming') return fail('itemPath.err.unavailable');
     const materials = kind === 'blueprint' ? await this.materialsOf(className) : [];
     const wasWished = this.wishlist.has(kind, className, name);
     const line = this.supplies.addLine(name, qty, { entityKind: kind, className, stepKind: opts.stepKind ?? null, source: 'search' });
@@ -425,7 +450,7 @@ export class ItemPathService {
   /** Inventar row "Nachholen" (A7): +qty in Nachschub, the stock stays as it is. */
   nachholen(kind: string, className: string, name: string, qty = 1, unit: 'pcs' | 'scu' = 'pcs'): PathResult {
     if (!this.auth.user()) return fail('itemPath.err.failed');
-    if (!stepsOf(kind).includes('nachschub')) return fail('itemPath.err.unavailable');
+    if (kind === 'upcoming') return fail('itemPath.err.unavailable');
     // SCU stock comes back as the same exact amount, never as pieces.
     const exact = unit === 'scu' && qty > 0;
     const line = exact

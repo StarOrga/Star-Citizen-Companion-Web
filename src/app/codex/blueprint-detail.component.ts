@@ -8,7 +8,6 @@ import {
   computed,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -43,7 +42,6 @@ import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { noteOpenedPage } from '../shell/merkliste/merkliste-opened';
 import { pathLevelFor } from './path-level.util';
 import { blueprintMissions } from './blueprint-missions';
-import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
 
 @Component({
@@ -77,9 +75,8 @@ import { ScActionDirective } from '../shared/action/sc-action.directive';
             <h1 class="entity-name">{{ displayName() }}</h1>
             @if (outputEntity()?.manufacturerCode; as mfr) { <p class="sc-detail-mfr">{{ mfr }}</p> }
             <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
-            <!-- All three stops (wish, Nachschub with its material, Inventar as "collected"). -->
-            <sc-item-path class="path" kind="blueprint" [className]="detail()!.classNameSlug" [name]="displayName()" [level]="pathLevel()"
-                          [stepKind]="missions() ? 'mission' : null" [missionLink]="missions()?.rows?.[0]?.link ?? null" />
+            <!-- Both nodes: the wishlist and the Sammlung (a collected blueprint). -->
+            <sc-item-path class="path" kind="blueprint" [className]="detail()!.classNameSlug" [name]="displayName()" [level]="pathLevel()" />
             @if (facts().length > 0) {
               <ul class="sc-detail-facts">
                 @for (f of facts(); track f.label) {
@@ -109,11 +106,11 @@ import { ScActionDirective } from '../shared/action/sc-action.directive';
               @for (row of m.rows; track row.className; let first = $first) {
                 <li class="ingredient-row mission-row">
                   <div class="ing-info">
-                    <a class="ing-name link" [routerLink]="row.link" (click)="onToMission($event)">{{ row.title }}</a>
+                    <a class="ing-name link" [routerLink]="row.link">{{ row.title }}</a>
                     @if (row.meta; as meta) { <span class="mission-meta">{{ meta }}</span> }
                   </div>
                   @if (first) {
-                    <a scAction tier="secondary" class="to-mission" [routerLink]="row.link" (click)="onToMission($event)">{{ 'blueprint.detail.toMission' | translate }}</a>
+                    <a scAction tier="secondary" class="to-mission" [routerLink]="row.link">{{ 'blueprint.detail.toMission' | translate }}</a>
                   }
                 </li>
               }
@@ -381,16 +378,6 @@ export class BlueprintDetailComponent implements OnInit {
 
   /** The missions that award it, best first; null while the build holds no such link. */
   readonly missions = computed(() => blueprintMissions(this.payload?.missionSource, this.lang));
-
-  private readonly pathControl = viewChild(ItemPathComponent);
-
-  /**
-   * "Zum Einsatz" is a real anchor; the plain click also puts the step on the list. A new tab
-   * is only a look, so a modified click writes nothing.
-   */
-  onToMission(ev: MouseEvent): void {
-    if (isPlainLeftClick(ev)) void this.pathControl()?.ensureNachschubStep();
-  }
 
   readonly ingredients = computed((): CodexBlueprintIngredient[] => {
     return this.detail()?.ingredients ?? [];
