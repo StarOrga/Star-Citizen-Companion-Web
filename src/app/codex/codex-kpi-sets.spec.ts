@@ -33,6 +33,8 @@ const sheet = (over: Partial<KpiSheet> = {}): KpiSheet =>
     ir: 7340,
     emIdle: null,
     emLoad: 29100,
+    emMax: null,
+    emQuantum: null,
     crossSection: 9712,
     ...over,
   }) as KpiSheet;

@@ -554,7 +554,10 @@ describe('withPowerSignature — the ranking sheet takes the signature of the st
     const out = withPowerSignature({ ...baseSheet, ir: null, emLoad: null, emIdle: null }, nomad, shipStats, null);
     expect(out.ir).toBe(fact('ir'));
     expect(out.emLoad).toBe(fact('em'));
-    expect(out.emIdle).toBeNull(); // no source in the model: stays a gap
+    // #967: idle / max / quantum now come from the EM model
+    expect(out.emIdle).toBeGreaterThan(0);
+    expect(out.emMax!).toBeGreaterThanOrEqual(out.emIdle!);
+    expect(out.emQuantum).not.toBeNull();
   });
   it('leaves a value the sheet already has and a ship without emitters at null', () => {
     expect(withPowerSignature({ ...baseSheet, ir: 5, emLoad: 6 }, nomad, shipStats, null).ir).toBe(5);

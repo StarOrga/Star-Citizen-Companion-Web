@@ -199,6 +199,8 @@ describe('codex-loadout-stats — buildKpiCells', () => {
     ir: null,
     emIdle: null,
     emLoad: null,
+    emMax: null,
+    emQuantum: null,
     crossSection: null,
     ...over,
   });
