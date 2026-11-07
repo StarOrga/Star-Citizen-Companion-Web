@@ -28,7 +28,7 @@ function baseProviders(shell: boolean) {
     { provide: BetaService, useValue: { isEnabled: () => signal(shell) } },
     { provide: AuthService, useValue: { user: signal(null) } },
     { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]), loadAll: () => Promise.resolve() } },
-    { provide: DesktopConnectionService, useValue: { connections: signal([]), refresh: () => Promise.resolve() } },
+    { provide: DesktopConnectionService, useValue: { connections: signal([]), refresh: () => Promise.resolve(), stateFor: () => 'never' } },
   ];
 }
 

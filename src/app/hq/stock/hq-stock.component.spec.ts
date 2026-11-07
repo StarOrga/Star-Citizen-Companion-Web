@@ -184,7 +184,8 @@ describe('HqStockComponent', () => {
     const ships = [...el.querySelectorAll('.grid a.tile')];
     expect(ships.length).toBe(2);
     expect(ships.every((s) => s.getAttribute('href')?.includes('/codex/ship/'))).toBeTrue();
-    expect(ships[0].textContent).toContain('hq.bestand.origin.pledge');
+    // The flagship stands first; the pledged Gladius carries its origin.
+    expect(ships.find((t) => t.textContent?.includes('Pfeil'))?.textContent).toContain('hq.bestand.origin.pledge');
   });
 
   it('a load failure shows a translated error with retry, never an empty page', () => {

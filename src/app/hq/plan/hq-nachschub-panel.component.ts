@@ -242,8 +242,8 @@ export class HqNachschubPanelComponent {
   constructor() {
     // A different Nachschub starts on its own first Einsatz.
     effect(() => {
-      this.nachschub().id;
-      untracked(() => this.selectedId.set(null));
+      const id = this.nachschub().id;
+      untracked(() => (id ? this.selectedId.set(null) : undefined));
     });
   }
 
