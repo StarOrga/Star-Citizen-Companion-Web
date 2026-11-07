@@ -75,7 +75,7 @@
 .acc-i {
   --o: 0;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --acc-t: 1.5s; // ACC_TRANSITION_MS (briefing-accordion.ts)
+  --acc-t: 0.45s; // ACC_TRANSITION_MS (briefing-accordion.ts)
   --g: calc((var(--row) - 3.4 * var(--u)) / 2); // the thumbnail's gap to the divider lines, kept by the open image
   position: relative;
   height: calc(var(--row) + var(--o) * (var(--feat) - var(--row)));

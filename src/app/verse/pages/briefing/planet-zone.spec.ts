@@ -84,43 +84,34 @@ describe('Verse hub — verdict + patch grid model', () => {
 });
 
 describe('Verse hub — accordion hover intent', () => {
-  it('opens at once for a pointer that stands still or jitters, ignores sweeps, finishes a started transition, keeps the open entry on leave', fakeAsync(() => {
+  it('opens only after the rest delay, ignores sweeps, finishes a started transition, keeps the open entry on leave', fakeAsync(() => {
     const acc = new AccordionIntent(0);
-    // A quick vertical sweep (40 px every 10 ms): nothing opens.
+    // A quick sweep over the rows: every move restarts the wait, nothing opens.
     for (let i = 1; i <= 3; i++) {
       acc.move(i, 10, i * 40, i * 10);
       tick(10);
     }
     expect(acc.open()).toBe(0);
-    // A resting pointer: the first sample arms the rest timer, the next jittery one opens at once.
+    // A resting pointer (jitter) does not open at once and does not restart the wait.
     acc.move(2, 10, 80, 1000);
-    acc.move(2, 12, 81, 1016);
-    expect(acc.open()).withContext('jitter within the tolerance: no delay').toBe(2);
+    tick(ACC_REST_MS - 50);
+    acc.move(2, 12, 81, 1000 + ACC_REST_MS - 50);
+    expect(acc.open()).withContext('no reaction before the rest delay').toBe(0);
+    tick(60);
+    expect(acc.open()).toBe(2);
     expect(acc.transitioning).toBeTrue();
-    // A new target during the transition waits for its end …
-    acc.move(3, 10, 120, 1100);
-    acc.move(3, 10, 121, 1116);
-    expect(acc.open()).toBe(2);
-    tick(ACC_TRANSITION_MS);
-    expect(acc.open()).toBe(3);
-    tick(ACC_TRANSITION_MS);
-    // A pointer that stops after a fast move opens its entry after the short rest — and then waits for the transition.
-    acc.move(2, 10, 80, 3000);
-    acc.move(2, 10, 81, 3016);
-    expect(acc.open()).toBe(2);
-    acc.move(3, 10, 200, 3020);
+    // A new target during the transition rests, then waits for the transition's end.
+    acc.move(3, 10, 120, 5000);
     tick(ACC_REST_MS + 10);
     expect(acc.open()).toBe(2);
     tick(ACC_TRANSITION_MS);
     expect(acc.open()).toBe(3);
-    // … and a target that was still waiting is dropped when the pointer moved on and left.
-    acc.move(1, 10, 40, 4000);
+    tick(ACC_TRANSITION_MS);
+    // A target that was still waiting is dropped when the pointer left.
+    acc.move(1, 10, 40, 9000);
     tick(ACC_REST_MS + 10);
-    acc.move(2, 10, 300, 4100);
     acc.leave();
     tick(ACC_TRANSITION_MS * 2 + ACC_REST_MS);
-    expect(acc.open()).toBe(3);
-    // Leaving the list keeps the open entry.
     expect(acc.open()).toBe(3);
     acc.destroy();
   }));
