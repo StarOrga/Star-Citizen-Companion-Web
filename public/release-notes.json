@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.12",
+  "current": "0.225.13",
   "releases": [
+    {
+      "version": "0.225.13",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse News, Patches and Gallery: the end of the list keeps clear of the footer, so the news stream's \"show N more\" button no longer sits under the footer's area links."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.12",
       "date": "2026-11-07",
