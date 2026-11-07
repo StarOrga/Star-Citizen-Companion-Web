@@ -108,11 +108,15 @@ describe('Verse hub — accordion hover intent', () => {
     expect(acc.open()).toBe(3);
     tick(ACC_TRANSITION_MS);
     // A target that was still waiting is dropped when the pointer left.
-    acc.move(1, 10, 40, 9000);
+    acc.move(2, 10, 80, 9000);
     tick(ACC_REST_MS + 10);
+    expect(acc.open()).toBe(2);
+    acc.move(1, 10, 40, 9400);
+    tick(ACC_REST_MS + 10);
+    expect(acc.open()).toBe(2);
     acc.leave();
     tick(ACC_TRANSITION_MS * 2 + ACC_REST_MS);
-    expect(acc.open()).toBe(3);
+    expect(acc.open()).toBe(2);
     acc.destroy();
   }));
 });
