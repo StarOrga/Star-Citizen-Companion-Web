@@ -782,7 +782,6 @@ export class CodexBrowseComponent implements OnInit {
   readonly freshAvailable = computed(() => NEW_SORT_KINDS.includes(this.kind()));
   private readonly auth = inject(AuthService);
   private readonly itemPath = inject(ItemPathService);
-  private readonly inventory = inject(HqInventoryService);
   /** `?own=1` (blueprints, signed in): only the blueprints the reader has. */
   readonly ownedOnly = signal(false);
   /** The owned filter and the "Ich habe diese" toggle: blueprint list, signed-in readers only. */
@@ -2424,9 +2423,10 @@ export class CodexBrowseComponent implements OnInit {
   private ownedRestriction(kind: CodexKind): Promise<string[]> | undefined {
     if (kind !== 'blueprint' || !this.ownedOnly() || !this.auth.user()) return undefined;
     return (async () => {
-      if (!this.inventory.loaded()) {
-        await this.inventory.load();
-        const err = this.inventory.error();
+      const inventory = this.injector.get(HqInventoryService);
+      if (!inventory.loaded()) {
+        await inventory.load();
+        const err = inventory.error();
         if (err) throw new Error(err);
       }
       return [...this.ownedBlueprints()];

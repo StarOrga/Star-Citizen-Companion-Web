@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.9",
+  "current": "0.225.10",
   "releases": [
+    {
+      "version": "0.225.10",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex blueprint list: signed-in readers get an \"Only mine\" filter (?own=1) and an \"I have this blueprint\" toggle per row, a second way besides the SCC App to mark a blueprint as owned. Both use the HQ inventory blueprint shelf the item path already writes."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.9",
       "date": "2026-11-07",
