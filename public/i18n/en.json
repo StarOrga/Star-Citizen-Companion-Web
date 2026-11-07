@@ -4044,7 +4044,6 @@
       "roleLabel": "Role"
     },
     "detail": {
-      "notFound": "This hangar entry does not exist.",
       "loading": "Loading…",
       "save": "Save",
       "rename": "Rename",
@@ -4058,9 +4057,7 @@
         "bodyNone": "This cannot be undone.",
         "bodyOne": "This ship's configuration is deleted with it. This cannot be undone.",
         "bodyMany": "This ship's {{count}} configurations are deleted with it. This cannot be undone."
-      },
-      "loadFailed": "Hangar entry could not be loaded",
-      "codexFailed": "The Codex data for this ship could not be loaded."
+      }
     },
     "configs": {
       "title": "Configurations",

@@ -4044,7 +4044,6 @@
       "roleLabel": "Rolle"
     },
     "detail": {
-      "notFound": "Dieser Hangar-Eintrag existiert nicht.",
       "loading": "Lädt…",
       "save": "Speichern",
       "rename": "Umbenennen",
@@ -4058,9 +4057,7 @@
         "bodyNone": "Das lässt sich nicht rückgängig machen.",
         "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
         "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
-      },
-      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden",
-      "codexFailed": "Die Codex-Daten zu diesem Schiff konnten nicht geladen werden."
+      }
     },
     "configs": {
       "title": "Konfigurationen",
