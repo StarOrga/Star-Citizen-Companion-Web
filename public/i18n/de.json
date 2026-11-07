@@ -2476,7 +2476,10 @@
         "legendAbove": "über Median",
         "legendBelow": "unter Median",
         "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum höchsten Wert der gewählten Vergleichswaffen (Rand). Blau ist diese Waffe, die gestrichelte Linie der Median der Gruppe.",
-        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten."
+        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten.",
+        "gapNoData": "Der aktuelle Datenstand enthält noch keine Werte für Schaden, Geschwindigkeit, Wendigkeit und Reichweite. Die Einordnung erscheint, sobald ein Build mit dem Data Uploader 0.73.3 oder neuer hochgeladen ist.",
+        "gapTooFew": "Zu wenige Lenkwaffen unterscheiden sich in Schaden, Geschwindigkeit, Wendigkeit und Reichweite, um diese hier einzuordnen.",
+        "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden."
       },
       "data": {
         "title": "Waffendaten",
