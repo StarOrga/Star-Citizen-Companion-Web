@@ -12,7 +12,7 @@ from sc_extract.assets3d.datacore import port_types_with_subtypes
 from sc_extract.assets3d.entity import EntityDef, LoadoutEntry, PortDef, resolve_entity
 from sc_extract.assets3d.fps import (FpsSource, IVO_COMPILED_BONES, body_path, body_sources,
                                      bones_from_chr, is_attachment_port, is_fps_weapon_record,
-                                     parse_cdf)
+                                     model_is_mesh, parse_cdf)
 from sc_extract.assets3d.items import is_item_record
 from sc_extract.assets3d.package import build_manifest
 from sc_extract.assets3d.parts import glb_bounds, merge_glbs
@@ -184,6 +184,33 @@ def test_fps_source_places_attachments_on_bones_and_lists_empty_slots():
     assert by["optics_attach"]["position"] == pytest.approx([0.0, 0.15, -0.03])
     # no bone for the barrel on this rig -> listed, not placeable
     assert by["barrel_attach"]["position"] is None and by["barrel_attach"]["port"]["maxSize"] == 2
+
+
+def test_cdf_with_a_mesh_model_uses_it_as_body_and_its_nodes_as_helpers():
+    """LIVE 4.10: none_* guns, P8-AR, Gallant — the .cdf Model is a .cga and the
+    only attachment is the chambered round. Before, the body came out empty and
+    every tint variant logged "package skipped"."""
+    cga = "Data/objects/fps_weapons/w/gun.cga"
+    cdf = (b'<CharacterDefinition><Model File="objects/fps_weapons/w/gun.cga"/><AttachmentList>'
+           b'<Attachment Type="CA_BONE" AName="bullet" Binding="objects/fps_weapons/ammo/x.cgf" BoneName="bullet"/>'
+           b'</AttachmentList></CharacterDefinition>')
+    cd = parse_cdf(cdf)
+    assert model_is_mesh(cd)
+    assert body_sources(cd, {}) == [(cga, None, None)]
+    nodes = {"magAttach": {"position": [0.0, -0.01, -0.17], "rotation": [0, 0, 0, 1]}}
+    base = _Base({}, {}, {}, {cga: nodes})
+    src = FpsSource(base, _Reader({CDF: cdf, cga: b"#ivo"}))
+    assert src.helpers(CDF) == nodes
+    assert not model_is_mesh(parse_cdf(b'<CharacterDefinition><Model File="w/gun.chr"/></CharacterDefinition>'))
+
+
+def test_skipped_packages_collapse_into_one_line():
+    from sc_extract.skin_export_app import skipped_summary
+    names = [f"none_special_ballistic_01_tint{i:02d}" for i in range(10)]
+    line = skipped_summary("fps", names)
+    assert line.startswith("fps: 10 package(s) skipped")
+    assert "tint07" in line and "tint08" not in line and line.endswith("(+2 more)")
+    assert skipped_summary("fps", ["a"]).endswith(": a")
 
 
 def test_item_kind_is_valid():

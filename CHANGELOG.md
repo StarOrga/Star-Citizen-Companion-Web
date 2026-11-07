@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.6] - 2026-11-07
+
+### Fixed
+- Data uploader 0.75.1: FPS weapons whose model is a single mesh (every unbranded gun, the Behring P8-AR, the Hedeby Gallant and their paint variants) now get a 3D package instead of a "package skipped" warning per variant; leftover skips are one summary line per run.
+
 ## [0.225.5] - 2026-11-07
 
 ### Fixed
