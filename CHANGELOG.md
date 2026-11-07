@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.8] - 2026-11-07
+
+### Fixed
+- Data uploader 0.75.2: after the ships, the weapon, item and armor package upload shows its own progress instead of sitting on "312 / 312", and uploads four packages at once.
+
 ## [0.225.7] - 2026-11-07
 
 ### Fixed

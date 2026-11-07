@@ -13,7 +13,7 @@ import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
 import { fetchWithTimeout, isTimeout, putTimeoutMs } from '../lib/fetch-timeout.js';
 import { isSkinGateCode, type SkinGateCode } from '../lib/skin-upload-summary.js';
-import { isShipFolder } from '../lib/asset-package.js';
+import { isShipFolder, mapLimit } from '../lib/asset-package.js';
 import { exportRootOf, uploadPackage, type PackageUploadResult } from './asset-package-ingest.js';
 import { uploadBlueprint, type BlueprintUploadResult } from './blueprint-ingest.js';
 
@@ -101,7 +101,20 @@ export interface SkinUploadHooks {
    * progress card has nothing to paint and the run reads as frozen.
    */
   onProgress?: (done: number, total: number, shipId: string) => void;
+  /**
+   * Fired after every FPS weapon / item / armor package. That phase runs after
+   * the last ship inside the same call and can take hours (thousands of armor
+   * packages), so it needs its own bar — otherwise the card sits on
+   * "312 / 312" and reads as hung.
+   */
+  onPackageProgress?: (kind: PackageKind, done: number, total: number, className: string) => void;
 }
+
+/** Package kinds uploaded after the ships, in run order. */
+export type PackageKind = 'fps_weapon' | 'item' | 'armor';
+
+/** Packages of one kind uploaded at once. Each is a sign → PUT → commit round trip. */
+const PACKAGE_CONCURRENCY = 4;
 
 const fnUrl = (name: string): string => `${API_BASE}/functions/v1/${name}`;
 
@@ -388,15 +401,22 @@ export async function uploadSkins(
         ? readdirSync(kindDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
         : [];
       let ok = 0;
+      let doneCount = 0;
       let gated = false;
-      for (const className of classes) {
+      if (classes.length) hooks.onPackageProgress?.(kind, 0, classes.length, '');
+      // Sequential, one package took ~4–5 s of round trips — 4435 armor
+      // packages were ~5 h. A few at a time; the gate stops the remaining ones.
+      await mapLimit(classes, PACKAGE_CONCURRENCY, async (className) => {
+        if (gated) return;
+        hooks.control?.checkpoint();
         const r = await uploadPackage(
           { kind, dir: resolve(kindDir, className), outRoot: root },
           { call: (body) => callIngest(getToken, body), onLog, control: hooks.control, known: knownObjects },
         );
         if (r.ok) ok++;
-        if (r.gate) { gated = true; break; }
-      }
+        if (r.gate) gated = true;
+        hooks.onPackageProgress?.(kind, ++doneCount, classes.length, className);
+      });
       if (classes.length) onLog(`${label} packages: ${ok}/${classes.length} live`, ok === classes.length ? 'info' : 'warn');
       if (gated) break;
     }
