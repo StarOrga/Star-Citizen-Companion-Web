@@ -98,7 +98,7 @@ describe('HqOverviewComponent', () => {
     const cfg = { id: 'cfg-1', hangarShipId: 's1', name: 'PvP', isActive: true } as HangarShipConfig;
     const { el } = setup({ ships: [ship('s1', 'AEGS_Gladius')], configs: [cfg] });
     const main = el.querySelector('a.tile-main');
-    expect(main?.getAttribute('href')).toBe('/hq/hangar/s1');
+    expect(main?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius?v=cfg-1');
     expect(main?.textContent).toContain('PvP');
     expect(el.querySelector('a.tile-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius?v=cfg-1');
   });
@@ -115,7 +115,7 @@ describe('HqOverviewComponent', () => {
     chips[1].click();
     fixture.detectChanges();
     expect(hangar.markShipPicked).toHaveBeenCalledWith('B_Two');
-    expect(el.querySelector('a.tile-main')?.getAttribute('href')).toBe('/hq/hangar/s2');
+    expect(el.querySelector('a.tile-main')?.getAttribute('href')).toBe('/codex/ship/B_Two?mine=');
   });
 
   it('links the active set into the locker', () => {

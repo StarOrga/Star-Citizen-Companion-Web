@@ -185,7 +185,7 @@ describe('searchOwn (A2, C11, C12)', () => {
   it('finds a ship by its own name; the ship type leads, the own name follows (B2)', () => {
     const r = searchOwn('nachtfalke', src, { nameOf });
     expect(r.rows[0]).toEqual(jasmine.objectContaining({ ownKind: 'ship', title: 'Aegis Gladius', ownName: 'Nachtfalke' }));
-    expect(r.rows[0].target.link).toEqual(['/hq/hangar', 'h1']);
+    expect(r.rows[0].target.link).toEqual(['/codex/ship', 'AEGS_Gladius']);
   });
 
   it('two copies of one type are two rows with different names', () => {
