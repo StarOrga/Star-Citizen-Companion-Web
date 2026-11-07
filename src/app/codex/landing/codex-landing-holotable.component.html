@@ -66,7 +66,9 @@
           <sc-codex-landing-set-toggle class="set" [style.--at.s]="idAt()" />
         }
 
-        <div class="kennung" [style.--at.s]="idAt()" [style.--chars]="nameChars()">
+        <div class="kennung" [style.--at.s]="idAt()" [style.--chars]="nameChars()"
+             [class.k-calls]="!!callSpan()" [style.--k-top.%]="callSpan()?.top" [style.--k-bot.%]="callSpan()?.bottom"
+             [style.--k-top-cmp]="callSpan()?.topCmp" [style.--k-bot-cmp]="callSpan()?.bottomCmp">
           <span class="k-dim" aria-hidden="true"></span>
           <div class="k-head">
             <p class="k-eye">

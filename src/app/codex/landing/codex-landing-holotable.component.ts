@@ -236,6 +236,20 @@ export class CodexLandingHolotableComponent {
     });
   });
 
+  /**
+   * Vertical span of the callout column (centre of the first and the last
+   * callout, % of the air): the Kennung's bracket matches it, so both sides of
+   * the hologram stand equally tall. Below three callouts the column is too
+   * short for name and facts, and the bracket keeps the hologram's height.
+   */
+  readonly callSpan = computed<{ top: number; bottom: number; topCmp: number; bottomCmp: number } | null>(() => {
+    const c = this.callouts();
+    if (c.length < 3) return null;
+    const first = c[0];
+    const last = c[c.length - 1];
+    return { top: first.y, bottom: last.y, topCmp: first.cmp ? 1 : 0, bottomCmp: last.cmp ? 1 : 0 };
+  });
+
   /** The ship offers the Flug / Loadout switch (#884). */
   readonly canSwitch = computed(() => hasLoadoutSet(this.item()));
   /** The item the callouts were last built for and whether its set was switched since. */
