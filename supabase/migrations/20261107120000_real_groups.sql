@@ -7,47 +7,55 @@
 -- TRUST MODEL
 --   * friend_groups  = the owner's private address-book list. Members never know,
 --                      never see each other, need a friendship with the owner.
---                      UNCHANGED by this migration (#903 H5).
 --   * sc_groups      = a place members JOIN (invite code) and LEAVE. Joining is
 --                      the opt-in. No friendship is needed or created.
 --
 -- NO TABLE IS DROPPED. friend_groups, friend_group_members, friend_shares and
--- every function of 20261105120000 keep their behaviour. Only three functions
--- are re-created, each strictly ADDING a group branch (see PART 4):
--- einsatz_access(), einsatz_crew_json(), list_einsaetze_shared_with_me().
+-- every function of 20261105120000 keep their behaviour, except four re-created
+-- functions that each ADD a group clause (PART 4):
+--   einsatz_access(), einsatz_crew_json(), list_einsaetze_shared_with_me(), and
+--   friendships_after_delete(), whose RSVP delete now spares a person who still
+--   reaches the Einsatz through a group. For a friend-only Einsatz the friend
+--   share is deleted earlier in the same trigger, so that delete is unchanged.
 --
--- WHAT A MEMBER SEES ABOUT OTHER MEMBERS (decision, binding):
---   * member list: display_name, username, role, joined_at. Nothing else - no
---     hangar, presence, stats, e-mail, friendships or other groups.
---   * on an Einsatz shared with the group: the Einsatz itself (title, steps
---     without supply ids), the crew slots, the three RSVP counts, the caller's own
---     answer, and the NAME on a taken slot when taker and viewer are both members
---     of a group that holds this Einsatz. The full answer list (who said what)
---     stays owner-only, exactly as for friend shares.
---   * friend shares are not widened: the "taker" rule for friends is unchanged,
---     the group clause is an extra OR that needs a common group + this Einsatz.
+-- WHAT A MEMBER SEES ABOUT OTHER MEMBERS:
+--   * member list: display_name, username, role, joined_at, and is_me. Members
+--     in a user block with the caller, and suspended or unapproved accounts, are
+--     left out (the blocked account must stay indistinguishable from a
+--     nonexistent one, social_graph_reports.sql). member_count uses the same
+--     filter.
+--   * on an Einsatz shared with the group: the Einsatz, its steps (no supply ids),
+--     the crew slots, the three RSVP counts and the caller's own answer. The NAME
+--     on a taken slot only when taker and viewer share a group holding the
+--     Einsatz and are not blocked. The full answer list stays owner-only.
+--   * Nothing about hangar, presence, stats, e-mail, friendships or other groups.
 --
 -- SECURITY DESIGN
---   * RLS on all three tables. Tables get SELECT only for `authenticated`, and
---     only rows of groups the caller is a member of, via sc_group_is_mine()
---     (security definer, reads auth.uid() itself, so it cannot be used as a
---     membership oracle for another user, and the policy does not recurse into
---     the policy of the table it protects). sc_groups.invite_code is excluded by
---     a COLUMN grant: only the RPCs hand it out, and only to owner/admin.
---   * No INSERT/UPDATE/DELETE grant, no write policy: every mutation is a
---     security definer RPC with `set search_path = public`, so no client can
---     write its own role or membership.
---   * Invite code: 16 hex chars from gen_random_uuid() (CSPRNG, 64 bit), stored
---     upper-case, unique, expires after 30 days or on rotation. join_group()
---     answers a wrong, expired or rotated code identically (NULL), cannot be
---     used to enumerate groups, and is throttled to 10 failures / 15 min / user
---     (failures are recorded in sc_group_join_fails, which has no client grant).
---   * Caps: 20 memberships per user, 50 members per group.
---   * Last owner: leave/remove/role change can never leave a group without an
---     owner ('last_owner'); a lone owner deletes the group instead.
+--   * RLS is enabled on every table and NOTHING is granted to anon or
+--     authenticated: no policy, no table grant, like the rest of the social area.
+--     Every read and write is a security definer RPC with `set search_path =
+--     public`, which applies is_approved(), blocks and suspension. No client can
+--     write its own role or membership, or read invite_code.
+--   * sc_group_member()/sc_group_role() are internal (no client grant), so the
+--     membership check is no oracle about other users.
+--   * Invite code: 16 hex chars from gen_random_uuid() (64 bit), unique, valid 30
+--     days, replaced on rotation, shown to owner/admin only. join_group() answers
+--     a wrong, expired or rotated code with NULL, cannot enumerate groups, and
+--     throttles to 10 failures / 15 min / user. It deliberately does NOT refuse a
+--     blocked user: a refusal would reveal the block.
+--   * Concurrency: group mutations take `select ... for update` on the sc_groups
+--     row first and read roles afterwards; create/join also take a per-user
+--     advisory lock, so the caps (20 groups per user, 50 members per group) hold
+--     under parallel calls.
+--   * A group never ends without an owner: leave/remove/role change check that an
+--     owner remains ('last_owner'), and an AFTER DELETE trigger on
+--     sc_group_members covers account deletion (promote the oldest admin, else
+--     the oldest member, delete an empty group).
+--   * Answers do not survive losing access: leaving, removal, unsharing and
+--     deleting a group delete the RSVPs/slot takes of whoever no longer reaches
+--     the Einsatz.
 --   * execute is revoked from public/anon on everything; only `authenticated`
---     gets the RPCs, and the internal helpers get no grant at all.
---   * Errors are one-word codes like the rest of the social area.
+--     gets the RPCs, internal helpers get no grant. Errors are one-word codes.
 -- ============================================================
 
 
@@ -88,7 +96,7 @@ create table if not exists public.sc_group_einsatz_shares (
 create index if not exists sc_group_einsatz_shares_einsatz_idx on public.sc_group_einsatz_shares (einsatz_id);
 create index if not exists sc_group_einsatz_shares_owner_idx on public.sc_group_einsatz_shares (owner_id);
 
--- Failed join attempts, for the throttle only. No client grant.
+-- Failed join attempts, for the throttle only.
 create table if not exists public.sc_group_join_fails (
   user_id uuid not null references auth.users (id) on delete cascade,
   at      timestamptz not null default now()
@@ -96,10 +104,11 @@ create table if not exists public.sc_group_join_fails (
 create index if not exists sc_group_join_fails_user_idx on public.sc_group_join_fails (user_id, at);
 
 comment on table public.sc_groups is
-  'Real, joinable groups (#903). Written only through the group RPCs; invite_code is not readable by clients.';
+  'Real, joinable groups (#903). RPC-only: no policy, no client grant.';
 comment on table public.sc_group_members is
-  'Membership and role. Role is written only by the group RPCs; exactly the owner role is protected from removal of the last owner.';
+  'Membership and role (#903). RPC-only: no policy, no client grant.';
 
+-- RLS on, no policy, no grant: the RPCs below are the only way in.
 alter table public.sc_groups enable row level security;
 alter table public.sc_group_members enable row level security;
 alter table public.sc_group_einsatz_shares enable row level security;
@@ -109,10 +118,9 @@ revoke all on table public.sc_groups, public.sc_group_members,
 
 
 -- ============================================================
--- PART 2 - membership helpers (the only things policies call)
+-- PART 2 - internal helpers (no grant to any client role)
 -- ============================================================
 
--- Is p_user in p_group? Internal: takes any user, therefore NO client grant.
 create or replace function public.sc_group_member(p_group uuid, p_user uuid)
 returns boolean language sql security definer set search_path = public stable as $$
   select p_user is not null and exists (
@@ -120,42 +128,10 @@ returns boolean language sql security definer set search_path = public stable as
   );
 $$;
 
--- The caller's role in the group, null when not a member. Internal.
 create or replace function public.sc_group_role(p_group uuid, p_user uuid)
 returns text language sql security definer set search_path = public stable as $$
   select m.role from public.sc_group_members m where m.group_id = p_group and m.user_id = p_user;
 $$;
-
--- For the RLS policies: is the CALLER in the group? auth.uid() is read inside,
--- so this is no oracle about anybody else, and as a security definer it reads
--- sc_group_members without re-entering its policy (no recursion).
-create or replace function public.sc_group_is_mine(p_group uuid)
-returns boolean language sql security definer set search_path = public stable as $$
-  select public.sc_group_member(p_group, auth.uid());
-$$;
-
-revoke all on function public.sc_group_member(uuid, uuid) from public, anon, authenticated;
-revoke all on function public.sc_group_role(uuid, uuid) from public, anon, authenticated;
-revoke all on function public.sc_group_is_mine(uuid) from public, anon;
-grant execute on function public.sc_group_is_mine(uuid) to authenticated;
-
--- Policies. SELECT only; no write policy exists, and no write grant either.
-drop policy if exists sc_groups_member_read on public.sc_groups;
-create policy sc_groups_member_read on public.sc_groups
-  for select to authenticated using (public.sc_group_is_mine(id));
-
-drop policy if exists sc_group_members_member_read on public.sc_group_members;
-create policy sc_group_members_member_read on public.sc_group_members
-  for select to authenticated using (public.sc_group_is_mine(group_id));
-
-drop policy if exists sc_group_einsatz_shares_member_read on public.sc_group_einsatz_shares;
-create policy sc_group_einsatz_shares_member_read on public.sc_group_einsatz_shares
-  for select to authenticated using (public.sc_group_is_mine(group_id));
-
--- Column grant: the invite code is deliberately not in the list.
-grant select (id, name, invite_expires_at, created_by, created_at) on public.sc_groups to authenticated;
-grant select (group_id, user_id, role, joined_at) on public.sc_group_members to authenticated;
-grant select (group_id, einsatz_id, owner_id, created_at) on public.sc_group_einsatz_shares to authenticated;
 
 -- A new 16-char code. Loops on the (practically impossible) collision.
 create or replace function public.sc_group_new_code()
@@ -170,11 +146,32 @@ begin
   return c;
 end;
 $$;
+
+-- Takes the row lock every group mutation starts with. False when the group does
+-- not exist.
+create or replace function public.sc_group_lock(p_group uuid)
+returns boolean language plpgsql security definer set search_path = public as $$
+begin
+  perform 1 from public.sc_groups g where g.id = p_group for update;
+  return found;
+end;
+$$;
+
+-- Does a group still have an owner? Call after the lock.
+create or replace function public.sc_group_has_owner(p_group uuid)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.sc_group_members m where m.group_id = p_group and m.role = 'owner');
+$$;
+
+revoke all on function public.sc_group_member(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.sc_group_role(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.sc_group_new_code() from public, anon, authenticated;
+revoke all on function public.sc_group_lock(uuid) from public, anon, authenticated;
+revoke all on function public.sc_group_has_owner(uuid) from public, anon, authenticated;
 
 
 -- ============================================================
--- PART 3 - group RPCs (create, join, rotate, leave, remove, role, delete, list)
+-- PART 3 - group RPCs
 -- ============================================================
 
 create or replace function public.create_group(p_name text)
@@ -188,6 +185,7 @@ begin
   if char_length(v_name) not between 1 and 40 then
     raise exception 'invalid_name' using errcode = '22023';
   end if;
+  perform pg_advisory_xact_lock(hashtextextended('sc_groups:' || caller::text, 0));
   if (select count(*) from public.sc_group_members m where m.user_id = caller) >= 20 then
     raise exception 'team_limit' using errcode = '22023';
   end if;
@@ -200,7 +198,8 @@ end;
 $$;
 
 -- Joins by code. A wrong / expired / rotated code returns NULL (never raises, so
--- the failure row survives the transaction and feeds the throttle).
+-- the failure row survives the transaction and feeds the throttle). A blocked
+-- user is NOT refused: that would reveal the block.
 create or replace function public.join_group(p_code text)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare
@@ -208,6 +207,7 @@ declare
   v_code text := upper(regexp_replace(coalesce(p_code, ''), '[^0-9A-Za-z]', '', 'g'));
   v_group uuid;
 begin
+  perform pg_advisory_xact_lock(hashtextextended('sc_groups:' || caller::text, 0));
   if (select count(*) from public.sc_group_join_fails f
        where f.user_id = caller and f.at > now() - interval '15 minutes') >= 10 then
     raise exception 'rate_limited' using errcode = '54000';
@@ -215,6 +215,12 @@ begin
 
   select g.id into v_group from public.sc_groups g
    where g.invite_code = v_code and g.invite_expires_at > now();
+  if v_group is not null then
+    -- Lock, then re-check: a rotation or delete may have won the race.
+    perform 1 from public.sc_groups g
+     where g.id = v_group and g.invite_code = v_code and g.invite_expires_at > now() for update;
+    if not found then v_group := null; end if;
+  end if;
   if v_group is null then
     delete from public.sc_group_join_fails f where f.user_id = caller and f.at < now() - interval '1 hour';
     insert into public.sc_group_join_fails (user_id) values (caller);
@@ -243,7 +249,8 @@ declare
   v_code text;
   v_exp timestamptz;
 begin
-  if coalesce(public.sc_group_role(p_group, caller), '') not in ('owner', 'admin') then
+  if not public.sc_group_lock(p_group)
+     or coalesce(public.sc_group_role(p_group, caller), '') not in ('owner', 'admin') then
     raise exception 'group_not_found' using errcode = 'P0002';
   end if;
   v_code := public.sc_group_new_code();
@@ -253,17 +260,37 @@ begin
 end;
 $$;
 
+-- Deletes the answers and slot takes of everybody who no longer reaches one of
+-- the Einsatz (the owner's own answers stay). Call AFTER the membership/share
+-- change. The slot is freed with the row.
+create or replace function public.sc_group_prune_answers(p_einsaetze uuid[])
+returns void language sql security definer set search_path = public as $$
+  delete from public.einsatz_rsvps r
+   using public.hq_einsaetze e
+   where r.einsatz_id = e.id
+     and r.einsatz_id = any (coalesce(p_einsaetze, '{}'))
+     and r.user_id <> e.user_id
+     and not public.einsatz_access(r.einsatz_id, r.user_id);
+$$;
+revoke all on function public.sc_group_prune_answers(uuid[]) from public, anon, authenticated;
+
 create or replace function public.leave_group(p_group uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare
   caller uuid := public.social_actor();
-  v_role text := public.sc_group_role(p_group, caller);
+  v_role text;
+  v_ids uuid[];
 begin
+  if not public.sc_group_lock(p_group) then
+    raise exception 'group_not_found' using errcode = 'P0002';
+  end if;
+  v_role := public.sc_group_role(p_group, caller);
   if v_role is null then
     raise exception 'group_not_found' using errcode = 'P0002';
   end if;
-  -- Lock the member rows so two owners leaving at once cannot both pass.
-  perform 1 from public.sc_group_members m where m.group_id = p_group and m.role = 'owner' for update;
+  v_ids := array(select s.einsatz_id from public.sc_group_einsatz_shares s where s.group_id = p_group);
+  -- Checked BEFORE the delete: the after-delete trigger would otherwise promote
+  -- a successor and hide the refusal.
   if v_role = 'owner' and (
     select count(*) from public.sc_group_members m where m.group_id = p_group and m.role = 'owner'
   ) <= 1 then
@@ -271,6 +298,7 @@ begin
   end if;
   delete from public.sc_group_members where group_id = p_group and user_id = caller;
   delete from public.sc_group_einsatz_shares where group_id = p_group and owner_id = caller;
+  perform public.sc_group_prune_answers(v_ids);
 end;
 $$;
 
@@ -279,9 +307,15 @@ create or replace function public.remove_group_member(p_group uuid, p_member uui
 returns void language plpgsql security definer set search_path = public as $$
 declare
   caller uuid := public.social_actor();
-  v_mine text := public.sc_group_role(p_group, caller);
-  v_theirs text := public.sc_group_role(p_group, p_member);
+  v_mine text;
+  v_theirs text;
+  v_ids uuid[];
 begin
+  if not public.sc_group_lock(p_group) then
+    raise exception 'group_not_found' using errcode = 'P0002';
+  end if;
+  v_mine := public.sc_group_role(p_group, caller);
+  v_theirs := public.sc_group_role(p_group, p_member);
   if v_mine is null or v_theirs is null then
     raise exception 'group_not_found' using errcode = 'P0002';
   end if;
@@ -291,15 +325,16 @@ begin
   if not (v_mine = 'owner' or (v_mine = 'admin' and v_theirs = 'member')) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
+  v_ids := array(select s.einsatz_id from public.sc_group_einsatz_shares s where s.group_id = p_group);
+  -- The caller is an owner (an admin cannot remove an owner) and stays, so an
+  -- owner remains; the after-delete trigger is a no-op here.
   delete from public.sc_group_members where group_id = p_group and user_id = p_member;
   delete from public.sc_group_einsatz_shares where group_id = p_group and owner_id = p_member;
-  -- The member's answers on this group's Einsatz are not deleted: einsatz_access()
-  -- already stops counting them, and the slot is freed by respond_einsatz().
+  perform public.sc_group_prune_answers(v_ids);
 end;
 $$;
 
--- Owner only. Never the caller's own role (leave / transfer by promoting another
--- owner first), so the last owner cannot be demoted by accident.
+-- Owner only, never on oneself (leave, or promote another owner first).
 create or replace function public.set_group_member_role(p_group uuid, p_member uuid, p_role text)
 returns void language plpgsql security definer set search_path = public as $$
 declare caller uuid := public.social_actor();
@@ -307,7 +342,8 @@ begin
   if p_role is null or p_role not in ('owner', 'admin', 'member') then
     raise exception 'invalid_role' using errcode = '22023';
   end if;
-  if public.sc_group_role(p_group, caller) is distinct from 'owner'
+  if not public.sc_group_lock(p_group)
+     or public.sc_group_role(p_group, caller) is distinct from 'owner'
      or not public.sc_group_member(p_group, p_member) then
     raise exception 'group_not_found' using errcode = 'P0002';
   end if;
@@ -315,21 +351,64 @@ begin
     raise exception 'invalid_target' using errcode = '22023';
   end if;
   update public.sc_group_members set role = p_role where group_id = p_group and user_id = p_member;
+  if not public.sc_group_has_owner(p_group) then
+    raise exception 'last_owner' using errcode = '22023';
+  end if;
 end;
 $$;
 
 create or replace function public.delete_group(p_group uuid)
 returns void language plpgsql security definer set search_path = public as $$
-declare caller uuid := public.social_actor();
+declare
+  caller uuid := public.social_actor();
+  v_ids uuid[];
 begin
-  if public.sc_group_role(p_group, caller) is distinct from 'owner' then
+  if not public.sc_group_lock(p_group)
+     or public.sc_group_role(p_group, caller) is distinct from 'owner' then
     raise exception 'group_not_found' using errcode = 'P0002';
   end if;
+  v_ids := array(select s.einsatz_id from public.sc_group_einsatz_shares s where s.group_id = p_group);
   delete from public.sc_groups where id = p_group;
+  perform public.sc_group_prune_answers(v_ids);
 end;
 $$;
 
--- The caller's groups. The invite code only for owner/admin.
+-- Account deletion (or any other delete path) must not leave a group ownerless:
+-- promote the oldest admin, else the oldest member; an empty group is deleted.
+-- While a group row is itself being deleted the lookup finds nothing and returns.
+create or replace function public.sc_group_members_after_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_next uuid;
+begin
+  if old.role <> 'owner' then
+    return null;
+  end if;
+  perform 1 from public.sc_groups g where g.id = old.group_id for update;
+  if not found or public.sc_group_has_owner(old.group_id) then
+    return null;
+  end if;
+  select m.user_id into v_next
+    from public.sc_group_members m
+   where m.group_id = old.group_id
+   order by (m.role = 'admin') desc, m.joined_at, m.user_id
+   limit 1;
+  if v_next is null then
+    delete from public.sc_groups where id = old.group_id;
+  else
+    update public.sc_group_members set role = 'owner' where group_id = old.group_id and user_id = v_next;
+  end if;
+  return null;
+end;
+$$;
+revoke all on function public.sc_group_members_after_delete() from public, anon, authenticated;
+
+drop trigger if exists sc_group_members_after_delete on public.sc_group_members;
+create trigger sc_group_members_after_delete
+  after delete on public.sc_group_members
+  for each row execute function public.sc_group_members_after_delete();
+
+-- The caller's groups. The invite code only for owner/admin. member_count
+-- applies the member-list filter (no blocked, suspended or unapproved account).
 create or replace function public.list_my_groups()
 returns table (
   id uuid, name text, role text, member_count integer, joined_at timestamptz,
@@ -337,7 +416,10 @@ returns table (
 )
 language sql security definer set search_path = public stable as $$
   select g.id, g.name, m.role,
-         (select count(*)::integer from public.sc_group_members x where x.group_id = g.id),
+         (select count(*)::integer from public.sc_group_members x
+           where x.group_id = g.id
+             and public.social_peer_ok(x.user_id)
+             and not public.is_blocked_between(auth.uid(), x.user_id)),
          m.joined_at,
          case when m.role in ('owner', 'admin') then g.invite_code end,
          case when m.role in ('owner', 'admin') then g.invite_expires_at end
@@ -358,6 +440,7 @@ language sql security definer set search_path = public stable as $$
     and public.sc_group_member(p_group, auth.uid())
     and m.group_id = p_group
     and public.social_peer_ok(m.user_id)
+    and not public.is_blocked_between(auth.uid(), m.user_id)
   order by case m.role when 'owner' then 0 when 'admin' then 1 else 2 end, p.display_name nulls last, p.username
 $$;
 
@@ -397,6 +480,7 @@ begin
   if not found then
     raise exception 'share_not_found' using errcode = 'P0002';
   end if;
+  perform public.sc_group_prune_answers(array[p_einsatz]);
 end;
 $$;
 
@@ -412,28 +496,33 @@ language sql security definer set search_path = public stable as $$
 $$;
 
 -- Does a group reach p_viewer for this Einsatz? Owner AND viewer must both still
--- be members and both accounts in good standing.
+-- be members, not blocked with each other, both accounts in good standing, and
+-- the share's owner must really own the Einsatz.
 create or replace function public.einsatz_group_access(p_einsatz uuid, p_viewer uuid)
 returns boolean language sql security definer set search_path = public stable as $$
   select p_viewer is not null and exists (
     select 1 from public.sc_group_einsatz_shares s
+    join public.hq_einsaetze e on e.id = s.einsatz_id and e.user_id = s.owner_id
     where s.einsatz_id = p_einsatz
       and public.sc_group_member(s.group_id, s.owner_id)
       and public.sc_group_member(s.group_id, p_viewer)
       and public.social_peer_ok(s.owner_id)
       and public.social_peer_ok(p_viewer)
+      and not public.is_blocked_between(s.owner_id, p_viewer)
   );
 $$;
 
--- Do a and b share a group that holds this Einsatz (both members)?
+-- Do a and b share a group that holds this Einsatz (both members), unblocked?
 create or replace function public.einsatz_group_common(p_einsatz uuid, p_a uuid, p_b uuid)
 returns boolean language sql security definer set search_path = public stable as $$
-  select p_a is not null and p_b is not null and exists (
-    select 1 from public.sc_group_einsatz_shares s
-    where s.einsatz_id = p_einsatz
-      and public.sc_group_member(s.group_id, p_a)
-      and public.sc_group_member(s.group_id, p_b)
-  );
+  select p_a is not null and p_b is not null
+    and not public.is_blocked_between(p_a, p_b)
+    and exists (
+      select 1 from public.sc_group_einsatz_shares s
+      where s.einsatz_id = p_einsatz
+        and public.sc_group_member(s.group_id, p_a)
+        and public.sc_group_member(s.group_id, p_b)
+    );
 $$;
 revoke all on function public.einsatz_group_access(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.einsatz_group_common(uuid, uuid, uuid) from public, anon, authenticated;
@@ -497,8 +586,6 @@ returns jsonb language sql security definer set search_path = public stable as $
 $$;
 
 -- Re-created from 20261105120000: the reach CTE gains a second, group source.
--- The friend source keeps its are_friends() requirement; the group source
--- requires membership of owner and viewer instead.
 create or replace function public.list_einsaetze_shared_with_me()
 returns table (
   einsatz_id     uuid,
@@ -557,6 +644,44 @@ language sql security definer set search_path = public stable as $$
   order by e.planned_at nulls last, r.shared_at desc
 $$;
 
+-- Re-created from 20261105120000 with ONE change: the RSVP delete spares a
+-- person who still reaches the Einsatz (through a group). The friend share and
+-- friend-group rows are deleted by the statements above it, so for a friend-only
+-- Einsatz einsatz_access() is false there and the delete is exactly as before.
+create or replace function public.friendships_after_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.friend_group_members m
+   using public.friend_groups g
+   where m.group_id = g.id
+     and ((g.owner_id = old.user_low and m.member_id = old.user_high)
+       or (g.owner_id = old.user_high and m.member_id = old.user_low));
+
+  delete from public.friend_shares s
+   where (s.owner_id = old.user_low and s.shared_with = old.user_high)
+      or (s.owner_id = old.user_high and s.shared_with = old.user_low);
+
+  update public.loadout_shares s
+     set revoked_at = now()
+   where s.revoked_at is null
+     and ((s.owner_id = old.user_low and s.shared_with = old.user_high)
+       or (s.owner_id = old.user_high and s.shared_with = old.user_low));
+
+  delete from public.einsatz_rsvps r
+   using public.hq_einsaetze e
+   where r.einsatz_id = e.id
+     and ((e.user_id = old.user_low and r.user_id = old.user_high)
+       or (e.user_id = old.user_high and r.user_id = old.user_low))
+     and not public.einsatz_access(r.einsatz_id, r.user_id);
+
+  delete from public.social_visibility_overrides o
+   where (o.user_id = old.user_low and o.friend_id = old.user_high)
+      or (o.user_id = old.user_high and o.friend_id = old.user_low);
+  return null;
+end;
+$$;
+revoke all on function public.friendships_after_delete() from public, anon, authenticated;
+
 
 -- ============================================================
 -- PART 5 - grants
@@ -588,8 +713,8 @@ grant execute on function public.share_einsatz_with_group(uuid, uuid) to authent
 grant execute on function public.unshare_einsatz_from_group(uuid, uuid) to authenticated;
 grant execute on function public.list_einsatz_group_shares(uuid) to authenticated;
 
--- CREATE OR REPLACE keeps the grants of the originals; restated so a reader of
--- this file sees the end state: einsatz_access / einsatz_crew_json stay internal,
+-- CREATE OR REPLACE keeps the grants of the originals; restated so a reader sees
+-- the end state: einsatz_access / einsatz_crew_json stay internal,
 -- list_einsaetze_shared_with_me stays callable by authenticated only.
 revoke all on function public.einsatz_access(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.einsatz_crew_json(uuid, uuid, uuid) from public, anon, authenticated;

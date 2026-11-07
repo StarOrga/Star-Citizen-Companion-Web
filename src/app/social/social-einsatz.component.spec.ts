@@ -110,4 +110,50 @@ describe('SocialEinsatzComponent', () => {
     expect(el.textContent).toContain('social.einsatz.noneOwn');
     expect(el.textContent).toContain('social.einsatz.noneShared');
   });
+
+  const team = { id: 'g1', name: 'Crew', role: 'owner', member_count: 3, joined_at: '', invite_code: null, invite_expires_at: null };
+
+  it('invites a real group through the same invite button when there are no friends', async () => {
+    const rpc = setup(
+      {
+        list_friend_compare: () => ({ me: {}, friends: [] }),
+        list_my_groups: () => [team],
+        list_einsaetze_shared_with_me: () => [],
+        share_einsatz_with_group: () => 'created',
+        get_einsatz_crew: () => crew(),
+      },
+      [{ id: 'e1', title: 'Mining run', status: 'planned' }],
+    );
+    const { fixture, el } = await mount();
+    expect(el.textContent).not.toContain('social.einsatz.noFriends');
+    expect(el.textContent).not.toContain('social.einsatz.pickAudience');
+    Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.includes('social.einsatz.invite'))?.click();
+    for (let i = 0; i < 3; i++) {
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+    expect(rpc).toHaveBeenCalledWith('share_einsatz_with_group', { p_einsatz: 'e1', p_group: 'g1' });
+    expect(rpc).not.toHaveBeenCalledWith('share_einsatz', jasmine.anything());
+  });
+
+  it('offers the audience switch when both friends and groups exist, defaulting to a friend', async () => {
+    const rpc = setup(
+      {
+        list_friend_compare: compare,
+        list_my_groups: () => [team],
+        list_einsaetze_shared_with_me: () => [],
+        share_einsatz: () => 'created',
+        get_einsatz_crew: () => crew(),
+      },
+      [{ id: 'e1', title: 'Mining run', status: 'planned' }],
+    );
+    const { fixture, el } = await mount();
+    expect(el.querySelector('[aria-label="social.einsatz.pickAudience"], sc-select')).not.toBeNull();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.includes('social.einsatz.invite'))?.click();
+    for (let i = 0; i < 3; i++) {
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+    expect(rpc).toHaveBeenCalledWith('share_einsatz', { p_einsatz: 'e1', p_friend: 'f1', p_group: null });
+  });
 });
