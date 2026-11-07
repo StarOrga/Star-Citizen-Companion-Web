@@ -337,6 +337,9 @@ export interface RankResult<K extends string = KpiKey> {
    * whose discriminator the ship lacks is offered disabled, never silently
    * widened behind the user's back. */
   scopeAvailable: Record<RankScope, boolean>;
+  /** Ships per group (target included) for every scope the target can filter
+   * by — the Holotable says "nur N Schiffe" for a group under RANK_MIN_GROUP. */
+  scopeSizes: Partial<Record<RankScope, number>>;
 }
 
 /** Percentile band thresholds (MASTER §3). */
@@ -389,6 +392,39 @@ export function rankScopeAvailability<K extends string = KpiKey>(target: RankShi
     role: !!target.role,
     sizeClass: target.sizeClass != null,
   };
+}
+
+/** Ships per available group (target included); unavailable scopes are left out. */
+export function rankScopeSizes<K extends string = KpiKey>(
+  target: RankShipInput<K>,
+  cohort: readonly RankShipInput<K>[],
+  options: { careerByClass?: boolean } = {},
+): Partial<Record<RankScope, number>> {
+  const available = rankScopeAvailability(target);
+  const out: Partial<Record<RankScope, number>> = {};
+  for (const scope of ['all', 'career', 'role', 'sizeClass'] as const) {
+    if (available[scope]) out[scope] = filterCohort(target, cohort, scope, options).length;
+  }
+  return out;
+}
+
+/**
+ * The Holotable's default group on opening a ship: the narrowest one the ship
+ * belongs to (role → class → all). A group of the ship alone compares nothing,
+ * so it needs at least one other ship; a small group is still the default —
+ * the card says "nur N Schiffe" instead of widening it silently.
+ */
+export function narrowestRankScope<K extends string = KpiKey>(
+  target: RankShipInput<K>,
+  cohort: readonly RankShipInput<K>[],
+  options: { careerByClass?: boolean } = {},
+): RankScope {
+  const sizes = rankScopeSizes(target, cohort, options);
+  for (const scope of ['role', 'career'] as const) {
+    const n = sizes[scope];
+    if (n != null && n >= 2) return scope;
+  }
+  return 'all';
 }
 
 /** Where the radar's rim sits: the group's best value, or its 95th percentile. */
@@ -558,6 +594,7 @@ export function rankShip<K extends string = KpiKey>(
     band,
     bandKey: band ? `codex.rank.band.${band}` : null,
     scopeAvailable,
+    scopeSizes: rankScopeSizes(target, cohort, groupOpts),
   };
 }
 

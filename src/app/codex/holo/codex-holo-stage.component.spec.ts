@@ -521,18 +521,21 @@ describe('CodexHoloStageComponent one panel (concept glas3)', () => {
     { section: 'countermeasures', slots: [slot('hp_decoy', 'Decoy')] },
   ] as unknown as LayoutSection[];
 
-  it('has one panel with three tabs, the rank card and the journal live in theirs', async () => {
+  it('has one panel with three tabs, Einordnung first and open, Bauteile second', async () => {
     const f = await setup({ primaryModuleSections: sections });
     const c = f.componentInstance;
     const el: HTMLElement = f.nativeElement;
     expect(el.querySelectorAll('.holo-panel').length).toBe(1);
-    expect(el.querySelectorAll('[role="tab"]').length).toBe(3);
-    expect(el.querySelector('sc-codex-holo-inspector')).not.toBeNull();
-    (el.querySelector('#holo-tab-rank') as HTMLButtonElement).click();
-    f.detectChanges();
-    expect(el.querySelector('sc-codex-holo-inspector')).toBeNull();
+    const tabs = [...el.querySelectorAll('[role="tab"]')].map((t) => t.id);
+    expect(tabs).toEqual(['holo-tab-rank', 'holo-tab-parts', 'holo-tab-changes']);
+    expect(c.panelTab()).toBe('rank');
     expect(el.querySelector('.rankbody')).not.toBeNull();
     expect(el.querySelector('.statics')).not.toBeNull();
+    expect(el.querySelector('sc-codex-holo-inspector')).toBeNull();
+    (el.querySelector('#holo-tab-parts') as HTMLButtonElement).click();
+    f.detectChanges();
+    expect(el.querySelector('sc-codex-holo-inspector')).not.toBeNull();
+    expect(el.querySelector('.rankbody')).toBeNull();
     (el.querySelector('#holo-tab-changes') as HTMLButtonElement).click();
     f.detectChanges();
     expect(el.querySelector('sc-codex-holo-changes')).not.toBeNull();
@@ -543,11 +546,11 @@ describe('CodexHoloStageComponent one panel (concept glas3)', () => {
     const f = await setup({ primaryModuleSections: sections });
     const c = f.componentInstance;
     c.onTabKey(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
-    expect(c.panelTab()).toBe('rank');
+    expect(c.panelTab()).toBe('parts');
     c.onTabKey(new KeyboardEvent('keydown', { key: 'End' }));
     expect(c.panelTab()).toBe('changes');
     c.onTabKey(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
-    expect(c.panelTab()).toBe('parts');
+    expect(c.panelTab()).toBe('rank');
     c.onTabKey(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
     expect(c.panelTab()).toBe('changes');
   });

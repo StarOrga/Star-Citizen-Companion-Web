@@ -196,13 +196,14 @@ import {
   rankClassOfCareer,
   rankProfileDisabledReason,
   rankTargetShipInput,
-  RANK_MIN_GROUP,
   RankClassId,
+  narrowestRankScope,
   readRankScopePref,
   rankShip,
   resolveCareerLabel,
   writeRankScopePref,
 } from './codex-rank';
+import { CodexPrefsService } from './codex-prefs.service';
 import {
   CodexDefensivePanelComponent,
   CodexOffensivePanelComponent,
@@ -3371,8 +3372,23 @@ export class CodexDetailComponent implements OnInit {
   // so the choice follows the user to another browser.
   /** The stored/picked group; null = never chosen. */
   readonly rankScopeChosen = signal<RankScope | null>(readRankScopePref(null));
-  /** Never chosen: Alle in the classic card (untouched), Karriere/Rolle in the Holotable. A stored choice applies to both. */
-  readonly rankScope = computed<RankScope>(() => this.rankScopeChosen() ?? (this.holoView() ? 'role' : 'all'));
+  private readonly codexPrefs = inject(CodexPrefsService);
+  /** The Holotable's default group: the narrowest one this ship belongs to. */
+  private readonly holoNarrowestScope = computed<RankScope>(() => {
+    const target = this.rankShipInput();
+    const cohort = this.rankCohort();
+    return target && cohort ? narrowestRankScope(target, cohort, { careerByClass: true }) : 'role';
+  });
+  /**
+   * Classic card: the account-wide choice, Alle when never chosen (untouched).
+   * Holotable (concept r1-default): the group clicked for THIS ship within the
+   * last 12 hours, else the narrowest group — another ship never inherits it.
+   */
+  readonly rankScope = computed<RankScope>(() =>
+    this.holoView()
+      ? (this.codexPrefs.shipRankScope(this.shipClassName()) ?? this.holoNarrowestScope())
+      : (this.rankScopeChosen() ?? 'all'),
+  );
   private readonly accountPrefs = inject(AccountPrefsService);
   private readonly rankScopeFromAccount = effect(() => {
     const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
@@ -3383,6 +3399,10 @@ export class CodexDetailComponent implements OnInit {
   });
 
   setRankScope(scope: RankScope): void {
+    if (this.holoView()) {
+      this.codexPrefs.setShipRankScope(this.shipClassName(), scope);
+      return;
+    }
     this.rankScopeChosen.set(scope);
     writeRankScopePref(scope);
     this.accountPrefs.set(RANK_SCOPE_ACCOUNT_KEY, scope);
@@ -3466,13 +3486,14 @@ export class CodexDetailComponent implements OnInit {
     const cohort = this.rankCohort();
     if (!target || !cohort) return null;
     // Holotable: rim at the group's 95th percentile, a "Karriere" group is the
-    // class, a group under RANK_MIN_GROUP widens (role -> class -> all).
-    // The classic card keeps the best-value rim and the raw career.
+    // class, and the picked group applies even under RANK_MIN_GROUP (the card
+    // says "nur N Schiffe", concept r1-small). The classic card keeps the
+    // best-value rim and the raw career.
     const holo = this.holoView();
     return rankShip(target, cohort, {
       profile: this.rankProfile(),
       scope: this.rankScope(),
-      ...(holo ? { rim: 'p95' as const, careerByClass: true, minGroup: RANK_MIN_GROUP } : {}),
+      ...(holo ? { rim: 'p95' as const, careerByClass: true } : {}),
     });
   });
 

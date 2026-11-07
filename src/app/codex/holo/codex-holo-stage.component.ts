@@ -110,9 +110,10 @@ interface MissionSegment {
 
 /** The panel's three tabs (concept glas3). */
 export type HoloPanelTab = 'parts' | 'rank' | 'changes';
+/** Einordnung first and open by default; focusing a part switches to Bauteile (concept r1, note 4). */
 const PANEL_TABS: readonly { id: HoloPanelTab; labelKey: string; icon: string }[] = [
-  { id: 'parts', labelKey: 'codex.holo.stage.tab.parts', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { id: 'rank', labelKey: 'codex.holo.stage.einordnung', icon: 'M12 3l8 4.5v9L12 21l-8-4.5v-9z' },
+  { id: 'parts', labelKey: 'codex.holo.stage.tab.parts', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
   { id: 'changes', labelKey: 'codex.holo.stage.tab.changes', icon: 'M4 12a8 8 0 1 0 3-6.2M4 4v5h5M12 8v4l3 2' },
 ];
 
@@ -1132,7 +1133,7 @@ export class CodexHoloStageComponent {
   /** "Alle Teile": every dot on the model and every row in the panel. */
   readonly hotspotScope = signal<HotspotScope>('swappable');
   readonly panelTabs = PANEL_TABS;
-  readonly panelTab = signal<HoloPanelTab>('parts');
+  readonly panelTab = signal<HoloPanelTab>('rank');
   readonly panelTabIndex = computed(() => PANEL_TABS.findIndex((t) => t.id === this.panelTab()));
   /** The package's rows, for the panel under "Alle Teile". */
   readonly packageRows = computed<readonly PlacementRow[]>(() => this.assetViewer()?.rows() ?? []);
@@ -1293,7 +1294,7 @@ export class CodexHoloStageComponent {
       untracked(() => {
         this.previewFailed.set(false);
         this.closeInspector();
-        this.panelTab.set('parts');
+        this.panelTab.set('rank');
         this.hotspotScope.set('swappable');
         this.sharePopoverOpen.set(false);
         const pref = CodexHoloStageComponent.readSurfacePref();

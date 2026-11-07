@@ -2,6 +2,7 @@ import {
   cohortCacheKey,
   filterCohort,
   groupScale,
+  narrowestRankScope,
   parseRankScopePref,
   percentileOf,
   pruneCohortCache,
@@ -194,6 +195,34 @@ describe('role scope', () => {
     expect(r.scope).toBe('all');
     expect(r.scopeFallbackKey).toBe('codex.rank.disabled.noData');
     expect(r.scopeAvailable.role).toBeFalse();
+  });
+});
+
+describe('small groups (concept r1-small) and the narrowest default (r1-default)', () => {
+  const withRole = (s: RankShipInput, role: string | null): RankShipInput => ({ ...s, role });
+  const roleCohort = [
+    withRole(target, 'Light Freight'),
+    withRole(cohort[1], 'Light Fighter'),
+    withRole(cohort[2], 'Light Freight'),
+    withRole(cohort[3], 'Starter'),
+  ];
+
+  it('applies a picked group under RANK_MIN_GROUP instead of widening it, and reports its size', () => {
+    const r = rankShip(roleCohort[0], roleCohort, { profile: 'combat', scope: 'role', rim: 'p95', careerByClass: true });
+    expect(r.scope).toBe('role');
+    expect(r.scopeFallbackKey).toBeNull();
+    expect(r.cohortSize).toBe(2);
+    expect(r.scopeSizes.role).toBe(2);
+    expect(r.scopeSizes.all).toBe(4);
+  });
+
+  it('defaults to the narrowest group that holds another ship', () => {
+    expect(narrowestRankScope(roleCohort[0], roleCohort, { careerByClass: true })).toBe('role');
+    // Alone in its role: the class is the narrowest real group.
+    const lonely = withRole(cohort[1], 'Light Fighter');
+    expect(narrowestRankScope(lonely, roleCohort, { careerByClass: true })).not.toBe('role');
+    // No role, no career: everyone.
+    expect(narrowestRankScope({ className: 'X', sizeClass: null, career: null, sheet: {} }, roleCohort)).toBe('all');
   });
 });
 

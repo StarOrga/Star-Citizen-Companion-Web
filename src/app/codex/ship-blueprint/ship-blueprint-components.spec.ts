@@ -234,6 +234,42 @@ describe('ship blueprint components', () => {
       expect(el.querySelector('g.mk.on')!.classList).toContain('g-missiles');
     });
 
+    it('markers are buttons for the keyboard: focus lights one, Enter and Space open it (r1-a11y)', async () => {
+      const { el, hovered, inspected } = await setup();
+      const nose = el.querySelector<SVGGElement>('g.mk.g-weapons')!;
+      expect(nose.getAttribute('tabindex')).toBe('0');
+      expect(nose.getAttribute('role')).toBe('button');
+      expect(nose.getAttribute('aria-label')).toContain('Nose gun');
+      nose.dispatchEvent(new FocusEvent('focus'));
+      nose.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      nose.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      expect(hovered).toEqual([['hardpoint_nose']]);
+      expect(inspected).toEqual(['hardpoint_nose', 'hardpoint_nose']);
+    });
+
+    it('the Holotable hides the list from the screen and the tab order, not from screen readers (r1-a11y)', async () => {
+      const { fixture, el } = await setup();
+      fixture.componentRef.setInput('listHidden', true);
+      await flush(fixture);
+      const list = el.querySelector<HTMLElement>('.hp-list')!;
+      expect(list.classList).toContain('sr-list');
+      expect(list.getBoundingClientRect().height).toBeLessThanOrEqual(1);
+      expect(Array.from(list.querySelectorAll('button')).every((b) => b.getAttribute('tabindex') === '-1')).toBeTrue();
+    });
+
+    it('draws a callout only for the picked part (r1-callout)', async () => {
+      const { fixture, el } = await setup();
+      expect(el.querySelector('g.co')).toBeNull();
+      fixture.componentRef.setInput('callout', { port: 'hardpoint_rack', title: 'Rack', meta: 'S2' });
+      await flush(fixture);
+      const co = el.querySelector('g.co')!;
+      expect(co.querySelector('.co-t')!.textContent).toContain('Rack');
+      expect(co.querySelector('.co-m')!.textContent).toContain('S2');
+      fixture.componentRef.setInput('callout', { port: 'not_on_this_view', title: 'X', meta: null });
+      await flush(fixture);
+      expect(el.querySelector('g.co')).toBeNull();
+    });
+
     it('says so when the hull has no hardpoint positions, instead of an empty list', async () => {
       const { fixture, el } = await setup();
       fixture.componentRef.setInput('markers', []);
