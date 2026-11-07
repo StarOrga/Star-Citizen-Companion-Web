@@ -304,3 +304,88 @@ export function blueprintMaterialWishes(blueprintClassName: string, materials: r
       forClassName: blueprintClassName,
     }));
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Evaluating a whole Nachschub
+// ---------------------------------------------------------------------------------------------------------
+
+export interface EvalLine extends LineState {
+  /** Ship lines count copies in the Hangar, everything else the Inventar quantity of the class. */
+  readonly ship: boolean;
+  readonly className: string | null;
+}
+
+export interface Evaluation {
+  readonly statuses: ReadonlyMap<string, LineStatus>;
+  /** The snapshot with baselines added for lines that had none (persist when `snapshotChanged`). */
+  readonly snapshot: Readonly<Record<string, number>>;
+  readonly snapshotChanged: boolean;
+  /** Lines that just closed on an inventory rise and are not ticked yet: the caller ticks them. */
+  readonly closeIds: readonly string[];
+  readonly progress: { done: number; total: number };
+  readonly finished: boolean;
+}
+
+/**
+ * One pass over a Nachschub: status per line, missing baselines filled from the CURRENT stock (a migrated or
+ * later added line starts counting from now), which lines close by inventory, and whether the Nachschub is done.
+ * `owned(line)` is the current Inventar quantity (or Hangar copies for a ship line).
+ */
+export function evaluateNachschub(lines: readonly EvalLine[], snapshot: Readonly<Record<string, number>>, owned: (line: EvalLine) => number): Evaluation {
+  let snap = snapshot;
+  const statuses = new Map<string, LineStatus>();
+  const closeIds: string[] = [];
+  for (const l of lines) {
+    const current = owned(l);
+    let st = lineStatus(l, snap, current);
+    if (st.baseline === null) {
+      snap = withBaseline(snap, l.id, current);
+      st = lineStatus(l, snap, current);
+    }
+    if (st.closed && st.by === 'inventory') closeIds.push(l.id);
+    statuses.set(l.id, st);
+  }
+  const list = [...statuses.values()];
+  return { statuses, snapshot: snap, snapshotChanged: snap !== snapshot, closeIds, progress: nachschubProgress(list), finished: isFinished(list) };
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Edge rules
+// ---------------------------------------------------------------------------------------------------------
+
+/**
+ * The catalogue never deletes player rows: an item missing from the current build is only flagged
+ * ("nicht mehr im Spiel"), its wish / stock / Nachschub line stays.
+ */
+export function gameStatus(className: string, catalogue: ReadonlySet<string>): 'inGame' | 'notInGame' {
+  return catalogue.has(className) ? 'inGame' : 'notInGame';
+}
+
+/** An announced ship wish (keyed by its folded name) that the catalogue now carries, to be turned into a live wish. */
+export interface AnnouncedFollow {
+  readonly foldedName: string;
+  readonly shipClassName: string;
+}
+
+/**
+ * An announced ship's wish follows it live: when the catalogue gets a ship whose folded name equals the wish key,
+ * the wish becomes a normal ship wish (class name known). `catalogShips` maps folded name -> class name.
+ */
+export function followAnnounced(wishedAnnouncedFolded: readonly string[], catalogShips: ReadonlyMap<string, string>): readonly AnnouncedFollow[] {
+  const out: AnnouncedFollow[] = [];
+  for (const f of wishedAnnouncedFolded) {
+    const cls = catalogShips.get(f);
+    if (cls) out.push({ foldedName: f, shipClassName: cls });
+  }
+  return out;
+}
+
+/** What "Ingame-Bestand zuruecksetzen" (wipe) removes: everything the game wrote, never what the player typed. */
+export function ingameSources(): readonly string[] {
+  return ['log', 'search', 'community', 'ocr'];
+}
+
+/** A second copy of a ship is allowed: the count of the one hangar row goes up. */
+export function nextShipCopies(current: number | undefined): number {
+  return Math.min(WISH_QTY_MAX, Math.max(1, Math.round(current ?? 1)) + 1);
+}

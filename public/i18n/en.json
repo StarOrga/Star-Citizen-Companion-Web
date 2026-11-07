@@ -5209,6 +5209,50 @@
     "copyAria": "Copy class name {{name}}"
   },
   "hq": {
+    "nachschub": {
+      "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
+      "nothingPicked": "Pick at least one item from the wishlist.",
+      "newName": "New Nachschub",
+      "newEinsatz": "New Einsatz",
+      "verb": {
+        "buy": "Buy:",
+        "mission": "Mission:",
+        "mine": "Mine:",
+        "refine": "Refine:",
+        "craft": "Craft:",
+        "transport": "Haul:",
+        "pickup": "Pick up:"
+      },
+      "done": {
+        "created": "\"{{name}}\" is created.",
+        "undone": "Undone.",
+        "reactivated": "Nachschub is active again.",
+        "emptied": "Nachschub emptied.",
+        "removed": "Nachschub deleted.",
+        "nothingWished": "Nothing on the wishlist.",
+        "fulfilled": "Ticked off the wishlist."
+      },
+      "rec": {
+        "reason": {
+          "sameSet": "same set: {{set}}",
+          "magazineFor": "magazine for {{item}}",
+          "weaponFor": "weapon for {{item}}",
+          "fitsPort": "fits S{{size}} of {{item}}",
+          "ingredientFor": "ingredient for {{item}}",
+          "usedIn": "needed for {{item}}",
+          "sameMaker": "same maker: {{maker}}",
+          "paintFor": "paint for {{item}}",
+          "sameMaterial": "same material as {{item}}",
+          "sameShop": "same shop: {{place}}",
+          "samePlace": "same place: {{place}}",
+          "sameActivity": "same activity: {{activity}}"
+        },
+        "via": {
+          "craft": "Craft",
+          "buy": "Buy"
+        }
+      }
+    },
     "title": "HQ",
     "eyebrow": "Personal area",
     "subtitle": "Your ships, sets and ops in one place.",

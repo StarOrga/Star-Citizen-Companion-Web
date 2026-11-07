@@ -69,7 +69,7 @@ export interface VerseFeed {
 
 /** Background refresh cadence for the feed. */
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
-const FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
+export const NEWS_FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
 
 /**
  * Retention window for VIDEOS in Verse News (feedback e7082310): only today,
@@ -261,7 +261,7 @@ export class NewsService {
   private loadFavoritesFromStorage(): Set<string> {
     if (typeof localStorage === 'undefined') return new Set();
     try {
-      const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      const raw = localStorage.getItem(NEWS_FAVORITES_STORAGE_KEY);
       if (!raw) return new Set();
       const arr = JSON.parse(raw);
       return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
@@ -275,7 +275,7 @@ export class NewsService {
     if (!this.consent.preferencesAllowed()) return;
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));
+      localStorage.setItem(NEWS_FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));
     } catch { /* quota / private mode */ }
   }
 

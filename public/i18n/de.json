@@ -5209,6 +5209,50 @@
     "copyAria": "Klassenname {{name}} kopieren"
   },
   "hq": {
+    "nachschub": {
+      "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
+      "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
+      "newName": "Neuer Nachschub",
+      "newEinsatz": "Neuer Einsatz",
+      "verb": {
+        "buy": "Kaufen:",
+        "mission": "Mission:",
+        "mine": "Abbauen:",
+        "refine": "Raffinieren:",
+        "craft": "Herstellen:",
+        "transport": "Transport:",
+        "pickup": "Abholen:"
+      },
+      "done": {
+        "created": "„{{name}}“ ist angelegt.",
+        "undone": "Rückgängig gemacht.",
+        "reactivated": "Nachschub ist wieder aktiv.",
+        "emptied": "Nachschub geleert.",
+        "removed": "Nachschub gelöscht.",
+        "nothingWished": "Nichts auf der Wunschliste.",
+        "fulfilled": "Von der Wunschliste abgehakt."
+      },
+      "rec": {
+        "reason": {
+          "sameSet": "gleiches Set: {{set}}",
+          "magazineFor": "Magazin für {{item}}",
+          "weaponFor": "Waffe zu {{item}}",
+          "fitsPort": "passt in S{{size}} von {{item}}",
+          "ingredientFor": "Zutat für {{item}}",
+          "usedIn": "gebraucht für {{item}}",
+          "sameMaker": "gleicher Hersteller: {{maker}}",
+          "paintFor": "Lackierung für {{item}}",
+          "sameMaterial": "gleiches Material wie {{item}}",
+          "sameShop": "gleicher Shop: {{place}}",
+          "samePlace": "gleicher Ort: {{place}}",
+          "sameActivity": "gleiche Aktivität: {{activity}}"
+        },
+        "via": {
+          "craft": "Craften",
+          "buy": "Kaufen"
+        }
+      }
+    },
     "title": "HQ",
     "eyebrow": "Persönlicher Bereich",
     "subtitle": "Deine Schiffe, Sets und Einsätze an einem Ort.",

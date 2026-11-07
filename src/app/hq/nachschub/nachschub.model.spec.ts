@@ -8,6 +8,11 @@ import {
   blueprintMaterialWishes,
   clampName,
   clearNachschub,
+  evaluateNachschub,
+  followAnnounced,
+  gameStatus,
+  ingameSources,
+  nextShipCopies,
   followBlueprintQty,
   freeSlot,
   fulfilWish,
@@ -223,6 +228,55 @@ describe('nachschub.model', () => {
         ['agricium', 2, 'gallant'],
         ['alu', 6, 'gallant'],
       ]);
+    });
+  });
+
+  describe('evaluateNachschub', () => {
+    const lines = [
+      { id: 'a', need: 2, ticked: false, ship: false, className: 'rattler' },
+      { id: 'b', need: 1, ticked: false, ship: true, className: 'vanguard' },
+    ];
+
+    it('stores missing baselines from the current stock and closes nothing at first sight', () => {
+      const stock: Record<string, number> = { rattler: 5, vanguard: 0 };
+      const e = evaluateNachschub(lines, {}, (l) => stock[l.className!]);
+      expect(e.snapshot).toEqual({ a: 5, b: 0 });
+      expect(e.snapshotChanged).toBeTrue();
+      expect(e.finished).toBeFalse();
+      expect(e.closeIds).toEqual([]);
+    });
+
+    it('closes by the rise since planning, and is finished (archive) once every line closed', () => {
+      const e1 = evaluateNachschub(lines, { a: 5, b: 0 }, (l) => (l.id === 'a' ? 7 : 0));
+      expect(e1.closeIds).toEqual(['a']);
+      expect(e1.progress).toEqual({ done: 1, total: 2 });
+      expect(e1.finished).toBeFalse();
+      expect(e1.snapshotChanged).toBeFalse();
+      const e2 = evaluateNachschub(lines, { a: 5, b: 0 }, (l) => (l.id === 'a' ? 7 : 1));
+      expect(e2.finished).toBeTrue();
+    });
+
+    it('an empty Nachschub is never finished', () => {
+      expect(evaluateNachschub([], {}, () => 0).finished).toBeFalse();
+    });
+  });
+
+  describe('edge rules', () => {
+    it('the catalogue only flags a missing item, it never deletes', () => {
+      expect(gameStatus('old_gun', new Set(['new_gun']))).toBe('notInGame');
+      expect(gameStatus('new_gun', new Set(['new_gun']))).toBe('inGame');
+    });
+
+    it('an announced ship wish follows the catalogue by folded name', () => {
+      const f = followAnnounced(['idris', 'zeta'], new Map([['idris', 'RSI_Idris_P']]));
+      expect(f).toEqual([{ foldedName: 'idris', shipClassName: 'RSI_Idris_P' }]);
+    });
+
+    it('a wipe resets only what the game wrote, a second ship copy counts up', () => {
+      expect(ingameSources()).not.toContain('manual');
+      expect(nextShipCopies(undefined)).toBe(2);
+      expect(nextShipCopies(1)).toBe(2);
+      expect(nextShipCopies(999)).toBe(999);
     });
   });
 });
