@@ -154,16 +154,10 @@ const AXES: readonly { key: MissileMetric; lowerIsBetter: boolean }[] = [
   { key: 'speed', lowerIsBetter: false },
   { key: 'agility', lowerIsBetter: false },
   { key: 'range', lowerIsBetter: false },
-  { key: 'lockTime', lowerIsBetter: true },
-  { key: 'lifetime', lowerIsBetter: false },
-  { key: 'size', lowerIsBetter: false },
-  { key: 'length', lowerIsBetter: false },
-  { key: 'width', lowerIsBetter: false },
 ];
 
-/** Measurements say nothing about strength: they fill in only while combat numbers are too few. */
-const MEASURE_AXES: ReadonlySet<MissileMetric> = new Set<MissileMetric>(['size', 'length', 'width']);
-const MIN_COMBAT_AXES = 3;
+/** A radar needs at least three corners; fewer comparable values show the card's gap state. */
+const MIN_AXES = 3;
 
 /** The four things a missile can be compared by, as the rank engine's scopes. */
 function asRankInput(m: MissileRecord): RankShipInput<MissileMetric> {
@@ -190,7 +184,7 @@ export function defaultMissileScope(target: MissileRecord, cohort: readonly Miss
 }
 
 /**
- * Rank one missile. An axis exists only where the target has a value and the
+ * Rank one missile on damage, speed, agility and range. An axis exists only where the target has a value and the
  * group actually differs on it — inside "same size" the size axis would read
  * 50 % for everyone. A group of one is no comparison, so it is offered disabled.
  * `null` = nothing to compare at all: the card shows its gap state.
@@ -215,9 +209,8 @@ export function rankMissile(
       .filter((v): v is number => v != null);
     return new Set(values).size >= 2;
   });
-  const combat = comparable.filter((axis) => !MEASURE_AXES.has(axis.key));
-  const axes = combat.length >= MIN_COMBAT_AXES ? combat : comparable;
-  if (axes.length === 0) return null;
+  const axes = comparable;
+  if (axes.length < MIN_AXES) return null;
   const profile: RankProfile<MissileMetric> = {
     id: 'combat',
     labelKey: '',
