@@ -2409,6 +2409,8 @@
       "filterButton": "Filters ({{count}})",
       "showResults": "Show {{count}} results",
       "areaLabel": "Area",
+      "collapseArea": "Collapse {{name}}",
+      "expandArea": "Expand {{name}}",
       "area": {
         "armor": "Armor",
         "shipAmmo": "Ship ammunition"

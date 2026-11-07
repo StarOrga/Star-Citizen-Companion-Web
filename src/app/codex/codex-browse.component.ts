@@ -540,12 +540,24 @@ export function blueprintCategoriesForGroup(
       <ul class="nodes" role="list" [class.nested]="depth > 0">
         @for (n of nodes; track n.id) {
           <li>
-            <a class="node" [class.on]="n.active" [class.current]="n.current"
-               [attr.aria-current]="n.current ? 'page' : null"
-               [attr.href]="n.href" (click)="onAreaClick($event, n)">
-              <span class="node-label">{{ n.label ?? (n.labelKey | translate) }}</span>
-              @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
-            </a>
+            @let label = n.label ?? (n.labelKey | translate);
+            <div class="node-row">
+              <a class="node" [class.on]="n.active" [class.current]="n.current"
+                 [attr.aria-current]="n.current ? 'page' : null"
+                 [attr.href]="n.href" (click)="onAreaClick($event, n)">
+                <span class="node-label">{{ label }}</span>
+                @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
+              </a>
+              @if (n.children.length > 0) {
+                @let togLabel = (n.open ? 'codex.browse.collapseArea' : 'codex.browse.expandArea') | translate: { name: label };
+                <!-- #315: a group folds in and out without leaving the current area. -->
+                <button type="button" class="node-tog" [class.open]="n.open" [attr.aria-expanded]="n.open"
+                        [attr.aria-label]="togLabel" [scTooltip]="togLabel" scTooltipTier="label"
+                        (click)="toggleNode(n)">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" /></svg>
+                </button>
+              }
+            </div>
             @if (n.open && n.children.length > 0) {
               <ng-container [ngTemplateOutlet]="nodesTpl" [ngTemplateOutletContext]="{ $implicit: n.children, depth: depth + 1 }" />
             }
@@ -561,10 +573,19 @@ export function blueprintCategoriesForGroup(
     /* Left column: title, then the sticky area tree under it. */
     .col-side { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); min-width: 0; }
     .head { min-width: 0; }
+    /* #315: the tree parks below the pinned header (the beta's corner row + docked
+       subheader, or the classic sticky topbar) and ends above the bottom launcher
+       lane / footer row, so its last entry is reachable inside its own scroll. */
     .side {
-      position: sticky; top: calc(var(--sc-sticky-top, 0px) + var(--sc-space-3, 12px));
+      --_side-top: max(
+        calc(var(--sc-chrome-top, 24px) + var(--sc-sub-h, 60px) + var(--sc-space-3, 12px)),
+        calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + var(--sc-space-3, 12px)));
+      --_side-bottom: calc(max(var(--sc-footer-h, 80px), var(--sc-fab-lane, 80px)) + var(--sc-space-3, 12px));
+      position: sticky; top: var(--_side-top);
       display: flex; flex-direction: column; gap: var(--sc-space-3, 12px);
-      max-height: calc(100dvh - var(--sc-sticky-top, 0px) - 24px); overflow-y: auto;
+      max-height: calc(100vh - var(--_side-top) - var(--_side-bottom));
+      max-height: calc(100dvh - var(--_side-top) - var(--_side-bottom));
+      overflow-y: auto; overscroll-behavior: contain;
     }
     .side-h { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--sc-fg-2); }
     .nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -574,6 +595,18 @@ export function blueprintCategoriesForGroup(
       min-height: max(32px, var(--sc-tap-min, 0px)); padding: 4px 10px; border-radius: 6px;
       color: var(--sc-fg-1); text-decoration: none; font-size: 13px;
     }
+    .node-row { display: flex; align-items: stretch; gap: 2px; }
+    .node-row > .node { flex: 1 1 auto; min-width: 0; }
+    .node-tog {
+      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+      width: max(28px, var(--sc-tap-min, 0px)); min-height: max(32px, var(--sc-tap-min, 0px)); padding: 0;
+      border: 0; border-radius: 6px; background: transparent; color: var(--sc-fg-2); cursor: pointer; font: inherit;
+    }
+    .node-tog svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 120ms ease; }
+    .node-tog.open svg { transform: rotate(90deg); }
+    .node-tog:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    .node-tog:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    @media (prefers-reduced-motion: reduce) { .node-tog svg { transition: none; } }
     .node:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
     .node:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .node.on { color: var(--sc-fg-0); }
@@ -772,6 +805,7 @@ export function blueprintCategoriesForGroup(
       }
       .sheet-close:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .node { min-height: 44px; }
+      .node-tog { width: 44px; min-height: 44px; }
     }
     @media (prefers-reduced-motion: reduce) {
       .acts .act { transition: none; }
@@ -1111,6 +1145,24 @@ export class CodexBrowseComponent implements OnInit {
     };
   });
 
+  /** Identity of the current area: hand-set open states only hold while it stays the same. */
+  private readonly areaKey = computed(() => JSON.stringify(this.areaState()));
+  /**
+   * Groups the reader folded in or out by hand (#315), keyed by node id and
+   * remembered for the area they did it in — switching areas opens the new
+   * path again by default.
+   */
+  private readonly treeToggles = signal<{ area: string; open: ReadonlyMap<string, boolean> }>({ area: '', open: new Map() });
+
+  /** Fold a tree group in or out, in place: the list keeps its area. */
+  toggleNode(n: AreaNode): void {
+    const area = this.areaKey();
+    const prev = this.treeToggles();
+    const open = new Map(prev.area === area ? prev.open : []);
+    open.set(n.id, !n.open);
+    this.treeToggles.set({ area, open });
+  }
+
   /** The "Bereich" tree (package C): every area with its count, the current path open. */
   readonly areaTree = computed<AreaNode[]>(() => {
     const st = this.areaState();
@@ -1118,10 +1170,13 @@ export class CodexBrowseComponent implements OnInit {
     const isCurrent = (t: AreaTarget) =>
       t.category === st.category && keys.every((k) => (t[k] ?? '') === st[k]);
     const counts = this.areaCounts();
+    const toggles = this.treeToggles();
+    const manual = toggles.area === this.areaKey() ? toggles.open : null;
     const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, children: AreaNode[] = [], label?: string): AreaNode => {
       const current = isCurrent(target);
       const active = current || children.some((c) => c.active);
-      return { id, labelKey, ...(label ? { label } : {}), count, target, active, current, open: active, children, href: this.areaHref(target) };
+      const open = manual?.get(id) ?? active;
+      return { id, labelKey, ...(label ? { label } : {}), count, target, active, current, open, children, href: this.areaHref(target) };
     };
     const subs = (groupId: string, category: 'weapon') =>
       (WEAPON_SUPER_GROUPS.find((g) => g.id === groupId)?.subGroups ?? [])
@@ -1252,6 +1307,11 @@ export class CodexBrowseComponent implements OnInit {
   onAreaClick(ev: MouseEvent, n: AreaNode): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
+    // The current group's own link has nowhere to go: a click folds it (#315).
+    if (n.current && n.children.length > 0) {
+      this.toggleNode(n);
+      return;
+    }
     this.applyArea(n.target);
     this.filtersOpen.set(false);
   }
