@@ -651,7 +651,50 @@
       "anyGrade": "Any grade",
       "blueprintGroup": "Blueprint group",
       "fits": "Fits",
-      "ammo": "Fires"
+      "ammo": "Fires",
+      "role": "Role",
+      "crew": "Crew"
+    },
+    "buy": {
+      "open": "Where to buy in game",
+      "title": "Where to buy {{name}}",
+      "loading": "Loading shops …",
+      "none": "No in-game shop known.",
+      "from": "from {{price}} aUEC",
+      "placeOne": "1 place",
+      "places": "{{count}} places",
+      "price": "{{price}} aUEC",
+      "openPlan": "Open the plan"
+    },
+    "itemGroup": {
+      "food": "Food & drinks",
+      "clothing": "Clothing & accessories",
+      "medical": "Medical & gadgets",
+      "attachments": "Weapon attachments",
+      "suits": "Suits & jetpacks",
+      "paints": "Paints",
+      "decor": "Decoration",
+      "misc": "Miscellaneous",
+      "nonUsable": "Not usable",
+      "missiles": "Missiles & bombs",
+      "modules": "Modules & ore pods"
+    },
+    "shipRole": {
+      "combat": "Combat",
+      "transport": "Transport",
+      "exploration": "Exploration",
+      "industrial": "Industrial",
+      "support": "Support",
+      "competition": "Competition",
+      "ground": "Ground",
+      "multirole": "Multirole"
+    },
+    "crewBand": {
+      "all": "All",
+      "solo": "1",
+      "small": "2–3",
+      "medium": "4–8",
+      "large": "9+"
     },
     "weaponClass": {
       "Ship": "Ship",
@@ -1582,7 +1625,7 @@
     },
     "compare": {
       "pin": "Compare",
-      "pinned": "Pinned",
+      "pinned": "In comparison",
       "tray": "Compare ({{count}})",
       "open": "Open comparison",
       "clear": "Clear",
@@ -2342,7 +2385,8 @@
       "showResults": "Show {{count}} results",
       "areaLabel": "Area",
       "area": {
-        "armor": "Armor"
+        "armor": "Armor",
+        "shipAmmo": "Ship ammunition"
       },
       "sort": {
         "label": "Sort order",
@@ -2356,6 +2400,9 @@
       "subtitleAll": "{{shown}} entries · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} of {{total}}",
       "subtitleAllNoPatch": "{{shown}} entries",
+      "listSearch": "Search {{area}}",
+      "listSearchPh": "Search {{area}} …",
+      "listSearchClear": "Clear search",
       "freshFilter": "New/updated in the last patch"
     },
     "contract": {
@@ -3281,6 +3328,15 @@
         "label": "Enter sends",
         "descOn": "Enter sends the message, Shift+Enter inserts a new line. Ctrl/Cmd+Enter sends as well.",
         "descOff": "Enter inserts a new line. Sending happens only with Ctrl/Cmd+Enter or the send button."
+      }
+    },
+    "codex": {
+      "title": "Codex",
+      "hint": "What the Codex index and the search show.",
+      "showNonUsable": {
+        "label": "Show items you cannot use",
+        "descOn": "Doors, seats, displays and other game objects sit under “Not usable” and appear in the search after every usable hit.",
+        "descOff": "Doors, seats, displays and other game objects you cannot use are hidden — in the area tree, the lists and the search."
       }
     },
     "feedbackFab": {

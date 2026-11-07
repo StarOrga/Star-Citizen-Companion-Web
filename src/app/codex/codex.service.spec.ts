@@ -10,6 +10,7 @@ import {
   manufacturerLabel,
 } from './codex.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { USABLE_ITEM_ATTACH_TYPES } from './codex-area-taxonomy';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { LOCALE_SHARD_BASE, LOCALE_SHARD_FETCH } from './codex-locale-shards';
@@ -1474,7 +1475,22 @@ describe('CodexService.searchAll', () => {
 
     expect(list).toHaveBeenCalledTimes(CODEX_KINDS.length);
     for (const kind of CODEX_KINDS) {
-      expect(list).toHaveBeenCalledWith(kind, { search: 'gladius', limit: 20 });
+      // Items: only what a player can use, unless the reader opted in (package C).
+      const scope = kind === 'item' ? { attachTypeIn: [...USABLE_ITEM_ATTACH_TYPES] } : {};
+      expect(list).toHaveBeenCalledWith(kind, { search: 'gladius', ...scope, limit: 20 });
+    }
+  });
+
+  it('package C: with the opt-in the item search is not scoped', async () => {
+    localStorage.setItem('sc.codex.showNonUsable', '1');
+    try {
+      TestBed.resetTestingModule();
+      const svc = make();
+      const list = spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+      await svc.searchAll('door', 5);
+      expect(list).toHaveBeenCalledWith('item', { search: 'door', limit: 20 });
+    } finally {
+      localStorage.removeItem('sc.codex.showNonUsable');
     }
   });
 

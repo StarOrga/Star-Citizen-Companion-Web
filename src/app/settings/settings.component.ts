@@ -21,6 +21,7 @@ import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
+import { CodexPrefsService } from '../codex/codex-prefs.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { AnalyticsService } from '../core/analytics.service';
 import { LocaleService } from '../core/locale/locale.service';
@@ -345,6 +346,32 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                     (feedbackFabPrefs.show()
                       ? 'settings.feedbackFab.show.descOn'
                       : 'settings.feedbackFab.show.descOff') | translate
+                  }}
+                </p>
+              </div>
+
+              <!-- Codex: records a player cannot use (doors, seats, displays …) stay
+                   out of the tree, the lists and the search unless opted in here. -->
+              <div class="sc-card section">
+                <h3>{{ 'settings.codex.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.codex.hint' | translate }}</p>
+                <div class="row">
+                  <span class="label">{{ 'settings.codex.showNonUsable.label' | translate }}</span>
+                  <span class="value">
+                    <label class="consent-toggle">
+                      <input
+                        type="checkbox"
+                        [checked]="codexPrefs.showNonUsable()"
+                        (change)="onShowNonUsableToggle($event)" />
+                      {{ (codexPrefs.showNonUsable() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+                    </label>
+                  </span>
+                </div>
+                <p class="consent-desc">
+                  {{
+                    (codexPrefs.showNonUsable()
+                      ? 'settings.codex.showNonUsable.descOn'
+                      : 'settings.codex.showNonUsable.descOff') | translate
                   }}
                 </p>
               </div>
@@ -883,6 +910,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly consent = inject(ConsentService);
   readonly composerPrefs = inject(ComposerPrefsService);
   readonly feedbackFabPrefs = inject(FeedbackFabPrefsService);
+  readonly codexPrefs = inject(CodexPrefsService);
   readonly locale = inject(LocaleService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
@@ -1273,6 +1301,12 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     const on = (e.target as HTMLInputElement).checked;
     this.feedbackFabPrefs.setShow(on);
     this.analytics.capture('settings_feedback_fab_changed', { on });
+  }
+
+  onShowNonUsableToggle(e: Event) {
+    const on = (e.target as HTMLInputElement).checked;
+    this.codexPrefs.setShowNonUsable(on);
+    this.analytics.capture('settings_codex_non_usable_changed', { on });
   }
 
   onConsentToggle(e: Event) {

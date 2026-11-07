@@ -651,7 +651,50 @@
       "anyGrade": "Beliebiger Grade",
       "blueprintGroup": "Bauplan-Gruppe",
       "fits": "Passt für",
-      "ammo": "Feuert"
+      "ammo": "Feuert",
+      "role": "Rolle",
+      "crew": "Crew"
+    },
+    "buy": {
+      "open": "Kauforte im Spiel",
+      "title": "Kauforte für {{name}}",
+      "loading": "Kauforte werden geladen …",
+      "none": "Kein Kaufort im Spiel bekannt.",
+      "from": "ab {{price}} aUEC",
+      "placeOne": "1 Ort",
+      "places": "{{count}} Orte",
+      "price": "{{price}} aUEC",
+      "openPlan": "Im Plan ansehen"
+    },
+    "itemGroup": {
+      "food": "Lebensmittel & Getränke",
+      "clothing": "Kleidung & Accessoires",
+      "medical": "Medizin & Gadgets",
+      "attachments": "Waffenzubehör",
+      "suits": "Anzüge & Jetpacks",
+      "paints": "Lackierungen",
+      "decor": "Dekoration",
+      "misc": "Sonstiges",
+      "nonUsable": "Nicht nutzbar",
+      "missiles": "Raketen & Bomben",
+      "modules": "Module & Erzbehälter"
+    },
+    "shipRole": {
+      "combat": "Kampf",
+      "transport": "Transport",
+      "exploration": "Erkundung",
+      "industrial": "Industrie",
+      "support": "Unterstützung",
+      "competition": "Wettkampf",
+      "ground": "Boden",
+      "multirole": "Mehrzweck"
+    },
+    "crewBand": {
+      "all": "Alle",
+      "solo": "1",
+      "small": "2–3",
+      "medium": "4–8",
+      "large": "9+"
     },
     "weaponClass": {
       "Ship": "Schiff",
@@ -1582,7 +1625,7 @@
     },
     "compare": {
       "pin": "Vergleichen",
-      "pinned": "Angepinnt",
+      "pinned": "Im Vergleich",
       "tray": "Vergleich ({{count}})",
       "open": "Vergleich öffnen",
       "clear": "Leeren",
@@ -2342,7 +2385,8 @@
       "showResults": "{{count}} Treffer anzeigen",
       "areaLabel": "Bereich",
       "area": {
-        "armor": "Rüstung"
+        "armor": "Rüstung",
+        "shipAmmo": "Schiffsmunition"
       },
       "sort": {
         "label": "Sortierung",
@@ -2356,6 +2400,9 @@
       "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} von {{total}}",
       "subtitleAllNoPatch": "{{shown}} Einträge",
+      "listSearch": "In {{area}} suchen",
+      "listSearchPh": "In {{area}} suchen …",
+      "listSearchClear": "Suche leeren",
       "freshFilter": "Neu/Aktualisiert im letzten Patch"
     },
     "contract": {
@@ -3281,6 +3328,15 @@
         "label": "Enter sendet",
         "descOn": "Enter sendet die Nachricht, Shift+Enter macht eine neue Zeile. Strg/Cmd+Enter sendet ebenfalls.",
         "descOff": "Enter macht eine neue Zeile. Gesendet wird nur mit Strg/Cmd+Enter oder über den Senden-Button."
+      }
+    },
+    "codex": {
+      "title": "Codex",
+      "hint": "Was der Codex-Index und die Suche zeigen.",
+      "showNonUsable": {
+        "label": "Nicht nutzbare Gegenstände anzeigen",
+        "descOn": "Türen, Sitze, Displays und andere Spielobjekte stehen unter „Nicht nutzbar“ und erscheinen in der Suche nach allen nutzbaren Treffern.",
+        "descOff": "Türen, Sitze, Displays und andere Spielobjekte, die du nicht benutzen kannst, sind ausgeblendet — im Bereichsbaum, in den Listen und in der Suche."
       }
     },
     "feedbackFab": {

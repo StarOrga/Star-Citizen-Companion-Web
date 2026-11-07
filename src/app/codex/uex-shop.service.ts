@@ -171,6 +171,7 @@ export class UexShopService {
   private citiesCache: Promise<Map<number, string>> | null = null;
   private spaceStationsCache: Promise<Map<number, string>> | null = null;
   private vehiclesCache: Promise<UexVehicle[]> | null = null;
+  private allShipPricesCache: Promise<Map<number, UexVehiclePrice[]>> | null = null;
 
   /**
    * Bezugsquelle for a ship (#832): where it is sold in game (UEX
@@ -180,13 +181,7 @@ export class UexShopService {
    */
   async whereToBuyShip(query: WhereToBuyShipQuery, limit = MAX_RESULTS): Promise<BuyOption[]> {
     try {
-      if (!this.vehiclesCache) this.vehiclesCache = this.fetchList<UexVehicle>('vehicles');
-      const vehicles = await this.vehiclesCache;
-      const guids = new Set([(query.guid ?? '').trim().toLowerCase(), codexGuidToUexUuid(query.guid)].filter(Boolean));
-      const byGuid = guids.size ? vehicles.find((v) => guids.has((v.uuid ?? '').toLowerCase())) : undefined;
-      const match =
-        byGuid ??
-        this.matchItem(vehicles.map((v) => ({ id: v.id, id_category: 0, name: v.name_full || v.name })), query.name);
+      const match = await this.matchShip(query);
       if (!match) return [];
       const prices = await this.fetchList<UexVehiclePrice>('vehicles_purchases_prices', { id_vehicle: String(match.id) });
       return await this.toOptions(prices, limit);
@@ -194,6 +189,45 @@ export class UexShopService {
       logWarn('uex-shop', 'where to buy ship failed', { query, error });
       return [];
     }
+  }
+
+  /**
+   * Every in-game offer for one ship, for the Codex index rows (package D):
+   * read from ONE shared table of all ship prices (UEX answers every ship in
+   * a single ~300-row request), so a page of 60 ships costs no request per
+   * ship. Cheapest first, uncapped. [] when unknown or unsold — never throws.
+   */
+  async shipOffers(query: WhereToBuyShipQuery): Promise<BuyOption[]> {
+    try {
+      const match = await this.matchShip(query);
+      if (!match) return [];
+      if (!this.allShipPricesCache) {
+        this.allShipPricesCache = this.fetchList<UexVehiclePrice>('vehicles_purchases_prices').then((rows) => {
+          const byVehicle = new Map<number, UexVehiclePrice[]>();
+          for (const r of rows) byVehicle.set(r.id_vehicle, [...(byVehicle.get(r.id_vehicle) ?? []), r]);
+          return byVehicle;
+        });
+        // A failed table read is asked again next time instead of caching the failure.
+        this.allShipPricesCache.catch(() => (this.allShipPricesCache = null));
+      }
+      const prices = (await this.allShipPricesCache).get(match.id) ?? [];
+      return await this.toOptions(prices, Infinity);
+    } catch (error) {
+      logWarn('uex-shop', 'ship offers failed', { query, error });
+      return [];
+    }
+  }
+
+  /** The UEX vehicle for a codex ship: game GUID first (both byte orders), then the English name. */
+  private async matchShip(query: WhereToBuyShipQuery): Promise<{ id: number } | null> {
+    if (!this.vehiclesCache) {
+      this.vehiclesCache = this.fetchList<UexVehicle>('vehicles');
+      this.vehiclesCache.catch(() => (this.vehiclesCache = null));
+    }
+    const vehicles = await this.vehiclesCache;
+    const guids = new Set([(query.guid ?? '').trim().toLowerCase(), codexGuidToUexUuid(query.guid)].filter(Boolean));
+    const byGuid = guids.size ? vehicles.find((v) => guids.has((v.uuid ?? '').toLowerCase())) : undefined;
+    return byGuid ?? this.matchItem(vehicles.map((v) => ({ id: v.id, id_category: 0, name: v.name_full || v.name })), query.name) ?? null;
   }
 
   /**

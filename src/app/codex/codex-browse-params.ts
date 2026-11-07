@@ -22,12 +22,25 @@ export interface AreaTarget {
   wg?: string;
   wsg?: string;
   slot?: string;
+  /** Component kind ('Shield'). */
+  ck?: string;
+  /** Item group (codex-area-taxonomy: 'food', 'missiles', 'nonUsable' …). */
+  ig?: string;
+  /** Ammunition group ('fps' | 'vehicle'). */
+  ag?: string;
+  /** Blueprint group ('fps' | 'vehicle') and category bucket. */
+  bg?: string;
+  bpc?: string;
+  /** Manufacturer code (the "Hersteller" sub list). */
+  mfr?: string;
 }
 
 /** One entry of the "Bereich" facet tree in the sidebar. */
 export interface AreaNode {
   id: string;
   labelKey: string;
+  /** A literal label (a manufacturer, a blueprint bucket) instead of `labelKey`. */
+  label?: string;
   count: number | null;
   target: AreaTarget;
   /** On the path to the current area (ancestors included). */

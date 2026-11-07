@@ -88,6 +88,8 @@ import { computeKpiSheet, KpiShipInput } from './codex-loadout-stats';
 import { SummaryOccupant } from './ship-summary-panels';
 import { HoloSilhouette, parseHoloSilhouette, SilhouetteKind } from './holo-silhouette';
 import { MissileRecord, missileRecordOf } from './codex-missile';
+import { USABLE_ITEM_ATTACH_TYPES, isUsableAttachType } from './codex-area-taxonomy';
+import { CodexPrefsService } from './codex-prefs.service';
 import {
   cohortCacheKey,
   readCohortCache,
@@ -123,6 +125,8 @@ export const CODEX_KINDS: readonly CodexKind[] = [
 // `payload` carries the heterogeneous per-kind JSON (typed in codex.types).
 export interface CodexListRow {
   classNameSlug: string;
+  /** Game GUID (ship rows) — matches the ship in the UEX price table. */
+  guid?: string | null;
   nameLocalized: string | null;
   manufacturerCode: string | null;
   // promoted facet columns (present depending on kind)
@@ -242,6 +246,16 @@ export interface CodexListFilters {
   // Restrict to these class names (the search CTAs "Passende Schiffe" ?fits= /
   // "Passende Waffen" ?ammo= resolve their reverse lookup into this list).
   classNameIn?: string[];
+  // class_name regex (PostgREST `match`) / its complement — the ammunition
+  // split into on-foot and vehicle rounds (codex-area-taxonomy).
+  classNameMatch?: string;
+  classNameNotMatch?: string;
+  // ship-only facet — payload `career` keys (the RSI role filter, see
+  // codex-ship-filters.ts). Ignored for other kinds.
+  careerIn?: string[];
+  // ship-only facet — inclusive crew range (the crew band filter). Ignored for other kinds.
+  crewMin?: number;
+  crewMax?: number;
   limit?: number;
   offset?: number;
 }
@@ -471,7 +485,7 @@ function batchLocaleKeys(keys: string[]): string[][] {
 
 // Columns selected per kind for the list view. Keep payload last.
 const LIST_SELECT: Record<CodexKind, string> = {
-  ship: 'class_name, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
+  ship: 'class_name, guid, name_localized, manufacturer_code, role, crew_size, is_variant, payload',
   // `attach_type` rides along for weapons because it is the field the ship-side
   // browse taxonomy cuts its sub-categories from (codex-weapon-taxonomy).
   weapon:
@@ -549,6 +563,7 @@ export class CodexService {
    * any build; it holds no reference back to this service, so there is no cycle.
    */
   private readonly upcoming = inject(UpcomingShipsService);
+  private readonly prefs = inject(CodexPrefsService);
   private readonly zone = inject(NgZone);
 
   /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
@@ -925,21 +940,37 @@ export class CodexService {
   }
 
   /**
+   * How many rows {@link listByKind} would find for these filters (no search,
+   * head-only) — the area tree's counts. Null on a failed read.
+   */
+  async countByKind(kind: CodexKind, filters: CodexListFilters = {}): Promise<number | null> {
+    const build = await this.buildOrThrow();
+    if (!build) return null;
+    try {
+      const { count, error } = await this.filteredListQuery(kind, build.id, filters, true);
+      return error ? null : (count ?? 0);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * The list query of one kind and build with every non-search filter of
    * {@link listByKind} applied — shared by the primary (English ILIKE) search
    * and the German-name fallback, so both honour the same filters and facets.
    */
-  private filteredListQuery(kind: CodexKind, buildId: string, filters: CodexListFilters) {
+  private filteredListQuery(kind: CodexKind, buildId: string, filters: CodexListFilters, headOnly = false) {
     let query = this.sb.client
       .from(CODEX_ENTITY_TABLES[kind])
-      .select(listSelect(kind, filters.payload), { count: 'exact' })
+      .select(headOnly ? COUNT_ONLY_SELECT : listSelect(kind, filters.payload), { count: 'exact', head: headOnly })
       .eq('build_id', buildId);
 
     // "Include variants" is the switch for the raw records — all of them.
     if (!filters.includeVariants) query = applyDefaultBrowseFilters(query, kind);
 
     if (filters.manufacturer) query = query.eq('manufacturer_code', filters.manufacturer);
-    if (filters.size != null) query = query.eq('size', filters.size);
+    // Ships carry their size class (S1-S6) in the payload, every other kind in a column.
+    if (filters.size != null) query = kind === 'ship' ? query.eq('payload->>sizeClass', String(filters.size)) : query.eq('size', filters.size);
     if (filters.grade) query = query.eq('grade', filters.grade);
     if (filters.componentKind && kind === 'component')
       query = query.eq('kind', filters.componentKind);
@@ -959,6 +990,13 @@ export class CodexService {
     if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
       query = query.in('category', filters.blueprintCategoryIn);
     if (filters.classNameIn) query = query.in('class_name', filters.classNameIn.length ? filters.classNameIn : ['-']);
+    if (filters.classNameMatch) query = query.filter('class_name', 'match', filters.classNameMatch);
+    if (filters.classNameNotMatch) query = query.not('class_name', 'match', filters.classNameNotMatch);
+    if (kind === 'ship') {
+      if (filters.careerIn?.length) query = query.in('payload->>career', filters.careerIn);
+      if (filters.crewMin != null) query = query.gte('crew_size', filters.crewMin);
+      if (filters.crewMax != null) query = query.lte('crew_size', filters.crewMax);
+    }
     return query;
   }
 
@@ -1192,6 +1230,31 @@ export class CodexService {
     return result;
   }
 
+  /**
+   * The ship size classes (S1-S6) present in a build, ascending. They live in
+   * `payload.sizeClass` (extractor, 2026-11-06), so a build uploaded before
+   * that has none — the size facet then stays hidden. Never throws.
+   */
+  private async shipSizeClasses(buildId: string): Promise<number[]> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('codex_ships')
+        .select('sizeClass:payload->>sizeClass')
+        .eq('build_id', buildId)
+        .not('payload->>sizeClass', 'is', null)
+        .limit(1000);
+      if (error || !data) return [];
+      const sizes = new Set<number>();
+      for (const row of data as { sizeClass: string | null }[]) {
+        const n = Number(row.sizeClass);
+        if (Number.isInteger(n) && n >= 1 && n <= 6) sizes.add(n);
+      }
+      return [...sizes].sort((a, b) => a - b);
+    } catch {
+      return [];
+    }
+  }
+
   private async fetchFacetValues(buildId: string, kind: CodexKind): Promise<CodexFacetValues | null> {
     try {
       const { data, error } = await this.sb.client.rpc('codex_facet_values', {
@@ -1203,7 +1266,7 @@ export class CodexService {
       const d = data as Record<string, unknown>;
       return {
         manufacturers: ((d['manufacturers'] as unknown[]) ?? []) as CodexFacetValues['manufacturers'],
-        sizes: ((d['sizes'] as unknown[]) ?? []) as number[],
+        sizes: kind === 'ship' ? await this.shipSizeClasses(buildId) : (((d['sizes'] as unknown[]) ?? []) as number[]),
         grades: ((d['grades'] as unknown[]) ?? []) as string[],
         componentKinds: ((d['componentKinds'] as unknown[]) ?? []) as string[],
       };
@@ -1949,6 +2012,8 @@ export class CodexService {
         // Rank first, then keep the top `perKindLimit` of each kind.
         const res = await this.listByKind(kind, {
           search: q || undefined,
+          // Items a player cannot use stay out unless the reader opted in (package C).
+          ...(kind === 'item' && !this.prefs.showNonUsable() ? { attachTypeIn: [...USABLE_ITEM_ATTACH_TYPES] } : {}),
           ...(attrs.size != null ? { size: attrs.size } : {}),
           ...(attrs.grade ? { grade: attrs.grade } : {}),
           limit: perKindLimit * SEARCH_OVERFETCH,
@@ -1983,7 +2048,7 @@ export class CodexService {
     const results = await Promise.all(sources);
     // Nothing answered: an outage, not an empty archive — the caller shows an error with retry.
     if (failed.length === sources.length) throw failure;
-    const hits = rankPolyHits(q, results.flat());
+    const hits = usableFirst(rankPolyHits(q, results.flat()));
     return failed.length ? { hits, totals, distinct, read, facets, failed, failure } : { hits, totals, distinct, read, facets };
   }
 
@@ -2342,6 +2407,7 @@ export class CodexService {
     return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
       kind: r['kind'] as CodexKind,
       classNameSlug: r['class_name'] as string,
+    ...('guid' in r ? { guid: (r['guid'] as string | null) ?? null } : {}),
       nameLocalized: (r['name_localized'] as string | null) ?? null,
       manufacturerCode: (r['manufacturer_code'] as string | null) ?? null,
       size: (r['size'] as number | null) ?? null,
@@ -2925,6 +2991,15 @@ function mapIngredient(i: Record<string, unknown>): CodexBlueprintIngredient {
     nameLocalized: (i['name_localized'] as string | null) ?? null,
     entityKind: (i['entity_kind'] as string | null) ?? null,
   };
+}
+
+/**
+ * Non-usable items (opt-in, package C) always come after every usable hit —
+ * never above one or mixed in. Stable: the ranking inside each half stays.
+ */
+export function usableFirst(hits: PolySearchHit[]): PolySearchHit[] {
+  const nonUsable = (h: PolySearchHit) => h.kind === 'item' && !isUsableAttachType(h.attachType);
+  return [...hits.filter((h) => !nonUsable(h)), ...hits.filter(nonUsable)];
 }
 
 /**

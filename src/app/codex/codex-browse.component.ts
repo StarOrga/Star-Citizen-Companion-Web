@@ -75,6 +75,30 @@ import { CodexSearchTriggerComponent } from './search/codex-search-trigger.compo
 import { CODEX_ROOT_CRUMB, PageCrumb } from '../shared/page-header/nav-origin.service';
 import { BarFacet, BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { BetaService } from '../core/beta.service';
+import {
+  CREW_BANDS,
+  CREW_BAND_RANGE,
+  CrewBand,
+  SHIP_ROLES,
+  SHIP_ROLE_CAREERS,
+  ShipRole,
+  isCrewBand,
+  isShipRole,
+} from './codex-ship-filters';
+import {
+  AmmoGroup,
+  COMPONENT_TREE_KINDS,
+  ITEM_GROUPS,
+  NON_USABLE_GROUP,
+  SHIP_ITEM_GROUPS,
+  ammoGroupQuery,
+  isAmmoGroup,
+  isItemGroupId,
+  itemGroup,
+  itemGroupQuery,
+} from './codex-area-taxonomy';
+import { CodexPrefsService } from './codex-prefs.service';
+import { BuyOption, UexShopService } from './uex-shop.service';
 
 /**
  * A row of the list: a list row after variant folding, livery grouping (FPS
@@ -150,21 +174,31 @@ export function blueprintCategoriesForGroup(
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
-      <sc-page-header
-        [crumbs]="crumbs()"
-        [eyebrow]="'codex.browse.eyebrow' | translate"
-        [title]="areaLabelKey() | translate"
-        [subtitle]="subtitle()">
-        @if (!shellOn()) { <sc-codex-search-trigger phAside /> }
-        @if (!shellOn()) { <sc-codex-status-banner phAside /> }
-      </sc-page-header>
-
+      <!-- Two columns that start at the top (package B, 2026-11-06): title + area tree on the
+           left, filter bar + list on the right, so the list is not pushed below the title. -->
       <div class="layout">
-        <aside class="side" [attr.aria-label]="'codex.browse.filtersAria' | translate">
-          <ng-container [ngTemplateOutlet]="facetsTpl" />
-        </aside>
+        <div class="col-side">
+          <sc-page-header
+            class="head"
+            [crumbs]="crumbs()"
+            [eyebrow]="'codex.browse.eyebrow' | translate"
+            [title]="areaLabelKey() | translate"
+            [subtitle]="subtitle()" />
+          <aside class="side" [attr.aria-label]="'codex.browse.areaLabel' | translate">
+            <ng-container [ngTemplateOutlet]="treeTpl" />
+          </aside>
+        </div>
 
         <div class="results">
+          @if (!isUpcoming() || !shellOn()) {
+            <div class="filterbar" role="group" [attr.aria-label]="'codex.browse.filtersAria' | translate">
+              @if (!isUpcoming()) { <ng-container [ngTemplateOutlet]="filtersTpl" /> }
+              @if (!shellOn()) {
+                <span class="bar-aside"><sc-codex-search-trigger /><sc-codex-status-banner /></span>
+              }
+            </div>
+          }
+
           @if (!isUpcoming() && upcomingMatchNames(); as names) {
             <p class="upcoming-hint">
               <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
@@ -190,6 +224,23 @@ export function blueprintCategoriesForGroup(
                     {{ (listTotal() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: listTotal() } }}
                   }
                 </span>
+                <!-- Searches only this list: no suggestion dropdown over the results. -->
+                <label class="list-search">
+                  <span class="sc-sr-only">{{ 'codex.browse.listSearch' | translate: { area: (areaLabelKey() | translate) } }}</span>
+                  <svg class="ls-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" />
+                  </svg>
+                  <input class="ls-input" type="text" autocomplete="off" spellcheck="false" enterkeyhint="search"
+                         [value]="listSearchValue()"
+                         [placeholder]="'codex.browse.listSearchPh' | translate: { area: (areaLabelKey() | translate) }"
+                         (input)="onListSearch($any($event.target).value)"
+                         (keydown.escape)="onListSearch('')" />
+                  @if (listSearchValue()) {
+                    <button type="button" class="ls-clear" (click)="onListSearch('')"
+                            [attr.aria-label]="'codex.browse.listSearchClear' | translate"
+                            [scTooltip]="'codex.browse.listSearchClear' | translate" scTooltipTier="label">✕</button>
+                  }
+                </label>
                 @if (!isUpcoming()) {
                   @if (freshAvailable()) {
                     <button type="button" class="fresh-toggle" [class.on]="patchFresh()" [attr.aria-pressed]="patchFresh()"
@@ -264,6 +315,14 @@ export function blueprintCategoriesForGroup(
                           <span class="meta">
                             @if (rowMeta(r); as m) { <span>{{ m }}</span> }
                             @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                            @if (kind() === 'ship') {
+                              @if (shipOffers().get(r.classNameSlug); as offers) {
+                                <span class="price">
+                                  {{ 'codex.buy.from' | translate: { price: auec(offers[0].price) } }} ·
+                                  {{ (offers.length === 1 ? 'codex.buy.placeOne' : 'codex.buy.places') | translate: { count: offers.length } }}
+                                </span>
+                              }
+                            }
                           </span>
                         </span>
                         <span class="spec">
@@ -273,6 +332,19 @@ export function blueprintCategoriesForGroup(
                       </a>
                       <span class="acts">
                         <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)" />
+                        @if (buyable()) {
+                          <button type="button" class="act shop" [class.pinned]="buyOpen() === r.classNameSlug"
+                                  [attr.aria-expanded]="buyOpen() === r.classNameSlug"
+                                  [attr.aria-controls]="'buy-' + r.classNameSlug"
+                                  (click)="toggleBuy(r)"
+                                  [attr.aria-label]="'codex.buy.open' | translate"
+                                  [scTooltip]="'codex.buy.open' | translate" scTooltipTier="label">
+                            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              <path d="M3 4h2.5l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L21 8H6.4" />
+                              <circle cx="10" cy="19.5" r="1.4" /><circle cx="17" cy="19.5" r="1.4" />
+                            </svg>
+                          </button>
+                        }
                         <button type="button" class="act pin"
                                 [class.pinned]="isPinned(r.classNameSlug)"
                                 [attr.aria-pressed]="isPinned(r.classNameSlug)"
@@ -281,6 +353,37 @@ export function blueprintCategoriesForGroup(
                                 [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                                 scTooltipTier="label"><sc-compare-icon [on]="isPinned(r.classNameSlug)" /></button>
                       </span>
+                      @if (buyOpen() === r.classNameSlug) {
+                        <div class="buy" [id]="'buy-' + r.classNameSlug" role="region"
+                             [attr.aria-label]="'codex.buy.title' | translate: { name: cardName(r) }"
+                             (keydown.escape)="closeBuy(r.classNameSlug)">
+                          @if (buyOffers().get(r.classNameSlug); as offers) {
+                            @if (offers.length) {
+                              <ul class="offers" role="list">
+                                @for (o of offers; track $index) {
+                                  <li class="offer">
+                                    <span class="o-where">
+                                      <strong>{{ o.place || o.location }}</strong>
+                                      <span class="o-sub">{{ o.terminal }}@if (o.system) { · {{ o.system }} }</span>
+                                    </span>
+                                    <span class="o-price">{{ 'codex.buy.price' | translate: { price: auec(o.price) } }}</span>
+                                  </li>
+                                }
+                              </ul>
+                            } @else {
+                              <p class="buy-note">{{ 'codex.buy.none' | translate }}</p>
+                            }
+                          } @else {
+                            <p class="buy-note" role="status">{{ 'codex.buy.loading' | translate }}</p>
+                          }
+                          <div class="buy-acts">
+                            <!-- "Zum Nachschub" is the item path's step (one path for wish, Nachschub, Inventar). -->
+                            <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)"
+                                          level="secondary" nextStep="nachschub" stepKind="buy" />
+                            <a class="to-plan" routerLink="/hq" fragment="planen">{{ 'codex.buy.openPlan' | translate }}</a>
+                          </div>
+                        </div>
+                      }
                     </li>
                   }
                 </ul>
@@ -328,7 +431,8 @@ export function blueprintCategoriesForGroup(
                       [attr.aria-label]="'codex.browse.closeFilters' | translate"
                       [scTooltip]="'codex.browse.closeFilters' | translate" scTooltipTier="label">✕</button>
             </div>
-            <ng-container [ngTemplateOutlet]="facetsTpl" />
+            <ng-container [ngTemplateOutlet]="treeTpl" />
+            @if (!isUpcoming()) { <div class="sheet-filters"><ng-container [ngTemplateOutlet]="filtersTpl" /></div> }
             <button type="button" class="sheet-done" (click)="filtersOpen.set(false)">
               {{ 'codex.browse.showResults' | translate: { count: listTotal() } }}
             </button>
@@ -339,12 +443,32 @@ export function blueprintCategoriesForGroup(
       <sc-codex-compare-tray />
     </section>
 
-    <ng-template #facetsTpl>
+    <ng-template #treeTpl>
       <nav class="tree" [attr.aria-label]="'codex.browse.areaLabel' | translate">
         <p class="side-h">{{ 'codex.browse.areaLabel' | translate }}</p>
         <ng-container [ngTemplateOutlet]="nodesTpl" [ngTemplateOutletContext]="{ $implicit: areaTree(), depth: 0 }" />
       </nav>
+    </ng-template>
+
+    <ng-template #filtersTpl>
       @if (!isUpcoming()) {
+        @if (kind() === 'ship') {
+          <div class="facet facet-role">
+            <span class="side-h">{{ 'codex.filters.role' | translate }}</span>
+            <div class="chips" role="group" [attr.aria-label]="'codex.filters.role' | translate">
+              @for (r of shipRoles; track r) {
+                <button type="button" class="chip" [class.on]="shipRole() === r" [attr.aria-pressed]="shipRole() === r"
+                        (click)="setShipRole(shipRole() === r ? '' : r)">{{ 'codex.shipRole.' + r | translate }}</button>
+              }
+            </div>
+          </div>
+          <div class="facet">
+            <span class="side-h">{{ 'codex.filters.crew' | translate }}</span>
+            <sc-segmented [options]="crewSegments" [value]="crewBand() || 'all'"
+                          [ariaLabel]="'codex.filters.crew' | translate"
+                          (valueChange)="setCrewBand($event === 'all' ? '' : $event)" />
+          </div>
+        }
         @if (manufacturerOptions().length > 0) {
           <div class="facet">
             <span class="side-h">{{ 'codex.filters.manufacturer' | translate }}</span>
@@ -369,30 +493,7 @@ export function blueprintCategoriesForGroup(
                        (valueChange)="setGrade($event ?? '')" />
           </div>
         }
-        @if (kind() === 'component' && componentKindOptions().length > 0) {
-          <div class="facet">
-            <span class="side-h">{{ 'codex.filters.componentKind' | translate }}</span>
-            <sc-select [options]="componentKindSelect()" [value]="componentKind() || null" placeholderKey="codex.filters.all"
-                       [ariaLabel]="'codex.filters.componentKind' | translate"
-                       (valueChange)="setComponentKind($event ?? '')" />
-          </div>
-        }
-        @if (kind() === 'blueprint') {
-          <div class="facet">
-            <span class="side-h">{{ 'codex.filters.blueprintGroup' | translate }}</span>
-            <sc-segmented [options]="blueprintGroupOptions" [value]="blueprintGroup() || 'all'"
-                          [ariaLabel]="'codex.filters.blueprintGroup' | translate"
-                          (valueChange)="setBlueprintGroup($event)" />
-          </div>
-          @if (blueprintCategoryOptions().length > 0) {
-            <div class="facet">
-              <span class="side-h">{{ 'blueprint.filters.category' | translate }}</span>
-              <sc-select [options]="blueprintCategorySelect()" [value]="blueprintCategory() || null" placeholderKey="codex.filters.all"
-                         [ariaLabel]="'blueprint.filters.category' | translate"
-                         (valueChange)="setBlueprintCategory($event ?? '')" />
-            </div>
-          }
-        }
+        <!-- Component kind and blueprint group/bucket are areas of the tree now (package C). -->
         @if (supportsVariants()) {
           <label class="facet check">
             <input type="checkbox" [checked]="includeVariants()" (change)="onVariantsToggle($event)" />
@@ -412,7 +513,7 @@ export function blueprintCategoriesForGroup(
             <a class="node" [class.on]="n.active" [class.current]="n.current"
                [attr.aria-current]="n.current ? 'page' : null"
                [attr.href]="n.href" (click)="onAreaClick($event, n)">
-              <span class="node-label">{{ n.labelKey | translate }}</span>
+              <span class="node-label">{{ n.label ?? (n.labelKey | translate) }}</span>
               @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
             </a>
             @if (n.open && n.children.length > 0) {
@@ -426,7 +527,10 @@ export function blueprintCategoriesForGroup(
   styles: [`
     :host { display: block; }
     .browse { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); padding-bottom: 80px; }
-    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--sc-space-4, 16px); align-items: start; }
+    .layout { display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: var(--sc-space-4, 16px); align-items: stretch; }
+    /* Left column: title, then the sticky area tree under it. */
+    .col-side { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); min-width: 0; }
+    .head { min-width: 0; }
     .side {
       position: sticky; top: calc(var(--sc-sticky-top, 0px) + var(--sc-space-3, 12px));
       display: flex; flex-direction: column; gap: var(--sc-space-3, 12px);
@@ -451,9 +555,51 @@ export function blueprintCategoriesForGroup(
     .reset { align-self: flex-start; background: none; border: 0; padding: 4px 0; color: var(--sc-accent); cursor: pointer; font: inherit; font-size: 13px; text-decoration: underline; }
     .reset:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
-    .results { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; }
+    .results { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; align-self: start; }
+    /* The filter bar fills the space beside the title: the list starts right under it. */
+    .filterbar {
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px;
+      padding: 12px 14px; border: 1px solid var(--sc-border); border-radius: 8px;
+      background: color-mix(in srgb, var(--sc-bg-1) 70%, transparent);
+    }
+    .filterbar:empty { display: none; }
+    .filterbar .facet { min-width: 150px; }
+    .filterbar .facet.check { min-width: 0; align-self: center; }
+    .filterbar .reset { align-self: center; }
+    .bar-aside { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .facet-role { flex: 1 1 100%; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      min-height: max(30px, var(--sc-tap-min, 0px)); padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1);
+      font: inherit; font-size: 13px; cursor: pointer; transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+    }
+    .chip:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .chip.on { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
+    .chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .sheet-filters { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); }
     .list { padding: 0; overflow: hidden; }
-    .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); }
+    .list-head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--sc-border); flex-wrap: wrap; }
+    .list-search {
+      position: relative; flex: 1 1 220px; display: flex; align-items: center; min-width: 0;
+    }
+    .ls-icon {
+      position: absolute; left: 10px; width: 16px; height: 16px; pointer-events: none;
+      fill: none; stroke: var(--sc-fg-2); stroke-width: 2; stroke-linecap: round;
+    }
+    .ls-input {
+      width: 100%; min-height: max(36px, var(--sc-tap-min, 0px)); padding: 6px 34px 6px 34px;
+      border: 1px solid var(--sc-border); border-radius: 6px; background: var(--sc-bg-1); color: var(--sc-fg-0);
+      font: inherit; font-size: max(13px, var(--sc-fs-input, 0px));
+    }
+    .ls-input::placeholder { color: var(--sc-fg-2); }
+    .ls-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: var(--sc-glow); }
+    .ls-clear {
+      position: absolute; right: 4px; width: 28px; height: 28px; border: 0; border-radius: 4px;
+      background: transparent; color: var(--sc-fg-2); cursor: pointer; font: inherit; font-size: 12px;
+    }
+    .ls-clear:hover { color: var(--sc-fg-0); }
+    .ls-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .count { font-size: 13px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
     .fresh-toggle {
       min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3); border: 1px solid var(--sc-border); border-radius: 999px;
@@ -462,10 +608,10 @@ export function blueprintCategoriesForGroup(
     .fresh-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .fresh-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .fresh-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
-    .sort { min-width: 180px; }
+    .sort { min-width: 180px; margin-left: auto; }
     .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .rows { list-style: none; margin: 0; padding: 0; }
-    .row { position: relative; display: flex; align-items: center; border-bottom: 1px solid var(--sc-border); }
+    .row { position: relative; display: flex; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--sc-border); }
     .row:last-child { border-bottom: 0; }
     .row.skel { height: 56px; }
     .row-link {
@@ -503,6 +649,25 @@ export function blueprintCategoriesForGroup(
     .act:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .act.pinned { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .act .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .act.shop.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
+    .price { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    /* Package D: where to buy, inline under the row (never a floating layer over the list). */
+    .buy {
+      flex: 1 0 100%; display: flex; flex-direction: column; gap: 10px;
+      padding: 10px 14px 14px 84px; border-top: 1px dashed var(--sc-border);
+      background: color-mix(in srgb, var(--sc-accent) 4%, transparent);
+    }
+    .offers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .offer { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .o-where { display: flex; flex-direction: column; min-width: 0; }
+    .o-where strong { color: var(--sc-fg-0); font-weight: 600; overflow-wrap: anywhere; }
+    .o-sub { font-size: 12px; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .o-price { color: var(--sc-fg-0); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .buy-note { margin: 0; font-size: 13px; color: var(--sc-fg-2); }
+    .buy-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .to-plan { font-size: 13px; color: var(--sc-accent); }
+    .to-plan:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .more-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--sc-border); }
     .showing { font-size: 12px; color: var(--sc-fg-2); }
     .load-more, .reset-all, .sheet-done {
@@ -536,9 +701,12 @@ export function blueprintCategoriesForGroup(
     @media (max-width: 767px) {
       .layout { grid-template-columns: minmax(0, 1fr); }
       .side { display: none; }
+      .filterbar { display: none; }
+      .col-side { gap: 0; }
       .acts .act { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
+      .buy { padding-left: 14px; }
       .filter-fab {
         display: inline-flex; align-items: center; justify-content: center;
         position: fixed; z-index: 30; left: var(--sc-space-3, 12px); right: var(--sc-fab-clear-inline);
@@ -770,6 +938,9 @@ export class CodexBrowseComponent implements OnInit {
         ? 'codex.weaponGroup.' + this.weaponGroup() + '.' + this.weaponSubGroup()
         : 'codex.weaponGroup.super.' + this.weaponGroup();
     }
+    if (c === 'item' && this.itemGroup()) return 'codex.itemGroup.' + this.itemGroup();
+    if (c === 'ammunition' && this.ammoGroup() === 'vehicle') return 'codex.browse.area.shipAmmo';
+    if (c === 'component' && this.componentKind()) return 'codex.componentKind.' + this.componentKind();
     return 'codex.kinds.' + c;
   });
 
@@ -806,7 +977,7 @@ export class CodexBrowseComponent implements OnInit {
   /** Number of active facets — the phone button's "(n)". */
   readonly activeFilterCount = computed(
     () =>
-      [this.manufacturer(), this.size(), this.grade(), this.componentKind(), this.blueprintCategory(), this.blueprintGroup()].filter(Boolean)
+      [this.manufacturer(), this.size(), this.grade(), this.componentKind(), this.blueprintCategory(), this.blueprintGroup(), this.shipRole(), this.crewBand()].filter(Boolean)
         .length + (this.includeVariants() ? 1 : 0),
   );
 
@@ -835,47 +1006,157 @@ export class CodexBrowseComponent implements OnInit {
     this.setIncludeVariants((ev.target as HTMLInputElement).checked);
   }
 
-  /** The "Bereich" tree: every area with its count, the current path open. */
+  /**
+   * The current area as the tree compares it: only the keys that belong to the
+   * category. An unset weapon/ammunition group reads as the on-foot one, so
+   * "Waffen"/"Munition" stay the current node for an older link without one.
+   */
+  private readonly areaState = computed(() => {
+    const category = this.category();
+    return {
+      category,
+      wg: category === 'weapon' ? this.weaponGroup() || 'fps' : '',
+      wsg: category === 'weapon' ? this.weaponSubGroup() : '',
+      slot: category === ARMOR_CATEGORY ? this.armorSlot() : '',
+      ck: category === 'component' ? this.componentKind() : '',
+      ig: category === 'item' ? this.itemGroup() : '',
+      ag: category === 'ammunition' ? this.ammoGroup() || 'fps' : '',
+      bg: category === 'blueprint' ? this.blueprintGroup() : '',
+      bpc: category === 'blueprint' ? this.blueprintCategory() : '',
+      mfr: category === 'manufacturer' ? this.manufacturer() : '',
+    };
+  });
+
+  /** The "Bereich" tree (package C): every area with its count, the current path open. */
   readonly areaTree = computed<AreaNode[]>(() => {
-    const cat = this.category();
-    const wg = this.weaponGroup();
-    const wsg = this.weaponSubGroup();
-    const slot = this.armorSlot();
-    const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, active: boolean, current: boolean, children: AreaNode[] = []): AreaNode => ({
-      id, labelKey, count, target, active, current, open: active, children, href: this.areaHref(target),
-    });
+    const st = this.areaState();
+    const keys = ['wg', 'wsg', 'slot', 'ck', 'ig', 'ag', 'bg', 'bpc', 'mfr'] as const;
+    const isCurrent = (t: AreaTarget) =>
+      t.category === st.category && keys.every((k) => (t[k] ?? '') === st[k]);
+    const counts = this.areaCounts();
+    const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, children: AreaNode[] = [], label?: string): AreaNode => {
+      const current = isCurrent(target);
+      const active = current || children.some((c) => c.active);
+      return { id, labelKey, ...(label ? { label } : {}), count, target, active, current, open: active, children, href: this.areaHref(target) };
+    };
+    const subs = (groupId: string, category: 'weapon') =>
+      (WEAPON_SUPER_GROUPS.find((g) => g.id === groupId)?.subGroups ?? [])
+        .filter((sg) => (this.weaponGroupCount(groupId, sg.id) ?? 1) > 0)
+        .map((sg) => node(groupId + '-' + sg.id, 'codex.weaponGroup.' + groupId + '.' + sg.id, this.weaponGroupCount(groupId, sg.id), { category, wg: groupId, wsg: sg.id }));
     const out: AreaNode[] = [];
     for (const k of this.categories) {
       if (this.isComingSoon(k)) continue;
-      const on = cat === k;
-      if (k === 'weapon') {
-        const supers = WEAPON_SUPER_GROUPS.map((g) => {
-          const gOn = on && wg === g.id;
-          const subs = g.subGroups
-            .filter((s) => (this.weaponGroupCount(g.id, s.id) ?? 1) > 0)
-            .map((s) => node(g.id + '-' + s.id, 'codex.weaponGroup.' + g.id + '.' + s.id, this.weaponGroupCount(g.id, s.id), { category: 'weapon', wg: g.id, wsg: s.id }, gOn && wsg === s.id, gOn && wsg === s.id));
-          return node('weapon-' + g.id, 'codex.weaponGroup.super.' + g.id, this.weaponGroupCount(g.id), { category: 'weapon', wg: g.id }, gOn, gOn && !wsg, subs);
-        });
-        out.push(node('weapon', 'codex.kinds.weapon', this.kindCount('weapon'), { category: 'weapon' }, on, on && !wg, supers));
+      if (k === 'ship') {
+        out.push(node('ship', 'codex.kinds.ship', this.categoryCount('ship'), { category: 'ship' }, [
+          node('ship-weapons', 'codex.weaponGroup.super.ship', this.weaponGroupCount('ship'), { category: 'weapon', wg: 'ship' }, subs('ship', 'weapon')),
+          ...SHIP_ITEM_GROUPS.map((g) => node('ship-' + g.id, 'codex.itemGroup.' + g.id, counts.get('ig-' + g.id) ?? null, { category: 'item', ig: g.id })),
+          node('ship-ammo', 'codex.browse.area.shipAmmo', counts.get('ag-vehicle') ?? null, { category: 'ammunition', ag: 'vehicle' }),
+        ]));
+      } else if (k === 'weapon') {
+        out.push(node('weapon', 'codex.kinds.weapon', this.weaponGroupCount('fps'), { category: 'weapon', wg: 'fps' }, subs('fps', 'weapon')));
+      } else if (k === 'component') {
+        const kinds = COMPONENT_TREE_KINDS.filter((c) => (counts.get('ck-' + c) ?? 1) > 0);
+        out.push(node('component', 'codex.kinds.component', this.categoryCount('component'), { category: 'component' },
+          kinds.map((c) => node('ck-' + c, 'codex.componentKind.' + c, counts.get('ck-' + c) ?? null, { category: 'component', ck: c }))));
+      } else if (k === 'item') {
+        const groups = ITEM_GROUPS.filter((g) => (counts.get('ig-' + g.id) ?? 1) > 0)
+          .map((g) => node('ig-' + g.id, 'codex.itemGroup.' + g.id, counts.get('ig-' + g.id) ?? null, { category: 'item', ig: g.id }));
+        if (this.codexPrefs.showNonUsable()) {
+          groups.push(node('ig-' + NON_USABLE_GROUP, 'codex.itemGroup.' + NON_USABLE_GROUP, counts.get('ig-' + NON_USABLE_GROUP) ?? null, { category: 'item', ig: NON_USABLE_GROUP }));
+        }
+        out.push(node('item', 'codex.kinds.item', counts.get('ig-player') ?? null, { category: 'item' }, groups));
+      } else if (k === 'ammunition') {
+        out.push(node('ammunition', 'codex.kinds.ammunition', counts.get('ag-fps') ?? null, { category: 'ammunition', ag: 'fps' }));
+      } else if (k === 'manufacturer') {
+        out.push(node('manufacturer', 'codex.kinds.manufacturer', this.categoryCount('manufacturer'), { category: 'manufacturer' },
+          this.shipMakers().map((m) => node('mfr-' + m.code, '', null, { category: 'manufacturer', mfr: m.code }, [], m.label))));
+      } else if (k === 'blueprint') {
+        const cats = this.blueprintCategoryOptions();
+        const group = (g: 'fps' | 'vehicle') =>
+          node('bg-' + g, 'blueprint.group.' + g, null, { category: 'blueprint', bg: g },
+            blueprintCategoriesForGroup(g, cats).map((c) => node('bpc-' + c, '', null, { category: 'blueprint', bg: g, bpc: c }, [], this.categoryLabel(c))));
+        out.push(node('blueprint', 'codex.kinds.blueprint', this.categoryCount('blueprint'), { category: 'blueprint' }, [group('fps'), group('vehicle')]));
       } else if (k === ARMOR_CATEGORY) {
-        const counts = this.armorCounts();
+        const armor = this.armorCounts();
         const slots = ARMOR_SLOT_IDS.map((id) => {
           const at = armorAttachTypeOf(id);
-          return node('armor-' + id, 'codex.landing.paperdoll.' + id, at ? (counts.get(at) ?? null) : null, { category: ARMOR_CATEGORY, slot: id }, on && slot === id, on && slot === id);
+          return node('armor-' + id, 'codex.landing.paperdoll.' + id, at ? (armor.get(at) ?? null) : null, { category: ARMOR_CATEGORY, slot: id });
         }).filter((n) => n.count !== 0);
-        const total = counts.size ? [...counts.values()].reduce((a, b) => a + b, 0) : null;
-        out.push(node('armor', 'codex.browse.area.armor', total, { category: ARMOR_CATEGORY }, on, on && !slot, slots));
+        const total = armor.size ? [...armor.values()].reduce((a, b) => a + b, 0) : null;
+        out.push(node('armor', 'codex.browse.area.armor', total, { category: ARMOR_CATEGORY }, slots));
       } else {
-        out.push(node(k, 'codex.kinds.' + k, this.categoryCount(k), { category: k }, on, on));
+        out.push(node(k, 'codex.kinds.' + k, this.categoryCount(k), { category: k }));
       }
     }
     return out;
   });
 
+  /**
+   * Head counts for the tree's finer nodes (package C), asked once per build
+   * and only for the part of the tree that is open: a closed node shows no
+   * children, so their counts would be wasted requests.
+   */
+  private async loadAreaCounts(category: CodexCategory, showNonUsable: boolean): Promise<void> {
+    const buildId = this.svc.build()?.id ?? '';
+    if (buildId !== this.areaCountsBuild) {
+      this.areaCountsBuild = buildId;
+      this.areaCountsAsked.clear();
+      this.areaCounts.set(new Map());
+    }
+    const ask: { id: string; run: () => Promise<number | null> }[] = [];
+    const want = (id: string, run: () => Promise<number | null>) => {
+      if (!this.areaCountsAsked.has(id)) ask.push({ id, run });
+    };
+    want('ag-fps', () => this.svc.countByKind('ammunition', ammoGroupQuery('fps')));
+    want('ig-player', () => this.svc.countByKind('item', itemGroupQuery('')));
+    if (category === 'ship' || category === 'weapon' || category === 'ammunition' || category === 'item') {
+      want('ag-vehicle', () => this.svc.countByKind('ammunition', ammoGroupQuery('vehicle')));
+      for (const g of SHIP_ITEM_GROUPS) want('ig-' + g.id, () => this.svc.countByKind('item', itemGroupQuery(g.id)));
+    }
+    if (category === 'item') {
+      for (const g of ITEM_GROUPS) want('ig-' + g.id, () => this.svc.countByKind('item', itemGroupQuery(g.id)));
+      if (showNonUsable) want('ig-' + NON_USABLE_GROUP, () => this.svc.countByKind('item', itemGroupQuery(NON_USABLE_GROUP)));
+    }
+    if (category === 'component') {
+      for (const c of COMPONENT_TREE_KINDS) want('ck-' + c, () => this.svc.countByKind('component', { componentKind: c }));
+    }
+    if (!ask.length) return;
+    for (const a of ask) this.areaCountsAsked.add(a.id);
+    const results = await Promise.all(ask.map(async (a) => [a.id, await a.run().catch(() => null)] as const));
+    this.areaCounts.update((m) => {
+      const next = new Map(m);
+      for (const [id, n] of results) {
+        if (n != null) next.set(id, n);
+        else this.areaCountsAsked.delete(id); // a failed count is asked again next time
+      }
+      return next;
+    });
+  }
+
+  /** Ship manufacturers for the "Hersteller" sub list (facet values of the ship kind). */
+  private async loadShipMakers(): Promise<void> {
+    try {
+      const values = await this.svc.facetValues('ship');
+      const lang = this.dataLang();
+      this.shipMakers.set(
+        (values?.manufacturers ?? [])
+          .map((m) => ({ code: m.code, label: manufacturerLabel({ manufacturerCode: m.code, payload: { manufacturer: { name: m.name } } }, lang) ?? m.code }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+      );
+    } catch {
+      this.shipMakers.set([]);
+    }
+  }
+
   private areaHref(t: AreaTarget): string | null {
     const q = (t.category === UPCOMING_CATEGORY ? this.rsi.query() : this.searchTerm()) || null;
     const params: Record<string, string | null> =
-      t.category === UPCOMING_CATEGORY ? { q } : { kind: t.category, wg: t.wg ?? null, wsg: t.wsg ?? null, slot: t.slot ?? null, q };
+      t.category === UPCOMING_CATEGORY
+        ? { q }
+        : {
+            kind: t.category, wg: t.wg ?? null, wsg: t.wsg ?? null, slot: t.slot ?? null, ck: t.ck ?? null,
+            ig: t.ig ?? null, ag: t.ag ?? null, group: t.bg ?? null, bpc: t.bpc ?? null, mfr: t.mfr ?? null, q,
+          };
     try {
       const tree = this.router.createUrlTree(t.category === UPCOMING_CATEGORY ? ['/codex/upcoming'] : ['/codex/index'], { queryParams: params });
       return this.location.prepareExternalUrl(this.router.serializeUrl(tree));
@@ -899,6 +1180,14 @@ export class CodexBrowseComponent implements OnInit {
       this.weaponSubGroup.set(t.wsg ?? '');
     }
     if (t.category === ARMOR_CATEGORY) this.armorSlot.set(t.slot ?? '');
+    if (t.category === 'component') this.componentKind.set(t.ck ?? '');
+    if (t.category === 'item') this.itemGroup.set(t.ig ?? '');
+    if (t.category === 'ammunition') this.ammoGroup.set(t.ag === 'fps' || t.ag === 'vehicle' ? t.ag : '');
+    if (t.category === 'blueprint') {
+      this.blueprintGroup.set(t.bg === 'fps' || t.bg === 'vehicle' ? t.bg : '');
+      this.blueprintCategory.set(t.bpc ?? '');
+    }
+    if (t.category === 'manufacturer') this.manufacturer.set(t.mfr ?? '');
   }
 
   /** Class names of the records folded into this card, for the badge tooltip. */
@@ -973,6 +1262,46 @@ export class CodexBrowseComponent implements OnInit {
   /** Per-category record counts, from the build's weapon facet columns. */
   private readonly weaponFacets = signal<readonly WeaponFacetRow[]>([]);
   readonly includeVariants = signal(false);
+  /** Item area group (package C, codex-area-taxonomy), '' = every player item. */
+  readonly itemGroup = signal('');
+  /** Ammunition area group (package C): 'fps' under Munition, 'vehicle' under Schiffe. */
+  readonly ammoGroup = signal<AmmoGroup | ''>('');
+  /** Non-usable records shown (settings opt-in). */
+  private readonly codexPrefs = inject(CodexPrefsService);
+  /** Tree counts that need their own head query, by node id. */
+  private readonly areaCounts = signal<ReadonlyMap<string, number>>(new Map());
+  private readonly areaCountsAsked = new Set<string>();
+  private areaCountsBuild = '';
+  /** Ship manufacturers for the "Hersteller" sub list. */
+  private readonly shipMakers = signal<readonly { code: string; label: string }[]>([]);
+  private readonly uex = inject(UexShopService);
+  /** Package D: in-game offers per ship row (cheapest first), from one shared UEX price table. */
+  readonly shipOffers = signal<ReadonlyMap<string, BuyOption[]>>(new Map());
+  private readonly shipOffersAsked = new Set<string>();
+  /** The row whose "where to buy" panel is open. */
+  readonly buyOpen = signal<string | null>(null);
+  /** Offers per row for the open panel (ships reuse `shipOffers`); absent = loading. */
+  private readonly entityOffers = signal<ReadonlyMap<string, BuyOption[]>>(new Map());
+  /** Rows of these kinds can be bought in game (UEX). */
+  readonly buyable = computed(() => ['ship', 'weapon', 'component', 'item', 'ammunition'].includes(this.kind()));
+  readonly buyOffers = computed(() => (this.kind() === 'ship' ? this.shipOffersOrEmpty() : this.entityOffers()));
+  /** Ship offers with an explicit [] for a ship UEX does not sell, so the panel can say so. */
+  private readonly shipOffersOrEmpty = computed(() => {
+    const out = new Map(this.shipOffers());
+    for (const slug of this.shipOffersDone()) if (!out.has(slug)) out.set(slug, []);
+    return out;
+  });
+  private readonly shipOffersDone = signal<ReadonlySet<string>>(new Set());
+  private readonly auecFormat = computed(() => new Intl.NumberFormat(this.dataLang() === 'de' ? 'de-DE' : 'en-US', { maximumFractionDigits: 0 }));
+  /** Ship-only facet (package B): RSI role, '' = all roles. */
+  readonly shipRole = signal<ShipRole | ''>('');
+  /** Ship-only facet (package B): crew band, '' = any crew. */
+  readonly crewBand = signal<CrewBand | ''>('');
+  readonly shipRoles = SHIP_ROLES;
+  readonly crewSegments: readonly ScSegmentOption[] = [
+    { value: 'all', labelKey: 'codex.crewBand.all' },
+    ...CREW_BANDS.map((b) => ({ value: b, labelKey: 'codex.crewBand.' + b })),
+  ];
   /** Blueprint-only facet — raw CIG bucket, '' = all. */
   readonly blueprintCategory = signal('');
   /** Buckets actually present in the build (loaded once, data-driven). */
@@ -1193,6 +1522,8 @@ export class CodexBrowseComponent implements OnInit {
       !!this.weaponGroup() ||
       !!this.blueprintCategory() ||
       !!this.blueprintGroup() ||
+      !!this.shipRole() ||
+      !!this.crewBand() ||
       this.includeVariants(),
   );
 
@@ -1241,6 +1572,12 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.blueprintGroup()) add('blueprintGroup', 'codex.filters.blueprintGroup', this.blueprintGroup(), () => this.setBlueprintGroup(''));
     if (this.blueprintCategory()) add('blueprintCategory', 'blueprint.filters.category', this.blueprintCategory(), () => this.setBlueprintCategory(''));
+    if (this.shipRole()) {
+      add('role', 'codex.filters.role', this.t.instant('codex.shipRole.' + this.shipRole()) as string, () => this.setShipRole(''));
+    }
+    if (this.crewBand()) {
+      add('crew', 'codex.filters.crew', this.t.instant('codex.crewBand.' + this.crewBand()) as string, () => this.setCrewBand(''));
+    }
     if (this.includeVariants()) add('variants', 'fusionBar.filter.variants', null, () => this.setIncludeVariants(false));
     return out;
   });
@@ -1248,6 +1585,18 @@ export class CodexBrowseComponent implements OnInit {
   /** The bar panel's checkbox columns (beta shell, concept r8 d2-s4): the same facets as the toolbar. */
   readonly barFacets = computed<readonly BarFacet[]>(() => {
     const out: BarFacet[] = [];
+    if (this.kind() === 'ship') {
+      out.push({
+        id: 'role', labelKey: 'codex.filters.role',
+        options: SHIP_ROLES.map((r) => ({ value: r, labelKey: 'codex.shipRole.' + r })),
+        selected: this.shipRole() || null, set: (v) => this.setShipRole(v ?? ''),
+      });
+      out.push({
+        id: 'crew', labelKey: 'codex.filters.crew',
+        options: CREW_BANDS.map((b) => ({ value: b, labelKey: 'codex.crewBand.' + b })),
+        selected: this.crewBand() || null, set: (v) => this.setCrewBand(v ?? ''),
+      });
+    }
     const mfrs = this.manufacturerOptions();
     if (mfrs.length) {
       out.push({
@@ -1350,6 +1699,22 @@ export class CodexBrowseComponent implements OnInit {
         else this.onSearchInput(term);
       }),
     );
+    // Package D: in-game prices for the ship rows on screen.
+    effect(() => {
+      const rows = this.rows();
+      if (this.kind() !== 'ship') return;
+      untracked(() => void this.loadShipOffers(rows));
+    });
+    // Package C: the tree's finer counts for the open part of the tree.
+    effect(() => {
+      const category = this.category();
+      const show = this.codexPrefs.showNonUsable();
+      const build = this.svc.build();
+      untracked(() => {
+        if (!build) return;
+        void this.loadAreaCounts(category, show);
+      });
+    });
     // Silhouettes for the rows on screen (u2), batched per page.
     effect(() => {
       const rows = this.rows();
@@ -1381,6 +1746,10 @@ export class CodexBrowseComponent implements OnInit {
       this.includeVariants();
       this.blueprintCategory();
       this.blueprintGroup();
+      this.shipRole();
+      this.crewBand();
+      this.itemGroup();
+      this.ammoGroup();
       this.runQuery(true);
     });
 
@@ -1402,6 +1771,10 @@ export class CodexBrowseComponent implements OnInit {
         wsg: this.weaponSubGroup() || null,
         bpc: this.blueprintCategory() || null,
         group: this.blueprintGroup() || null,
+        ig: this.category() === 'item' ? this.itemGroup() || null : null,
+        ag: this.kind() === 'ammunition' ? this.ammoGroup() || null : null,
+        role: this.kind() === 'ship' ? this.shipRole() || null : null,
+        crew: this.kind() === 'ship' ? this.crewBand() || null : null,
         slot: this.category() === ARMOR_CATEGORY ? this.armorSlot() || null : null,
         v: this.includeVariants() ? '1' : null,
         // Superseded by wg — a landing link's weaponClass must not linger.
@@ -1512,6 +1885,7 @@ export class CodexBrowseComponent implements OnInit {
     void this.rsi.ensureLoaded();
     await this.svc.loadCurrentBuild();
     void this.loadArmorCounts();
+    void this.loadShipMakers();
     await this.loadBlueprintCategories();
     if (this.kind() === 'weapon') await this.loadWeaponFacets();
   }
@@ -1617,6 +1991,13 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.category() === ARMOR_CATEGORY) take('slot', (v) => ARMOR_SLOT_IDS.includes(v) && this.armorSlot.set(v));
     if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
+    if (this.category() === 'item') take('ig', (v) => isItemGroupId(v) && this.itemGroup.set(v));
+    if (this.kind() === 'ammunition') take('ag', (v) => isAmmoGroup(v) && this.ammoGroup.set(v));
+    if (this.kind() === 'manufacturer') take('mfr', (v) => this.manufacturer.set(v));
+    if (this.kind() === 'ship') {
+      take('role', (v) => isShipRole(v) && this.shipRole.set(v));
+      take('crew', (v) => isCrewBand(v) && this.crewBand.set(v));
+    }
     if (q.get('v') === '1') this.includeVariants.set(true);
     this.patchFresh.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('fresh') === '1');
     this.sortNew.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('sort') === 'new');
@@ -1738,6 +2119,10 @@ export class CodexBrowseComponent implements OnInit {
     this.weaponSubGroup.set('');
     this.blueprintCategory.set('');
     this.blueprintGroup.set('');
+    this.shipRole.set('');
+    this.crewBand.set('');
+    this.itemGroup.set('');
+    this.ammoGroup.set('');
     this.kind.set(k);
     if (k === 'weapon') void this.loadWeaponFacets();
   }
@@ -1753,11 +2138,31 @@ export class CodexBrowseComponent implements OnInit {
   }
 
   clearSearch(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    if (this.commitTimer) clearTimeout(this.commitTimer);
     this.searchInput.set('');
     this.searchTerm.set('');
   }
 
   setManufacturer(v: string): void { this.manufacturer.set(v); }
+  setShipRole(v: string): void { this.shipRole.set(isShipRole(v) ? v : ''); }
+  setCrewBand(v: string): void { this.crewBand.set(isCrewBand(v) ? v : ''); }
+
+  /** The list search's value: the RSI feed's term on the upcoming list, else the codex term. */
+  readonly listSearchValue = computed(() => (this.isUpcoming() ? this.rsi.query() : this.searchInput()));
+
+  /** The search in the list head (package B): filters this list only, no dropdown over it. */
+  onListSearch(value: string): void {
+    if (this.isUpcoming()) {
+      this.rsi.query.set(value.trim());
+      return;
+    }
+    if (value === '') {
+      this.clearSearch();
+      return;
+    }
+    this.onSearchInput(value);
+  }
   setSize(v: string): void { this.size.set(v); }
   setGrade(v: string): void { this.grade.set(v); }
   setComponentKind(v: string): void { this.componentKind.set(v); }
@@ -1790,6 +2195,8 @@ export class CodexBrowseComponent implements OnInit {
     this.blueprintCategory.set('');
     this.blueprintGroup.set('');
     this.armorSlot.set('');
+    this.shipRole.set('');
+    this.crewBand.set('');
     this.includeVariants.set(false);
   }
 
@@ -1842,9 +2249,70 @@ export class CodexBrowseComponent implements OnInit {
       ...(this.kind() === 'weapon' ? weaponGroupQuery(this.weaponGroup(), this.weaponSubGroup()) : {}),
       category: category || undefined,
       blueprintCategoryIn,
+      ...(this.kind() === 'ship' ? this.shipFacetQuery() : {}),
+      ...(this.category() === 'item' ? itemGroupQuery(this.visibleItemGroup()) : {}),
+      ...(this.kind() === 'ammunition' ? ammoGroupQuery(this.ammoGroup()) : {}),
       includeVariants: this.includeVariants(),
       limit: PAGE_SIZE,
       offset: this.offset,
+    };
+  }
+
+  /** An aUEC amount in the reader's number format (no currency word; the template adds "aUEC"). */
+  auec(n: number): string {
+    return this.auecFormat().format(n);
+  }
+
+  /** Offers for the ship rows on screen: one shared UEX table, matched per row (package D). */
+  private async loadShipOffers(rows: readonly CodexGridRow[]): Promise<void> {
+    const todo = rows.filter((r) => !this.shipOffersAsked.has(r.classNameSlug));
+    if (!todo.length) return;
+    for (const r of todo) this.shipOffersAsked.add(r.classNameSlug);
+    const results = await Promise.all(
+      todo.map(async (r) => [r.classNameSlug, await this.uex.shipOffers({ guid: r.guid ?? null, name: r.nameLocalized ?? this.cardName(r) })] as const),
+    );
+    this.shipOffers.update((m) => {
+      const next = new Map(m);
+      for (const [slug, offers] of results) if (offers.length) next.set(slug, offers);
+      return next;
+    });
+    this.shipOffersDone.update((done) => new Set([...done, ...results.map(([slug]) => slug)]));
+  }
+
+  /** Open/close a row's "where to buy" panel; non-ship rows fetch their offers on first open. */
+  toggleBuy(r: CodexGridRow): void {
+    const slug = r.classNameSlug;
+    if (this.buyOpen() === slug) {
+      this.buyOpen.set(null);
+      return;
+    }
+    this.buyOpen.set(slug);
+    if (this.kind() === 'ship' || this.entityOffers().has(slug)) return;
+    const kind = this.kind();
+    void this.uex.whereToBuyEntity(kind, r.nameLocalized ?? this.cardName(r)).then((offers) =>
+      this.entityOffers.update((m) => new Map(m).set(slug, offers)),
+    );
+  }
+
+  closeBuy(slug: string): void {
+    if (this.buyOpen() === slug) this.buyOpen.set(null);
+  }
+
+  /** The item group the list may show: the hidden bucket only while the setting shows it. */
+  private visibleItemGroup(): string {
+    const g = this.itemGroup();
+    if (g === NON_USABLE_GROUP && !this.codexPrefs.showNonUsable()) return '';
+    return g && (g === NON_USABLE_GROUP || itemGroup(g)) ? g : '';
+  }
+
+  /** Role + crew band as list filters (career keys, inclusive crew range). */
+  private shipFacetQuery(): Pick<CodexListFilters, 'careerIn' | 'crewMin' | 'crewMax'> {
+    const role = this.shipRole();
+    const band = this.crewBand();
+    const range = band ? CREW_BAND_RANGE[band] : null;
+    return {
+      ...(role ? { careerIn: [...SHIP_ROLE_CAREERS[role]] } : {}),
+      ...(range ? { crewMin: range.min, ...(range.max !== null ? { crewMax: range.max } : {}) } : {}),
     };
   }
 

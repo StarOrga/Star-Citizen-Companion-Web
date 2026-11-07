@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.223.0] - 2026-11-07
+
+### Added
+- The Codex index has its own search in the list head, next to "Neu/Aktualisiert im letzten Patch" and the sort.
+- Ships can be filtered by role (the eight RSI roles), crew (1, 2–3, 4–8, 9+) and size S1–S6. Sizes appear after the next game data upload.
+- Ship rows show where to buy them: "ab X aUEC · N Orte". The shop button opens every in-game offer right under the row, with the item path and a link into the HQ plan.
+- Settings → Codex can show game objects nobody can use (doors, seats, displays …) as "Nicht nutzbar". The search then lists them after every usable hit.
+- Data Uploader 0.75.0 reads the ship size class from the game files.
+
+### Changed
+- The Codex index stands in two columns from the top: title and area tree on the left, filters and list on the right.
+- The area tree follows what a player uses: ship weapons, missiles and bombs, modules and ore pods and ship ammunition sit under Schiffe; Waffen and Munition hold on-foot gear only. Components are grouped by kind, items by food and drinks, clothing, medical and gadgets, attachments, suits, paints, decoration and misc. Ships have a sub area per manufacturer, blueprints per group.
+- Game objects nobody can use are hidden from the area tree, the lists and the search.
+
 ## [0.222.0] - 2026-11-07
 
 ### Added

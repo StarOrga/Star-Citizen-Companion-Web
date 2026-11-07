@@ -14,6 +14,7 @@ import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { BetaService } from '../core/beta.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { BuyOption, UexShopService } from './uex-shop.service';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
 import { HoloSilhouette } from './holo-silhouette';
 import {
@@ -115,6 +116,8 @@ describe('CodexBrowseComponent', () => {
       silhouettes?: Map<string, HoloSilhouette>;
       armorCounts?: Map<string, number>;
       crossCounts?: Map<string, number>;
+      /** UEX offers per row (package D). */
+      offers?: BuyOption[];
       /** The build diff behind `?fresh=1`. */
       diff?: { added: string[]; changed: string[] };
       /** Beta shell flag; undefined = the real BetaService (shell off). */
@@ -125,7 +128,12 @@ describe('CodexBrowseComponent', () => {
     cmp: CodexBrowseComponent;
     listByKind: jasmine.Spy;
     silhouettes: jasmine.Spy;
+    uex: { shipOffers: jasmine.Spy; whereToBuyEntity: jasmine.Spy };
   }> {
+    const uex = {
+      shipOffers: jasmine.createSpy('shipOffers').and.resolveTo(opts.offers ?? []),
+      whereToBuyEntity: jasmine.createSpy('whereToBuyEntity').and.resolveTo(opts.offers ?? []),
+    };
     const listByKind = jasmine
       .createSpy('listByKind')
       .and.resolveTo({ rows: opts.rows ?? [], count: (opts.rows ?? []).length });
@@ -151,7 +159,16 @@ describe('CodexBrowseComponent', () => {
       previewUrl: () => null,
       weaponFacets: jasmine.createSpy('weaponFacets').and.resolveTo(opts.weaponFacets ?? []),
       countSearchMatches: jasmine.createSpy('countSearchMatches').and.resolveTo(opts.crossCounts ?? new Map()),
-      facetValues: jasmine.createSpy('facetValues').and.resolveTo(null),
+      facetValues: jasmine.createSpy('facetValues').and.callFake(async (kind: string) =>
+        kind === 'ship' ? { manufacturers: [{ code: 'AEGS', name: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '' } }], sizes: [], grades: [], componentKinds: [] } : null),
+      countByKind: jasmine.createSpy('countByKind').and.callFake(async (kind: string, f: { attachTypeIn?: string[]; attachTypeNotIn?: string[]; classNameMatch?: string; classNameNotMatch?: string; componentKind?: string }) => {
+        if (kind === 'ammunition') return f.classNameMatch ? 70 : 170;
+        if (kind === 'component') return f.componentKind === 'Shield' ? 67 : 0;
+        if (f.attachTypeNotIn) return 9000;
+        if (f.attachTypeIn?.includes('Missile')) return 66;
+        if (f.attachTypeIn?.includes('Food')) return f.attachTypeIn.length > 3 ? 5000 : 280;
+        return 0;
+      }),
       suggestNames: jasmine.createSpy('suggestNames').and.resolveTo([]),
     };
     const hangar: Partial<HangarService> = {
@@ -175,6 +192,7 @@ describe('CodexBrowseComponent', () => {
           ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
           : []),
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        { provide: UexShopService, useValue: uex },
         ...(opts.diff
           ? [{ provide: CodexBuildDiffService, useValue: { addedClassNamesMemo: async () => opts.diff!.added, changedClassNamesMemo: async () => opts.diff!.changed } }]
           : []),
@@ -205,7 +223,7 @@ describe('CodexBrowseComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes };
+    return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes, uex };
   }
 
   it('?fresh=1 lists only what is new or updated in the last patch, and the switch lifts it', async () => {
@@ -242,26 +260,167 @@ describe('CodexBrowseComponent', () => {
     expect(filters.attachType).toBe('Char_Armor_Helmet');
   });
 
-  it('counts every area of the tree and opens the current path', async () => {
-    const facet = (attachType: string): WeaponFacetRow =>
-      ({ weaponClass: 'Ship', attachType, subType: null, isVariant: false }) as WeaponFacetRow;
+  it('package C: ship weapons hang under Schiffe; Waffen is on-foot only', async () => {
+    const facet = (weaponClass: string, attachType: string): WeaponFacetRow =>
+      ({ weaponClass, attachType, subType: null, isVariant: false }) as WeaponFacetRow;
     const { cmp } = await setup({
       query: { kind: 'weapon', wg: 'ship' },
-      weaponFacets: [facet('WeaponGun'), facet('WeaponGun'), facet('TractorBeam')],
+      weaponFacets: [facet('Ship', 'WeaponGun'), facet('Ship', 'WeaponGun'), facet('Ship', 'TractorBeam'), facet('FPS', 'WeaponPersonal')],
       armorCounts: new Map([['Char_Armor_Helmet', 4], ['Char_Armor_Torso', 3]]),
     });
     const tree = cmp.areaTree();
+    const ship = tree.find((n) => n.id === 'ship')!;
+    expect(ship.count).toBe(10);
+    expect(ship.open).toBeTrue();
+    expect(ship.current).toBeFalse();
+    const shipWeapons = ship.children.find((n) => n.id === 'ship-weapons')!;
+    expect(shipWeapons.count).toBe(3);
+    expect(shipWeapons.current).toBeTrue();
+    expect(shipWeapons.children.find((n) => n.id === 'ship-gun')?.count).toBe(2);
+    expect(shipWeapons.children.find((n) => n.id === 'ship-utility')?.count).toBe(1);
+    expect(ship.children.map((n) => n.id)).toEqual(['ship-weapons', 'ship-missiles', 'ship-modules', 'ship-ammo']);
     const weapon = tree.find((n) => n.id === 'weapon')!;
-    expect(weapon.count).toBe(20);
-    expect(weapon.open).toBeTrue();
-    const ship = weapon.children.find((n) => n.id === 'weapon-ship')!;
-    expect(ship.count).toBe(3);
-    expect(ship.current).toBeTrue();
-    expect(ship.children.find((n) => n.id === 'ship-gun')?.count).toBe(2);
-    expect(ship.children.find((n) => n.id === 'ship-utility')?.count).toBe(1);
-    const armor = tree.find((n) => n.id === 'armor')!;
-    expect(armor.count).toBe(7);
-    expect(tree.find((n) => n.id === 'ship')?.count).toBe(10);
+    expect(weapon.target).toEqual({ category: 'weapon', wg: 'fps' });
+    expect(weapon.children.every((n) => n.target.wg === 'fps')).toBeTrue();
+    expect(weapon.open).toBeFalse();
+    expect(tree.find((n) => n.id === 'armor')?.count).toBe(7);
+  });
+
+  it('package C: items split into player groups; the hidden bucket only with the setting on', async () => {
+    const { cmp, fixture, listByKind } = await setup({ query: { kind: 'item' } });
+    await fixture.whenStable();
+    const item = cmp.areaTree().find((n) => n.id === 'item')!;
+    expect(item.current).toBeTrue();
+    expect(item.count).toBe(5000);
+    expect(item.children.some((n) => n.id === 'ig-food')).toBeTrue();
+    expect(item.children.some((n) => n.id === 'ig-nonUsable')).toBeFalse();
+    const filters = listByKind.calls.mostRecent().args[1];
+    expect(filters.attachTypeIn).toContain('Food');
+    expect(filters.attachTypeIn).not.toContain('Door');
+    expect(filters.attachTypeIn).not.toContain('Missile');
+  });
+
+  it('package C: munition is on-foot, ship ammunition sits under Schiffe', async () => {
+    const { cmp, listByKind, fixture } = await setup({ query: { kind: 'ammunition', ag: 'vehicle' } });
+    await fixture.whenStable();
+    expect(listByKind.calls.mostRecent().args[1].classNameMatch).toBe('_S[0-9]+_');
+    const tree = cmp.areaTree();
+    expect(tree.find((n) => n.id === 'ship')!.children.find((n) => n.id === 'ship-ammo')?.current).toBeTrue();
+    expect(tree.find((n) => n.id === 'ammunition')?.current).toBeFalse();
+    cmp.applyArea(tree.find((n) => n.id === 'ammunition')!.target);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cmp.ammoGroup()).toBe('fps');
+    expect(listByKind.calls.mostRecent().args[1].classNameNotMatch).toBe('_S[0-9]+_');
+  });
+
+  it('package C: components, manufacturers and blueprints open their sub areas', async () => {
+    const { cmp, listByKind, fixture } = await setup({ query: { kind: 'component', ck: 'Shield' } });
+    await fixture.whenStable();
+    const tree = cmp.areaTree();
+    const comp = tree.find((n) => n.id === 'component')!;
+    expect(comp.children.map((n) => n.id)).toEqual(['ck-Shield']);
+    expect(comp.children[0].current).toBeTrue();
+    expect(listByKind.calls.mostRecent().args[1].componentKind).toBe('Shield');
+    const makers = tree.find((n) => n.id === 'manufacturer')!;
+    expect(makers.children.map((n) => n.label)).toEqual(['Aegis Dynamics']);
+    cmp.applyArea(makers.children[0].target);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cmp.category()).toBe('manufacturer');
+    expect(listByKind.calls.mostRecent().args[1].manufacturer).toBe('AEGS');
+    const bp = cmp.areaTree().find((n) => n.id === 'blueprint')!;
+    expect(bp.children.map((n) => n.id)).toEqual(['bg-fps', 'bg-vehicle']);
+  });
+
+  it('package C: no component kind or blueprint group control in the filter bar any more', async () => {
+    const { fixture } = await setup({ query: { kind: 'blueprint' } });
+    expect(fixture.nativeElement.querySelector('.filterbar sc-segmented[ng-reflect-aria-label]')).toBeNull();
+    const text = (fixture.nativeElement.querySelector('.filterbar') as HTMLElement | null)?.textContent ?? '';
+    expect(text).not.toContain('codex.filters.blueprintGroup');
+  });
+
+  it('package B: reads role + crew from the URL and filters ships by career and crew range', async () => {
+    const { cmp, listByKind } = await setup({ query: { kind: 'ship', role: 'industrial', crew: 'medium' } });
+    expect(cmp.shipRole()).toBe('industrial');
+    expect(cmp.crewBand()).toBe('medium');
+    const [kind, filters] = listByKind.calls.mostRecent().args;
+    expect(kind).toBe('ship');
+    expect(filters.careerIn).toEqual(['@vehicle_focus_resources']);
+    expect(filters.crewMin).toBe(4);
+    expect(filters.crewMax).toBe(8);
+  });
+
+  it('package B: an open crew band has no upper bound; an unknown role is ignored', async () => {
+    const { cmp, listByKind } = await setup({ query: { kind: 'ship', role: 'pirate', crew: 'large' } });
+    expect(cmp.shipRole()).toBe('');
+    const filters = listByKind.calls.mostRecent().args[1];
+    expect(filters.careerIn).toBeUndefined();
+    expect(filters.crewMin).toBe(9);
+    expect(filters.crewMax).toBeUndefined();
+  });
+
+  it('package B: role and crew belong to ships and reset on a kind switch', async () => {
+    const { cmp, fixture, listByKind } = await setup({ query: { kind: 'ship', role: 'combat' } });
+    expect(fixture.nativeElement.querySelectorAll('.filterbar .chip').length).toBe(8);
+    cmp.setCategory('weapon');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cmp.shipRole()).toBe('');
+    expect(listByKind.calls.mostRecent().args[1].careerIn).toBeUndefined();
+    expect(fixture.nativeElement.querySelector('.filterbar .chip')).toBeNull();
+  });
+
+  it('package B: the list head carries its own search, without a dropdown', async () => {
+    const { cmp, fixture } = await setup({ query: { kind: 'ship' } });
+    const input = fixture.nativeElement.querySelector('.list-head .ls-input') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    input.value = 'gladius';
+    input.dispatchEvent(new Event('input'));
+    expect(cmp.searchInput()).toBe('gladius');
+    cmp.onListSearch('');
+    expect(cmp.searchInput()).toBe('');
+  });
+
+  it('package D: ship rows show the cheapest price and how many places sell it', async () => {
+    const offer = (price: number, place: string): BuyOption => ({ price, priceAvg: null, terminal: 'New Deal', location: place, place });
+    const { fixture, uex } = await setup({
+      query: { kind: 'ship' },
+      rows: [{ ...row('AEGS_Gladius', { nameLocalized: 'Aegis Gladius' }), guid: 'g-1' }],
+      offers: [offer(1250000, 'Lorville'), offer(1300000, 'Area18')],
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(uex.shipOffers).toHaveBeenCalledWith({ guid: 'g-1', name: 'Aegis Gladius' });
+    const price = (fixture.nativeElement as HTMLElement).querySelector('.row .price')?.textContent ?? '';
+    expect(price).toContain('codex.buy.from');
+    expect(price).toContain('codex.buy.places');
+  });
+
+  it('package D: the shop button lists the offers; the Nachschub step is the item path', async () => {
+    const offer: BuyOption = { price: 4200, priceAvg: null, terminal: 'Skutters', location: 'Area18 · ArcCorp', place: 'Area18' };
+    const { fixture, uex } = await setup({ query: { kind: 'weapon', wg: 'fps' }, rows: [row('behr_p4ar', { nameLocalized: 'P4-AR Rifle' })], offers: [offer] });
+    const shop = (fixture.nativeElement as HTMLElement).querySelector('.act.shop') as HTMLButtonElement;
+    expect(shop).not.toBeNull();
+    shop.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(uex.whereToBuyEntity).toHaveBeenCalledWith('weapon', 'P4-AR Rifle');
+    const panel = (fixture.nativeElement as HTMLElement).querySelector('.buy') as HTMLElement;
+    expect(panel.querySelectorAll('.offer').length).toBe(1);
+    expect(panel.querySelector('.to-plan')?.getAttribute('href')).toBe('/hq#planen');
+    // "Zum Nachschub" is the item path's step (#972), offered in the panel as its next step.
+    const path = panel.querySelector('sc-item-path');
+    expect(path).not.toBeNull();
+    expect(panel.querySelector('.to-sup')).toBeNull();
+  });
+
+  it('package D: compare is an icon button, not a star', async () => {
+    const { fixture } = await setup({ query: { kind: 'item' }, rows: [row('food_lemon', { nameLocalized: 'Lemon', attachType: 'Food' })] });
+    const pin = (fixture.nativeElement as HTMLElement).querySelector('.act.pin') as HTMLElement;
+    expect(pin.querySelector('svg')).not.toBeNull();
+    expect(pin.textContent).not.toContain('★');
+    expect(pin.textContent).not.toContain('☆');
   });
 
   it('d-filter: with the beta shell on there is no phone filter button or sheet', async () => {
