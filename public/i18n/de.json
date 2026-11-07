@@ -3849,6 +3849,7 @@
     "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
     "disclaimerCollapse": "Haftungsausschluss einklappen",
     "legalNav": "Rechtliches und Projekt-Informationen",
+    "areaNav": "Bereich wechseln",
     "links": {
       "about": "Über",
       "privacy": "Datenschutz",
@@ -5835,9 +5836,6 @@
     }
   },
   "verse": {
-    "areaFoot": {
-      "aria": "Bereich wechseln"
-    },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",
