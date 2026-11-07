@@ -61,6 +61,6 @@ import { HqPageId } from './hq-routes';
 export class HqCueComponent {
   protected readonly nav = inject(HqPageNavService);
   /** The page the cue leads to (default: Bestand, the page after Start). */
-  readonly target = input<HqPageId>('bestand');
+  readonly target = input<HqPageId>('inventar');
   readonly href = computed(() => this.nav.href(this.target()));
 }

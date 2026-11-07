@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexHardpointLayoutComponent, LayoutSection, LayoutSlot } from './codex-hardpoint-layout.component';
 import { CodexSwapCandidatesService, SwapSourceQuery } from './codex-swap-candidates.service';
@@ -30,7 +32,7 @@ describe('CodexHardpointLayoutComponent — swap list preload (#244)', () => {
     const stub = new SwapSourceStub();
     await TestBed.configureTestingModule({
       imports: [CodexHardpointLayoutComponent],
-      providers: [provideTranslateService({}), { provide: CodexSwapCandidatesService, useValue: stub }],
+      providers: [{ provide: ItemPathService, useValue: fakeItemPath() }, provideTranslateService({}), { provide: CodexSwapCandidatesService, useValue: stub }],
     }).compileComponents();
     const fixture = TestBed.createComponent(CodexHardpointLayoutComponent);
     const sections: LayoutSection[] = [
@@ -39,7 +41,7 @@ describe('CodexHardpointLayoutComponent — swap list preload (#244)', () => {
     ];
     fixture.componentRef.setInput('sections', sections);
     fixture.detectChanges();
-    await fixture.whenStable();
+    await new Promise<void>((r) => setTimeout(r));
 
     expect(stub.holders).toBe(1);
     expect(stub.preloads).toEqual([[{ installed: 'GUN_S3', types: [], size: 3 }]]);

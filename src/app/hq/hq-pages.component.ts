@@ -63,7 +63,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
     <section id="start" class="page start sc-stage-a" data-hq-page="start" [attr.aria-label]="'hq.pages.start' | translate">
       <sc-hq-start [patch]="feed.patchHit()" />
     </section>
-    <section id="bestand" class="page follow sc-below-stage" data-hq-page="bestand" aria-labelledby="hq-stock-title">
+    <section id="inventar" class="page follow sc-below-stage" data-hq-page="inventar" aria-labelledby="hq-stock-title">
       <sc-hq-stock />
     </section>
     <section id="jetzt" class="page follow sc-below-stage" data-hq-page="jetzt" aria-labelledby="hq-now-title">

@@ -1,3 +1,5 @@
+import { ItemPathService } from '../../hq/data/item-path.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -10,6 +12,7 @@ import { HqOwnershipService } from '../hq-ownership.service';
 import { SUPPLIES_CACHE_KEY, SUPPLIES_STORAGE_KEY, HqSuppliesService } from '../hq-supplies.service';
 import { HqPageNavService } from '../hq-page-nav.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
+import { HqNeedSourcesService } from './hq-need-sources.service';
 import { HqPlanComponent } from './hq-plan.component';
 import { PLAN_SELECTION_KEY } from './hq-plan-selection';
 
@@ -25,7 +28,7 @@ describe('HqPlanComponent', () => {
     TestBed.resetTestingModule();
     const fake = fakeSupabase();
     TestBed.configureTestingModule({
-      providers: [
+      providers: [ { provide: ItemPathService, useValue: fakeItemPath() },
         provideRouter([]),
         provideTranslateService(),
         fake.provider,
@@ -67,6 +70,33 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
     expect(chrome.supplySearch()).toBeTrue();
     expect(chrome.supplySearchRequest()).toBe(1);
+  });
+
+  it('D4: a need line with a class name and a known kind carries the tertiary path, outside the Codex anchor; a free-text line has none', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ItemPathService, useValue: fakeItemPath() },
+        provideRouter([]),
+        provideTranslateService(),
+        fakeSupabase().provider,
+        { provide: AuthService, useValue: { user: signal(null) } },
+        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
+        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve() } },
+        { provide: HqNeedSourcesService, useValue: { ensure: () => undefined, sources: signal(new Map([['Medpen_01', { state: 'ready', kind: 'item', options: [] }]])) } },
+      ],
+    });
+    const supplies = TestBed.inject(HqSuppliesService);
+    supplies.add('Medpen', 2, { className: 'Medpen_01', entityKind: 'item' });
+    supplies.add('Freitext', 1);
+    const f = TestBed.createComponent(HqPlanComponent);
+    f.detectChanges();
+    const needs = [...(f.nativeElement as HTMLElement).querySelectorAll('li.need')];
+    const medpen = needs.find((n) => n.textContent?.includes('Medpen'))!;
+    const free = needs.find((n) => n.textContent?.includes('Freitext'))!;
+    expect(medpen.querySelector('.need-path sc-item-path')).not.toBeNull();
+    expect(medpen.querySelector('a sc-item-path')).toBeNull();
+    expect(free.querySelector('sc-item-path')).toBeNull();
   });
 
   it('marks a free-text line as having no source', () => {

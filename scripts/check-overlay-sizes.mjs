@@ -25,7 +25,6 @@ export const OVERLAY_FILES = [
   'src/app/desktop/app-download-menu.component.ts',
   'src/app/social/loadout-share-panel.component.ts',
   'src/app/shared/column-menu.component.ts',
-  'src/app/hangar/hangar-item-picker.component.ts',
   'src/app/shared/dialog/sc-confirm-dialog.component.ts',
   'src/app/auth/login.component.ts',
   'src/app/auth/set-password.component.ts',

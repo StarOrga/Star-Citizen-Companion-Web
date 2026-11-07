@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
@@ -124,7 +126,8 @@ describe('Codex detail blocks at a 375px viewport', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [FrameHostComponent],
-      providers: [provideRouter([]), provideTranslateService({})],
+      providers: [provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() }, provideTranslateService({})],
     }).compileComponents();
 
     const i18n = TestBed.inject(TranslateService);

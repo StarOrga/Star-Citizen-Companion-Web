@@ -488,19 +488,12 @@
       "searchPlaceholder": "Schiff, Hersteller oder Rolle suchen…",
       "searchAria": "Kommende Schiffe durchsuchen",
       "searchClear": "Suche zurücksetzen",
-      "favoritesOnly": "Nur Favoriten",
-      "favorite": {
-        "add": "Zu Favoriten hinzufügen",
-        "remove": "Aus Favoriten entfernen"
-      },
       "newBadge": "Neu",
       "badge": "Angekündigt",
       "noMatches": {
         "title": "Keine Treffer",
-        "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
+        "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Filter lösen."
       },
-      "conceptBadge": "Konzept",
-      "notFlightReady": "Noch nicht flugfähig",
       "role": {
         "combat": "Kampf",
         "exploration": "Erkundung",
@@ -549,12 +542,6 @@
       "notice": {
         "concept": "RSI hat dieses Schiff angekündigt, gebaut wird es noch — im Spiel ist es nicht flugfähig. Deshalb gibt es hier keine Hardpoints, Komponenten oder Werte.",
         "flightReady": "RSI führt dieses Schiff als flugbereit, in unseren dataminten Spieldaten fehlt es aber noch — die Werte kommen mit einem der nächsten Build-Uploads."
-      },
-      "watch": {
-        "off": "Für die Flotte merken",
-        "on": "Für die Flotte gemerkt",
-        "hint": "Gemerkte Schiffe landen oben in deinem Hangar, markiert als noch nicht flugfähig.",
-        "inHangar": "Im Hangar ansehen"
       },
       "rsiLink": "Auf robertsspaceindustries.com ansehen",
       "noData": {
@@ -608,8 +595,6 @@
         "grade": "Klasse {{grade}}",
         "livery": "Lackierung",
         "upcomingBadge": "Noch nicht im Spiel",
-        "addToHangarAria": "{{name}} zum Hangar hinzufügen",
-        "addToHangar": "Hangar",
         "pinAria": "{{name}} vergleichen",
         "keys": {
           "navigate": "navigieren",
@@ -936,7 +921,7 @@
         "partGrade": "Klasse",
         "iconWishlist": "Wunschliste",
         "iconSupply": "Nachschub",
-        "iconStock": "Bestand",
+        "iconStock": "Inventar",
         "previewTitle": "Vorschau der Detailseite",
         "previewMaker": "Hersteller",
         "fullscreenExit": "Vollbild schließen",
@@ -1035,7 +1020,7 @@
         "readOnlyHint": "Das ist ein geteiltes Loadout. Übernimm es, um einen eigenen Link zu teilen.",
         "revokeConfirm": {
           "title": "Diesen Link nicht mehr teilen?",
-          "body": "Über diesen Link kann niemand das Loadout mehr übernehmen. Wer ihm schon folgt, bleibt verbunden."
+          "body": "Über diesen Link kann niemand mehr eine Kopie des Loadouts anlegen. Wer ihm schon folgt, bleibt verbunden."
         }
       },
       "components": {
@@ -1044,7 +1029,7 @@
       "shared": {
         "loading": "Geteiltes Loadout wird geladen …",
         "banner": "Geteilt von {{owner}} — „{{name}}“. Übernimm es, um es zu bearbeiten.",
-        "adopt": "Übernehmen & bearbeiten",
+        "adopt": "Kopie anlegen & bearbeiten",
         "unavailable": "Dieses geteilte Loadout ist nicht verfügbar — der Link ist ungültig, abgelaufen, zurückgezogen oder gehört zu einem anderen Schiff. Der Tisch zeigt das Standard-Loadout.",
         "loadError": "Das geteilte Loadout konnte nicht geladen werden.",
         "exit": "Zurück zu meinem Loadout",
@@ -2341,7 +2326,7 @@
       "variantsMenu": "Deine Varianten dieses Schiffs",
       "hqCrumb": "HQ",
       "foreignVariant": "Diese Variante gehört jemand anderem — geteilt wird über einen Share-Link.",
-      "adopt": "In dein HQ übernehmen",
+      "adopt": "Kopie anlegen",
       "openVariant": "Deine Variante öffnen",
       "inHqChip": "{{n}}× in deinem HQ",
       "usesTitle": "In deinem HQ",
@@ -2545,6 +2530,10 @@
       "output": "Ausgabe",
       "qualitySummary": "Qualitätszusammenfassung",
       "qualityNote": "Statische Basisqualitätswerte — interaktive Qualitätssimulation folgt in einem späteren Update.",
+      "missions": "Einsätze für diesen Bauplan",
+      "missionsNote": "Diese Einsätze können den Bauplan als Belohnung geben.",
+      "missionsMore": "und {{count}} weitere",
+      "toMission": "Zum Einsatz",
       "primary": "Primär",
       "unitScu": "SCU"
     }
@@ -2626,7 +2615,7 @@
   "news": {
     "loading": "Lade…",
     "empty": "Noch keine News.",
-    "emptyFavorites": "Noch keine gemerkten Beiträge — tippe auf ☆ an einem Beitrag, um ihn hier zu sammeln.",
+    "emptyFavorites": "Noch keine Lesezeichen — setze eines mit dem Lesezeichen-Symbol an einem Beitrag, um ihn hier zu sammeln.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
     "refreshing": "Wird aktualisiert…",
@@ -2654,8 +2643,8 @@
       "patch": "Patch-Notes"
     },
     "favorite": {
-      "save": "Merken",
-      "saved": "Gemerkt"
+      "save": "Lesezeichen setzen",
+      "saved": "Mit Lesezeichen"
     },
     "share": {
       "label": "Teilen",
@@ -2979,7 +2968,7 @@
       "title": "Kommende Schiffe",
       "addedOne": "1 neues Schiff in der Schiffsmatrix",
       "addedMany": "{{count}} neue Schiffe in der Schiffsmatrix",
-      "favoritesUpdated": "{{count}} deiner Favoriten haben einen neuen Status",
+      "wishedUpdated": "{{count}} Schiffe auf deiner Wunschliste haben einen neuen Status",
       "more": "+{{count}} weitere",
       "open": "Kommende Schiffe öffnen",
       "dismiss": "Hinweis ausblenden"
@@ -3927,10 +3916,13 @@
       "wishlist": "Wunschliste"
     },
     "flagship": {
-      "set": "★ Als Flaggschiff",
-      "pinned": "★ Flaggschiff",
-      "badge": "Dein Flaggschiff"
+      "set": "Als Flaggschiff",
+      "unset": "Flaggschiff aufheben",
+      "pinned": "Flaggschiff",
+      "badge": "Dein Flaggschiff",
+      "mark": "Flaggschiff"
     },
+    "manage": { "toggle": "Verwalten", "variants": "Varianten", "noVariants": "Noch keine Variante. Im Codex-Eintrag des Schiffs legst du sie an.", "active": "Aktiv", "openVariant": "Variante ansehen" },
     "status": {
       "owned": "Im Besitz",
       "wishlist": "Wunschliste"
@@ -3940,8 +3932,6 @@
       "placeholder": "Katalog nach Name oder Klasse durchsuchen…",
       "noResults": "Keine Schiffe gefunden.",
       "already": "Im Hangar",
-      "owned": "Besitz",
-      "wishlist": "Wunschliste",
       "searchFailed": "Katalogsuche fehlgeschlagen"
     },
     "fleet": {
@@ -3979,8 +3969,6 @@
       "save": "Speichern",
       "rename": "Umbenennen",
       "pinLabel": "Pin",
-      "moveToWishlist": "Auf Wunschliste",
-      "moveToOwned": "Als Besitz markieren",
       "openCodex": "Codex-Eintrag",
       "remove": "Entfernen",
       "notes": "Notizen",
@@ -4039,12 +4027,7 @@
       "createConfigFirst": "Erstelle oben eine Konfiguration, um das Loadout zu bearbeiten."
     },
     "picker": {
-      "searchPlaceholder": "Nach Name oder Klasse filtern…",
-      "close": "Schließen",
-      "loading": "Lädt…",
-      "empty": "Nichts gefunden.",
-      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet).",
-      "loadFailed": "Items konnten nicht geladen werden"
+      "loading": "Lädt…"
     },
     "teaser": {
       "title": "Dein persönlicher Hangar",
@@ -4066,25 +4049,6 @@
         "text": "Pinne Schiffe und Komponenten nebeneinander und vergleiche die Zahlen, die zählen."
       },
       "cta": "Anmelden und Hangar öffnen"
-    },
-    "drawingBoard": {
-      "title": "Auf dem Reißbrett",
-      "note": "Gemerkte Schiffe — noch nicht flugfähig",
-      "browse": "Reißbrett öffnen",
-      "empty": "Du hast dir noch kein angekündigtes Schiff für die Flotte gemerkt."
-    },
-    "concept": {
-      "title": "Concept-Wunschliste",
-      "hint": "Schiffe, die (noch) nicht im Spiel sind, haben keinen Codex-Eintrag — tracke sie hier mit Link zur Pledge-Seite. Specs sind bis zum Release vorläufig.",
-      "namePlaceholder": "Schiffsname (z. B. Polaris)",
-      "manufacturerPlaceholder": "Hersteller (optional)",
-      "urlPlaceholder": "RSI-Pledge-Link (optional)",
-      "add": "Zur Wunschliste",
-      "empty": "Noch keine Concept-Schiffe auf deiner Wunschliste.",
-      "preliminary": "Concept — vorläufig",
-      "pledgeLink": "Pledge-Seite",
-      "remove": "Entfernen",
-      "urlError": "Bitte einen offiziellen RSI-Pledge-Schiffslink verwenden, z. B. https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad — oder das Feld leer lassen."
     },
     "import": {
       "open": "Importieren…",
@@ -4131,11 +4095,11 @@
       "loading": "Wird geladen …",
       "by": "von {{name}}",
       "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
-      "adopt": "Übernehmen",
-      "adopting": "Wird übernommen …",
-      "adoptHint": "In den eigenen Hangar übernehmen",
+      "adopt": "Kopie anlegen",
+      "adopting": "Kopie wird angelegt …",
+      "adoptHint": "Als Kopie in den eigenen Hangar legen",
       "adoptError": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
-      "loginToAdopt": "Anmelden zum Übernehmen",
+      "loginToAdopt": "Anmelden, um eine Kopie anzulegen",
       "aboutCta": "Was ist SC Companion?",
       "unavailable": {
         "title": "Dieses Loadout ist nicht verfügbar",
@@ -4145,7 +4109,7 @@
       "loadError": "Das geteilte Loadout konnte nicht geladen werden"
     },
     "errors": {
-      "adoptFailed": "Das geteilte Loadout konnte nicht übernommen werden."
+      "adoptFailed": "Von dem geteilten Loadout konnte keine Kopie angelegt werden."
     }
   },
   "quickSearch": {
@@ -4746,7 +4710,7 @@
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
-      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und gemerkte Artikel sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und Lesezeichen sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
       "acceptAll": "Alle erlauben",
       "essentialOnly": "Nur notwendige"
     },
@@ -4762,7 +4726,7 @@
       },
       "preferences": {
         "label": "Präferenzen",
-        "desc": "News-Kanalfilter, gemerkte Artikel und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+        "desc": "News-Kanalfilter, Lesezeichen und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
       },
       "statistics": {
         "label": "Statistik",
@@ -5052,6 +5016,9 @@
     }
   },
   "share": {
+    "label": "Link teilen",
+    "copied": "Link kopiert",
+    "failed": "Kopieren nicht erlaubt",
     "title": "Set teilen",
     "hint": "Teile dieses Set mit Freunden oder über einen Link.",
     "loading": "Wird geladen …",
@@ -5167,7 +5134,7 @@
     "tabsAria": "HQ-Bereiche",
     "tabs": {
       "overview": "Übersicht",
-      "locker": "Spind",
+      "locker": "Sets",
       "hangar": "Hangar",
       "ops": "Einsätze"
     },
@@ -5187,7 +5154,12 @@
       "title": "Nachschub",
       "close": "Nachschub schließen",
       "empty": "Noch nichts auf der Nachschub-Liste.",
-      "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst."
+      "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst.",
+      "tabsAria": "Listen",
+      "tabs": { "wish": "Wunschliste", "nachschub": "Nachschub" },
+      "wish": { "empty": "Noch nichts auf der Wunschliste.", "emptyHint": "Such einen Gegenstand oder ein Schiff und leg es auf die Wunschliste. Von hier wandert es mit einem Klick in den Nachschub.", "toNachschub": "In den Nachschub", "remove": "{{name}} von der Wunschliste nehmen", "notYet": "noch nicht im Spiel" },
+      "got": "Besorgt",
+      "place": { "title": "Wo liegt es jetzt?", "other": "Anderer Ort …", "otherPlaceholder": "Ort eingeben", "store": "Ablegen", "tickOnly": "Nur abhaken" }
     },
     "ops": {
       "title": "Einsätze",
@@ -5207,7 +5179,7 @@
       "opsEmpty": "Noch keine Einsätze geplant.",
       "suppliesEmpty": "Nichts zu besorgen.",
       "noShip": "Noch kein Schiff im Hangar.",
-      "noSet": "Noch kein Set im Spind.",
+      "noSet": "Noch kein Set angelegt.",
       "setupHangar": "Hangar einrichten",
       "createSet": "Set anlegen",
       "openCodex": "Im Codex ansehen",
@@ -5222,7 +5194,7 @@
       }
     },
     "locker": {
-      "title": "Spind",
+      "title": "Sets",
       "subtitle": "Deine FPS-Sets für jede Rolle.",
       "details": "Details",
       "detailsAria": "Details zu {{name}} im Codex"
@@ -5231,7 +5203,7 @@
       "start": "Start",
       "planen": "Planen",
       "jetzt": "Jetzt",
-      "bestand": "Bestand",
+      "inventar": "Inventar",
       "statistik": "Statistik",
       "empty": "{{page}}: Hier entsteht gerade etwas Neues."
     },
@@ -5254,7 +5226,7 @@
       },
       "bestand": {
         "empty": "Noch keine Schiffe",
-        "emptyHint": "Schiffe, Sets und Lager.",
+        "emptyHint": "Schiffe, Sets und Inventar.",
         "import": "RSI-Hangar holen",
         "ships": "{{n}} Schiffe",
         "shipsOne": "1 Schiff",
@@ -5262,8 +5234,8 @@
         "setsOne": "1 Set",
         "blueprints": "{{n}} Blueprints",
         "blueprintsOne": "1 Blueprint",
-        "stale": "Lagerstand {{n}} Tage alt",
-        "open": "Bestand ansehen"
+        "stale": "Inventarstand {{n}} Tage alt",
+        "open": "Inventar ansehen"
       },
       "now": {
         "live": "Live",
@@ -5430,6 +5402,7 @@
     "supply": {
       "ready": "liegt bereit",
       "forSet": "für Set {{name}}",
+      "forBlueprint": "für Blueprint {{name}}",
       "wanted": "Will ich holen",
       "wantedAria": "{{name}} als gewünscht markieren",
       "importTitle": "Liste aus diesem Browser übernehmen?",
@@ -5572,45 +5545,21 @@
       }
     },
     "stock": {
-      "signedOut": "Melde dich an, um deinen Bestand zu sehen.",
-      "free": "Ortsfrei",
+      "signedOut": "Melde dich an, um dein Inventar zu sehen.",
+      "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
-      "captured": "Im Lager eingetragen.",
-      "actions": {
-        "browse": "Durchsuchen",
-        "find": "Wo liegt …?",
-        "add": "Hinzufügen"
-      },
-      "totals": {
-        "title": "Gesamt",
-        "items": "Gegenstände",
-        "places": "Orte"
-      },
-      "places": {
-        "title": "Größte Orte"
-      },
-      "stale": {
-        "title": "Stand älter als 7 Tage",
-        "none": "Alle Orte sind aktuell."
-      },
-      "cats": {
-        "title": "Kategorien"
-      },
-      "cat": {
-        "materials": "Rohstoffe",
-        "weapons": "Waffen",
-        "armor": "Rüstung",
-        "other": "Sonstiges"
-      },
+      "captured": "Im Inventar eingetragen.",
+      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
+      "places": { "title": "Größte Orte" },
+      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
+      "cats": { "title": "Kategorien" },
+      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
       "popup": {
-        "title": "Bestand",
+        "title": "Inventar",
         "modes": "Was möchtest du tun",
-        "mode": {
-          "browse": "Durchsuchen",
-          "find": "Wo liegt …?",
-          "add": "Hinzufügen"
-        },
-        "search": "Bestand durchsuchen",
+        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "search": "Inventar durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
         "stale": "Älter als 7 Tage",
@@ -5623,18 +5572,20 @@
           "qty": "Nach Menge"
         },
         "count": "{{n}} Einträge",
-        "results": "Bestandseinträge",
+        "results": "Inventareinträge",
         "loading": "Lädt …",
         "loadingMore": "Lädt weitere …",
         "noMatch": "Nichts passt zu diesen Filtern.",
-        "empty": "Noch nichts im Lager erfasst.",
-        "ships": "Schiffe im Terminal"
+        "empty": "Noch nichts im Inventar erfasst.",
+        "ships": "Schiffe im Terminal",
+        "nachholen": "Nachholen",
+        "nachholenAria": "Nachholen: {{name}}"
       },
       "retry": "Erneut versuchen",
       "ships": {
         "title": "Schiffe",
         "count": "{{n}} im Hangar",
-        "noFavourites": "Noch keine Favoriten markiert."
+        "noFavourites": "Noch kein Flaggschiff festgelegt."
       },
       "sets": {
         "title": "Sets",
@@ -5652,7 +5603,7 @@
         "days": "zuletzt geöffnet vor {{n}} Tagen"
       },
       "lager": {
-        "empty": "Noch nichts im Lager erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
+        "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
         "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
         "storage": "Schiffe im Hangar-Terminal"
       },
@@ -5665,17 +5616,17 @@
         "sort": "Sortierung",
         "nearest": "Am nächsten",
         "most": "Am meisten",
-        "yours": "Dein Bestand",
+        "yours": "Dein Inventar",
         "here": "Du bist in {{place}}",
         "whereAmI": "Wo bist du gerade?",
         "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die SCC-App oder wähle einen Ort.",
         "prompt": "Gib ein, was du suchst. Darunter siehst du, wo es liegt.",
-        "noHit": "Nichts davon im Lager. Vielleicht in der anderen Einheit?",
+        "noHit": "Nichts davon im Inventar. Vielleicht in der anderen Einheit?",
         "take": "{{n}} holen",
         "summaryOne": "Reicht: {{want}} {{unit}} an einem Ort.",
         "summaryMany": "Reicht zusammen: {{want}} {{unit}} aus {{stops}} Orten.",
-        "summaryShort": "Reicht nicht: {{total}} von {{want}} {{unit}} im Lager.",
-        "summaryTotal": "{{total}} {{unit}} im Lager.",
+        "summaryShort": "Reicht nicht: {{total}} von {{want}} {{unit}} im Inventar.",
+        "summaryTotal": "{{total}} {{unit}} im Inventar.",
         "pcsUnit": "Stück",
         "tier": {
           "here": "Hier",
@@ -5686,7 +5637,7 @@
         }
       },
       "capture": {
-        "title": "Etwas einlagern",
+        "title": "Etwas ins Inventar legen",
         "item": "Gegenstand oder Rohstoff",
         "itemHint": "z. B. Quantanium",
         "locationHint": "z. B. Area 18",
@@ -5752,8 +5703,8 @@
         "noSlot": "Kein Platz"
       },
       "stock": {
-        "adopt": "In meinen Bestand übernehmen",
-        "adopted": "Übernommen",
+        "adopt": "Kopie anlegen",
+        "adopted": "Kopie angelegt",
         "kindSet": "Set",
         "kindVariant": "Variante · {{ship}}"
       },
@@ -6353,7 +6304,7 @@
       "hq": "Mein HQ",
       "hqPlan": "Planen",
       "hqNow": "Jetzt",
-      "hqStock": "Bestand",
+      "hqStock": "Inventar",
       "hqStats": "Statistik"
     },
     "placeholder": {
@@ -6365,10 +6316,10 @@
       "ship": "Komponenten, Waffen, Schiffe …",
       "codexDetail": "Im Codex suchen …",
       "fps": "Waffen, Rüstungen, Ausrüstung …",
-      "hq": "Hangar, Spind, Schiffe …",
+      "hq": "Hangar, Sets, Schiffe …",
       "hqPlan": "Set, Teil oder Ort für deinen Einsatz …",
       "hqNow": "Schiff, Ort oder Teil …",
-      "hqStock": "In deinem Bestand suchen …",
+      "hqStock": "In deinem Inventar suchen …",
       "hqStats": "Schiff oder Set …"
     },
     "search": {
@@ -6402,7 +6353,7 @@
       "patches": "Patches",
       "gallery": "Galerie",
       "hangar": "Hangar",
-      "spind": "Spind",
+      "spind": "Sets",
       "hq": "HQ-Übersicht",
       "keybinds": "Keybinds",
       "upcoming": "Angekündigte Schiffe",
@@ -6444,6 +6395,31 @@
         "title": "KI-Übersetzung",
         "text": "Schalter, Limits, Sprachen, Aufträge und Glossar der Spiel-Übersetzung."
       }
+    }
+  },
+  "merkliste": {
+    "title": "Merkliste",
+    "aria": "Merkliste, {{count}} insgesamt: {{wishes}} auf der Wunschliste, {{supply}} offen im Nachschub, {{posts}} gemerkte Beiträge",
+    "nachschub": "Nachschub",
+    "openNachschub": "Nachschub öffnen",
+    "recent": "Zuletzt geöffnet",
+    "wished": "Auf der Wunschliste",
+    "allWishes": "Ganze Wunschliste",
+    "newsRead": "Zuletzt gelesen",
+    "newsSaved": "Lesezeichen",
+    "emptyRecent": "Noch nichts geöffnet.",
+    "emptyWished": "Noch nichts auf der Wunschliste.",
+    "emptyRead": "Noch nichts gelesen.",
+    "emptySaved": "Noch keine Lesezeichen.",
+    "emptyNachschub": "Alles besorgt, nichts offen.",
+    "type": {
+      "all": "Alles",
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten",
+      "item": "Gegenstände",
+      "blueprint": "Blaupausen",
+      "news": "News"
     }
   },
   "appsMenu": {
@@ -6508,10 +6484,12 @@
         "gallery": "Galerie",
         "fps": "FPS"
       },
+      "wished": "Wunschliste",
+      "needed": "Fehlt mir",
       "section": {
         "weapons": "Bewaffnung",
         "components": "Komponenten",
-        "stock": "Bestand",
+        "stock": "Inventar",
         "hangar": "Hangar",
         "sets": "Sets"
       },
@@ -6531,11 +6509,11 @@
       "compareWith": "Gegenüberstellen",
       "compare": "Vergleichen",
       "inSet": "In Set",
-      "materialToSupply": "Material in Nachschub",
+      "toMission": "Zur Mission",
       "atRsi": "Bei RSI",
       "allProducts": "Alle Produkte",
       "add": "Hinzufügen",
-      "whereStored": "Wo gelagert?",
+      "whereStored": "Wo liegt es?",
       "whereInstalled": "Wo verbaut?",
       "planOps": "Einsatz planen",
       "sourceOf": "Bezugsquelle",
@@ -6560,7 +6538,7 @@
       "noSize": "Größe {{size}} außerhalb S{{min}}–S{{max}}"
     },
     "group": {
-      "own": "Aus deinem Bestand",
+      "own": "Aus deinem Inventar",
       "patch": "Patches",
       "gallery": "Galerie",
       "opened": "Zuletzt geöffnet",
@@ -6572,22 +6550,15 @@
       "allInHq": "Alle {{n}} im HQ öffnen",
       "mission": "Missionen"
     },
-    "icon": {
-      "wishlist": "Auf die Wunschliste",
-      "wishlistOff": "Von der Wunschliste nehmen",
-      "lager": "Ins Lager",
-      "hangar": "In den Hangar",
-      "nachschub": "In den Nachschub"
-    },
     "supplyHint": "Such den Gegenstand und leg ihn mit diesem Symbol in den Nachschub.",
     "own": {
       "ship": "dein Schiff",
       "fitted": "auf deinem Schiff verbaut",
-      "lager": "im Lager",
+      "lager": "im Inventar",
       "sets": "in {{n}} Sets",
       "config": "dein Loadout auf „{{ship}}“",
       "set": "dein Set",
-      "qty": "{{n}}× im Lager",
+      "qty": "{{n}}× im Inventar",
       "fittedOn": "{{n}} auf „{{name}}“",
       "fittedMoreOne": "+1 weiteres Schiff",
       "fittedMore": "+{{n}} weitere Schiffe",
@@ -6618,21 +6589,11 @@
     },
     "signIn": {
       "title": "Anmelden?",
-      "message": "Wunschliste, Lager und Nachschub gehören zu deinem Konto. Melde dich an, um das zu speichern.",
+      "message": "Wunschliste, Inventar und Nachschub gehören zu deinem Konto. Melde dich an, um das zu speichern.",
       "confirm": "Zur Anmeldung"
     },
-    "lager": {
-      "title": "„{{name}}“ ins Lager",
-      "message": "Wo liegt es?",
-      "location": "Ort (z. B. Area18, Schiff, Hangar)",
-      "confirm": "Einlagern"
-    },
     "done": {
-      "wishlistOn": "„{{name}}“ steht auf deiner Wunschliste",
-      "wishlistOff": "„{{name}}“ ist von der Wunschliste weg",
       "hangar": "„{{name}}“ ist in deinem Hangar",
-      "lager": "„{{name}}“ liegt jetzt in {{where}}",
-      "nachschub": "„{{name}}“ steht im Nachschub",
       "compare": "„{{name}}“ liegt im Vergleich",
       "failed": "Das hat nicht geklappt, versuch es gleich noch einmal",
       "einsatzAdded": "„{{name}}“ ist jetzt ein Schritt in „{{op}}“",
@@ -6773,26 +6734,23 @@
         "q": "im hangar aegis"
       },
       {
-        "t": "„lager“ zeigt dein ganzes Lager",
-        "q": "lager"
+        "t": "Mit „inventar“ vor dem Begriff suchst du nur in deinem Inventar"
       },
       {
-        "t": "„gemerkt“ zeigt deine Wunschliste",
-        "q": "gemerkt"
+        "t": "Mit „wunschliste“ vor dem Begriff suchst du nur auf deiner Wunschliste. Was darauf steht, kommt immer zuerst"
       },
       {
         "t": "Im Hangar findet „patrouille“ dein Loadout"
       },
       {
-        "t": "„im lager s3“ zeigt, was du in Größe 3 hast",
-        "q": "im lager s3"
+        "t": "„im inventar s3“ zeigt, was du in Größe 3 hast",
+        "q": "im inventar s3"
       },
       {
         "t": "Eigene Treffer stehen immer ganz oben"
       },
       {
-        "t": "„fehlt mir“ zeigt deinen Nachschub",
-        "q": "fehlt mir"
+        "t": "Mit „fehlt mir“ vor dem Begriff suchst du nur in deinem Nachschub"
       },
       {
         "t": "Die Suche merkt sich, wo du sie öffnest"
@@ -6814,7 +6772,7 @@
         "q": "s4"
       },
       {
-        "t": "Im Bestand: „laser“ zeigt erst dein Lager",
+        "t": "Im Inventar: „laser“ zeigt erst dein Inventar",
         "q": "laser"
       },
       {
@@ -7081,6 +7039,98 @@
         "already_friends": "Ihr seid schon befreundet mit {{name}}."
       },
       "toFriend": "Seite von {{name}}"
+    }
+  },
+  "itemPath": {
+    "needSignIn": "Melde dich an, um das zu speichern.",
+    "done": {
+      "wishOn": "„{{name}}“ ist auf der Wunschliste",
+      "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",
+      "nachschub": "„{{name}}“ ist im Nachschub",
+      "moved": "„{{name}}“ ist jetzt im Nachschub, nicht mehr auf der Wunschliste",
+      "nachschubMaterial": "„{{name}}“ ist im Nachschub, dazu {{n}} Material",
+      "movedMaterial": "„{{name}}“ ist jetzt im Nachschub, dazu {{n}} Material, nicht mehr auf der Wunschliste",
+      "nachschubOff": "„{{name}}“ ist nicht mehr im Nachschub",
+      "nachschubOffMaterial": "„{{name}}“ und {{n}} Material sind nicht mehr im Nachschub",
+      "qty": "„{{name}}“: {{qty}} im Nachschub",
+      "nachholen": "{{qty}} × „{{name}}“ wieder im Nachschub",
+      "inventar": "„{{name}}“ liegt jetzt in {{where}}",
+      "ticked": "„{{name}}“ abgehakt",
+      "hangar": "„{{name}}“ ist im Hangar",
+      "undone": "Rückgängig gemacht",
+      "inventarOff": "„{{name}}“ ist nicht mehr im Inventar",
+      "inventarWithMe": "„{{name}}“ hast du jetzt bei dir",
+      "inventarBlueprint": "Blaupause „{{name}}“ gesammelt",
+      "hangarOff": "„{{name}}“ ist nicht mehr im Hangar"
+    },
+    "err": {
+      "failed": "Das hat nicht geklappt. Versuch es noch einmal.",
+      "unavailable": "Diesen Schritt gibt es hier nicht.",
+      "listFull": "Der Nachschub ist voll.",
+      "noLine": "Dafür gibt es keine offene Zeile im Nachschub.",
+      "alreadyOwned": "Das Schiff ist schon im Hangar."
+    },
+    "hint": {
+      "notYetInGame": "noch nicht im Spiel"
+    },
+    "step": {
+      "wish": "Wunschliste",
+      "nachschub": "Nachschub",
+      "inventar": "Inventar",
+      "hangar": "Hangar"
+    },
+    "node": {
+      "wish": {
+        "off": "Auf die Wunschliste",
+        "on": "Auf der Wunschliste"
+      },
+      "nachschub": {
+        "off": "In den Nachschub legen",
+        "on": "{{qty}}× im Nachschub"
+      },
+      "inventar": {
+        "off": "Ins Inventar legen",
+        "on": "{{qty}}× im Inventar"
+      },
+      "hangar": {
+        "off": "In den Hangar legen",
+        "on": "Im Hangar"
+      }
+    },
+    "go": {
+      "wish": "Auf die Wunschliste",
+      "nachschub": "In den Nachschub",
+      "inventar": "Ins Inventar",
+      "hangar": "In den Hangar"
+    },
+    "full": {
+      "wish": "Für später vormerken.",
+      "wishOn": "steht drauf",
+      "nachschub": "Jetzt holen. Mit Menge und Quelle.",
+      "nachschubOn": "{{qty}}× offen",
+      "inventar": "Hab ich. Mit Ort und Menge.",
+      "inventarOn": "{{inv}}× an {{places}} Ort(en)",
+      "inventarBlueprint": "Gesammelt. Immer verfügbar.",
+      "hangar": "Hab ich. Schon gekauft oder erspielt.",
+      "hangarOn": "steht im Hangar",
+      "change": "Ändern",
+      "direct": "Direkt hierhin"
+    },
+    "pop": {
+      "less": "Weniger",
+      "more": "Mehr",
+      "remove": "Entfernen",
+      "viewWish": "Auf der Wunschliste ansehen ›",
+      "viewNachschub": "Im Nachschub ansehen ›",
+      "toMission": "Zum Einsatz ›",
+      "viewInventar": "Im Inventar ansehen ›",
+      "viewHangar": "Im Hangar ansehen ›",
+      "whereTitle": "Wo liegt es?",
+      "otherPlace": "Anderer Ort …",
+      "otherPlaceholder": "Ort eingeben",
+      "store": "Ablegen",
+      "removeHangarTitle": "Aus dem Hangar entfernen?",
+      "removeHangarMessage": "„{{name}}“ wird samt Varianten, deren Freigaben für Freunde und Notizen gelöscht. Das lässt sich nicht rückgängig machen."
     }
   }
 }

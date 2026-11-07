@@ -2,6 +2,8 @@
 // SEPARATE file from codex-detail.component.spec.ts on purpose: that file
 // "must stay green untouched" (no edits), so this one owns the new
 // assertions instead, reusing the same Nomad fixture/stub shape.
+import { ItemPathService } from '../hq/data/item-path.service';
+import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
@@ -135,6 +137,7 @@ async function setup(queryParams: Record<string, string> = {}): Promise<Componen
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       provideTranslateService({}),
       { provide: CodexService, useValue: makeCodexServiceStub() },
       {

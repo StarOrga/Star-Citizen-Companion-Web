@@ -30,13 +30,13 @@ describe('HangarDashboardComponent fleet cards', () => {
     updated_at: '2026-01-01T00:00:00+00:00',
   });
 
-  async function setup() {
+  async function setup(flagship: string | null = null) {
     const fake = fakeSupabase({
       answer: (call) => {
         if (call.target === 'hangar_ships') {
           return { data: [ship('s1', 'AEGS_Gladius'), ship('s2', 'AEGS_Avenger_Titan', 'Rusty Bucket'), ship('s3', 'XNAA_Unknown_Hull')] };
         }
-        if (call.target === 'profiles') return { data: { flagship_ship_class: null } };
+        if (call.target === 'profiles') return { data: { flagship_ship_class: flagship } };
         return { data: [] };
       },
     });
@@ -78,7 +78,7 @@ describe('HangarDashboardComponent fleet cards', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { el: fixture.nativeElement as HTMLElement, artFor };
+    return { el: fixture.nativeElement as HTMLElement, artFor, fixture };
   }
 
   afterEach(() => localStorage.clear());
@@ -102,12 +102,30 @@ describe('HangarDashboardComponent fleet cards', () => {
     expect(el.querySelector('.fleet-card code')).toBeNull();
   });
 
-  it('links each card into the hangar entry and into the ship\'s Codex page, with no button inside a link', async () => {
+  it('links each card into the personal Codex view and into the ship\'s Codex page, with no button inside a link', async () => {
     const { el } = await setup();
     const first = el.querySelector('.fleet-card')!;
-    expect(first.querySelector('a.fleet-link')?.getAttribute('href')).toBe('/hq/hangar/s1');
+    expect(first.querySelector('a.fleet-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius?mine=');
     expect(first.querySelector('.fleet-actions a.codex-link')?.getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
     expect(first.querySelector('a button, a a')).toBeNull();
-    expect(first.querySelector('.fleet-actions button.flag-toggle')).not.toBeNull();
+    expect(first.querySelector('.fleet-actions sc-item-path')).not.toBeNull();
+    expect(first.querySelector('.fleet-actions button.manage-btn')?.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('r2-flag = top: the flagship leads with ONE text mark, the card face has no second Flaggschiff control, and Verwalten sets or unsets it', async () => {
+    const { el, fixture } = await setup('AEGS_Avenger_Titan');
+    const cards = Array.from(el.querySelectorAll('.fleet-card'));
+    expect(cards[0].querySelector('.card-sub')?.textContent).toContain('Avenger');
+    expect(cards.map((c) => c.querySelectorAll('.flag-mark').length)).toEqual([1, 0, 0]);
+    expect(el.querySelector('.fleet-card .flag-toggle')).toBeNull();
+    // Verwalten is an icon button (tertiary = icon only), not a text span that overflows the card.
+    const manage = cards[0].querySelector<HTMLButtonElement>('.fleet-actions .manage-btn')!;
+    expect(manage.querySelector('svg.sc-action-icon')).not.toBeNull();
+    expect(manage.querySelector('span')).toBeNull();
+    manage.click();
+    fixture.detectChanges();
+    const toggle = cards[0].querySelector<HTMLButtonElement>('.manage button[aria-pressed]')!;
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle.textContent).toContain('hangar.flagship.unset');
   });
 });

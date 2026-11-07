@@ -66,6 +66,33 @@ function option(value: string, labelKey: string, labelParams: Record<string, str
   return { value, labelKey, labelParams, count: null };
 }
 
+const WISHED_WORDS = new Set(['gemerkt', 'wunschliste', 'wished', 'wishlist']);
+const NEEDED_WORDS = new Set(['nachschub', 'needed', 'missing']);
+const STOCK_WORDS = new Set(['lager', 'inventar', 'inventory', 'stock']);
+
+/**
+ * "gemerkt" / "fehlt mir" / "lager" among the words: the filter chip and the words it used. The
+ * stock chip says "only my own data" (`ownOnly`): the catalog stays out, a search for "lager
+ * rakete" lists what is in Inventar, nothing else. "im inventar" reads as one phrase.
+ */
+function ownWordChip(words: readonly string[]): { chip: SearchChip; used: string[] } | null {
+  for (let i = 0; i < words.length; i++) {
+    const w = fold(words[i]);
+    const own = (id: string, labelKey: string, filter: SearchChip['filter'], used: string[]): { chip: SearchChip; used: string[] } => ({
+      chip: { id: `parsed:${id}`, source: 'parsed', labelKey, labelParams: null, filter, switchable: false },
+      used,
+    });
+    if (WISHED_WORDS.has(w)) return own('wished', 'search.chip.wished', { wished: true }, [words[i]]);
+    if (NEEDED_WORDS.has(w)) return own('needed', 'search.chip.needed', { needed: true }, [words[i]]);
+    if (w === 'fehlt' && fold(words[i + 1] ?? '') === 'mir') return own('needed', 'search.chip.needed', { needed: true }, [words[i], words[i + 1]]);
+    if (STOCK_WORDS.has(w)) {
+      const im = i > 0 && fold(words[i - 1]) === 'im';
+      return own('stock', 'search.chip.section.stock', { ownKinds: ['item'], ownFirst: true, ownOnly: true }, im ? [words[i - 1], words[i]] : [words[i]]);
+    }
+  }
+  return null;
+}
+
 /** Pull size and grade chips out of the text. At most one chip per attribute (the first wins). */
 export function parseQuery(text: string): ParsedQuery {
   const words = text.trim().split(/\s+/).filter(Boolean);
@@ -98,6 +125,13 @@ export function parseQuery(text: string): ParsedQuery {
     if (grade !== before.grade) words2['parsed:grade'] = words.slice(start, i + 1).join(' ');
   }
   const chips: SearchChip[] = [];
+  // An own-data word is a filter, beside a term ("gemerkt aegis") and alone ("gemerkt" lists the set).
+  const ownWord = ownWordChip(keep);
+  if (ownWord) {
+    chips.push(ownWord.chip);
+    for (const w of ownWord.used) keep.splice(keep.indexOf(w), 1);
+    words2[ownWord.chip.id] = ownWord.used.join(' ');
+  }
   if (size !== null) chips.push(sizeChip(size));
   if (grade !== null) chips.push(gradeChip(grade));
   return { chips, rest: keep.join(' '), words: words2 };

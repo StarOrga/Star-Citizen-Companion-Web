@@ -32,7 +32,7 @@ describe('search context chips (C1, C2)', () => {
 
   it('HQ sub pages and the Bestand page carry own-data chips', () => {
     expect(searchContextOf('/hq/hangar').chips[0].filter.ownKinds).toEqual(['ship', 'config']);
-    expect(searchContextOf('/hq', 'bestand').chips[0].filter.ownKinds).toEqual(['item']);
+    expect(searchContextOf('/hq', 'inventar').chips[0].filter.ownKinds).toEqual(['item']);
     expect(searchContextOf('/hq/locker').chips[0].filter.ownKinds).toEqual(['set']);
   });
 

@@ -345,6 +345,9 @@ const { data: usedIn } = await sb.client
 | R3 | **MED** | Quality simulator math (distribution × quantization × property-def) is too deep for v1 and interlinks unconfirmed. | v1 stores raw refs + static summary; defer sliders to v2. Already captured in generic dump → no rework. |
 | R4 | **MED** | Ingredient `className` may resolve into different tables (`codex_items` vs a resource type). Quantity units (count vs SCU) unconfirmed. | Multi-table className lookup (already used for global search). Confirm unit semantics in Wave 1; store raw. |
 | R5 | **MED** | Mission/contractor/drop provenance is NOT in the blueprint record (user's pure-P4K boundary). | Document `missionSource = null`; out of scope. A partial reward-pool link via `BlueprintPoolRecord`/`blueprintrewards` may be added later, still P4K-only. |
+
+> **R5 resolved 2026-11-06.** The link is in the DataCore after all, not on the blueprint record: `ContractGenerator.generators[].contracts[].contractResults.contractResults[]` holds `BlueprintRewards { blueprintPool, chance, missionResults }`, and `BlueprintPoolRecord.blueprintRewards[]` lists the blueprints. See `data-uploader/python/sc_extract/blueprint_sources.py`. It fills `missionSource`; `poolClassName` stays null because the pool does not hang off the blueprint.
+
 | R6 | LOW | Pool→blueprint membership direction (blueprint refs pool, or pool lists blueprints) unknown → `isDefault`/`poolClassName` may need a reverse index built from `BlueprintPoolRecord`. | Build the membership map up-front in Wave 1 (cheap; 116 pools). |
 | R7 | LOW | 1561 blueprints × deep `record_to_dict` adds extraction time. | `max_depth=16`, memoize resolved category/quality sub-records (small fixed set). |
 | R8 | LOW | `is_variant` likely meaningless for blueprints. | Keep column for schema symmetry; default false. |

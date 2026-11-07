@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
+import { ItemPathService } from '../../hq/data/item-path.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
@@ -25,6 +27,7 @@ async function setup(opts: {
     imports: [CodexSetGearComponent],
     providers: [
       provideRouter([]),
+      { provide: ItemPathService, useValue: fakeItemPath() },
       provideTranslateService({}),
       {
         provide: HangarService,

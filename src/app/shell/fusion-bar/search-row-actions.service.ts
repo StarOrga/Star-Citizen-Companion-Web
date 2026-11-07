@@ -1,108 +1,57 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '../../auth/auth.service';
 import { CodexService } from '../../codex/codex.service';
 import { pinKindOf } from '../../codex/search/codex-search-model';
 import type { SearchChip, SearchCta, SearchResultRow } from '../../codex/search/search-result-model';
-import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { toErrorKey } from '../../core/describe-error';
-import { HangarService } from '../../hangar/hangar.service';
-import { HqInventoryService } from '../../hq/data/hq-inventory.service';
+import { ItemPathService, type PathResult } from '../../hq/data/item-path.service';
 import { HqEinsatzService, missionStep } from '../../hq/data/hq-einsatz.service';
 import { HqEinsatzPickService } from '../../hq/plan/hq-einsatz-pick.service';
-import { HqSuppliesService } from '../../hq/hq-supplies.service';
 import { hqLocker } from '../../hq/hq-routes';
-import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
+import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
 
 /** What an action did: an i18n key for the quiet status line, plus whether it failed. */
 export interface RowActionResult {
   key: string;
   params?: Record<string, string | number>;
   error?: boolean;
+  /** Present where the path can take the step back (the toast offers it). */
+  undo?: () => Promise<PathResult>;
 }
 
-export type RowIconAction = 'wishlist' | 'lager' | 'nachschub';
+/** A PathResult as the row's status line: a failure keeps its own `errors.*` / `itemPath.err.*` key. */
+function fromPath(r: PathResult, doneKey: string, params: Record<string, string | number>): RowActionResult {
+  return r.ok ? { key: doneKey, params, undo: r.undo } : { key: r.key, error: true };
+}
 
-/** The row's catalog identity (hit rows only carry the icons). */
-function idOf(row: SearchResultRow): { kind: string; cls: string } | null {
-  if (row.type === 'hit') return { kind: row.hit.kind, cls: row.hit.classNameSlug };
-  if (row.type === 'own' && row.classNameSlug) return { kind: row.ownKind === 'item' ? 'item' : 'ship', cls: row.classNameSlug };
+/** The row's catalog identity (what an action CTA writes against). */
+function idOf(row: SearchResultRow): { kind: string; cls: string; name: string | null } | null {
+  if (row.type === 'hit') return { kind: row.hit.kind, cls: row.hit.classNameSlug, name: row.hit.nameLocalized ?? null };
+  if (row.type === 'own' && row.classNameSlug) return { kind: row.ownKind === 'item' ? 'item' : 'ship', cls: row.classNameSlug, name: row.title };
   return null;
 }
 
 /**
- * The three standard icons and the action CTAs of a search row (concept
- * 2026-11-02, B6–B11). Signed out, every action that writes asks for sign-in
- * through ScConfirmService first. Failures come back as `errors.*` keys.
+ * The action CTAs of a search row (concept 2026-11-02, B6–B11). The stops of
+ * the path live in `sc-item-path`. Signed out, every action that writes asks
+ * for sign-in first. Failures come back as `errors.*` keys.
  */
 @Injectable({ providedIn: 'root' })
 export class SearchRowActionsService {
-  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly confirm = inject(ScConfirmService);
+  private readonly signIn = inject(SignInAskService);
   private readonly codex = inject(CodexService);
-  private readonly hangar = inject(HangarService);
-  private readonly wishlist = inject(SearchWishlistService);
-  private readonly inventory = inject(HqInventoryService);
-  private readonly supplies = inject(HqSuppliesService);
+  private readonly path = inject(ItemPathService);
   private readonly einsaetze = inject(HqEinsatzService);
   private readonly einsatzPick = inject(HqEinsatzPickService);
 
-  isWished(row: SearchResultRow): boolean {
-    const id = idOf(row);
-    return !!id && this.wishlist.has(id.kind, id.cls);
-  }
-
   /** Signed out: ask, then lead to the sign-in page (back here afterwards). True when signed in. */
-  async ensureSignedIn(): Promise<boolean> {
-    if (this.auth.user()) return true;
-    const go = await this.confirm.confirm({
-      titleKey: 'search.signIn.title',
-      messageKey: 'search.signIn.message',
-      confirmKey: 'search.signIn.confirm',
-    });
-    if (go) void this.router.navigate(['/login'], { queryParams: { redirect: this.router.url } });
-    return false;
-  }
-
-  async icon(action: RowIconAction, row: SearchResultRow, title: string): Promise<RowActionResult | null> {
-    const id = idOf(row);
-    if (!id || !(await this.ensureSignedIn())) return null;
-    try {
-      switch (action) {
-        case 'wishlist': {
-          const was = this.wishlist.has(id.kind, id.cls);
-          if (!(await this.wishlist.toggle(id.kind, id.cls))) return { key: 'search.done.failed', error: true };
-          return { key: was ? 'search.done.wishlistOff' : 'search.done.wishlistOn', params: { name: title } };
-        }
-        case 'lager': {
-          if (id.kind === 'ship') {
-            if (!(await this.hangar.addShip(id.cls, 'owned'))) return { key: 'search.done.failed', error: true };
-            return { key: 'search.done.hangar', params: { name: title } };
-          }
-          const where = await this.confirm.prompt({
-            titleKey: 'search.lager.title',
-            messageKey: 'search.lager.message',
-            params: { name: title },
-            inputLabelKey: 'search.lager.location',
-            inputMaxLength: 120,
-            confirmKey: 'search.lager.confirm',
-          });
-          if (!where?.trim()) return null;
-          if (!(await this.inventory.addManual(where, title, 1, 'pcs'))) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.lager', params: { name: title, where: where.trim() } };
-        }
-        case 'nachschub':
-          if (!this.supplies.add(title, 1, { entityKind: id.kind, className: id.cls })) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.nachschub', params: { name: title } };
-      }
-    } catch (err) {
-      return { key: toErrorKey('search', `icon ${action}`, err), error: true };
-    }
+  ensureSignedIn(): Promise<boolean> {
+    return this.signIn.ensure();
   }
 
   /**
-   * An action CTA (target null): add, compare, compareWith, inSet, materialToSupply.
+   * An action CTA (target null): add, compare, compareWith, inSet.
    * Link CTAs are anchors and never reach this.
    */
   async cta(cta: SearchCta, row: SearchResultRow, title: string, chips: readonly SearchChip[], flagship: string | null): Promise<RowActionResult | null> {
@@ -114,8 +63,7 @@ export class SearchRowActionsService {
       switch (cta.id) {
         case 'add':
           if (!(await this.ensureSignedIn())) return null;
-          if (!(await this.hangar.addShip(id.cls, 'owned'))) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.hangar', params: { name: title } };
+          return fromPath(await this.path.addToHangar(id.cls, title), 'search.done.hangar', { name: title });
         case 'compare':
         case 'compareWith': {
           if (row.type !== 'hit') return null;
@@ -132,10 +80,6 @@ export class SearchRowActionsService {
         case 'inSet':
           void this.router.navigate([hqLocker]);
           return null;
-        case 'materialToSupply':
-          if (!(await this.ensureSignedIn())) return null;
-          if (!this.supplies.add(title, 1, { entityKind: id.kind, className: id.cls })) return { key: 'search.done.failed', error: true };
-          return { key: 'search.done.nachschub', params: { name: title } };
         default:
           return null;
       }

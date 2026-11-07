@@ -11,7 +11,7 @@ function ctxFor(key: CtaRowKey): SearchContext {
     case 'chipShip': return searchContextOf('/codex/ship/AEGS_Gladius');
     case 'chipItem': return searchContextOf('/codex/weapon/BEHR_Rifle');
     case 'hqHangar': return searchContextOf('/hq/hangar');
-    case 'hqStock': return searchContextOf('/hq', 'bestand');
+    case 'hqStock': return searchContextOf('/hq', 'inventar');
     case 'hqPlan': return searchContextOf('/hq', 'planen');
     default: return searchContextOf('/codex');
   }
@@ -33,16 +33,17 @@ function rowOf(col: (typeof CTA_COLUMNS)[number], extra: Partial<CtaRow> = {}): 
 describe('search CTA matrix (round 3, q3-matrix)', () => {
   // Expected ids per context, cell by cell, with every "wie Neutral" and `*` fallback resolved by hand.
   const expected: Record<CtaRowKey, (SearchCtaId | null)[]> = {
+    // A blueprint has a CTA only where its mission is known (below); no row names one yet.
     //            owned          ship           wc             fps       ammo     bp                  upcoming  mfr           mission
-    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    neutral:   ['myLoadout', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
     // Montieren needs the reader's own ship of the chip's class; rowOf owns none, so the cell falls back.
-    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
-    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    chipShip:  ['compareWith', 'compareWith', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
+    chipItem:  ['mount', 'compareWith', 'compareWith', 'compareWith', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
     // Wo verbaut? on a piece fitted nowhere falls back to the neutral cell.
-    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
-    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'materialToSupply', null, 'allProducts', 'toEinsatz'],
-    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
-    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', 'materialToSupply', 'atRsi', 'allProducts', 'toEinsatz'],
+    hqHangar:  ['myLoadout', 'add', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
+    hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', null, null, 'allProducts', 'toEinsatz'],
+    hqPlan:    ['planOps', 'sourceOf', 'sourceOf', 'sourceOf', 'sourceOf', null, 'atRsi', 'allProducts', 'toEinsatz'],
+    signedOut: [null, 'add', 'fittingShips', 'inSet', 'fittingWeapons', null, 'atRsi', 'allProducts', 'toEinsatz'],
   };
 
   (Object.keys(expected) as CtaRowKey[]).forEach((key) => {
@@ -55,6 +56,13 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
         expect(cta?.id ?? null).toBe(expected[key][i]);
       });
     });
+  });
+
+  it('Zur Mission: a link, and only where the row names the mission (A9)', () => {
+    const target = { link: ['/codex', 'missions', 'm1'], queryParams: null };
+    const cta = resolveCta(searchContextOf('/codex'), rowOf('blueprint', { missionTarget: target }), true);
+    expect(cta).toEqual(jasmine.objectContaining({ id: 'toMission', type: 'link', target }));
+    expect(resolveCta(searchContextOf('/codex'), rowOf('blueprint'), true)).toBeNull();
   });
 
   it('matrix table has one cell per column in every row', () => {
@@ -218,8 +226,8 @@ describe('search icons (B9)', () => {
       expect(icons(k)).toEqual({ wishlist: true, lager: true, nachschub: true });
     }
   });
-  it('a blueprint gets the wishlist only', () => {
-    expect(icons('blueprint')).toEqual({ wishlist: true, lager: false, nachschub: false });
+  it('a blueprint has all three stops (A9)', () => {
+    expect(icons('blueprint')).toEqual({ wishlist: true, lager: true, nachschub: true });
   });
   it('an announced ship can be wished for, not stored', () => {
     expect(icons('upcoming')).toEqual({ wishlist: true, lager: false, nachschub: false });

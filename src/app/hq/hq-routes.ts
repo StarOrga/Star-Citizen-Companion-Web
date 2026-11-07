@@ -8,6 +8,7 @@
  *   `v`    — on /codex/ship/:className: the personal variant (hangar config id) to show.
  *   `mine` — on /codex/:kind/:className: open the entity in "my copy" mode (flag, empty value).
  *   `einsatz` — on /hq#planen: open Planen on the route of this saved Einsatz.
+ *   `list` — on /hq#planen: open the wish / Nachschub popup on that tab (`wish` | `nachschub`).
  */
 
 export const HQ_ROOT = '/hq';
@@ -19,13 +20,28 @@ export const hqOps = '/hq/ops';
  * The five HQ pages of the beta landing (`/hq`): one route, five scroll stages.
  * Start is `/hq`, the others are fragments (`/hq#planen`). Order = scroll order.
  */
-export const HQ_PAGES = ['start', 'bestand', 'jetzt', 'planen', 'statistik'] as const;
+export const HQ_PAGES = ['start', 'inventar', 'jetzt', 'planen', 'statistik'] as const;
 export type HqPageId = (typeof HQ_PAGES)[number];
 
 /** A router link to one HQ page: `[routerLink]="l.commands" [fragment]="l.fragment"`. */
 export interface HqPageLink {
   commands: string[];
   fragment: string | undefined;
+  queryParams?: Record<string, string>;
+}
+
+/** Query param that opens the wish / Nachschub popup of Planen on one tab. */
+export const HQ_LIST_PARAM = 'list';
+export type HqListTab = 'wish' | 'nachschub';
+
+/** The link that opens the wish / Nachschub popup on `tab` (`/hq?list=wish#planen`). */
+export function hqListLink(tab: HqListTab): HqPageLink {
+  return { commands: [HQ_ROOT], fragment: 'planen', queryParams: { [HQ_LIST_PARAM]: tab } };
+}
+
+/** The tab a `list` query value names; null for none / unknown. */
+export function hqListTabOf(v: string | null | undefined): HqListTab | null {
+  return v === 'wish' || v === 'nachschub' ? v : null;
 }
 
 export function hqPage(page: HqPageId): HqPageLink {
@@ -42,9 +58,13 @@ export function hqEinsatzHref(id: string): string {
   return `${HQ_ROOT}?${HQ_EINSATZ_PARAM}=${encodeURIComponent(id)}#planen`;
 }
 
-/** The page a URL fragment names; null for none / unknown (Start is "no fragment"). */
+/** Fragments that older links carry for a page that has since been renamed (`#bestand` is Inventar). */
+const HQ_FRAGMENT_ALIASES: Readonly<Record<string, HqPageId>> = { bestand: 'inventar' };
+
+/** The page a URL fragment names; null for none / unknown (Start is "no fragment"). Old aliases still resolve. */
 export function hqPageOfFragment(fragment: string | null | undefined): HqPageId | null {
   const f = (fragment ?? '').replace(/^#/, '');
+  if (Object.prototype.hasOwnProperty.call(HQ_FRAGMENT_ALIASES, f)) return HQ_FRAGMENT_ALIASES[f];
   return (HQ_PAGES as readonly string[]).includes(f) ? (f as HqPageId) : null;
 }
 

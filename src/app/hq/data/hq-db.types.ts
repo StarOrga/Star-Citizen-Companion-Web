@@ -26,6 +26,11 @@ export interface HqSupplyRow {
   step_kind: HqStepKind | null;
   wanted: boolean;
   source: 'manual' | 'set' | 'search' | 'live';
+  /** Exact quantity in `unit` (0.36 SCU); null = whole pieces in `qty`. Column from migration 20261106170000. */
+  amount?: number | null;
+  unit?: 'pcs' | 'scu' | null;
+  /** Class name of the blueprint this material line was added for. */
+  for_class_name?: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

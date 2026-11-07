@@ -60,11 +60,12 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
     :host { display: contents; }
     /* Bottom-right is the share button's corner, bottom-left the hand-off's: one
        owner per corner. Beside the feedback launcher (in its lane), on a phone
-       above the bottom bar where the launcher's disc sits in the bar row. */
+       above the bottom bar where the launcher's disc sits in the bar row. A page's own sticky
+       bottom strip (the ship's Holotisch) publishes --sc-share-lift, the FAB rides above it. */
     .dock {
-      position: fixed; z-index: 160; inset-inline-end: var(--sc-fab-clear-inline, 88px);
+      position: fixed; z-index: 140; inset-inline-end: var(--sc-fab-clear-inline, 88px);
       /* Centred on the launcher's centre line, like the footer row. */
-      bottom: calc(var(--sc-float-bottom, 16px) + (var(--sc-fab-size, 56px) - max(44px, var(--sc-tap-min, 44px))) / 2);
+      bottom: calc(var(--sc-float-bottom, 16px) + (var(--sc-fab-size, 56px) - max(44px, var(--sc-tap-min, 44px))) / 2 + var(--sc-share-lift, 0px));
       display: flex; align-items: center; gap: 10px;
     }
     @media (max-width: 720px) {

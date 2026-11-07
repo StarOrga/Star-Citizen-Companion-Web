@@ -1,5 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { ItemPathComponent } from '../../shared/item-path/item-path.component';
+import { HQ_LIST_PARAM, hqListTabOf, type HqListTab } from '../hq-routes';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -14,7 +18,7 @@ import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service'
 import { HqLiveService } from '../now/hq-live.service';
 import { readLocation } from '../now/hq-live.util';
 import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
-import { HqSuppliesService } from '../hq-supplies.service';
+import { HqSuppliesService, supplyQtyText } from '../hq-supplies.service';
 import { HqEinsatzCrewComponent } from '../social/hq-einsatz-crew.component';
 import { HqFriendShareComponent } from '../social/hq-friend-share.component';
 import { HqSharedEinsaetzeComponent } from '../social/hq-shared-einsaetze.component';
@@ -38,6 +42,7 @@ import {
   toggleStepKind,
   top3Selection,
   visibleNeeds,
+  type PlanNeed,
 } from './hq-plan-selection';
 import { HqPlaceTreeComponent } from './hq-place-tree.component';
 import { HqSetRingsComponent } from './hq-set-rings.component';
@@ -63,6 +68,8 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   imports: [
     TranslatePipe,
     RouterLink,
+    ScActionDirective,
+    ItemPathComponent,
     ScStepComponent,
     ScTristateComponent,
     ScTooltipDirective,
@@ -89,7 +96,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
             {{ 'hq.plan.switch.how' | translate }}
           </button>
         </div>
-        <button type="button" class="sc-btn nach" aria-haspopup="dialog" (click)="suppliesOpen.set(true)">
+        <button type="button" scAction tier="secondary" class="nach" aria-haspopup="dialog" (click)="openSupplies('nachschub')">
           {{ 'hq.supplies.button' | translate }} <b class="mono">{{ supplies.open().length }}</b>
         </button>
       }
@@ -112,7 +119,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
           <li>{{ 'hq.plan.fresh.step3' | translate }}</li>
         </ol>
         <div class="fresh-actions">
-          <button type="button" class="sc-btn sc-btn-primary" (click)="chrome.startSupplySearch()">
+          <button type="button" scAction tier="secondary" (click)="chrome.startSupplySearch()">
             {{ 'hq.plan.fresh.addSupply' | translate }}
           </button>
         </div>
@@ -160,7 +167,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
                     } @else {
                       {{ n.label }}
                     }
-                    <b class="mono qty"> ×{{ n.qty }}</b>
+                    <b class="mono qty"> {{ needQty(n) }}</b>
                   </span>
                   @if (n.setName) {
                     <span class="n-meta">{{ 'hq.supply.forSet' | translate: { name: n.setName } }}</span>
@@ -199,6 +206,12 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
                   }
                 </span>
                 <span class="kind-tag">{{ 'hq.step.kind.' + n.kind | translate }}</span>
+                @if (n.className && needSources(n.className).kind; as kind) {
+                  <!-- D4: tertiary path on the need line, a sibling of the Codex anchor (never inside it); the line itself has no click handler. -->
+                  <span class="need-path">
+                    <sc-item-path [kind]="kind" [className]="n.className" [name]="n.label" />
+                  </span>
+                }
                 @if (n.status === 'done') { <span class="ready-tag">{{ 'hq.supply.ready' | translate }}</span> }
               </li>
             }
@@ -259,7 +272,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     }
 
     @if (suppliesOpen()) {
-      <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
+      <sc-hq-supplies-popup [startTab]="suppliesTab()" (closed)="suppliesOpen.set(false)" />
     }
   `,
   styles: [
@@ -297,6 +310,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       .need.sel { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); background: color-mix(in srgb, var(--sc-accent) 7%, transparent); }
       .n-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
       .n-name { overflow-wrap: anywhere; }
+      .need-path { display: inline-flex; flex: none; }
       .qty { color: var(--sc-fg-2); }
       .n-meta { font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .n-link { color: inherit; text-decoration: none; }
@@ -339,6 +353,11 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   ],
 })
 export class HqPlanComponent {
+  /** "×2", or the exact amount of a material line ("0,36 SCU"). */
+  protected needQty(n: PlanNeed): string {
+    return n.amount != null ? supplyQtyText({ qty: n.qty, amount: n.amount }) : `×${n.qty}`;
+  }
+
   protected readonly supplies = inject(HqSuppliesService);
   protected readonly einsatz = inject(HqEinsatzService);
   private readonly hangar = inject(HangarService);
@@ -355,6 +374,19 @@ export class HqPlanComponent {
   protected readonly shapes = STEP_SHAPES;
   protected readonly view = signal<PlanView>('what');
   protected readonly suppliesOpen = signal(false);
+  protected readonly suppliesTab = signal<HqListTab>('nachschub');
+  private readonly listRoute = inject(ActivatedRoute);
+
+  /** `/hq?list=wish#planen` (the item path's anchors): open the popup on that tab. */
+  private readonly listParam = this.listRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
+    const tab = hqListTabOf(q.get(HQ_LIST_PARAM));
+    if (tab) this.openSupplies(tab);
+  });
+
+  protected openSupplies(tab: HqListTab): void {
+    this.suppliesTab.set(tab);
+    this.suppliesOpen.set(true);
+  }
   /** The saved route "Route öffnen" asked for: marked in the list. */
   protected readonly focusedRoute = signal<string | null>(null);
   private handledRoute: { id: string } | null = null;

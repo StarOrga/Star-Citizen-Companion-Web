@@ -1,7 +1,135 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.218.0",
+  "current": "0.220.0",
   "releases": [
+    {
+      "version": "0.220.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Every item now has one path: wishlist, Nachschub and Inventar, with the same control on search, Codex, HQ, Hangar and friend pages. Ships end in the Hangar instead of the Inventar."
+            },
+            {
+              "title": "",
+              "text": "A filled stop shows its state and a link to the list, an empty stop adds. Besorgt asks where the item lies, and Nachholen on an Inventar row adds it to Nachschub again."
+            },
+            {
+              "title": "",
+              "text": "One bookmark in the header opens the last opened and wished items of the page's type, in News the last read and bookmarked ones, plus Nachschub."
+            },
+            {
+              "title": "",
+              "text": "Blueprints have all three stops. Their material comes along into Nachschub in exact SCU, and removing the blueprint takes it out again."
+            },
+            {
+              "title": "",
+              "text": "The uploader now extracts which missions award a blueprint. The blueprint page shows them after the next upload."
+            },
+            {
+              "title": "",
+              "text": "The search words wunschliste, fehlt mir and inventar list their own set, and wished items rank first."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "One wishlist for everything, also for announced ships. The separate list for announced ships is gone."
+            },
+            {
+              "title": "",
+              "text": "The HQ page and step 3 are called Inventar, shared sets offer \"Kopie anlegen\", and the Spind tab is called Sets."
+            },
+            {
+              "title": "",
+              "text": "The star is gone from compare, announced ships, flagship, set favourite and news. Compare uses a balance scale, news a bookmark, and the flagship stands first with a text mark."
+            },
+            {
+              "title": "",
+              "text": "The old hangar detail page redirects. Rename, notes, flagship and remove live in \"Verwalten\" on the hangar card."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Storing an item from the search counts as owned, and the wish state of announced ships lights up correctly."
+            },
+            {
+              "title": "",
+              "text": "Moving a wish to Nachschub keeps the wish when the line cannot be saved."
+            },
+            {
+              "title": "",
+              "text": "The share button shows its real label."
+            },
+            {
+              "title": "",
+              "text": "No text on the Holotable falls below the readable minimum."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.219.0",
+      "date": "2026-11-06",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Holotable on a ship page now fits one screen: the model on the left, one panel with tabs for parts, rank and changes, and the data strip along the bottom. Description, where to buy, deck plan and variants stand open below it."
+            },
+            {
+              "title": "",
+              "text": "Hovering the 3D model no longer dims the rest of the ship. A click holds the part, the wheel scrolls the page and Ctrl + wheel zooms."
+            },
+            {
+              "title": "",
+              "text": "The rank compares each ship on seven axes that fit its class, so a freighter is judged as a freighter. The rim sits at the group's 95th percentile and small values stay visible on the hexagon."
+            },
+            {
+              "title": "",
+              "text": "The schema view offers Simple, top, side and front views."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "On a phone held sideways, the 3D view fills the screen. A close button returns to the page."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Components in the part panel show the manufacturer's name instead of its code."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.218.0",
       "date": "2026-11-06",

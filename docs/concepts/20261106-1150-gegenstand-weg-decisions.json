@@ -1,0 +1,554 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": "bahn",
+    "decisions": [
+      {
+        "id": "d1-gw-modell",
+        "label": "Schritte: parallel oder eins",
+        "value": "par",
+        "rec": "par",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-wn",
+        "label": "Von Wunschliste zu Nachschub",
+        "value": "move",
+        "rec": "move",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-nb",
+        "label": "Von Nachschub zu Bestand",
+        "value": "ask",
+        "rec": "ask",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-skip",
+        "label": "Direkt in den Bestand",
+        "value": "inline",
+        "rec": "inline",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-back",
+        "label": "Der Weg zurück",
+        "value": "again",
+        "rec": "again",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-ship",
+        "label": "Schiffe auf dem Weg",
+        "value": "three",
+        "rec": "three",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-up",
+        "label": "Angekündigte Schiffe",
+        "value": "one",
+        "rec": "one",
+        "none": false,
+        "note": "Der andere mecahnismus und die hangar detailseite sind alt! Das brauchne wir so nicht mehr, btite volllästndig ablösen!"
+      },
+      {
+        "id": "d1-gw-bp",
+        "label": "Blaupausen",
+        "value": "",
+        "rec": "mat",
+        "none": true,
+        "note": "aber blueprints kann man ja auch fix sammeln, die sind dann auch im bestand und immer verüfgbar, wunschliste kann man sie ja draufpacken und ddan konkret in den nachschub nehemn wenn man will und nachschub bedeutet letztlich, dass man um den blueprint zu erhalten ja bestimmte einsätze machen muss bzw. eine mission. Also kann urhig alle drei haben!"
+      },
+      {
+        "id": "d1-gw-qty",
+        "label": "Nachschub-Klick und Menge",
+        "value": "state",
+        "rec": "state",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-friend",
+        "label": "Von Freunden übernehmen",
+        "value": "copy",
+        "rec": "copy",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-name",
+        "label": "Name des dritten Schritts",
+        "value": "",
+        "rec": "w1",
+        "none": false,
+        "note": "Genr hier immer auf ein wording gehen, Gegen lager spricht, dass man das nicht verbindet wenn man es nur hat und nicht irgendwo in den frachtaufzug oder so gelegt hat sondern einfach bei sich hat. bestand klingt irgendwie zu logistisch für spezialisten verständlich.. bessere idee?"
+      },
+      {
+        "id": "d1-gw-star",
+        "label": "Der Stern",
+        "value": "split",
+        "rec": "split",
+        "none": false,
+        "note": "Merken? Wozu noch merken, dann doch gleich imer ala wunschliste, auch bei zukünftigen schiffen!? Außer bei news, da kann es gern lesezeichen favorit bleiben.\nDenk bzgl. flagschiff in hangar listen nochmal nach wie man das markieren kann. Will nicht zu viele icons. Vllt. lass uns doch egal wo man ist eine art merkliste einführen, sprich lesezeichen icon und je nach kontext kann man dort schnell hinspringen. So könnte man dort auch die letzten 3 elemented des typs sehen die man aufgemacht hat (schiffe oder news usw.) und auch die die man sich gemekrt hat dieses typs... Aber lass uns das nochmal mehr visuell und tatsächlich refinen, das find eich nohc uz unsausgegoren um direkt damit zu starnten  \nDann nehme nwir den stern komplett raus."
+      },
+      {
+        "id": "d1-gw-wishpage",
+        "label": "Wo die Wunschliste lebt",
+        "value": "tab",
+        "rec": "tab",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-global",
+        "label": "Zugang von überall",
+        "value": "bar",
+        "rec": "bar",
+        "none": false,
+        "note": ""
+      },
+      {
+        "id": "d1-gw-tiers",
+        "label": "Reichweite der Aktions-Stufen",
+        "value": "all",
+        "rec": "prim",
+        "none": false,
+        "note": "aber zeig mir nochmnal visuell welche wesentlichen daddurch anders würden und wwas dein finales baustein design ddafür ist ?="
+      }
+    ],
+    "annotations": [
+      {
+        "id": "bah-a1",
+        "screen": "bah-panel",
+        "design": "bahn",
+        "question": "Drei verbundene Punkte statt drei loser Icons: Liest du daran sofort „das ist ein Weg“, oder wirkt es wie ein Ladebalken?",
+        "answer": "Mega Idee! voir allem dann auch noch mit dne bullets wie viele drin sind. Wobei ist dann klar, das ich dort sie dem hinzufüge vs denke ich vllt. das wenn ich auf bestand dann klicke ich meine im bestand ansehen kann? WIe gehen wir damit um?"
+      },
+      {
+        "id": "bah-a2",
+        "screen": "bah-panel",
+        "design": "bahn",
+        "question": "Spaltenkopf mit den drei Namen über den Punkten: Hilft er, oder reicht der Tooltip beim Hover?",
+        "answer": "Ja hilft, aber da er länger ist als die drei unda uch teilweise suchergebnisse anderes erfordern... irgendwie schwierig, bleiben wir vllt. doch eher bei tooltips ."
+      },
+      {
+        "id": "bah-a3",
+        "screen": "bah-item",
+        "design": "bahn",
+        "question": "Sekundäre Form: Weg plus nächster Schritt als Text. Fällt sie genug auf, ohne die Seite anzuschreien?",
+        "answer": "Ja!"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw4wuv9qlujf",
+        "design": "bahn",
+        "screen": "bah-item",
+        "x": 69.2,
+        "y": 18.2,
+        "target": "span.d1-gw-pill \"Auf die Wunschliste\"",
+        "text": "Finde ich richtig gut!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4wv7j8v83e",
+        "design": "bahn",
+        "screen": "bah-item",
+        "x": 28.5,
+        "y": 27.1,
+        "target": "button.d1-gw-pin \"Link teilen\"",
+        "text": "Link teilen sollte immer rechts unten das teilen fab sein! wie bei schiffne auch!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4wvnuc71id",
+        "design": "bahn",
+        "screen": "bah-ship",
+        "x": 70,
+        "y": 18.5,
+        "target": "span.d1-gw-pill \"In den Nachschub\"",
+        "text": "Genau je nachdem wo man ist die action nochmal als button hervorgehoben!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4wwvobiqiy",
+        "design": "bahn",
+        "screen": "bah-full",
+        "x": 51.7,
+        "y": 29,
+        "target": "p \"Jetzt holen. Mit Menge und Route.\"",
+        "text": "mit route? das macht keinen sinn",
+        "attachments": []
+      },
+      {
+        "id": "up-mw4wxxjvt386",
+        "design": "bahn",
+        "screen": "bah-stock",
+        "x": 64,
+        "y": 13.8,
+        "target": "button.d1-gw-btn \"Wo liegt?\"",
+        "text": "Die drei buttons hier oben, weiß ich noch nict..",
+        "attachments": []
+      }
+    ],
+    "comments": [
+      {
+        "id": "anno-bah-a1",
+        "text": "Mega Idee! voir allem dann auch noch mit dne bullets wie viele drin sind. Wobei ist dann klar, das ich dort sie dem hinzufüge vs denke ich vllt. das wenn ich auf bestand dann klicke ich meine im bestand ansehen kann? WIe gehen wir damit um?",
+        "attachments": []
+      },
+      {
+        "id": "anno-bah-a2",
+        "text": "Ja hilft, aber da er länger ist als die drei unda uch teilweise suchergebnisse anderes erfordern... irgendwie schwierig, bleiben wir vllt. doch eher bei tooltips .",
+        "attachments": []
+      },
+      {
+        "id": "anno-bah-a3",
+        "text": "Ja!",
+        "attachments": []
+      },
+      {
+        "id": "d1-gw-up-note",
+        "text": "Der andere mecahnismus und die hangar detailseite sind alt! Das brauchne wir so nicht mehr, btite volllästndig ablösen!",
+        "attachments": []
+      },
+      {
+        "id": "d1-gw-bp-note",
+        "text": "aber blueprints kann man ja auch fix sammeln, die sind dann auch im bestand und immer verüfgbar, wunschliste kann man sie ja draufpacken und ddan konkret in den nachschub nehemn wenn man will und nachschub bedeutet letztlich, dass man um den blueprint zu erhalten ja bestimmte einsätze machen muss bzw. eine mission. Also kann urhig alle drei haben!",
+        "attachments": []
+      },
+      {
+        "id": "d1-gw-name-note",
+        "text": "Genr hier immer auf ein wording gehen, Gegen lager spricht, dass man das nicht verbindet wenn man es nur hat und nicht irgendwo in den frachtaufzug oder so gelegt hat sondern einfach bei sich hat. bestand klingt irgendwie zu logistisch für spezialisten verständlich.. bessere idee?",
+        "attachments": []
+      },
+      {
+        "id": "d1-gw-star-note",
+        "text": "Merken? Wozu noch merken, dann doch gleich imer ala wunschliste, auch bei zukünftigen schiffen!? Außer bei news, da kann es gern lesezeichen favorit bleiben.\nDenk bzgl. flagschiff in hangar listen nochmal nach wie man das markieren kann. Will nicht zu viele icons. Vllt. lass uns doch egal wo man ist eine art merkliste einführen, sprich lesezeichen icon und je nach kontext kann man dort schnell hinspringen. So könnte man dort auch die letzten 3 elemented des typs sehen die man aufgemacht hat (schiffe oder news usw.) und auch die die man sich gemekrt hat dieses typs... Aber lass uns das nochmal mehr visuell und tatsächlich refinen, das find eich nohc uz unsausgegoren um direkt damit zu starnten  \nDann nehme nwir den stern komplett raus.",
+        "attachments": []
+      },
+      {
+        "id": "d1-gw-tiers-note",
+        "text": "aber zeig mir nochmnal visuell welche wesentlichen daddurch anders würden und wwas dein finales baustein design ddafür ist ?=",
+        "attachments": []
+      }
+    ],
+    "mappings": [
+      {
+        "id": "gw_stufen",
+        "label": "Wo welche Stufe",
+        "view": "d1-gw-stufen",
+        "mode": "matrix",
+        "assigned": {
+          "stufe": [
+            [
+              "panel_row",
+              "stufe.tertiaer"
+            ],
+            [
+              "panel_intent",
+              "stufe.sekundaer"
+            ],
+            [
+              "index_row",
+              "stufe.tertiaer"
+            ],
+            [
+              "index_card",
+              "stufe.tertiaer"
+            ],
+            [
+              "item_detail",
+              "stufe.sekundaer"
+            ],
+            [
+              "item_detail_goal",
+              "stufe.primaer"
+            ],
+            [
+              "ship_detail",
+              "stufe.sekundaer"
+            ],
+            [
+              "holo_drawer",
+              "stufe.tertiaer"
+            ],
+            [
+              "hardpoint",
+              "stufe.tertiaer"
+            ],
+            [
+              "swap_picker",
+              "stufe.tertiaer"
+            ],
+            [
+              "upcoming",
+              "stufe.sekundaer"
+            ],
+            [
+              "blueprint",
+              "stufe.sekundaer"
+            ],
+            [
+              "set_missing",
+              "stufe.sekundaer"
+            ],
+            [
+              "set_part",
+              "stufe.tertiaer"
+            ],
+            [
+              "hq_start",
+              "stufe.anzeige"
+            ],
+            [
+              "hq_stock_head",
+              "stufe.primaer"
+            ],
+            [
+              "hq_stock_row",
+              "stufe.tertiaer"
+            ],
+            [
+              "hq_stale",
+              "stufe.anzeige"
+            ],
+            [
+              "hq_plan_head",
+              "stufe.sekundaer"
+            ],
+            [
+              "hq_plan_need",
+              "stufe.tertiaer"
+            ],
+            [
+              "hq_popup_line",
+              "stufe.sekundaer"
+            ],
+            [
+              "hq_popup_wish",
+              "stufe.sekundaer"
+            ],
+            [
+              "hq_hangar_row",
+              "stufe.tertiaer"
+            ],
+            [
+              "hq_ship",
+              "stufe.sekundaer"
+            ],
+            [
+              "hq_live",
+              "stufe.anzeige"
+            ],
+            [
+              "shell_bar",
+              "stufe.tertiaer"
+            ],
+            [
+              "friend_ship",
+              "stufe.tertiaer"
+            ],
+            [
+              "mission",
+              "stufe.tertiaer"
+            ],
+            [
+              "news_patch",
+              "stufe.nichts"
+            ]
+          ]
+        },
+        "order": {},
+        "diff": [],
+        "unassigned": [],
+        "violations": [],
+        "adhocItems": [],
+        "note": "",
+        "slotNotes": {}
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "r2-click",
+        "label": "Klick auf einen Punkt",
+        "value": "fillpop",
+        "rec": "fillpop",
+        "note": ""
+      },
+      {
+        "id": "r2-name",
+        "label": "Wort für den dritten Schritt",
+        "value": "Inventar",
+        "rec": "w1",
+        "note": ""
+      },
+      {
+        "id": "r2-merk",
+        "label": "Welche Merkliste",
+        "value": "panel",
+        "rec": "panel",
+        "note": ""
+      },
+      {
+        "id": "r2-flag",
+        "label": "Flaggschiff ohne Stern",
+        "value": "top",
+        "rec": "top",
+        "note": ""
+      },
+      {
+        "id": "r2-head",
+        "label": "Inventar-Kopf",
+        "value": "one",
+        "rec": "one",
+        "note": ""
+      },
+      {
+        "id": "r2-bp",
+        "label": "Blaupause im Nachschub",
+        "value": "mission",
+        "rec": "mission",
+        "note": ""
+      },
+      {
+        "id": "r2-roll",
+        "label": "Umstellung der ganzen App",
+        "value": "two",
+        "rec": "two",
+        "note": ""
+      }
+    ],
+    "annotations": [
+      {
+        "id": "r2-bah-place-q1",
+        "screen": "r2-bah-place",
+        "design": "bahn",
+        "question": "Soll „Bei mir“ der Standardort sein, oder bleibt es der zuletzt benutzte Ort?",
+        "answer": "mein standort"
+      },
+      {
+        "id": "r2-bah-item-q1",
+        "screen": "r2-bah-item",
+        "design": "bahn",
+        "question": "Der runde Knopf steht heute nur mit der Shell-Beta auf Codex-Seiten. Soll er ab jetzt für alle sichtbar sein?",
+        "improved": "„Link teilen“ wird der runde Knopf",
+        "answer": "nur beta!"
+      },
+      {
+        "id": "r2-bah-ship-q1",
+        "screen": "r2-bah-ship",
+        "design": "bahn",
+        "question": "Schiffe kauft man oft per Pledge und überspringt den Nachschub. Reicht dafür der dritte Punkt?",
+        "improved": "Pille zeigt den nächsten Schritt",
+        "answer": "Ja, das reicht"
+      },
+      {
+        "id": "r2-bah-bp-q1",
+        "screen": "r2-bah-bp",
+        "design": "bahn",
+        "question": "Nachschub heißt hier: erarbeiten. Liest du „Über Mission“ so, oder erwartest du hier Material?",
+        "improved": "Drei Halte statt zwei",
+        "answer": "Das material natürlich auch"
+      },
+      {
+        "id": "r2-bah-stock-q1",
+        "screen": "r2-bah-stock",
+        "design": "bahn",
+        "question": "„Durchsuchen“ steckt in den Zahlen, „Wo liegt …?“ in der Suche oben. Findest du beides dort?",
+        "improved": "Im Kopf nur noch ein Knopf",
+        "answer": "passt"
+      },
+      {
+        "id": "r2-bah-stock-q2",
+        "screen": "r2-bah-stock",
+        "design": "bahn",
+        "question": "„Bei mir“ ersetzt das heutige „Ortsfrei“. Richtig so, oder ist das etwas anderes?",
+        "answer": "Ja gut"
+      },
+      {
+        "id": "r2-bah-wish-q1",
+        "screen": "r2-bah-wish",
+        "design": "bahn",
+        "question": "Das angekündigte Schiff hat keinen nächsten Schritt, bis es im Spiel ist. Reicht der Hinweis?",
+        "answer": "ja"
+      },
+      {
+        "id": "r2-mer-v2-ships-q1",
+        "screen": "r2-mer-v2-ships",
+        "design": "merkliste",
+        "question": "Größtes Risiko: Die Leiste nimmt jeder Seite 48 px, auch dem vollen Holotisch. Ist das ständige Sehen das wert?",
+        "answer": "jain, wir haben ja andere sieten aufbau, zeig das ganze nochmal mit der korrekten seite inkl breite und elementen!"
+      },
+      {
+        "id": "r2-mer-v3-ships-q1",
+        "screen": "r2-mer-v3-ships",
+        "design": "merkliste",
+        "question": "Größtes Risiko: Wer öffnet eine leere Suche, um Gemerktes zu finden? Würdest du hier nachsehen?",
+        "answer": "ja eigentlich schon zumindest priorisiert wenn ich suche"
+      },
+      {
+        "id": "r2-bau-ship-q1",
+        "screen": "r2-bau-ship",
+        "design": "baustein",
+        "question": "„Schiff wechseln“ trägt heute auch ⇄. Das kollidiert mit Vergleichen, also wird es der Link „Schiffe“. Einverstanden?",
+        "answer": "dann nehmen wir das eher für wechseln, was könntne wir für vergleichen nehmen?"
+      },
+      {
+        "id": "r2-bau-ship-q2",
+        "screen": "r2-bau-ship",
+        "design": "baustein",
+        "question": "„Werksausstattung“ ist hier nur ein Icon mit Tooltip. Eindeutig genug, oder braucht es Text?",
+        "answer": "Hä, heute ist das doch viel mehr so ein schiff seite in codex!"
+      },
+      {
+        "id": "r2-bau-list-q1",
+        "screen": "r2-bau-list",
+        "design": "baustein",
+        "question": "+ und ✓ stecken jetzt im dritten Punkt der Bahn. Fehlt dir der direkte Hangar-Knopf?",
+        "answer": "Anderes vergleicehn icon"
+      },
+      {
+        "id": "r2-bau-plan-q1",
+        "screen": "r2-bau-plan",
+        "design": "baustein",
+        "question": "Der Umschalter bleibt, weil er keine Aktion ist. Nur der Nachschub wird Pille. Reicht dir das als Änderung?",
+        "answer": "ok, starten wir mal damit"
+      },
+      {
+        "id": "r2-bau-news-q1",
+        "screen": "r2-bau-news",
+        "design": "baustein",
+        "question": "In News bleibt es „Merken“, nur das Zeichen wird Lesezeichen. So wie du es meintest?",
+        "answer": "Merken, wir brauchen dazu glaube ich keinen begriff"
+      },
+      {
+        "id": "r2-bau-set-q1",
+        "screen": "r2-bau-set",
+        "design": "baustein",
+        "question": "„Speichern“ bleibt der einzige Primärknopf, alles andere tritt zurück. Stimmt die Gewichtung?",
+        "answer": "ja gut!"
+      },
+      {
+        "id": "r2-bau-admin-q1",
+        "screen": "r2-bau-admin",
+        "design": "baustein",
+        "question": "Rot heißt erhöhter Zugriff, und hier ist jeder Knopf Admin. Rot überall, oder nur am Primärknopf?",
+        "answer": "ja ok erstmal"
+      }
+    ]
+  }
+]

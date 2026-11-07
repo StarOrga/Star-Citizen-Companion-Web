@@ -64,6 +64,7 @@ export function buildPlanNeeds(
       label: s.name,
       kind: (s.stepKind ?? 'buy') as StepKind,
       qty: s.qty,
+      amount: s.amount,
       status: s.done ? 'done' : 'open',
       setKey: key,
       setName: key ? (setName.get(key) ?? null) : null,
