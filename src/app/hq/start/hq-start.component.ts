@@ -24,7 +24,7 @@ import { HqStartTilesComponent } from './hq-start-tiles.component';
         <p class="kicker">{{ eyebrowKey() | translate: { plan: p.plan, build: p.build } }}</p>
         <h1 class="title">
           @if (p.link) {
-            <a class="hit" [routerLink]="p.link">{{ effectKey() | translate: { name: p.name, pct: pct() } }}</a>
+            <a class="hit" [routerLink]="p.link" [queryParams]="p.linkQuery ?? null">{{ effectKey() | translate: { name: p.name, pct: pct() } }}</a>
           } @else {
             {{ effectKey() | translate: { name: p.name, pct: pct() } }}
           }

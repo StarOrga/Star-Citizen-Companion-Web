@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, linkedSignal, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from './sc-dialog.directive';
 import type { ScConfirmTone } from './sc-confirm.service';
@@ -126,13 +126,14 @@ export class ScConfirmDialogComponent {
   readonly mode = input<'confirm' | 'prompt'>('confirm');
   readonly inputLabelKey = input<string | undefined>();
   readonly inputMaxLength = input<number | undefined>();
+  readonly initialValue = input<string>('');
 
   /** '' / the typed text = confirmed, null = cancelled. */
   readonly closed = output<string | null>();
 
   readonly titleId = `sc-confirm-title-${++uid}`;
   readonly messageId = `sc-confirm-message-${uid}`;
-  readonly text = signal('');
+  readonly text = linkedSignal(() => this.initialValue());
 
   onSubmit(ev: Event): void {
     ev.preventDefault();

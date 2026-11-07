@@ -44,6 +44,7 @@ import {
 } from './image-variants.ts';
 import { edgeCodecs } from './image-codecs.ts';
 import { createFeedMemo } from './feed-memo.ts';
+import { pickScheduledDeployment, type ScheduledDeployment } from './scheduled-deployment.ts';
 
 type Channel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 
@@ -681,6 +682,26 @@ async function fetchStatus(): Promise<VerseStatus | null> {
     };
   } catch (err) {
     console.error('fetchStatus failed:', err);
+    return null;
+  }
+}
+
+// --------------------- Announced LIVE deployment (feedback #317) ---------------------
+// The status site's cState issue index — the one first-party release date RSI
+// publishes (see scheduled-deployment.ts). Null on any failure; the client then
+// says "no official date yet" instead of guessing.
+const STATUS_ISSUES_URL = 'https://status.robertsspaceindustries.com/issues/index.json';
+
+async function fetchScheduledDeployment(): Promise<ScheduledDeployment | null> {
+  try {
+    const res = await fetch(STATUS_ISSUES_URL, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'SC-Companion/0.3' },
+      signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`status issues HTTP ${res.status}`);
+    return pickScheduledDeployment(await res.json(), Date.now());
+  } catch (err) {
+    console.error('fetchScheduledDeployment failed:', err);
     return null;
   }
 }
@@ -1714,12 +1735,13 @@ const FEED_MEMO_TTL_MS = 2 * 60 * 1000;
 const feedMemo = createFeedMemo<BuiltFeed>(FEED_MEMO_TTL_MS, (f) => f.news.length > 0);
 
 async function buildFeed(): Promise<BuiltFeed> {
-  const [commLinks, youtube, spectrum, patchNotes, status] = await Promise.all([
+  const [commLinks, youtube, spectrum, patchNotes, status, deployment] = await Promise.all([
     fetchCommLinks(),
     fetchYouTube(),
     fetchSpectrum(),
     fetchPatchNotes(),
     fetchStatus(),
+    fetchScheduledDeployment(),
   ]);
 
   const news = [...commLinks, ...youtube, ...spectrum, ...patchNotes]
@@ -1739,7 +1761,7 @@ async function buildFeed(): Promise<BuiltFeed> {
   }
 
   return {
-    body: JSON.stringify({ status, news: responseNews, fetchedAt: new Date().toISOString() }),
+    body: JSON.stringify({ status, deployment, news: responseNews, fetchedAt: new Date().toISOString() }),
     news,
   };
 }

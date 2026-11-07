@@ -2,7 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { SupabaseClientProvider } from '../../core/supabase.client';
-import type { HqInventoryItemRow, HqInventorySnapshotRow, HqInventorySource, HqShipStorageRow } from './hq-db.types';
+import { RESERVATIONS_MAX, RESERVATION_NOTE_MAX, availableOf, reservationsOf, takeOut } from '../stock/hq-stock-counter';
+import type { HqInventoryItemRow, HqInventorySnapshotRow, HqInventorySource, HqShipStorageRow, HqStockReservation } from './hq-db.types';
 
 const SNAPSHOT_SOURCES: readonly HqInventorySource[] = ['log', 'search', 'community', 'ocr', 'manual'];
 
@@ -222,6 +223,86 @@ export class HqInventoryService {
       this.error.set(toErrorKey('hq', 'inventory.remove', err));
       return false;
     }
+  }
+
+  // --- Counter (feedback #304): take out, correct, delete, reserve -------------------------------
+
+  /** The row as loaded, by its key. */
+  private rowOf(r: Pick<HqInventoryItemRow, 'location' | 'name'>): HqInventoryItemRow | undefined {
+    return this.items().find((i) => i.location === r.location && i.name === r.name);
+  }
+
+  /** Writes a row's new amount (and reservations when they changed); qty 0 deletes it. */
+  private async writeRow(
+    have: HqInventoryItemRow,
+    qty: number,
+    reservations: HqStockReservation[] | null,
+    op: string,
+  ): Promise<boolean> {
+    const userId = this.auth.user()?.id;
+    if (!userId || !Number.isFinite(qty) || qty < 0 || qty > HQ_QTY_MAX) return false;
+    this.error.set(null);
+    try {
+      const t = this.sb.client.from('hq_inventory_items' as never);
+      const patch: Record<string, unknown> = { qty: roundQty(qty) };
+      if (reservations) patch['reservations'] = reservations;
+      const { error } =
+        qty <= 0
+          ? await t.delete().eq('user_id', userId).eq('location', have.location).eq('name', have.name)
+          : await t.update(patch as never).eq('user_id', userId).eq('location', have.location).eq('name', have.name);
+      if (error) throw error;
+      await this.load();
+      return !this.error();
+    } catch (err) {
+      this.error.set(toErrorKey('hq', `inventory.${op}`, err));
+      return false;
+    }
+  }
+
+  /** Takes `amount` out of a row: free stock first, then the newest reservations shrink. 0 left = the row goes. */
+  async takeOut(row: Pick<HqInventoryItemRow, 'location' | 'name'>, amount: number): Promise<boolean> {
+    const have = this.rowOf(row);
+    if (!have || !(amount > 0)) return false;
+    const before = reservationsOf(have);
+    const next = takeOut(have.qty, before, amount);
+    return this.writeRow(have, next.qty, next.reservations.length !== before.length || next.reservations.some((r, i) => r.amount !== before[i].amount) ? next.reservations : null, 'take');
+  }
+
+  /** Correction: sets the row's amount; reservations above the new amount shrink (newest first). */
+  async setAmount(row: Pick<HqInventoryItemRow, 'location' | 'name'>, qty: number): Promise<boolean> {
+    const have = this.rowOf(row);
+    if (!have || !Number.isFinite(qty) || qty <= 0) return false;
+    if (qty >= have.qty) return this.writeRow(have, qty, null, 'correct');
+    return this.takeOut(row, roundQty(have.qty - qty));
+  }
+
+  /** Deletes the row from the list, its reservations with it. */
+  async deleteRow(row: Pick<HqInventoryItemRow, 'location' | 'name'>): Promise<boolean> {
+    const have = this.rowOf(row);
+    return have ? this.writeRow(have, 0, null, 'remove') : false;
+  }
+
+  /** Reserves `amount` of the free stock for `note` ("Spieler X", "Verkauf"). */
+  async reserve(row: Pick<HqInventoryItemRow, 'location' | 'name'>, amount: number, note: string): Promise<boolean> {
+    const have = this.rowOf(row);
+    const n = note.trim().slice(0, RESERVATION_NOTE_MAX);
+    if (!have || !n || !(amount > 0) || amount > availableOf(have)) return false;
+    const list = reservationsOf(have);
+    if (list.length >= RESERVATIONS_MAX) return false;
+    return this.writeRow(have, have.qty, [...list, { amount: roundQty(amount), note: n, at: new Date().toISOString() }], 'reserve');
+  }
+
+  /**
+   * Ends reservation `index`: `handedOut` = it left the store (the amount goes out of the row),
+   * otherwise it is released back into the free stock.
+   */
+  async endReservation(row: Pick<HqInventoryItemRow, 'location' | 'name'>, index: number, handedOut: boolean): Promise<boolean> {
+    const have = this.rowOf(row);
+    const list = have ? reservationsOf(have) : [];
+    const r = list[index];
+    if (!have || !r) return false;
+    const rest = list.filter((_, i) => i !== index);
+    return this.writeRow(have, handedOut ? roundQty(have.qty - r.amount) : have.qty, rest, handedOut ? 'handOut' : 'release');
   }
 
   /** "liegt in …": put `qty` of `item` into `location` (source `manual`). False on invalid input or failure. */

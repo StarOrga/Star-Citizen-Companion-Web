@@ -12,6 +12,7 @@ import { of } from 'rxjs';
 import { CodexDetailComponent } from './codex-detail.component';
 import { BlueprintDetail, CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { AuthService } from '../auth/auth.service';
 import { AccountPrefsService } from '../core/account-prefs.service';
 import { RoleService } from '../auth/role.service';
@@ -209,6 +210,7 @@ function configureSetup(
         provide: HangarService,
         useValue: {
           roleLoadouts: signal([]),
+          error: signal(null),
           listAllConfigs: async () => [],
           ships: signal([]),
           loadAll: async () => undefined,
@@ -758,6 +760,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
           shipByClassName: () => null,
           recentShips: signal([]),
           markShipPicked: () => undefined,
+          error: signal(null),
           ...opts.hangar,
         } as Partial<HangarService>,
       },
@@ -1088,9 +1091,9 @@ function arrive(fixture: ComponentFixture<CodexDetailComponent>): void {
   fixture.detectChanges();
 }
 
-/** The basics that stand open below the first screen (variants, actions, description, where to buy). */
+/** The side column below the first screen (description + RSI, where to buy, variants — concept holotisch-unten d2). */
 function openBlock(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
-  const open = (fixture.nativeElement as HTMLElement).querySelector('#holo-open') as HTMLElement;
+  const open = (fixture.nativeElement as HTMLElement).querySelector('.holo-below .below-side') as HTMLElement;
   expect(open).withContext('open block').not.toBeNull();
   return open;
 }
@@ -1147,8 +1150,11 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     // The Nomad fixture has more sections than blocks — that is the whole point.
     const sections = cmp.moduleSections().filter((s) => s.slots.length > 0);
     expect(cmp.moduleCount()).toBeLessThan(sections.length);
-    const listed = el.querySelectorAll('.below-ports .mod-sec').length;
-    expect(listed).toBe(cmp.moduleCount() + cmp.tailModuleCount());
+    // Four area columns (concept holotisch-unten r1): every section stands
+    // once, in the column of the strip area it moves — no merged blocks.
+    const listed = el.querySelectorAll('.holo-below .below-area .mod-sec').length;
+    const withSlots = [...cmp.primaryModuleSections(), ...cmp.tailModuleSections()].filter((s) => s.slots.length > 0);
+    expect(listed).toBe(withSlots.length);
     const body = openDetails(fixture);
     expect(body.querySelector('.col-loadout-tail .col-head .n')?.textContent?.trim()).toBe(String(cmp.tailModuleCount()));
   }));
@@ -1161,7 +1167,7 @@ describe('CodexDetailComponent — Holotable basics stand open (d-drawer)', () =
     const fixture = renderOnFakeClock();
     arrive(fixture);
     const el: HTMLElement = fixture.nativeElement;
-    const open = el.querySelector('#holo-open') as HTMLElement;
+    const open = openBlock(fixture);
     expect(open.querySelector('#bezugsquelle')).withContext('where to buy, open').not.toBeNull();
     expect(el.querySelector('.details-body')).withContext('drawer still closed').toBeNull();
     const body = openDetails(fixture);
@@ -1173,8 +1179,12 @@ describe('CodexDetailComponent — rank scope default per view', () => {
   beforeEach(() => {
     configureSetup('ship');
     localStorage.removeItem('sc.codex.rankScope');
+    localStorage.removeItem('sc.codex.rankScopeByShip');
   });
-  afterEach(() => localStorage.removeItem('sc.codex.rankScope'));
+  afterEach(() => {
+    localStorage.removeItem('sc.codex.rankScope');
+    localStorage.removeItem('sc.codex.rankScopeByShip');
+  });
 
   it('nobody chose: Alle in the classic view, Rolle in the Holotable', fakeAsync(() => {
     const fixture = renderOnFakeClock();
@@ -1185,12 +1195,18 @@ describe('CodexDetailComponent — rank scope default per view', () => {
     expect(cmp.rankScope()).toBe('all');
   }));
 
-  it('a stored choice applies to both views', fakeAsync(() => {
+  it('the classic choice stays in the classic view; the Holotable keeps its own per ship (concept r1-default)', fakeAsync(() => {
     const fixture = renderOnFakeClock();
     const cmp = fixture.componentInstance;
+    cmp.holoView.set(false);
     cmp.setRankScope('career');
-    cmp.holoView.set(true);
     expect(cmp.rankScope()).toBe('career');
+    cmp.holoView.set(true);
+    // The account-wide choice no longer overrides the Holotable.
+    expect(cmp.rankScope()).toBe('role');
+    cmp.setRankScope('all');
+    expect(cmp.rankScope()).toBe('all');
+    expect(JSON.parse(localStorage.getItem('sc.codex.rankScopeByShip')!)[cmp.shipClassName()].scope).toBe('all');
     cmp.holoView.set(false);
     expect(cmp.rankScope()).toBe('career');
   }));
@@ -1319,4 +1335,168 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     expect(el.querySelector('.sl-error')).toBeNull();
     expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
   }));
+});
+
+describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => {
+  afterEach(() => localStorage.removeItem('sc.beta'));
+
+  it('a /codex route is never HQ-hosted: input binding hands the host inputs undefined', async () => {
+    const fixture = await setup('ship');
+    // withComponentInputBinding() sets inputs the route does not carry to undefined.
+    fixture.componentRef.setInput('hostClassName', undefined);
+    fixture.componentRef.setInput('hostShipId', undefined);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.hqHosted()).toBeFalse();
+    expect(fixture.componentInstance.hqShipId()).toBeNull();
+  });
+
+  it('classic page: the stage-top hangar row is gone with the shell beta (C24)', async () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
+    const fixture = await setup('ship');
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('header.hero.stage')).toBeTruthy();
+    expect(el.querySelector('.hero-stack > .stage-top')).toBeNull();
+    expect(el.querySelector('sc-hangar-picker')).toBeNull();
+  });
+
+  it('classic page: the row stays without the shell beta (C24)', async () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: false }));
+    const fixture = await setup('ship');
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.hero-stack > .stage-top sc-hangar-picker')).toBeTruthy();
+  });
+
+  describe('own-ship actions (C26)', () => {
+    function ownFixture(): ComponentFixture<CodexDetailComponent> {
+      configureSetup('ship');
+      const own = {
+        ship: { id: 'sh1', shipClassName: 'CNOU_Nomad', customName: null, status: 'owned', pinnedRank: null, selectedSkinId: null, notes: null, createdAt: '', updatedAt: '' },
+        configs: [], equippedOn: [], inSets: [],
+      };
+      spyOn(TestBed.inject(HqOwnershipService), 'lookup').and.returnValue(own as never);
+      return renderOnFakeClock();
+    }
+
+    it('shows in the Holotable for an own ship, not on the classic page, not for a foreign ship', fakeAsync(() => {
+      const fixture = ownFixture();
+      const cmp = fixture.componentInstance;
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull(); // codex mode: not the reader's variant
+      cmp.activeVariantId.set('cfg-1');
+      fixture.detectChanges();
+      expect(el.querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      cmp.holoView.set(false);
+      fixture.detectChanges();
+      expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+    }));
+
+    it('shows for an own ship opened with ?mine and no variant (hangar list link)', fakeAsync(() => {
+      const fixture = ownFixture();
+      const cmp = fixture.componentInstance;
+      cmp.mineFlag.set(true);
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+    }));
+  });
+});
+
+describe('CodexDetailComponent — personal mode lives in HQ under the shell beta', () => {
+  const OWN_SHIP = { id: 'sh1', shipClassName: 'CNOU_Nomad', customName: null, status: 'owned', pinnedRank: null, selectedSkinId: null, notes: null, createdAt: '', updatedAt: '' };
+
+  afterEach(() => localStorage.removeItem('sc.beta'));
+
+  function prepare(opts: {
+    shell: boolean;
+    query?: Record<string, string>;
+    host?: boolean;
+    configs?: { id: string; name: string; active: boolean }[];
+  }): { fixture: ComponentFixture<CodexDetailComponent>; nav: jasmine.Spy } {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: opts.shell }));
+    configureSetup('ship');
+    const query = convertToParamMap(opts.query ?? {});
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: {
+        paramMap: of(convertToParamMap(opts.host ? { id: 'sh1' } : { kind: 'ship', className: 'cnou_nomad' })),
+        queryParamMap: of(query),
+        snapshot: { paramMap: convertToParamMap({}), queryParamMap: query },
+      },
+    });
+    const own = { ship: OWN_SHIP, configs: opts.configs ?? [], equippedOn: [], inSets: [] };
+    const ownership = TestBed.inject(HqOwnershipService);
+    spyOn(ownership, 'lookup').and.returnValue(own as never);
+    spyOn(ownership, 'shipFor').and.returnValue(OWN_SHIP as never);
+    spyOn(ownership, 'ensureLoaded').and.resolveTo();
+    spyOn(ownership, 'configById').and.callFake(((id: string) =>
+      opts.configs?.some((c) => c.id === id)
+        ? { id, name: 'V', hangarShipId: 'sh1', isActive: true, loadout: [] }
+        : null) as never);
+    (TestBed.inject(HangarService).ships as unknown as ReturnType<typeof signal<unknown[]>>).set([OWN_SHIP]);
+    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    void TestBed.compileComponents();
+    const fixture = TestBed.createComponent(CodexDetailComponent);
+    if (opts.host) {
+      fixture.componentRef.setInput('hostClassName', 'cnou_nomad');
+      fixture.componentRef.setInput('hostShipId', 'sh1');
+    }
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+    return { fixture, nav };
+  }
+
+  it('Codex page: an old ?mine on an owned ship redirects to the HQ ship page', fakeAsync(() => {
+    const { nav } = prepare({ shell: true, query: { mine: '' } });
+    tick();
+    expect(nav).toHaveBeenCalledWith(['/hq/hangar', 'sh1'], { queryParams: {}, replaceUrl: true });
+  }));
+
+  it('Codex page: an old ?v= on an own variant redirects to the HQ ship page with that variant', fakeAsync(() => {
+    const { nav } = prepare({ shell: true, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }] });
+    tick();
+    expect(nav).toHaveBeenCalledWith(['/hq/hangar', 'sh1'], { queryParams: { v: 'c1' }, replaceUrl: true });
+  }));
+
+  it('Codex page: a variant that is not one of the reader own is dropped, with the note', fakeAsync(() => {
+    const { fixture, nav } = prepare({ shell: true, query: { v: 'someone-elses' } });
+    tick();
+    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ replaceUrl: true, queryParams: jasmine.objectContaining({ v: null }) }));
+    expect(fixture.componentInstance.foreignVariant()).toBeTrue();
+    expect(fixture.componentInstance.personalMode()).toBeFalse();
+  }));
+
+  it('Codex page: no personal mode, switch or own-ship actions, even for an owned ship', fakeAsync(() => {
+    const { fixture } = prepare({ shell: true, configs: [{ id: 'c1', name: 'V', active: true }] });
+    const cmp = fixture.componentInstance;
+    cmp.mineFlag.set(true);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(cmp.showModeSwitch()).toBeFalse();
+    expect(el.querySelector('sc-codex-mode-switch')).toBeNull();
+    expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+  }));
+
+  it('without the shell beta the Codex keeps its personal ?v= mode', fakeAsync(() => {
+    const { nav } = prepare({ shell: false, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }] });
+    tick();
+    expect(nav).not.toHaveBeenCalledWith(['/hq/hangar', 'sh1'], jasmine.anything());
+  }));
+
+  describe('hosted at /hq/hangar/:id', () => {
+    it('shows the personal view of the variant with own-ship actions, the variant switch and HQ crumbs', fakeAsync(() => {
+      const { fixture } = prepare({
+        shell: true, host: true, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }],
+      });
+      const cmp = fixture.componentInstance;
+      const el: HTMLElement = fixture.nativeElement;
+      expect(cmp.hqHosted()).toBeTrue();
+      expect(cmp.kind()).toBe('ship');
+      expect(cmp.personalMode()).withContext('?v= on the HQ URL opens the variant').toBeTrue();
+      expect(el.querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      expect(cmp.showModeSwitch()).toBeTrue();
+      expect(cmp.crumbs().map((c) => c.link)).toEqual(['/hq', '/hq/hangar']);
+    }));
+  });
 });

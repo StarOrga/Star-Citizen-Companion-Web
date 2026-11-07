@@ -26,6 +26,7 @@ import { DOCK_HOST_CLASS, DOCK_WIDTH_STYLE } from '../shared/dock-width';
     <div [hidden]="hideList()">
     @if (enabled()) {
       <sc-verse-header planet="gallery" [title]="'verse.area.gallery' | translate" [subtitle]="'starscape.subtitle' | translate">
+        <span vhSub> {{ 'starscape.subtitleAppPre' | translate }}<a class="app-link" routerLink="/apps/starscape">{{ 'starscape.subtitleAppLink' | translate }}</a>{{ 'starscape.subtitleAppPost' | translate }}</span>
         @if (connected()) {
           <ng-container vhActions>
             <span class="pill"><span class="dot" aria-hidden="true"></span>{{ 'verse.gallery.connected' | translate }}</span>
@@ -56,6 +57,7 @@ import { DOCK_HOST_CLASS, DOCK_WIDTH_STYLE } from '../shared/dock-width';
     }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc-success); }
     button.sub-link { background: none; font: inherit; cursor: pointer; }
+    .app-link { color: var(--sc-accent); }
     .hint { margin: 0 0 12px; color: var(--sc-fg-2); font-size: max(0.82rem, var(--sc-fs-floor)); }
   `, DOCK_WIDTH_STYLE],
 })

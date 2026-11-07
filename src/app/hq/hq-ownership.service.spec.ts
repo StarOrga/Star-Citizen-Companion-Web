@@ -4,7 +4,7 @@ import { AuthService } from '../auth/auth.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { HqOwnershipService } from './hq-ownership.service';
-import { personalItemLink, personalShipLink, hqSet, hqShip } from './hq-routes';
+import { personalItemLink, personalShipLink, hqSet, hangarRedirectLink } from './hq-routes';
 
 describe('HqOwnershipService', () => {
   const T = '2026-01-01T00:00:00Z';
@@ -151,7 +151,7 @@ describe('HqOwnershipService', () => {
   });
 
   it('route helpers build the contract links', () => {
-    expect(hqShip('h1')).toEqual(['/hq/hangar', 'h1']);
+    expect(hangarRedirectLink('h1')).toEqual(['/hq/hangar', 'h1']);
     expect(hqSet('s1')).toEqual(['/hq/locker', 's1']);
     expect(personalShipLink('AEGS_Gladius', 'c1')).toEqual({ commands: ['/codex/ship', 'AEGS_Gladius'], queryParams: { v: 'c1' } });
     expect(personalItemLink('weapon', 'BEHR_Rifle_01')).toEqual({ commands: ['/codex', 'weapon', 'BEHR_Rifle_01'], queryParams: { mine: '' } });

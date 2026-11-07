@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { HQ_MINE_PARAM, HQ_VARIANT_PARAM, HqLink, hqSet, personalShipLink } from '../../hq/hq-routes';
+import { HQ_MINE_PARAM, HQ_VARIANT_PARAM, HqLink, hqSet, hqShipLink, personalShipLink } from '../../hq/hq-routes';
 import type { HqConfigRef, HqOwnership } from '../../hq/hq-ownership.service';
 
 /** Query params that leave every personal source behind: the codex view. */
@@ -33,8 +33,10 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
   host: { '(document:click)': 'onDocumentClick($event)' },
   template: `
     <div class="mode" role="group" [attr.aria-label]="'codex.personal.switchGroup' | translate">
-      <a class="seg" [class.active]="!personal()" [attr.aria-current]="!personal() ? 'true' : null"
-         [routerLink]="[]" [queryParams]="codexParams" queryParamsHandling="merge">{{ (kind() === 'ship' ? 'codex.personal.stock' : 'codex.personal.codex') | translate }}</a>
+      @if (!hangarShipId()) {
+        <a class="seg" [class.active]="!personal()" [attr.aria-current]="!personal() ? 'true' : null"
+           [routerLink]="[]" [queryParams]="codexParams" queryParamsHandling="merge">{{ (kind() === 'ship' ? 'codex.personal.stock' : 'codex.personal.codex') | translate }}</a>
+      }
       @if (kind() === 'ship') {
         <span class="mine-wrap">
           <button type="button" class="seg mine" [class.active]="personal()"
@@ -96,6 +98,11 @@ export class CodexModeSwitchComponent {
   /** Ships: the reader's variants of this hull (active first). */
   readonly variants = input<readonly HqConfigRef[]>([]);
   readonly activeVariantId = input<string | null>(null);
+  /**
+   * Hosted at HQ > Hangar > ship (`/hq/hangar/:id`, shell beta): the hangar ship id. The page is the
+   * reader's own copy there, so there is no "Serie" segment and the variant links stay on the HQ URL.
+   */
+  readonly hangarShipId = input<string | null>(null);
 
   readonly open = signal(false);
   readonly codexParams = CODEX_MODE_PARAMS;
@@ -108,7 +115,8 @@ export class CodexModeSwitchComponent {
 
   /** A variant link drops every other loadout source, so the variant itself shows. */
   variantLink(configId: string): { commands: string[]; queryParams: Record<string, string | null> } {
-    const l = personalShipLink(this.className(), configId);
+    const hq = this.hangarShipId();
+    const l = hq ? hqShipLink(hq, configId) : personalShipLink(this.className(), configId);
     return { commands: l.commands, queryParams: { ...l.queryParams, config: null, loadout: null, shared: null } };
   }
 

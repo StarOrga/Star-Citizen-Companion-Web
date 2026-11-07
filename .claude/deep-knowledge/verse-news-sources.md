@@ -121,6 +121,26 @@ announced date would outrank both branches if a source for one ever appeared.
 `src/app/news/next-patch.spec.ts` pins the invariant by rendering both surfaces
 against one feed and comparing what they say.
 
+### The build in the PTU: estimate + announced deployment (feedback #317)
+
+A point release in the test ring (4.10.3 while 4.10.2 is live) is NOT the next
+main patch, so the monitor never dated it. `sc-ptu-release` on `/verse/patches`
+answers it with two separate values, never blended:
+
+- **our estimate** — `computeTestBuildRelease()` (`patch-stats.ts`): the open
+  test build (`openPtuBuild`, generic — whatever is the immediate next
+  release) plus the median time a *version* took from its first test build to
+  its first LIVE note (`4.10.0` and `4.10` count as one build);
+- **the official date** — the one first-party date RSI does publish: a LIVE
+  deployment scheduled on the status site. `fetch-verse-news` reads the cState
+  issue index (`status.robertsspaceindustries.com/issues/index.json`) and
+  returns `deployment: { title, at, url } | null` — the earliest unresolved
+  issue titled like "Live Deployment"/"Release" (PTU/Evocati/preview windows
+  excluded) that started at most 12 h ago (`scheduled-deployment.ts`, node
+  tests). Null → "Noch kein offizielles Datum" plus a link to the status site.
+  The issue does not name a version; while a PTU build is open, the next LIVE
+  deployment is that build.
+
 ## Patch CONTENT: `rsi-roadmap` edge function (feedback 961ab0a5)
 
 Everything above gives the patch board patch note **titles**. The `rsi-roadmap`

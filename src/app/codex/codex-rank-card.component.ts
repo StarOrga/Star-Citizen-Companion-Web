@@ -2,6 +2,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
+  RANK_MIN_GROUP,
   RANK_PROFILES,
   RankClassId,
   RankProfileId,
@@ -122,6 +123,11 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
             [attr.aria-label]="compareInfoKey() | translate"
           >ⓘ</button>
         </div>
+        <!-- A group under RANK_MIN_GROUP stays the picked group (concept
+             r1-small): applied, and said how small it is. -->
+        @if (smallGroupSize(); as n) {
+          <p class="small-group" role="status">{{ 'codex.rank.group.smallHint' | translate: { n: n } }}</p>
+        }
       }
 
       <!-- Below three axes there is no shape to draw: the bars say it all. -->
@@ -178,7 +184,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
         @if (loading()) {
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
-          <p class="gap-note">{{ 'codex.rank.gapAxis' | translate }}</p>
+          <p class="gap-note">{{ (gapKey() ?? 'codex.rank.gapAxis') | translate }}</p>
         } @else if (holo()) {
           <!-- The panel's head says it once. -->
         } @else if (result()!.overall != null) {
@@ -313,6 +319,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
       padding-bottom: 10px; border-bottom: 1px solid var(--sc-border); }
     .compare-label { font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
     .compare-info:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .small-group { grid-column: 1 / -1; margin: 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-align: center; }
     .compare-info { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
       border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2); font: inherit; font-size: 12px; cursor: help; }
     @media (pointer: coarse) {
@@ -523,6 +530,8 @@ export class CodexRankCardComponent {
   readonly scopes = input<readonly RankCardScope[]>(SHIP_SCOPES);
   /** Everything that names what is compared; the default is the ship wording. */
   readonly copy = input<RankCardCopy>(SHIP_COPY);
+  /** Why there is no result (no cohort, no comparable values); null = the generic gap line. */
+  readonly gapKey = input<string | null>(null);
 
   readonly activeProfileLabelKey = computed<string>(
     () => rankProfileById(this.profile()).labelKey,
@@ -573,6 +582,14 @@ export class CodexRankCardComponent {
     const scope = this.result()?.scope ?? 'all';
     const usable = scope !== 'sizeClass' || this.sizeClass() != null;
     return (usable ? this.copy().cohort[scope] : null) ?? this.copy().cohort.all ?? '';
+  });
+
+  /** Holotable: the active group's size when it is under RANK_MIN_GROUP, else null. */
+  readonly smallGroupSize = computed<number | null>(() => {
+    if (!this.holo()) return null;
+    const r = this.result();
+    const n = r?.scopeSizes?.[r.scope];
+    return r && r.scope !== 'all' && n != null && n < RANK_MIN_GROUP ? n : null;
   });
 
   pickScope(scope: RankScope): void {

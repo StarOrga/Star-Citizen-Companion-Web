@@ -27,6 +27,17 @@ describe('CodexRankCardComponent', () => {
     expect(el.querySelector('.rank-skel')).toBeNull();
   });
 
+  it('says why there is nothing to rank when the page passes a reason', () => {
+    fixture.componentRef.setInput('result', null);
+    fixture.componentRef.setInput('loading', false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gap-note')?.textContent?.trim()).toBe('codex.rank.gapAxis');
+    fixture.componentRef.setInput('gapKey', 'codex.missile.rank.gapNoData');
+    fixture.detectChanges();
+    expect(el.querySelector('.gap-note')?.textContent?.trim()).toBe('codex.missile.rank.gapNoData');
+  });
+
   it('shows a loading skeleton instead of a gap note while fetching', () => {
     fixture.componentRef.setInput('result', null);
     fixture.componentRef.setInput('loading', true);

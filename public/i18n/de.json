@@ -212,6 +212,16 @@
     "enterFailedDismiss": "Verwerfen"
   },
   "codex": {
+    "own": {
+      "group": "Dein Schiff",
+      "rename": "Umbenennen",
+      "renameTitle": "Schiff umbenennen",
+      "note": "Notiz",
+      "noteTitle": "Notiz zu diesem Schiff",
+      "pin": "Oben im Hangar anpinnen",
+      "unpin": "Anpinnen aufheben",
+      "remove": "Aus dem Hangar entfernen"
+    },
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
@@ -663,6 +673,7 @@
       "from": "ab {{price}} aUEC",
       "placeOne": "1 Ort",
       "places": "{{count}} Orte",
+      "more": "+{{count}} weitere",
       "price": "{{price}} aUEC",
       "openPlan": "Im Plan ansehen"
     },
@@ -927,6 +938,9 @@
         "journalEmpty": "Noch nichts — Werksausstattung.",
         "allPorts": "Alle {{n}} Ports",
         "perspectives": "Perspektiven",
+        "decksAria": "Decks",
+        "deckOutside": "Außen",
+        "deckInside": "Innen",
         "percentileAria": "Perzentil {{p}}",
         "say": {
           "gap": "Für diese Perspektive liefert das Vergleichsfeld keinen Rang.",
@@ -987,13 +1001,15 @@
         "cooling": "Kühllast",
         "coolingValue": "{{used}} / {{total}}",
         "stealthPreset": "Schleichen",
-        "expand": "Leiste ausklappen",
-        "collapse": "Leiste einklappen",
+        "expand": "Energie und Perspektiven zeigen",
+        "collapse": "Energie und Perspektiven schließen",
         "presetTag": "Preset",
-        "minimize": "Leiste minimieren",
-        "restore": "Ganze Leiste einblenden",
-        "cohortRole": "{{n}} × {{role}}"
+        "cohortRole": "{{n}} × {{role}}",
+        "dockAria": "Energie und Perspektiven"
       },
+      "below": {"parts": "Bauteile im Detail", "partsCount": "{{n}} verbaut", "areaEmpty": "Keine Bauteile in diesem Bereich."},
+      "persp": {"lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.", "leadNoCohort": "Bewertet als {{mission}}.", "allShow": "Alle Werte aller vier ▾", "allHide": "Alle Werte zuklappen ▴"},
+      "side": {"variants": "Varianten & Vergleich"},
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -1376,7 +1392,8 @@
         "competition": "Rennschiffe"
       },
       "group": {
-        "of": "Alle {{name}}"
+        "of": "Alle {{name}}",
+        "smallHint": "Nur {{n}} Schiffe in dieser Gruppe, der Vergleich ist entsprechend grob."
       },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
       "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
@@ -2392,6 +2409,8 @@
       "filterButton": "Filter ({{count}})",
       "showResults": "{{count}} Treffer anzeigen",
       "areaLabel": "Bereich",
+      "collapseArea": "{{name}} einklappen",
+      "expandArea": "{{name}} ausklappen",
       "area": {
         "armor": "Rüstung",
         "shipAmmo": "Schiffsmunition"
@@ -2460,7 +2479,10 @@
         "legendAbove": "über Median",
         "legendBelow": "unter Median",
         "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum höchsten Wert der gewählten Vergleichswaffen (Rand). Blau ist diese Waffe, die gestrichelte Linie der Median der Gruppe.",
-        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten."
+        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten.",
+        "gapNoData": "Der aktuelle Datenstand enthält noch keine Werte für Schaden, Geschwindigkeit, Wendigkeit und Reichweite. Die Einordnung erscheint, sobald ein Build mit dem Data Uploader 0.73.3 oder neuer hochgeladen ist.",
+        "gapTooFew": "Zu wenige Lenkwaffen unterscheiden sich in Schaden, Geschwindigkeit, Wendigkeit und Reichweite, um diese hier einzuordnen.",
+        "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden."
       },
       "data": {
         "title": "Waffendaten",
@@ -2568,6 +2590,11 @@
       "tier": "Tier {{tier}}"
     },
     "recipesMissing": "Für diesen Build wurden noch keine Rezeptzutaten extrahiert — Baupläne sind gelistet, aber ohne Materialliste.",
+    "owned": {
+      "filter": "Nur meine",
+      "mark": "Ich habe diesen Bauplan: {{name}}",
+      "unmark": "Meiner – Markierung entfernen: {{name}}"
+    },
     "role": {
       "primary": "Primär",
       "secondary": "Sekundär",
@@ -2764,6 +2791,19 @@
           "all": "Alle",
           "empty": "Keine Daten in diesem Zeitraum – auf „Alle“ umschalten."
         }
+      },
+      "ptuRelease": {
+        "title": "Wann kommt {{version}} auf LIVE?",
+        "infoLabel": "Wie die Termine entstehen",
+        "infoEstimate": "Unsere Schätzung: erster Test-Build dieser Version plus die mittlere Zeit (Median), die bisherige Versionen vom ersten PTU-Build bis LIVE gebraucht haben. Eine Hochrechnung, kein Versprechen.",
+        "infoOfficial": "Offizielles Datum: das LIVE-Deployment, das RSI auf seiner Status-Seite ankündigt — sobald dort eines geplant ist. In den Patch Notes selbst nennt RSI kein Datum.",
+        "estimate": "Unsere Schätzung",
+        "estimateBasis": "seit {{days}} Tagen im Test · Median {{median}} Tage PTU → LIVE (n = {{n}})",
+        "noEstimate": "Noch zu wenig Daten für eine Schätzung",
+        "official": "Offiziell (RSI)",
+        "source": "Quelle: RSI-Status, {{title}}",
+        "noOfficial": "Noch kein offizielles Datum",
+        "statusLink": "RSI-Status-Seite prüfen"
       },
       "forecast": {
         "title": "Voraussichtliche Termine",
@@ -3833,6 +3873,7 @@
     "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
     "disclaimerCollapse": "Haftungsausschluss einklappen",
     "legalNav": "Rechtliches und Projekt-Informationen",
+    "areaNav": "Bereich wechseln",
     "links": {
       "about": "Über",
       "privacy": "Datenschutz",
@@ -4028,7 +4069,6 @@
       "roleLabel": "Rolle"
     },
     "detail": {
-      "notFound": "Dieser Hangar-Eintrag existiert nicht.",
       "loading": "Lädt…",
       "save": "Speichern",
       "rename": "Umbenennen",
@@ -4042,9 +4082,7 @@
         "bodyNone": "Das lässt sich nicht rückgängig machen.",
         "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
         "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
-      },
-      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden",
-      "codexFailed": "Die Codex-Daten zu diesem Schiff konnten nicht geladen werden."
+      }
     },
     "configs": {
       "title": "Konfigurationen",
@@ -4800,7 +4838,10 @@
   },
   "starscape": {
     "title": "Starscape",
-    "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
+    "subtitle": "Hochauflösende Artworks von Cloud Imperium Games, direkt zum Original verlinkt.",
+    "subtitleAppPre": "Mit der ",
+    "subtitleAppLink": "Starscape-App",
+    "subtitleAppPost": " holst du sie als Hintergrund auf deinen Desktop.",
     "filterAll": "Alle",
     "filter": {
       "label": "Galerie-Ansicht",
@@ -4829,7 +4870,7 @@
       "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Die Zahl am Daumen ist die Gesamtzahl der Stimmen aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
       "loading": "Top-Auswahl wird geladen…"
     },
-    "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
+    "empty": "Noch keine Wallpaper vorhanden. Neue Artworks erscheinen hier von selbst.",
     "loadMore": "Mehr laden",
     "loading": "Lädt…",
     "loadingImages": "Bilder werden geladen…",
@@ -5706,6 +5747,30 @@
         "hours": "zuletzt geöffnet vor {{n}} Std.",
         "days": "zuletzt geöffnet vor {{n}} Tagen"
       },
+      "desk": {
+        "open": "Buchen: {{name}}",
+        "addOne": "1 einlagern: {{name}}",
+        "takeOne": "1 entnehmen: {{name}}",
+        "availShort": "{{free}} frei · {{reserved}} reserviert",
+        "amount": "Menge",
+        "in": "Einlagern",
+        "out": "Entnehmen",
+        "set": "Bestand setzen",
+        "for": "Reservieren für",
+        "forHint": "z. B. Spieler X oder Verkauf",
+        "reserve": "Reservieren",
+        "reservations": "Reservierungen",
+        "handOut": "Ausgegeben",
+        "release": "Freigeben",
+        "delete": "Aus der Liste löschen",
+        "deleteTitle": "„{{name}}“ löschen?",
+        "deleteText": "Der Eintrag verschwindet samt seinen Reservierungen aus diesem Ort.",
+        "emptyTitle": "„{{name}}“ ist dann leer",
+        "emptyText": "Danach ist nichts mehr davon hier: Der Eintrag verschwindet aus der Liste.",
+        "emptyConfirm": "Entnehmen und löschen",
+        "cutTitle": "Weniger als reserviert",
+        "cutText": "{{reserved}} {{unit}} sind reserviert. Die neuesten Reservierungen werden auf den neuen Bestand gekürzt."
+      },
       "lager": {
         "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
         "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
@@ -5819,9 +5884,6 @@
     }
   },
   "verse": {
-    "areaFoot": {
-      "aria": "Bereich wechseln"
-    },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",

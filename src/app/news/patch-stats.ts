@@ -559,3 +559,76 @@ export function computePatchForecast(
 
   return rows.filter((r): r is PatchForecastRow => r !== null);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The build in the PTU right now — when does IT reach LIVE? (feedback #317)
+//
+// "Wo finde ich die Information, wann dieser Patch kommt? … Wir brauchen die
+// geschätzte Zeit wie bei 5.0." The monitor answers the next MAIN patch; a point
+// release sitting in the PTU (4.10.3 while 4.10.2 is live) had no date at all.
+//
+// Version-level on purpose — this is the sub-patch question the monitor must
+// not answer: the open test build's first sighting plus the median time a
+// VERSION spent between its first test build and its first LIVE note. Generic:
+// whatever build is the immediate next release (`openPtuBuild`) is the subject.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TestBuildRelease {
+  /** The build in testing, e.g. `4.10.3`. */
+  version: string;
+  /** When it first appeared in a test ring (ms). */
+  firstTestAt: number;
+  /** Estimated LIVE instant (ms) — first test + median version lead time. */
+  at: number;
+  /** Median version lead time and how many versions fed it. */
+  medianDays: number;
+  samples: number;
+}
+
+/** `4.10.0` and `4.10` are one build — RSI titles the same version both ways. */
+function buildKey(version: string): string {
+  return version.replace(/(\.0)+$/, '');
+}
+
+/**
+ * Estimated LIVE date of the build in the test rings, null without one (nothing
+ * ahead of LIVE, or no version that ever made the PTU → LIVE trip to measure).
+ */
+export function computeTestBuildRelease(
+  groups: readonly PatchLineGroup[],
+  cutoffMs: number | null = null,
+): TestBuildRelease | null {
+  const open = openPtuBuild(groups);
+  if (!open) return null;
+
+  // A main line in testing (5.0) is the monitor's question: quote ITS date, or
+  // the page would print two estimates for one patch (feedback ae9f8cba).
+  const next = computeNextPatch(groups, cutoffMs);
+  if (next && next.basis === 'leadTime' && buildKey(open.version) === buildKey(next.anchorLine)) {
+    return { version: open.version, firstTestAt: next.anchorAt, at: next.at, medianDays: next.medianDays, samples: next.samples };
+  }
+
+  const firstTest = new Map<string, number>();
+  for (const s of firstSightings(groups, isTestStage)) {
+    const key = buildKey(s.version);
+    if (!firstTest.has(key)) firstTest.set(key, s.at);
+  }
+  const firstLive = new Map<string, number>();
+  for (const s of firstSightings(groups, (e) => e.stage === 'live')) {
+    const key = buildKey(s.version);
+    if (!firstLive.has(key)) firstLive.set(key, s.at);
+  }
+
+  const leads: number[] = [];
+  for (const [key, liveAt] of firstLive) {
+    const testAt = firstTest.get(key);
+    if (testAt === undefined || liveAt <= testAt) continue;
+    if (cutoffMs !== null && liveAt < cutoffMs) continue;
+    leads.push(wholeDays(liveAt - testAt));
+  }
+  if (leads.length === 0) return null;
+
+  const m = median(leads);
+  const anchor = firstTest.get(buildKey(open.version)) ?? open.at;
+  return { version: open.version, firstTestAt: anchor, at: anchor + m * DAY_MS, medianDays: m, samples: leads.length };
+}

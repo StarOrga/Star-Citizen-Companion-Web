@@ -62,6 +62,11 @@ import {
 } from './codex-weapon-taxonomy';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
+import { PATH_ICONS } from '../shared/item-path/path-icons';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
+import { AuthService } from '../auth/auth.service';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { HqInventoryService } from '../hq/data/hq-inventory.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { ARMOR_CATEGORY, ARMOR_SLOT_IDS, AreaNode, AreaTarget, CodexCategory, UPCOMING_CATEGORY, armorAttachTypeOf, inferWeaponSuperGroup } from './codex-browse-params';
@@ -170,7 +175,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-browse',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
+  imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="browse">
@@ -246,6 +251,10 @@ export function blueprintCategoriesForGroup(
                     <button type="button" class="fresh-toggle" [class.on]="patchFresh()" [attr.aria-pressed]="patchFresh()"
                             (click)="setPatchFresh(!patchFresh())">{{ 'codex.browse.freshFilter' | translate }}</button>
                   }
+                  @if (ownedAvailable()) {
+                    <button type="button" class="fresh-toggle" [class.on]="ownedOnly()" [attr.aria-pressed]="ownedOnly()"
+                            (click)="setOwnedOnly(!ownedOnly())">{{ 'blueprint.owned.filter' | translate }}</button>
+                  }
                   <div class="sort">
                     <sc-select [options]="sortSelect()" [value]="sortNew() ? 'new' : 'name'"
                                [ariaLabel]="'codex.browse.sort.label' | translate"
@@ -259,6 +268,9 @@ export function blueprintCategoriesForGroup(
               }
               @if (blueprintRecipesMissing()) {
                 <p class="partial-note">{{ 'blueprint.recipesMissing' | translate }}</p>
+              }
+              @if (ownError(); as e) {
+                <p class="partial-note own-error" role="alert">{{ e | translate }}</p>
               }
 
               @if (listLoading() && listLength() === 0) {
@@ -312,18 +324,24 @@ export function blueprintCategoriesForGroup(
                         }
                         <span class="main">
                           <span class="name">{{ cardName(r) }}</span>
-                          <span class="meta">
-                            @if (rowMeta(r); as m) { <span>{{ m }}</span> }
-                            @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
-                            @if (kind() === 'ship') {
+                          @if (kind() === 'ship') {
+                            <!-- Fixed columns: maker, price, place stay put whatever the maker's name length (#314). -->
+                            <span class="meta ship-cols">
+                              <span class="c-mfr">{{ rowMeta(r) }}</span>
                               @if (shipOffers().get(r.classNameSlug); as offers) {
-                                <span class="price">
-                                  {{ 'codex.buy.from' | translate: { price: auec(offers[0].price) } }} ·
-                                  {{ (offers.length === 1 ? 'codex.buy.placeOne' : 'codex.buy.places') | translate: { count: offers.length } }}
+                                <span class="price c-price">{{ priceLabel(offers) | translate: { price: auec(offers[0].price) } }}</span>
+                                <span class="c-where" [scTooltip]="offers.length > 1 ? offersTooltip(offers) : null">
+                                  <span class="where-name">{{ offerWhere(offers[0]) }}</span>
+                                  @if (offers.length > 1) { <span class="where-more">{{ 'codex.buy.more' | translate: { count: offers.length - 1 } }}</span> }
                                 </span>
                               }
-                            }
-                          </span>
+                            </span>
+                          } @else {
+                            <span class="meta">
+                              @if (rowMeta(r); as m) { <span>{{ m }}</span> }
+                              @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                            </span>
+                          }
                         </span>
                         <span class="spec">
                           @if (r.size !== null && r.size !== undefined) { <span class="size">S{{ r.size }}</span> }
@@ -331,6 +349,18 @@ export function blueprintCategoriesForGroup(
                         </span>
                       </a>
                       <span class="acts">
+                        @if (ownedAvailable()) {
+                          @let owned = isOwned(r.classNameSlug);
+                          @let ownLabel = ((owned ? 'blueprint.owned.unmark' : 'blueprint.owned.mark') | translate: { name: cardName(r) });
+                          <button type="button" scAction tier="tertiary" class="own" [class.on]="owned"
+                                  [attr.aria-pressed]="owned" [busy]="ownBusy().has(r.classNameSlug)"
+                                  [attr.aria-label]="ownLabel" [scTooltip]="ownLabel" scTooltipTier="label"
+                                  (click)="toggleOwned(r.classNameSlug, cardName(r))">
+                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              @for (d of ownedIcon; track $index) { <path [attr.d]="d" /> }
+                            </svg>
+                          </button>
+                        }
                         <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)" />
                         @if (buyable()) {
                           <button type="button" class="act shop" [class.pinned]="buyOpen() === r.classNameSlug"
@@ -510,12 +540,24 @@ export function blueprintCategoriesForGroup(
       <ul class="nodes" role="list" [class.nested]="depth > 0">
         @for (n of nodes; track n.id) {
           <li>
-            <a class="node" [class.on]="n.active" [class.current]="n.current"
-               [attr.aria-current]="n.current ? 'page' : null"
-               [attr.href]="n.href" (click)="onAreaClick($event, n)">
-              <span class="node-label">{{ n.label ?? (n.labelKey | translate) }}</span>
-              @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
-            </a>
+            @let label = n.label ?? (n.labelKey | translate);
+            <div class="node-row">
+              <a class="node" [class.on]="n.active" [class.current]="n.current"
+                 [attr.aria-current]="n.current ? 'page' : null"
+                 [attr.href]="n.href" (click)="onAreaClick($event, n)">
+                <span class="node-label">{{ label }}</span>
+                @if (n.count !== null) { <span class="node-ct">{{ n.count }}</span> }
+              </a>
+              @if (n.children.length > 0) {
+                @let togLabel = (n.open ? 'codex.browse.collapseArea' : 'codex.browse.expandArea') | translate: { name: label };
+                <!-- #315: a group folds in and out without leaving the current area. -->
+                <button type="button" class="node-tog" [class.open]="n.open" [attr.aria-expanded]="n.open"
+                        [attr.aria-label]="togLabel" [scTooltip]="togLabel" scTooltipTier="label"
+                        (click)="toggleNode(n)">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" /></svg>
+                </button>
+              }
+            </div>
             @if (n.open && n.children.length > 0) {
               <ng-container [ngTemplateOutlet]="nodesTpl" [ngTemplateOutletContext]="{ $implicit: n.children, depth: depth + 1 }" />
             }
@@ -531,10 +573,19 @@ export function blueprintCategoriesForGroup(
     /* Left column: title, then the sticky area tree under it. */
     .col-side { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); min-width: 0; }
     .head { min-width: 0; }
+    /* #315: the tree parks below the pinned header (the beta's corner row + docked
+       subheader, or the classic sticky topbar) and ends above the bottom launcher
+       lane / footer row, so its last entry is reachable inside its own scroll. */
     .side {
-      position: sticky; top: calc(var(--sc-sticky-top, 0px) + var(--sc-space-3, 12px));
+      --_side-top: max(
+        calc(var(--sc-chrome-top, 24px) + var(--sc-sub-h, 60px) + var(--sc-space-3, 12px)),
+        calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + var(--sc-space-3, 12px)));
+      --_side-bottom: calc(max(var(--sc-footer-h, 80px), var(--sc-fab-lane, 80px)) + var(--sc-space-3, 12px));
+      position: sticky; top: var(--_side-top);
       display: flex; flex-direction: column; gap: var(--sc-space-3, 12px);
-      max-height: calc(100dvh - var(--sc-sticky-top, 0px) - 24px); overflow-y: auto;
+      max-height: calc(100vh - var(--_side-top) - var(--_side-bottom));
+      max-height: calc(100dvh - var(--_side-top) - var(--_side-bottom));
+      overflow-y: auto; overscroll-behavior: contain;
     }
     .side-h { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--sc-fg-2); }
     .nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -544,6 +595,18 @@ export function blueprintCategoriesForGroup(
       min-height: max(32px, var(--sc-tap-min, 0px)); padding: 4px 10px; border-radius: 6px;
       color: var(--sc-fg-1); text-decoration: none; font-size: 13px;
     }
+    .node-row { display: flex; align-items: stretch; gap: 2px; }
+    .node-row > .node { flex: 1 1 auto; min-width: 0; }
+    .node-tog {
+      flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+      width: max(28px, var(--sc-tap-min, 0px)); min-height: max(32px, var(--sc-tap-min, 0px)); padding: 0;
+      border: 0; border-radius: 6px; background: transparent; color: var(--sc-fg-2); cursor: pointer; font: inherit;
+    }
+    .node-tog svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 120ms ease; }
+    .node-tog.open svg { transform: rotate(90deg); }
+    .node-tog:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    .node-tog:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    @media (prefers-reduced-motion: reduce) { .node-tog svg { transition: none; } }
     .node:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
     .node:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .node.on { color: var(--sc-fg-0); }
@@ -608,6 +671,8 @@ export function blueprintCategoriesForGroup(
     .fresh-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .fresh-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .fresh-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+    .own.on { color: var(--sc-accent); }
+    .own-error { color: var(--sc-danger); }
     .sort { min-width: 180px; margin-left: auto; }
     .partial-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); }
     .rows { list-style: none; margin: 0; padding: 0; }
@@ -652,6 +717,18 @@ export function blueprintCategoriesForGroup(
     .act .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .act.shop.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
     .price { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    /* Ship rows: maker | price | place in fixed columns, so a long maker name never pushes the rest (#314). */
+    .ship-cols { display: grid; grid-template-columns: minmax(0, 13rem) 12rem minmax(0, 1fr); gap: 4px 16px; }
+    .ship-cols > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .c-price { text-align: right; }
+    .c-where { display: flex; align-items: baseline; gap: 6px; }
+    .where-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--sc-fg-1); }
+    .where-more { flex: none; color: var(--sc-fg-2); }
+    @media (max-width: 640px) {
+      .ship-cols { grid-template-columns: minmax(0, 1fr) auto; }
+      .ship-cols .c-mfr { grid-column: 1 / -1; }
+      .c-price { text-align: left; }
+    }
     /* Package D: where to buy, inline under the row (never a floating layer over the list). */
     .buy {
       flex: 1 0 100%; display: flex; flex-direction: column; gap: 10px;
@@ -728,6 +805,7 @@ export function blueprintCategoriesForGroup(
       }
       .sheet-close:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .node { min-height: 44px; }
+      .node-tog { width: 44px; min-height: 44px; }
     }
     @media (prefers-reduced-motion: reduce) {
       .acts .act { transition: none; }
@@ -754,6 +832,24 @@ export class CodexBrowseComponent implements OnInit {
   /** `?fresh=1`: only what is new or updated in the last patch. */
   readonly patchFresh = signal(false);
   readonly freshAvailable = computed(() => NEW_SORT_KINDS.includes(this.kind()));
+  private readonly auth = inject(AuthService);
+  private readonly itemPath = inject(ItemPathService);
+  /** `?own=1` (blueprints, signed in): only the blueprints the reader has. */
+  readonly ownedOnly = signal(false);
+  /** The owned filter and the "Ich habe diese" toggle: blueprint list, signed-in readers only. */
+  readonly ownedAvailable = computed(() => this.kind() === 'blueprint' && !!this.auth.user());
+  private readonly ownedBlueprints = this.itemPath.ownedBlueprints;
+  /** While the owned filter is on, the list follows every mark (a row leaves when it is unmarked). */
+  private readonly ownedKey = computed(() => (this.ownedOnly() && this.ownedAvailable() ? 'own:' + [...this.ownedBlueprints()].sort().join('|') : ''));
+  /** Case-blind lookup for the row toggle (the item path compares class names the same way). */
+  private readonly ownedLower = computed(() => new Set([...this.ownedBlueprints()].map((c) => c.toLowerCase())));
+  isOwned(className: string): boolean {
+    return this.ownedLower().has(className.toLowerCase());
+  }
+  readonly ownBusy = signal<ReadonlySet<string>>(new Set());
+  /** i18n key of the last failed "Ich habe diese" write. */
+  readonly ownError = signal<string | null>(null);
+  readonly ownedIcon = PATH_ICONS.owned;
   private readonly newOrder = signal<{ kind: CodexKind; order: ReadonlyMap<string, number> } | null>(null);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -1002,6 +1098,28 @@ export class CodexBrowseComponent implements OnInit {
     this.patchFresh.set(on);
   }
 
+  setOwnedOnly(on: boolean): void {
+    this.ownedOnly.set(on);
+  }
+
+  /** "Ich habe diese": a second way besides the SCC App to mark a blueprint as owned (#303). */
+  async toggleOwned(className: string, name: string): Promise<void> {
+    if (this.ownBusy().has(className)) return;
+    const owned = this.isOwned(className);
+    this.ownError.set(null);
+    this.ownBusy.update((s) => new Set(s).add(className));
+    try {
+      const res = await this.itemPath.setBlueprintOwned(className, name, !owned);
+      if (!res.ok) this.ownError.set(res.key);
+    } finally {
+      this.ownBusy.update((s) => {
+        const next = new Set(s);
+        next.delete(className);
+        return next;
+      });
+    }
+  }
+
   onVariantsToggle(ev: Event): void {
     this.setIncludeVariants((ev.target as HTMLInputElement).checked);
   }
@@ -1027,6 +1145,24 @@ export class CodexBrowseComponent implements OnInit {
     };
   });
 
+  /** Identity of the current area: hand-set open states only hold while it stays the same. */
+  private readonly areaKey = computed(() => JSON.stringify(this.areaState()));
+  /**
+   * Groups the reader folded in or out by hand (#315), keyed by node id and
+   * remembered for the area they did it in — switching areas opens the new
+   * path again by default.
+   */
+  private readonly treeToggles = signal<{ area: string; open: ReadonlyMap<string, boolean> }>({ area: '', open: new Map() });
+
+  /** Fold a tree group in or out, in place: the list keeps its area. */
+  toggleNode(n: AreaNode): void {
+    const area = this.areaKey();
+    const prev = this.treeToggles();
+    const open = new Map(prev.area === area ? prev.open : []);
+    open.set(n.id, !n.open);
+    this.treeToggles.set({ area, open });
+  }
+
   /** The "Bereich" tree (package C): every area with its count, the current path open. */
   readonly areaTree = computed<AreaNode[]>(() => {
     const st = this.areaState();
@@ -1034,10 +1170,13 @@ export class CodexBrowseComponent implements OnInit {
     const isCurrent = (t: AreaTarget) =>
       t.category === st.category && keys.every((k) => (t[k] ?? '') === st[k]);
     const counts = this.areaCounts();
+    const toggles = this.treeToggles();
+    const manual = toggles.area === this.areaKey() ? toggles.open : null;
     const node = (id: string, labelKey: string, count: number | null, target: AreaTarget, children: AreaNode[] = [], label?: string): AreaNode => {
       const current = isCurrent(target);
       const active = current || children.some((c) => c.active);
-      return { id, labelKey, ...(label ? { label } : {}), count, target, active, current, open: active, children, href: this.areaHref(target) };
+      const open = manual?.get(id) ?? active;
+      return { id, labelKey, ...(label ? { label } : {}), count, target, active, current, open, children, href: this.areaHref(target) };
     };
     const subs = (groupId: string, category: 'weapon') =>
       (WEAPON_SUPER_GROUPS.find((g) => g.id === groupId)?.subGroups ?? [])
@@ -1168,6 +1307,11 @@ export class CodexBrowseComponent implements OnInit {
   onAreaClick(ev: MouseEvent, n: AreaNode): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
+    // The current group's own link has nowhere to go: a click folds it (#315).
+    if (n.current && n.children.length > 0) {
+      this.toggleNode(n);
+      return;
+    }
     this.applyArea(n.target);
     this.filtersOpen.set(false);
   }
@@ -1561,6 +1705,7 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (this.kind() === 'weapon' && this.ammoOf()) add('ammo', 'codex.filters.ammo', this.ammoOf(), () => this.ammoOf.set(''));
     if (this.patchFresh() && this.freshAvailable()) add('fresh', 'codex.browse.freshFilter', null, () => this.setPatchFresh(false));
+    if (this.ownedOnly() && this.ownedAvailable()) add('own', 'blueprint.owned.filter', null, () => this.setOwnedOnly(false));
     if (this.size()) add('size', 'codex.filters.size', 'S' + this.size(), () => this.setSize(''));
     if (this.grade()) add('grade', 'codex.filters.grade', this.grade(), () => this.setGrade(''));
     if (this.componentKind()) add('componentKind', 'codex.filters.componentKind', this.componentKind(), () => this.setComponentKind(''));
@@ -1738,6 +1883,7 @@ export class CodexBrowseComponent implements OnInit {
       this.fitsItem();
       this.ammoOf();
       this.patchFresh();
+      this.ownedKey();
       this.size();
       this.grade();
       this.componentKind();
@@ -1764,6 +1910,7 @@ export class CodexBrowseComponent implements OnInit {
         fits: this.kind() === 'ship' ? this.fitsItem() || null : null,
         ammo: this.kind() === 'weapon' ? this.ammoOf() || null : null,
         fresh: this.patchFresh() && this.freshAvailable() ? '1' : null,
+        own: this.ownedOnly() && this.kind() === 'blueprint' ? '1' : null,
         size: this.size() || null,
         grade: this.grade() || null,
         ck: this.componentKind() || null,
@@ -2000,6 +2147,7 @@ export class CodexBrowseComponent implements OnInit {
     }
     if (q.get('v') === '1') this.includeVariants.set(true);
     this.patchFresh.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('fresh') === '1');
+    this.ownedOnly.set(this.kind() === 'blueprint' && q.get('own') === '1');
     this.sortNew.set(NEW_SORT_KINDS.includes(this.kind()) && q.get('sort') === 'new');
     if (this.sortNew()) this.loadNewOrder();
   }
@@ -2258,6 +2406,22 @@ export class CodexBrowseComponent implements OnInit {
     };
   }
 
+  /** "from <min>" only when the offers really differ in price; one price reads as a plain price (#314). */
+  priceLabel(offers: readonly BuyOption[]): string {
+    return offers.some((o) => o.price !== offers[0].price) ? 'codex.buy.from' : 'codex.buy.price';
+  }
+
+  /** A shop written out: the place plus the terminal, e.g. "Area18 – Astro Armada". */
+  offerWhere(o: BuyOption): string {
+    const place = o.place || o.location;
+    return o.terminal && o.terminal !== place ? `${place} – ${o.terminal}` : place;
+  }
+
+  /** Every shop of a row with its price, for the place column's tooltip. */
+  offersTooltip(offers: readonly BuyOption[]): string {
+    return offers.map((o) => `${this.offerWhere(o)}: ${this.t.instant('codex.buy.price', { price: this.auec(o.price) })}`).join(' · ');
+  }
+
   /** An aUEC amount in the reader's number format (no currency word; the template adds "aUEC"). */
   auec(n: number): string {
     return this.auecFormat().format(n);
@@ -2338,7 +2502,7 @@ export class CodexBrowseComponent implements OnInit {
    * A failed lookup throws into the list's error state (never an unfiltered list).
    */
   private restriction(kind: CodexKind): Promise<string[]> | undefined {
-    const lookup = this.lookupRestriction(kind);
+    const lookup = this.ownedRestriction(kind) ?? this.lookupRestriction(kind);
     if (!this.patchFresh() || !NEW_SORT_KINDS.includes(kind)) return lookup;
     const diff = this.injector.get(CodexBuildDiffService);
     const fresh = Promise.all([diff.addedClassNamesMemo(kind), diff.changedClassNamesMemo(kind)]).then(([a, c]) => [...new Set([...a, ...c])]);
@@ -2347,6 +2511,20 @@ export class CodexBrowseComponent implements OnInit {
       const keep = new Set(f);
       return names.filter((n) => keep.has(n));
     });
+  }
+
+  /** `?own=1`: the reader's blueprints; a failed Inventar read throws into the error state. */
+  private ownedRestriction(kind: CodexKind): Promise<string[]> | undefined {
+    if (kind !== 'blueprint' || !this.ownedOnly() || !this.auth.user()) return undefined;
+    return (async () => {
+      const inventory = this.injector.get(HqInventoryService);
+      if (!inventory.loaded()) {
+        await inventory.load();
+        const err = inventory.error();
+        if (err) throw new Error(err);
+      }
+      return [...this.ownedBlueprints()];
+    })();
   }
 
   private lookupRestriction(kind: CodexKind): Promise<string[]> | undefined {

@@ -4,6 +4,106 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.16] - 2026-11-07
+
+### Fixed
+- Codex index: the "Area" tree on the left now fits the screen below the header and above the bottom launcher row, so its last entries stay reachable when you scroll it to the end.
+
+### Added
+- Codex index: every group in the "Area" tree (for example Manufacturers) has a fold button, and clicking the open group you are in folds it again, without leaving the area.
+
+## [0.225.15] - 2026-11-07
+
+### Added
+- Patch News: a panel for the build currently in the PTU (generic, e.g. 4.10.3) shows when it should reach LIVE: our estimate from the median PTU-to-LIVE time of earlier versions, and separately the official LIVE deployment RSI schedules on its status site with a source link, or "no official date yet".
+
+## [0.225.14] - 2026-11-07
+
+### Fixed
+- Verse News, Patches and Gallery: the end of the list keeps clear of the footer, so the news stream's "show N more" button no longer sits under the footer's area links.
+
+## [0.225.13] - 2026-11-07
+
+### Changed
+- Codex ship list: a row only says "from" when the shops really ask different prices; a single price reads as the plain price. Maker, price and shop now sit in fixed columns, so a long maker name no longer shifts the price, and the shop is written out ("Area18 – Astro Armada", "+N more" with all shops in the tooltip) instead of "1 place".
+
+## [0.225.12] - 2026-11-07
+
+### Added
+- Codex blueprint list: signed-in readers get an "Only mine" filter (`?own=1`) and an "I have this blueprint" toggle per row, a second way besides the SCC App to mark a blueprint as owned. Both use the HQ inventory blueprint shelf the item path already writes.
+
+## [0.225.11] - 2026-11-07
+
+### Fixed
+- Missile pages: the 3D model opens with the nose turned towards the reader at a three-quarter angle instead of showing the exhaust.
+- Missile pages: when the current data has no damage, speed, agility and range yet, the Einordnung says so and names the uploader version that brings them, instead of an empty card with a bare dash.
+
+## [0.225.10] - 2026-11-07
+
+### Fixed
+- Admin feedback: the panel now stays faded while either Ctrl or Alt is held, in any press/release order — holding Alt, pressing Ctrl and letting go of Alt no longer stops Ctrl from working. Ctrl+click and Alt+click still pick after such a mixed sequence.
+
+## [0.225.9] - 2026-11-07
+
+### Added
+- HQ stock: the stock list works like a store counter — −/+ per row, store, take out, set the amount, delete with a confirmation, and reservations ("1 SCU for player X / sale") with free and reserved amounts per row.
+
+## [0.225.8] - 2026-11-07
+
+### Fixed
+- Data uploader 0.75.2: after the ships, the weapon, item and armor package upload shows its own progress instead of sitting on "312 / 312", and uploads four packages at once.
+
+## [0.225.7] - 2026-11-07
+
+### Fixed
+- /verse news: a tile now opens as soon as the pointer moves slowly over it or stops on it, while a fast sweep across the tiles opens nothing (pointer speed instead of a rest timer).
+
+## [0.225.6] - 2026-11-07
+
+### Fixed
+- Data uploader 0.75.1: FPS weapons whose model is a single mesh (every unbranded gun, the Behring P8-AR, the Hedeby Gallant and their paint variants) now get a 3D package instead of a "package skipped" warning per variant; leftover skips are one summary line per run.
+
+## [0.225.5] - 2026-11-07
+
+### Fixed
+- Feedback routine: the headless run is pinned to Opus with medium effort and a 5-minute prompt cache; complex topics get devops agents with higher effort.
+
+## [0.225.4] - 2026-11-07
+
+### Changed
+- Dependencies: Angular 22.2.4/22.2.5, ngx-translate 18.1, posthog-js, tslib, eslint and typescript-eslint updated; the data uploader moves to Electron 45.1.
+
+## [0.225.3] - 2026-11-07
+
+### Changed
+- Missile pages: the Einordnung now ranks damage, speed, agility and range.
+
+## [0.225.2] - 2026-11-07
+
+### Changed
+- Footer bar: Verse, Codex and HQ links now sit in the footer; the test block under the Verse patches is gone.
+
+## [0.225.1] - 2026-11-07
+
+### Fixed
+- Verse hub: news tiles keep their original open/close speed; only the delay before a tile reacts to the pointer is 30 % as fast.
+
+## [0.225.0] - 2026-11-07
+
+### Added
+- Holotable lower part rebuilt: parts first in four columns under the strip's areas, a left side column with description, where to buy and variants & compare, perspectives docked onto the strip with an energy row (swipe on phones).
+- Schema view: deck plan as chips in "Einfach", callouts on the drawing instead of the list below it, keyboard-focusable markers.
+- Own ship under HQ > Hangar (shell beta): the ship page renders the Codex view in place with rename, note, pin and remove.
+- Starscape tray menu: fan-made entry, the pause item names its action (pause / resume), "Meine Sternbilder" under "Bildauswahl", autostart and diagnostics under "Konto".
+
+### Changed
+- Einordnung is the first panel tab; groups under 8 ships stay pickable with a "nur N Schiffe" hint; a picked group is remembered per ship for 12 hours.
+- Shell beta: no hangar button on the holotable, landing or classic page; the Codex shows no personal mode and sends old `?mine` / `?v=` links to the HQ ship page.
+- Gallery subtitle credits Cloud Imperium Games and links the Starscape app; the word "crawl" is gone.
+
+### Fixed
+- The HQ patch hint opens the own ship's variant instead of the hangar list.
+
 ## [0.224.0] - 2026-11-07
 
 ### Added

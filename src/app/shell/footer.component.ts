@@ -4,6 +4,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { isVerseHome } from './scene/scene.model';
+import { AREA_ENTRIES, activeAreaOf } from './fusion-bar/fusion-bar.model';
 import { AuthService } from '../auth/auth.service';
 import { BetaService } from '../core/beta.service';
 import { LayoutService } from '../core/layout/layout.service';
@@ -44,6 +45,11 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             </div>
           }
         </div>
+        <nav class="sf-areas" [attr.aria-label]="'footer.areaNav' | translate">
+          @for (a of areas(); track a.id) {
+            <a [routerLink]="a.link" [attr.aria-current]="a.id === activeArea() ? 'page' : null">{{ a.labelKey | translate }}</a>
+          }
+        </nav>
         <nav class="sf-links" [attr.aria-label]="'footer.legalNav' | translate">
           <a routerLink="/release-notes" class="sf-news">{{ 'footer.links.news' | translate }}@if (seen.unseen()) {<span class="new-dot" aria-hidden="true"></span><span class="sc-sr-only"> ({{ 'footer.links.aboutNew' | translate }})</span>}</a>
           <span aria-hidden="true">·</span>
@@ -174,6 +180,20 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     }
     .sf-bubble p { margin: 0; }
     .sf-bubble .sf-tm { margin-top: var(--sc-space-2); opacity: 0.8; font-size: max(0.7rem, var(--sc-fs-floor)); }
+    /* Verse / Codex / HQ again at the bottom (the header carries the same three). Badge and
+       links share the width equally so this nav sits on the footer's centre line. */
+    .sf-areas {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sc-space-2) var(--sc-space-4);
+      font-family: var(--sc-font-display); letter-spacing: 0.1em; text-transform: uppercase;
+      font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+    }
+    .sf-areas a {
+      color: var(--sc-fg-2); text-decoration: none; display: inline-flex; align-items: center;
+      min-height: var(--sc-tap-min); transition: color 0.16s ease;
+    }
+    .sf-areas a:hover, .sf-areas a[aria-current] { color: var(--sc-accent); }
+    .sf-areas a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
+    @media (min-width: 721px) { .sf-badge, .sf-links { flex: 1 1 0; min-width: 0; } }
     .sf-links {
       display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sc-space-2);
       font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
@@ -351,9 +371,15 @@ export class FooterComponent {
   protected readonly seen = inject(ReleaseSeenService);
   protected readonly auth = inject(AuthService);
   private readonly layoutSvc = inject(LayoutService);
-  protected readonly shellOn = inject(BetaService).isEnabled('shell');
+  private readonly beta = inject(BetaService);
+  protected readonly shellOn = this.beta.isEnabled('shell');
   private readonly router = inject(Router);
   private readonly url = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)), { initialValue: this.router.url });
+  /** The header's three public areas, same HQ gating (codex beta); the current one is marked. */
+  protected readonly areas = computed(() =>
+    AREA_ENTRIES.filter((a) => a.id === 'verse' || a.id === 'codex' || (a.id === 'hq' && this.beta.state().codex)),
+  );
+  protected readonly activeArea = computed(() => activeAreaOf(this.url(), false));
   /**
    * Hub (cinematic) pages: the footer sits on the stage's bottom edge. The
    * Verse front page is the exception — its content runs on below the stage
