@@ -393,6 +393,17 @@
     "shipProgress": "Schiff {{current}} / {{total}}",
     "hintBuild": "Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.",
     "hintUpload": "Die 3D-Modelle werden übertragen — die Dauer hängt von ihrer Größe ab.",
+    "stepPackages": {
+      "fps_weapon": "Waffenpakete werden hochgeladen",
+      "item": "Item-Pakete werden hochgeladen",
+      "armor": "Rüstungspakete werden hochgeladen"
+    },
+    "packageKind": {
+      "fps_weapon": "Waffen",
+      "item": "Items",
+      "armor": "Rüstungen"
+    },
+    "hintPackages": "Die Schiffe sind fertig — jetzt folgen Waffen-, Item- und Rüstungspakete.",
     "stepUploadDone": "3D-Modelle hochgeladen",
     "noModels": "{{n}} Schiff(e) ohne baubares 3D-Modell",
     "stepUploadDonePartial": "3D-Modelle hochgeladen — {{n}} fehlgeschlagen",

@@ -1150,6 +1150,19 @@ ipcMain.handle(
               detail: shipId,
             });
           },
+          // FPS / item / armor packages after the last ship: own phase, own
+          // counter. Without it the card stayed on "312 / 312" for hours.
+          onPackageProgress: (kind, done, total, className) => {
+            event.sender.send('sc:skin:event', {
+              jobId: 'upload',
+              type: 'progress',
+              stage: 'packages',
+              phase: kind,
+              current: done,
+              total,
+              detail: className,
+            });
+          },
         },
       );
       uploadJob.update((s) => ({ ...s, skins: { ...s.skins, status: 'done' } }));
