@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { humanizeClassName } from '../../codex/codex-format';
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injector, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -444,7 +444,7 @@ export class HqStockPopupComponent implements OnInit {
   protected readonly filter = signal<StockFilter>(NO_FILTER);
   private readonly limit = signal(STOCK_PAGE);
   private readonly hangar = inject(HangarService);
-  private readonly ownership = inject(HqOwnershipService);
+  private readonly injector = inject(Injector);
   private readonly path = inject(ItemPathService);
   private readonly toast = inject(UndoToastService);
   protected readonly icons = PATH_ICONS;
@@ -502,7 +502,7 @@ export class HqStockPopupComponent implements OnInit {
 
   protected shipRoute(id: string): HqLink {
     const ship = this.hangar.ships().find((s) => s.id === id);
-    return ship ? ownShipLink(ship, this.ownership.configsForShip(id)) : { commands: [hqHangar], queryParams: {} };
+    return ship ? ownShipLink(ship, this.injector.get(HqOwnershipService).configsForShip(id)) : { commands: [hqHangar], queryParams: {} };
   }
 
   protected readonly places = computed(() => this.inv.snapshots().map((s) => ({ location: s.location, takenAt: s.taken_at })));

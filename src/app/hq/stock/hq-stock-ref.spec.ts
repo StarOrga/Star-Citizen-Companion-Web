@@ -10,7 +10,7 @@ describe('hq-stock-ref', () => {
   });
 
   it('leads a ship to the reader\'s own copy, else the Codex page', () => {
-    expect(stockTarget('Idris', 'ship:AEGS_Idris_P', owned)?.commands).toEqual(['/codex/ship', 'AEGS_Idris_P']);
+    expect(stockTarget('Idris', 'ship:AEGS_Idris_P', owned)?.commands).toEqual(['/codex', 'ship', 'AEGS_Idris_P']);
     expect(stockTarget('Idris', 'ship:AEGS_Idris_P', [])?.commands).toEqual(['/codex', 'ship', 'AEGS_Idris_P']);
   });
 
