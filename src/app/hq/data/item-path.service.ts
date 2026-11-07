@@ -185,6 +185,30 @@ export class ItemPathService {
     });
   }
 
+  /**
+   * Class names of the blueprints the reader has (the PLACE_BLUEPRINTS shelf): the codex
+   * blueprint list's "Nur meine" filter and its "Ich habe diese" toggle read this one set.
+   */
+  readonly ownedBlueprints = computed<ReadonlySet<string>>(() => {
+    const out = new Set<string>();
+    for (const i of this.inventory.items()) {
+      if (i.location !== PLACE_BLUEPRINTS) continue;
+      const cls = parseStockRef(i.class_name)?.className;
+      if (cls) out.add(cls);
+    }
+    return out;
+  });
+
+  /**
+   * "Ich habe diese" (codex blueprint list): marks a blueprint as collected without the desktop
+   * app, or takes the mark off again. Same rows as the item path's Inventar step.
+   */
+  setBlueprintOwned(className: string, name: string, owned: boolean): Promise<PathResult> {
+    return owned
+      ? this.moveToInventar('blueprint', className, name, PLACE_BLUEPRINTS, 1)
+      : this.removeFromInventar('blueprint', className, name);
+  }
+
   /** The places the reader already uses, without the blueprint shelf. */
   knownPlaces(): string[] {
     const seen = new Set<string>();
