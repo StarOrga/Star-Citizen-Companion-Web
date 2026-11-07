@@ -673,6 +673,7 @@
       "from": "ab {{price}} aUEC",
       "placeOne": "1 Ort",
       "places": "{{count}} Orte",
+      "more": "+{{count}} weitere",
       "price": "{{price}} aUEC",
       "openPlan": "Im Plan ansehen"
     },

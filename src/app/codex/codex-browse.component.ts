@@ -324,18 +324,24 @@ export function blueprintCategoriesForGroup(
                         }
                         <span class="main">
                           <span class="name">{{ cardName(r) }}</span>
-                          <span class="meta">
-                            @if (rowMeta(r); as m) { <span>{{ m }}</span> }
-                            @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
-                            @if (kind() === 'ship') {
+                          @if (kind() === 'ship') {
+                            <!-- Fixed columns: maker, price, place stay put whatever the maker's name length (#314). -->
+                            <span class="meta ship-cols">
+                              <span class="c-mfr">{{ rowMeta(r) }}</span>
                               @if (shipOffers().get(r.classNameSlug); as offers) {
-                                <span class="price">
-                                  {{ 'codex.buy.from' | translate: { price: auec(offers[0].price) } }} ·
-                                  {{ (offers.length === 1 ? 'codex.buy.placeOne' : 'codex.buy.places') | translate: { count: offers.length } }}
+                                <span class="price c-price">{{ priceLabel(offers) | translate: { price: auec(offers[0].price) } }}</span>
+                                <span class="c-where" [scTooltip]="offers.length > 1 ? offersTooltip(offers) : null">
+                                  <span class="where-name">{{ offerWhere(offers[0]) }}</span>
+                                  @if (offers.length > 1) { <span class="where-more">{{ 'codex.buy.more' | translate: { count: offers.length - 1 } }}</span> }
                                 </span>
                               }
-                            }
-                          </span>
+                            </span>
+                          } @else {
+                            <span class="meta">
+                              @if (rowMeta(r); as m) { <span>{{ m }}</span> }
+                              @if (r.weaponClass) { <span class="wc">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                            </span>
+                          }
                         </span>
                         <span class="spec">
                           @if (r.size !== null && r.size !== undefined) { <span class="size">S{{ r.size }}</span> }
@@ -678,6 +684,18 @@ export function blueprintCategoriesForGroup(
     .act .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .act.shop.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
     .price { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    /* Ship rows: maker | price | place in fixed columns, so a long maker name never pushes the rest (#314). */
+    .ship-cols { display: grid; grid-template-columns: minmax(0, 13rem) 12rem minmax(0, 1fr); gap: 4px 16px; }
+    .ship-cols > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .c-price { text-align: right; }
+    .c-where { display: flex; align-items: baseline; gap: 6px; }
+    .where-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--sc-fg-1); }
+    .where-more { flex: none; color: var(--sc-fg-2); }
+    @media (max-width: 640px) {
+      .ship-cols { grid-template-columns: minmax(0, 1fr) auto; }
+      .ship-cols .c-mfr { grid-column: 1 / -1; }
+      .c-price { text-align: left; }
+    }
     /* Package D: where to buy, inline under the row (never a floating layer over the list). */
     .buy {
       flex: 1 0 100%; display: flex; flex-direction: column; gap: 10px;
@@ -2326,6 +2344,22 @@ export class CodexBrowseComponent implements OnInit {
       limit: PAGE_SIZE,
       offset: this.offset,
     };
+  }
+
+  /** "from <min>" only when the offers really differ in price; one price reads as a plain price (#314). */
+  priceLabel(offers: readonly BuyOption[]): string {
+    return offers.some((o) => o.price !== offers[0].price) ? 'codex.buy.from' : 'codex.buy.price';
+  }
+
+  /** A shop written out: the place plus the terminal, e.g. "Area18 – Astro Armada". */
+  offerWhere(o: BuyOption): string {
+    const place = o.place || o.location;
+    return o.terminal && o.terminal !== place ? `${place} – ${o.terminal}` : place;
+  }
+
+  /** Every shop of a row with its price, for the place column's tooltip. */
+  offersTooltip(offers: readonly BuyOption[]): string {
+    return offers.map((o) => `${this.offerWhere(o)}: ${this.t.instant('codex.buy.price', { price: this.auec(o.price) })}`).join(' · ');
   }
 
   /** An aUEC amount in the reader's number format (no currency word; the template adds "aUEC"). */

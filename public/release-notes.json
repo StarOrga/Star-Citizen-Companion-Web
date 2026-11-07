@@ -1,9 +1,9 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.13",
+  "current": "0.225.14",
   "releases": [
     {
-      "version": "0.225.13",
+      "version": "0.225.14",
       "date": "2026-11-07",
       "sections": [
         {
@@ -13,6 +13,22 @@
             {
               "title": "",
               "text": "Verse News, Patches and Gallery: the end of the list keeps clear of the footer, so the news stream's \"show N more\" button no longer sits under the footer's area links."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.225.13",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex ship list: a row only says \"from\" when the shops really ask different prices; a single price reads as the plain price. Maker, price and shop now sit in fixed columns, so a long maker name no longer shifts the price, and the shop is written out (\"Area18 – Astro Armada\", \"+N more\" with all shops in the tooltip) instead of \"1 place\"."
             }
           ]
         }
