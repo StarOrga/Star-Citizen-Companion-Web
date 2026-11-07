@@ -212,6 +212,16 @@
     "enterFailedDismiss": "Verwerfen"
   },
   "codex": {
+    "own": {
+      "group": "Dein Schiff",
+      "rename": "Umbenennen",
+      "renameTitle": "Schiff umbenennen",
+      "note": "Notiz",
+      "noteTitle": "Notiz zu diesem Schiff",
+      "pin": "Oben im Hangar anpinnen",
+      "unpin": "Anpinnen aufheben",
+      "remove": "Aus dem Hangar entfernen"
+    },
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
@@ -927,6 +937,9 @@
         "journalEmpty": "Noch nichts — Werksausstattung.",
         "allPorts": "Alle {{n}} Ports",
         "perspectives": "Perspektiven",
+        "decksAria": "Decks",
+        "deckOutside": "Außen",
+        "deckInside": "Innen",
         "percentileAria": "Perzentil {{p}}",
         "say": {
           "gap": "Für diese Perspektive liefert das Vergleichsfeld keinen Rang.",
@@ -987,13 +1000,15 @@
         "cooling": "Kühllast",
         "coolingValue": "{{used}} / {{total}}",
         "stealthPreset": "Schleichen",
-        "expand": "Leiste ausklappen",
-        "collapse": "Leiste einklappen",
+        "expand": "Energie und Perspektiven zeigen",
+        "collapse": "Energie und Perspektiven schließen",
         "presetTag": "Preset",
-        "minimize": "Leiste minimieren",
-        "restore": "Ganze Leiste einblenden",
-        "cohortRole": "{{n}} × {{role}}"
+        "cohortRole": "{{n}} × {{role}}",
+        "dockAria": "Energie und Perspektiven"
       },
+      "below": {"parts": "Bauteile im Detail", "partsCount": "{{n}} verbaut", "areaEmpty": "Keine Bauteile in diesem Bereich."},
+      "persp": {"lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.", "leadNoCohort": "Bewertet als {{mission}}.", "allShow": "Alle Werte aller vier ▾", "allHide": "Alle Werte zuklappen ▴"},
+      "side": {"variants": "Varianten & Vergleich"},
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -1376,7 +1391,8 @@
         "competition": "Rennschiffe"
       },
       "group": {
-        "of": "Alle {{name}}"
+        "of": "Alle {{name}}",
+        "smallHint": "Nur {{n}} Schiffe in dieser Gruppe, der Vergleich ist entsprechend grob."
       },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
       "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
@@ -3833,6 +3849,7 @@
     "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
     "disclaimerCollapse": "Haftungsausschluss einklappen",
     "legalNav": "Rechtliches und Projekt-Informationen",
+    "areaNav": "Bereich wechseln",
     "links": {
       "about": "Über",
       "privacy": "Datenschutz",
@@ -4028,7 +4045,6 @@
       "roleLabel": "Rolle"
     },
     "detail": {
-      "notFound": "Dieser Hangar-Eintrag existiert nicht.",
       "loading": "Lädt…",
       "save": "Speichern",
       "rename": "Umbenennen",
@@ -4042,9 +4058,7 @@
         "bodyNone": "Das lässt sich nicht rückgängig machen.",
         "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
         "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
-      },
-      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden",
-      "codexFailed": "Die Codex-Daten zu diesem Schiff konnten nicht geladen werden."
+      }
     },
     "configs": {
       "title": "Konfigurationen",
@@ -4800,7 +4814,10 @@
   },
   "starscape": {
     "title": "Starscape",
-    "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
+    "subtitle": "Hochauflösende Artworks von Cloud Imperium Games, direkt zum Original verlinkt.",
+    "subtitleAppPre": "Mit der ",
+    "subtitleAppLink": "Starscape-App",
+    "subtitleAppPost": " holst du sie als Hintergrund auf deinen Desktop.",
     "filterAll": "Alle",
     "filter": {
       "label": "Galerie-Ansicht",
@@ -4829,7 +4846,7 @@
       "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Die Zahl am Daumen ist die Gesamtzahl der Stimmen aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
       "loading": "Top-Auswahl wird geladen…"
     },
-    "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
+    "empty": "Noch keine Wallpaper vorhanden. Neue Artworks erscheinen hier von selbst.",
     "loadMore": "Mehr laden",
     "loading": "Lädt…",
     "loadingImages": "Bilder werden geladen…",
@@ -5819,9 +5836,6 @@
     }
   },
   "verse": {
-    "areaFoot": {
-      "aria": "Bereich wechseln"
-    },
     "crumb": "Verse",
     "toast": {
       "lit": "Stern entzündet: {{task}}",

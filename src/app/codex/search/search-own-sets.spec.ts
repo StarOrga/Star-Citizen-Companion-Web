@@ -85,3 +85,22 @@ describe('own-set search words (A10)', () => {
     expect(searchOwn('', { ships: [], configs: [], sets: [], items: [{ name: 'A', class_name: 'a', location: 'x', qty: 1 }] }).total).toBe(0);
   });
 });
+
+describe('own ship rows (shell beta)', () => {
+  const ship = { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Blade', status: 'owned' } as HangarShip;
+  const src = {
+    ships: [ship],
+    configs: [{ id: 'c1', hangarShipId: 'sh1', isActive: true, name: 'PvP' }] as never,
+    sets: [],
+    items: [],
+  };
+
+  it('links to the personal Codex view, and to the ship HQ page with hq', () => {
+    const codex = searchOwn('blade', src).rows[0].target;
+    expect(codex.link).toEqual(['/codex/ship', 'AEGS_Gladius']);
+    expect(codex.queryParams).toEqual({ v: 'c1' });
+    const hq = searchOwn('blade', src, { hq: true }).rows[0].target;
+    expect(hq.link).toEqual(['/hq/hangar', 'sh1']);
+    expect(hq.queryParams).toEqual({ v: 'c1' });
+  });
+});

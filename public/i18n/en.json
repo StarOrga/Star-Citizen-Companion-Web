@@ -212,6 +212,16 @@
     "enterFailedDismiss": "Dismiss"
   },
   "codex": {
+    "own": {
+      "group": "Your ship",
+      "rename": "Rename",
+      "renameTitle": "Rename this ship",
+      "note": "Note",
+      "noteTitle": "Note on this ship",
+      "pin": "Pin to hangar top",
+      "unpin": "Unpin",
+      "remove": "Remove from hangar"
+    },
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
@@ -927,6 +937,9 @@
         "journalEmpty": "Nothing yet — factory loadout.",
         "allPorts": "All {{n}} ports",
         "perspectives": "Perspectives",
+        "decksAria": "Decks",
+        "deckOutside": "Outside",
+        "deckInside": "Inside",
         "percentileAria": "Percentile {{p}}",
         "say": {
           "gap": "The cohort gives no rank for this perspective.",
@@ -987,13 +1000,15 @@
         "cooling": "Cooling load",
         "coolingValue": "{{used}} / {{total}}",
         "stealthPreset": "Stealth",
-        "expand": "Expand strip",
-        "collapse": "Collapse strip",
+        "expand": "Show energy and perspectives",
+        "collapse": "Close energy and perspectives",
         "presetTag": "preset",
-        "minimize": "Minimise the strip",
-        "restore": "Show the whole strip",
-        "cohortRole": "{{n}} × {{role}}"
+        "cohortRole": "{{n}} × {{role}}",
+        "dockAria": "Energy and perspectives"
       },
+      "below": {"parts": "Components in detail", "partsCount": "{{n}} fitted", "areaEmpty": "No components in this area."},
+      "persp": {"lead": "Rated as {{mission}}, compared with {{n}} ships.", "leadNoCohort": "Rated as {{mission}}.", "allShow": "All values of all four ▾", "allHide": "Collapse all values ▴"},
+      "side": {"variants": "Variants & compare"},
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -1376,7 +1391,8 @@
         "competition": "Racing ships"
       },
       "group": {
-        "of": "All {{name}}"
+        "of": "All {{name}}",
+        "smallHint": "Only {{n}} ships in this group, so the comparison is rough."
       },
       "noMiningData": "Mining and salvage output: no data",
       "rimNote": "Outside = close to the group best (95 %), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67 %.",
@@ -3833,6 +3849,7 @@
     "disclaimerExpand": "Show full disclaimer",
     "disclaimerCollapse": "Collapse disclaimer",
     "legalNav": "Legal and project information",
+    "areaNav": "Switch area",
     "links": {
       "about": "About",
       "privacy": "Privacy",
@@ -4028,7 +4045,6 @@
       "roleLabel": "Role"
     },
     "detail": {
-      "notFound": "This hangar entry does not exist.",
       "loading": "Loading…",
       "save": "Save",
       "rename": "Rename",
@@ -4042,9 +4058,7 @@
         "bodyNone": "This cannot be undone.",
         "bodyOne": "This ship's configuration is deleted with it. This cannot be undone.",
         "bodyMany": "This ship's {{count}} configurations are deleted with it. This cannot be undone."
-      },
-      "loadFailed": "Hangar entry could not be loaded",
-      "codexFailed": "The Codex data for this ship could not be loaded."
+      }
     },
     "configs": {
       "title": "Configurations",
@@ -4800,7 +4814,10 @@
   },
   "starscape": {
     "title": "Starscape",
-    "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
+    "subtitle": "High-resolution artwork by Cloud Imperium Games, linked straight to the original.",
+    "subtitleAppPre": "With the ",
+    "subtitleAppLink": "Starscape app",
+    "subtitleAppPost": " you can set it as your desktop background.",
     "filterAll": "All",
     "filter": {
       "label": "Gallery view",
@@ -4829,7 +4846,7 @@
       "hint": "The {{count}} highest-voted wallpapers across all users. The number beside each thumbs up is the total across all users. While few images have been voted for, the newest ones fill the remaining slots.",
       "loading": "Loading the top picks…"
     },
-    "empty": "No wallpapers captured yet — they appear as the news crawl runs.",
+    "empty": "No wallpapers yet. New artwork shows up here on its own.",
     "loadMore": "Load more",
     "loading": "Loading…",
     "loadingImages": "Loading images…",
@@ -5819,9 +5836,6 @@
     }
   },
   "verse": {
-    "areaFoot": {
-      "aria": "Switch area"
-    },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",

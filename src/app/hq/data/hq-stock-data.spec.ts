@@ -4,6 +4,7 @@ import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HqStartFeedService } from '../start/hq-start-feed.service';
+import { HqOwnershipService } from '../hq-ownership.service';
 import type { HqFleetPatch, HqInventoryItemRow, HqInventorySnapshotRow } from './hq-db.types';
 import { HQ_STOCK_STALE_DAYS, groupLocations, parsePreviousSnapshot, snapshotAge } from './hq-inventory.service';
 import { HqPatchService, mapPatchHit } from './hq-patch.service';
@@ -116,7 +117,15 @@ describe('patch feed', () => {
   };
 
   it('takes the most important hit only, the first line of the RPC, with a link to the set', () => {
-    expect(mapPatchHit(patch)).toEqual({ plan: 'Bounty v3', build: '4.3.1', name: 'S3-Repeater', pct: 8, weaker: true, link: ['/hq/hangar', 'sh1'] });
+    // A ship set's set_id is a variant id: it opens that variant on the ship's personal view.
+    const variantLink = (id: string) => (id === 'sh1' ? { commands: ['/codex/ship', 'AEGS_Gladius'], queryParams: { v: 'sh1' } } : null);
+    expect(mapPatchHit(patch, variantLink)).toEqual({
+      plan: 'Bounty v3', build: '4.3.1', name: 'S3-Repeater', pct: 8, weaker: true,
+      link: ['/codex/ship', 'AEGS_Gladius'], linkQuery: { v: 'sh1' },
+    });
+    // Unknown to the index: the hangar list, never the /hq/hangar/:id redirect (it looks up ship ids).
+    expect(mapPatchHit(patch)?.link).toEqual(['/hq/hangar']);
+    expect(mapPatchHit(patch)?.linkQuery).toBeUndefined();
     const fps: HqFleetPatch = { ...patch, lines: [patch.lines[1]] };
     expect(mapPatchHit(fps)?.link).toEqual(['/hq/locker', 'f1']);
     expect(mapPatchHit(fps)?.weaker).toBeFalse();
@@ -141,6 +150,14 @@ describe('patch feed', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: SupabaseClientProvider, useValue: { client: { rpc } } },
         { provide: AuthService, useValue: { user: signal<{ id: string } | null>(null) } },
+        {
+          provide: HqOwnershipService,
+          useValue: {
+            ensureLoaded: async () => undefined,
+            configById: (id: string) => (id === 'sh1' ? { id: 'sh1', hangarShipId: 'hs1' } : null),
+            index: signal(new Map([['AEGS_Gladius', { ship: { id: 'hs1', shipClassName: 'AEGS_Gladius' } }]])),
+          },
+        },
       ],
     });
     const svc = TestBed.inject(HqPatchService);
@@ -148,10 +165,43 @@ describe('patch feed', () => {
     (TestBed.inject(AuthService).user as ReturnType<typeof signal<{ id: string } | null>>).set({ id: 'u1' });
     await svc.load();
     expect(feed.patchHit()?.name).toBe('S3-Repeater');
+    // The variant id resolves through the ownership index to the ship's personal view.
+    expect(feed.patchHit()?.link).toEqual(['/codex/ship', 'AEGS_Gladius']);
+    expect(feed.patchHit()?.linkQuery).toEqual({ v: 'sh1' });
     rpc.and.resolveTo({ data: null, error: new Error('x') });
     await svc.load();
     expect(feed.patchHit()).toBeNull();
     expect(svc.error()).toBeTruthy();
+  });
+
+  it('shell beta: the variant id opens the HQ ship page with that variant', async () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
+    try {
+      const rpc = jasmine.createSpy('rpc').and.resolveTo({ data: patch, error: null });
+      TestBed.configureTestingModule({
+        providers: [
+          provideTranslateService({ fallbackLang: 'en' }),
+          { provide: SupabaseClientProvider, useValue: { client: { rpc } } },
+          { provide: AuthService, useValue: { user: signal<{ id: string } | null>(null) } },
+          {
+            provide: HqOwnershipService,
+            useValue: {
+              ensureLoaded: async () => undefined,
+              configById: (id: string) => (id === 'sh1' ? { id: 'sh1', hangarShipId: 'hs1' } : null),
+              index: signal(new Map([['AEGS_Gladius', { ship: { id: 'hs1', shipClassName: 'AEGS_Gladius' } }]])),
+            },
+          },
+        ],
+      });
+      const svc = TestBed.inject(HqPatchService);
+      (TestBed.inject(AuthService).user as ReturnType<typeof signal<{ id: string } | null>>).set({ id: 'u1' });
+      await svc.load();
+      const hit = TestBed.inject(HqStartFeedService).patchHit();
+      expect(hit?.link).toEqual(['/hq/hangar', 'hs1']);
+      expect(hit?.linkQuery).toEqual({ v: 'sh1' });
+    } finally {
+      localStorage.removeItem('sc.beta');
+    }
   });
 });
 

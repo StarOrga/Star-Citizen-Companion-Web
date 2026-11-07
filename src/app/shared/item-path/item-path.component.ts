@@ -24,7 +24,7 @@ import { formatQuantity } from '../../codex/codex-format';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ItemPathService, PLACE_BLUEPRINTS, PLACE_WITH_ME, type ItemPathState, type PathResult, type PathStep } from '../../hq/data/item-path.service';
 import type { StepKind } from '../step/sc-step.component';
-import { hqListLink, hqPage, hqShip, type HqPageLink } from '../../hq/hq-routes';
+import { hqListLink, hqPage, hangarRedirectLink, type HqPageLink } from '../../hq/hq-routes';
 import { placeLabel } from '../../hq/now/hq-live.util';
 import { ScActionDirective } from '../action/sc-action.directive';
 import { ScDialogDirective } from '../dialog/sc-dialog.directive';
@@ -467,7 +467,7 @@ export class ItemPathComponent implements OnDestroy {
       wish: hqListLink('wish'),
       nachschub: hqListLink('nachschub'),
       inventar: hqPage('inventar'),
-      hangar: { commands: id ? hqShip(id) : hqPage('start').commands, fragment: undefined },
+      hangar: { commands: id ? hangarRedirectLink(id) : hqPage('start').commands, fragment: undefined },
     };
   });
 

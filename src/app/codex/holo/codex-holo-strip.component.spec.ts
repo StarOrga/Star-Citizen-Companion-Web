@@ -4,7 +4,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
-import { CodexHoloStripComponent, stripMiniKey } from './codex-holo-strip.component';
+import { CodexHoloStripComponent } from './codex-holo-strip.component';
 import { POWER_REQUIRED_SCHEMA } from '../codex-power';
 import { NOMAD_SHIP_STATS, nomadOccupants } from '../testing/nomad-power.fixture';
 import { KpiStripCell } from '../codex-kpi-sets';
@@ -63,32 +63,27 @@ describe('CodexHoloStripComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.hs-panel')).toBeNull();
   });
 
-  it('minimises to its Einsatz cell, remembered per viewer — read again once the user resolves', async () => {
+  it('has no minimise control, only the arrow that opens the dock (concept r1 C12)', async () => {
     const fixture = await setup();
     const el: HTMLElement = fixture.nativeElement;
-    (el.querySelector('.hs-mini') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeTrue();
-    expect(localStorage.getItem(stripMiniKey(null))).toBe('true');
-    expect(el.querySelector('.hs-mini')!.getAttribute('aria-pressed')).toBe('true');
-
-    // Signed-in viewer with their own (un-minimised) choice: the deep link
-    // renders anon first, then the session lands — their choice wins.
-    localStorage.setItem(stripMiniKey('u1'), 'false');
-    fixture.componentRef.setInput('userId', 'u1');
-    fixture.detectChanges();
-    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeFalse();
+    expect(el.querySelector('.hs-mini')).toBeNull();
+    const toggles = el.querySelectorAll('.hs-row > button:not(.einsatz)');
+    expect(toggles.length).toBe(1);
+    expect(toggles[0].classList).toContain('hs-toggle');
   });
 
-  it('opening the energy panel from a minimised strip brings the strip back', async () => {
-    localStorage.setItem(stripMiniKey(null), 'true');
+  it('the arrow opens the dock above the row: the energy as its own row first (concept r1-dock-energy)', async () => {
     const fixture = await setup();
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeTrue();
     (el.querySelector('.hs-toggle') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeFalse();
-    expect(el.querySelector('.hs-panel')).toBeTruthy();
+    const strip = el.querySelector('.holo-strip')!;
+    const panel = strip.querySelector('.hs-panel')!;
+    expect(panel).toBeTruthy();
+    // DOM order = visual order: the dock sits above the row.
+    expect(panel.compareDocumentPosition(strip.querySelector('.hs-row')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(panel.firstElementChild!.classList).toContain('hp-energy');
+    expect(getComputedStyle(panel).position).toBe('absolute');
   });
 
   it('shows no energy segment while collapsed', async () => {

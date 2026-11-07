@@ -18,6 +18,8 @@ export interface ScConfirmOptions {
 export interface ScPromptOptions extends ScConfirmOptions {
   readonly inputLabelKey: string;
   readonly inputMaxLength?: number;
+  /** Prefilled text of the input (e.g. the current name); default empty. */
+  readonly initialValue?: string;
 }
 
 export const SC_CONFIRM_DEFAULT_CONFIRM_KEY = 'common.dialog.confirm';
@@ -70,6 +72,7 @@ export class ScConfirmService {
       const p = o as ScPromptOptions;
       ref.setInput('inputLabelKey', p.inputLabelKey);
       ref.setInput('inputMaxLength', p.inputMaxLength);
+      ref.setInput('initialValue', p.initialValue ?? '');
     }
     ref.changeDetectorRef.detectChanges();
 

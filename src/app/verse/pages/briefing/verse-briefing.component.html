@@ -93,8 +93,6 @@
                        [live]="hubLive()" [liveDays]="liveDays()" [patchImage]="hubPatchImage()" [channels]="hubChannels()"
                        [gallery]="hubGallery()" [incoming]="dockFlying() && dock() !== 'docked'"
                        (retryNews)="retryNews()" (openItem)="openItem($event)" (openDoor)="openDoor($event)" />
-      <!-- Test element (feedback 20af7dd2): area links at the very bottom, under the Patches. -->
-      <sc-verse-area-foot class="sc-below-stage" />
     } @else {
       <!-- Holds the page's height (the hub and the footer fill one viewport), so the scrollbar is there from the first frame. -->
       <div class="hub-hold" aria-hidden="true"></div>

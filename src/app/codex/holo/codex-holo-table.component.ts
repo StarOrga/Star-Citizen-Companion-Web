@@ -17,10 +17,13 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloSilhouette } from '../holo-silhouette';
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
-import { ShipBlueprintSchemaComponent } from '../ship-blueprint/ship-blueprint-schema.component';
+import { ShipBlueprintSchemaComponent, type SchemaCallout } from '../ship-blueprint/ship-blueprint-schema.component';
+import { ShipDeckPlanComponent } from '../ship-deck-plan.component';
+import type { Lang, ShipDeck } from '../codex.types';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 import {
   type BlueprintViewName,
+  type SchemaMarker,
   type ShipBlueprint,
   blueprintView,
   placeSchemaMarkers,
@@ -41,6 +44,29 @@ import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { HoloPhase, PinRing, StagePin, spreadStackedPins } from './codex-holo-model';
 import { LeaderLayout, layoutLeaderLabels } from './codex-holo-leader';
+
+/** One deck of the ship on the table surface (Schema "Einfach", concept r1-decks). */
+export interface HoloDeckView {
+  decks: readonly ShipDeck[];
+  lang: Lang;
+  key: string;
+}
+
+/**
+ * The perspective views show only the points of the parts the table shows
+ * (concept r1-callout), plus the part picked elsewhere so its callout has a
+ * point to stand on. A hull whose ports match none keeps every point.
+ */
+export function filterSchemaMarkers<T extends Pick<SchemaMarker, 'port'>>(
+  markers: readonly T[],
+  shown: readonly string[],
+  picked: string | null,
+): T[] {
+  const keep = new Set(shown);
+  if (picked) keep.add(picked);
+  const out = markers.filter((m) => keep.has(m.port));
+  return out.length > 0 ? out : [...markers];
+}
 
 /** Closest two schema markers may sit, in % of the drawing's long side. */
 const SCHEMA_MARKER_GAP = 3.2;
@@ -141,7 +167,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
 @Component({
   selector: 'sc-codex-holo-table',
   standalone: true,
-  imports: [TranslatePipe, ShipHardpointMapComponent, ShipBlueprintSchemaComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ShipHardpointMapComponent, ShipBlueprintSchemaComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.ph-wait]': "phase() === 'wait'",
@@ -193,12 +219,18 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
              below stays the view for hulls without a drawing. -->
         <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp" [view]="schemaView()"
           [markers]="schemaMarkers()" [activePorts]="activePorts()" [inspectedPort]="inspectedPort()"
+          [callout]="schemaCallout()" [listHidden]="true"
           (hovered)="hovered.emit($event)" (inspect)="pinInspect.emit($event)" />
       } @else if (viewMode() === 'schema' && schemaBlueprintPending()) {
         <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
       } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
         <sc-ship-hardpoint-map class="mode-viewer" animate.leave="surface-leave" [markers]="hardpointMarkers()" [frame]="frame"
           [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
+      } @else if (viewMode() === 'holo' && deckPlan(); as dp) {
+        <!-- Schema "Einfach" on a deck chip (concept r1-decks): the deck's
+             rooms replace the hull; no part markers or callouts inside a deck. -->
+        <sc-ship-deck-plan class="mode-viewer deck-sheet" animate.leave="surface-leave"
+          [decks]="dp.decks" [lang]="dp.lang" [deckKey]="dp.key" [bare]="true" />
       } @else if (showCanvas()) {
         <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="keyMode()"
              [class.leader]="!!leader()" [style.width.px]="leader()?.hull?.w ?? null"
@@ -336,7 +368,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     <!-- Dense tables (wave 5 A2.4): labels leave the pins and become a
          numbered key under the table — hover/click work like the pins. On a
          desktop with the inspector open, its hardpoint list takes this job. -->
-    @if (keyMode() && viewMode() === 'holo') {
+    @if (keyMode() && viewMode() === 'holo' && !deckPlan()) {
       <ol class="pin-key" [attr.aria-label]="'codex.holo.stage.pinKey' | translate">
         @for (pin of pins(); track pin.portName) {
           <li>
@@ -356,7 +388,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       </ol>
     }
 
-    @if (viewMode() === 'holo' && pins().length > 0) {
+    @if (viewMode() === 'holo' && pins().length > 0 && !deckPlan()) {
       <div class="legend">
         <span><i aria-hidden="true"></i>{{ 'codex.holo.stage.legendConfigurable' | translate }}</span>
         @if (hasGold()) {
@@ -718,6 +750,8 @@ export class CodexHoloTableComponent {
   readonly schemaView = input<BlueprintViewName>('top');
   /** Every pin, for the schema's labels and numbers; the canvas's own `pins` may be a subset. */
   readonly labelPins = input<readonly StagePin[] | null>(null);
+  /** A deck picked by the Schema chips (null = the hull from outside). */
+  readonly deckPlan = input<HoloDeckView | null>(null);
   readonly shipClassName = input('');
   readonly hardpointPortRefs = input<readonly HardpointPortRef[]>([]);
   readonly hardpointFrame = input<HardpointFrame | null>(null);
@@ -913,10 +947,24 @@ export class CodexHoloTableComponent {
       markers.map((m) => ({ x: toPct(m.x, view.box.x), y: toPct(m.y, view.box.y) })),
       SCHEMA_MARKER_GAP,
     );
-    return markers.map((m, i) => ({
-      ...m,
-      x: view.box.x + (fanned[i].x / 100) * long,
-      y: view.box.y + (fanned[i].y / 100) * long,
-    }));
+    return filterSchemaMarkers(
+      markers.map((m, i) => ({
+        ...m,
+        x: view.box.x + (fanned[i].x / 100) * long,
+        y: view.box.y + (fanned[i].y / 100) * long,
+      })),
+      this.pins().map((p) => p.portName),
+      this.inspectedPort(),
+    );
+  });
+
+  /** The callout of the part picked on the drawing or in the panel (r1-callout). */
+  readonly schemaCallout = computed<SchemaCallout | null>(() => {
+    const port = this.inspectedPort();
+    if (!port) return null;
+    const pin = (this.labelPins() ?? this.pins()).find((p) => p.portName === port);
+    const marker = pin ? null : this.schemaMarkers().find((m) => m.port === port);
+    const title = pin?.label ?? marker?.label;
+    return title ? { port, title, meta: pin?.short ?? null } : null;
   });
 }

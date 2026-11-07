@@ -1,3 +1,4 @@
+import { BetaService } from '../../core/beta.service';
 import { DestroyRef, Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
@@ -83,6 +84,7 @@ export class CodexSearchEngine {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly navOrigin = inject(NavOriginService);
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
 
   /** Hits shown per kind (5 in the overlay, more on the landing). */
   readonly perGroup = signal(5);
@@ -211,6 +213,7 @@ export class CodexSearchEngine {
           nameOf: (c) => this.shipNames().get(c.toLowerCase()) ?? null,
           kinds: ownKinds,
           all: ownOnly,
+          hq: this.shellBeta(),
         })
       : null;
     const compat = chips.find((c) => c.filter.compatWith)?.filter.compatWith;

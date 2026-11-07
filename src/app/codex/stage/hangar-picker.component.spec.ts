@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { BETA_STORAGE_KEY } from '../../core/beta.service';
 import { HangarPickerComponent, HangarPickerItem } from './hangar-picker.component';
 
 const ITEMS: HangarPickerItem[] = [
@@ -216,5 +217,37 @@ describe('HangarPickerComponent', () => {
     const picker = el.querySelector<HTMLElement>('.picker')!;
     expect(picker.classList.contains('docked')).toBeTrue();
     expect(getComputedStyle(picker).position).toBe('static');
+  });
+});
+
+describe('HangarPickerComponent - shell beta (concept r1-flag)', () => {
+  async function mount(kind: 'ship' | 'set', shell: boolean): Promise<HTMLElement> {
+    localStorage.setItem(BETA_STORAGE_KEY, JSON.stringify({ shell }));
+    await TestBed.configureTestingModule({
+      imports: [HangarPickerComponent],
+      providers: [provideRouter([]), provideTranslateService({ fallbackLang: 'en' })],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(HangarPickerComponent);
+    fixture.componentRef.setInput('kind', kind);
+    fixture.componentRef.setInput('items', ITEMS);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  afterEach(() => {
+    localStorage.removeItem(BETA_STORAGE_KEY);
+    TestBed.resetTestingModule();
+  });
+
+  it('renders no hangar button with the shell beta on', async () => {
+    expect((await mount('ship', true)).querySelector('.picker-btn')).toBeNull();
+  });
+
+  it('keeps the hangar button without the shell beta', async () => {
+    expect((await mount('ship', false)).querySelector('.picker-btn')).not.toBeNull();
+  });
+
+  it('keeps the Sets button even with the shell beta on', async () => {
+    expect((await mount('set', true)).querySelector('.picker-btn')).not.toBeNull();
   });
 });
