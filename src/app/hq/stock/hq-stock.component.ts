@@ -144,14 +144,12 @@ type Cell =
 
       <div #grid class="grid" [class.paged]="true" [attr.aria-label]="'hq.bestand.tab.' + tab() | translate" role="list">
         @for (c of pageCells(); track cellKey(c)) {
-          @switch (c.kind) {
-            @case ('add') {
+          @if (c.kind === 'add') {
               <button type="button" class="tile add" role="listitem" [attr.aria-label]="addLabel() | translate" (click)="add()">
                 <span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
                 <span class="add-t">{{ addLabel() | translate }}</span>
               </button>
-            }
-            @case ('item') {
+          } @else if (c.kind === 'item') {
               <div class="tile item" role="listitem" [class.focus]="focusKey() === c.tile.key">
                 <b class="nm" [scTooltip]="c.tile.name" scTooltipTier="label">{{ c.tile.name }}</b>
                 <span class="qty mono">{{ qtyText(c.tile) }}</span>
@@ -164,8 +162,7 @@ type Cell =
                   </button>
                 </span>
               </div>
-            }
-            @case ('ship') {
+          } @else if (c.kind === 'ship') {
               <a class="tile item ship" role="listitem" [routerLink]="shipLink(c.ship).commands" [queryParams]="shipLink(c.ship).queryParams" [class.focus]="focusKey() === c.ship.shipClassName.toLowerCase()">
                 <b class="nm">{{ c.ship.customName || shipTitle(c.ship.shipClassName) }}</b>
                 <span class="qty mono">×{{ c.ship.qty ?? 1 }}</span>
@@ -175,13 +172,11 @@ type Cell =
                   @if (destroyedAt(c.ship.shipClassName); as at) { · {{ 'hq.stock.destroyed' | translate: { at: (at | date: 'short') } }} }
                 </small>
               </a>
-            }
-            @case ('bp') {
+          } @else if (c.kind === 'bp') {
               <a class="tile item bp" role="listitem" [routerLink]="['/codex/blueprint', c.id]" [class.focus]="focusKey() === c.id.toLowerCase()">
                 <b class="nm">{{ c.name }}</b>
                 <small class="where">{{ 'hq.bestand.blueprint' | translate }}</small>
               </a>
-            }
           }
         }
       </div>
@@ -380,6 +375,7 @@ export class HqStockComponent implements OnInit {
         this.focusKey.set(want);
       });
     });
+    const destroyRef = inject(DestroyRef);
     afterNextRender(() => {
       const el = this.gridRef()?.nativeElement;
       const fit = (): void => this.measure();
@@ -387,7 +383,7 @@ export class HqStockComponent implements OnInit {
       if (el && typeof ResizeObserver !== 'undefined') {
         const ro = new ResizeObserver(fit);
         ro.observe(el);
-        inject(DestroyRef).onDestroy(() => ro.disconnect());
+        destroyRef.onDestroy(() => ro.disconnect());
       }
     });
     effect(() => {
@@ -531,7 +527,7 @@ export class HqStockComponent implements OnInit {
     const kind = i.unit === 'scu' ? 'material' : 'item';
     const have = this.wish.qtyOf(kind, i.className, i.name);
     const ok = await this.wish.setQty({ kind, className: i.className, name: i.name }, have + qty);
-    this.errorKey.set(ok ? null : (this.wish.error() ?? 'errors.generic'));
+    this.errorKey.set(ok ? null : 'errors.generic');
   }
 
   protected async resetIngame(): Promise<void> {

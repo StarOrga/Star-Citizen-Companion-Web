@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { humanizeClassName } from '../../codex/codex-format';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import type { StepKind } from '../../shared/step/sc-step.component';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
@@ -71,7 +72,7 @@ type Step = 1 | 2 | 3;
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
           <h2 id="flow-title" class="dlg-title">
             {{ (mode() === 'new' ? 'hq.flow.titleNew' : 'hq.flow.titleEdit') | translate }}
-            @if (mode() === 'new' && nextSlot(); as slot) { <small>{{ 'hq.flow.slotOf' | translate: { n: slot, max: maxSlots } }}</small> }
+            @if (mode() === 'new') { <small>{{ 'hq.flow.slotOf' | translate: { n: nextSlot() ?? maxSlots, max: maxSlots } }}</small> }
           </h2>
           <ol class="steps" [attr.aria-label]="'hq.flow.stepsAria' | translate">
             @for (s of stepList; track s) {
@@ -542,7 +543,7 @@ export class HqNachschubFlowComponent {
     return this.names().get(d.role) ?? '…';
   }
 
-  protected draftKinds(d: DraftEinsatz): (typeof d.steps)[number]['kind'][] {
+  protected draftKinds(d: DraftEinsatz): StepKind[] {
     return [...new Set(d.steps.map((s) => s.kind))];
   }
 

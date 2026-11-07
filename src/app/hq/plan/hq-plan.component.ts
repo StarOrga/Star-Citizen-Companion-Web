@@ -102,10 +102,12 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
   template: `
     <header class="head">
       <h2 class="page-title" id="hq-plan-title">{{ 'hq.pages.planen' | translate }}</h2>
-      @if (mode() === 'nachschub' && ns.newBlock(); as block) {
-        <span class="hint" role="status">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.4" /></svg>{{ block | translate }}
-        </span>
+      @if (mode() === 'nachschub') {
+        @if (ns.newBlock(); as block) {
+          <span class="hint" role="status">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.4" /></svg>{{ block | translate }}
+          </span>
+        }
       }
       <div class="switch" role="group" [attr.aria-label]="'hq.plan.mode.label' | translate">
         <button type="button" class="seg" [attr.aria-pressed]="mode() === 'nachschub'" (click)="mode.set('nachschub')">{{ 'hq.plan.mode.nachschub' | translate }}</button>
