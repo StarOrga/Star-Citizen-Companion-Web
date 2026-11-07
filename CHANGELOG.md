@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.225.3] - 2026-11-07
 
 ### Changed
+- Dependencies: Angular 22.2.4/22.2.5, ngx-translate 18.1, posthog-js, tslib, eslint and typescript-eslint updated; the data uploader moves to Electron 45.1.
+
+## [0.225.3] - 2026-11-07
+
+### Changed
 - Missile pages: the Einordnung now ranks damage, speed, agility and range.
 
 ## [0.225.2] - 2026-11-07
