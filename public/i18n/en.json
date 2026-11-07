@@ -2476,7 +2476,10 @@
         "legendAbove": "above median",
         "legendBelow": "below median",
         "compareInfo": "Each axis runs from 0 (centre) to the highest value among the chosen weapons (rim). Blue is this weapon, the dashed line the group's median.",
-        "note": "Compares only what the game data holds for this weapon."
+        "note": "Compares only what the game data holds for this weapon.",
+        "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Data Uploader 0.73.3 or later.",
+        "gapTooFew": "Too few missiles differ in damage, speed, agility and range to rank this one.",
+        "gapNoCohort": "The comparison group could not be loaded."
       },
       "data": {
         "title": "Weapon data",

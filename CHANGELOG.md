@@ -4,10 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.225.10] - 2026-11-07
+## [0.225.12] - 2026-11-07
 
 ### Added
 - Codex blueprint list: signed-in readers get an "Only mine" filter (`?own=1`) and an "I have this blueprint" toggle per row, a second way besides the SCC App to mark a blueprint as owned. Both use the HQ inventory blueprint shelf the item path already writes.
+
+## [0.225.11] - 2026-11-07
+
+### Fixed
+- Missile pages: the 3D model opens with the nose turned towards the reader at a three-quarter angle instead of showing the exhaust.
+- Missile pages: when the current data has no damage, speed, agility and range yet, the Einordnung says so and names the uploader version that brings them, instead of an empty card with a bare dash.
+
+## [0.225.10] - 2026-11-07
+
+### Fixed
+- Admin feedback: the panel now stays faded while either Ctrl or Alt is held, in any press/release order — holding Alt, pressing Ctrl and letting go of Alt no longer stops Ctrl from working. Ctrl+click and Alt+click still pick after such a mixed sequence.
 
 ## [0.225.9] - 2026-11-07
 

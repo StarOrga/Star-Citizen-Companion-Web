@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { isSoftwareRenderer } from './asset-package-scene';
+import { isSoftwareRenderer, startViewDir } from './asset-package-scene';
 
 /** A renderer whose GL context reports `name` as its unmasked renderer string. */
 function rendererNamed(name: string | null, withDebugInfo = true): THREE.WebGLRenderer {
@@ -22,5 +22,17 @@ describe('isSoftwareRenderer', () => {
     expect(isSoftwareRenderer(rendererNamed('ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Direct3D11 vs_5_0 ps_5_0)'))).toBeFalse();
     expect(isSoftwareRenderer(rendererNamed('Apple GPU', false))).toBeFalse();
     expect(isSoftwareRenderer(rendererNamed(null))).toBeFalse();
+  });
+});
+
+describe('startViewDir', () => {
+  it('keeps the side quarter by default and turns half round for the nose view', () => {
+    const side = startViewDir('side');
+    const nose = startViewDir('nose');
+    expect(side).toEqual([1, 0.55, 1.25]);
+    // Same height, opposite horizontal side: the camera sits off the -Z (nose) end.
+    expect(nose[1]).toBe(side[1]);
+    expect(nose[0]).toBe(-side[0]);
+    expect(nose[2]).toBeLessThan(0);
   });
 });
