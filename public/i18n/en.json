@@ -3849,6 +3849,7 @@
     "disclaimerExpand": "Show full disclaimer",
     "disclaimerCollapse": "Collapse disclaimer",
     "legalNav": "Legal and project information",
+    "areaNav": "Switch area",
     "links": {
       "about": "About",
       "privacy": "Privacy",
@@ -5835,9 +5836,6 @@
     }
   },
   "verse": {
-    "areaFoot": {
-      "aria": "Switch area"
-    },
     "crumb": "Verse",
     "toast": {
       "lit": "Star lit: {{task}}",
