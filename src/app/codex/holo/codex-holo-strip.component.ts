@@ -1,9 +1,14 @@
 // Holotable sticky bottom strip (concept 2026-09-20, iteration 10 `strip_final`,
 // wave2 scope A). Layout: Einsatz -> arrow -> Offensive/Verteidigung/Bewegung
 // mini perspective tiles -> ring joint (no label) -> Signatur & Kühlung -> an
-// open/close toggle ONLY (no energy segment while collapsed). Expanded panel
-// under the right end carries SCM/NAV + "Schleichen" preset, the pip stacks,
-// the cooling gauge AND the energy summary (inventory #52 in full).
+// open/close toggle ONLY (no energy segment while collapsed).
+//
+// Concept holotisch-unten r1 (d2): the row sits on the stage's shared columns
+// (--holo-cols: a narrow Einsatz, the four areas evenly, the arrow), and the
+// arrow opens a dock ABOVE the row, over the page: the energy as its own row
+// (SCM/NAV + "Schleichen", the pip stacks, the cooling gauge, the summary —
+// energy moves every value, so it stays in sight) and under it the four
+// perspective areas, projected by the stage ([hsDock]). No minimise control.
 //
 // Reuses `codex-power.ts` (the SAME model `sc-codex-energy-dock` computes
 // from) rather than re-deriving the reactor/cooling maths, and
@@ -38,7 +43,6 @@ import {
   DEFAULT_POWER_DRAFT,
   PowerDraftState,
   decodePowerParam,
-  dockPositionStorageKey,
   encodePowerParam,
   parseLocalPowerDraft,
   powerStorageKey,
@@ -107,18 +111,13 @@ export interface StripMission {
 
 let uidSeq = 0;
 
-/** Per-viewer localStorage key of the minimised strip. */
-export function stripMiniKey(userId: string | null | undefined): string {
-  return `${dockPositionStorageKey(userId)}:strip-mini`;
-}
-
 @Component({
   selector: 'sc-codex-holo-strip',
   standalone: true,
   imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="holo-strip" [class.open]="expanded()" [class.mini]="mini() && !phone">
+    <div class="holo-strip" [class.open]="expanded()">
       @if (missionOpen()) {
         <div class="mission-pop" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate" (keydown.escape)="closeMissions($event)">
           @for (m of missions(); track m.id) {
@@ -132,99 +131,11 @@ export function stripMiniKey(userId: string | null | undefined): string {
           }
         </div>
       }
-      <div class="hs-row">
-        <button type="button" class="seg einsatz" #missionBtn [attr.aria-haspopup]="'true'" [attr.aria-expanded]="missionOpen()"
-                [attr.aria-label]="'codex.holo.strip.einsatzPick' | translate"
-                [scTooltip]="'codex.holo.strip.einsatzPick' | translate" scTooltipTier="label"
-                (click)="toggleMissions($event)" (keydown.escape)="missionOpen() && closeMissions($event)">
-          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}<span class="caret" aria-hidden="true">▴</span></span>
-          <span class="val"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="activeMissionIcon()" /></svg>{{ activeMissionLabel() | translate }}</span>
-          <span class="sub" [class.gapv]="!cohortLabel()">{{ cohortLabel() ?? ('codex.kpi.gap' | translate) }}</span>
-        </button>
-
-        @for (tile of perspectiveTiles(); track tile.perspective) {
-          <i class="fade" aria-hidden="true"></i>
-          <div class="seg tile" [attr.data-p]="tile.perspective">
-            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span></span>
-            <div class="tile-vals">
-              @for (c of tile.cells; track c.key) {
-                <span class="tv" [class.flash]="flashKeys().has(c.key)">
-                  <span class="k">{{ ('codex.kpi.short.' + c.key) | translate }}</span>
-                  <span class="v">{{ fmtRolled(c) }}</span>
-                  @if (deltaTone(c); as tone) {
-                    <span class="d" [class.up]="tone === 'up'" [class.down]="tone === 'down'"
-                      >{{ c.delta!.raw > 0 ? '+' : '−' }}{{ fmt(absDelta(c)) }}</span
-                    >
-                  }
-                </span>
-              } @empty {
-                <!-- Nothing in this perspective has a value for this hull — say
-                     so instead of leaving a label over an empty cell. -->
-                <span class="tv none" tabindex="0" role="img" [scTooltip]="'codex.kpi.gap' | translate" scTooltipTier="label" [attr.aria-label]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
-              }
-            </div>
-          </div>
-        }
-
-        <i class="fade" aria-hidden="true"></i>
-
-        <div class="seg tile sig" data-p="signature">
-          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span></span>
-          <div class="tile-vals">
-          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(irFact()?.value)) + '\u00a0m'" scTooltipTier="label">
-            <span class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</span>
-            <span class="v pulse">{{ fmtKm(up('ir', irFact()?.value)) }}<small>km</small></span>
-          </span>
-          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(emFact()?.value)) + '\u00a0m'" scTooltipTier="label">
-            <span class="tip-trigger">{{ 'codex.energy.fact.em' | translate }}</span>
-            <span class="v pulse">{{ fmtKm(up('em', emFact()?.value)) }}<small>km</small></span>
-          </span>
-          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(csFact()?.value)) + '\u00a0m'" scTooltipTier="label">
-            <span class="tip-trigger">{{ 'codex.energy.fact.crossSection' | translate }}</span>
-            <span class="v pulse">{{ fmtKm(up('cs', csFact()?.value)) }}<small>km</small></span>
-          </span>
-          <span class="fact">
-            <span class="tip-trigger">{{ 'codex.holo.strip.cooling' | translate }}</span>
-            <span class="v pulse">{{
-              sheet().coolant.used == null
-                ? '—'
-                : ('codex.holo.strip.coolingValue' | translate: { used: upInt('coolUsed', sheet().coolant.used), total: upInt('coolTotal', sheet().coolant.total) })
-            }}</span>
-          </span>
-          </div>
-        </div>
-
-        <!-- Minimise (remembered per viewer): the strip folds to its Einsatz
-             cell and these two controls, so nothing of it sits over the table.
-             Not on a phone: there the strip is already one slim row. -->
-        @if (!phone) {
-        <button
-          type="button"
-          class="hs-mini"
-          [attr.aria-pressed]="mini()"
-          [attr.aria-label]="(mini() ? 'codex.holo.strip.restore' : 'codex.holo.strip.minimize') | translate"
-          [scTooltip]="(mini() ? 'codex.holo.strip.restore' : 'codex.holo.strip.minimize') | translate"
-          scTooltipTier="label"
-          (click)="toggleMini()"
-        ><span aria-hidden="true">{{ mini() ? '▭' : '–' }}</span></button>
-        }
-        <button
-          type="button"
-          class="hs-toggle"
-          [attr.aria-expanded]="expanded()"
-          [attr.aria-controls]="panelId"
-          [scTooltip]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
-          scTooltipTier="label"
-          (click)="toggleExpanded()"
-        >
-          <span class="chev" [class.open]="expanded()" aria-hidden="true">▴</span>
-          <span class="sr-only">{{ (expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate }}</span>
-        </button>
-      </div>
-
       @if (expanded()) {
-        <div class="hs-panel" [id]="panelId" animate.enter="hp-enter" animate.leave="hp-leave"
+        <div class="hs-panel" [id]="panelId" role="region" [attr.aria-label]="'codex.holo.strip.dockAria' | translate"
+             animate.enter="hp-enter" animate.leave="hp-leave"
              (keydown.escape)="dismissTooltips()" (focusin)="reopenTooltips()" (pointerenter)="reopenTooltips()">
+          <div class="hp-energy">
           <div class="hp-modes">
             <div class="seg-pick" role="radiogroup" [attr.aria-label]="'codex.energy.mode.label' | translate">
               @for (m of modes; track m) {
@@ -322,8 +233,84 @@ export function stripMiniKey(userId: string | null | undefined): string {
               <p class="draft-note">{{ 'codex.energy.draftNote' | translate }}</p>
             }
           </div>
+          </div>
+          <!-- The four perspective areas, on the row's own columns. -->
+          <ng-content select="[hsDock]" />
         </div>
       }
+      <div class="hs-row">
+        <button type="button" class="seg einsatz" #missionBtn [attr.aria-haspopup]="'true'" [attr.aria-expanded]="missionOpen()"
+                [attr.aria-label]="'codex.holo.strip.einsatzPick' | translate"
+                [scTooltip]="'codex.holo.strip.einsatzPick' | translate" scTooltipTier="label"
+                (click)="toggleMissions($event)" (keydown.escape)="missionOpen() && closeMissions($event)">
+          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}<span class="caret" aria-hidden="true">▴</span></span>
+          <span class="val"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="activeMissionIcon()" /></svg>{{ activeMissionLabel() | translate }}</span>
+          <span class="sub" [class.gapv]="!cohortLabel()">{{ cohortLabel() ?? ('codex.kpi.gap' | translate) }}</span>
+        </button>
+
+        @for (tile of perspectiveTiles(); track tile.perspective) {
+          <div class="seg tile" [attr.data-p]="tile.perspective">
+            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span></span>
+            <div class="tile-vals">
+              @for (c of tile.cells; track c.key) {
+                <span class="tv" [class.flash]="flashKeys().has(c.key)">
+                  <span class="k">{{ ('codex.kpi.short.' + c.key) | translate }}</span>
+                  <span class="v">{{ fmtRolled(c) }}</span>
+                  @if (deltaTone(c); as tone) {
+                    <span class="d" [class.up]="tone === 'up'" [class.down]="tone === 'down'"
+                      >{{ c.delta!.raw > 0 ? '+' : '−' }}{{ fmt(absDelta(c)) }}</span
+                    >
+                  }
+                </span>
+              } @empty {
+                <!-- Nothing in this perspective has a value for this hull — say
+                     so instead of leaving a label over an empty cell. -->
+                <span class="tv none" tabindex="0" role="img" [scTooltip]="'codex.kpi.gap' | translate" scTooltipTier="label" [attr.aria-label]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="seg tile sig" data-p="signature">
+          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span></span>
+          <div class="tile-vals">
+          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(irFact()?.value)) + '\u00a0m'" scTooltipTier="label">
+            <span class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</span>
+            <span class="v pulse">{{ fmtKm(up('ir', irFact()?.value)) }}<small>km</small></span>
+          </span>
+          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(emFact()?.value)) + '\u00a0m'" scTooltipTier="label">
+            <span class="tip-trigger">{{ 'codex.energy.fact.em' | translate }}</span>
+            <span class="v pulse">{{ fmtKm(up('em', emFact()?.value)) }}<small>km</small></span>
+          </span>
+          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(csFact()?.value)) + '\u00a0m'" scTooltipTier="label">
+            <span class="tip-trigger">{{ 'codex.energy.fact.crossSection' | translate }}</span>
+            <span class="v pulse">{{ fmtKm(up('cs', csFact()?.value)) }}<small>km</small></span>
+          </span>
+          <span class="fact">
+            <span class="tip-trigger">{{ 'codex.holo.strip.cooling' | translate }}</span>
+            <span class="v pulse">{{
+              sheet().coolant.used == null
+                ? '—'
+                : ('codex.holo.strip.coolingValue' | translate: { used: upInt('coolUsed', sheet().coolant.used), total: upInt('coolTotal', sheet().coolant.total) })
+            }}</span>
+          </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="hs-toggle"
+          [attr.aria-expanded]="expanded()"
+          [attr.aria-controls]="panelId"
+          [attr.aria-label]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
+          [scTooltip]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
+          scTooltipTier="label"
+          (click)="toggleExpanded()"
+        >
+          <span class="chev" [class.open]="expanded()" aria-hidden="true">▴</span>
+        </button>
+      </div>
+
     </div>
   `,
   styles: [
@@ -336,6 +323,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         --p-movement: var(--holo-p-movement);
         --p-signature: var(--holo-p-signature); }
       .holo-strip {
+        position: relative;
         padding-block-end: env(safe-area-inset-bottom, 0px);
         /* One capsule in the header's skin; its rim carries the Einsatz. */
         background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-0)), color-mix(in srgb, var(--sc-accent) 3%, var(--sc-bg-0)));
@@ -354,7 +342,6 @@ export function stripMiniKey(userId: string | null | undefined): string {
         scrollbar-width: none; min-block-size: 64px; }
       .hs-row::-webkit-scrollbar { display: none; }
       .seg { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 6px clamp(7px, 0.6vw, 11px); min-width: 0; flex: 1 1 auto; }
-      .fade { flex: none; inline-size: 1px; margin-block: 10px; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sc-accent) 40%, transparent), transparent); }
       .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent); white-space: nowrap; }
       .einsatz { flex: 0 0 auto; min-inline-size: clamp(120px, 8vw, 150px); background: none; border: 0; border-start-start-radius: 18px; font: inherit; color: inherit; text-align: start; align-items: flex-start;
@@ -413,23 +400,28 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
       .gapv { color: var(--sc-fg-2); }
 
-      .hs-mini { align-self: stretch; flex: none; margin-inline-start: auto; min-inline-size: max(36px, var(--sc-tap-min, 0px)); border: none;
-        border-inline-start: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 13px; }
-      .hs-mini + .hs-toggle { margin-inline-start: 0; }
-      .hs-mini:hover { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
-      .hs-mini:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-      /* Minimised: only the Einsatz cell and the two controls, right-aligned
-         as a small tab — the table keeps the whole viewport. */
-      .holo-strip.mini { margin-inline-start: auto; inline-size: max-content; max-inline-size: 100%; }
-      .holo-strip.mini .hs-row { min-block-size: 40px; }
-      .holo-strip.mini .seg:not(.einsatz), .holo-strip.mini .fade, .holo-strip.mini .einsatz .sub { display: none; }
-      /* Expanded: modes | pips | cooling (concept round 6 "Energie-Zeile":
-         Modi links, Pips Mitte, Kühlung rechts — one instrument, one row). */
-      /* Capped: a hull with many pip columns must not grow the sticky panel
-         over the table (it scrolls inside instead). */
-      .hs-panel { border-block-start: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
-        padding: 10px 14px; display: grid; grid-template-columns: 170px 1fr 240px; gap: 18px; align-items: center;
-        max-block-size: min(36dvh, 300px); overflow-y: auto; overscroll-behavior: contain; }
+      /* Desktop: the row on the stage's shared columns — the Einsatz narrow on
+         the left, the four areas evenly beside it, the arrow (concept r1 d2). */
+      @media (min-width: 901px) {
+        .hs-row { display: grid; grid-template-columns: var(--holo-cols, minmax(150px, 15%) repeat(4, minmax(0, 1fr)) 44px); }
+        .einsatz { min-inline-size: 0; }
+        .seg.tile { border-inline-start: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+        .hs-toggle { margin-inline-start: 0; }
+      }
+      /* The dock: over the page, docked on the row (concept r1-dock-open
+         "both": the arrow opens it anywhere). Energy is its own row on top
+         (r1-dock-energy "row"), the four areas under it. Capped to the
+         viewport, scrolls inside. */
+      .hs-panel { position: absolute; inset-inline: -1px; inset-block-end: 100%; z-index: 4;
+        display: flex; flex-direction: column; gap: 0;
+        max-block-size: calc(100dvh - var(--holo-strip-h, 64px) - 72px); overflow-y: auto; overscroll-behavior: contain;
+        background: color-mix(in srgb, var(--sc-accent) 6%, var(--sc-bg-0));
+        border: 1px solid color-mix(in srgb, var(--holo-e, var(--sc-accent)) 28%, transparent); border-block-end: 0;
+        border-radius: 16px 16px 0 0; box-shadow: 0 -12px 34px rgb(0 0 0 / 0.55); }
+      .holo-strip.open { border-start-start-radius: 0; border-start-end-radius: 0; }
+      /* Energy row: modes | pips | cooling (concept round 6 "Energie-Zeile"). */
+      .hp-energy { padding: 10px 14px; display: grid; grid-template-columns: 170px 1fr 240px; gap: 18px; align-items: center;
+        border-block-end: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent); }
       /* The panel unfolds out of the strip and folds back into it. */
       .hp-enter { animation: hp-in 260ms var(--e-out); }
       .hp-leave { animation: hp-out 180ms ease-in forwards; }
@@ -492,7 +484,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
       .hp-summary .ok.no { color: var(--sc-danger); }
       .draft-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
       @media (max-width: 1100px) {
-        .hs-panel { grid-template-columns: 1fr; gap: 12px; }
+        .hp-energy { grid-template-columns: 1fr; gap: 12px; }
         .hp-modes { padding-inline-end: 0; border-inline-end: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .seg-pick { grid-template-columns: 1fr 1fr; grid-column: 1 / -1; }
         .hp-right { padding-inline-start: 0; border-inline-start: 0; }
@@ -506,7 +498,6 @@ export function stripMiniKey(userId: string | null | undefined): string {
       @media (max-width: 900px) {
         .tile-vals .tv + .tv { display: none; }
         .sig .fact + .fact { display: none; }
-        .fade { display: none; }
         .seg { padding: 6px 8px; }
         .einsatz { min-inline-size: 0; }
         .einsatz .sub { display: none; }
@@ -516,7 +507,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         .holo-strip { position: fixed; inset-inline: 0 var(--sc-fab-clear-inline); /* ends before the launcher lane */ inset-block-end: var(--holo-strip-lift, 0px); border-radius: 12px 12px 0 0; }
         .hs-row { min-block-size: 52px; }
         /* The narrowest phones: symbol + class + the three perspectives; the page's Signatur tile keeps those values. */
-        @media (max-width: 430px) { .sig, .sig + .fade { display: none; } .fade { display: none; } }
+        @media (max-width: 430px) { .sig { display: none; } }
         .seg { padding: 5px 7px; flex: 1 1 0; }
         .tile-vals { min-inline-size: 0; }
         .tv .v, .fact .v { font-size: 12.5px; }
@@ -532,10 +523,10 @@ export function stripMiniKey(userId: string | null | undefined): string {
         .einsatz .lab { letter-spacing: 0.08em; }
         .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; white-space: nowrap; }
         .hs-toggle { min-inline-size: max(36px, var(--sc-tap-min)); }
-        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; max-block-size: 70dvh; overflow-y: auto;
-          /* The last row scrolls clear of the home indicator and the feedback launcher. */
-          padding-block-end: calc(var(--sc-safe-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
-          background: var(--sc-bg-1); border-block-start: 1px solid var(--sc-accent); }
+        /* Phone: the dock rides on the fixed bar, which already ends before
+           the feedback launcher's lane — nothing of it sits under the FAB. */
+        .hs-panel { max-block-size: 70vh; max-block-size: calc(100dvh - var(--holo-strip-h, 52px) - var(--holo-strip-lift, 0px) - 56px);
+          border-radius: 12px 12px 0 0; }
       }
       @media (prefers-reduced-motion: reduce) {
         * { transition: none !important; animation: none !important; }
@@ -610,10 +601,8 @@ export class CodexHoloStripComponent {
   protected readonly mode = signal<FlightMode>('scm');
   protected readonly preset = signal<PowerPreset>('auto');
   protected readonly expanded = signal<boolean>(false);
-  /** A phone (≤ 640 px at load): the strip is one slim row, no minimise. */
+  /** A phone (≤ 640 px at load): the strip is one slim, fixed row. */
   protected readonly phone = typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches;
-  /** Folded to its Einsatz cell — remembered per viewer (see {@link stripMiniKey}). */
-  protected readonly mini = signal<boolean>(false);
   protected readonly tipsHidden = signal(false);
 
   private previousSheet: PowerSheet | null = null;
@@ -761,7 +750,7 @@ export class CodexHoloStripComponent {
   private restoredFor: string | null = null;
 
   constructor() {
-    // The share FAB shares the bottom-right corner with the strip's own end (its minimise control):
+    // The share FAB shares the bottom-right corner with the strip's own end (its arrow):
     // the strip publishes its height, the FAB rides above it. On a phone the fixed bar stack carries it.
     afterNextRender(() => {
       const el = this.host.nativeElement;
@@ -782,12 +771,6 @@ export class CodexHoloStripComponent {
       if (this.restoredFor === shipKey) return;
       this.restoredFor = shipKey;
       untracked(() => this.restoreState());
-    });
-    // The minimised state is per VIEWER: re-read whenever the user resolves
-    // (a deep link renders before the session does — the first read is anon).
-    effect(() => {
-      const key = stripMiniKey(this.userId());
-      untracked(() => this.mini.set(this.storageGet(key) === 'true'));
     });
     effect(() => {
       this.sheetChange.emit(this.sheet());
@@ -857,8 +840,7 @@ export class CodexHoloStripComponent {
 
     // The energy panel always starts closed: opened, it sits over the lower
     // part of the table, so a page must never LOAD with it open (holodeck
-    // walkthrough 2026-10-08 — it covered ~40 % of a 900 px viewport). What
-    // the viewer chooses to keep is the minimised strip (`mini`).
+    // walkthrough 2026-10-08 — it covered ~40 % of a 900 px viewport).
     this.expanded.set(false);
   }
 
@@ -1014,16 +996,6 @@ export class CodexHoloStripComponent {
   }
 
   protected toggleExpanded(): void {
-    const next = !this.expanded();
-    this.expanded.set(next);
-    // Opening the panel from a minimised strip brings the strip back.
-    if (next && this.mini()) this.toggleMini();
-  }
-
-  protected toggleMini(): void {
-    const next = !this.mini();
-    this.mini.set(next);
-    if (next) this.expanded.set(false);
-    this.storageSet(stripMiniKey(this.userId()), String(next));
+    this.expanded.set(!this.expanded());
   }
 }

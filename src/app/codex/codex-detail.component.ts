@@ -910,6 +910,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [allKpiCells]="allKpiCells()"
             [heroArt]="heroArt()"
             [previewSilhouette]="previewSilhouetteUrl()"
+            [decks]="shipDecks()"
+            [deckLang]="deckPlanLang()"
             (hovered)="setActivePorts($event)"
             (inspected)="openInspect($event)"
             (swapRequested)="onHoloSwapRequested($event)"
@@ -939,41 +941,63 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (copyShareLink)="copyShareLink()">
             <div htData class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideData" /></div>
             <div htSwitch class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideSwitch" /></div>
-            <!-- Details drawer content, projected into the Holotable: the
-                 shared sub-components in detail/ and the shared ng-templates,
-                 rendered in both branches, on the SAME signals/methods as the
-                 classic view (item B "present, not hidden behind a code
-                 path"). -->
-            <div htOpen class="ho-wrap">
-            <div class="holo-details-pickers">
-              @if (editionOptions().length > 1) {
-                <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                  [options]="editionPickerOptions()" [current]="currentEdition()" />
-              }
-              @if (skinOptions().length > 1) {
-                <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                  [options]="skinPickerOptions()" [current]="currentLivery()" />
-              }
-              <sc-item-path kind="ship" [className]="detail()!.classNameSlug" [name]="displayName()" />
-              <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
-              <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
-              <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
-                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
-              </button>
-            </div>
-            @if (shipLinkForm.open()) {
-              <sc-codex-ship-link-form />
-            }
-            <!-- 2D deck plan (#797): renders nothing until the uploader emitted rooms. -->
-            @if (shipDecks(); as decks) {
-              @defer (on viewport) {
-                <sc-ship-deck-plan [decks]="decks" [lang]="deckPlanLang()" />
-              } @placeholder {
-                <div aria-hidden="true"></div>
-              }
-            }
-            <ng-container [ngTemplateOutlet]="descriptionCard" />
-            <ng-container [ngTemplateOutlet]="whereToBuy" />
+            <!-- The side column below the first screen (concept holotisch-unten
+                 r1, d2): as wide as the strip's Einsatz, on the left. Every
+                 action lives in a box — Bei RSI in Beschreibung, the wish list
+                 in Wo zu kaufen, Edition/Lackierung/Vergleich in their own box.
+                 The deck plan moved into the table's Schema "Einfach" chips. -->
+            <div htSide class="ho-side">
+              <section class="sc-card side-card">
+                <h2 class="side-h">{{ 'codex.detail.description' | translate }}</h2>
+                @if (description(); as d) {
+                  <p class="desc side-desc">{{ d }}</p>
+                }
+                <div class="side-acts">
+                  <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
+                </div>
+                @if (shipLinkForm.open()) {
+                  <sc-codex-ship-link-form />
+                }
+              </section>
+              <section class="sc-card side-card" [attr.id]="shipSourceFragment">
+                <h2 class="side-h">{{ 'codex.detail.whereToBuy' | translate }}</h2>
+                @if (buyLoading()) {
+                  <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
+                } @else if (buyError()) {
+                  <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
+                } @else if (buyOptions().length === 0) {
+                  <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
+                } @else {
+                  <ul class="side-buy">
+                    @for (opt of buyOptions(); track opt.terminal + opt.price) {
+                      <li>
+                        <b class="buy-price">{{ fmt(opt.price) }} aUEC</b>
+                        <span>{{ opt.terminal }}</span>
+                        <small class="muted">{{ opt.location }}</small>
+                      </li>
+                    }
+                  </ul>
+                }
+                <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
+                <sc-item-path kind="ship" level="secondary" [className]="detail()!.classNameSlug" [name]="displayName()" />
+              </section>
+              <section class="sc-card side-card">
+                <h2 class="side-h">{{ 'codex.holo.side.variants' | translate }}</h2>
+                <div class="side-variants">
+                  @if (editionOptions().length > 1) {
+                    <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                      [options]="editionPickerOptions()" [current]="currentEdition()" />
+                  }
+                  @if (skinOptions().length > 1) {
+                    <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                      [options]="skinPickerOptions()" [current]="currentLivery()" />
+                  }
+                  <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
+                  <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
+                    <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+                  </button>
+                </div>
+              </section>
             </div>
             <ng-container [ngTemplateOutlet]="tailLoadout" />
             @if (recipeView(); as rv) {
@@ -1160,7 +1184,15 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     <sc-share-button />
   `,
   styles: [`
-    .ho-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .ho-side { display: contents; }
+    .side-card { margin: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .side-h { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); font-family: var(--sc-font-display); font-weight: 400; }
+    .side-desc { font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .side-acts, .side-variants { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+    .side-buy { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .side-buy li { display: grid; gap: 1px; min-width: 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .side-buy li > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .side-card .buy-attribution { margin: 0; }
     .foreign-note { margin: 0 0 12px; padding: 10px 14px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); border-left: 3px solid var(--sc-warning); }
     .personal-uses { margin: 0 0 12px; }
     :host { display: block; }

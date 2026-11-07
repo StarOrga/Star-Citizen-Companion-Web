@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
   CodexDefensivePanelComponent,
@@ -42,18 +42,41 @@ export interface HoloPerspectiveView {
  * hv6-s4): title + `P<n>` + Einsatz, the headline number with its reading,
  * a ring gauge, three sub-values, and "Alle Werte" = today's analysis panel.
  * Purely presentational — the stage resolves every string.
+ *
+ * `layout="row"` (concept holotisch-unten r1, d2): one row on the strip's own
+ * columns — a lead cell as wide as the strip's Einsatz, then the four areas
+ * over the strip's four areas. The stage puts one row at the page's end, where
+ * it docks onto the sticky strip, and one inside the strip's dock (the arrow
+ * opens it anywhere). On a phone the four areas swipe sideways, one at a time.
  */
 @Component({
   selector: 'sc-codex-holo-perspectives',
   standalone: true,
   imports: [TranslatePipe, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.row]': "layout() === 'row'", '[class.docked]': 'docked()' },
   template: `
+    @if (layout() === 'row') {
+      <div class="lead">
+        <span class="lt">{{ 'codex.holo.stage.perspectives' | translate }}</span>
+        <p class="lsay">
+          @if (cohortSize(); as n) {
+            {{ 'codex.holo.persp.lead' | translate: { mission: (missionLabelKey() | translate), n: n } }}
+          } @else {
+            {{ 'codex.holo.persp.leadNoCohort' | translate: { mission: (missionLabelKey() | translate) } }}
+          }
+        </p>
+        <button type="button" class="tile-expand all" (click)="toggleAll()" [attr.aria-expanded]="allOpen()">
+          {{ (allOpen() ? 'codex.holo.persp.allHide' : 'codex.holo.persp.allShow') | translate }}
+        </button>
+      </div>
+    } @else {
     <div class="sh">
       <span class="t">{{ 'codex.holo.stage.perspectives' | translate }} <span class="n">{{ tiles().length }}</span></span>
       <span class="rule"></span>
       <span class="ctx">{{ missionLabelKey() | translate }}@if (cohortSize(); as n) { · {{ 'codex.holo.strip.shipCount' | translate: { n: n } }} }</span>
     </div>
+    }
     @for (tile of tiles(); track tile.id) {
       <article class="ptile" [attr.data-p]="tile.id" [class.pulse]="pulse() === tile.id">
         <div class="pt-head">
@@ -199,6 +222,40 @@ export interface HoloPerspectiveView {
     @keyframes unfold { from { height: 0; padding-top: 0; opacity: 0; overflow: clip; } to { overflow: clip; } }
     @keyframes fold { from { overflow: clip; } to { height: 0; padding-top: 0; opacity: 0; overflow: clip; } }
     @media (max-width: 640px) { .big .num { font-size: 22px; } }
+
+    /* ── Row on the strip's columns (layout="row") ── */
+    :host(.row) { display: grid; grid-template-columns: var(--holo-cols, 200px repeat(4, minmax(0, 1fr)) 44px); gap: 0; align-items: stretch;
+      border: 1px solid color-mix(in srgb, var(--holo-e, var(--sc-accent)) 28%, transparent); border-radius: 16px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 7%, var(--sc-bg-0)), color-mix(in srgb, var(--sc-accent) 3%, var(--sc-bg-0))); overflow: hidden; }
+    /* Docked onto the strip below: one piece with it. */
+    :host(.row.docked) { border-block-end: 0; border-radius: 16px 16px 0 0; }
+    .lead { display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 10px; min-width: 0; }
+    .lead .lt { font-family: var(--d); text-transform: uppercase; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); }
+    .lsay { margin: 0; font-size: max(11.5px, var(--f)); line-height: 1.4; color: var(--sc-fg-1); }
+    .tile-expand.all { margin-top: auto; }
+    :host(.row) .ptile { border: 0; border-inline-start: 1px solid var(--sc-border); border-radius: 0; padding: 12px 12px 10px; gap: 8px;
+      background: none; box-shadow: inset 0 2px 0 var(--p); }
+    :host(.row) .ptile:last-child { border-inline-end: 1px solid var(--sc-border); }
+    :host(.row) .ptile::before { display: none; }
+    :host(.row) .pt-head .prof { display: none; }
+    :host(.row) .pt-main { grid-template-columns: minmax(0, 1fr) 64px; gap: 8px; }
+    :host(.row) .gauge svg { width: 64px; height: 64px; }
+    :host(.row) .big .num { font-size: 22px; }
+    :host(.row) .subs { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+    @media (max-width: 1000px) {
+      :host(.row) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      :host(.row) .lead { grid-column: 1 / -1; }
+      :host(.row) .ptile:nth-child(odd) { border-inline-end: 0; }
+    }
+    /* Phone (concept r1-dock-phone "swipe"): the four areas side by side,
+       one large at a time, swiped sideways with a snap. */
+    @media (max-width: 640px) {
+      :host(.row) { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 86%; overflow-x: auto; overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory; scrollbar-width: none; }
+      :host(.row)::-webkit-scrollbar { display: none; }
+      :host(.row) .lead { display: none; }
+      :host(.row) .ptile { scroll-snap-align: start; border-inline-end: 0; }
+    }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   `],
 })
@@ -212,7 +269,21 @@ export class CodexHoloPerspectivesComponent {
   readonly defensivePanel = input<DefensivePanel | null>(null);
   readonly shipFactGroups = input<readonly ShipFactGroup[]>([]);
 
+  /** `stack`: tiles under each other; `row`: one row on the strip's columns. */
+  readonly layout = input<'stack' | 'row'>('stack');
+  /** The row sits right on the strip (no bottom edge of its own). */
+  readonly docked = input(false);
+
   private readonly openTiles = signal<ReadonlySet<Perspective>>(new Set());
+  /** Every tile with a full panel is open ("Alle Werte aller vier"). */
+  readonly allOpen = computed(() => {
+    const open = this.openTiles();
+    const expandable = this.tiles().filter((t) => t.id !== 'signature');
+    return expandable.length > 0 && expandable.every((t) => open.has(t.id));
+  });
+  toggleAll(): void {
+    this.openTiles.set(this.allOpen() ? new Set() : new Set(this.tiles().filter((t) => t.id !== 'signature').map((t) => t.id)));
+  }
 
   isOpen(id: Perspective): boolean {
     return this.openTiles().has(id);

@@ -927,6 +927,9 @@
         "journalEmpty": "Noch nichts — Werksausstattung.",
         "allPorts": "Alle {{n}} Ports",
         "perspectives": "Perspektiven",
+        "decksAria": "Decks",
+        "deckOutside": "Außen",
+        "deckInside": "Innen",
         "percentileAria": "Perzentil {{p}}",
         "say": {
           "gap": "Für diese Perspektive liefert das Vergleichsfeld keinen Rang.",
@@ -987,13 +990,15 @@
         "cooling": "Kühllast",
         "coolingValue": "{{used}} / {{total}}",
         "stealthPreset": "Schleichen",
-        "expand": "Leiste ausklappen",
-        "collapse": "Leiste einklappen",
+        "expand": "Energie und Perspektiven zeigen",
+        "collapse": "Energie und Perspektiven schließen",
         "presetTag": "Preset",
-        "minimize": "Leiste minimieren",
-        "restore": "Ganze Leiste einblenden",
-        "cohortRole": "{{n}} × {{role}}"
+        "cohortRole": "{{n}} × {{role}}",
+        "dockAria": "Energie und Perspektiven"
       },
+      "below": {"parts": "Bauteile im Detail", "partsCount": "{{n}} verbaut", "areaEmpty": "Keine Bauteile in diesem Bereich."},
+      "persp": {"lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.", "leadNoCohort": "Bewertet als {{mission}}.", "allShow": "Alle Werte aller vier ▾", "allHide": "Alle Werte zuklappen ▴"},
+      "side": {"variants": "Varianten & Vergleich"},
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -1376,7 +1381,8 @@
         "competition": "Rennschiffe"
       },
       "group": {
-        "of": "Alle {{name}}"
+        "of": "Alle {{name}}",
+        "smallHint": "Nur {{n}} Schiffe in dieser Gruppe, der Vergleich ist entsprechend grob."
       },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
       "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
