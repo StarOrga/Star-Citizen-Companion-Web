@@ -47,6 +47,19 @@ const WORKTREES = join(REPO, '.claude', 'worktrees');
 const RUNNER = join(WORKTREES, RUNNER_NAME);
 /** Tools that only make sense with someone watching, or that outlive a print-mode run. */
 const DISALLOWED = 'AskUserQuestion,EnterPlanMode,ExitPlanMode,ScheduleWakeup,CronCreate,CronDelete,RemoteTrigger,Monitor,Workflow,EnterWorktree,ExitWorktree';
+/**
+ * Pinned, never inherited: without these the run took whatever the CLI default was that day
+ * (Opus until 2026-11-06, then Sonnet). `complex` topics raise the effort per worker inside the run
+ * (SKILL.md STEP 3), not here. Overridable for a one-off experiment via env.
+ */
+const RUN_MODEL = process.env.SCC_ROUTINE_MODEL || 'opus';
+const RUN_EFFORT = process.env.SCC_ROUTINE_EFFORT || 'medium';
+/**
+ * Prompt cache for the headless run only: 5-minute TTL instead of the 1-hour one. A 1-hour write costs
+ * 2x input, a 5-minute write 1.25x; the run is a dense loop, so the short TTL still hits on nearly
+ * every turn. Caching stays ON: without it every turn re-pays the whole context at full price.
+ */
+const RUN_CACHE_ENV = { FORCE_PROMPT_CACHING_5M: '1' };
 const LOG_KEEP_DAYS = 14;
 
 mkdirSync(LOGS, { recursive: true });
@@ -522,10 +535,10 @@ async function supervise(sid) {
     }
     const logFile = join(LOGS, `run-${run.startedIso.slice(0, 10)}-${sid.slice(0, 8)}.jsonl`);
     const out = openSync(logFile, 'a');
-    const env = { ...process.env, SCC_ROUTINE_HEADLESS: '1', CLAUDE_CODE_SESSION_ID: sid };
+    const env = { ...process.env, ...RUN_CACHE_ENV, SCC_ROUTINE_HEADLESS: '1', CLAUDE_CODE_SESSION_ID: sid };
     for (const k of ['CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_SSE_PORT']) delete env[k];
     const bin = claudeBin();
-    const child = spawn(bin, ['-p', '--session-id', sid, '--dangerously-skip-permissions', '--disallowedTools', DISALLOWED, '--output-format', 'stream-json', '--verbose'],
+    const child = spawn(bin, ['-p', '--session-id', sid, '--model', RUN_MODEL, '--effort', RUN_EFFORT, '--dangerously-skip-permissions', '--disallowedTools', DISALLOWED, '--output-format', 'stream-json', '--verbose'],
       { cwd, env, stdio: ['pipe', out, out], windowsHide: true, shell: /\.cmd$/i.test(bin) });
     saveRun({ childPid: child.pid, logFile });
     child.stdin.on('error', () => { /* a process that died at start reports through its exit */ });
